@@ -14,6 +14,7 @@ import { getStations } from "./station";
 import { getLevel1s, getLevel2s, getLevel3s } from "./stm";
 import { getTraverses } from "./traverse";
 import { getStmRules } from "./stmRules";
+import { getFolders } from "./folder";
 
 const router = express.Router();
 
@@ -80,6 +81,7 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
     level3s: [],
     stmRules: [],
     traverses: [],
+    folders: [],
   };
 
   everything.mission = (await getMission(missionId))?.[0];
@@ -96,6 +98,7 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
   everything.level3s = await getLevel3s(missionId);
   everything.stmRules = await getStmRules(missionId);
   everything.traverses = await getTraverses(missionId);
+  everything.folders = await getFolders(missionId);
 
   return everything;
 }

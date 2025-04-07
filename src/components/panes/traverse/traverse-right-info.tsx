@@ -1,4 +1,5 @@
 import {
+  faCalculator,
   faFloppyDisk,
   faLightbulb,
   faMessage,
@@ -12,20 +13,21 @@ import {
   PathColorPickerMenu,
 } from "components/interface/form/globalFields";
 import { FunctionComponent } from "react";
-import { upsertTraverseByField } from "store/traverse";
+import { setSelectedTraverseRightNavItem, upsertTraverseByField } from "store/traverse";
 import { refEqual, shallowEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
-import evaStyles from "./eva.module.css";
+import traverseStyles from "./traverse.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetTraverse } from "store/thunk/thunkTraverse";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
-import { makeTraverseRateString } from "utils/component-helpers";
+import { displayFormattedTotalTimeObj, makeTraverseRateString } from "utils/component-helpers";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
+import CalculatedDwell from "../calculated-dwell";
 
-const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -57,7 +59,10 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
     (state) =>
       getCalculatedFieldsByTraverse({
         traverseUuid: selectedTraverse.uuid,
-        wholeStoreState: state,
+        traverses: state.traverse.traverses,
+        mission: state.mission.mission,
+        evas: state.eva.evas,
+        actions: state.action.actions,
       }),
     deepEqual
   );
@@ -134,7 +139,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "4px" }}>
-              <SubpanelHeading icon={faLightbulb}>Predicted Values</SubpanelHeading>
+              <SubpanelHeading icon={faLightbulb}>Movement Estimates</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
@@ -302,7 +307,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                   {editMode && mapAction === "editPolyline" ? (
                     saveButtonState === "pending" ? (
                       <>
-                        <span className={evaStyles.statusLoading} />
+                        <span className={traverseStyles.statusLoading} />
                       </>
                     ) : (
                       <>
@@ -338,7 +343,7 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Distance (m):</div>
+                      <div className={paneStyles.displayFieldLabel}>Movement Distance (m):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
@@ -348,11 +353,11 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Duration (mins):</div>
+                      <div className={paneStyles.displayFieldLabel}>Movement Duration (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields.durationMinutes.toFixed(2)}
+                        {calculatedFields.durationMinutes.toFixed(0)}
                       </div>
                     </div>
                   </div>
@@ -423,6 +428,89 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
           </div>
 
           <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+              <SubpanelHeading icon={faCalculator}>Action Calculated Totals</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div
+                    className={paneStyles.panelColumnTableRow}
+                    onClick={() => {
+                      dispatch(setSelectedTraverseRightNavItem("actions_panel"));
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {calculatedFields?.actionCount}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Total Action Time (mins):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {calculatedFields?.totalActionTime?.durationLower === 0 ? (
+                          <>0</>
+                        ) : (
+                          <>{displayFormattedTotalTimeObj(calculatedFields?.totalActionTime)}</>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Total Mass (g):</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {calculatedFields?.totalMass}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={paneStyles.panelColumnTable}>
+                  <CalculatedDwell actionsCalculatedFields={calculatedFields} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+              <SubpanelHeading icon={faCalculator}>Total</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>
+                        Total Duration of Actions and Movement (mins):
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {(
+                          calculatedFields?.totalDwellTime.durationUpper +
+                          calculatedFields?.durationMinutes
+                        ).toFixed(0)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
@@ -444,4 +532,4 @@ const EvaRightTraverseInfo: FunctionComponent<{ editMode: boolean }> = ({ editMo
   );
 };
 
-export default EvaRightTraverseInfo;
+export default Info_Panel;

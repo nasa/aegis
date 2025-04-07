@@ -18,7 +18,7 @@
   flex-direction: row;
   background-color: #1f2026;
   column-gap: 8px;
-  height: -webkit-fill-available;
+  height: 100%;
 }
 
 .leftPanel {

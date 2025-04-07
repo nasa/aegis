@@ -1,7 +1,6 @@
-import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/core";
-import { Mission_db } from "./_allModels";
+import { Collection, Entity, ManyToOne, OneToMany, PrimaryKey, Property } from "@mikro-orm/core";
+import { Mission_db, Action_db } from "./_allModels";
 import { types as MikroTypes } from "@mikro-orm/core";
-
 @Entity()
 export class Traverse_db implements Traverse_db_type {
   @PrimaryKey({ type: MikroTypes.string, unique: true })
@@ -9,6 +8,8 @@ export class Traverse_db implements Traverse_db_type {
 
   @ManyToOne(() => Mission_db, { unique: false, primary: false })
   mission!: Mission_db;
+  @OneToMany(() => Action_db, (i) => i.traverse) //one traverse has many actions
+  action = new Collection<Action_db>(this);
 
   @Property({ type: MikroTypes.text })
   name!: string;
@@ -30,6 +31,8 @@ export class Traverse_db implements Traverse_db_type {
   traverseRate: number;
   @Property({ type: MikroTypes.string, nullable: true })
   color: string;
+  @Property({ type: MikroTypes.json, nullable: true })
+  actionOrderUuids: string[];
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

@@ -62,6 +62,7 @@ interface PresetState {
   presetLayersUIStates: LayersUIStates;
   presetCirclesUIStates: CirclesUIStates;
   presetsEditing: string[];
+  presetPreviewTime: string;
 }
 
 interface STMViewExpandedItem {
@@ -91,7 +92,6 @@ interface InterfaceState {
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
   actionsExpanded: string[];
-  socketStatus: SocketStatus;
   stmViewExpandedItems: STMViewExpandedItem[];
   stmViewSelectedEvas: string[];
   stmViewSelectedActionTypes: ActionType[];
@@ -100,6 +100,10 @@ interface InterfaceState {
   stmViewHoveredTopItem: string;
   stmViewHoveredLeftItem: string;
   stmRulesSelectedRexes: string[];
+  folders: Folder[];
+  foldersInterface: FolderInterface[];
+  appVersion: AppVersion;
+  socketStatus: ClientSocketStatus;
 }
 
 interface STMState {
@@ -201,11 +205,12 @@ type StationCalculatedFields = CalculatedFields &
     equipmentItems: EquipmentItemUsage[];
   };
 
-type TraverseCalculatedFields = CalculatedFields & {
-  durationMinutes: number;
-  distanceMeters: number;
-  ascentDescent: TotalAscentDescentObj;
-};
+type TraverseCalculatedFields = CalculatedFields &
+  ActionsCalculatedFields & {
+    durationMinutes: number;
+    distanceMeters: number;
+    ascentDescent: TotalAscentDescentObj;
+  };
 
 type EvaReportSequenceItem = EvaSequenceItem & {
   name: string;

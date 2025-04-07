@@ -62,10 +62,14 @@ export const makeExportActions = (params: {
   actions: Action[];
   stations: Station[];
   pois: POI[];
-  stmStore: STMState;
+  level1s: STMLevel1[];
+  level2s: STMLevel2[];
+  level3s: STMLevel3[];
   mission: Mission;
 }): ExportAction[] => {
-  const { actions, mission, stations, pois, stmStore } = params;
+  const { actions, mission, stations, pois, level1s, level2s, level3s } = params;
+
+  const actionDefinitions: ActionDefinitions = mission.actionDefinitions;
   const exportActions: ExportAction[] = actions.map((action) => {
     const exportAction: ExportAction = {
       ...action,
@@ -73,11 +77,11 @@ export const makeExportActions = (params: {
       descriptionReadable: decodeWsywig(action.description),
       parentStationName: stations.find((s) => s.uuid === action.stationUuid)?.name,
       parentPoiName: pois.find((p) => p.uuid === action.poiUuid)?.name,
-      stmNames: getStmNames({
+      stmUuidRefsReadable: getStmNames({
         stmUuidRefs: action.stmUuidRefs,
-        level1s: stmStore.level1s,
-        level2s: stmStore.level2s,
-        level3s: stmStore.level3s,
+        level1s: level1s,
+        level2s: level2s,
+        level3s: level3s,
       }),
       iconEmojiDecoded: decodeEmoji(action.icon),
       equipmentItemsUsageReadable: makeEquipmentReadable({
@@ -87,6 +91,17 @@ export const makeExportActions = (params: {
       geographicalUnitsReadable: action.geographicUnitsUsage?.map((geographicUnitUsageUuid) => {
         return mission.geographicUnits.find((g) => g.uuid === geographicUnitUsageUuid)?.name;
       }),
+      //Verb of noun in adjective
+      actionDefinitionReadable: makeReadableActionDefinition({
+        action,
+        actionDefinitions,
+      }),
+      stmPrioritiesReadable: action.stmPriorities
+        ? Object.entries(action.stmPriorities).map(([uuid, priority]) => ({
+            uuid,
+            priority,
+          }))
+        : null,
     };
     return exportAction;
   });
@@ -95,13 +110,13 @@ export const makeExportActions = (params: {
 };
 
 export const makeExportPois = (params: {
-  poiStore: PoiState;
+  pois: POI[];
   poiCalculatedFields: PoiCalculatedFields[];
   actions: ExportAction[];
-  missionStore: MissionState;
+  mission: Mission;
 }): ExportPOI[] => {
-  const { poiStore, poiCalculatedFields, actions, missionStore } = params;
-  const exportPois: ExportPOI[] = poiStore.pois.map((poi) => {
+  const { pois, poiCalculatedFields, actions, mission } = params;
+  const exportPois: ExportPOI[] = pois.map((poi) => {
     const actionsReadable: ExportAction[] = [];
     poi.actionOrderUuids.forEach((actionUuid) => {
       const action = actions.find((a) => a.uuid === actionUuid);
@@ -113,7 +128,7 @@ export const makeExportPois = (params: {
       actionsReadable,
       descriptionReadable: decodeWsywig(poi.description),
       calculatedFields: poiCalculatedFields.find((c) => c.uuid === poi.uuid),
-      elevationRelative: poi.elevation - missionStore.mission.landerElevationMeters,
+      elevationRelative: poi.elevation - mission.landerElevationMeters,
       iconEmojiDecoded: decodeEmoji(poi.icon),
     };
     return exportPoi;
@@ -122,14 +137,14 @@ export const makeExportPois = (params: {
 };
 
 export const makeExportStations = (params: {
-  stationStore: StationState;
+  stations: Station[];
   stationCalculatedFields: StationCalculatedFields[];
   actions: ExportAction[];
-  missionStore: MissionState;
+  mission: Mission;
   pois: POI[];
 }): ExportStation[] => {
-  const { stationStore, stationCalculatedFields, actions, missionStore, pois } = params;
-  const exportStations: ExportStation[] = stationStore.stations.map((station) => {
+  const { stations, stationCalculatedFields, actions, mission, pois } = params;
+  const exportStations: ExportStation[] = stations.map((station) => {
     const actionsReadable: ExportAction[] = [];
     station.actionOrderUuids.forEach((actionUuid: string) => {
       const action = actions.find((a) => a.uuid === actionUuid);
@@ -145,10 +160,10 @@ export const makeExportStations = (params: {
         equipmentItemsReadable: makeEquipmentReadable({
           equipmentItems: stationCalculatedFields.find((c) => c.uuid === station.uuid)
             ?.equipmentItems,
-          mission: missionStore.mission,
+          mission: mission,
         }),
       } as ExportStationCalculatedFields,
-      elevationRelative: station.elevation - missionStore.mission.landerElevationMeters,
+      elevationRelative: station.elevation - mission.landerElevationMeters,
       iconEmojiDecoded: decodeEmoji(station.icon),
       poisAssociatedReadable: station.poiUuids?.map((poiUuid) => {
         const poi = pois.find((p) => p.uuid === poiUuid);
@@ -186,9 +201,9 @@ export const makeExportEvas = (params: {
   evaCalculatedFields: EvaCalculatedFields[];
   stations: ExportStation[];
   traverses: ExportTraverse[];
-  missionStore: MissionState;
+  mission: Mission;
 }): ExportEva[] => {
-  const { evas, evaCalculatedFields, stations, traverses, missionStore } = params;
+  const { evas, evaCalculatedFields, stations, traverses, mission } = params;
   const exportEvas: ExportEva[] = evas.map((eva) => {
     const exportEva: ExportEva = {
       ...eva,
@@ -205,7 +220,7 @@ export const makeExportEvas = (params: {
         ...evaCalculatedFields.find((c) => c.uuid === eva.uuid),
         equipmentItemsReadable: makeEquipmentReadable({
           equipmentItems: evaCalculatedFields.find((c) => c.uuid === eva.uuid)?.equipmentItems,
-          mission: missionStore.mission,
+          mission: mission,
         }),
       },
     };
@@ -226,4 +241,30 @@ export const makeExportRexes = (params: { rexes: Rex[] }): ExportRex[] => {
     return exportRex;
   });
   return exportRexes;
+};
+
+export const makeReadableActionDefinition = (params: {
+  action: Action;
+  actionDefinitions: ActionDefinitions;
+}): ActionDefinitionReadable => {
+  const { action, actionDefinitions } = params;
+  if (!action.actionDefinition) return null;
+
+  const verb = actionDefinitions.verbs.find(
+    (verb) => verb.uuid === action.actionDefinition.verbUuid
+  );
+  const noun = actionDefinitions.nouns.find(
+    (noun) => noun.uuid === action.actionDefinition.nounUuid
+  );
+  const adjective = actionDefinitions.adjectives.find(
+    (adjective) => adjective.uuid === action.actionDefinition.adjectiveUuid
+  );
+
+  const readableActionDefintion: ActionDefinitionReadable = {
+    displayString: `${verb?.name} of ${noun?.name} in ${adjective?.name}`,
+    verb: verb,
+    noun: noun,
+    adjective: adjective,
+  };
+  return readableActionDefintion;
 };

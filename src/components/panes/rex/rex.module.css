@@ -3,21 +3,6 @@
   font-weight: 500;
 }
 
-.leftContainer {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.leftBody {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--grey1);
-  overflow-y: auto;
-  height: 0;
-}
-
 .panelContainer {
   background-color: var(--grey2);
   margin: 2px 8px 2px 8px;
@@ -96,6 +81,7 @@
 .nameCaret {
   margin: 2px 5px;
   width: 12px;
+  cursor: pointer !important; /* override the draggableItem cursor */
 }
 
 .evaDropdownContainer {
@@ -419,17 +405,22 @@
   border: none;
   background-color: rgb(0, 0, 0, 0);
 }
+.rexStatusContainer::backdrop {
+  background: transparent;
+}
 .rexStatusMenu {
   position: fixed;
   z-index: 100;
   width: 120px;
   background-color: var(--grey3);
   color: var(--grey5);
+  border: 1px solid var(--grey4);
   border-radius: var(--radius);
   display: flex;
   flex-direction: column;
   font-weight: normal;
 }
+
 .rexStatusMenuItem {
   display: flex;
   flex-direction: row;
@@ -451,7 +442,7 @@
 }
 .rexStatusMenuItem:hover {
   background-color: var(--grey2);
-  border-radius: var(--radius);
+  /* border-radius: var(--radius); */
 }
 .rexStatusMenuItem:not(:last-child) {
   border-bottom: 1px solid var(--grey4);

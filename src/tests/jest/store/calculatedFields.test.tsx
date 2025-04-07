@@ -44,7 +44,8 @@ describe("Calculated fields", () => {
 
     const allCalculatedFields: PoiCalculatedFields[] = [];
     for (const poi of wholeStoreState.poi.pois) {
-      allCalculatedFields.push(getCalculatedFieldsByPoi({ wholeStoreState, poiUuid: poi.uuid }));
+      const actions = wholeStoreState.action.actions;
+      allCalculatedFields.push(getCalculatedFieldsByPoi({ actions, poiUuid: poi.uuid }));
     }
 
     //check poi that has no actions
@@ -118,7 +119,12 @@ describe("Calculated fields", () => {
     const allCalculatedFields: StationCalculatedFields[] = [];
     for (const station of wholeStoreState.station.stations) {
       allCalculatedFields.push(
-        getCalculatedFieldsByStation({ wholeStoreState, stationUuid: station.uuid })
+        getCalculatedFieldsByStation({
+          stations: wholeStoreState.station.stations,
+          mission: wholeStoreState.mission.mission,
+          actions: wholeStoreState.action.actions,
+          stationUuid: station.uuid,
+        })
       );
     }
 
@@ -230,7 +236,13 @@ describe("Calculated fields", () => {
     const allCalculatedFields: TraverseCalculatedFields[] = [];
     for (const traverse of wholeStoreState.traverse.traverses) {
       allCalculatedFields.push(
-        getCalculatedFieldsByTraverse({ wholeStoreState, traverseUuid: traverse.uuid })
+        getCalculatedFieldsByTraverse({
+          traverses: wholeStoreState.traverse.traverses,
+          mission: wholeStoreState.mission.mission,
+          evas: wholeStoreState.eva.evas,
+          traverseUuid: traverse.uuid,
+          actions: wholeStoreState.action.actions,
+        })
       );
     }
     const t1CalcFields = allCalculatedFields.find((c) => c.uuid === traverse1.uuid);
@@ -238,19 +250,43 @@ describe("Calculated fields", () => {
       uuid: traverse1.uuid,
       reportItems: [
         {
-          message: "Calculated traverse duration is over predicted maximum traverse time",
+          message:
+            "Calculated traverse duration (including actions) is over predicted maximum traverse time",
           type: "error",
         },
       ],
       durationMinutes: 10,
       distanceMeters: 500,
       ascentDescent: { totalMetersClimbed: 2, totalMetersDescended: 0 },
+      actionCount: 0,
+      totalActionTime: {
+        durationLower: 0,
+        durationUpper: 0,
+      },
+      totalDwellTime: {
+        durationLower: 0,
+        durationUpper: 0,
+      },
+      totalEv1Time: {
+        durationLower: 0,
+        durationUpper: 0,
+      },
+      totalEv2Time: {
+        durationLower: 0,
+        durationUpper: 0,
+      },
+      totalMass: 0,
+      totalUnassignedTime: {
+        durationLower: 0,
+        durationUpper: 0,
+      },
     });
     const t2CalcFields = allCalculatedFields.find((c) => c.uuid === traverse2.uuid);
     expect(t2CalcFields.durationMinutes).toEqual(30);
     expect(t2CalcFields.reportItems).toEqual([
       {
-        message: "Calculated traverse duration is under predicted nominal traverse time",
+        message:
+          "Calculated traverse duration (including actions) is under predicted nominal traverse time",
         type: "info",
       },
     ]);
@@ -287,7 +323,16 @@ describe("Calculated fields", () => {
 
     const allEvacalculatedFields: EvaCalculatedFields[] = [];
     for (const eva of wholeStoreState.eva.evas) {
-      allEvacalculatedFields.push(getCalculatedFieldsByEva({ wholeStoreState, evaUuid: eva.uuid }));
+      allEvacalculatedFields.push(
+        getCalculatedFieldsByEva({
+          evaUuid: eva.uuid,
+          evas: wholeStoreState.eva.evas,
+          stations: wholeStoreState.station.stations,
+          mission: wholeStoreState.mission.mission,
+          actions: wholeStoreState.action.actions,
+          traverses: wholeStoreState.traverse.traverses,
+        })
+      );
     }
 
     const evaCalcFields = allEvacalculatedFields.find((c) => c.uuid === eva.uuid);

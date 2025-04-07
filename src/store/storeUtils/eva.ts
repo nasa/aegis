@@ -24,6 +24,7 @@ export const generateBlankEVA = (partialEVA?: Partial<Eva>): Eva => {
     egressLocationUuid: "lander",
     ingressLocationUuid: "lander",
     traverseColor: null,
+    datetime: "",
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     updatedAt: null,
   };
@@ -53,6 +54,7 @@ export function convertEVAsTypeDbToStore(dbEVAs: Eva_db[]): Eva[] {
       ingressLocationUuid: dbeva.ingressLocationUuid,
       ownerId: dbeva.ownerId,
       traverseColor: dbeva.traverseColor,
+      datetime: dbeva.datetime,
       createdAt: dbeva.createdAt.toISOString(),
       updatedAt: dbeva.updatedAt.toISOString(),
     };
@@ -84,6 +86,7 @@ export function convertEVAsTypeStoreToDb(storeEVAs: Eva[]): EntityData<Eva_db>[]
       ingressLocationUuid: storeEva.ingressLocationUuid,
       traverseColor: storeEva.traverseColor,
       ownerId: storeEva.ownerId,
+      datetime: storeEva.datetime,
       updatedAt: new Date(storeEva.updatedAt),
       createdAt: new Date(storeEva.createdAt),
     };

@@ -36,8 +36,14 @@ interface Sublayer {
   fillColor: string;
   fillOpacity: number;
   weight: number;
+  isTimeBased: boolean;
+  timeLayerManifest: TimeLayerInfo[];
   createdAt: string;
   updatedAt: string;
+}
+
+interface SublayerToDraw extends Sublayer {
+  chosenTimeLayer: TimeLayerInfo;
 }
 
 type Sublayer_db_type = Omit<Sublayer, "missionId" | "layerUuid" | "createdAt" | "updatedAt"> & {
@@ -55,4 +61,18 @@ interface Legend {
 interface LegendItem {
   color: string;
   description: string;
+}
+
+// datetime is an iso-readable string
+interface TimeLayerJson {
+  datetime: string;
+  dir_name: string;
+}
+
+// datetime, lowerBound, and upperBound should be ISO strings
+interface TimeLayerInfo {
+  datetime: string;
+  dirName: string;
+  lowerBound: string;
+  upperBound: string;
 }

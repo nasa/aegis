@@ -14,6 +14,15 @@ export const initialState: InterfaceState = {
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
   actionsExpanded: [],
+  stmViewExpandedItems: [],
+  stmViewSelectedEvas: [],
+  stmViewSelectedActionTypes: [...actionTypes],
+  stmViewExpandTopTiers: true,
+  stmViewShowCrosshairs: true,
+  stmViewHoveredTopItem: null,
+  stmViewHoveredLeftItem: null,
+  stmRulesSelectedRexes: [],
+  appVersion: null,
   socketStatus: {
     connectionStatus: "disconnected",
     lastEditEvent: null,
@@ -24,16 +33,9 @@ export const initialState: InterfaceState = {
         viewers: 0,
       },
     },
-    AEGISVersion: null,
   },
-  stmViewExpandedItems: [],
-  stmViewSelectedEvas: [],
-  stmViewSelectedActionTypes: [...actionTypes],
-  stmViewExpandTopTiers: true,
-  stmViewShowCrosshairs: true,
-  stmViewHoveredTopItem: null,
-  stmViewHoveredLeftItem: null,
-  stmRulesSelectedRexes: [],
+  folders: [],
+  foldersInterface: [],
 };
 
 export const interfaceSlice = createSlice({
@@ -88,27 +90,6 @@ export const interfaceSlice = createSlice({
         }
       });
     },
-    setLastStatusFromServer: (state, action: { payload: StatusFromServer }) => {
-      state.socketStatus.lastStatusFromServer = action.payload;
-      // due to a store race condition, sometimes the connectionStatus is not "connected". Update it
-      if (state.socketStatus.connectionStatus !== "connected") {
-        state.socketStatus.connectionStatus = "connected";
-      }
-    },
-    setSocketConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
-      state.socketStatus.connectionStatus = action.payload;
-    },
-    setLastEditEvent: (state, action: { payload: EditEvent }) => {
-      state.socketStatus.lastEditEvent = action.payload;
-    },
-
-    setAEGISVersion: (state, action: { payload: string }) => {
-      state.socketStatus.AEGISVersion = action.payload;
-    },
-    obliterateState: (state) => {
-      //eslint-disable-next-line
-      state = Object.assign(state, initialState);
-    },
     stmViewExpandItem: (state, action: { payload: STMViewExpandedItem }) => {
       state.stmViewExpandedItems.push(action.payload);
     },
@@ -162,6 +143,97 @@ export const interfaceSlice = createSlice({
         state.stmRulesSelectedRexes.push(action.payload);
       }
     },
+    setFolders: (state, action: { payload: Folder[] }) => {
+      state.folders = action.payload;
+
+      // Automatically handle folder interfaces when folders are set
+      const existingInterfaces = state.foldersInterface || [];
+      const newFolderInterfaces: FolderInterface[] = [];
+
+      // Check for new folders that need interfaces
+      for (const folder of action.payload) {
+        const existingInterface = existingInterfaces.find((f) => f.uuid === folder.uuid);
+        if (!existingInterface) {
+          newFolderInterfaces.push({
+            uuid: folder.uuid,
+            isOpen: true,
+            visible: true,
+            editing: false,
+            editingNameValue: null,
+          });
+        }
+      }
+
+      // Update interfaces array with new interfaces if any were created
+      if (newFolderInterfaces.length > 0) {
+        state.foldersInterface = [...existingInterfaces, ...newFolderInterfaces];
+      }
+
+      // Remove interfaces for folders that no longer exist
+      const folderUuids = action.payload.map((f) => f.uuid);
+      state.foldersInterface = state.foldersInterface.filter((fi) => folderUuids.includes(fi.uuid));
+    },
+
+    folderToggleOpenClose: (state, action: { payload: { uuid: string } }) => {
+      const folder = state.foldersInterface.find((folder) => folder.uuid === action.payload.uuid);
+      if (folder) {
+        folder.isOpen = !folder.isOpen;
+      }
+    },
+    folderToggleVisible: (state, action: { payload: { uuid: string } }) => {
+      const folder = state.foldersInterface.find((folder) => folder.uuid === action.payload.uuid);
+      if (folder) {
+        folder.visible = !folder.visible;
+      }
+    },
+    setFolderInterfaceEditing: (
+      state,
+      action: { payload: { folderUuid: string; editing: boolean } }
+    ) => {
+      const folder = state.foldersInterface.find((f) => f.uuid === action.payload.folderUuid);
+      if (folder) {
+        folder.editing = action.payload.editing;
+        if (action.payload.editing) {
+          // When setting to editing mode, set the editingNameValue to the current folder name
+          const actualFolder = state.folders.find((f) => f.uuid === action.payload.folderUuid);
+          if (actualFolder) {
+            folder.editingNameValue = actualFolder.name;
+          }
+        } else {
+          // When exiting editing mode, clear the editingNameValue
+          folder.editingNameValue = null;
+        }
+      }
+    },
+    setFolderInterfaceNameValue: (
+      state,
+      action: { payload: { folderUuid: string; editingNameValue: string } }
+    ) => {
+      const folder = state.foldersInterface.find((f) => f.uuid === action.payload.folderUuid);
+      if (folder) {
+        folder.editingNameValue = action.payload.editingNameValue;
+      }
+    },
+    setLastStatusFromServer: (state, action: { payload: StatusFromServer }) => {
+      state.socketStatus.lastStatusFromServer = action.payload;
+      // due to a store race condition, sometimes the connectionStatus is not "connected". Update it
+      if (state.socketStatus.connectionStatus !== "connected") {
+        state.socketStatus.connectionStatus = "connected";
+      }
+    },
+    setSocketConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
+      state.socketStatus.connectionStatus = action.payload;
+    },
+    setLastEditEvent: (state, action: { payload: EditEvent }) => {
+      state.socketStatus.lastEditEvent = action.payload;
+    },
+    setAEGISVersion: (state, action: { payload: AppVersion }) => {
+      state.appVersion = action.payload;
+    },
+    obliterateState: (state) => {
+      //eslint-disable-next-line
+      state = Object.assign(state, initialState);
+    },
   },
   extraReducers: (builder) => {
     // reducer called across slices. This handles this slice's portion of the reducer's state
@@ -185,11 +257,6 @@ export const {
   setShowElevation,
   collapseActions,
   expandActions,
-  setLastStatusFromServer,
-  setSocketConnectionStatus,
-  setLastEditEvent,
-  setAEGISVersion,
-  obliterateState,
   stmViewExpandItem,
   stmViewCollapseItem,
   stmViewSetExpandedItems,
@@ -200,4 +267,14 @@ export const {
   stmViewSetHoveredTopItem,
   stmViewSetHoveredLeftItem,
   stmRulesToggleRex,
+  setFolders,
+  folderToggleOpenClose,
+  folderToggleVisible,
+  setFolderInterfaceEditing,
+  setFolderInterfaceNameValue,
+  setLastStatusFromServer,
+  setSocketConnectionStatus,
+  setLastEditEvent,
+  setAEGISVersion,
+  obliterateState,
 } = interfaceSlice.actions;

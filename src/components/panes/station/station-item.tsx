@@ -35,7 +35,6 @@ const StationItem: FunctionComponent<{
     <div
       aria-label="stationList-item"
       className={stationStyles.stationItem}
-      key={station.uuid}
       onClick={() => {
         if (selectedStationUuid === station.uuid) {
           dispatch(setSelectedStationUuid(null)); //hide station right panel

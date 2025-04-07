@@ -43,6 +43,10 @@ export class Sublayer_db implements Sublayer_db_type {
   fillOpacity: number;
   @Property({ type: MikroTypes.double, nullable: true })
   weight: number;
+  @Property({ type: MikroTypes.boolean, nullable: true })
+  isTimeBased: boolean;
+  @Property({ type: MikroTypes.json, nullable: true })
+  timeLayerManifest: TimeLayerInfo[];
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

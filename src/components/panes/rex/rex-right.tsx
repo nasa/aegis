@@ -2,7 +2,7 @@ import { FunctionComponent } from "react";
 import { refEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import StationEditorRight from "components/panes/station/station-right";
 import EvaRightEva from "components/panes/eva/eva-right-eva";
-import EvaRightTraverse from "components/panes/eva/eva-right-traverse";
+import TraverseEditorRight from "components/panes/traverse/traverse-right";
 import RexRightRex from "components/panes/rex/rex-right-rex";
 
 const RexRight: FunctionComponent = () => {
@@ -23,7 +23,7 @@ const RexRight: FunctionComponent = () => {
           if (sequenceItem.type === "station") {
             rightPanelSetToDisplay = <StationEditorRight />;
           } else if (sequenceItem.type === "traverse") {
-            rightPanelSetToDisplay = <EvaRightTraverse />;
+            rightPanelSetToDisplay = <TraverseEditorRight />;
           }
         }
       });

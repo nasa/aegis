@@ -9,7 +9,7 @@ ARG NODE_BASE_IMAGE=node:20.11.0-alpine
 
 # This build doesn't actually need the "AS base" except that it simplifies our .gitlab-ci.yml by
 # allowing us to specify `--target base`
-FROM $NGINX_BASE_IMAGE as base
+FROM $NGINX_BASE_IMAGE AS base
 
 
 # # # # # # # # #
@@ -17,7 +17,7 @@ FROM $NGINX_BASE_IMAGE as base
 # # # # # # # # #
 
 ### Build the React client
-FROM $NODE_BASE_IMAGE as builder
+FROM $NODE_BASE_IMAGE AS builder
 
 RUN mkdir /clientsrc
 WORKDIR /clientsrc
@@ -39,7 +39,7 @@ RUN npm run vite:build
 
 # This build doesn't actually need the "AS base" except that it simplifies our .gitlab-ci.yml by
 # allowing us to specify `--target base`
-FROM base as prod
+FROM base AS prod
 
 # Clear out the default nginx files
 RUN rm -rf /usr/share/nginx/html/*

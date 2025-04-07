@@ -24,7 +24,7 @@ import { getAlertColor, isModified } from "utils/component-helpers";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
   thunkDeleteEva,
-  thunkEvaCancel,
+  thunkCancelEva,
   thunkGetStationOrTraverse,
   thunkSaveEva,
 } from "store/thunk/thunkEva";
@@ -72,7 +72,11 @@ const EvaRightEva: FunctionComponent = () => {
     (state) =>
       getCalculatedFieldsByEva({
         evaUuid: selectedEvaUuid,
-        wholeStoreState: state,
+        evas: state.eva.evas,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
+        traverses: state.traverse.traverses,
       }),
     deepEqual
   );
@@ -91,7 +95,10 @@ const EvaRightEva: FunctionComponent = () => {
       traverseCalculatedFields.push(
         getCalculatedFieldsByTraverse({
           traverseUuid,
-          wholeStoreState: state,
+          traverses: state.traverse.traverses,
+          mission: state.mission.mission,
+          evas: state.eva.evas,
+          actions: state.action.actions,
         })
       );
     }
@@ -112,7 +119,9 @@ const EvaRightEva: FunctionComponent = () => {
       stationCalculatedFields.push(
         getCalculatedFieldsByStation({
           stationUuid,
-          wholeStoreState: state,
+          stations: state.station.stations,
+          mission: state.mission.mission,
+          actions: state.action.actions,
         })
       );
     }
@@ -300,7 +309,7 @@ const EvaRightEva: FunctionComponent = () => {
                   }
                 }}
                 toolTip="Delete EVA"
-                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "9px" }}
               />
             )}
             {!evasEditing.includes(selectedEvaUuid) && editPerms && (
@@ -334,17 +343,17 @@ const EvaRightEva: FunctionComponent = () => {
                     backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
                     color: modified ? "white" : "var(--grey4)",
                     fontSize: "0.9em",
-                    paddingLeft: "10px",
+                    paddingLeft: "9px",
                   }}
                 />
                 <Button
                   ariaLabel="cancelEva"
                   onClick={() => {
-                    dispatch(thunkEvaCancel({ evaUuid: selectedEva.uuid }));
+                    dispatch(thunkCancelEva({ evaUuid: selectedEva.uuid }));
                   }}
                   icon={faBan}
                   toolTip="Cancel Edit"
-                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "8px" }}
                 />
               </>
             )}

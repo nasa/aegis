@@ -68,6 +68,7 @@ export const generateBlankRex = (partialRex?: Partial<Rex>): Rex => {
     posSources: [posSourceCrew, posSourceTask, posSourceScience],
     stationEntries: null,
     traverseEntries: null,
+    xgressEntries: null,
     actionEntries: null,
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     updatedAt: null,
@@ -124,6 +125,7 @@ export function convertRexesTypeDbToStore(dbRexs: Rex_db[]): Rex[] {
       stationEntries: dbRex.stationEntries,
       traverseEntries: dbRex.traverseEntries,
       actionEntries: dbRex.actionEntries,
+      xgressEntries: dbRex.xgressEntries,
       updatedAt: dbRex.createdAt.toISOString(),
       createdAt: dbRex.updatedAt.toISOString(),
     };
@@ -157,6 +159,7 @@ export function convertRexesTypeStoreToDb(storeRexs: Rex[]): EntityData<Rex_db>[
       stationEntries: storeRex.stationEntries,
       traverseEntries: storeRex.traverseEntries,
       actionEntries: storeRex.actionEntries,
+      xgressEntries: storeRex.xgressEntries,
       updatedAt: new Date(storeRex.updatedAt),
       createdAt: new Date(storeRex.createdAt),
     };

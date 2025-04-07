@@ -27,7 +27,10 @@ import { secondsFromhhmmss } from "utils/formatting";
 import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../../page/petInterval";
 import { getStmUuidRefs } from "store/storeUtils/store";
-import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+import {
+  getCalculatedFieldsByStation,
+  getCalculatedFieldsByTraverse,
+} from "store/processing/calculatedFields";
 import { processEvaDataFromStore } from "./common-timeline";
 
 /**
@@ -68,11 +71,32 @@ const NavTimeline: FunctionComponent = () => {
       allStationCalculatedFields.push(
         getCalculatedFieldsByStation({
           stationUuid: station.uuid,
-          wholeStoreState: state,
+          stations: state.station.stations,
+          mission: state.mission.mission,
+          actions: state.action.actions,
         })
       );
     }
     return allStationCalculatedFields;
+  }, deepEqual);
+  const traverseCalculatedFieldsInSelectedEva = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
+    const traversesInEvaSequence = eva?.sequence
+      ? eva.sequence.filter((s) => s.type === "traverse")
+      : [];
+    const allTraverseCalculatedFields: TraverseCalculatedFields[] = [];
+    for (const traverse of traversesInEvaSequence) {
+      allTraverseCalculatedFields.push(
+        getCalculatedFieldsByTraverse({
+          traverseUuid: traverse.uuid,
+          traverses: state.traverse.traverses,
+          mission: state.mission.mission,
+          evas: state.eva.evas,
+          actions: state.action.actions,
+        })
+      );
+    }
+    return allTraverseCalculatedFields;
   }, deepEqual);
 
   const showDistanceFromLander = useAppSelector(
@@ -140,6 +164,7 @@ const NavTimeline: FunctionComponent = () => {
       missionTraverseRate: mission?.traverseRate,
       missionWalkbackRate: mission?.walkbackRate,
       stationCalculatedFieldsInSelectedEva,
+      traverseCalculatedFieldsInSelectedEva,
       selectedRex,
     });
   }, [
@@ -149,6 +174,7 @@ const NavTimeline: FunctionComponent = () => {
     evaStations,
     evaTraverses,
     stationCalculatedFieldsInSelectedEva,
+    traverseCalculatedFieldsInSelectedEva,
     selectedRex,
   ]);
 
@@ -158,7 +184,7 @@ const NavTimeline: FunctionComponent = () => {
   const processPosEntriesFromStore = useCallback(() => {
     if (!mission || !selectedRex) return;
     const posForPaper: PosEntry_PaperJS[] = [];
-    for (const posEntry of selectedRex.posEntries) {
+    for (const posEntry of selectedRex.posEntries || []) {
       const distFromLander = getDistanceBetweenTwoCoordinates(
         mission.landerLocation,
         posEntry.location,

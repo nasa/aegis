@@ -17,8 +17,7 @@ import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
-  actionCount: number;
-}> = ({ editMode, actionCount }) => {
+}> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const [projBoundsMinX, projBoundsMaxX] = useAppSelector((state) => {
     return [state.mission.mission.projBoundsMinX, state.mission.mission.projBoundsMaxX];
@@ -45,7 +44,7 @@ const Info_Panel: FunctionComponent<{
     (state) =>
       getCalculatedFieldsByPoi({
         poiUuid: selectedPoi.uuid,
-        wholeStoreState: state,
+        actions: state.action.actions,
       }),
     deepEqual
   );
@@ -118,7 +117,9 @@ const Info_Panel: FunctionComponent<{
                       <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>{actionCount}</div>
+                      <div className={paneStyles.displayFieldValue}>
+                        {poiCalcFields?.actionCount}
+                      </div>
                     </div>
                   </div>
                   <div

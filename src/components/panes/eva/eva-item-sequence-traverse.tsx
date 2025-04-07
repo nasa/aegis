@@ -37,7 +37,10 @@ const SequenceItemTraverse: FunctionComponent<{
     (state) =>
       getCalculatedFieldsByTraverse({
         traverseUuid,
-        wholeStoreState: state,
+        traverses: state.traverse.traverses,
+        mission: state.mission.mission,
+        evas: state.eva.evas,
+        actions: state.action.actions,
       }),
     deepEqual
   );
@@ -52,11 +55,15 @@ const SequenceItemTraverse: FunctionComponent<{
     refEqual
   );
 
-  const sequenceItemMetadata = useAppSelector(
+  const sequenceItemCalculatedData = useAppSelector(
     (state) =>
       getCalculatedFieldsByEva({
         evaUuid,
-        wholeStoreState: state,
+        evas: state.eva.evas,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
+        traverses: state.traverse.traverses,
       })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === traverseUuid),
     deepEqual
   );
@@ -99,17 +106,19 @@ const SequenceItemTraverse: FunctionComponent<{
   }
 
   const displayTraverseDuration = useCallback(() => {
-    const durationMinutes = thisTraverseCalculatedFields?.durationMinutes || null;
+    const durationMinutes =
+      thisTraverseCalculatedFields?.durationMinutes +
+        thisTraverseCalculatedFields?.totalActionTime?.durationUpper || null;
     return !isNaN(durationMinutes) ? hmmFromMinutes(durationMinutes) : "N/A";
   }, [thisTraverseCalculatedFields]);
 
   const displayInProgressItemTimeRemaining = useCallback(
     (rexPetSeconds: number) => {
-      if (!sequenceItemMetadata) return "N/A";
-      const secondsRemaining = (sequenceItemMetadata.endSeconds - rexPetSeconds) * -1;
+      if (!sequenceItemCalculatedData) return "N/A";
+      const secondsRemaining = (sequenceItemCalculatedData.endSeconds - rexPetSeconds) * -1;
       return hhmmssFromSeconds(secondsRemaining);
     },
-    [sequenceItemMetadata]
+    [sequenceItemCalculatedData]
   );
 
   const getTraverseDisplay = (name: string) => {

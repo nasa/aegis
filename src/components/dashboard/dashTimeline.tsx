@@ -6,7 +6,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+import {
+  getCalculatedFieldsByStation,
+  getCalculatedFieldsByTraverse,
+} from "store/processing/calculatedFields";
 import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { processEvaDataFromStore } from "../interface/timeline/common-timeline";
 import { selectEvaStations, selecteEvaTraverses } from "store/selectors";
@@ -43,11 +46,31 @@ const DashTimeline: FunctionComponent = () => {
       allStationCalculatedFields.push(
         getCalculatedFieldsByStation({
           stationUuid: station.uuid,
-          wholeStoreState: state,
+          stations: state.station.stations,
+          mission: state.mission.mission,
+          actions: state.action.actions,
         })
       );
     }
     return allStationCalculatedFields;
+  }, deepEqual);
+  const traverseCalculatedFieldsInRunningEva = useAppSelector((state) => {
+    const traversesInEvaSequence = runningEvaFromDb?.sequence
+      ? runningEvaFromDb.sequence.filter((s) => s.type === "traverse")
+      : [];
+    const allTraverseCalculatedFields: TraverseCalculatedFields[] = [];
+    for (const traverse of traversesInEvaSequence) {
+      allTraverseCalculatedFields.push(
+        getCalculatedFieldsByTraverse({
+          traverseUuid: traverse.uuid,
+          traverses: state.traverse.traverses,
+          mission: state.mission.mission,
+          evas: state.eva.evas,
+          actions: state.action.actions,
+        })
+      );
+    }
+    return allTraverseCalculatedFields;
   }, deepEqual);
 
   const storeRef: MutableRefObject<EvaCalculated_PaperJS> = useRef({
@@ -107,6 +130,7 @@ const DashTimeline: FunctionComponent = () => {
       missionTraverseRate: missionFromDb?.traverseRate,
       missionWalkbackRate: missionFromDb?.walkbackRate,
       stationCalculatedFieldsInSelectedEva: stationCalculatedFieldsInRunningEva,
+      traverseCalculatedFieldsInSelectedEva: traverseCalculatedFieldsInRunningEva,
       selectedRex: runningRexFromDb,
     });
   }, [
@@ -116,6 +140,7 @@ const DashTimeline: FunctionComponent = () => {
     evaStations,
     evaTraverses,
     stationCalculatedFieldsInRunningEva,
+    traverseCalculatedFieldsInRunningEva,
     runningRexFromDb,
     pixelsPerSecondY,
     timelineDurationMins,
@@ -222,10 +247,14 @@ const Indicator: FunctionComponent<{
   let completed = false;
   let inProgress = false;
   if (sequenceItem.type === "station") {
-    // find the last stationEntry in the rex for this station
-    const stationEntry = last(rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : []);
-    completed = stationEntry?.rexStatus === "complete";
-    inProgress = stationEntry?.rexStatus === "in-progress";
+    let entry = null;
+    if (sequenceItem.name === "Egress" || sequenceItem.name === "Ingress") {
+      entry = last(rex?.xgressEntries ? rex?.xgressEntries[sequenceItem.uuid] : []);
+    } else {
+      entry = last(rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : []);
+    }
+    completed = entry?.rexStatus === "complete";
+    inProgress = entry?.rexStatus === "in-progress";
   } else if (sequenceItem.type === "traverse") {
     // find the last traverseEntry in the rex for this traverse
     const traverseEntry = last(rex?.traverseEntries ? rex?.traverseEntries[sequenceItem.uuid] : []);
@@ -268,9 +297,13 @@ const StationName: FunctionComponent<{
   const ref = useRef<HTMLDivElement>(null);
 
   let completed = false;
-  // find the last stationEntry in the rex for this station
-  const stationEntry = last(rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : []);
-  completed = stationEntry?.rexStatus === "complete";
+  let entry = null;
+  if (sequenceItem.name === "Egress" || sequenceItem.name === "Ingress") {
+    entry = last(rex?.xgressEntries ? rex?.xgressEntries[sequenceItem.uuid] : []);
+  } else {
+    entry = last(rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : []);
+  }
+  completed = entry?.rexStatus === "complete";
 
   useLayoutEffect(() => {
     const start = sequenceItem.secondsStart * pixelsPerSecondY;

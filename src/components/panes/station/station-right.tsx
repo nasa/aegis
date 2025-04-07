@@ -82,12 +82,14 @@ const StationEditorRight: FunctionComponent = () => {
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
-  const calculatedFields = useAppSelector(
+  const calculatedFieldsReportItems = useAppSelector(
     (state) =>
       getCalculatedFieldsByStation({
         stationUuid: selectedStationUuid,
-        wholeStoreState: state,
-      }),
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
+      })?.reportItems,
     deepEqual
   );
 
@@ -107,7 +109,7 @@ const StationEditorRight: FunctionComponent = () => {
   }
 
   // set reports tab icon color
-  const reportsTabIconColor = getAlertColor(calculatedFields?.reportItems);
+  const reportsTabIconColor = getAlertColor(calculatedFieldsReportItems);
 
   const panelTypes: PanelTypes = {
     info_panel: {
@@ -115,7 +117,6 @@ const StationEditorRight: FunctionComponent = () => {
       panel: Info_Panel,
       panelProps: {
         editMode: stationsEditing.includes(selectedStationUuid),
-        actionCount: calculatedFields?.actionCount,
       },
       selectedColor: "white",
       icon: faCircleInfo,
@@ -150,12 +151,12 @@ const StationEditorRight: FunctionComponent = () => {
       title: "Station Report",
       panel: Report_Panel,
       panelProps: {
-        reportItems: calculatedFields?.reportItems,
+        reportItems: calculatedFieldsReportItems,
         reportTitle: "Station Report",
       },
       selectedColor: reportsTabIconColor === "var(--alert)" ? "var(--error)" : "white",
       unselectedColor: reportsTabIconColor,
-      icon: calculatedFields?.reportItems.length > 0 ? faTriangleExclamation : faCheck,
+      icon: calculatedFieldsReportItems?.length > 0 ? faTriangleExclamation : faCheck,
     },
   };
 
@@ -243,7 +244,7 @@ const StationEditorRight: FunctionComponent = () => {
                   }
                 }}
                 toolTip="Delete Station"
-                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "9px" }}
               />
             ) : (
               <></>
@@ -293,7 +294,7 @@ const StationEditorRight: FunctionComponent = () => {
                         saveButtonState === "enabled" ? "var(--alert)" : "var(--alert-disabled)",
                       color: saveButtonState === "enabled" ? "white" : "var(--grey4)",
                       fontSize: "0.9em",
-                      paddingLeft: "10px",
+                      paddingLeft: "9px",
                     }}
                   />
                   <Button
@@ -307,7 +308,7 @@ const StationEditorRight: FunctionComponent = () => {
                     }}
                     icon={faBan}
                     toolTip="Cancel Edit"
-                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "10px" }}
+                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "8px" }}
                   />
                 </>
               )

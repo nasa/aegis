@@ -62,7 +62,9 @@ const SequenceItemStation: FunctionComponent<{
     (state) =>
       getCalculatedFieldsByStation({
         stationUuid,
-        wholeStoreState: state,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
       }),
     deepEqual
   );
@@ -78,11 +80,15 @@ const SequenceItemStation: FunctionComponent<{
     refEqual
   );
 
-  const sequenceItemMetadata = useAppSelector(
+  const sequenceItemCalculatedData = useAppSelector(
     (state) =>
       getCalculatedFieldsByEva({
         evaUuid,
-        wholeStoreState: state,
+        evas: state.eva.evas,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
+        traverses: state.traverse.traverses,
       })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === stationUuid),
     deepEqual
   );
@@ -154,11 +160,11 @@ const SequenceItemStation: FunctionComponent<{
 
   const displayInProgressItemTimeRemaining = useCallback(
     (rexPetSeconds: number) => {
-      if (!sequenceItemMetadata) return "N/A";
-      const secondsRemaining = (sequenceItemMetadata.endSeconds - rexPetSeconds) * -1;
+      if (!sequenceItemCalculatedData) return "N/A";
+      const secondsRemaining = (sequenceItemCalculatedData.endSeconds - rexPetSeconds) * -1;
       return hhmmssFromSeconds(secondsRemaining);
     },
-    [sequenceItemMetadata]
+    [sequenceItemCalculatedData]
   );
 
   const handleSequenceItemClick = useCallback(

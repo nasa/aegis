@@ -97,6 +97,7 @@
 
 .evaActionsStationTitleContainer {
   display: flex;
+  align-items: center;
   flex-direction: row;
   font-size: 0.8rem;
   padding: 5px 0 5px 6px;

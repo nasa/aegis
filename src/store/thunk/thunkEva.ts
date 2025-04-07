@@ -16,17 +16,20 @@ import { makeUniqueStringCopy } from "utils/names/duplicate";
 import {
   setTraverseEditMode,
   upsertTraverses,
-  upsertTraversesFromDb,
   deleteTraversesFromDbByUuid,
   deleteTraversesByUuid,
+  upsertTraversesFromDb,
 } from "store/traverse";
 import * as httpClient_Eva from "http-client/eva";
 import * as httpClient_Traverse from "http-client/traverse";
 import * as httpClient_Rex from "http-client/rex";
 import cloneDeep from "lodash/cloneDeep";
-import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
+import {
+  thunkDuplicateTraverse,
+  thunkFullUpdateTraverse,
+  thunkUpdateTraversesAroundStation,
+} from "./thunkTraverse";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
-import { isModified } from "utils/component-helpers";
 import { thunkDuplicateStation } from "./thunkStation";
 import { upsertRex, upsertRexFromDb } from "store/rex";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
@@ -54,40 +57,8 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   if (!evaUuid) return;
   const eva = getState().eva.evas.find((e) => e.uuid === evaUuid);
 
-  // find out if the traverses in this eva have been modified and need to be persisted
-  const traverseUuidsInThisEva: string[] = [];
-  eva.sequence.forEach((sequenceItem) => {
-    if (sequenceItem.type === "traverse") {
-      traverseUuidsInThisEva.push(sequenceItem.uuid);
-    }
-  });
-  const thisEvasTraverses = getState().traverse.traverses.filter((traverse) => {
-    return traverseUuidsInThisEva.includes(traverse.uuid);
-  });
-  const thisEvasTraversesFromDb = getState().traverse.traversesFromDb.filter((traverse) => {
-    return traverseUuidsInThisEva.includes(traverse.uuid);
-  });
-  // upsert the any modified traverses to the DB and update both copies in the store
-  const modifiedTraverses = thisEvasTraverses.flatMap((traverse) => {
-    const traverseFromDb = thisEvasTraversesFromDb.find((t) => t.uuid === traverse.uuid);
-    if (isModified([traverse], [traverseFromDb])) {
-      return {
-        ...traverse,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      } as Traverse;
-    } else {
-      return [];
-    }
-  });
-  if (modifiedTraverses?.length > 0) {
-    const traverseUpsertResponse = await httpClient_Traverse.upsertTraverses(modifiedTraverses);
-    if (traverseUpsertResponse.status === "success") {
-      // upsert the changed Traverse (with new updated date) to the store
-      dispatch(upsertTraverses(traverseUpsertResponse.data, true));
-      dispatch(upsertTraversesFromDb(traverseUpsertResponse.data));
-    }
-  }
   // prune traverses from the db that are no longer in any EVA
+  // this can happen as users are adding/removing stations, and subsequently traverses, from the EVA sequence
   const traverseUuidsInAnyEva: string[] = [];
   getState().eva.evas.forEach((eva) => {
     eva.sequence.forEach((sequenceItem) => {
@@ -124,7 +95,7 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   dispatch(setEvaEditMode({ evaUuid: eva.uuid, editMode: false }));
 });
 
-export const thunkEvaCancel = appCreateAsyncThunk<{
+export const thunkCancelEva = appCreateAsyncThunk<{
   evaUuid: string;
 }>("evaCancel", async ({ evaUuid }, { dispatch, getState }) => {
   const eva = getState().eva.evas.find((evaFromDb) => evaFromDb.uuid === evaUuid);
@@ -168,9 +139,17 @@ export const thunkEvaCancel = appCreateAsyncThunk<{
     const traverseUuids = eva.sequence.filter((s) => s.type === "traverse")?.map((t) => t.uuid);
     if (traverseUuids) {
       dispatch(deleteTraversesByUuid(traverseUuids));
+
+      // also delete them from the DB. traverses are auto saved to the DB when they are created
+      const deleteResponse: WrappedResponse<null> =
+        await httpClient_Traverse.deleteTraverses(traverseUuids);
+      if (deleteResponse.status === "success") {
+        // remove the corresponding traverse from the traversesFromDb store
+        dispatch(deleteTraversesFromDbByUuid(traverseUuids));
+      }
     }
 
-    // eva hasn't been saved to the db. delete the eva and actions from the store
+    // eva hasn't been saved to the db. delete the eva from the store
     dispatch(deleteEvaByUuid(eva.uuid));
     dispatch(thunkSetRightPanelIsOpenIfAuto(false));
   }
@@ -288,14 +267,17 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
     //save the new eva
     dispatch(thunkSaveNewEva({ eva: blankEva }));
 
-    //full update the traverse to get the path
+    // full update the traverse to generate a path.
+    // also save to the db but keep it in edit mode
     await dispatch(
       thunkFullUpdateTraverse({
         traverseUuid: newTraverse.uuid,
         rename: true,
         evaSequence: blankEva.sequence,
+        saveToDb: true,
       })
     );
+    dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: true }));
 
     dispatch(thunkSelectEVASequenceItem({ sequenceItemUuid: null }));
   }
@@ -348,17 +330,8 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{
   );
   //duplicate the traverses
   for (const traverse of evaTraverses) {
-    const newTraverseUuid = uuidv4();
-
     //update this traverse uuid in new eva sequence
     const sequenceIndex = newEva.sequence.findIndex((seqItem) => seqItem.uuid === traverse.uuid);
-    newEva.sequence[sequenceIndex].uuid = newTraverseUuid;
-
-    //make a copy
-    const newTraverse: Traverse = cloneDeep(traverse);
-    newTraverse.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
-    newTraverse.updatedAt = null;
-    newTraverse.uuid = newTraverseUuid;
 
     // build the traverse name
     let nameBefore: string;
@@ -393,9 +366,18 @@ export const thunkDuplicateEva = appCreateAsyncThunk<{
       )?.name;
     }
 
-    newTraverse.name = `${nameBefore} to ${nameAfter}`;
-    dispatch(upsertTraverses([newTraverse]));
-    dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: true }));
+    const newTraverseRes = (
+      await dispatch(
+        thunkDuplicateTraverse({
+          traverseUuid: traverse.uuid,
+          newTraverseName: `${nameBefore} to ${nameAfter}`,
+        })
+      )
+    ).payload;
+    if (newTraverseRes) {
+      // update this traverse uuid in new eva sequence
+      newEva.sequence[sequenceIndex].uuid = newTraverseRes.uuid;
+    }
   }
 
   //new eva is ready to be duplicated in the store.
@@ -408,43 +390,26 @@ export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
     const eva = getState().eva.evas.find((eva) => eva.uuid === evaUuid);
     const newEvaSequence = cloneDeep(eva.sequence);
 
+    // add new station to the end of the sequence
     const newStationSequenceItem: EvaSequenceItem = {
       type: "station",
       uuid: "",
     };
-    if (newEvaSequence.length === 0) {
-      // add traverse for "from lander"
-      const newTraverse = generateBlankTraverse({ missionId: eva.missionId });
-      dispatch(upsertTraverses([newTraverse]));
-      newEvaSequence.push({
-        type: "traverse",
-        uuid: newTraverse.uuid,
-      });
+    newEvaSequence.push(newStationSequenceItem);
 
-      // add new station sequence item
-      newEvaSequence.push(newStationSequenceItem);
+    // create a traverse to add after the station
+    const newTraverse = generateBlankTraverse({ missionId: eva.missionId });
+    newEvaSequence.push({
+      type: "traverse",
+      uuid: newTraverse.uuid,
+    });
+    dispatch(upsertTraverses([newTraverse]));
+    // save the traverse to the DB but keep it in edit mode
+    dispatch(upsertTraversesFromDb([newTraverse]));
+    httpClient_Traverse.upsertTraverses([newTraverse]);
+    dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: true }));
 
-      // add traverse for "to lander"
-      const newTraverse2 = generateBlankTraverse({ missionId: eva.missionId });
-      dispatch(upsertTraverses([newTraverse2]));
-      newEvaSequence.push({
-        type: "traverse",
-        uuid: newTraverse2.uuid,
-      });
-    } else {
-      // add a traverse before the station
-      const newTraverse = generateBlankTraverse({ missionId: eva.missionId });
-      dispatch(upsertTraverses([newTraverse]));
-
-      // add new station to the end of the sequence
-      newEvaSequence.push(newStationSequenceItem);
-
-      // add a traverse after the station that becomes the new "to lander"
-      newEvaSequence.push({
-        type: "traverse",
-        uuid: newTraverse.uuid,
-      });
-    }
+    // update the sequence
     dispatch(setEvaSequence({ evaUuid: eva.uuid, sequence: newEvaSequence }));
 
     // expand the eva item

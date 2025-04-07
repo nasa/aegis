@@ -1,5 +1,4 @@
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
-
 import { hoverSlice, initialState as hoverInitialState } from "./hover";
 import { missionSlice, initialState as missionInitialState } from "./mission";
 import { mapSlice, initialState as mapInitialState } from "./map";

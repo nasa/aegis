@@ -27,7 +27,11 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
     (state) =>
       getCalculatedFieldsByEva({
         evaUuid: runningRexFromDb?.evaUuid,
-        wholeStoreState: state,
+        evas: state.eva.evas,
+        stations: state.station.stations,
+        mission: state.mission.mission,
+        actions: state.action.actions,
+        traverses: state.traverse.traverses,
       }),
     deepEqual
   );
@@ -38,7 +42,9 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
         calculatedFields.push(
           getCalculatedFieldsByStation({
             stationUuid: sequenceItem.uuid,
-            wholeStoreState: state,
+            stations: state.station.stations,
+            mission: state.mission.mission,
+            actions: state.action.actions,
           })
         );
       }
@@ -51,6 +57,11 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
     )?.maxDuration;
     return evaDuration || state.mission.mission?.defaultEvaDuration;
   }, deepEqual);
+
+  const eva = useAppSelector(
+    (state) => state.eva.evasFromDb.find((eva) => eva.uuid === runningRexFromDb?.evaUuid),
+    deepEqual
+  );
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
@@ -68,8 +79,26 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
   let sequenceItemTimeRemaining = "N/A";
   let stationWalkbackTime = "";
   let stationWalkbackDistance = "";
+  let seqItemRexStatus: RexStatus;
+  const egressEntries = runningRexFromDb?.xgressEntries?.["egress"];
+  if (egressEntries && egressEntries.length > 0) {
+    const egressEntry = egressEntries[egressEntries.length - 1];
+    if (egressEntry.rexStatus === "in-progress") {
+      itemInProgressType = "Egress";
+      const secondsRemaining = (eva.egressDuration * 60 - secondsFromhhmmss(rexPetTime)) * -1;
+      sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
+
+      // get location name
+      if (eva.egressLocationUuid === "lander") {
+        itemInProgress = "Lander";
+      } else {
+        // look up the egress location station name using uuid
+        itemInProgress = evaStations.find((s) => s.uuid === eva.egressLocationUuid)?.name;
+      }
+    }
+  }
+
   for (const sequenceItem of runningEvaSequence) {
-    let seqItemRexStatus: RexStatus;
     if (sequenceItem.type === "station") {
       seqItemRexStatus = last(
         runningRexFromDb?.stationEntries && runningRexFromDb?.stationEntries[sequenceItem.uuid]
@@ -100,6 +129,25 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
         (sequenceItemMetadata.endSeconds - secondsFromhhmmss(rexPetTime)) * -1;
       sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
       break;
+    }
+  }
+
+  const ingressEntries = runningRexFromDb?.xgressEntries?.["ingress"];
+  if (ingressEntries && ingressEntries.length > 0) {
+    const ingressEntry = ingressEntries[ingressEntries.length - 1];
+    if (ingressEntry.rexStatus === "in-progress") {
+      itemInProgressType = "Ingress";
+      const secondsRemaining =
+        (evaMaxDuration * 60 + eva.ingressDuration * 60 - secondsFromhhmmss(rexPetTime)) * -1;
+      sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
+
+      // get location name
+      if (eva.egressLocationUuid === "lander") {
+        itemInProgress = "Lander";
+      } else {
+        // look up the ingres location station name using uuid
+        itemInProgress = evaStations.find((s) => s.uuid === eva.egressLocationUuid)?.name;
+      }
     }
   }
 

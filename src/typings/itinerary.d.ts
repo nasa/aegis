@@ -4,16 +4,20 @@ interface Eva {
 
   name: string;
   status: EVAStatus;
+  /**
+   * Does not include ingress/egress location. Starts/ends with a traverse item
+   */
   sequence: EvaSequenceItem[];
   description: string;
-  maxDuration: number; // minutes
-  traverseRate: number; // km/h
-  egressDuration: number; // minutes
-  ingressDuration: number; // minutes
+  maxDuration: number | null; // minutes
+  traverseRate: number | null; // km/h
+  egressDuration: number | null; // minutes
+  ingressDuration: number | null; // minutes
   egressLocationUuid: string; // station uuid or "lander"
   ingressLocationUuid: string; // station uuid or "lander"
   traverseColor: string;
   ownerId: number;
+  datetime: string;
 
   createdAt?: string;
   updatedAt?: string;
@@ -32,6 +36,7 @@ type TraverseStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 interface Traverse {
   uuid: string;
   missionId: number;
+  actionOrderUuids: string[];
 
   name: string;
   status: TraverseStatus;
@@ -71,20 +76,20 @@ interface Station {
   status: StationStatus;
   description: string;
   radius: number;
-  location: AEGISPoint;
-  elevation: number;
-  walkbackPath: AEGISPoint[];
-  walkbackPathSegmentDistances: number[]; //meters
-  walkbackPathSegmentElevations: number[][]; //meters
-  walkbackTraverseRate: number; // km/h
-  icon: string;
+  location: AEGISPoint | null;
+  elevation: number | null;
+  walkbackPath: AEGISPoint[] | null;
+  walkbackPathSegmentDistances: number[] | null; //meters
+  walkbackPathSegmentElevations: number[][] | null; //meters
+  walkbackTraverseRate: number | null; // km/h
+  icon: string | null;
   mapCircleControls: MapCircleControls;
 
   /**
    * The estimated duration of the action, in minutes.
    */
-  durationLower: number; // in minutes
-  durationUpper?: number; // in minutes
+  durationLower: number | null; // in minutes
+  durationUpper?: number | null; // in minutes
 
   createdAt?: string;
   updatedAt?: string;
@@ -133,8 +138,8 @@ interface POI {
   /**
    * The coordinates or series of coordinates of the POI.
    */
-  location: AEGISPoint;
-  elevation: number;
+  location: AEGISPoint | null;
+  elevation: number | null;
 
   /**
    * The emoji of this POI
@@ -149,7 +154,7 @@ interface POI {
   /**
    * Status of this POI
    */
-  status: POIStatus;
+  status: POIStatus | null;
 
   createdAt?: string;
   updatedAt?: string;
@@ -177,19 +182,20 @@ type Action = {
   uuid: string;
   name: string;
 
-  missionId: number;
-  poiUuid?: string;
-  stationUuid?: string;
+  missionId: number | null;
+  poiUuid?: string | null;
+  stationUuid?: string | null;
+  traverseUuid?: string | null;
 
-  parentActionUuid?: string;
-  parentCopyDate?: string;
+  parentActionUuid?: string | null;
+  parentCopyDate?: string | null;
 
-  priority: number; // 1-10
+  priority: number | null; // 1-10
   /**
    * Allow linkage to any part of the STM hierarchy
    */
-  stmUuidRefs: string[];
-  stmPriorities: StmPriorities;
+  stmUuidRefs: string[] | null; // uuid of the STMs selected for this action
+  stmPriorities: StmPriorities | null; // the priority of each STM selected for this action (L/M/H)
   /**
    * The type of action to be taken
    */
@@ -201,7 +207,7 @@ type Action = {
 
   // Action system v2 types
   stmAction: boolean;
-  actionDefinition: ActionDefinition;
+  actionDefinition: ActionDefinition | null;
   //
 
   /**
@@ -215,14 +221,14 @@ type Action = {
   elevation: number | null;
   durationLower: number; // in minutes
   durationUpper?: number; // in minutes
-  equipmentItemsUsage: EquipmentItemUsage[]; // Equipment needed to perform this action.
-  geographicUnitsUsage: string[]; // uuids of geographic units used in this action
+  equipmentItemsUsage: EquipmentItemUsage[] | null; // Equipment needed to perform this action.
+  geographicUnitsUsage: string[] | null; // uuids of geographic units used in this action
   mass: number; // grams
-  status: ActionStatus;
+  status: ActionStatus | null;
   enabled: boolean;
   crewAssigned: Crew[];
   createdAt?: string;
-  updatedAt?: string;
+  updatedAt?: string | undefined;
 };
 
 type Action_db_type = Omit<
@@ -239,7 +245,7 @@ type Action_db_type = Omit<
 };
 
 type ActionStatus = "Archived" | "Candidate" | "In Review" | "Approved";
-
+type ActionParentComponent = "station" | "poi" | "traverse" | "eva";
 type Crew = "EV1" | "EV2";
 
 //Filter options when getting actions from the API endpoint
@@ -250,10 +256,11 @@ interface ActionFilterOptions {
   stationUuid?: string;
 }
 
-//Contians both parent uuid types for Action
+//Contians parent uuid types for Action
 type ActionParentUuid = {
   poiUuid?: string;
   stationUuid?: string;
+  traverseUuid?: string;
 };
 
 type ActionHighlight = {

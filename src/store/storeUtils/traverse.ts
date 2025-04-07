@@ -21,6 +21,7 @@ export const generateBlankTraverse = (partialTraverse?: Partial<Traverse>): Trav
     pathSegmentElevations: null,
     status: null,
     color: null,
+    actionOrderUuids: [],
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     updatedAt: null,
   };
@@ -48,6 +49,7 @@ export function convertTraversesTypeDbToStore(dbTraverses: Traverse_db[]): Trave
       description: dbTraverse.description,
       traverseRate: dbTraverse.traverseRate,
       color: dbTraverse.color,
+      actionOrderUuids: dbTraverse.actionOrderUuids,
       createdAt: dbTraverse.createdAt.toISOString(),
       updatedAt: dbTraverse.updatedAt.toISOString(),
     };
@@ -79,6 +81,7 @@ export function convertTraversesTypeStoreToDb(
       description: storeTraverse.description,
       traverseRate: storeTraverse.traverseRate,
       color: storeTraverse.color,
+      actionOrderUuids: storeTraverse.actionOrderUuids,
       updatedAt: new Date(storeTraverse.updatedAt),
       createdAt: new Date(storeTraverse.createdAt),
     };

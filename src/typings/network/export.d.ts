@@ -3,10 +3,24 @@ interface ExportAction extends Action {
   descriptionReadable: string;
   parentPoiName: string;
   parentStationName: string;
-  stmNames: string[];
+  stmUuidRefsReadable: string[];
   iconEmojiDecoded: string;
-  equipmentItemsUsageReadable: EquipmentItemUsageReadable[];
-  geographicalUnitsReadable: string[];
+  equipmentItemsUsageReadable: EquipmentItemUsageReadable[] | null;
+  geographicalUnitsReadable: string[] | null;
+  actionDefinitionReadable: ActionDefinitionReadable | null;
+  stmPrioritiesReadable: StmPriorityReadable[] | null;
+}
+
+interface ActionDefinitionReadable {
+  displayString: string;
+  verb: ActionDefinitionItem;
+  noun: ActionDefinitionItem;
+  adjective: ActionDefinitionItem;
+}
+
+interface StmPriorityReadable {
+  uuid: string;
+  priority: number;
 }
 
 interface ExportPOI extends POI {
@@ -74,3 +88,6 @@ type ExportedData = {
   evas: ExportEva[];
   rexes: ExportRex[];
 };
+
+// fix to avoid circular dependency, if you don't have this, schema:create:mission will fail in building apiv1 container
+interface ExportMission extends Mission {}

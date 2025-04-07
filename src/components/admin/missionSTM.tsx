@@ -10,6 +10,8 @@ import {
 } from "http-client/stm";
 import STMEdit from "components/admin/stmEdit";
 import stmStyles from "./stmEdit.module.css";
+import { faCaretDown, faCaretUp } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const MissionSTM: FunctionComponent<{
   mission: Mission;
@@ -128,12 +130,31 @@ const Level1List: FunctionComponent<{
   mission: Mission;
   delSTM: (uuid: string, stmType: string) => void;
 }> = ({ level1s, level2s, level3s, mission, delSTM }) => {
+  const [collapsedSTMLevel1s, setCollapsedSTMLevel1s] = useState<string[]>([]);
+  const [collapsedSTMLevel2s, setCollapsedSTMLevel2s] = useState<string[]>([]);
+
   if (level1s.length > 0) {
     return (
       <ul>
         {level1s.map((objv: STMLevel1) => {
           return (
             <li key={objv.uuid}>
+              <FontAwesomeIcon
+                icon={collapsedSTMLevel1s.includes(objv.uuid) ? faCaretUp : faCaretDown}
+                onClick={() => {
+                  if (!collapsedSTMLevel1s.includes(objv.uuid)) {
+                    const newCollapsed = [...collapsedSTMLevel1s];
+                    newCollapsed.push(objv.uuid);
+                    setCollapsedSTMLevel1s(newCollapsed);
+                  } else {
+                    setCollapsedSTMLevel1s(
+                      collapsedSTMLevel1s.filter((uuid) => uuid !== objv.uuid)
+                    );
+                  }
+                }}
+                className={adminStyles.collapsable}
+              />
+              &nbsp;
               <STMUpdateFields
                 stm={objv}
                 stmLevelName={mission.stmLevel1Name}
@@ -148,13 +169,17 @@ const Level1List: FunctionComponent<{
                   }
                 }}
               />
-              <Level2List
-                parentuuid={objv.uuid}
-                level2s={level2s}
-                level3s={level3s}
-                mission={mission}
-                delSTM={delSTM}
-              />
+              {!collapsedSTMLevel1s.includes(objv.uuid) && (
+                <Level2List
+                  parentuuid={objv.uuid}
+                  level2s={level2s}
+                  level3s={level3s}
+                  mission={mission}
+                  collapsedSTMLevel2s={collapsedSTMLevel2s}
+                  setCollapsedSTMLevel2s={setCollapsedSTMLevel2s}
+                  delSTM={delSTM}
+                />
+              )}
             </li>
           );
         })}
@@ -171,8 +196,18 @@ const Level2List: FunctionComponent<{
   level2s: STMLevel2[];
   level3s: STMLevel3[];
   mission: Mission;
+  collapsedSTMLevel2s: string[];
+  setCollapsedSTMLevel2s: Dispatch<SetStateAction<string[]>>;
   delSTM: (uuid: string, stmType: string) => void;
-}> = ({ parentuuid, level2s, level3s, mission, delSTM }) => {
+}> = ({
+  parentuuid,
+  level2s,
+  level3s,
+  mission,
+  collapsedSTMLevel2s,
+  setCollapsedSTMLevel2s,
+  delSTM,
+}) => {
   if (level2s) {
     return (
       <ul>
@@ -181,6 +216,22 @@ const Level2List: FunctionComponent<{
           .map((level2: STMLevel2) => {
             return (
               <li key={level2.uuid}>
+                <FontAwesomeIcon
+                  icon={collapsedSTMLevel2s.includes(level2.uuid) ? faCaretUp : faCaretDown}
+                  onClick={() => {
+                    if (!collapsedSTMLevel2s.includes(level2.uuid)) {
+                      const newCollapsed = [...collapsedSTMLevel2s];
+                      newCollapsed.push(level2.uuid);
+                      setCollapsedSTMLevel2s(newCollapsed);
+                    } else {
+                      setCollapsedSTMLevel2s(
+                        collapsedSTMLevel2s.filter((uuid) => uuid !== level2.uuid)
+                      );
+                    }
+                  }}
+                  className={adminStyles.collapsable}
+                />
+                &nbsp;
                 <STMUpdateFields
                   stm={level2}
                   stmLevelName={mission.stmLevel2Name}
@@ -194,12 +245,14 @@ const Level2List: FunctionComponent<{
                     }
                   }}
                 />
-                <Level3List
-                  parentuuid={level2.uuid}
-                  level3s={level3s}
-                  mission={mission}
-                  delSTM={delSTM}
-                />
+                {!collapsedSTMLevel2s.includes(level2.uuid) && (
+                  <Level3List
+                    parentuuid={level2.uuid}
+                    level3s={level3s}
+                    mission={mission}
+                    delSTM={delSTM}
+                  />
+                )}
               </li>
             );
           })}

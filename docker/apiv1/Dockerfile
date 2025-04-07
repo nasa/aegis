@@ -7,7 +7,7 @@ ARG APIV1_BASE_IMAGE=node:20.11.0-alpine
 # # # # # # # #
 # PROD image  #
 # # # # # # # #
-FROM $APIV1_BASE_IMAGE as prod
+FROM $APIV1_BASE_IMAGE AS prod
 
 RUN mkdir /app
 WORKDIR /app

@@ -50,6 +50,7 @@ import {
 import { Feature } from "geojson";
 import { getGrids } from "http-client/grid";
 import PresetMenu from "../interface/map/map-menu-preset";
+import { addTimeToDateTime } from "utils/timeLayers";
 import { EARTH_RADIUS } from "utils/consts";
 
 const MapBody: FunctionComponent<{
@@ -171,11 +172,13 @@ const MapBody: FunctionComponent<{
     show: true,
     showLabels: false,
   });
-  const [showGridLabels, setShowGridLabels] = useState(true);
-  const [showGridLines, setShowGridLines] = useState(true);
-  const [showSunEarth, setShowSunEarth] = useState(true);
-  const [chosenGrid, setChosenGrid] = useState(undefined);
-  const [gridBounds, setGridBounds] = useState(undefined);
+  const [showGridLabels, setShowGridLabels] = useState<boolean>(true);
+  const [showGridLines, setShowGridLines] = useState<boolean>(true);
+  const [showSunEarth, setShowSunEarth] = useState<boolean>(true);
+  const [chosenGrid, setChosenGrid] = useState<MissionGrid>(undefined);
+  const [gridBounds, setGridBounds] = useState<GridIndex[]>(undefined);
+  const [mapDateTime, setMapDateTime] = useState<string>(undefined);
+  const [selectedRexDateTime, setSelectedRexDateTime] = useState<string>(null);
 
   /*** end Eyeball menu toggles */
 
@@ -371,6 +374,11 @@ const MapBody: FunctionComponent<{
     if (followModeOptions["traverses"].follow) {
       for (const traverse of traversesInProgress) {
         objectCoordinates = objectCoordinates.concat(traverse.path);
+        for (const action of actionsFromDb) {
+          if (action.traverseUuid === traverse.uuid && action.location && action.enabled) {
+            objectCoordinates.push(action.location);
+          }
+        }
       }
     }
     for (const posTypeUuid in latestPosEntriesByType) {
@@ -378,6 +386,29 @@ const MapBody: FunctionComponent<{
       if (followModeOptions[posTypeUuid]?.follow) {
         objectCoordinates.push(lastPosEntry.location);
       }
+    }
+    // egress and ingress
+    if (last(runningRexFromDb.xgressEntries?.["egress"])?.rexStatus === "in-progress") {
+      let egressCoordinates: AEGISPoint;
+      if (runningEvaFromDb.egressLocationUuid === "lander") {
+        egressCoordinates = mission.landerLocation;
+      } else {
+        egressCoordinates = stationsFromDb.find(
+          (station) => station.uuid === runningEvaFromDb.egressLocationUuid
+        )?.location;
+      }
+      objectCoordinates.push(egressCoordinates);
+    }
+    if (last(runningRexFromDb.xgressEntries?.["ingress"])?.rexStatus === "in-progress") {
+      let ingressCoordinates: AEGISPoint;
+      if (runningEvaFromDb.ingressLocationUuid === "lander") {
+        ingressCoordinates = mission.landerLocation;
+      } else {
+        ingressCoordinates = stationsFromDb.find(
+          (station) => station.uuid === runningEvaFromDb.ingressLocationUuid
+        )?.location;
+      }
+      objectCoordinates.push(ingressCoordinates);
     }
 
     // get max and min coordinate bounds of all objects
@@ -415,6 +446,9 @@ const MapBody: FunctionComponent<{
     traversesInProgress,
     latestPosEntriesByType,
     followMode,
+    runningEvaFromDb,
+    stationsFromDb,
+    runningRexFromDb,
   ]);
 
   /**
@@ -436,6 +470,8 @@ const MapBody: FunctionComponent<{
       selectedPreset,
       missionSublayers,
       missionLayers,
+      mapDateTime,
+      setTimeLayerInfo: null,
     });
 
     drawLayersOnMap({
@@ -443,9 +479,10 @@ const MapBody: FunctionComponent<{
       mapSublayerControls: selectedPreset.mapSublayerControls,
       layersToAddInOrder,
       missionId: mission.id,
+      mapTime: null,
       setGridLabels,
     });
-  }, [mission, map, missionLayers, missionSublayers, selectedPreset]);
+  }, [mission, map, missionLayers, missionSublayers, selectedPreset, mapDateTime]);
 
   /**
    * Update which grid labels are visible based on map zoom level
@@ -513,6 +550,32 @@ const MapBody: FunctionComponent<{
   }, [stationsFromDb, runningEvaFromDb, mapDisplayStations, isWin10]);
 
   /**
+   * Determine current map time and update the map time state
+   */
+  useEffect(() => {
+    if (selectedRexDateTime) {
+      setMapDateTime(selectedRexDateTime);
+    } else {
+      setMapDateTime(null);
+    }
+  }, [selectedRexDateTime]);
+
+  /** Determine time assosiated with currently running rex time */
+  useEffect(() => {
+    if (runningEvaFromDb?.datetime) {
+      if (runningRexFromDb.petRunning && rexPetTime.endsWith("0")) {
+        setSelectedRexDateTime(addTimeToDateTime(runningEvaFromDb.datetime, rexPetTime));
+      } else if (runningRexFromDb) {
+        setSelectedRexDateTime(runningEvaFromDb.datetime);
+      } else {
+        setSelectedRexDateTime(null);
+      }
+    } else {
+      setSelectedRexDateTime(null);
+    }
+  }, [rexPetTime, runningEvaFromDb.datetime, runningRexFromDb]);
+
+  /**
    * Determine actions to show and draw them on map when actions or selections change
    */
   useEffect(() => {
@@ -524,7 +587,11 @@ const MapBody: FunctionComponent<{
         (action) =>
           stationsInProgress.map((s) => s.uuid).includes(action.stationUuid) && action.enabled
       );
-      actionsToShow = actionsInStation;
+      const actionsInTraverse = actionsFromDb.filter(
+        (action) =>
+          traversesInProgress.map((s) => s.uuid).includes(action.traverseUuid) && action.enabled
+      );
+      actionsToShow = [...actionsInStation, ...actionsInTraverse];
     }
 
     // delete all actions in leaflet
@@ -553,7 +620,7 @@ const MapBody: FunctionComponent<{
         });
       }
     });
-  }, [actionsFromDb, stationsInProgress, mapDisplayActions, isWin10]);
+  }, [actionsFromDb, stationsInProgress, mapDisplayActions, isWin10, traversesInProgress]);
 
   /**
    * Determine traverses to show and draw them on map when traverses or selections change

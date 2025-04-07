@@ -343,7 +343,7 @@ const STMRuleStation: FunctionComponent<{
                 editMode={false}
                 actionUuid={action.uuid}
                 highlight={false}
-                parentType={"station"}
+                parentComponent={"station"}
                 parentLocation={station?.location}
                 parentElevation={station?.elevation}
                 rexUuid={rexUuid}
