@@ -50,7 +50,12 @@ const RexRightRex: FunctionComponent = () => {
   const rexesEditing = useAppSelector((state) => state.rex.rexesEditing, deepEqual);
 
   const rexNames = useAppSelector(
-    (state) => state.rex.rexes.map(({ name, uuid }) => ({ name, uuid })),
+    (state) =>
+      state.rex.rexes.map(({ name, uuid }) => {
+        if (uuid !== state.rex.selectedRexUuid) {
+          return name;
+        }
+      }),
     deepEqual
   );
 
@@ -100,7 +105,7 @@ const RexRightRex: FunctionComponent = () => {
                   validators: [
                     validators.required,
                     validators.maxLength(255),
-                    validators.mustBeUnique(selectedRex.uuid, rexNames),
+                    validators.mustBeUnique(rexNames),
                   ],
                 }}
                 styleContainer={{ paddingLeft: 0 }}

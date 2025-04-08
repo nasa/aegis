@@ -99,14 +99,10 @@ const mustBeYYYYMMDD = (value: Stringy): string | undefined => {
 };
 
 const mustBeUnique =
-  (newNameUuid: string, nameList: { uuid: string; name: string }[]) =>
+  (nameList: string[]) =>
   (value: Stringy): string | undefined => {
-    if (!value || !newNameUuid || !nameList) return undefined;
-    if (
-      !nameList.some(
-        (nameElement) => nameElement.name === value && nameElement.uuid !== newNameUuid
-      )
-    ) {
+    if (!value || !nameList) return undefined;
+    if (!nameList.includes(value as string)) {
       return undefined;
     } else {
       return "Name must be unique";

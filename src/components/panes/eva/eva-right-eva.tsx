@@ -131,7 +131,12 @@ const EvaRightEva: FunctionComponent = () => {
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const evaNames = useAppSelector(
-    (state) => state.eva.evas.map(({ name, uuid }) => ({ name, uuid })),
+    (state) =>
+      state.eva.evas.map(({ name, uuid }) => {
+        if (uuid !== selectedEvaUuid) {
+          return name;
+        }
+      }),
     deepEqual
   );
 
@@ -288,7 +293,7 @@ const EvaRightEva: FunctionComponent = () => {
                 validators: [
                   validators.required,
                   validators.maxLength(255),
-                  validators.mustBeUnique(selectedEva.uuid, evaNames),
+                  validators.mustBeUnique(evaNames),
                 ],
               }}
               styleValue={{ padding: 0, height: "auto" }}

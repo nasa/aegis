@@ -65,7 +65,12 @@ const PoiEditorRight: FunctionComponent = () => {
     deepEqual
   );
   const poiNames = useAppSelector(
-    (state) => state.poi.pois.map(({ name, uuid }) => ({ name, uuid })),
+    (state) =>
+      state.poi.pois.map(({ name, uuid }) => {
+        if (uuid !== selectedPoiUuid) {
+          return name;
+        }
+      }),
     deepEqual
   );
 
@@ -161,7 +166,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 validators: [
                   validators.required,
                   validators.maxLength(255),
-                  validators.mustBeUnique(selectedPoiUuid, poiNames),
+                  validators.mustBeUnique(poiNames),
                 ],
               }}
               styleValue={{ padding: 0, height: "auto" }}
