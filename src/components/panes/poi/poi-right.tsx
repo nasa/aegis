@@ -64,7 +64,7 @@ const PoiEditorRight: FunctionComponent = () => {
     (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
     deepEqual
   );
-  const poiNames = useAppSelector(
+  const otherPoiNames = useAppSelector(
     (state) =>
       state.poi.pois.map(({ name, uuid }) => {
         if (uuid !== selectedPoiUuid) {
@@ -166,7 +166,7 @@ const PoiEditorRight: FunctionComponent = () => {
                 validators: [
                   validators.required,
                   validators.maxLength(255),
-                  validators.mustBeUnique(poiNames),
+                  validators.mustBeUnique(otherPoiNames),
                 ],
               }}
               styleValue={{ padding: 0, height: "auto" }}

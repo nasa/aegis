@@ -93,7 +93,7 @@ const StationEditorRight: FunctionComponent = () => {
     deepEqual
   );
 
-  const stationNames = useAppSelector(
+  const otherStationNames = useAppSelector(
     (state) =>
       state.station.stations.map(({ name, uuid }) => {
         if (uuid !== selectedStationUuid) {
@@ -224,7 +224,7 @@ const StationEditorRight: FunctionComponent = () => {
                 validators: [
                   validators.required,
                   validators.maxLength(255),
-                  validators.mustBeUnique(stationNames),
+                  validators.mustBeUnique(otherStationNames),
                 ],
               }}
               styleValue={{ padding: 0, height: "auto" }}

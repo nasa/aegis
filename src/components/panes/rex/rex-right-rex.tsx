@@ -49,7 +49,7 @@ const RexRightRex: FunctionComponent = () => {
   }, deepEqual);
   const rexesEditing = useAppSelector((state) => state.rex.rexesEditing, deepEqual);
 
-  const rexNames = useAppSelector(
+  const otherRexNames = useAppSelector(
     (state) =>
       state.rex.rexes.map(({ name, uuid }) => {
         if (uuid !== state.rex.selectedRexUuid) {
@@ -105,7 +105,7 @@ const RexRightRex: FunctionComponent = () => {
                   validators: [
                     validators.required,
                     validators.maxLength(255),
-                    validators.mustBeUnique(rexNames),
+                    validators.mustBeUnique(otherRexNames),
                   ],
                 }}
                 styleContainer={{ paddingLeft: 0 }}
