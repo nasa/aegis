@@ -102,7 +102,8 @@ const mustBeUnique =
   (nameList: string[]) =>
   (value: Stringy): string | undefined => {
     if (!value || !nameList) return undefined;
-    if (!nameList.includes(value as string)) {
+    const lwrCaseValue = String(value).toLowerCase();
+    if (!nameList.some((name) => name.toLowerCase() === lwrCaseValue)) {
       return undefined;
     } else {
       return "Name must be unique";
