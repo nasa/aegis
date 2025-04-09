@@ -49,6 +49,16 @@ const RexRightRex: FunctionComponent = () => {
   }, deepEqual);
   const rexesEditing = useAppSelector((state) => state.rex.rexesEditing, deepEqual);
 
+  const otherRexNames = useAppSelector(
+    (state) =>
+      state.rex.rexes.map(({ name, uuid }) => {
+        if (uuid !== state.rex.selectedRexUuid) {
+          return name;
+        }
+      }),
+    deepEqual
+  );
+
   const modified = isModified([selectedRex], [selectedRexFromDb]);
 
   const panelTypes: PanelTypes = {
@@ -92,7 +102,11 @@ const RexRightRex: FunctionComponent = () => {
                     color: "var(--rex)",
                     fontSize: "1em",
                   },
-                  validators: [validators.required, validators.maxLength(255)],
+                  validators: [
+                    validators.required,
+                    validators.maxLength(255),
+                    validators.mustBeUnique(otherRexNames),
+                  ],
                 }}
                 styleContainer={{ paddingLeft: 0 }}
                 styleValue={{ padding: 0, height: "auto" }}

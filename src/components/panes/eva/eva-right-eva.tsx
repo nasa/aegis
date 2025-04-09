@@ -130,6 +130,16 @@ const EvaRightEva: FunctionComponent = () => {
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
+  const otherEvaNames = useAppSelector(
+    (state) =>
+      state.eva.evas.map(({ name, uuid }) => {
+        if (uuid !== selectedEvaUuid) {
+          return name;
+        }
+      }),
+    deepEqual
+  );
+
   const [evaReportSequenceItems, setEvaReportSequenceItems] = useState<EvaReportSequenceItem[]>([]);
 
   const evaModifieid = isModified([selectedEva], [selectedEvaFromDb]);
@@ -280,7 +290,11 @@ const EvaRightEva: FunctionComponent = () => {
                   color: "var(--eva)",
                   fontSize: "1em",
                 },
-                validators: [validators.required, validators.maxLength(255)],
+                validators: [
+                  validators.required,
+                  validators.maxLength(255),
+                  validators.mustBeUnique(otherEvaNames),
+                ],
               }}
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingLeft: 0 }}
