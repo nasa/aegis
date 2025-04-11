@@ -1,10 +1,11 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
-import export_poi_schema from "../../../../schema/exportPoi.json";
 import { hasPerms } from "utils/permissions";
 import { makeExportActions, makeExportPois } from "utils/export";
 import { getAll } from "../all";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
+import path from "path";
+import fs from "fs";
 
 const router = express.Router();
 
@@ -82,11 +83,24 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 router.get("/schema", async (req: Request, res: Response): Promise<void> => {
-  res.status(200).json({
-    status: "success",
-    message: "poi schema retrieved",
-    data: export_poi_schema,
-  });
+  try {
+    const schemaFilePath = path.join(process.cwd(), ".local", "schemas", "exportPoi.json");
+    fs.readFile(schemaFilePath, "utf8", (err, data) => {
+      const schema = JSON.parse(data);
+      res.status(200).json({
+        status: "success",
+        message: "poi schema retrieved",
+        data: schema,
+      });
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({
+      status: "error",
+      message: `Error retrieving schema: ${e}`,
+      data: null,
+    });
+  }
   return;
 });
 
