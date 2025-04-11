@@ -86,21 +86,12 @@ router.get("/schema", async (req: Request, res: Response): Promise<void> => {
   try {
     const schemaFilePath = path.join(process.cwd(), ".local", "schemas", "exportPoi.json");
     fs.readFile(schemaFilePath, "utf8", (err, data) => {
-      if (err) {
-        console.error(err);
-        res.status(500).json({
-          status: "error",
-          message: `Error reading schema file: ${err.message}`,
-          data: null,
-        });
-      } else {
-        const schema = JSON.parse(data);
-        res.status(200).json({
-          status: "success",
-          message: "poi schema retrieved",
-          data: schema,
-        });
-      }
+      const schema = JSON.parse(data);
+      res.status(200).json({
+        status: "success",
+        message: "poi schema retrieved",
+        data: schema,
+      });
     });
   } catch (e) {
     console.error(e);
