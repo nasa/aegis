@@ -1,8 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:js-app"],
+  "schedule": ["before 5am on monday"],
   "npm": {
-    "minimumReleaseAge": "3 days"
+    "minimumReleaseAge": "7 days"
   },
   "major": {
     "dependencyDashboardApproval": true
