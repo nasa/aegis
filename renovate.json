@@ -1,6 +1,23 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:base"
+  "extends": ["config:js-app"],
+  "npm": {
+    "minimumReleaseAge": "3 days"
+  },
+  "major": {
+    "dependencyDashboardApproval": true
+  },
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "groupName": "react",
+      "matchPackageNames": ["react", "react-dom"],
+      "labels": ["dependencies", "dependencies-react"]
+    },
+    {
+      "groupName": "ESLint and plugins",
+      "matchPackageNames": ["/eslint/"],
+      "labels": ["dependencies", "dependencies-eslint"]
+    }
   ]
 }
