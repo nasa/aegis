@@ -75,15 +75,15 @@ export const auditPresetsAgainstLayers = async ({
           sublayerUuid: sublayer.uuid,
           visible: false,
           style: {
-            opacity: sublayer.opacity || 1,
-            contrast: 1,
-            brightness: 1,
-            saturation: 1,
-            blendMode: "normal",
-            color: sublayer.color || "#FFFFFF",
-            weight: sublayer.weight || 1,
-            fillColor: sublayer.fillColor || "#FFFFFF",
-            fillOpacity: sublayer.fillOpacity || 0,
+            opacity: sublayer.style.opacity || 1,
+            contrast: sublayer.style.contrast || 1,
+            brightness: sublayer.style.brightness || 1,
+            saturation: sublayer.style.saturation || 1,
+            blendMode: sublayer.style.blendMode || "normal",
+            color: sublayer.style.color || "#FFFFFF",
+            weight: sublayer.style.weight || 1,
+            fillColor: sublayer.style.fillColor || "#FFFFFF",
+            fillOpacity: sublayer.style.fillOpacity || 0,
           },
         };
       }
@@ -105,10 +105,6 @@ export const auditPresetsAgainstLayers = async ({
     const mapCircleControls: MapCircleControls = {};
     wholeStoreState.mission.mission.circleDefinitions?.forEach((circleDef) => {
       if (preset.mapCircleControls[circleDef.uuid]) {
-        // Change "red" to a hex value the picker can show.
-        if (preset.mapCircleControls[circleDef.uuid].style.color === "red") {
-          preset.mapCircleControls[circleDef.uuid].style.color = "#D33115";
-        }
         mapCircleControls[circleDef.uuid] = preset.mapCircleControls[circleDef.uuid];
       } else {
         mapCircleControls[circleDef.uuid] = {
@@ -121,7 +117,7 @@ export const auditPresetsAgainstLayers = async ({
             brightness: 1,
             saturation: 1,
             blendMode: "normal",
-            color: "#D33115",
+            color: "#FFFFFF",
             weight: 1,
             fillColor: "none",
             fillOpacity: 0,
@@ -169,10 +165,6 @@ export const auditStationCircles = async ({
     const mapCircleControls: MapCircleControls = {};
     wholeStoreState.mission?.mission?.circleDefinitions?.forEach((circleDef) => {
       if (newStation.mapCircleControls[circleDef.uuid]) {
-        // Change "red" to a hex value the picker can show.
-        if (newStation.mapCircleControls[circleDef.uuid].style.color === "red") {
-          newStation.mapCircleControls[circleDef.uuid].style.color = "#D33115";
-        }
         mapCircleControls[circleDef.uuid] = newStation.mapCircleControls[circleDef.uuid];
       } else {
         mapCircleControls[circleDef.uuid] = {
@@ -185,7 +177,7 @@ export const auditStationCircles = async ({
             brightness: 1,
             saturation: 1,
             blendMode: "normal",
-            color: "#D33115",
+            color: "#FFFFFF",
             weight: 1,
             fillColor: "none",
             fillOpacity: 0,

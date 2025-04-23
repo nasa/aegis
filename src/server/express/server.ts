@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({ override: true });
 import { createServer, Server as NetServer } from "http";
-import { Server as SocketServer } from "socket.io";
+import { DefaultEventsMap, Server as SocketServer } from "socket.io";
 import app from "./restApi";
 
 import { setupSocketIO } from "./sockets";
@@ -21,7 +21,7 @@ console.log("*Starting Socket.IO");
 globalValues.socketio = new SocketServer<
   ClientToServerEvents,
   ServerToClientEvents,
-  InterServerEvents,
+  DefaultEventsMap,
   SocketData
 >(server, {
   transports: ["websocket"],

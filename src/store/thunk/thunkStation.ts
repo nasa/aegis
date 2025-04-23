@@ -435,7 +435,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
           brightness: 1,
           saturation: 1,
           blendMode: "normal",
-          color: "red",
+          color: "#FFFFFF",
           weight: 1,
           fillColor: "none",
           fillOpacity: 0,

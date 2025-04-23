@@ -5,6 +5,8 @@ import { roundDateToSecond } from "utils/formatting";
 import { validators } from "components/interface/form/formValidators";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
 import { getManifestJsonTimeBounds } from "utils/timeLayers";
+import { validateImportableSublayer } from "utils/validateSchema";
+
 interface SublayerProps {
   sublayer: Sublayer;
   allSublayers: Sublayer[];
@@ -20,7 +22,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
   const [legend, setLegend] = useState<string>(
     props.sublayer.legend ? JSON.stringify(props.sublayer.legend) : ""
   );
-  const [description, setDescription] = useState<string>(props.sublayer.description);
   const [isExternal, setIsExternal] = useState<boolean>(props.sublayer.path?.startsWith("http"));
 
   // update fields when swapping between sublayers
@@ -28,7 +29,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     setSublayer(props.sublayer);
     setBoundingBox(props.sublayer.boundingBox?.toString());
     setLegend(props.sublayer.legend ? JSON.stringify(props.sublayer.legend) : "");
-    setDescription(props.sublayer.description);
     setIsExternal(props.sublayer.path?.startsWith("http"));
   }, [props.sublayer]);
 
@@ -44,10 +44,17 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     alert(`${res.status} - ${res.message}`);
   }
 
+  // timeLayerManifest
   async function loadManifestFromFile(folderName: string) {
     if (sublayer.isTimeBased) {
       //read in the manifest
-      const res = await fetch(`${folderName}/manifest.json`);
+      const res = await fetch(`${folderName}/manifest.json`, {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache", // legacy support
+          Expires: "0", // legacy support
+        },
+      });
       if (res.ok) {
         const manifestJson = await res.json();
         const timeLayerJson: TimeLayerJson[] = manifestJson.time_layers;
@@ -78,13 +85,18 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     }
   }
 
+  // legend
   async function loadLegendFromFile(rootPath: string) {
     //read in the legend
-    const res = await fetch(`${rootPath}/legend.json`);
-    let layerLegend = null;
-    if (res.status === 200) {
-      layerLegend = await res.json();
-    }
+    const res = await fetch(`${rootPath}/legend.json`, {
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache", // legacy support
+        Expires: "0", // legacy support
+      },
+    });
+    if (res.status !== 200) return;
+    const layerLegend = await res.json();
     //set values
     setSublayer((state) => {
       return { ...state, legend: layerLegend };
@@ -92,64 +104,109 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     setLegend(layerLegend ? JSON.stringify(layerLegend) : null);
   }
 
+  // description
   async function loadDescriptionFromFile(rootPath: string) {
     //read in the legend
-    const res = await fetch(`${rootPath}/description.json`);
-    let layerDescription = "";
-    if (res.status === 200) {
-      const descriptionJson: { layerDescription: string } = await res.json();
-      layerDescription = descriptionJson.layerDescription;
-    }
+    const res = await fetch(`${rootPath}/description.json`, {
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache", // legacy support
+        Expires: "0", // legacy support
+      },
+    });
+    if (res.status !== 200) return;
+    const descriptionJson: { layerDescription: string } = await res.json();
+    const layerDescription = descriptionJson.layerDescription;
     //set values
     setSublayer((state) => {
       return { ...state, description: layerDescription };
     });
-    setDescription(layerDescription);
   }
 
+  // boundingBox, minNativeZoom, maxNativeZoom
   async function loadTileMapResourceFromFile(rootPath: string) {
     let minZoom = null;
     let maxZoom = null;
     let boxArray: number[] = [];
-    if (rootPath) {
-      //read in the timemapresource.xml
-      const res = await fetch(`${rootPath}/tilemapresource.xml`);
-      const xmlFileContent = await res.text();
-      if (xmlFileContent) {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(xmlFileContent, "application/xml");
+    //read in the timemapresource.xml
+    const res = await fetch(`${rootPath}/tilemapresource.xml`, {
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache", // legacy support
+        Expires: "0", // legacy support
+      },
+    });
+    if (res.status !== 200) return;
 
-        //get bounding box
-        const xmlBoundingBox = doc.querySelector("BoundingBox");
-        boxArray = [
-          parseFloat(xmlBoundingBox.getAttribute("minx")),
-          parseFloat(xmlBoundingBox.getAttribute("miny")),
-          parseFloat(xmlBoundingBox.getAttribute("maxx")),
-          parseFloat(xmlBoundingBox.getAttribute("maxy")),
-        ];
+    const xmlFileContent = await res.text();
+    if (xmlFileContent) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlFileContent, "application/xml");
 
-        //get min/max zoom
-        const xmlTileSets = doc.querySelector("TileSets").children;
-        for (const xmltileset of xmlTileSets) {
-          const zoom = +xmltileset.getAttribute("href");
-          if (!maxZoom) {
-            maxZoom = zoom;
-          } else {
-            if (zoom > maxZoom) maxZoom = zoom;
-          }
-          if (!minZoom) {
-            minZoom = zoom;
-          } else {
-            if (zoom < minZoom) minZoom = zoom;
-          }
+      //get bounding box
+      const xmlBoundingBox = doc.querySelector("BoundingBox");
+      boxArray = [
+        parseFloat(xmlBoundingBox.getAttribute("minx")),
+        parseFloat(xmlBoundingBox.getAttribute("miny")),
+        parseFloat(xmlBoundingBox.getAttribute("maxx")),
+        parseFloat(xmlBoundingBox.getAttribute("maxy")),
+      ];
+
+      //get min/max zoom
+      const xmlTileSets = doc.querySelector("TileSets").children;
+      for (const xmltileset of xmlTileSets) {
+        const zoom = +xmltileset.getAttribute("href");
+        if (!maxZoom) {
+          maxZoom = zoom;
+        } else {
+          if (zoom > maxZoom) maxZoom = zoom;
+        }
+        if (!minZoom) {
+          minZoom = zoom;
+        } else {
+          if (zoom < minZoom) minZoom = zoom;
         }
       }
     }
+
     //set values
     setBoundingBox(boxArray.toString());
     setSublayer((state) => {
       return { ...state, minNativeZoom: minZoom, maxNativeZoom: maxZoom, boundingBox: boxArray };
     });
+  }
+
+  // any property in Sublayer
+  async function loadSublayerPropertiesFromFile(rootPath: string) {
+    const res = await fetch(`${rootPath}/properties.json`, {
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache", // legacy support
+        Expires: "0", // legacy support
+      },
+    });
+    if (res.status !== 200) return;
+    const partialSublayerJson: unknown = await res.json();
+    const validationErrors = await validateImportableSublayer(partialSublayerJson);
+    // check if the sublayer is valid
+    if (validationErrors.length !== 0) {
+      console.error("Could not import properties.json. Invalid schema:", validationErrors);
+      return;
+    }
+    //set values
+    setSublayer((state) => {
+      return { ...state, ...(partialSublayerJson as SublayerImportable) };
+    });
+    // if we have legend, also push it to the local state
+    if (Object.keys(partialSublayerJson).includes("legend")) {
+      const layerLegend = (partialSublayerJson as SublayerImportable).legend;
+      setLegend(layerLegend ? JSON.stringify(layerLegend) : null);
+    }
+    // if we have bounding box, also push it to the local state
+    if (Object.keys(partialSublayerJson).includes("boundingBox")) {
+      const boxArray = (partialSublayerJson as SublayerImportable).boundingBox;
+      setBoundingBox(boxArray.toString());
+    }
   }
 
   async function preloadDataFromFiles(folderName: string) {
@@ -158,19 +215,14 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
       await loadLegendFromFile(folderName);
       await loadDescriptionFromFile(folderName);
       await loadManifestFromFile(folderName);
+      await loadSublayerPropertiesFromFile(folderName);
     } else {
-      await loadTileMapResourceFromFile(
-        `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}`
-      );
-      await loadLegendFromFile(
-        `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}`
-      );
-      await loadDescriptionFromFile(
-        `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}`
-      );
-      await loadManifestFromFile(
-        `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}`
-      );
+      const rootPath = `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}`;
+      await loadTileMapResourceFromFile(rootPath);
+      await loadLegendFromFile(rootPath);
+      await loadDescriptionFromFile(rootPath);
+      await loadManifestFromFile(rootPath);
+      await loadSublayerPropertiesFromFile(rootPath);
     }
   }
 
@@ -191,17 +243,12 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
       minNativeZoom: tempBlankSublayer.minNativeZoom,
       maxNativeZoom: tempBlankSublayer.maxNativeZoom,
       maxZoom: tempBlankSublayer.maxZoom,
-      color: tempBlankSublayer.color,
-      opacity: tempBlankSublayer.opacity,
-      fillColor: tempBlankSublayer.fillColor,
-      fillOpacity: tempBlankSublayer.fillOpacity,
-      weight: tempBlankSublayer.weight,
+      style: tempBlankSublayer.style,
       isTimeBased: tempBlankSublayer.isTimeBased,
       timeLayerManifest: tempBlankSublayer.timeLayerManifest,
     });
     setBoundingBox(tempBlankSublayer.boundingBox?.toString());
     setLegend(tempBlankSublayer.legend ? JSON.stringify(tempBlankSublayer.legend) : "");
-    setDescription(tempBlankSublayer.description);
   }
 
   return (
@@ -319,7 +366,9 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
                         });
 
                         //attempt to pre-load all other fields
-                        preloadDataFromFiles(e.target.value);
+                        if (e.target.value !== "") {
+                          preloadDataFromFiles(e.target.value);
+                        }
                       }}
                       value={sublayer.path || ""}
                     >
@@ -434,9 +483,8 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
               type="text"
               onChange={(e) => {
                 setSublayer({ ...sublayer, description: e.target.value });
-                setDescription(e.target.value);
               }}
-              value={description || ""}
+              value={sublayer.description || ""}
             />
           </div>
         </div>
@@ -468,6 +516,112 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
         </div>
         {sublayer.type === "tile" && (
           <>
+            Default Style (is overridden by presets)
+            <div id="styleGenericDiv">
+              <div id="opacityDiv">
+                <div className={styles.editDiv}>
+                  <label htmlFor="opacity">Opacity (%)</label>
+                </div>
+                <div className={styles.editDiv}>
+                  <input
+                    id="opacity"
+                    type="text"
+                    onChange={(e) => {
+                      setSublayer({
+                        ...sublayer,
+                        style: { ...sublayer.style, opacity: +e.target.value },
+                      });
+                    }}
+                    value={sublayer.style.opacity || ""}
+                  />
+                </div>
+              </div>
+              <div id="contrastDiv">
+                <div className={styles.editDiv}>
+                  <label htmlFor="contrast">Contrast (%)</label>
+                </div>
+                <div className={styles.editDiv}>
+                  <input
+                    id="contrast"
+                    type="text"
+                    onChange={(e) => {
+                      setSublayer({
+                        ...sublayer,
+                        style: { ...sublayer.style, contrast: +e.target.value },
+                      });
+                    }}
+                    value={sublayer.style.contrast || ""}
+                  />
+                </div>
+              </div>
+              <div id="brightnessDiv">
+                <div className={styles.editDiv}>
+                  <label htmlFor="brightness">Brightness (%)</label>
+                </div>
+                <div className={styles.editDiv}>
+                  <input
+                    id="brightness"
+                    type="text"
+                    onChange={(e) => {
+                      setSublayer({
+                        ...sublayer,
+                        style: { ...sublayer.style, brightness: +e.target.value },
+                      });
+                    }}
+                    value={sublayer.style.brightness || ""}
+                  />
+                </div>
+              </div>
+              <div id="saturationDiv">
+                <div className={styles.editDiv}>
+                  <label htmlFor="saturation">Saturation (%)</label>
+                </div>
+                <div className={styles.editDiv}>
+                  <input
+                    id="saturation"
+                    type="text"
+                    onChange={(e) => {
+                      setSublayer({
+                        ...sublayer,
+                        style: { ...sublayer.style, saturation: +e.target.value },
+                      });
+                    }}
+                    value={sublayer.style.saturation || ""}
+                  />
+                </div>
+              </div>
+              <div id="blendModeDiv">
+                <div className={styles.editDiv}>
+                  <label htmlFor="blendmode">Blend Mode</label>
+                </div>
+                <select
+                  id="blendmode"
+                  onChange={(e) => {
+                    setSublayer({
+                      ...sublayer,
+                      style: { ...sublayer.style, blendMode: e.target.value },
+                    });
+                  }}
+                  value={sublayer.style.blendMode || "normal"}
+                >
+                  <option value="normal">Normal</option>
+                  <option value="color">Color</option>
+                  <option value="color-burn">Color Burn</option>
+                  <option value="color-dodge">Color Dodge</option>
+                  <option value="darken">Darken</option>
+                  <option value="difference">Difference</option>
+                  <option value="exclusion">Exclusion</option>
+                  <option value="hard-light">Hard Light</option>
+                  <option value="hue">Hue</option>
+                  <option value="lighten">Lighten</option>
+                  <option value="luminosity">Luminosity</option>
+                  <option value="multiply">Multiply</option>
+                  <option value="overlay">Overlay</option>
+                  <option value="saturation">Saturation</option>
+                </select>
+              </div>
+            </div>
+            Other
             <div id="boundingDiv">
               <div className={styles.editDiv}>
                 <label htmlFor="boundingbox">Bounding Box (minx, miny, maxx, maxy)</label>
@@ -514,7 +668,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
             </div>
             <div id="minNativeDiv">
               <div className={styles.editDiv}>
-                <label htmlFor="minNative">*Minimum Native Zoom</label>
+                <label htmlFor="minNative">Minimum Native Zoom</label>
               </div>
               <div className={styles.editDiv}>
                 <input
@@ -529,7 +683,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
             </div>
             <div id="maxNativeDiv">
               <div className={styles.editDiv}>
-                <label htmlFor="maxNative">*Maximum Native Zoom</label>
+                <label htmlFor="maxNative">Maximum Native Zoom</label>
               </div>
               <div className={styles.editDiv}>
                 <input
@@ -561,29 +715,11 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
         )}
         {sublayer.type === "vector" && (
           <>
+            Default Style (is overridden by presets)
             <div id="styleGenericDiv">
-              <div id="strokeColorDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="strokecolor">Stroke Color</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="strokecolor"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        color: e.target.value,
-                      });
-                    }}
-                    value={sublayer.color || ""}
-                  />
-                </div>
-              </div>
-
               <div id="opacityDiv">
                 <div className={styles.editDiv}>
-                  <label htmlFor="opacity">Opacity</label>
+                  <label htmlFor="opacity">Stroke Opacity (%)</label>
                 </div>
                 <div className={styles.editDiv}>
                   <input
@@ -592,54 +728,34 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
                     onChange={(e) => {
                       setSublayer({
                         ...sublayer,
-                        opacity: +e.target.value,
+                        style: { ...sublayer.style, opacity: +e.target.value },
                       });
                     }}
-                    value={sublayer.opacity || ""}
+                    value={sublayer.style.opacity || ""}
                   />
                 </div>
               </div>
-
-              <div id="fillColorDiv">
+              <div id="strokeColorDiv">
                 <div className={styles.editDiv}>
-                  <label htmlFor="fillColor">Fill Color</label>
+                  <label htmlFor="strokecolor">Stroke Color (#hex)</label>
                 </div>
                 <div className={styles.editDiv}>
                   <input
-                    id="fillColor"
+                    id="strokecolor"
                     type="text"
                     onChange={(e) => {
                       setSublayer({
                         ...sublayer,
-                        fillColor: e.target.value,
+                        style: { ...sublayer.style, color: e.target.value },
                       });
                     }}
-                    value={sublayer.fillColor || ""}
-                  />
-                </div>
-              </div>
-
-              <div id="fillOpacityDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="fillOpacity">Fill Opacity</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="fillOpacity"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        fillOpacity: +e.target.value,
-                      });
-                    }}
-                    value={sublayer.fillOpacity || ""}
+                    value={sublayer.style.color || ""}
                   />
                 </div>
               </div>
               <div id="strokeWeightDiv">
                 <div className={styles.editDiv}>
-                  <label htmlFor="strokeweight">Stroke Weight</label>
+                  <label htmlFor="strokeweight">Stroke Weight (px)</label>
                 </div>
                 <div className={styles.editDiv}>
                   <input
@@ -648,10 +764,28 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
                     onChange={(e) => {
                       setSublayer({
                         ...sublayer,
-                        weight: +e.target.value,
+                        style: { ...sublayer.style, weight: +e.target.value },
                       });
                     }}
-                    value={sublayer.weight || ""}
+                    value={sublayer.style.weight || ""}
+                  />
+                </div>
+              </div>
+              <div id="fillOpacityDiv">
+                <div className={styles.editDiv}>
+                  <label htmlFor="fillOpacity">Fill Opacity (%)</label>
+                </div>
+                <div className={styles.editDiv}>
+                  <input
+                    id="fillOpacity"
+                    type="text"
+                    onChange={(e) => {
+                      setSublayer({
+                        ...sublayer,
+                        style: { ...sublayer.style, fillOpacity: +e.target.value },
+                      });
+                    }}
+                    value={sublayer.style.fillOpacity || ""}
                   />
                 </div>
               </div>
@@ -660,6 +794,82 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
         )}
         {sublayer.type === "vector-tile" && (
           <>
+            Default Style (is overridden by presets)
+            <div id="styleGenericDiv">
+              <div id="opacityDiv">
+                <div className={styles.editDiv}>
+                  <label htmlFor="opacity">Stroke Opacity (%)</label>
+                </div>
+                <div className={styles.editDiv}>
+                  <input
+                    id="opacity"
+                    type="text"
+                    onChange={(e) => {
+                      setSublayer({
+                        ...sublayer,
+                        style: { ...sublayer.style, opacity: +e.target.value },
+                      });
+                    }}
+                    value={sublayer.style.opacity || ""}
+                  />
+                </div>
+              </div>
+              <div id="strokeColorDiv">
+                <div className={styles.editDiv}>
+                  <label htmlFor="strokecolor">Stroke Color (#hex)</label>
+                </div>
+                <div className={styles.editDiv}>
+                  <input
+                    id="strokecolor"
+                    type="text"
+                    onChange={(e) => {
+                      setSublayer({
+                        ...sublayer,
+                        style: { ...sublayer.style, color: e.target.value },
+                      });
+                    }}
+                    value={sublayer.style.color || ""}
+                  />
+                </div>
+              </div>
+              <div id="strokeWeightDiv">
+                <div className={styles.editDiv}>
+                  <label htmlFor="strokeweight">Stroke Weight (px)</label>
+                </div>
+                <div className={styles.editDiv}>
+                  <input
+                    id="strokeweight"
+                    type="text"
+                    onChange={(e) => {
+                      setSublayer({
+                        ...sublayer,
+                        style: { ...sublayer.style, weight: +e.target.value },
+                      });
+                    }}
+                    value={sublayer.style.weight || ""}
+                  />
+                </div>
+              </div>
+              <div id="fillOpacityDiv">
+                <div className={styles.editDiv}>
+                  <label htmlFor="fillOpacity">Fill Opacity (%)</label>
+                </div>
+                <div className={styles.editDiv}>
+                  <input
+                    id="fillOpacity"
+                    type="text"
+                    onChange={(e) => {
+                      setSublayer({
+                        ...sublayer,
+                        style: { ...sublayer.style, fillOpacity: +e.target.value },
+                      });
+                    }}
+                    value={sublayer.style.fillOpacity || ""}
+                  />
+                </div>
+              </div>
+            </div>
+            Other
             <div id="minNativeDiv">
               <div className={styles.editDiv}>
                 <label htmlFor="minNative">Minimum Native Zoom</label>
@@ -705,42 +915,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
                 />
               </div>
             </div>
-            <div id="strokeWeightDiv">
-              <div className={styles.editDiv}>
-                <label htmlFor="strokeweight">Stroke Weight</label>
-              </div>
-              <div className={styles.editDiv}>
-                <input
-                  id="strokeweight"
-                  type="text"
-                  onChange={(e) => {
-                    setSublayer({
-                      ...sublayer,
-                      weight: +e.target.value,
-                    });
-                  }}
-                  value={sublayer.weight || ""}
-                />
-              </div>
-            </div>
-            <div id="strokeColorDiv">
-              <div className={styles.editDiv}>
-                <label htmlFor="strokecolor">Stroke Color</label>
-              </div>
-              <div className={styles.editDiv}>
-                <input
-                  id="strokecolor"
-                  type="text"
-                  onChange={(e) => {
-                    setSublayer({
-                      ...sublayer,
-                      color: e.target.value,
-                    });
-                  }}
-                  value={sublayer.color || ""}
-                />
-              </div>
-            </div>
           </>
         )}
         <br />
@@ -750,9 +924,9 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
         <br />
         Bounding Box, and Min/Max Native Zoom are pulled from tilemapresource.xml
         <br />
-        Time layer information is pulled from manifest.json
+        Time layer information is pulled from manifest.json ("Time Based" must be checked)
         <br />
-        {isExternal && (
+        {isExternal ? (
           <button
             type="button"
             onClick={() => {
@@ -761,6 +935,8 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           >
             Import From External Source
           </button>
+        ) : (
+          <>Fields are populated when the Internal Folder changes</>
         )}
         <br />
         <br />

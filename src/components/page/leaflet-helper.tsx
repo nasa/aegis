@@ -44,15 +44,12 @@ import { EARTH_RADIUS } from "utils/consts";
 import { checkTimeInBounds, matchTimeToManifest } from "utils/timeLayers";
 
 // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
-export const makeTileLayerColorFilter = (
-  lControls: MapSublayerControls,
-  sublayerUuid: string
-): string[] => {
+export const makeTileLayerColorFilter = (mapSublayerControl: MapSublayerControl): string[] => {
   return [
-    `brightness:${getPercentOrDefault(lControls[sublayerUuid].style?.brightness)}%`,
-    `contrast:${getPercentOrDefault(lControls[sublayerUuid].style?.contrast)}%`,
-    `opacity:${getPercentOrDefault(lControls[sublayerUuid].style?.opacity)}%`,
-    `saturate:${getPercentOrDefault(lControls[sublayerUuid].style?.saturation)}%`,
+    `brightness:${getPercentOrDefault(mapSublayerControl.style?.brightness)}%`,
+    `contrast:${getPercentOrDefault(mapSublayerControl.style?.contrast)}%`,
+    `opacity:${getPercentOrDefault(mapSublayerControl.style?.opacity)}%`,
+    `saturate:${getPercentOrDefault(mapSublayerControl.style?.saturation)}%`,
   ];
 };
 
@@ -895,7 +892,7 @@ export const drawLayersOnMap = ({
       const isExternal = sublayer.path?.startsWith("http");
       if (sublayer.type === "tile") {
         // if layer isn't already on the map, add it
-        const filter = makeTileLayerColorFilter(mapSublayerControls, sublayer.uuid);
+        const filter = makeTileLayerColorFilter(mapSublayerControls[sublayer.uuid]);
         if (!isLayerOnMapByName(map, sublayer.name)) {
           const tilePath = isExternal
             ? `${sublayer.path}/${sublayer.tilePattern}`

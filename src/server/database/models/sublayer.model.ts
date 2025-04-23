@@ -33,16 +33,8 @@ export class Sublayer_db implements Sublayer_db_type {
   maxNativeZoom: number;
   @Property({ type: MikroTypes.double, nullable: true })
   maxZoom: number;
-  @Property({ type: MikroTypes.text, nullable: true })
-  color: string;
-  @Property({ type: MikroTypes.double, nullable: true })
-  opacity: number;
-  @Property({ type: MikroTypes.text, nullable: true })
-  fillColor: string;
-  @Property({ type: MikroTypes.double, nullable: true })
-  fillOpacity: number;
-  @Property({ type: MikroTypes.double, nullable: true })
-  weight: number;
+  @Property({ type: MikroTypes.json, nullable: true })
+  style: MapSublayerStyle;
   @Property({ type: MikroTypes.boolean, nullable: true })
   isTimeBased: boolean;
   @Property({ type: MikroTypes.json, nullable: true })

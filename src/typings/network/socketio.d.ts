@@ -1,6 +1,5 @@
 /** Socket.io Server instantiation types */
 interface ServerToClientEvents {
-  noArg: () => void;
   storeUpsert: (payload: StoreUpsert) => void;
   storeDelete: (payload: StoreDelete) => void;
   statusFromServer: (payload: StatusFromServer) => void;
@@ -11,10 +10,6 @@ interface ClientToServerEvents {
   storeUpsert: (payload: StoreUpsert) => void;
   storeDelete: (payload: StoreDelete) => void;
   visitorJoin: (visitorJoin: VisitorJoin) => void;
-}
-
-interface InterServerEvents {
-  ping: () => void;
 }
 
 interface SocketData {
