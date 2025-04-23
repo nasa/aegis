@@ -61,7 +61,8 @@ describe("User API Endpoint", () => {
     test("No POST permissions", async () => {
       const res = await supertest(app)
         .post("/api/v1/users")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie]);
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send({ users: [] });
 
       expect(res.statusCode).toBe(401);
     });
@@ -69,7 +70,8 @@ describe("User API Endpoint", () => {
     test("No DELETE permissions", async () => {
       const res = await supertest(app)
         .delete("/api/v1/users")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie]);
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send({ userIds: [] });
 
       expect(res.statusCode).toBe(401);
     });
