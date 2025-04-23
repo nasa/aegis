@@ -8,17 +8,18 @@
   "major": {
     "dependencyDashboardApproval": true
   },
-  "labels": ["dependencies"],
+  "labels": ["Renovate"],
+  "prTitlePrefix": "z_deps:",
   "packageRules": [
     {
       "groupName": "react",
       "matchPackageNames": ["react", "react-dom"],
-      "labels": ["dependencies", "dependencies-react"]
+      "labels": ["Renovate"]
     },
     {
       "groupName": "ESLint and plugins",
       "matchPackageNames": ["/eslint/"],
-      "labels": ["dependencies", "dependencies-eslint"]
+      "labels": ["Renovate"]
     }
   ]
 }
