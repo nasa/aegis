@@ -1,4 +1,4 @@
-import { FieldValidator } from "final-form";
+import type { FieldValidator } from "final-form";
 
 interface label {
   label?: string;

@@ -2,7 +2,7 @@
  * This file is an override of the react-circular-slider types package because the package fails tsc checks with no resolution in sight.
  */
 
-import React from "react";
+import type React from "react";
 
 interface Continuous {
   enabled: boolean;

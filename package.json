@@ -37,12 +37,13 @@
     "version:minor": "npm version minor && git push",
     "version:major": "npm version major && git push",
     "make-dotenv": "make-dotenv && npx prettier --write ./env.secret.ts --ignore-path .prettierignore",
-    "schema:create": "concurrently -n action,station,poi,eva,mission \"npm run schema:create:action\" \"npm run schema:create:station\" \"npm run schema:create:poi\" \"npm run schema:create:eva\" \"npm run schema:create:mission\"",
-    "schema:create:action": "typescript-json-schema ./tsconfig.schema.json ExportAction --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./.local/schemas/exportAction.json",
-    "schema:create:station": "typescript-json-schema ./tsconfig.schema.json ExportStation --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./.local/schemas/exportStation.json",
-    "schema:create:eva": "typescript-json-schema ./tsconfig.schema.json ExportEva --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./.local/schemas/exportEva.json",
-    "schema:create:poi": "typescript-json-schema ./tsconfig.schema.json ExportPOI --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./.local/schemas/exportPoi.json",
-    "schema:create:mission": "typescript-json-schema ./tsconfig.schema.json ExportMission --required --include ./src/typings/**/*.d.ts --ignoreErrors -o ./.local/schemas/exportMission.json"
+    "schema:create": "concurrently -n action,station,poi,eva,mission,sublayerImportable \"npm run schema:create:action\" \"npm run schema:create:station\" \"npm run schema:create:poi\" \"npm run schema:create:eva\" \"npm run schema:create:mission\" \"npm run schema:create:sublayerImportable\"",
+    "schema:create:action": "typescript-json-schema ./tsconfig.schema.json ExportAction --noExtraProps --required --ignoreErrors -o ./.local/schemas/exportAction.json",
+    "schema:create:station": "typescript-json-schema ./tsconfig.schema.json ExportStation --noExtraProps --required --ignoreErrors -o ./.local/schemas/exportStation.json",
+    "schema:create:eva": "typescript-json-schema ./tsconfig.schema.json ExportEva --noExtraProps --required --ignoreErrors -o ./.local/schemas/exportEva.json",
+    "schema:create:poi": "typescript-json-schema ./tsconfig.schema.json ExportPOI --noExtraProps --required --ignoreErrors -o ./.local/schemas/exportPoi.json",
+    "schema:create:mission": "typescript-json-schema ./tsconfig.schema.json Mission --noExtraProps --required --ignoreErrors -o ./.local/schemas/exportMission.json",
+    "schema:create:sublayerImportable": "typescript-json-schema ./tsconfig.schema.json SublayerImportable --noExtraProps --required --ignoreErrors -o ./.local/schemas/sublayerImportable.json"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -70,6 +71,7 @@
     "@turf/turf": "^7.2.0",
     "@types/json-logic-js": "^2.0.8",
     "@uiw/react-color-compact": "^2.4.5",
+    "ajv": "^8.17.1",
     "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",
     "box-node-sdk": "^3.8.0",

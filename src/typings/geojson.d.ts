@@ -1,4 +1,4 @@
-import { GeoJsonGeometryTypes, GeoJsonProperties, GeoJsonTypes, Feature } from "geojson";
+import type { GeoJsonGeometryTypes, GeoJsonProperties, GeoJsonTypes, Feature } from "geojson";
 
 interface GeoJsonFeature {
   type: GeoJsonTypes;

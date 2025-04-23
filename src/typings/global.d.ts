@@ -1,15 +1,20 @@
 type MikroORM = import("@mikro-orm/core").MikroORM;
-type Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData> =
+type Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, SocketData> =
   import("socket.io").Server<
     ClientToServerEvents,
     ServerToClientEvents,
-    InterServerEvents,
+    DefaultEventsMap,
     SocketData
   >;
 
 type GlobalValues = {
   ormCache: MikroORM;
-  socketio: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
+  socketio: Server<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    import("socket.io/dist/typed-events").DefaultEventsMap,
+    SocketData
+  >;
   serverSocketStatus: ServerSocketStatus;
   socketInterval: NodeJS.Timeout;
   appVersion: AppVersion;
