@@ -69,11 +69,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         records = await getMission(viewableMissions);
       }
     }
-    res.status(200).json({
-      status: "success",
-      message: "mission retrieved",
-      data: records,
-    });
+    res.status(200).json({ status: "success", message: "mission retrieved", data: records });
   } catch (e) {
     console.error(e);
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
@@ -105,11 +101,9 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     //check response
     if (upsertResponse.length === 0) {
-      res.status(500).json({
-        status: "error",
-        message: "Upsert response did not return a value",
-        data: null,
-      });
+      res
+        .status(500)
+        .json({ status: "error", message: "Upsert response did not return a value", data: null });
       return;
     }
 
@@ -164,15 +158,9 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const deletedMissionIds: number[] = await deleteMissions(missionIds);
     if (deletedMissionIds.length > 0) {
-      res.status(200).json({
-        status: "success",
-        message: "Mission Deleted",
-      });
+      res.status(200).json({ status: "success", message: "Mission Deleted" });
     } else {
-      res.status(404).json({
-        status: "failure",
-        message: "No record found. Nothing deleted",
-      });
+      res.status(404).json({ status: "failure", message: "No record found. Nothing deleted" });
     }
   } catch (e) {
     console.error(e);
