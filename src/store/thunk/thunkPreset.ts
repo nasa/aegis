@@ -23,6 +23,7 @@ import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { thunkSaveNewPreset } from "./crossThunk";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankPreset } from "store/storeUtils/preset";
+import { thunkAddRemoveFolderItem } from "./thunkFolder";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
   preset: Preset;
@@ -67,6 +68,13 @@ export const thunkPresetCancel = appCreateAsyncThunk<{
     // reselect the default
     const defaultPresetUuid = getState().preset.presets.find((p) => p.missionDefault)?.uuid;
     dispatch(setSelectedPresetUuid(defaultPresetUuid));
+    // remove the preset from any folder
+    dispatch(
+      thunkAddRemoveFolderItem({
+        itemUuid: presetUuid,
+        folderUuid: null,
+      })
+    );
   } else {
     // if selected Preset is in the db, replace it with the one from the db (undoing any changes)
     dispatch(upsertPreset(presetFromDb, true));
@@ -99,6 +107,12 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
     // if the selected preset is not in presetsFromDb then delete it from the store
     dispatch(deletePresetByUuid(presetUuid));
   }
+  dispatch(
+    thunkAddRemoveFolderItem({
+      itemUuid: presetUuid,
+      folderUuid: null,
+    })
+  );
   dispatch(setPresetEditMode({ presetUuid: presetUuid, editMode: false }));
   dispatch(thunkSetRightPanelIsOpenIfAuto(false));
   const defaultPresetUuid = getState().preset.presets.find((p) => p.missionDefault)?.uuid;

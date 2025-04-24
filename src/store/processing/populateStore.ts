@@ -8,6 +8,7 @@ import {
   auditPosSources,
   auditPresetsAgainstLayers,
   auditStationCircles,
+  auditFolders,
 } from "./audits";
 
 export const populateStore = async (params: {
@@ -61,6 +62,7 @@ export const populateStore = async (params: {
     await auditStationCircles({ wholeStoreState });
     await auditActionDefinitions({ wholeStoreState });
     await auditPosSources({ wholeStoreState });
+    await auditFolders({ wholeStoreState });
   }
 
   // Set the default preset

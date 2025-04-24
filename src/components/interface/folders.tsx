@@ -432,9 +432,11 @@ export const FolderOrganizer = <T extends POI | Station | Eva | Rex | Preset>({
 
         {/* Render unassociated items in root area */}
         <RootDroppableArea editPerms={editPerms}>
-          {unassociatedItems.length === 0 && editPerms && (
-            <div className={styles.dropHint}>Drag here to remove item from folder</div>
-          )}
+          {unassociatedItems.length === 0 &&
+            editPerms &&
+            Object.keys(itemsToFolders).length > 0 && (
+              <div className={styles.dropHint}>Drag here to remove item from folder</div>
+            )}
           {unassociatedItems.map((item, index) => (
             <DraggableItem
               key={getItemId(item)}
