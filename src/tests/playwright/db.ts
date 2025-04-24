@@ -13,7 +13,7 @@ export default class DB {
     host: process.env.DB_HOST,
     database: process.env.DB_NAME,
     password: process.env.DB_PASS,
-    port: 5432,
+    port: parseInt(process.env.DB_PORT),
   };
 
   async executeQuery(query: string): Promise<void> {

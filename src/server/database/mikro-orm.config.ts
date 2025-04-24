@@ -33,7 +33,7 @@ import path from "path";
 export default defineConfig({
   dbName: process.env.DB_NAME,
   host: process.env.DB_HOST,
-  port: 5432, //default port
+  port: parseInt(process.env.DB_PORT),
   driver: PostgreSqlDriver,
   password: process.env.DB_PASS,
   migrations: {

@@ -41,6 +41,7 @@ export const config: DotenvConfig<typeof environments> = {
    */
   DB_NAME: { default: "aegis" },
   DB_HOST: { local: "localhost", default: "database" },
+  DB_PORT: { local: "5432", default: "5432" },
   GDAL_HOST: { local: "localhost", default: "gdal" },
   GDAL_PORT: { local: "4200", default: "80" },
 
