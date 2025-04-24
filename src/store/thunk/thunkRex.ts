@@ -20,6 +20,7 @@ import * as httpClient_Rex from "http-client/rex";
 import { thunkSaveNewRex } from "./crossThunk";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { thunkCancelPosEntry } from "./thunkRexPosEntry";
+import { thunkAddRemoveFolderItem } from "./thunkFolder";
 
 export const thunkCreateRex = appCreateAsyncThunk<void>(
   "rexCreate",
@@ -126,6 +127,12 @@ export const thunkCancelRex = appCreateAsyncThunk<{ rexUuid: string }>(
     if (!rexFromDb) {
       dispatch(deleteRexByUuid(rexUuid));
       dispatch(setSelectedRexUuid(null)); // reset since the rex was deleted
+      dispatch(
+        thunkAddRemoveFolderItem({
+          itemUuid: rexUuid,
+          folderUuid: null,
+        })
+      );
     } else {
       // if selected rex is in the db, replace it with the one from the db (undoing any changes)
       dispatch(upsertRex(rexFromDb, true));
@@ -146,6 +153,13 @@ export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
 
     // delete the rex from the store
     dispatch(deleteRexByUuid(rexUuid));
+
+    dispatch(
+      thunkAddRemoveFolderItem({
+        itemUuid: rexUuid,
+        folderUuid: null,
+      })
+    );
 
     //check if rex has been saved to the db
     const rexFromDb = getState().rex.rexesFromDb.find((rexDb) => rexDb.uuid === rexUuid);

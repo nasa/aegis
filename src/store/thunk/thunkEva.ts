@@ -35,6 +35,7 @@ import { upsertRex, upsertRexFromDb } from "store/rex";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { thunkAddRemoveFolderItem } from "./thunkFolder";
 
 /** Get an Station or Traverse object from a UUID
  * This would typically be used when needing to get the full object from an EVA sequence
@@ -152,6 +153,12 @@ export const thunkCancelEva = appCreateAsyncThunk<{
     // eva hasn't been saved to the db. delete the eva from the store
     dispatch(deleteEvaByUuid(eva.uuid));
     dispatch(thunkSetRightPanelIsOpenIfAuto(false));
+    dispatch(
+      thunkAddRemoveFolderItem({
+        itemUuid: eva.uuid,
+        folderUuid: null,
+      })
+    );
   }
   dispatch(setEvaEditMode({ evaUuid: eva.uuid, editMode: false }));
 });
@@ -231,7 +238,12 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
     // if the selected eva is not in evasFromDb then just delete it from the store
     dispatch(deleteEvaByUuid(eva.uuid));
   }
-
+  dispatch(
+    thunkAddRemoveFolderItem({
+      itemUuid: eva.uuid,
+      folderUuid: null,
+    })
+  );
   dispatch(setEvaEditMode({ evaUuid: eva.uuid, editMode: false }));
   dispatch(
     setExpandedEvaUuids(getState().eva.expandedEvaUuids.filter((uuid) => uuid !== eva.uuid))

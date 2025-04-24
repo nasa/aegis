@@ -193,6 +193,7 @@ export async function deletePresets(presetUuids: string[]): Promise<string[]> {
       deletedUuids.push(presetUuid);
     }
   }
+
   await em.flush(); //perform deletes
   return deletedUuids;
 }
