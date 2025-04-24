@@ -26,15 +26,15 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const handleDefaultPresetChange = (evt: ChangeEvent<HTMLInputElement>) => {
     // If the preset is being set as the default, then we need to unset the default flag on all other presets
     if (evt.target.checked) {
-      dispatch(upsertPresetByField(selectedPresetUuid, "missionPresetDefault", true));
+      dispatch(upsertPresetByField(selectedPresetUuid, "missionDefault", true));
       //check the other presets
       const otherPresets = presets.filter((preset) => preset.uuid !== selectedPresetUuid);
       otherPresets.forEach((preset) => {
         //there should only be one of these
-        if (preset.missionPresetDefault) {
+        if (preset.missionDefault) {
           // save the preset to the store and db
           const modifiedDate = roundDateToSecond(getAccurateNow()).toISOString();
-          const updatedPreset = { ...preset, missionPresetDefault: false, updatedAt: modifiedDate };
+          const updatedPreset = { ...preset, missionDefault: false, updatedAt: modifiedDate };
           dispatch(upsertPreset(updatedPreset, true));
           dispatch(upsertPresetFromDb(updatedPreset));
           httpClient_Preset.upsertPresets([updatedPreset]);
@@ -42,7 +42,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         }
       });
     } else {
-      dispatch(upsertPresetByField(selectedPresetUuid, "missionPresetDefault", false));
+      dispatch(upsertPresetByField(selectedPresetUuid, "missionDefault", false));
     }
   };
 
@@ -54,7 +54,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           <div className={paneStyles.descriptionContainer}>
             {editMode ? (
               <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                {!selectedPreset.missionPresetDefault && (
+                {!selectedPreset.missionDefault && (
                   <Button
                     onClick={() => {
                       if (!editMode) return;
@@ -67,12 +67,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   />
                 )}
                 <span style={{ fontSize: "0.9rem" }}>
-                  {selectedPreset.missionPresetDefault ? "Default Preset" : "Not Default"}
+                  {selectedPreset.missionDefault ? "Default Preset" : "Not Default"}
                 </span>
               </div>
             ) : (
               <div className={presetStyles.defaultText}>
-                {selectedPreset.missionPresetDefault ? "Default Preset" : "Not Default"}
+                {selectedPreset.missionDefault ? "Default Preset" : "Not Default"}
               </div>
             )}
           </div>

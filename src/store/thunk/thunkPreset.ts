@@ -65,7 +65,7 @@ export const thunkPresetCancel = appCreateAsyncThunk<{
     dispatch(deletePresetLayersUIStates({ presetUuid }));
     dispatch(deletePresetCirclesUIStates({ presetUuid }));
     // reselect the default
-    const defaultPresetUuid = getState().preset.presets.find((p) => p.missionPresetDefault)?.uuid;
+    const defaultPresetUuid = getState().preset.presets.find((p) => p.missionDefault)?.uuid;
     dispatch(setSelectedPresetUuid(defaultPresetUuid));
   } else {
     // if selected Preset is in the db, replace it with the one from the db (undoing any changes)
@@ -101,7 +101,7 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
   }
   dispatch(setPresetEditMode({ presetUuid: presetUuid, editMode: false }));
   dispatch(thunkSetRightPanelIsOpenIfAuto(false));
-  const defaultPresetUuid = getState().preset.presets.find((p) => p.missionPresetDefault)?.uuid;
+  const defaultPresetUuid = getState().preset.presets.find((p) => p.missionDefault)?.uuid;
   dispatch(setSelectedPresetUuid(defaultPresetUuid));
 });
 
@@ -241,7 +241,7 @@ export const thunkDuplicatePreset = appCreateAsyncThunk<{ preset: Preset }>(
       preset.name,
       getState().preset.presets.map((item) => item.name)
     );
-    newPreset.missionPresetDefault = false; //never make a duplicate the default preset
+    newPreset.missionDefault = false; //never make a duplicate the default preset
     dispatch(thunkSaveNewPreset({ preset: newPreset }));
 
     //duplicate preset layers ui state

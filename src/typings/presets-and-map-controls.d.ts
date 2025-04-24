@@ -68,8 +68,7 @@ type Preset = {
   missionId: number;
   name: string;
   description: string;
-  missionPreset: boolean;
-  missionPresetDefault: boolean;
+  missionDefault: boolean;
   mapSublayerControls: MapSublayerControls; //flattened list of layers/sublayers
   mapCircleControls: MapCircleControls;
   layerOrder: PresetLayerOrder[];

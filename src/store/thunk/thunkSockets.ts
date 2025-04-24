@@ -288,7 +288,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
       if (getState().preset.selectedPresetUuid === deletedUuid) {
         // set the selected preset to the default preset
         const defaultPreset = getState().preset.presets.find(
-          (thisPreset) => thisPreset.missionPresetDefault === true
+          (thisPreset) => thisPreset.missionDefault === true
         ) as Preset;
         dispatch(setSelectedPresetUuid(defaultPreset.uuid));
       }
