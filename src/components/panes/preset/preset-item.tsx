@@ -54,7 +54,7 @@ const PresetItem: FunctionComponent<{
       >
         <span aria-label="leftPresetName">{preset.name}</span>
         <span className={styles.defaultText} aria-label="leftPresetIsDefault">
-          {preset.missionPresetDefault ? "(Default)" : ""}
+          {preset.missionDefault ? "(Default)" : ""}
         </span>
         <ModifiedIndicator obj1={[preset]} obj2={[presetFromDb]} />
       </div>

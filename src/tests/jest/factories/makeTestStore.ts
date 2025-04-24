@@ -119,7 +119,7 @@ export const createFullTestStore = (): StoreType => {
   const sublayer = generateBlankSublayer({ name: "Jest Test Sublayer" });
   const preset1 = generateBlankPreset({
     name: "Jest Test Preset",
-    missionPresetDefault: true,
+    missionDefault: true,
     mapSublayerControls: {
       [sublayer.uuid]: {
         name: sublayer.name,

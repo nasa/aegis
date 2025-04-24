@@ -93,6 +93,16 @@ const StationEditorRight: FunctionComponent = () => {
     deepEqual
   );
 
+  const otherStationNames = useAppSelector(
+    (state) =>
+      state.station.stations.map(({ name, uuid }) => {
+        if (uuid !== selectedStationUuid) {
+          return name;
+        }
+      }),
+    deepEqual
+  );
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {
@@ -211,7 +221,11 @@ const StationEditorRight: FunctionComponent = () => {
                   color: "var(--station)",
                   fontSize: "1em",
                 },
-                validators: [validators.required, validators.maxLength(255)],
+                validators: [
+                  validators.required,
+                  validators.maxLength(255),
+                  validators.mustBeUnique(otherStationNames),
+                ],
               }}
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingLeft: 0 }}

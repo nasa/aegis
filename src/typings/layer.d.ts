@@ -31,16 +31,30 @@ interface Sublayer {
   minNativeZoom: number;
   maxNativeZoom: number;
   maxZoom: number;
-  color: string;
-  opacity: number;
-  fillColor: string;
-  fillOpacity: number;
-  weight: number;
+  style: MapSublayerStyle;
   isTimeBased: boolean;
   timeLayerManifest: TimeLayerInfo[];
   createdAt: string;
   updatedAt: string;
 }
+
+// properties that are allowable to be overriden with properties.json in admin
+type SublayerImportable = Partial<
+  Pick<
+    Sublayer,
+    | "type"
+    | "name"
+    | "description"
+    | "legend"
+    | "tilePattern"
+    | "boundingBox"
+    | "tileFormat"
+    | "minNativeZoom"
+    | "maxNativeZoom"
+    | "maxZoom"
+    | "style"
+  >
+>;
 
 interface SublayerToDraw extends Sublayer {
   chosenTimeLayer: TimeLayerInfo;

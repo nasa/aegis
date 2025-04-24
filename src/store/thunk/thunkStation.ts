@@ -31,6 +31,7 @@ import { isModified } from "utils/component-helpers";
 import { thunkSaveNewStation } from "./crossThunk";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankStation } from "store/storeUtils/station";
+import { thunkAddRemoveFolderItem } from "./thunkFolder";
 
 export const thunkUpdateStationLatLngField = appCreateAsyncThunk<{
   stationUuid: string;
@@ -322,6 +323,12 @@ export const thunkStationCancel = appCreateAsyncThunk<{
     dispatch(setSelectedStationUuid(null));
     dispatch(deleteActionsByUuid(stationActions.map((a) => a.uuid)));
     dispatch(thunkSetRightPanelIsOpenIfAuto(false));
+    dispatch(
+      thunkAddRemoveFolderItem({
+        itemUuid: station.uuid,
+        folderUuid: null,
+      })
+    );
   }
 
   // if the walkback is in edit mode, save the walkback
@@ -408,6 +415,12 @@ export const thunkDeleteStation = appCreateAsyncThunk<{
     dispatch(setSelectedStationUuid(null));
     dispatch(deleteActionsByUuid(stationActions.map((a) => a.uuid)));
   }
+  dispatch(
+    thunkAddRemoveFolderItem({
+      itemUuid: station.uuid,
+      folderUuid: null,
+    })
+  );
   dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
   dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
   // close right panel
@@ -435,7 +448,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
           brightness: 1,
           saturation: 1,
           blendMode: "normal",
-          color: "red",
+          color: "#FFFFFF",
           weight: 1,
           fillColor: "none",
           fillOpacity: 0,

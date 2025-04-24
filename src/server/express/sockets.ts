@@ -4,7 +4,7 @@ import find from "lodash/find";
 import isEqual from "lodash/isEqual";
 
 import { globalValues } from "./global";
-import type { Socket } from "socket.io";
+import type { DefaultEventsMap, Socket } from "socket.io";
 
 export const setupSocketIO = (): void => {
   // initialize the global object that will store the visitor tracking data and last edit events
@@ -18,7 +18,7 @@ export const setupSocketIO = (): void => {
   // Listen for connection events
   io.on(
     "connection",
-    (socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) => {
+    (socket: Socket<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, SocketData>) => {
       // emit AEGIS app version to client that just connected
       socket.emit("version", globalValues.appVersion);
 

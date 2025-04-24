@@ -64,6 +64,15 @@ const PoiEditorRight: FunctionComponent = () => {
     (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
     deepEqual
   );
+  const otherPoiNames = useAppSelector(
+    (state) =>
+      state.poi.pois.map(({ name, uuid }) => {
+        if (uuid !== selectedPoiUuid) {
+          return name;
+        }
+      }),
+    deepEqual
+  );
 
   const poiModified = isModified([selectedPoi], [selectedPoiFromDb]);
   const actionModified = isModified(poiActions, poiActionsFromDb);
@@ -154,7 +163,11 @@ const PoiEditorRight: FunctionComponent = () => {
                   color: "var(--poi)",
                   fontSize: "1em",
                 },
-                validators: [validators.required, validators.maxLength(255)],
+                validators: [
+                  validators.required,
+                  validators.maxLength(255),
+                  validators.mustBeUnique(otherPoiNames),
+                ],
               }}
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingRight: "10px" }}

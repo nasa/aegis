@@ -98,6 +98,18 @@ const mustBeYYYYMMDD = (value: Stringy): string | undefined => {
   }
 };
 
+const mustBeUnique =
+  (nameList: string[]) =>
+  (value: Stringy): string | undefined => {
+    if (!value || !nameList) return undefined;
+    const lwrCaseValue = String(value).toLowerCase();
+    if (!nameList.some((name) => name && name.toLowerCase() === lwrCaseValue)) {
+      return undefined;
+    } else {
+      return "Name must be unique";
+    }
+  };
+
 const withinBoundary =
   (minBoundary: number, maxBoundary: number) =>
   (value: Stringy): string | undefined => {
@@ -122,6 +134,7 @@ export const validators = {
   mustBeHHMMSS,
   mustBeYYYYMMDD,
   withinBoundary,
+  mustBeUnique,
 };
 
 // UseFieldConfig<any>.validate?: FieldValidator<any>

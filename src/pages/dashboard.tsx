@@ -31,7 +31,7 @@ const Main = (): JSX.Element => {
     deepEqual
   );
   const defaultPreset = useAppSelector((state) => {
-    const defaultPresetUuid = state.preset.presetsFromDb.find((p) => p.missionPresetDefault)?.uuid;
+    const defaultPresetUuid = state.preset.presetsFromDb.find((p) => p.missionDefault)?.uuid;
     return state.preset.presetsFromDb.find((p) => p.uuid === defaultPresetUuid);
   }, deepEqual);
 

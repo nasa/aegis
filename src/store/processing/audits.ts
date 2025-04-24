@@ -9,7 +9,6 @@ import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
 import { v4 as uuidv4 } from "uuid";
-import { generateBlankFolder } from "store/storeUtils/folder";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
@@ -75,15 +74,15 @@ export const auditPresetsAgainstLayers = async ({
           sublayerUuid: sublayer.uuid,
           visible: false,
           style: {
-            opacity: sublayer.opacity || 1,
-            contrast: 1,
-            brightness: 1,
-            saturation: 1,
-            blendMode: "normal",
-            color: sublayer.color || "#FFFFFF",
-            weight: sublayer.weight || 1,
-            fillColor: sublayer.fillColor || "#FFFFFF",
-            fillOpacity: sublayer.fillOpacity || 0,
+            opacity: sublayer.style.opacity || 1,
+            contrast: sublayer.style.contrast || 1,
+            brightness: sublayer.style.brightness || 1,
+            saturation: sublayer.style.saturation || 1,
+            blendMode: sublayer.style.blendMode || "normal",
+            color: sublayer.style.color || "#FFFFFF",
+            weight: sublayer.style.weight || 1,
+            fillColor: sublayer.style.fillColor || "#FFFFFF",
+            fillOpacity: sublayer.style.fillOpacity || 0,
           },
         };
       }
@@ -105,10 +104,6 @@ export const auditPresetsAgainstLayers = async ({
     const mapCircleControls: MapCircleControls = {};
     wholeStoreState.mission.mission.circleDefinitions?.forEach((circleDef) => {
       if (preset.mapCircleControls[circleDef.uuid]) {
-        // Change "red" to a hex value the picker can show.
-        if (preset.mapCircleControls[circleDef.uuid].style.color === "red") {
-          preset.mapCircleControls[circleDef.uuid].style.color = "#D33115";
-        }
         mapCircleControls[circleDef.uuid] = preset.mapCircleControls[circleDef.uuid];
       } else {
         mapCircleControls[circleDef.uuid] = {
@@ -121,7 +116,7 @@ export const auditPresetsAgainstLayers = async ({
             brightness: 1,
             saturation: 1,
             blendMode: "normal",
-            color: "#D33115",
+            color: "#FFFFFF",
             weight: 1,
             fillColor: "none",
             fillOpacity: 0,
@@ -169,10 +164,6 @@ export const auditStationCircles = async ({
     const mapCircleControls: MapCircleControls = {};
     wholeStoreState.mission?.mission?.circleDefinitions?.forEach((circleDef) => {
       if (newStation.mapCircleControls[circleDef.uuid]) {
-        // Change "red" to a hex value the picker can show.
-        if (newStation.mapCircleControls[circleDef.uuid].style.color === "red") {
-          newStation.mapCircleControls[circleDef.uuid].style.color = "#D33115";
-        }
         mapCircleControls[circleDef.uuid] = newStation.mapCircleControls[circleDef.uuid];
       } else {
         mapCircleControls[circleDef.uuid] = {
@@ -185,7 +176,7 @@ export const auditStationCircles = async ({
             brightness: 1,
             saturation: 1,
             blendMode: "normal",
-            color: "#D33115",
+            color: "#FFFFFF",
             weight: 1,
             fillColor: "none",
             fillOpacity: 0,
@@ -368,61 +359,75 @@ export const auditPosSources = async ({
   }
 };
 
-export const auditPresetFolders = async ({
+export const auditFolders = async ({
   wholeStoreState,
 }: {
   wholeStoreState: WholeStoreState;
 }): Promise<void> => {
-  const secondaryFolderName = "Secondary";
+  // remove any folder items that don't exist in the store
+  const newFolders = cloneDeep(wholeStoreState.interface.folders);
+  const foldersToSaveToDb: Folder[] = [];
 
-  // Check if Secondary folder already exists
-  let secondaryFolder = wholeStoreState.interface.folders.find(
-    (f) => f.type === "preset" && f.name === secondaryFolderName
-  );
+  for (const folder of newFolders) {
+    let isModified = false;
 
-  if (secondaryFolder) return;
+    if (folder.items && folder.items.length > 0) {
+      const originalItems = [...folder.items];
 
-  // If the Secondary folder doesn't exist, create it
-  secondaryFolder = generateBlankFolder({
-    name: secondaryFolderName,
-    type: "preset",
-    missionId: wholeStoreState.mission.mission?.id,
-  });
+      // Filter items based on folder type
+      switch (folder.type) {
+        case "preset":
+          folder.items = folder.items.filter((itemUuid) =>
+            wholeStoreState.preset.presets.some((preset) => preset.uuid === itemUuid)
+          );
+          break;
+        case "poi":
+          folder.items = folder.items.filter((itemUuid) =>
+            wholeStoreState.poi.pois.some((poi) => poi.uuid === itemUuid)
+          );
+          break;
+        case "station":
+          folder.items = folder.items.filter((itemUuid) =>
+            wholeStoreState.station.stations.some((station) => station.uuid === itemUuid)
+          );
+          break;
+        case "eva":
+          folder.items = folder.items.filter((itemUuid) =>
+            wholeStoreState.eva.evas.some((eva) => eva.uuid === itemUuid)
+          );
+          break;
+        case "rex":
+          folder.items = folder.items.filter((itemUuid) =>
+            wholeStoreState.rex.rexes.some((rex) => rex.uuid === itemUuid)
+          );
+          break;
+        case "layer":
+          folder.items = folder.items.filter((itemUuid) =>
+            wholeStoreState.mission.layers.some((layer) => layer.uuid === itemUuid)
+          );
+          break;
+      }
 
-  // Save the new folder
-  const upsertResponse = await httpClient_folder.upsertFolders([secondaryFolder]);
-  if (upsertResponse.status !== "success") {
-    // handle the error
-    return;
+      // Check if items changed
+      if (!isEqual(originalItems, folder.items)) {
+        isModified = true;
+      }
+    }
+
+    // If modified, add to list to save to DB
+    if (isModified) {
+      foldersToSaveToDb.push(folder);
+    }
   }
 
-  // Add folder to store
-  wholeStoreState.interface.folders = [...wholeStoreState.interface.folders, secondaryFolder];
+  // update the store with the new folders
+  wholeStoreState.interface.folders = newFolders;
 
-  // Add folder interface state
-  wholeStoreState.interface.foldersInterface = [
-    ...wholeStoreState.interface.foldersInterface,
-    {
-      uuid: secondaryFolder.uuid,
-      isOpen: true,
-      visible: true,
-      editing: false,
-      editingNameValue: null,
-    },
-  ];
-
-  // Get all mission presets
-  const missionPresets = wholeStoreState.preset.presets.filter((p) => !p.missionPreset);
-
-  // Update folder items to include mission presets
-  if (secondaryFolder && missionPresets.length > 0) {
-    secondaryFolder.items = missionPresets.map((p) => p.uuid);
-
-    // Save the updated folder
-    const upsertResponse = await httpClient_folder.upsertFolders([secondaryFolder]);
+  // save changed folders to the DB
+  if (foldersToSaveToDb.length > 0) {
+    const upsertResponse = await httpClient_folder.upsertFolders(foldersToSaveToDb);
     if (upsertResponse.status !== "success") {
-      // handle the error
-      return;
+      console.error("Error saving folders to DB:", upsertResponse.message);
     }
   }
 };

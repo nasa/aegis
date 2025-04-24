@@ -523,12 +523,7 @@ const MapBody: FunctionComponent = () => {
         if (layer.options.uuid === uuid) {
           if (layer.options.type === "tile") {
             const tileLayer = layer as L.TileLayer;
-            tileLayer.updateFilter(
-              makeTileLayerColorFilter(
-                selectedPreset.mapSublayerControls,
-                sublayerControl.sublayerUuid
-              )
-            );
+            tileLayer.updateFilter(makeTileLayerColorFilter(sublayerControl));
             tileLayer.setOpacity(sublayerControl.style?.opacity);
             // custom class name that we use to control mix-blend-mode
             layer.getContainer().className = `leaflet-layer leaflet-blend-${sublayerControl.style?.blendMode}`;

@@ -19,6 +19,7 @@ import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankPoi } from "store/storeUtils/poi";
+import { thunkAddRemoveFolderItem } from "./thunkFolder";
 
 export const thunkUpdatePoiLatLngField = appCreateAsyncThunk<{
   poiUuid: string;
@@ -116,6 +117,12 @@ export const thunkPoiCancel = appCreateAsyncThunk<{
   } else {
     // if selected poi isn't in the db, delete it from the store
     dispatch(thunkObliteratePoi({ poiUuid: poi.uuid }));
+    dispatch(
+      thunkAddRemoveFolderItem({
+        itemUuid: poi.uuid,
+        folderUuid: null,
+      })
+    );
   }
 
   dispatch(setPoiEditMode({ poiUuid: poi.uuid, editMode: false }));
@@ -159,7 +166,12 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     dispatch(setSelectedPoiUuid(null));
     dispatch(deleteActionsByUuid(poiActions.map((a) => a.uuid)));
   }
-
+  dispatch(
+    thunkAddRemoveFolderItem({
+      itemUuid: poi.uuid,
+      folderUuid: null,
+    })
+  );
   dispatch(setPoiEditMode({ poiUuid: poi.uuid, editMode: false }));
   //if we're in the middle of a map action, cancel it
   dispatch(thunkCancelMarkerMapDirective({ uuid: poi.uuid }));

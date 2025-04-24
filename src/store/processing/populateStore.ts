@@ -8,7 +8,7 @@ import {
   auditPosSources,
   auditPresetsAgainstLayers,
   auditStationCircles,
-  auditPresetFolders,
+  auditFolders,
 } from "./audits";
 
 export const populateStore = async (params: {
@@ -62,12 +62,12 @@ export const populateStore = async (params: {
     await auditStationCircles({ wholeStoreState });
     await auditActionDefinitions({ wholeStoreState });
     await auditPosSources({ wholeStoreState });
-    await auditPresetFolders({ wholeStoreState });
+    await auditFolders({ wholeStoreState });
   }
 
   // Set the default preset
   const defaultPreset = wholeStoreState.preset.presets.filter(
-    (preset) => preset.missionPresetDefault === true
+    (preset) => preset.missionDefault === true
   );
   if (defaultPreset.length > 0) {
     wholeStoreState.preset.selectedPresetUuid = defaultPreset[0].uuid;

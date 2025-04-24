@@ -1,9 +1,11 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
-import export_action_schema from "../../../../schema/exportAction.json";
 import { hasPerms } from "utils/permissions";
 import { makeExportActions } from "utils/export";
 import { getAll } from "../all";
+import path from "path";
+import fs from "fs";
+import { SCHEMA_DIR } from "utils/consts-server";
 
 const router = express.Router();
 
@@ -77,11 +79,22 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 router.get("/schema", async (req: Request, res: Response): Promise<void> => {
-  res.status(200).json({
-    status: "success",
-    message: "action schema retrieved",
-    data: export_action_schema,
-  });
+  try {
+    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "exportAction.json"), "utf8");
+    const schema = JSON.parse(schemaFile);
+    res.status(200).json({
+      status: "success",
+      message: "action schema retrieved",
+      data: schema,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({
+      status: "error",
+      message: `Error retrieving schema: ${e}`,
+      data: null,
+    });
+  }
   return;
 });
 

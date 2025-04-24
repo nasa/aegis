@@ -4,6 +4,21 @@ import * as esbuild from "esbuild";
 // Remove the previous build directory
 rmSync("./.local/express/dist", { recursive: true, force: true });
 
+// Create a plugin to handle rebuild events
+const watchPlugin = {
+  name: "watch-plugin",
+  setup(build) {
+    build.onEnd((result) => {
+      const timestamp = new Date().toLocaleTimeString();
+      if (result.errors.length > 0) {
+        console.error(`Build failed with ${result.errors.length} errors at ${timestamp}`);
+      } else {
+        console.log(`Build succeeded at ${timestamp}`);
+      }
+    });
+  },
+};
+
 // Run esbuild with the specified options
 const context = await esbuild.context({
   entryPoints: ["src/server/express/server.ts"],
@@ -32,6 +47,7 @@ const context = await esbuild.context({
   ],
   outfile: "./.local/express/dist/api.js",
   tsconfig: "./tsconfig.json",
+  plugins: [watchPlugin],
 });
 
 const isWatchMode = process.argv.includes("--watch");

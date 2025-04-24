@@ -26,10 +26,10 @@ For all install methods, do the following:
    - Make an empty folder called `aegis_static` that is next to the folder the AEGIS project was cloned to.
      - For example, if your AEGIS repo is at `C:\aegis`, make an empty folder at `C:\aegis_static`
 2. Install JavaScript dependencies: `npm i`
-3. Get the secret values from another AEGIS developer and paste them into a new file called `env.secret.ts`.
+3. Get the secret values from another AEGIS developer and paste them into a new file called `env.secret.ts`
 4. Create a `./.env` file by running `npm run make-dotenv` in the terminal.
 5. Run `./scripts/make-dev-ssl-cert.sh` in a terminal to setup a self-signed certificate.
-6. **Elevated privileges required:** Add `127.0.0.1 aegis-local.fit.nasa.gov` to your "hosts" file.
+6. **Workstation Admin privileges required:** Add `127.0.0.1 aegis-local.fit.nasa.gov` to your "hosts" file.
    1. Windows: Open the start menu, type "notepad", right-click on "Notepad" and select "open as administrator". In Notepad go to `C:\Windows\System32\drivers\etc`, show all files, and open the `hosts` file.
    2. Mac: Edit `/etc/hosts`
    3. Content to add at the bottom of the file (add CODA/Maestro/Labs while you're at it):
@@ -40,9 +40,9 @@ For all install methods, do the following:
       127.0.0.1 talkybot-local.fit.nasa.gov
       127.0.0.1 emss-labs-local.fit.nasa.gov
       ```
-7. Perform steps for either "Fully docker-compose" or "Just database via docker-compose" below.
+7. Perform steps for either "Development with service containers" or "Development with No docker" or "Preview: Fully docker-compose" below.
 
-### Development with service containers
+### Development with service containers (preferred)
 
 This is for doing local development with the Database and Gdal containers running
 
@@ -52,6 +52,27 @@ Perform "All install methods" instructions above before performing the following
 2. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
 3. Run `npm run dev` to start the frontend.
 4. Open [http://localhost:4000](http://localhost:4000) with your browser (note lack of https).
+
+### Development with No Docker
+
+This is for doing local development when you don't have Docker installed on your laptop yet. Note that `gdal` functions won't work in this mode but those functions are used in limited portions of AEGIS so development is still possible in this mode.
+
+Perform "All install methods" (except step 6 because you don't have Workstation Admin) instructions above before performing the following.
+
+1. Download PostgreSQL Binaries from the official url https://www.enterprisedb.com/download-postgresql-binaries
+2. Choose the latest binaries from installer version for Win x86-64 for Windows Operating System. Current latest version available is 17.4. This will be a higher version than the docker container AEGIS uses, but this shouldn't matter.
+3. Extract the zip to a location like `C:\Users\{username}\apps\`
+4. Add the directory `C:\Users\{username}\apps\pgsql\bin` to the User Environment Variables for `{username}`. Ensure that you do not add it to the System Variables. After adding the pgsql bin directory's path to User Environment variables, click OK.
+5. Tests
+   1. Test the server installation by opening a new terminal window and typeing `postgres -V`. If postgres is working it will return the version number
+   2. Test the client version with `psql -V`
+6. Get a DB dump sql file from the `z:db-export:prod` job in one of the AEGIS pipelines: https://eegitlab.fit.nasa.gov/emss/aegis/-/pipelines, name it `aegis.sql` and place it in `/.local/db-init` in the cloned AEGIS repo folder
+7. Use `gitbash` to run the scripts in `/scripts/non-docker` to start/stop the database
+   - To start `scripts/non-docker/start-aegis-db.sh`
+     - On first start it will import the sql dump you placed in `db-init` above
+   - To stop `scripts/non-docker/stop-aegis-db.sh`
+   - **NOTE:** you should use a different `gitbash` session than the one you use to run npm since ctrl-c will quit postgres as well as node if both are run in the same `gitbash` session.\
+8. Run `npm run dev` to bring up local env using the newly running DB.
 
 ### Preview: Fully docker-compose
 

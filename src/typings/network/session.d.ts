@@ -1,6 +1,6 @@
-import "express";
+import type {} from "express";
 
-import session from "express-session";
+import type session from "express-session";
 
 interface AEGISSession extends session.Session {
   user?: User;
