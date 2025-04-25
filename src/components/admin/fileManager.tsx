@@ -11,7 +11,7 @@ import { isLoggedIn } from "http-client/login";
 import UploadFile from "./uploadFile";
 import adminStyles from "components/admin/admin.module.css";
 import DownloadFromBox from "./downloadFromBox";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import prettyBytes from "pretty-bytes";
 
 const FileManager: FunctionComponent<{

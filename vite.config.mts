@@ -58,7 +58,7 @@ export const config: UserConfig = {
             "react",
             "react-dom",
             "react-redux",
-            "react-router-dom",
+            "react-router",
             "react-checkbox-tree",
             "@uiw/react-color-compact",
             "react-cookie",

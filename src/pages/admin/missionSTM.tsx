@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import { getMissions } from "http-client/mission";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";

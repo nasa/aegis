@@ -1,6 +1,6 @@
 import styles from "./header.module.css";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { FunctionComponent, useState } from "react";
 import PetInterval from "components/page/petInterval";
 import {
