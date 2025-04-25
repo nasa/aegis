@@ -2,13 +2,9 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import { User_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
-import { TextEncoder, TextDecoder } from "util";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankUser } from "store/storeUtils/user";
-
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
 
 let testUser: User_db;
 let testSuperAdmin: User_db;
