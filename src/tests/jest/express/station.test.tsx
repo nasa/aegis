@@ -4,7 +4,6 @@ import { User_db, Mission_db, Station_db } from "server/database/models/_allMode
 import UserFactory from "../factories/UserFactory";
 import StationFactory from "../factories/StationFactory";
 import MissionFactory from "../factories/MissionFactory";
-import { TextEncoder, TextDecoder } from "util";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
@@ -15,9 +14,6 @@ jest.mock("server/express/sockets", () => {
     ...jest.requireActual("server/express/sockets"),
   };
 });
-
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
 
 let testUser: User_db;
 let testMissions: Mission_db[];

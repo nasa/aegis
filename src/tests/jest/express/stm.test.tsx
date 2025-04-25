@@ -9,7 +9,6 @@ import {
 } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
-import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
 import STMLevel1Factory from "../factories/STMLevel1Factory";
 import STMLevel3Factory from "../factories/STMLevel3Factory";
 import STMLevel2Factory from "../factories/STMLevel2Factory";
@@ -20,8 +19,6 @@ import {
   generateBlankStmLvl2,
   generateBlankStmLvl3,
 } from "store/storeUtils/stm";
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
 
 let testUser: User_db;
 let testMissions: Mission_db[];

@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
 import cssModules from "eslint-plugin-css-modules";
+import packageJson from "eslint-plugin-package-json";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,10 +21,24 @@ const compat = new FlatCompat({
 });
 
 export default [
-  {
-    ignores: ["**/public/**/*", "out/**/*", "**/coverage", "**/.local"],
-  },
+  { ignores: ["**/public/**/*", "out/**/*", "**/coverage", "**/.local"] },
   ...fixupConfigRules(compat.extends("prettier", "plugin:react-hooks/recommended")),
+
+  // Configuration specifically for package.json files
+  {
+    ...packageJson.configs.recommended,
+    files: ["**/package.json"],
+    rules: {
+      "package-json/restrict-dependency-ranges": [
+        "error",
+        {
+          rangeType: "pin", // require that packages have pinned versions
+        },
+      ],
+    },
+  },
+
+  // Configuration for JavaScript and TypeScript files
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
     plugins: {
@@ -35,35 +50,19 @@ export default [
     },
 
     languageOptions: {
-      globals: {
-        ...globals.browser,
-      },
+      globals: { ...globals.browser },
 
       parser: tsParser,
       ecmaVersion: 12,
       sourceType: "module",
 
-      parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
-      },
+      parserOptions: { ecmaFeatures: { jsx: true } },
     },
 
-    settings: {
-      react: {
-        version: "detect",
-      },
-    },
+    settings: { react: { version: "detect" } },
 
     rules: {
-      "no-warning-comments": [
-        "error",
-        {
-          terms: ["fixme", "tbd", "xxx"],
-          location: "anywhere",
-        },
-      ],
+      "no-warning-comments": ["error", { terms: ["fixme", "tbd", "xxx"], location: "anywhere" }],
 
       "no-implied-eval": "error",
       "no-bitwise": "error",
@@ -72,31 +71,14 @@ export default [
       "no-array-constructor": "error",
       "no-caller": "error",
 
-      "no-constant-condition": [
-        "error",
-        {
-          checkLoops: false,
-        },
-      ],
+      "no-constant-condition": ["error", { checkLoops: false }],
 
-      "no-empty": [
-        "error",
-        {
-          allowEmptyCatch: true,
-        },
-      ],
+      "no-empty": ["error", { allowEmptyCatch: true }],
 
       "no-extra-bind": "error",
       "no-extra-label": "error",
 
-      "no-implicit-coercion": [
-        "error",
-        {
-          string: true,
-          boolean: false,
-          number: false,
-        },
-      ],
+      "no-implicit-coercion": ["error", { string: true, boolean: false, number: false }],
 
       "no-implicit-globals": "error",
       "no-label-var": "error",
@@ -150,12 +132,7 @@ export default [
       "no-throw-literal": "error",
       "no-unmodified-loop-condition": "error",
 
-      "no-unneeded-ternary": [
-        "error",
-        {
-          defaultAssignment: false,
-        },
-      ],
+      "no-unneeded-ternary": ["error", { defaultAssignment: false }],
 
       "no-unused-expressions": "error",
       "no-useless-call": "error",
@@ -171,20 +148,10 @@ export default [
 
       "@typescript-eslint/no-unused-vars": [
         "error",
-        {
-          argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
-          caughtErrors: "none",
-        },
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrors: "none" },
       ],
 
-      "prettier/prettier": [
-        "error",
-        {
-          endOfLine: "auto",
-          trailingComma: "es5",
-        },
-      ],
+      "prettier/prettier": ["error", { endOfLine: "auto", trailingComma: "es5" }],
 
       "no-import-assign": "error",
       "no-unreachable": "error",

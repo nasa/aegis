@@ -7,12 +7,9 @@ import LayerFactory from "../factories/LayerFactory";
 import SublayerFactory from "../factories/SublayerFactory";
 import { Mission_db, Layer_db, User_db, Sublayer_db } from "server/database/models/_allModels";
 import { v4 as uuidv4 } from "uuid";
-import { TextEncoder, TextDecoder } from "util";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
 
 let testMissions: Mission_db[];
 let testUser: User_db;

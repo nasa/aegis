@@ -6,13 +6,9 @@ import MissionFactory from "../factories/MissionFactory";
 import LayerFactory from "../factories/LayerFactory";
 import { Mission_db, Layer_db, User_db } from "server/database/models/_allModels";
 import { v4 as uuidv4 } from "uuid";
-import { TextEncoder, TextDecoder } from "util";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankLayer } from "store/storeUtils/layer";
-
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
 
 let testMissions: Mission_db[];
 let testUser: User_db;

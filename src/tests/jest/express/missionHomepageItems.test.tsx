@@ -3,7 +3,6 @@ import { getORM, getEM, closeORM } from "utils/mikro";
 import { User_db, Mission_db, Rex_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
-import { TextEncoder, TextDecoder } from "util";
 import RexFactory from "../factories/RexFactory";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
@@ -14,9 +13,6 @@ jest.mock("server/express/sockets", () => {
     ...jest.requireActual("server/express/sockets"),
   };
 });
-
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
 
 let testUserNoPerms: User_db;
 let testUser: User_db;

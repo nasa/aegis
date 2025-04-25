@@ -7,7 +7,6 @@ import {
   Station_db,
   Poi_db,
 } from "server/database/models/_allModels";
-import { TextEncoder, TextDecoder } from "util";
 import UserFactory from "../factories/UserFactory";
 import ActionFactory from "../factories/ActionFactory";
 import MissionFactory from "../factories/MissionFactory";
@@ -23,8 +22,6 @@ jest.mock("server/express/sockets", () => {
     ...jest.requireActual("server/express/sockets"),
   };
 });
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
 
 let testUser: User_db;
 let testMissions: Mission_db[];
