@@ -1,6 +1,6 @@
 import styles from "./header.module.css";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 import { faBars, faEye, faPen, faPersonWalkingArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

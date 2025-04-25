@@ -1,6 +1,6 @@
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import {
   Dispatch,
   FormEventHandler,
