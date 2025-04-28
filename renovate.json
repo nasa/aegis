@@ -9,7 +9,7 @@
     "dependencyDashboardApproval": true
   },
   "labels": ["Renovate"],
-  "prTitlePrefix": "z_deps:",
+  "prTitle": "{{{z_deps}}} {{{prTitle}}}",
   "packageRules": [
     {
       "groupName": "react",
