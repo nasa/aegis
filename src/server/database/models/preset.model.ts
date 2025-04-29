@@ -21,11 +21,11 @@ export class Preset_db implements Preset_db_type {
   mapCircleControls!: MapCircleControls;
   @Property({ type: MikroTypes.json, nullable: true })
   layerOrder: PresetLayerOrder[];
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   sunAzimuth: number;
   @Property({ type: MikroTypes.boolean, nullable: true, default: true })
   sunEnabled: boolean;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   earthAzimuth: number;
   @Property({ type: MikroTypes.boolean, nullable: true, default: true })
   earthEnabled: boolean;

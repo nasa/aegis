@@ -47,15 +47,15 @@ export class Action_db implements Action_db_type {
   location: AEGISPoint;
   @Property({ type: MikroTypes.float, nullable: true })
   elevation!: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   durationLower!: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   durationUpper: number;
   @Property({ type: MikroTypes.json, nullable: true })
   equipmentItemsUsage: EquipmentItemUsage[];
   @Property({ type: MikroTypes.json, nullable: true })
   geographicUnitsUsage: string[];
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   mass: number;
   @Property({ type: MikroTypes.string })
   status!: POIStatus;
