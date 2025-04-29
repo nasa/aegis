@@ -185,6 +185,7 @@ const FolderMenu: FunctionComponent<{
 const FolderComponent = <T,>({
   folder,
   folderInterface,
+  folders,
   items,
   itemsToFolders,
   getItemId,
@@ -193,6 +194,7 @@ const FolderComponent = <T,>({
 }: {
   folder: Folder;
   folderInterface: FolderInterface;
+  folders: Folder[];
   items: T[];
   itemsToFolders: Record<string, string>;
   getItemId: (item: T) => string;
@@ -259,7 +261,11 @@ const FolderComponent = <T,>({
                 name: "folderName",
                 ariaLabel: "Folder name",
                 className: styles.folderNameInput,
-                validators: [validators.required, validators.maxLength(24)],
+                validators: [
+                  validators.required,
+                  validators.maxLength(24),
+                  validators.mustBeUnique(folders.map((f) => f.name)),
+                ],
               }}
               onSubmit={handleKeystroke}
             />
@@ -421,6 +427,7 @@ export const FolderOrganizer = <T extends POI | Station | Eva | Rex | Preset>({
               key={folder.uuid}
               folder={folder}
               folderInterface={folderInterface}
+              folders={folders}
               items={items}
               itemsToFolders={itemsToFolders}
               getItemId={getItemId}
