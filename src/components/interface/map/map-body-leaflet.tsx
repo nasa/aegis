@@ -313,7 +313,9 @@ const MapBody: FunctionComponent = () => {
     setShowArrows(eyeballMenuSettings.showArrows);
     setShowGridLabels(eyeballMenuSettings.showGridLabels);
     setShowGridLines(eyeballMenuSettings.showGridLines);
-    setShowSunEarth(eyeballMenuSettings.showSunEarth || false); // default to false if not in cookie
+    setShowSunEarth(eyeballMenuSettings.showSunEarth ?? false); // default to false if not in cookie
+    setShowScaleBar(eyeballMenuSettings.showScaleBar ?? true); // default to true if not in cookie
+    setShowMouseLatLon(eyeballMenuSettings.showMouseLatLon ?? true); // default to true if not in cookie
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -333,6 +335,8 @@ const MapBody: FunctionComponent = () => {
         showGridLabels,
         showGridLines,
         showSunEarth,
+        showScaleBar,
+        showMouseLatLon,
       }),
       { path: "/" }
     );
@@ -346,6 +350,8 @@ const MapBody: FunctionComponent = () => {
     showGridLabels,
     showGridLines,
     showSunEarth,
+    showScaleBar,
+    showMouseLatLon,
   ]);
 
   /**
