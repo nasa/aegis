@@ -1,6 +1,5 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
-import export_traverse_schema from "../../../../schema/exportTraverse.json";
 import { hasPerms } from "utils/permissions";
 import { makeExportActions, makeExportTraverses } from "utils/export";
 import { getAll } from "../all";
@@ -96,11 +95,23 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 router.get("/schema", async (req: Request, res: Response): Promise<void> => {
-  res.status(200).json({
-    status: "success",
-    message: "traverse schema retrieved",
-    data: export_traverse_schema,
-  });
+  try {
+    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "exportTraverse.json"), "utf8");
+    const schema = JSON.parse(schemaFile);
+    res.status(200).json({
+      status: "success",
+      message: "traverse schema retrieved",
+      data: schema,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({
+      status: "error",
+      message: `Error retrieving schema: ${e}`,
+      data: null,
+    });
+  }
+  return;
 });
 
 export default router;
