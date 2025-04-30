@@ -44,7 +44,7 @@
     "schema:create:poi": "typescript-json-schema ./tsconfig.schema.json ExportPOI --noExtraProps --required --ignoreErrors -o ./.local/schemas/exportPoi.json",
     "schema:create:mission": "typescript-json-schema ./tsconfig.schema.json Mission --noExtraProps --required --ignoreErrors -o ./.local/schemas/exportMission.json",
     "schema:create:sublayerImportable": "typescript-json-schema ./tsconfig.schema.json SublayerImportable --noExtraProps --required --ignoreErrors -o ./.local/schemas/sublayerImportable.json",
-    "schema:create:traverse": "typescript-json-schema ./src/schema/tsconfig.schema.json ExportTraverse --noExtraProps --required --ignoreErrors -o ./.local/schemas/exportTraverse.json"
+    "schema:create:traverse": "typescript-json-schema ./tsconfig.schema.json ExportTraverse --noExtraProps --required --ignoreErrors -o ./.local/schemas/exportTraverse.json"
   },
   "dependencies": {
     "@mikro-orm/cli": "6.4.13",
