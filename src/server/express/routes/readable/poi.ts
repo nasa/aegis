@@ -53,6 +53,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       mission: wholeStore.mission,
       stations: wholeStore.stations,
       pois: pois,
+      traverses: wholeStore.traverses,
       level1s: wholeStore.level1s,
       level2s: wholeStore.level2s,
       level3s: wholeStore.level3s,
