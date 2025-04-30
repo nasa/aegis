@@ -5,6 +5,7 @@ import { makeExportActions } from "utils/export";
 import { getAll } from "../all";
 import path from "path";
 import fs from "fs";
+import { getGridFromFile } from "../grid";
 import { SCHEMA_DIR } from "utils/consts-server";
 import { QueryOrder } from "@mikro-orm/core";
 import { getEM } from "utils/mikro";
@@ -164,6 +165,10 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         actions = actions.filter((action) => new Date(action.updatedAt) >= sinceDate);
       }
 
+      const gridCoordinates: MissionGridPoint[][] = wholeStore.mission.activeGridUuid
+        ? await getGridFromFile(queryObj.missionId, wholeStore.mission.activeGridUuid)
+        : null;
+
       const exportActions: ExportAction[] = makeExportActions({
         actions: actions,
         mission: wholeStore.mission,
@@ -173,6 +178,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         level1s: wholeStore.level1s,
         level2s: wholeStore.level2s,
         level3s: wholeStore.level3s,
+        missionGrid: gridCoordinates,
       });
 
       res.status(200).json({

@@ -172,7 +172,11 @@ export const createFullTestStore = (): StoreType => {
       presetLayersUIStates: presetLayersUIStates,
       presetCirclesUIStates: presetCirclesUIStates,
     },
-    station: { ...stationInitialState, stations: stations, stationsFromDb: stations },
+    station: {
+      ...stationInitialState,
+      stations: stations,
+      stationsFromDb: stations,
+    },
     action: {
       ...actionInitialState,
       actions: actions,

@@ -6,6 +6,7 @@ import { getAll } from "../all";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import path from "path";
 import fs from "fs";
+import { getGridFromFile } from "../grid";
 import { SCHEMA_DIR } from "utils/consts-server";
 
 const router = express.Router();
@@ -48,6 +49,10 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       stations = stations.filter((station) => station.uuid === queryObj.stationUuid);
     }
 
+    const gridCoordinates: MissionGridPoint[][] = wholeStore.mission.activeGridUuid
+      ? await getGridFromFile(queryObj.missionId, wholeStore.mission.activeGridUuid)
+      : null;
+
     const exportActions: ExportAction[] = makeExportActions({
       actions: wholeStore.actions,
       mission: wholeStore.mission,
@@ -57,6 +62,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       level1s: wholeStore.level1s,
       level2s: wholeStore.level2s,
       level3s: wholeStore.level3s,
+      missionGrid: gridCoordinates,
     });
 
     const exportStations: ExportStation[] = makeExportStations({
@@ -72,6 +78,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       actions: exportActions,
       mission: wholeStore.mission,
       pois: wholeStore.pois,
+      missionGrid: gridCoordinates,
     });
 
     res.status(200).json({

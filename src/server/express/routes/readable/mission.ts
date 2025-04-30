@@ -4,6 +4,8 @@ import { hasPerms } from "utils/permissions";
 import { getMission } from "../mission";
 import path from "path";
 import fs from "fs";
+import { makeExportMission } from "utils/export";
+import { getGridFromFile } from "../grid";
 import { SCHEMA_DIR } from "utils/consts-server";
 
 const router = express.Router();
@@ -57,10 +59,23 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         records = await getMission(viewableMissions);
       }
     }
+
+    const exportMissions: ExportMission[] = await Promise.all(
+      records.map(async (mission) => {
+        const gridCoordinates: MissionGridPoint[][] = mission.activeGridUuid
+          ? await getGridFromFile(queryObj.missionId, mission.activeGridUuid)
+          : null;
+        return makeExportMission({
+          mission: mission,
+          missionGrid: gridCoordinates,
+        });
+      })
+    );
+
     res.status(200).json({
       status: "success",
       message: "mission retrieved",
-      data: records,
+      data: exportMissions,
     });
   } catch (e) {
     console.error(e);

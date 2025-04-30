@@ -15,7 +15,7 @@ import { LastEdited, SubpanelHeading } from "components/interface/_global-elemen
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStationByField } from "store/station";
-import { calcCentroidofCoordinates } from "utils/geoMath";
+import { calcCentroidofCoordinates, findGridCoordinatesFromPoint } from "utils/geoMath";
 import { formatNumberWithCommas, toDecimal } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
@@ -30,6 +30,7 @@ import { validators, regExValidators } from "components/interface/form/formValid
 import CalculatedDwell from "../calculated-dwell";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+import { globalGrid } from "utils/grid";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -111,6 +112,18 @@ const Info_Panel: FunctionComponent<{
     (state) => state.mission.mission.walkbackRate,
     refEqual
   );
+
+  const stationGridCoordinates = useAppSelector((state) => {
+    if (selectedStation.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
+      return findGridCoordinatesFromPoint(
+        globalGrid.coordinates,
+        selectedStation.location,
+        state.mission.mission.planetRadius
+      );
+    } else {
+      return "Not set";
+    }
+  }, deepEqual);
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
 
@@ -574,6 +587,14 @@ const Info_Panel: FunctionComponent<{
                           (selectedStation.elevation - landerElevation).toFixed(0)
                         )}
                       </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Grid Coords:</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>{stationGridCoordinates}</div>
                     </div>
                   </div>
                 </div>

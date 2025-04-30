@@ -2,6 +2,7 @@ import { stripHtml } from "string-strip-html";
 import { convertNodeToHTML, convertStringToNodes } from "components/interface/form/wysiwyg";
 import { decodeEmoji } from "./formatting";
 import reduce from "lodash/reduce";
+import { findGridCoordinatesFromPoint } from "./geoMath";
 
 const decodeWsywig = (string: string): string => {
   if (!string) return string;
@@ -67,8 +68,10 @@ export const makeExportActions = (params: {
   level2s: STMLevel2[];
   level3s: STMLevel3[];
   mission: Mission;
+  missionGrid: MissionGridPoint[][];
 }): ExportAction[] => {
-  const { actions, mission, stations, pois, traverses, level1s, level2s, level3s } = params;
+  const { actions, mission, stations, pois, traverses, level1s, level2s, level3s, missionGrid } =
+    params;
 
   const actionDefinitions: ActionDefinitions = mission.actionDefinitions;
   const exportActions: ExportAction[] = actions.map((action) => {
@@ -104,6 +107,9 @@ export const makeExportActions = (params: {
             priority,
           }))
         : null,
+      gridCoordinates: missionGrid
+        ? findGridCoordinatesFromPoint(missionGrid, action.location, mission.planetRadius)
+        : null,
     };
     return exportAction;
   });
@@ -116,8 +122,9 @@ export const makeExportPois = (params: {
   poiCalculatedFields: PoiCalculatedFields[];
   actions: ExportAction[];
   mission: Mission;
+  missionGrid: MissionGridPoint[][];
 }): ExportPOI[] => {
-  const { pois, poiCalculatedFields, actions, mission } = params;
+  const { pois, poiCalculatedFields, actions, mission, missionGrid } = params;
   const exportPois: ExportPOI[] = pois.map((poi) => {
     const actionsReadable: ExportAction[] = [];
     poi.actionOrderUuids.forEach((actionUuid) => {
@@ -132,6 +139,9 @@ export const makeExportPois = (params: {
       calculatedFields: poiCalculatedFields.find((c) => c.uuid === poi.uuid),
       elevationRelative: poi.elevation - mission.landerElevationMeters,
       iconEmojiDecoded: decodeEmoji(poi.icon),
+      gridCoordinates: missionGrid
+        ? findGridCoordinatesFromPoint(missionGrid, poi.location, mission.planetRadius)
+        : null,
     };
     return exportPoi;
   });
@@ -144,8 +154,9 @@ export const makeExportStations = (params: {
   actions: ExportAction[];
   mission: Mission;
   pois: POI[];
+  missionGrid: MissionGridPoint[][];
 }): ExportStation[] => {
-  const { stations, stationCalculatedFields, actions, mission, pois } = params;
+  const { stations, stationCalculatedFields, actions, mission, pois, missionGrid } = params;
   const exportStations: ExportStation[] = stations.map((station) => {
     const actionsReadable: ExportAction[] = [];
     station.actionOrderUuids.forEach((actionUuid: string) => {
@@ -176,6 +187,9 @@ export const makeExportStations = (params: {
           };
         }
       }),
+      gridCoordinates: missionGrid
+        ? findGridCoordinatesFromPoint(missionGrid, station.location, mission.planetRadius)
+        : null,
     };
     return ExportStation;
   });
@@ -247,6 +261,21 @@ export const makeExportRexes = (params: { rexes: Rex[] }): ExportRex[] => {
     return exportRex;
   });
   return exportRexes;
+};
+
+export const makeExportMission = (params: {
+  mission: Mission;
+  missionGrid: MissionGridPoint[][];
+}): ExportMission => {
+  const { mission, missionGrid } = params;
+  const exportMission: ExportMission = {
+    ...mission,
+    gridCoordinates: missionGrid
+      ? findGridCoordinatesFromPoint(missionGrid, mission?.landerLocation, mission.planetRadius)
+      : null,
+  };
+
+  return exportMission;
 };
 
 export const makeReadableActionDefinition = (params: {
