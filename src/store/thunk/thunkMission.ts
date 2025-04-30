@@ -17,6 +17,7 @@ import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import {
+  makeExportMission,
   makeExportActions,
   makeExportEvas,
   makeExportPois,
@@ -33,6 +34,7 @@ import {
 } from "store/processing/calculatedFields";
 import { generateBlankActionTemplate } from "store/storeUtils/mission";
 import { setStationCircleUIStates } from "store/station";
+import { globalGrid } from "utils/grid";
 
 export const thunkMissionSave = appCreateAsyncThunk<void>(
   "missionSave",
@@ -372,6 +374,13 @@ export const thunkMakeExportString = appCreateAsyncThunk<
     { getState }
   ) => {
     /**
+     * Mission
+     */
+    const mission = makeExportMission({
+      mission: getState().mission.mission,
+      missionGrid: globalGrid?.coordinates,
+    });
+    /**
      * Actions
      */
     const actions: ExportAction[] = makeExportActions({
@@ -383,6 +392,7 @@ export const thunkMakeExportString = appCreateAsyncThunk<
       level2s: getState().stm?.level2s,
       level3s: getState().stm?.level3s,
       mission: getState().mission?.mission,
+      missionGrid: globalGrid?.coordinates,
     });
 
     /**
@@ -398,6 +408,7 @@ export const thunkMakeExportString = appCreateAsyncThunk<
       ),
       actions,
       mission: getState().mission.mission,
+      missionGrid: globalGrid?.coordinates,
     });
 
     /**
@@ -416,6 +427,7 @@ export const thunkMakeExportString = appCreateAsyncThunk<
       actions: actions,
       mission: getState().mission.mission,
       pois: getState().poi.pois,
+      missionGrid: globalGrid?.coordinates,
     });
 
     /**
@@ -466,7 +478,7 @@ export const thunkMakeExportString = appCreateAsyncThunk<
      * Finish
      */
     const exportedData: ExportedData = {
-      mission: getState().mission.mission,
+      mission,
       pois,
       stations,
       actions,

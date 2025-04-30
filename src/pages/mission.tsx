@@ -19,6 +19,8 @@ import { setAllSliceStores } from "store/crossActions";
 import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
+import { loadAndReturnGrid } from "utils/grid";
+import { setGridCornerPoint } from "store/map";
 
 type RouteParams = {
   id: string;
@@ -34,6 +36,7 @@ const Main = (): JSX.Element => {
   );
 
   const [permissions, setPermissions] = useState<Permission>(null);
+
   const [searchParams] = useSearchParams();
   const evaUuid = searchParams.get("evaUuid");
   const actionUuid = searchParams.get("actionUuid");
@@ -75,6 +78,23 @@ const Main = (): JSX.Element => {
     window.sessionStorage.setItem("missionId", intMissionId.toString());
     window.sessionStorage.setItem("socketId", "null");
   }, [intMissionId]);
+
+  // in it's own useEffect incase grid changes while user is on the page
+  useEffect(() => {
+    const loadGridAsync = async () => {
+      const newGrid: MissionGrid = await loadAndReturnGrid(
+        intMissionId,
+        missionStore.mission?.activeGridUuid
+      );
+      if (newGrid?.coordinates && newGrid.coordinates.length > 0) {
+        dispatch(setGridCornerPoint(newGrid.coordinates[0][0]));
+      } else {
+        dispatch(setGridCornerPoint(null));
+      }
+    };
+
+    loadGridAsync();
+  }, [dispatch, intMissionId, missionStore.mission?.activeGridUuid]);
 
   useEffect(() => {
     if (!intMissionId) return;

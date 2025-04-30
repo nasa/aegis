@@ -7,6 +7,7 @@ import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields
 import path from "path";
 import fs from "fs";
 import { SCHEMA_DIR } from "utils/consts-server";
+import { getGridFromFile } from "../grid";
 
 const router = express.Router();
 
@@ -57,6 +58,10 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       traverses = traverses.filter((traverse) => traverse.uuid === queryObj.traverseUuid);
     }
 
+    const gridCoordinates: MissionGridPoint[][] = wholeStore.mission.activeGridUuid
+      ? await getGridFromFile(queryObj.missionId, wholeStore.mission.activeGridUuid)
+      : null;
+
     const exportActions: ExportAction[] = makeExportActions({
       actions: wholeStore.actions,
       mission: wholeStore.mission,
@@ -66,6 +71,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       level1s: wholeStore.level1s,
       level2s: wholeStore.level2s,
       level3s: wholeStore.level3s,
+      missionGrid: gridCoordinates,
     });
 
     const calculatedTraverses: TraverseCalculatedFields[] = traverses.map((traverse) =>

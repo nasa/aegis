@@ -30,12 +30,13 @@ import round from "lodash/round";
 import isNull from "lodash/isNull";
 import { EquipmentSelector, GeographicUnitSelector } from "./actions-action-body-multiselectors";
 import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
-import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import { findGridCoordinatesFromPoint, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import last from "lodash/last";
 import { thunkAddRexActionMass } from "store/thunk/thunkRex";
+import { globalGrid } from "utils/grid";
 
 const RightActionBody: FunctionComponent<{
   editMode: boolean;
@@ -57,7 +58,6 @@ const RightActionBody: FunctionComponent<{
     refEqual
   );
 
-  const planetRadius = useAppSelector((state) => state.mission.mission.planetRadius, refEqual);
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === action.uuid ? state.map.mapDirective : null;
   }, shallowEqual);
@@ -81,6 +81,16 @@ const RightActionBody: FunctionComponent<{
       return null;
     } else {
       return last(rex.actionEntries[action.uuid]).mass;
+    }
+  }, deepEqual);
+
+  const planetRadius = useAppSelector((state) => state.mission.mission.planetRadius, refEqual);
+
+  const actionGridCoordinates = useAppSelector((state) => {
+    if (action.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
+      return findGridCoordinatesFromPoint(globalGrid.coordinates, action.location, planetRadius);
+    } else {
+      return "Not set";
     }
   }, deepEqual);
 
@@ -583,6 +593,14 @@ const RightActionBody: FunctionComponent<{
                       />
                     )}
                   </div>
+                </div>
+              </div>
+              <div className={paneStyles.panelColumnTableRow}>
+                <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.displayFieldLabel}>Grid Coords:</div>
+                </div>
+                <div className={paneStyles.panelColumnTableCell}>
+                  <div className={paneStyles.displayFieldValue}>{actionGridCoordinates}</div>
                 </div>
               </div>
             </div>

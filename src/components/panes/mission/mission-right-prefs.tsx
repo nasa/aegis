@@ -20,6 +20,8 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { toDecimal } from "utils/formatting";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkVerifyNoStationsBeingEdited } from "store/thunk/thunkStation";
+import { globalGrid } from "utils/grid";
+import { findGridCoordinatesFromPoint } from "utils/geoMath";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -33,6 +35,19 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === "lander" ? state.map.mapDirective : null;
   }, shallowEqual);
+
+  const landerGridCoordinates = useAppSelector((state) => {
+    if (mission.landerLocation && globalGrid?.coordinates && state.map.gridCornerPoint) {
+      return findGridCoordinatesFromPoint(
+        globalGrid.coordinates,
+        mission.landerLocation,
+        state.mission.mission.planetRadius
+      );
+    } else {
+      return "Not set";
+    }
+  }, deepEqual);
+
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   const dispatchMissionMapAction = (mapAction: MapAction) => {
@@ -290,6 +305,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           mission.landerElevationMeters.toFixed(0)
                         )}
                       </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Grid Coords:</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>{landerGridCoordinates}</div>
                     </div>
                   </div>
                 </div>

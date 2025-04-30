@@ -27,6 +27,7 @@ interface UserState {
 interface MapState {
   mapDirective: MapDirective;
   measureInitialCoords: AEGISPoint[];
+  gridCornerPoint: MissionGridPoint;
 }
 
 interface EvaState {

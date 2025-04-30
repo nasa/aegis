@@ -180,6 +180,7 @@ describe("Thunk POI Tests", () => {
       name: "Jest Action-1",
       poiUuid: unsavedPoi.uuid,
     });
+
     const store = createCustomTestStore({
       poi: {
         ...poiInitialState,

@@ -78,13 +78,13 @@ import {
 } from "components/page/leaflet-helper";
 import { thunkMarkerOnClick, thunkPolylineOnClick } from "store/thunk/thunkMap";
 import { Feature } from "geojson";
-import { getGrids } from "http-client/grid";
 import { setSelectedPresetUuid } from "store/preset";
 import { getCalculatedTimeOfSequenceItem } from "store/processing/calculatedFields";
 import { addTimeToDateTime } from "utils/timeLayers";
 import { EARTH_RADIUS } from "utils/consts";
+import { globalGrid } from "utils/grid";
 
-const MapBody: FunctionComponent = () => {
+const MapBody: FunctionComponent<{}> = () => {
   const dispatch = useAppDispatch();
   const mapRef = useRef(null);
   const map = useRef<L.Map>(null);
@@ -228,6 +228,8 @@ const MapBody: FunctionComponent = () => {
     deepEqual
   );
 
+  const gridCorner = useAppSelector((state) => state.map.gridCornerPoint, deepEqual);
+
   const [layersOnMap, setLayersOnMap] = useState([]);
 
   const [posEntriesShowing, setPosEntriesShowing] = useState<PosEntry[]>([]);
@@ -281,7 +283,6 @@ const MapBody: FunctionComponent = () => {
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
   const [mapBounds, setMapBounds] = useState<string>(null); // Used to trigger re-draw of grid labels. Value doens't matter
   const [rexPetTime, setRexPetTime] = useState(""); // used to update the PET value via the PetInterval component
-  const [chosenGrid, setChosenGrid] = useState<MissionGrid>(undefined);
   const [gridBounds, setGridBounds] = useState<GridIndex[]>(undefined);
   const [mapDateTime, setMapDateTime] = useState<string>(undefined);
   const [timeLayerInfo, setTimeLayerInfo] = useState<TimeLayerInfo>(undefined);
@@ -588,7 +589,7 @@ const MapBody: FunctionComponent = () => {
     map.current.on("mousemove", (e) => {
       setMouseLatLng({ lat: e.latlng.lat, lng: e.latlng.lng });
       const positionCoords = findGridCoordinatesFromPoint(
-        chosenGrid?.coordinates,
+        globalGrid?.coordinates,
         e.latlng,
         mission.planetRadius
       );
@@ -611,7 +612,7 @@ const MapBody: FunctionComponent = () => {
         map.current.off("click");
       }
     };
-  }, [map, mapDirective, dispatch, gridLabels, showGridLabels, mission, chosenGrid]);
+  }, [map, mapDirective, dispatch, gridLabels, showGridLabels, mission]);
 
   /**
    * Listen for mapDirective for stations, pois, actions, traverses, and measurements, and trigger map draw/edit modes appropriately
@@ -1223,23 +1224,10 @@ const MapBody: FunctionComponent = () => {
   ]);
 
   /**
-   * Get grid from the database
-   */
-  useEffect(() => {
-    async function fetchGrids() {
-      if (!mission.activeGridUuid) return;
-      const grid: MissionGrid = (await getGrids(mission.id, mission.activeGridUuid, true)).data[0];
-      setChosenGrid(grid);
-    }
-
-    fetchGrids();
-  }, [mission.activeGridUuid, mission.id]);
-
-  /**
    * Set grid settings
    */
   useEffect(() => {
-    if (!map || !mapBounds || !chosenGrid) return;
+    if (!map || !mapBounds || !globalGrid?.coordinates || !gridCorner) return;
 
     if (showGridLines) {
       const size: L.Point = map.current.getSize();
@@ -1251,19 +1239,19 @@ const MapBody: FunctionComponent = () => {
       );
 
       setGridBounds([
-        findClosestPointInGrid(chosenGrid.coordinates, gridStart, mission.planetRadius),
-        findClosestPointInGrid(chosenGrid.coordinates, gridEnd, mission.planetRadius),
+        findClosestPointInGrid(globalGrid.coordinates, gridStart, mission.planetRadius),
+        findClosestPointInGrid(globalGrid.coordinates, gridEnd, mission.planetRadius),
       ]);
     } else {
       setGridBounds(null);
     }
-  }, [map, mapBounds, chosenGrid, mapZoom, mission.id, mission.planetRadius, showGridLines]);
+  }, [gridCorner, map, mapBounds, mapZoom, mission.id, mission.planetRadius, showGridLines]);
 
   /**
    * Draw grid
    */
   useEffect(() => {
-    if (!map || !mission?.planetRadius || !mapBounds || !chosenGrid) return;
+    if (!map || !mission?.planetRadius || !mapBounds || !globalGrid?.coordinates) return;
 
     map.current.eachLayer((layer: AEGISGeoJSONGrid | AEGISGeoJSONGridPoint) => {
       if (layer?.mapItemType === "Grid System" || layer?.mapItemType === "Grid Point") {
@@ -1273,7 +1261,7 @@ const MapBody: FunctionComponent = () => {
 
     if (!gridBounds) return;
 
-    const gridCoordinates: MissionGridPoint[][] = chosenGrid.coordinates;
+    const gridCoordinates: MissionGridPoint[][] = globalGrid.coordinates;
 
     const basePointsShown =
       (gridBounds[1].row - gridBounds[0].row) * (gridBounds[1].col - gridBounds[0].col);
@@ -1286,15 +1274,15 @@ const MapBody: FunctionComponent = () => {
 
     const startIndex: GridIndex = adjustGridIndex(
       gridBounds[0],
-      chosenGrid.coordinates.length,
-      chosenGrid.coordinates[0].length,
+      globalGrid.coordinates.length,
+      globalGrid.coordinates[0].length,
       lineZoomLevel,
       true
     );
     const endIndex: GridIndex = adjustGridIndex(
       gridBounds[1],
-      chosenGrid.coordinates.length,
-      chosenGrid.coordinates[0].length,
+      globalGrid.coordinates.length,
+      globalGrid.coordinates[0].length,
       lineZoomLevel,
       false
     );
@@ -1373,7 +1361,6 @@ const MapBody: FunctionComponent = () => {
     map,
     mapZoom,
     mapBounds,
-    chosenGrid,
     mission.id,
     mission.activeGridUuid,
     gridBounds,

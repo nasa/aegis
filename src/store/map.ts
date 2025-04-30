@@ -4,6 +4,7 @@ import { setAllSliceStores } from "./crossActions";
 export const initialState: MapState = {
   mapDirective: null,
   measureInitialCoords: [],
+  gridCornerPoint: null,
 };
 
 export const mapSlice = createSlice({
@@ -20,6 +21,9 @@ export const mapSlice = createSlice({
     setMeasureInitialCoords: (state, action: { payload: AEGISPoint[] }) => {
       state.measureInitialCoords = action.payload;
     },
+    setGridCornerPoint: (state, action: { payload: MissionGridPoint }) => {
+      state.gridCornerPoint = action.payload;
+    },
   },
   extraReducers: (builder) => {
     // reducer called across slices. This handles this slice's portion of the reducer's state
@@ -29,6 +33,7 @@ export const mapSlice = createSlice({
   },
 });
 
-export const { updateMapDirective, obliterateState, setMeasureInitialCoords } = mapSlice.actions;
+export const { updateMapDirective, obliterateState, setMeasureInitialCoords, setGridCornerPoint } =
+  mapSlice.actions;
 
 export default mapSlice.reducer;
