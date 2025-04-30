@@ -3,6 +3,7 @@ interface ExportAction extends Action {
   descriptionReadable: string;
   parentPoiName: string;
   parentStationName: string;
+  parentTraverseName: string;
   stmUuidRefsReadable: string[];
   iconEmojiDecoded: string;
   equipmentItemsUsageReadable: EquipmentItemUsageReadable[] | null;
@@ -55,6 +56,7 @@ interface ExportTraverse extends Traverse {
   _itemType: string;
   descriptionReadable: string;
   calculatedFields: TraverseCalculatedFields;
+  actionsReadable: ExportAction[];
 }
 
 interface ExportEva extends Eva {

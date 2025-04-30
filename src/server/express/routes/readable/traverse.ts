@@ -1,9 +1,9 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 import { hasPerms } from "utils/permissions";
-import { makeExportActions, makeExportPois } from "utils/export";
+import { makeExportActions, makeExportTraverses } from "utils/export";
 import { getAll } from "../all";
-import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
+import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import path from "path";
 import fs from "fs";
 import { SCHEMA_DIR } from "utils/consts-server";
@@ -11,10 +11,11 @@ import { SCHEMA_DIR } from "utils/consts-server";
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { uuid, socketId, missionId } = query;
+  const { uuid, socketId, evaUuid, missionId } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
-    poiUuid: uuid ? (uuid as string) : undefined,
+    traverseUuid: uuid ? (uuid as string) : undefined,
+    evaUuid: evaUuid ? (evaUuid as string) : undefined,
     socketId: socketId ? (socketId as string) : undefined,
   };
   return queryObj;
@@ -43,54 +44,66 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const wholeStore: OneMissionToRuleThemAll = await getAll(queryObj.missionId);
 
-    let pois: POI[] = wholeStore.pois;
-    if (queryObj.poiUuid) {
-      pois = pois.filter((poi) => poi.uuid === queryObj.poiUuid);
+    let traverses = wholeStore.traverses;
+    if (queryObj.evaUuid) {
+      const chosenEvaTraverseSequenceItems = wholeStore.evas
+        .find((eva) => eva.uuid === queryObj.evaUuid)
+        ?.sequence.filter((sequenceItem) => sequenceItem.type === "traverse");
+      traverses = traverses.filter((traverse) =>
+        chosenEvaTraverseSequenceItems?.some((sequenceItem) => sequenceItem.uuid === traverse.uuid)
+      );
+    }
+    if (queryObj.traverseUuid) {
+      traverses = traverses.filter((traverse) => traverse.uuid === queryObj.traverseUuid);
     }
 
     const exportActions: ExportAction[] = makeExportActions({
       actions: wholeStore.actions,
       mission: wholeStore.mission,
       stations: wholeStore.stations,
-      pois: pois,
-      traverses: wholeStore.traverses,
+      pois: wholeStore.pois,
+      traverses: traverses,
       level1s: wholeStore.level1s,
       level2s: wholeStore.level2s,
       level3s: wholeStore.level3s,
     });
 
-    const exportPois: ExportPOI[] = makeExportPois({
-      pois: pois,
-      poiCalculatedFields: pois.map((poi) =>
-        getCalculatedFieldsByPoi({
-          poiUuid: poi.uuid,
-          actions: wholeStore.actions,
-        })
-      ),
+    const calculatedTraverses: TraverseCalculatedFields[] = traverses.map((traverse) =>
+      getCalculatedFieldsByTraverse({
+        traverseUuid: traverse.uuid,
+        traverses: traverses,
+        mission: wholeStore.mission,
+        evas: wholeStore.evas,
+        actions: wholeStore.actions,
+      })
+    );
+
+    const exportTraverses: ExportTraverse[] = makeExportTraverses({
+      traverses: traverses,
+      calculatedFields: calculatedTraverses,
       actions: exportActions,
-      mission: wholeStore.mission,
     });
 
     res.status(200).json({
       status: "success",
-      message: "readable POIs retrieved",
-      data: exportPois,
+      message: "readable traverses retrieved",
+      data: exportTraverses,
     });
     return;
   } catch (e) {
     console.error(e);
-    res.status(500).json({ status: "error", message: `Error getting readable POIs ${e}` });
+    res.status(500).json({ status: "error", message: `Error getting readable traverses ${e}` });
     return;
   }
 });
 
 router.get("/schema", async (req: Request, res: Response): Promise<void> => {
   try {
-    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "exportPoi.json"), "utf8");
+    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "exportTraverse.json"), "utf8");
     const schema = JSON.parse(schemaFile);
     res.status(200).json({
       status: "success",
-      message: "poi schema retrieved",
+      message: "traverse schema retrieved",
       data: schema,
     });
   } catch (e) {

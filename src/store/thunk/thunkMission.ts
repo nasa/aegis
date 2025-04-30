@@ -378,6 +378,7 @@ export const thunkMakeExportString = appCreateAsyncThunk<
       actions: getState().action?.actions,
       stations: getState().station?.stations,
       pois: getState().poi?.pois,
+      traverses: getState().traverse?.traverses,
       level1s: getState().stm?.level1s,
       level2s: getState().stm?.level2s,
       level3s: getState().stm?.level3s,
@@ -431,6 +432,7 @@ export const thunkMakeExportString = appCreateAsyncThunk<
           actions: getState().action.actions,
         })
       ),
+      actions: actions,
     });
 
     /**

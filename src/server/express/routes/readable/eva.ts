@@ -62,6 +62,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       mission: wholeStore.mission,
       stations: wholeStore.stations,
       pois: wholeStore.pois,
+      traverses: wholeStore.traverses,
       level1s: wholeStore.level1s,
       level2s: wholeStore.level2s,
       level3s: wholeStore.level3s,
@@ -93,6 +94,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
           actions: wholeStore.actions,
         })
       ),
+      actions: exportActions,
     });
 
     const exportEvas: ExportEva[] = makeExportEvas({
