@@ -1,14 +1,20 @@
+interface ExportMission extends Mission {
+  gridCoordinates: string;
+}
+
 interface ExportAction extends Action {
   _itemType: string;
   descriptionReadable: string;
   parentPoiName: string;
   parentStationName: string;
+  parentTraverseName: string;
   stmUuidRefsReadable: string[];
   iconEmojiDecoded: string;
   equipmentItemsUsageReadable: EquipmentItemUsageReadable[] | null;
   geographicalUnitsReadable: string[] | null;
   actionDefinitionReadable: ActionDefinitionReadable | null;
   stmPrioritiesReadable: StmPriorityReadable[] | null;
+  gridCoordinates: string;
 }
 
 interface ActionDefinitionReadable {
@@ -30,6 +36,7 @@ interface ExportPOI extends POI {
   calculatedFields: PoiCalculatedFields;
   elevationRelative: number;
   iconEmojiDecoded: string;
+  gridCoordinates: string;
 }
 
 type PoiSummaryReadable = {
@@ -45,6 +52,7 @@ interface ExportStation extends Station {
   elevationRelative: number;
   iconEmojiDecoded: string;
   poisAssociatedReadable: PoiSummaryReadable[];
+  gridCoordinates: string;
 }
 
 interface ExportStationCalculatedFields extends StationCalculatedFields {
@@ -55,6 +63,7 @@ interface ExportTraverse extends Traverse {
   _itemType: string;
   descriptionReadable: string;
   calculatedFields: TraverseCalculatedFields;
+  actionsReadable: ExportAction[];
 }
 
 interface ExportEva extends Eva {

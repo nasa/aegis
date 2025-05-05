@@ -40,13 +40,13 @@ export class Station_db implements Station_db_type {
   walkbackPathSegmentDistances: number[];
   @Property({ type: MikroTypes.json, nullable: true })
   walkbackPathSegmentElevations: number[][];
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   walkbackTraverseRate: number;
   @Property({ type: MikroTypes.json, nullable: true })
   actionOrderUuids: string[];
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   durationLower!: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   durationUpper: number;
   @Property({ type: MikroTypes.string, nullable: true })
   icon: string;

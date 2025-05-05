@@ -5,20 +5,60 @@
 ARG APIV1_BASE_IMAGE=node:20.11.0-alpine
 
 # # # # # # # #
-# PROD image  #
+# BASE image  #
 # # # # # # # #
-FROM $APIV1_BASE_IMAGE AS prod
+FROM $APIV1_BASE_IMAGE AS base
 
-RUN mkdir /app
+# Set the working directory. It will create if doens't exist
 WORKDIR /app
 
+# The * after npmrc ensure copy operation will not fail if the file does not exist
+COPY .npmrc* .
 COPY package*.json .
-RUN npm ci
 
-# copy the rest of the files
+# # # # # # # #
+# BUILD image #
+# # # # # # # #
+# Use a different stage for building so we can reduce the size of the final prod image
+FROM base AS build
+
+# Install all packages including devDependencies
+# Use a cache mount for faster installs. Cache mounts can be used by buildx, but not kaniko
+#     - cache mount persists between builds and Docker Desktop restarts
+#     - cache remains until pruned with commands like "docker builder prune"
+#     - cache is stored in a location managed by Docker Desktop VM and is not in the image
+# Since we can't use the cache on kaniko, this cache is only beneficial for (re)building locally
+# buildx is the the component that our Docker Desktop uses to build images with BuildKit.
+RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci
+
+# Copy the rest of the files and build the app
 COPY . /app
-
 RUN npm run api:build
 
+# # # # # # # #
+# PROD image  #
+# # # # # # # #
+# Our final build image. This should be as small as possible
+FROM base AS prod
+
+# Copy over only stuff we need to keep the image small
+# esbuild bundle from the build stage
+COPY --from=build /app/.local/express/dist/api.js /app/.local/express/dist/api.js
+# tsconfig, mikro config, and db migrations/models required for ts-node / mikro
+COPY --from=build /app/src/server/database /app/src/server/database
+COPY --from=build /app/tsconfig.json /app
+
+# Run node with production config
+ENV NODE_ENV=production
+
+# Install runtime dependencies only, omit the devDependencies
+# Use the cache mount to avoid re-downloading and speed up install (only for local builds)
+RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci --omit=dev
+
+# Add tini init to run node to prevent running node as PID 1
+# https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md#handling-kernel-signals
+RUN apk add --no-cache tini~=0.19.0
+ENTRYPOINT ["/sbin/tini", "--"]
+
 # This image is intended to be run with docker-compose.
-CMD ["/bin/sh", "-c", "npm run migrate:up; npm run api:prod"]
+CMD ["/bin/sh", "-c", "npm run migrate:up && npm run api"]

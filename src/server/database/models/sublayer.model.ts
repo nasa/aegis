@@ -27,11 +27,11 @@ export class Sublayer_db implements Sublayer_db_type {
   boundingBox: number[];
   @Property({ type: MikroTypes.text, nullable: true })
   tileFormat: string;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   minNativeZoom: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   maxNativeZoom: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   maxZoom: number;
   @Property({ type: MikroTypes.json, nullable: true })
   style: MapSublayerStyle;

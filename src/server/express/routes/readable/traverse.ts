@@ -1,30 +1,22 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 import { hasPerms } from "utils/permissions";
-import {
-  makeExportActions,
-  makeExportEvas,
-  makeExportStations,
-  makeExportTraverses,
-} from "utils/export";
+import { makeExportActions, makeExportTraverses } from "utils/export";
 import { getAll } from "../all";
-import {
-  getCalculatedFieldsByEva,
-  getCalculatedFieldsByStation,
-  getCalculatedFieldsByTraverse,
-} from "store/processing/calculatedFields";
+import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import path from "path";
 import fs from "fs";
-import { getGridFromFile } from "../grid";
 import { SCHEMA_DIR } from "utils/consts-server";
+import { getGridFromFile } from "../grid";
 
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { uuid, socketId, missionId } = query;
+  const { uuid, socketId, evaUuid, missionId } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
-    evaUuid: uuid ? (uuid as string) : undefined,
+    traverseUuid: uuid ? (uuid as string) : undefined,
+    evaUuid: evaUuid ? (evaUuid as string) : undefined,
     socketId: socketId ? (socketId as string) : undefined,
   };
   return queryObj;
@@ -53,9 +45,17 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const wholeStore: OneMissionToRuleThemAll = await getAll(queryObj.missionId);
 
-    let evas: Eva[] = wholeStore.evas;
+    let traverses = wholeStore.traverses;
     if (queryObj.evaUuid) {
-      evas = evas.filter((eva) => eva.uuid === queryObj.evaUuid);
+      const chosenEvaTraverseSequenceItems = wholeStore.evas
+        .find((eva) => eva.uuid === queryObj.evaUuid)
+        ?.sequence.filter((sequenceItem) => sequenceItem.type === "traverse");
+      traverses = traverses.filter((traverse) =>
+        chosenEvaTraverseSequenceItems?.some((sequenceItem) => sequenceItem.uuid === traverse.uuid)
+      );
+    }
+    if (queryObj.traverseUuid) {
+      traverses = traverses.filter((traverse) => traverse.uuid === queryObj.traverseUuid);
     }
 
     const gridCoordinates: MissionGridPoint[][] = wholeStore.mission.activeGridUuid
@@ -67,80 +67,49 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       mission: wholeStore.mission,
       stations: wholeStore.stations,
       pois: wholeStore.pois,
-      traverses: wholeStore.traverses,
+      traverses: traverses,
       level1s: wholeStore.level1s,
       level2s: wholeStore.level2s,
       level3s: wholeStore.level3s,
       missionGrid: gridCoordinates,
     });
 
-    const exportStations: ExportStation[] = makeExportStations({
-      stations: wholeStore.stations,
-      stationCalculatedFields: wholeStore.stations.map((station) =>
-        getCalculatedFieldsByStation({
-          stationUuid: station.uuid,
-          stations: wholeStore.stations,
-          mission: wholeStore.mission,
-          actions: wholeStore.actions,
-        })
-      ),
-      actions: exportActions,
-      mission: wholeStore.mission,
-      pois: wholeStore.pois,
-      missionGrid: gridCoordinates,
-    });
+    const calculatedTraverses: TraverseCalculatedFields[] = traverses.map((traverse) =>
+      getCalculatedFieldsByTraverse({
+        traverseUuid: traverse.uuid,
+        traverses: traverses,
+        mission: wholeStore.mission,
+        evas: wholeStore.evas,
+        actions: wholeStore.actions,
+      })
+    );
 
     const exportTraverses: ExportTraverse[] = makeExportTraverses({
-      traverses: wholeStore.traverses,
-      calculatedFields: wholeStore.traverses.map((traverse) =>
-        getCalculatedFieldsByTraverse({
-          traverseUuid: traverse.uuid,
-          traverses: wholeStore.traverses,
-          mission: wholeStore.mission,
-          evas: evas,
-          actions: wholeStore.actions,
-        })
-      ),
+      traverses: traverses,
+      calculatedFields: calculatedTraverses,
       actions: exportActions,
-    });
-
-    const exportEvas: ExportEva[] = makeExportEvas({
-      evas: evas,
-      evaCalculatedFields: evas.map((eva) =>
-        getCalculatedFieldsByEva({
-          evaUuid: eva.uuid,
-          evas: evas,
-          stations: wholeStore.stations,
-          mission: wholeStore.mission,
-          actions: wholeStore.actions,
-          traverses: wholeStore.traverses,
-        })
-      ),
-      stations: exportStations,
-      traverses: exportTraverses,
-      mission: wholeStore.mission,
     });
 
     res.status(200).json({
       status: "success",
-      message: "readable evas retrieved",
-      data: exportEvas,
+      message: "readable traverses retrieved",
+      data: exportTraverses,
     });
     return;
   } catch (e) {
     console.error(e);
-    res.status(500).json({ status: "error", message: `Error getting readable evas ${e}` });
+    res.status(500).json({ status: "error", message: `Error getting readable traverses ${e}` });
     return;
   }
 });
 
 router.get("/schema", async (req: Request, res: Response): Promise<void> => {
   try {
-    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "exportEva.json"), "utf8");
+    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "exportTraverse.json"), "utf8");
     const schema = JSON.parse(schemaFile);
     res.status(200).json({
       status: "success",
-      message: "eva schema retrieved",
+      message: "traverse schema retrieved",
       data: schema,
     });
   } catch (e) {

@@ -17,13 +17,13 @@ export class Mission_db implements Mission_db_type {
   actionSystemVersion!: number;
   @Property({ type: MikroTypes.json, nullable: true })
   landerLocation: AEGISPoint;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   traverseRate: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   landerElevationMeters: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   defaultEvaDuration: number;
-  @Property({ type: MikroTypes.double, nullable: true, default: 2 })
+  @Property({ type: MikroTypes.float, nullable: true, default: 2 })
   walkbackRate: number;
   @Property({ type: MikroTypes.json, nullable: true })
   equipmentItems: EquipmentItem[];
@@ -31,13 +31,13 @@ export class Mission_db implements Mission_db_type {
   geographicUnits: GeographicUnit[];
   @Property({ type: MikroTypes.string, nullable: true })
   activeGridUuid: string;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   planetRadius: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   initialZoom: number;
   @Property({ type: MikroTypes.text, nullable: true })
   demFilePath: string;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   demResolution: number;
   @Property({ type: MikroTypes.boolean, default: false })
   projIsCustom: boolean;
@@ -45,21 +45,21 @@ export class Mission_db implements Mission_db_type {
   projEpsg: string;
   @Property({ type: MikroTypes.text, nullable: true })
   projProj4String: string;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   projBoundsMinX: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   projBoundsMinY: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   projBoundsMaxX: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   projBoundsMaxY: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   projOriginX: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   projOriginY: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   projResZoomLevel: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   projResUnitsPerPixel: number;
   @Property({ type: MikroTypes.json, nullable: true })
   circleDefinitions: CircleDefinition[];

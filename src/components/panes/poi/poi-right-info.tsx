@@ -14,6 +14,8 @@ import { validators } from "components/interface/form/formValidators";
 import { thunkUpdatePoiLatLngField } from "store/thunk/thunkPoi";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
+import { globalGrid } from "utils/grid";
+import { findGridCoordinatesFromPoint } from "utils/geoMath";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -52,6 +54,19 @@ const Info_Panel: FunctionComponent<{
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === selectedPoi.uuid ? state.map.mapDirective : null;
   }, shallowEqual);
+
+  const poiGridCoordinates = useAppSelector((state) => {
+    if (selectedPoi.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
+      return findGridCoordinatesFromPoint(
+        globalGrid.coordinates,
+        selectedPoi.location,
+        state.mission.mission.planetRadius
+      );
+    } else {
+      return "Not set";
+    }
+  }, deepEqual);
+
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   const dispatchPoiMapAction = (mapAction: MapAction) => {
@@ -314,6 +329,14 @@ const Info_Panel: FunctionComponent<{
                           (selectedPoi.elevation - landerElevation).toFixed(0)
                         )}
                       </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.displayFieldLabel}>Grid Coords:</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>{poiGridCoordinates}</div>
                     </div>
                   </div>
                 </div>

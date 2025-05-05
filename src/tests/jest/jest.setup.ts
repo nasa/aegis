@@ -20,4 +20,12 @@ jest.mock("box-node-sdk/lib/box-client", () => ({
   },
 }));
 
+// Add TextEncoder/TextDecoder global setup
+// Text encoder isn't defined in jest and causes Login call to fail
+// Import it here for all tests to use
+// https://stackoverflow.com/questions/68468203/why-am-i-getting-textencoder-is-not-defined-in-jest
+import { TextEncoder, TextDecoder } from "util";
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
 export {};

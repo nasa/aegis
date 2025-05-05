@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { getMissions, deleteMissions } from "http-client/mission";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";

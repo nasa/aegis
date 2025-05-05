@@ -18,13 +18,13 @@ export class Eva_db implements Eva_db_type {
   sequence!: EvaSequenceItem[];
   @Property({ type: MikroTypes.text, nullable: true })
   description!: string;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   maxDuration!: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   traverseRate!: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   egressDuration: number;
-  @Property({ type: MikroTypes.double, nullable: true })
+  @Property({ type: MikroTypes.float, nullable: true })
   ingressDuration: number;
   @Property({ type: MikroTypes.string, nullable: true })
   egressLocationUuid!: string;

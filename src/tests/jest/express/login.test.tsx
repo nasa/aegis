@@ -3,10 +3,6 @@ import app from "server/express/restApi";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
 import { User_db } from "server/database/models/user.model";
-import { TextEncoder, TextDecoder } from "util"; //text encoder isn't defined in jest and causes Login call to fail, so import it here
-
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
 
 let testAdmin: User_db;
 

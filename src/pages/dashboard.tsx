@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 
 import styles from "./dashboard.module.css";
 import { setMissionPerms, setUserStore } from "store/user";
 import { Tooltip } from "react-tooltip";
 import { isLoggedIn } from "http-client/login";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 import DashboardHeader from "components/dashboard/header";
 import SocketClient from "components/page/socketClient";

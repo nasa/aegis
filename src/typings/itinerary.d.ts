@@ -36,18 +36,18 @@ type TraverseStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 interface Traverse {
   uuid: string;
   missionId: number;
-  actionOrderUuids: string[];
+  actionOrderUuids: string[] | null;
 
   name: string;
-  status: TraverseStatus;
-  path: AEGISPoint[];
-  pathSegmentDistances: number[]; //meters
-  pathSegmentElevations: number[][]; //meters
-  predictedDurationLower: number; //minutes
-  predictedDurationUpper: number; //minutes
+  status: TraverseStatus | null;
+  path: AEGISPoint[] | null;
+  pathSegmentDistances: number[] | null; //meters
+  pathSegmentElevations: number[][] | null; //meters
+  predictedDurationLower: number | null; //minutes
+  predictedDurationUpper: number | null; //minutes
   description: string;
-  traverseRate?: number; // km/h
-  color?: string;
+  traverseRate?: number | null; // km/h
+  color?: string | null;
 
   createdAt?: string;
   updatedAt?: string;

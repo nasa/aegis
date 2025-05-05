@@ -1,5 +1,5 @@
 import { populateStore } from "store/processing/populateStore";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import styles from "components/admin/admin.module.css";

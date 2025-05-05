@@ -133,7 +133,6 @@ export const poiSlice = createSlice({
         state.poisEditing = state.poisEditing.filter((uuid) => uuid !== action.payload.poiUuid);
       }
     },
-
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);

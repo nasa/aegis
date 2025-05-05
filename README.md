@@ -83,6 +83,7 @@ Perform "All install methods" instructions above before performing the following
 1. Run Docker for production preview. This will start the service containers plus additional containers: `npm run docker:preview`
 2. Import a dump of the database from one of the environments using the instructions outlined in "Import a database dump from one of the AEGIS environments" below.
 3. Open [https://aegis-local.fit.nasa.gov](https://aegis-local.fit.nasa.gov) with your browser.
+4. Due to an HSTS policy, the browser will display a security issue and will not let the page load. In chrome, type "thisisunsafe" on the page like a cheat code.
 
 To stop, run `docker compose down`.
 
