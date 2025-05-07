@@ -1,9 +1,8 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 import { hasPerms } from "utils/permissions";
-import { makeExportActions, makeExportTraverses } from "utils/export";
+import { makeExportTraverses } from "utils/export";
 import { getAll } from "../all";
-import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import path from "path";
 import fs from "fs";
 import { SCHEMA_DIR } from "utils/consts-server";
@@ -44,10 +43,22 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     const wholeStore: OneMissionToRuleThemAll = await getAll(queryObj.missionId);
+    const allData: AllDataForExport = {
+      mission: wholeStore.mission,
+      pois: wholeStore.pois,
+      stations: wholeStore.stations,
+      actions: wholeStore.actions,
+      traverses: wholeStore.traverses,
+      evas: wholeStore.evas,
+      rexes: wholeStore.rexes,
+      level1s: wholeStore.level1s,
+      level2s: wholeStore.level2s,
+      level3s: wholeStore.level3s,
+    };
 
-    let traverses = wholeStore.traverses;
+    let traverses = allData.traverses;
     if (queryObj.evaUuid) {
-      const chosenEvaTraverseSequenceItems = wholeStore.evas
+      const chosenEvaTraverseSequenceItems = allData.evas
         .find((eva) => eva.uuid === queryObj.evaUuid)
         ?.sequence.filter((sequenceItem) => sequenceItem.type === "traverse");
       traverses = traverses.filter((traverse) =>
@@ -58,36 +69,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       traverses = traverses.filter((traverse) => traverse.uuid === queryObj.traverseUuid);
     }
 
-    const gridCoordinates: MissionGridPoint[][] = wholeStore.mission.activeGridUuid
-      ? await getGridFromFile(queryObj.missionId, wholeStore.mission.activeGridUuid)
+    const gridCoordinates: MissionGridPoint[][] = allData.mission.activeGridUuid
+      ? await getGridFromFile(queryObj.missionId, allData.mission.activeGridUuid)
       : null;
-
-    const exportActions: ExportAction[] = makeExportActions({
-      actions: wholeStore.actions,
-      mission: wholeStore.mission,
-      stations: wholeStore.stations,
-      pois: wholeStore.pois,
-      traverses: traverses,
-      level1s: wholeStore.level1s,
-      level2s: wholeStore.level2s,
-      level3s: wholeStore.level3s,
-      missionGrid: gridCoordinates,
-    });
-
-    const calculatedTraverses: TraverseCalculatedFields[] = traverses.map((traverse) =>
-      getCalculatedFieldsByTraverse({
-        traverseUuid: traverse.uuid,
-        traverses: traverses,
-        mission: wholeStore.mission,
-        evas: wholeStore.evas,
-        actions: wholeStore.actions,
-      })
-    );
 
     const exportTraverses: ExportTraverse[] = makeExportTraverses({
       traverses: traverses,
-      calculatedFields: calculatedTraverses,
-      actions: exportActions,
+      missionGrid: gridCoordinates,
+      allData,
     });
 
     res.status(200).json({

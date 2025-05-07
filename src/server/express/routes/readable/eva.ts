@@ -1,18 +1,8 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 import { hasPerms } from "utils/permissions";
-import {
-  makeExportActions,
-  makeExportEvas,
-  makeExportStations,
-  makeExportTraverses,
-} from "utils/export";
+import { makeExportEvas } from "utils/export";
 import { getAll } from "../all";
-import {
-  getCalculatedFieldsByEva,
-  getCalculatedFieldsByStation,
-  getCalculatedFieldsByTraverse,
-} from "store/processing/calculatedFields";
 import path from "path";
 import fs from "fs";
 import { getGridFromFile } from "../grid";
@@ -52,73 +42,32 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     const wholeStore: OneMissionToRuleThemAll = await getAll(queryObj.missionId);
+    const allData: AllDataForExport = {
+      mission: wholeStore.mission,
+      pois: wholeStore.pois,
+      stations: wholeStore.stations,
+      actions: wholeStore.actions,
+      traverses: wholeStore.traverses,
+      evas: wholeStore.evas,
+      rexes: wholeStore.rexes,
+      level1s: wholeStore.level1s,
+      level2s: wholeStore.level2s,
+      level3s: wholeStore.level3s,
+    };
 
-    let evas: Eva[] = wholeStore.evas;
+    let evas: Eva[] = allData.evas;
     if (queryObj.evaUuid) {
       evas = evas.filter((eva) => eva.uuid === queryObj.evaUuid);
     }
 
-    const gridCoordinates: MissionGridPoint[][] = wholeStore.mission.activeGridUuid
-      ? await getGridFromFile(queryObj.missionId, wholeStore.mission.activeGridUuid)
+    const gridCoordinates: MissionGridPoint[][] = allData.mission.activeGridUuid
+      ? await getGridFromFile(queryObj.missionId, allData.mission.activeGridUuid)
       : null;
-
-    const exportActions: ExportAction[] = makeExportActions({
-      actions: wholeStore.actions,
-      mission: wholeStore.mission,
-      stations: wholeStore.stations,
-      pois: wholeStore.pois,
-      traverses: wholeStore.traverses,
-      level1s: wholeStore.level1s,
-      level2s: wholeStore.level2s,
-      level3s: wholeStore.level3s,
-      missionGrid: gridCoordinates,
-    });
-
-    const exportStations: ExportStation[] = makeExportStations({
-      stations: wholeStore.stations,
-      stationCalculatedFields: wholeStore.stations.map((station) =>
-        getCalculatedFieldsByStation({
-          stationUuid: station.uuid,
-          stations: wholeStore.stations,
-          mission: wholeStore.mission,
-          actions: wholeStore.actions,
-        })
-      ),
-      actions: exportActions,
-      mission: wholeStore.mission,
-      pois: wholeStore.pois,
-      missionGrid: gridCoordinates,
-    });
-
-    const exportTraverses: ExportTraverse[] = makeExportTraverses({
-      traverses: wholeStore.traverses,
-      calculatedFields: wholeStore.traverses.map((traverse) =>
-        getCalculatedFieldsByTraverse({
-          traverseUuid: traverse.uuid,
-          traverses: wholeStore.traverses,
-          mission: wholeStore.mission,
-          evas: evas,
-          actions: wholeStore.actions,
-        })
-      ),
-      actions: exportActions,
-    });
 
     const exportEvas: ExportEva[] = makeExportEvas({
       evas: evas,
-      evaCalculatedFields: evas.map((eva) =>
-        getCalculatedFieldsByEva({
-          evaUuid: eva.uuid,
-          evas: evas,
-          stations: wholeStore.stations,
-          mission: wholeStore.mission,
-          actions: wholeStore.actions,
-          traverses: wholeStore.traverses,
-        })
-      ),
-      stations: exportStations,
-      traverses: exportTraverses,
-      mission: wholeStore.mission,
+      allData: allData,
+      missionGrid: gridCoordinates,
     });
 
     res.status(200).json({
