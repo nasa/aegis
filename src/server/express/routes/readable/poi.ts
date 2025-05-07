@@ -1,9 +1,8 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 import { hasPerms } from "utils/permissions";
-import { makeExportActions, makeExportPois } from "utils/export";
+import { makeExportPois } from "utils/export";
 import { getAll } from "../all";
-import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 import path from "path";
 import fs from "fs";
 import { getGridFromFile } from "../grid";
@@ -43,39 +42,32 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     const wholeStore: OneMissionToRuleThemAll = await getAll(queryObj.missionId);
+    const allData: AllDataForExport = {
+      mission: wholeStore.mission,
+      pois: wholeStore.pois,
+      stations: wholeStore.stations,
+      actions: wholeStore.actions,
+      traverses: wholeStore.traverses,
+      evas: wholeStore.evas,
+      rexes: wholeStore.rexes,
+      level1s: wholeStore.level1s,
+      level2s: wholeStore.level2s,
+      level3s: wholeStore.level3s,
+    };
 
-    let pois: POI[] = wholeStore.pois;
+    let pois: POI[] = allData.pois;
     if (queryObj.poiUuid) {
       pois = pois.filter((poi) => poi.uuid === queryObj.poiUuid);
     }
 
-    const gridCoordinates: MissionGridPoint[][] = wholeStore.mission.activeGridUuid
-      ? await getGridFromFile(queryObj.missionId, wholeStore.mission.activeGridUuid)
+    const gridCoordinates: MissionGridPoint[][] = allData.mission.activeGridUuid
+      ? await getGridFromFile(queryObj.missionId, allData.mission.activeGridUuid)
       : null;
-
-    const exportActions: ExportAction[] = makeExportActions({
-      actions: wholeStore.actions,
-      mission: wholeStore.mission,
-      stations: wholeStore.stations,
-      pois: pois,
-      traverses: wholeStore.traverses,
-      level1s: wholeStore.level1s,
-      level2s: wholeStore.level2s,
-      level3s: wholeStore.level3s,
-      missionGrid: gridCoordinates,
-    });
 
     const exportPois: ExportPOI[] = makeExportPois({
       pois: pois,
-      poiCalculatedFields: pois.map((poi) =>
-        getCalculatedFieldsByPoi({
-          poiUuid: poi.uuid,
-          actions: wholeStore.actions,
-        })
-      ),
-      actions: exportActions,
-      mission: wholeStore.mission,
       missionGrid: gridCoordinates,
+      allData,
     });
 
     res.status(200).json({
