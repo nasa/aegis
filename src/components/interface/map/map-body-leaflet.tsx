@@ -284,6 +284,7 @@ const MapBody: FunctionComponent<{}> = () => {
   const [mapBounds, setMapBounds] = useState<string>(null); // Used to trigger re-draw of grid labels. Value doens't matter
   const [rexPetTime, setRexPetTime] = useState(""); // used to update the PET value via the PetInterval component
   const [gridBounds, setGridBounds] = useState<GridIndex[]>(undefined);
+  const [mapGridControls, setMapGridControls] = useState<MapGridControl>(undefined);
   const [mapDateTime, setMapDateTime] = useState<string>(undefined);
   const [timeLayerInfo, setTimeLayerInfo] = useState<TimeLayerInfo>(undefined);
   const [selectedRexDateTime, setSelectedRexDateTime] = useState<string>(null);
@@ -1227,16 +1228,9 @@ const MapBody: FunctionComponent<{}> = () => {
    * Set grid settings
    */
   useEffect(() => {
-    if (
-      !map ||
-      !mapBounds ||
-      !globalGrid?.coordinates ||
-      !gridCorner ||
-      !selectedPreset.mapGridControl
-    )
-      return;
+    if (!map || !mapBounds || !globalGrid?.coordinates || !gridCorner || !selectedPreset) return;
 
-    if (showGridLines && selectedPreset.mapGridControl.visible) {
+    if (showGridLines && selectedPreset.mapGridControl?.visible) {
       const size: L.Point = map.current.getSize();
       const gridStart: AEGISPoint = convertLeafletLatLngToAegisPoint(
         map.current.containerPointToLatLng([0, 0])
@@ -1249,8 +1243,10 @@ const MapBody: FunctionComponent<{}> = () => {
         findClosestPointInGrid(globalGrid.coordinates, gridStart, mission.planetRadius),
         findClosestPointInGrid(globalGrid.coordinates, gridEnd, mission.planetRadius),
       ]);
+      setMapGridControls(selectedPreset.mapGridControl);
     } else {
       setGridBounds(null);
+      setMapGridControls(null);
     }
   }, [
     gridCorner,
@@ -1259,7 +1255,7 @@ const MapBody: FunctionComponent<{}> = () => {
     mapZoom,
     mission.id,
     mission.planetRadius,
-    selectedPreset.mapGridControl,
+    selectedPreset,
     showGridLines,
   ]);
 
@@ -1267,14 +1263,7 @@ const MapBody: FunctionComponent<{}> = () => {
    * Draw grid
    */
   useEffect(() => {
-    if (
-      !map ||
-      !mission?.planetRadius ||
-      !mapBounds ||
-      !globalGrid?.coordinates ||
-      !selectedPreset.mapGridControl
-    )
-      return;
+    if (!map || !mission?.planetRadius || !mapBounds || !globalGrid?.coordinates) return;
 
     map.current.eachLayer((layer: AEGISGeoJSONGrid | AEGISGeoJSONGridPoint) => {
       if (layer?.mapItemType === "Grid System" || layer?.mapItemType === "Grid Point") {
@@ -1282,7 +1271,7 @@ const MapBody: FunctionComponent<{}> = () => {
       }
     });
 
-    if (!gridBounds) return;
+    if (!gridBounds || !mapGridControls) return;
 
     const gridCoordinates: MissionGridPoint[][] = globalGrid.coordinates;
 
@@ -1345,13 +1334,13 @@ const MapBody: FunctionComponent<{}> = () => {
       style: {
         interactive: false,
         fillColor: "none",
-        ...selectedPreset.mapGridControl.style,
+        ...mapGridControls.style,
       },
     }) as AEGISGeoJSONGrid;
     geoJSONGrid.mapItemType = "Grid System";
     map.current.addLayer(geoJSONGrid);
 
-    if (showGridLabels && selectedPreset.mapGridControl.labelsVisible) {
+    if (showGridLabels && mapGridControls.labelsVisible) {
       for (let i = endIndex.row; i >= startIndex.row; i -= lineZoomLevel) {
         for (let j = startIndex.col; j < endIndex.col; j += lineZoomLevel) {
           if (i !== startIndex.row && j !== endIndex.col) {
@@ -1386,7 +1375,7 @@ const MapBody: FunctionComponent<{}> = () => {
     mission.activeGridUuid,
     gridBounds,
     showGridLabels,
-    selectedPreset.mapGridControl,
+    mapGridControls,
   ]);
 
   /**
