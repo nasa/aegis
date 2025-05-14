@@ -5,7 +5,7 @@ import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import styles from "components/admin/admin.module.css";
 import { Checkbox } from "components/interface/form/globalFields";
 import { isLoggedIn } from "http-client/login";
-import { getMissions } from "http-client/mission";
+import { dumpMission, getMissions } from "http-client/mission";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkMakeExportString } from "store/thunk/thunkMission";
 import { setAllSliceStores } from "store/crossActions";
@@ -197,6 +197,42 @@ const ExportPage: React.FunctionComponent = () => {
               readOnly={true}
             />
           </div>
+          <h4>Dump Entire Database To JSON</h4>
+          <p>
+            This will create a JSON file that represents the raw content of the database for the
+            selected mission. The JSON file will include all entities related to the mission.
+            <br /> Note that there is no "import" functionality for this data.
+          </p>
+          <button
+            className={styles.duplicateButton}
+            type="button"
+            onClick={async () => {
+              try {
+                const response = await dumpMission(intMissionId);
+                if (response.status === "success" && response.data) {
+                  // Create and download the file
+                  const jsonString = JSON.stringify(response.data, null, 2);
+                  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+                  const filename = `mission_${intMissionId}_dump_${timestamp}.json`;
+
+                  const element = document.createElement("a");
+                  const file = new Blob([jsonString], { type: "application/json" });
+                  element.href = URL.createObjectURL(file);
+                  element.download = filename;
+                  document.body.appendChild(element);
+                  element.click();
+                  document.body.removeChild(element);
+                } else {
+                  alert(`Error: ${response.message || "Unknown error occurred"}`);
+                }
+              } catch (error) {
+                console.error("Dump failed:", error);
+                alert("Error dumping mission. Please try again.");
+              }
+            }}
+          >
+            Dump
+          </button>
         </div>
       </div>
     </>

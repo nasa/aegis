@@ -127,47 +127,59 @@ const Main = (): JSX.Element => {
       {permissions && (
         <>
           {missionStore.mission && missionStore.layers ? (
-            <div className={styles.page}>
-              <Tooltip
-                id="aegis-tooltip"
-                className={styles.tooltip}
-                clickable={true}
-                delayShow={1000}
-                delayHide={500}
-              />
-              <div className={styles.header}>
-                <Header />
-              </div>
-              {paneType?.fullScreen ? (
-                <div className={styles.body}>
-                  <div className={styles.leftControl}>
-                    <NavGutter selectedNavItem={interfaceStateLabel} />
-                  </div>
-
-                  <div className={styles.bodyRight}>
-                    <paneType.rightPane />
+            <>
+              {missionStore.mission.isArchived ? (
+                <div className={styles.archivedBody}>
+                  This mission has been archived. Please contact the EMSS team if you need to access
+                  it.
+                  <div style={{ marginTop: "3rem" }}>
+                    <img src="/images/EMSS.svg" alt="EMSS Logo" className={styles.emssLogo} />
                   </div>
                 </div>
               ) : (
-                <div className={styles.body}>
-                  <div className={styles.bodyLeft}>
-                    <div className={styles.leftUpper}>
+                <div className={styles.page}>
+                  <Tooltip
+                    id="aegis-tooltip"
+                    className={styles.tooltip}
+                    clickable={true}
+                    delayShow={1000}
+                    delayHide={500}
+                  />
+                  <div className={styles.header}>
+                    <Header />
+                  </div>
+                  {paneType?.fullScreen ? (
+                    <div className={styles.body}>
                       <div className={styles.leftControl}>
                         <NavGutter selectedNavItem={interfaceStateLabel} />
-                        <LeftControlPanel />
                       </div>
-                      <div className={styles.mapBody}>
-                        {missionStore.mission && missionStore.layers && <MapBody />}
+
+                      <div className={styles.bodyRight}>
+                        <paneType.rightPane />
                       </div>
                     </div>
-                    <BottomControlPanel />
-                  </div>
-                  <RightControlPanel />
+                  ) : (
+                    <div className={styles.body}>
+                      <div className={styles.bodyLeft}>
+                        <div className={styles.leftUpper}>
+                          <div className={styles.leftControl}>
+                            <NavGutter selectedNavItem={interfaceStateLabel} />
+                            <LeftControlPanel />
+                          </div>
+                          <div className={styles.mapBody}>
+                            {missionStore.mission && missionStore.layers && <MapBody />}
+                          </div>
+                        </div>
+                        <BottomControlPanel />
+                      </div>
+                      <RightControlPanel />
+                    </div>
+                  )}
+
+                  <SocketClient missionId={intMissionId} />
                 </div>
               )}
-
-              <SocketClient missionId={intMissionId} />
-            </div>
+            </>
           ) : (
             <div>Loading...</div>
           )}

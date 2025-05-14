@@ -4,7 +4,24 @@ import { Query } from "express-serve-static-core";
 import cloneDeep from "lodash/cloneDeep";
 
 import { hasPerms } from "utils/permissions";
-import { Mission_db } from "server/database/models/_allModels";
+import {
+  Mission_db,
+  STM_Level1_db,
+  STM_Level2_db,
+  STM_Level3_db,
+  STM_Rule_db,
+  Station_db,
+  Poi_db,
+  Action_db,
+  Eva_db,
+  Layer_db,
+  Sublayer_db,
+  Traverse_db,
+  Preset_db,
+  Rex_db,
+  Grid_db,
+  Folder_db,
+} from "server/database/models/_allModels";
 import {
   EntityData,
   ForeignKeyConstraintViolationException,
@@ -133,7 +150,6 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionIds } = req.body as MissionDeleteRequest;
-  const emssToken = req.headers["emss-token"] as string;
 
   //must have edit permission the mission ids
   //  or if no mission id (create mission) must be an admin to the back end or user 1
@@ -143,13 +159,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const canEditThisMission = await hasPerms({
-      missionId: missionIdToDelete,
-      permission: "edit",
-      user: req.session.user,
-      emssToken,
-    });
-    if (!canEditThisMission) {
+    if (!req.session?.user?.isSuperAdmin) {
       res.status(401).json({ status: "failure", message: "Unauthorized" });
       return;
     }
@@ -236,13 +246,86 @@ export async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
 export async function deleteMissions(missionIds: number[]): Promise<number[]> {
   const em = getEM();
   const deletedMissionIds = [];
+
   for (const missionId of missionIds) {
-    const entity = await em.findOne(Mission_db, missionId);
-    if (entity) {
-      em.remove(entity);
+    // First check if the mission exists
+    const mission = await em.findOne(Mission_db, missionId);
+    if (!mission) {
+      continue;
+    }
+
+    // Step 1: Fetch all related entities
+    try {
+      // Delete STM Rules first (they reference STM Level 3)
+      await em.nativeDelete(STM_Rule_db, { mission: missionId });
+
+      // Find all Level 1s for this mission - they link to the mission directly
+      const stmLevel1s = await em.find(STM_Level1_db, { mission: missionId });
+
+      // For each Level 1, we need to:
+      // 1. Find its Level 2s
+      // 2. For each Level 2, delete its Level 3s
+      // 3. Then delete the Level 2s
+      // 4. Then delete the Level 1s
+
+      for (const level1 of stmLevel1s) {
+        // Find Level 2s related to this Level 1
+        const level2s = await em.find(STM_Level2_db, { level1: level1 });
+
+        // For each Level 2, delete its Level 3s
+        for (const level2 of level2s) {
+          await em.nativeDelete(STM_Level3_db, { level2: level2 });
+        }
+
+        // Now delete all Level 2s for this Level 1
+        await em.nativeDelete(STM_Level2_db, { level1: level1 });
+      }
+
+      // Now delete all Level 1s for this mission
+      await em.nativeDelete(STM_Level1_db, { mission: missionId });
+
+      // Delete actions
+      await em.nativeDelete(Action_db, { mission: missionId });
+
+      // Delete REXes
+      await em.nativeDelete(Rex_db, { mission: missionId });
+
+      // Delete EVAs
+      await em.nativeDelete(Eva_db, { mission: missionId });
+
+      // Delete traverses
+      await em.nativeDelete(Traverse_db, { mission: missionId });
+
+      // Delete sublayers (they reference layers)
+      await em.nativeDelete(Sublayer_db, { mission: missionId });
+
+      // Delete layers
+      await em.nativeDelete(Layer_db, { mission: missionId });
+
+      // Delete Presets
+      await em.nativeDelete(Preset_db, { mission: missionId });
+
+      // Delete Grids
+      await em.nativeDelete(Grid_db, { mission: missionId });
+
+      // Delete Folders
+      await em.nativeDelete(Folder_db, { mission: missionId });
+
+      // Delete POIs and stations
+      await em.nativeDelete(Poi_db, { mission: missionId });
+      await em.nativeDelete(Station_db, { mission: missionId });
+
+      // Finally delete the mission itself
+      await em.nativeDelete(Mission_db, { id: missionId });
+
       deletedMissionIds.push(missionId);
+    } catch (error) {
+      console.error(`Error deleting mission ${missionId}:`, error);
+      throw error;
     }
   }
+
+  // Flush to commit the changes
   await em.flush();
   return deletedMissionIds;
 }

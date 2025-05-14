@@ -51,7 +51,7 @@ export async function getHomepageMissionItems(
   let missions: Mission_db[];
   let rexes: Rex_db[];
   if (!missionIdList) {
-    missions = await em.find(Mission_db, {});
+    missions = await em.find(Mission_db, { isArchived: false });
     rexes = await em.find(Rex_db, {});
   } else {
     missions = await em.find(Mission_db, { id: missionIdList, isArchived: false });

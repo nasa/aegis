@@ -146,6 +146,9 @@ node-sbom:
 test:
   extends: .test_template
   script:
+    # Load production database dump
+    - apk update && apk add --no-cache postgresql-client # Install psql client using apk for Alpine
+    - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
     - npm run migrate:up
     - npm run lint
     - npm run tsc

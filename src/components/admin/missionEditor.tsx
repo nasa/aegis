@@ -3,7 +3,7 @@ import { Dispatch, FunctionComponent, SetStateAction, useEffect, useRef } from "
 import FileManager from "./fileManager";
 import { Form } from "react-final-form";
 import { AnyObject } from "final-form";
-import { FFCheckbox, FFInput, FFTextArea } from "components/interface/form/globalFields";
+import { FFInput, FFTextArea } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import Projection from "components/admin/projection";
 import adminStyles from "components/admin/admin.module.css";
@@ -136,11 +136,6 @@ const MissionEditor: FunctionComponent<{
                     <div>
                       <div className={adminStyles.sectionDiv}>
                         <div className={adminStyles.sectionDivHeading}>Mission Information</div>
-                        <div id="isArchived">
-                          <div className={adminStyles.editDiv}>
-                            <FFCheckbox name="isArchived" label={{ label: "Mission Archived:" }} />
-                          </div>
-                        </div>
                         <div id="missionDiv">
                           <div className={adminStyles.editDiv}>
                             <FFInput

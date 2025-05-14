@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { getMissions, deleteMissions } from "http-client/mission";
+import { getMissions, deleteMissions, upsertMissions } from "http-client/mission";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
 import { deleteFile } from "http-client/file";
@@ -110,7 +110,11 @@ const MissionList = (props: { missions: Mission[]; user: User; loadMissionsFromD
   const permissionList = props.user?.permissionList;
 
   async function delMission(id: number) {
-    if (confirm("Are you sure you want to delete mission " + id)) {
+    if (
+      confirm(
+        `Are you sure you want to delete mission ${id} and all of its GIS data?\nThis cannot be undone!`
+      )
+    ) {
       const res: WrappedResponse<number[]> = await deleteMissions([id]);
       const fileDelete = await deleteFile(`missionFiles/${id.toString()}`);
       alert(
@@ -122,6 +126,15 @@ const MissionList = (props: { missions: Mission[]; user: User; loadMissionsFromD
     }
   }
 
+  async function archiveMission({ id, archive }: { id: number; archive: boolean }) {
+    const mission = props.missions.find((m) => m.id === id);
+    if (mission) {
+      mission.isArchived = archive;
+      await upsertMissions([mission]);
+      props.loadMissionsFromDB();
+    }
+  }
+
   const listedMissions = (missionType: Mission[]) => {
     return missionType.map((mission: Mission) => {
       if (
@@ -129,10 +142,12 @@ const MissionList = (props: { missions: Mission[]; user: User; loadMissionsFromD
         permissionList.some((p) => p.missionId === mission.id && p.permissions.edit === true)
       ) {
         return (
-          <li key={mission.id}>
+          <li key={mission.id} style={{ marginBottom: "8px" }}>
             {" "}
             <>
-              {mission.name} (v{mission.version})<br />
+              {mission.name}
+              <span className={styles.missionSubtext}>(id: {mission.id})</span>
+              <br />
               <button
                 type="button"
                 onClick={() => {
@@ -175,18 +190,43 @@ const MissionList = (props: { missions: Mission[]; user: User; loadMissionsFromD
                   navigate(`/admin/export/${mission.id}`);
                 }}
               >
-                Export
+                Export Data
               </button>
               &nbsp;
               <button
-                className={styles.deleteButton}
+                className={styles.duplicateButton}
                 type="button"
                 onClick={() => {
-                  delMission(mission.id);
+                  navigate(`/admin/mission_duplicate/${mission.id}`);
                 }}
               >
-                Delete Mission
+                Duplicate
               </button>
+              &nbsp;
+              <button
+                className={styles.duplicateButton}
+                type="button"
+                onClick={() => {
+                  archiveMission({
+                    id: mission.id,
+                    archive: !mission.isArchived,
+                  });
+                }}
+              >
+                {mission.isArchived ? "Unarchive" : "Archive"}
+              </button>
+              &nbsp;
+              {mission.isArchived && (
+                <button
+                  className={styles.deleteButton}
+                  type="button"
+                  onClick={() => {
+                    delMission(mission.id);
+                  }}
+                >
+                  Delete Mission
+                </button>
+              )}
             </>
           </li>
         );
@@ -216,6 +256,21 @@ const MissionList = (props: { missions: Mission[]; user: User; loadMissionsFromD
       <div>
         <ul>{listedMissions(visibleMissions)}</ul>
         <h2>Archived Missions:</h2>
+        <p>
+          Archived missions are not shown in the home page mission list.
+          <br />
+          Users cannot access archived missions through a direct link. Archived missions will be
+          kept compatible with the AEGIS application as new updates occur. This means that you can
+          un-archive at any time and view the mission in a future version of AEGIS, but data may be
+          transformed or lost as fields/features are changed in future versions
+        </p>
+        <p>
+          The Delete Mission button will permanently delete the mission and all of its GIS data.
+          <br />
+          This should be used with caution and only if you are sure you will never need the mission
+          again. <br />
+          There is no undo for the Delete Mission action.
+        </p>
         <ul>{listedMissions(archivedMissions)}</ul>
       </div>
     );
