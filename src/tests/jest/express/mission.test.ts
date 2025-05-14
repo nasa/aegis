@@ -221,7 +221,7 @@ describe("Mission API Endpoint", () => {
       expect(res.statusCode).toBe(401);
     });
 
-    test("Delete a mission", async () => {
+    test("No permissions - Regular admin with edit permissions cannot delete", async () => {
       const requestBody: MissionDeleteRequest = {
         missionIds: [testMissions[0].id],
       };
@@ -230,8 +230,8 @@ describe("Mission API Endpoint", () => {
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send(requestBody);
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
+      expect(res.statusCode).toBe(401);
+      expect(res.body.status).toBe("failure");
     });
   });
 
@@ -287,6 +287,11 @@ describe("Mission API Endpoint", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
+
+      // Verify the mission was actually deleted from the database
+      const em = getEM();
+      const deletedMission = await em.findOne(Mission_db, newMission.id);
+      expect(deletedMission).toBeNull();
     });
   });
 
@@ -310,7 +315,6 @@ describe("Mission API Endpoint", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/mission")
-        // .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie]) // Removed session cookies
         .set("emss-token", process.env.EMSS_TOKEN)
         .send(requestBody);
 
@@ -323,18 +327,17 @@ describe("Mission API Endpoint", () => {
       expect(upsertedMission.name).toEqual("Jest Mission-1 Modified via token");
     });
 
-    test("DELETE request returns success with valid 'emss-token' header", async () => {
+    test("DELETE request returns failure with valid 'emss-token' header", async () => {
       const requestBody: MissionDeleteRequest = {
         missionIds: [testMissions[1].id],
       };
       const res = await supertest(app)
         .delete("/api/v1/mission")
-        // .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie]) // Removed session cookies
         .set("emss-token", process.env.EMSS_TOKEN)
         .send(requestBody);
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
+      expect(res.statusCode).toBe(401);
+      expect(res.body.status).toBe("failure");
     });
   });
 });

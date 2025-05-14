@@ -315,7 +315,7 @@ export const getCalculatedFieldsByTraverse = (params: {
 
   let traverseRate = missionTraverseRate;
   if (eva.traverseRate) {
-    traverseRate = eva?.traverseRate;
+    traverseRate = eva.traverseRate;
   }
   if (traverse.traverseRate) {
     traverseRate = traverse.traverseRate;
