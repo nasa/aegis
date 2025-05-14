@@ -269,7 +269,7 @@ const MapBody: FunctionComponent<{}> = () => {
   });
   const [showArrows, setShowArrows] = useState(true);
   const [showGridLabels, setShowGridLabels] = useState<boolean>(true);
-  const [showGridLines, setShowGridLines] = useState<boolean>(false);
+  const [showGridLines, setShowGridLines] = useState<boolean>(true);
   const [showScaleBar, setShowScaleBar] = useState(true);
   const [showMouseLatLon, setShowMouseLatLon] = useState(true);
   const [showSunEarth, setShowSunEarth] = useState(false);
@@ -1227,9 +1227,16 @@ const MapBody: FunctionComponent<{}> = () => {
    * Set grid settings
    */
   useEffect(() => {
-    if (!map || !mapBounds || !globalGrid?.coordinates || !gridCorner) return;
+    if (
+      !map ||
+      !mapBounds ||
+      !globalGrid?.coordinates ||
+      !gridCorner ||
+      !selectedPreset.mapGridControl
+    )
+      return;
 
-    if (showGridLines) {
+    if (showGridLines && selectedPreset.mapGridControl.visible) {
       const size: L.Point = map.current.getSize();
       const gridStart: AEGISPoint = convertLeafletLatLngToAegisPoint(
         map.current.containerPointToLatLng([0, 0])
@@ -1245,13 +1252,29 @@ const MapBody: FunctionComponent<{}> = () => {
     } else {
       setGridBounds(null);
     }
-  }, [gridCorner, map, mapBounds, mapZoom, mission.id, mission.planetRadius, showGridLines]);
+  }, [
+    gridCorner,
+    map,
+    mapBounds,
+    mapZoom,
+    mission.id,
+    mission.planetRadius,
+    selectedPreset.mapGridControl,
+    showGridLines,
+  ]);
 
   /**
    * Draw grid
    */
   useEffect(() => {
-    if (!map || !mission?.planetRadius || !mapBounds || !globalGrid?.coordinates) return;
+    if (
+      !map ||
+      !mission?.planetRadius ||
+      !mapBounds ||
+      !globalGrid?.coordinates ||
+      !selectedPreset.mapGridControl
+    )
+      return;
 
     map.current.eachLayer((layer: AEGISGeoJSONGrid | AEGISGeoJSONGridPoint) => {
       if (layer?.mapItemType === "Grid System" || layer?.mapItemType === "Grid Point") {
@@ -1321,16 +1344,14 @@ const MapBody: FunctionComponent<{}> = () => {
     const geoJSONGrid: AEGISGeoJSONGrid = L.geoJSON(featureCollection(lines), {
       style: {
         interactive: false,
-        color: "white",
         fillColor: "none",
-        weight: 1,
-        opacity: 1,
+        ...selectedPreset.mapGridControl.style,
       },
     }) as AEGISGeoJSONGrid;
     geoJSONGrid.mapItemType = "Grid System";
     map.current.addLayer(geoJSONGrid);
 
-    if (showGridLabels) {
+    if (showGridLabels && selectedPreset.mapGridControl.labelsVisible) {
       for (let i = endIndex.row; i >= startIndex.row; i -= lineZoomLevel) {
         for (let j = startIndex.col; j < endIndex.col; j += lineZoomLevel) {
           if (i !== startIndex.row && j !== endIndex.col) {
@@ -1365,6 +1386,7 @@ const MapBody: FunctionComponent<{}> = () => {
     mission.activeGridUuid,
     gridBounds,
     showGridLabels,
+    selectedPreset.mapGridControl,
   ]);
 
   /**

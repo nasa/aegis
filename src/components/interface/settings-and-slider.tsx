@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import styles from "./settings-and-slider.module.css";
 import { Dropdown } from "components/interface/form/globalFields";
 
@@ -6,17 +6,24 @@ import { getPercentOrDefault } from "utils/formatting";
 import CompactColor from "@uiw/react-color-compact";
 
 const Settings_subpanel: FunctionComponent<{
-  type: "vector" | "circle" | "vector-tile" | "tile";
+  type: "vector" | "circle" | "vector-tile" | "tile" | "grid";
   uuid: string;
   styleSetter: ({ uuid, layerStyle }: { uuid: string; layerStyle: MapSublayerStyle }) => void;
   mapCircleControls?: MapCircleControls;
   mapSublayerControls?: MapSublayerControls;
-}> = ({ type, uuid, styleSetter, mapCircleControls, mapSublayerControls }) => {
+  mapGridControl?: MapGridControl;
+}> = ({ type, uuid, styleSetter, mapCircleControls, mapSublayerControls, mapGridControl }) => {
   mapCircleControls = mapCircleControls || {};
   mapSublayerControls = mapSublayerControls || {};
 
-  const layerStyle =
-    type === "circle" ? mapCircleControls[uuid]?.style : mapSublayerControls[uuid]?.style;
+  let layerStyle: MapSublayerStyle = mapSublayerControls[uuid]?.style;
+  if (type === "grid") {
+    layerStyle = mapGridControl?.style;
+  } else if (type === "circle") {
+    layerStyle = mapCircleControls[uuid]?.style;
+  }
+
+  const [chosenColor, setChosenColor] = useState<string>(layerStyle?.color || "#ffffff");
 
   //default setting options to show
   let showSliders = {
@@ -63,6 +70,17 @@ const Settings_subpanel: FunctionComponent<{
       weight: true,
       fillOpacity: false,
     };
+  } else if (type === "grid") {
+    showSliders = {
+      opacity: true,
+      contrast: false,
+      brightness: false,
+      saturation: false,
+      blendMode: false,
+      colorPicker: true,
+      weight: true,
+      fillOpacity: false,
+    };
   }
 
   const setStyle = (value: number | string, property: MapSublayerStyleKeys) => {
@@ -71,6 +89,13 @@ const Settings_subpanel: FunctionComponent<{
       layerStyle: { ...layerStyle, [property]: value },
     });
   };
+
+  useEffect(() => {
+    styleSetter({
+      uuid,
+      layerStyle: { ...layerStyle, color: chosenColor },
+    });
+  }, [chosenColor, layerStyle, styleSetter, uuid]);
 
   return (
     <div className={styles.slidersContainer}>
@@ -144,7 +169,7 @@ const Settings_subpanel: FunctionComponent<{
             <CompactColor
               color={layerStyle?.color}
               onChange={(color) => {
-                setStyle(color.hex, "color");
+                setChosenColor(color.hex);
               }}
             />
           </div>

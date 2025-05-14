@@ -9,6 +9,7 @@ import {
   faLayerGroup,
   faTrashAlt,
   faSun,
+  faVectorSquare,
 } from "@fortawesome/free-solid-svg-icons";
 
 import Info_panel from "./preset-right-info";
@@ -27,6 +28,7 @@ import { thunkDeletePreset, thunkPresetCancel, thunkSavePreset } from "store/thu
 import { validators } from "components/interface/form/formValidators";
 import { isModified } from "utils/component-helpers";
 import { RightTabs } from "components/interface/side-controls";
+import Grid_Panel from "./preset-right-grid";
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -72,6 +74,12 @@ const PresetEditorRight: FunctionComponent = () => {
       panel: Azimuth_Panel,
       selectedColor: "white",
       icon: faSun,
+    },
+    grid_panel: {
+      title: "Grid Configuration",
+      panel: Grid_Panel,
+      selectedColor: "white",
+      icon: faVectorSquare,
     },
   };
 
