@@ -135,7 +135,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               </div>
             </div>
           ) : (
-            <div className={gridStyles.noGrid}>No Grid Available</div>
+            <div className={paneStyles.panelSection}>No Grid Available</div>
           )}
         </div>
       </div>
