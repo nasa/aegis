@@ -63,7 +63,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           const layerBounds: [string, string] = getManifestJsonTimeBounds(timeLayerJson, index);
           timeLayerManifest.push({
             datetime: timeLayer.datetime,
-            dirName: timeLayer.dir_name,
+            dirName: timeLayer.dirName,
             lowerBound: layerBounds[0],
             upperBound: layerBounds[1],
           });
