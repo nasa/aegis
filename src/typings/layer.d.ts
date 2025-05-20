@@ -80,7 +80,7 @@ interface LegendItem {
 // datetime is an iso-readable string
 interface TimeLayerJson {
   datetime: string;
-  dir_name: string;
+  dirName: string;
 }
 
 // datetime, lowerBound, and upperBound should be ISO strings
