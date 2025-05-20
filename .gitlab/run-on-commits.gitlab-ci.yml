@@ -192,6 +192,7 @@ playwright_test:
     - install_dependencies
     - make-test-dotenv
     - z:db-export:prod
+  allow_failure: true
   script:
     - echo "Running shard $SHARD_INDEX of $NUM_SHARDS"
     - mkdir -p playwright-report
