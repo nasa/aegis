@@ -199,6 +199,8 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       httpClient_Traverse.upsertTraverses([newTraverse]);
       dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
       dispatch(upsertTraversesFromDb([newTraverse]));
+    } else {
+      dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: true }));
     }
     //update the store
     dispatch(upsertTraverses([newTraverse], true));

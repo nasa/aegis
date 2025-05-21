@@ -14,7 +14,7 @@ export const thunkCreateStmRule = appCreateAsyncThunk<{ stmUuid: string }>(
   "stmRuleCreate",
   async ({ stmUuid }, { dispatch }) => {
     const newRule = generateBlankStmRule({ stmUuid });
-    dispatch(thunkSaveStmRule({ stmRule: newRule }));
+    await dispatch(thunkSaveStmRule({ stmRule: newRule }));
   }
 );
 

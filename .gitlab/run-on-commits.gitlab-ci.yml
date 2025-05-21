@@ -430,6 +430,7 @@ deploy:oxygen:
 deploy:int:
   extends: .deploy-template
   tags: ["emss-aegis-int"]
+  resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
   needs:
     - make-dotenv
     - docker:retag
@@ -450,6 +451,7 @@ deploy:int:
 deploy:prod:
   extends: .deploy-template
   tags: ["emss-aegis-prod"]
+  resource_group: prod # prevents concurrent executions on this environment when there are multiple pipelines
   needs:
     - make-dotenv
     - docker:retag
@@ -495,12 +497,14 @@ z:db-export:prod:
   extends: .db-export-template
   when: always
   tags: ["emss-aegis-prod"]
+  resource_group: prod # prevents concurrent executions on this environment when there are multiple pipelines
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
 
 z:db-export:int:
   extends: .db-export-template
   tags: ["emss-aegis-int"]
+  resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
 
@@ -586,6 +590,7 @@ z:db-import:int:
   extends: .db-import-template
   tags: ["emss-aegis-int"]
   needs: ["z:db-export:prod"]
+  resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
   environment:
     name: integration
     url: $URL
