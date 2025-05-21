@@ -216,7 +216,7 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
 }>("updateLanderLocation", async ({ location }, { dispatch, getState }) => {
   dispatch(upsertMissionByField("landerLocation", location));
 
-  const thunkResponse = await dispatch(
+  const thunkElevationRes = await dispatch(
     thunkGetElevation({
       path: [location],
       pathSegmentDistances: [0],
@@ -224,35 +224,41 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
     })
   );
 
-  if (!thunkResponse || thunkResponse.payload === false) {
+  if (!thunkElevationRes || thunkElevationRes.payload === false) {
     //gracefully reject?
   } else {
-    const elevation = thunkResponse.payload as number;
+    const elevation = thunkElevationRes.payload as number;
     //upsert lander location and elevation
     dispatch(upsertMissionByField("landerElevationMeters", elevation));
   }
 
   // loop through all stations and update their walkback traverses to snap to the new lander location
-  for (const station of getState().station.stations) {
-    const newPath = await dispatch(
+  // Create an array of promises for all station updates
+  const stationUpdatePromises = getState().station.stations.map(async (station) => {
+    const newPathRes = await dispatch(
       thunkFullUpdateWalkback({
         path: station.walkbackPath,
         stationUuid: station.uuid,
       })
     );
 
-    // evas are updated in thunkSaveStation when traverses to/from the station are updated
-    if (newPath.payload !== false) {
-      dispatch(
-        thunkSaveStation({
-          station: {
-            ...station,
-            walkbackPath: newPath.payload,
-          },
-        })
-      );
+    if (newPathRes.meta.requestStatus === "rejected" || !newPathRes.payload) {
+      throw new Error("Error updating lander location in thunkUpdateLanderLocation");
     }
-  }
+
+    // Return the dispatch promise but don't await it here
+    return dispatch(
+      thunkSaveStation({
+        station: {
+          ...station,
+          walkbackPath: newPathRes.payload,
+        },
+      })
+    );
+  });
+
+  // Wait for all station updates to complete
+  await Promise.all(stationUpdatePromises);
 });
 
 export const thunkCreateActionTemplate = appCreateAsyncThunk<void, string>(

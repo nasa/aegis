@@ -10,7 +10,6 @@ import {
 import { poiSlice } from "store/poi";
 import { presetSlice } from "store/preset";
 import { rexSlice } from "store/rex";
-import { selectPoiActions } from "store/selectors";
 import { setSelectedStationUuid, stationSlice } from "store/station";
 import { traverseSlice } from "store/traverse";
 
@@ -115,11 +114,12 @@ export const thunkSaveNewRex = appCreateAsyncThunk<{
 });
 
 // Thunk for obliteratePoi
-export const thunkObliteratePoi = appCreateAsyncThunk<{ poiUuid: string }>(
-  "cross/obliteratePoi",
+export const thunkDeletePoiAndActionsFromStore = appCreateAsyncThunk<{ poiUuid: string }>(
+  "cross/thunkDeletePoiAndActionsFromStore",
   async ({ poiUuid }, { dispatch, getState }) => {
-    const state = getState() as RootState;
-    const actions = selectPoiActions(poiUuid)(state);
+    const actions = getState().action.actions.filter(
+      (storeAction: Action) => storeAction.poiUuid === poiUuid
+    );
     dispatch(poiSlice.actions.deletePoiByUuid(poiUuid));
     dispatch(poiSlice.actions.setSelectedPoiUuid(null));
     dispatch(actionSlice.actions.deleteActionsByUuid(actions.map((action) => action.uuid)));

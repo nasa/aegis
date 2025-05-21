@@ -3,7 +3,7 @@ import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
 import * as httpClient_poi from "http-client/poi";
 import { upsertActions, deleteActionsByUuid } from "store/action";
-import { thunkObliteratePoi, thunkSaveNewPoi } from "./crossThunk";
+import { thunkDeletePoiAndActionsFromStore, thunkSaveNewPoi } from "./crossThunk";
 import { setPoiEditMode, setPoisFromDb, setSelectedPoiUuid, upsertPoi } from "store/poi";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
@@ -86,7 +86,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   // find out if the actions in this poi have been modified and need to be persisted
   const actionsModified = isModified(poiActions, poiActionsFromDb);
   if (actionsModified) {
-    dispatch(thunkSaveActions({ actions: poiActions, actionsFromDb: poiActionsFromDb }));
+    await dispatch(thunkSaveActions({ actions: poiActions, actionsFromDb: poiActionsFromDb }));
   }
 
   dispatch(setPoiEditMode({ poiUuid: poi.uuid, editMode: false }));
@@ -116,7 +116,7 @@ export const thunkPoiCancel = appCreateAsyncThunk<{
     dispatch(deleteActionsByUuid(addedActionsToDelete.map((a) => a.uuid)));
   } else {
     // if selected poi isn't in the db, delete it from the store
-    dispatch(thunkObliteratePoi({ poiUuid: poi.uuid }));
+    await dispatch(thunkDeletePoiAndActionsFromStore({ poiUuid: poi.uuid }));
     dispatch(
       thunkAddRemoveFolderItem({
         itemUuid: poi.uuid,
