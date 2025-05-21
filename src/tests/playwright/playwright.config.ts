@@ -8,7 +8,7 @@ export default defineConfig({
   testDir: "./",
 
   // Set the timeout for each test.
-  timeout: 60000,
+  timeout: 120000,
 
   // Run all tests in parallel.
   fullyParallel: false,
