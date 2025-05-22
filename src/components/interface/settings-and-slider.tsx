@@ -179,7 +179,7 @@ const Settings_subpanel: FunctionComponent<{
         <Slider
           display="Stroke Weight"
           name="weight"
-          value={layerStyle?.weight}
+          value={layerStyle?.weight ? layerStyle.weight : 2}
           onChange={(e) => setStyle(Number(e.target.value), "weight")}
           min={1}
           max={5}

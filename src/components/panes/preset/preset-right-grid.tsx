@@ -86,50 +86,84 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   <div className={paneStyles.panelSection}>
                     <div className={paneStyles.panelSectionTitle}>
                       <SubpanelHeading icon={faPaintBrush}>Visual Preferences</SubpanelHeading>
-                      <div className={gridStyles.gridToggles}>
-                        <Checkbox
-                          checked={!!presetGridControl?.visible}
-                          onChange={(e) => {
-                            dispatch(
-                              upsertPresetByField(selectedPresetUuid, "mapGridControl", {
-                                ...presetGridControl,
-                                visible: e.target.checked,
-                                labelsVisible: e.target.checked
-                                  ? presetGridControl?.labelsVisible
-                                  : false,
-                              })
-                            );
-                          }}
-                          editable={editMode}
-                          toolTip={`Show Grid`}
-                          label="Show Grid"
-                        />
-                        <Checkbox
-                          checked={!!presetGridControl?.labelsVisible}
-                          onChange={(e) => {
-                            dispatch(
-                              upsertPresetByField(selectedPresetUuid, "mapGridControl", {
-                                ...presetGridControl,
-                                labelsVisible: e.target.checked,
-                              })
-                            );
-                          }}
-                          editable={editMode && !!presetGridControl?.visible}
-                          toolTip={`Show Grid Labels`}
-                          label="Show Grid Labels"
-                        />
-                      </div>
-                      {editMode && (
-                        <div>
-                          <Settings_subpanel
-                            type="grid"
-                            uuid={selectedPreset.uuid}
-                            styleSetter={styleSetterHandler}
-                            mapGridControl={presetGridControl}
+                    </div>
+
+                    {editMode ? (
+                      <div>
+                        <div className={gridStyles.gridToggles}>
+                          <Checkbox
+                            checked={!!presetGridControl?.visible}
+                            onChange={(e) => {
+                              dispatch(
+                                upsertPresetByField(selectedPresetUuid, "mapGridControl", {
+                                  ...presetGridControl,
+                                  visible: e.target.checked,
+                                  labelsVisible: e.target.checked
+                                    ? presetGridControl?.labelsVisible
+                                    : false,
+                                })
+                              );
+                            }}
+                            editable={editMode}
+                            toolTip={`Show Grid`}
+                            label="Show Grid"
+                          />
+                          <Checkbox
+                            checked={!!presetGridControl?.labelsVisible}
+                            onChange={(e) => {
+                              dispatch(
+                                upsertPresetByField(selectedPresetUuid, "mapGridControl", {
+                                  ...presetGridControl,
+                                  labelsVisible: e.target.checked,
+                                })
+                              );
+                            }}
+                            editable={editMode && !!presetGridControl?.visible}
+                            toolTip={`Show Grid Labels`}
+                            label="Show Grid Labels"
                           />
                         </div>
-                      )}
-                    </div>
+                        <Settings_subpanel
+                          type="grid"
+                          uuid={selectedPreset.uuid}
+                          styleSetter={styleSetterHandler}
+                          mapGridControl={presetGridControl}
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <div className={paneStyles.panelSectionRow}>
+                          <div className={paneStyles.panelSection2Column}>
+                            <div className={paneStyles.panelColumnTable}>
+                              <div className={paneStyles.panelColumnTableRow}>
+                                <div className={paneStyles.panelColumnTableCellLeft}>
+                                  <div className={paneStyles.displayFieldLabel}>
+                                    Grid Visibility:
+                                  </div>
+                                </div>
+                                <div className={paneStyles.panelColumnTableCell}>
+                                  <div className={paneStyles.displayFieldValue}>
+                                    {presetGridControl?.visible ? "Visible" : "Hidden"}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className={paneStyles.panelColumnTableRow}>
+                                <div className={paneStyles.panelColumnTableCellLeft}>
+                                  <div className={paneStyles.displayFieldLabel}>
+                                    Grid Label Visibility:
+                                  </div>
+                                </div>
+                                <div className={paneStyles.panelColumnTableCell}>
+                                  <div className={paneStyles.displayFieldValue}>
+                                    {presetGridControl?.labelVisible ? "Visible" : "Hidden"}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

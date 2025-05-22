@@ -24,8 +24,13 @@
 
 .gridToggles {
   display: flex;
-  gap: 10px;
-  padding: 8px 10px 5px 10px;
+  gap: 20px;
+  padding: 5px 10px 5px 0px;
+  transform: scale(0.9);
+  font-weight: 400;
+  color: var(--grey5);
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .gridInfo {
