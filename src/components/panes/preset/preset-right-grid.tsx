@@ -155,7 +155,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                 </div>
                                 <div className={paneStyles.panelColumnTableCell}>
                                   <div className={paneStyles.displayFieldValue}>
-                                    {presetGridControl?.labelVisible ? "Visible" : "Hidden"}
+                                    {presetGridControl?.labelsVisible ? "Visible" : "Hidden"}
                                   </div>
                                 </div>
                               </div>
