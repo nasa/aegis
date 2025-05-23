@@ -1,29 +1,27 @@
 import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
 import { getEM } from "utils/mikro";
 import { fetchMissionEntities, createMissionCopy } from "utils/dup/core";
 
 const router = express.Router();
 
-const parseQuery = (query: Query) => {
-  const { missionId } = query;
-  const queryObj = {
-    missionId: missionId ? parseInt(missionId as string) : undefined,
-  };
-  return queryObj;
-};
-
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
+  const { missionId } = req.body;
 
   if (!req.session?.user?.isSuperAdmin) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
+  if (missionId === undefined || missionId === null) {
+    res
+      .status(400)
+      .json({ status: "failure", message: "missionId is required in the request body" });
+    return;
+  }
+
   try {
     // duplicate mission
-    const newMissionId = await duplicateMission(queryObj.missionId);
+    const newMissionId = await duplicateMission(parseInt(missionId as string));
 
     res.status(200).json({
       status: "success",
@@ -32,13 +30,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
+    res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
   }
 });
 
 export default router;
 
-// The main duplicateMission function, now using our shared utilities
 const duplicateMission = async (missionId: number | undefined): Promise<number> => {
   if (!missionId) {
     throw new Error("Mission ID is required");
