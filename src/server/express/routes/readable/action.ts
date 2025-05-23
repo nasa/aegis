@@ -133,8 +133,20 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     try {
       // Standard flow for full objects
       const wholeStore: OneMissionToRuleThemAll = await getAll(queryObj.missionId);
+      const allData: AllDataForExport = {
+        mission: wholeStore.mission,
+        pois: wholeStore.pois,
+        stations: wholeStore.stations,
+        actions: wholeStore.actions,
+        traverses: wholeStore.traverses,
+        evas: wholeStore.evas,
+        rexes: wholeStore.rexes,
+        level1s: wholeStore.level1s,
+        level2s: wholeStore.level2s,
+        level3s: wholeStore.level3s,
+      };
 
-      let actions: Action[] = wholeStore.actions;
+      let actions: Action[] = allData.actions;
       if (queryObj.actionUuid) {
         actions = actions.filter((action) => action.uuid === queryObj.actionUuid);
       }
@@ -150,7 +162,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         actions = actions.filter((action) => action.traverseUuid === queryObj.traverseUuid);
       }
       if (queryObj.evaUuid) {
-        const evaSequenceItemUuids = wholeStore.evas
+        const evaSequenceItemUuids = allData.evas
           .find((eva) => eva.uuid === queryObj.evaUuid)
           .sequence.map((sequenceItem) => sequenceItem.uuid);
 
@@ -165,20 +177,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         actions = actions.filter((action) => new Date(action.updatedAt) >= sinceDate);
       }
 
-      const gridCoordinates: MissionGridPoint[][] = wholeStore.mission.activeGridUuid
-        ? await getGridFromFile(queryObj.missionId, wholeStore.mission.activeGridUuid)
+      const gridCoordinates: MissionGridPoint[][] = allData.mission.activeGridUuid
+        ? await getGridFromFile(queryObj.missionId, allData.mission.activeGridUuid)
         : null;
 
       const exportActions: ExportAction[] = makeExportActions({
         actions: actions,
-        mission: wholeStore.mission,
-        stations: wholeStore.stations,
-        pois: wholeStore.pois,
-        traverses: wholeStore.traverses,
-        level1s: wholeStore.level1s,
-        level2s: wholeStore.level2s,
-        level3s: wholeStore.level3s,
         missionGrid: gridCoordinates,
+        allData,
       });
 
       res.status(200).json({

@@ -9,6 +9,7 @@ let store: StoreType;
 jest.mock("http-client/elevation");
 import * as httpClient_elevation from "http-client/elevation";
 import { thunkGetElevation } from "store/thunk/thunkElevation";
+import { upsertMissionByField } from "store/mission";
 
 beforeAll(() => {
   store = createFullTestStore();
@@ -23,9 +24,20 @@ afterAll(() => {
 });
 
 describe("Thunk Elevation Tests", () => {
+  it("thunkGetElevation rejects with no DEM", async () => {
+    const dummyUuid = uuidv4();
+    const point: AEGISPoint = { lat: 1, lng: 1 };
+    const thunkRes = await store.dispatch(
+      thunkGetElevation({ path: [point], pathSegmentDistances: [0], uuid: dummyUuid })
+    );
+    expect(httpClient_elevation.getElevationSinglePoint).toHaveBeenCalledTimes(0);
+    expect(thunkRes.meta.requestStatus).toBe("rejected");
+    expect(thunkRes.payload).toBeFalsy();
+  });
   it("thunkGetElevation for single point", async () => {
     const dummyUuid = uuidv4();
     const point: AEGISPoint = { lat: 1, lng: 1 };
+    store.dispatch(upsertMissionByField("demFilePath", "somefake/path/here.TIF"));
     await store.dispatch(
       thunkGetElevation({ path: [point], pathSegmentDistances: [0], uuid: dummyUuid })
     );
@@ -38,6 +50,7 @@ describe("Thunk Elevation Tests", () => {
       { lat: 1, lng: 1 },
       { lat: 2, lng: 2 },
     ];
+    store.dispatch(upsertMissionByField("demFilePath", "somefake/path/here.TIF"));
     await store.dispatch(
       thunkGetElevation({ path: path, pathSegmentDistances: [0], uuid: dummyUuid })
     );

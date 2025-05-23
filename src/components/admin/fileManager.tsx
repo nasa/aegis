@@ -122,6 +122,39 @@ const FileManager: FunctionComponent<{
     return;
   }
 
+  //delete unused folders
+  async function deleteUnusedFolders() {
+    // get all unused folders
+    const unusedFolders = dirListing.filter((file) => {
+      return file.type === "dir" && !isUsed?.(file.name);
+    });
+    if (unusedFolders.length === 0) {
+      alert("No unused folders to delete");
+      return;
+    }
+    const confirmDelete = confirm(
+      `Are you sure you want to delete ${unusedFolders.length} unused folders?`
+    );
+    if (confirmDelete) {
+      const errors: string[] = [];
+
+      for (const folder of unusedFolders) {
+        const res = await deleteFile(`${path}/${folder.name}`);
+        const message = await res.json();
+        if (res.status !== 200) {
+          errors.push(`Failed to delete ${folder.name}: ${message}`);
+        }
+      }
+
+      if (errors.length > 0) {
+        alert(`Delete Errors:\n${errors.join("\n")}`);
+      }
+
+      await getDirListing();
+    }
+    return;
+  }
+
   useEffect(() => {
     const isLoggedInAsync = async () => {
       const response = await isLoggedIn(); //check user is logged in
@@ -160,6 +193,16 @@ const FileManager: FunctionComponent<{
           }}
         >
           {!hideDirectoryListing ? "Hide" : "Show"} Directory Listing
+        </button>
+        <button
+          className={adminStyles.deleteButton}
+          style={{ float: "right" }}
+          onClick={(e) => {
+            e.preventDefault();
+            deleteUnusedFolders();
+          }}
+        >
+          Delete Unused Folders
         </button>
       </div>
       {!hideDirectoryListing && (

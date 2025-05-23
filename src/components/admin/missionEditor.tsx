@@ -3,7 +3,7 @@ import { Dispatch, FunctionComponent, SetStateAction, useEffect, useRef } from "
 import FileManager from "./fileManager";
 import { Form } from "react-final-form";
 import { AnyObject } from "final-form";
-import { FFCheckbox, FFInput, FFTextArea } from "components/interface/form/globalFields";
+import { FFInput, FFTextArea } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import Projection from "components/admin/projection";
 import adminStyles from "components/admin/admin.module.css";
@@ -35,40 +35,38 @@ const MissionEditor: FunctionComponent<{
       equipmentItems: mission.equipmentItems,
       geographicUnits: mission.geographicUnits,
       actionTemplates: mission.actionTemplates,
-      description: missionValues.description,
-      missionBanner: missionValues.missionBanner,
-      planetRadius: parseFloat(missionValues.planetRadius),
+      description: missionValues.description || "",
+      missionBanner: missionValues.missionBanner || "",
+      planetRadius: parseFloat(missionValues.planetRadius) || null,
       landerLocation: {
         lat: parseFloat(missionValues.landerLocation.lat),
         lng: parseFloat(missionValues.landerLocation.lng),
       } as AEGISPoint,
       circleDefinitions: mission.circleDefinitions,
-      landerElevationMeters: parseFloat(missionValues.landerElevationMeters),
-      initialZoom: parseFloat(missionValues.initialZoom),
-      defaultEvaDuration: parseFloat(missionValues.defaultEvaDuration),
-      traverseRate: parseFloat(missionValues.traverseRate),
-      walkbackRate: parseFloat(missionValues.walkbackRate),
+      landerElevationMeters: parseFloat(missionValues.landerElevationMeters) || null,
+      initialZoom: parseFloat(missionValues.initialZoom) || null,
+      defaultEvaDuration: parseFloat(missionValues.defaultEvaDuration) || null,
+      traverseRate: parseFloat(missionValues.traverseRate) || null,
+      walkbackRate: parseFloat(missionValues.walkbackRate) || null,
       activeGridUuid: mission.activeGridUuid,
-      demFilePath: missionValues.demFilePath,
-      demResolution: parseFloat(missionValues.demResolution),
+      demFilePath: missionValues.demFilePath || "",
+      demResolution: parseFloat(missionValues.demResolution) || null,
 
       projIsCustom: missionValues.projIsCustom,
-      projEpsg: missionValues.projEpsg,
-      projProj4String: missionValues.projProj4String,
-      projBoundsMinX: parseFloat(missionValues.projBoundsMinX),
-      projBoundsMinY: parseFloat(missionValues.projBoundsMinY),
-      projBoundsMaxX: parseFloat(missionValues.projBoundsMaxX),
-      projBoundsMaxY: parseFloat(missionValues.projBoundsMaxY),
-      projOriginX: parseFloat(missionValues.projOriginX),
-      projOriginY: parseFloat(missionValues.projOriginY),
-      projResZoomLevel: parseFloat(missionValues.projResZoomLevel),
-      projResUnitsPerPixel: parseFloat(missionValues.projResUnitsPerPixel),
+      projEpsg: missionValues.projEpsg || "",
+      projProj4String: missionValues.projProj4String || "",
+      projBoundsMinX: parseFloat(missionValues.projBoundsMinX) || null,
+      projBoundsMinY: parseFloat(missionValues.projBoundsMinY) || null,
+      projBoundsMaxX: parseFloat(missionValues.projBoundsMaxX) || null,
+      projBoundsMaxY: parseFloat(missionValues.projBoundsMaxY) || null,
+      projOriginX: parseFloat(missionValues.projOriginX) || null,
+      projOriginY: parseFloat(missionValues.projOriginY) || null,
+      projResZoomLevel: parseFloat(missionValues.projResZoomLevel) || null,
+      projResUnitsPerPixel: parseFloat(missionValues.projResUnitsPerPixel) || null,
 
       createdAt: mission.createdAt,
       updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
-
-    setMission(missionToSave);
 
     const res = await upsertMissions([missionToSave]);
     if (res.status === "success") {
@@ -136,17 +134,12 @@ const MissionEditor: FunctionComponent<{
                     <div>
                       <div className={adminStyles.sectionDiv}>
                         <div className={adminStyles.sectionDivHeading}>Mission Information</div>
-                        <div id="isArchived">
-                          <div className={adminStyles.editDiv}>
-                            <FFCheckbox name="isArchived" label={{ label: "Mission Archived:" }} />
-                          </div>
-                        </div>
                         <div id="missionDiv">
                           <div className={adminStyles.editDiv}>
                             <FFInput
                               name="name"
-                              label={{ label: "Mission Name (Parent)" }}
-                              initialValue={mission?.name}
+                              label={{ label: "Mission Name *" }}
+                              validators={[validators.required]}
                             />
                           </div>
                         </div>
@@ -155,7 +148,6 @@ const MissionEditor: FunctionComponent<{
                             <FFInput
                               name="missionBanner"
                               label={{ label: "Mission Banner", title: "Mission Banner" }}
-                              initialValue={mission?.missionBanner}
                             />
                           </div>
                         </div>
@@ -164,7 +156,6 @@ const MissionEditor: FunctionComponent<{
                             <FFTextArea
                               name="description"
                               label={{ label: "Mission Description", title: "Mission Description" }}
-                              initialValue={mission?.description}
                             />
                           </div>
                         </div>
@@ -176,7 +167,7 @@ const MissionEditor: FunctionComponent<{
                                 label: "Action System Version (1 or 2)",
                                 title: "Action System Version",
                               }}
-                              initialValue={mission?.actionSystemVersion.toString()}
+                              validators={[validators.required, validators.mustBeInteger]}
                             />
                           </div>
                         </div>
@@ -195,7 +186,7 @@ const MissionEditor: FunctionComponent<{
                             <FFInput
                               name="landerLocation.lat"
                               label={{ label: "Lander Location Latitude *" }}
-                              validators={[validators.mustBeNumber]}
+                              validators={[validators.mustBeNumber, validators.required]}
                             />
                           </div>
                         </div>
@@ -204,7 +195,7 @@ const MissionEditor: FunctionComponent<{
                             <FFInput
                               name="landerLocation.lng"
                               label={{ label: "Lander Location Longitude *" }}
-                              validators={[validators.mustBeNumber]}
+                              validators={[validators.mustBeNumber, validators.required]}
                             />
                           </div>
                         </div>

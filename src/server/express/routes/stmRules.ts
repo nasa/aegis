@@ -71,7 +71,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const upsertResponse: STMRule[] = await upsertStmRules(missionId, socketId, stmRules);
+    const upsertResponse: STMRule[] = await upsertStmRules(missionId, stmRules);
 
     // emit the upserted item to all clients via socket.io
     emitStoreUpsert({
@@ -159,11 +159,7 @@ export async function getStmRules(missionId: number): Promise<STMRule[]> {
  * @param stmRules the stm rule to create
  * @returns the created stm rule
  */
-export async function upsertStmRules(
-  missionId: number,
-  socketId: string,
-  stmRules: STMRule[]
-): Promise<STMRule[]> {
+export async function upsertStmRules(missionId: number, stmRules: STMRule[]): Promise<STMRule[]> {
   const em = getEM();
 
   const stmRulesToUpsert = cloneDeep(stmRules); //create a copy to manipulate

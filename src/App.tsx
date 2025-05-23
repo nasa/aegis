@@ -10,6 +10,7 @@ import AdminMission from "pages/admin/mission";
 import AdminMissionLayers from "pages/admin/missionLayers";
 import AdminMissionSTM from "pages/admin/missionSTM";
 import AdminMissionGrid from "components/admin/gridUpload";
+import AdminMissionDuplicate from "pages/admin/missionDuplicate";
 import AdminPOI from "pages/admin/poi";
 import AdminUser from "pages/admin/user";
 import { EnsureLogin } from "packages/EnsureLogin";
@@ -29,6 +30,7 @@ const App = (): React.ReactElement => {
         <Route path="/admin/mission_layers/:id" element={<AdminMissionLayers />} />
         <Route path="/admin/mission_stm/:id" element={<AdminMissionSTM />} />
         <Route path="/admin/mission_grid/:id" element={<AdminMissionGrid />} />
+        <Route path="/admin/mission_duplicate/:id" element={<AdminMissionDuplicate />} />
         <Route path="/admin/poi" element={<AdminPOI />} />
         <Route path="/admin/user" element={<AdminUser />} />
       </Routes>

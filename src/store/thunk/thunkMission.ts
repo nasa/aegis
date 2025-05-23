@@ -26,12 +26,6 @@ import {
   makeExportTraverses,
 } from "utils/export";
 import * as jsonKeysSort from "json-keys-sort";
-import {
-  getCalculatedFieldsByEva,
-  getCalculatedFieldsByPoi,
-  getCalculatedFieldsByStation,
-  getCalculatedFieldsByTraverse,
-} from "store/processing/calculatedFields";
 import { generateBlankActionTemplate } from "store/storeUtils/mission";
 import { setStationCircleUIStates } from "store/station";
 import { globalGrid } from "utils/grid";
@@ -222,7 +216,7 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
 }>("updateLanderLocation", async ({ location }, { dispatch, getState }) => {
   dispatch(upsertMissionByField("landerLocation", location));
 
-  const thunkResponse = await dispatch(
+  const thunkElevationRes = await dispatch(
     thunkGetElevation({
       path: [location],
       pathSegmentDistances: [0],
@@ -230,35 +224,41 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
     })
   );
 
-  if (!thunkResponse || thunkResponse.payload === false) {
+  if (!thunkElevationRes || thunkElevationRes.payload === false) {
     //gracefully reject?
   } else {
-    const elevation = thunkResponse.payload as number;
+    const elevation = thunkElevationRes.payload as number;
     //upsert lander location and elevation
     dispatch(upsertMissionByField("landerElevationMeters", elevation));
   }
 
   // loop through all stations and update their walkback traverses to snap to the new lander location
-  for (const station of getState().station.stations) {
-    const newPath = await dispatch(
+  // Create an array of promises for all station updates
+  const stationUpdatePromises = getState().station.stations.map(async (station) => {
+    const newPathRes = await dispatch(
       thunkFullUpdateWalkback({
         path: station.walkbackPath,
         stationUuid: station.uuid,
       })
     );
 
-    // evas are updated in thunkSaveStation when traverses to/from the station are updated
-    if (newPath.payload !== false) {
-      dispatch(
-        thunkSaveStation({
-          station: {
-            ...station,
-            walkbackPath: newPath.payload,
-          },
-        })
-      );
+    if (newPathRes.meta.requestStatus === "rejected" || !newPathRes.payload) {
+      throw new Error("Error updating lander location in thunkUpdateLanderLocation");
     }
-  }
+
+    // Return the dispatch promise but don't await it here
+    return dispatch(
+      thunkSaveStation({
+        station: {
+          ...station,
+          walkbackPath: newPathRes.payload,
+        },
+      })
+    );
+  });
+
+  // Wait for all station updates to complete
+  await Promise.all(stationUpdatePromises);
 });
 
 export const thunkCreateActionTemplate = appCreateAsyncThunk<void, string>(
@@ -373,135 +373,94 @@ export const thunkMakeExportString = appCreateAsyncThunk<
     },
     { getState }
   ) => {
+    const allData: AllDataForExport = {
+      mission: getState().mission.mission,
+      pois: getState().poi.pois,
+      stations: getState().station.stations,
+      actions: getState().action.actions,
+      traverses: getState().traverse.traverses,
+      evas: getState().eva.evas,
+      rexes: getState().rex.rexes,
+      level1s: getState().stm.level1s,
+      level2s: getState().stm.level2s,
+      level3s: getState().stm.level3s,
+    };
+    let selectedExportedData = {};
+
     /**
      * Mission
      */
-    const mission = makeExportMission({
-      mission: getState().mission.mission,
-      missionGrid: globalGrid?.coordinates,
-    });
+    if (selectMission) {
+      const mission = makeExportMission({
+        mission: getState().mission.mission,
+        missionGrid: globalGrid?.coordinates,
+      });
+      selectedExportedData = { ...selectedExportedData, mission };
+    }
     /**
      * Actions
      */
-    const actions: ExportAction[] = makeExportActions({
-      actions: getState().action?.actions,
-      stations: getState().station?.stations,
-      pois: getState().poi?.pois,
-      traverses: getState().traverse?.traverses,
-      level1s: getState().stm?.level1s,
-      level2s: getState().stm?.level2s,
-      level3s: getState().stm?.level3s,
-      mission: getState().mission?.mission,
-      missionGrid: globalGrid?.coordinates,
-    });
-
+    if (selectActions) {
+      const actions: ExportAction[] = makeExportActions({
+        actions: getState().action?.actions,
+        allData,
+        missionGrid: globalGrid?.coordinates,
+      });
+      selectedExportedData = { ...selectedExportedData, actions };
+    }
     /**
      * POIs
      */
-    const pois: ExportPOI[] = makeExportPois({
-      pois: getState().poi.pois,
-      poiCalculatedFields: getState().poi?.pois.map((poi) =>
-        getCalculatedFieldsByPoi({
-          poiUuid: poi.uuid,
-          actions: getState().action.actions,
-        })
-      ),
-      actions,
-      mission: getState().mission.mission,
-      missionGrid: globalGrid?.coordinates,
-    });
-
+    if (selectPois) {
+      const pois: ExportPOI[] = makeExportPois({
+        pois: getState().poi.pois,
+        missionGrid: globalGrid?.coordinates,
+        allData,
+      });
+      selectedExportedData = { ...selectedExportedData, pois };
+    }
     /**
      * Stations
      */
-    const stations: ExportStation[] = makeExportStations({
-      stations: getState().station.stations,
-      stationCalculatedFields: getState().station?.stations.map((station) =>
-        getCalculatedFieldsByStation({
-          stationUuid: station.uuid,
-          stations: getState().station.stations,
-          mission: getState().mission.mission,
-          actions: getState().action.actions,
-        })
-      ),
-      actions: actions,
-      mission: getState().mission.mission,
-      pois: getState().poi.pois,
-      missionGrid: globalGrid?.coordinates,
-    });
-
+    if (selectStations) {
+      const stations: ExportStation[] = makeExportStations({
+        stations: getState().station.stations,
+        missionGrid: globalGrid?.coordinates,
+        allData,
+      });
+      selectedExportedData = { ...selectedExportedData, stations };
+    }
     /**
      * Traverses
      */
-    const traverses: ExportTraverse[] = makeExportTraverses({
-      traverses: getState().traverse?.traverses,
-      calculatedFields: getState().traverse?.traverses.map((traverse) =>
-        getCalculatedFieldsByTraverse({
-          traverseUuid: traverse.uuid,
-          traverses: getState().traverse.traverses,
-          mission: getState().mission.mission,
-          evas: getState().eva.evas,
-          actions: getState().action.actions,
-        })
-      ),
-      actions: actions,
-    });
-
+    if (selectTraverses) {
+      const traverses: ExportTraverse[] = makeExportTraverses({
+        traverses: getState().traverse?.traverses,
+        missionGrid: globalGrid?.coordinates,
+        allData,
+      });
+      selectedExportedData = { ...selectedExportedData, traverses };
+    }
     /**
      * EVAs
      */
-    const evas: ExportEva[] = makeExportEvas({
-      evas: getState().eva?.evas,
-      evaCalculatedFields: getState().eva?.evas.map((eva) =>
-        getCalculatedFieldsByEva({
-          evaUuid: eva.uuid,
-          evas: getState().eva.evas,
-          stations: getState().station.stations,
-          mission: getState().mission.mission,
-          actions: getState().action.actions,
-          traverses: getState().traverse.traverses,
-        })
-      ),
-      stations,
-      traverses,
-      mission: getState().mission.mission,
-    });
-
+    if (selectEvas) {
+      const evas: ExportEva[] = makeExportEvas({
+        evas: getState().eva?.evas,
+        missionGrid: globalGrid?.coordinates,
+        allData,
+      });
+      selectedExportedData = { ...selectedExportedData, evas };
+    }
     /**
      * REXes
      */
-    const rexes: ExportRex[] = makeExportRexes({
-      rexes: getState().rex?.rexes,
-    });
-
-    /**
-     * Finish
-     */
-    const exportedData: ExportedData = {
-      mission,
-      pois,
-      stations,
-      actions,
-      traverses,
-      evas,
-      rexes,
-    };
-
-    let selectedExportedData = {};
-    if (selectEvas)
-      selectedExportedData = { ...selectedExportedData, evas: { ...exportedData.evas } };
-    if (selectMission)
-      selectedExportedData = { ...selectedExportedData, mission: { ...exportedData.mission } };
-    if (selectPois)
-      selectedExportedData = { ...selectedExportedData, pois: { ...exportedData.pois } };
-    if (selectStations)
-      selectedExportedData = { ...selectedExportedData, stations: { ...exportedData.stations } };
-    if (selectActions)
-      selectedExportedData = { ...selectedExportedData, actions: { ...exportedData.actions } };
-    if (selectTraverses)
-      selectedExportedData = { ...selectedExportedData, traverses: { ...exportedData.traverses } };
-    if (selectRexes)
-      selectedExportedData = { ...selectedExportedData, rexes: { ...exportedData.rexes } };
+    if (selectRexes) {
+      const rexes: ExportRex[] = makeExportRexes({
+        rexes: getState().rex?.rexes,
+      });
+      selectedExportedData = { ...selectedExportedData, rexes };
+    }
 
     // convert object to readble string
     const sortedJson = jsonKeysSort.sort(selectedExportedData);

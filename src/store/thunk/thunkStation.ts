@@ -236,7 +236,7 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   );
 
   // full update traverses (including name) around this station in any eva using this station
-  dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid, saveToDb: true }));
+  await dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid, saveToDb: true }));
 
   // upsert the changed Station to the DB via internal API call
   const stationUpsertResponse = await httpClient_station.upsertStations([

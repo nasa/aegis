@@ -37,7 +37,7 @@
     "version:minor": "npm version minor && git push",
     "version:major": "npm version major && git push",
     "make-dotenv": "make-dotenv && npx prettier --write ./env.secret.ts --ignore-path .prettierignore",
-    "schema:create": "concurrently -n action,station,poi,eva,mission,sublayerImportable \"npm run schema:create:action\" \"npm run schema:create:station\" \"npm run schema:create:poi\" \"npm run schema:create:eva\" \"npm run schema:create:mission\" \"npm run schema:create:sublayerImportable\" \"npm run schema:create:traverse\"",
+    "schema:create": "concurrently \"npm run schema:create:action\" \"npm run schema:create:station\" \"npm run schema:create:poi\" \"npm run schema:create:eva\" \"npm run schema:create:mission\" \"npm run schema:create:sublayerImportable\" \"npm run schema:create:traverse\"",
     "schema:create:action": "typescript-json-schema ./tsconfig.schema.json ExportAction --noExtraProps --required --ignoreErrors -o ./.local/schemas/exportAction.json",
     "schema:create:station": "typescript-json-schema ./tsconfig.schema.json ExportStation --noExtraProps --required --ignoreErrors -o ./.local/schemas/exportStation.json",
     "schema:create:eva": "typescript-json-schema ./tsconfig.schema.json ExportEva --noExtraProps --required --ignoreErrors -o ./.local/schemas/exportEva.json",

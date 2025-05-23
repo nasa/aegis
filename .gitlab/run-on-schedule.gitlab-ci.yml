@@ -30,5 +30,6 @@ z:db-export:prod:
   extends: .db-export-template
   when: always
   tags: ["emss-aegis-prod"]
+  resource_group: prod # prevents concurrent executions of this job when there are multiple pipelines
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD

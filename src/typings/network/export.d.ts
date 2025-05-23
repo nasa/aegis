@@ -88,12 +88,15 @@ type EquipmentItemUsageReadable = {
   quantityUsed: number;
 };
 
-type ExportedData = {
+type AllDataForExport = {
   mission: Mission;
-  pois: ExportPOI[];
-  stations: ExportStation[];
-  actions: ExportAction[];
-  traverses: ExportTraverse[];
-  evas: ExportEva[];
-  rexes: ExportRex[];
+  actions: Action[];
+  pois: POI[];
+  stations: Station[];
+  evas: Eva[];
+  traverses: Traverse[];
+  rexes: Rex[];
+  level1s: STMLevel1[];
+  level2s: STMLevel2[];
+  level3s: STMLevel3[];
 };

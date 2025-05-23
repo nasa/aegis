@@ -174,3 +174,97 @@ export async function renameFile(path: string, oldName: string, newName: string)
     return false;
   }
 }
+
+// Helper function to recursively copy directory contents
+export async function copyDirectoryContents(
+  fromMissionId: number,
+  toMissionId: number
+): Promise<void> {
+  const staticDir = process.env.STATIC_DIR;
+  const sourcePath = `missionFiles/${fromMissionId}`;
+  const targetPath = `missionFiles/${toMissionId}`;
+  const fullSourcePath = path.join(staticDir, sourcePath);
+  const fullTargetPath = path.join(staticDir, targetPath);
+
+  // Create target directory if it doesn't exist
+  if (!fs.existsSync(fullTargetPath)) {
+    await mkdir(fullTargetPath, { recursive: true });
+  }
+
+  // Try to use system-specific commands for better performance
+  // All these commands are configured to copy recursively
+  try {
+    const platform = process.platform;
+
+    if (platform === "win32") {
+      // Use robocopy on Windows (more modern than xcopy)
+      // /E ensures recursive copying (includes empty subdirectories)
+      try {
+        await executeCommand("robocopy", [fullSourcePath, fullTargetPath, "/E", "/NFL", "/NDL"], {
+          acceptableExitCodes: [0, 1, 2, 3, 4, 5, 6, 7],
+        });
+        console.log(
+          `${new Date()} Directory recursively copied using robocopy from ${sourcePath} to ${targetPath}`
+        );
+        return;
+      } catch (error) {
+        // Fallback to xcopy if robocopy fails or is not available
+        // /E ensures recursive copying (includes empty subdirectories)
+        await executeCommand("xcopy", [fullSourcePath, fullTargetPath, "/E", "/I", "/H", "/Y"]);
+        console.log(
+          `${new Date()} Directory recursively copied using xcopy from ${sourcePath} to ${targetPath}`
+        );
+        return;
+      }
+    } else if (platform === "darwin" || platform === "linux") {
+      // Use rsync on Linux/macOS
+      // -a (archive) ensures recursive copying with permissions preservation
+      await executeCommand("rsync", ["-a", `${fullSourcePath}/`, fullTargetPath]);
+      console.log(
+        `${new Date()} Directory recursively copied using rsync from ${sourcePath} to ${targetPath}`
+      );
+      return;
+    } else {
+      // log an error if the platform is not supported
+      console.error(
+        `${new Date()} Unsupported platform for directory copy: ${platform}. Please copy manually.`
+      );
+      return;
+    }
+  } catch (error) {
+    console.error(`${new Date()} System copy command failed: ${error}`);
+  }
+}
+
+/**
+ * Execute a system command with the given arguments
+ * @param command The command to execute
+ * @param args Array of arguments
+ * @param options Optional settings
+ * @returns Promise that resolves when command completes
+ */
+async function executeCommand(
+  command: string,
+  args: string[],
+  options: { acceptableExitCodes?: number[]; cwd?: string } = {}
+): Promise<void> {
+  const { spawn } = require("child_process");
+
+  return new Promise((resolve, reject) => {
+    const process = spawn(command, args, { cwd: options.cwd });
+
+    process.on("error", (err: Error) => {
+      reject(new Error(`Failed to execute ${command}: ${err.message}`));
+    });
+
+    process.on("close", (code: number) => {
+      if (options.acceptableExitCodes && options.acceptableExitCodes.includes(code)) {
+        resolve();
+      } else if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`${command} exited with code ${code}`));
+      }
+    });
+  });
+}

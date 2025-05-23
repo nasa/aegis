@@ -235,7 +235,10 @@ export const EvaEgressIngressListing: FunctionComponent<{
   );
 
   let xgressStyle = null;
-  if (xgressIdentifier === hoverItemUuid) {
+  if (
+    (xgressIdentifier === "egress" && hoverItemUuid === eva.egressLocationUuid) ||
+    (xgressIdentifier === "ingress" && hoverItemUuid === eva.ingressLocationUuid)
+  ) {
     xgressStyle = evaStyles.evaItemNameHoverMode;
   }
 
@@ -285,7 +288,7 @@ export const EvaEgressIngressListing: FunctionComponent<{
         onMouseEnter={() => {
           dispatch(
             setHoverUuidsForSequence({
-              sequenceUuid: isEgress ? "egress" : "ingress",
+              sequenceUuid: isEgress ? eva.egressLocationUuid : eva.ingressLocationUuid,
               mapItemType: null,
             })
           );

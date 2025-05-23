@@ -789,6 +789,12 @@
   cursor: not-allowed;
 }
 
+.missionSubtext {
+  font-size: 0.8em;
+  color: rgb(73, 73, 73);
+  margin-left: 5px;
+}
+
 .smallGrey {
   color: black;
   font-size: 0.6em;
