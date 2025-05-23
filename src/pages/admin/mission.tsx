@@ -21,22 +21,16 @@ const Mission: React.FunctionComponent = () => {
   const intMissionId = parseInt(slug);
 
   useEffect(() => {
-    const loadMission = async () => {
-      const response = await getMissions(intMissionId);
-      if (response.data) {
-        setMission(response.data[0]);
-      }
-    };
-
-    function createNewMission() {
+    if (intMissionId === 0) {
       const newMission: Mission = generateBlankMission();
       setMission(newMission);
-    }
-
-    if (intMissionId === 0) {
-      createNewMission();
     } else {
-      loadMission();
+      (async () => {
+        const response = await getMissions(intMissionId);
+        if (response.data) {
+          setMission(response.data[0]);
+        }
+      })();
     }
   }, [intMissionId]);
 
@@ -57,7 +51,7 @@ const Mission: React.FunctionComponent = () => {
           />
         </div>
         <MissionEditor mission={mission} setMission={setMission} />
-        {/* 
+        {/*
             <MissionSTM mission={mission} setMission={setMission} /> */}
       </div>
     </div>
