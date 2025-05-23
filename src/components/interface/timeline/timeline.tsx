@@ -210,7 +210,6 @@ const NavTimeline: FunctionComponent = () => {
     TimelineDrawing.drawGraphAxis(paperDataRef, storeRef);
     //draw pet line when rex is executing but time is not moving. When pet time moves, a separate use effect will handle this.
     TimelineDrawing.drawPetLine(paperDataRef, paperGroupsRef, secondsFromhhmmss(rexPetTime));
-
     //draw all the things
     if (selectedEva) {
       TimelineDrawing.drawSequenceBottomSection(
@@ -222,7 +221,7 @@ const NavTimeline: FunctionComponent = () => {
       if (showDistanceFromLander) {
         TimelineDrawing.drawLanderDistanceGraph(paperDataRef, graphSequenceItems);
       }
-      if (showElevation) {
+      if (showElevation && storeRef.current.landerElevationMeters) {
         TimelineDrawing.drawElevationProfile(paperDataRef, graphSequenceItems);
       }
       TimelineDrawing.drawWalkbacks(paperDataRef, graphSequenceItems, selectedEvaSequenceItemUuid);

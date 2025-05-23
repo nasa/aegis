@@ -18,6 +18,9 @@ export const thunkGetElevation = appCreateAsyncThunk<
   number | number[][],
   false
 >("getElevation", async ({ path, pathSegmentDistances, uuid }, { dispatch, getState }) => {
+  if (!getState().mission.mission.demFilePath) {
+    throw new Error("No DEM file path found");
+  }
   //get elevation for a single point or a path
   const mission: Mission = getState().mission.mission;
 

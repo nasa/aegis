@@ -162,11 +162,11 @@ export const processEvaDataFromStore = ({
               }
             }
 
-            // subdivide each segment by 150 meters for greater accuracy
-
+            // subdivide each segment by for greater accuracy
+            const divisor = calculatedFields.walkbackDistanceMeters * 0.01; //meters
             const newWalkbackPath: AEGISPoint[] = addPointsAtMeters(
               station.walkbackPath,
-              150,
+              divisor,
               mission.planetRadius
             );
             walkback.subdividedPath = newWalkbackPath;
@@ -247,9 +247,18 @@ export const processEvaDataFromStore = ({
           }
         }
       }
+      // get calculatedFieldValues for this traverse
+      const calculatedFields = traverseCalculatedFieldsInSelectedEva.find(
+        (calculated) => calculated?.uuid === traverse.uuid
+      );
 
-      //subdivide seach traverse segment by 150 meters for greater accuracy
-      const newTraverse: AEGISPoint[] = addPointsAtMeters(traverse.path, 150, mission.planetRadius);
+      //subdivide seach traverse segment for greater accuracy
+      const divisor = calculatedFields.distanceMeters * 0.01; //meters
+      const newTraverse: AEGISPoint[] = addPointsAtMeters(
+        traverse.path,
+        divisor,
+        mission.planetRadius
+      );
       EVASequenceItemForTimeline.traverse.subdividedPath = newTraverse;
 
       EVASequenceItemForTimeline.totalDurationMins = 0;
@@ -283,10 +292,6 @@ export const processEvaDataFromStore = ({
         }
       }
 
-      // get calculatedFieldValues for this traverse
-      const calculatedFields = traverseCalculatedFieldsInSelectedEva.find(
-        (calculated) => calculated?.uuid === traverse.uuid
-      );
       // calculate duration from actions assigned to traverse
       // note: this is the "dwell time" which is crew member time spent at the traverse actions that is the longest
       const actionDurationMins = calculatedFields?.totalDwellTime.durationUpper;

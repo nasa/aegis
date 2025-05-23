@@ -150,6 +150,26 @@ export function drawGraphAxis(
   });
   axisGroup.addChild(petLabel);
 
+  const markerSpacingPx = 25; //at least this many pixels between markers
+  const possibleIntervalMeters = [
+    1, 2, 5, 10, 15, 20, 25, 50, 100, 150, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
+    200000, 500000, 1000000, 2000000, 5000000,
+  ];
+
+  //draw left y-axis - distance from lander
+
+  //determine interval for distance from lander markers
+  let distanceInterval = possibleIntervalMeters[0];
+  for (let i = 0; i < possibleIntervalMeters.length; i++) {
+    const numMarkers = storeRef.current.maxDistFromLanderMeters / possibleIntervalMeters[i];
+    //determine how many can fit taking into account the marker spacing pixels
+    if (numMarkers < paperVars.graphHeight / markerSpacingPx && i > 0) {
+      distanceInterval = possibleIntervalMeters[i - 1];
+      break;
+    }
+  }
+  const useKmForDistanceFromLander = distanceInterval > 10000;
+
   //draw left y-axis label
   const leftYAxisLabelXOffset = 60;
   const leftYAxisLabel = new paper.PointText({
@@ -161,53 +181,13 @@ export function drawGraphAxis(
     fontFamily: paperDataRef.current.styles.gNavigatorFontFamilyActivity,
     fontSize: 12,
     fillColor: paperDataRef.current.styles.blue,
-    content: "Distance from Lander (m)",
+    content: `Distance from Lander ${useKmForDistanceFromLander ? "(km)" : "(m)"}`,
   });
   leftYAxisLabel.rotate(
     -90,
     new paper.Point(paperVars.timelineLeft - leftYAxisLabelXOffset, paperVars.timelineTop - 5)
   );
   axisGroup.addChild(leftYAxisLabel);
-
-  //draw right y-axis label
-  const rightYAxisLabelXOffset = 65;
-  const rightYAxisLabel = new paper.PointText({
-    point: new paper.Point(
-      paperVars.timelineLeft + paperVars.timelineWidth + rightYAxisLabelXOffset,
-      paperVars.timelineTop - 5
-    ),
-    justification: "right",
-    fontFamily: paperDataRef.current.styles.gNavigatorFontFamilyActivity,
-    fontSize: 12,
-    fillColor: paperDataRef.current.styles.green,
-    content: "Relative Elevation (m)",
-  });
-  rightYAxisLabel.rotate(
-    -90,
-    new paper.Point(
-      paperVars.timelineLeft + paperVars.timelineWidth + rightYAxisLabelXOffset,
-      paperVars.timelineTop - 5
-    )
-  );
-  axisGroup.addChild(rightYAxisLabel);
-
-  const markerSpacingPx = 25; //at least this many pixels between markers
-  const possibleIntervalMeters = [
-    1, 2, 5, 10, 15, 20, 25, 50, 100, 150, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
-  ];
-
-  //draw left y-axis meter markers
-
-  //determine interval for distance markers
-  let distanceInterval = possibleIntervalMeters[0];
-  for (let i = 0; i < possibleIntervalMeters.length; i++) {
-    const numMarkers = storeRef.current.maxDistFromLanderMeters / possibleIntervalMeters[i];
-    //determine how many can fit taking into account the marker spacing pixels
-    if (numMarkers < paperVars.graphHeight / markerSpacingPx && i > 0) {
-      distanceInterval = possibleIntervalMeters[i - 1];
-      break;
-    }
-  }
 
   //draw distance lander marker
   drawMeterMarker(
@@ -222,25 +202,63 @@ export function drawGraphAxis(
   const numMarkersAboveLander =
     paperVars.graphHeight / (distanceInterval * paperVars.pixelsPerMeterDistanceY);
   for (let i = 1; i < numMarkersAboveLander; i++) {
-    const distanceFromLander = i * distanceInterval;
+    const label = useKmForDistanceFromLander
+      ? `${Math.round((i * distanceInterval) / 1000).toLocaleString("en-US")}`
+      : `${Math.round(i * distanceInterval).toLocaleString("en-US")}`;
     drawMeterMarker(
       paperDataRef.current.styles.gNavigatorFontFamilyActivity,
       paperVars.timelineLeft,
       paperVars.timelineTop +
         paperVars.graphHeight -
-        distanceFromLander * paperVars.pixelsPerMeterDistanceY,
-      `${Math.round(distanceFromLander).toLocaleString("en-US")}`,
+        i * distanceInterval * paperVars.pixelsPerMeterDistanceY,
+      label,
       paperDataRef.current.styles.blue,
       "right"
     );
   }
 
-  //draw right y-axis meters markers
-  const xLocRightYaxis = paperVars.timelineLeft + paperVars.timelineWidth;
-
+  //draw right y-axis - elevation
   //only draw if we have a lander elevation
   if (storeRef.current.landerElevationMeters) {
-    //right lander horizontal axis line and marker
+    const xLocRightYaxis = paperVars.timelineLeft + paperVars.timelineWidth;
+
+    //determine interval for elevation markers
+    let elevationInterval = possibleIntervalMeters[0];
+    for (let i = 0; i < possibleIntervalMeters.length; i++) {
+      const numMarkers =
+        (storeRef.current.maxElevationMeters - storeRef.current.minElevationMeters) /
+        possibleIntervalMeters[i];
+      //determine how many can fit taking into account the marker spacing pixels
+      if (numMarkers < paperVars.graphHeight / markerSpacingPx && i > 0) {
+        elevationInterval = possibleIntervalMeters[i - 1];
+        break;
+      }
+    }
+    const useKmForElevation = elevationInterval > 10000;
+
+    //draw right y-axis label
+    const rightYAxisLabelXOffset = 65;
+    const rightYAxisLabel = new paper.PointText({
+      point: new paper.Point(
+        paperVars.timelineLeft + paperVars.timelineWidth + rightYAxisLabelXOffset,
+        paperVars.timelineTop - 5
+      ),
+      justification: "right",
+      fontFamily: paperDataRef.current.styles.gNavigatorFontFamilyActivity,
+      fontSize: 12,
+      fillColor: paperDataRef.current.styles.green,
+      content: `Relative Elevation ${useKmForElevation ? "(km)" : "(m)"}`,
+    });
+    rightYAxisLabel.rotate(
+      -90,
+      new paper.Point(
+        paperVars.timelineLeft + paperVars.timelineWidth + rightYAxisLabelXOffset,
+        paperVars.timelineTop - 5
+      )
+    );
+    axisGroup.addChild(rightYAxisLabel);
+
+    //right lander horizontal axis line and marker for lander
     drawMeterMarker(
       paperDataRef.current.styles.gNavigatorFontFamilyActivity,
       xLocRightYaxis,
@@ -262,19 +280,6 @@ export function drawGraphAxis(
     });
     axisGroup.addChild(landerLine);
 
-    //determine interval for elevation markers
-    let elevationInterval = possibleIntervalMeters[0];
-    for (let i = 0; i < possibleIntervalMeters.length; i++) {
-      const numMarkers =
-        (storeRef.current.maxElevationMeters - storeRef.current.minElevationMeters) /
-        possibleIntervalMeters[i];
-      //determine how many can fit taking into account the marker spacing pixels
-      if (numMarkers < paperVars.graphHeight / markerSpacingPx && i > 0) {
-        elevationInterval = possibleIntervalMeters[i - 1];
-        break;
-      }
-    }
-
     //draw elevation markers
     const elevationIntervalInPixels = elevationInterval * paperVars.pixelsPerMeterElevationY;
     const yLocLanderElevation = paperVars.timelineTop + paperVars.landerElevationFromGraphTop;
@@ -285,11 +290,14 @@ export function drawGraphAxis(
     markerArea = paperVars.graphHeight - paperVars.landerElevationFromGraphTop;
     numMarkers = markerArea / elevationIntervalInPixels;
     for (let i = 1; i < numMarkers; i++) {
+      const label = useKmForElevation
+        ? `-${Math.round((i * elevationInterval) / 1000).toLocaleString("en-US")}`
+        : `-${Math.round(i * elevationInterval).toLocaleString("en-US")}`;
       drawMeterMarker(
         paperDataRef.current.styles.gNavigatorFontFamilyActivity,
         xLocRightYaxis,
         yLocLanderElevation + elevationIntervalInPixels * i,
-        `-${Math.round(i * elevationInterval).toLocaleString("en-US")}`,
+        label,
         paperDataRef.current.styles.green,
         "left"
       );
@@ -299,11 +307,14 @@ export function drawGraphAxis(
     markerArea = paperVars.landerElevationFromGraphTop;
     numMarkers = markerArea / elevationIntervalInPixels;
     for (let i = 1; i < numMarkers; i++) {
+      const label = useKmForElevation
+        ? `${Math.round((i * elevationInterval) / 1000).toLocaleString("en-US")}`
+        : `${Math.round(i * elevationInterval).toLocaleString("en-US")}`;
       drawMeterMarker(
         paperDataRef.current.styles.gNavigatorFontFamilyActivity,
         xLocRightYaxis,
         yLocLanderElevation - elevationIntervalInPixels * i,
-        `${Math.round(i * elevationInterval).toLocaleString("en-US")}`,
+        label,
         paperDataRef.current.styles.green,
         "left"
       );
