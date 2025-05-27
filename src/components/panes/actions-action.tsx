@@ -24,7 +24,7 @@ const RightAction: FunctionComponent<{
   editMode: boolean;
   actionUuid: string;
   highlight: boolean;
-  parentComponent: ActionParentComponent;
+  parentType: ActionParentType;
   parentLocation: AEGISPoint | null;
   parentElevation: number | null;
   rexUuid: string | null;
@@ -34,7 +34,7 @@ const RightAction: FunctionComponent<{
   editMode,
   actionUuid,
   highlight,
-  parentComponent,
+  parentType,
   parentLocation,
   parentElevation,
   rexUuid,
@@ -278,7 +278,7 @@ const RightAction: FunctionComponent<{
                 >
                   {hmmFromMinutes(action.durationUpper)}
                 </div>
-                {parentComponent !== "poi" && (
+                {parentType !== "poi" && (
                   <div className={actionStyles.actionHeadingRightItem}>
                     <div
                       className={actionStyles.actionDualButtons}
@@ -318,7 +318,7 @@ const RightAction: FunctionComponent<{
               <RightActionBody
                 action={action}
                 editMode={editMode}
-                parentType={parentComponent}
+                parentType={parentType}
                 parentLocation={parentLocation}
                 parentElevation={parentElevation}
                 rexUuid={rexUuid}
