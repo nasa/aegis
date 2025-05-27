@@ -245,7 +245,7 @@ type Action_db_type = Omit<
 };
 
 type ActionStatus = "Archived" | "Candidate" | "In Review" | "Approved";
-type ActionParentComponent = "station" | "poi" | "traverse" | "eva";
+type ActionParentType = "station" | "poi" | "traverse";
 type Crew = "EV1" | "EV2";
 
 //Filter options when getting actions from the API endpoint

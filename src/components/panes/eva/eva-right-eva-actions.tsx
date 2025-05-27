@@ -87,14 +87,14 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       <div className={paneStyles.rightBodyBody} style={{ overflowY: "hidden" }}>
         <ActionsTopSection
           actionOrderUuids={evaActionOrderUuids}
-          parentComponent="eva"
+          showDwell={true}
           highlightActions={highlightActions}
           actionsCalculatedFields={actionsCalculatedFields}
           actionIsInRunningRex={isSelectedEvaInARunningRex}
         />
         <ActionsListHeadings
           editMode={editMode}
-          parentComponent="eva"
+          showCrewHeading={true}
           editPerms={editPerms}
           actionIsInRunningRex={isSelectedEvaInARunningRex}
         />
@@ -124,7 +124,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                     <ActionList
                       editMode={editMode}
                       actionOrderUuids={station.actionOrderUuids}
-                      parentComponent="eva"
+                      parentType="station"
                       highlightActions={highlightActions}
                       isActionHiglighted={isActionHiglighted}
                       stations={stations}
@@ -148,7 +148,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                   <ActionList
                     editMode={editMode}
                     actionOrderUuids={traverse.actionOrderUuids}
-                    parentComponent="eva"
+                    parentType="traverse"
                     highlightActions={highlightActions}
                     isActionHiglighted={isActionHiglighted}
                     stations={stations}

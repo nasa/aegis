@@ -23,7 +23,7 @@ const Actions: FunctionComponent<{
   actionOrderUuids: string[];
   setActionOrderUuids: (actionOrderUuids: string[]) => void;
   actionParentUuid: Pick<Action, "poiUuid" | "stationUuid" | "traverseUuid">;
-  parentType: ActionParentComponent;
+  parentType: ActionParentType;
   actionsCalculatedFields: ActionsCalculatedFields;
   rexUuid: string;
 }> = ({
@@ -102,7 +102,7 @@ const Actions: FunctionComponent<{
     <>
       <ActionsTopSection
         actionOrderUuids={actionOrderUuids}
-        parentComponent={parentType}
+        showDwell={parentType !== "poi"}
         highlightActions={highlightActions}
         actionsCalculatedFields={actionsCalculatedFields}
         actionIsInRunningRex={actionIsInRunningRex}
@@ -111,7 +111,7 @@ const Actions: FunctionComponent<{
       <div className={actionsStyles.actionListContainer}>
         <ActionsListHeadings
           editMode={editMode}
-          parentComponent={parentType}
+          showCrewHeading={parentType !== "poi"}
           editPerms={editPerms}
           actionIsInRunningRex={actionIsInRunningRex}
         />
@@ -120,7 +120,7 @@ const Actions: FunctionComponent<{
             <ActionList
               editMode={editMode}
               rexUuid={rexUuid}
-              parentComponent={parentType}
+              parentType={parentType}
               actionOrderUuids={actionOrderUuids}
               highlightActions={highlightActions}
               isActionHiglighted={isActionHiglighted}
@@ -193,13 +193,13 @@ export default Actions;
 
 export const ActionsTopSection: FunctionComponent<{
   actionOrderUuids: string[];
-  parentComponent: ActionParentComponent;
+  showDwell: boolean;
   highlightActions: (level3Uuid: string) => void;
   actionsCalculatedFields: ActionsCalculatedFields;
   actionIsInRunningRex: boolean;
 }> = ({
   actionOrderUuids,
-  parentComponent,
+  showDwell,
   highlightActions,
   actionsCalculatedFields,
   actionIsInRunningRex,
@@ -374,7 +374,7 @@ export const ActionsTopSection: FunctionComponent<{
             </div>
 
             <div className={paneStyles.panelColumnTable}>
-              {parentComponent !== "poi" && (
+              {showDwell && (
                 <>
                   <CalculatedDwell actionsCalculatedFields={actionsCalculatedFields} />
                 </>
@@ -389,10 +389,10 @@ export const ActionsTopSection: FunctionComponent<{
 
 export const ActionsListHeadings: FunctionComponent<{
   editMode: boolean;
-  parentComponent: ActionParentComponent;
+  showCrewHeading: boolean;
   editPerms: boolean;
   actionIsInRunningRex: boolean;
-}> = ({ editMode, parentComponent, editPerms, actionIsInRunningRex }) => {
+}> = ({ editMode, showCrewHeading, editPerms, actionIsInRunningRex }) => {
   const actionSystemVersion = useAppSelector(
     (state) => state.mission.mission.actionSystemVersion,
     refEqual
@@ -421,7 +421,7 @@ export const ActionsListHeadings: FunctionComponent<{
       <div className={actionsStyles.actionListHeaderTime}>
         <div className={actionsStyles.actionListHeaderLabel}>Max</div>
       </div>
-      {parentComponent !== "poi" && (
+      {showCrewHeading && (
         <div className={actionsStyles.actionListHeaderCrew}>
           <div className={actionsStyles.actionListHeaderLabel}>Crew</div>
         </div>
@@ -433,7 +433,7 @@ export const ActionsListHeadings: FunctionComponent<{
 export const ActionList: FunctionComponent<{
   editMode: boolean;
   actionOrderUuids: string[];
-  parentComponent: ActionParentComponent;
+  parentType: ActionParentType;
   highlightActions: (level3Uuid: string) => void;
   isActionHiglighted: ActionHighlight[];
   stations: Station[];
@@ -443,7 +443,7 @@ export const ActionList: FunctionComponent<{
 }> = ({
   editMode,
   actionOrderUuids,
-  parentComponent,
+  parentType,
   isActionHiglighted,
   stations,
   pois,
@@ -474,7 +474,7 @@ export const ActionList: FunctionComponent<{
               editMode={editMode}
               actionUuid={actionUuid}
               highlight={highlight}
-              parentComponent={parentComponent}
+              parentType={parentType}
               parentLocation={parentLocation}
               parentElevation={parentElevation}
               rexUuid={rexUuid}

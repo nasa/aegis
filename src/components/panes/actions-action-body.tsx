@@ -41,7 +41,7 @@ import { globalGrid } from "utils/grid";
 const RightActionBody: FunctionComponent<{
   editMode: boolean;
   action: Action;
-  parentType: ActionParentComponent;
+  parentType: ActionParentType;
   parentLocation: AEGISPoint;
   parentElevation: number;
   rexUuid: string;
