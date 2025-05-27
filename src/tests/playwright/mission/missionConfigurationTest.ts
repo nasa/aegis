@@ -34,7 +34,7 @@ const testAttr: MissionAttributes = {
 };
 
 export async function missionConfigTest(page: Page): Promise<string> {
-  await page.goto("http://localhost:4000/mission/1");
+  await page.goto("http://localhost:4000/mission/22");
   //go to mission preferences
   await page.waitForTimeout(2000);
   await page.getByLabel("mission Section", { exact: true }).click();

@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("create edit cancel delete poi", async ({ page }) => {
-  await page.goto("http://localhost:4000/mission/1");
+  await page.goto("http://localhost:4000/mission/22");
   await page.waitForTimeout(4000);
   // go to poi section
   await page.getByLabel("poi Section", { exact: true }).click();
