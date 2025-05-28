@@ -268,8 +268,6 @@ const MapBody: FunctionComponent<{}> = () => {
     sourceUuids: [],
   });
   const [showArrows, setShowArrows] = useState(true);
-  const [showGridLabels, setShowGridLabels] = useState<boolean>(true);
-  const [showGridLines, setShowGridLines] = useState<boolean>(true);
   const [showScaleBar, setShowScaleBar] = useState(true);
   const [showMouseLatLon, setShowMouseLatLon] = useState(true);
   const [showSunEarth, setShowSunEarth] = useState(false);
@@ -313,8 +311,6 @@ const MapBody: FunctionComponent<{}> = () => {
       });
     }
     setShowArrows(eyeballMenuSettings.showArrows);
-    setShowGridLabels(eyeballMenuSettings.showGridLabels);
-    setShowGridLines(eyeballMenuSettings.showGridLines);
     setShowSunEarth(eyeballMenuSettings.showSunEarth ?? false); // default to false if not in cookie
     setShowScaleBar(eyeballMenuSettings.showScaleBar ?? true); // default to true if not in cookie
     setShowMouseLatLon(eyeballMenuSettings.showMouseLatLon ?? true); // default to true if not in cookie
@@ -334,8 +330,7 @@ const MapBody: FunctionComponent<{}> = () => {
         mapDisplayActions,
         mapDisplayPos,
         showArrows,
-        showGridLabels,
-        showGridLines,
+
         showSunEarth,
         showScaleBar,
         showMouseLatLon,
@@ -349,8 +344,6 @@ const MapBody: FunctionComponent<{}> = () => {
     mapDisplayActions,
     mapDisplayPos,
     showArrows,
-    showGridLabels,
-    showGridLines,
     showSunEarth,
     showScaleBar,
     showMouseLatLon,
@@ -483,11 +476,10 @@ const MapBody: FunctionComponent<{}> = () => {
       map,
       gridLabelFeatureGroup,
       gridLabels,
-      showGridLabels,
       planetRadius: mission.planetRadius,
     });
     // include map bounds in the depdencey array so the grid labels will re-draw when map moves
-  }, [gridLabels, mission.planetRadius, showGridLabels, mapBounds]);
+  }, [gridLabels, mission.planetRadius, mapBounds]);
 
   /**
    * Map layers display management
@@ -613,7 +605,7 @@ const MapBody: FunctionComponent<{}> = () => {
         map.current.off("click");
       }
     };
-  }, [map, mapDirective, dispatch, gridLabels, showGridLabels, mission]);
+  }, [map, mapDirective, dispatch, gridLabels, mission]);
 
   /**
    * Listen for mapDirective for stations, pois, actions, traverses, and measurements, and trigger map draw/edit modes appropriately
@@ -1230,7 +1222,7 @@ const MapBody: FunctionComponent<{}> = () => {
   useEffect(() => {
     if (!map || !mapBounds || !globalGrid?.coordinates || !gridCorner || !selectedPreset) return;
 
-    if (showGridLines && selectedPreset.mapGridControl?.visible) {
+    if (selectedPreset.mapGridControl?.visible) {
       const size: L.Point = map.current.getSize();
       const gridStart: AEGISPoint = convertLeafletLatLngToAegisPoint(
         map.current.containerPointToLatLng([0, 0])
@@ -1248,16 +1240,7 @@ const MapBody: FunctionComponent<{}> = () => {
       setGridBounds(null);
       setMapGridControls(null);
     }
-  }, [
-    gridCorner,
-    map,
-    mapBounds,
-    mapZoom,
-    mission.id,
-    mission.planetRadius,
-    selectedPreset,
-    showGridLines,
-  ]);
+  }, [gridCorner, map, mapBounds, mapZoom, mission.id, mission.planetRadius, selectedPreset]);
 
   /**
    * Draw grid
@@ -1340,7 +1323,7 @@ const MapBody: FunctionComponent<{}> = () => {
     geoJSONGrid.mapItemType = "Grid System";
     map.current.addLayer(geoJSONGrid);
 
-    if (showGridLabels && mapGridControls.labelsVisible) {
+    if (mapGridControls.labelsVisible) {
       for (let i = endIndex.row; i >= startIndex.row; i -= lineZoomLevel) {
         for (let j = startIndex.col; j < endIndex.col; j += lineZoomLevel) {
           if (i !== startIndex.row && j !== endIndex.col) {
@@ -1374,7 +1357,6 @@ const MapBody: FunctionComponent<{}> = () => {
     mission.id,
     mission.activeGridUuid,
     gridBounds,
-    showGridLabels,
     mapGridControls,
   ]);
 
@@ -2213,10 +2195,6 @@ const MapBody: FunctionComponent<{}> = () => {
           setShowArrows={setShowArrows}
           mapDisplayPos={mapDisplayPos}
           setMapDisplayPos={setMapDisplayPos}
-          showGridLabels={showGridLabels}
-          setShowGridLabels={setShowGridLabels}
-          showGridLines={showGridLines}
-          setShowGridLines={setShowGridLines}
           showScaleBar={showScaleBar}
           setShowScaleBar={setShowScaleBar}
           showMouseLatLon={showMouseLatLon}
@@ -2238,7 +2216,7 @@ const MapBody: FunctionComponent<{}> = () => {
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
       <div className={styles.mapPositionDisplay}>
         {showMouseLatLon && mouseLatLng && latLngDiv(mouseLatLng)}
-        {showGridLines && mouseGridCoord && mouseGridCoordDiv(mouseGridCoord)}
+        {mouseGridCoord && mouseGridCoordDiv(mouseGridCoord)}
         {timeLayerInfo && layerTimeDiv(timeLayerInfo)}
       </div>
       {showSunEarth && <SunEarth type="editor" selectedPreset={selectedPreset} />}
