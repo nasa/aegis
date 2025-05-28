@@ -172,8 +172,6 @@ const MapBody: FunctionComponent<{
     show: true,
     showLabels: false,
   });
-  const [showGridLabels, setShowGridLabels] = useState<boolean>(true);
-  const [showGridLines, setShowGridLines] = useState<boolean>(true);
   const [showSunEarth, setShowSunEarth] = useState<boolean>(true);
   const [chosenGrid, setChosenGrid] = useState<MissionGrid>(undefined);
   const [gridBounds, setGridBounds] = useState<GridIndex[]>(undefined);
@@ -492,11 +490,10 @@ const MapBody: FunctionComponent<{
       map,
       gridLabelFeatureGroup,
       gridLabels,
-      showGridLabels,
       planetRadius: mission.planetRadius,
     });
     // include map bounds in the depdencey array so the grid labels will re-draw when map moves
-  }, [gridLabels, mission.planetRadius, showGridLabels, mapBounds]);
+  }, [gridLabels, mission.planetRadius, mapBounds]);
 
   /**
    * Determine stations to show and draw them on map when stations or selections change
@@ -763,23 +760,20 @@ const MapBody: FunctionComponent<{
   useEffect(() => {
     if (!map || !mapBounds || !chosenGrid) return;
 
-    if (showGridLines) {
-      const size: L.Point = map.current.getSize();
-      const gridStart: AEGISPoint = convertLeafletLatLngToAegisPoint(
-        map.current.containerPointToLatLng([0, 0])
-      );
-      const gridEnd: AEGISPoint = convertLeafletLatLngToAegisPoint(
-        map.current.containerPointToLatLng([size.x, size.y])
-      );
+    const size: L.Point = map.current.getSize();
+    const gridStart: AEGISPoint = convertLeafletLatLngToAegisPoint(
+      map.current.containerPointToLatLng([0, 0])
+    );
+    const gridEnd: AEGISPoint = convertLeafletLatLngToAegisPoint(
+      map.current.containerPointToLatLng([size.x, size.y])
+    );
 
-      setGridBounds([
-        findClosestPointInGrid(chosenGrid.coordinates, gridStart, mission.planetRadius),
-        findClosestPointInGrid(chosenGrid.coordinates, gridEnd, mission.planetRadius),
-      ]);
-    } else {
-      setGridBounds(null);
-    }
-  }, [map, mapBounds, chosenGrid, mapZoom, mission.id, mission.planetRadius, showGridLines]);
+    setGridBounds([
+      findClosestPointInGrid(chosenGrid.coordinates, gridStart, mission.planetRadius),
+      findClosestPointInGrid(chosenGrid.coordinates, gridEnd, mission.planetRadius),
+    ]);
+    setGridBounds(null);
+  }, [map, mapBounds, chosenGrid, mapZoom, mission.id, mission.planetRadius]);
 
   /**
    * Draw grid
@@ -864,29 +858,27 @@ const MapBody: FunctionComponent<{
     geoJSONGrid.mapItemType = "Grid System";
     map.current.addLayer(geoJSONGrid);
 
-    if (showGridLabels) {
-      for (let i = endIndex.row; i >= startIndex.row; i -= lineZoomLevel) {
-        for (let j = startIndex.col; j < endIndex.col; j += lineZoomLevel) {
-          if (i !== startIndex.row && j !== endIndex.col) {
-            const point: MissionGridPoint = gridCoordinates[i][j];
-            if (point.name === null) {
-              continue;
-            }
-            const latLng: L.LatLng = { ...point.coordinates } as L.LatLng;
-            const marker: AEGISGeoJSONGridPoint = L.tooltip({
-              sticky: false,
-              direction: "right",
-              offset: new L.Point(0, -8),
-              permanent: true,
-              className: "leaflet-tooltip-gridLabels",
-              interactive: false,
-              opacity: 0.8,
-            })
-              .setLatLng(latLng)
-              .setContent(point.name) as AEGISGeoJSONGridPoint;
-            marker.mapItemType = "Grid Point";
-            marker.addTo(map.current);
+    for (let i = endIndex.row; i >= startIndex.row; i -= lineZoomLevel) {
+      for (let j = startIndex.col; j < endIndex.col; j += lineZoomLevel) {
+        if (i !== startIndex.row && j !== endIndex.col) {
+          const point: MissionGridPoint = gridCoordinates[i][j];
+          if (point.name === null) {
+            continue;
           }
+          const latLng: L.LatLng = { ...point.coordinates } as L.LatLng;
+          const marker: AEGISGeoJSONGridPoint = L.tooltip({
+            sticky: false,
+            direction: "right",
+            offset: new L.Point(0, -8),
+            permanent: true,
+            className: "leaflet-tooltip-gridLabels",
+            interactive: false,
+            opacity: 0.8,
+          })
+            .setLatLng(latLng)
+            .setContent(point.name) as AEGISGeoJSONGridPoint;
+          marker.mapItemType = "Grid Point";
+          marker.addTo(map.current);
         }
       }
     }
@@ -899,7 +891,6 @@ const MapBody: FunctionComponent<{
     mission.id,
     mission.activeGridUuid,
     gridBounds,
-    showGridLabels,
   ]);
 
   /**
@@ -1278,10 +1269,6 @@ const MapBody: FunctionComponent<{
             setShowArrows={setShowArrows}
             mapDisplayPos={mapDisplayPos}
             setMapDisplayPos={setMapDisplayPos}
-            showGridLabels={showGridLabels}
-            setShowGridLabels={setShowGridLabels}
-            showGridLines={showGridLines}
-            setShowGridLines={setShowGridLines}
             showScaleBar={showScaleBar}
             setShowScaleBar={setShowScaleBar}
             showMouseLatLon={false}
