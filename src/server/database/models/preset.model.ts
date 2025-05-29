@@ -20,6 +20,8 @@ export class Preset_db implements Preset_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   mapCircleControls!: MapCircleControls;
   @Property({ type: MikroTypes.json, nullable: true })
+  mapGridControl!: MapGridControl;
+  @Property({ type: MikroTypes.json, nullable: true })
   layerOrder: PresetLayerOrder[];
   @Property({ type: MikroTypes.float, nullable: true })
   sunAzimuth: number;

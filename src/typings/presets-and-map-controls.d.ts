@@ -12,6 +12,12 @@ interface MapCircleControl {
   style: MapSublayerStyle;
 }
 
+interface MapGridControl {
+  visible: boolean;
+  labelsVisible: boolean;
+  style: MapSublayerStyle;
+}
+
 interface MapSublayerStyle {
   opacity: number; //Percent
   contrast: number; //Percent
@@ -71,6 +77,7 @@ type Preset = {
   missionDefault: boolean;
   mapSublayerControls: MapSublayerControls; //flattened list of layers/sublayers
   mapCircleControls: MapCircleControls;
+  mapGridControl: MapGridControl;
   layerOrder: PresetLayerOrder[];
   sunAzimuth: number;
   sunEnabled: boolean;

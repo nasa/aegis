@@ -15,10 +15,6 @@ export const MapViewMenu: FunctionComponent<{
   setShowArrows: Dispatch<SetStateAction<boolean>>;
   mapDisplayPos: MapDisplayPos;
   setMapDisplayPos: Dispatch<SetStateAction<MapDisplayPos>>;
-  showGridLabels: boolean;
-  setShowGridLabels: Dispatch<SetStateAction<boolean>>;
-  showGridLines: boolean;
-  setShowGridLines: Dispatch<SetStateAction<boolean>>;
   showScaleBar: boolean;
   setShowScaleBar: Dispatch<SetStateAction<boolean>>;
   showMouseLatLon: boolean;
@@ -36,10 +32,6 @@ export const MapViewMenu: FunctionComponent<{
   setShowArrows,
   mapDisplayPos,
   setMapDisplayPos,
-  showGridLabels,
-  setShowGridLabels,
-  showGridLines,
-  setShowGridLines,
   showScaleBar,
   setShowScaleBar,
   showMouseLatLon,
@@ -551,29 +543,6 @@ export const MapViewMenu: FunctionComponent<{
                 }}
               >
                 Animated
-              </div>
-            </div>
-            <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
-              Grid
-              <div
-                className={`${styles.toggleSingle} ${styles.center} ${
-                  showGridLabels && styles.toggleSelected
-                }`}
-                onClick={() => {
-                  setShowGridLabels(!showGridLabels);
-                }}
-              >
-                Labels
-              </div>
-              <div
-                className={`${styles.toggleSingle} ${styles.center} ${
-                  showGridLines && styles.toggleSelected
-                }`}
-                onClick={() => {
-                  setShowGridLines(!showGridLines);
-                }}
-              >
-                New Grid
               </div>
             </div>
             <MenuItem

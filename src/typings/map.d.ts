@@ -70,8 +70,6 @@ type EyeballMenuCookieAEGISMapViewSettings = {
   mapDisplayActions: MapDisplayMarkers;
   mapDisplayPos: MapDisplayPos;
   showArrows: boolean;
-  showGridLabels: boolean;
-  showGridLines: boolean;
   showSunEarth: boolean;
   showScaleBar: boolean;
   showMouseLatLon: boolean;
