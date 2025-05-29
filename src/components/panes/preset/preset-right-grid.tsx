@@ -40,7 +40,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
-        Grid Prefereneces
+        Grid Preferences
       </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
