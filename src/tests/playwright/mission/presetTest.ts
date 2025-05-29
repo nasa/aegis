@@ -1,7 +1,7 @@
 import { expect, Page } from "@playwright/test";
 
 export async function presetTest(page: Page): Promise<string> {
-  await page.goto("http://localhost:4000/mission/1");
+  await page.goto("http://localhost:4000/mission/22");
   //go to preset section
   await page.waitForTimeout(2000);
   await page.getByLabel("preset Section", { exact: true }).click();

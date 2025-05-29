@@ -31,7 +31,7 @@ const eq2Alt: MissionEquipment = {
 };
 
 export async function missionEquipmentTest(page: Page): Promise<string> {
-  await page.goto("http://localhost:4000/mission/1");
+  await page.goto("http://localhost:4000/mission/22");
   //go to mission section
   await page.waitForTimeout(2000);
   await page.getByLabel("mission Section", { exact: true }).click();
