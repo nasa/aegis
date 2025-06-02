@@ -567,8 +567,8 @@ export const PositionRow: FunctionComponent<{
           <td className={`${styles.historicPosItemNumber}`}>{numbering}</td>
           <td className={styles.petColumn}>{hhmmssFromSeconds(posEntry.seconds)}</td>
           <td className={`${styles.crewColumn}`}>{posNameList?.join(", ")}</td>
-          <td>{dist || "Not Set"}</td>
-          <td>{duration || "Not Set"}</td>
+          <td>{!isNaN(dist) ? dist : "Not Set"}</td>
+          <td>{!isNaN(duration) ? duration : "Not Set"}</td>
           <td>{sourceAbbr}</td>
           <td
             onClick={(e) => {
