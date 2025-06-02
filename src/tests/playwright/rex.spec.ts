@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("create cancel edit delete rex", async ({ page }) => {
-  await page.goto("http://localhost:4000/mission/1");
+  await page.goto("http://localhost:4000/mission/22");
   //go to rex section
   await page.waitForTimeout(4000);
   await page.getByLabel("rex Section", { exact: true }).click();

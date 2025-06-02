@@ -88,7 +88,7 @@ async function checkTemplateData(page: Page, t: TestingTemplate, tInd: number) {
 }
 
 export async function actionTemplatesTest(page: Page): Promise<string> {
-  await page.goto("http://localhost:4000/mission/1");
+  await page.goto("http://localhost:4000/mission/22");
   // go to mission section
   await page.waitForTimeout(2000);
   await page.getByLabel("mission Section", { exact: true }).click();

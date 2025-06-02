@@ -115,6 +115,7 @@ const Main = (): JSX.Element => {
           setUserStore({ isLoggedIn: true, user: response.data.user, missionPerms: missionPerms })
         );
         setPermissions(missionPerms);
+        console.log("Logged in to AEGIS with user:", response.data.user.username);
       } else {
         navigate("/");
       }

@@ -10,7 +10,7 @@ export const EnsureLogin: FC<{ fqdn?: string }> = ({ fqdn = "" }) => {
         console.error("Unable to get current user", user);
         return;
       }
-      console.log(`Welcome, ${user.display_name || "unknown user"}`);
+      console.log(`Launchpad authorized with user: ${user.display_name || "unknown user"}`);
     });
   }, [fqdn]);
 

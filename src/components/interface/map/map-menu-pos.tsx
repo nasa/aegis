@@ -529,8 +529,8 @@ export const PositionRow: FunctionComponent<{
         posEntry.location,
         landerLocation,
         radius
-      ).toFixed(2);
-      setDist(newDistance);
+      );
+      setDist(newDistance.toFixed(2));
       setDuration(calcPathDurationMins([newDistance], traverseRate).toFixed(2));
     } else {
       setDist(null);
@@ -567,8 +567,8 @@ export const PositionRow: FunctionComponent<{
           <td className={`${styles.historicPosItemNumber}`}>{numbering}</td>
           <td className={styles.petColumn}>{hhmmssFromSeconds(posEntry.seconds)}</td>
           <td className={`${styles.crewColumn}`}>{posNameList?.join(", ")}</td>
-          <td>{dist || "Not Set"}</td>
-          <td>{duration || "Not Set"}</td>
+          <td>{!isNaN(dist) ? dist : "Not Set"}</td>
+          <td>{!isNaN(duration) ? duration : "Not Set"}</td>
           <td>{sourceAbbr}</td>
           <td
             onClick={(e) => {

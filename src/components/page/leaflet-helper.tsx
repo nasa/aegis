@@ -1086,13 +1086,11 @@ export const drawGridLabels = ({
   map,
   gridLabelFeatureGroup,
   gridLabels,
-  showGridLabels,
   planetRadius,
 }: {
   map: MutableRefObject<L.Map>;
   gridLabelFeatureGroup: MutableRefObject<L.FeatureGroup>;
   gridLabels: GridLabelItem[];
-  showGridLabels: boolean;
   planetRadius: number;
 }): void => {
   const mapZoom = map.current.getZoom();
@@ -1124,9 +1122,6 @@ export const drawGridLabels = ({
 
   // clear all grid labels
   gridLabelFeatureGroup.current.clearLayers();
-
-  // only show grid labels if the view toggle is on
-  if (!showGridLabels) return;
 
   // bounds near the south pole becomes a scewed shape when pulled straight from Leaflet.
   // This process makes a square polygon using the map viewport as extents
