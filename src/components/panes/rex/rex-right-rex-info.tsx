@@ -123,7 +123,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               )
                             );
 
-                            dispatch(thunkCreateInitialPosEntries());
+                            if (!selectedRex.posEntries) {
+                              dispatch(thunkCreateInitialPosEntries());
+                            }
+
                             if (selectedRex.petRunning) {
                               dispatch(
                                 thunkRexPetStartStop({
