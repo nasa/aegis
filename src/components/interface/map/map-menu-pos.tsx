@@ -529,8 +529,8 @@ export const PositionRow: FunctionComponent<{
         posEntry.location,
         landerLocation,
         radius
-      ).toFixed(2);
-      setDist(newDistance);
+      );
+      setDist(newDistance.toFixed(2));
       setDuration(calcPathDurationMins([newDistance], traverseRate).toFixed(2));
     } else {
       setDist(null);
