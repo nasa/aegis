@@ -22,6 +22,7 @@ import stmRulesRoutes from "./routes/stmRules";
 import sublayerRoutes from "./routes/sublayer";
 import traverseRoutes from "./routes/traverse";
 import usersRoutes from "./routes/users";
+import timeRoutes from "./routes/time";
 import boxDownloadFileRoute from "./routes/file/boxDownloadFile";
 import boxGetFolderItems from "./routes/file/boxGetFolderItems";
 import fileUploadRoute from "./routes/file/upload";
@@ -96,6 +97,7 @@ app.use("/api/v1/stmRules", stmRulesRoutes);
 app.use("/api/v1/sublayer", sublayerRoutes);
 app.use("/api/v1/traverse", traverseRoutes);
 app.use("/api/v1/users", usersRoutes);
+app.use("/api/v1/time", timeRoutes); // Added route
 app.use("/api/v1/file/boxDownloadFile", boxDownloadFileRoute);
 app.use("/api/v1/file/boxGetFolderItems", boxGetFolderItems);
 app.use("/api/v1/file/upload", fileUploadRoute);
