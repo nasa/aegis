@@ -37,17 +37,25 @@ const StmViewerPage: FunctionComponent = () => {
     (state) => state.interface.stmViewShowCrosshairs,
     refEqual
   );
+  const stmLevel1Enabled = useAppSelector(
+    (state) => state.mission.mission.stmLevel1Enabled,
+    refEqual
+  );
   const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const dispatch = useAppDispatch();
+
+  const expandedClass = stmLevel1Enabled
+    ? styles.panelTopLeftExpanded
+    : styles.panelTopLeftExpanded2Tier;
+  const collapsedClass = stmLevel1Enabled
+    ? styles.panelTopLeftCollapsed
+    : styles.panelTopLeftCollapsed2Tier;
+
   return (
     <div className={styles.body}>
       <div className={styles.panel}>
         <div className={styles.panelTop}>
-          <div
-            className={
-              stmViewExpandTopTiers ? styles.panelTopLeftExpanded : styles.panelTopLeftCollapsed
-            }
-          >
+          <div className={stmViewExpandTopTiers ? expandedClass : collapsedClass}>
             <div className={styles.selectionControls}>
               <div className={styles.selectionControlsLeft}>
                 <EvaSelector />
@@ -93,11 +101,7 @@ const StmViewerPage: FunctionComponent = () => {
                             paddingLeft: "8px",
                             backgroundColor: "var(--grey5)",
                           }
-                        : {
-                            width: "30px",
-                            fontSize: "0.8em",
-                            paddingLeft: "8px",
-                          }
+                        : { width: "30px", fontSize: "0.8em", paddingLeft: "8px" }
                     }
                     iconStyle={stmViewShowCrosshairs ? { color: "var(--grey0)" } : null}
                   />
@@ -386,10 +390,7 @@ const ActionTypesSelector: FunctionComponent = () => {
     <div className={styles.selectionControl}>
       <MultiSelectDropdown
         items={sortBy(
-          actionTypes.map((actionType) => ({
-            label: titleCase(actionType),
-            value: actionType,
-          })),
+          actionTypes.map((actionType) => ({ label: titleCase(actionType), value: actionType })),
           "label"
         )}
         selectedItemsValues={selectedActionTypes}
