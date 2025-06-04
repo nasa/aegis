@@ -29,8 +29,18 @@
   display: flex;
   flex-direction: column;
 }
+.panelTopLeftExpanded2Tier {
+  flex: 0 0 654px;
+  display: flex;
+  flex-direction: column;
+}
 .panelTopLeftCollapsed {
   flex: 0 0 520px;
+  display: flex;
+  flex-direction: column;
+}
+.panelTopLeftCollapsed2Tier {
+  flex: 0 0 499px;
   display: flex;
   flex-direction: column;
 }
