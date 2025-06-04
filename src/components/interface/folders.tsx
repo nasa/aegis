@@ -22,6 +22,7 @@ import {
   useDroppable,
   DragOverlay,
   DragStartEvent,
+  pointerWithin,
 } from "@dnd-kit/core";
 import {
   thunkDeleteFolder,
@@ -413,7 +414,12 @@ export const FolderOrganizer = <T extends POI | Station | Eva | Rex | Preset>({
   );
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+    <DndContext
+      sensors={sensors}
+      onDragEnd={handleDragEnd}
+      onDragStart={handleDragStart}
+      collisionDetection={pointerWithin} // This better handles things of all sizes being dragged (like expanded EVA items)
+    >
       <div className={styles.rootArea}>
         {/* Render folders */}
         {sortedFolders.map((folder) => {
