@@ -55,6 +55,9 @@ ENV NODE_ENV=production
 # Use the cache mount to avoid re-downloading and speed up install (only for local builds)
 RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci --omit=dev
 
+# Install rsync into the docker image to allow copying files when duplicating missions
+RUN apk add --no-cache rsync=3.4.0-r0
+
 # Add tini init to run node to prevent running node as PID 1
 # https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md#handling-kernel-signals
 RUN apk add --no-cache tini~=0.19.0
