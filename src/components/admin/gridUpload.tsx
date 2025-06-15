@@ -62,9 +62,6 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
   const parseFullGrid = async (selectedFile: Blob) => {
     const parsedData: GridGeoJson = (await readJsonFile(selectedFile)) as GridGeoJson;
 
-    console.log(parsedData);
-    console.log(parsedData.row_total, parsedData.column_total);
-
     const gridCoords: MissionGridPoint[][] = Array(parsedData.row_total)
       .fill(null)
       .map(() => Array(parsedData.column_total).fill(null));
@@ -87,7 +84,7 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
       gridInformation: {
         uuid: uuidv4(),
         numRows: parsedData.row_total,
-        numCols: parsedData.numColumns,
+        numCols: parsedData.column_total,
         missionId: mission.id,
         spacing: 0,
         name: parsedData.name,
