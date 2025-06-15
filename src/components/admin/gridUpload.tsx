@@ -18,6 +18,8 @@ interface GridGeoJson {
   features: ReadGridPoint[];
   name: string;
   type: string;
+  row_total: number;
+  column_total: number;
 }
 interface ReadGridPoint {
   geometry: GridPointGeometry;
@@ -42,8 +44,6 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
   const [isSubmitValid, setIsSubmitValid] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isFilePicked, setIsFilePicked] = useState(false);
-  const [numRows, setNumRows] = useState(0);
-  const [numColumns, setNumColumns] = useState(0);
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
@@ -62,29 +62,32 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
   const parseFullGrid = async (selectedFile: Blob) => {
     const parsedData: GridGeoJson = (await readJsonFile(selectedFile)) as GridGeoJson;
 
-    const gridCoords: MissionGridPoint[][] = Array(numRows)
+    console.log(parsedData);
+    console.log(parsedData.row_total, parsedData.column_total);
+
+    const gridCoords: MissionGridPoint[][] = Array(parsedData.row_total)
       .fill(null)
-      .map(() => Array(numColumns).fill(null));
+      .map(() => Array(parsedData.column_total).fill(null));
 
     parsedData.features.forEach((point: ReadGridPoint) => {
       const coords = point.geometry.coordinates;
       const props = point.properties;
-      if (props.row > numRows || props.column > numColumns) {
+      if (props.row > parsedData.row_total || props.column > parsedData.numColumns) {
         return null;
       }
-      gridCoords[numRows - props.row - 1][props.column] = {
+      gridCoords[parsedData.row_total - props.row - 1][props.column] = {
         id: props.id,
         coordinates: { lat: coords[1], lng: coords[0] },
         name: props?.LGRS,
-        index: { row: numRows - props.row - 1, col: props.column },
+        index: { row: parsedData.row_total - props.row - 1, col: props.column },
       } as MissionGridPoint;
     });
 
     return {
       gridInformation: {
         uuid: uuidv4(),
-        numRows: numRows,
-        numCols: numColumns,
+        numRows: parsedData.row_total,
+        numCols: parsedData.numColumns,
         missionId: mission.id,
         spacing: 0,
         name: parsedData.name,
@@ -153,16 +156,12 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
   };
 
   useEffect(() => {
-    if (
-      selectedFile?.name.slice(-8).toLowerCase() === ".geojson" &&
-      numRows > 0 &&
-      numColumns > 0
-    ) {
+    if (selectedFile?.name.slice(-8).toLowerCase() === ".geojson") {
       setIsSubmitValid(true);
     } else {
       setIsSubmitValid(false);
     }
-  }, [grids, intMissionId, numRows, numColumns, isFilePicked, selectedFile?.name]);
+  }, [grids, intMissionId, isFilePicked, selectedFile?.name]);
 
   useEffect(() => {
     const upsertGridInfo = async () => {
@@ -221,32 +220,6 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
                   <a href="https://eegitlab.fit.nasa.gov/emss/aegis/-/wikis/Formatting-for-geoJSON-grid-uploads">
                     Grid Upload Instructions
                   </a>
-                  <br />
-                  <div className={styles.editDiv}>
-                    <div>
-                      <div>Number of Rows</div>
-                      <input
-                        name="numRows"
-                        value={numRows.toString()}
-                        onChange={(e) =>
-                          setNumRows(giveTextboxNumber((e.target as HTMLInputElement).value))
-                        }
-                      />
-                    </div>
-                  </div>
-                  <br />
-                  <div className={styles.editDiv}>
-                    <div>
-                      <div>Number of Columns</div>
-                      <input
-                        name="numCols"
-                        value={numColumns.toString()}
-                        onChange={(e) =>
-                          setNumColumns(giveTextboxNumber((e.target as HTMLInputElement).value))
-                        }
-                      />
-                    </div>
-                  </div>
                   <br />
                   <>
                     <br />
