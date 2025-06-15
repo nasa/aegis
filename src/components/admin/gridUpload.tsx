@@ -144,14 +144,6 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
     setGrids((prevGrids) => prevGrids.filter((grid) => grid.gridInformation.uuid !== gridUuid));
   };
 
-  const giveTextboxNumber = (num: string) => {
-    const str = parseInt(num);
-    if (!isNaN(str)) {
-      return str;
-    }
-    return 0;
-  };
-
   useEffect(() => {
     if (selectedFile?.name.slice(-8).toLowerCase() === ".geojson") {
       setIsSubmitValid(true);
