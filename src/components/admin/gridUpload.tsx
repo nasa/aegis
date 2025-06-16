@@ -31,7 +31,9 @@ interface GridPointGeometry {
   type: string;
 }
 interface GridPointProps {
-  LGRS: string;
+  LGRS_ACC: string;
+  L_coord: string;
+  R_coord: string;
   column: number;
   id: number;
   row: number;
@@ -75,7 +77,7 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
       gridCoords[parsedData.row_total - props.row - 1][props.column] = {
         id: props.id,
         coordinates: { lat: coords[1], lng: coords[0] },
-        name: props?.LGRS,
+        name: props?.L_coord + " " + props?.R_coord,
         index: { row: parsedData.row_total - props.row - 1, col: props.column },
       } as MissionGridPoint;
     });
