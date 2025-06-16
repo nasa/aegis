@@ -69,7 +69,7 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
     parsedData.features.forEach((point: ReadGridPoint) => {
       const coords = point.geometry.coordinates;
       const props = point.properties;
-      if (props.row > parsedData.row_total || props.column > parsedData.numColumns) {
+      if (props.row > parsedData.row_total || props.column > parsedData.column_total) {
         return null;
       }
       gridCoords[parsedData.row_total - props.row - 1][props.column] = {
