@@ -16,6 +16,7 @@ import CalculatedDwell from "./calculated-dwell";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { Assoc_POIs } from "./actions-assocpois";
 import { getStmUuidRefs } from "store/storeUtils/store";
+import { letterOrdinal } from "utils/formatting";
 
 const Actions: FunctionComponent<{
   editMode: boolean;
@@ -468,7 +469,7 @@ export const ActionList: FunctionComponent<{
               className={actionsStyles.actionlistitemOrdinal}
               style={{ marginTop: editMode ? "8px" : "4px" }}
             >
-              {index + 1}
+              {letterOrdinal(index + 1)}
             </div>
             <Action
               editMode={editMode}
