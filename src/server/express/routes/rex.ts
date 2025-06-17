@@ -6,7 +6,7 @@ import cloneDeep from "lodash/cloneDeep";
 import { hasPerms } from "utils/permissions";
 
 import { getEM } from "utils/mikro";
-import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
+import { EntityData, ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/core";
 import { Rex_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { convertRexesTypeDbToStore, convertRexesTypeStoreToDb } from "store/storeUtils/rex";
@@ -14,11 +14,12 @@ import { convertRexesTypeDbToStore, convertRexesTypeStoreToDb } from "store/stor
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { missionId, socketId, uuid } = query;
+  const { missionId, socketId, uuid, evaUuid } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
     socketId: socketId ? (socketId as string) : undefined,
     uuid: uuid ? uuid.toString() : null,
+    evaUuid: evaUuid ? (evaUuid as string) : undefined,
   };
   return queryObj;
 };
@@ -53,6 +54,70 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
+  }
+});
+
+// Get eva refs
+router.get("/byEvaRef", async (req: Request, res: Response): Promise<void> => {
+  const queryObj = parseQuery(req.query);
+  const emssToken = req.headers["emss-token"] as string;
+
+  const viewPermission = await hasPerms({
+    missionId: queryObj.missionId,
+    permission: "view",
+    user: req.session.user,
+    emssToken,
+  });
+  if (!viewPermission) {
+    res.status(401).json({ status: "failure", message: "Unauthorized" });
+    return;
+  }
+
+  //check for required mission id is valid
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
+    res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    return;
+  }
+
+  if (!queryObj.evaUuid) {
+    res.status(500).json({ status: "error", message: "No EVA Uuid" });
+    return;
+  }
+
+  try {
+    const em = getEM();
+
+    // Build filter where clause
+    const whereClause: {
+      evaUuid?: string;
+      mission?: { id: number };
+    } = {};
+    if (queryObj.evaUuid) whereClause.evaUuid = queryObj.evaUuid;
+    if (queryObj.missionId) whereClause.mission = { id: queryObj.missionId };
+
+    // For datesOnly, we only fetch the specific fields we need
+    const dbRexes = await em.find(Rex_db, whereClause, {
+      fields: ["evaUuid", "uuid", "name", "createdAt", "updatedAt", "isRunning"],
+      orderBy: { name: QueryOrder.ASC },
+    });
+
+    // Transform to desired format
+    const refRexes = dbRexes.map((rex) => ({
+      uuid: rex.uuid,
+      name: rex.name,
+      createdAt: rex.createdAt.toISOString(),
+      updatedAt: rex.updatedAt.toISOString(),
+      isRunning: rex.isRunning,
+    }));
+
+    res.status(200).json({
+      status: "success",
+      message: `Rexes retrieved`,
+      data: refRexes,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ status: "error", message: `Error getting actions ${e}` });
   }
 });
 
