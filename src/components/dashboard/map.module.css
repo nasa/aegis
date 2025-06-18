@@ -21,7 +21,7 @@
   top: 50px;
   left: 10px;
   z-index: 110;
-  border: 2px solid rgba(0, 0, 0, 0.2);
+  border: 2px solid rgb(0 0 0 / 20%);
   border-radius: var(--radius);
 }
 
@@ -81,7 +81,7 @@
   top: 92px;
   left: 10px;
   z-index: 100;
-  border: 2px solid rgba(0, 0, 0, 0.2);
+  border: 2px solid rgb(0 0 0 / 20%);
   border-radius: var(--radius);
 }
 
@@ -90,7 +90,7 @@
   top: 10px;
   left: 10px;
   z-index: 120;
-  border: 2px solid rgba(0, 0, 0, 0.2);
+  border: 2px solid rgb(0 0 0 / 20%);
   border-radius: var(--radius);
 }
 
@@ -111,7 +111,7 @@
   bottom: 10px;
   right: 10px;
   z-index: 100;
-  border: 2px solid rgba(0, 0, 0, 0.2);
+  border: 2px solid rgb(0 0 0 / 20%);
 
   border-radius: var(--radius);
   background-color: var(--grey2);
@@ -127,19 +127,19 @@
   font-size: 0.8em;
   border: 1px solid var(--grey3);
   padding: 5px;
-  width: 150;
+  width: 150px;
 }
 
 .mapIcon {
-  color: rgba(0, 0, 0, 1);
+  color: rgb(0 0 0 / 100%);
   font-size: 2.5em;
   user-select: none;
-  filter: drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5))
-    drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5));
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 50%)) drop-shadow(0 0 1px rgb(0 0 0 / 50%))
+    drop-shadow(0 0 1px rgb(0 0 0 / 50%)) drop-shadow(0 0 1px rgb(0 0 0 / 50%));
 }
 
 .mapIconWin10 {
-  color: rgba(0, 0, 0, 1);
+  color: rgb(0 0 0 / 100%);
   font-size: 2.5em;
   user-select: none;
 }
@@ -156,8 +156,8 @@
   left: 2px;
   font-size: 2.5em;
   user-select: none;
-  filter: drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5))
-    drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.5));
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 50%)) drop-shadow(0 0 1px rgb(0 0 0 / 50%))
+    drop-shadow(0 0 1px rgb(0 0 0 / 50%)) drop-shadow(0 0 1px rgb(0 0 0 / 50%));
 }
 
 .posIconWin10 {

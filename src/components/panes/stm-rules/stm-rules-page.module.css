@@ -2,7 +2,7 @@
   flex: 1;
   display: flex;
   width: 100%;
-  min-height: 0px;
+  min-height: 0;
   background-color: var(--grey1);
 }
 
@@ -163,7 +163,6 @@
 }
 
 .gridStationNames {
-  width: 100%;
   flex: 1;
   display: grid;
   grid-template-columns: repeat(auto-fill, 22px); /* Creates as many 22px columns as can fit */

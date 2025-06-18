@@ -46,7 +46,7 @@ export default [
       "react-hooks": fixupPluginRules(reactHooks),
       "@typescript-eslint": typescriptEslint,
       prettier,
-      "css-modules": cssModules,
+      "css-modules": fixupPluginRules(cssModules),
     },
 
     languageOptions: {
@@ -158,8 +158,12 @@ export default [
       "react/jsx-no-target-blank": "off",
       "linebreak-style": ["error", "unix"], // enforce unix (lf) linebreaks
 
-      // CSS module rules: report undefined CSS class names.
-      // "css-modules/no-undef-class": "error",
+      // Add recommended CSS Modules rules
+      // ...cssModules.configs.recommended.rules,
+
+      // User's specific CSS Modules rules (these will override recommended if there are conflicts)
+      // "css-modules/no-undef-class": ["error", { camelCase: true }],
+      // "css-modules/no-unused-class": ["error", { camelCase: true }],
     },
   },
 ];

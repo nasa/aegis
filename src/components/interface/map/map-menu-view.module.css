@@ -111,7 +111,7 @@
   background-color: var(--grey3);
   border-top-left-radius: var(--radius);
   border-bottom-left-radius: var(--radius);
-  margin: 2px 0px 0px 5px;
+  margin: 2px 0 0 5px;
   padding: 2px 4px 2px 4px;
   min-width: 20px;
   margin-right: 1px;
@@ -122,7 +122,7 @@
 .toggleMiddle {
   font-size: 0.8rem;
   background-color: var(--grey3);
-  margin: 2px 0px;
+  margin: 2px 0;
   padding: 2px 4px 2px 4px;
   min-width: 20px;
   margin-right: 1px;
@@ -136,7 +136,7 @@
   border-top-right-radius: var(--radius);
   border-bottom-right-radius: var(--radius);
   min-width: 20px;
-  margin: 2px 0px;
+  margin: 2px 0;
   padding: 2px 4px 2px 4px;
   text-align: center;
   user-select: none;
@@ -150,7 +150,7 @@
   border-top-left-radius: var(--radius);
   border-bottom-left-radius: var(--radius);
   min-width: 20px;
-  margin: 2px 0px 0px 5px;
+  margin: 2px 0 0 5px;
   padding: 2px 4px 2px 4px;
   text-align: center;
   user-select: none;

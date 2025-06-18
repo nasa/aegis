@@ -27,6 +27,7 @@
 }
 
 .bodyContent {
+  position: relative;
   padding: 20px;
 }
 
@@ -52,10 +53,9 @@
   position: relative;
   cursor: pointer;
   box-shadow:
-    0 10px 15px -3px rgba(33, 150, 243, 0.4),
-    0 4px 6px -4px rgba(33, 150, 243, 0.4);
+    0 10px 15px -3px rgb(33 150 243 / 40%),
+    0 4px 6px -4px rgb(33 150 243 / 40%);
   border-radius: 10px;
-  background-color: #6b6ecc;
   background: linear-gradient(45deg, #04051dea 0%, #2b566e 100%);
   transition: 1s;
 }
@@ -71,7 +71,6 @@
   text-align: center;
   position: relative;
   border-radius: 10px;
-  background-color: #6b6ecc;
   background: gray;
   transition: 1s;
   opacity: 0.5;
@@ -81,8 +80,8 @@
 
 .actionTile:hover {
   box-shadow:
-    0 10px 15px -3px rgba(255, 0, 243, 0.4),
-    0 4px 6px -4px rgba(33, 150, 243, 0.4);
+    0 10px 15px -3px rgb(255 0 243 / 40%),
+    0 4px 6px -4px rgb(33 150 243 / 40%);
   background: linear-gradient(45deg, #04051dea 0%, #2b566e 100%);
 }
 
@@ -91,7 +90,7 @@
 }
 
 .content .description {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgb(255 255 255 / 60%);
   margin-top: 10px;
   font-size: 14px;
 }
@@ -99,15 +98,13 @@
 .content .title {
   font-weight: 800;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 1);
+  color: rgb(255 255 255 / 100%);
   margin-top: 10px;
   font-size: 25px;
   letter-spacing: 1px;
 }
 
 .button {
-  -webkit-user-select: none;
-  -moz-user-select: none;
   user-select: none;
   border: none;
   outline: none;
@@ -124,8 +121,6 @@
 }
 
 .disabledButton {
-  -webkit-user-select: none;
-  -moz-user-select: none;
   user-select: none;
   border: none;
   outline: none;
@@ -221,7 +216,56 @@
   cursor: pointer;
 }
 
-/*Write a bootstrap like alternating color bootstrap style*/
+.actionList svg {
+  cursor: pointer;
+}
+
+.configDiv {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  max-width: 650px;
+  height: 600px;
+  padding: 20px 50px;
+  border: 1px solid var(--grey4);
+  border-radius: 5px;
+  color: white;
+  background-color: #0b3d91;
+  margin: 0 auto;
+}
+
+.configDiv label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  width: 100%;
+}
+
+.configDiv label .label {
+  display: inline-block;
+  font-weight: bold;
+}
+
+.configDiv label svg {
+  float: right;
+  margin: 0 10px;
+  color: white;
+  cursor: pointer;
+}
+
+.configDiv textarea {
+  width: 100%;
+  padding: 5px 10px;
+  margin-bottom: 10px;
+  height: 600px;
+  resize: none;
+}
+
+/* Write a bootstrap like alternating color bootstrap style */
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -229,16 +273,16 @@
 }
 .table th {
   padding: 0.5rem;
-  border: 1px solid #ddd;
+  border: 1px solid #dddddd;
   text-align: left;
 }
 .table tr {
-  border: 1px solid #ddd;
+  border: 1px solid #dddddd;
 }
 
 .table td {
   padding: 0.5rem;
-  border: 1px solid #ddd;
+  border: 1px solid #dddddd;
   text-align: left;
 }
 
@@ -271,6 +315,10 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  border-radius: 5px;
+  background-color: #f2f2f2;
+  padding: 20px;
+  margin-top: 30px;
 }
 
 .form::-webkit-scrollbar-track {
@@ -285,7 +333,7 @@
 
 .formGroup label {
   font-size: 0.75rem;
-  color: #333;
+  color: #333333;
   line-height: 1rem;
   margin-bottom: 0.5rem;
   font-weight: bold;
@@ -293,22 +341,22 @@
 
 .formGroup input {
   font-size: 0.75rem;
-  color: #333;
+  color: #333333;
   line-height: 1rem;
   margin-bottom: 0.5rem;
   padding: 0.5rem;
-  border: 1px solid #ddd;
+  border: 1px solid #dddddd;
   border-radius: 0.25rem;
   width: 100%;
 }
 
 .formGroup select {
   font-size: 0.75rem;
-  color: #333;
+  color: #333333;
   line-height: 1rem;
   margin-bottom: 0.5rem;
   padding: 0.5rem;
-  border: 1px solid #ddd;
+  border: 1px solid #dddddd;
   border-radius: 0.25rem;
   width: 100%;
 }
@@ -322,7 +370,7 @@
   color: white;
   line-height: 1rem;
   padding: 0.5rem;
-  border: 1px solid #ddd;
+  border: 1px solid #dddddd;
   border-radius: 0.25rem;
   width: 100%;
   background-color: #0b3d91;
@@ -335,13 +383,10 @@
   border: 2px solid black;
 }
 
-.bodyContent {
-  position: relative;
-}
 .addButton {
   background-color: #0b3d91;
   color: white;
-  border: 1px solid #ddd;
+  border: 1px solid #dddddd;
   border-radius: 0.25rem;
   width: 120px;
   padding: 0.5rem;
@@ -379,10 +424,6 @@
   text-align: center;
 }
 
-.actionList svg {
-  cursor: pointer;
-}
-
 .warningShot {
   color: #dc3545;
   font-size: 3.5rem;
@@ -397,17 +438,6 @@
   background-color: transparent;
   display: flex;
   flex-direction: column;
-}
-
-.header {
-  display: flex;
-  color: white;
-  justify-content: space-between;
-  height: 50px;
-  padding-top: 6px;
-  padding-bottom: 6px;
-  background-color: var(--grey1);
-  border-bottom: 2px solid black;
 }
 
 .apiTitle {
@@ -510,19 +540,12 @@
   background-color: var(--grey4);
 }
 
-.form {
-  border-radius: 5px;
-  background-color: #f2f2f2;
-  padding: 20px;
-  margin-top: 30px;
-}
-
 .inputText {
   width: 100%;
   padding: 12px 20px;
   margin: 8px 0;
   display: inline-block;
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
   border-radius: 4px;
   box-sizing: border-box;
 }
@@ -532,7 +555,7 @@
   padding: 12px 20px;
   margin: 8px 0;
   display: inline-block;
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
   border-radius: 4px;
   box-sizing: border-box;
 }
@@ -543,7 +566,7 @@
   padding: 12px 20px;
   margin: 8px 0;
   display: inline-block;
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
   border-radius: 4px;
   box-sizing: border-box;
 }
@@ -553,7 +576,7 @@
   padding: 12px 20px;
   margin: 8px 0;
   display: inline-block;
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
   border-radius: 4px;
   box-sizing: border-box;
   background-color: #ffc107;
@@ -582,12 +605,12 @@
 }
 
 .deleteInput:disabled {
-  background-color: #ccc;
+  background-color: #cccccc;
   cursor: not-allowed;
 }
 
 .inputSubmit:disabled {
-  background-color: #ccc;
+  background-color: #cccccc;
   cursor: not-allowed;
 }
 
@@ -624,52 +647,7 @@
   width: 100%;
 }
 
-.configDiv {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  width: 100%;
-  max-width: 650px;
-  height: 600px;
-  padding: 20px 50px;
-  border: 1px solid var(--grey4);
-  border-radius: 5px;
-  color: white;
-  background-color: #0b3d91;
-  margin: 0 auto;
-}
-
-.configDiv label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-  width: 100%;
-}
-
-.configDiv label .label {
-  display: inline-block;
-  font-weight: bold;
-}
-
-.configDiv label svg {
-  float: right;
-  margin: 0 10px;
-  color: white;
-  cursor: pointer;
-}
-
-.configDiv textarea {
-  width: 100%;
-  padding: 5px 10px;
-  margin-bottom: 10px;
-  height: 600px;
-  resize: none;
-}
-
-@media screen and (min-width: 768px) {
+@media screen and (width >= 768px) {
   .container {
     flex-direction: row;
   }
@@ -723,7 +701,7 @@
 }
 
 .exportButton {
-  background-color: #ffc;
+  background-color: #ffffcc;
   color: black;
   margin: 8px 10px;
   padding: 3px 9px;
@@ -732,7 +710,7 @@
   cursor: pointer;
 }
 
-/*Style top right Close button*/
+/* Style top right Close button */
 .closeButton {
   position: absolute;
   top: 3px;
@@ -784,14 +762,14 @@
   margin-bottom: 10px;
   color: lightgray;
   background: grey;
-  border: 3px solid #ccc;
+  border: 3px solid #cccccc;
   border-radius: 25px;
   cursor: not-allowed;
 }
 
 .missionSubtext {
   font-size: 0.8em;
-  color: rgb(73, 73, 73);
+  color: rgb(73 73 73);
   margin-left: 5px;
 }
 
@@ -831,7 +809,7 @@
   flex-grow: 1;
   flex-wrap: wrap;
 }
-/*Put icon in top right corner of card*/
+/* Put icon in top right corner of card */
 .poiIcon {
   position: absolute;
   top: 0;
@@ -921,7 +899,7 @@
   background-color: black;
   color: white;
   max-width: 300px;
-  opacity: 100%;
+  opacity: 1;
   font-size: 0.8rem;
   padding: 10px;
 }

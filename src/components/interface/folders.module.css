@@ -65,7 +65,7 @@
   cursor: grabbing;
   width: 100%;
   transform: rotate(3deg);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 5px 15px rgb(0 0 0 / 30%);
   z-index: 999;
 }
 
@@ -152,9 +152,6 @@
   font-size: 12px;
   cursor: pointer;
   border: none;
-}
-
-.saveButton {
   background-color: var(--alert);
   color: white;
 }
