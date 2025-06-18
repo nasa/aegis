@@ -191,6 +191,14 @@ const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
     return selectedEvaUuids;
   }, shallowEqual);
 
+  const otherEvaUuids = useAppSelector((state) => {
+    return state.eva.evas
+      .filter((eva) => {
+        return !selectedEvaUuids.includes(eva.uuid);
+      })
+      .map((eva) => eva.uuid);
+  }, shallowEqual);
+
   // get all stations that are not in the selected evas
   const otherStations = useAppSelector((state) => {
     const selectedStationUuids = selectedEvaUuids.flatMap((evaUuid) => {
@@ -208,6 +216,18 @@ const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
     );
     return state.station.stations.filter((station) => filteredStationUuids.includes(station.uuid));
   }, deepEqual);
+
+  const otherTraverseUuids = useAppSelector((state) => {
+    const selectedTraverseUuids = selectedEvaUuids.flatMap((evaUuid) => {
+      const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
+      return eva?.sequence
+        .filter((sequenceItem) => sequenceItem.type === "traverse")
+        .map((item) => item.uuid);
+    });
+    return state.traverse.traverses
+      .filter((traverse) => !selectedTraverseUuids.includes(traverse.uuid))
+      .map((traverse) => traverse.uuid);
+  }, shallowEqual);
 
   return (
     <div className={styles.stmRuleEvasContainer}>
@@ -228,6 +248,19 @@ const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
             key={station.uuid}
             rexUuid={null}
             stationUuid={station.uuid}
+            rule={rule}
+          />
+        ))}
+      </div>
+      <div className={styles.stmRuleEvasTitle}>
+        Traverses that satisfy this rule in stations outside the selected Executions
+      </div>
+      <div className={styles.stmRuleEvasEvasContainer}>
+        {otherEvaUuids.map((evaUuid) => (
+          <STMRuleEva
+            key={evaUuid}
+            evaUuid={evaUuid}
+            otherTraverseUuids={otherTraverseUuids}
             rule={rule}
           />
         ))}
@@ -266,12 +299,39 @@ const STMRuleRex: FunctionComponent<{ rexUuid: string; rule: STMRule }> = ({ rex
           {eva?.name}
         </div>
       </div>
-      <STMRuleRexStations rexUuid={rexUuid} rule={rule} />
+      <STMRuleRexSequence rexUuid={rexUuid} rule={rule} />
     </div>
   );
 };
 
-const STMRuleRexStations: FunctionComponent<{
+const STMRuleEva: FunctionComponent<{
+  evaUuid: string;
+  otherTraverseUuids: string[];
+  rule: STMRule;
+}> = ({ evaUuid, otherTraverseUuids, rule }) => {
+  const eva = useAppSelector(
+    (state) => state.eva.evas.find((eva) => eva.uuid === evaUuid),
+    shallowEqual
+  );
+
+  return (
+    <div className={styles.rexEvaContainer}>
+      <div className={styles.rexEvaHeader}>
+        <FontAwesomeIcon
+          icon={faRoute}
+          className={styles.rexEvaHeaderIcon}
+          style={{ color: "var(--eva)" }}
+        />
+        <div className={styles.rexEvaHeaderName} style={{ color: "var(--eva)" }}>
+          {eva?.name}
+        </div>
+      </div>
+      <STMRuleEvaTraverses evaUuid={eva.uuid} otherTraverseUuids={otherTraverseUuids} rule={rule} />
+    </div>
+  );
+};
+
+const STMRuleRexSequence: FunctionComponent<{
   rexUuid: string;
   rule: STMRule;
 }> = ({ rexUuid, rule }) => {
@@ -279,26 +339,63 @@ const STMRuleRexStations: FunctionComponent<{
     const rex = state.rex.rexes.find((rex) => rex.uuid === rexUuid);
     return state.eva.evas.find((eva) => eva.uuid === rex?.evaUuid);
   }, refEqual);
-  const evaStations = useAppSelector((state) => {
-    const stationUuids = eva?.sequence
-      .filter((sequenceItem) => sequenceItem.type === "station")
-      .map((item) => item.uuid);
-    // remove stations that have no actions (these are probably flag stations)
-    const filteredStationUuids = stationUuids?.filter((stationUuid) =>
-      state.action.actions.some((action) => action.stationUuid === stationUuid)
-    );
-    return state.station.stations.filter((station) => filteredStationUuids?.includes(station.uuid));
+
+  const filteredSequence = useAppSelector((state) => {
+    return eva.sequence.filter((sequenceItem) => {
+      if (sequenceItem.type === "station") {
+        return state.station.stations.some((station) => station.uuid === sequenceItem.uuid);
+      } else {
+        return state.traverse.traverses.some((traverse) => traverse.uuid === sequenceItem.uuid);
+      }
+    });
   }, deepEqual);
 
   return (
     <div className={styles.evaStations}>
-      {evaStations.map((station) => (
-        <STMRuleStation
-          key={station.uuid}
-          rexUuid={rexUuid}
-          stationUuid={station.uuid}
-          rule={rule}
-        />
+      {filteredSequence.map((sequenceItem) =>
+        sequenceItem.type === "station" ? (
+          <div>
+            <STMRuleStation
+              key={sequenceItem.uuid}
+              rexUuid={rexUuid}
+              stationUuid={sequenceItem.uuid}
+              rule={rule}
+            />
+          </div>
+        ) : (
+          <div>
+            <STMRuleTraverse
+              key={sequenceItem.uuid}
+              rexUuid={rexUuid}
+              traverseUuid={sequenceItem.uuid}
+              rule={rule}
+            />
+          </div>
+        )
+      )}
+    </div>
+  );
+};
+
+const STMRuleEvaTraverses: FunctionComponent<{
+  evaUuid: string;
+  otherTraverseUuids: string[];
+  rule: STMRule;
+}> = ({ evaUuid, otherTraverseUuids, rule }) => {
+  const eva = useAppSelector((state) => {
+    return state.eva.evas.find((eva) => eva.uuid === evaUuid);
+  }, refEqual);
+
+  const filteredSequence = eva.sequence.filter((sequenceItem) => {
+    return otherTraverseUuids.some((traverseUuid) => traverseUuid === sequenceItem.uuid);
+  });
+
+  return (
+    <div className={styles.evaStations}>
+      {filteredSequence.map((sequenceItem) => (
+        <div key={sequenceItem.uuid}>
+          <STMRuleTraverse rexUuid={null} traverseUuid={sequenceItem.uuid} rule={rule} />
+        </div>
       ))}
     </div>
   );
@@ -314,6 +411,10 @@ const STMRuleStation: FunctionComponent<{
     refEqual
   );
   const satisfiedActions = useAppSelector((state) => {
+    if (!station.actionOrderUuids || station.actionOrderUuids.length === 0) {
+      return [];
+    }
+
     const actions: Action[] = station.actionOrderUuids.map((actionUuid) => {
       return state.action.actions.find((action) => action.uuid === actionUuid);
     });
@@ -346,6 +447,67 @@ const STMRuleStation: FunctionComponent<{
                 parentType={"station"}
                 parentLocation={station?.location}
                 parentElevation={station?.elevation}
+                rexUuid={rexUuid}
+                toFocus={false}
+                allowEdit={false}
+              />
+            </li>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const STMRuleTraverse: FunctionComponent<{
+  rexUuid: string;
+  traverseUuid: string;
+  rule: STMRule;
+}> = ({ rexUuid, traverseUuid, rule }) => {
+  const traverse = useAppSelector(
+    (state) => state.traverse.traverses.find((traverse) => traverse.uuid === traverseUuid),
+    refEqual
+  );
+
+  const satisfiedActions = useAppSelector((state) => {
+    if (!traverse.actionOrderUuids || traverse.actionOrderUuids.length === 0) {
+      return [];
+    }
+
+    const actions: Action[] = traverse.actionOrderUuids.map((actionUuid) => {
+      return state.action.actions.find((action) => action.uuid === actionUuid);
+    });
+
+    const resultActions = getSatisfiedActionsByRule({
+      rule,
+      actionsToConsider: actions,
+    });
+
+    return resultActions;
+  }, deepEqual);
+
+  return (
+    <div key={traverseUuid} className={styles.evaStation}>
+      <div className={styles.stationHeaderRow}>
+        <div className={styles.iconTraverseDotsContainerSmall}>
+          <div className={styles.iconTraverseSmall} />
+        </div>
+        <div className={styles.stationName}>{traverse.name}</div>
+      </div>
+      <div className={styles.stationLineRow}>
+        <div className={styles.stationLineContainer}>
+          <div className={styles.stationLine} />
+        </div>
+        <div className={styles.actionsContainer}>
+          {satisfiedActions.map((action) => (
+            <li key={action.uuid} className={actionsStyles.actionlistitem}>
+              <Action
+                editMode={false}
+                actionUuid={action.uuid}
+                highlight={false}
+                parentType={"traverse"}
+                parentLocation={action?.location}
+                parentElevation={action?.elevation}
                 rexUuid={rexUuid}
                 toFocus={false}
                 allowEdit={false}

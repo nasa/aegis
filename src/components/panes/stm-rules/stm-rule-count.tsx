@@ -3,33 +3,48 @@ import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import styles from "./stm-rules-rules.module.css";
 
-type SatisfiedStationsActions = {
-  [station: string]: Action[];
+type SatisfiedSequenceActions = {
+  [sequence: string]: Action[];
 };
 
 const RulesEngineSummary: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
-  const satisfiedStationsActions = useAppSelector<SatisfiedStationsActions>((state) => {
-    const allStationsSTMActions = state.action.actions.filter(
-      (action) => action.stmAction && action.stationUuid
+  const satisfiedSequenceActions = useAppSelector<SatisfiedSequenceActions>((state) => {
+    const allSequenceSTMActions = state.action.actions.filter(
+      (action) => action.stmAction && (action.stationUuid || action.traverseUuid)
     );
+
     const resultActions = getSatisfiedActionsByRule({
       rule,
-      actionsToConsider: allStationsSTMActions,
+      actionsToConsider: allSequenceSTMActions,
     });
-    const stationsActions: SatisfiedStationsActions = {};
+    const sequenceActions: SatisfiedSequenceActions = {};
     for (const action of resultActions) {
-      const station = state.station.stations.find((station) => station.uuid === action.stationUuid);
-      if (station) {
-        if (!stationsActions[station.name]) {
-          stationsActions[station.name] = [];
+      if (action.traverseUuid) {
+        const traverse = state.traverse.traverses.find(
+          (traverse) => traverse.uuid === action.traverseUuid
+        );
+        if (traverse) {
+          if (!sequenceActions[traverse.name]) {
+            sequenceActions[traverse.name] = [];
+          }
+          sequenceActions[traverse.name].push(action);
         }
-        stationsActions[station.name].push(action);
+      } else if (action.stationUuid) {
+        const station = state.station.stations.find(
+          (station) => station.uuid === action.stationUuid
+        );
+        if (station) {
+          if (!sequenceActions[station.name]) {
+            sequenceActions[station.name] = [];
+          }
+          sequenceActions[station.name].push(action);
+        }
       }
     }
-    return stationsActions;
+    return sequenceActions;
   }, deepEqual);
 
-  const numberOfActions = Object.values(satisfiedStationsActions).reduce(
+  const numberOfSequenceActions = Object.values(satisfiedSequenceActions).reduce(
     (acc, actions) => acc + actions.length,
     0
   );
@@ -38,12 +53,13 @@ const RulesEngineSummary: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
     <div
       className={styles.matchingActionStats}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={`Stations: ${Object.keys(satisfiedStationsActions).join(", ")}`}
+      data-tooltip-html={`Sequence items: ${Object.keys(satisfiedSequenceActions).join(", ")}`}
       data-tooltip-place="left"
     >
-      {numberOfActions > 0 ? (
+      {numberOfSequenceActions > 0 ? (
         <>
-          {numberOfActions} Actions at {Object.keys(satisfiedStationsActions).length} Stations
+          {numberOfSequenceActions} Actions at {Object.keys(satisfiedSequenceActions).length}{" "}
+          Traverses and Stations
         </>
       ) : (
         <></>
