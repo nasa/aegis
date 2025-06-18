@@ -11,6 +11,7 @@ import { EntityData } from "@mikro-orm/core";
 export const generateBlankEVA = (partialEVA?: Partial<Eva>): Eva => {
   const defaultNewEVA: Eva = {
     uuid: uuidv4(),
+    refUuid: uuidv4(),
     ownerId: null,
     missionId: null,
     name: "",
@@ -41,6 +42,7 @@ export function convertEVAsTypeDbToStore(dbEVAs: Eva_db[]): Eva[] {
   for (const dbeva of dbEVAs) {
     const convertedEVA: Eva = {
       uuid: dbeva.uuid,
+      refUuid: dbeva.refUuid,
       missionId: dbeva.mission.id,
       name: dbeva.name,
       status: dbeva.status,
@@ -73,6 +75,7 @@ export function convertEVAsTypeStoreToDb(storeEVAs: Eva[]): EntityData<Eva_db>[]
   for (const storeEva of storeEVAs) {
     const convertedRecord: EntityData<Eva_db> = {
       uuid: storeEva.uuid,
+      refUuid: storeEva.refUuid,
       mission: storeEva.missionId,
       name: storeEva.name,
       status: storeEva.status,

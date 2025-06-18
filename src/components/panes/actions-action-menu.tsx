@@ -10,7 +10,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FunctionComponent, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import actionStyles from "./actions-action.module.css";
-import { upsertAction } from "store/action";
+import { upsertActions } from "store/action";
 import { thunkDeleteActionFromStore, thunkDuplicateActions } from "store/thunk/thunkAction";
 import { thunkCreateTemplateFromAction } from "store/thunk/thunkMission";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
@@ -53,7 +53,7 @@ export const ActionMenu: FunctionComponent<{
           <div
             className={actionStyles.menuItem}
             onClick={() => {
-              dispatch(upsertAction({ ...action, enabled: !action.enabled }));
+              dispatch(upsertActions([{ ...action, enabled: !action.enabled }]));
               dialogRef.current?.close();
             }}
           >
@@ -112,6 +112,8 @@ export const ActionMenu: FunctionComponent<{
                   stationUuid: action.stationUuid,
                   poiUuid: action.poiUuid,
                   traverseUuid: action.traverseUuid,
+                  preserveRefUuid: false,
+                  saveToDb: false,
                 })
               );
               dialogRef.current?.close();

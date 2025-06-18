@@ -72,16 +72,20 @@ export const thunkDeletePosSource = appCreateAsyncThunk<{ rexUuid: string; posSo
 );
 
 export const thunkUpdatePosSourceOnPosEntry = appCreateAsyncThunk<{
-  rex: Rex;
+  rexUuid: string;
   posEntryUuid: string;
   posSourceUuid: string;
-}>("updatePosSourceOnPosEntry", async ({ rex, posEntryUuid, posSourceUuid }, { dispatch }) => {
-  const oldPosEntry = rex.posEntries.find((c) => c.uuid === posEntryUuid);
-  let newRexPosEntries: PosEntry[] = cloneDeep(rex.posEntries);
-  const newRexPosEntry: PosEntry = {
-    ...oldPosEntry,
-    posSourceUuid,
-  };
-  newRexPosEntries = upsertToArrayByUuid(newRexPosEntries, newRexPosEntry);
-  dispatch(upsertRexByField(rex.uuid, "posEntries", newRexPosEntries));
-});
+}>(
+  "updatePosSourceOnPosEntry",
+  async ({ rexUuid, posEntryUuid, posSourceUuid }, { dispatch, getState }) => {
+    const rex = getState().rex.rexes.find((r) => r.uuid === rexUuid);
+    const oldPosEntry = rex.posEntries.find((c) => c.uuid === posEntryUuid);
+    let newRexPosEntries: PosEntry[] = cloneDeep(rex.posEntries);
+    const newRexPosEntry: PosEntry = {
+      ...oldPosEntry,
+      posSourceUuid,
+    };
+    newRexPosEntries = upsertToArrayByUuid(newRexPosEntries, newRexPosEntry);
+    dispatch(upsertRexByField(rexUuid, "posEntries", newRexPosEntries));
+  }
+);

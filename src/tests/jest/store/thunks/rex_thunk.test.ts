@@ -1,9 +1,11 @@
-import { createCustomTestStore, createFullTestStore } from "../../factories/makeTestStore";
-import { initialState as missionInitialState } from "store/mission";
+import { createCustomTestStore } from "../../factories/makeTestStore";
 import { initialState as rexInitialState } from "store/rex";
-import { initialState as interfaceInitialState } from "store/interface";
-import { initialState as mapInitialState } from "store/map";
+import { initialState as evaInitialState } from "store/eva";
+import { initialState as stationInitialState } from "store/station";
+import { initialState as traverseInitialState } from "store/traverse";
+import { initialState as missionInitialState } from "store/mission";
 import {
+  thunkAddRexActionMass,
   thunkAddRexStatusEntry,
   thunkCancelRex,
   thunkCreateRex,
@@ -12,25 +14,17 @@ import {
   thunkRexPetStartStop,
   thunkSaveRex,
 } from "store/thunk/thunkRex";
-import {
-  thunkCancelPosEntry,
-  thunkCancelPosEntryLocation,
-  thunkCreatePosEntry,
-  thunkDeletePosEntryByUuid,
-  thunkDeletePosType,
-  thunkPersistRexPosEntries,
-  thunkUpdatePosEntryLocation,
-  thunkUpdatePosTypeField,
-  thunkUpdatePosTypesOnPosEntry,
-} from "store/thunk/thunkRexPosEntry";
 import { v4 as uuidv4 } from "uuid";
 
 // mock all calls to the db so no transactions are actually made
 // CAUTION, the import line must be below the jest.mock
 jest.mock("http-client/rex");
+jest.mock("http-client/eva");
 import * as httpClient_rex from "http-client/rex";
-import { generateBlankMission } from "store/storeUtils/mission";
+import * as httpClient_eva from "http-client/eva";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankMission } from "store/storeUtils/mission";
 
 //I don't understand what is even calling this that is causing me to mock it
 jest.mock("string-strip-html", () => ({
@@ -52,108 +46,217 @@ afterAll(() => {
 
 describe("Thunk Rex Tests", () => {
   test("thunkCreateRex", async () => {
-    const mission = generateBlankMission({ name: "Jest Mission-1" });
-    const store = createCustomTestStore({
-      mission: { ...missionInitialState, mission: mission },
-      rex: { ...rexInitialState },
-      interface: { ...interfaceInitialState },
+    const mission = generateBlankMission({
+      name: "Jest Test Mission",
     });
-    await store.dispatch(thunkCreateRex());
+    const eva = generateBlankEVA();
+    const store = createCustomTestStore({
+      mission: { ...missionInitialState, mission },
+      rex: { ...rexInitialState },
+      eva: { ...evaInitialState, evas: [eva] },
+      station: { ...stationInitialState },
+      traverse: { ...traverseInitialState },
+    });
+    await store.dispatch(thunkCreateRex({ asPlannedEvaUuid: eva.uuid }));
+
+    // check that the new rex is in the store
     expect(store.getState().rex.rexes.length).toEqual(1);
-    expect(store.getState().rex.rexesEditing).not.toBeNull();
-    expect(store.getState().rex.selectedRexUuid).not.toBeNull();
-    expect(store.getState().rex.expandedRexUuids.length).toEqual(1);
+    const newRexUuid = store.getState().rex.rexes[0].uuid;
+    expect(store.getState().rex.rexes[0].evaUuid).not.toEqual(eva.uuid);
+    expect(store.getState().rex.selectedRexUuid).toEqual(newRexUuid);
     expect(store.getState().interface.rightPanelIsOpen).toEqual(true);
+
+    // the eva should have been duplicated automatically with a new uuid and same refUuid
+    expect(store.getState().eva.evas.length).toEqual(2);
+    expect(store.getState().eva.evas[0].refUuid).toEqual(store.getState().eva.evas[1].refUuid);
+    expect(store.getState().eva.evas[0].uuid).not.toEqual(store.getState().eva.evas[1].uuid);
   });
 
   test("thunkDuplicateRex", async () => {
-    const rex = generateBlankRex({ name: "Jest Rex-1" });
+    const eva = generateBlankEVA();
+    const rex = generateBlankRex({ name: "Jest Rex-1", evaUuid: eva.uuid });
     const store = createCustomTestStore({
       rex: { ...rexInitialState, rexes: [rex] },
+      eva: { ...evaInitialState, evas: [eva] },
     });
     await store.dispatch(thunkDuplicateRex({ rexUuid: rex.uuid }));
     expect(store.getState().rex.rexes.length).toEqual(2);
     const duplicatedRex = store.getState().rex.rexes.find((r) => r.uuid !== rex.uuid);
     expect(duplicatedRex).toBeTruthy();
     expect(duplicatedRex.name).toEqual("Jest Rex-1 (copy 1)");
+    // should have saved to db
+    expect(store.getState().rex.rexesFromDb.length).toEqual(1);
+    expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
+
+    // the eva should have been duplicated automatically with a diff uuid and same eva refUuid
+    expect(store.getState().eva.evas.length).toEqual(2);
+    expect(store.getState().eva.evas[0].refUuid).toEqual(store.getState().eva.evas[1].refUuid);
+    expect(store.getState().eva.evas[0].uuid).not.toEqual(store.getState().eva.evas[1].uuid);
+
+    // should have saved to db
+    expect(store.getState().eva.evasFromDb.length).toEqual(1);
+    expect(httpClient_eva.upsertEvas).toHaveBeenCalledTimes(1);
   });
 
   test("thunkSaveRex", async () => {
-    const rex = generateBlankRex({ name: "Jest Rex-1" });
-    const runningRex = generateBlankRex({ name: "Jest Rex-1", isRunning: true });
+    const eva = generateBlankEVA();
+    const rex = generateBlankRex({ name: "Jest Rex-1", evaUuid: eva.uuid });
+    // put a pos entry in edit
+    const posEntry = generateBlankPosEntry();
+    rex.posEntries = [posEntry];
     const rexModified = { ...rex, name: "Jest Rex-1 Modified" };
     const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [rexModified],
-        rexesFromDb: [rex, runningRex],
-        rexesEditing: [rex.uuid],
+        rexesFromDb: [rex],
+        selectedRexUuid: rex.uuid,
+        posEntryEditingUuid: posEntry.uuid,
       },
     });
     await store.dispatch(thunkSaveRex({ rexUuid: rexModified.uuid }));
-    const storeState = store.getState();
-    expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(2);
-    expect(storeState.rex.rexesFromDb.find((r) => r.uuid === rex.uuid).name).toEqual(
-      "Jest Rex-1 Modified"
-    );
-    expect(storeState.rex.rexesEditing.length).toEqual(0);
-    expect(storeState.rex.rexesFromDb.find((r) => r.uuid === runningRex.uuid).petRunning).toEqual(
-      false
-    );
+    expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
+    const savedRex = store.getState().rex.rexesFromDb.find((r) => r.uuid === rex.uuid);
+    expect(savedRex.name).toEqual("Jest Rex-1 Modified");
+    expect(savedRex.posEntries.length).toEqual(0);
+    expect(store.getState().rex.posEntryEditingUuid).toBeNull();
   });
 
   test("thunkCancelRex", async () => {
-    const rex = generateBlankRex({ name: "Jest Rex-1" });
+    const eva = generateBlankEVA();
+    const rex = generateBlankRex({ name: "Jest Rex-1", evaUuid: eva.uuid });
     const rexModified = { ...rex, name: "Jest Rex-1 Modified" };
-    const rexUnsaved = generateBlankRex({ name: "Jest Rex-1" });
+    const evaUnsaved = generateBlankEVA();
+    const rexUnsaved = generateBlankRex({ name: "Jest Rex-1", evaUuid: evaUnsaved.uuid });
     const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [rexModified, rexUnsaved],
         rexesFromDb: [rex],
-        rexesEditing: [rex.uuid, rexUnsaved.uuid],
+      },
+      eva: {
+        ...evaInitialState,
+        evas: [eva, evaUnsaved],
+        evasFromDb: [eva],
       },
     });
+
+    // cancel the modified rex
     await store.dispatch(thunkCancelRex({ rexUuid: rexModified.uuid }));
-    expect(store.getState().rex.rexesFromDb.find((r) => r.uuid === rex.uuid).name).toEqual(
+    expect(store.getState().rex.rexes.find((r) => r.uuid === rexModified.uuid).name).toEqual(
       "Jest Rex-1"
     );
-    expect(store.getState().rex.rexesEditing.includes(rex.uuid)).toBeFalsy();
+    expect(
+      store
+        .getState()
+        .eva.evas.map((e) => e.uuid)
+        .includes(evaUnsaved.uuid)
+    ).toBeTruthy();
+
+    // cancel the unsaved rex
     await store.dispatch(thunkCancelRex({ rexUuid: rexUnsaved.uuid }));
-    expect(store.getState().rex.rexesFromDb.length).toEqual(1);
-    expect(store.getState().rex.rexesEditing.includes(rexUnsaved.uuid)).toBeFalsy();
+    expect(
+      store
+        .getState()
+        .rex.rexesFromDb.map((r) => r.uuid)
+        .includes(rexUnsaved.uuid)
+    ).toBeFalsy();
+    expect(
+      store
+        .getState()
+        .rex.rexes.map((r) => r.uuid)
+        .includes(rexUnsaved.uuid)
+    ).toBeFalsy();
+    expect(
+      store
+        .getState()
+        .eva.evas.map((e) => e.uuid)
+        .includes(evaUnsaved.uuid)
+    ).toBeFalsy();
+    expect(
+      store
+        .getState()
+        .eva.evasFromDb.map((e) => e.uuid)
+        .includes(evaUnsaved.uuid)
+    ).toBeFalsy();
   });
 
   test("thunkDeleteRex", async () => {
-    const rex = generateBlankRex({ name: "Jest Rex-1" });
+    const eva = generateBlankEVA();
+    const rex = generateBlankRex({ name: "Jest Rex-1", evaUuid: eva.uuid });
     const rexModified = { ...rex, name: "Jest Rex-1 Modified" };
-    const rexUnsaved = generateBlankRex({ name: "Jest Rex-1" });
+    const evaUnsaved = generateBlankEVA();
+    const rexUnsaved = generateBlankRex({ name: "Jest Rex-1", evaUuid: evaUnsaved.uuid });
     const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [rexModified, rexUnsaved],
         rexesFromDb: [rex],
-        rexesEditing: [rex.uuid, rexUnsaved.uuid],
         selectedRexUuid: rex.uuid,
       },
+      eva: {
+        ...evaInitialState,
+        evas: [eva, evaUnsaved],
+        evasFromDb: [eva],
+      },
     });
+
+    // delete modified Rex
     await store.dispatch(thunkDeleteRex({ rexUuid: rexModified.uuid }));
-    await store.dispatch(thunkDeleteRex({ rexUuid: rexUnsaved.uuid }));
-    expect(store.getState().rex.rexesEditing.includes(rex.uuid)).toBeFalsy();
-    expect(store.getState().rex.rexesEditing.includes(rexUnsaved.uuid)).toBeFalsy();
-    expect(store.getState().rex.rexesFromDb.length).toEqual(0);
     expect(store.getState().rex.selectedRexUuid).toBeNull();
+    expect(
+      store
+        .getState()
+        .rex.rexesFromDb.map((r) => r.uuid)
+        .includes(rex.uuid)
+    ).toBeFalsy();
+    expect(
+      store
+        .getState()
+        .rex.rexes.map((r) => r.uuid)
+        .includes(rex.uuid)
+    ).toBeFalsy();
     expect(httpClient_rex.deleteRexes).toHaveBeenCalledTimes(1);
+    expect(
+      store
+        .getState()
+        .eva.evasFromDb.map((e) => e.uuid)
+        .includes(eva.uuid)
+    ).toBeFalsy();
+    expect(
+      store
+        .getState()
+        .eva.evas.map((e) => e.uuid)
+        .includes(eva.uuid)
+    ).toBeFalsy();
+    expect(httpClient_eva.deleteEvas).toHaveBeenCalledTimes(1);
+
+    // delete unsaved rex
+    await store.dispatch(thunkDeleteRex({ rexUuid: rexUnsaved.uuid }));
+    expect(
+      store
+        .getState()
+        .rex.rexes.map((r) => r.uuid)
+        .includes(rexUnsaved.uuid)
+    ).toBeFalsy();
+    expect(
+      store
+        .getState()
+        .eva.evas.map((e) => e.uuid)
+        .includes(rexUnsaved.uuid)
+    ).toBeFalsy();
   });
 
   test("thunkRexPetStartStop", async () => {
-    const rex = generateBlankRex({ name: "Jest Rex-1" });
+    const eva = generateBlankEVA();
+    const rex = generateBlankRex({ name: "Jest Rex-1", evaUuid: eva.uuid });
     const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
         rexes: [rex],
         rexesFromDb: [rex],
       },
+      eva: { ...evaInitialState, evas: [eva], evasFromDb: [eva] },
     });
     await store.dispatch(
       thunkRexPetStartStop({ rexUuid: rex.uuid, directive: "start", petValue: "+00:10:00" })
@@ -173,247 +276,15 @@ describe("Thunk Rex Tests", () => {
     expect(store.getState().rex.rexesFromDb[0].petStartStopTimestamp).toBeNull();
   });
 
-  //test("thunkMakeExportRexString", async () => {});
-});
-
-describe("Thunk Position Entry Tests", () => {
-  test("thunkCreatePosEntry", async () => {
-    const rex = generateBlankRex({
-      name: "Jest Rex-1",
-      isRunning: true,
-      petRunning: false,
-      petValueAtStartStop: "+00:07:00",
-    });
-    const store = createCustomTestStore({
-      rex: { ...rexInitialState, rexes: [rex], selectedRexUuid: rex.uuid },
-    });
-
-    await store.dispatch(thunkCreatePosEntry({ posTypeUuids: ["uuid1", "uuid2"] }));
-    const posEntry = store.getState().rex.rexes[0].posEntries[0];
-    expect(posEntry.seconds).toEqual(420);
-    expect(posEntry.posTypeUuids).toEqual(["uuid1", "uuid2"]);
-    expect(store.getState().rex.posEntryEditingUuid).toEqual(posEntry.uuid);
-    expect(store.getState().rex.rexesPosEntriesEditing[0]).toEqual(rex.uuid);
-  });
-
-  test("thunkUpdatePosEntryLocation", async () => {
-    const rex = generateBlankRex({ name: "Jest Rex-1" });
-    const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-    rex.posEntries = [posEntry];
+  test("thunkAddRexStatusEntry and thunkAddRexActionMass", async () => {
+    const eva = generateBlankEVA();
+    const runningRex = generateBlankRex({ name: "Jest Rex-1", isRunning: true, evaUuid: eva.uuid });
     const store = createCustomTestStore({
       rex: {
         ...rexInitialState,
-        rexes: [rex],
-        selectedRexUuid: rex.uuid,
-        posEntryEditingUuid: posEntry.uuid,
-        rexesPosEntriesEditing: [rex.uuid],
-      },
-    });
-
-    const newLoc: AEGISPoint = { lat: 1, lng: 2 };
-    await store.dispatch(
-      thunkUpdatePosEntryLocation({ location: newLoc, posEntryUuid: posEntry.uuid })
-    );
-    const updatedPosEntries = store.getState().rex.rexes[0].posEntries[0];
-    expect(updatedPosEntries.location).toEqual(newLoc);
-    expect(store.getState().rex.rexes[0].updatedAt).not.toBeNull();
-    expect(store.getState().rex.posEntryEditingUuid).toBeNull();
-    expect(store.getState().rex.rexesPosEntriesEditing.length).toEqual(0);
-    expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
-  });
-
-  test("thunkUpdatePosTypesOnPosEntry", async () => {
-    const store = createFullTestStore();
-    const rex = store.getState().rex.rexes[0];
-    await store.dispatch(
-      thunkUpdatePosTypesOnPosEntry({
-        rex: rex,
-        posEntryUuid: rex.posEntries[0].uuid,
-        posTypeUuids: [rex.posTypes[1].uuid],
-      })
-    );
-
-    const updatedRex = store.getState().rex.rexes.find((r) => r.uuid === rex.uuid);
-    expect(
-      updatedRex.posEntries.find((e) => e.uuid === rex.posEntries[0].uuid).posTypeUuids[0]
-    ).toEqual(rex.posTypes[1].uuid);
-  });
-
-  test("thunkCancelPosEntriesLocation", async () => {
-    const rex = generateBlankRex({ name: "Jest Rex-1" });
-    const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-    const posEntryWithLoc = generateBlankPosEntry({
-      posTypeUuids: [rex.posTypes[0].uuid],
-      location: { lat: 1, lng: 2 },
-    });
-    rex.posEntries = [posEntry, posEntryWithLoc];
-    const store = createCustomTestStore({
-      rex: {
-        ...rexInitialState,
-        rexes: [rex],
-        selectedRexUuid: rex.uuid,
-        posEntryEditingUuid: posEntry.uuid,
-        rexesPosEntriesEditing: [rex.uuid],
-      },
-      map: mapInitialState,
-    });
-
-    await store.dispatch(thunkCancelPosEntryLocation({ posEntryEditingUuid: posEntry.uuid }));
-    const updatedPosEntries = store
-      .getState()
-      .rex.rexes[0].posEntries.find((c) => c.uuid === posEntry.uuid);
-    expect(updatedPosEntries).toBeUndefined();
-    expect(store.getState().rex.rexesPosEntriesEditing.length).toEqual(0);
-    expect(store.getState().rex.posEntryEditingUuid).toBeNull();
-    expect(store.getState().map.mapDirective).toEqual({
-      mapItemType: "posEntry",
-      uuid: posEntry.uuid,
-      mapAction: "cancelCreateMarker",
-    });
-    await store.dispatch(
-      thunkCancelPosEntryLocation({ posEntryEditingUuid: posEntryWithLoc.uuid })
-    );
-    const updatedPosEntryWithLoc = store
-      .getState()
-      .rex.rexes[0].posEntries.find((c) => c.uuid === posEntryWithLoc.uuid);
-    expect(updatedPosEntryWithLoc.location).toEqual(posEntryWithLoc.location);
-    expect(store.getState().map.mapDirective).toEqual({
-      mapItemType: "posEntry",
-      uuid: posEntryWithLoc.uuid,
-      mapAction: "cancelEditMarker",
-    });
-  });
-
-  test("thunkCancelPosEntry", async () => {
-    const rex = generateBlankRex({ name: "Jest Rex-1" });
-    const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-    const posEntryModified = { ...posEntry, location: { lat: 1, lng: 2 } };
-    const store = createCustomTestStore({
-      rex: {
-        ...rexInitialState,
-        rexes: [{ ...rex, posEntries: [posEntryModified] }],
-        rexesFromDb: [{ ...rex, posEntries: [posEntry] }],
-        selectedRexUuid: rex.uuid,
-        posEntryEditingUuid: posEntry.uuid,
-        rexesPosEntriesEditing: [rex.uuid],
-      },
-      map: {
-        ...mapInitialState,
-        mapDirective: {
-          mapItemType: "posEntry",
-          uuid: posEntryModified.uuid,
-          mapAction: "editMarker",
-        },
-      },
-    });
-
-    await store.dispatch(thunkCancelPosEntry({ posEntryUuid: posEntry.uuid }));
-    expect(store.getState().rex.rexes[0].posEntries[0]).toEqual(posEntry);
-    expect(store.getState().rex.posEntryEditingUuid).toBeNull();
-    expect(store.getState().rex.rexesPosEntriesEditing.length).toEqual(0);
-    expect(store.getState().map.mapDirective).toEqual({
-      mapItemType: "posEntry",
-      uuid: posEntryModified.uuid,
-      mapAction: "cancelEditMarker",
-    });
-  });
-
-  test("thunkPersistRexPosEntries", async () => {
-    const rex = generateBlankRex({ name: "Jest Rex-1" });
-    const posEntry1 = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-    const posEntry2 = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-    rex.posEntries = [posEntry1, posEntry2];
-    const store = createCustomTestStore({
-      rex: {
-        ...rexInitialState,
-        rexes: [rex],
-        selectedRexUuid: rex.uuid,
-        posEntryEditingUuid: posEntry1.uuid,
-        rexesPosEntriesEditing: [rex.uuid],
-      },
-      map: mapInitialState,
-    });
-
-    await store.dispatch(thunkPersistRexPosEntries({ rexUuid: rex.uuid }));
-    expect(store.getState().rex.rexesPosEntriesEditing.length).toEqual(0);
-    expect(store.getState().rex.posEntryEditingUuid).toBeNull();
-    expect(store.getState().rex.rexes[0].posEntries.length).toEqual(2);
-    expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
-  });
-
-  test("thunkDeletePosEntryByUuid", async () => {
-    const rex = generateBlankRex({ name: "Jest Rex-1" });
-    const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-    rex.posEntries = [posEntry];
-    const store = createCustomTestStore({
-      rex: {
-        ...rexInitialState,
-        rexes: [rex],
-        rexesFromDb: [rex],
-        selectedRexUuid: rex.uuid,
-      },
-    });
-
-    await store.dispatch(thunkDeletePosEntryByUuid({ posEntryUuid: posEntry.uuid }));
-    expect(store.getState().rex.rexes[0].posEntries).toEqual([]);
-    expect(store.getState().rex.rexesFromDb[0].posEntries).toEqual([]);
-    expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
-  });
-
-  test("thunkUpdatePosTypeField", async () => {
-    const store = createFullTestStore();
-    const rex = store.getState().rex.rexes[0];
-    await store.dispatch(
-      thunkUpdatePosTypeField({
-        rexUuid: rex.uuid,
-        uuid: rex.posTypes[0].uuid,
-        fieldName: "name",
-        value: "Jest Test Pos Type Name",
-      })
-    );
-
-    const updatedRex = store.getState().rex.rexes.find((r) => r.uuid === rex.uuid);
-    expect(updatedRex.posTypes.find((p) => p.uuid === rex.posTypes[0].uuid).name).toEqual(
-      "Jest Test Pos Type Name"
-    );
-  });
-
-  test("thunkDeletePosType", async () => {
-    const store = createFullTestStore();
-    const rex = store.getState().rex.rexes[0];
-
-    //delete used pos type
-    await store.dispatch(
-      thunkDeletePosType({
-        rexUuid: rex.uuid,
-        posTypeUuid: rex.posTypes[0].uuid,
-      })
-    );
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(store.getState().rex.rexes.find((r) => r.uuid === rex.uuid).posTypes.length).toEqual(
-      rex.posTypes.length
-    );
-
-    //delete unused pos type
-    await store.dispatch(
-      thunkDeletePosType({
-        rexUuid: rex.uuid,
-        posTypeUuid: rex.posTypes[1].uuid,
-      })
-    );
-    expect(store.getState().rex.rexes.find((r) => r.uuid === rex.uuid).posTypes.length).toEqual(
-      rex.posTypes.length - 1
-    );
-  });
-
-  test("thunkAddRexStatusEntry", async () => {
-    const rex = generateBlankRex({ name: "Jest Rex-1", isRunning: true });
-    const store = createCustomTestStore({
-      rex: {
-        ...rexInitialState,
-        rexes: [rex],
-        rexesFromDb: [rex],
-        selectedRexUuid: rex.uuid,
+        rexes: [runningRex],
+        rexesFromDb: [runningRex],
+        selectedRexUuid: runningRex.uuid,
       },
     });
 
@@ -421,27 +292,15 @@ describe("Thunk Position Entry Tests", () => {
     const traverseUuid = uuidv4();
     const actionUuid = uuidv4();
 
-    // check all station states
+    // check station states
     await store.dispatch(
       thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid, rexStatus: "in-progress" })
     );
     expect(store.getState().rex.rexes[0].stationEntries[stationUuid][0].rexStatus).toBe(
       "in-progress"
     );
-    await store.dispatch(
-      thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid, rexStatus: "complete" })
-    );
-    expect(store.getState().rex.rexes[0].stationEntries[stationUuid][1].rexStatus).toBe("complete");
-    await store.dispatch(
-      thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid, rexStatus: "skipped" })
-    );
-    expect(store.getState().rex.rexes[0].stationEntries[stationUuid][2].rexStatus).toBe("skipped");
-    await store.dispatch(
-      thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid, rexStatus: "pending" })
-    );
-    expect(store.getState().rex.rexes[0].stationEntries[stationUuid][3].rexStatus).toBe("pending");
 
-    //assert all traverse states
+    //assert traverse states
     await store.dispatch(
       thunkAddRexStatusEntry({
         entryType: "traverse",
@@ -452,47 +311,34 @@ describe("Thunk Position Entry Tests", () => {
     expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][0].rexStatus).toBe(
       "in-progress"
     );
-    await store.dispatch(
-      thunkAddRexStatusEntry({
-        entryType: "traverse",
-        uuid: traverseUuid,
-        rexStatus: "complete",
-      })
-    );
-    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][1].rexStatus).toBe(
-      "complete"
-    );
-    await store.dispatch(
-      thunkAddRexStatusEntry({ entryType: "traverse", uuid: traverseUuid, rexStatus: "skipped" })
-    );
-    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][2].rexStatus).toBe(
-      "skipped"
-    );
-    await store.dispatch(
-      thunkAddRexStatusEntry({ entryType: "traverse", uuid: traverseUuid, rexStatus: "pending" })
-    );
-    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][3].rexStatus).toBe(
-      "pending"
-    );
 
-    // assert all action states
+    // assert action states and saving mass
     await store.dispatch(
       thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid, rexStatus: "in-progress" })
     );
     expect(store.getState().rex.rexes[0].actionEntries[actionUuid][0].rexStatus).toBe(
       "in-progress"
     );
+    await store.dispatch(thunkAddRexActionMass({ uuid: actionUuid, mass: 999 }));
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][1].rexStatus).toBe(
+      "in-progress"
+    );
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][1].mass).toBe(999);
     await store.dispatch(
       thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid, rexStatus: "complete" })
     );
-    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][1].rexStatus).toBe("complete");
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][2].rexStatus).toBe("complete");
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][2].mass).toBe(999);
+
+    // assert xgress states
     await store.dispatch(
-      thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid, rexStatus: "skipped" })
+      thunkAddRexStatusEntry({ entryType: "xgress", uuid: "ingress", rexStatus: "in-progress" })
     );
-    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][2].rexStatus).toBe("skipped");
-    await store.dispatch(
-      thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid, rexStatus: "pending" })
-    );
-    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][3].rexStatus).toBe("pending");
+    expect(store.getState().rex.rexes[0].xgressEntries["ingress"][0].rexStatus).toBe("in-progress");
+
+    // assert everything was saved to the fromDb copy in the store
+    expect(store.getState().rex.rexes[0]).toEqual(store.getState().rex.rexesFromDb[0]);
   });
+
+  // test("thunkMakeExportRexString", async () => {});
 });

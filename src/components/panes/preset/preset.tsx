@@ -1,4 +1,4 @@
-import styles from "./preset.module.css";
+import presetStyles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faFolderPlus, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent, useState } from "react";
@@ -59,9 +59,16 @@ const PresetEditorLeft: FunctionComponent = () => {
 
   return (
     <>
+      <div
+        className={paneStyles.activeComponentTitle}
+        style={{ color: "var(--preset)" }}
+        aria-label="leftPanelTitle"
+      >
+        Map Display Presets
+      </div>
       <div className={paneStyles.leftPanelContainer}>
         <div className={paneStyles.leftPanelContainerTop} aria-label="presetList">
-          <div className={styles.container}>
+          <div className={presetStyles.container}>
             <FolderOrganizer
               items={sortBy(presets, [(preset) => preset.name.toLowerCase()])}
               getItemId={(preset) => preset.uuid}

@@ -437,9 +437,9 @@ export async function deleteGrids(missionId: number, gridUuids: string[]): Promi
       deleteGridFile(missionId, gridUuid);
       deletedUuids.push(gridUuid);
     }
-    await em.flush(); //perform deletes
-    return deletedUuids;
   }
+  await em.flush(); //perform deletes
+  return deletedUuids;
 }
 
 function deleteGridFile(missionId: number, gridUuid: string): void {

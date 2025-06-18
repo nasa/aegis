@@ -11,15 +11,18 @@ import { SCHEMA_DIR } from "utils/consts-server";
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { uuid, socketId, missionId } = query;
+  const { missionId, refUuid, rexUuid } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
-    evaUuid: uuid ? (uuid as string) : undefined,
-    socketId: socketId ? (socketId as string) : undefined,
+    evaRefUuid: refUuid ? (refUuid as string) : undefined,
+    rexUuid: rexUuid ? (rexUuid as string) : undefined, // if !rexUuid then use the as-planned EVA copy
   };
   return queryObj;
 };
 
+/**
+ * If users provide a rexUuid than it will take precedence over evaRefUuid.
+ */
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   const emssToken = req.headers["emss-token"] as string;
@@ -55,9 +58,28 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       level3s: wholeStore.level3s,
     };
 
-    let evas: Eva[] = allData.evas;
-    if (queryObj.evaUuid) {
-      evas = evas.filter((eva) => eva.uuid === queryObj.evaUuid);
+    let evas: Eva[] = [];
+
+    if (queryObj.rexUuid) {
+      // specific eva from a rex
+      const rexEva = allData.rexes.find((r) => r.uuid === queryObj.rexUuid);
+      if (rexEva) {
+        const eva = allData.evas.find((eva) => eva.uuid === rexEva.evaUuid);
+        if (eva) evas = [eva];
+      }
+    } else if (queryObj.evaRefUuid) {
+      // get the as-planned copy of this eva. The as-planned eva is one that has the same refUuid, but is not a rex eva
+      // if they had provided a rexUuid, it would have been caught in the previous if statement
+      const allRexEvas = allData.rexes.map((r) => r.evaUuid);
+      const asPlannedEva = allData.evas.find(
+        (e) => e.refUuid === queryObj.evaRefUuid && !allRexEvas.includes(e.uuid)
+      );
+      if (asPlannedEva) evas = [asPlannedEva];
+    } else {
+      // all as-planned evas for this mission
+      const allRexEvas = allData.rexes.map((r) => r.evaUuid);
+      const asPlannedEvas = allData.evas.filter((e) => !allRexEvas.includes(e.uuid));
+      evas = asPlannedEvas;
     }
 
     const gridCoordinates: MissionGridPoint[][] = allData.mission.activeGridUuid

@@ -262,7 +262,7 @@ export async function deleteStations(stationUuids: string[]): Promise<string[]> 
       em.remove(entity);
       deletedUuids.push(stationUuid);
     }
-    await em.flush(); //perform deletes
-    return deletedUuids;
   }
+  await em.flush(); //perform deletes
+  return deletedUuids;
 }

@@ -177,7 +177,7 @@ const TraverseEditorRight: FunctionComponent = () => {
                       if (saveButtonState === "enabled") {
                         dispatch(
                           thunkSaveTraverse({
-                            traverse: selectedTraverse,
+                            traverseUuid: selectedTraverse.uuid,
                           })
                         );
                       }

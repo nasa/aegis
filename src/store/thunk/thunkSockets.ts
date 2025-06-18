@@ -51,7 +51,6 @@ import {
   deleteRexesFromDbByUuid,
   setPosEntryEditingUuid,
   setRexesPosEntryEditMode,
-  setRexEditMode,
   upsertRexes,
   upsertRexesFromDb,
   setSelectedRexUuid,
@@ -189,9 +188,8 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     const changedRexs = storeUpsert.data as Rex[];
     for (const changedRex of changedRexs) {
       //check changes on rex object
-      if (getState().rex.rexesEditing.includes(changedRex.uuid)) {
+      if (getState().eva.evasEditing.includes(changedRex.evaUuid)) {
         upsertMessages.push(getConflictMessage("rex", changedRex.name, "upsert"));
-        dispatch(setRexEditMode({ rexUuid: changedRex.uuid, editMode: false }));
       }
       //check changes on crew pos inside rex object. this is handled seperately
       if (getState().rex.rexesPosEntriesEditing.includes(changedRex.uuid)) {
@@ -352,10 +350,9 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
     dispatch(deleteTraversesFromDbByUuid(storeDelete.uuids));
   } else if (storeDelete.type === "rex") {
     for (const deletedUuid of storeDelete.uuids) {
-      if (getState().rex.rexesEditing.includes(deletedUuid)) {
-        const rexDeleted = getState().rex.rexes.find((rex) => rex.uuid === deletedUuid);
+      const rexDeleted = getState().rex.rexes.find((rex) => rex.uuid === deletedUuid);
+      if (getState().eva.evasEditing.includes(rexDeleted.evaUuid)) {
         deletedMessages.push(getConflictMessage("rex", rexDeleted.name, "delete"));
-        dispatch(setRexEditMode({ rexUuid: rexDeleted.uuid, editMode: false }));
       }
     }
     dispatch(deleteRexesByUuid(storeDelete.uuids));

@@ -6,7 +6,7 @@ import {
 import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 import { StoreType } from "store";
 import { generateBlankAction } from "../../../../store/storeUtils/action"; // Importing the method to generate actions
-import { upsertAction } from "store/action";
+import { upsertActions } from "store/action";
 
 const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
 
@@ -76,7 +76,7 @@ describe("Thunk Action Definition Item Tests", () => {
       stmAction: true,
       actionDefinition: { verbUuid: actionDefItem.uuid, nounUuid: null, adjectiveUuid: null },
     });
-    await store.dispatch(upsertAction(newAction));
+    await store.dispatch(upsertActions([newAction]));
 
     await store.dispatch(
       thunkDeleteActionDefItem({ type: actionDefType, uuid: actionDefItem.uuid })

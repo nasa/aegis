@@ -2,14 +2,14 @@ import { StoreType } from "store";
 import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import cloneDeep from "lodash/cloneDeep";
-import { setPresetEditMode, upsertPreset } from "store/preset";
+import { setPresetEditMode, upsertPresets } from "store/preset";
 import { setPoiEditMode, upsertPoi } from "store/poi";
 import { setStationEditMode, upsertStation } from "store/station";
 import { setEvaEditMode, upsertEva } from "store/eva";
 import { setTraverseEditMode, upsertTraverses } from "store/traverse";
 import { setMissionSectionEditing } from "store/mission";
-import { setRexEditMode, upsertRexes } from "store/rex";
-import { upsertAction } from "store/action";
+import { upsertRexes } from "store/rex";
+import { upsertActions } from "store/action";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
@@ -291,7 +291,7 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("rex", async () => {
-      const data = generateBlankRex({ name: "Jest Rex-1" });
+      const data = generateBlankRex({ name: "Jest Rex-1", evaUuid: "someEvaUuid" });
       const storeUpsert: StoreUpsert = {
         socketId: null,
         missionId: null,
@@ -318,12 +318,11 @@ describe("Thunk Socket Tests", () => {
 
       //test data in edit mode
       data.name = "Jest Test In Edit Mode";
+      store.dispatch(setEvaEditMode({ evaUuid: data.evaUuid, editMode: true }));
       storeUpsert.data = [cloneDeep(data)];
-      store.dispatch(setRexEditMode({ rexUuid: data.uuid, editMode: true }));
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().rex.rexes.some((x) => x.name === data.name)).toBeTruthy();
       expect(store.getState().rex.rexesFromDb.some((x) => x.name === data.name)).toBeTruthy();
-      expect(store.getState().rex.rexesEditing.includes(data.uuid)).toBeFalsy();
       expect((messages as Array<string>).length).toEqual(1);
     });
   });
@@ -332,8 +331,7 @@ describe("Thunk Socket Tests", () => {
     it("preset", async () => {
       const data = generateBlankPreset({ name: "Jest Test Preset" });
       const dataInEditMode = generateBlankPreset({ name: "Jest Test Preset" });
-      store.dispatch(upsertPreset(data));
-      store.dispatch(upsertPreset(dataInEditMode));
+      store.dispatch(upsertPresets([data, dataInEditMode]));
       store.dispatch(setPresetEditMode({ presetUuid: dataInEditMode.uuid, editMode: true }));
       const storeDelete: StoreDelete = {
         socketId: null,
@@ -480,8 +478,7 @@ describe("Thunk Socket Tests", () => {
     it("action", async () => {
       const data = generateBlankAction({ name: "Jest Action-1" });
       const dataInEditMode = generateBlankAction({ name: "Jest Action-1" });
-      store.dispatch(upsertAction(data));
-      store.dispatch(upsertAction(dataInEditMode));
+      store.dispatch(upsertActions([data, dataInEditMode]));
       const storeDelete: StoreDelete = {
         socketId: null,
         missionId: null,
@@ -541,38 +538,34 @@ describe("Thunk Socket Tests", () => {
     });
 
     it("rex", async () => {
-      const data = generateBlankRex({ name: "Jest Rex-1" });
-      const dataInEditMode = generateBlankRex({ name: "Jest Rex-1" });
+      const data = generateBlankRex({ name: "Jest Rex-1", evaUuid: "someEvaUuid1" });
+      const dataInEditMode = generateBlankRex({ name: "Jest Rex-1", evaUuid: "someEvaUuid2" });
       store.dispatch(upsertRexes([data]));
       store.dispatch(upsertRexes([dataInEditMode]));
-      store.dispatch(setRexEditMode({ rexUuid: dataInEditMode.uuid, editMode: true }));
+      store.dispatch(setEvaEditMode({ evaUuid: dataInEditMode.evaUuid, editMode: true }));
       const storeDelete: StoreDelete = {
         socketId: null,
         missionId: null,
         type: "rex",
-        uuids: [],
+        uuids: [data.uuid],
         lastEditEvent: null,
       };
 
       let messages: string[] | false;
 
       //test new data
-      storeDelete.uuids = [data.uuid];
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete })))
-        .payload;
+      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete }))).payload;
       expect(store.getState().rex.rexes.some((x) => x.uuid === data.uuid)).toBeFalsy();
       expect(store.getState().rex.rexesFromDb.some((x) => x.uuid === data.uuid)).toBeFalsy();
       expect(messages).toEqual([]);
 
       //test data in edit mode
       storeDelete.uuids = [dataInEditMode.uuid];
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete })))
-        .payload;
+      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete }))).payload;
       expect(store.getState().rex.rexes.some((x) => x.uuid === dataInEditMode.uuid)).toBeFalsy();
       expect(
         store.getState().rex.rexesFromDb.some((x) => x.uuid === dataInEditMode.uuid)
       ).toBeFalsy();
-      expect(store.getState().rex.rexesEditing.includes(dataInEditMode.uuid)).toBeFalsy();
       expect((messages as Array<string>).length).toEqual(1);
     });
   });

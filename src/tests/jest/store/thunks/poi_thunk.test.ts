@@ -251,10 +251,12 @@ describe("Thunk POI Tests", () => {
     await store.dispatch(thunkDuplicatePoi({ poi }));
     const storeState = store.getState();
     expect(storeState.poi.pois.length).toEqual(2);
-    expect(storeState.poi.poisEditing.length).toEqual(1);
     expect(storeState.poi.selectedPoiUuid).toBeTruthy();
     expect(storeState.poi.selectedRightNavItem).toEqual("info_panel");
-    //we mocked the thunk duplicate action, so no further conditions will be tested here
+    // should have saved to db
+    expect(storeState.poi.poisFromDb.length).toEqual(2);
+    expect(httpClient_poi.upsertPOIs).toHaveBeenCalledTimes(1);
+    // we mocked the thunk duplicate action, so no further conditions will be tested here
     expect(mockThunkDuplicateActions).toHaveBeenCalledTimes(1);
   });
 });

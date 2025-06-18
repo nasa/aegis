@@ -20,20 +20,6 @@ export const presetSlice = createSlice({
   name: "preset",
   initialState,
   reducers: {
-    upsertPreset: {
-      prepare: (preset: Preset, preserveModifiedDate: boolean = false) => {
-        if (preserveModifiedDate) {
-          return { payload: preset };
-        } else {
-          return {
-            payload: { ...preset, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
-          };
-        }
-      },
-      reducer: (state, action: { payload: Preset }) => {
-        upsertToArrayByUuid(state.presets, action.payload);
-      },
-    },
     upsertPresets: {
       prepare: (presets: Preset[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
@@ -50,9 +36,6 @@ export const presetSlice = createSlice({
       reducer: (state, action: { payload: Preset[] }) => {
         action.payload.forEach((preset) => upsertToArrayByUuid(state.presets, preset));
       },
-    },
-    upsertPresetFromDb: (state, action: { payload: Preset }) => {
-      upsertToArrayByUuid(state.presetsFromDb, action.payload);
     },
     upsertPresetsFromDb: (state, action: { payload: Preset[] }) => {
       action.payload.forEach((preset) => upsertToArrayByUuid(state.presetsFromDb, preset));
@@ -106,12 +89,6 @@ export const presetSlice = createSlice({
     setPresetsFromDb: (state, action: { payload: Preset[] }) => {
       state.presetsFromDb = action.payload;
     },
-    deletePresetByUuid: (state, action: { payload: string }) => {
-      state.presets = state.presets.filter((preset) => preset.uuid !== action.payload);
-    },
-    deletePresetFromDbByUuid: (state, action: { payload: string }) => {
-      state.presetsFromDb = state.presetsFromDb.filter((preset) => preset.uuid !== action.payload);
-    },
     deletePresetsByUuid: (state, action: { payload: string[] }) => {
       state.presets = state.presets.filter((preset) => !action.payload.includes(preset.uuid));
     },
@@ -119,9 +96,6 @@ export const presetSlice = createSlice({
       state.presetsFromDb = state.presetsFromDb.filter(
         (preset) => !action.payload.includes(preset.uuid)
       );
-    },
-    deleteAllPresetsFromDb: (state) => {
-      state.presetsFromDb = [];
     },
     setSelectedPresetUuid: (state, action: { payload: string }) => {
       state.selectedPresetUuid = action.payload;
@@ -282,8 +256,7 @@ export const presetSlice = createSlice({
         );
       }
     },
-    setStateForNewPreset: (state, action: { payload: { uuid: string } }) => {
-      state.presetsEditing.push(action.payload.uuid); // turn on edit mode for the new Preset
+    selectPreset: (state, action: { payload: { uuid: string } }) => {
       state.selectedPresetUuid = action.payload.uuid; // select the newly created Preset
       state.selectedRightNavItem = "info_panel";
     },
@@ -301,19 +274,14 @@ export const presetSlice = createSlice({
 });
 
 export const {
-  upsertPreset,
   upsertPresets,
-  upsertPresetFromDb,
   upsertPresetsFromDb,
   upsertPresetByField,
   setPresets,
   setPresetsFromDb,
-  deletePresetByUuid,
-  deletePresetFromDbByUuid,
   deletePresetsByUuid,
   deletePresetsFromDbByUuid,
-  deleteAllPresetsFromDb,
-  setStateForNewPreset,
+  selectPreset,
   setSelectedPresetUuid,
   setSelectedPresetRightNavItem,
   togglePresetSublayerVisible,

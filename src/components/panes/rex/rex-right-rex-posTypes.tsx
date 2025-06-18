@@ -1,6 +1,6 @@
 import { FunctionComponent, useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import styles from "./rex.module.css";
+import rexStyles from "./rex.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import cloneDeep from "lodash/cloneDeep";
 import { SubpanelHeading } from "components/interface/_global-elements";
@@ -52,7 +52,7 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>Position Types and Sources</div>
+      <div className={paneStyles.rightBodyTitle}>REX Position Types and Sources</div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
@@ -63,30 +63,30 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelTextIndented}>
                 Items to track the position of such as crew members, equipment, or cart.
               </div>
-              <ul className={styles.propertyList}>
-                <li className={styles.propertyListHeaderItem}>
+              <ul className={rexStyles.propertyList}>
+                <li className={rexStyles.propertyListHeaderItem}>
                   <div className={paneStyles.descriptionContainer}>
                     <div
-                      className={styles.propertyRowHeader}
+                      className={rexStyles.propertyRowHeader}
                       style={{ backgroundColor: "var(--grey2)" }}
                     >
-                      <div className={styles.propertyHeaderGrip}></div>
-                      <div className={styles.propertyHeaderAbbr}>Abbr</div>
-                      <div className={styles.propertyHeaderName}>Name</div>
-                      <div className={styles.propertyHeaderIcon}>Icon</div>
-                      <div className={styles.propertyHeaderPathColor}>Path Color</div>
-                      <div className={styles.propertyRowTrash}></div>
+                      <div className={rexStyles.propertyHeaderGrip}></div>
+                      <div className={rexStyles.propertyHeaderAbbr}>Abbr</div>
+                      <div className={rexStyles.propertyHeaderName}>Name</div>
+                      <div className={rexStyles.propertyHeaderIcon}>Icon</div>
+                      <div className={rexStyles.propertyHeaderPathColor}>Path Color</div>
+                      <div className={rexStyles.propertyRowTrash}></div>
                     </div>
                   </div>
                 </li>
                 <ReactDragListView
                   onDragEnd={reorderType}
-                  nodeSelector={`li.${styles.propertyListItem}`}
+                  nodeSelector={`li.${rexStyles.propertyListItem}`}
                   handleSelector={`a.rexTypeReorder`}
                 >
                   {selectedRex.posTypes?.map((item, index) => {
                     return (
-                      <li key={item.uuid} className={styles.propertyListItem}>
+                      <li key={item.uuid} className={rexStyles.propertyListItem}>
                         <PosType
                           rexUuid={selectedRex.uuid}
                           item={item}
@@ -121,22 +121,22 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               List of sources making position estimates such as Crew, Task, SER.
             </div>
             <div className={paneStyles.panelSectionBody}>
-              <ul className={styles.propertyList}>
-                <li className={styles.propertyListHeaderItem}>
+              <ul className={rexStyles.propertyList}>
+                <li className={rexStyles.propertyListHeaderItem}>
                   <div className={paneStyles.descriptionContainer}>
                     <div
-                      className={styles.propertyRowHeader}
+                      className={rexStyles.propertyRowHeader}
                       style={{ backgroundColor: "var(--grey2)" }}
                     >
-                      <div className={styles.propertyHeaderAbbr}>Abbr</div>
-                      <div className={styles.propertyHeaderName}>Name</div>
-                      <div className={styles.propertyRowTrash}></div>
+                      <div className={rexStyles.propertyHeaderAbbr}>Abbr</div>
+                      <div className={rexStyles.propertyHeaderName}>Name</div>
+                      <div className={rexStyles.propertyRowTrash}></div>
                     </div>
                   </div>
                 </li>
                 {selectedRex.posSources?.map((item, index) => {
                   return (
-                    <li key={item.uuid} className={styles.propertyListItem}>
+                    <li key={item.uuid} className={rexStyles.propertyListItem}>
                       <PosSource
                         rexUuid={selectedRex.uuid}
                         item={item}
@@ -183,15 +183,19 @@ const PosType: FunctionComponent<{
 
   return (
     <div className={paneStyles.descriptionContainer}>
-      <div className={styles.propertyRow} style={{ backgroundColor }}>
-        <div className={styles.propertyRowGrip}>
+      <div className={rexStyles.propertyRow} style={{ backgroundColor }}>
+        <div className={rexStyles.propertyRowGrip}>
           {editMode && (
             <a className="rexTypeReorder">
-              <FontAwesomeIcon icon={faGripVertical} size="sm" className={styles.reorderIconGrip} />
+              <FontAwesomeIcon
+                icon={faGripVertical}
+                size="sm"
+                className={rexStyles.reorderIconGrip}
+              />
             </a>
           )}
         </div>
-        <div className={styles.propertyRowAbbr}>
+        <div className={rexStyles.propertyRowAbbr}>
           <InLineEditInput
             editing={editMode}
             fieldProps={{
@@ -214,7 +218,7 @@ const PosType: FunctionComponent<{
             key={`${item.uuid}-name`}
           />
         </div>
-        <div className={styles.propertyRowName}>
+        <div className={rexStyles.propertyRowName}>
           <InLineEditInput
             editing={editMode}
             fieldProps={{
@@ -237,7 +241,7 @@ const PosType: FunctionComponent<{
             key={`${item.uuid}-name`}
           />
         </div>
-        <div className={styles.propertyRowIcon}>
+        <div className={rexStyles.propertyRowIcon}>
           {editMode && (
             <PosIconMenu
               item={item}
@@ -256,7 +260,7 @@ const PosType: FunctionComponent<{
           )}
           {!editMode && item.icon && decodeEmoji(item.icon)}
         </div>
-        <div className={styles.propertyRowPathColor}>
+        <div className={rexStyles.propertyRowPathColor}>
           <PathColorPickerMenu
             currentColor={item.pathColor}
             editMode={editMode}
@@ -273,7 +277,7 @@ const PosType: FunctionComponent<{
             hasDarkBorder={evenRow}
           />
         </div>
-        <div className={styles.propertyRowTrash}>
+        <div className={rexStyles.propertyRowTrash}>
           {editMode && (
             <FontAwesomeIcon
               icon={faTrashAlt}
@@ -310,13 +314,13 @@ const PosIconMenu: FunctionComponent<{
     <>
       <dialog
         ref={dialogRef}
-        className={styles.dialogContainer}
+        className={rexStyles.dialogContainer}
         onClick={() => {
           dialogRef.current?.close();
         }}
       >
         <div
-          className={styles.pickerMenu}
+          className={rexStyles.pickerMenu}
           ref={menuRef} // eslint-disable-next-line @typescript-eslint/no-explicit-any
           onClick={(e: any) => {
             e.stopPropagation();
@@ -338,7 +342,7 @@ const PosIconMenu: FunctionComponent<{
       </dialog>
 
       <div
-        className={`${styles.propertyIconDisplay} ${editMode ? styles.propertyEditMode : ""}`}
+        className={`${rexStyles.propertyIconDisplay} ${editMode ? rexStyles.propertyEditMode : ""}`}
         onClick={(e) => {
           if (!editMode) return;
           handleMenuOpen(e);
@@ -367,8 +371,8 @@ const PosSource: FunctionComponent<{
 
   return (
     <div className={paneStyles.descriptionContainer}>
-      <div className={styles.propertyRow} style={{ backgroundColor }}>
-        <div className={styles.propertyRowAbbr}>
+      <div className={rexStyles.propertyRow} style={{ backgroundColor }}>
+        <div className={rexStyles.propertyRowAbbr}>
           <InLineEditInput
             editing={editMode}
             fieldProps={{
@@ -391,7 +395,7 @@ const PosSource: FunctionComponent<{
             key={`${item.uuid}-name`}
           />
         </div>
-        <div className={styles.propertyRowName}>
+        <div className={rexStyles.propertyRowName}>
           <InLineEditInput
             editing={editMode}
             fieldProps={{
@@ -415,7 +419,7 @@ const PosSource: FunctionComponent<{
           />
         </div>
 
-        <div className={styles.propertyRowTrash}>
+        <div className={rexStyles.propertyRowTrash}>
           {editMode && (
             <FontAwesomeIcon
               icon={faTrashAlt}

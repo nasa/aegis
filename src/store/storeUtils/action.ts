@@ -11,6 +11,7 @@ import { EntityData } from "@mikro-orm/core";
 export const generateBlankAction = (partialAction?: Partial<Action>): Action => {
   const defaultNewAction: Action = {
     uuid: uuidv4(),
+    refUuid: uuidv4(),
     name: "",
     missionId: null,
     poiUuid: null,
@@ -52,6 +53,7 @@ export function convertActionsTypeDbToStore(dbActions: Action_db[]): Action[] {
   for (const dbaction of dbActions) {
     const convertedAction: Action = {
       uuid: dbaction.uuid,
+      refUuid: dbaction.refUuid,
       name: dbaction.name,
       missionId: dbaction.mission.id,
       poiUuid: dbaction.poi?.uuid,
@@ -95,6 +97,7 @@ export function convertActionsTypeStoreToDb(storeActions: Action[]): EntityData<
   for (const storeAction of storeActions) {
     const convertedRecord: EntityData<Action_db> = {
       uuid: storeAction.uuid,
+      refUuid: storeAction.refUuid,
       name: storeAction.name,
       mission: storeAction.missionId,
       poi: storeAction.poiUuid,

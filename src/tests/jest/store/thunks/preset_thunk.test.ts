@@ -12,7 +12,7 @@ import {
   thunkPresetCancel,
   thunkSavePreset,
 } from "store/thunk/thunkPreset";
-import { setPresetEditMode, upsertPreset, upsertPresetByField } from "store/preset";
+import { setPresetEditMode, upsertPresets, upsertPresetByField } from "store/preset";
 import { generateBlankPreset } from "store/storeUtils/preset";
 
 let store: StoreType;
@@ -66,7 +66,7 @@ describe("Thunk Preset Tests", () => {
 
     // add a new unsaved preset and cancel
     const newUnsavedPreset = generateBlankPreset({ name: "Jest Test Preset" });
-    store.dispatch(upsertPreset(newUnsavedPreset));
+    store.dispatch(upsertPresets([newUnsavedPreset]));
     store.dispatch(setPresetEditMode({ presetUuid: newUnsavedPreset.uuid, editMode: true }));
 
     await store.dispatch(thunkPresetCancel({ presetUuid: newUnsavedPreset.uuid }));
@@ -81,7 +81,7 @@ describe("Thunk Preset Tests", () => {
   it("thunkDeletePreset", async () => {
     // add a new unsaved preset and delete
     const newUnsavedPreset = generateBlankPreset({ name: "Jest Test Preset" });
-    store.dispatch(upsertPreset(newUnsavedPreset));
+    store.dispatch(upsertPresets([newUnsavedPreset]));
     store.dispatch(setPresetEditMode({ presetUuid: newUnsavedPreset.uuid, editMode: true }));
 
     await store.dispatch(thunkDeletePreset({ presetUuid: newUnsavedPreset.uuid }));

@@ -3,9 +3,14 @@ import { initialState as traverseInitialState } from "store/traverse";
 import { initialState as missionInitialState } from "store/mission";
 import { initialState as evaInitialState } from "store/eva";
 import { initialState as stationInitialState } from "store/station";
+import { initialState as actionInitialState } from "store/action";
 import {
+  thunkCancelTraverse,
+  thunkDeleteTraverses,
+  thunkDuplicateTraverse,
   thunkFullUpdateTraverse,
   thunkResetTraverse,
+  thunkSaveTraverse,
   thunkUpdateTraversePath,
   thunkUpdateTraversesAroundStation,
 } from "store/thunk/thunkTraverse";
@@ -13,11 +18,15 @@ import {
 // mock all calls to the db so no transactions are actually made
 // CAUTION, the import line must be below the jest.mock
 jest.mock("http-client/traverse");
+jest.mock("http-client/action");
 import * as httpClient_traverse from "http-client/traverse";
+import * as httpClient_action from "http-client/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { generateBlankAction } from "store/storeUtils/action";
+import { roundDateToSecond } from "utils/formatting";
 
 const mockThunkGetElevation = jest.fn();
 jest.mock("store/thunk/thunkElevation", () => ({
@@ -267,5 +276,170 @@ describe("Thunk Traverse Tests", () => {
     expect(t2.name).toEqual("Jest Station-1 to Jest Station-2");
     expect(t3.name).toEqual("Jest Station-2 to Jest Station-3");
     expect(t4.name).toEqual("Jest Station-3 to Lander");
+  });
+
+  test("thunkSaveTraverse()", async () => {
+    const traverse: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const traverseModified: Traverse = { ...traverse, name: "Jest Traverse-1 Modified" };
+    const traverseAction = generateBlankAction({
+      name: "Jest Traverse Action",
+      traverseUuid: traverse.uuid,
+      updatedAt: roundDateToSecond(new Date("1/1/2000")).toISOString(),
+    });
+    const traverseActionModified = {
+      ...traverseAction,
+      name: "Jest Traverse Action Modified",
+      updatedAt: roundDateToSecond(new Date("1/2/2000")).toISOString(),
+    };
+    const store = createCustomTestStore({
+      traverse: {
+        ...traverseInitialState,
+        traversesFromDb: [traverse],
+        traverses: [traverseModified],
+        traversesEditing: [traverse.uuid],
+      },
+      action: {
+        ...actionInitialState,
+        actions: [traverseAction],
+        actionsFromDb: [traverseActionModified],
+      },
+    });
+
+    await store.dispatch(thunkSaveTraverse({ traverseUuid: traverse.uuid }));
+    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(1);
+    expect(httpClient_action.upsertActions).toHaveBeenCalledTimes(1);
+    expect(store.getState().action.actions[0]).toEqual(store.getState().action.actionsFromDb[0]);
+    expect(store.getState().traverse.traverses[0]).toEqual(
+      store.getState().traverse.traversesFromDb[0]
+    );
+    expect(store.getState().traverse.traversesEditing.length).toEqual(0);
+  });
+
+  test("thunkDuplicateTraverse()", async () => {
+    const traverse: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const traverseAction = generateBlankAction({
+      name: "Jest Traverse Action",
+      traverseUuid: traverse.uuid,
+    });
+    const store = createCustomTestStore({
+      traverse: {
+        ...traverseInitialState,
+        traverses: [traverse],
+        traversesFromDb: [traverse],
+      },
+      action: {
+        ...actionInitialState,
+        actions: [traverseAction],
+        actionsFromDb: [traverseAction],
+      },
+    });
+
+    // duplicate without preserving refUuid
+    await store.dispatch(
+      thunkDuplicateTraverse({ traverseUuid: traverse.uuid, preserveRefUuid: false })
+    );
+    expect(store.getState().traverse.traverses.length).toEqual(2);
+    expect(store.getState().traverse.traverses[0].refUuid).not.toEqual(
+      store.getState().traverse.traverses[1].refUuid
+    );
+    // should have saved to db
+    expect(store.getState().traverse.traversesFromDb.length).toEqual(2);
+    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(2); // call happens +2 becuase actions causes another upsert to traverse
+    // actions should be duplicated and saved to db
+    expect(store.getState().action.actions.length).toEqual(2);
+    expect(store.getState().action.actionsFromDb.length).toEqual(2);
+    expect(store.getState().action.actions[0].refUuid).not.toEqual(
+      store.getState().action.actions[1].refUuid
+    );
+    expect(httpClient_action.upsertActions).toHaveBeenCalledTimes(1);
+
+    // duplicate with preserving refUuid
+    await store.dispatch(
+      thunkDuplicateTraverse({ traverseUuid: traverse.uuid, preserveRefUuid: true })
+    );
+    expect(store.getState().traverse.traverses.length).toEqual(3);
+    expect(
+      store.getState().traverse.traverses.filter((t) => t.refUuid === traverse.refUuid).length
+    ).toEqual(2);
+    // should have saved to db
+    expect(store.getState().traverse.traversesFromDb.length).toEqual(3);
+    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(4); // call happens +2 becuase actions causes another upsert to traverse
+    // actions should be duplicated and saved to db
+    expect(store.getState().action.actions.length).toEqual(3);
+    expect(store.getState().action.actionsFromDb.length).toEqual(3);
+    expect(
+      store.getState().action.actions.filter((a) => a.refUuid === traverseAction.refUuid).length
+    ).toEqual(2);
+    expect(httpClient_action.upsertActions).toHaveBeenCalledTimes(2);
+  });
+
+  test("thunkCancelTraverse()", async () => {
+    const traverse: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const traverseModified: Traverse = { ...traverse, name: "Jest Traverse-1 Modified" };
+    const traverseAction = generateBlankAction({
+      name: "Jest Traverse Action",
+      traverseUuid: traverse.uuid,
+    });
+    const traverseActionModified = {
+      ...traverseAction,
+      name: "Jest Traverse Action Modified",
+    };
+    const unsavedTraverseAction = generateBlankAction({
+      name: "Jest Traverse Action Unsaved",
+      traverseUuid: traverse.uuid,
+    });
+    const store = createCustomTestStore({
+      traverse: {
+        ...traverseInitialState,
+        traversesFromDb: [traverse],
+        traverses: [traverseModified],
+        traversesEditing: [traverse.uuid],
+      },
+      action: {
+        ...actionInitialState,
+        actions: [traverseAction, unsavedTraverseAction],
+        actionsFromDb: [traverseActionModified],
+      },
+    });
+
+    await store.dispatch(thunkCancelTraverse({ traverseUuid: traverse.uuid }));
+    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(0);
+    expect(store.getState().action.actions).toEqual(store.getState().action.actionsFromDb);
+    expect(store.getState().traverse.traverses).toEqual(store.getState().traverse.traversesFromDb);
+    expect(store.getState().traverse.traversesEditing.length).toEqual(0);
+  });
+
+  test("thunkDeleteTraverse()", async () => {
+    const traverse: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
+    const traverseAction = generateBlankAction({
+      name: "Jest Traverse Action",
+      traverseUuid: traverse.uuid,
+    });
+    const unsavedTraverseAction = generateBlankAction({
+      name: "Jest Traverse Action Unsaved",
+      traverseUuid: traverse.uuid,
+    });
+    const store = createCustomTestStore({
+      traverse: {
+        ...traverseInitialState,
+        traversesFromDb: [traverse],
+        traverses: [traverse],
+        traversesEditing: [traverse.uuid],
+      },
+      action: {
+        ...actionInitialState,
+        actions: [traverseAction, unsavedTraverseAction],
+        actionsFromDb: [traverseAction],
+      },
+    });
+
+    await store.dispatch(thunkDeleteTraverses({ traverseUuids: [traverse.uuid] }));
+    expect(httpClient_traverse.deleteTraverses).toHaveBeenCalledTimes(1);
+    expect(httpClient_action.deleteActions).toHaveBeenCalledTimes(1);
+    expect(store.getState().traverse.traverses.length).toEqual(0);
+    expect(store.getState().traverse.traversesFromDb.length).toEqual(0);
+    expect(store.getState().traverse.traversesEditing.length).toEqual(0);
+    expect(store.getState().action.actions.length).toEqual(0);
+    expect(store.getState().action.actionsFromDb.length).toEqual(0);
   });
 });

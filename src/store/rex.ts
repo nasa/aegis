@@ -9,9 +9,6 @@ export const initialState: RexState = {
   rexes: [],
   rexesFromDb: [],
   selectedRexUuid: null,
-  expandedRexUuids: [],
-  selectedRexRightNavItem: "info_panel",
-  rexesEditing: [],
   rexesPosEntriesEditing: [],
   selectedPosEntryUuid: null,
   posEntryEditingUuid: null,
@@ -100,13 +97,6 @@ export const rexSlice = createSlice({
         upsertToArrayByUuid(state.rexes, newRex);
       },
     },
-    /* only called for populating store  */
-    setRexes: (state, action: { payload: Rex[] }) => {
-      state.rexes = action.payload;
-    },
-    setRexesFromDb: (state, action: { payload: Rex[] }) => {
-      state.rexesFromDb = action.payload;
-    },
     deleteRexByUuid: (state, action: { payload: string }) => {
       state.rexes = state.rexes.filter((rex) => rex.uuid !== action.payload);
     },
@@ -123,22 +113,6 @@ export const rexSlice = createSlice({
       state.selectedRexUuid = action.payload;
       state.selectedPosEntryUuid = null;
     },
-    setExpandedRexUuids: (state, action: { payload: string[] }) => {
-      state.expandedRexUuids = action.payload;
-    },
-    setSelectedRexRightNavItem: (state, action: { payload: string }) => {
-      state.selectedRexRightNavItem = action.payload;
-    },
-    setRexesEditing: (state, action: { payload: string[] }) => {
-      state.rexesEditing = action.payload;
-    },
-    setRexEditMode: (state, action: { payload: { rexUuid: string; editMode: boolean } }) => {
-      if (action.payload.editMode) {
-        state.rexesEditing.push(action.payload.rexUuid);
-      } else {
-        state.rexesEditing = state.rexesEditing.filter((uuid) => uuid !== action.payload.rexUuid);
-      }
-    },
     setRexesPosEntryEditMode: (
       state,
       action: { payload: { rexUuid: string; editMode: boolean } }
@@ -150,12 +124,6 @@ export const rexSlice = createSlice({
           (uuid) => uuid !== action.payload.rexUuid
         );
       }
-    },
-    setStateForNewRex: (state, action: { payload: { rexUuid: string } }) => {
-      state.rexesEditing.push(action.payload.rexUuid);
-      state.selectedRexUuid = action.payload.rexUuid;
-      state.expandedRexUuids.push(action.payload.rexUuid);
-      state.selectedRexRightNavItem = "info_panel";
     },
     setSelectedPosEntryUuid: (state, action: { payload: string }) => {
       state.selectedPosEntryUuid = action.payload;
@@ -233,8 +201,6 @@ export const rexSlice = createSlice({
 });
 
 export const {
-  setRexes,
-  setRexesFromDb,
   upsertRex,
   upsertRexFromDb,
   upsertRexes,
@@ -245,12 +211,7 @@ export const {
   deleteRexesByUuid,
   deleteRexesFromDbByUuid,
   setSelectedRexUuid,
-  setExpandedRexUuids,
-  setSelectedRexRightNavItem,
-  setRexesEditing,
-  setRexEditMode,
   setRexesPosEntryEditMode,
-  setStateForNewRex,
   setSelectedPosEntryUuid,
   setPosEntryEditingUuid,
   upsertPosEntries,

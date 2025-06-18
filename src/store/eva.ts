@@ -10,6 +10,8 @@ export const initialState: EvaState = {
   selectedEvaUuid: null,
   selectedEvaSequenceItemUuid: null,
   expandedEvaUuids: [],
+  evaDropdownUIStates: {},
+  showRunningRexOnly: false,
   evas: [],
   evasFromDb: [],
   evasEditing: [],
@@ -127,8 +129,33 @@ export const evaSlice = createSlice({
     setSelectedEvaSequenceItemUuid: (state, action: { payload: string }) => {
       state.selectedEvaSequenceItemUuid = action.payload;
     },
-    setExpandedEvaUuids: (state, action: { payload: string[] }) => {
-      state.expandedEvaUuids = action.payload;
+    setOnlyShowRunningRex: (state, action: { payload: boolean }) => {
+      state.showRunningRexOnly = action.payload;
+    },
+    upsertExpandedEvaUuids: (state, action: { payload: string[] }) => {
+      // add uuids that are not already in the array
+      action.payload.forEach((uuid) => {
+        if (!state.expandedEvaUuids.includes(uuid)) {
+          state.expandedEvaUuids.push(uuid);
+        }
+      });
+    },
+    deleteExpandedEvaUuids: (state, action: { payload: string[] }) => {
+      // remove uuids that are in the array
+      state.expandedEvaUuids = state.expandedEvaUuids.filter(
+        (uuid) => !action.payload.includes(uuid)
+      );
+    },
+    setEvaDropdownUIState: (
+      state,
+      action: {
+        payload: {
+          asPlannedEvaUuid: string;
+          dropdownEvaUuid: string;
+        };
+      }
+    ) => {
+      state.evaDropdownUIStates[action.payload.asPlannedEvaUuid] = action.payload.dropdownEvaUuid;
     },
     setEvaSequence: {
       reducer: (
@@ -158,17 +185,10 @@ export const evaSlice = createSlice({
         state.evasEditing = state.evasEditing.filter((uuid) => uuid !== action.payload.evaUuid);
       }
     },
-    setStateForNewEva: (state, action: { payload: { uuid: string } }) => {
-      state.evasEditing.push(action.payload.uuid); // turn on edit mode for the new eva
+    selectEva: (state, action: { payload: { uuid: string } }) => {
       state.selectedEvaUuid = action.payload.uuid; // select the newly created eva
       state.expandedEvaUuids.push(action.payload.uuid); // expand the newly created eva
       state.selectedEvaRightNavItem = "info_panel"; // set the selected tab to the EVA's info tab
-    },
-
-    clearEvaSelections: (state) => {
-      state.selectedEvaRightNavItem = "";
-      state.selectedEvaUuid = "";
-      state.selectedEvaSequenceItemUuid = "";
     },
     obliterateState: (state) => {
       //eslint-disable-next-line
@@ -195,13 +215,15 @@ export const {
   deleteEvaFromDbByUuid,
   deleteEvasByUuid,
   deleteEvasFromDbByUuid,
-  setStateForNewEva,
+  selectEva,
   setSelectedEvaUuid,
   setSelectedEvaSequenceItemUuid,
   setSelectedEvaRightNavItem,
-  setExpandedEvaUuids,
+  setOnlyShowRunningRex,
+  setEvaDropdownUIState,
+  upsertExpandedEvaUuids,
+  deleteExpandedEvaUuids,
   setEvaSequence,
   setEvaEditMode,
-  clearEvaSelections,
   obliterateState,
 } = evaSlice.actions;

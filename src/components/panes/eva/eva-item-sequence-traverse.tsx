@@ -10,7 +10,7 @@ import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { getRexStatusDisplayProperties } from "../../../utils/rex";
 import last from "lodash/last";
 import PetInterval from "components/page/petInterval";
-import { RexStatusMenu } from "../rex/rex";
+import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import {
   getCalculatedFieldsByEva,
@@ -20,19 +20,31 @@ import {
 const SequenceItemTraverse: FunctionComponent<{
   evaUuid: string;
   traverseUuid: string;
-  editMode: boolean;
   isRexRunning: boolean;
-}> = ({ evaUuid, traverseUuid, editMode, isRexRunning }) => {
+}> = ({ evaUuid, traverseUuid, isRexRunning }) => {
   const dispatch = useAppDispatch();
 
-  const thisTraverse = useAppSelector(
-    (state) => state.traverse.traverses.find((traverse) => traverse.uuid === traverseUuid),
-    deepEqual
+  const isRexEva = useAppSelector((state) => {
+    const rexEvaUuids = state.rex.rexes.map((rex) => rex.evaUuid);
+    return rexEvaUuids.includes(evaUuid);
+  }, refEqual);
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editMode = useAppSelector((state) => state.eva.evasEditing.includes(evaUuid), refEqual);
+  const traverseName = useAppSelector(
+    (state) => state.traverse.traverses.find((traverse) => traverse.uuid === traverseUuid)?.name,
+    refEqual
   );
-  const thisTraverseFromDb = useAppSelector(
-    (state) => state.traverse.traversesFromDb.find((traverse) => traverse.uuid === traverseUuid),
-    deepEqual
-  );
+
+  const thisTraverseForModified = useAppSelector((state) => {
+    const traverse = state.traverse.traverses.find((traverse) => traverse.uuid === traverseUuid);
+    return { uuid: traverse?.uuid, updatedAt: traverse?.updatedAt };
+  }, deepEqual);
+  const thisTraverseFromDbForModified = useAppSelector((state) => {
+    const traverse = state.traverse.traversesFromDb.find(
+      (traverse) => traverse.uuid === traverseUuid
+    );
+    return { uuid: traverse?.uuid, updatedAt: traverse?.updatedAt };
+  }, deepEqual);
   const thisTraverseCalculatedFields = useAppSelector(
     (state) =>
       getCalculatedFieldsByTraverse({
@@ -46,7 +58,7 @@ const SequenceItemTraverse: FunctionComponent<{
   );
 
   const traverseRexStatus = useAppSelector((state) => {
-    const rex = state.rex.rexesFromDb.find((rex) => rex.isRunning);
+    const rex = state.rex.rexesFromDb.find((rex) => rex.evaUuid === evaUuid);
     if (!rex || !rex.traverseEntries) return null;
     return last(rex.traverseEntries[traverseUuid])?.rexStatus;
   }, shallowEqual);
@@ -55,7 +67,7 @@ const SequenceItemTraverse: FunctionComponent<{
     refEqual
   );
 
-  const sequenceItemCalculatedData = useAppSelector(
+  const sequenceItemCalculatedDataEndSeconds = useAppSelector(
     (state) =>
       getCalculatedFieldsByEva({
         evaUuid,
@@ -64,29 +76,29 @@ const SequenceItemTraverse: FunctionComponent<{
         mission: state.mission.mission,
         actions: state.action.actions,
         traverses: state.traverse.traverses,
-      })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === traverseUuid),
-    deepEqual
+      })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === traverseUuid)
+        ?.endSeconds,
+    refEqual
   );
 
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
-  const runningRexFromDb = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
-    deepEqual
-  );
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  // returns the rex from db object if this is a rex eva and is executing
+  const rexFromDbIfExecuting = useAppSelector((state) => {
+    if (!isRexEva) return null;
+    return state.rex.rexesFromDb.find((rex) => rex.isRunning && rex.evaUuid === evaUuid);
+  }, deepEqual);
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
 
+  // determine styling
   let evaSequenceStyle = null;
   if (traverseUuid === selectedEvaSequenceItemUuid) {
     evaSequenceStyle = evaStyles.evaItemNameSelected;
   } else if (traverseUuid === hoverItemUuid) {
     evaSequenceStyle = evaStyles.evaItemNameHoverMode;
   }
-
-  // add rex status styles
-  if (isRexRunning) {
+  if (isRexEva) {
     if (traverseRexStatus === "in-progress") {
       evaSequenceStyle = evaStyles.evaItemNameRexInProgress;
       if (traverseUuid === selectedEvaSequenceItemUuid) {
@@ -114,11 +126,11 @@ const SequenceItemTraverse: FunctionComponent<{
 
   const displayInProgressItemTimeRemaining = useCallback(
     (rexPetSeconds: number) => {
-      if (!sequenceItemCalculatedData) return "N/A";
-      const secondsRemaining = (sequenceItemCalculatedData.endSeconds - rexPetSeconds) * -1;
+      if (!sequenceItemCalculatedDataEndSeconds) return "N/A";
+      const secondsRemaining = (sequenceItemCalculatedDataEndSeconds - rexPetSeconds) * -1;
       return hhmmssFromSeconds(secondsRemaining);
     },
-    [sequenceItemCalculatedData]
+    [sequenceItemCalculatedDataEndSeconds]
   );
 
   const getTraverseDisplay = (name: string) => {
@@ -160,7 +172,7 @@ const SequenceItemTraverse: FunctionComponent<{
   return (
     <div className={evaStyles.evaSequence}>
       <PetInterval
-        runningRex={runningRexFromDb}
+        runningRex={rexFromDbIfExecuting}
         rexPetTime={rexPetTime}
         setRexPetTime={setRexPetTime}
       />
@@ -183,13 +195,13 @@ const SequenceItemTraverse: FunctionComponent<{
           </div>
         </div>
 
-        {isRexRunning && (
+        {isRexEva && (
           <RexStatusMenu
             rexStatus={traverseRexStatus}
             divClassName={evaStyles.rexStatusWrapper}
             entryType="traverse"
             uuid={traverseUuid}
-            editPerms={editPerms}
+            editPerms={!!(editPerms && rexFromDbIfExecuting)} // the !! converts result into boolean
           />
         )}
         <div
@@ -206,9 +218,12 @@ const SequenceItemTraverse: FunctionComponent<{
         >
           <div className={evaStyles.evaItemLeft}>
             <div className={`${evaStyles.evaTraverseNameText}`}>
-              {getTraverseDisplay(thisTraverse?.name)}
+              {getTraverseDisplay(traverseName)}
             </div>
-            <ModifiedIndicator obj1={[thisTraverse]} obj2={[thisTraverseFromDb]} />
+            <ModifiedIndicator
+              obj1={[thisTraverseForModified]}
+              obj2={[thisTraverseFromDbForModified]}
+            />
           </div>
           <div className={evaStyles.evaItemRight}>
             <div

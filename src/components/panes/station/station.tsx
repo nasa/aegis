@@ -1,4 +1,4 @@
-import styles from "./station.module.css";
+import stationStyles from "./station.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faFolderPlus, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FunctionComponent } from "react";
@@ -10,12 +10,12 @@ import { thunkCreateStation, thunkDuplicateStation } from "store/thunk/thunkStat
 import sortBy from "lodash/sortBy";
 import { FolderOrganizer } from "components/interface/folders";
 import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
+import { selectAsPlannedStations } from "store/selectors";
 
 const StationEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const stations = useAppSelector((state) => state.station.stations, deepEqual);
+  const stations = useAppSelector(selectAsPlannedStations, deepEqual);
   const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, deepEqual);
-
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual
@@ -76,10 +76,17 @@ const StationEditorLeft: FunctionComponent = () => {
 
   return (
     <>
+      <div
+        className={paneStyles.activeComponentTitle}
+        style={{ color: "var(--station)" }}
+        aria-label="leftPanelTitle"
+      >
+        Stations
+      </div>
       <div className={paneStyles.leftPanelContainer}>
         <div className={paneStyles.leftPanelContainerTop} aria-label="stationList">
-          <div className={styles.container}>
-            <div className={styles.body} aria-label="stationList">
+          <div className={stationStyles.container}>
+            <div className={stationStyles.body} aria-label="stationList">
               <FolderOrganizer
                 items={sortBy(stations, [(station) => station.name.toLowerCase()])}
                 getItemId={(station) => station.uuid}
@@ -107,7 +114,12 @@ const StationEditorLeft: FunctionComponent = () => {
               <Button
                 ariaLabel="duplicateStation"
                 onClick={() => {
-                  dispatch(thunkDuplicateStation({ stationUuid: selectedStationUuid }));
+                  dispatch(
+                    thunkDuplicateStation({
+                      stationUuid: selectedStationUuid,
+                      preserveRefUuid: false,
+                    })
+                  );
                 }}
                 label="Duplicate"
                 icon={faClone}

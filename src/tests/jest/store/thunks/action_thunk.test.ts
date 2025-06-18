@@ -7,8 +7,8 @@ import { initialState as poiInitialState } from "store/poi";
 import { v4 as uuidv4 } from "uuid";
 import {
   thunkCreateAction,
-  thunkDeleteActionFromDbAndStore,
   thunkDeleteActionFromStore,
+  thunkDeleteActionsFromDbAndStore,
   thunkDuplicateActions,
   thunkGetHighlightedActions,
   thunkSaveActions,
@@ -82,16 +82,16 @@ describe("Thunk Action Tests", () => {
   test("thunkDuplicateAction()", async () => {
     //populate the action state in the store
     const station: Station = generateBlankStation({ name: "Jest Station-1" });
-    const poi: POI = generateBlankPoi({ name: "Jest Poi-1" });
     const stationAction: Action = generateBlankAction({
-      name: "Jest Action-1",
+      name: "test station action",
       stationUuid: station.uuid,
     });
-    stationAction.name = "test station action";
     station.actionOrderUuids = [stationAction.uuid];
-    const poiAction: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
-    poiAction.name = "test poi action";
+
+    const poi: POI = generateBlankPoi({ name: "Jest Poi-1" });
+    const poiAction: Action = generateBlankAction({ name: "test poi action", poiUuid: poi.uuid });
     poi.actionOrderUuids = [poiAction.uuid];
+
     const store = createCustomTestStore({
       station: { ...stationInitialState, stations: [station] },
       poi: { ...poiInitialState, pois: [poi] },
@@ -104,7 +104,12 @@ describe("Thunk Action Tests", () => {
 
     //duplicate station action
     await store.dispatch(
-      thunkDuplicateActions({ actions: [stationAction], stationUuid: station.uuid })
+      thunkDuplicateActions({
+        actions: [stationAction],
+        saveToDb: false,
+        preserveRefUuid: false,
+        stationUuid: station.uuid,
+      })
     );
     let storeState = store.getState();
     expect(storeState.action.actions.length).toEqual(3);
@@ -120,6 +125,8 @@ describe("Thunk Action Tests", () => {
     await store.dispatch(
       thunkDuplicateActions({
         actions: [poiAction],
+        saveToDb: false,
+        preserveRefUuid: false,
         stationUuid: station.uuid,
         promotingFromPoi: true,
       })
@@ -135,7 +142,14 @@ describe("Thunk Action Tests", () => {
     expect(storeState.station.stations[0].actionOrderUuids.length).toEqual(3);
 
     //duplicate poi action
-    await store.dispatch(thunkDuplicateActions({ actions: [poiAction], poiUuid: poi.uuid }));
+    await store.dispatch(
+      thunkDuplicateActions({
+        actions: [poiAction],
+        poiUuid: poi.uuid,
+        preserveRefUuid: false,
+        saveToDb: false,
+      })
+    );
     storeState = store.getState();
     expect(storeState.action.actions.length).toEqual(5);
     copiedAction = storeState.action.actions.find((a) => a.name === "test poi action (copy 1)");
@@ -321,7 +335,7 @@ describe("Thunk Action Tests", () => {
       action: { ...actionInitialState, actions: [testAction], actionsFromDb: [testAction] },
     });
 
-    await store.dispatch(thunkDeleteActionFromDbAndStore({ uuids: [testAction.uuid] }));
+    await store.dispatch(thunkDeleteActionsFromDbAndStore({ uuids: [testAction.uuid] }));
     const storeState = store.getState();
     expect(httpClient_action.deleteActions).toHaveBeenCalledTimes(1);
     expect(storeState.action.actions.find((a) => a.uuid === testAction.uuid)).toBeUndefined();

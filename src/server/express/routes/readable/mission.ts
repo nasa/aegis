@@ -11,10 +11,9 @@ import { SCHEMA_DIR } from "utils/consts-server";
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { socketId, missionId } = query;
+  const { missionId } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
-    socketId: socketId ? (socketId as string) : undefined,
   };
   return queryObj;
 };

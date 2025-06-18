@@ -1,5 +1,6 @@
 interface Eva {
   uuid: string;
+  refUuid: string; // assigned on creation and is preserved when duplication for a rex
   missionId: number;
 
   name: string;
@@ -35,6 +36,7 @@ type TraverseStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 
 interface Traverse {
   uuid: string;
+  refUuid: string; // assigned on creation and is preserved when duplication for a rex
   missionId: number;
   actionOrderUuids: string[] | null;
 
@@ -66,6 +68,7 @@ interface EvaSequenceItem {
 
 interface Station {
   uuid: string;
+  refUuid: string; // assigned on creation and is preserved when duplication for a rex
 
   ownerId: number;
   missionId: number;
@@ -180,6 +183,7 @@ type Action = {
    * uuid of the action
    */
   uuid: string;
+  refUuid: string; // assigned on creation and is preserved when duplication for a rex
   name: string;
 
   missionId: number | null;

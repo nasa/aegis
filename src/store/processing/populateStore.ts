@@ -8,7 +8,6 @@ import {
   auditPosSources,
   auditPresetsAgainstLayers,
   auditStationCircles,
-  auditFolders,
 } from "./audits";
 
 export const populateStore = async (params: {
@@ -62,7 +61,7 @@ export const populateStore = async (params: {
     await auditStationCircles({ wholeStoreState });
     await auditActionDefinitions({ wholeStoreState });
     await auditPosSources({ wholeStoreState });
-    await auditFolders({ wholeStoreState });
+    await auditActions({ wholeStoreState });
   }
 
   // Set the default preset
@@ -82,14 +81,11 @@ export const populateStore = async (params: {
   // Generate station circles UI states for the store (not in the DB)
   generateStationsCirclesUIStates({ wholeStoreState });
 
+  // Generate eva dropdown selected state for the store (not in the DB)
+  generateEvaDropdownUIStates({ wholeStoreState });
+
   //If a rex is running, then switch the interface to show the rex pane and EVA actions right panel
   setRunningRexView({ wholeStoreState });
-
-  /**
-   * Audit actions
-   * These are permanent checks that protect against changes made via admin
-   */
-  if (runAudit) await auditActions({ wholeStoreState });
 
   return wholeStoreState;
 };
@@ -99,15 +95,24 @@ export const setRunningRexView = (params: { wholeStoreState: WholeStoreState }):
   const { wholeStoreState } = params;
   const runningRex = wholeStoreState.rex.rexes.find((rex) => rex.isRunning === true);
   if (runningRex) {
-    wholeStoreState.rex.selectedRexUuid = runningRex.uuid;
-    wholeStoreState.rex.expandedRexUuids = [runningRex.uuid];
     wholeStoreState.interface.rightPanelIsOpen = true;
-    wholeStoreState.interface.sectionSelectedLabel = "rex";
-    // Find the EVA UUID associated with the Rex and set it in the eva slice
+    wholeStoreState.interface.sectionSelectedLabel = "evas";
+    wholeStoreState.eva.showRunningRexOnly = true;
+    wholeStoreState.rex.selectedRexUuid = runningRex.uuid;
+    // Find the EVA UUID associated with the Rex
     const evaUuid = wholeStoreState.rex.rexes.find((rex) => rex.uuid === runningRex.uuid)?.evaUuid;
     if (evaUuid) {
+      // select the EVA and open up the actions panel
       wholeStoreState.eva.selectedEvaUuid = evaUuid;
       wholeStoreState.eva.selectedEvaRightNavItem = "actions_panel";
+      // expand the as-planned version and set it in the eva dropdown
+      const allRexEvas = wholeStoreState.rex.rexes.map((rex) => rex.evaUuid);
+      const evaRefUuid = wholeStoreState.eva.evas.find((e) => e.uuid === evaUuid)?.refUuid;
+      const asPlannedEvaUuid = wholeStoreState.eva.evas.find(
+        (e) => e.refUuid === evaRefUuid && !allRexEvas.includes(e.uuid)
+      )?.uuid;
+      wholeStoreState.eva.expandedEvaUuids = [asPlannedEvaUuid];
+      wholeStoreState.eva.evaDropdownUIStates[asPlannedEvaUuid] = evaUuid;
     }
   }
 };
@@ -215,5 +220,15 @@ const generateFoldersInterfaceStates = (params: { wholeStoreState: WholeStoreSta
           editingNameValue: null,
         }) as FolderInterface
     );
+  }
+};
+
+const generateEvaDropdownUIStates = (params: { wholeStoreState: WholeStoreState }): void => {
+  const { wholeStoreState } = params;
+  //get list of all as-planned evas
+  const rexEvas = wholeStoreState.rex.rexes.map((rex) => rex.evaUuid);
+  const asPlannedEvas = wholeStoreState.eva.evas.filter((e) => !rexEvas.includes(e.uuid));
+  for (const eva of asPlannedEvas) {
+    wholeStoreState.eva.evaDropdownUIStates[eva.uuid] = eva.uuid;
   }
 };
