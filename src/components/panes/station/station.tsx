@@ -7,21 +7,20 @@ import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import StationItem from "./station-item";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreateStation, thunkDuplicateStation } from "store/thunk/thunkStation";
-import sortBy from "lodash/sortBy";
 import { FolderOrganizer } from "components/interface/folders";
 import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
 import { selectAsPlannedStations } from "store/selectors";
 
 const StationEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const stations = useAppSelector(selectAsPlannedStations, deepEqual);
-  const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, deepEqual);
+  const stationUuids = useAppSelector(
+    (state) => selectAsPlannedStations(state).map((station) => station.uuid),
+    deepEqual
+  );
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual
   );
-  const actions = useAppSelector((state) => state.action.actions, deepEqual);
-  const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, deepEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const folderRecords = useAppSelector(
@@ -54,24 +53,8 @@ const StationEditorLeft: FunctionComponent = () => {
   };
 
   // Render a Station item
-  const renderStationItem = ({ item: station }: FolderItemProps<Station>) => {
-    const stationFromDb = stationsFromDb.find(
-      (stationFromDb) => stationFromDb.uuid === station.uuid
-    );
-    const stationActions = actions.filter((action) => action.stationUuid === station.uuid);
-    const stationActionsFromDb = actionsFromDb.filter(
-      (action) => action.stationUuid === station.uuid
-    );
-
-    return (
-      <StationItem
-        selectedStationUuid={selectedStationUuid}
-        station={station}
-        stationFromDb={stationFromDb}
-        stationActions={stationActions}
-        stationActionsFromDb={stationActionsFromDb}
-      />
-    );
+  const renderStationItem = ({ itemUuid }: FolderItemProps) => {
+    return <StationItem stationUuid={itemUuid} />;
   };
 
   return (
@@ -88,8 +71,7 @@ const StationEditorLeft: FunctionComponent = () => {
           <div className={stationStyles.container}>
             <div className={stationStyles.body} aria-label="stationList">
               <FolderOrganizer
-                items={sortBy(stations, [(station) => station.name.toLowerCase()])}
-                getItemId={(station) => station.uuid}
+                itemUuids={stationUuids}
                 renderItem={renderStationItem}
                 folders={folderRecords}
                 foldersInterface={foldersInterface}

@@ -199,10 +199,12 @@ export const thunkCreatePoi = appCreateAsyncThunk<void>(
   }
 );
 
-export const thunkDuplicatePoi = appCreateAsyncThunk<{ poi: POI }>(
+export const thunkDuplicatePoi = appCreateAsyncThunk<{ poiUuid: string }>(
   "poiDuplicate",
-  async ({ poi }, { dispatch, getState }) => {
-    if (!poi) return;
+  async ({ poiUuid }, { dispatch, getState }) => {
+    if (!poiUuid) return;
+
+    const poi = getState().poi.pois.find((p) => p.uuid === poiUuid);
     //duplicate poi
     const newPoi: POI = cloneDeep(poi);
     newPoi.uuid = uuidv4();

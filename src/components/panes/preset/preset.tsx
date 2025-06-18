@@ -1,7 +1,7 @@
 import presetStyles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faFolderPlus, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { Button } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -13,12 +13,15 @@ import sortBy from "lodash/sortBy";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const presets = useAppSelector((state) => state.preset.presets, deepEqual);
+  const presetUuids = useAppSelector(
+    (state) =>
+      sortBy(state.preset.presets, [(preset) => preset.name.toLowerCase()]).map(
+        (preset) => preset.uuid
+      ),
+    deepEqual
+  );
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
-  const presetsFromDb = useAppSelector((state) => state.preset.presetsFromDb, deepEqual);
-
-  const selectedPreset = presets?.find((preset: Preset) => preset.uuid === selectedPresetUuid);
 
   const folderRecords = useAppSelector(
     (state) => state.interface.folders.filter((f) => f.type === "preset"),
@@ -31,8 +34,6 @@ const PresetEditorLeft: FunctionComponent = () => {
     );
   }, deepEqual);
 
-  const [hoverUuid, setHoverUuid] = useState<string | null>(null);
-
   const itemsToFolders = folderRecords.reduce<Record<string, string>>((map, folder) => {
     folder.items?.forEach((itemUuid) => {
       map[itemUuid] = folder.uuid;
@@ -44,17 +45,8 @@ const PresetEditorLeft: FunctionComponent = () => {
     dispatch(thunkAddRemoveFolderItem({ folderUuid, itemUuid: uuid }));
   };
 
-  const renderPresetItem = ({ item: preset }: FolderItemProps<Preset>) => {
-    const presetFromDb = presetsFromDb.find((p) => p.uuid === preset.uuid);
-    return (
-      <PresetItem
-        selectedPresetUuid={selectedPresetUuid}
-        preset={preset}
-        presetFromDb={presetFromDb}
-        hoverUuid={hoverUuid}
-        onHover={setHoverUuid}
-      />
-    );
+  const renderPresetItem = ({ itemUuid }: FolderItemProps) => {
+    return <PresetItem presetUuid={itemUuid} />;
   };
 
   return (
@@ -70,8 +62,7 @@ const PresetEditorLeft: FunctionComponent = () => {
         <div className={paneStyles.leftPanelContainerTop} aria-label="presetList">
           <div className={presetStyles.container}>
             <FolderOrganizer
-              items={sortBy(presets, [(preset) => preset.name.toLowerCase()])}
-              getItemId={(preset) => preset.uuid}
+              itemUuids={presetUuids}
               renderItem={renderPresetItem}
               folders={folderRecords}
               foldersInterface={foldersInterface}
@@ -92,7 +83,8 @@ const PresetEditorLeft: FunctionComponent = () => {
               />
               <Button
                 onClick={() =>
-                  selectedPresetUuid && dispatch(thunkDuplicatePreset({ preset: selectedPreset }))
+                  selectedPresetUuid &&
+                  dispatch(thunkDuplicatePreset({ presetUuid: selectedPresetUuid }))
                 }
                 label="Duplicate"
                 icon={faClone}

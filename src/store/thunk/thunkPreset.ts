@@ -244,10 +244,12 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
   }
 );
 
-export const thunkDuplicatePreset = appCreateAsyncThunk<{ preset: Preset }>(
+export const thunkDuplicatePreset = appCreateAsyncThunk<{ presetUuid: string }>(
   "presetDuplicate",
-  async ({ preset }, { dispatch, getState }) => {
-    if (!preset) return;
+  async ({ presetUuid }, { dispatch, getState }) => {
+    if (!presetUuid) return;
+
+    const preset = getState().preset.presets.find((p) => p.uuid === presetUuid);
     //duplicate preset
     const newPreset: Preset = cloneDeep(preset);
     newPreset.uuid = uuidv4();
