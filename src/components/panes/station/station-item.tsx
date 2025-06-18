@@ -5,7 +5,6 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, setSelectedStationUuid } from "store/station";
 import stationStyles from "./station.module.css";
-import { clearEvaSelections } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
 import { setHoverUuidsForSequence } from "store/hover";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
@@ -41,7 +40,6 @@ const StationItem: FunctionComponent<{
           dispatch(thunkSetRightPanelIsOpenIfAuto(false));
         } else {
           dispatch(setSelectedStationUuid(station.uuid));
-          dispatch(clearEvaSelections());
           if (!selectedRightNavItem) dispatch(setSelectedStationRightNavItem("info_panel"));
           dispatch(thunkSetRightPanelIsOpenIfAuto(true));
         }

@@ -59,8 +59,8 @@ export const thunkSaveFolder = appCreateAsyncThunk<{ folder: Folder }>(
     }
     // save folder to db
     const response = await httpClient_folder.upsertFolders([folder]);
-    if (response.status === "success") {
-      // console.log("Folder saved successfully");
+    if (response.status !== "success") {
+      throw new Error("Failed to upsert folder");
     }
   }
 );
@@ -130,8 +130,8 @@ export const thunkDeleteFolder = appCreateAsyncThunk<{ folderUuid: string }>(
 
     // delete folder from db
     const response = await httpClient_folder.deleteFolders([folderUuid]);
-    if (response.status === "success") {
-      // console.log("Folder deleted successfully");
+    if (response.status !== "success") {
+      throw new Error("Failed to delete folder");
     }
 
     dispatch(setFolders(folders.filter((f) => f.uuid !== folderUuid)));

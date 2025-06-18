@@ -1,9 +1,8 @@
 import {
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
-  upsertAction,
-  upsertActionByField,
   upsertActions,
+  upsertActionByField,
   upsertActionsFromDb,
 } from "store/action";
 import appCreateAsyncThunk from "./thunkUtil";
@@ -14,9 +13,12 @@ import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { thunkGetElevation } from "./thunkElevation";
-import { upsertStation } from "store/station";
-import { upsertPoi } from "store/poi";
+import { upsertStationByField, upsertStationsFromDb } from "store/station";
+import { upsertPoiByField, upsertPoisFromDb } from "store/poi";
 import * as httpClient_action from "http-client/action";
+import * as httpClient_station from "http-client/station";
+import * as httpClient_poi from "http-client/poi";
+import * as httpClient_traverse from "http-client/traverse";
 import { generateBlankAction } from "store/storeUtils/action";
 import { upsertTraverseByField } from "store/traverse";
 
@@ -55,7 +57,7 @@ export const thunkCreateAction = appCreateAsyncThunk<
     }
 
     //upsert action
-    dispatch(upsertAction(blankAction));
+    dispatch(upsertActions([blankAction]));
 
     //upsert action order to the parent. new action goes on the end.
     const actionOrder = cloneDeep(actionOrderUuids || []);
@@ -67,8 +69,11 @@ export const thunkCreateAction = appCreateAsyncThunk<
 );
 
 /**
- * Duplicates an actions and then calls {@link upsertAction} reducer
+ * Duplicates actions
  * @param actions array of actions to duplicate
+ * @param preserveRefUuid whether or not to preserve the refUuid of the action. Used when creating an rex
+ * @param saveToDb Whether or not to save the duplicated action to the db. Used when duplication is triggered from a station, poi, or traverse.
+ *                 When actions are duplicated from the action panel, or from promoting to a poi, this is false
  * @param stationUuid the station the duplicated action belongs to
  * @param poiUuid the poi the duplicated action belongs to
  * @param traverseUuid the traverse the duplicated action belongs to
@@ -77,6 +82,8 @@ export const thunkCreateAction = appCreateAsyncThunk<
  */
 export const thunkDuplicateActions = appCreateAsyncThunk<{
   actions: Action[];
+  preserveRefUuid: boolean;
+  saveToDb: boolean;
   stationUuid?: string;
   poiUuid?: string;
   traverseUuid?: string;
@@ -84,7 +91,7 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
 }>(
   "actionsDuplicate",
   async (
-    { actions, stationUuid, traverseUuid, poiUuid, promotingFromPoi },
+    { actions, preserveRefUuid, saveToDb, stationUuid, traverseUuid, poiUuid, promotingFromPoi },
     { dispatch, getState }
   ) => {
     if (!actions || actions.length === 0) return;
@@ -102,30 +109,34 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
     //set values for the duplicated action
     for (let i = 0; i < newActions.length; i++) {
       const newAction = newActions[i];
-      const newActionUuid = uuidv4();
-      newAction.uuid = newActionUuid;
-      newAction.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
-      newAction.updatedAt = null;
+      newAction.uuid = uuidv4();
+      if (!preserveRefUuid) newAction.refUuid = uuidv4();
+      const newDateString = roundDateToSecond(getAccurateNow()).toISOString();
+      newAction.createdAt = newDateString;
+      newAction.updatedAt = newDateString;
       newAction.stationUuid = stationUuid;
       newAction.poiUuid = poiUuid;
       newAction.traverseUuid = traverseUuid;
 
-      //set name
-      if (stationUuid) {
-        newAction.name = makeUniqueStringCopy(
-          newAction.name,
-          stationActions.map((a) => a.name)
-        );
-      } else if (poiUuid) {
-        newAction.name = makeUniqueStringCopy(
-          newAction.name,
-          poiActions.map((a) => a.name)
-        );
-      } else if (traverseUuid) {
-        newAction.name = makeUniqueStringCopy(
-          newAction.name,
-          traverseActions.map((a) => a.name)
-        );
+      // set name
+      // preservingRefUuids only occurs when duplicating an EVA for a REX, in which case, keep the name.
+      if (!preserveRefUuid) {
+        if (stationUuid) {
+          newAction.name = makeUniqueStringCopy(
+            newAction.name,
+            stationActions.map((a) => a.name)
+          );
+        } else if (poiUuid) {
+          newAction.name = makeUniqueStringCopy(
+            newAction.name,
+            poiActions.map((a) => a.name)
+          );
+        } else if (traverseUuid) {
+          newAction.name = makeUniqueStringCopy(
+            newAction.name,
+            traverseActions.map((a) => a.name)
+          );
+        }
       }
 
       //set parent info
@@ -138,20 +149,38 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
       }
     }
 
-    // append new action to the end of the station's action order
+    // append new actions to the end of the station's action order
     if (stationUuid) {
       const station = getState().station.stations.find((s) => s.uuid === stationUuid);
       let actionOrderUuids = cloneDeep(station.actionOrderUuids);
       if (!actionOrderUuids) actionOrderUuids = [];
       actionOrderUuids = actionOrderUuids.concat(newActions.map((a) => a.uuid));
-      dispatch(upsertStation({ ...station, actionOrderUuids }, true));
+      dispatch(upsertStationByField(stationUuid, "actionOrderUuids", actionOrderUuids, true));
+      if (saveToDb) {
+        dispatch(upsertStationsFromDb([{ ...station, actionOrderUuids }]));
+        const upsertStationsResponse = await httpClient_station.upsertStations([
+          { ...station, actionOrderUuids },
+        ]);
+        if (upsertStationsResponse.status !== "success") {
+          throw new Error(
+            "Error upserting stations in duplicate action " + upsertStationsResponse.message
+          );
+        }
+      }
     } else if (poiUuid) {
       // append new action to the end of the poi's action order
       const poi = getState().poi.pois.find((p) => p.uuid === poiUuid);
       let actionOrderUuids = cloneDeep(poi.actionOrderUuids);
       if (!actionOrderUuids) actionOrderUuids = [];
       actionOrderUuids = actionOrderUuids.concat(newActions.map((a) => a.uuid));
-      dispatch(upsertPoi({ ...poi, actionOrderUuids }, true));
+      dispatch(upsertPoiByField(poiUuid, "actionOrderUuids", actionOrderUuids, true));
+      if (saveToDb) {
+        dispatch(upsertPoisFromDb([{ ...poi, actionOrderUuids }]));
+        const upsertPoisResponse = await httpClient_poi.upsertPOIs([{ ...poi, actionOrderUuids }]);
+        if (upsertPoisResponse.status !== "success") {
+          throw new Error("Error upserting pois in duplicate action " + upsertPoisResponse.message);
+        }
+      }
     } else if (traverseUuid) {
       // append new action to the end of the traverse's action order
       const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
@@ -159,10 +188,28 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
       if (!actionOrderUuids) actionOrderUuids = [];
       actionOrderUuids = actionOrderUuids.concat(newActions.map((a) => a.uuid));
       dispatch(upsertTraverseByField(traverseUuid, "actionOrderUuids", actionOrderUuids, true));
+      if (saveToDb) {
+        dispatch(upsertTraverseByField(traverseUuid, "actionOrderUuids", actionOrderUuids, true));
+        const upsertTraversesResponse = await httpClient_traverse.upsertTraverses([
+          { ...traverse, actionOrderUuids },
+        ]);
+        if (upsertTraversesResponse.status !== "success") {
+          throw new Error(
+            "Error upserting traverses in duplicate action " + upsertTraversesResponse.message
+          );
+        }
+      }
     }
 
-    //upsert new actions
-    dispatch(upsertActions(newActions));
+    //upsert new actions and persist to db
+    dispatch(upsertActions(newActions, true));
+    if (saveToDb) {
+      dispatch(upsertActionsFromDb(newActions));
+      const upsertActionsResponse = await httpClient_action.upsertActions(newActions);
+      if (upsertActionsResponse.status !== "success") {
+        throw new Error("Error upserting actions " + upsertActionsResponse.message);
+      }
+    }
   }
 );
 
@@ -186,11 +233,12 @@ export const thunkSaveActions = appCreateAsyncThunk<{
   if (changedActions.length > 0) {
     //action changed. upsert to db
     const actionUpsertResponse = await httpClient_action.upsertActions(changedActions);
-    if (actionUpsertResponse.status === "success") {
-      //upsert to both stores
-      dispatch(upsertActions(actionUpsertResponse.data, true));
-      dispatch(upsertActionsFromDb(actionUpsertResponse.data));
+    if (actionUpsertResponse.status !== "success") {
+      throw new Error("Error upserting actions " + actionUpsertResponse.message);
     }
+    //upsert to both stores
+    dispatch(upsertActions(changedActions, true));
+    dispatch(upsertActionsFromDb(changedActions));
   }
 
   // filter out deleted actions using local state
@@ -203,7 +251,10 @@ export const thunkSaveActions = appCreateAsyncThunk<{
   if (deletedActions.length > 0) {
     // take array of deleted actions and delete them in the db
     const deletedActionUuids = deletedActions.map((a) => a.uuid);
-    await httpClient_action.deleteActions(deletedActionUuids);
+    const actionDeleteRes = await httpClient_action.deleteActions(deletedActionUuids);
+    if (actionDeleteRes.status !== "success") {
+      throw new Error("Error deleting actions " + actionDeleteRes.message);
+    }
     dispatch(deleteActionsFromDbByUuid(deletedActionUuids));
   }
 });
@@ -223,10 +274,10 @@ export const thunkUpdateActionLocation = appCreateAsyncThunk<{
   const action = getState().action.actions.find((s) => s.uuid === actionUuid);
   if (!elevation || elevation.payload === false || elevation.payload === undefined) {
     //gracefully reject?
-    dispatch(upsertAction({ ...action, location, elevation: null }));
+    dispatch(upsertActions([{ ...action, location, elevation: null }]));
   } else {
     //upsert location and elevation
-    dispatch(upsertAction({ ...action, location, elevation: elevation.payload as number }));
+    dispatch(upsertActions([{ ...action, location, elevation: elevation.payload as number }]));
   }
 });
 
@@ -268,7 +319,7 @@ export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
       if (actionIndex >= 0) {
         // delete the action from the station
         actionOrderUuids.splice(actionIndex, 1);
-        dispatch(upsertStation({ ...station, actionOrderUuids }, false));
+        dispatch(upsertStationByField(station.uuid, "actionOrderUuids", actionOrderUuids, false));
       }
     }
   }
@@ -281,7 +332,7 @@ export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
       if (actionIndex >= 0) {
         // delete the action from the poi
         actionOrderUuids.splice(actionIndex, 1);
-        dispatch(upsertPoi({ ...poi, actionOrderUuids }, false));
+        dispatch(upsertPoiByField(poi.uuid, "actionOrderUuids", actionOrderUuids, false));
       }
     }
   }
@@ -305,21 +356,27 @@ export const thunkDeleteActionFromStore = appCreateAsyncThunk<{
 
 /**
  * Deletes an array of actions from the database, and from both copies in the store
+ * IMPORTANT: This does not update actionOrderUuids in the parent station/poi/traverse
+ * This function apparently is only used when the parent object is deleted
  */
-export const thunkDeleteActionFromDbAndStore = appCreateAsyncThunk<{
+export const thunkDeleteActionsFromDbAndStore = appCreateAsyncThunk<{
   uuids: string[];
-}>("deleteActionFromDbAndStore", async ({ uuids }, { dispatch }) => {
-  if (uuids.length > 0) {
-    //delete from db
-    const actionDeleteResponse: WrappedResponse<number> =
-      await httpClient_action.deleteActions(uuids);
-    if (actionDeleteResponse.status !== "success") {
-      throw new Error("Error deleting actions " + actionDeleteResponse.message);
-    }
-    // delete actions from the store and fromdb
-    dispatch(deleteActionsByUuid(uuids));
-    dispatch(deleteActionsFromDbByUuid(uuids));
+}>("deleteActionFromDbAndStore", async ({ uuids }, { dispatch, getState }) => {
+  if (!uuids) return;
+
+  //delete from db
+  const uuidsInDb = uuids.filter((uuid) =>
+    getState().action.actionsFromDb.some((a) => a.uuid === uuid)
+  );
+  const actionDeleteResponse: WrappedResponse<number> =
+    await httpClient_action.deleteActions(uuidsInDb);
+  if (actionDeleteResponse.status !== "success") {
+    throw new Error("Error deleting actions " + actionDeleteResponse.message);
   }
+
+  // delete actions from the store and fromdb
+  dispatch(deleteActionsByUuid(uuids));
+  dispatch(deleteActionsFromDbByUuid(uuids));
 });
 
 export const thunkUpsertActionDefinitionSelection = appCreateAsyncThunk<{

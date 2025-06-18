@@ -6,9 +6,7 @@ test("create edit cancel delete eva", async ({ page }) => {
 
   // go to eva section
   await page.getByLabel("evas Section", { exact: true }).click();
-  await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
-    "EVA Compositions"
-  );
+  await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText("EVAs");
 
   // add eva
   const startingNumEvas = await page.getByLabel("evaList-item", { exact: true }).count();

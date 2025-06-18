@@ -15,7 +15,7 @@ export default class RexFactory extends Factory<Rex_db> {
       petStartStopTimestamp: null,
       petValueAtStartStop: "+00:00:00",
       petRunning: false,
-      evaUuid: null,
+      evaUuid: uuidv4(),
       isRunning: false,
       posEntries: null,
       posTypes: null,

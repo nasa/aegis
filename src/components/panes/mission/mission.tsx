@@ -7,6 +7,13 @@ import { useAppDispatch } from "utils/useAppDispatch";
 const MissionConfigLeft: FunctionComponent = () => {
   return (
     <>
+      <div
+        className={paneStyles.activeComponentTitle}
+        style={{ color: "var(--mission)" }}
+        aria-label="leftPanelTitle"
+      >
+        Mission Configuration
+      </div>
       <div className={paneStyles.leftPanelContainer}>
         <div className={missionStyles.container}>
           <div className={missionStyles.body}>

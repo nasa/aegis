@@ -35,9 +35,15 @@ interface EvaState {
   selectedEvaUuid: string;
   selectedEvaSequenceItemUuid: string;
   expandedEvaUuids: string[];
+  evaDropdownUIStates: EvaDropdownUIStates;
+  showRunningRexOnly: boolean;
   evas: Eva[];
   evasFromDb: Eva[];
   evasEditing: string[];
+}
+
+interface EvaDropdownUIStates {
+  [asPlannedEvaUuid: string]: string; // Maps EVA UUIDs to the currently selected dropdown item uuid
 }
 
 interface TraverseState {
@@ -77,7 +83,6 @@ type InterfaceSection =
   | "poi"
   | "station"
   | "evas"
-  | "rex"
   | "stmViewer"
   | "stmRules";
 type BottomInterfaceSection = "timeline" | "measure";
@@ -134,9 +139,6 @@ interface RexState {
   rexes: Rex[];
   rexesFromDb: Rex[];
   selectedRexUuid: string;
-  expandedRexUuids: string[];
-  selectedRexRightNavItem: string;
-  rexesEditing: string[];
   rexesPosEntriesEditing: string[];
   selectedPosEntryUuid: string;
   posEntryEditingUuid: string; //only one can be in edit mode at a time

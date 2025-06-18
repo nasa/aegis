@@ -11,6 +11,7 @@ import { EntityData } from "@mikro-orm/core";
 export const generateBlankTraverse = (partialTraverse?: Partial<Traverse>): Traverse => {
   const defaultNewTraverse: Traverse = {
     uuid: uuidv4(),
+    refUuid: uuidv4(),
     missionId: null,
     name: "",
     description: "",
@@ -38,6 +39,7 @@ export function convertTraversesTypeDbToStore(dbTraverses: Traverse_db[]): Trave
   for (const dbTraverse of dbTraverses) {
     const convertedTraverse: Traverse = {
       uuid: dbTraverse.uuid,
+      refUuid: dbTraverse.refUuid,
       missionId: dbTraverse.mission.id,
       name: dbTraverse.name,
       path: dbTraverse.path,
@@ -70,6 +72,7 @@ export function convertTraversesTypeStoreToDb(
   for (const storeTraverse of storeTraverses) {
     const convertedRecord: EntityData<Traverse_db> = {
       uuid: storeTraverse.uuid,
+      refUuid: storeTraverse.refUuid,
       mission: storeTraverse.missionId,
       name: storeTraverse.name,
       path: storeTraverse.path,

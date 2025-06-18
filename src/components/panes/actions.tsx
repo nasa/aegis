@@ -56,8 +56,6 @@ const Actions: FunctionComponent<{
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
-  const actionIsInRunningRex = !isNull(rexUuid);
-
   const [isActionHiglighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
   const [newActionUuid, setNewActionUuid] = useState(undefined);
@@ -106,7 +104,7 @@ const Actions: FunctionComponent<{
         showDwell={parentType !== "poi"}
         highlightActions={highlightActions}
         actionsCalculatedFields={actionsCalculatedFields}
-        actionIsInRunningRex={actionIsInRunningRex}
+        rexUuid={rexUuid}
       />
 
       <div className={actionsStyles.actionListContainer}>
@@ -114,7 +112,7 @@ const Actions: FunctionComponent<{
           editMode={editMode}
           showCrewHeading={parentType !== "poi"}
           editPerms={editPerms}
-          actionIsInRunningRex={actionIsInRunningRex}
+          isRex={!!rexUuid}
         />
         <div className={actionsStyles.dragableActionList}>
           <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
@@ -197,14 +195,8 @@ export const ActionsTopSection: FunctionComponent<{
   showDwell: boolean;
   highlightActions: (level3Uuid: string) => void;
   actionsCalculatedFields: ActionsCalculatedFields;
-  actionIsInRunningRex: boolean;
-}> = ({
-  actionOrderUuids,
-  showDwell,
-  highlightActions,
-  actionsCalculatedFields,
-  actionIsInRunningRex,
-}) => {
+  rexUuid: string;
+}> = ({ actionOrderUuids, showDwell, highlightActions, actionsCalculatedFields, rexUuid }) => {
   // make an array of uuids by action, of the STMs that are referenced by the action in the action STMPriorities object
   const stmUuidRefs = useAppSelector(
     (state) =>
@@ -222,14 +214,14 @@ export const ActionsTopSection: FunctionComponent<{
   );
 
   const completedStmUuidRefs = useAppSelector((state) => {
-    if (!actionIsInRunningRex) return null;
-    const runningRex = state.rex.rexes.find((r) => r.isRunning);
+    if (!rexUuid) return null;
+    const rex = state.rex.rexes.find((r) => r.uuid === rexUuid);
     const stmUuidRefs: string[][] = [];
-    for (const actionUuid in runningRex.actionEntries) {
+    for (const actionUuid in rex.actionEntries) {
       // check if this action is part of the current list (actionOrderUuids). this is to cover
       //    the case in which actions were statused, and then deleted.
       if (
-        last(runningRex.actionEntries[actionUuid])?.rexStatus === "complete" &&
+        last(rex.actionEntries[actionUuid])?.rexStatus === "complete" &&
         actionOrderUuids?.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
@@ -241,14 +233,14 @@ export const ActionsTopSection: FunctionComponent<{
   }, deepEqual);
 
   const inProgressStmUuidRefs = useAppSelector((state) => {
-    if (!actionIsInRunningRex) return null;
-    const runningRex = state.rex.rexes.find((r) => r.isRunning);
+    if (!rexUuid) return null;
+    const rex = state.rex.rexes.find((r) => r.uuid === rexUuid);
     const stmUuidRefs: string[][] = [];
-    for (const actionUuid in runningRex.actionEntries) {
+    for (const actionUuid in rex.actionEntries) {
       // check if this action is part of the current list (actionOrderUuids). this is to cover
       //    the case in which actions were statused, and then deleted.
       if (
-        last(runningRex.actionEntries[actionUuid])?.rexStatus === "in-progress" &&
+        last(rex.actionEntries[actionUuid])?.rexStatus === "in-progress" &&
         actionOrderUuids?.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
@@ -262,26 +254,26 @@ export const ActionsTopSection: FunctionComponent<{
   // there's a difference between null and 0. Only calculate rex mass if it's 0. Null means it hasn't been executed yet.
 
   const rexMass = useAppSelector((state) => {
-    if (!actionIsInRunningRex || !actionOrderUuids) return null;
-    const runningRex = state.rex.rexes.find((r) => r.isRunning);
+    if (!rexUuid || !actionOrderUuids) return null;
+    const rex = state.rex.rexes.find((r) => r.uuid === rexUuid);
     let mass = null;
     // loop through all actions
     for (const actionUuid of actionOrderUuids) {
       const action = state.action.actions.find((a) => a.uuid === actionUuid);
       if (!action || !action.enabled || !action.mass) continue;
-      if (!runningRex.actionEntries || !runningRex.actionEntries[actionUuid]) continue;
-      if (isNull(last(runningRex.actionEntries[actionUuid]).mass)) continue; // this action has a non-null mass actual entry
+      if (!rex.actionEntries || !rex.actionEntries[actionUuid]) continue;
+      if (isNull(last(rex.actionEntries[actionUuid]).mass)) continue; // this action has a non-null mass actual entry
       if (!isNull(mass)) {
-        mass += last(runningRex.actionEntries[actionUuid]).mass;
+        mass += last(rex.actionEntries[actionUuid]).mass;
       } else {
-        mass = last(runningRex.actionEntries[actionUuid]).mass;
+        mass = last(rex.actionEntries[actionUuid]).mass;
       }
     }
     return mass;
   }, refEqual);
 
   const rexMassDelta = useAppSelector((state) => {
-    if (!actionIsInRunningRex || isNull(rexMass)) return null;
+    if (!rexUuid || isNull(rexMass)) return null;
     let massPlanned = 0;
     // loop through all actions
     for (const actionUuid of actionOrderUuids) {
@@ -349,7 +341,7 @@ export const ActionsTopSection: FunctionComponent<{
                   </div>
                 </div>
               </div>
-              {actionIsInRunningRex && (
+              {rexUuid && (
                 <>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
@@ -392,8 +384,8 @@ export const ActionsListHeadings: FunctionComponent<{
   editMode: boolean;
   showCrewHeading: boolean;
   editPerms: boolean;
-  actionIsInRunningRex: boolean;
-}> = ({ editMode, showCrewHeading, editPerms, actionIsInRunningRex }) => {
+  isRex: boolean;
+}> = ({ editMode, showCrewHeading, editPerms, isRex }) => {
   const actionSystemVersion = useAppSelector(
     (state) => state.mission.mission.actionSystemVersion,
     refEqual
@@ -406,11 +398,7 @@ export const ActionsListHeadings: FunctionComponent<{
         marginRight: editMode ? "20px" : "",
       }}
     >
-      {actionIsInRunningRex && editPerms ? (
-        <div className={actionsStyles.actionListHeaderRex} />
-      ) : (
-        <></>
-      )}
+      {isRex && editPerms ? <div className={actionsStyles.actionListHeaderRex} /> : <></>}
       {actionSystemVersion === 1 && (
         <div className={actionsStyles.actionListHeaderType}>
           <div className={actionsStyles.actionListHeaderLabel}>Type</div>

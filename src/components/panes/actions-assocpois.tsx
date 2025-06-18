@@ -192,6 +192,8 @@ const Assoc_POI: FunctionComponent<{
                               actions: [poiAction],
                               stationUuid: selectedStationUuid,
                               promotingFromPoi: true,
+                              preserveRefUuid: false,
+                              saveToDb: false,
                             })
                           );
                           e.stopPropagation();

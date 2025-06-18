@@ -59,6 +59,13 @@ const PoiEditorLeft: FunctionComponent = () => {
 
   return (
     <>
+      <div
+        className={paneStyles.activeComponentTitle}
+        style={{ color: "var(--poi)" }}
+        aria-label="leftPanelTitle"
+      >
+        Points of Interest
+      </div>
       <div className={paneStyles.leftPanelContainer}>
         <div className={paneStyles.leftPanelContainerTop}>
           <div className={poiStyles.container} aria-label="poiList">

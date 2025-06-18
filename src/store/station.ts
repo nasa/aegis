@@ -124,8 +124,7 @@ export const stationSlice = createSlice({
     setSelectedStationUuid: (state, action: { payload: string }) => {
       state.selectedStationUuid = action.payload;
     },
-    setStateForNewStation: (state, action: { payload: { uuid: string } }) => {
-      state.stationsEditing.push(action.payload.uuid); // turn on edit mode for the new station
+    selectStation: (state, action: { payload: { uuid: string } }) => {
       state.selectedStationUuid = action.payload.uuid; // select the newly created station
       state.selectedRightNavItem = "info_panel";
     },
@@ -243,7 +242,7 @@ export const {
   deleteStationsFromDbByUuid,
   setSelectedStationRightNavItem,
   setSelectedStationUuid,
-  setStateForNewStation,
+  selectStation,
   setStationEditMode,
   revertWalkbackPath,
   toggleStationCircleVisible,

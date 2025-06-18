@@ -3,7 +3,6 @@ import * as httpClient_action from "http-client/action";
 import * as httpClient_mission from "http-client/mission";
 import * as httpClient_rex from "http-client/rex";
 import * as httpClient_station from "http-client/station";
-import * as httpClient_folder from "http-client/folder";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
@@ -266,8 +265,6 @@ export const auditActions = async ({
   }
 
   // update the store and db with the new values
-
-  // Actions
   const actionsToSaveToDb: Action[] = [];
   for (const [index, action] of newActions.entries()) {
     if (!isEqual(action, wholeStoreState.action.actions[index])) {
@@ -285,6 +282,7 @@ export const auditActions = async ({
   }
 };
 
+// Can this be removed? Check if new missiosn in v2 automatically get new action definitions.
 export const auditActionDefinitions = async ({
   wholeStoreState,
 }: {
@@ -314,6 +312,7 @@ export const auditActionDefinitions = async ({
   }
 };
 
+// Can this be removed?
 export const auditPosSources = async ({
   wholeStoreState,
 }: {
@@ -355,79 +354,6 @@ export const auditPosSources = async ({
     const upsertResponse = await httpClient_rex.upsertRexes(newRexes);
     if (upsertResponse.status !== "success") {
       // handle the error
-    }
-  }
-};
-
-export const auditFolders = async ({
-  wholeStoreState,
-}: {
-  wholeStoreState: WholeStoreState;
-}): Promise<void> => {
-  // remove any folder items that don't exist in the store
-  const newFolders = cloneDeep(wholeStoreState.interface.folders);
-  const foldersToSaveToDb: Folder[] = [];
-
-  for (const folder of newFolders) {
-    let isModified = false;
-
-    if (folder.items && folder.items.length > 0) {
-      const originalItems = [...folder.items];
-
-      // Filter items based on folder type
-      switch (folder.type) {
-        case "preset":
-          folder.items = folder.items.filter((itemUuid) =>
-            wholeStoreState.preset.presets.some((preset) => preset.uuid === itemUuid)
-          );
-          break;
-        case "poi":
-          folder.items = folder.items.filter((itemUuid) =>
-            wholeStoreState.poi.pois.some((poi) => poi.uuid === itemUuid)
-          );
-          break;
-        case "station":
-          folder.items = folder.items.filter((itemUuid) =>
-            wholeStoreState.station.stations.some((station) => station.uuid === itemUuid)
-          );
-          break;
-        case "eva":
-          folder.items = folder.items.filter((itemUuid) =>
-            wholeStoreState.eva.evas.some((eva) => eva.uuid === itemUuid)
-          );
-          break;
-        case "rex":
-          folder.items = folder.items.filter((itemUuid) =>
-            wholeStoreState.rex.rexes.some((rex) => rex.uuid === itemUuid)
-          );
-          break;
-        case "layer":
-          folder.items = folder.items.filter((itemUuid) =>
-            wholeStoreState.mission.layers.some((layer) => layer.uuid === itemUuid)
-          );
-          break;
-      }
-
-      // Check if items changed
-      if (!isEqual(originalItems, folder.items)) {
-        isModified = true;
-      }
-    }
-
-    // If modified, add to list to save to DB
-    if (isModified) {
-      foldersToSaveToDb.push(folder);
-    }
-  }
-
-  // update the store with the new folders
-  wholeStoreState.interface.folders = newFolders;
-
-  // save changed folders to the DB
-  if (foldersToSaveToDb.length > 0) {
-    const upsertResponse = await httpClient_folder.upsertFolders(foldersToSaveToDb);
-    if (upsertResponse.status !== "success") {
-      console.error("Error saving folders to DB:", upsertResponse.message);
     }
   }
 };

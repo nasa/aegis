@@ -11,6 +11,7 @@ import { EntityData } from "@mikro-orm/core";
 export const generateBlankStation = (partialStation?: Partial<Station>): Station => {
   const defaultNewStation: Station = {
     uuid: uuidv4(),
+    refUuid: uuidv4(),
     ownerId: null,
     missionId: null,
     poiUuids: [],
@@ -45,6 +46,7 @@ export function convertStationsTypeDbToStore(dbStations: Station_db[]): Station[
   for (const dbStation of dbStations) {
     const convertedStation: Station = {
       uuid: dbStation.uuid,
+      refUuid: dbStation.refUuid,
       ownerId: dbStation.ownerId,
       missionId: dbStation.mission.id,
       actionOrderUuids: dbStation.actionOrderUuids,
@@ -88,6 +90,7 @@ export function convertStationsTypeStoreToDb(storeStations: Station[]): EntityDa
     //poi references are not converted here, they are converted in the upsert function
     const convertedRecord: EntityData<Station_db> = {
       uuid: storeStation.uuid,
+      refUuid: storeStation.refUuid,
       ownerId: storeStation.ownerId,
       mission: storeStation.missionId,
       actionOrderUuids: storeStation.actionOrderUuids,

@@ -41,21 +41,8 @@ describe("Action Store Tests", () => {
     // Assert
     expect(result).toEqual(nextState);
   });
-  describe("Action: upsertAction success", () => {
-    it("should upsert an action by UUID", () => {
-      // Arrange
-      const nextAction = {
-        type: "action/upsertAction",
-        payload: generateBlankAction(),
-      };
-
-      // Act
-      const result = reducer(initialState, nextAction);
-      // Assert
-      expect(result.actions[0]).toEqual(nextAction.payload);
-    });
-
-    it("should upsert multiple actions", () => {
+  describe("Action: upsertActions success", () => {
+    it("action/upsertActions", () => {
       // Arrange
 
       // Action Array to dispatch
@@ -74,7 +61,7 @@ describe("Action Store Tests", () => {
       expect(result.actions[1]).toEqual(actions[1]);
     });
 
-    it("Should Upsert an action from DB", () => {
+    it("action/upsertActionsFromDb", () => {
       // Action Array to dispatch
       const actions: Action[] = [
         generateBlankAction({ uuid: "test" }),
@@ -89,26 +76,6 @@ describe("Action Store Tests", () => {
       // Assert
       expect(result.actionsFromDb[0]).toEqual(actions[0]);
       expect(result.actionsFromDb[1]).toEqual(actions[1]);
-    });
-    it("Should delete an single action", () => {
-      // Arrange
-      const nextAction = {
-        type: "action/upsertAction",
-        payload: generateBlankAction({
-          uuid: "test",
-        }),
-      };
-
-      // Act
-      const result = reducer(initialState, nextAction);
-      // Assert
-      expect(result.actions[0]).toEqual(nextAction.payload);
-      const deleteAction = {
-        type: "action/deleteActionsByUuid",
-        payload: ["test"],
-      };
-      const result2 = reducer(result, deleteAction);
-      expect(result2.actions.length).toEqual(0);
     });
     it("Should delete multiple actions", () => {
       // Action Array to dispatch

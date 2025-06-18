@@ -885,9 +885,6 @@ export const processFolders = (
             case "preset":
               mappedUuid = uuidMaps.presets.get(itemUuid);
               break;
-            case "rex":
-              mappedUuid = uuidMaps.rexes.get(itemUuid);
-              break;
             case "layer":
               mappedUuid = uuidMaps.layers.get(itemUuid);
               break;

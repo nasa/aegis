@@ -7,34 +7,18 @@ import path from "path";
 import fs from "fs";
 import { getGridFromFile } from "../grid";
 import { SCHEMA_DIR } from "utils/consts-server";
-import { QueryOrder } from "@mikro-orm/core";
 import { getEM } from "utils/mikro";
-import { Action_db, Eva_db } from "server/database/models/_allModels";
-import { isISOString } from "utils/formatting";
+import { Action_db, Eva_db, Rex_db } from "server/database/models/_allModels";
 
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const {
-    uuid,
-    stationUuid,
-    traverseUuid,
-    poiUuid,
-    evaUuid,
-    socketId,
-    missionId,
-    modifiedSince,
-    datesOnly,
-  } = query;
+  const { missionId, refUuid, evaRefUuid, rexUuid, datesOnly } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
-    actionUuid: uuid ? (uuid as string) : undefined,
-    stationUuid: stationUuid ? (stationUuid as string) : undefined,
-    poiUuid: poiUuid ? (poiUuid as string) : undefined,
-    traverseUuid: traverseUuid ? (traverseUuid as string) : undefined,
-    evaUuid: evaUuid ? (evaUuid as string) : undefined,
-    socketId: socketId ? (socketId as string) : undefined,
-    modifiedSince: modifiedSince ? (modifiedSince as string) : undefined,
+    actionRefUuid: refUuid ? (refUuid as string) : undefined,
+    evaRefUuid: evaRefUuid ? (evaRefUuid as string) : undefined,
+    rexUuid: rexUuid ? (rexUuid as string) : undefined, // if !rexUuid then use the as-planned EVA copy
     datesOnly: datesOnly === "true",
   };
   return queryObj;
@@ -60,12 +44,17 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
-
-  // Validate modifiedSince parameter if provided
-  if (queryObj.modifiedSince && !isISOString(queryObj.modifiedSince)) {
+  if (queryObj.datesOnly && !queryObj.actionRefUuid) {
     res.status(400).json({
       status: "error",
-      message: "Invalid modifiedSince format. Use ISO date string format.",
+      message: "datesOnly query requires action refUuid to be specified",
+    });
+    return;
+  }
+  if (queryObj.evaRefUuid && (queryObj.actionRefUuid || queryObj.datesOnly)) {
+    res.status(400).json({
+      status: "error",
+      message: "evaRefUuid cannot be used with action refUuid or datesOnly",
     });
     return;
   }
@@ -73,48 +62,61 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   if (queryObj.datesOnly) {
     try {
       const em = getEM();
-
-      // Build filter where clause
-      const whereClause: {
-        uuid?: string;
-        poi?: { uuid: string };
-        station?: { uuid: string };
-        traverse?: { uuid: string };
-        mission?: { id: number };
-        $or?: Array<Record<string, unknown>>;
-        updatedAt?: { $gte: Date };
-      } = {};
-      if (queryObj.actionUuid) whereClause.uuid = queryObj.actionUuid;
-      if (queryObj.poiUuid) whereClause.poi = { uuid: queryObj.poiUuid };
-      if (queryObj.stationUuid) whereClause.station = { uuid: queryObj.stationUuid };
-      if (queryObj.traverseUuid) whereClause.traverse = { uuid: queryObj.traverseUuid };
-      if (queryObj.missionId) whereClause.mission = { id: queryObj.missionId };
-
-      if (queryObj.evaUuid) {
-        const eva = await em.findOne(Eva_db, { uuid: queryObj.evaUuid });
-        if (eva) {
-          const sequenceItemUuids = eva.sequence.map((sequenceItem) => sequenceItem.uuid);
-
-          whereClause.$or = [
-            { station: { uuid: { $in: sequenceItemUuids } } },
-            { traverse: { uuid: { $in: sequenceItemUuids } } },
-          ];
-        }
+      let actions: Action_db[] = [];
+      if (queryObj.rexUuid) {
+        // get the rex version of action
+        // Get a rex eva sequence
+        const evaUuidSubquery = em.createQueryBuilder(Rex_db).select("evaUuid").where({
+          uuid: queryObj.rexUuid,
+        });
+        const evaSequencesQuery = em.createQueryBuilder(Eva_db).select(["sequence"]).where({
+          uuid: evaUuidSubquery.getKnexQuery(),
+        });
+        const evaSequences = await evaSequencesQuery.execute();
+        const evaSequenceItemUuids = evaSequences.flatMap((eva) =>
+          eva.sequence.map((sequenceItem) => sequenceItem.uuid)
+        );
+        const actionQuery = em
+          .createQueryBuilder(Action_db)
+          .select(["uuid", "createdAt", "updatedAt"])
+          .where({
+            refUuid: queryObj.actionRefUuid,
+            $or: [
+              { station: { uuid: { $in: evaSequenceItemUuids } } },
+              { traverse: { uuid: { $in: evaSequenceItemUuids } } },
+            ],
+          });
+        actions = await actionQuery.execute();
+      } else {
+        // get as-planned version of action
+        // Get all of the as-planned EVA sequences
+        const rexEvasSubquery = em.createQueryBuilder(Rex_db).select("evaUuid");
+        const evaSequencesQuery = em
+          .createQueryBuilder(Eva_db)
+          .select(["sequence"])
+          .where({
+            uuid: { $nin: rexEvasSubquery.getKnexQuery() },
+          });
+        const evaSequences = await evaSequencesQuery.execute();
+        const rexEvaSequenceItemUuids = evaSequences.flatMap((eva) =>
+          eva.sequence.map((sequenceItem) => sequenceItem.uuid)
+        );
+        // get actions that match the refUuid and are not part of a rex eva
+        const actionQuery = em
+          .createQueryBuilder(Action_db)
+          .select(["uuid", "createdAt", "updatedAt"])
+          .where({
+            refUuid: queryObj.actionRefUuid,
+            $or: [
+              { station: { uuid: { $nin: rexEvaSequenceItemUuids } } },
+              { traverse: { uuid: { $nin: rexEvaSequenceItemUuids } } },
+            ],
+          });
+        actions = await actionQuery.execute();
       }
-
-      if (queryObj.modifiedSince) {
-        const sinceDate = new Date(queryObj.modifiedSince);
-        whereClause.updatedAt = { $gte: sinceDate };
-      }
-
-      // For datesOnly, we only fetch the specific fields we need
-      const dbActions = await em.find(Action_db, whereClause, {
-        fields: ["uuid", "createdAt", "updatedAt"],
-        orderBy: { name: QueryOrder.ASC },
-      });
 
       // Transform to desired format
-      const dateActions = dbActions.map((action) => ({
+      const dateActions = actions.map((action) => ({
         actionUuid: action.uuid,
         createdAt: action.createdAt,
         updatedAt: action.updatedAt,
@@ -146,35 +148,64 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         level3s: wholeStore.level3s,
       };
 
-      let actions: Action[] = allData.actions;
-      if (queryObj.actionUuid) {
-        actions = actions.filter((action) => action.uuid === queryObj.actionUuid);
-      }
+      let actions: Action[] = [];
 
-      if (queryObj.stationUuid) {
-        actions = actions.filter((action) => action.stationUuid === queryObj.stationUuid);
-      }
-
-      if (queryObj.poiUuid) {
-        actions = actions.filter((action) => action.poiUuid === queryObj.poiUuid);
-      }
-      if (queryObj.traverseUuid) {
-        actions = actions.filter((action) => action.traverseUuid === queryObj.traverseUuid);
-      }
-      if (queryObj.evaUuid) {
-        const evaSequenceItemUuids = allData.evas
-          .find((eva) => eva.uuid === queryObj.evaUuid)
-          .sequence.map((sequenceItem) => sequenceItem.uuid);
-
-        actions = actions.filter(
-          (action) =>
-            evaSequenceItemUuids.includes(action.stationUuid) ||
-            evaSequenceItemUuids.includes(action.traverseUuid)
-        );
-      }
-      if (queryObj.modifiedSince) {
-        const sinceDate = new Date(queryObj.modifiedSince);
-        actions = actions.filter((action) => new Date(action.updatedAt) >= sinceDate);
+      if (queryObj.actionRefUuid) {
+        if (queryObj.rexUuid) {
+          // get the rex version of this action
+          const rexEvaUuid = allData.rexes.find((r) => r.uuid === queryObj.rexUuid)?.evaUuid;
+          const rexEvaSequenceItemUuids = allData.evas
+            .find((e) => e.uuid === rexEvaUuid)
+            ?.sequence?.map((sequenceItem) => sequenceItem.uuid);
+          actions = allData.actions.filter(
+            (action) =>
+              action.refUuid === queryObj.actionRefUuid &&
+              (rexEvaSequenceItemUuids?.includes(action.stationUuid) ||
+                rexEvaSequenceItemUuids?.includes(action.traverseUuid))
+          );
+        } else {
+          // get the as-planned version of this action
+          const allRexEvas = allData.rexes.map((r) => r.evaUuid);
+          const asPlannedEvasSequenceItemUuids = allData.evas
+            .filter((e) => !allRexEvas.includes(e.uuid))
+            .flatMap((e) => e.sequence.map((sequenceItem) => sequenceItem.uuid));
+          actions = allData.actions.filter(
+            (action) =>
+              action.refUuid === queryObj.actionRefUuid &&
+              (asPlannedEvasSequenceItemUuids.includes(action.stationUuid) ||
+                asPlannedEvasSequenceItemUuids.includes(action.traverseUuid))
+          );
+        }
+      } else if (queryObj.evaRefUuid) {
+        if (queryObj.rexUuid) {
+          // get the rex version of this eva
+          // technically we don't even need to check the evaRefUuid here, since we have a rexUuid
+          const rexEvaUuid = allData.rexes.find((r) => r.uuid === queryObj.rexUuid)?.evaUuid;
+          const rexEvaSequenceItemUuids = allData.evas
+            .find((e) => e.uuid === rexEvaUuid)
+            ?.sequence?.map((sequenceItem) => sequenceItem.uuid);
+          actions = allData.actions.filter(
+            (action) =>
+              rexEvaSequenceItemUuids?.includes(action.stationUuid) ||
+              rexEvaSequenceItemUuids?.includes(action.traverseUuid)
+          );
+        } else {
+          // get the as-planned copy of this eva
+          const allRexEvas = allData.rexes.map((r) => r.evaUuid);
+          const asPlannedEva = allData.evas.find(
+            (e) => e.refUuid === queryObj.evaRefUuid && !allRexEvas.includes(e.uuid)
+          );
+          if (asPlannedEva) {
+            const evaSequenceItemUuids = asPlannedEva.sequence?.map(
+              (sequenceItem) => sequenceItem.uuid
+            );
+            actions = allData.actions.filter(
+              (action) =>
+                evaSequenceItemUuids.includes(action.stationUuid) ||
+                evaSequenceItemUuids.includes(action.traverseUuid)
+            );
+          }
+        }
       }
 
       const gridCoordinates: MissionGridPoint[][] = allData.mission.activeGridUuid

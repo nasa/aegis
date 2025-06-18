@@ -21,7 +21,7 @@ export class Rex_db implements Rex_db_type {
   petValueAtStartStop: string;
   @Property({ type: MikroTypes.boolean, nullable: true })
   petRunning: boolean;
-  @Property({ type: MikroTypes.string, nullable: true })
+  @Property({ type: MikroTypes.string, nullable: false })
   evaUuid: string;
   @Property({ type: MikroTypes.boolean, nullable: true })
   isRunning: boolean;

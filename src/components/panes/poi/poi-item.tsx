@@ -5,7 +5,6 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import poiStyles from "./poi.module.css";
 import { setSelectedPoiUuid, setSelectedPOIRightNavItem } from "store/poi";
-import { clearEvaSelections } from "store/eva";
 import { decodeEmoji } from "utils/formatting";
 import { setHoverUuidsForSequence } from "store/hover";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
@@ -52,7 +51,6 @@ const PoiItem: FunctionComponent<{
           dispatch(thunkSetRightPanelIsOpenIfAuto(false));
         } else {
           dispatch(setSelectedPoiUuid(poi.uuid));
-          dispatch(clearEvaSelections());
           if (!selectedRightNavItem) dispatch(setSelectedPOIRightNavItem("info_panel"));
           dispatch(thunkSetRightPanelIsOpenIfAuto(true));
         }

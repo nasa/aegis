@@ -1,6 +1,12 @@
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
-import { setTraverseEditMode, upsertTraverses, upsertTraversesFromDb } from "store/traverse";
+import {
+  deleteTraversesByUuid,
+  deleteTraversesFromDbByUuid,
+  setTraverseEditMode,
+  upsertTraverses,
+  upsertTraversesFromDb,
+} from "store/traverse";
 import { getTotalDistance } from "utils/geoMath";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
@@ -8,7 +14,11 @@ import * as httpClient_Traverse from "http-client/traverse";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { thunkUpdateMapDirective } from "./thunkMap";
 import { isModified } from "utils/component-helpers";
-import { thunkDuplicateActions, thunkSaveActions } from "./thunkAction";
+import {
+  thunkDeleteActionsFromDbAndStore,
+  thunkDuplicateActions,
+  thunkSaveActions,
+} from "./thunkAction";
 import { v4 as uuidv4 } from "uuid";
 import { deleteActionsByUuid, upsertActions } from "store/action";
 
@@ -196,7 +206,12 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     if (saveToDb) {
-      httpClient_Traverse.upsertTraverses([newTraverse]);
+      const upsertTraverseRes = await httpClient_Traverse.upsertTraverses([newTraverse]);
+      if (upsertTraverseRes.status !== "success") {
+        throw new Error(
+          "Error upserting Traverse in fullUpdateTraverse: " + upsertTraverseRes.message
+        );
+      }
       dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
       dispatch(upsertTraversesFromDb([newTraverse]));
     } else {
@@ -319,32 +334,31 @@ export const thunkUpdateTraversesAroundStation = appCreateAsyncThunk<{
 /**
  * Save the traverse and any actions to the db
  */
-export const thunkSaveTraverse = appCreateAsyncThunk<{ traverse: Traverse }>(
+export const thunkSaveTraverse = appCreateAsyncThunk<{ traverseUuid: string }>(
   "traverseSave",
-  async ({ traverse }, { dispatch, getState }) => {
-    if (!traverse) return;
+  async ({ traverseUuid }, { dispatch, getState }) => {
+    if (!traverseUuid) return;
     const traverseActions = getState().action.actions.filter(
-      (action) => action.traverseUuid === traverse.uuid
+      (action) => action.traverseUuid === traverseUuid
     );
     const traverseActionsFromDb = getState().action.actionsFromDb.filter(
-      (action) => action.traverseUuid === traverse.uuid
+      (action) => action.traverseUuid === traverseUuid
     );
+    const traverse = getState().traverse.traverses.find((s) => s.uuid === traverseUuid);
 
     // save to db
-    const persistResponse = await httpClient_Traverse.upsertTraverses([
-      {
-        ...traverse,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      },
-    ]);
-    if (persistResponse.status === "success") {
-      dispatch(upsertTraverses([persistResponse.data[0]], true));
-      dispatch(upsertTraversesFromDb([persistResponse.data[0]]));
-    } else {
-      throw new Error("Error upserting Traverse: " + persistResponse.message);
+    const updatedTraverse = {
+      ...traverse,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    };
+    const upsertTraverseRes = await httpClient_Traverse.upsertTraverses([updatedTraverse]);
+    if (upsertTraverseRes.status !== "success") {
+      throw new Error("Error upserting Traverse: " + upsertTraverseRes.message);
     }
+    dispatch(upsertTraverses([updatedTraverse], true));
+    dispatch(upsertTraversesFromDb([updatedTraverse]));
 
-    // find out if the actions in this station have been modified and need to be persisted
+    // find out if the actions in this traverse have been modified and need to be persisted
     const actionsModified = isModified(traverseActions, traverseActionsFromDb);
     if (actionsModified) {
       dispatch(
@@ -357,7 +371,7 @@ export const thunkSaveTraverse = appCreateAsyncThunk<{ traverse: Traverse }>(
 
     // if there's an active traverse edit action, cancel it
     const traverseMapDirective =
-      getState().map.mapDirective?.uuid === traverse.uuid ? getState().map.mapDirective : null;
+      getState().map.mapDirective?.uuid === traverseUuid ? getState().map.mapDirective : null;
 
     if (traverseMapDirective?.mapAction === "editPolyline") {
       dispatch(
@@ -368,28 +382,36 @@ export const thunkSaveTraverse = appCreateAsyncThunk<{ traverse: Traverse }>(
       );
     }
 
-    dispatch(setTraverseEditMode({ uuid: traverse.uuid, editMode: false }));
+    dispatch(setTraverseEditMode({ uuid: traverseUuid, editMode: false }));
   }
 );
 
+/**
+ * Duplicate a traverse and automatically save it to the db
+ */
 export const thunkDuplicateTraverse = appCreateAsyncThunk<
-  { traverseUuid: String; newTraverseName: string },
+  { traverseUuid: String; preserveRefUuid: boolean },
   Traverse,
   false
->("traverseDuplicate", async ({ traverseUuid, newTraverseName }, { dispatch, getState }) => {
+>("traverseDuplicate", async ({ traverseUuid, preserveRefUuid }, { dispatch, getState }) => {
   if (!traverseUuid) return;
   const traverse = getState().traverse.traverses.find((s) => s.uuid === traverseUuid);
   //duplicate traverse
   const newTraverse: Traverse = cloneDeep(traverse);
   newTraverse.uuid = uuidv4();
-  newTraverse.updatedAt = null;
-  newTraverse.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
+  if (!preserveRefUuid) newTraverse.refUuid = uuidv4();
+  const newDateString = roundDateToSecond(getAccurateNow()).toISOString();
+  newTraverse.updatedAt = newDateString;
+  newTraverse.createdAt = newDateString;
   newTraverse.actionOrderUuids = [];
-  newTraverse.name = newTraverseName;
-  dispatch(upsertTraverses([newTraverse]));
-  // save the traverse to the DB but keep it in edit mode
+
+  // duplicating traverse and persist to the db
+  dispatch(upsertTraverses([newTraverse], true));
   dispatch(upsertTraversesFromDb([newTraverse]));
-  httpClient_Traverse.upsertTraverses([newTraverse]);
+  const upsertTraverseRes = await httpClient_Traverse.upsertTraverses([newTraverse]);
+  if (upsertTraverseRes.status !== "success") {
+    throw new Error("Error upserting Traverse in traverseDuplicate: " + upsertTraverseRes.message);
+  }
 
   //duplicate actions
   const traverseActions = getState()
@@ -404,10 +426,11 @@ export const thunkDuplicateTraverse = appCreateAsyncThunk<
       actions: traverseActions,
       traverseUuid: newTraverse.uuid,
       promotingFromPoi: false,
+      preserveRefUuid: preserveRefUuid,
+      saveToDb: true,
     })
   );
 
-  dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: true }));
   return newTraverse;
 });
 
@@ -452,5 +475,59 @@ export const thunkCancelTraverse = appCreateAsyncThunk<{ traverseUuid: string }>
     }
 
     dispatch(setTraverseEditMode({ uuid: traverseUuid, editMode: false }));
+  }
+);
+
+export const thunkDeleteTraverses = appCreateAsyncThunk<{ traverseUuids: string[] }>(
+  "traversesDelete",
+  async ({ traverseUuids }, { dispatch, getState }) => {
+    if (!traverseUuids || traverseUuids.length === 0) return;
+
+    const traverseActionUuidsToDelete: string[] = [];
+    for (const traverseUuid of traverseUuids) {
+      // first, if there's an active traverse map edit action for any of these traverses, cancel it
+      const traverseMapDirective =
+        getState().map.mapDirective?.uuid === traverseUuid ? getState().map.mapDirective : null;
+      if (traverseMapDirective?.mapAction === "editPolyline") {
+        dispatch(
+          thunkUpdateMapDirective({
+            ...traverseMapDirective,
+            mapAction: "cancelEditPolyline",
+          })
+        );
+      }
+
+      // delete traverse actions from store and db
+      const traverseActions = getState().action.actions.filter(
+        (action) => action.traverseUuid === traverseUuid
+      );
+      traverseActionUuidsToDelete.push(...traverseActions.map((a) => a.uuid));
+    }
+    if (traverseActionUuidsToDelete.length > 0) {
+      await dispatch(thunkDeleteActionsFromDbAndStore({ uuids: traverseActionUuidsToDelete }));
+    }
+
+    // delete any traverses that were in the db in one bulk http call
+    const traverseUuidsInDb = traverseUuids.filter((uuid) =>
+      getState()
+        .traverse.traversesFromDb.map((t) => t.uuid)
+        .includes(uuid)
+    );
+    if (traverseUuidsInDb.length > 0) {
+      const deleteRes = await httpClient_Traverse.deleteTraverses(traverseUuidsInDb);
+      if (deleteRes.status !== "success") {
+        throw new Error("Error deleting traverses: " + deleteRes.message);
+      }
+    }
+
+    // delete traverses from both copies in the store
+    dispatch(deleteTraversesByUuid(traverseUuids));
+    dispatch(deleteTraversesFromDbByUuid(traverseUuids));
+    // remove edit mode for any traverses that were in edit mode
+    for (const traverseUuid of traverseUuids.filter((uuid) =>
+      getState().traverse.traversesEditing.includes(uuid)
+    )) {
+      dispatch(setTraverseEditMode({ uuid: traverseUuid, editMode: false }));
+    }
   }
 );

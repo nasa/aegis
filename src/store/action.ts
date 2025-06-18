@@ -13,20 +13,6 @@ export const actionSlice = createSlice({
   name: "action",
   initialState,
   reducers: {
-    upsertAction: {
-      prepare: (action: Action, preserveModifiedDate: boolean = false) => {
-        if (preserveModifiedDate) {
-          return { payload: action };
-        } else {
-          return {
-            payload: { ...action, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
-          };
-        }
-      },
-      reducer: (state, action: { payload: Action }) => {
-        upsertToArrayByUuid(state.actions, action.payload);
-      },
-    },
     upsertActions: {
       prepare: (actions: Action[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
@@ -96,9 +82,6 @@ export const actionSlice = createSlice({
     setActionsFromDb: (state, action: { payload: Action[] }) => {
       state.actionsFromDb = action.payload;
     },
-    deleteActionFromDbByUuid: (state, action: { payload: string }) => {
-      state.actionsFromDb = state.actionsFromDb.filter((a) => a.uuid !== action.payload);
-    },
     deleteActionsByUuid: (state, action: { payload: string[] }) => {
       state.actions = state.actions.filter((a) => !action.payload.includes(a.uuid));
     },
@@ -119,14 +102,12 @@ export const actionSlice = createSlice({
 });
 
 export const {
-  upsertAction,
   upsertActions,
   upsertActionFromDb,
   upsertActionsFromDb,
   upsertActionByField,
   setActions,
   setActionsFromDb,
-  deleteActionFromDbByUuid,
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
   obliterateState,

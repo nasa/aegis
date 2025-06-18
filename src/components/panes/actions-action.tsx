@@ -5,7 +5,7 @@ import { FunctionComponent } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import actionStyles from "./actions-action.module.css";
-import { upsertAction, upsertActionByField } from "store/action";
+import { upsertActions, upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { decodeEmoji, hmmFromMinutes, titleCase } from "utils/formatting";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
@@ -16,7 +16,7 @@ import { collapseActions, expandActions } from "store/interface";
 import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
 import { getRexStatusDisplayProperties } from "../../utils/rex";
-import { RexStatusMenu } from "./rex/rex";
+import { RexStatusMenu } from "./rex/rex-status-menu";
 import { actionTypes } from "store/storeUtils/store";
 import { thunkUpsertActionDefinitionSelection } from "store/thunk/thunkAction";
 
@@ -84,10 +84,12 @@ const RightAction: FunctionComponent<{
       newCrew = [...currentCrew, crewMember];
     }
     dispatch(
-      upsertAction({
-        ...action,
-        crewAssigned: newCrew,
-      })
+      upsertActions([
+        {
+          ...action,
+          crewAssigned: newCrew,
+        },
+      ])
     );
   };
 
@@ -200,7 +202,7 @@ const RightAction: FunctionComponent<{
                     <Dropdown
                       selected={action.type}
                       onChange={(val) => {
-                        dispatch(upsertAction({ ...action, type: val as ActionType }));
+                        dispatch(upsertActions([{ ...action, type: val as ActionType }]));
                       }}
                       toolTip="Action Type"
                       arrowStyle={{ color: "var(--grey5)" }}

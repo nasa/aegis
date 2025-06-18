@@ -30,10 +30,17 @@ import {
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
-import { thunkFullUpdateTraverse } from "store/thunk/thunkTraverse";
 import { decodeEmoji } from "utils/formatting";
 import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 import { faClock } from "@fortawesome/free-regular-svg-icons";
+import { thunkChangeIngressEgress } from "store/thunk/thunkEva";
+import { selectAsPlannedStations } from "store/selectors";
+
+type XgressData = {
+  uuid: string; // uuid of the xgress station or "lander"
+  icon: string;
+  name: string;
+};
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -42,6 +49,16 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
     deepEqual
   );
+  // returns rex name if this is a rex eva, else returns null
+  const rexEvaName = useAppSelector((state) => {
+    const rexEvas = state.rex.rexes.map((rex) => rex.evaUuid);
+    if (rexEvas.includes(selectedEvaUuid)) {
+      return state.rex.rexes.find((rex) => rex.evaUuid === selectedEvaUuid)?.name || null;
+    } else {
+      return null;
+    }
+  }, refEqual);
+
   const missionTraverseRate = useAppSelector(
     (state) => state.mission.mission?.traverseRate,
     refEqual
@@ -62,44 +79,42 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     (state) => state.mission.mission.equipmentItems,
     shallowEqual
   );
-  const stationUuidsAndNames = useAppSelector(
+  const stationListForXgressDropdown = useAppSelector(
     (state) =>
-      state.station.stations.map((s) => {
-        return {
-          uuid: s.uuid,
-          name: s.name,
-        };
-      }),
+      selectAsPlannedStations(state)
+        .filter((station) => station.location) // only show stations with locations
+        .map((s) => {
+          return {
+            uuid: s.uuid,
+            name: s.name,
+          };
+        }),
     deepEqual
   );
 
-  const egressLocationIcon = useAppSelector((state) => {
+  const egressData: XgressData = useAppSelector((state) => {
     const station = state.station.stations.find(
       (station) => station.uuid === selectedEva.egressLocationUuid
     );
-    return station ? station.icon : "1f680"; //rocket
-  }, refEqual);
-  const egressLocationName = useAppSelector((state) => {
-    const station = state.station.stations.find(
-      (station) => station.uuid === selectedEva.egressLocationUuid
-    );
-    return station ? station.name : "Lander";
-  }, refEqual);
+    const egress: XgressData = {
+      uuid: selectedEva.egressLocationUuid,
+      icon: station ? station.icon : "1f680", //rocket
+      name: station ? station.name : "Lander",
+    };
+    return egress;
+  }, deepEqual);
 
-  const ingressLocationIcon = useAppSelector((state) => {
+  const ingressData: XgressData = useAppSelector((state) => {
     const station = state.station.stations.find(
       (station) => station.uuid === selectedEva.ingressLocationUuid
     );
-    if (!station) return "1f680"; //rocket
-    return station ? station.icon : "1f680"; //rocket
-  }, refEqual);
-
-  const ingressLocationName = useAppSelector((state) => {
-    const station = state.station.stations.find(
-      (station) => station.uuid === selectedEva.ingressLocationUuid
-    );
-    return station ? station.name : "Lander";
-  }, refEqual);
+    const ingress: XgressData = {
+      uuid: selectedEva.ingressLocationUuid,
+      icon: station ? station.icon : "1f680", //rocket
+      name: station ? station.name : "Lander",
+    };
+    return ingress;
+  }, deepEqual);
 
   const [evaDate, setEvaDate] = useState(
     selectedEva.datetime?.length > 0 ? selectedEva.datetime?.split(/[T.Z]/)[0] : ""
@@ -172,7 +187,9 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
 
   return (
     <div className={paneStyles.rightBody}>
-      <div className={paneStyles.rightBodyTitle}>EVA Information</div>
+      <div className={paneStyles.rightBodyTitle}>
+        EVA Information ({rexEvaName ? `${rexEvaName}` : "As Planned"})
+      </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
@@ -248,7 +265,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       <div className={paneStyles.inputFieldValue}>
                         {editMode ? (
                           <Dropdown
-                            selected={selectedEva.egressLocationUuid}
+                            selected={egressData.uuid}
                             arrowStyle={{ top: "1px" }}
                             containerStyle={{
                               width: "190px",
@@ -258,20 +275,24 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             selectStyle={{ width: "100%" }}
                             onChange={(val) => {
                               dispatch(
-                                upsertEvaByField(selectedEva.uuid, "egressLocationUuid", val)
-                              );
-                              dispatch(
-                                thunkFullUpdateTraverse({
-                                  traverseUuid: selectedEva.sequence[0].uuid,
-                                  saveToDb: false,
-                                  rename: true,
+                                thunkChangeIngressEgress({
+                                  type: "egress",
+                                  evaUuid: selectedEva.uuid,
+                                  newStationUuidOrLander: val,
                                 })
                               );
                             }}
                             toolTip="Egress Location"
                           >
+                            {rexEvaName && egressData.uuid !== "lander" ? (
+                              <option value={egressData.uuid}>
+                                {egressData.name} (As Executed)
+                              </option>
+                            ) : (
+                              <></>
+                            )}
                             <option value="lander">Lander</option>
-                            {stationUuidsAndNames.map((station) => {
+                            {stationListForXgressDropdown.map((station) => {
                               return (
                                 <option key={station.uuid} value={station.uuid}>
                                   {station.name}
@@ -282,9 +303,9 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         ) : (
                           <div className={evaStyles.stationWrapperRight}>
                             <div className={evaStyles.iconCustomSmall}>
-                              {decodeEmoji(egressLocationIcon)}
+                              {decodeEmoji(egressData.icon)}
                             </div>
-                            <div className={evaStyles.stationNameRight}>{egressLocationName}</div>
+                            <div className={evaStyles.stationNameRight}>{egressData.name}</div>
                           </div>
                         )}
                       </div>
@@ -297,7 +318,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       <div className={paneStyles.inputFieldValue}>
                         {editMode ? (
                           <Dropdown
-                            selected={selectedEva.ingressLocationUuid}
+                            selected={ingressData.uuid}
                             arrowStyle={{ top: "1px" }}
                             containerStyle={{
                               width: "190px",
@@ -307,21 +328,24 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             selectStyle={{ width: "100%" }}
                             onChange={(val) => {
                               dispatch(
-                                upsertEvaByField(selectedEva.uuid, "ingressLocationUuid", val)
-                              );
-                              dispatch(
-                                thunkFullUpdateTraverse({
-                                  traverseUuid:
-                                    selectedEva.sequence[selectedEva.sequence.length - 1].uuid,
-                                  saveToDb: false,
-                                  rename: true,
+                                thunkChangeIngressEgress({
+                                  type: "ingress",
+                                  evaUuid: selectedEva.uuid,
+                                  newStationUuidOrLander: val,
                                 })
                               );
                             }}
                             toolTip="Ingress Location"
                           >
+                            {rexEvaName && ingressData.uuid !== "lander" ? (
+                              <option value={ingressData.uuid}>
+                                {ingressData.name} (As Executed)
+                              </option>
+                            ) : (
+                              <></>
+                            )}
                             <option value="lander">Lander</option>
-                            {stationUuidsAndNames.map((station) => {
+                            {stationListForXgressDropdown.map((station) => {
                               return (
                                 <option key={station.uuid} value={station.uuid}>
                                   {station.name}
@@ -332,9 +356,9 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         ) : (
                           <div className={evaStyles.stationWrapperRight}>
                             <div className={evaStyles.iconCustomSmall}>
-                              {decodeEmoji(ingressLocationIcon)}
+                              {decodeEmoji(ingressData.icon)}
                             </div>
-                            <div className={evaStyles.stationNameRight}>{ingressLocationName}</div>
+                            <div className={evaStyles.stationNameRight}>{ingressData.name}</div>
                           </div>
                         )}
                       </div>

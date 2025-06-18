@@ -27,12 +27,13 @@ import { faSquare } from "@fortawesome/free-regular-svg-icons";
 import debounce from "lodash/debounce";
 
 export const Button: FunctionComponent<{
-  onClick: () => void;
+  onClick: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   label?: string;
   ariaLabel?: string;
   toolTip?: string;
   icon?: IconDefinition;
   style?: CSSProperties;
+  className?: string;
   labelStyle?: CSSProperties;
   size?: "xs" | "lg";
   enabled?: boolean;
@@ -44,6 +45,7 @@ export const Button: FunctionComponent<{
   toolTip,
   icon,
   style,
+  className,
   labelStyle,
   size,
   enabled = true,
@@ -52,11 +54,11 @@ export const Button: FunctionComponent<{
   const enabledStyle = !enabled ? styles.buttonDisabled : "";
   return (
     <div
-      className={`${styles.button} ${enabledStyle} `}
+      className={`${styles.button} ${className} ${enabledStyle} `}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={toolTip}
-      onClick={() => {
-        if (enabled) onClick();
+      onClick={(e) => {
+        if (enabled) onClick(e);
       }}
       style={style}
       aria-label={ariaLabel || label || ""}
@@ -119,10 +121,22 @@ export const Dropdown: FunctionComponent<{
   selected: string;
   containerStyle?: CSSProperties;
   selectStyle?: CSSProperties;
+  selectClassName?: string;
   arrowStyle?: CSSProperties;
+  arrowClassName?: string;
   toolTip?: string;
   onChange: (value: string) => void;
-}> = ({ children, selected, containerStyle, selectStyle, arrowStyle, toolTip, onChange }) => {
+}> = ({
+  children,
+  selected,
+  containerStyle,
+  selectStyle,
+  selectClassName,
+  arrowStyle,
+  arrowClassName,
+  toolTip,
+  onChange,
+}) => {
   return (
     <div
       className={styles.select}
@@ -132,16 +146,18 @@ export const Dropdown: FunctionComponent<{
     >
       <select
         value={selected}
+        className={selectClassName}
         style={selectStyle}
         aria-label="dropdown"
         onChange={(e) => onChange(e.target.value)}
         onClick={(e) => {
           e.stopPropagation();
+          e.preventDefault();
         }}
       >
         {children}
       </select>
-      <div className={styles.select_arrow} style={arrowStyle}>
+      <div className={`${styles.select_arrow} ${arrowClassName}`} style={arrowStyle}>
         <FontAwesomeIcon icon={faChevronDown} size="xs" />
       </div>
     </div>

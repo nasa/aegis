@@ -11,12 +11,9 @@ import { getGridFromFile } from "../grid";
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { uuid, socketId, evaUuid, missionId } = query;
+  const { missionId } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
-    traverseUuid: uuid ? (uuid as string) : undefined,
-    evaUuid: evaUuid ? (evaUuid as string) : undefined,
-    socketId: socketId ? (socketId as string) : undefined,
   };
   return queryObj;
 };
@@ -56,18 +53,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       level3s: wholeStore.level3s,
     };
 
-    let traverses = allData.traverses;
-    if (queryObj.evaUuid) {
-      const chosenEvaTraverseSequenceItems = allData.evas
-        .find((eva) => eva.uuid === queryObj.evaUuid)
-        ?.sequence.filter((sequenceItem) => sequenceItem.type === "traverse");
-      traverses = traverses.filter((traverse) =>
-        chosenEvaTraverseSequenceItems?.some((sequenceItem) => sequenceItem.uuid === traverse.uuid)
-      );
-    }
-    if (queryObj.traverseUuid) {
-      traverses = traverses.filter((traverse) => traverse.uuid === queryObj.traverseUuid);
-    }
+    // get all as-planned traverses
+    const allRexEvaUuids = allData.rexes.map((r) => r.evaUuid);
+    const asPlannedEvasSequenceItemUuids = allData.evas
+      .filter((e) => !allRexEvaUuids.includes(e.uuid))
+      .flatMap((e) => e.sequence.map((seq) => seq.uuid));
+    const asPlannedTraverses = allData.traverses.filter((t) =>
+      asPlannedEvasSequenceItemUuids.includes(t.uuid)
+    );
+    const traverses: Traverse[] = asPlannedTraverses;
 
     const gridCoordinates: MissionGridPoint[][] = allData.mission.activeGridUuid
       ? await getGridFromFile(queryObj.missionId, allData.mission.activeGridUuid)

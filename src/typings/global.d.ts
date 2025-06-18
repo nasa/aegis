@@ -1,4 +1,4 @@
-type MikroORM = import("@mikro-orm/core").MikroORM;
+type MikroORM = import("@mikro-orm/postgresql").MikroORM;
 type Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, SocketData> =
   import("socket.io").Server<
     ClientToServerEvents,

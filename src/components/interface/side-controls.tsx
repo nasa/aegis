@@ -3,7 +3,7 @@ import isNil from "lodash/isNil";
 import flatten from "lodash/flatten";
 import styles from "./side-controls.module.css";
 import { FunctionComponent, useEffect } from "react";
-import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual, shallowEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -17,7 +17,6 @@ import {
 } from "store/interface";
 
 import { getPaneTypes } from "components/interface/_paneTypes";
-import { setSelectedEvaUuid, setSelectedEvaRightNavItem } from "store/eva";
 import NavTimeline from "components/interface/timeline/timeline";
 import { isModified } from "utils/component-helpers";
 import paneStyles from "../panes/global-pane-styles.module.css";
@@ -32,6 +31,8 @@ import {
 import Measure from "./measure/measure";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import FontFaceObserver from "fontfaceobserver";
+import { setSelectedStationUuid } from "store/station";
+import { selectAsPlannedStations } from "store/selectors";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 export const LeftControlPanel: FunctionComponent = () => {
@@ -49,24 +50,15 @@ export const LeftControlPanel: FunctionComponent = () => {
   const paneTypes = getPaneTypes(actionSystemVersion);
 
   let ActiveComponent = null;
-  let title = null;
   const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
   if (!isNil(paneType)) {
     ActiveComponent = paneType.leftPane;
-    title = paneType.title;
   }
 
   return (
     <>
       {leftPanelOpen && (
         <div className={styles.activeComponent}>
-          <div
-            className={styles.activeComponentTitle}
-            style={{ color: paneType.color }}
-            aria-label="leftPanelTitle"
-          >
-            {title}
-          </div>
           <ActiveComponent />
         </div>
       )}
@@ -320,6 +312,10 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
     (state) => state.station.selectedStationUuid,
     refEqual
   );
+  const asPlannedStationUuids = useAppSelector(
+    (state) => selectAsPlannedStations(state).map((s) => s.uuid),
+    deepEqual
+  );
   const poiActions = useAppSelector(
     (state) =>
       state.action.actions
@@ -370,6 +366,11 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
       }),
     deepEqual
   );
+  const selectedEvaSequenceItemUuid = useAppSelector(
+    (state) => state.eva.selectedEvaSequenceItemUuid,
+    refEqual
+  );
+  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
   const traverses = useAppSelector(
     (state) =>
       state.traverse.traverses.map((t) => {
@@ -384,30 +385,9 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
       }),
     deepEqual
   );
-  const rexes = useAppSelector(
-    (state) =>
-      state.rex.rexes.map((r) => {
-        return { uuid: r.uuid, updatedAt: r.updatedAt };
-      }),
-    deepEqual
-  );
-  const rexesFromDb = useAppSelector(
-    (state) =>
-      state.rex.rexesFromDb.map((r) => {
-        return { uuid: r.uuid, updatedAt: r.updatedAt };
-      }),
-    deepEqual
-  );
-  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
-  const runningRex = useAppSelector((state) => state.rex.rexes.find((r) => r.isRunning), refEqual);
-
-  const selectedEvaRightNavItem = useAppSelector(
-    (state) => state.eva.selectedEvaRightNavItem,
-    refEqual
-  );
   const actionSystemVersion = useAppSelector(
     (state) => state.mission.mission.actionSystemVersion,
-    refEqual
+    shallowEqual
   );
 
   const paneTypes = getPaneTypes(actionSystemVersion);
@@ -457,9 +437,6 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
               const evaStationsModified = isModified(evaStations, evaStationsFromDb);
               itemModified = evasModified || traversesModified || evaStationsModified;
               break;
-            case "rex":
-              itemModified = isModified(rexes, rexesFromDb);
-              break;
           }
 
           const pane: PaneType = paneTypes[interfaceSection as keyof PaneTypes];
@@ -487,28 +464,36 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
                       break;
                     case "preset":
                       dispatch(thunkSetRightPanelIsOpenIfAuto(selectedPresetUuid !== null));
-                      dispatch(setSelectedEvaUuid(null));
                       break;
                     case "poi":
                       dispatch(thunkSetRightPanelIsOpenIfAuto(selectedPoiUuid !== null));
-                      dispatch(setSelectedEvaUuid(null));
                       break;
                     case "station":
-                      dispatch(thunkSetRightPanelIsOpenIfAuto(selectedStationUuid !== null));
-                      dispatch(setSelectedEvaUuid(null));
+                      // scenario: executed station is selected in eva section. tab to station section.
+                      //  need to update right station panel to be blank becuase executed station is not in station section
+                      if (!asPlannedStationUuids.includes(selectedStationUuid)) {
+                        dispatch(setSelectedStationUuid(null));
+                        dispatch(thunkSetRightPanelIsOpenIfAuto(false));
+                      } else {
+                        dispatch(thunkSetRightPanelIsOpenIfAuto(selectedStationUuid !== null));
+                      }
+
                       break;
                     case "evas":
-                      dispatch(thunkSetRightPanelIsOpenIfAuto(false));
-                      break;
-                    case "rex":
-                      dispatch(thunkSetRightPanelIsOpenIfAuto(selectedRexUuid !== null));
-                      if (runningRex) {
-                        dispatch(setSelectedEvaUuid(runningRex.evaUuid));
-                      } else {
-                        dispatch(setSelectedEvaUuid(null));
+                      dispatch(
+                        thunkSetRightPanelIsOpenIfAuto(
+                          !!selectedEvaUuid || !!selectedEvaSequenceItemUuid
+                        )
+                      );
+                      // scenario: as-planned station is selected in station section. tab to eva section where a executed-station was previouly selected
+                      //  need to update right station panel to show sequence item station
+                      if (
+                        selectedEvaSequenceItemUuid &&
+                        stations.some((s) => s.uuid === selectedEvaSequenceItemUuid)
+                      ) {
+                        dispatch(setSelectedStationUuid(selectedEvaSequenceItemUuid));
                       }
-                      if (!selectedEvaRightNavItem)
-                        dispatch(setSelectedEvaRightNavItem("info_panel"));
+                      break;
                   }
                 }}
               >

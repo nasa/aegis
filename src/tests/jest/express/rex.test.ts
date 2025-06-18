@@ -56,7 +56,7 @@ beforeAll(async () => {
 describe("REX API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newRex: Rex = generateBlankRex({ name: "Jest Rex-1" });
+  let newRex: Rex = generateBlankRex({ name: "Jest Rex-1", evaUuid: "someEvaUuid" });
 
   test("Returns auth failure", async () => {
     const res = await supertest(app).get("/api/v1/rex");
@@ -222,7 +222,7 @@ describe("REX API Endpoint", () => {
 
 describe("Auth with emss-token header", () => {
   const emssToken = process.env.EMSS_TOKEN || "";
-  let newRex: Rex = generateBlankRex({ name: "Jest Rex-1" });
+  let newRex: Rex = generateBlankRex({ name: "Jest Rex-1", evaUuid: "someEvaUuid" });
 
   test("GET request succeeds with emss-token", async () => {
     const res = await supertest(app)

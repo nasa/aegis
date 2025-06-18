@@ -11,11 +11,9 @@ import { SCHEMA_DIR } from "utils/consts-server";
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { uuid, socketId, missionId } = query;
+  const { missionId } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
-    stationUuid: uuid ? (uuid as string) : undefined,
-    socketId: socketId ? (socketId as string) : undefined,
   };
   return queryObj;
 };
@@ -55,10 +53,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       level3s: wholeStore.level3s,
     };
 
-    let stations = allData.stations;
-    if (queryObj.stationUuid) {
-      stations = stations.filter((station) => station.uuid === queryObj.stationUuid);
-    }
+    // get all as-planned stations or stations not in an EVA
+    const allRexEvaUuids = allData.rexes.map((r) => r.evaUuid);
+    const asPlannedEvasSequenceItemUuids = allData.evas
+      .filter((e) => !allRexEvaUuids.includes(e.uuid))
+      ?.flatMap((e) => e.sequence.map((seq) => seq.uuid));
+    const notRexStationsUuids = allData.stations.filter((s) =>
+      asPlannedEvasSequenceItemUuids.includes(s.uuid)
+    );
+    const stations: Station[] = notRexStationsUuids;
 
     const gridCoordinates: MissionGridPoint[][] = allData.mission.activeGridUuid
       ? await getGridFromFile(queryObj.missionId, allData.mission.activeGridUuid)

@@ -74,7 +74,6 @@
 }
 
 .rootDroppableArea {
-  padding: 2px;
   border-radius: var(--radius);
   min-height: 35px;
   background-color: var(--grey2);
@@ -107,7 +106,7 @@
 .menu {
   position: fixed;
   z-index: 100;
-  width: 210px;
+  width: 130px;
   background-color: var(--grey3);
   color: var(--grey5);
   border: 1px solid var(--grey4);
