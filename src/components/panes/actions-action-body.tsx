@@ -202,16 +202,16 @@ const RightActionBody: FunctionComponent<{
             <div className={paneStyles.panelColumnTable}>
               <div className={paneStyles.panelColumnTableRow}>
                 <div className={paneStyles.panelColumnTableCellLeft}>
-                  <div className={paneStyles.inputFieldLabel}>Nominal Duration (mins):</div>
+                  <div className={paneStyles.inputFieldLabel}>Duration (mins):</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldValue}>
                     <InLineEditInput
-                      value={action.durationLower?.toString()}
+                      value={action.duration?.toString()}
                       editing={editMode}
                       fieldProps={{
-                        name: "durationLower",
-                        ariaLabel: "Minimum Time in minutes",
+                        name: "duration",
+                        ariaLabel: "Duration in minutes",
                         style: { width: "45px" },
                         validators: [
                           validators.maxLength(4),
@@ -224,46 +224,9 @@ const RightActionBody: FunctionComponent<{
                         },
                       }}
                       onSubmit={(value: string) => {
-                        dispatch(
-                          upsertActionByField(action.uuid, "durationLower", toDecimal(value))
-                        );
+                        dispatch(upsertActionByField(action.uuid, "duration", toDecimal(value)));
                       }}
-                      key={`${action.uuid}-durationLower`}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className={paneStyles.panelColumnTable}>
-              <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
-                  <div className={paneStyles.inputFieldLabel}>Max Duration (mins):</div>
-                </div>
-                <div className={paneStyles.panelColumnTableCell}>
-                  <div className={paneStyles.inputFieldValue}>
-                    <InLineEditInput
-                      value={action.durationUpper?.toString()}
-                      editing={editMode}
-                      fieldProps={{
-                        name: "durationUpper",
-                        ariaLabel: "Maximum Time in minutes",
-                        style: { width: "45px" },
-                        validators: [
-                          validators.maxLength(4),
-                          validators.mustBeInteger,
-                          validators.required,
-                          // validators.mustBeNumberGTZero,
-                        ],
-                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                          e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
-                        },
-                      }}
-                      onSubmit={(value: string) => {
-                        dispatch(
-                          upsertActionByField(action.uuid, "durationUpper", toDecimal(value))
-                        );
-                      }}
-                      key={`${action.uuid}-durationUpper`}
+                      key={`${action.uuid}-duration`}
                     />
                   </div>
                 </div>

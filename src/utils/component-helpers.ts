@@ -40,15 +40,6 @@ export const getAlertColor = (
   return alertIconColor;
 };
 
-export const displayFormattedTotalTimeObj = (totalTimeObj: TotalTimeObj): string => {
-  if (!totalTimeObj || !totalTimeObj.durationLower || !totalTimeObj.durationUpper) return null;
-  if (totalTimeObj.durationLower === totalTimeObj.durationUpper) {
-    return `${Math.round(totalTimeObj.durationLower)}`;
-  } else {
-    return `${Math.round(totalTimeObj.durationLower)} - ${Math.round(totalTimeObj.durationUpper)}`;
-  }
-};
-
 /**
  * Compares two arrays of objects that must contain at least uuid and updated at.
  * Objects in array are sorted by uuid before compared

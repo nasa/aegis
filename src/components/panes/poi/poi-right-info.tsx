@@ -7,7 +7,6 @@ import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { setSelectedPOIRightNavItem, upsertPoiByField } from "store/poi";
-import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import round from "lodash/round";
 import { validators } from "components/interface/form/formValidators";
@@ -149,10 +148,10 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {poiCalcFields?.totalActionTime?.durationLower === 0 ? (
+                        {poiCalcFields?.totalActionTime === 0 ? (
                           <>0</>
                         ) : (
-                          <>{displayFormattedTotalTimeObj(poiCalcFields?.totalActionTime)}</>
+                          <>{poiCalcFields?.totalActionTime.toFixed(0)}</>
                         )}
                       </div>
                     </div>

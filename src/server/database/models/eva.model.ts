@@ -26,7 +26,7 @@ export class Eva_db implements Eva_db_type {
   @Property({ type: MikroTypes.text, nullable: true })
   description!: string;
   @Property({ type: MikroTypes.float, nullable: true })
-  maxDuration!: number;
+  duration!: number;
   @Property({ type: MikroTypes.float, nullable: true })
   traverseRate!: number;
   @Property({ type: MikroTypes.float, nullable: true })

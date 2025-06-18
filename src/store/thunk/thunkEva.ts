@@ -370,7 +370,7 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
       missionId: getState().mission.mission?.id,
       name: randomName,
       traverseRate: getState().mission.mission.traverseRate,
-      maxDuration: getState().mission.mission.defaultEvaDuration,
+      duration: getState().mission.mission.defaultEvaDuration,
     });
 
     // create an empty traverse

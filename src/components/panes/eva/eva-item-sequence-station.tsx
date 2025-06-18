@@ -11,6 +11,7 @@ import {
   hhmmssFromSeconds,
   hmmFromMinutes,
   decodeEmoji,
+  isNotNumber,
 } from "utils/formatting";
 import { setHoverUuidsForSequence } from "store/hover";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -174,14 +175,16 @@ const SequenceItemStation: FunctionComponent<{
   };
 
   const displayStationDwellTime = useCallback(() => {
-    const durationMinutes = thisStationCalculatedFields?.totalDwellTime.durationUpper || null;
-    return !isNaN(durationMinutes) ? hmmFromMinutes(durationMinutes) : "N/A";
-  }, [thisStationCalculatedFields]);
+    const durationMinutes = isNotNumber(thisStation?.duration)
+      ? thisStationCalculatedFields?.totalDwellTime || null
+      : thisStation.duration;
+    return isNotNumber(durationMinutes) ? "N/A" : hmmFromMinutes(durationMinutes);
+  }, [thisStation?.duration, thisStationCalculatedFields?.totalDwellTime]);
 
   const displayInProgressItemTimeRemaining = useCallback(
     (rexPetSeconds: number) => {
       if (!sequenceItemCalculatedData) return "N/A";
-      const secondsRemaining = (sequenceItemCalculatedData.endSeconds - rexPetSeconds) * -1;
+      const secondsRemaining = (sequenceItemCalculatedData.manualEndSeconds - rexPetSeconds) * -1;
       return hhmmssFromSeconds(secondsRemaining);
     },
     [sequenceItemCalculatedData]

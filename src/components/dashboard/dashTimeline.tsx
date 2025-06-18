@@ -205,7 +205,7 @@ const DashTimeline: FunctionComponent = () => {
       <EVAMaxTimeline
         pixelsPerSecondY={pixelsPerSecondY}
         evaLengthCalculatedMins={storeRef.current.evaLengthCalculatedMins}
-        maxDuration={runningEvaFromDb?.maxDuration}
+        duration={runningEvaFromDb?.duration}
       />
       <RexTimeline
         pixelsPerSecondY={pixelsPerSecondY}
@@ -381,21 +381,21 @@ const RexTimeline: FunctionComponent<{
 const EVAMaxTimeline: FunctionComponent<{
   pixelsPerSecondY: number;
   evaLengthCalculatedMins: number;
-  maxDuration: number;
-}> = ({ pixelsPerSecondY, evaLengthCalculatedMins, maxDuration }) => {
+  duration: number;
+}> = ({ pixelsPerSecondY, evaLengthCalculatedMins, duration }) => {
   return (
     <div className={styles.markerContainer}>
       <div
         className={styles.marker}
         style={{
-          top: `${maxDuration * 60 * pixelsPerSecondY}px`,
+          top: `${duration * 60 * pixelsPerSecondY}px`,
         }}
       >
         <div
           className={styles.markerLine}
           style={{
             borderTop:
-              maxDuration < evaLengthCalculatedMins
+              duration < evaLengthCalculatedMins
                 ? "5px solid var(--warning)"
                 : "5px solid var(--grey5)",
           }}
@@ -404,11 +404,10 @@ const EVAMaxTimeline: FunctionComponent<{
           className={styles.markerTime}
           style={{
             color: "black",
-            backgroundColor:
-              maxDuration < evaLengthCalculatedMins ? "var(--warning)" : "var(--grey5)",
+            backgroundColor: duration < evaLengthCalculatedMins ? "var(--warning)" : "var(--grey5)",
           }}
         >
-          {hhmmFromMinutes(maxDuration)}
+          {hhmmFromMinutes(duration)}
         </div>
       </div>
     </div>

@@ -26,9 +26,7 @@ export class Traverse_db implements Traverse_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   pathSegmentElevations: number[][];
   @Property({ type: MikroTypes.float, nullable: true })
-  predictedDurationLower: number;
-  @Property({ type: MikroTypes.float, nullable: true })
-  predictedDurationUpper: number;
+  duration: number;
   @Property({ type: MikroTypes.text, nullable: true })
   description: string;
   @Property({ type: MikroTypes.string, nullable: true })

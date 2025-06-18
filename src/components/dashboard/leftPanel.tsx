@@ -51,10 +51,10 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
     }
     return calculatedFields;
   }, deepEqual);
-  const evaMaxDuration = useAppSelector((state) => {
+  const evaDuration = useAppSelector((state) => {
     const evaDuration = state.eva.evasFromDb.find(
       (eva) => eva.uuid === runningRexFromDb?.evaUuid
-    )?.maxDuration;
+    )?.duration;
     return evaDuration || state.mission.mission?.defaultEvaDuration;
   }, deepEqual);
 
@@ -126,7 +126,7 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
         (si) => si.uuid === sequenceItem.uuid
       );
       const secondsRemaining =
-        (sequenceItemMetadata.endSeconds - secondsFromhhmmss(rexPetTime)) * -1;
+        (sequenceItemMetadata.manualEndSeconds - secondsFromhhmmss(rexPetTime)) * -1;
       sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
       break;
     }
@@ -138,7 +138,7 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
     if (ingressEntry.rexStatus === "in-progress") {
       itemInProgressType = "Ingress";
       const secondsRemaining =
-        (evaMaxDuration * 60 + eva.ingressDuration * 60 - secondsFromhhmmss(rexPetTime)) * -1;
+        (evaDuration * 60 + eva.ingressDuration * 60 - secondsFromhhmmss(rexPetTime)) * -1;
       sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
 
       // get location name
@@ -173,7 +173,7 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
           </div>
           <div className={styles.dataCell}>
             <div className={styles.label}>Total Duration</div>
-            <div className={styles.valueHalf}>{hhmmssFromSeconds(evaMaxDuration * 60)}</div>
+            <div className={styles.valueHalf}>{hhmmssFromSeconds(evaDuration * 60)}</div>
           </div>
         </div>
         <div className={styles.break} />

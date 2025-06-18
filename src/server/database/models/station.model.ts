@@ -51,9 +51,7 @@ export class Station_db implements Station_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   actionOrderUuids: string[];
   @Property({ type: MikroTypes.float, nullable: true })
-  durationLower!: number;
-  @Property({ type: MikroTypes.float, nullable: true })
-  durationUpper: number;
+  duration: number;
   @Property({ type: MikroTypes.string, nullable: true })
   icon: string;
   @Property({ type: MikroTypes.integer, nullable: true })

@@ -293,19 +293,19 @@ export async function actionTemplatesTest(page: Page): Promise<string> {
 
   // Test expand all and collapse all in viewing and edit mode
   await page.getByLabel("Expand All Button", { exact: true }).click();
-  await expect(page.getByLabel("Minimum Time in minutes", { exact: true })).toHaveCount(
+  await expect(page.getByLabel("Duration in minutes", { exact: true })).toHaveCount(
     startingNumTemplates + 2
   );
   await page.getByLabel("Collapse All Button", { exact: true }).click();
-  await expect(page.getByLabel("Minimum Time in minutes", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Duration in minutes", { exact: true })).toHaveCount(0);
 
   await page.getByLabel("Edit", { exact: true }).click();
   await page.getByLabel("Expand All Button", { exact: true }).click();
-  await expect(page.getByLabel("Minimum Time in minutes", { exact: true })).toHaveCount(
+  await expect(page.getByLabel("Duration in minutes", { exact: true })).toHaveCount(
     startingNumTemplates + 2
   );
   await page.getByLabel("Collapse All Button", { exact: true }).click();
-  await expect(page.getByLabel("Minimum Time in minutes", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Duration in minutes", { exact: true })).toHaveCount(0);
 
   await page.getByLabel("cancelButton", { exact: true }).click();
 

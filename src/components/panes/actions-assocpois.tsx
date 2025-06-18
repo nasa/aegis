@@ -163,9 +163,9 @@ const Assoc_POI: FunctionComponent<{
                     <div
                       className={actionStyles.actionHeadingRightItem}
                       data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html={"Max Duration (mins)"}
+                      data-tooltip-html={"Duration (mins)"}
                     >
-                      {hmmFromMinutes(poiAction.durationUpper)}
+                      {hmmFromMinutes(poiAction.duration)}
                     </div>
                   </div>
                 </div>

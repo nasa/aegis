@@ -9,7 +9,6 @@ import clone from "lodash/clone";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
 import { STM_Coverage } from "./stm/stm-coverage";
-import { displayFormattedTotalTimeObj } from "utils/component-helpers";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCreateAction, thunkGetHighlightedActions } from "store/thunk/thunkAction";
 import CalculatedDwell from "./calculated-dwell";
@@ -323,10 +322,10 @@ export const ActionsTopSection: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.displayFieldValue}>
-                    {actionsCalculatedFields?.totalActionTime.durationLower === 0 ? (
+                    {actionsCalculatedFields?.totalActionTime === 0 ? (
                       <>0</>
                     ) : (
-                      <>{displayFormattedTotalTimeObj(actionsCalculatedFields?.totalActionTime)}</>
+                      <>{actionsCalculatedFields?.totalActionTime.toFixed(0)}</>
                     )}
                   </div>
                 </div>

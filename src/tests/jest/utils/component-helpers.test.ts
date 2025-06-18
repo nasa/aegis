@@ -1,9 +1,4 @@
-import {
-  getAlertColor,
-  isModified,
-  makeTraverseRateString,
-  displayFormattedTotalTimeObj,
-} from "utils/component-helpers";
+import { getAlertColor, isModified, makeTraverseRateString } from "utils/component-helpers";
 
 describe("getAlertColor", () => {
   test("returns 'var(--alert)' for reportItems with 'error'", () => {
@@ -41,37 +36,6 @@ describe("getAlertColor", () => {
       { uuid: "", type: "station", name: null, reportItems: [{ message: null, type: "info" }] },
     ];
     expect(getAlertColor(reportItems, evaReportSequenceItems)).toBe("white");
-  });
-});
-
-describe("displayFormattedTotalTimeObj", () => {
-  test("returns null if totalTimeObj is null or undefined", () => {
-    expect(displayFormattedTotalTimeObj(null)).toBeNull();
-    expect(displayFormattedTotalTimeObj(undefined)).toBeNull();
-  });
-
-  test("returns null if durationLower or durationUpper is not provided", () => {
-    const totalTimeObj1: TotalTimeObj = { durationLower: undefined, durationUpper: 5 };
-    const totalTimeObj2: TotalTimeObj = { durationLower: 5, durationUpper: undefined };
-    const totalTimeObj3: TotalTimeObj = { durationLower: 0, durationUpper: 5 }; // Testing if 0 is considered a valid value
-    expect(displayFormattedTotalTimeObj(totalTimeObj1)).toBeNull();
-    expect(displayFormattedTotalTimeObj(totalTimeObj2)).toBeNull();
-    expect(displayFormattedTotalTimeObj(totalTimeObj3)).toBeNull(); // 0 should return null as it's falsy
-  });
-
-  test("returns rounded duration when durationLower and durationUpper are equal", () => {
-    const totalTimeObj = { durationLower: 5.1, durationUpper: 5.1 };
-    expect(displayFormattedTotalTimeObj(totalTimeObj)).toBe("5");
-  });
-
-  test("returns rounded range when durationLower and durationUpper are different", () => {
-    const totalTimeObj = { durationLower: 4.5, durationUpper: 9.7 };
-    expect(displayFormattedTotalTimeObj(totalTimeObj)).toBe("5 - 10");
-  });
-
-  test("handles very large numbers correctly", () => {
-    const totalTimeObj = { durationLower: 1000.3, durationUpper: 2000.6 };
-    expect(displayFormattedTotalTimeObj(totalTimeObj)).toBe("1000 - 2001");
   });
 });
 

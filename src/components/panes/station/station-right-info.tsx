@@ -16,14 +16,14 @@ import { Button, InLineEditInput } from "components/interface/form/globalFields"
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStationByField } from "store/station";
 import { calcCentroidofCoordinates, findGridCoordinatesFromPoint } from "utils/geoMath";
-import { formatNumberWithCommas, toDecimal } from "utils/formatting";
+import { formatNumberWithCommas, isNotNumber, toDecimal } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
   thunkResetWalkback,
   thunkUpdateStationLatLngField,
   thunkUpdateStationLocation,
 } from "store/thunk/thunkStation";
-import { displayFormattedTotalTimeObj, makeTraverseRateString } from "utils/component-helpers";
+import { makeTraverseRateString } from "utils/component-helpers";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import round from "lodash/round";
 import { validators, regExValidators } from "components/interface/form/formValidators";
@@ -258,57 +258,16 @@ const Info_Panel: FunctionComponent<{
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.inputFieldLabel}>Nominal (mins):</div>
+                      <div className={paneStyles.inputFieldLabel}>Duration (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
+                          value={selectedStation.duration?.toString()}
                           editing={editMode}
                           fieldProps={{
-                            name: "durationLower",
-                            ariaLabel: "Minimum Time in minutes",
-                            style: { width: "45px" },
-                            validators: [
-                              validators.mustBeNumber,
-                              validators.maxLength(4),
-                              validators.mustBeInteger,
-                            ],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
-                          }}
-                          value={selectedStation.durationLower?.toString()}
-                          onSubmit={(val: string) => {
-                            dispatch(
-                              upsertStationByField(
-                                selectedStation.uuid,
-                                "durationLower",
-                                toDecimal(val)
-                              )
-                            );
-                          }}
-                          key={`${selectedStation.uuid}-durLower`}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.inputFieldLabel}>Maximum (mins):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
-                          value={selectedStation.durationUpper?.toString()}
-                          editing={editMode}
-                          fieldProps={{
-                            name: "durationUpper",
-                            ariaLabel: "Maximum Time in minutes",
+                            name: "duration",
+                            ariaLabel: "Duration in minutes",
                             style: { width: "45px" },
                             validators: [
                               validators.mustBeNumber,
@@ -324,16 +283,22 @@ const Info_Panel: FunctionComponent<{
                           }}
                           onSubmit={(val) => {
                             dispatch(
-                              upsertStationByField(
-                                selectedStation.uuid,
-                                "durationUpper",
-                                toDecimal(val)
-                              )
+                              upsertStationByField(selectedStation.uuid, "duration", toDecimal(val))
                             );
                           }}
-                          key={`${selectedStation.uuid}-durationUpper`}
+                          key={`${selectedStation.uuid}-duration`}
                         />
                       </div>
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCellLeft}>
+                      {isNotNumber(selectedStation?.duration) && (
+                        <div
+                          style={{ color: "var(--grey5)" }}
+                          className={paneStyles.inputFieldLabel}
+                        >{`Using Calculated Total: ${(calculatedFields?.totalDwellTime).toFixed(0)}`}</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -370,10 +335,10 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields?.totalActionTime?.durationLower === 0 ? (
+                        {calculatedFields?.totalActionTime === 0 ? (
                           <>0</>
                         ) : (
-                          <>{displayFormattedTotalTimeObj(calculatedFields?.totalActionTime)}</>
+                          <>{calculatedFields?.totalActionTime.toFixed(0)}</>
                         )}
                       </div>
                     </div>

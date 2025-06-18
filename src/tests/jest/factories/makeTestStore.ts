@@ -64,8 +64,7 @@ export const createFullTestStore = (): StoreType => {
   }
   for (let i = 0; i < pois.length; i++) {
     const action = generateBlankAction({ name: "Jest Action-1", poiUuid: pois[i].uuid });
-    action.durationLower = i + 1;
-    action.durationUpper = action.durationLower + 5;
+    action.duration = i + 6;
     action.poiUuid = pois[i].uuid;
     actions.push(action);
     pois[i].actionOrderUuids.push(action.uuid);
@@ -81,8 +80,7 @@ export const createFullTestStore = (): StoreType => {
   }
   for (let i = 0; i < stations.length; i++) {
     const action = generateBlankAction({ name: "Jest Action-1", stationUuid: stations[i].uuid });
-    action.durationLower = i + 1;
-    action.durationUpper = action.durationLower + 5;
+    action.duration = i + 6;
     action.stationUuid = stations[i].uuid;
     actions.push(action);
     stations[i].actionOrderUuids.push(action.uuid);
@@ -94,8 +92,7 @@ export const createFullTestStore = (): StoreType => {
   }
   for (let i = 0; i < traverses.length; i++) {
     const action = generateBlankAction({ name: "Jest Action-1", traverseUuid: traverses[i].uuid });
-    action.durationLower = i + 1;
-    action.durationUpper = action.durationLower + 5;
+    action.duration = i + 6;
     action.traverseUuid = traverses[i].uuid;
     actions.push(action);
     traverses[i].actionOrderUuids.push(action.uuid);
