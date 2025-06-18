@@ -123,7 +123,7 @@ const SequenceItemTraverse: FunctionComponent<{
   }
 
   const displayTraverseDuration = useCallback(() => {
-    const durationMinutes = isNotNumber(thisTraverse?.duration)
+    const durationMinutes = isNotNumber(thisTraverseForModified?.duration)
       ? thisTraverseCalculatedFields?.durationMinutes +
           thisTraverseCalculatedFields?.totalActionTime || null
       : thisTraverseForModified.duration;
