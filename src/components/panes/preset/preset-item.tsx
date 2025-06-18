@@ -7,26 +7,33 @@ import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/pres
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGlobe } from "@fortawesome/free-solid-svg-icons";
+import { setLeftPanelHoverUuid } from "store/hover";
 
 const PresetItem: FunctionComponent<{
-  selectedPresetUuid: string;
-  preset: Preset;
-  presetFromDb: Preset;
-  hoverUuid: string | null;
-  onHover: (uuid: string | null) => void;
-}> = ({ selectedPresetUuid, preset, presetFromDb, hoverUuid, onHover }) => {
+  presetUuid: string;
+}> = ({ presetUuid }) => {
   const dispatch = useAppDispatch();
+  const preset = useAppSelector(
+    (state) => state.preset.presets.find((p) => p.uuid === presetUuid),
+    refEqual
+  );
+  const presetFromDb = useAppSelector(
+    (state) => state.preset.presetsFromDb.find((p) => p.uuid === presetUuid),
+    refEqual
+  );
+  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedRightNavItem = useAppSelector(
     (state) => state.preset.selectedRightNavItem,
     refEqual
   );
+  const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
 
   let isSelectedOrHoveredStyle = null;
   let isSelectedLabel = "";
   if (preset.uuid === selectedPresetUuid) {
     isSelectedOrHoveredStyle = styles.presetItemSelected;
     isSelectedLabel = "selectedPreset";
-  } else if (preset.uuid === hoverUuid) {
+  } else if (preset.uuid === hoverItemUuid) {
     isSelectedOrHoveredStyle = styles.presetItemHovered;
   }
 
@@ -49,8 +56,12 @@ const PresetItem: FunctionComponent<{
         }`}
         aria-label={isSelectedLabel}
         onClick={handleClick}
-        onMouseEnter={() => onHover(preset.uuid)}
-        onMouseLeave={() => onHover(null)}
+        onMouseEnter={() => {
+          dispatch(setLeftPanelHoverUuid(presetUuid));
+        }}
+        onMouseLeave={() => {
+          dispatch(setLeftPanelHoverUuid(null));
+        }}
       >
         <span aria-label="leftPresetName">{preset.name}</span>
         <span className={styles.defaultText} aria-label="leftPresetIsDefault">

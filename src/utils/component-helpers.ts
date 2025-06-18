@@ -47,7 +47,10 @@ export const getAlertColor = (
  * @param obj2
  * @returns
  */
-export const isModified = <T extends MustContain>(obj1: T[], obj2: T[]): boolean => {
+export const isModified = (
+  obj1: MustContainIsModified[],
+  obj2: MustContainIsModified[]
+): boolean => {
   let isDiff = false;
   //check length
   if (obj1.length === obj2.length) {

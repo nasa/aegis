@@ -34,14 +34,20 @@ const EvaPlannerLeft: FunctionComponent = () => {
     return asPlannedEva ? asPlannedEva.uuid : null;
   }, refEqual);
   // these are the as-planned evas that are passed into the sub component to create the list of evas
-  const asPlannedEvas = useAppSelector((state) => {
+  const asPlannedEvaUuids = useAppSelector((state) => {
     if (state.eva.showRunningRexOnly && theRunningRexEvaAsPlannedUuid) {
-      // only show the running rex as-planned eva
-      return state.eva.evas.filter((eva) => eva.uuid === theRunningRexEvaAsPlannedUuid);
+      // only show the running rex as-planned ev
+      return sortBy(
+        state.eva.evas.filter((eva) => eva.uuid === theRunningRexEvaAsPlannedUuid),
+        [(eva) => eva.name.toLowerCase()]
+      ).map((eva) => eva.uuid);
     } else {
       // show all as-planned evas
       const allRexEvas = state.rex.rexes.map((rex) => rex.evaUuid);
-      return state.eva.evas.filter((eva) => !allRexEvas.includes(eva.uuid));
+      return sortBy(
+        state.eva.evas.filter((eva) => !allRexEvas.includes(eva.uuid)),
+        [(eva) => eva.name.toLowerCase()]
+      ).map((eva) => eva.uuid);
     }
   }, deepEqual);
   const folderRecords = useAppSelector((state) => {
@@ -89,10 +95,10 @@ const EvaPlannerLeft: FunctionComponent = () => {
     );
   };
 
-  const renderEvaItem = ({ item: eva, first }: FolderItemProps<Eva>) => {
+  const renderEvaItem = ({ itemUuid, first }: FolderItemProps) => {
     return (
-      <div key={eva.uuid} aria-label="evaList-item">
-        <EvaItem eva={eva} first={first} />
+      <div key={itemUuid} aria-label="evaList-item">
+        <EvaItem evaUuid={itemUuid} first={first} />
       </div>
     );
   };
@@ -119,8 +125,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
       <div className={paneStyles.leftPanelContainer}>
         <div className={paneStyles.leftPanelContainerTop} aria-label="evaList">
           <FolderOrganizer
-            items={sortBy(asPlannedEvas, [(eva) => eva.name.toLowerCase()])}
-            getItemId={(eva) => eva.uuid}
+            itemUuids={asPlannedEvaUuids}
             renderItem={renderEvaItem}
             folders={folderRecords}
             foldersInterface={foldersInterface}

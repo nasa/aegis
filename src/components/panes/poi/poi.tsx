@@ -13,11 +13,12 @@ import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFo
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const pois = useAppSelector((state) => state.poi.pois, deepEqual);
-  const poisFromDb = useAppSelector((state) => state.poi.poisFromDb, deepEqual);
+  const poiUuids = useAppSelector(
+    (state) => sortBy(state.poi.pois, [(poi) => poi.name.toLowerCase()]).map((poi) => poi.uuid),
+    deepEqual
+  );
 
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
-  const selectedPoi = pois.find((poi) => poi.uuid === selectedPoiUuid);
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
@@ -52,9 +53,8 @@ const PoiEditorLeft: FunctionComponent = () => {
   };
 
   // Render a POI item
-  const renderPoiItem = ({ item: poi }: FolderItemProps<POI>) => {
-    const poiFromDb = poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
-    return <PoiItem selectedPoiUuid={selectedPoiUuid} poi={poi} poiFromDb={poiFromDb} />;
+  const renderPoiItem = ({ itemUuid }: FolderItemProps) => {
+    return <PoiItem poiUuid={itemUuid} />;
   };
 
   return (
@@ -70,8 +70,7 @@ const PoiEditorLeft: FunctionComponent = () => {
         <div className={paneStyles.leftPanelContainerTop}>
           <div className={poiStyles.container} aria-label="poiList">
             <FolderOrganizer
-              items={sortBy(pois, [(poi) => poi.name.toLowerCase()])}
-              getItemId={(poi) => poi.uuid}
+              itemUuids={poiUuids}
               renderItem={renderPoiItem}
               folders={folderRecords}
               foldersInterface={foldersInterface}
@@ -95,7 +94,7 @@ const PoiEditorLeft: FunctionComponent = () => {
               <Button
                 ariaLabel="duplicatePoi"
                 onClick={() => {
-                  dispatch(thunkDuplicatePoi({ poi: selectedPoi }));
+                  dispatch(thunkDuplicatePoi({ poiUuid: selectedPoiUuid }));
                 }}
                 label="Duplicate"
                 icon={faClone}

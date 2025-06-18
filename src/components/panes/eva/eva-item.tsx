@@ -37,11 +37,16 @@ import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 import { thunkCreateRex } from "store/thunk/thunkRex";
 import { setSelectedRexUuid } from "store/rex";
 
-const EvaItem: FunctionComponent<{ eva: Eva; first?: boolean }> = ({
-  eva: asPlannedEva,
+const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
+  evaUuid,
   first = false,
 }) => {
   const dispatch = useAppDispatch();
+
+  const asPlannedEva = useAppSelector(
+    (state) => state.eva.evas.find((eva) => eva.uuid === evaUuid),
+    deepEqual
+  );
 
   // for the dropdown, get the list of rexes for the as-planned eva
   const evaRexesPartialForDropdown = useAppSelector((state) => {

@@ -127,7 +127,7 @@ describe("Thunk Preset Tests", () => {
     const presetToDuplicate = store.getState().preset.presets[0];
     const numPresets = store.getState().preset.presets.length;
 
-    await store.dispatch(thunkDuplicatePreset({ preset: presetToDuplicate }));
+    await store.dispatch(thunkDuplicatePreset({ presetUuid: presetToDuplicate.uuid }));
     expect(store.getState().preset.presets.length).toEqual(numPresets + 1);
     expect(
       store

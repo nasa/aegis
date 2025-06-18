@@ -248,7 +248,7 @@ describe("Thunk POI Tests", () => {
       },
     });
 
-    await store.dispatch(thunkDuplicatePoi({ poi }));
+    await store.dispatch(thunkDuplicatePoi({ poiUuid: poi.uuid }));
     const storeState = store.getState();
     expect(storeState.poi.pois.length).toEqual(2);
     expect(storeState.poi.selectedPoiUuid).toBeTruthy();

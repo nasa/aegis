@@ -239,7 +239,7 @@ type EvaCalculatedFields = CalculatedFields &
     sequenceItemsCalculatedData: EvaSequenceItemCalculatedData[];
   };
 
-interface MustContain {
+interface MustContainIsModified {
   uuid: string;
   createdAt?: string;
   updatedAt?: string;

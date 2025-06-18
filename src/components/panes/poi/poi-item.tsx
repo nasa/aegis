@@ -11,11 +11,18 @@ import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import sortBy from "lodash/sortBy";
 
 const PoiItem: FunctionComponent<{
-  selectedPoiUuid: string;
-  poi: POI;
-  poiFromDb: POI;
-}> = ({ selectedPoiUuid, poi, poiFromDb }) => {
+  poiUuid: string;
+}> = ({ poiUuid }) => {
   const dispatch = useAppDispatch();
+  const poi = useAppSelector(
+    (state) => state.poi.pois.find((poi) => poi.uuid === poiUuid),
+    deepEqual
+  );
+  const poiFromDb = useAppSelector(
+    (state) => state.poi.poisFromDb.find((poi) => poi.uuid === poiUuid),
+    deepEqual
+  );
+  const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
   const poiActions = useAppSelector((state) => {
