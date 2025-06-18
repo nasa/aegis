@@ -130,6 +130,13 @@ const Main = (): JSX.Element => {
     isLoggedInAsync();
   }, [navigate, intMissionId, dispatch]);
 
+  useEffect(() => {
+    if (!missionStore?.mission?.name) {
+      return;
+    }
+    document.title = `${missionStore.mission.name} - AEGIS`;
+  }, [missionStore?.mission?.name]);
+
   // Put socket client into it's own react portal. If it's not in a portal, it will cause
   //  the react context internally to re-render everytime a socket statuses comes in, which causes all
   //  descendants to re-render (like the map), which is not desired.

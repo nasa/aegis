@@ -260,7 +260,7 @@ const FolderComponent = <T,>({
               styleContainer={{ width: "100%" }}
               fieldProps={{
                 name: "folderName",
-                ariaLabel: "Folder name",
+                ariaLabel: "Drag/drop items to folder",
                 className: styles.folderNameInput,
                 validators: [
                   validators.required,
