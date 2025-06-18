@@ -2,6 +2,10 @@
   box-sizing: border-box;
   font-family: Roboto, sans-serif;
   font-feature-settings: "tnum";
+
+  /* scrollbar styles */
+  scrollbar-width: thin;
+  scrollbar-color: var(--grey4) #eeeeee10;
 }
 
 #root {
@@ -22,7 +26,6 @@ body {
   --grey3: #616574;
   --grey4: #a9a9a9;
   --grey5: #e0e0e0;
-
   --base: #00f0ff;
   /* --tools: #ff7539; */
   --mission: #e861a9;
@@ -35,35 +38,24 @@ body {
   /* --rex: #db84ec; */
   --rex: #52f075;
   --rexDim: #39634d;
-
   --stmViewer: #5f97ff;
-
   --alert: #cb0000;
   --alert-disabled: #650000;
-
   --info: #2b6092;
   /* --warning: #ddce00;  */
   --warning: #ffef61;
   --error: #ff4040;
   --errorText: #cb0000;
-
   --stmTableHover: #fff50050;
-
   --radius: 3px;
   --panelRadius: 6px;
   --dashboardRadius: 20px;
-
   --verb: #ffef61;
   --noun: #6ee5ff;
   --adjective: #76ff8c;
 }
 
 /* ===== Scrollbar CSS ===== */
-/* Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--grey4) #eeeeee10;
-}
 
 /* Chrome, Edge, and Safari */
 *::-webkit-scrollbar {
@@ -80,7 +72,7 @@ body {
   border: 1px none #eeeeee10;
 }
 
-/* --- leaflet overrides ---*/
+/* --- leaflet overrides --- */
 /* hide attribution */
 .leaflet-control-attribution {
   display: none !important;
@@ -121,10 +113,10 @@ body {
 
 .leaflet-tooltip-gridLabels {
   position: relative;
-  padding: 0px 2px 0px 2px !important;
-  border-radius: 0px !important;
+  padding: 0 2px 0 2px !important;
+  border-radius: 0 !important;
   font-size: 0.6rem;
-  margin-left: 0px !important;
+  margin-left: 0 !important;
   box-shadow: none !important;
   overflow: hidden;
 }
@@ -139,13 +131,7 @@ body {
 .leaflet-container .leaflet-tile-pane img,
 .leaflet-container img.leaflet-image-layer {
   max-width: none !important;
-  /* Preserve crisp pixels with scaled up images */
-  image-rendering: optimizeSpeed; /* Legal fallback */
-  image-rendering: -moz-crisp-edges; /* Firefox        */
-  image-rendering: -o-crisp-edges; /* Opera          */
-  image-rendering: -webkit-optimize-contrast; /* Safari         */
-  image-rendering: optimize-contrast; /* CSS3 Proposed  */
-  image-rendering: crisp-edges; /* CSS4 Proposed  */
+  /* Preserve crisp pixels with scaled up images */ /* Legal fallback */ /* Firefox        */ /* Opera          */ /* Safari         */ /* CSS3 Proposed  */ /* CSS4 Proposed  */
   image-rendering: pixelated; /* CSS4 Proposed  */
   -ms-interpolation-mode: nearest-neighbor; /* IE8+           */
 }
@@ -155,8 +141,8 @@ body {
 }
 
 .leaflet-pane .leaflet-overlay-pane {
-  filter: drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.2)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.2))
-    drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.2)) drop-shadow(0px 0px 1px rgb(0, 0, 0, 0.2));
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 20%)) drop-shadow(0 0 1px rgb(0 0 0 / 20%))
+    drop-shadow(0 0 1px rgb(0 0 0 / 20%)) drop-shadow(0 0 1px rgb(0 0 0 / 20%));
 }
 
 /* metatag component styling */

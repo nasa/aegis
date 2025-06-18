@@ -3,7 +3,7 @@
   top: 10px;
   right: 10px;
   z-index: 100;
-  border: 2px solid rgba(0, 0, 0, 0.2);
+  border: 2px solid rgb(0 0 0 / 20%);
   border-radius: var(--radius);
 }
 
@@ -135,7 +135,7 @@
 }
 .saveCancelButtons {
   display: flex;
-  direction: row;
+  flex-direction: row;
   column-gap: 2px;
 }
 .posTableContainer {

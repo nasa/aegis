@@ -52,7 +52,7 @@
   margin-right: 15px;
   margin-top: 5px;
   height: 6px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgb(255 255 255 / 60%);
   border-radius: 5px;
   background-color: var(--grey3);
 }

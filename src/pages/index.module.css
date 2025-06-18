@@ -1,5 +1,5 @@
 .main {
-  background-image: url(/images/horizon-0027.jpg);
+  background-image: url("/images/horizon-0027.jpg");
   background-position: bottom;
   background-repeat: no-repeat;
   background-size: cover;
@@ -10,7 +10,7 @@
 }
 
 .left {
-  background-color: rgba(49, 52, 64, 0.9);
+  background-color: rgb(49 52 64 / 90%);
   flex: 0 0 35%;
   min-width: 500px;
   padding: 30px;
@@ -20,9 +20,7 @@
   justify-content: space-between;
 
   /* right drop shadow gradient */
-
-  -webkit-box-shadow: 0px 0px 25px 10px rgba(0, 0, 0, 0.8);
-  box-shadow: 0px 0px 25px 10px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 25px 10px rgb(0 0 0 / 80%);
 }
 
 .insetContainer {
@@ -33,12 +31,10 @@
   color: var(--grey4);
   font-size: 0.8em;
 
-  background-color: rgba(49, 52, 64, 0.3);
+  background-color: rgb(49 52 64 / 30%);
   backdrop-filter: blur(8px);
   border-radius: var(--panelRadius);
-
-  -webkit-box-shadow: 0px 0px 25px 10px rgba(0, 0, 0, 0.8);
-  box-shadow: 0px 0px 25px 10px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 25px 10px rgb(0 0 0 / 80%);
 
   padding: 5px;
 }
@@ -105,7 +101,7 @@
 }
 
 .wordMark {
-  font-family: "Aldrich", serif;
+  font-family: Aldrich, serif;
   font-weight: 400;
   font-size: 50px;
 }
@@ -195,7 +191,7 @@
   width: 100%;
   padding: 10px;
   margin-bottom: 10px;
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
   border-radius: var(--radius);
 }
 
@@ -209,7 +205,7 @@
   width: 60px;
   padding: 5px;
   margin-bottom: 10px;
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
   border-radius: var(--radius);
   margin-left: auto;
 }
@@ -219,12 +215,12 @@
   padding: 5px;
   margin-top: 10px;
   margin-bottom: 10px;
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
   border-radius: var(--radius);
 }
 
 .login .errorMessage {
-  color: rgb(255, 55, 55);
+  color: rgb(255 55 55);
   font-size: 0.8em;
   margin-bottom: 10px;
 }
@@ -272,7 +268,7 @@
 .table .tableButton {
   cursor: pointer;
   padding: 5px;
-  border: 1px solid #ccc;
+  border: 1px solid #cccccc;
   border-radius: var(--radius);
   height: 28px;
   white-space: nowrap;

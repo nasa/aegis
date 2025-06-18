@@ -9,7 +9,6 @@
 
 .circleGroup {
   margin: 6px 5px;
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -67,7 +66,7 @@
   flex-direction: row;
   width: 60px;
   flex: 0 0 50px;
-  padding-left: 0px;
+  padding-left: 0;
 }
 
 .sublayerToolIcon {
