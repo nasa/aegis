@@ -187,11 +187,11 @@ type CalculatedFields = {
 };
 
 type ActionsCalculatedFields = {
-  totalActionTime: TotalTimeObj;
-  totalEv1Time: TotalTimeObj;
-  totalEv2Time: TotalTimeObj;
-  totalUnassignedTime: TotalTimeObj;
-  totalDwellTime: TotalTimeObj;
+  totalActionTime: number;
+  totalEv1Time: number;
+  totalEv2Time: number;
+  totalUnassignedTime: number;
+  totalDwellTime: number;
   actionCount: number;
   totalMass: number;
 };
@@ -225,6 +225,8 @@ type EvaSequenceItemCalculatedData = {
   uuid: string;
   startSeconds: number;
   endSeconds: number;
+  manualStartSeconds: number;
+  manualEndSeconds: number;
 };
 
 type EvaCalculatedFields = CalculatedFields &
@@ -232,7 +234,7 @@ type EvaCalculatedFields = CalculatedFields &
     totalTraverseTime: number;
     totalTraverseDistanceMeters: number;
     totalTraverseAscentDescent: TotalAscentDescentObj;
-    totalEvaTime: TotalTimeObj;
+    totalEvaTime: number;
     equipmentItems: EquipmentItemUsage[];
     sequenceItemsCalculatedData: EvaSequenceItemCalculatedData[];
   };

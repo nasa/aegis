@@ -54,9 +54,7 @@ export class Action_db implements Action_db_type {
   @Property({ type: MikroTypes.float, nullable: true })
   elevation!: number;
   @Property({ type: MikroTypes.float, nullable: true })
-  durationLower!: number;
-  @Property({ type: MikroTypes.float, nullable: true })
-  durationUpper: number;
+  duration: number;
   @Property({ type: MikroTypes.json, nullable: true })
   equipmentItemsUsage: EquipmentItemUsage[];
   @Property({ type: MikroTypes.json, nullable: true })

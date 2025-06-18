@@ -275,10 +275,10 @@ const RightAction: FunctionComponent<{
                 <div
                   className={actionStyles.actionHeadingRightItem}
                   data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html={"Max Duration (h:mm)"}
-                  style={{ color: action.durationUpper < 0 ? "var(--warning)" : "inherit" }}
+                  data-tooltip-html={"Duration (h:mm)"}
+                  style={{ color: action.duration < 0 ? "var(--warning)" : "inherit" }}
                 >
-                  {hmmFromMinutes(action.durationUpper)}
+                  {hmmFromMinutes(action.duration)}
                 </div>
                 {parentType !== "poi" && (
                   <div className={actionStyles.actionHeadingRightItem}>

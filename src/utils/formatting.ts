@@ -328,6 +328,10 @@ export const isISOString = (isoString: string): boolean => {
   return !isNaN(testDate.getTime()) && testDate.toISOString() === normalizedISOString;
 };
 
+export const isNotNumber = (value: unknown): boolean => {
+  return value === null || value === undefined || isNaN(Number(value)) || typeof value !== "number";
+};
+
 export const letterOrdinal = (n: number): string => {
   if (n < 1) throw new Error("Input must be a positive integer");
   let result = "";

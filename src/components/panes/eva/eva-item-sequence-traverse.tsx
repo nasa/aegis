@@ -3,7 +3,12 @@ import { FunctionComponent, useCallback, useState } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
-import { secondsFromhhmmss, hhmmssFromSeconds, hmmFromMinutes } from "utils/formatting";
+import {
+  secondsFromhhmmss,
+  hhmmssFromSeconds,
+  hmmFromMinutes,
+  isNotNumber,
+} from "utils/formatting";
 import { setHoverUuidsForSequence } from "store/hover";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
@@ -37,13 +42,13 @@ const SequenceItemTraverse: FunctionComponent<{
 
   const thisTraverseForModified = useAppSelector((state) => {
     const traverse = state.traverse.traverses.find((traverse) => traverse.uuid === traverseUuid);
-    return { uuid: traverse?.uuid, updatedAt: traverse?.updatedAt };
+    return { uuid: traverse?.uuid, duration: traverse?.duration, updatedAt: traverse?.updatedAt };
   }, deepEqual);
   const thisTraverseFromDbForModified = useAppSelector((state) => {
     const traverse = state.traverse.traversesFromDb.find(
       (traverse) => traverse.uuid === traverseUuid
     );
-    return { uuid: traverse?.uuid, updatedAt: traverse?.updatedAt };
+    return { uuid: traverse?.uuid, duration: traverse?.duration, updatedAt: traverse?.updatedAt };
   }, deepEqual);
   const thisTraverseCalculatedFields = useAppSelector(
     (state) =>
@@ -77,7 +82,7 @@ const SequenceItemTraverse: FunctionComponent<{
         actions: state.action.actions,
         traverses: state.traverse.traverses,
       })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === traverseUuid)
-        ?.endSeconds,
+        ?.manualEndSeconds,
     refEqual
   );
 
@@ -118,11 +123,16 @@ const SequenceItemTraverse: FunctionComponent<{
   }
 
   const displayTraverseDuration = useCallback(() => {
-    const durationMinutes =
-      thisTraverseCalculatedFields?.durationMinutes +
-        thisTraverseCalculatedFields?.totalActionTime?.durationUpper || null;
-    return !isNaN(durationMinutes) ? hmmFromMinutes(durationMinutes) : "N/A";
-  }, [thisTraverseCalculatedFields]);
+    const durationMinutes = isNotNumber(thisTraverseForModified?.duration)
+      ? thisTraverseCalculatedFields?.durationMinutes +
+          thisTraverseCalculatedFields?.totalActionTime || null
+      : thisTraverseForModified.duration;
+    return isNotNumber(durationMinutes) ? "N/A" : hmmFromMinutes(durationMinutes);
+  }, [
+    thisTraverseCalculatedFields?.durationMinutes,
+    thisTraverseCalculatedFields?.totalActionTime,
+    thisTraverseForModified.duration,
+  ]);
 
   const displayInProgressItemTimeRemaining = useCallback(
     (rexPetSeconds: number) => {

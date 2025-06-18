@@ -10,7 +10,7 @@ interface Eva {
    */
   sequence: EvaSequenceItem[];
   description: string;
-  maxDuration: number | null; // minutes
+  duration: number | null; // minutes
   traverseRate: number | null; // km/h
   egressDuration: number | null; // minutes
   ingressDuration: number | null; // minutes
@@ -45,8 +45,7 @@ interface Traverse {
   path: AEGISPoint[] | null;
   pathSegmentDistances: number[] | null; //meters
   pathSegmentElevations: number[][] | null; //meters
-  predictedDurationLower: number | null; //minutes
-  predictedDurationUpper: number | null; //minutes
+  duration: number | null; //minutes
   description: string;
   traverseRate?: number | null; // km/h
   color?: string | null;
@@ -91,8 +90,7 @@ interface Station {
   /**
    * The estimated duration of the action, in minutes.
    */
-  durationLower: number | null; // in minutes
-  durationUpper?: number | null; // in minutes
+  duration: number | null; // in minutes
 
   createdAt?: string;
   updatedAt?: string;
@@ -223,8 +221,7 @@ type Action = {
    */
   location: AEGISPoint | null;
   elevation: number | null;
-  durationLower: number; // in minutes
-  durationUpper?: number; // in minutes
+  duration: number | null; // in minutes
   equipmentItemsUsage: EquipmentItemUsage[] | null; // Equipment needed to perform this action.
   geographicUnitsUsage: string[] | null; // uuids of geographic units used in this action
   mass: number; // grams
@@ -307,14 +304,6 @@ type ActionDefinition = {
   verbUuid: string;
   nounUuid: string;
   adjectiveUuid: string;
-};
-
-//
-
-// used for display of time ranges
-type TotalTimeObj = {
-  durationLower: number;
-  durationUpper: number;
 };
 
 type TotalAscentDescentObj = {

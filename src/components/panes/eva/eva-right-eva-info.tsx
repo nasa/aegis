@@ -11,7 +11,7 @@ import { upsertEvaByField } from "store/eva";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
-import { displayFormattedTotalTimeObj, makeTraverseRateString } from "utils/component-helpers";
+import { makeTraverseRateString } from "utils/component-helpers";
 import {
   formatNumberWithCommas,
   getDateAndTimeFromISOString,
@@ -515,16 +515,16 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.inputFieldLabel}>Max Duration (mins):</div>
+                      <div className={paneStyles.inputFieldLabel}>Duration (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
-                          value={selectedEva.maxDuration?.toString()}
+                          value={selectedEva.duration?.toString()}
                           editing={editMode}
                           fieldProps={{
-                            name: "maxDuration",
-                            ariaLabel: "Max Duration",
+                            name: "Duration",
+                            ariaLabel: "Duration",
                             style: { width: "55px" },
                             validators: [
                               validators.mustBeNumber,
@@ -540,10 +540,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           }}
                           onSubmit={(val: string) => {
                             dispatch(
-                              upsertEvaByField(selectedEva.uuid, "maxDuration", toDecimal(val))
+                              upsertEvaByField(selectedEva.uuid, "duration", toDecimal(val))
                             );
                           }}
-                          key={`${selectedEva.uuid}-maxDuration`}
+                          key={`${selectedEva.uuid}-duration`}
                         />
                       </div>
                     </div>
@@ -614,18 +614,18 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           className={paneStyles.displayFieldValue}
                           style={{
                             color:
-                              evaCalculatedFields.totalUnassignedTime.durationLower > 0
+                              evaCalculatedFields.totalUnassignedTime > 0
                                 ? "var(--warning)"
                                 : undefined,
                           }}
                           data-tooltip-id="aegis-tooltip"
                           data-tooltip-html={
-                            evaCalculatedFields.totalUnassignedTime.durationLower > 0
+                            evaCalculatedFields.totalUnassignedTime > 0
                               ? "Crew assignments incomplete"
                               : undefined
                           }
                         >
-                          {displayFormattedTotalTimeObj(evaCalculatedFields.totalEvaTime) || 0}
+                          {evaCalculatedFields.totalEvaTime.toFixed(0) || 0}
                         </div>
                       </div>
                     </div>
@@ -707,10 +707,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldValue}>
-                          {evaCalculatedFields.totalActionTime?.durationLower === 0 ? (
+                          {evaCalculatedFields.totalActionTime === 0 ? (
                             <>0</>
                           ) : (
-                            displayFormattedTotalTimeObj(evaCalculatedFields.totalActionTime)
+                            evaCalculatedFields.totalActionTime.toFixed(0)
                           )}
                         </div>
                       </div>

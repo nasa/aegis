@@ -25,6 +25,7 @@ import {
   decodeEmoji,
   hhmmssFromSeconds,
   hmmFromMinutes,
+  isNotNumber,
   secondsFromhhmmss,
 } from "utils/formatting";
 import { setHoverUuidsForSequence } from "store/hover";
@@ -341,8 +342,16 @@ export const EvaEgressIngressListing: FunctionComponent<{
 
   const displayInProgressItemTimeRemaining = useCallback(
     (rexPetSeconds: number) => {
-      if (!evaCalculatedFields) return null;
-      const totalEvaTime = evaCalculatedFields.totalEvaTime.durationUpper;
+      let totalEvaTime;
+      if (isNotNumber(eva.duration)) {
+        if (evaCalculatedFields) {
+          totalEvaTime = evaCalculatedFields.totalEvaTime;
+        } else {
+          return null;
+        }
+      } else {
+        totalEvaTime = eva.duration;
+      }
       let secondsRemaining = 0;
       if (xgressIdentifier === "egress") {
         secondsRemaining = (eva.egressDuration * 60 - rexPetSeconds) * -1;

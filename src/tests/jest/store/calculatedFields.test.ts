@@ -22,20 +22,17 @@ describe("Calculated fields", () => {
     const poiNoActions: POI = generateBlankPoi({ name: "Jest Poi-1" });
     const poiAction1: Action = {
       ...generateBlankAction({ name: "Jest Test Action-1", poiUuid: poi.uuid }),
-      durationLower: 5,
-      durationUpper: 10,
+      duration: 10,
       crewAssigned: ["EV1"],
     };
     const poiAction2: Action = {
       ...generateBlankAction({ name: "Jest Test Action-1", poiUuid: poi.uuid }),
-      durationLower: 2,
-      durationUpper: 4,
+      duration: 4,
       crewAssigned: ["EV2"],
     };
     const poiAction3: Action = {
       ...generateBlankAction({ name: "Jest Test Action-1", poiUuid: poi.uuid }),
-      durationLower: 1,
-      durationUpper: 1,
+      duration: 1,
     };
     wholeStoreState.poi.pois = [poi, poiNoActions];
     wholeStoreState.poi.poisFromDb = [poi, poiNoActions];
@@ -60,26 +57,11 @@ describe("Calculated fields", () => {
     //check poi with actions
     const poiCalcField = allCalculatedFields.find((c) => c.uuid === poi.uuid);
     expect(poiCalcField.uuid).toEqual(poi.uuid);
-    expect(poiCalcField.totalActionTime).toEqual({
-      durationLower: 8,
-      durationUpper: 15,
-    });
-    expect(poiCalcField.totalEv1Time).toEqual({
-      durationLower: 5,
-      durationUpper: 10,
-    });
-    expect(poiCalcField.totalEv2Time).toEqual({
-      durationLower: 2,
-      durationUpper: 4,
-    });
-    expect(poiCalcField.totalUnassignedTime).toEqual({
-      durationLower: 1,
-      durationUpper: 1,
-    });
-    expect(poiCalcField.totalDwellTime).toEqual({
-      durationLower: 5,
-      durationUpper: 10,
-    });
+    expect(poiCalcField.totalActionTime).toEqual(15);
+    expect(poiCalcField.totalEv1Time).toEqual(10);
+    expect(poiCalcField.totalEv2Time).toEqual(4);
+    expect(poiCalcField.totalUnassignedTime).toEqual(1);
+    expect(poiCalcField.totalDwellTime).toEqual(10);
     expect(poiCalcField.actionCount).toEqual(3);
   });
 
@@ -87,25 +69,22 @@ describe("Calculated fields", () => {
     const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
 
     //populate the station state in the store
-    const station: Station = generateBlankStation({ name: "Jest Station-1" });
+    const station: Station = generateBlankStation({ name: "Jest Station-1", duration: 10 });
     const blankMission: Mission = generateBlankMission({ name: "Jest Mission-1" });
     const stationNoActions: Station = generateBlankStation({ name: "Jest Station-1" });
     const stationAction1: Action = {
       ...generateBlankAction({ name: "Jest Test Action-1", stationUuid: station.uuid }),
-      durationLower: 5,
-      durationUpper: 10,
+      duration: 10,
       crewAssigned: ["EV1"],
     };
     const stationAction2: Action = {
       ...generateBlankAction({ name: "Jest Test Action-1", stationUuid: station.uuid }),
-      durationLower: 2,
-      durationUpper: 4,
+      duration: 4,
       crewAssigned: ["EV2"],
     };
     const stationAction3: Action = {
       ...generateBlankAction({ name: "Jest Test Action-1", stationUuid: station.uuid }),
-      durationLower: 1,
-      durationUpper: 1,
+      duration: 1,
     };
 
     wholeStoreState.station.stations = [station, stationNoActions];
@@ -135,7 +114,7 @@ describe("Calculated fields", () => {
     const stationNoActionsCalcField = allCalculatedFields.find(
       (c) => c.uuid === stationNoActions.uuid
     );
-    expect(stationNoActionsCalcField.reportItems.length).toEqual(3);
+    expect(stationNoActionsCalcField.reportItems.length).toEqual(4);
     expect(
       stationNoActionsCalcField.reportItems.find((r) =>
         isEqual(r, {
@@ -164,26 +143,11 @@ describe("Calculated fields", () => {
     //check station with actions
     const stationCalcField = allCalculatedFields.find((c) => c.uuid === station.uuid);
     expect(stationCalcField.uuid).toEqual(station.uuid);
-    expect(stationCalcField.totalActionTime).toEqual({
-      durationLower: 8,
-      durationUpper: 15,
-    });
-    expect(stationCalcField.totalEv1Time).toEqual({
-      durationLower: 5,
-      durationUpper: 10,
-    });
-    expect(stationCalcField.totalEv2Time).toEqual({
-      durationLower: 2,
-      durationUpper: 4,
-    });
-    expect(stationCalcField.totalUnassignedTime).toEqual({
-      durationLower: 1,
-      durationUpper: 1,
-    });
-    expect(stationCalcField.totalDwellTime).toEqual({
-      durationLower: 5,
-      durationUpper: 10,
-    });
+    expect(stationCalcField.totalActionTime).toEqual(15);
+    expect(stationCalcField.totalEv1Time).toEqual(10);
+    expect(stationCalcField.totalEv2Time).toEqual(4);
+    expect(stationCalcField.totalUnassignedTime).toEqual(1);
+    expect(stationCalcField.totalDwellTime).toEqual(10);
     expect(stationCalcField.actionCount).toEqual(3);
   });
 
@@ -200,14 +164,12 @@ describe("Calculated fields", () => {
       name: "Jest Traverse-1",
       traverseRate: 1,
       pathSegmentDistances: [500],
-      predictedDurationLower: 50,
-      predictedDurationUpper: 50,
+      duration: 50,
     });
     const traverse3 = generateBlankTraverse({
       name: "Jest Traverse-1",
       pathSegmentDistances: [500],
-      predictedDurationLower: 15,
-      predictedDurationUpper: 15,
+      duration: 15,
     });
     const station1: Station = generateBlankStation({ name: "Jest Station-1" });
     const station2: Station = generateBlankStation({ name: "Jest Station-1" });
@@ -248,48 +210,20 @@ describe("Calculated fields", () => {
     const t1CalcFields = allCalculatedFields.find((c) => c.uuid === traverse1.uuid);
     expect(t1CalcFields).toEqual({
       uuid: traverse1.uuid,
-      reportItems: [
-        {
-          message:
-            "Calculated traverse duration (including actions) is over predicted maximum traverse time",
-          type: "error",
-        },
-      ],
+      reportItems: [],
       durationMinutes: 10,
       distanceMeters: 500,
       ascentDescent: { totalMetersClimbed: 2, totalMetersDescended: 0 },
       actionCount: 0,
-      totalActionTime: {
-        durationLower: 0,
-        durationUpper: 0,
-      },
-      totalDwellTime: {
-        durationLower: 0,
-        durationUpper: 0,
-      },
-      totalEv1Time: {
-        durationLower: 0,
-        durationUpper: 0,
-      },
-      totalEv2Time: {
-        durationLower: 0,
-        durationUpper: 0,
-      },
+      totalActionTime: 0,
+      totalDwellTime: 0,
+      totalEv1Time: 0,
+      totalEv2Time: 0,
       totalMass: 0,
-      totalUnassignedTime: {
-        durationLower: 0,
-        durationUpper: 0,
-      },
+      totalUnassignedTime: 0,
     });
     const t2CalcFields = allCalculatedFields.find((c) => c.uuid === traverse2.uuid);
     expect(t2CalcFields.durationMinutes).toEqual(30);
-    expect(t2CalcFields.reportItems).toEqual([
-      {
-        message:
-          "Calculated traverse duration (including actions) is under predicted nominal traverse time",
-        type: "info",
-      },
-    ]);
     const t3CalcFields = allCalculatedFields.find((c) => c.uuid === traverse3.uuid);
     expect(t3CalcFields.durationMinutes).toEqual(15);
     expect(t3CalcFields.reportItems).toEqual([]);
@@ -336,29 +270,14 @@ describe("Calculated fields", () => {
     }
 
     const evaCalcFields = allEvacalculatedFields.find((c) => c.uuid === eva.uuid);
-    expect(evaCalcFields).toEqual({
+    const expectedEvaCalcFields: EvaCalculatedFields = {
       uuid: eva.uuid,
       reportItems: [],
-      totalActionTime: {
-        durationLower: 0,
-        durationUpper: 0,
-      },
-      totalEv1Time: {
-        durationLower: 0,
-        durationUpper: 0,
-      },
-      totalEv2Time: {
-        durationLower: 0,
-        durationUpper: 0,
-      },
-      totalUnassignedTime: {
-        durationLower: 0,
-        durationUpper: 0,
-      },
-      totalDwellTime: {
-        durationLower: 0,
-        durationUpper: 0,
-      },
+      totalActionTime: 0,
+      totalEv1Time: 0,
+      totalEv2Time: 0,
+      totalUnassignedTime: 0,
+      totalDwellTime: 0,
       actionCount: 0,
       totalMass: 0,
       totalTraverseTime: 10,
@@ -367,28 +286,34 @@ describe("Calculated fields", () => {
         totalMetersClimbed: 2,
         totalMetersDescended: 0,
       },
-      totalEvaTime: {
-        durationLower: 10,
-        durationUpper: 10,
-      },
+      totalEvaTime: 10,
       equipmentItems: [],
       sequenceItemsCalculatedData: [
         {
           uuid: station1.uuid,
           startSeconds: 0,
           endSeconds: 0,
+          manualStartSeconds: 0,
+          manualEndSeconds: 900,
         },
         {
           uuid: traverse.uuid,
           startSeconds: 0,
           endSeconds: 600,
+          manualStartSeconds: 900,
+          manualEndSeconds: 1500,
         },
         {
           uuid: station2.uuid,
           startSeconds: 600,
           endSeconds: 600,
+          manualStartSeconds: 1500,
+          manualEndSeconds: 2400,
         },
       ],
-    });
+    };
+
+    console.log("evaCalcFields", evaCalcFields);
+    expect(evaCalcFields).toEqual(expectedEvaCalcFields);
   });
 });
