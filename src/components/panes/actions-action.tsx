@@ -10,7 +10,6 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { decodeEmoji, hmmFromMinutes, titleCase } from "utils/formatting";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { validators } from "components/interface/form/formValidators";
-import last from "lodash/last";
 import capitalize from "lodash/capitalize";
 import { collapseActions, expandActions } from "store/interface";
 import RightActionBody from "./actions-action-body";
@@ -59,7 +58,7 @@ const RightAction: FunctionComponent<{
     if (!rex?.actionEntries || !rex.actionEntries[actionUuid]) {
       return null;
     } else {
-      return last(rex.actionEntries[actionUuid]).rexStatus;
+      return rex.actionEntries[actionUuid].rexStatus;
     }
   }, refEqual);
 

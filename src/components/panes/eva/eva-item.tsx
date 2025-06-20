@@ -31,7 +31,6 @@ import {
 import { setHoverUuidsForSequence } from "store/hover";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { RexStatusMenu } from "../rex/rex-status-menu";
-import last from "lodash/last";
 import PetInterval from "components/page/petInterval";
 import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 import { thunkCreateRex } from "store/thunk/thunkRex";
@@ -327,7 +326,7 @@ export const EvaEgressIngressListing: FunctionComponent<{
   const xgressRexStatus = useAppSelector((state) => {
     const rex = state.rex.rexes.find((rex) => rex.evaUuid === eva.uuid);
     if (!rex || !rex.xgressEntries) return null;
-    return last(rex.xgressEntries[xgressIdentifier])?.rexStatus;
+    return rex.xgressEntries[xgressIdentifier]?.rexStatus;
   }, deepEqual);
 
   const [rexPetTime, setRexPetTime] = useState("");

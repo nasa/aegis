@@ -13,7 +13,6 @@ import {
   upsertRexesFromDb,
   setSelectedPosEntryUuid,
 } from "store/rex";
-import last from "lodash/last";
 import cloneDeep from "lodash/cloneDeep";
 import { makeExportRexes } from "utils/export";
 import * as jsonKeysSort from "json-keys-sort";
@@ -250,54 +249,48 @@ export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
   const runningRexFromDb = cloneDeep(getState().rex.rexesFromDb.find((rex) => rex.isRunning));
   if (!runningRexFromDb) return;
 
+  const runningRex = getState().rex.rexes.find((r) => r.isRunning);
+  if (!runningRex) return null;
   //modify the rex object based on the entry type. upsert to both copies in the store
   if (entryType === "station") {
     const newEntry: StationEntry = {
-      uuid: uuidv4(),
       rexStatus,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     const newEntries = cloneDeep(runningRexFromDb.stationEntries) || {};
-    (newEntries[uuid] ||= []).push(newEntry); //logical or assignment. will either return newEntries[uuid] or assign it to []
+    newEntries[uuid] = newEntry;
     runningRexFromDb.stationEntries = newEntries;
     dispatch(upsertRexByField(runningRexFromDb.uuid, "stationEntries", newEntries, true));
     dispatch(upsertRexFromDb(runningRexFromDb));
   } else if (entryType === "traverse") {
     const newEntry: TraverseEntry = {
-      uuid: uuidv4(),
       rexStatus,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     const newEntries = cloneDeep(runningRexFromDb.traverseEntries) || {};
-    (newEntries[uuid] ||= []).push(newEntry); //logical or assignment. will either return newEntries[uuid] or assign it to []
+    newEntries[uuid] = newEntry;
     runningRexFromDb.traverseEntries = newEntries;
     dispatch(upsertRexByField(runningRexFromDb.uuid, "traverseEntries", newEntries, true));
     dispatch(upsertRexFromDb(runningRexFromDb));
   } else if (entryType === "action") {
     const newEntry: ActionEntry = {
-      uuid: uuidv4(),
       rexStatus,
       mass: null,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     const newEntries = cloneDeep(runningRexFromDb.actionEntries) || {};
     if (newEntries[uuid]) {
-      newEntry.mass = last(newEntries[uuid]).mass;
-      newEntries[uuid].push(newEntry);
+      newEntry.mass = newEntries[uuid].mass;
+      newEntries[uuid] = newEntry;
     } else {
-      newEntries[uuid] = [newEntry];
+      newEntries[uuid] = newEntry;
     }
     runningRexFromDb.actionEntries = newEntries;
     dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
     dispatch(upsertRexFromDb(runningRexFromDb));
   } else if (entryType === "xgress") {
     const newEntry: XgressEntry = {
-      uuid: uuidv4(),
       rexStatus,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     const newEntries = cloneDeep(runningRexFromDb.xgressEntries) || {};
-    (newEntries[uuid] ||= []).push(newEntry); //logical or assignment. will either return newEntries[uuid] or assign it to []
+    newEntries[uuid] = newEntry;
     runningRexFromDb.xgressEntries = newEntries;
     dispatch(upsertRexByField(runningRexFromDb.uuid, "xgressEntries", newEntries, true));
     dispatch(upsertRexFromDb(runningRexFromDb));
@@ -317,18 +310,17 @@ export const thunkAddRexActionMass = appCreateAsyncThunk<{
   const runningRexFromDb = cloneDeep(getState().rex.rexesFromDb.find((rex) => rex.isRunning));
   if (!runningRexFromDb) return;
 
-  const newEntry: ActionEntry = {
-    uuid: uuidv4(),
-    rexStatus: null,
-    mass,
-    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-  };
   const newEntries = cloneDeep(runningRexFromDb.actionEntries) || {};
   if (newEntries[uuid]) {
-    newEntry.rexStatus = last(newEntries[uuid]).rexStatus;
-    newEntries[uuid].push(newEntry);
+    newEntries[uuid] = {
+      ...newEntries[uuid],
+      mass,
+    }; // update the mass of the entry
   } else {
-    newEntries[uuid] = [newEntry];
+    newEntries[uuid] = {
+      rexStatus: null,
+      mass,
+    };
   }
   runningRexFromDb.actionEntries = newEntries;
   dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));

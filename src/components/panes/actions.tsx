@@ -3,7 +3,6 @@ import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import { Button, Dropdown } from "components/interface/form/globalFields";
 import Action from "./actions-action";
-import last from "lodash/last";
 import isNull from "lodash/isNull";
 import clone from "lodash/clone";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
@@ -220,7 +219,7 @@ export const ActionsTopSection: FunctionComponent<{
       // check if this action is part of the current list (actionOrderUuids). this is to cover
       //    the case in which actions were statused, and then deleted.
       if (
-        last(rex.actionEntries[actionUuid])?.rexStatus === "complete" &&
+        rex.actionEntries[actionUuid]?.rexStatus === "complete" &&
         actionOrderUuids?.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
@@ -239,7 +238,7 @@ export const ActionsTopSection: FunctionComponent<{
       // check if this action is part of the current list (actionOrderUuids). this is to cover
       //    the case in which actions were statused, and then deleted.
       if (
-        last(rex.actionEntries[actionUuid])?.rexStatus === "in-progress" &&
+        rex.actionEntries[actionUuid]?.rexStatus === "in-progress" &&
         actionOrderUuids?.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
@@ -261,11 +260,11 @@ export const ActionsTopSection: FunctionComponent<{
       const action = state.action.actions.find((a) => a.uuid === actionUuid);
       if (!action || !action.enabled || !action.mass) continue;
       if (!rex.actionEntries || !rex.actionEntries[actionUuid]) continue;
-      if (isNull(last(rex.actionEntries[actionUuid]).mass)) continue; // this action has a non-null mass actual entry
+      if (isNull(rex.actionEntries[actionUuid].mass)) continue; // this action has a non-null mass actual entry
       if (!isNull(mass)) {
-        mass += last(rex.actionEntries[actionUuid]).mass;
+        mass += rex.actionEntries[actionUuid].mass;
       } else {
-        mass = last(rex.actionEntries[actionUuid]).mass;
+        mass = rex.actionEntries[actionUuid].mass;
       }
     }
     return mass;

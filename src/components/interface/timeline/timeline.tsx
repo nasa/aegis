@@ -16,7 +16,6 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { clearMapItemHover } from "store/hover";
 import throttle from "lodash/throttle";
 import isNil from "lodash/isNil";
-import last from "lodash/last";
 import { STM_Coverage } from "components/panes/stm/stm-coverage";
 import * as TimelineDrawing from "./timeline-drawing";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
@@ -137,7 +136,7 @@ const NavTimeline: FunctionComponent = () => {
     if (action.enabled) {
       coveredSTMs.push(getStmUuidRefs(action.stmPriorities));
       if (runningRex?.actionEntries) {
-        const rexStatus = last(runningRex.actionEntries[action.uuid])?.rexStatus;
+        const rexStatus = runningRex.actionEntries[action.uuid]?.rexStatus;
         if (rexStatus === "complete") {
           completedSTMs.push(getStmUuidRefs(action.stmPriorities));
         } else if (rexStatus === "in-progress") {

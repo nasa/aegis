@@ -8,6 +8,9 @@ import {
   auditPosSources,
   auditPresetsAgainstLayers,
   auditStationCircles,
+  auditFolders,
+  auditRexStatusEntries,
+  auditPosEntries,
 } from "./audits";
 
 export const populateStore = async (params: {
@@ -61,6 +64,9 @@ export const populateStore = async (params: {
     await auditStationCircles({ wholeStoreState });
     await auditActionDefinitions({ wholeStoreState });
     await auditPosSources({ wholeStoreState });
+    await auditPosEntries({ wholeStoreState });
+    await auditFolders({ wholeStoreState });
+    await auditRexStatusEntries({ wholeStoreState });
     await auditActions({ wholeStoreState });
   }
 

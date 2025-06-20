@@ -16,7 +16,6 @@ import { selectEvaStations, selecteEvaTraverses } from "store/selectors";
 import styles from "./dashTimeline.module.css";
 import { decodeEmoji, hhmmFromMinutes, secondsFromhhmmss } from "utils/formatting";
 import PetInterval from "components/page/petInterval";
-import last from "lodash/last";
 import useWindowSize from "use-window-size-v2";
 
 type TimeLabel = {
@@ -249,15 +248,15 @@ const Indicator: FunctionComponent<{
   if (sequenceItem.type === "station") {
     let entry = null;
     if (sequenceItem.name === "Egress" || sequenceItem.name === "Ingress") {
-      entry = last(rex?.xgressEntries ? rex?.xgressEntries[sequenceItem.uuid] : []);
+      entry = rex?.xgressEntries ? rex?.xgressEntries[sequenceItem.uuid] : null;
     } else {
-      entry = last(rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : []);
+      entry = rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : null;
     }
     completed = entry?.rexStatus === "complete";
     inProgress = entry?.rexStatus === "in-progress";
   } else if (sequenceItem.type === "traverse") {
     // find the last traverseEntry in the rex for this traverse
-    const traverseEntry = last(rex?.traverseEntries ? rex?.traverseEntries[sequenceItem.uuid] : []);
+    const traverseEntry = rex?.traverseEntries ? rex?.traverseEntries[sequenceItem.uuid] : null;
     completed = traverseEntry?.rexStatus === "complete";
     inProgress = traverseEntry?.rexStatus === "in-progress";
   }
@@ -299,9 +298,9 @@ const StationName: FunctionComponent<{
   let completed = false;
   let entry = null;
   if (sequenceItem.name === "Egress" || sequenceItem.name === "Ingress") {
-    entry = last(rex?.xgressEntries ? rex?.xgressEntries[sequenceItem.uuid] : []);
+    entry = rex?.xgressEntries ? rex?.xgressEntries[sequenceItem.uuid] : null;
   } else {
-    entry = last(rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : []);
+    entry = rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : null;
   }
   completed = entry?.rexStatus === "complete";
 

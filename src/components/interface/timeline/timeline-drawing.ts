@@ -732,7 +732,7 @@ export const drawPositionMarkers = (
   const posRefSorted = orderBy(posRef.current, ["seconds"], "desc");
   for (let i = 0; i < posRefSorted.length; i++) {
     const posPaperJS = posRefSorted[i];
-    const x = posPaperJS.seconds * paperVars.pixelsPerSecondX + paperVars.timelineLeft;
+    const x = posPaperJS.petSeconds * paperVars.pixelsPerSecondX + paperVars.timelineLeft;
     const y =
       paperVars.timelineTop +
       paperVars.graphHeight -

@@ -1717,7 +1717,7 @@ const MapBody: FunctionComponent<{}> = () => {
         }
 
         // set the marker tooltip
-        const timeToShow = hhmmssFromSeconds(rexPetSeconds - latestPosEntry.seconds);
+        const timeToShow = hhmmssFromSeconds(rexPetSeconds - latestPosEntry.petSeconds);
         const sourceAbbr = selectedRex?.posSources?.find(
           (posSource) => posSource.uuid === latestPosEntry.posSourceUuid
         )?.abbr;
@@ -1728,7 +1728,7 @@ const MapBody: FunctionComponent<{}> = () => {
       // update all timers on all tooltips
       for (let i = 0; i < posEntriesShowing.length; i++) {
         //build label
-        const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesShowing[i].seconds);
+        const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesShowing[i].petSeconds);
         const sourceAbbr = selectedRex?.posSources?.find(
           (posSource) => posSource.uuid === posEntriesShowing[i].posSourceUuid
         )?.abbr;

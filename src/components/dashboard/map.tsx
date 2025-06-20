@@ -16,7 +16,6 @@ import {
   SetStateAction,
   useCallback,
 } from "react";
-import last from "lodash/last";
 import pick from "lodash/pick";
 import reverse from "lodash/reverse";
 import uniqBy from "lodash/uniqBy";
@@ -125,8 +124,8 @@ const MapBody: FunctionComponent<{
   const stationsInProgress: Station[] = useAppSelector((state) => {
     const stationsInProgress: Station[] = [];
     for (const stationUuid in runningRexFromDb.stationEntries) {
-      const lastStatus: StationEntry = last(runningRexFromDb.stationEntries[stationUuid]);
-      if (lastStatus.rexStatus === "in-progress") {
+      const stationEntry: StationEntry = runningRexFromDb.stationEntries[stationUuid];
+      if (stationEntry.rexStatus === "in-progress") {
         stationsInProgress.push(
           state.station.stationsFromDb.find((station) => station.uuid === stationUuid)
         );
@@ -137,8 +136,8 @@ const MapBody: FunctionComponent<{
   const traversesInProgress: Traverse[] = useAppSelector((state) => {
     const traversesInProgress: Traverse[] = [];
     for (const traverseUuid in runningRexFromDb.traverseEntries) {
-      const lastStatus: TraverseEntry = last(runningRexFromDb.traverseEntries[traverseUuid]);
-      if (lastStatus.rexStatus === "in-progress") {
+      const traverseEntry: TraverseEntry = runningRexFromDb.traverseEntries[traverseUuid];
+      if (traverseEntry.rexStatus === "in-progress") {
         traversesInProgress.push(
           state.traverse.traversesFromDb.find((traverse) => traverse.uuid === traverseUuid)
         );
@@ -386,7 +385,7 @@ const MapBody: FunctionComponent<{
       }
     }
     // egress and ingress
-    if (last(runningRexFromDb.xgressEntries?.["egress"])?.rexStatus === "in-progress") {
+    if (runningRexFromDb.xgressEntries?.["egress"]?.rexStatus === "in-progress") {
       let egressCoordinates: AEGISPoint;
       if (runningEvaFromDb.egressLocationUuid === "lander") {
         egressCoordinates = mission.landerLocation;
@@ -397,7 +396,7 @@ const MapBody: FunctionComponent<{
       }
       objectCoordinates.push(egressCoordinates);
     }
-    if (last(runningRexFromDb.xgressEntries?.["ingress"])?.rexStatus === "in-progress") {
+    if (runningRexFromDb.xgressEntries?.["ingress"]?.rexStatus === "in-progress") {
       let ingressCoordinates: AEGISPoint;
       if (runningEvaFromDb.ingressLocationUuid === "lander") {
         ingressCoordinates = mission.landerLocation;
@@ -1208,7 +1207,7 @@ const MapBody: FunctionComponent<{
         }
 
         // set the marker tooltip
-        const timeToShow = hhmmssFromSeconds(rexPetSeconds - latestPosEntry.seconds);
+        const timeToShow = hhmmssFromSeconds(rexPetSeconds - latestPosEntry.petSeconds);
         const sourceAbbr = runningRexFromDb?.posSources?.find(
           (posSource) => posSource.uuid === latestPosEntry.posSourceUuid
         )?.abbr;
@@ -1219,7 +1218,7 @@ const MapBody: FunctionComponent<{
       // update all timers on all tooltips
       for (let i = 0; i < posEntriesShowing.length; i++) {
         //build label
-        const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesShowing[i].seconds);
+        const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesShowing[i].petSeconds);
         const sourceAbbr = runningRexFromDb?.posSources?.find(
           (posSource) => posSource.uuid === posEntriesShowing[i].posSourceUuid
         )?.abbr;
