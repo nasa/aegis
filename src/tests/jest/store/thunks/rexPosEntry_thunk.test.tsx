@@ -54,7 +54,7 @@ describe("Thunk Position Entry Tests", () => {
 
     await store.dispatch(thunkCreatePosEntry({ posTypeUuids: ["uuid1", "uuid2"] }));
     const posEntry = store.getState().rex.rexes[0].posEntries[0];
-    expect(posEntry.seconds).toEqual(420);
+    expect(posEntry.petSeconds).toEqual(420);
     expect(posEntry.posTypeUuids).toEqual(["uuid1", "uuid2"]);
     expect(store.getState().rex.posEntryEditingUuid).toEqual(posEntry.uuid);
     expect(store.getState().rex.rexesPosEntriesEditing[0]).toEqual(rex.uuid);

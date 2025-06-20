@@ -38,7 +38,7 @@ interface PosEntry {
   uuid: string;
   location: AEGISPoint;
   elevation: number;
-  seconds: number;
+  petSeconds: number;
   posTypeUuids: string[];
   posSourceUuid: string;
   createdAt: string;
@@ -54,42 +54,34 @@ interface PosType {
 }
 
 interface StationEntries {
-  [stationUuid: string]: StationEntry[];
+  [stationUuid: string]: StationEntry;
 }
 
 interface StationEntry {
-  uuid: string;
   rexStatus: RexStatus;
-  createdAt: string;
 }
 
 interface TraverseEntries {
-  [traverseUuid: string]: TraverseEntry[];
+  [traverseUuid: string]: TraverseEntry;
 }
 
 interface TraverseEntry {
-  uuid: string;
   rexStatus: RexStatus;
-  createdAt: string;
 }
 
 interface ActionEntries {
-  [actionUuid: string]: ActionEntry[];
+  [actionUuid: string]: ActionEntry;
 }
 
 interface ActionEntry {
-  uuid: string;
   rexStatus: RexStatus;
   mass: number;
-  createdAt: string;
-}
-
-interface XgressEntry {
-  uuid: string;
-  rexStatus: RexStatus;
-  createdAt: string;
 }
 
 interface XgressEntries {
-  [xgressUuid: string]: XgressEntry[];
+  [xgressUuid: string]: XgressEntry;
+}
+
+interface XgressEntry {
+  rexStatus: RexStatus;
 }

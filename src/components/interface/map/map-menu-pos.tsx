@@ -570,7 +570,7 @@ export const PositionRow: FunctionComponent<{
           }}
         >
           <td className={`${posMenuStyles.historicPosItemNumber}`}>{numbering}</td>
-          <td className={posMenuStyles.petColumn}>{hhmmssFromSeconds(posEntry.seconds)}</td>
+          <td className={posMenuStyles.petColumn}>{hhmmssFromSeconds(posEntry.petSeconds)}</td>
           <td className={`${posMenuStyles.crewColumn}`}>{posNameList?.join(", ")}</td>
           <td>{!isNaN(dist) ? dist : "Not Set"}</td>
           <td>{!isNaN(duration) ? duration : "Not Set"}</td>

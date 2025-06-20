@@ -622,10 +622,10 @@ export const processRexes = (
     // Update stationEntries
     if (rex.stationEntries) {
       const newStationEntries: DupStationEntries = {};
-      for (const [stationUuid, entries] of Object.entries(rex.stationEntries)) {
+      for (const [stationUuid, entry] of Object.entries(rex.stationEntries)) {
         const newStationUuid = uuidMaps.stations.get(stationUuid);
         if (newStationUuid) {
-          newStationEntries[newStationUuid] = entries;
+          newStationEntries[newStationUuid] = entry;
         }
       }
       rexData.stationEntries = newStationEntries;
@@ -634,10 +634,10 @@ export const processRexes = (
     // Update traverseEntries
     if (rex.traverseEntries) {
       const newTraverseEntries: DupTraverseEntries = {};
-      for (const [traverseUuid, entries] of Object.entries(rex.traverseEntries)) {
+      for (const [traverseUuid, entry] of Object.entries(rex.traverseEntries)) {
         const newTraverseUuid = uuidMaps.traverses.get(traverseUuid);
         if (newTraverseUuid) {
-          newTraverseEntries[newTraverseUuid] = entries;
+          newTraverseEntries[newTraverseUuid] = entry;
         }
       }
       rexData.traverseEntries = newTraverseEntries;
@@ -646,10 +646,10 @@ export const processRexes = (
     // Update actionEntries
     if (rex.actionEntries) {
       const newActionEntries: DupActionEntries = {};
-      for (const [actionUuid, entries] of Object.entries(rex.actionEntries)) {
+      for (const [actionUuid, entry] of Object.entries(rex.actionEntries)) {
         const newActionUuid = uuidMaps.actions.get(actionUuid);
         if (newActionUuid) {
-          newActionEntries[newActionUuid] = entries;
+          newActionEntries[newActionUuid] = entry;
         }
       }
       rexData.actionEntries = newActionEntries;

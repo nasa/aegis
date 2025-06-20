@@ -3,6 +3,7 @@ import * as httpClient_action from "http-client/action";
 import * as httpClient_mission from "http-client/mission";
 import * as httpClient_rex from "http-client/rex";
 import * as httpClient_station from "http-client/station";
+import * as httpClient_folder from "http-client/folder";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
@@ -355,5 +356,179 @@ export const auditPosSources = async ({
     if (upsertResponse.status !== "success") {
       // handle the error
     }
+  }
+};
+
+export const auditPosEntries = async ({
+  wholeStoreState,
+}: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  if (wholeStoreState.rex.rexes.length === 0) return;
+
+  type PosEntryWithMaybeSeconds = PosEntry & {
+    seconds?: number;
+  };
+
+  // loop through all rexes and audit the posEntries
+  const newRexes = cloneDeep(wholeStoreState.rex.rexes);
+  let isModified: boolean = false;
+
+  for (const rex of newRexes) {
+    // if the posEntries is empty, skip to the next rex
+    if (!rex.posEntries || rex.posEntries.length === 0) continue;
+
+    // loop through every rex posEntry and if it has a seconds property, convert it to petSeconds
+    for (const posEntry of rex.posEntries) {
+      if (!posEntry.petSeconds) {
+        isModified = true;
+        posEntry.petSeconds = (posEntry as PosEntryWithMaybeSeconds).seconds || 0;
+        delete (posEntry as PosEntryWithMaybeSeconds).seconds; // remove the seconds property
+      }
+    }
+
+    // update the store and db with the new values
+    wholeStoreState.rex.rexes = newRexes;
+
+    if (isModified) {
+      const upsertResponse = await httpClient_rex.upsertRexes(newRexes);
+      if (upsertResponse.status !== "success") {
+        // handle the error
+      }
+    }
+  }
+};
+
+export const auditFolders = async ({
+  wholeStoreState,
+}: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  // remove any folder items that don't exist in the store
+  const newFolders = cloneDeep(wholeStoreState.interface.folders);
+  const foldersToSaveToDb: Folder[] = [];
+
+  for (const folder of newFolders) {
+    let isModified = false;
+
+    if (folder.items && folder.items.length > 0) {
+      const originalItems = [...folder.items];
+
+      // Filter items based on folder type
+      switch (folder.type) {
+        case "preset":
+          folder.items = folder.items.filter((itemUuid) =>
+            wholeStoreState.preset.presets.some((preset) => preset.uuid === itemUuid)
+          );
+          break;
+        case "poi":
+          folder.items = folder.items.filter((itemUuid) =>
+            wholeStoreState.poi.pois.some((poi) => poi.uuid === itemUuid)
+          );
+          break;
+        case "station":
+          folder.items = folder.items.filter((itemUuid) =>
+            wholeStoreState.station.stations.some((station) => station.uuid === itemUuid)
+          );
+          break;
+        case "eva":
+          folder.items = folder.items.filter((itemUuid) =>
+            wholeStoreState.eva.evas.some((eva) => eva.uuid === itemUuid)
+          );
+          break;
+        case "layer":
+          folder.items = folder.items.filter((itemUuid) =>
+            wholeStoreState.mission.layers.some((layer) => layer.uuid === itemUuid)
+          );
+          break;
+      }
+
+      // Check if items changed
+      if (!isEqual(originalItems, folder.items)) {
+        isModified = true;
+      }
+    }
+
+    // If modified, add to list to save to DB
+    if (isModified) {
+      foldersToSaveToDb.push(folder);
+    }
+  }
+
+  // update the store with the new folders
+  wholeStoreState.interface.folders = newFolders;
+
+  // save changed folders to the DB
+  if (foldersToSaveToDb.length > 0) {
+    const upsertResponse = await httpClient_folder.upsertFolders(foldersToSaveToDb);
+    if (upsertResponse.status !== "success") {
+      console.error("Error saving folders to DB:", upsertResponse.message);
+    }
+  }
+};
+
+// Audit the rex status entries to make them single entries per uuid.
+// This can be deleted after !729 has been pushed to production and all missions have been updated
+export const auditRexStatusEntries = async ({
+  wholeStoreState,
+}: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  // make rex.stationEntries, rex.traverseEntries, rex.actionEntries, and xgressEntries all contain a single value per uuid instead of an array by keeping only the last entry of each
+  // this also discards previous values like uuid, createdAt, and petSeconds that we're no longer using.
+  const newRexes = cloneDeep(wholeStoreState.rex.rexes);
+  for (const rex of newRexes) {
+    if (rex.stationEntries && typeof rex.stationEntries === "object") {
+      for (const stationUuid in rex.stationEntries) {
+        if (Array.isArray(rex.stationEntries[stationUuid])) {
+          rex.stationEntries[stationUuid] = {
+            rexStatus: rex.stationEntries[stationUuid].slice(-1)[0].rexStatus,
+          };
+        }
+      }
+    }
+
+    if (rex.traverseEntries && typeof rex.traverseEntries === "object") {
+      for (const traverseUuid in rex.traverseEntries) {
+        if (Array.isArray(rex.traverseEntries[traverseUuid])) {
+          rex.traverseEntries[traverseUuid] = {
+            rexStatus: rex.traverseEntries[traverseUuid].slice(-1)[0].rexStatus,
+          };
+        }
+      }
+    }
+
+    if (rex.actionEntries && typeof rex.actionEntries === "object") {
+      for (const actionUuid in rex.actionEntries) {
+        if (Array.isArray(rex.actionEntries[actionUuid])) {
+          rex.actionEntries[actionUuid] = {
+            rexStatus: rex.actionEntries[actionUuid].slice(-1)[0].rexStatus,
+            mass: rex.actionEntries[actionUuid].slice(-1)[0].mass,
+          };
+        }
+      }
+    }
+
+    if (rex.xgressEntries && typeof rex.xgressEntries === "object") {
+      for (const xgressUuid in rex.xgressEntries) {
+        if (Array.isArray(rex.xgressEntries[xgressUuid])) {
+          rex.xgressEntries[xgressUuid] = {
+            rexStatus: rex.xgressEntries[xgressUuid].slice(-1)[0].rexStatus,
+          };
+        }
+      }
+    }
+  }
+
+  // update the store with the new rexes
+  wholeStoreState.rex.rexes = newRexes;
+
+  // also update the rexesFromDb in the store
+  wholeStoreState.rex.rexesFromDb = newRexes;
+
+  // save changed rexes to the DB
+  const upsertResponse = await httpClient_rex.upsertRexes(newRexes);
+  if (upsertResponse.status !== "success") {
+    console.error("Error saving rexes to DB:", upsertResponse.message);
   }
 };

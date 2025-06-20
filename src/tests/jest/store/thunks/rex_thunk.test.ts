@@ -296,9 +296,7 @@ describe("Thunk Rex Tests", () => {
     await store.dispatch(
       thunkAddRexStatusEntry({ entryType: "station", uuid: stationUuid, rexStatus: "in-progress" })
     );
-    expect(store.getState().rex.rexes[0].stationEntries[stationUuid][0].rexStatus).toBe(
-      "in-progress"
-    );
+    expect(store.getState().rex.rexes[0].stationEntries[stationUuid].rexStatus).toBe("in-progress");
 
     //assert traverse states
     await store.dispatch(
@@ -308,7 +306,7 @@ describe("Thunk Rex Tests", () => {
         rexStatus: "in-progress",
       })
     );
-    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid][0].rexStatus).toBe(
+    expect(store.getState().rex.rexes[0].traverseEntries[traverseUuid].rexStatus).toBe(
       "in-progress"
     );
 
@@ -316,25 +314,21 @@ describe("Thunk Rex Tests", () => {
     await store.dispatch(
       thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid, rexStatus: "in-progress" })
     );
-    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][0].rexStatus).toBe(
-      "in-progress"
-    );
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid].rexStatus).toBe("in-progress");
     await store.dispatch(thunkAddRexActionMass({ uuid: actionUuid, mass: 999 }));
-    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][1].rexStatus).toBe(
-      "in-progress"
-    );
-    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][1].mass).toBe(999);
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid].rexStatus).toBe("in-progress");
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid].mass).toBe(999);
     await store.dispatch(
       thunkAddRexStatusEntry({ entryType: "action", uuid: actionUuid, rexStatus: "complete" })
     );
-    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][2].rexStatus).toBe("complete");
-    expect(store.getState().rex.rexes[0].actionEntries[actionUuid][2].mass).toBe(999);
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid].rexStatus).toBe("complete");
+    expect(store.getState().rex.rexes[0].actionEntries[actionUuid].mass).toBe(999);
 
     // assert xgress states
     await store.dispatch(
       thunkAddRexStatusEntry({ entryType: "xgress", uuid: "ingress", rexStatus: "in-progress" })
     );
-    expect(store.getState().rex.rexes[0].xgressEntries["ingress"][0].rexStatus).toBe("in-progress");
+    expect(store.getState().rex.rexes[0].xgressEntries["ingress"].rexStatus).toBe("in-progress");
 
     // assert everything was saved to the fromDb copy in the store
     expect(store.getState().rex.rexes[0]).toEqual(store.getState().rex.rexesFromDb[0]);

@@ -9,7 +9,6 @@ import {
   getCalculatedFieldsByStation,
 } from "store/processing/calculatedFields";
 import { decodeEmoji, hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
-import last from "lodash/last";
 import isUndefined from "lodash/isUndefined";
 
 const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ mapDisplayPos }) => {
@@ -80,33 +79,33 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
   let stationWalkbackTime = "";
   let stationWalkbackDistance = "";
   let seqItemRexStatus: RexStatus;
-  const egressEntries = runningRexFromDb?.xgressEntries?.["egress"];
-  if (egressEntries && egressEntries.length > 0) {
-    const egressEntry = egressEntries[egressEntries.length - 1];
-    if (egressEntry.rexStatus === "in-progress") {
-      itemInProgressType = "Egress";
-      const secondsRemaining = (eva.egressDuration * 60 - secondsFromhhmmss(rexPetTime)) * -1;
-      sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
+  const egressEntry = runningRexFromDb?.xgressEntries?.["egress"];
 
-      // get location name
-      if (eva.egressLocationUuid === "lander") {
-        itemInProgress = "Lander";
-      } else {
-        // look up the egress location station name using uuid
-        itemInProgress = evaStations.find((s) => s.uuid === eva.egressLocationUuid)?.name;
-      }
+  if (egressEntry && egressEntry?.rexStatus === "in-progress") {
+    itemInProgressType = "Egress";
+    const secondsRemaining = (eva.egressDuration * 60 - secondsFromhhmmss(rexPetTime)) * -1;
+    sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
+
+    // get location name
+    if (eva.egressLocationUuid === "lander") {
+      itemInProgress = "Lander";
+    } else {
+      // look up the egress location station name using uuid
+      itemInProgress = evaStations.find((s) => s.uuid === eva.egressLocationUuid)?.name;
     }
   }
 
   for (const sequenceItem of runningEvaSequence) {
     if (sequenceItem.type === "station") {
-      seqItemRexStatus = last(
-        runningRexFromDb?.stationEntries && runningRexFromDb?.stationEntries[sequenceItem.uuid]
-      )?.rexStatus;
+      seqItemRexStatus =
+        (runningRexFromDb?.stationEntries &&
+          runningRexFromDb?.stationEntries[sequenceItem.uuid]?.rexStatus) ||
+        "pending";
     } else if (sequenceItem.type === "traverse") {
-      seqItemRexStatus = last(
-        runningRexFromDb?.traverseEntries && runningRexFromDb?.traverseEntries[sequenceItem.uuid]
-      )?.rexStatus;
+      seqItemRexStatus =
+        (runningRexFromDb?.traverseEntries &&
+          runningRexFromDb?.traverseEntries[sequenceItem.uuid]?.rexStatus) ||
+        "pending";
     }
     if (seqItemRexStatus === "in-progress") {
       if (sequenceItem.type === "station") {
@@ -132,22 +131,20 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
     }
   }
 
-  const ingressEntries = runningRexFromDb?.xgressEntries?.["ingress"];
-  if (ingressEntries && ingressEntries.length > 0) {
-    const ingressEntry = ingressEntries[ingressEntries.length - 1];
-    if (ingressEntry.rexStatus === "in-progress") {
-      itemInProgressType = "Ingress";
-      const secondsRemaining =
-        (evaDuration * 60 + eva.ingressDuration * 60 - secondsFromhhmmss(rexPetTime)) * -1;
-      sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
+  const ingressEntry = runningRexFromDb?.xgressEntries?.["ingress"];
 
-      // get location name
-      if (eva.egressLocationUuid === "lander") {
-        itemInProgress = "Lander";
-      } else {
-        // look up the ingres location station name using uuid
-        itemInProgress = evaStations.find((s) => s.uuid === eva.egressLocationUuid)?.name;
-      }
+  if (ingressEntry && ingressEntry?.rexStatus === "in-progress") {
+    itemInProgressType = "Ingress";
+    const secondsRemaining =
+      (evaDuration * 60 + eva.ingressDuration * 60 - secondsFromhhmmss(rexPetTime)) * -1;
+    sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
+
+    // get location name
+    if (eva.egressLocationUuid === "lander") {
+      itemInProgress = "Lander";
+    } else {
+      // look up the ingres location station name using uuid
+      itemInProgress = evaStations.find((s) => s.uuid === eva.egressLocationUuid)?.name;
     }
   }
 
@@ -222,7 +219,7 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
               if (entry.posTypeUuids.includes(posType.uuid) && showEntry) {
                 if (!latestCreationDate || entry.createdAt > latestCreationDate) {
                   latestCreationDate = entry.createdAt;
-                  latestEntrySecondsForType = entry.seconds;
+                  latestEntrySecondsForType = entry.petSeconds;
                 }
               }
             });

@@ -719,7 +719,7 @@ export const drawPosMarkerOnMap = async ({
     }
 
     const rexPetSeconds = secondsFromhhmmss(rexPetTime);
-    const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntry.seconds);
+    const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntry.petSeconds);
     const newLabel = `${timeToShow} / ${markerPosTypeAbbrs}`;
     marker.setTooltipContent(newLabel);
   }

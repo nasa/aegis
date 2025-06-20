@@ -92,7 +92,7 @@ export const generateBlankPosEntry = (partialPosEntry?: Partial<PosEntry>): PosE
     uuid: uuidv4(),
     location: null,
     elevation: null,
-    seconds: 0,
+    petSeconds: 0,
     posTypeUuids: [],
     posSourceUuid: null,
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),

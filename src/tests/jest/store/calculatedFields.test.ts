@@ -312,8 +312,6 @@ describe("Calculated fields", () => {
         },
       ],
     };
-
-    console.log("evaCalcFields", evaCalcFields);
     expect(evaCalcFields).toEqual(expectedEvaCalcFields);
   });
 });

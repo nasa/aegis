@@ -34,7 +34,6 @@ import { findGridCoordinatesFromPoint, getDistanceBetweenTwoCoordinates } from "
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
-import last from "lodash/last";
 import { thunkAddRexActionMass } from "store/thunk/thunkRex";
 import { globalGrid } from "utils/grid";
 
@@ -80,7 +79,7 @@ const RightActionBody: FunctionComponent<{
     if (!rex?.actionEntries || !rex.actionEntries[action.uuid]) {
       return null;
     } else {
-      return last(rex.actionEntries[action.uuid]).mass;
+      return rex.actionEntries[action.uuid].mass;
     }
   }, deepEqual);
 
