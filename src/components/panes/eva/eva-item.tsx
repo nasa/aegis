@@ -402,6 +402,7 @@ export const EvaEgressIngressListing: FunctionComponent<{
           entryType="xgress"
           uuid={xgressIdentifier}
           editPerms={!!(editPerms && rexFromDbIfExecuting)} // the !! converts result into boolean
+          maestroControlled={rexFromDbIfExecuting?.maestroControlled}
         />
       )}
       <div

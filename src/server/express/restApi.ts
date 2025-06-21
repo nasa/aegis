@@ -14,6 +14,7 @@ import missionDump from "./routes/missionDump";
 import poiRoutes from "./routes/poi";
 import presetRoutes from "./routes/preset";
 import rexRoutes from "./routes/rex";
+import rexPet from "./routes/emss/rexPet";
 import socketLastEditEventRoutes from "./routes/socketLastEditEvents";
 import stationRoutes from "./routes/station";
 import gridRoutes from "./routes/grid";
@@ -111,5 +112,8 @@ app.use("/api/v1/readable/station", readableStationRoutes);
 app.use("/api/v1/readable/eva", readableEvaRoutes);
 app.use("/api/v1/readable/mission", readableMissionRoutes);
 app.use("/api/v1/readable/traverse", readableTraverseRoutes);
+
+// endpoints that require emssToken auth only
+app.use("/api/v1/emss/rexPet", rexPet);
 
 export default app;

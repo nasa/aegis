@@ -22,7 +22,6 @@ import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { initGraphItemsRef, initPaperRefs } from "./timeline-init";
 import TimelineHoverValues from "./timeline-hover";
 import { selectEvaActions, selectEvaStations, selecteEvaTraverses } from "store/selectors";
-import { secondsFromhhmmss } from "utils/formatting";
 import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../../page/petInterval";
 import { getStmUuidRefs } from "store/storeUtils/store";
@@ -39,6 +38,10 @@ const NavTimeline: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedRex = useAppSelector(
     (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid),
+    deepEqual
+  );
+  const selectedRexFromDb = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid),
     deepEqual
   );
   const selectedEva = useAppSelector(
@@ -207,8 +210,14 @@ const NavTimeline: FunctionComponent = () => {
 
     //draw the graph axis (even if no EVA is selected)
     TimelineDrawing.drawGraphAxis(paperDataRef, storeRef);
-    //draw pet line when rex is executing but time is not moving. When pet time moves, a separate use effect will handle this.
-    TimelineDrawing.drawPetLine(paperDataRef, paperGroupsRef, secondsFromhhmmss(rexPetTime));
+    //draw pet line when rex is executing.
+
+    TimelineDrawing.drawPetLine(
+      paperDataRef,
+      paperGroupsRef,
+      rexPetTime || selectedRexFromDb?.petValueAtStartStop,
+      selectedRexFromDb?.petRunning
+    );
     //draw all the things
     if (selectedEva) {
       TimelineDrawing.drawSequenceBottomSection(
@@ -246,12 +255,14 @@ const NavTimeline: FunctionComponent = () => {
   }, [
     selectedEva,
     selectedRex,
+    selectedRexFromDb,
     selectedEvaSequenceItemUuid,
     showDistanceFromLander,
     showElevation,
     graphSequenceItems,
     selectedPosEntryUuid,
     rightPanelIsOpen,
+    rexPetTime,
     processEvaDataFromStoreCallback, //this will trigger if the storeRef changes
     processPosEntriesFromStore, //this will trigger if the posRef changes
   ]);
@@ -259,15 +270,14 @@ const NavTimeline: FunctionComponent = () => {
   //handle pet rex seconds moving during rex and blink
   useEffect(() => {
     if (!rexPetTime || !paperGroupsRef?.current?.petLine?.firstChild) return;
-    TimelineDrawing.drawPetLine(paperDataRef, paperGroupsRef, secondsFromhhmmss(rexPetTime));
 
-    const oldPetLine = paperGroupsRef.current.petLine.firstChild as paper.Path.Line;
-    if (secondsFromhhmmss(rexPetTime) % 2 === 0) {
-      oldPetLine.strokeWidth = 2;
-    } else {
-      oldPetLine.strokeWidth = 1;
-    }
-  }, [rexPetTime, paperGroupsRef?.current?.petLine]);
+    TimelineDrawing.drawPetLine(
+      paperDataRef,
+      paperGroupsRef,
+      rexPetTime,
+      selectedRexFromDb?.petRunning
+    );
+  }, [rexPetTime, paperGroupsRef?.current?.petLine, selectedRexFromDb]);
 
   //redraw entire timeline
   useEffect(() => {

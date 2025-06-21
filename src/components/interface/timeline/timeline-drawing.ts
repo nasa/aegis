@@ -1,6 +1,6 @@
 import { MutableRefObject } from "react";
 import { clearMapItemHover, setLeftPanelHoverUuid, setSequenceHover } from "store/hover";
-import { padZeros } from "utils/formatting";
+import { padZeros, secondsFromhhmmss } from "utils/formatting";
 import paper from "paper";
 import last from "lodash/last";
 import orderBy from "lodash/orderBy";
@@ -697,10 +697,13 @@ function drawSequenceTraverse(
 export const drawPetLine = (
   paperDataRef: MutableRefObject<PaperData>,
   paperGroupsRef: MutableRefObject<PaperGroups>,
-  petSeconds: number
+  rexPetTime: string,
+  petRunning: boolean
 ): void => {
   const paperVars = paperDataRef.current.paperVars;
+  const petSeconds = secondsFromhhmmss(rexPetTime);
   const xLoc = paperVars.timelineLeft + petSeconds * paperVars.pixelsPerSecondX;
+
   //remove old line, draw new line
   paperGroupsRef.current.petLine.removeChildren();
   if (xLoc <= paperVars.timelineLeft + paperVars.timelineWidth) {
@@ -714,6 +717,14 @@ export const drawPetLine = (
     );
     paperGroupsRef.current.petLine.bringToFront();
     paperGroupsRef.current.petLine.visible = true;
+
+    if (petRunning) {
+      if (petSeconds % 2 === 0) {
+        paperGroupsRef.current.petLine.strokeWidth = 2;
+      } else {
+        paperGroupsRef.current.petLine.strokeWidth = 1;
+      }
+    }
   }
 };
 

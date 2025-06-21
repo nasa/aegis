@@ -18,6 +18,7 @@ type Rex = {
   traverseEntries: TraverseEntries;
   actionEntries: ActionEntries;
   xgressEntries: XgressEntries | null;
+  maestroControlled: boolean;
   createdAt?: string;
   updatedAt?: string;
 };
