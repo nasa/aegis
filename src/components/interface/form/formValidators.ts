@@ -121,6 +121,17 @@ const withinBoundary =
     }
   };
 
+const mustBeISOString = (value: Stringy): string | undefined => {
+  if (!value) return undefined;
+  if (typeof value !== "string") return "Must be a string";
+  // check using regex for ISO 8601 format
+  const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+  if (isoRegex.test(value)) {
+    return undefined;
+  }
+  return "Must be a valid ISO 8601 date string (YYYY-MM-DDTHH:mm:ssZ)";
+};
+
 export const validators = {
   required,
   mustBeNumber,
@@ -135,6 +146,7 @@ export const validators = {
   mustBeYYYYMMDD,
   withinBoundary,
   mustBeUnique,
+  mustBeISOString,
 };
 
 // UseFieldConfig<any>.validate?: FieldValidator<any>

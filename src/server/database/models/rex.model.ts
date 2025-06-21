@@ -41,6 +41,8 @@ export class Rex_db implements Rex_db_type {
   xgressEntries: XgressEntries;
   @Property({ type: MikroTypes.integer, nullable: true })
   ownerId: number;
+  @Property({ type: MikroTypes.boolean, nullable: false, default: false })
+  maestroControlled: boolean;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

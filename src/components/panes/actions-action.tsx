@@ -51,6 +51,10 @@ const RightAction: FunctionComponent<{
     (state) => state.rex.rexes.find((rex) => rex.uuid === rexUuid)?.isRunning,
     refEqual
   );
+  const rexMaestroControlled = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.maestroControlled,
+    refEqual
+  );
   const actionRexStatusEntry = useAppSelector((state) => {
     if (!rexUuid) return;
     //find all action entry that match this action uuid for the running rex. return the status of the last one.
@@ -122,6 +126,7 @@ const RightAction: FunctionComponent<{
                   entryType="action"
                   uuid={action.uuid}
                   editPerms={editPerms}
+                  maestroControlled={rexMaestroControlled}
                 />
               ) : (
                 <div className={actionStyles.actionHeadingRexStatusWrapper}>

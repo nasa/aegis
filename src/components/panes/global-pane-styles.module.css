@@ -329,6 +329,7 @@
 
 .panelColumnTableCell {
   display: table-cell;
+  vertical-align: middle;
 }
 
 .panelColumnTableCellLeftSurround {
@@ -345,6 +346,7 @@
   border-bottom: 1px solid var(--grey4);
   border-radius: 0 4px 4px 0;
   padding: 2px 5px 2px 0;
+  vertical-align: middle;
 }
 
 .panelDisplayVal {

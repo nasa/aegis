@@ -9,7 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBackwardFast, faPause, faPlay } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, useAppSelector, refEqual } from "utils/useAppSelector";
-import { Button, InLineEditInput } from "components/interface/form/globalFields";
+import { Button, Checkbox, InLineEditInput } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import { thunkRexPetStartStop } from "store/thunk/thunkRex";
 import PetInterval from "components/page/petInterval";
@@ -52,6 +52,38 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               <div className={paneStyles.panelSectionRow}>
                 <div className={paneStyles.panelSection2Column}>
                   <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCellLeft}>
+                        <div className={paneStyles.inputFieldLabel}>Maestro Controlled:</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={rexStyles.selectedEvaLabelRight}>
+                          {editMode ? (
+                            <div className={rexStyles.maestroCheckboxContainer}>
+                              <Checkbox
+                                checked={selectedRex.maestroControlled}
+                                editable={editMode}
+                                onChange={(e) => {
+                                  dispatch(
+                                    upsertRexByField(
+                                      selectedRex.uuid,
+                                      "maestroControlled",
+                                      e.target.checked
+                                    )
+                                  );
+                                }}
+                                label=""
+                                labelStyle={null}
+                                labelPlacement="left"
+                                uniqueId="maestroCheckbox"
+                              />
+                            </div>
+                          ) : (
+                            <div>{selectedRex.maestroControlled ? "Yes" : "No"}</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                     <div className={paneStyles.panelColumnTableRow}>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.inputFieldLabel}>Execution Status:</div>
@@ -133,83 +165,91 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         <div className={paneStyles.inputFieldLabel}>Phased Elapsed Time:</div>
                       </div>
                       <div className={rexStyles.petClockFieldContainer}>
-                        <div className={paneStyles.inputFieldValue}>
-                          {selectedRex.petRunning ? (
-                            <div className={rexStyles.petClockValue}>{rexPetTime}</div>
-                          ) : (
-                            <InLineEditInput
-                              value={selectedRex.petValueAtStartStop}
-                              editing={editMode}
-                              fieldProps={{
-                                name: "petSeconds",
-                                ariaLabel: "PET Timer",
-                                style: { width: "90px" },
-                                validators: [validators.maxLength(9), validators.mustBeHHMMSS],
-                                onChange: () => {},
-                              }}
-                              onSubmit={(val: string) => {
-                                dispatch(
-                                  upsertRexByField(selectedRex.uuid, "petValueAtStartStop", val)
-                                );
-                              }}
-                              styleValue={{ width: "75px" }}
-                              key={`petSeconds`}
-                            />
-                          )}
-                        </div>
-                        {editMode && selectedRex.isRunning && (
-                          <div className={rexStyles.clockButtons}>
-                            <div
-                              className={rexStyles.clockButtonsIcon}
-                              style={{ marginLeft: "4px" }}
-                            >
-                              <FontAwesomeIcon
-                                icon={selectedRex.petRunning ? faPause : faPlay}
-                                size="sm"
-                                onClick={() => {
-                                  if (selectedRex.petRunning) {
-                                    dispatch(
-                                      thunkRexPetStartStop({
-                                        rexUuid: selectedRex.uuid,
-                                        directive: "stop",
-                                        petValue: rexPetTime,
-                                      })
-                                    );
-                                  } else {
-                                    dispatch(
-                                      thunkRexPetStartStop({
-                                        rexUuid: selectedRex.uuid,
-                                        directive: "start",
-                                        petValue: rexPetTime,
-                                      })
-                                    );
-                                  }
-                                }}
-                              />
-                            </div>
-                            {!selectedRex.petRunning && (
-                              <div
-                                className={rexStyles.clockButtonsIcon}
-                                style={{ marginLeft: "4px" }}
-                              >
-                                <FontAwesomeIcon
-                                  icon={faBackwardFast}
-                                  size="sm"
-                                  onClick={() => {
-                                    if (confirm("Are you sure you want to reset the PET timer?")) {
-                                      dispatch(
-                                        upsertRexByField(
-                                          selectedRex.uuid,
-                                          "petValueAtStartStop",
-                                          "+00:00:00"
-                                        )
-                                      );
-                                    }
+                        {selectedRex.maestroControlled ? (
+                          <div style={{ fontSize: "0.8em" }}>Clock controlled by Maestro</div>
+                        ) : (
+                          <>
+                            <div className={paneStyles.inputFieldValue}>
+                              {selectedRex.petRunning ? (
+                                <div className={rexStyles.petClockValue}>{rexPetTime}</div>
+                              ) : (
+                                <InLineEditInput
+                                  value={selectedRex.petValueAtStartStop}
+                                  editing={editMode}
+                                  fieldProps={{
+                                    name: "petSeconds",
+                                    ariaLabel: "PET Timer",
+                                    style: { width: "90px" },
+                                    validators: [validators.maxLength(9), validators.mustBeHHMMSS],
+                                    onChange: () => {},
                                   }}
+                                  onSubmit={(val: string) => {
+                                    dispatch(
+                                      upsertRexByField(selectedRex.uuid, "petValueAtStartStop", val)
+                                    );
+                                  }}
+                                  styleValue={{ width: "75px" }}
+                                  key={`petSeconds`}
                                 />
+                              )}
+                            </div>
+                            {editMode && selectedRex.isRunning && (
+                              <div className={rexStyles.clockButtons}>
+                                <div
+                                  className={rexStyles.clockButtonsIcon}
+                                  style={{ marginLeft: "4px" }}
+                                >
+                                  <FontAwesomeIcon
+                                    icon={selectedRex.petRunning ? faPause : faPlay}
+                                    size="sm"
+                                    onClick={() => {
+                                      if (selectedRex.petRunning) {
+                                        dispatch(
+                                          thunkRexPetStartStop({
+                                            rexUuid: selectedRex.uuid,
+                                            directive: "stop",
+                                            petValue: rexPetTime,
+                                          })
+                                        );
+                                      } else {
+                                        dispatch(
+                                          thunkRexPetStartStop({
+                                            rexUuid: selectedRex.uuid,
+                                            directive: "start",
+                                            petValue: rexPetTime,
+                                          })
+                                        );
+                                      }
+                                    }}
+                                  />
+                                </div>
+                                {!selectedRex.petRunning && (
+                                  <div
+                                    className={rexStyles.clockButtonsIcon}
+                                    style={{ marginLeft: "4px" }}
+                                  >
+                                    <FontAwesomeIcon
+                                      icon={faBackwardFast}
+                                      size="sm"
+                                      onClick={() => {
+                                        if (
+                                          confirm("Are you sure you want to reset the PET timer?")
+                                        ) {
+                                          dispatch(
+                                            upsertRexByField(
+                                              selectedRex.uuid,
+                                              "petValueAtStartStop",
+                                              "+00:00:00"
+                                            )
+                                          );
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                )}
                               </div>
                             )}
-                          </div>
+                          </>
                         )}
                       </div>
                     </div>

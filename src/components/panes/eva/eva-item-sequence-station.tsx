@@ -96,6 +96,11 @@ const SequenceItemStation: FunctionComponent<{
     return rex.stationEntries[stationUuid]?.rexStatus;
   }, shallowEqual);
 
+  const rexMaestroControlled = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.maestroControlled,
+    refEqual
+  );
+
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
@@ -234,6 +239,7 @@ const SequenceItemStation: FunctionComponent<{
             entryType="station"
             uuid={stationUuid}
             editPerms={!!(editPerms && rexFromDbIfExecuting)} // the !! converts result into boolean
+            maestroControlled={rexMaestroControlled}
           />
         )}
 

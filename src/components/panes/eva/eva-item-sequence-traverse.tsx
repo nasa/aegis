@@ -71,6 +71,11 @@ const SequenceItemTraverse: FunctionComponent<{
     refEqual
   );
 
+  const rexMaestroControlled = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.maestroControlled,
+    refEqual
+  );
+
   const sequenceItemCalculatedDataEndSeconds = useAppSelector(
     (state) =>
       getCalculatedFieldsByEva({
@@ -211,6 +216,7 @@ const SequenceItemTraverse: FunctionComponent<{
             entryType="traverse"
             uuid={traverseUuid}
             editPerms={!!(editPerms && rexFromDbIfExecuting)} // the !! converts result into boolean
+            maestroControlled={rexMaestroControlled}
           />
         )}
         <div
