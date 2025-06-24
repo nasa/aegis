@@ -87,7 +87,6 @@ router.get("/byEvaRef", async (req: Request, res: Response): Promise<void> => {
   try {
     const em = getEM();
 
-    // Build filter where clause for EVA
     const evaWhereClause: {
       refUuid?: string;
       mission?: { id: number };
@@ -95,15 +94,13 @@ router.get("/byEvaRef", async (req: Request, res: Response): Promise<void> => {
     if (queryObj.evaRef) evaWhereClause.refUuid = queryObj.evaRef;
     if (queryObj.missionId) evaWhereClause.mission = { id: queryObj.missionId };
 
-    // For datesOnly, we only fetch the specific fields we need
     const dbEvas = await em.find(Eva_db, evaWhereClause, {
       fields: ["uuid", "refUuid", "createdAt"],
       orderBy: { createdAt: QueryOrder.ASC },
     });
 
-    dbEvas.shift(); // remove the first element, which is the As Planned EVA
+    dbEvas.shift(); // remove As Planned EVA (no rex attached)
 
-    // Build filter where clause for REX
     const rexWhereClause: {
       evaUuid?: { $in: string[] };
       mission?: { id: number };
@@ -116,7 +113,6 @@ router.get("/byEvaRef", async (req: Request, res: Response): Promise<void> => {
       orderBy: { name: QueryOrder.ASC },
     });
 
-    // Transform to desired format
     const refRexes = dbRexes.map((rex) => ({
       uuid: rex.uuid,
       name: rex.name,
