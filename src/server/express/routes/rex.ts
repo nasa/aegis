@@ -7,19 +7,19 @@ import { hasPerms } from "utils/permissions";
 
 import { getEM } from "utils/mikro";
 import { EntityData, ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/core";
-import { Rex_db } from "server/database/models/_allModels";
+import { Eva_db, Rex_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { convertRexesTypeDbToStore, convertRexesTypeStoreToDb } from "store/storeUtils/rex";
 
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { missionId, socketId, uuid, evaUuid } = query;
+  const { missionId, socketId, uuid, evaRef } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
     socketId: socketId ? (socketId as string) : undefined,
     uuid: uuid ? uuid.toString() : null,
-    evaUuid: evaUuid ? (evaUuid as string) : undefined,
+    evaRef: evaRef ? (evaRef as string) : undefined,
   };
   return queryObj;
 };
@@ -79,24 +79,39 @@ router.get("/byEvaRef", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  if (!queryObj.evaUuid) {
-    res.status(500).json({ status: "error", message: "No EVA Uuid" });
+  if (!queryObj.evaRef) {
+    res.status(500).json({ status: "error", message: "No EVA Ref given" });
     return;
   }
 
   try {
     const em = getEM();
 
-    // Build filter where clause
-    const whereClause: {
-      evaUuid?: string;
+    // Build filter where clause for EVA
+    const evaWhereClause: {
+      refUuid?: string;
       mission?: { id: number };
     } = {};
-    if (queryObj.evaUuid) whereClause.evaUuid = queryObj.evaUuid;
-    if (queryObj.missionId) whereClause.mission = { id: queryObj.missionId };
+    if (queryObj.evaRef) evaWhereClause.refUuid = queryObj.evaRef;
+    if (queryObj.missionId) evaWhereClause.mission = { id: queryObj.missionId };
 
     // For datesOnly, we only fetch the specific fields we need
-    const dbRexes = await em.find(Rex_db, whereClause, {
+    const dbEvas = await em.find(Eva_db, evaWhereClause, {
+      fields: ["uuid", "refUuid", "createdAt"],
+      orderBy: { createdAt: QueryOrder.ASC },
+    });
+
+    dbEvas.shift(); // remove the first element, which is the As Planned EVA
+
+    // Build filter where clause for REX
+    const rexWhereClause: {
+      evaUuid?: { $in: string[] };
+      mission?: { id: number };
+    } = {};
+    if (dbEvas.length > 0) rexWhereClause.evaUuid = { $in: dbEvas.map((e) => e.uuid) };
+    if (queryObj.missionId) rexWhereClause.mission = { id: queryObj.missionId };
+
+    const dbRexes = await em.find(Rex_db, rexWhereClause, {
       fields: ["evaUuid", "uuid", "name", "createdAt", "updatedAt", "isRunning"],
       orderBy: { name: QueryOrder.ASC },
     });
