@@ -22,7 +22,7 @@ export const selectEvaStations =
 /**
  * Gets all Traverses for an EVA. If no EVA uuid is provided, use the selectedEvaUuid
  */
-export const selecteEvaTraverses =
+export const selectEvaTraverses =
   (evaUuid?: string) =>
   (state: RootState): Traverse[] => {
     const eva = state.eva.evas.find((e) => e.uuid === (evaUuid || state.eva.selectedEvaUuid));

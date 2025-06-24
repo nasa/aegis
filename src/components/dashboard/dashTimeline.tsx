@@ -12,7 +12,7 @@ import {
 } from "store/processing/calculatedFields";
 import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { processEvaDataFromStore } from "../interface/timeline/common-timeline";
-import { selectEvaStations, selecteEvaTraverses } from "store/selectors";
+import { selectEvaStations, selectEvaTraverses } from "store/selectors";
 import styles from "./dashTimeline.module.css";
 import { decodeEmoji, hhmmFromMinutes, secondsFromhhmmss } from "utils/formatting";
 import PetInterval from "components/page/petInterval";
@@ -34,7 +34,7 @@ const DashTimeline: FunctionComponent = () => {
   );
   const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, deepEqual);
   const evaStations = useAppSelector(selectEvaStations(runningEvaFromDb?.uuid), deepEqual);
-  const evaTraverses = useAppSelector(selecteEvaTraverses(runningEvaFromDb?.uuid), deepEqual);
+  const evaTraverses = useAppSelector(selectEvaTraverses(runningEvaFromDb?.uuid), deepEqual);
 
   const stationCalculatedFieldsInRunningEva = useAppSelector((state) => {
     const stationsInEvaSequence = runningEvaFromDb?.sequence
