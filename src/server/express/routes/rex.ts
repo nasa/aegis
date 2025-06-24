@@ -14,12 +14,12 @@ import { convertRexesTypeDbToStore, convertRexesTypeStoreToDb } from "store/stor
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { missionId, socketId, uuid, evaRef } = query;
+  const { missionId, socketId, uuid, evaRefUuid } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
     socketId: socketId ? (socketId as string) : undefined,
     uuid: uuid ? uuid.toString() : null,
-    evaRef: evaRef ? (evaRef as string) : undefined,
+    evaRefUuid: evaRefUuid ? (evaRefUuid as string) : undefined,
   };
   return queryObj;
 };
@@ -79,7 +79,7 @@ router.get("/byEvaRef", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  if (!queryObj.evaRef) {
+  if (!queryObj.evaRefUuid) {
     res.status(500).json({ status: "error", message: "No EVA Ref given" });
     return;
   }
@@ -89,10 +89,8 @@ router.get("/byEvaRef", async (req: Request, res: Response): Promise<void> => {
 
     const evaWhereClause: {
       refUuid?: string;
-      mission?: { id: number };
     } = {};
-    if (queryObj.evaRef) evaWhereClause.refUuid = queryObj.evaRef;
-    if (queryObj.missionId) evaWhereClause.mission = { id: queryObj.missionId };
+    if (queryObj.evaRefUuid) evaWhereClause.refUuid = queryObj.evaRefUuid;
 
     const dbEvas = await em.find(Eva_db, evaWhereClause, {
       fields: ["uuid", "refUuid", "createdAt"],
@@ -103,10 +101,8 @@ router.get("/byEvaRef", async (req: Request, res: Response): Promise<void> => {
 
     const rexWhereClause: {
       evaUuid?: { $in: string[] };
-      mission?: { id: number };
     } = {};
     if (dbEvas.length > 0) rexWhereClause.evaUuid = { $in: dbEvas.map((e) => e.uuid) };
-    if (queryObj.missionId) rexWhereClause.mission = { id: queryObj.missionId };
 
     const dbRexes = await em.find(Rex_db, rexWhereClause, {
       fields: ["evaUuid", "uuid", "name", "createdAt", "updatedAt", "isRunning"],
@@ -128,7 +124,7 @@ router.get("/byEvaRef", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ status: "error", message: `Error getting actions ${e}` });
+    res.status(500).json({ status: "error", message: `Error getting rexes ${e}` });
   }
 });
 
