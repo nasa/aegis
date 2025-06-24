@@ -31,3 +31,21 @@ export const hasPerms = async ({
 
   return false;
 };
+
+/**
+ * Checks if a query is from EMSS software or an EMSS developer (superadmin).
+ * @param permission
+ * @param user
+ * @returns
+ */
+export const hasEMSSPerms = ({ user, emssToken }: { user: User; emssToken?: string }): boolean => {
+  // check the EMSS token. If it's valid, then the user has permissions
+  if (emssToken && emssToken === process.env.EMSS_TOKEN) return true;
+
+  // if no user session then no permissions for anything
+  if (!user) return false;
+
+  if (user.isSuperAdmin) return true; //super user always has perms
+
+  return false;
+};
