@@ -477,10 +477,12 @@ export const auditRexStatusEntries = async ({
   // make rex.stationEntries, rex.traverseEntries, rex.actionEntries, and xgressEntries all contain a single value per uuid instead of an array by keeping only the last entry of each
   // this also discards previous values like uuid, createdAt, and petSeconds that we're no longer using.
   const newRexes = cloneDeep(wholeStoreState.rex.rexes);
+  let isModified: boolean = false;
   for (const rex of newRexes) {
     if (rex.stationEntries && typeof rex.stationEntries === "object") {
       for (const stationUuid in rex.stationEntries) {
         if (Array.isArray(rex.stationEntries[stationUuid])) {
+          isModified = true;
           rex.stationEntries[stationUuid] = {
             rexStatus: rex.stationEntries[stationUuid].slice(-1)[0].rexStatus,
           };
@@ -491,6 +493,7 @@ export const auditRexStatusEntries = async ({
     if (rex.traverseEntries && typeof rex.traverseEntries === "object") {
       for (const traverseUuid in rex.traverseEntries) {
         if (Array.isArray(rex.traverseEntries[traverseUuid])) {
+          isModified = true;
           rex.traverseEntries[traverseUuid] = {
             rexStatus: rex.traverseEntries[traverseUuid].slice(-1)[0].rexStatus,
           };
@@ -501,6 +504,7 @@ export const auditRexStatusEntries = async ({
     if (rex.actionEntries && typeof rex.actionEntries === "object") {
       for (const actionUuid in rex.actionEntries) {
         if (Array.isArray(rex.actionEntries[actionUuid])) {
+          isModified = true;
           rex.actionEntries[actionUuid] = {
             rexStatus: rex.actionEntries[actionUuid].slice(-1)[0].rexStatus,
             mass: rex.actionEntries[actionUuid].slice(-1)[0].mass,
@@ -512,6 +516,7 @@ export const auditRexStatusEntries = async ({
     if (rex.xgressEntries && typeof rex.xgressEntries === "object") {
       for (const xgressUuid in rex.xgressEntries) {
         if (Array.isArray(rex.xgressEntries[xgressUuid])) {
+          isModified = true;
           rex.xgressEntries[xgressUuid] = {
             rexStatus: rex.xgressEntries[xgressUuid].slice(-1)[0].rexStatus,
           };
@@ -520,15 +525,17 @@ export const auditRexStatusEntries = async ({
     }
   }
 
-  // update the store with the new rexes
-  wholeStoreState.rex.rexes = newRexes;
+  if (isModified) {
+    // update the store with the new rexes
+    wholeStoreState.rex.rexes = newRexes;
 
-  // also update the rexesFromDb in the store
-  wholeStoreState.rex.rexesFromDb = newRexes;
+    // also update the rexesFromDb in the store
+    wholeStoreState.rex.rexesFromDb = newRexes;
 
-  // save changed rexes to the DB
-  const upsertResponse = await httpClient_rex.upsertRexes(newRexes);
-  if (upsertResponse.status !== "success") {
-    console.error("Error saving rexes to DB:", upsertResponse.message);
+    // save changed rexes to the DB
+    const upsertResponse = await httpClient_rex.upsertRexes(newRexes);
+    if (upsertResponse.status !== "success") {
+      console.error("Error saving rexes to DB:", upsertResponse.message);
+    }
   }
 };

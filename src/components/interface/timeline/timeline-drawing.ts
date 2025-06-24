@@ -8,7 +8,7 @@ import { Dispatch } from "@reduxjs/toolkit";
 import { getHoverValue } from "utils/paper";
 
 /**
- * Draws the vertical line wtih the rotated time at the bottom.
+ * Draws the vertical line with the rotated time at the bottom.
  * @param paperDataRef object containing all the paper data
  * @param xLoc optional x location of the time marker
  * @param customColor optional color to draw the line with
@@ -58,7 +58,7 @@ export function drawTimeMarker(
  * @param yLoc y location of the meter marker
  * @param label label to display next to the meter marker
  * @param color
- * @param align alignment of the label and tickmark when drawn on on the right or left y-axis
+ * @param align alignment of the label and tick mark when drawn on on the right or left y-axis
  * @returns
  */
 export function drawMeterMarker(
@@ -700,6 +700,7 @@ export const drawPetLine = (
   rexPetTime: string,
   petRunning: boolean
 ): void => {
+  if (rexPetTime === null || rexPetTime === undefined) return;
   const paperVars = paperDataRef.current.paperVars;
   const petSeconds = secondsFromhhmmss(rexPetTime);
   const xLoc = paperVars.timelineLeft + petSeconds * paperVars.pixelsPerSecondX;

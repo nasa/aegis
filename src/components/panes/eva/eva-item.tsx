@@ -134,7 +134,7 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
 
   const handleClickOnEvaName = useCallback(() => {
     if (selectedEvaUuid === dropdownEvaUuid && selectedEvaSequenceItemUuid === null) {
-      // reselecting the currently selected item. Deselect it
+      // re-selecting the currently selected item. Deselect it
       dispatch(setSelectedEvaUuid(null));
       dispatch(setSelectedRexUuid(null));
       dispatch(thunkSetRightPanelIsOpenIfAuto(false));

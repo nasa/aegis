@@ -24,6 +24,7 @@ const StationItem: FunctionComponent<{
   // we're stripping out only the values that isModified uses when comparing objects
   const stationFromDbIsModified = useAppSelector((state) => {
     const station = state.station.stationsFromDb.find((s) => s.uuid === stationUuid);
+    if (!station) return null; // station is in draft
     return {
       uuid: station.uuid,
       updatedAt: station.updatedAt,

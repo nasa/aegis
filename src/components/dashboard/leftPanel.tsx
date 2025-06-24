@@ -3,7 +3,7 @@ import { FunctionComponent, useState } from "react";
 import styles from "./leftPanel.module.css";
 import PetInterval from "components/page/petInterval";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
-import { selectEvaStations, selecteEvaTraverses } from "store/selectors";
+import { selectEvaStations, selectEvaTraverses } from "store/selectors";
 import {
   getCalculatedFieldsByEva,
   getCalculatedFieldsByStation,
@@ -21,7 +21,7 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
     deepEqual
   );
   const evaStations = useAppSelector(selectEvaStations(runningRexFromDb?.evaUuid), deepEqual);
-  const evaTraverses = useAppSelector(selecteEvaTraverses(runningRexFromDb?.evaUuid), deepEqual);
+  const evaTraverses = useAppSelector(selectEvaTraverses(runningRexFromDb?.evaUuid), deepEqual);
   const evaCalculatedFields = useAppSelector(
     (state) =>
       getCalculatedFieldsByEva({

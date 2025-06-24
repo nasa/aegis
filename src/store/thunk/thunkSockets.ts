@@ -53,7 +53,6 @@ import {
   setRexesPosEntryEditMode,
   upsertRexes,
   upsertRexesFromDb,
-  setSelectedRexUuid,
 } from "store/rex";
 import { updateMapDirective } from "store/map";
 import {
@@ -185,13 +184,13 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
       }
     }
   } else if (storeUpsert.type === "rex") {
-    const changedRexs = storeUpsert.data as Rex[];
-    for (const changedRex of changedRexs) {
+    const changedRexes = storeUpsert.data as Rex[];
+    for (const changedRex of changedRexes) {
       //check changes on rex object
       if (getState().eva.evasEditing.includes(changedRex.evaUuid)) {
         upsertMessages.push(getConflictMessage("rex", changedRex.name, "upsert"));
       }
-      //check changes on crew pos inside rex object. this is handled seperately
+      //check changes on crew pos inside rex object. this is handled separately
       if (getState().rex.rexesPosEntriesEditing.includes(changedRex.uuid)) {
         upsertMessages.push(getConflictMessage("crew position on", changedRex.name, "upsert"));
         //if there was an open map directive for one of the crew pos, cancel it
@@ -207,13 +206,9 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
         dispatch(setRexesPosEntryEditMode({ rexUuid: changedRex.uuid, editMode: false }));
         dispatch(setPosEntryEditingUuid(null));
       }
-      //if this rex is the new running rex, update selected rex
-      if (changedRex.isRunning) {
-        dispatch(setSelectedRexUuid(changedRex.uuid));
-      }
     }
-    dispatch(upsertRexes(changedRexs, true));
-    dispatch(upsertRexesFromDb(changedRexs));
+    dispatch(upsertRexes(changedRexes, true));
+    dispatch(upsertRexesFromDb(changedRexes));
   } else if (storeUpsert.type === "stmRule") {
     const changedStmRules = storeUpsert.data as STMRule[];
     for (const changedStmRule of changedStmRules) {
