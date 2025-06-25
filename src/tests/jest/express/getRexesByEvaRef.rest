@@ -1,0 +1,9 @@
+// This file is for use with the vscode plugin, Simple REST Client
+// (https://marketplace.visualstudio.com/items?itemName=Tino.simple-rest-client)
+// With the plugin installed, click the "Send Request" text that appears above the `GET` entry below to hit local dev and test the endpoint.
+
+GET http://localhost:4000/api/v1/emss/getRexesByEvaRef/
+?evaRefUuid=3194de70-0797-4400-8469-2477ccce39bd
+&emssToken={{$dotenv EMSS_TOKEN}}
+
+Content-Type: application/json
