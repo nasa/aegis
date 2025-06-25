@@ -77,8 +77,7 @@ describe("GET REX BY EVA REF Endpoint", () => {
     test("retrieves rexes for existing ref", async () => {
       const res = await supertest(app)
         .get("/api/v1/emss/getRexesByEvaRef")
-        .set("emss-token", emssToken)
-        .query({ evaRefUuid: testEvas[0].refUuid });
+        .query({ evaRefUuid: testEvas[0].refUuid, emssToken: emssToken });
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.message).toContain("Rexes retrieved");
