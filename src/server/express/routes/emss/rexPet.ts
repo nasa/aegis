@@ -22,7 +22,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
 
   // Check if user has EMSS permissions
-  const editPermission = hasEMSSPerms({ user: req.session.user, emssToken });
+  const editPermission = hasEMSSPerms({ user: req.session.user || undefined, emssToken });
 
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
