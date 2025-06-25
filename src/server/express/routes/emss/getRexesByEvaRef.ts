@@ -1,17 +1,16 @@
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
-import { hasEMSSPerms } from "utils/permissions";
-
 import { getEM } from "utils/mikro";
 import { Eva_db, Rex_db } from "server/database/models/_allModels";
 
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { evaRefUuid } = query;
+  const { evaRefUuid, emssToken } = query;
   const queryObj = {
     evaRefUuid: evaRefUuid ? (evaRefUuid as string) : undefined,
+    emssToken: emssToken ? (emssToken as string) : undefined,
   };
   return queryObj;
 };
@@ -19,10 +18,9 @@ const parseQuery = (query: Query) => {
 // Get eva refs
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const emssToken = req.headers["emss-token"] as string;
 
   // Check if user has EMSS permissions
-  const editPermission = hasEMSSPerms({ user: req.session.user || undefined, emssToken });
+  const editPermission = queryObj.emssToken && queryObj.emssToken === process.env.EMSS_TOKEN;
 
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });

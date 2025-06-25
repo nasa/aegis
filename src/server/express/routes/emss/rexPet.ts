@@ -4,7 +4,6 @@ import { Rex_db } from "../../../database/models/_allModels";
 import { emitStoreUpsert } from "../../sockets";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { validators } from "components/interface/form/formValidators";
-import { hasEMSSPerms } from "utils/permissions";
 
 const router = express.Router();
 
@@ -22,7 +21,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
 
   // Check if user has EMSS permissions
-  const editPermission = hasEMSSPerms({ user: req.session.user || undefined, emssToken });
+  const editPermission = emssToken && emssToken === process.env.EMSS_TOKEN;
 
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
