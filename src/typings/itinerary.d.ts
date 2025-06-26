@@ -189,7 +189,7 @@ type Action = {
   stationUuid?: string | null;
   traverseUuid?: string | null;
 
-  parentActionUuid?: string | null;
+  parentActionUuid?: string | null; // the poi action uuid it was copied from
   parentCopyDate?: string | null;
 
   priority: number | null; // 1-10
@@ -249,7 +249,7 @@ type ActionStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 type ActionParentType = "station" | "poi" | "traverse";
 type Crew = "EV1" | "EV2";
 
-//Filter options when getting actions from the API endpoint
+// Filter options when getting actions from the API endpoint
 interface ActionFilterOptions {
   missionId?: number;
   actionUuid?: string;
@@ -257,7 +257,7 @@ interface ActionFilterOptions {
   stationUuid?: string;
 }
 
-//Contians parent uuid types for Action
+// Contains parent uuid types for Action
 type ActionParentUuid = {
   poiUuid?: string;
   stationUuid?: string;
@@ -292,7 +292,7 @@ type ActionDefinitionItem = {
   abbr: string;
 };
 
-// used in the Misison structure
+// used in the Mission structure
 type ActionDefinitions = {
   verbs: ActionDefinitionItem[];
   nouns: ActionDefinitionItem[];

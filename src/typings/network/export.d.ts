@@ -8,6 +8,8 @@ interface ExportAction extends Action {
   parentPoiName: string;
   parentStationName: string;
   parentTraverseName: string;
+  stationRefUuid: string;
+  traverseRefUuid: string;
   stmUuidRefsReadable: string[];
   iconEmojiDecoded: string;
   equipmentItemsUsageReadable: EquipmentItemUsageReadable[] | null;
@@ -53,6 +55,7 @@ interface ExportStation extends Station {
   iconEmojiDecoded: string;
   poisAssociatedReadable: PoiSummaryReadable[];
   gridCoordinates: string;
+  actionOrderRefUuids: string[];
 }
 
 interface ExportStationCalculatedFields extends StationCalculatedFields {
@@ -64,12 +67,19 @@ interface ExportTraverse extends Traverse {
   descriptionReadable: string;
   calculatedFields: TraverseCalculatedFields;
   actionsReadable: ExportAction[];
+  actionOrderRefUuids: string[];
 }
 
+interface EvaSequenceItemRefUuid extends EvaSequenceItem {
+  refUuid: string;
+}
 interface ExportEva extends Eva {
   _itemType: string;
   descriptionReadable: string;
   sequenceReadable: (ExportStation | ExportTraverse)[]; // stations and traverses in order
+  sequenceRefUuids: EvaSequenceItemRefUuid[];
+  egressLocationRefUuid: string; // station refUuid or "lander"
+  ingressLocationRefUuid: string; // station refUuid or "lander"
   calculatedFields: ExportEvaCalculatedFields;
 }
 
