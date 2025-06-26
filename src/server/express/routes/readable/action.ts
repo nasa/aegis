@@ -108,16 +108,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
           .where({
             refUuid: queryObj.actionRefUuid,
             $or: [
-              { station: { uuid: { $nin: rexEvaSequenceItemUuids } } },
-              { traverse: { uuid: { $nin: rexEvaSequenceItemUuids } } },
+              { station: { uuid: { $in: rexEvaSequenceItemUuids } } },
+              { traverse: { uuid: { $in: rexEvaSequenceItemUuids } } },
             ],
           });
         actions = await actionQuery.execute();
       }
-
       // Transform to desired format
       const dateActions = actions.map((action) => ({
         actionUuid: action.uuid,
+        actionRefUuid: action.refUuid,
         createdAt: action.createdAt,
         updatedAt: action.updatedAt,
       }));
