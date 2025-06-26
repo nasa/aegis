@@ -146,7 +146,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.inputFieldLabel}>Duration (mins):</div>
+                      <div className={paneStyles.inputFieldLabel}>Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
@@ -325,7 +325,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Movement Duration (mins):</div>
+                      <div className={paneStyles.displayFieldLabel}>Movement Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
@@ -465,7 +465,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
                       <div className={paneStyles.displayFieldLabel}>
-                        Total Duration of Actions and Movement (mins):
+                        Total Time of Actions and Movement (mins):
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>

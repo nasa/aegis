@@ -258,7 +258,7 @@ const Info_Panel: FunctionComponent<{
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.inputFieldLabel}>Duration (mins):</div>
+                      <div className={paneStyles.inputFieldLabel}>Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
@@ -267,7 +267,7 @@ const Info_Panel: FunctionComponent<{
                           editing={editMode}
                           fieldProps={{
                             name: "duration",
-                            ariaLabel: "Duration in minutes",
+                            ariaLabel: "Time in minutes",
                             style: { width: "45px" },
                             validators: [
                               validators.mustBeNumber,
@@ -298,7 +298,7 @@ const Info_Panel: FunctionComponent<{
                         <div
                           style={{ color: "var(--grey5)" }}
                           className={paneStyles.inputFieldLabel}
-                        >{`Using Calculated Total: ${(calculatedFields?.totalDwellTime).toFixed(0)}`}</div>
+                        >{`Using Calculated Total Dwell Time: ${(calculatedFields?.totalDwellTime).toFixed(0)}`}</div>
                       )}
                     </div>
                   </div>
@@ -664,7 +664,7 @@ const Info_Panel: FunctionComponent<{
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Duration (mins):</div>
+                      <div className={paneStyles.displayFieldLabel}>Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
