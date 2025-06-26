@@ -21,7 +21,7 @@ import { v4 as uuidv4 } from "uuid";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import {
-  setTraverseEditMode,
+  setTraversesEditMode,
   upsertTraverses,
   deleteTraversesFromDbByUuid,
   deleteTraversesByUuid,
@@ -34,10 +34,11 @@ import {
   thunkDeleteTraverses,
   thunkDuplicateTraverse,
   thunkFullUpdateTraverse,
+  thunkSaveTraverse,
   thunkUpdateTraversesAroundStation,
 } from "./thunkTraverse";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
-import { thunkDeleteStations, thunkDuplicateStation } from "./thunkStation";
+import { thunkDeleteStations, thunkDuplicateStation, thunkSaveStation } from "./thunkStation";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
@@ -45,6 +46,7 @@ import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { thunkDeleteRex } from "./thunkRex";
 import { setSelectedPosEntryUuid, setSelectedRexUuid } from "store/rex";
 import { setRightPanelIsOpen } from "store/interface";
+import concat from "lodash/concat";
 
 /** Get an Station or Traverse object from a UUID
  * This would typically be used when needing to get the full object from an EVA sequence
@@ -61,6 +63,9 @@ export const thunkGetStationOrTraverse = appCreateAsyncThunk<
   return null;
 });
 
+/**
+ * Save an EVA to the DB. It will also save any station or traverses in edit mode
+ */
 export const thunkSaveEva = appCreateAsyncThunk<{
   evaUuid: string;
 }>("evaSave", async ({ evaUuid }, { dispatch, getState }) => {
@@ -184,6 +189,19 @@ export const thunkSaveEva = appCreateAsyncThunk<{
     }
   }
 
+  // save any traverse or station in draft
+  for (const sequenceItem of eva.sequence) {
+    if (sequenceItem.type === "traverse") {
+      if (getState().traverse.traversesEditing.includes(sequenceItem.uuid)) {
+        await dispatch(thunkSaveTraverse({ traverseUuid: sequenceItem.uuid }));
+      }
+    } else if (sequenceItem.type === "station") {
+      if (getState().station.stationsEditing.includes(sequenceItem.uuid)) {
+        await dispatch(thunkSaveStation({ stationUuid: sequenceItem.uuid }));
+      }
+    }
+  }
+
   // upsert the changed Eva to the DB via internal API call
   const evaUpsertResponse = await httpClient_Eva.upsertEvas([
     {
@@ -200,6 +218,9 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   dispatch(setEvaEditMode({ evaUuid: eva.uuid, editMode: false }));
 });
 
+/**
+ * Cancel an EVA edit. It will also cancel any traverses in edit
+ */
 export const thunkCancelEva = appCreateAsyncThunk<{
   evaUuid: string;
 }>("evaCancel", async ({ evaUuid }, { dispatch, getState }) => {
@@ -208,14 +229,13 @@ export const thunkCancelEva = appCreateAsyncThunk<{
 
   if (evaFromDb) {
     // delete the traverses that were added to the store but are not in the fromDb copy
+    // meaning they were adding during this edit to the EVA
     const traverseUuids: string[] = eva.sequence
       .filter((s) => s.type === "traverse")
       ?.map((t) => t.uuid);
     const traverseUuidsInDb: string[] = evaFromDb.sequence
       .filter((s) => s.type === "traverse")
       ?.map((t) => t.uuid);
-
-    // delete the traverses that were added during this edit to this EVA
     const traverseUuidsNotFromDb = traverseUuids.filter((traverseUuid) => {
       return !traverseUuidsInDb.includes(traverseUuid);
     });
@@ -226,10 +246,17 @@ export const thunkCancelEva = appCreateAsyncThunk<{
       return traverseUuidsInDb.includes(traverse.uuid);
     });
     dispatch(upsertTraverses(traversesFromDb, true));
-    traversesFromDb.forEach((traverse) => {
-      dispatch(setTraverseEditMode({ uuid: traverse.uuid, editMode: false }));
-    });
 
+    // cancel out all edit modes
+    dispatch(
+      setTraversesEditMode({
+        uuids: concat(
+          traverseUuidsNotFromDb,
+          traversesFromDb.map((t) => t.uuid)
+        ),
+        editMode: false,
+      })
+    );
     // eva is already saved once to the db, replace all values with the one from the db (undoing any changes)
     dispatch(upsertEva(evaFromDb, true));
   } else {
@@ -246,6 +273,7 @@ export const thunkCancelEva = appCreateAsyncThunk<{
       }
       // remove the corresponding traverse from the traversesFromDb store
       dispatch(deleteTraversesFromDbByUuid(traverseUuids));
+      dispatch(setTraversesEditMode({ uuids: traverseUuids, editMode: false }));
     }
 
     // eva has never been saved to the db, so just delete the eva from the store
@@ -277,12 +305,12 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   if (!allRexEvaUuids.includes(eva.uuid)) {
     // This eva does not belong to any REX, so this is a planned EVA.
     // Delete the rexes and their evas first
-    const evaUuidsWithMatchingrefUuid = getState()
+    const evaUuidsWithMatchingRefUuid = getState()
       .eva.evas.filter((e) => e.refUuid === eva.refUuid)
       .map((e) => e.uuid);
 
     const rexesToDelete = getState().rex.rexes.filter((r) =>
-      evaUuidsWithMatchingrefUuid.includes(r.evaUuid)
+      evaUuidsWithMatchingRefUuid.includes(r.evaUuid)
     );
     for (const rex of rexesToDelete) {
       await dispatch(thunkDeleteRex({ rexUuid: rex.uuid }));
@@ -391,7 +419,7 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
 
     /**
      * Full update the traverse to generate a path. Also save to the db but keep it in edit mode
-     * We save it to the db becuase when you create then save an EVA it does not save the station/traverses
+     * We save it to the db because when you create then save an EVA it does not save the station/traverses
      *   which means if the user cancels on the traverse, it would cancel into nothingness if it's not in the db
      */
     await dispatch(
@@ -402,7 +430,7 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
         saveToDb: true,
       })
     );
-    dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: true }));
+    dispatch(setTraversesEditMode({ uuids: [newTraverse.uuid], editMode: true }));
 
     dispatch(thunkSelectEVASequenceItem({ sequenceItemUuid: null }));
   }
@@ -562,7 +590,7 @@ export const thunkAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
     if (upsertTraverseRes.status !== "success") {
       throw new Error("Error upserting traverse in evaAddStation: " + upsertTraverseRes.message);
     }
-    dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: true }));
+    dispatch(setTraversesEditMode({ uuids: [newTraverse.uuid], editMode: true }));
 
     // update the sequence
     dispatch(setEvaSequence({ evaUuid: eva.uuid, sequence: newEvaSequence }));
@@ -649,12 +677,12 @@ export const thunkReorderStationInEva = appCreateAsyncThunk<{
     // swap the item at index -2 with the item at index
     stationIndexToSwap = stationIndex - 2;
     traverseUuidsToUpdate.push(evaSequence[stationIndex + 1]?.uuid); //traverse after
-    traverseUuidsToUpdate.push(evaSequence[stationIndex - 1]?.uuid); //traverse inbetween
+    traverseUuidsToUpdate.push(evaSequence[stationIndex - 1]?.uuid); //traverse in-between
     traverseUuidsToUpdate.push(evaSequence[stationIndex - 3]?.uuid); //traverse before
   } else if (direction === "down") {
     stationIndexToSwap = stationIndex + 2;
     traverseUuidsToUpdate.push(evaSequence[stationIndex - 1]?.uuid); //traverse before
-    traverseUuidsToUpdate.push(evaSequence[stationIndex + 1]?.uuid); //traverse inbetween
+    traverseUuidsToUpdate.push(evaSequence[stationIndex + 1]?.uuid); //traverse in-between
     traverseUuidsToUpdate.push(evaSequence[stationIndex + 3]?.uuid); //traverse after
   }
   //update sequence

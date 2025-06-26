@@ -301,7 +301,7 @@ const StationEditorRight: FunctionComponent = () => {
                       if (saveButtonState === "enabled") {
                         dispatch(
                           thunkSaveStation({
-                            station: selectedStation,
+                            stationUuid: selectedStation.uuid,
                           })
                         );
                       }

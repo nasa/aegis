@@ -96,12 +96,17 @@ export const traverseSlice = createSlice({
     setSelectedTraverseRightNavItem: (state, action: { payload: string }) => {
       state.selectedTraverseRightNavItem = action.payload;
     },
-    setTraverseEditMode: (state, action: { payload: { uuid: string; editMode: boolean } }) => {
+    setTraversesEditMode: (state, action: { payload: { uuids: string[]; editMode: boolean } }) => {
       if (action.payload.editMode) {
-        state.traversesEditing.push(action.payload.uuid);
+        for (const uuid of action.payload.uuids) {
+          // Ensure we only add unique UUIDs to the editing list
+          if (!state.traversesEditing.includes(uuid)) {
+            state.traversesEditing.push(uuid);
+          }
+        }
       } else {
         state.traversesEditing = state.traversesEditing.filter(
-          (uuid) => uuid !== action.payload.uuid
+          (uuid) => !action.payload.uuids.includes(uuid)
         );
       }
     },
@@ -139,7 +144,7 @@ export const {
   deleteTraversesByUuid,
   deleteTraversesFromDbByUuid,
   setSelectedTraverseRightNavItem,
-  setTraverseEditMode,
+  setTraversesEditMode,
   revertTraversePath,
   obliterateState,
 } = traverseSlice.actions;

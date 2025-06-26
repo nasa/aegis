@@ -250,7 +250,7 @@ describe("Thunk Station Tests", () => {
     //call the thunk
     await store.dispatch(
       thunkStation.thunkSaveStation({
-        station: stationModified,
+        stationUuid: stationModified.uuid,
       })
     );
     const storeState = store.getState(); //get the new state (always has to be called when state changes)
@@ -295,7 +295,7 @@ describe("Thunk Station Tests", () => {
     expect(storeState.action.actions[0]).not.toEqual(storeState.action.actionsFromDb[0]);
 
     //call the thunk
-    await store.dispatch(thunkStation.thunkSaveStation({ station: station }));
+    await store.dispatch(thunkStation.thunkSaveStation({ stationUuid: station.uuid }));
     storeState = store.getState();
     expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(1); //check the db call was made
     expect(mockThunkSaveActions).toHaveBeenCalledTimes(1);

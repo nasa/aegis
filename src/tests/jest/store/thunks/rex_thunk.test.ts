@@ -10,7 +10,6 @@ import {
   thunkCancelRex,
   thunkCreateRex,
   thunkDeleteRex,
-  thunkDuplicateRex,
   thunkRexPetStartStop,
   thunkSaveRex,
 } from "store/thunk/thunkRex";
@@ -70,32 +69,6 @@ describe("Thunk Rex Tests", () => {
     expect(store.getState().eva.evas.length).toEqual(2);
     expect(store.getState().eva.evas[0].refUuid).toEqual(store.getState().eva.evas[1].refUuid);
     expect(store.getState().eva.evas[0].uuid).not.toEqual(store.getState().eva.evas[1].uuid);
-  });
-
-  test("thunkDuplicateRex", async () => {
-    const eva = generateBlankEVA();
-    const rex = generateBlankRex({ name: "Jest Rex-1", evaUuid: eva.uuid });
-    const store = createCustomTestStore({
-      rex: { ...rexInitialState, rexes: [rex] },
-      eva: { ...evaInitialState, evas: [eva] },
-    });
-    await store.dispatch(thunkDuplicateRex({ rexUuid: rex.uuid }));
-    expect(store.getState().rex.rexes.length).toEqual(2);
-    const duplicatedRex = store.getState().rex.rexes.find((r) => r.uuid !== rex.uuid);
-    expect(duplicatedRex).toBeTruthy();
-    expect(duplicatedRex.name).toEqual("Jest Rex-1 (copy 1)");
-    // should have saved to db
-    expect(store.getState().rex.rexesFromDb.length).toEqual(1);
-    expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
-
-    // the eva should have been duplicated automatically with a diff uuid and same eva refUuid
-    expect(store.getState().eva.evas.length).toEqual(2);
-    expect(store.getState().eva.evas[0].refUuid).toEqual(store.getState().eva.evas[1].refUuid);
-    expect(store.getState().eva.evas[0].uuid).not.toEqual(store.getState().eva.evas[1].uuid);
-
-    // should have saved to db
-    expect(store.getState().eva.evasFromDb.length).toEqual(1);
-    expect(httpClient_eva.upsertEvas).toHaveBeenCalledTimes(1);
   });
 
   test("thunkSaveRex", async () => {

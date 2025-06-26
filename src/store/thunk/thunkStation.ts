@@ -227,9 +227,10 @@ export const thunkResetWalkback = appCreateAsyncThunk<{
 });
 
 export const thunkSaveStation = appCreateAsyncThunk<{
-  station: Station;
-}>("stationSave", async ({ station }, { dispatch, getState }) => {
-  if (!station) return;
+  stationUuid: string;
+}>("stationSave", async ({ stationUuid }, { dispatch, getState }) => {
+  if (!stationUuid) return;
+  const station = getState().station.stations.find((s) => s.uuid === stationUuid);
   const stationActions = getState().action.actions.filter(
     (action) => action.stationUuid === station.uuid
   );
@@ -252,7 +253,7 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   }
   // upsert the changed Station (with new updated date) to the store
   dispatch(upsertStation(updatedStation, true));
-  // update the Statiofromdb copy in store
+  // update the StationFromDb copy in store
   dispatch(upsertStationFromDb(updatedStation));
 
   // find out if the actions in this station have been modified and need to be persisted

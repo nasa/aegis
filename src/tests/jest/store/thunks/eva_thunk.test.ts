@@ -15,7 +15,7 @@ import {
   thunkChangeIngressEgress,
 } from "store/thunk/thunkEva";
 import {
-  setTraverseEditMode,
+  setTraversesEditMode,
   upsertTraverseByField,
   upsertTraverses,
   upsertTraversesFromDb,
@@ -194,7 +194,7 @@ describe("Thunk EVA Tests", () => {
       // insert a traverse at the end of the sequence for testing (this might not make sense for a real sequence)
       const newTraverse = generateBlankTraverse({ name: "Jest Traverse-1" });
       store.dispatch(upsertTraverses([newTraverse]));
-      store.dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
+      store.dispatch(setTraversesEditMode({ uuids: [newTraverse.uuid], editMode: false }));
       store.dispatch(
         upsertEvaByField(eva.uuid, "sequence", [
           ...eva.sequence,
@@ -228,7 +228,7 @@ describe("Thunk EVA Tests", () => {
       unsavedEva.sequence = [{ uuid: newTraverse.uuid, type: "traverse" }];
       store.dispatch(upsertEva(unsavedEva));
       store.dispatch(setEvaEditMode({ evaUuid: unsavedEva.uuid, editMode: true }));
-      store.dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
+      store.dispatch(setTraversesEditMode({ uuids: [newTraverse.uuid], editMode: false }));
 
       await store.dispatch(thunkCancelEva({ evaUuid: unsavedEva.uuid }));
 

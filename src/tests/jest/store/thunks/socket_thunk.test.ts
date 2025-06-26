@@ -6,7 +6,7 @@ import { setPresetEditMode, upsertPresets } from "store/preset";
 import { setPoiEditMode, upsertPoi } from "store/poi";
 import { setStationEditMode, upsertStation } from "store/station";
 import { setEvaEditMode, upsertEva } from "store/eva";
-import { setTraverseEditMode, upsertTraverses } from "store/traverse";
+import { setTraversesEditMode, upsertTraverses } from "store/traverse";
 import { setMissionSectionEditing } from "store/mission";
 import { upsertRexes } from "store/rex";
 import { upsertActions } from "store/action";
@@ -249,7 +249,7 @@ describe("Thunk Socket Tests", () => {
       //test data in edit mode
       data.name = "Jest Test In Edit Mode";
       storeUpsert.data = [cloneDeep(data)];
-      store.dispatch(setTraverseEditMode({ uuid: data.uuid, editMode: true }));
+      store.dispatch(setTraversesEditMode({ uuids: [data.uuid], editMode: true }));
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().traverse.traverses.some((x) => x.name === data.name)).toBeTruthy();
       expect(
@@ -502,7 +502,7 @@ describe("Thunk Socket Tests", () => {
       const dataInEditMode = generateBlankTraverse({ name: "Jest Traverse-1" });
       store.dispatch(upsertTraverses([data]));
       store.dispatch(upsertTraverses([dataInEditMode]));
-      store.dispatch(setTraverseEditMode({ uuid: dataInEditMode.uuid, editMode: true }));
+      store.dispatch(setTraversesEditMode({ uuids: [dataInEditMode.uuid], editMode: true }));
       const storeDelete: StoreDelete = {
         socketId: null,
         missionId: null,

@@ -3,7 +3,7 @@ import cloneDeep from "lodash/cloneDeep";
 import {
   deleteTraversesByUuid,
   deleteTraversesFromDbByUuid,
-  setTraverseEditMode,
+  setTraversesEditMode,
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
@@ -57,7 +57,7 @@ export const thunkUpdateTraversePath = appCreateAsyncThunk<{
  * This is used on polyline edit drag-end among other areas
  *
  * Optional provide a custom new path to use instead of the traverse's current path.
- * Opitonal to specify if the traverse name should also be updated
+ * Optional to specify if the traverse name should also be updated
  * Optional to specify a specific eva sequence to pull the to/from end points
  *    if none is specified, the current selected EVA is used
  *
@@ -212,10 +212,10 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
           "Error upserting Traverse in fullUpdateTraverse: " + upsertTraverseRes.message
         );
       }
-      dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: false }));
+      dispatch(setTraversesEditMode({ uuids: [newTraverse.uuid], editMode: false }));
       dispatch(upsertTraversesFromDb([newTraverse]));
     } else {
-      dispatch(setTraverseEditMode({ uuid: newTraverse.uuid, editMode: true }));
+      dispatch(setTraversesEditMode({ uuids: [newTraverse.uuid], editMode: true }));
     }
     //update the store
     dispatch(upsertTraverses([newTraverse], true));
@@ -346,9 +346,60 @@ export const thunkSaveTraverse = appCreateAsyncThunk<{ traverseUuid: string }>(
     );
     const traverse = getState().traverse.traverses.find((s) => s.uuid === traverseUuid);
 
+    // Check if the traverse name needs to be updated. Users cannot manually modify the name.
+    // Name can get out of sync if a user cancels the traverse edit that had an updated name in it.
+    let stationNameBefore: string = "";
+    let stationNameAfter: string = "";
+    const selectedEva = getState().eva.evas.find(
+      (eva) => eva.uuid === getState().eva.selectedEvaUuid
+    );
+    const selectedEvaSequence = selectedEva?.sequence;
+    if (selectedEvaSequence) {
+      const traverseIndex = selectedEvaSequence.findIndex((item) => item.uuid === traverseUuid);
+      if (traverseIndex !== -1) {
+        if (traverseIndex === 0) {
+          // traverse from egress
+          if (selectedEva.egressLocationUuid === "lander") {
+            stationNameBefore = "Lander";
+          } else {
+            const stationUuidBefore = selectedEva.egressLocationUuid;
+            const stationBefore = getState().station.stations.find(
+              (s) => s.uuid === stationUuidBefore
+            );
+            stationNameBefore = stationBefore.name;
+          }
+        } else {
+          const stationUuidBefore = selectedEvaSequence[traverseIndex - 1].uuid;
+          const stationBefore = getState().station.stations.find(
+            (s) => s.uuid === stationUuidBefore
+          );
+          stationNameBefore = stationBefore.name;
+        }
+
+        // if this is the last item in the sequence, use ingressLocation as the after location
+        if (traverseIndex === selectedEvaSequence.length - 1) {
+          // traverse to ingress
+          if (selectedEva.ingressLocationUuid === "lander") {
+            stationNameAfter = "Lander";
+          } else {
+            const stationUuidAfter = selectedEva.ingressLocationUuid;
+            const stationAfter = getState().station.stations.find(
+              (s) => s.uuid === stationUuidAfter
+            );
+            stationNameAfter = stationAfter.name;
+          }
+        } else {
+          const stationUuidAfter = selectedEvaSequence[traverseIndex + 1].uuid;
+          const stationAfter = getState().station.stations.find((s) => s.uuid === stationUuidAfter);
+          stationNameAfter = stationAfter.name;
+        }
+      } else throw new Error("Traverse not found in EVA sequence");
+    } else throw new Error("No EVA sequence found for the traverse");
+
     // save to db
     const updatedTraverse = {
       ...traverse,
+      name: `${stationNameBefore} to ${stationNameAfter}`, // update the name just incase
       updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     const upsertTraverseRes = await httpClient_Traverse.upsertTraverses([updatedTraverse]);
@@ -382,7 +433,7 @@ export const thunkSaveTraverse = appCreateAsyncThunk<{ traverseUuid: string }>(
       );
     }
 
-    dispatch(setTraverseEditMode({ uuid: traverseUuid, editMode: false }));
+    dispatch(setTraversesEditMode({ uuids: [traverseUuid], editMode: false }));
   }
 );
 
@@ -474,7 +525,7 @@ export const thunkCancelTraverse = appCreateAsyncThunk<{ traverseUuid: string }>
       dispatch(upsertTraverses([traverseFromDb], true));
     }
 
-    dispatch(setTraverseEditMode({ uuid: traverseUuid, editMode: false }));
+    dispatch(setTraversesEditMode({ uuids: [traverseUuid], editMode: false }));
   }
 );
 
@@ -524,10 +575,6 @@ export const thunkDeleteTraverses = appCreateAsyncThunk<{ traverseUuids: string[
     dispatch(deleteTraversesByUuid(traverseUuids));
     dispatch(deleteTraversesFromDbByUuid(traverseUuids));
     // remove edit mode for any traverses that were in edit mode
-    for (const traverseUuid of traverseUuids.filter((uuid) =>
-      getState().traverse.traversesEditing.includes(uuid)
-    )) {
-      dispatch(setTraverseEditMode({ uuid: traverseUuid, editMode: false }));
-    }
+    dispatch(setTraversesEditMode({ uuids: traverseUuids, editMode: false }));
   }
 );

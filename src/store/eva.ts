@@ -180,7 +180,9 @@ export const evaSlice = createSlice({
     },
     setEvaEditMode: (state, action: { payload: { evaUuid: string; editMode: boolean } }) => {
       if (action.payload.editMode) {
-        state.evasEditing.push(action.payload.evaUuid);
+        if (!state.evasEditing.includes(action.payload.evaUuid)) {
+          state.evasEditing.push(action.payload.evaUuid);
+        }
       } else {
         state.evasEditing = state.evasEditing.filter((uuid) => uuid !== action.payload.evaUuid);
       }

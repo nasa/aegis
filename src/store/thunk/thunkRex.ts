@@ -1,5 +1,4 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { v4 as uuidv4 } from "uuid";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import {
@@ -45,7 +44,7 @@ export const thunkCreateRex = appCreateAsyncThunk<
     thunkDuplicateEva({ evaUuid: asPlannedEvaUuid, includeStations: true, forRex: true })
   );
   if (dupEvaThunkRes?.meta.requestStatus === "rejected" || !dupEvaThunkRes.payload) {
-    throw new Error("Error creating Rexs. Cannot duplicate EVA ");
+    throw new Error("Error creating Rexes. Cannot duplicate EVA ");
   }
   const duplicatedEva = dupEvaThunkRes.payload;
 
@@ -78,46 +77,6 @@ export const thunkCreateRex = appCreateAsyncThunk<
   dispatch(setEvaDropdownUIState({ asPlannedEvaUuid, dropdownEvaUuid: duplicatedEva.uuid }));
   return duplicatedEva.uuid;
 });
-
-/**
- * Duplicate a rex and it's eva. Save to db
- */
-export const thunkDuplicateRex = appCreateAsyncThunk<{ rexUuid: string }>(
-  "rexDuplicate",
-  async ({ rexUuid }, { dispatch, getState }) => {
-    if (!rexUuid) return;
-
-    const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
-
-    // make a copy of the EVA
-    const dupEvaThunkRes = await dispatch(
-      thunkDuplicateEva({ evaUuid: rex.evaUuid, includeStations: true, forRex: true })
-    );
-    if (dupEvaThunkRes?.meta.requestStatus === "rejected" || !dupEvaThunkRes.payload) {
-      throw new Error("Error creating Rexs. Cannot duplicate EVA ");
-    }
-    const duplicatedEva = dupEvaThunkRes.payload;
-
-    //make a copy of the rex
-    const rexCopy: Rex = cloneDeep(rex);
-    rexCopy.uuid = uuidv4();
-    rexCopy.updatedAt = null;
-    rexCopy.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
-    rexCopy.name = makeUniqueStringCopy(
-      rex.name,
-      getState().rex.rexes.map((rex) => rex.name)
-    );
-    rexCopy.evaUuid = duplicatedEva.uuid;
-
-    // upsert new rex and persist to the db
-    dispatch(upsertRex(rexCopy));
-    dispatch(upsertRexFromDb(rexCopy));
-    const upsertRexResponse = await httpClient_Rex.upsertRexes([rexCopy]);
-    if (upsertRexResponse.status !== "success") {
-      throw new Error("Error upserting Rexes: " + upsertRexResponse.message);
-    }
-  }
-);
 
 export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
   "rexSave",
@@ -351,7 +310,7 @@ export const thunkMakeExportRexString = appCreateAsyncThunk<
 
   const selectedExportedData = { rex: exportRex };
 
-  // convert object to readble string
+  // convert object to readable string
   const sortedJson = jsonKeysSort.sort(selectedExportedData);
   const dataStr = JSON.stringify(sortedJson, null, 2);
 
