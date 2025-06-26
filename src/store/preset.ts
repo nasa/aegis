@@ -249,7 +249,9 @@ export const presetSlice = createSlice({
      */
     setPresetEditMode: (state, action: { payload: { presetUuid: string; editMode: boolean } }) => {
       if (action.payload.editMode) {
-        state.presetsEditing.push(action.payload.presetUuid);
+        if (!state.presetsEditing.includes(action.payload.presetUuid)) {
+          state.presetsEditing.push(action.payload.presetUuid);
+        }
       } else {
         state.presetsEditing = state.presetsEditing.filter(
           (uuid) => uuid !== action.payload.presetUuid

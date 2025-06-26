@@ -291,6 +291,16 @@ describe("Thunk Traverse Tests", () => {
       name: "Jest Traverse Action Modified",
       updatedAt: roundDateToSecond(new Date("1/2/2000")).toISOString(),
     };
+    const station = generateBlankStation({
+      name: "Jest Station-1",
+    });
+    const eva = generateBlankEVA({ name: "Jest Eva-1" });
+    eva.sequence = [
+      { uuid: traverse.uuid, type: "traverse" },
+      { uuid: station.uuid, type: "station" },
+      { uuid: "randomTraverseUuid", type: "traverse" },
+    ];
+
     const store = createCustomTestStore({
       traverse: {
         ...traverseInitialState,
@@ -303,6 +313,15 @@ describe("Thunk Traverse Tests", () => {
         actions: [traverseAction],
         actionsFromDb: [traverseActionModified],
       },
+      eva: {
+        ...evaInitialState,
+        evas: [eva],
+        selectedEvaUuid: eva.uuid,
+      },
+      station: {
+        ...stationInitialState,
+        stations: [station],
+      },
     });
 
     await store.dispatch(thunkSaveTraverse({ traverseUuid: traverse.uuid }));
@@ -312,6 +331,7 @@ describe("Thunk Traverse Tests", () => {
     expect(store.getState().traverse.traverses[0]).toEqual(
       store.getState().traverse.traversesFromDb[0]
     );
+    expect(store.getState().traverse.traverses[0].name).toEqual("Lander to Jest Station-1");
     expect(store.getState().traverse.traversesEditing.length).toEqual(0);
   });
 

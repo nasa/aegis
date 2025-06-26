@@ -41,7 +41,7 @@ import {
 import {
   deleteTraversesByUuid,
   deleteTraversesFromDbByUuid,
-  setTraverseEditMode,
+  setTraversesEditMode,
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
@@ -166,7 +166,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     for (const changedTraverse of changedTraverses) {
       if (getState().traverse.traversesEditing.includes(changedTraverse.uuid)) {
         upsertMessages.push(getConflictMessage("traverse", changedTraverse.name, "upsert"));
-        dispatch(setTraverseEditMode({ uuid: changedTraverse.uuid, editMode: false }));
+        dispatch(setTraversesEditMode({ uuids: [changedTraverse.uuid], editMode: false }));
       }
     }
     dispatch(upsertTraverses(storeUpsert.data as Traverse[], true));
@@ -338,7 +338,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
           (traverse) => traverse.uuid === deletedUuid
         );
         deletedMessages.push(getConflictMessage("traverse", traverseDeleted.name, "delete"));
-        dispatch(setTraverseEditMode({ uuid: traverseDeleted.uuid, editMode: false }));
+        dispatch(setTraversesEditMode({ uuids: [traverseDeleted.uuid], editMode: false }));
       }
     }
     dispatch(deleteTraversesByUuid(storeDelete.uuids));

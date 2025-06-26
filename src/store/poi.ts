@@ -127,7 +127,9 @@ export const poiSlice = createSlice({
     },
     setPoiEditMode: (state, action: { payload: { poiUuid: string; editMode: boolean } }) => {
       if (action.payload.editMode) {
-        state.poisEditing.push(action.payload.poiUuid);
+        if (!state.poisEditing.includes(action.payload.poiUuid)) {
+          state.poisEditing.push(action.payload.poiUuid);
+        }
       } else {
         state.poisEditing = state.poisEditing.filter((uuid) => uuid !== action.payload.poiUuid);
       }

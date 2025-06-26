@@ -133,7 +133,9 @@ export const stationSlice = createSlice({
       action: { payload: { stationUuid: string; editMode: boolean } }
     ) => {
       if (action.payload.editMode) {
-        state.stationsEditing.push(action.payload.stationUuid);
+        if (!state.stationsEditing.includes(action.payload.stationUuid)) {
+          state.stationsEditing.push(action.payload.stationUuid);
+        }
       } else {
         state.stationsEditing = state.stationsEditing.filter(
           (uuid) => uuid !== action.payload.stationUuid
