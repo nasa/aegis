@@ -273,6 +273,7 @@ const Info_Panel: FunctionComponent<{
                               validators.mustBeNumber,
                               validators.maxLength(4),
                               validators.mustBeInteger,
+                              validators.mustBeNumberGTZero,
                             ],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
