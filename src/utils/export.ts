@@ -17,7 +17,7 @@ const decodeWsywig = (string: string): string => {
   let newString = stripHtml(
     reduce(
       convertStringToNodes(string),
-      (htmlString, decendant) => htmlString + convertNodeToHTML(decendant),
+      (htmlString, descendant) => htmlString + convertNodeToHTML(descendant),
       ""
     )
   ).result;
@@ -78,9 +78,11 @@ export const makeExportActions = (params: {
       ...action,
       _itemType: "Action",
       descriptionReadable: decodeWsywig(action.description),
-      parentStationName: allData.stations.find((s) => s.uuid === action.stationUuid)?.name,
       parentPoiName: allData.pois.find((p) => p.uuid === action.poiUuid)?.name,
+      parentStationName: allData.stations.find((s) => s.uuid === action.stationUuid)?.name,
       parentTraverseName: allData.traverses.find((t) => t.uuid === action.traverseUuid)?.name,
+      stationRefUuid: allData.stations.find((s) => s.uuid === action.stationUuid)?.refUuid,
+      traverseRefUuid: allData.traverses.find((s) => s.uuid === action.traverseUuid)?.refUuid,
       stmUuidRefsReadable: getStmNames({
         stmUuidRefs: action.stmUuidRefs,
         level1s: allData.level1s,
@@ -194,6 +196,9 @@ export const makeExportStations = (params: {
       gridCoordinates: missionGrid
         ? findGridCoordinatesFromPoint(missionGrid, station.location, allData.mission.planetRadius)
         : null,
+      actionOrderRefUuids: station.actionOrderUuids?.map(
+        (actionOrderUuid) => allData.actions.find((a) => a.uuid === actionOrderUuid)?.refUuid
+      ),
     };
     return ExportStation;
   });
@@ -225,6 +230,9 @@ export const makeExportTraverses = (params: {
       descriptionReadable: decodeWsywig(traverse.description),
       calculatedFields: traverseCalculatedFields,
       actionsReadable: actionsReadable,
+      actionOrderRefUuids: traverse.actionOrderUuids?.map(
+        (actionOrderUuid) => allData.actions.find((a) => a.uuid === actionOrderUuid)?.refUuid
+      ),
     };
   });
   return exportTraverses;
@@ -264,6 +272,27 @@ export const makeExportEvas = (params: {
           })[0];
         }
       }),
+      sequenceRefUuids: eva.sequence.map((sequenceItem) => {
+        let refUuid = "";
+        if (sequenceItem.type === "station") {
+          refUuid = allData.stations.find((s) => s.uuid === sequenceItem.uuid)?.refUuid;
+        } else if (sequenceItem.type === "traverse") {
+          refUuid = allData.traverses.find((t) => t.uuid === sequenceItem.uuid)?.refUuid;
+        }
+        const sequenceRefUuid: EvaSequenceItemRefUuid = {
+          ...sequenceItem,
+          refUuid: refUuid,
+        };
+        return sequenceRefUuid;
+      }),
+      egressLocationRefUuid:
+        eva.egressLocationUuid === "lander"
+          ? "lander"
+          : allData.stations.find((s) => s.uuid === eva.egressLocationUuid)?.refUuid,
+      ingressLocationRefUuid:
+        eva.ingressLocationUuid === "lander"
+          ? "lander"
+          : allData.stations.find((s) => s.uuid === eva.ingressLocationUuid)?.refUuid,
       calculatedFields: {
         ...evaCalculatedFields,
         equipmentItemsReadable: makeEquipmentReadable({
@@ -323,11 +352,11 @@ export const makeReadableActionDefinition = (params: {
     (adjective) => adjective.uuid === action.actionDefinition.adjectiveUuid
   );
 
-  const readableActionDefintion: ActionDefinitionReadable = {
+  const readableActionDefinition: ActionDefinitionReadable = {
     displayString: `${verb?.name} of ${noun?.name} in ${adjective?.name}`,
     verb: verb,
     noun: noun,
     adjective: adjective,
   };
-  return readableActionDefintion;
+  return readableActionDefinition;
 };
