@@ -20,7 +20,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     req.body as RexPetUpdateRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  // check the EMSS token. If it's valid, then the user has permissions
+  // Check if user has EMSS permissions
   const editPermission = emssToken && emssToken === process.env.EMSS_TOKEN;
 
   if (!editPermission) {
