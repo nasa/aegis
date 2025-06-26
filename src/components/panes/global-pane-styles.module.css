@@ -1,3 +1,11 @@
+.activeComponentTitle {
+  font-size: 1.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-left: 10px;
+  margin-top: 10px;
+}
+
 .rightBody {
   display: flex;
   flex-direction: column;
@@ -9,7 +17,6 @@
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  padding: 0 0 0 8px;
 }
 
 .rightBodyTitle {
@@ -256,7 +263,6 @@
   font-size: 0.8em;
   font-weight: 400;
   color: var(--grey5);
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -264,7 +270,6 @@
   font-size: 0.9em;
   font-weight: 400;
   color: var(--grey4);
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -324,10 +329,7 @@
 
 .panelColumnTableCell {
   display: table-cell;
-}
-.panelColumnTableCellLeft {
-  display: table-cell;
-  /* text-align: right; */
+  vertical-align: middle;
 }
 
 .panelColumnTableCellLeftSurround {
@@ -344,10 +346,7 @@
   border-bottom: 1px solid var(--grey4);
   border-radius: 0 4px 4px 0;
   padding: 2px 5px 2px 0;
-}
-
-.panelColumnTableCell {
-  display: table-cell;
+  vertical-align: middle;
 }
 
 .panelDisplayVal {
@@ -376,7 +375,6 @@
   font-size: 0.8em;
   font-weight: 400;
   color: var(--grey4);
-  -webkit-user-select: none;
   user-select: none;
   display: flex;
   flex-direction: column;
@@ -397,7 +395,6 @@
   font-size: 0.8em;
   font-weight: 400;
   color: var(--grey4);
-  -webkit-user-select: none;
   user-select: none;
   display: flex;
   flex-direction: column;
@@ -477,7 +474,7 @@
   background-color: var(--grey3);
   border-top-left-radius: var(--radius);
   border-bottom-left-radius: var(--radius);
-  margin: 2px 0px 0px 5px;
+  margin: 2px 0 0 5px;
   padding: 2px 4px 2px 4px;
   min-width: 20px;
   margin-right: 1px;
@@ -488,7 +485,7 @@
 .toggleMiddle {
   font-size: 0.8rem;
   background-color: var(--grey3);
-  margin: 2px 0px;
+  margin: 2px 0;
   padding: 2px 4px 2px 4px;
   min-width: 20px;
   margin-right: 1px;
@@ -502,7 +499,7 @@
   border-top-right-radius: var(--radius);
   border-bottom-right-radius: var(--radius);
   min-width: 20px;
-  margin: 2px 0px;
+  margin: 2px 0;
   padding: 2px 4px 2px 4px;
   text-align: center;
   user-select: none;
@@ -516,7 +513,7 @@
   border-top-left-radius: var(--radius);
   border-bottom-left-radius: var(--radius);
   min-width: 20px;
-  margin: 2px 0px 0px 5px;
+  margin: 2px 0 0 5px;
   padding: 2px 4px 2px 4px;
   text-align: center;
   user-select: none;

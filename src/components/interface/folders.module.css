@@ -65,7 +65,7 @@
   cursor: grabbing;
   width: 100%;
   transform: rotate(3deg);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 5px 15px rgb(0 0 0 / 30%);
   z-index: 999;
 }
 
@@ -74,7 +74,6 @@
 }
 
 .rootDroppableArea {
-  padding: 2px;
   border-radius: var(--radius);
   min-height: 35px;
   background-color: var(--grey2);
@@ -107,7 +106,7 @@
 .menu {
   position: fixed;
   z-index: 100;
-  width: 210px;
+  width: 130px;
   background-color: var(--grey3);
   color: var(--grey5);
   border: 1px solid var(--grey4);
@@ -153,9 +152,6 @@
   font-size: 12px;
   cursor: pointer;
   border: none;
-}
-
-.saveButton {
   background-color: var(--alert);
   color: white;
 }

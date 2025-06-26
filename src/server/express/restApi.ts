@@ -14,6 +14,8 @@ import missionDump from "./routes/missionDump";
 import poiRoutes from "./routes/poi";
 import presetRoutes from "./routes/preset";
 import rexRoutes from "./routes/rex";
+import rexPet from "./routes/emss/rexPet";
+import rexByEvaRef from "./routes/emss/getRexesByEvaRef";
 import socketLastEditEventRoutes from "./routes/socketLastEditEvents";
 import stationRoutes from "./routes/station";
 import gridRoutes from "./routes/grid";
@@ -38,7 +40,6 @@ import folderRoutes from "./routes/folder";
 import readableActionRoutes from "./routes/readable/action";
 import readableStationRoutes from "./routes/readable/station";
 import readableEvaRoutes from "./routes/readable/eva";
-import readablePoiRoutes from "./routes/readable/poi";
 import readableMissionRoutes from "./routes/readable/mission";
 import readableTraverseRoutes from "./routes/readable/traverse";
 import { globalValues } from "./global";
@@ -110,8 +111,11 @@ app.use("/api/v1/folder", folderRoutes);
 app.use("/api/v1/readable/action", readableActionRoutes);
 app.use("/api/v1/readable/station", readableStationRoutes);
 app.use("/api/v1/readable/eva", readableEvaRoutes);
-app.use("/api/v1/readable/poi", readablePoiRoutes);
 app.use("/api/v1/readable/mission", readableMissionRoutes);
 app.use("/api/v1/readable/traverse", readableTraverseRoutes);
+
+// endpoints that require emssToken auth only
+app.use("/api/v1/emss/rexPet", rexPet);
+app.use("/api/v1/emss/getRexesByEvaRef", rexByEvaRef);
 
 export default app;

@@ -8,7 +8,7 @@ import { EntityData } from "@mikro-orm/core";
  * @param partialRex any fields that are to be overriden from default
  * @returns the generated rex
  */
-export const generateBlankRex = (partialRex?: Partial<Rex>): Rex => {
+export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }): Rex => {
   // default crew position item types
   const posTypeEv1: PosType = {
     uuid: uuidv4(),
@@ -61,7 +61,7 @@ export const generateBlankRex = (partialRex?: Partial<Rex>): Rex => {
     petStartStopTimestamp: null,
     petValueAtStartStop: "+00:00:00",
     petRunning: false,
-    evaUuid: null,
+    evaUuid: partialRex.evaUuid,
     isRunning: false,
     posEntries: null,
     posTypes: [posTypeEv1, posTypeEv2, posTypeCart],
@@ -70,8 +70,9 @@ export const generateBlankRex = (partialRex?: Partial<Rex>): Rex => {
     traverseEntries: null,
     xgressEntries: null,
     actionEntries: null,
+    maestroControlled: false,
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    updatedAt: null,
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
   return { ...defaultNewRex, ...partialRex };
 };
@@ -92,11 +93,11 @@ export const generateBlankPosEntry = (partialPosEntry?: Partial<PosEntry>): PosE
     uuid: uuidv4(),
     location: null,
     elevation: null,
-    seconds: 0,
+    petSeconds: 0,
     posTypeUuids: [],
     posSourceUuid: null,
     createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    updatedAt: null,
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
   return { ...defaultNewPosEntry, ...partialPosEntry };
 };
@@ -126,6 +127,7 @@ export function convertRexesTypeDbToStore(dbRexs: Rex_db[]): Rex[] {
       traverseEntries: dbRex.traverseEntries,
       actionEntries: dbRex.actionEntries,
       xgressEntries: dbRex.xgressEntries,
+      maestroControlled: dbRex.maestroControlled,
       updatedAt: dbRex.createdAt.toISOString(),
       createdAt: dbRex.updatedAt.toISOString(),
     };
@@ -160,6 +162,7 @@ export function convertRexesTypeStoreToDb(storeRexs: Rex[]): EntityData<Rex_db>[
       traverseEntries: storeRex.traverseEntries,
       actionEntries: storeRex.actionEntries,
       xgressEntries: storeRex.xgressEntries,
+      maestroControlled: storeRex.maestroControlled,
       updatedAt: new Date(storeRex.updatedAt),
       createdAt: new Date(storeRex.createdAt),
     };

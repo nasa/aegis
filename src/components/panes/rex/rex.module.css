@@ -1,8 +1,3 @@
-.header {
-  margin: 10px 0 5px 10px;
-  font-weight: 500;
-}
-
 .panelContainer {
   background-color: var(--grey2);
   margin: 2px 8px 2px 8px;
@@ -32,7 +27,6 @@
 .nameitem {
   display: flex;
   padding: 2px 4px 2px 0;
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -137,85 +131,20 @@
   justify-content: space-around;
 }
 
-.clockRowPanel {
-  display: flex;
-  flex-direction: column;
-  padding: 5px 4px 5px 8px;
-  font-size: 0.9em;
-}
-
 .evaExecutionStatus {
   line-height: 25px;
-}
-
-.formItem {
-  display: flex;
-  flex-direction: row;
-  justify-content: left;
-}
-
-.formItemName {
-  width: 130px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  user-select: none;
-}
-
-.formItemValue {
-  margin: 0 0 0 5px;
-  display: flex;
-  flex-direction: row;
-}
-
-.formItemValueItem {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  margin: 0 0 0 4px;
-}
-
-.rexEvaDropdown {
-  display: flex;
-  flex-direction: row;
-  margin: 0 5px 0 0;
-}
-
-.selectedEvaLabelContainer {
-  display: flex;
-  flex-direction: row;
-  flex: 1 1 auto;
-
-  padding: 3px 0 3px 4px;
-  margin: 3px 0 3px 4px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  user-select: none;
-}
-.selectedEvaLabelContainer:hover {
-  background-color: var(--grey1);
-}
-.selectedEvaLabelContainerSelected {
-  background-color: var(--grey5);
-  color: black;
-}
-.selectedEvaLabelContainerSelected:hover {
-  background-color: var(--grey5);
-}
-.selectedEvaLabelContainerEmphasized {
-  background-color: var(--grey3);
-}
-
-.selectedEvaLabel {
-  font-size: 0.9em;
-  font-weight: 500;
-  flex: 1 1 auto;
 }
 
 .selectedEvaLabelRight {
   font-size: 0.8em;
   font-weight: 400;
   flex: 1 1 auto;
+}
+
+.maestroCheckboxContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 }
 
 .rexStatusIcon {
@@ -246,15 +175,6 @@
 }
 
 /* pos tab */
-
-.icon {
-  width: 20px;
-  margin-left: 1px;
-  margin-right: 1px;
-  cursor: pointer;
-  height: 100%;
-  color: white;
-}
 
 .propertyRow {
   display: flex;
@@ -365,7 +285,7 @@
 }
 
 .propertyListHeaderItem {
-  border-bottom: 1px solid #fff;
+  border-bottom: 1px solid #ffffff;
 }
 
 .propertyIconDisplay {
@@ -396,14 +316,14 @@
   position: relative;
   padding: 0;
   border: none;
-  background-color: rgb(0, 0, 0, 0);
+  background-color: rgb(0 0 0 / 0%);
 }
 
 .rexStatusContainer {
   position: relative;
   padding: 0;
   border: none;
-  background-color: rgb(0, 0, 0, 0);
+  background-color: rgb(0 0 0 / 0%);
 }
 .rexStatusContainer::backdrop {
   background: transparent;
@@ -446,4 +366,26 @@
 }
 .rexStatusMenuItem:not(:last-child) {
   border-bottom: 1px solid var(--grey4);
+}
+
+.maestroDialogContainer {
+  position: fixed; /* Changed from relative to fixed */
+  margin: 0; /* Added to override default modal centering */
+  padding: 10px;
+  border: 1px solid var(--grey4);
+  background-color: var(--grey2);
+  color: var(--grey5);
+  border-radius: var(--radius);
+  z-index: 101; /* Ensure it's above other elements */
+  transform: translate(-50%, -50%); /* Center the dialog */
+  box-shadow: 0 2px 10px rgb(0 0 0 / 50%);
+}
+
+.maestroDialogContainer::backdrop {
+  background: rgb(0 0 0 / 10%); /* Slight dimming for backdrop */
+}
+
+.maestroDialogMenu {
+  font-size: 0.9em;
+  text-align: center;
 }

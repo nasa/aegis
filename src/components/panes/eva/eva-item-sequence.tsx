@@ -1,5 +1,5 @@
 import { FunctionComponent } from "react";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import evaStyles from "./eva.module.css";
 
 import SequenceItemTraverse from "./eva-item-sequence-traverse";
@@ -7,11 +7,14 @@ import SequenceItemStation from "./eva-item-sequence-station";
 
 const EvaItemSequence: FunctionComponent<{
   evaUuid: string;
-  evaSequence: EvaSequenceItem[];
-  editMode: boolean;
-}> = ({ evaUuid, evaSequence, editMode }) => {
-  const thisEvaInRunningRexFromDb = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning && rex.evaUuid === evaUuid),
+}> = ({ evaUuid }) => {
+  const isThisRexEvaExecuting = useAppSelector((state) => {
+    const rex = state.rex.rexesFromDb.find((rex) => rex.isRunning && rex.evaUuid === evaUuid);
+    return !!rex; // !! converts to boolean
+  }, refEqual);
+
+  const evaSequence = useAppSelector(
+    (state) => state.eva.evas.find((eva) => eva.uuid === evaUuid)?.sequence,
     deepEqual
   );
 
@@ -23,9 +26,7 @@ const EvaItemSequence: FunctionComponent<{
             <SequenceItemStation
               evaUuid={evaUuid}
               stationUuid={sequenceItem.uuid}
-              editMode={editMode}
-              isRexRunning={!!thisEvaInRunningRexFromDb}
-              evaSequence={evaSequence}
+              isRexRunning={isThisRexEvaExecuting}
               key={`${sequenceItem.uuid}-${index}`}
             />
           );
@@ -34,8 +35,7 @@ const EvaItemSequence: FunctionComponent<{
             <SequenceItemTraverse
               evaUuid={evaUuid}
               traverseUuid={sequenceItem.uuid}
-              editMode={editMode}
-              isRexRunning={!!thisEvaInRunningRexFromDb}
+              isRexRunning={isThisRexEvaExecuting}
               key={`${sequenceItem.uuid}-${index}`}
             />
           );

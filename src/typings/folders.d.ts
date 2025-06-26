@@ -1,4 +1,4 @@
-type FolderType = "poi" | "station" | "eva" | "preset" | "rex" | "layer";
+type FolderType = "poi" | "station" | "eva" | "preset" | "layer";
 
 interface Folder {
   uuid: string;
@@ -29,8 +29,8 @@ interface FoldersInterfaceCookie {
   [folderUuid: string]: FolderInterface;
 }
 
-interface FolderItemProps<T> {
-  item: T;
+interface FolderItemProps {
+  itemUuid: string;
   isDragging?: boolean;
   first?: boolean;
 }

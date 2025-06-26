@@ -37,20 +37,17 @@ import { validators } from "./form/formValidators";
 import { setFolderInterfaceEditing, setFolderInterfaceNameValue } from "store/interface";
 
 // Generic draggable item component
-const DraggableItem = <T,>({
-  item,
-  getItemId,
+const DraggableItem = ({
+  itemUuid,
   children,
   editPerms = false,
 }: {
-  item: T;
-  getItemId: (item: T) => string;
+  itemUuid: string;
   children: ReactNode;
   editPerms?: boolean;
 }) => {
-  const itemId = getItemId(item);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: itemId,
+    id: itemUuid,
     disabled: !editPerms,
   });
 
@@ -183,23 +180,21 @@ const FolderMenu: FunctionComponent<{
 };
 
 // Generic folder component
-const FolderComponent = <T,>({
+const FolderComponent = ({
   folder,
   folderInterface,
   folders,
-  items,
+  itemUuids,
   itemsToFolders,
-  getItemId,
   renderItem,
   hideMenu,
 }: {
   folder: Folder;
   folderInterface: FolderInterface;
   folders: Folder[];
-  items: T[];
+  itemUuids: string[];
   itemsToFolders: Record<string, string>;
-  getItemId: (item: T) => string;
-  renderItem: (props: FolderItemProps<T>) => ReactNode;
+  renderItem: (props: FolderItemProps) => ReactNode;
   hideMenu: boolean;
 }): JSX.Element => {
   const dispatch = useAppDispatch();
@@ -208,7 +203,7 @@ const FolderComponent = <T,>({
     id: folder.uuid,
   });
 
-  const folderContents = items.filter((item) => itemsToFolders[getItemId(item)] === folder.uuid);
+  const folderContents = itemUuids.filter((itemUuid) => itemsToFolders[itemUuid] === folder.uuid);
 
   const handleFolderClick = (e: React.MouseEvent) => {
     // Only toggle if clicking the folder area, not the menu or input
@@ -260,7 +255,7 @@ const FolderComponent = <T,>({
               styleContainer={{ width: "100%" }}
               fieldProps={{
                 name: "folderName",
-                ariaLabel: "Folder name",
+                ariaLabel: "Drag/drop items to folder",
                 className: styles.folderNameInput,
                 validators: [
                   validators.required,
@@ -296,14 +291,9 @@ const FolderComponent = <T,>({
 
       {folderInterface.isOpen && folderContents.length > 0 && (
         <div className={styles.folderContents}>
-          {folderContents.map((item) => (
-            <DraggableItem
-              key={getItemId(item)}
-              item={item}
-              getItemId={getItemId}
-              editPerms={editPerms}
-            >
-              {renderItem({ item, isDragging: false, first: false })}
+          {folderContents.map((itemUuid) => (
+            <DraggableItem key={itemUuid} itemUuid={itemUuid} editPerms={editPerms}>
+              {renderItem({ itemUuid, isDragging: false, first: false })}
             </DraggableItem>
           ))}
         </div>
@@ -343,9 +333,8 @@ const RootDroppableArea: FunctionComponent<{ children: ReactNode; editPerms: boo
 };
 
 // Main Folders component
-export const FolderOrganizer = <T extends POI | Station | Eva | Rex | Preset>({
-  items,
-  getItemId,
+export const FolderOrganizer = ({
+  itemUuids,
   renderItem,
   folders,
   foldersInterface,
@@ -353,9 +342,8 @@ export const FolderOrganizer = <T extends POI | Station | Eva | Rex | Preset>({
   setItemFolder,
   hideMenu = false,
 }: {
-  items: T[];
-  getItemId: (item: T) => string;
-  renderItem: (props: FolderItemProps<T>) => ReactNode;
+  itemUuids: string[];
+  renderItem: (props: FolderItemProps) => ReactNode;
   folders?: Folder[];
   foldersInterface?: FolderInterface[];
   itemsToFolders: Record<string, string>;
@@ -403,10 +391,10 @@ export const FolderOrganizer = <T extends POI | Station | Eva | Rex | Preset>({
   };
 
   // Get unassociated items
-  const unassociatedItems = items.filter((item) => !itemsToFolders[getItemId(item)]);
+  const unassociatedItems = itemUuids.filter((itemUuid) => !itemsToFolders[itemUuid]);
 
   // Find the active item for the drag overlay
-  const activeItem = activeDragId ? items.find((item) => getItemId(item) === activeDragId) : null;
+  const activeItem = activeDragId ? itemUuids.find((itemUuid) => itemUuid === activeDragId) : null;
 
   // Sort folders alphabetically by name
   const sortedFolders = [...folders].sort((a, b) =>
@@ -434,9 +422,8 @@ export const FolderOrganizer = <T extends POI | Station | Eva | Rex | Preset>({
               folder={folder}
               folderInterface={folderInterface}
               folders={folders}
-              items={items}
+              itemUuids={itemUuids}
               itemsToFolders={itemsToFolders}
-              getItemId={getItemId}
               renderItem={renderItem}
               hideMenu={hideMenu}
             />
@@ -450,14 +437,9 @@ export const FolderOrganizer = <T extends POI | Station | Eva | Rex | Preset>({
             Object.keys(itemsToFolders).length > 0 && (
               <div className={styles.dropHint}>Drag here to remove item from folder</div>
             )}
-          {unassociatedItems.map((item, index) => (
-            <DraggableItem
-              key={getItemId(item)}
-              item={item}
-              getItemId={getItemId}
-              editPerms={editPerms}
-            >
-              {renderItem({ item, isDragging: false, first: index === 0 })}
+          {unassociatedItems.map((itemUuid, index) => (
+            <DraggableItem key={itemUuid} itemUuid={itemUuid} editPerms={editPerms}>
+              {renderItem({ itemUuid, isDragging: false, first: index === 0 })}
             </DraggableItem>
           ))}
         </RootDroppableArea>
@@ -467,7 +449,7 @@ export const FolderOrganizer = <T extends POI | Station | Eva | Rex | Preset>({
       <DragOverlay>
         {activeItem ? (
           <div className={styles.dragOverlay}>
-            {renderItem({ item: activeItem, isDragging: true, first: true })}
+            {renderItem({ itemUuid: activeItem, isDragging: true, first: true })}
           </div>
         ) : null}
       </DragOverlay>

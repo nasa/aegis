@@ -2,7 +2,7 @@ import throttle from "lodash/throttle";
 import paneStyles from "../global-pane-styles.module.css";
 import { FunctionComponent, useCallback, useRef, useState } from "react";
 import { faEarthAmerica, faSun, faMoon } from "@fortawesome/free-solid-svg-icons";
-import { upsertPreset } from "store/preset";
+import { upsertPresets } from "store/preset";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { Checkbox, DegreesInputSlider } from "components/interface/form/globalFields";
@@ -22,10 +22,12 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   const sunThrottledFunc = useRef(
     throttle((preset: Preset, value: number) => {
       dispatch(
-        upsertPreset({
-          ...preset,
-          sunAzimuth: value,
-        })
+        upsertPresets([
+          {
+            ...preset,
+            sunAzimuth: value,
+          },
+        ])
       );
     }, 50)
   );
@@ -41,10 +43,12 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   const earthThrottledFunc = useRef(
     throttle((preset: Preset, value: number) => {
       dispatch(
-        upsertPreset({
-          ...preset,
-          earthAzimuth: value,
-        })
+        upsertPresets([
+          {
+            ...preset,
+            earthAzimuth: value,
+          },
+        ])
       );
     }, 50)
   );
@@ -106,10 +110,12 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                       editable={editMode}
                                       onChange={(e) => {
                                         dispatch(
-                                          upsertPreset({
-                                            ...selectedPreset,
-                                            sunEnabled: e.target.checked,
-                                          })
+                                          upsertPresets([
+                                            {
+                                              ...selectedPreset,
+                                              sunEnabled: e.target.checked,
+                                            },
+                                          ])
                                         );
                                       }}
                                       label="Enable:"
@@ -177,7 +183,9 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                       onClick={() => {
                                         if (selectedPreset.earthAsMoon)
                                           dispatch(
-                                            upsertPreset({ ...selectedPreset, earthAsMoon: false })
+                                            upsertPresets([
+                                              { ...selectedPreset, earthAsMoon: false },
+                                            ])
                                           );
                                       }}
                                       aria-label="earthDirectionButton"
@@ -191,7 +199,9 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                       onClick={() => {
                                         if (!selectedPreset.earthAsMoon)
                                           dispatch(
-                                            upsertPreset({ ...selectedPreset, earthAsMoon: true })
+                                            upsertPresets([
+                                              { ...selectedPreset, earthAsMoon: true },
+                                            ])
                                           );
                                       }}
                                       aria-label="moonDirectionButton"
@@ -216,10 +226,12 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                       editable={editMode}
                                       onChange={(e) => {
                                         dispatch(
-                                          upsertPreset({
-                                            ...selectedPreset,
-                                            earthEnabled: e.target.checked,
-                                          })
+                                          upsertPresets([
+                                            {
+                                              ...selectedPreset,
+                                              earthEnabled: e.target.checked,
+                                            },
+                                          ])
                                         );
                                       }}
                                       label="Enable:"

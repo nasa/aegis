@@ -83,6 +83,7 @@ import { getCalculatedTimeOfSequenceItem } from "store/processing/calculatedFiel
 import { addTimeToDateTime } from "utils/timeLayers";
 import { EARTH_RADIUS } from "utils/consts";
 import { globalGrid } from "utils/grid";
+import { selectAsPlannedStations } from "store/selectors";
 
 const MapBody: FunctionComponent<{}> = () => {
   const dispatch = useAppDispatch();
@@ -134,7 +135,11 @@ const MapBody: FunctionComponent<{}> = () => {
   const presetsFromDb = useAppSelector((state) => state.preset.presets, deepEqual);
 
   const pois = useAppSelector((state) => state.poi.pois, deepEqual);
-  const stations = useAppSelector((state) => state.station.stations, deepEqual);
+  const asPlannedStationUuids = useAppSelector(
+    (state) => selectAsPlannedStations(state).map((s) => s.uuid),
+    deepEqual
+  );
+  const allStations = useAppSelector((state) => state.station.stations, deepEqual);
   const actions = useAppSelector((state) => state.action.actions, deepEqual);
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
@@ -150,17 +155,11 @@ const MapBody: FunctionComponent<{}> = () => {
     deepEqual
   );
   const presetPreviewTime = useAppSelector((state) => state.preset.presetPreviewTime, refEqual);
-  const selectedOrRunningRex = useAppSelector((state) => {
-    //if a rex is running, show that one. If not, just show whatever rex is selected
-    const runningRexFromDb = state.rex.rexesFromDb.find((r) => r.isRunning);
-    if (runningRexFromDb) {
-      return runningRexFromDb;
-    } else {
-      return state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid);
-    }
+  const selectedRex = useAppSelector((state) => {
+    return state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid);
   }, deepEqual);
   const runningRexEvaDatetime = useAppSelector((state) => {
-    const runningRexEva = state.eva.evas.find((eva) => eva.uuid === selectedOrRunningRex?.evaUuid);
+    const runningRexEva = state.eva.evas.find((eva) => eva.uuid === selectedRex?.evaUuid);
     return runningRexEva ? runningRexEva.datetime : null;
   }, deepEqual);
   const selectedEvaSequenceItemUuid = useAppSelector(
@@ -299,12 +298,8 @@ const MapBody: FunctionComponent<{}> = () => {
     setMapDisplayActions(eyeballMenuSettings.mapDisplayActions);
     if (eyeballMenuSettings.mapDisplayPos) {
       // set default view to task and crew regardless of what is in the cookie
-      const taskSourceUuid = selectedOrRunningRex?.posSources?.find(
-        (source) => source.abbr === "T"
-      )?.uuid;
-      const crewSourceUuid = selectedOrRunningRex?.posSources?.find(
-        (source) => source.abbr === "C"
-      )?.uuid;
+      const taskSourceUuid = selectedRex?.posSources?.find((source) => source.abbr === "T")?.uuid;
+      const crewSourceUuid = selectedRex?.posSources?.find((source) => source.abbr === "C")?.uuid;
       setMapDisplayPos({
         ...eyeballMenuSettings.mapDisplayPos,
         sourceUuids: [taskSourceUuid, crewSourceUuid],
@@ -652,46 +647,43 @@ const MapBody: FunctionComponent<{}> = () => {
    * Determine stations to show and draw them on map when stations or selections change
    */
   useEffect(() => {
-    if (!stations || !map.current || mapDirective) return;
+    if (!allStations || !map.current || mapDirective) return;
 
-    let stationsToShow: Station[] = [];
+    const stationUuidsToShow: string[] = [];
+    // always show the stations on a selected EVA
+    if (selectedEva) {
+      const stationSequenceItems = selectedEva.sequence.filter((item) => item.type === "station");
+      stationUuidsToShow.push(...stationSequenceItems.map((item) => item.uuid));
+      if (selectedEva.egressLocationUuid !== "lander")
+        stationUuidsToShow.push(selectedEva.egressLocationUuid);
+      if (selectedEva.ingressLocationUuid !== "lander")
+        stationUuidsToShow.push(selectedEva.ingressLocationUuid);
+    } else if (selectedStation && (sectionSelected === "station" || sectionSelected === "evas")) {
+      stationUuidsToShow.push(selectedStation.uuid);
+    }
+
+    // for the rest of the stations (not selected), check eyeball menu setting and folder settings
     if (mapDisplayStations.show) {
-      stationsToShow = stations;
-
       // Get all station folders and their interfaces
       const stationFolders = folders.filter((folder) => folder.type === "station");
 
       // Filter out stations that are in hidden folders
-      stationsToShow = stationsToShow.filter((station) => {
-        // Always show selected station regardless of folder visibility
-        if (selectedStation && station.uuid === selectedStation.uuid) {
-          return true;
-        }
-
+      const asPlannedStationUuidsToShow = asPlannedStationUuids.filter((stationUuid) => {
         // Find which folder contains this station
         const containingFolder = stationFolders.find((folder) =>
-          folder.items.includes(station.uuid)
+          folder.items.includes(stationUuid)
         );
 
+        // show stations not in any folder
         if (!containingFolder) {
-          return true; // Keep stations not in any folder
+          return true;
+        } else {
+          // Check if the folder is visible in the interface
+          const folderInterface = foldersInterface.find((fi) => fi.uuid === containingFolder.uuid);
+          return !folderInterface || folderInterface.visible;
         }
-
-        // Check if the folder is visible in the interface
-        const folderInterface = foldersInterface.find((fi) => fi.uuid === containingFolder.uuid);
-
-        return !folderInterface || folderInterface.visible;
       });
-    } else {
-      if (selectedEva) {
-        const stationSequenceItems = selectedEva.sequence.filter((item) => item.type === "station");
-        const stationsInEva = stations.filter((station) =>
-          stationSequenceItems.find((item) => item.uuid === station.uuid)
-        );
-        stationsToShow = stationsInEva;
-      } else if (selectedStation && (sectionSelected === "station" || sectionSelected === "evas")) {
-        stationsToShow = [selectedStation];
-      }
+      stationUuidsToShow.push(...asPlannedStationUuidsToShow);
     }
 
     // First remove all existing layers
@@ -702,6 +694,10 @@ const MapBody: FunctionComponent<{}> = () => {
       layer.remove();
     });
 
+    // get the station object for all the station uuids to show
+    const stationsToShow: Station[] = allStations.filter((station) =>
+      stationUuidsToShow.includes(station.uuid)
+    );
     // draw all stations
     stationsToShow.forEach((station) => {
       if (station.location) {
@@ -793,7 +789,7 @@ const MapBody: FunctionComponent<{}> = () => {
     });
   }, [
     mission,
-    stations,
+    allStations,
     selectedStation,
     selectedEva,
     mapDisplayStations,
@@ -803,6 +799,7 @@ const MapBody: FunctionComponent<{}> = () => {
     isWin10,
     foldersInterface,
     folders,
+    asPlannedStationUuids,
   ]);
 
   /**
@@ -836,20 +833,20 @@ const MapBody: FunctionComponent<{}> = () => {
 
   /** Determine time assosiated with currently running rex time */
   useEffect(() => {
-    if (selectedOrRunningRex && runningRexEvaDatetime) {
+    if (selectedRex && runningRexEvaDatetime) {
       // If PET is running, update time every 10 seconds
-      if (selectedOrRunningRex.petRunning) {
+      if (selectedRex.petRunning) {
         if (!rexPetTime) return;
         if (rexPetTime.endsWith("0"))
           setSelectedRexDateTime(addTimeToDateTime(runningRexEvaDatetime, rexPetTime));
 
         // If the REX is running but not the PET, just show the current time
-      } else if (!selectedOrRunningRex.petRunning && selectedOrRunningRex.isRunning) {
+      } else if (!selectedRex.petRunning && selectedRex.isRunning) {
         if (!rexPetTime) return;
         setSelectedRexDateTime(addTimeToDateTime(runningRexEvaDatetime, rexPetTime));
 
         // If the REX is not running but you are viewing it, show the REX start time
-      } else if (!selectedOrRunningRex.isRunning && sectionSelected === "rex") {
+      } else if (!selectedRex.isRunning && sectionSelected === "evas") {
         setSelectedRexDateTime(runningRexEvaDatetime);
 
         // Otherwise, don't display a REX time
@@ -859,7 +856,7 @@ const MapBody: FunctionComponent<{}> = () => {
     } else {
       setSelectedRexDateTime(null);
     }
-  }, [rexPetTime, runningRexEvaDatetime, sectionSelected, selectedOrRunningRex]);
+  }, [rexPetTime, runningRexEvaDatetime, sectionSelected, selectedRex]);
 
   /**
    * Determine actions to show and draw them on map when actions or selections change
@@ -869,12 +866,7 @@ const MapBody: FunctionComponent<{}> = () => {
 
     let actionsToShow: Action[] = [];
     if (mapDisplayActions.show) {
-      if (
-        (sectionSelected === "station" ||
-          sectionSelected === "evas" ||
-          sectionSelected === "rex") &&
-        selectedStation
-      ) {
+      if ((sectionSelected === "station" || sectionSelected === "evas") && selectedStation) {
         const actionsInStation = actions.filter(
           (action) => action.stationUuid === selectedStation.uuid && action.enabled
         );
@@ -884,7 +876,7 @@ const MapBody: FunctionComponent<{}> = () => {
           (action) => action.poiUuid === selectedPoi.uuid && action.enabled
         );
         actionsToShow = actionsInPoi;
-      } else if ((sectionSelected === "evas" || sectionSelected === "rex") && selectedTraverse) {
+      } else if (sectionSelected === "evas" && selectedTraverse) {
         const actionsInTraverse = actions.filter(
           (action) => action.traverseUuid === selectedTraverse.uuid && action.enabled
         );
@@ -1033,17 +1025,18 @@ const MapBody: FunctionComponent<{}> = () => {
     if (!traverses || !map.current || mapDirective) return;
 
     let traversesToShow: Traverse[] = [];
-    if (selectedEvaSequenceItemUuid) {
-      if (selectedTraverse) {
+    if (sectionSelected === "evas") {
+      if (selectedEva) {
+        const traverseSequenceItems = selectedEva.sequence.filter(
+          (item) => item.type === "traverse"
+        );
+        const traversesInEva = traverses.filter((traverse) =>
+          traverseSequenceItems.find((item) => item.uuid === traverse.uuid)
+        );
+        traversesToShow = traversesInEva;
+      } else if (selectedTraverse) {
         traversesToShow = [selectedTraverse];
       }
-    }
-    if (selectedEva) {
-      const traverseSequenceItems = selectedEva.sequence.filter((item) => item.type === "traverse");
-      const traversesInEva = traverses.filter((traverse) =>
-        traverseSequenceItems.find((item) => item.uuid === traverse.uuid)
-      );
-      traversesToShow = traversesInEva;
     }
 
     // delete all traverses from the map
@@ -1077,7 +1070,7 @@ const MapBody: FunctionComponent<{}> = () => {
         },
         polylineOptions: {
           weight: 3,
-          outlineWeight: selectedEvaSequenceItemUuid === traverse.uuid ? 8 : 0,
+          outlineWeight: traverse.uuid === selectedTraverse?.uuid ? 8 : 0,
         },
         arrowPatternProp: {
           offset: 10,
@@ -1093,11 +1086,11 @@ const MapBody: FunctionComponent<{}> = () => {
   }, [
     traverses,
     selectedTraverse,
-    selectedEvaSequenceItemUuid,
     selectedEva,
     mapDirective,
     dispatch,
     showArrows,
+    sectionSelected,
   ]);
 
   /**
@@ -1410,8 +1403,8 @@ const MapBody: FunctionComponent<{}> = () => {
       }
     });
 
-    if (sectionSelected !== "station" && sectionSelected !== "evas" && sectionSelected !== "rex")
-      return;
+    // only show walkbacks on station and eva sections
+    if (sectionSelected !== "station" && sectionSelected !== "evas") return;
 
     // draw the walkback traverse
     if (selectedStation?.walkbackPath && mapDisplayStations.showWalkbacks) {
@@ -1473,9 +1466,9 @@ const MapBody: FunctionComponent<{}> = () => {
 
     // determine which pos entries to show
     if (mapDisplayPos.show) {
-      //if there is a running rex, or no running rex but we're on the rex section and there's a rex selected
-      if (selectedOrRunningRex?.isRunning || (sectionSelected === "rex" && selectedOrRunningRex)) {
-        const posEntriesWithLocations = selectedOrRunningRex?.posEntries?.filter(
+      //there's a rex selected and we're on the eva section
+      if (sectionSelected === "evas" && selectedRex) {
+        const posEntriesWithLocations = selectedRex?.posEntries?.filter(
           (posEntry) => posEntry.location
         );
         // filter out the pos entries that are not from a selected source. Empty source array means "all".
@@ -1497,7 +1490,7 @@ const MapBody: FunctionComponent<{}> = () => {
     // delete all pos entries in leaflet
     posEntryFeatureGroup.current.clearLayers();
 
-    if (!selectedOrRunningRex) return;
+    if (!selectedRex) return;
 
     // draw or update all pos markers
     for (const posEntry of posEntriesToShow) {
@@ -1549,7 +1542,7 @@ const MapBody: FunctionComponent<{}> = () => {
         map,
         posEntry: posEntry,
         posEntryFeatureGroup,
-        selectedOrRunningRex,
+        selectedOrRunningRex: selectedRex,
         isWin10,
         showOldMarkers: mapDisplayPos.showOldMarkers,
         showLatestLabels: mapDisplayPos.showLatestLabels,
@@ -1589,7 +1582,7 @@ const MapBody: FunctionComponent<{}> = () => {
     if (mapDisplayPos.showPaths) {
       //hide old paths
       if (!mapDisplayPos.showOldPaths) {
-        for (const posType of selectedOrRunningRex.posTypes) {
+        for (const posType of selectedRex?.posTypes) {
           if (!posTypeLatestEntries[posType.uuid] || posTypeLatestEntries[posType.uuid].length <= 1)
             continue;
           //loop over posTypes and get their latest entries
@@ -1610,7 +1603,7 @@ const MapBody: FunctionComponent<{}> = () => {
         }
       } else {
         // show all paths
-        const posTypes = selectedOrRunningRex.posTypes;
+        const posTypes = selectedRex?.posTypes;
         posTypes?.forEach((posType) => {
           const posEntriesForType = posEntriesToShow.filter((posEntry) =>
             posEntry.posTypeUuids.includes(posType.uuid)
@@ -1678,7 +1671,7 @@ const MapBody: FunctionComponent<{}> = () => {
     map,
     dispatch,
     mapDisplayPos,
-    selectedOrRunningRex,
+    selectedRex,
     sectionSelected,
     isWin10,
     rexPetTime,
@@ -1716,7 +1709,7 @@ const MapBody: FunctionComponent<{}> = () => {
               entry.createdAt > latestPosEntry.createdAt
           );
           if (otherPosEntriesWithThisType.length === 0) {
-            const posTypeAbbr = selectedOrRunningRex?.posTypes?.find(
+            const posTypeAbbr = selectedRex?.posTypes?.find(
               (posTypeFromRex) => posTypeFromRex.uuid === posTypeUuidFromEntry
             )?.abbr;
             markerPosTypeAbbrs.push(posTypeAbbr);
@@ -1724,8 +1717,8 @@ const MapBody: FunctionComponent<{}> = () => {
         }
 
         // set the marker tooltip
-        const timeToShow = hhmmssFromSeconds(rexPetSeconds - latestPosEntry.seconds);
-        const sourceAbbr = selectedOrRunningRex?.posSources?.find(
+        const timeToShow = hhmmssFromSeconds(rexPetSeconds - latestPosEntry.petSeconds);
+        const sourceAbbr = selectedRex?.posSources?.find(
           (posSource) => posSource.uuid === latestPosEntry.posSourceUuid
         )?.abbr;
         const newLabel = `${timeToShow} / ${markerPosTypeAbbrs} (${sourceAbbr})`;
@@ -1735,14 +1728,12 @@ const MapBody: FunctionComponent<{}> = () => {
       // update all timers on all tooltips
       for (let i = 0; i < posEntriesShowing.length; i++) {
         //build label
-        const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesShowing[i].seconds);
-        const sourceAbbr = selectedOrRunningRex?.posSources?.find(
+        const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesShowing[i].petSeconds);
+        const sourceAbbr = selectedRex?.posSources?.find(
           (posSource) => posSource.uuid === posEntriesShowing[i].posSourceUuid
         )?.abbr;
         const markerPosTypeAbbrs = posEntriesShowing[i].posTypeUuids.map((posTypeUuid) => {
-          const posType = selectedOrRunningRex?.posTypes?.find(
-            (posType) => posType.uuid === posTypeUuid
-          );
+          const posType = selectedRex?.posTypes?.find((posType) => posType.uuid === posTypeUuid);
           return posType?.abbr;
         });
         const newLabel = `${timeToShow} / ${markerPosTypeAbbrs} (${sourceAbbr})`;
@@ -1759,7 +1750,7 @@ const MapBody: FunctionComponent<{}> = () => {
     posEntriesShowing,
     latestPosEntriesByType,
     mapDisplayPos.showLatestLabels,
-    selectedOrRunningRex,
+    selectedRex,
   ]);
 
   /**
@@ -2022,37 +2013,30 @@ const MapBody: FunctionComponent<{}> = () => {
       } else if (sectionSelected === "station" && selectedStation?.location) {
         highlightLocation = selectedStation.location;
         panMapToLocation = selectedStation.location;
-      } else if (sectionSelected === "evas" && selectedEvaSequenceItemUuid) {
-        const seqItemRes = await dispatch(
-          thunkGetStationOrTraverse({ uuid: selectedEvaSequenceItemUuid })
-        );
-        if (seqItemRes.payload) {
-          const seqItem = seqItemRes.payload;
-          if (seqItem.type === "traverse") {
-            panMapToLocation = getMidpoint((seqItem.item as Traverse).path);
-          } else if (seqItem.type === "station") {
-            const selectedStation = seqItem.item as Station;
-            highlightLocation = selectedStation.location;
-            panMapToLocation = selectedStation.location;
-          }
-        }
-      } else if (sectionSelected === "rex") {
-        // highlight pos
-        if (selectedPosEntryUuid && selectedOrRunningRex?.posEntries) {
-          const posLocation = selectedOrRunningRex.posEntries.find(
-            (c) => c.uuid === selectedPosEntryUuid
-          )?.location;
-          highlightLocation = posLocation;
-          panMapToLocation = posLocation;
-        }
+      } else if (sectionSelected === "evas") {
+        // if a sequence item is selected. highlight and pan over there
         if (selectedEvaSequenceItemUuid) {
           const seqItemRes = await dispatch(
             thunkGetStationOrTraverse({ uuid: selectedEvaSequenceItemUuid })
           );
-          if (seqItemRes.payload && seqItemRes.payload.type === "station") {
-            const selectedStation = seqItemRes.payload.item as Station;
-            highlightLocation = selectedStation.location;
+          if (seqItemRes.payload) {
+            const seqItem = seqItemRes.payload;
+            if (seqItem.type === "traverse") {
+              panMapToLocation = getMidpoint((seqItem.item as Traverse).path);
+            } else if (seqItem.type === "station") {
+              const selectedStation = seqItem.item as Station;
+              highlightLocation = selectedStation.location;
+              panMapToLocation = selectedStation.location;
+            }
           }
+        }
+        // if a pos entry is selected, highlight and pan to the pos
+        if (selectedPosEntryUuid && selectedRex?.posEntries) {
+          const posLocation = selectedRex.posEntries.find(
+            (c) => c.uuid === selectedPosEntryUuid
+          )?.location;
+          highlightLocation = posLocation;
+          panMapToLocation = posLocation;
         }
       } else if (selectedMeasurementUuid) {
         const measurement = measurements.find((m) => m.uuid === selectedMeasurementUuid);
@@ -2176,11 +2160,7 @@ const MapBody: FunctionComponent<{}> = () => {
 
   return (
     <div className={styles.mapContainer} ref={mapContainerRef}>
-      <PetInterval
-        runningRex={selectedOrRunningRex}
-        rexPetTime={rexPetTime}
-        setRexPetTime={setRexPetTime}
-      />
+      <PetInterval runningRex={selectedRex} rexPetTime={rexPetTime} setRexPetTime={setRexPetTime} />
       <div className={styles.map} ref={mapRef} />
 
       <div className={styles.mapViewDisplay}>
@@ -2203,7 +2183,7 @@ const MapBody: FunctionComponent<{}> = () => {
           setShowSunEarth={setShowSunEarth}
         />
       </div>
-      {selectedOrRunningRex && <MapPositionMenu />}
+      {sectionSelected === "evas" && selectedRex && <MapPositionMenu />}
       <div className={styles.mapPresetDisplay}>
         <MapPresetMenu
           selectedPreset={selectedPreset}

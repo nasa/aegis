@@ -33,6 +33,8 @@ import {
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankUser } from "store/storeUtils/user";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
+import cloneDeep from "lodash/cloneDeep";
+import { v4 as uuidv4 } from "uuid";
 
 export const createCustomTestStore = (partialPreloadedState: Partial<RootState>): StoreType => {
   const newState = { ...initialState, ...partialPreloadedState };
@@ -44,13 +46,6 @@ export const createCustomTestStore = (partialPreloadedState: Partial<RootState>)
 
 /**
  * Create a store pre filled with objects. Any record that needs an id from the db are null (ex: mission and user)
- *    3 pois each with 1 action
- *    3 stations each with 1 action
- *    2 evas
- *    1 rex with 1 pos and a selected eva
- *    1 preset
- *    1 user
- *    STM with 1 level1, 1 level2, and 1 level3 linked together
  * @returns
  */
 export const createFullTestStore = (): StoreType => {
@@ -69,8 +64,8 @@ export const createFullTestStore = (): StoreType => {
   }
   for (let i = 0; i < pois.length; i++) {
     const action = generateBlankAction({ name: "Jest Action-1", poiUuid: pois[i].uuid });
-    action.durationLower = i + 1;
-    action.durationUpper = action.durationLower + 5;
+    action.duration = i + 6;
+    action.poiUuid = pois[i].uuid;
     actions.push(action);
     pois[i].actionOrderUuids.push(action.uuid);
   }
@@ -85,8 +80,8 @@ export const createFullTestStore = (): StoreType => {
   }
   for (let i = 0; i < stations.length; i++) {
     const action = generateBlankAction({ name: "Jest Action-1", stationUuid: stations[i].uuid });
-    action.durationLower = i + 1;
-    action.durationUpper = action.durationLower + 5;
+    action.duration = i + 6;
+    action.stationUuid = stations[i].uuid;
     actions.push(action);
     stations[i].actionOrderUuids.push(action.uuid);
   }
@@ -95,7 +90,14 @@ export const createFullTestStore = (): StoreType => {
   for (let i = 0; i < 6; i++) {
     traverses.push(generateBlankTraverse({ name: `Jest Traverse-${i + 1}` }));
   }
-  const eva1 = generateBlankEVA({ name: "Jest Eva-1" });
+  for (let i = 0; i < traverses.length; i++) {
+    const action = generateBlankAction({ name: "Jest Action-1", traverseUuid: traverses[i].uuid });
+    action.duration = i + 6;
+    action.traverseUuid = traverses[i].uuid;
+    actions.push(action);
+    traverses[i].actionOrderUuids.push(action.uuid);
+  }
+  const eva1 = generateBlankEVA({ name: "Jest Eva-1 Planned with Rex" });
   eva1.sequence = [
     { uuid: traverses[0].uuid, type: "traverse" },
     { uuid: stations[0].uuid, type: "station" },
@@ -105,7 +107,7 @@ export const createFullTestStore = (): StoreType => {
     { uuid: stations[2].uuid, type: "station" },
     { uuid: traverses[3].uuid, type: "traverse" },
   ];
-  const eva2: Eva = generateBlankEVA({ name: "Jest Eva-1" });
+  const eva2: Eva = generateBlankEVA({ name: "Jest Eva-1 Planned No Rex" });
   eva2.traverseRate = 2;
   eva2.sequence = [
     { uuid: traverses[4].uuid, type: "traverse" },
@@ -113,7 +115,42 @@ export const createFullTestStore = (): StoreType => {
     { uuid: traverses[5].uuid, type: "traverse" },
   ];
 
-  const rex1 = generateBlankRex({ name: "Jest Rex-1", evaUuid: eva1.uuid });
+  // duplicate a full EVA for a rex record
+  const eva1ForRex = cloneDeep(eva1);
+  eva1ForRex.name = "Jest Eva-1 Rex Version";
+  eva1ForRex.uuid = uuidv4();
+  for (const seq of eva1ForRex.sequence) {
+    if (seq.type === "traverse") {
+      const traverse = traverses.find((t) => t.uuid === seq.uuid);
+      const dupTraverse = cloneDeep(traverse);
+      dupTraverse.uuid = uuidv4();
+      traverses.push(dupTraverse);
+
+      const action = actions.find((a) => a.traverseUuid === seq.uuid);
+      const dupAction = cloneDeep(action);
+      dupAction.uuid = uuidv4();
+      dupAction.traverseUuid = dupTraverse.uuid;
+      dupTraverse.actionOrderUuids = [dupAction.uuid];
+      actions.push(dupAction);
+
+      seq.uuid = dupTraverse.uuid;
+    } else if (seq.type === "station") {
+      const station = stations.find((s) => s.uuid === seq.uuid);
+      const dupStation = cloneDeep(station);
+      dupStation.uuid = uuidv4();
+      stations.push(dupStation);
+
+      const action = actions.find((a) => a.stationUuid === seq.uuid);
+      const dupAction = cloneDeep(action);
+      dupAction.uuid = uuidv4();
+      dupAction.stationUuid = dupStation.uuid;
+      dupStation.actionOrderUuids = [dupAction.uuid];
+      actions.push(dupAction);
+
+      seq.uuid = dupStation.uuid;
+    }
+  }
+  const rex1 = generateBlankRex({ name: "Jest Rex-1", evaUuid: eva1ForRex.uuid });
   rex1.posEntries = [generateBlankPosEntry({ posTypeUuids: [rex1.posTypes[0].uuid] })];
 
   const sublayer = generateBlankSublayer({ name: "Jest Test Sublayer" });
@@ -153,8 +190,8 @@ export const createFullTestStore = (): StoreType => {
     map: { ...mapInitialState },
     eva: {
       ...evaInitialState,
-      evas: [eva1, eva2],
-      evasFromDb: [eva1, eva2],
+      evas: [eva1, eva2, eva1ForRex],
+      evasFromDb: [eva1, eva2, eva1ForRex],
       selectedEvaUuid: eva1.uuid,
     },
     poi: { ...poiInitialState, pois: pois, poisFromDb: pois },

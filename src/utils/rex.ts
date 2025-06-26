@@ -22,7 +22,7 @@ export const getRexStatusDisplayProperties = (
     return {
       icon: faCirclePlay,
       iconStyle: rexStyles.rexStatusIconPending,
-      tooltip: "Action pending",
+      tooltip: "Status pending",
       headerBackgroundColor: "var(--grey2)",
       bodyBackgroundColor: "var(--grey2)",
       customTextClassName: null,
@@ -32,7 +32,7 @@ export const getRexStatusDisplayProperties = (
       return {
         icon: faCirclePlay,
         iconStyle: rexStyles.rexStatusIconPending,
-        tooltip: "Action pending",
+        tooltip: "Status pending",
         headerBackgroundColor: "var(--grey2)",
         bodyBackgroundColor: "var(--grey2)",
         customTextClassName: null,
@@ -41,7 +41,7 @@ export const getRexStatusDisplayProperties = (
       return {
         icon: faCircle,
         iconStyle: rexStyles.rexStatusIconInProgress,
-        tooltip: "Action in progress",
+        tooltip: "Status in progress",
         headerBackgroundColor: "var(--rexDim)",
         bodyBackgroundColor: "var(--grey2)",
         customTextClassName: null,
@@ -50,7 +50,7 @@ export const getRexStatusDisplayProperties = (
       return {
         icon: faCircleCheck,
         iconStyle: rexStyles.rexStatusIconComplete,
-        tooltip: "Action complete",
+        tooltip: "Status complete",
         headerBackgroundColor: "var(--grey1)",
         bodyBackgroundColor: "var(--grey1)",
         customTextClassName: null,
@@ -59,7 +59,7 @@ export const getRexStatusDisplayProperties = (
       return {
         icon: faCircleXmark,
         iconStyle: rexStyles.rexStatusIconSkipped,
-        tooltip: "Action skipped",
+        tooltip: "Status skipped",
         headerBackgroundColor: "var(--grey1)",
         bodyBackgroundColor: "var(--grey1)",
         customTextClassName: actionStyles.actionHeadingSkipped,

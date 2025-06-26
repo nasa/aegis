@@ -5,11 +5,9 @@ import styles from "./_global-elements.module.css";
 import { longdateFromDateString } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 
-type UuidObject = Object & MustContain;
-
 export const ModifiedIndicator: FunctionComponent<{
-  obj1: UuidObject[];
-  obj2: UuidObject[];
+  obj1: MustContainIsModified[];
+  obj2: MustContainIsModified[];
   svgStyle?: { width: string; height: string; cx: string; cy: string; r: string; fill: string };
 }> = ({
   obj1,

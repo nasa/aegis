@@ -324,17 +324,17 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                 <div className={paneStyles.panelColumnTableRow}>
                                   <div className={paneStyles.panelColumnTableCellLeft}>
                                     <div className={paneStyles.inputFieldLabel}>
-                                      Nominal Duration (mins):
+                                      Duration (mins):
                                     </div>
                                   </div>
                                   <div className={paneStyles.panelColumnTableCell}>
                                     <div className={paneStyles.inputFieldValue}>
                                       <InLineEditInput
-                                        value={actionTemplate.durationLower?.toString()}
+                                        value={actionTemplate.duration?.toString()}
                                         editing={editMode}
                                         fieldProps={{
-                                          name: "durationLower",
-                                          ariaLabel: "Minimum Time in minutes",
+                                          name: "duration",
+                                          ariaLabel: "Duration in minutes",
                                           style: { width: "45px" },
                                           validators: [
                                             validators.maxLength(4),
@@ -352,55 +352,12 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                           dispatch(
                                             thunkUpdateActionTemplate({
                                               uuid: actionTemplate.uuid,
-                                              fieldName: "durationLower",
+                                              fieldName: "duration",
                                               value: toDecimal(value),
                                             })
                                           );
                                         }}
-                                        key={`${actionTemplate.uuid}-durationLower`}
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className={paneStyles.panelColumnTable}>
-                                <div className={paneStyles.panelColumnTableRow}>
-                                  <div className={paneStyles.panelColumnTableCellLeft}>
-                                    <div className={paneStyles.inputFieldLabel}>
-                                      Max Duration (mins):
-                                    </div>
-                                  </div>
-                                  <div className={paneStyles.panelColumnTableCell}>
-                                    <div className={paneStyles.inputFieldValue}>
-                                      <InLineEditInput
-                                        value={actionTemplate.durationUpper?.toString()}
-                                        editing={editMode}
-                                        fieldProps={{
-                                          name: "durationUpper",
-                                          ariaLabel: "Maximum Time in minutes",
-                                          style: { width: "45px" },
-                                          validators: [
-                                            validators.maxLength(4),
-                                            validators.mustBeInteger,
-                                            // validators.mustBeNumberGTZero,
-                                          ],
-                                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                                            e.target.value = e.target.value.replace(
-                                              regExValidators.regExNumber,
-                                              ""
-                                            );
-                                          },
-                                        }}
-                                        onSubmit={(value: string) => {
-                                          dispatch(
-                                            thunkUpdateActionTemplate({
-                                              uuid: actionTemplate.uuid,
-                                              fieldName: "durationUpper",
-                                              value: toDecimal(value),
-                                            })
-                                          );
-                                        }}
-                                        key={`${actionTemplate.uuid}-durationUpper`}
+                                        key={`${actionTemplate.uuid}-duration`}
                                       />
                                     </div>
                                   </div>

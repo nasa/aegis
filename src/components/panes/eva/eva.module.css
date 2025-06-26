@@ -1,3 +1,18 @@
+.titleWrapper {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-left: 10px;
+  margin-top: 10px;
+  margin-right: 10px;
+  align-items: center;
+}
+.title {
+  font-size: 1.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--eva);
+}
 .evaPanelContainer {
   background-color: var(--grey2);
   margin: 2px 8px 2px 8px;
@@ -7,8 +22,8 @@
 .nameitem {
   display: flex;
   padding: 2px 4px 2px 0;
-  -webkit-user-select: none;
   user-select: none;
+  align-items: center;
 }
 
 .name {
@@ -17,10 +32,11 @@
   font-size: 0.9em;
   font-weight: 500;
   text-transform: uppercase;
-  padding: 3px 2px 3px 5px;
+  padding: 3px;
   cursor: pointer;
   border-radius: var(--radius);
   border: 1px solid var(--grey2);
+  align-items: center;
 }
 
 .nameSelected {
@@ -30,8 +46,8 @@
   cursor: pointer;
 }
 
-.nameSelected:hover {
-  background-color: var(--grey5) !important;
+.name.nameSelected:hover {
+  background-color: var(--grey5);
 }
 
 .nameEmphasized {
@@ -46,11 +62,7 @@
   margin-right: 4px;
 }
 
-.nameItemsRightButton {
-  padding-right: 5px;
-}
-
-.nameItemRightSpacer {
+.nameSpacer {
   flex: 1;
 }
 
@@ -60,12 +72,40 @@
   cursor: pointer !important; /* override the draggableItem cursor */
 }
 
+.nameIcons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdownArrow {
+  top: 1px;
+  color: #ffffff;
+}
+.dropdownSelector {
+  width: 100px;
+}
+
+.sliderIcon {
+  font-size: 0.9em;
+  padding-left: 4px;
+  padding-right: 4px;
+  height: 20px;
+}
+
+.slideIconEmphasized {
+  font-size: 0.9em;
+  padding-left: 4px;
+  padding-right: 4px;
+  height: 20px;
+  background-color: var(--grey2);
+}
+
 .evaContainer {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  margin-top: 2px;
-  margin-bottom: 2px;
 }
 
 .verticalCenter {
@@ -76,6 +116,7 @@
 
 .evaSequenceContainer {
   margin: 0 0 0 20px;
+  padding-bottom: 4px;
 }
 
 .evaFooterContainer {
@@ -102,7 +143,6 @@
   padding: 4px 5px 4px 5px;
   margin: 1px 0 1px 0;
   border-radius: var(--radius);
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -167,7 +207,9 @@
   flex: 1 1 auto;
   margin-right: 1px;
   align-self: center;
-  overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .evaItemRight {
@@ -237,7 +279,6 @@
 
 .stationWrapperRight {
   display: flex;
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -301,11 +342,63 @@
   background-repeat: no-repeat;
 
   background-position: center;
-  background-image: url(/images/icon_status_loading.svg);
+  background-image: url("/images/icon_status_loading.svg");
 }
 
 .rexStatusWrapper {
   flex: 0 0 20px;
   user-select: none;
   align-self: center;
+}
+
+.rightTopTitleText {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  column-gap: 5px;
+}
+
+.rexIconWrapper {
+  color: var(--rex);
+  padding-right: 5px;
+}
+.rexIconWrapperSelected {
+  color: #10bc44;
+  padding-right: 5px;
+}
+
+/* Loading overlay styles */
+.loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgb(0 0 0 / 70%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+}
+
+.loadingSpinner {
+  border: 4px solid rgb(255 255 255 / 30%);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }

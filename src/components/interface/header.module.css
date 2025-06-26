@@ -6,7 +6,7 @@
 
 .homeIcon:hover {
   opacity: 0.6;
-  color: #fff;
+  color: #ffffff;
 }
 
 .helpMenu {
@@ -18,7 +18,7 @@
 
 .item {
   margin: auto;
-  min-width: 0px;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -38,7 +38,7 @@
   white-space: nowrap;
   overflow: hidden;
   display: block;
-  min-width: 0px;
+  min-width: 0;
   flex-grow: 1;
   flex-shrink: 1;
   margin-left: 10px;
@@ -56,6 +56,7 @@
   margin-right: 10px;
   white-space: nowrap;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .rexIcon {
@@ -134,7 +135,7 @@
 }
 
 .wordMark {
-  font-family: "Aldrich", serif;
+  font-family: Aldrich, serif;
   font-weight: 400;
   font-size: 30px;
   margin-top: 2px;

@@ -41,7 +41,7 @@ import {
 import {
   deleteTraversesByUuid,
   deleteTraversesFromDbByUuid,
-  setTraverseEditMode,
+  setTraversesEditMode,
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
@@ -51,10 +51,8 @@ import {
   deleteRexesFromDbByUuid,
   setPosEntryEditingUuid,
   setRexesPosEntryEditMode,
-  setRexEditMode,
   upsertRexes,
   upsertRexesFromDb,
-  setSelectedRexUuid,
 } from "store/rex";
 import { updateMapDirective } from "store/map";
 import {
@@ -168,7 +166,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     for (const changedTraverse of changedTraverses) {
       if (getState().traverse.traversesEditing.includes(changedTraverse.uuid)) {
         upsertMessages.push(getConflictMessage("traverse", changedTraverse.name, "upsert"));
-        dispatch(setTraverseEditMode({ uuid: changedTraverse.uuid, editMode: false }));
+        dispatch(setTraversesEditMode({ uuids: [changedTraverse.uuid], editMode: false }));
       }
     }
     dispatch(upsertTraverses(storeUpsert.data as Traverse[], true));
@@ -186,14 +184,13 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
       }
     }
   } else if (storeUpsert.type === "rex") {
-    const changedRexs = storeUpsert.data as Rex[];
-    for (const changedRex of changedRexs) {
+    const changedRexes = storeUpsert.data as Rex[];
+    for (const changedRex of changedRexes) {
       //check changes on rex object
-      if (getState().rex.rexesEditing.includes(changedRex.uuid)) {
+      if (getState().eva.evasEditing.includes(changedRex.evaUuid)) {
         upsertMessages.push(getConflictMessage("rex", changedRex.name, "upsert"));
-        dispatch(setRexEditMode({ rexUuid: changedRex.uuid, editMode: false }));
       }
-      //check changes on crew pos inside rex object. this is handled seperately
+      //check changes on crew pos inside rex object. this is handled separately
       if (getState().rex.rexesPosEntriesEditing.includes(changedRex.uuid)) {
         upsertMessages.push(getConflictMessage("crew position on", changedRex.name, "upsert"));
         //if there was an open map directive for one of the crew pos, cancel it
@@ -209,13 +206,9 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
         dispatch(setRexesPosEntryEditMode({ rexUuid: changedRex.uuid, editMode: false }));
         dispatch(setPosEntryEditingUuid(null));
       }
-      //if this rex is the new running rex, update selected rex
-      if (changedRex.isRunning) {
-        dispatch(setSelectedRexUuid(changedRex.uuid));
-      }
     }
-    dispatch(upsertRexes(changedRexs, true));
-    dispatch(upsertRexesFromDb(changedRexs));
+    dispatch(upsertRexes(changedRexes, true));
+    dispatch(upsertRexesFromDb(changedRexes));
   } else if (storeUpsert.type === "stmRule") {
     const changedStmRules = storeUpsert.data as STMRule[];
     for (const changedStmRule of changedStmRules) {
@@ -345,17 +338,16 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
           (traverse) => traverse.uuid === deletedUuid
         );
         deletedMessages.push(getConflictMessage("traverse", traverseDeleted.name, "delete"));
-        dispatch(setTraverseEditMode({ uuid: traverseDeleted.uuid, editMode: false }));
+        dispatch(setTraversesEditMode({ uuids: [traverseDeleted.uuid], editMode: false }));
       }
     }
     dispatch(deleteTraversesByUuid(storeDelete.uuids));
     dispatch(deleteTraversesFromDbByUuid(storeDelete.uuids));
   } else if (storeDelete.type === "rex") {
     for (const deletedUuid of storeDelete.uuids) {
-      if (getState().rex.rexesEditing.includes(deletedUuid)) {
-        const rexDeleted = getState().rex.rexes.find((rex) => rex.uuid === deletedUuid);
+      const rexDeleted = getState().rex.rexes.find((rex) => rex.uuid === deletedUuid);
+      if (getState().eva.evasEditing.includes(rexDeleted.evaUuid)) {
         deletedMessages.push(getConflictMessage("rex", rexDeleted.name, "delete"));
-        dispatch(setRexEditMode({ rexUuid: rexDeleted.uuid, editMode: false }));
       }
     }
     dispatch(deleteRexesByUuid(storeDelete.uuids));

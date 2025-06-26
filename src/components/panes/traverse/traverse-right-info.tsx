@@ -19,11 +19,11 @@ import paneStyles from "../global-pane-styles.module.css";
 import traverseStyles from "./traverse.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetTraverse } from "store/thunk/thunkTraverse";
-import { formatNumberWithCommas, toDecimal } from "utils/formatting";
+import { formatNumberWithCommas, isNotNumber, toDecimal } from "utils/formatting";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
-import { displayFormattedTotalTimeObj, makeTraverseRateString } from "utils/component-helpers";
+import { makeTraverseRateString } from "utils/component-helpers";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import CalculatedDwell from "../calculated-dwell";
 
@@ -146,21 +146,22 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.inputFieldLabel}>Nominal Duration (mins):</div>
+                      <div className={paneStyles.inputFieldLabel}>Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <InLineEditInput
-                          value={selectedTraverse.predictedDurationLower?.toString()}
+                          value={selectedTraverse.duration?.toString()}
                           editing={editMode}
                           fieldProps={{
-                            name: "predictedDurationLower",
-                            ariaLabel: "Nominal Duration",
+                            name: "duration",
+                            ariaLabel: "Duration",
                             style: { width: "55px" },
                             validators: [
                               validators.mustBeNumber,
                               validators.maxLength(4),
                               validators.mustBeInteger,
+                              validators.mustBeNumberGTZero,
                             ],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
@@ -173,53 +174,24 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             dispatch(
                               upsertTraverseByField(
                                 selectedTraverse.uuid,
-                                "predictedDurationLower",
+                                "duration",
                                 toDecimal(val)
                               )
                             );
                           }}
-                          key={`${selectedTraverse.uuid}-predictedDurationLower`}
+                          key={`${selectedTraverse.uuid}-duration`}
                         />
                       </div>
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.inputFieldLabel}>Max Duration (mins):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
-                          value={selectedTraverse.predictedDurationUpper?.toString()}
-                          editing={editMode}
-                          fieldProps={{
-                            name: "predictedDurationUpper",
-                            ariaLabel: "Max Duration",
-                            style: { width: "55px" },
-                            validators: [
-                              validators.mustBeNumber,
-                              validators.maxLength(4),
-                              validators.mustBeInteger,
-                            ],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
-                          }}
-                          onSubmit={(val: string) => {
-                            dispatch(
-                              upsertTraverseByField(
-                                selectedTraverse.uuid,
-                                "predictedDurationUpper",
-                                toDecimal(val)
-                              )
-                            );
-                          }}
-                          key={`${selectedTraverse.uuid}-predictedDurationUpper`}
-                        />
-                      </div>
+                      {isNotNumber(selectedTraverse?.duration) && (
+                        <div
+                          style={{ color: "var(--grey5)" }}
+                          className={paneStyles.inputFieldLabel}
+                        >{`Using Calculated Total: ${(calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes).toFixed(0)}`}</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -353,7 +325,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
-                      <div className={paneStyles.displayFieldLabel}>Movement Duration (mins):</div>
+                      <div className={paneStyles.displayFieldLabel}>Movement Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
@@ -456,10 +428,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields?.totalActionTime?.durationLower === 0 ? (
+                        {calculatedFields?.totalActionTime === 0 ? (
                           <>0</>
                         ) : (
-                          <>{displayFormattedTotalTimeObj(calculatedFields?.totalActionTime)}</>
+                          <>{calculatedFields?.totalActionTime.toFixed(0)}</>
                         )}
                       </div>
                     </div>
@@ -493,14 +465,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCellLeft}>
                       <div className={paneStyles.displayFieldLabel}>
-                        Total Duration of Actions and Movement (mins):
+                        Total Time of Actions and Movement (mins):
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
                         {(
-                          calculatedFields?.totalDwellTime.durationUpper +
-                          calculatedFields?.durationMinutes
+                          calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes
                         ).toFixed(0)}
                       </div>
                     </div>

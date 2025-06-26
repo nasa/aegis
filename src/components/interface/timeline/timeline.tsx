@@ -16,14 +16,12 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { clearMapItemHover } from "store/hover";
 import throttle from "lodash/throttle";
 import isNil from "lodash/isNil";
-import last from "lodash/last";
 import { STM_Coverage } from "components/panes/stm/stm-coverage";
 import * as TimelineDrawing from "./timeline-drawing";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { initGraphItemsRef, initPaperRefs } from "./timeline-init";
 import TimelineHoverValues from "./timeline-hover";
-import { selectEvaActions, selectEvaStations, selecteEvaTraverses } from "store/selectors";
-import { secondsFromhhmmss } from "utils/formatting";
+import { selectEvaActions, selectEvaStations, selectEvaTraverses } from "store/selectors";
 import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../../page/petInterval";
 import { getStmUuidRefs } from "store/storeUtils/store";
@@ -42,6 +40,10 @@ const NavTimeline: FunctionComponent = () => {
     (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid),
     deepEqual
   );
+  const selectedRexFromDb = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid),
+    deepEqual
+  );
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
     deepEqual
@@ -54,7 +56,7 @@ const NavTimeline: FunctionComponent = () => {
   const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const evaActions = useAppSelector(selectEvaActions(), deepEqual);
   const evaStations = useAppSelector(selectEvaStations(), deepEqual);
-  const evaTraverses = useAppSelector(selecteEvaTraverses(), deepEqual);
+  const evaTraverses = useAppSelector(selectEvaTraverses(), deepEqual);
   const runningRex = useAppSelector((state) => state.rex.rexes.find((r) => r.isRunning), deepEqual);
   const runningRexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
@@ -137,7 +139,7 @@ const NavTimeline: FunctionComponent = () => {
     if (action.enabled) {
       coveredSTMs.push(getStmUuidRefs(action.stmPriorities));
       if (runningRex?.actionEntries) {
-        const rexStatus = last(runningRex.actionEntries[action.uuid])?.rexStatus;
+        const rexStatus = runningRex.actionEntries[action.uuid]?.rexStatus;
         if (rexStatus === "complete") {
           completedSTMs.push(getStmUuidRefs(action.stmPriorities));
         } else if (rexStatus === "in-progress") {
@@ -148,7 +150,7 @@ const NavTimeline: FunctionComponent = () => {
   });
 
   // used to update the PET value via the PetInterval component
-  const [rexPetTime, setRexPetTime] = useState("");
+  const [runningRexPetTime, setRunningRexPetTime] = useState("");
 
   /**
    * Populate storeRefs with all our store information so paper.js can read it.
@@ -199,7 +201,7 @@ const NavTimeline: FunctionComponent = () => {
    * Main function to draw the timeline. All the paper drawing happens here
    */
   const drawTimeline = useCallback(async () => {
-    //clear project and initilize paper refs and data for drawing
+    //clear project and initialize paper refs and data for drawing
     paper.project.clear();
 
     processEvaDataFromStoreCallback(); //loads data into the storeRef
@@ -208,8 +210,17 @@ const NavTimeline: FunctionComponent = () => {
 
     //draw the graph axis (even if no EVA is selected)
     TimelineDrawing.drawGraphAxis(paperDataRef, storeRef);
-    //draw pet line when rex is executing but time is not moving. When pet time moves, a separate use effect will handle this.
-    TimelineDrawing.drawPetLine(paperDataRef, paperGroupsRef, secondsFromhhmmss(rexPetTime));
+    //draw pet line for selected rex.
+    const rexPetTimeToDraw =
+      runningRexFromDb?.uuid === selectedRexFromDb?.uuid
+        ? runningRexPetTime // draw the ticking time
+        : selectedRexFromDb?.petValueAtStartStop; // draw the static time at the start/stop of the rex
+    TimelineDrawing.drawPetLine(
+      paperDataRef,
+      paperGroupsRef,
+      rexPetTimeToDraw,
+      selectedRexFromDb?.petRunning
+    );
     //draw all the things
     if (selectedEva) {
       TimelineDrawing.drawSequenceBottomSection(
@@ -247,28 +258,29 @@ const NavTimeline: FunctionComponent = () => {
   }, [
     selectedEva,
     selectedRex,
+    selectedRexFromDb,
     selectedEvaSequenceItemUuid,
     showDistanceFromLander,
     showElevation,
     graphSequenceItems,
     selectedPosEntryUuid,
     rightPanelIsOpen,
+    runningRexPetTime,
     processEvaDataFromStoreCallback, //this will trigger if the storeRef changes
     processPosEntriesFromStore, //this will trigger if the posRef changes
   ]);
 
   //handle pet rex seconds moving during rex and blink
   useEffect(() => {
-    if (!rexPetTime || !paperGroupsRef?.current?.petLine?.firstChild) return;
-    TimelineDrawing.drawPetLine(paperDataRef, paperGroupsRef, secondsFromhhmmss(rexPetTime));
+    if (!runningRexPetTime || !paperGroupsRef?.current?.petLine?.firstChild) return;
 
-    const oldPetLine = paperGroupsRef.current.petLine.firstChild as paper.Path.Line;
-    if (secondsFromhhmmss(rexPetTime) % 2 === 0) {
-      oldPetLine.strokeWidth = 2;
-    } else {
-      oldPetLine.strokeWidth = 1;
-    }
-  }, [rexPetTime, paperGroupsRef?.current?.petLine]);
+    TimelineDrawing.drawPetLine(
+      paperDataRef,
+      paperGroupsRef,
+      runningRexPetTime,
+      selectedRexFromDb?.petRunning
+    );
+  }, [runningRexPetTime, paperGroupsRef?.current?.petLine, selectedRexFromDb]);
 
   //redraw entire timeline
   useEffect(() => {
@@ -277,7 +289,7 @@ const NavTimeline: FunctionComponent = () => {
     drawTimeline();
   }, [
     // draw timeline also has a lot of dependencies that will also trigger a redraw
-    // since drawTimeline is a depedency listed here
+    // since drawTimeline is a dependency listed here
     drawTimeline,
     selectedEvaSequenceItemUuid,
   ]);
@@ -385,8 +397,8 @@ const NavTimeline: FunctionComponent = () => {
     <div className={styles.timelineContainer}>
       <PetInterval
         runningRex={runningRexFromDb}
-        rexPetTime={rexPetTime}
-        setRexPetTime={setRexPetTime}
+        rexPetTime={runningRexPetTime}
+        setRexPetTime={setRunningRexPetTime}
       />
       <TimelineHoverValues hoverValues={hoverValues} />
       <div className={styles.canvasContainer}>

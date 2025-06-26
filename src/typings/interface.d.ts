@@ -9,7 +9,7 @@ interface PaneType {
   rightPane: React.FunctionComponent;
   color: string;
   icon: IconProp;
-  fullScreen?: boolean;
+  fullScreen: boolean;
 }
 
 type PaneTypes = {

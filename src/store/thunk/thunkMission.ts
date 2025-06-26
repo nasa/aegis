@@ -27,7 +27,7 @@ import {
 } from "utils/export";
 import * as jsonKeysSort from "json-keys-sort";
 import { generateBlankActionTemplate } from "store/storeUtils/mission";
-import { setStationCircleUIStates } from "store/station";
+import { setStationCircleUIStates, upsertStationByField } from "store/station";
 import { globalGrid } from "utils/grid";
 
 export const thunkMissionSave = appCreateAsyncThunk<void>(
@@ -139,7 +139,6 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
 
     //sync up stations circle controls
     getState().station.stations.forEach((station) => {
-      const newStation: Station = { ...station };
       const oldStationCircleUIStates = getState().station.stationCirclesUIStates[station.uuid];
 
       const newStationCircleUIStates: CircleUIStates = { ...oldStationCircleUIStates };
@@ -194,8 +193,8 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
           circleUIStates: newStationCircleUIStates,
         })
       );
-      newStation.mapCircleControls = newMapCircleControls;
-      dispatch(thunkSaveStation({ station: newStation }));
+      dispatch(upsertStationByField(station.uuid, "mapCircleControls", newMapCircleControls));
+      dispatch(thunkSaveStation({ stationUuid: station.uuid }));
     });
 
     dispatch(setMissionSectionEditing({ section: "prefs", editMode: false }));
@@ -246,15 +245,9 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
       throw new Error("Error updating lander location in thunkUpdateLanderLocation");
     }
 
+    dispatch(upsertStationByField(station.uuid, "walkbackPath", newPathRes.payload));
     // Return the dispatch promise but don't await it here
-    return dispatch(
-      thunkSaveStation({
-        station: {
-          ...station,
-          walkbackPath: newPathRes.payload,
-        },
-      })
-    );
+    return dispatch(thunkSaveStation({ stationUuid: station.uuid }));
   });
 
   // Wait for all station updates to complete
@@ -298,8 +291,7 @@ export const thunkCreateTemplateFromAction = appCreateAsyncThunk<{ actionUuid: s
       name: action.name,
       actionDefinition: action.actionDefinition,
       description: action.description,
-      durationLower: action.durationLower,
-      durationUpper: action.durationUpper,
+      duration: action.duration,
       mass: action.mass,
       icon: action.icon,
       equipmentItemsUsage: action.equipmentItemsUsage,

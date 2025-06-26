@@ -35,9 +35,15 @@ interface EvaState {
   selectedEvaUuid: string;
   selectedEvaSequenceItemUuid: string;
   expandedEvaUuids: string[];
+  evaDropdownUIStates: EvaDropdownUIStates;
+  showRunningRexOnly: boolean;
   evas: Eva[];
   evasFromDb: Eva[];
   evasEditing: string[];
+}
+
+interface EvaDropdownUIStates {
+  [asPlannedEvaUuid: string]: string; // Maps EVA UUIDs to the currently selected dropdown item uuid
 }
 
 interface TraverseState {
@@ -77,7 +83,6 @@ type InterfaceSection =
   | "poi"
   | "station"
   | "evas"
-  | "rex"
   | "stmViewer"
   | "stmRules";
 type BottomInterfaceSection = "timeline" | "measure";
@@ -134,9 +139,6 @@ interface RexState {
   rexes: Rex[];
   rexesFromDb: Rex[];
   selectedRexUuid: string;
-  expandedRexUuids: string[];
-  selectedRexRightNavItem: string;
-  rexesEditing: string[];
   rexesPosEntriesEditing: string[];
   selectedPosEntryUuid: string;
   posEntryEditingUuid: string; //only one can be in edit mode at a time
@@ -185,11 +187,11 @@ type CalculatedFields = {
 };
 
 type ActionsCalculatedFields = {
-  totalActionTime: TotalTimeObj;
-  totalEv1Time: TotalTimeObj;
-  totalEv2Time: TotalTimeObj;
-  totalUnassignedTime: TotalTimeObj;
-  totalDwellTime: TotalTimeObj;
+  totalActionTime: number;
+  totalEv1Time: number;
+  totalEv2Time: number;
+  totalUnassignedTime: number;
+  totalDwellTime: number;
   actionCount: number;
   totalMass: number;
 };
@@ -223,6 +225,8 @@ type EvaSequenceItemCalculatedData = {
   uuid: string;
   startSeconds: number;
   endSeconds: number;
+  manualStartSeconds: number;
+  manualEndSeconds: number;
 };
 
 type EvaCalculatedFields = CalculatedFields &
@@ -230,12 +234,12 @@ type EvaCalculatedFields = CalculatedFields &
     totalTraverseTime: number;
     totalTraverseDistanceMeters: number;
     totalTraverseAscentDescent: TotalAscentDescentObj;
-    totalEvaTime: TotalTimeObj;
+    totalEvaTime: number;
     equipmentItems: EquipmentItemUsage[];
     sequenceItemsCalculatedData: EvaSequenceItemCalculatedData[];
   };
 
-interface MustContain {
+interface MustContainIsModified {
   uuid: string;
   createdAt?: string;
   updatedAt?: string;

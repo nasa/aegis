@@ -5,18 +5,17 @@ import { FunctionComponent } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import actionStyles from "./actions-action.module.css";
-import { upsertAction, upsertActionByField } from "store/action";
+import { upsertActions, upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { decodeEmoji, hmmFromMinutes, titleCase } from "utils/formatting";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { validators } from "components/interface/form/formValidators";
-import last from "lodash/last";
 import capitalize from "lodash/capitalize";
 import { collapseActions, expandActions } from "store/interface";
 import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
 import { getRexStatusDisplayProperties } from "../../utils/rex";
-import { RexStatusMenu } from "./rex/rex";
+import { RexStatusMenu } from "./rex/rex-status-menu";
 import { actionTypes } from "store/storeUtils/store";
 import { thunkUpsertActionDefinitionSelection } from "store/thunk/thunkAction";
 
@@ -52,6 +51,10 @@ const RightAction: FunctionComponent<{
     (state) => state.rex.rexes.find((rex) => rex.uuid === rexUuid)?.isRunning,
     refEqual
   );
+  const rexMaestroControlled = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.maestroControlled,
+    refEqual
+  );
   const actionRexStatusEntry = useAppSelector((state) => {
     if (!rexUuid) return;
     //find all action entry that match this action uuid for the running rex. return the status of the last one.
@@ -59,7 +62,7 @@ const RightAction: FunctionComponent<{
     if (!rex?.actionEntries || !rex.actionEntries[actionUuid]) {
       return null;
     } else {
-      return last(rex.actionEntries[actionUuid]).rexStatus;
+      return rex.actionEntries[actionUuid].rexStatus;
     }
   }, refEqual);
 
@@ -84,10 +87,12 @@ const RightAction: FunctionComponent<{
       newCrew = [...currentCrew, crewMember];
     }
     dispatch(
-      upsertAction({
-        ...action,
-        crewAssigned: newCrew,
-      })
+      upsertActions([
+        {
+          ...action,
+          crewAssigned: newCrew,
+        },
+      ])
     );
   };
 
@@ -121,6 +126,7 @@ const RightAction: FunctionComponent<{
                   entryType="action"
                   uuid={action.uuid}
                   editPerms={editPerms}
+                  maestroControlled={rexMaestroControlled}
                 />
               ) : (
                 <div className={actionStyles.actionHeadingRexStatusWrapper}>
@@ -200,7 +206,7 @@ const RightAction: FunctionComponent<{
                     <Dropdown
                       selected={action.type}
                       onChange={(val) => {
-                        dispatch(upsertAction({ ...action, type: val as ActionType }));
+                        dispatch(upsertActions([{ ...action, type: val as ActionType }]));
                       }}
                       toolTip="Action Type"
                       arrowStyle={{ color: "var(--grey5)" }}
@@ -273,10 +279,10 @@ const RightAction: FunctionComponent<{
                 <div
                   className={actionStyles.actionHeadingRightItem}
                   data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html={"Max Duration (h:mm)"}
-                  style={{ color: action.durationUpper < 0 ? "var(--warning)" : "inherit" }}
+                  data-tooltip-html={"Duration (h:mm)"}
+                  style={{ color: action.duration < 0 ? "var(--warning)" : "inherit" }}
                 >
-                  {hmmFromMinutes(action.durationUpper)}
+                  {hmmFromMinutes(action.duration)}
                 </div>
                 {parentType !== "poi" && (
                   <div className={actionStyles.actionHeadingRightItem}>

@@ -70,7 +70,7 @@
   cursor: pointer;
 }
 .gridCellLevel3Ordinal {
-  font-family: "Roboto Mono";
+  font-family: "Roboto Mono", monospace;
   font-size: 0.9em;
   justify-self: right;
   padding-top: 2px;

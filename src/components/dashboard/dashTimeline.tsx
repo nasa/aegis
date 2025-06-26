@@ -12,11 +12,10 @@ import {
 } from "store/processing/calculatedFields";
 import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { processEvaDataFromStore } from "../interface/timeline/common-timeline";
-import { selectEvaStations, selecteEvaTraverses } from "store/selectors";
+import { selectEvaStations, selectEvaTraverses } from "store/selectors";
 import styles from "./dashTimeline.module.css";
 import { decodeEmoji, hhmmFromMinutes, secondsFromhhmmss } from "utils/formatting";
 import PetInterval from "components/page/petInterval";
-import last from "lodash/last";
 import useWindowSize from "use-window-size-v2";
 
 type TimeLabel = {
@@ -35,7 +34,7 @@ const DashTimeline: FunctionComponent = () => {
   );
   const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, deepEqual);
   const evaStations = useAppSelector(selectEvaStations(runningEvaFromDb?.uuid), deepEqual);
-  const evaTraverses = useAppSelector(selecteEvaTraverses(runningEvaFromDb?.uuid), deepEqual);
+  const evaTraverses = useAppSelector(selectEvaTraverses(runningEvaFromDb?.uuid), deepEqual);
 
   const stationCalculatedFieldsInRunningEva = useAppSelector((state) => {
     const stationsInEvaSequence = runningEvaFromDb?.sequence
@@ -205,7 +204,7 @@ const DashTimeline: FunctionComponent = () => {
       <EVAMaxTimeline
         pixelsPerSecondY={pixelsPerSecondY}
         evaLengthCalculatedMins={storeRef.current.evaLengthCalculatedMins}
-        maxDuration={runningEvaFromDb?.maxDuration}
+        duration={runningEvaFromDb?.duration}
       />
       <RexTimeline
         pixelsPerSecondY={pixelsPerSecondY}
@@ -249,15 +248,15 @@ const Indicator: FunctionComponent<{
   if (sequenceItem.type === "station") {
     let entry = null;
     if (sequenceItem.name === "Egress" || sequenceItem.name === "Ingress") {
-      entry = last(rex?.xgressEntries ? rex?.xgressEntries[sequenceItem.uuid] : []);
+      entry = rex?.xgressEntries ? rex?.xgressEntries[sequenceItem.uuid] : null;
     } else {
-      entry = last(rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : []);
+      entry = rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : null;
     }
     completed = entry?.rexStatus === "complete";
     inProgress = entry?.rexStatus === "in-progress";
   } else if (sequenceItem.type === "traverse") {
     // find the last traverseEntry in the rex for this traverse
-    const traverseEntry = last(rex?.traverseEntries ? rex?.traverseEntries[sequenceItem.uuid] : []);
+    const traverseEntry = rex?.traverseEntries ? rex?.traverseEntries[sequenceItem.uuid] : null;
     completed = traverseEntry?.rexStatus === "complete";
     inProgress = traverseEntry?.rexStatus === "in-progress";
   }
@@ -299,9 +298,9 @@ const StationName: FunctionComponent<{
   let completed = false;
   let entry = null;
   if (sequenceItem.name === "Egress" || sequenceItem.name === "Ingress") {
-    entry = last(rex?.xgressEntries ? rex?.xgressEntries[sequenceItem.uuid] : []);
+    entry = rex?.xgressEntries ? rex?.xgressEntries[sequenceItem.uuid] : null;
   } else {
-    entry = last(rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : []);
+    entry = rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : null;
   }
   completed = entry?.rexStatus === "complete";
 
@@ -381,21 +380,21 @@ const RexTimeline: FunctionComponent<{
 const EVAMaxTimeline: FunctionComponent<{
   pixelsPerSecondY: number;
   evaLengthCalculatedMins: number;
-  maxDuration: number;
-}> = ({ pixelsPerSecondY, evaLengthCalculatedMins, maxDuration }) => {
+  duration: number;
+}> = ({ pixelsPerSecondY, evaLengthCalculatedMins, duration }) => {
   return (
     <div className={styles.markerContainer}>
       <div
         className={styles.marker}
         style={{
-          top: `${maxDuration * 60 * pixelsPerSecondY}px`,
+          top: `${duration * 60 * pixelsPerSecondY}px`,
         }}
       >
         <div
           className={styles.markerLine}
           style={{
             borderTop:
-              maxDuration < evaLengthCalculatedMins
+              duration < evaLengthCalculatedMins
                 ? "5px solid var(--warning)"
                 : "5px solid var(--grey5)",
           }}
@@ -404,11 +403,10 @@ const EVAMaxTimeline: FunctionComponent<{
           className={styles.markerTime}
           style={{
             color: "black",
-            backgroundColor:
-              maxDuration < evaLengthCalculatedMins ? "var(--warning)" : "var(--grey5)",
+            backgroundColor: duration < evaLengthCalculatedMins ? "var(--warning)" : "var(--grey5)",
           }}
         >
-          {hhmmFromMinutes(maxDuration)}
+          {hhmmFromMinutes(duration)}
         </div>
       </div>
     </div>

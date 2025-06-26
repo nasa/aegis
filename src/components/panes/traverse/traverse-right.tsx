@@ -10,7 +10,7 @@ import {
 import { Button } from "components/interface/form/globalFields";
 import { FunctionComponent } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { setSelectedTraverseRightNavItem, setTraverseEditMode } from "store/traverse";
+import { setSelectedTraverseRightNavItem, setTraversesEditMode } from "store/traverse";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import traverseStyles from "./traverse.module.css";
@@ -155,7 +155,7 @@ const TraverseEditorRight: FunctionComponent = () => {
                 icon={faEdit}
                 onClick={() => {
                   dispatch(
-                    setTraverseEditMode({ uuid: selectedEvaSequenceItemUuid, editMode: true })
+                    setTraversesEditMode({ uuids: [selectedEvaSequenceItemUuid], editMode: true })
                   );
                 }}
                 label="Edit"
@@ -177,7 +177,7 @@ const TraverseEditorRight: FunctionComponent = () => {
                       if (saveButtonState === "enabled") {
                         dispatch(
                           thunkSaveTraverse({
-                            traverse: selectedTraverse,
+                            traverseUuid: selectedTraverse.uuid,
                           })
                         );
                       }

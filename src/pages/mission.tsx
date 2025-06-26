@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useParams, useSearchParams } from "react-router";
-
+import ReactDOM from "react-dom";
 import styles from "./mission.module.css";
 import { setUserStore } from "store/user";
 import { Tooltip } from "react-tooltip";
@@ -21,6 +21,7 @@ import { populateStore } from "store/processing/populateStore";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 import { loadAndReturnGrid } from "utils/grid";
 import { setGridCornerPoint } from "store/map";
+import { thunkAuditRexEvas } from "store/thunk/thunkRex";
 
 type RouteParams = {
   id: string;
@@ -64,6 +65,12 @@ const Main = (): JSX.Element => {
        * dispatch a single action to populate the stores across all slices using the wholeStoreState
        */
       dispatch(setAllSliceStores(wholeStoreState));
+      // run one-time audit for ensuring existing REXes have an as-planned EVA copy.
+      // this line and thunk function can be removed after all missions have been updated
+      const thunkRes = await dispatch(thunkAuditRexEvas());
+      if (thunkRes.meta.requestStatus === "rejected") {
+        console.error("Error running auditRexEvas thunk");
+      }
 
       // if evaUuid, actionUuid are present in the URL, set the selected action using thunk
       if (evaUuid && actionUuid) {
@@ -123,6 +130,20 @@ const Main = (): JSX.Element => {
     isLoggedInAsync();
   }, [navigate, intMissionId, dispatch]);
 
+  useEffect(() => {
+    if (!missionStore?.mission?.name) {
+      return;
+    }
+    document.title = `${missionStore.mission.name} - AEGIS`;
+  }, [missionStore?.mission?.name]);
+
+  // Put socket client into it's own react portal. If it's not in a portal, it will cause
+  //  the react context internally to re-render everytime a socket statuses comes in, which causes all
+  //  descendants to re-render (like the map), which is not desired.
+  function SocketClientPortal({ intMissionId }: { intMissionId: number }) {
+    return ReactDOM.createPortal(<SocketClient missionId={intMissionId} />, document.body);
+  }
+
   return (
     <>
       {permissions && (
@@ -177,7 +198,7 @@ const Main = (): JSX.Element => {
                     </div>
                   )}
 
-                  <SocketClient missionId={intMissionId} />
+                  <SocketClientPortal intMissionId={intMissionId} />
                 </div>
               )}
             </>

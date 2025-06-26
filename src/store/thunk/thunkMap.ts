@@ -56,7 +56,7 @@ export const thunkMarkerOnClick = appCreateAsyncThunk<{
 }>("thunkMarkerOnClick", async ({ markerUuid, mapItemType }, { dispatch, getState }) => {
   if (mapItemType === "station") {
     const runningRex = getState().rex.rexes.find((r) => r.isRunning);
-    if (runningRex && getState().interface.sectionSelectedLabel === "rex") {
+    if (runningRex && getState().interface.sectionSelectedLabel === "evas") {
       const rexEvaStationUuids = getState()
         .eva.evas.find((e) => e.uuid === runningRex.evaUuid)
         ?.sequence.filter((s) => s.type === "station")
@@ -94,7 +94,7 @@ export const thunkPolylineOnClick = appCreateAsyncThunk<{
   if (mapItemType === "traverse") {
     // do not go to the traverse section if this is a traverse in a running rex
     const runningRex = getState().rex.rexes.find((r) => r.isRunning);
-    if (runningRex && getState().interface.sectionSelectedLabel === "rex") {
+    if (runningRex && getState().interface.sectionSelectedLabel === "evas") {
       const rexEvaTraverseUuids = getState()
         .eva.evas.find((e) => e.uuid === runningRex.evaUuid)
         ?.sequence.filter((s) => s.type === "traverse")

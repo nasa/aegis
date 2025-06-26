@@ -2,25 +2,25 @@ import { generateUniqueName } from "utils/names/unique-name";
 import appCreateAsyncThunk from "./thunkUtil";
 import { v4 as uuidv4 } from "uuid";
 import {
-  upsertPreset,
+  upsertPresets,
   setPresetEditMode,
   setSelectedPresetUuid,
   setPresetLayerUIStates,
   setPresetCircleUIStates,
-  deletePresetByUuid,
+  deletePresetsByUuid,
   resetAllPresetLayersUIStates,
   resetAllPresetCirclesUIStates,
-  upsertPresetFromDb,
-  deletePresetFromDbByUuid,
+  upsertPresetsFromDb,
+  deletePresetsFromDbByUuid,
   deletePresetLayersUIStates,
   deletePresetCirclesUIStates,
+  selectPreset,
 } from "store/preset";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import * as httpClient_preset from "http-client/preset";
 import cloneDeep from "lodash/cloneDeep";
 import sortBy from "lodash/sortBy";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
-import { thunkSaveNewPreset } from "./crossThunk";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankPreset } from "store/storeUtils/preset";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
@@ -31,21 +31,20 @@ export const thunkSavePreset = appCreateAsyncThunk<{
   if (!preset) return;
 
   // upsert the changed Preset to the DB
-  const upsertReponse = await httpClient_preset.upsertPresets([
-    {
-      ...preset,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    },
-  ]);
+  const updatedPreset = {
+    ...preset,
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+  };
+  const upsertReponse = await httpClient_preset.upsertPresets([updatedPreset]);
 
-  if (upsertReponse.status === "success") {
-    // upsert the changed preset to the store
-    dispatch(upsertPreset(upsertReponse.data[0], true));
-    // update the preset in the store from the DB
-    dispatch(upsertPresetFromDb(upsertReponse.data[0]));
-  } else {
+  if (upsertReponse.status !== "success") {
     throw new Error("Error upserting Presets: " + upsertReponse.message);
   }
+
+  // upsert the changed preset to the store
+  dispatch(upsertPresets([updatedPreset], true));
+  // update the preset in the store from the DB
+  dispatch(upsertPresetsFromDb([updatedPreset]));
   dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
   dispatch(resetAllPresetLayersUIStates({ presetUuid: preset.uuid }));
   dispatch(resetAllPresetCirclesUIStates({ presetUuid: preset.uuid }));
@@ -60,7 +59,7 @@ export const thunkPresetCancel = appCreateAsyncThunk<{
 
   // if selected preset isn't in the db, delete it from the store
   if (!presetFromDb) {
-    dispatch(deletePresetByUuid(presetUuid));
+    dispatch(deletePresetsByUuid([presetUuid]));
     dispatch(setSelectedPresetUuid(null));
     dispatch(thunkSetRightPanelIsOpenIfAuto(false));
     dispatch(deletePresetLayersUIStates({ presetUuid }));
@@ -77,7 +76,7 @@ export const thunkPresetCancel = appCreateAsyncThunk<{
     );
   } else {
     // if selected Preset is in the db, replace it with the one from the db (undoing any changes)
-    dispatch(upsertPreset(presetFromDb, true));
+    dispatch(upsertPresets([presetFromDb], true));
     dispatch(resetAllPresetLayersUIStates({ presetUuid }));
     dispatch(resetAllPresetCirclesUIStates({ presetUuid }));
   }
@@ -98,14 +97,14 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
     const deleteResponse = await httpClient_preset.deletePresets([presetUuid]);
     if (deleteResponse.status === "success") {
       // remove the corresponding preset from the store
-      dispatch(deletePresetByUuid(presetUuid));
-      dispatch(deletePresetFromDbByUuid(presetUuid));
+      dispatch(deletePresetsByUuid([presetUuid]));
+      dispatch(deletePresetsFromDbByUuid([presetUuid]));
     } else {
       console.error("Error deleting preset: " + deleteResponse.message);
     }
   } else {
     // if the selected preset is not in presetsFromDb then delete it from the store
-    dispatch(deletePresetByUuid(presetUuid));
+    dispatch(deletePresetsByUuid([presetUuid]));
   }
   dispatch(
     thunkAddRemoveFolderItem({
@@ -189,7 +188,10 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
       mapSublayerControls: blankMapSublayerControls,
       mapCircleControls: blankMapCircleControls,
     });
-    dispatch(thunkSaveNewPreset({ preset: blankPreset }));
+    dispatch(upsertPresets([blankPreset]));
+    dispatch(selectPreset({ uuid: blankPreset.uuid }));
+    dispatch(setPresetEditMode({ presetUuid: blankPreset.uuid, editMode: true }));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(true));
 
     // create preset layers ui states entry
     const presetLayerUIStates: LayerUIStates = {};
@@ -242,10 +244,12 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
   }
 );
 
-export const thunkDuplicatePreset = appCreateAsyncThunk<{ preset: Preset }>(
+export const thunkDuplicatePreset = appCreateAsyncThunk<{ presetUuid: string }>(
   "presetDuplicate",
-  async ({ preset }, { dispatch, getState }) => {
-    if (!preset) return;
+  async ({ presetUuid }, { dispatch, getState }) => {
+    if (!presetUuid) return;
+
+    const preset = getState().preset.presets.find((p) => p.uuid === presetUuid);
     //duplicate preset
     const newPreset: Preset = cloneDeep(preset);
     newPreset.uuid = uuidv4();
@@ -256,7 +260,15 @@ export const thunkDuplicatePreset = appCreateAsyncThunk<{ preset: Preset }>(
       getState().preset.presets.map((item) => item.name)
     );
     newPreset.missionDefault = false; //never make a duplicate the default preset
-    dispatch(thunkSaveNewPreset({ preset: newPreset }));
+
+    dispatch(upsertPresets([newPreset]));
+    dispatch(upsertPresetsFromDb([newPreset]));
+    const upsertPresetsResponse = await httpClient_preset.upsertPresets([newPreset]);
+    if (upsertPresetsResponse.status !== "success") {
+      throw new Error("Error upserting Presets: " + upsertPresetsResponse.message);
+    }
+    dispatch(selectPreset({ uuid: newPreset.uuid }));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(true));
 
     //duplicate preset layers ui state
     const newPresetLayerUIStates: LayerUIStates = cloneDeep(

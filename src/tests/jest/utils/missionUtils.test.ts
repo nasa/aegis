@@ -1814,18 +1814,6 @@ describe("Mission Duplication Tests", () => {
             }
             break;
 
-          case "rex":
-            for (let i = 0; i < originalFolder.items.length; i++) {
-              const originalRexUuid = originalFolder.items[i];
-              const newRexUuid = uuidMaps.rexes.get(originalRexUuid);
-
-              if (newRexUuid) {
-                // Check that the duplicated folder contains the new REX UUID
-                expect(duplicatedFolder.items).toContain(newRexUuid);
-              }
-            }
-            break;
-
           case "layer":
             for (let i = 0; i < originalFolder.items.length; i++) {
               const originalLayerUuid = originalFolder.items[i];

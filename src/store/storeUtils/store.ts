@@ -6,7 +6,7 @@ import isEmpty from "lodash/isEmpty";
  * @param element The element/object to upsert
  * @returns The modified array with the upserted element.
  */
-export function upsertToArrayByUuid<T extends MustContain>(array: T[], element: T): T[] {
+export function upsertToArrayByUuid<T extends MustContainIsModified>(array: T[], element: T): T[] {
   const i = array?.findIndex((_element) => _element.uuid === element.uuid);
   // (1) upsert
   if (i > -1) {

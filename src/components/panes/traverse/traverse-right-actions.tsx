@@ -5,7 +5,7 @@ import Actions from "../actions";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
-import { setTraverseEditMode, upsertTraverseByField } from "store/traverse";
+import { setTraversesEditMode, upsertTraverseByField } from "store/traverse";
 
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;
@@ -73,7 +73,9 @@ const Actions_Panel: FunctionComponent<{
         <Actions
           editMode={editMode}
           setEditMode={(newEditMode: boolean) => {
-            dispatch(setTraverseEditMode({ uuid: selectedTraverse.uuid, editMode: newEditMode }));
+            dispatch(
+              setTraversesEditMode({ uuids: [selectedTraverse.uuid], editMode: newEditMode })
+            );
           }}
           actionOrderUuids={selectedTraverse.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {

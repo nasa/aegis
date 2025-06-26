@@ -11,6 +11,7 @@ import { EntityData } from "@mikro-orm/core";
 export const generateBlankStation = (partialStation?: Partial<Station>): Station => {
   const defaultNewStation: Station = {
     uuid: uuidv4(),
+    refUuid: uuidv4(),
     ownerId: null,
     missionId: null,
     poiUuids: [],
@@ -22,8 +23,7 @@ export const generateBlankStation = (partialStation?: Partial<Station>): Station
     radius: 5,
     location: null,
     elevation: null,
-    durationLower: 10,
-    durationUpper: 15,
+    duration: 15,
     walkbackPath: null,
     walkbackPathSegmentDistances: null,
     walkbackPathSegmentElevations: null,
@@ -45,6 +45,7 @@ export function convertStationsTypeDbToStore(dbStations: Station_db[]): Station[
   for (const dbStation of dbStations) {
     const convertedStation: Station = {
       uuid: dbStation.uuid,
+      refUuid: dbStation.refUuid,
       ownerId: dbStation.ownerId,
       missionId: dbStation.mission.id,
       actionOrderUuids: dbStation.actionOrderUuids,
@@ -58,8 +59,7 @@ export function convertStationsTypeDbToStore(dbStations: Station_db[]): Station[
       walkbackPathSegmentDistances: dbStation.walkbackPathSegmentDistances,
       walkbackPathSegmentElevations: dbStation.walkbackPathSegmentElevations,
       walkbackTraverseRate: dbStation.walkbackTraverseRate,
-      durationLower: dbStation.durationLower,
-      durationUpper: dbStation.durationUpper,
+      duration: dbStation.duration,
       icon: dbStation.icon,
       mapCircleControls: dbStation.mapCircleControls,
       createdAt: dbStation.createdAt.toISOString(),
@@ -88,6 +88,7 @@ export function convertStationsTypeStoreToDb(storeStations: Station[]): EntityDa
     //poi references are not converted here, they are converted in the upsert function
     const convertedRecord: EntityData<Station_db> = {
       uuid: storeStation.uuid,
+      refUuid: storeStation.refUuid,
       ownerId: storeStation.ownerId,
       mission: storeStation.missionId,
       actionOrderUuids: storeStation.actionOrderUuids,
@@ -101,8 +102,7 @@ export function convertStationsTypeStoreToDb(storeStations: Station[]): EntityDa
       walkbackPathSegmentDistances: storeStation.walkbackPathSegmentDistances,
       walkbackPathSegmentElevations: storeStation.walkbackPathSegmentElevations,
       walkbackTraverseRate: storeStation.walkbackTraverseRate,
-      durationLower: storeStation.durationLower,
-      durationUpper: storeStation.durationUpper,
+      duration: storeStation.duration,
       icon: storeStation.icon,
       mapCircleControls: storeStation.mapCircleControls,
       updatedAt: new Date(storeStation.updatedAt),

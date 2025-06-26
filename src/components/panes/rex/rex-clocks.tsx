@@ -1,12 +1,12 @@
 import { FunctionComponent, useState } from "react";
 
-import styles from "./rex.module.css";
+import rexStyles from "./rex.module.css";
 import PetInterval from "components/page/petInterval";
 
 const RexClocks: FunctionComponent<{ selectedRex: Rex }> = ({ selectedRex }) => {
   return (
     <>
-      <div className={styles.panelContainer}>
+      <div className={rexStyles.panelContainer}>
         <PetClock selectedRex={selectedRex} />
       </div>
     </>
@@ -20,11 +20,11 @@ const PetClock: FunctionComponent<{ selectedRex: Rex }> = ({ selectedRex }) => {
   const [rexPetTime, setRexPetTime] = useState("");
 
   return (
-    <div className={styles.clockRow}>
+    <div className={rexStyles.clockRow}>
       <PetInterval runningRex={selectedRex} rexPetTime={rexPetTime} setRexPetTime={setRexPetTime} />
-      <div className={styles.clockRowHeader}>
-        <div className={styles.clockName}>EVA PET</div>
-        <div className={styles.clockValue} style={{ color: "var(--rex)" }}>
+      <div className={rexStyles.clockRowHeader}>
+        <div className={rexStyles.clockName}>EVA PET</div>
+        <div className={rexStyles.clockValue} style={{ color: "var(--rex)" }}>
           {rexPetTime}
         </div>
       </div>

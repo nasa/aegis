@@ -8,8 +8,6 @@ import StationEditor from "components/panes/station/station";
 import StationEditorRight from "components/panes/station/station-right";
 import MissionConfig from "components/panes/mission/mission";
 import MissionConfigRight from "components/panes/mission/mission-right";
-import RexLeft from "components/panes/rex/rex";
-import RexRight from "components/panes/rex/rex-right";
 import StmViewerPage from "components/panes/stm-viewer/stm-viewer-page";
 import StmRulesPage from "components/panes/stm-rules/stm-rules-page";
 import {
@@ -17,7 +15,6 @@ import {
   faFlask,
   faGlobe,
   faLocationDot,
-  faPersonWalkingArrowRight,
   faRocket,
   faRoute,
 } from "@fortawesome/free-solid-svg-icons";
@@ -31,6 +28,7 @@ export const getPaneTypes = (actionSystemVersion = 1): PaneTypes => {
       rightPane: MissionConfigRight,
       color: "var(--mission)",
       icon: faRocket,
+      fullScreen: false,
     },
     preset: {
       title: "Map Display Presets",
@@ -38,6 +36,7 @@ export const getPaneTypes = (actionSystemVersion = 1): PaneTypes => {
       rightPane: MapSelectorRight,
       color: "var(--preset)",
       icon: faGlobe,
+      fullScreen: false,
     },
     poi: {
       title: "Points of Interest",
@@ -45,6 +44,7 @@ export const getPaneTypes = (actionSystemVersion = 1): PaneTypes => {
       rightPane: PoiEditorRight,
       color: "var(--poi)",
       icon: faCircle,
+      fullScreen: false,
     },
     station: {
       title: "Stations",
@@ -52,20 +52,15 @@ export const getPaneTypes = (actionSystemVersion = 1): PaneTypes => {
       rightPane: StationEditorRight,
       color: "var(--station)",
       icon: faLocationDot,
+      fullScreen: false,
     },
     evas: {
-      title: "EVA Compositions",
+      title: "EVAs",
       leftPane: EvaPlanner,
       rightPane: EvaPlannerRight,
       color: "var(--eva)",
       icon: faRoute,
-    },
-    rex: {
-      title: "Real-time Execution",
-      leftPane: RexLeft,
-      rightPane: RexRight,
-      color: "var(--rex)",
-      icon: faPersonWalkingArrowRight,
+      fullScreen: false,
     },
   };
   if (actionSystemVersion === 1) {

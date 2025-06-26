@@ -6,6 +6,12 @@ import { types as MikroTypes } from "@mikro-orm/core";
 export class Action_db implements Action_db_type {
   @PrimaryKey({ type: MikroTypes.string, unique: true })
   uuid!: string;
+  @Property({
+    type: MikroTypes.string,
+    nullable: false,
+    defaultRaw: "uuid_generate_v4()",
+  })
+  refUuid: string; // assigned on creation and is preserved when duplication for a rex
 
   @ManyToOne(() => Mission_db, { unique: false, primary: false })
   mission!: Mission_db;
@@ -48,9 +54,7 @@ export class Action_db implements Action_db_type {
   @Property({ type: MikroTypes.float, nullable: true })
   elevation!: number;
   @Property({ type: MikroTypes.float, nullable: true })
-  durationLower!: number;
-  @Property({ type: MikroTypes.float, nullable: true })
-  durationUpper: number;
+  duration: number;
   @Property({ type: MikroTypes.json, nullable: true })
   equipmentItemsUsage: EquipmentItemUsage[];
   @Property({ type: MikroTypes.json, nullable: true })

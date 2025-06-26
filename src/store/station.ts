@@ -124,8 +124,7 @@ export const stationSlice = createSlice({
     setSelectedStationUuid: (state, action: { payload: string }) => {
       state.selectedStationUuid = action.payload;
     },
-    setStateForNewStation: (state, action: { payload: { uuid: string } }) => {
-      state.stationsEditing.push(action.payload.uuid); // turn on edit mode for the new station
+    selectStation: (state, action: { payload: { uuid: string } }) => {
       state.selectedStationUuid = action.payload.uuid; // select the newly created station
       state.selectedRightNavItem = "info_panel";
     },
@@ -134,7 +133,9 @@ export const stationSlice = createSlice({
       action: { payload: { stationUuid: string; editMode: boolean } }
     ) => {
       if (action.payload.editMode) {
-        state.stationsEditing.push(action.payload.stationUuid);
+        if (!state.stationsEditing.includes(action.payload.stationUuid)) {
+          state.stationsEditing.push(action.payload.stationUuid);
+        }
       } else {
         state.stationsEditing = state.stationsEditing.filter(
           (uuid) => uuid !== action.payload.stationUuid
@@ -243,7 +244,7 @@ export const {
   deleteStationsFromDbByUuid,
   setSelectedStationRightNavItem,
   setSelectedStationUuid,
-  setStateForNewStation,
+  selectStation,
   setStationEditMode,
   revertWalkbackPath,
   toggleStationCircleVisible,

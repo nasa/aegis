@@ -72,6 +72,13 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  if (!rexes) {
+    res.status(400).json({
+      status: "failure",
+      message: `No rexes provided to upsert`,
+    });
+  }
+
   try {
     const rexesToUpsert = rexes.map((r) => {
       if (!r.ownerId) {

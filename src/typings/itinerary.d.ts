@@ -1,5 +1,6 @@
 interface Eva {
   uuid: string;
+  refUuid: string; // assigned on creation and is preserved when duplication for a rex
   missionId: number;
 
   name: string;
@@ -9,7 +10,7 @@ interface Eva {
    */
   sequence: EvaSequenceItem[];
   description: string;
-  maxDuration: number | null; // minutes
+  duration: number | null; // minutes
   traverseRate: number | null; // km/h
   egressDuration: number | null; // minutes
   ingressDuration: number | null; // minutes
@@ -35,6 +36,7 @@ type TraverseStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 
 interface Traverse {
   uuid: string;
+  refUuid: string; // assigned on creation and is preserved when duplication for a rex
   missionId: number;
   actionOrderUuids: string[] | null;
 
@@ -43,8 +45,7 @@ interface Traverse {
   path: AEGISPoint[] | null;
   pathSegmentDistances: number[] | null; //meters
   pathSegmentElevations: number[][] | null; //meters
-  predictedDurationLower: number | null; //minutes
-  predictedDurationUpper: number | null; //minutes
+  duration: number | null; //minutes
   description: string;
   traverseRate?: number | null; // km/h
   color?: string | null;
@@ -66,6 +67,7 @@ interface EvaSequenceItem {
 
 interface Station {
   uuid: string;
+  refUuid: string; // assigned on creation and is preserved when duplication for a rex
 
   ownerId: number;
   missionId: number;
@@ -88,8 +90,7 @@ interface Station {
   /**
    * The estimated duration of the action, in minutes.
    */
-  durationLower: number | null; // in minutes
-  durationUpper?: number | null; // in minutes
+  duration: number | null; // in minutes
 
   createdAt?: string;
   updatedAt?: string;
@@ -180,6 +181,7 @@ type Action = {
    * uuid of the action
    */
   uuid: string;
+  refUuid: string; // assigned on creation and is preserved when duplication for a rex
   name: string;
 
   missionId: number | null;
@@ -187,7 +189,7 @@ type Action = {
   stationUuid?: string | null;
   traverseUuid?: string | null;
 
-  parentActionUuid?: string | null;
+  parentActionUuid?: string | null; // the poi action uuid it was copied from
   parentCopyDate?: string | null;
 
   priority: number | null; // 1-10
@@ -219,8 +221,7 @@ type Action = {
    */
   location: AEGISPoint | null;
   elevation: number | null;
-  durationLower: number; // in minutes
-  durationUpper?: number; // in minutes
+  duration: number | null; // in minutes
   equipmentItemsUsage: EquipmentItemUsage[] | null; // Equipment needed to perform this action.
   geographicUnitsUsage: string[] | null; // uuids of geographic units used in this action
   mass: number; // grams
@@ -248,7 +249,7 @@ type ActionStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 type ActionParentType = "station" | "poi" | "traverse";
 type Crew = "EV1" | "EV2";
 
-//Filter options when getting actions from the API endpoint
+// Filter options when getting actions from the API endpoint
 interface ActionFilterOptions {
   missionId?: number;
   actionUuid?: string;
@@ -256,7 +257,7 @@ interface ActionFilterOptions {
   stationUuid?: string;
 }
 
-//Contians parent uuid types for Action
+// Contains parent uuid types for Action
 type ActionParentUuid = {
   poiUuid?: string;
   stationUuid?: string;
@@ -291,7 +292,7 @@ type ActionDefinitionItem = {
   abbr: string;
 };
 
-// used in the Misison structure
+// used in the Mission structure
 type ActionDefinitions = {
   verbs: ActionDefinitionItem[];
   nouns: ActionDefinitionItem[];
@@ -303,14 +304,6 @@ type ActionDefinition = {
   verbUuid: string;
   nounUuid: string;
   adjectiveUuid: string;
-};
-
-//
-
-// used for display of time ranges
-type TotalTimeObj = {
-  durationLower: number;
-  durationUpper: number;
 };
 
 type TotalAscentDescentObj = {

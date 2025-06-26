@@ -1,6 +1,6 @@
 import { MutableRefObject } from "react";
 import { clearMapItemHover, setLeftPanelHoverUuid, setSequenceHover } from "store/hover";
-import { padZeros } from "utils/formatting";
+import { padZeros, secondsFromhhmmss } from "utils/formatting";
 import paper from "paper";
 import last from "lodash/last";
 import orderBy from "lodash/orderBy";
@@ -8,7 +8,7 @@ import { Dispatch } from "@reduxjs/toolkit";
 import { getHoverValue } from "utils/paper";
 
 /**
- * Draws the vertical line wtih the rotated time at the bottom.
+ * Draws the vertical line with the rotated time at the bottom.
  * @param paperDataRef object containing all the paper data
  * @param xLoc optional x location of the time marker
  * @param customColor optional color to draw the line with
@@ -58,7 +58,7 @@ export function drawTimeMarker(
  * @param yLoc y location of the meter marker
  * @param label label to display next to the meter marker
  * @param color
- * @param align alignment of the label and tickmark when drawn on on the right or left y-axis
+ * @param align alignment of the label and tick mark when drawn on on the right or left y-axis
  * @returns
  */
 export function drawMeterMarker(
@@ -697,10 +697,14 @@ function drawSequenceTraverse(
 export const drawPetLine = (
   paperDataRef: MutableRefObject<PaperData>,
   paperGroupsRef: MutableRefObject<PaperGroups>,
-  petSeconds: number
+  rexPetTime: string,
+  petRunning: boolean
 ): void => {
+  if (rexPetTime === null || rexPetTime === undefined) return;
   const paperVars = paperDataRef.current.paperVars;
+  const petSeconds = secondsFromhhmmss(rexPetTime);
   const xLoc = paperVars.timelineLeft + petSeconds * paperVars.pixelsPerSecondX;
+
   //remove old line, draw new line
   paperGroupsRef.current.petLine.removeChildren();
   if (xLoc <= paperVars.timelineLeft + paperVars.timelineWidth) {
@@ -714,6 +718,14 @@ export const drawPetLine = (
     );
     paperGroupsRef.current.petLine.bringToFront();
     paperGroupsRef.current.petLine.visible = true;
+
+    if (petRunning) {
+      if (petSeconds % 2 === 0) {
+        paperGroupsRef.current.petLine.strokeWidth = 2;
+      } else {
+        paperGroupsRef.current.petLine.strokeWidth = 1;
+      }
+    }
   }
 };
 
@@ -732,7 +744,7 @@ export const drawPositionMarkers = (
   const posRefSorted = orderBy(posRef.current, ["seconds"], "desc");
   for (let i = 0; i < posRefSorted.length; i++) {
     const posPaperJS = posRefSorted[i];
-    const x = posPaperJS.seconds * paperVars.pixelsPerSecondX + paperVars.timelineLeft;
+    const x = posPaperJS.petSeconds * paperVars.pixelsPerSecondX + paperVars.timelineLeft;
     const y =
       paperVars.timelineTop +
       paperVars.graphHeight -

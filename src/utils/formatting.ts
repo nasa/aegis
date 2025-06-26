@@ -327,3 +327,18 @@ export const isISOString = (isoString: string): boolean => {
   const normalizedISOString = isoString.includes(".") ? isoString : isoString.replace("Z", ".000Z");
   return !isNaN(testDate.getTime()) && testDate.toISOString() === normalizedISOString;
 };
+
+export const isNotNumber = (value: unknown): boolean => {
+  return value === null || value === undefined || isNaN(Number(value)) || typeof value !== "number";
+};
+
+export const letterOrdinal = (n: number): string => {
+  if (n < 1) throw new Error("Input must be a positive integer");
+  let result = "";
+  while (n > 0) {
+    n--; // Convert to 0-based indexing (A=0, B=1, ..., Z=25)
+    result = String.fromCharCode(65 + (n % 26)) + result; // Get current letter and prepend to result
+    n = Math.floor(n / 26); // Move to next "digit" position in base-26 system
+  }
+  return result;
+};

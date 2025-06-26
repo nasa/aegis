@@ -11,6 +11,7 @@ import { EntityData } from "@mikro-orm/core";
 export const generateBlankAction = (partialAction?: Partial<Action>): Action => {
   const defaultNewAction: Action = {
     uuid: uuidv4(),
+    refUuid: uuidv4(),
     name: "",
     missionId: null,
     poiUuid: null,
@@ -28,8 +29,7 @@ export const generateBlankAction = (partialAction?: Partial<Action>): Action => 
     icon: "26cf-fe0f", //default pickaxe icon
     location: null,
     elevation: null,
-    durationLower: 5,
-    durationUpper: 6,
+    duration: 6,
     equipmentItemsUsage: null,
     geographicUnitsUsage: null,
     mass: null,
@@ -52,6 +52,7 @@ export function convertActionsTypeDbToStore(dbActions: Action_db[]): Action[] {
   for (const dbaction of dbActions) {
     const convertedAction: Action = {
       uuid: dbaction.uuid,
+      refUuid: dbaction.refUuid,
       name: dbaction.name,
       missionId: dbaction.mission.id,
       poiUuid: dbaction.poi?.uuid,
@@ -69,8 +70,7 @@ export function convertActionsTypeDbToStore(dbActions: Action_db[]): Action[] {
       icon: dbaction.icon,
       location: dbaction.location,
       elevation: dbaction.elevation,
-      durationLower: dbaction.durationLower,
-      durationUpper: dbaction.durationUpper,
+      duration: dbaction.duration,
       equipmentItemsUsage: dbaction.equipmentItemsUsage,
       geographicUnitsUsage: dbaction.geographicUnitsUsage,
       mass: dbaction.mass,
@@ -95,6 +95,7 @@ export function convertActionsTypeStoreToDb(storeActions: Action[]): EntityData<
   for (const storeAction of storeActions) {
     const convertedRecord: EntityData<Action_db> = {
       uuid: storeAction.uuid,
+      refUuid: storeAction.refUuid,
       name: storeAction.name,
       mission: storeAction.missionId,
       poi: storeAction.poiUuid,
@@ -112,8 +113,7 @@ export function convertActionsTypeStoreToDb(storeActions: Action[]): EntityData<
       icon: storeAction.icon,
       location: storeAction.location,
       elevation: storeAction.elevation,
-      durationLower: storeAction.durationLower,
-      durationUpper: storeAction.durationUpper,
+      duration: storeAction.duration,
       equipmentItemsUsage: storeAction.equipmentItemsUsage,
       geographicUnitsUsage: storeAction.geographicUnitsUsage,
       mass: storeAction.mass,

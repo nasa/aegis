@@ -3,12 +3,11 @@ import { RootState } from "store";
 import { actionSlice } from "store/action";
 import {
   evaSlice,
-  setExpandedEvaUuids,
+  upsertExpandedEvaUuids,
   setSelectedEvaRightNavItem,
   setSelectedEvaUuid,
 } from "store/eva";
 import { poiSlice } from "store/poi";
-import { presetSlice } from "store/preset";
 import { rexSlice } from "store/rex";
 import { setSelectedStationUuid, stationSlice } from "store/station";
 import { traverseSlice } from "store/traverse";
@@ -49,68 +48,7 @@ export const thunkSelectEVASequenceItem = appCreateAsyncThunk<{
     dispatch(stationSlice.actions.setSelectedStationUuid(sequenceItemUuid));
   } else if (sequenceItem?.type === "traverse") {
     dispatch(traverseSlice.actions.setSelectedTraverseRightNavItem("info_panel"));
-    dispatch(stationSlice.actions.setSelectedStationUuid(null));
   }
-});
-
-export const thunkSaveNewEva = appCreateAsyncThunk<{
-  eva: Eva;
-}>("cross/saveNewEva", async ({ eva }, { dispatch }) => {
-  dispatch(evaSlice.actions.upsertEva(eva));
-  dispatch(evaSlice.actions.setStateForNewEva({ uuid: eva.uuid }));
-  dispatch(thunkSetRightPanelIsOpenIfAuto(true));
-});
-
-export const thunkSaveNewPoi = appCreateAsyncThunk<{ poi: POI }>(
-  "cross/saveNewPoi",
-  async ({ poi }, { dispatch }) => {
-    dispatch(poiSlice.actions.upsertPoi(poi));
-    dispatch(poiSlice.actions.setStateForNewPoi({ uuid: poi.uuid }));
-    dispatch(thunkSetRightPanelIsOpenIfAuto(true));
-  }
-);
-
-// Assuming the relevant action creators are defined in the presetSlice and interfaceSlice
-export const thunkSaveNewPreset = appCreateAsyncThunk<{
-  preset: Preset;
-}>("cross/saveNewPreset", async ({ preset }, { dispatch }) => {
-  // Upsert the new preset
-  dispatch(presetSlice.actions.upsertPreset(preset));
-
-  // Set additional state related to the new preset
-  dispatch(presetSlice.actions.setStateForNewPreset({ uuid: preset.uuid }));
-
-  // Open the right panel
-  dispatch(thunkSetRightPanelIsOpenIfAuto(true));
-});
-
-// Assuming the relevant action creators are defined in the stationSlice and interfaceSlice
-export const thunkSaveNewStation = appCreateAsyncThunk<{
-  station: Station;
-}>("cross/saveNewStation", async ({ station }, { dispatch }) => {
-  // Upsert the new station
-  dispatch(stationSlice.actions.upsertStation(station));
-
-  // Set additional state related to the new station
-  dispatch(stationSlice.actions.setStateForNewStation({ uuid: station.uuid }));
-
-  // Open the right panel
-  dispatch(thunkSetRightPanelIsOpenIfAuto(true));
-});
-
-// Assuming the relevant action creators are defined in the rexSlice and interfaceSlice
-export const thunkSaveNewRex = appCreateAsyncThunk<{
-  rex: Rex;
-}>("cross/saveNewRex", async ({ rex }, { dispatch }) => {
-  // Upsert the new rex
-  dispatch(rexSlice.actions.upsertRex(rex));
-
-  // Set additional state related to the new rex
-  dispatch(rexSlice.actions.setStateForNewRex({ rexUuid: rex.uuid }));
-  dispatch(evaSlice.actions.setSelectedEvaUuid(null));
-
-  // Open the right panel
-  dispatch(thunkSetRightPanelIsOpenIfAuto(true));
 });
 
 // Thunk for obliteratePoi
@@ -179,7 +117,6 @@ export const thunkSelectEvaAction = appCreateAsyncThunk<{
     console.warn(`EVA with UUID ${evaUuid} not found in store`);
     return;
   }
-
   // Validate action exists in store
   const actionExists = state.action.actions.some((action) => action.uuid === actionUuid);
   if (!actionExists) {
@@ -187,15 +124,34 @@ export const thunkSelectEvaAction = appCreateAsyncThunk<{
     return;
   }
 
+  // go to eva section and select the eva
+  dispatch(setSectionSelected("evas"));
+  dispatch(setSelectedEvaUuid(evaUuid));
+  // expand the eva
+  const allRexEvas = state.rex.rexes.map((rex) => rex.evaUuid);
+  const evaRefUuid = state.eva.evas.find((e) => e.uuid === evaUuid)?.refUuid;
+  const asPlannedEva = state.eva.evas.find(
+    (eva) => eva.refUuid === evaRefUuid && !allRexEvas.includes(eva.uuid)
+  );
+  dispatch(upsertExpandedEvaUuids([asPlannedEva?.uuid]));
+  // select the action station
   const actionStationUuid = state.action.actions.find(
     (action) => action.uuid === actionUuid
   )?.stationUuid;
-
-  // If both EVA and action exist, proceed with selection
-  dispatch(setSectionSelected("evas"));
-  dispatch(setSelectedEvaUuid(evaUuid));
-  dispatch(setExpandedEvaUuids([evaUuid]));
+  dispatch(setSelectedStationUuid(actionStationUuid));
+  // select the action panel and expand the specific action
   dispatch(setSelectedEvaRightNavItem("actions_panel"));
   dispatch(expandActions([actionUuid]));
-  dispatch(setSelectedStationUuid(actionStationUuid));
+
+  // if this a rex eva, also select the rex
+  const rex = state.rex.rexes.find((rex) => rex.evaUuid === evaUuid);
+  if (rex) {
+    dispatch(rexSlice.actions.setSelectedRexUuid(rex.uuid));
+    dispatch(
+      evaSlice.actions.setEvaDropdownUIState({
+        asPlannedEvaUuid: asPlannedEva?.uuid,
+        dropdownEvaUuid: rex.evaUuid,
+      })
+    );
+  }
 });

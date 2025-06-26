@@ -21,7 +21,7 @@ export class Rex_db implements Rex_db_type {
   petValueAtStartStop: string;
   @Property({ type: MikroTypes.boolean, nullable: true })
   petRunning: boolean;
-  @Property({ type: MikroTypes.string, nullable: true })
+  @Property({ type: MikroTypes.string, nullable: false })
   evaUuid: string;
   @Property({ type: MikroTypes.boolean, nullable: true })
   isRunning: boolean;
@@ -41,6 +41,8 @@ export class Rex_db implements Rex_db_type {
   xgressEntries: XgressEntries;
   @Property({ type: MikroTypes.integer, nullable: true })
   ownerId: number;
+  @Property({ type: MikroTypes.boolean, nullable: false, default: false })
+  maestroControlled: boolean;
 
   @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
   createdAt!: Date;

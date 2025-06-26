@@ -121,14 +121,15 @@ export const poiSlice = createSlice({
     setSelectedPoiUuid: (state, action: { payload: string }) => {
       state.selectedPoiUuid = action.payload;
     },
-    setStateForNewPoi: (state, action: { payload: { uuid: string } }) => {
-      state.poisEditing.push(action.payload.uuid); // turn on edit mode for the new POI
+    selectPoi: (state, action: { payload: { uuid: string } }) => {
       state.selectedPoiUuid = action.payload.uuid; // select the newly created POI
       state.selectedRightNavItem = "info_panel";
     },
     setPoiEditMode: (state, action: { payload: { poiUuid: string; editMode: boolean } }) => {
       if (action.payload.editMode) {
-        state.poisEditing.push(action.payload.poiUuid);
+        if (!state.poisEditing.includes(action.payload.poiUuid)) {
+          state.poisEditing.push(action.payload.poiUuid);
+        }
       } else {
         state.poisEditing = state.poisEditing.filter((uuid) => uuid !== action.payload.poiUuid);
       }
@@ -160,7 +161,7 @@ export const {
   deletePoisFromDbByUuid,
   setSelectedPOIRightNavItem,
   setSelectedPoiUuid,
-  setStateForNewPoi,
+  selectPoi,
   setPoiEditMode,
   obliterateState,
 } = poiSlice.actions;

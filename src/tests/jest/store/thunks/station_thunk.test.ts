@@ -250,7 +250,7 @@ describe("Thunk Station Tests", () => {
     //call the thunk
     await store.dispatch(
       thunkStation.thunkSaveStation({
-        station: stationModified,
+        stationUuid: stationModified.uuid,
       })
     );
     const storeState = store.getState(); //get the new state (always has to be called when state changes)
@@ -295,7 +295,7 @@ describe("Thunk Station Tests", () => {
     expect(storeState.action.actions[0]).not.toEqual(storeState.action.actionsFromDb[0]);
 
     //call the thunk
-    await store.dispatch(thunkStation.thunkSaveStation({ station: station }));
+    await store.dispatch(thunkStation.thunkSaveStation({ stationUuid: station.uuid }));
     storeState = store.getState();
     expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(1); //check the db call was made
     expect(mockThunkSaveActions).toHaveBeenCalledTimes(1);
@@ -415,7 +415,7 @@ describe("Thunk Station Tests", () => {
     });
 
     //delete a saved station
-    await store.dispatch(thunkStation.thunkDeleteStation({ station: station }));
+    await store.dispatch(thunkStation.thunkDeleteStations({ stationUuids: [station.uuid] }));
     let storeState = store.getState();
     expect(storeState.station.stations.find((p) => p.uuid === station.uuid)).toBeFalsy();
     expect(storeState.station.stationsFromDb.find((p) => p.uuid === station.uuid)).toBeFalsy();
@@ -424,22 +424,20 @@ describe("Thunk Station Tests", () => {
     expect(storeState.action.actions.find((a) => a.uuid === stationAction.uuid)).toBeFalsy();
     expect(storeState.station.selectedStationUuid).toBeFalsy();
     expect(httpClient_station.deleteStations).toHaveBeenCalledTimes(1);
-    expect(httpClient_station.getStations).toHaveBeenCalledTimes(1);
     expect(httpClient_action.deleteActions).toHaveBeenCalledTimes(1);
     expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalled();
 
     //delete an unsaved station
-    await store.dispatch(thunkStation.thunkDeleteStation({ station: unsavedStation }));
+    await store.dispatch(thunkStation.thunkDeleteStations({ stationUuids: [unsavedStation.uuid] }));
     storeState = store.getState();
     expect(storeState.station.stations.find((p) => p.uuid === unsavedStation.uuid)).toBeFalsy();
     expect(storeState.station.stationsEditing.includes(unsavedStation.uuid)).toBeFalsy();
     expect(storeState.action.actions.find((a) => a.uuid === unsavedStationAction.uuid)).toBeFalsy();
     expect(httpClient_station.deleteStations).toHaveBeenCalledTimes(1); //no additional calls should have been made from the earlier call
-    expect(httpClient_station.getStations).toHaveBeenCalledTimes(1); //no additional calls should have been made from the earlier call
     expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalled();
 
     //try to delete a station being used in eva
-    await store.dispatch(thunkStation.thunkDeleteStation({ station: stationInEva }));
+    await store.dispatch(thunkStation.thunkDeleteStations({ stationUuids: [stationInEva.uuid] }));
     storeState = store.getState();
     expect(storeState.station.stations.find((p) => p.uuid === stationInEva.uuid)).toBeTruthy();
     expect(mockAlert).toHaveBeenCalled();
@@ -483,12 +481,16 @@ describe("Thunk Station Tests", () => {
       },
     });
 
-    await store.dispatch(thunkStation.thunkDuplicateStation({ stationUuid: station.uuid }));
+    await store.dispatch(
+      thunkStation.thunkDuplicateStation({ stationUuid: station.uuid, preserveRefUuid: false })
+    );
     const storeState = store.getState();
     expect(storeState.station.stations.length).toEqual(2);
-    expect(storeState.station.stationsEditing.length).toEqual(1);
     expect(storeState.station.selectedStationUuid).toBeTruthy();
     expect(storeState.station.selectedRightNavItem).toEqual("info_panel");
+    // should have saved to db
+    expect(storeState.station.stationsFromDb.length).toEqual(2);
+    expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(1);
     //we mocked the thunk duplicate action, so no further conditions will be tested here
     expect(mockThunkDuplicateActions).toHaveBeenCalledTimes(1);
   });

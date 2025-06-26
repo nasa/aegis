@@ -3,11 +3,14 @@ import {
   upsertStation,
   setStationEditMode,
   setSelectedStationUuid,
-  setStationsFromDb,
   deleteStationByUuid,
   upsertStationFromDb,
   setStationCircleUIStates,
   resetAllStationCirclesUIStates,
+  upsertStationByField,
+  deleteStationsByUuid,
+  deleteStationsFromDbByUuid,
+  selectStation,
 } from "store/station";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/geoMath";
 import { thunkGetElevation } from "./thunkElevation";
@@ -22,13 +25,12 @@ import * as httpClient_station from "http-client/station";
 import { updateMapDirective } from "store/map";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
 import {
-  thunkDeleteActionFromDbAndStore,
+  thunkDeleteActionsFromDbAndStore,
   thunkDuplicateActions,
   thunkSaveActions,
 } from "./thunkAction";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
-import { thunkSaveNewStation } from "./crossThunk";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankStation } from "store/storeUtils/station";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
@@ -64,7 +66,7 @@ export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
   if (!elevation || elevation.payload === false) {
     //no elevation data, update just station location
-    dispatch(upsertStation({ ...station, location }));
+    dispatch(upsertStationByField(station.uuid, "location", location, false));
   } else {
     //upsert station location and elevation
     dispatch(upsertStation({ ...station, location, elevation: elevation.payload as number }));
@@ -225,9 +227,10 @@ export const thunkResetWalkback = appCreateAsyncThunk<{
 });
 
 export const thunkSaveStation = appCreateAsyncThunk<{
-  station: Station;
-}>("stationSave", async ({ station }, { dispatch, getState }) => {
-  if (!station) return;
+  stationUuid: string;
+}>("stationSave", async ({ stationUuid }, { dispatch, getState }) => {
+  if (!stationUuid) return;
+  const station = getState().station.stations.find((s) => s.uuid === stationUuid);
   const stationActions = getState().action.actions.filter(
     (action) => action.stationUuid === station.uuid
   );
@@ -239,21 +242,19 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   await dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid, saveToDb: true }));
 
   // upsert the changed Station to the DB via internal API call
-  const stationUpsertResponse = await httpClient_station.upsertStations([
-    {
-      ...station,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    },
-  ]);
+  const updatedStation = {
+    ...station,
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+  };
+  const stationUpsertResponse = await httpClient_station.upsertStations([updatedStation]);
 
-  if (stationUpsertResponse.status === "success") {
-    // upsert the changed Station (with new updated date) to the store
-    dispatch(upsertStation(stationUpsertResponse.data[0], true));
-    // update the Statiofromdb copy in store
-    dispatch(upsertStationFromDb(stationUpsertResponse.data[0]));
-  } else {
+  if (stationUpsertResponse.status !== "success") {
     throw new Error("Error upserting Station: " + stationUpsertResponse.message);
   }
+  // upsert the changed Station (with new updated date) to the store
+  dispatch(upsertStation(updatedStation, true));
+  // update the StationFromDb copy in store
+  dispatch(upsertStationFromDb(updatedStation));
 
   // find out if the actions in this station have been modified and need to be persisted
   const actionsModified = isModified(stationActions, stationActionsFromDb);
@@ -352,78 +353,100 @@ export const thunkStationCancel = appCreateAsyncThunk<{
   await dispatch(thunkUpdateEVAsUsingStationForEgressIngress({ stationUuid: station.uuid }));
 });
 
-export const thunkDeleteStation = appCreateAsyncThunk<{
-  station: Station;
-}>("stationDelete", async ({ station }, { dispatch, getState }) => {
-  if (!station) return;
-  const stationFromDb = getState().station.stationsFromDb.find(
-    (stationDb) => stationDb.uuid === station.uuid
-  );
-  const stationActions = getState().action.actions.filter(
-    (action) => action.stationUuid === station.uuid
-  );
+/**
+ * Deletes stations and their actions from the store and db
+ */
+export const thunkDeleteStations = appCreateAsyncThunk<{
+  stationUuids: string[];
+  skipValidation?: boolean;
+}>("stationsDelete", async ({ stationUuids, skipValidation = false }, { dispatch, getState }) => {
+  if (!stationUuids || stationUuids.length === 0) return;
 
-  const evasUsingThisStation: Eva[] = [];
-  getState().eva.evas.forEach((eva) => {
-    eva.sequence.forEach((sequenceItem) => {
-      if (sequenceItem.uuid === station?.uuid) {
-        evasUsingThisStation.push(eva);
+  // validate before doing anything
+  if (!skipValidation) {
+    for (const eva of getState().eva.evas) {
+      // check if this station is in the eva sequence
+      if (eva.sequence.length > 0) {
+        const sequenceItem = eva.sequence.find((sequenceItem) =>
+          stationUuids.includes(sequenceItem.uuid)
+        );
+        if (sequenceItem) {
+          const stationName = getState().station.stations.find(
+            (station) => station.uuid === sequenceItem.uuid
+          )?.name;
+          alert(
+            `Cannot delete a station that is being used by an EVA.
+          \nStation not deleted.
+          \nEVA ${eva.name} is using this station ${stationName}`
+          );
+          return;
+        }
       }
-    });
-  });
-  if (evasUsingThisStation.length > 0) {
-    alert("Cannot delete a station that is being used by an EVA");
-    return;
-  }
 
-  const evasUsingThisStationForEgressIngress: Eva[] = getState().eva.evas.filter((eva) => {
-    return eva.egressLocationUuid === station.uuid || eva.ingressLocationUuid === station.uuid;
-  });
-  if (evasUsingThisStationForEgressIngress.length > 0) {
-    alert("Cannot delete a station that is being used by an EVA as an egress or ingress location");
-    return;
-  }
-
-  // if the selected station is in stationsFromDb then delete it from the db
-  if (stationFromDb) {
-    // delete actions from the db via internal api call
-    const actionUuidsToDelete: string[] = stationActions.map((a) => a.uuid);
-    if (actionUuidsToDelete.length > 0) {
-      await dispatch(thunkDeleteActionFromDbAndStore({ uuids: actionUuidsToDelete }));
-    }
-
-    // delete the Station from the DB via internal API call
-    const deleteResponse: WrappedResponse<number> = await httpClient_station.deleteStations([
-      station.uuid,
-    ]);
-    if (deleteResponse.status === "success") {
-      // remove the corresponding Station from the store
-      dispatch(deleteStationByUuid(station.uuid));
-      dispatch(setSelectedStationUuid(null));
-
-      // get fresh copy of Stations from DB
-      const stationData = await httpClient_station.getStations(getState().mission.mission?.id);
-      if (stationData.data) {
-        dispatch(setStationsFromDb(stationData.data));
+      // check if this station is used as ingress/egress
+      if (stationUuids.includes(eva.ingressLocationUuid)) {
+        const stationName = getState().station.stations.find(
+          (station) => station.uuid === eva.ingressLocationUuid
+        )?.name;
+        alert(
+          `Cannot delete a station that is being used as an ingress location in an EVA.
+        \nStation not deleted.
+        \nEVA ${eva.name} is using this station ${stationName}`
+        );
+        return;
       }
-    } else {
-      console.error("Error deleting Station: " + deleteResponse.message);
+      if (stationUuids.includes(eva.egressLocationUuid)) {
+        const stationName = getState().station.stations.find(
+          (station) => station.uuid === eva.egressLocationUuid
+        )?.name;
+        alert(
+          `Cannot delete a station that is being used as an egress location in an EVA.\nEVA ${eva.name} is using this station ${stationName}`
+        );
+        return;
+      }
     }
-  } else {
-    // if the selected station is not in stationsFromDb then delete it from the store
-    dispatch(deleteStationByUuid(station.uuid));
-    dispatch(setSelectedStationUuid(null));
-    dispatch(deleteActionsByUuid(stationActions.map((a) => a.uuid)));
   }
-  dispatch(
-    thunkAddRemoveFolderItem({
-      itemUuid: station.uuid,
-      folderUuid: null,
-    })
+
+  const stationActionUuidsToDelete: string[] = [];
+  for (const stationUuid of stationUuids) {
+    dispatch(thunkCancelMarkerMapDirective({ uuid: stationUuid })); // first cancel any map marker directives
+    dispatch(setStationEditMode({ stationUuid: stationUuid, editMode: false })); // cancel station if it's in edit mode
+
+    // update folders
+    dispatch(
+      thunkAddRemoveFolderItem({
+        itemUuid: stationUuid,
+        folderUuid: null,
+      })
+    );
+
+    // gather all the actions to delete
+    const stationActions = getState().action.actions.filter(
+      (action) => action.stationUuid === stationUuid
+    );
+    stationActionUuidsToDelete.push(...stationActions.map((a) => a.uuid));
+  }
+  if (stationActionUuidsToDelete.length > 0) {
+    // delete station's actions from store and db
+    await dispatch(thunkDeleteActionsFromDbAndStore({ uuids: stationActionUuidsToDelete }));
+  }
+  // delete any stations that were in the db in one bulk http call
+  const stationUuidsInDb = stationUuids.filter((uuid) =>
+    getState()
+      .station.stationsFromDb.map((s) => s.uuid)
+      .includes(uuid)
   );
-  dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
-  dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
-  // close right panel
+  if (stationUuidsInDb.length > 0) {
+    const deleteRes: WrappedResponse<number> =
+      await httpClient_station.deleteStations(stationUuidsInDb);
+    if (deleteRes.status !== "success") {
+      throw new Error("Error deleting Stations: " + deleteRes.message);
+    }
+  }
+  // delete stations from both copies in the store
+  dispatch(deleteStationsByUuid(stationUuids));
+  dispatch(deleteStationsFromDbByUuid(stationUuids));
+  dispatch(setSelectedStationUuid(null));
   dispatch(thunkSetRightPanelIsOpenIfAuto(false));
 });
 
@@ -461,7 +484,10 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
       name: randomName,
       mapCircleControls: blankMapCircleControls,
     });
-    dispatch(thunkSaveNewStation({ station: blankStation }));
+    dispatch(upsertStation(blankStation, false));
+    dispatch(selectStation({ uuid: blankStation.uuid }));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(true));
+    dispatch(setStationEditMode({ stationUuid: blankStation.uuid, editMode: true }));
 
     // create preset circles ui states entry
     const circleUIStates: CircleUIStates = {};
@@ -484,53 +510,76 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
   }
 );
 
-export const thunkDuplicateStation = appCreateAsyncThunk<{ stationUuid: String }, Station, false>(
-  "stationDuplicate",
-  async ({ stationUuid }, { dispatch, getState }) => {
-    if (!stationUuid) return;
-    const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-    //duplicate station
-    const newStation: Station = cloneDeep(station);
-    newStation.uuid = uuidv4();
-    newStation.updatedAt = null;
-    newStation.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
+/**
+ * Duplicate a station and automatically save it to the DB
+ */
+export const thunkDuplicateStation = appCreateAsyncThunk<
+  { stationUuid: String; preserveRefUuid: boolean },
+  Station,
+  false
+>("stationDuplicate", async ({ stationUuid, preserveRefUuid }, { dispatch, getState }) => {
+  if (!stationUuid) return;
+  const station = getState().station.stations.find((s) => s.uuid === stationUuid);
+  //duplicate station
+  const newStation: Station = cloneDeep(station);
+  newStation.uuid = uuidv4();
+  if (!preserveRefUuid) newStation.refUuid = uuidv4();
+  const newDateString = roundDateToSecond(getAccurateNow()).toISOString();
+  newStation.updatedAt = newDateString;
+  newStation.createdAt = newDateString;
+  // preservingRefUuids only occurs when duplicating an EVA for a REX, in which case, keep the name.
+  if (!preserveRefUuid) {
     newStation.name = makeUniqueStringCopy(
       station.name,
       getState().station.stations.map((s) => s.name)
     );
-    newStation.actionOrderUuids = [];
-    dispatch(thunkSaveNewStation({ station: newStation }));
-
-    //duplicate actions
-    const stationActions = getState()
-      .action.actions.filter((action) => action.stationUuid === station.uuid)
-      .sort(
-        (a, b) =>
-          station.actionOrderUuids.findIndex((o) => o === a.uuid) -
-          station.actionOrderUuids.findIndex((o) => o === b.uuid)
-      );
-    await dispatch(
-      thunkDuplicateActions({
-        actions: stationActions,
-        stationUuid: newStation.uuid,
-        promotingFromPoi: false,
-      })
-    );
-
-    //duplicate station circles ui state
-    const newStationCircleUIStates: CircleUIStates = cloneDeep(
-      getState().station.stationCirclesUIStates[station.uuid]
-    );
-    dispatch(
-      setStationCircleUIStates({
-        stationUuid: newStation.uuid,
-        circleUIStates: newStationCircleUIStates,
-      })
-    );
-
-    return newStation;
   }
-);
+  newStation.actionOrderUuids = [];
+
+  // upsert new station and persist to the db
+  dispatch(upsertStation(newStation, true));
+  dispatch(upsertStationFromDb(newStation));
+  const upsertStationResponse = await httpClient_station.upsertStations([newStation]);
+  if (upsertStationResponse.status !== "success") {
+    throw new Error("Error upserting Station: " + upsertStationResponse.message);
+  }
+
+  if (!preserveRefUuid) {
+    dispatch(selectStation({ uuid: newStation.uuid }));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(true));
+  }
+
+  //duplicate actions
+  const stationActions = getState()
+    .action.actions.filter((action) => action.stationUuid === station.uuid)
+    .sort(
+      (a, b) =>
+        station.actionOrderUuids.findIndex((o) => o === a.uuid) -
+        station.actionOrderUuids.findIndex((o) => o === b.uuid)
+    );
+  await dispatch(
+    thunkDuplicateActions({
+      actions: stationActions,
+      stationUuid: newStation.uuid,
+      promotingFromPoi: false,
+      preserveRefUuid: preserveRefUuid,
+      saveToDb: true,
+    })
+  );
+
+  //duplicate station circles ui state
+  const newStationCircleUIStates: CircleUIStates = cloneDeep(
+    getState().station.stationCirclesUIStates[station.uuid]
+  );
+  dispatch(
+    setStationCircleUIStates({
+      stationUuid: newStation.uuid,
+      circleUIStates: newStationCircleUIStates,
+    })
+  );
+
+  return newStation;
+});
 
 export const thunkUpdateEVAsUsingStationForEgressIngress = appCreateAsyncThunk<{
   stationUuid: string;

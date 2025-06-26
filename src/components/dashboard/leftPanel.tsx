@@ -3,13 +3,12 @@ import { FunctionComponent, useState } from "react";
 import styles from "./leftPanel.module.css";
 import PetInterval from "components/page/petInterval";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
-import { selectEvaStations, selecteEvaTraverses } from "store/selectors";
+import { selectEvaStations, selectEvaTraverses } from "store/selectors";
 import {
   getCalculatedFieldsByEva,
   getCalculatedFieldsByStation,
 } from "store/processing/calculatedFields";
 import { decodeEmoji, hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
-import last from "lodash/last";
 import isUndefined from "lodash/isUndefined";
 
 const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ mapDisplayPos }) => {
@@ -22,7 +21,7 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
     deepEqual
   );
   const evaStations = useAppSelector(selectEvaStations(runningRexFromDb?.evaUuid), deepEqual);
-  const evaTraverses = useAppSelector(selecteEvaTraverses(runningRexFromDb?.evaUuid), deepEqual);
+  const evaTraverses = useAppSelector(selectEvaTraverses(runningRexFromDb?.evaUuid), deepEqual);
   const evaCalculatedFields = useAppSelector(
     (state) =>
       getCalculatedFieldsByEva({
@@ -51,10 +50,10 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
     }
     return calculatedFields;
   }, deepEqual);
-  const evaMaxDuration = useAppSelector((state) => {
+  const evaDuration = useAppSelector((state) => {
     const evaDuration = state.eva.evasFromDb.find(
       (eva) => eva.uuid === runningRexFromDb?.evaUuid
-    )?.maxDuration;
+    )?.duration;
     return evaDuration || state.mission.mission?.defaultEvaDuration;
   }, deepEqual);
 
@@ -80,33 +79,33 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
   let stationWalkbackTime = "";
   let stationWalkbackDistance = "";
   let seqItemRexStatus: RexStatus;
-  const egressEntries = runningRexFromDb?.xgressEntries?.["egress"];
-  if (egressEntries && egressEntries.length > 0) {
-    const egressEntry = egressEntries[egressEntries.length - 1];
-    if (egressEntry.rexStatus === "in-progress") {
-      itemInProgressType = "Egress";
-      const secondsRemaining = (eva.egressDuration * 60 - secondsFromhhmmss(rexPetTime)) * -1;
-      sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
+  const egressEntry = runningRexFromDb?.xgressEntries?.["egress"];
 
-      // get location name
-      if (eva.egressLocationUuid === "lander") {
-        itemInProgress = "Lander";
-      } else {
-        // look up the egress location station name using uuid
-        itemInProgress = evaStations.find((s) => s.uuid === eva.egressLocationUuid)?.name;
-      }
+  if (egressEntry && egressEntry?.rexStatus === "in-progress") {
+    itemInProgressType = "Egress";
+    const secondsRemaining = (eva.egressDuration * 60 - secondsFromhhmmss(rexPetTime)) * -1;
+    sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
+
+    // get location name
+    if (eva.egressLocationUuid === "lander") {
+      itemInProgress = "Lander";
+    } else {
+      // look up the egress location station name using uuid
+      itemInProgress = evaStations.find((s) => s.uuid === eva.egressLocationUuid)?.name;
     }
   }
 
   for (const sequenceItem of runningEvaSequence) {
     if (sequenceItem.type === "station") {
-      seqItemRexStatus = last(
-        runningRexFromDb?.stationEntries && runningRexFromDb?.stationEntries[sequenceItem.uuid]
-      )?.rexStatus;
+      seqItemRexStatus =
+        (runningRexFromDb?.stationEntries &&
+          runningRexFromDb?.stationEntries[sequenceItem.uuid]?.rexStatus) ||
+        "pending";
     } else if (sequenceItem.type === "traverse") {
-      seqItemRexStatus = last(
-        runningRexFromDb?.traverseEntries && runningRexFromDb?.traverseEntries[sequenceItem.uuid]
-      )?.rexStatus;
+      seqItemRexStatus =
+        (runningRexFromDb?.traverseEntries &&
+          runningRexFromDb?.traverseEntries[sequenceItem.uuid]?.rexStatus) ||
+        "pending";
     }
     if (seqItemRexStatus === "in-progress") {
       if (sequenceItem.type === "station") {
@@ -126,28 +125,26 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
         (si) => si.uuid === sequenceItem.uuid
       );
       const secondsRemaining =
-        (sequenceItemMetadata.endSeconds - secondsFromhhmmss(rexPetTime)) * -1;
+        (sequenceItemMetadata.manualEndSeconds - secondsFromhhmmss(rexPetTime)) * -1;
       sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
       break;
     }
   }
 
-  const ingressEntries = runningRexFromDb?.xgressEntries?.["ingress"];
-  if (ingressEntries && ingressEntries.length > 0) {
-    const ingressEntry = ingressEntries[ingressEntries.length - 1];
-    if (ingressEntry.rexStatus === "in-progress") {
-      itemInProgressType = "Ingress";
-      const secondsRemaining =
-        (evaMaxDuration * 60 + eva.ingressDuration * 60 - secondsFromhhmmss(rexPetTime)) * -1;
-      sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
+  const ingressEntry = runningRexFromDb?.xgressEntries?.["ingress"];
 
-      // get location name
-      if (eva.egressLocationUuid === "lander") {
-        itemInProgress = "Lander";
-      } else {
-        // look up the ingres location station name using uuid
-        itemInProgress = evaStations.find((s) => s.uuid === eva.egressLocationUuid)?.name;
-      }
+  if (ingressEntry && ingressEntry?.rexStatus === "in-progress") {
+    itemInProgressType = "Ingress";
+    const secondsRemaining =
+      (evaDuration * 60 + eva.ingressDuration * 60 - secondsFromhhmmss(rexPetTime)) * -1;
+    sequenceItemTimeRemaining = hhmmssFromSeconds(secondsRemaining);
+
+    // get location name
+    if (eva.egressLocationUuid === "lander") {
+      itemInProgress = "Lander";
+    } else {
+      // look up the ingres location station name using uuid
+      itemInProgress = evaStations.find((s) => s.uuid === eva.egressLocationUuid)?.name;
     }
   }
 
@@ -173,7 +170,7 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
           </div>
           <div className={styles.dataCell}>
             <div className={styles.label}>Total Duration</div>
-            <div className={styles.valueHalf}>{hhmmssFromSeconds(evaMaxDuration * 60)}</div>
+            <div className={styles.valueHalf}>{hhmmssFromSeconds(evaDuration * 60)}</div>
           </div>
         </div>
         <div className={styles.break} />
@@ -222,7 +219,7 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
               if (entry.posTypeUuids.includes(posType.uuid) && showEntry) {
                 if (!latestCreationDate || entry.createdAt > latestCreationDate) {
                   latestCreationDate = entry.createdAt;
-                  latestEntrySecondsForType = entry.seconds;
+                  latestEntrySecondsForType = entry.petSeconds;
                 }
               }
             });

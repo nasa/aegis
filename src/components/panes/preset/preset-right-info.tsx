@@ -6,9 +6,9 @@ import * as httpClient_Preset from "http-client/preset";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import {
   setPresetEditMode,
-  upsertPreset,
+  upsertPresets,
   upsertPresetByField,
-  upsertPresetFromDb,
+  upsertPresetsFromDb,
 } from "store/preset";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { Button } from "components/interface/form/globalFields";
@@ -35,8 +35,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           // save the preset to the store and db
           const modifiedDate = roundDateToSecond(getAccurateNow()).toISOString();
           const updatedPreset = { ...preset, missionDefault: false, updatedAt: modifiedDate };
-          dispatch(upsertPreset(updatedPreset, true));
-          dispatch(upsertPresetFromDb(updatedPreset));
+          dispatch(upsertPresets([updatedPreset], true));
+          dispatch(upsertPresetsFromDb([updatedPreset]));
           httpClient_Preset.upsertPresets([updatedPreset]);
           dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
         }

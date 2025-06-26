@@ -8,7 +8,6 @@
   flex-direction: row;
   font-weight: 700;
   margin: 5px;
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -22,7 +21,6 @@
 
 .layerGroup {
   margin: 6px 5px;
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -75,7 +73,7 @@
   flex-direction: row;
   width: 60px;
   flex: 0 0 50px;
-  padding-left: 0px;
+  padding-left: 0;
 }
 
 .sublayerToolIcon {
@@ -161,7 +159,7 @@
   appearance: none;
   margin-top: 5px;
   height: 6px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgb(255 255 255 / 60%);
   border-radius: 5px;
   background-color: var(--grey3);
 }
@@ -189,7 +187,7 @@
 }
 
 .timeSliderHeader {
-  padding: 0px 0px 0px 3px;
+  padding: 0 0 0 3px;
   display: flex;
   flex-direction: row;
   user-select: none;

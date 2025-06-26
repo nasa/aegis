@@ -7,6 +7,13 @@ export class Eva_db implements Eva_db_type {
   @PrimaryKey({ type: MikroTypes.string, unique: true })
   uuid!: string;
 
+  @Property({
+    type: MikroTypes.string,
+    nullable: false,
+    defaultRaw: "uuid_generate_v4()",
+  })
+  refUuid: string;
+
   @ManyToOne(() => Mission_db, { unique: false, primary: false })
   mission!: Mission_db;
 
@@ -19,7 +26,7 @@ export class Eva_db implements Eva_db_type {
   @Property({ type: MikroTypes.text, nullable: true })
   description!: string;
   @Property({ type: MikroTypes.float, nullable: true })
-  maxDuration!: number;
+  duration!: number;
   @Property({ type: MikroTypes.float, nullable: true })
   traverseRate!: number;
   @Property({ type: MikroTypes.float, nullable: true })

@@ -30,11 +30,16 @@ import { getAlertColor, isModified } from "utils/component-helpers";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkDeleteStation, thunkSaveStation, thunkStationCancel } from "store/thunk/thunkStation";
+import {
+  thunkDeleteStations,
+  thunkSaveStation,
+  thunkStationCancel,
+} from "store/thunk/thunkStation";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import Station_Circles_Panel from "./station-right-circles";
+import { selectAsPlannedStations } from "store/selectors";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -102,6 +107,10 @@ const StationEditorRight: FunctionComponent = () => {
       }),
     deepEqual
   );
+  const isRexStation = useAppSelector((state) => {
+    const asPlannedStationUuids = selectAsPlannedStations(state).map((station) => station.uuid);
+    return !asPlannedStationUuids.includes(selectedStationUuid);
+  }, refEqual);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -224,7 +233,7 @@ const StationEditorRight: FunctionComponent = () => {
                 validators: [
                   validators.required,
                   validators.maxLength(255),
-                  validators.mustBeUnique(otherStationNames),
+                  validators.mustBeUnique(isRexStation ? [] : otherStationNames), // duplicate names are ok on rex eva stations
                 ],
               }}
               styleValue={{ padding: 0, height: "auto" }}
@@ -251,8 +260,8 @@ const StationEditorRight: FunctionComponent = () => {
                 onClick={() => {
                   if (window.confirm("Are you sure you want to delete this Station?")) {
                     dispatch(
-                      thunkDeleteStation({
-                        station: selectedStation,
+                      thunkDeleteStations({
+                        stationUuids: [selectedStation.uuid],
                       })
                     );
                   }
@@ -292,7 +301,7 @@ const StationEditorRight: FunctionComponent = () => {
                       if (saveButtonState === "enabled") {
                         dispatch(
                           thunkSaveStation({
-                            station: selectedStation,
+                            stationUuid: selectedStation.uuid,
                           })
                         );
                       }
