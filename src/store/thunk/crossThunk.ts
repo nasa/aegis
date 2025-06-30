@@ -9,7 +9,7 @@ import {
 } from "store/eva";
 import { poiSlice } from "store/poi";
 import { rexSlice } from "store/rex";
-import { setSelectedStationUuid, stationSlice } from "store/station";
+import { stationSlice } from "store/station";
 import { traverseSlice } from "store/traverse";
 
 import { obliterateState as actionObliterateState } from "store/action";
@@ -96,62 +96,94 @@ export const thunkClearAllMapSelections = appCreateAsyncThunk<void>(
 );
 
 export const thunkSelectEvaAction = appCreateAsyncThunk<{
-  evaUuid: string | null;
-  actionUuid: string | null;
-}>("cross/selectEvaAction", async ({ evaUuid, actionUuid }, { dispatch, getState }) => {
-  // Skip if either UUID is not provided
-  if (!evaUuid || !actionUuid) return;
+  evaRefUuid: string;
+  actionRefUuid: string;
+  rexUuid: string | null;
+}>(
+  "cross/selectEvaAction",
+  async ({ evaRefUuid, actionRefUuid, rexUuid }, { dispatch, getState }) => {
+    // Skip if either UUID is not provided
+    if (!evaRefUuid || !actionRefUuid) return;
 
-  // Validate UUIDs format (basic validation)
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(evaUuid) || !uuidRegex.test(actionUuid)) {
-    console.warn("Invalid UUID format provided for EVA or action");
-    return;
-  }
+    // Validate UUIDs format (basic validation)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(evaRefUuid) || !uuidRegex.test(actionRefUuid)) {
+      console.warn("Deep link error: Invalid UUID format provided for EVA or action");
+      return;
+    }
+    if (rexUuid && !uuidRegex.test(rexUuid)) {
+      console.warn("Deep link error: Invalid UUID format provided for REX");
+      return;
+    }
 
-  const state = getState() as RootState;
-
-  // Validate EVA exists in store
-  const evaExists = state.eva.evas.some((eva) => eva.uuid === evaUuid);
-  if (!evaExists) {
-    console.warn(`EVA with UUID ${evaUuid} not found in store`);
-    return;
-  }
-  // Validate action exists in store
-  const actionExists = state.action.actions.some((action) => action.uuid === actionUuid);
-  if (!actionExists) {
-    console.warn(`Action with UUID ${actionUuid} not found in store`);
-    return;
-  }
-
-  // go to eva section and select the eva
-  dispatch(setSectionSelected("evas"));
-  dispatch(setSelectedEvaUuid(evaUuid));
-  // expand the eva
-  const allRexEvas = state.rex.rexes.map((rex) => rex.evaUuid);
-  const evaRefUuid = state.eva.evas.find((e) => e.uuid === evaUuid)?.refUuid;
-  const asPlannedEva = state.eva.evas.find(
-    (eva) => eva.refUuid === evaRefUuid && !allRexEvas.includes(eva.uuid)
-  );
-  dispatch(upsertExpandedEvaUuids([asPlannedEva?.uuid]));
-  // select the action station
-  const actionStationUuid = state.action.actions.find(
-    (action) => action.uuid === actionUuid
-  )?.stationUuid;
-  dispatch(setSelectedStationUuid(actionStationUuid));
-  // select the action panel and expand the specific action
-  dispatch(setSelectedEvaRightNavItem("actions_panel"));
-  dispatch(expandActions([actionUuid]));
-
-  // if this a rex eva, also select the rex
-  const rex = state.rex.rexes.find((rex) => rex.evaUuid === evaUuid);
-  if (rex) {
-    dispatch(rexSlice.actions.setSelectedRexUuid(rex.uuid));
-    dispatch(
-      evaSlice.actions.setEvaDropdownUIState({
-        asPlannedEvaUuid: asPlannedEva?.uuid,
-        dropdownEvaUuid: rex.evaUuid,
-      })
+    // Validate EVA exists in store
+    const evaExists = getState().eva.evas.some((eva) => eva.refUuid === evaRefUuid);
+    if (!evaExists) {
+      console.warn(`Deep link error: EVA with refUUID ${evaRefUuid} not found in store`);
+      return;
+    }
+    // Validate action exists in store
+    const actionExists = getState().action.actions.some(
+      (action) => action.refUuid === actionRefUuid
     );
+    if (!actionExists) {
+      console.warn(`Deep link error: Action with refUUID ${actionRefUuid} not found in store`);
+      return;
+    }
+    // Validate REX exists in store if provided
+    if (rexUuid) {
+      const rexExists = getState().rex.rexes.some((rex) => rex.uuid === rexUuid);
+      if (!rexExists) {
+        console.warn(`Deep link error: REX with UUID ${rexUuid} not found in store`);
+        return;
+      }
+    }
+
+    // go to eva section
+    dispatch(setSectionSelected("evas"));
+    let eva: Eva = null;
+    if (rexUuid) {
+      // get rex's eva
+      const evaUuid = getState().rex.rexes.find((rex) => rex.uuid === rexUuid)?.evaUuid;
+      eva = getState().eva.evas.find((eva) => eva.refUuid === evaRefUuid && eva.uuid === evaUuid);
+
+      // also select the rex
+      dispatch(rexSlice.actions.setSelectedRexUuid(rexUuid));
+      // get the as-planned EVA to set the dropdown state
+      const asPlannedEva = getState().eva.evas.find(
+        (eva) =>
+          eva.refUuid === evaRefUuid &&
+          !getState().rex.rexes.some((rex) => rex.evaUuid === eva.uuid)
+      );
+      dispatch(
+        evaSlice.actions.setEvaDropdownUIState({
+          asPlannedEvaUuid: asPlannedEva?.uuid,
+          dropdownEvaUuid: evaUuid,
+        })
+      );
+      // expand the as-planned eva
+      dispatch(upsertExpandedEvaUuids([asPlannedEva.uuid]));
+    } else {
+      // get as-planned eva
+      const allRexEvaUuids = getState().rex.rexes.map((rex) => rex.evaUuid);
+      eva = getState().eva.evas.find(
+        (eva) => eva.refUuid === evaRefUuid && !allRexEvaUuids.includes(eva.uuid)
+      );
+      // expand the eva
+      dispatch(upsertExpandedEvaUuids([eva.uuid]));
+    }
+    // select the eva
+    dispatch(setSelectedEvaUuid(eva.uuid));
+
+    // select the station this action belongs to
+    const evaStationUuids = eva.sequence
+      .filter((seqItem) => seqItem.type === "station")
+      .map((stationSeqItem) => stationSeqItem.uuid);
+    const action = getState().action.actions.find(
+      (action) => action.refUuid === actionRefUuid && evaStationUuids.includes(action.stationUuid)
+    );
+    // select the action panel and expand the specific action
+    dispatch(setSelectedEvaRightNavItem("actions_panel"));
+    dispatch(expandActions([action.uuid]));
   }
-});
+);
