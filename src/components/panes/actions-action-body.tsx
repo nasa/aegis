@@ -315,45 +315,71 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
             </div>
-            {rexUuid && (
-              <div className={paneStyles.panelColumnTable} style={{ marginTop: -0.5 }}>
-                <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
-                    <div className={paneStyles.inputFieldLabel}>Executed Mass (g):</div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableCell}>
-                    <div className={paneStyles.inputFieldValue}>
-                      <InLineEditInput
-                        value={actionRexMass?.toString()}
-                        editing={!isNull(rexUuid) && allowRexEdit}
-                        fieldProps={{
-                          name: "mass",
-                          ariaLabel: "Executed Sample Mass",
-                          style: { width: "45px" },
-                          validators: [
-                            validators.mustBeNumber,
-                            validators.maxLength(4),
-                            validators.mustBeInteger,
-                          ],
-                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                            e.target.value = e.target.value.replace(
-                              regExValidators.regExNumber,
-                              ""
-                            );
-                          },
-                        }}
-                        onSubmit={(value: string) => {
-                          dispatch(
-                            thunkAddRexActionMass({ uuid: action.uuid, mass: toDecimal(value) })
-                          );
-                        }}
-                        key={`${action.uuid}-mass`}
-                      />
-                    </div>
+
+            <div className={paneStyles.panelColumnTable} style={{ marginTop: -0.5 }}>
+              <div className={paneStyles.panelColumnTableRow}>
+                <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.inputFieldLabel}>Executed Mass (g):</div>
+                </div>
+                <div className={paneStyles.panelColumnTableCell}>
+                  <div className={paneStyles.inputFieldValue}>
+                    <InLineEditInput
+                      value={actionRexMass?.toString()}
+                      editing={!isNull(rexUuid) && allowRexEdit}
+                      fieldProps={{
+                        name: "mass",
+                        ariaLabel: "Executed Sample Mass",
+                        style: { width: "45px" },
+                        validators: [
+                          validators.mustBeNumber,
+                          validators.maxLength(4),
+                          validators.mustBeInteger,
+                        ],
+                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                          e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
+                        },
+                      }}
+                      onSubmit={(value: string) => {
+                        dispatch(
+                          thunkAddRexActionMass({ uuid: action.uuid, mass: toDecimal(value) })
+                        );
+                      }}
+                      key={`${action.uuid}-mass`}
+                    />
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          </div>
+        </div>
+        <div className={paneStyles.panelColumnTableRow}>
+          <div className={paneStyles.panelColumnTableCellLeft}>
+            <div className={paneStyles.inputFieldLabel}>Marker ID:</div>
+          </div>
+          <div className={paneStyles.panelColumnTableCell}>
+            <div className={paneStyles.inputFieldValue}>
+              <InLineEditInput
+                value={actionRexMass?.toString()}
+                editing={!isNull(rexUuid) && allowRexEdit}
+                fieldProps={{
+                  name: "mass",
+                  ariaLabel: "Executed Sample Mass",
+                  style: { width: "45px" },
+                  validators: [
+                    validators.mustBeNumber,
+                    validators.maxLength(4),
+                    validators.mustBeInteger,
+                  ],
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
+                  },
+                }}
+                onSubmit={(value: string) => {
+                  dispatch(thunkAddRexActionMass({ uuid: action.uuid, mass: toDecimal(value) }));
+                }}
+                key={`${action.uuid}-mass`}
+              />
+            </div>
           </div>
         </div>
       </div>

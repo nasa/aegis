@@ -231,6 +231,9 @@ export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
     const newEntry: ActionEntry = {
       rexStatus,
       mass: null,
+      markerId: null,
+      containerId: null,
+      secondaryContainerId: null,
     };
     const newEntries = cloneDeep(runningRexFromDb.actionEntries) || {};
     if (newEntries[uuid]) {
@@ -277,6 +280,46 @@ export const thunkAddRexActionMass = appCreateAsyncThunk<{
     newEntries[uuid] = {
       rexStatus: null,
       mass,
+      markerId: null,
+      containerId: null,
+      secondaryContainerId: null,
+    };
+  }
+  runningRexFromDb.actionEntries = newEntries;
+  dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
+  dispatch(upsertRexFromDb(runningRexFromDb));
+
+  // update the rex in the database
+  const upsertRexRes = await httpClient_Rex.upsertRexes([runningRexFromDb]);
+  if (upsertRexRes.status !== "success") {
+    throw new Error("Error upserting Rexes for action mass: " + upsertRexRes.message);
+  }
+});
+
+export const thunkAddCollectionId = appCreateAsyncThunk<{
+  uuid: string;
+  id: string;
+  collectionType: "marker" | "container" | "secondaryContainer";
+}>("addRexCollectionId", async ({ uuid, id, collectionType }, { dispatch, getState }) => {
+  const runningRexFromDb = cloneDeep(getState().rex.rexesFromDb.find((rex) => rex.isRunning));
+  if (!runningRexFromDb) return;
+
+  const newEntries = cloneDeep(runningRexFromDb.actionEntries) || {};
+  if (newEntries[uuid]) {
+    newEntries[uuid] = {
+      ...newEntries[uuid],
+      markerId: collectionType === "marker" ? id : newEntries[uuid].markerId,
+      containerId: collectionType === "container" ? id : newEntries[uuid].containerId,
+      secondaryContainerId:
+        collectionType === "secondaryContainer" ? id : newEntries[uuid].secondaryContainerId,
+    }; // entry IDs
+  } else {
+    newEntries[uuid] = {
+      rexStatus: null,
+      mass: null,
+      markerId: collectionType === "marker" ? id : null,
+      containerId: collectionType === "container" ? id : null,
+      secondaryContainerId: collectionType === "secondaryContainer" ? id : null,
     };
   }
   runningRexFromDb.actionEntries = newEntries;
