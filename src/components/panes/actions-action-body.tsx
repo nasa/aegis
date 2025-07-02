@@ -3,6 +3,7 @@ import {
   faBarcode,
   faCircle,
   faClock,
+  faHexagonNodes,
   faIcons,
   faListOl,
   faLocationDot,
@@ -286,8 +287,19 @@ const RightActionBody: FunctionComponent<{
         </div>
       )}
       <div className={paneStyles.panelSection}>
-        <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-          <SubpanelHeading icon={faWeightHanging}>Sample Mass</SubpanelHeading>
+        <div className={paneStyles.titleWithMaestro}>
+          <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+            <SubpanelHeading icon={faWeightHanging}>Sample Mass</SubpanelHeading>
+          </div>
+          {actionRexMaestroControlled && (
+            <div className={paneStyles.maestroIcon}>
+              <FontAwesomeIcon
+                icon={faHexagonNodes}
+                data-tooltip-id="aegis-tooltip"
+                data-tooltip-html="Some fields here are editable in Maestro"
+              />
+            </div>
+          )}
         </div>
         <div className={paneStyles.panelSectionRow}>
           <div className={paneStyles.panelSection2Column}>
@@ -363,8 +375,19 @@ const RightActionBody: FunctionComponent<{
       </div>
 
       <div className={paneStyles.panelSection}>
-        <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-          <SubpanelHeading icon={faBarcode}>Sample Collection IDs</SubpanelHeading>
+        <div className={paneStyles.titleWithMaestro}>
+          <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+            <SubpanelHeading icon={faBarcode}>Sample Collection IDs</SubpanelHeading>
+          </div>
+          {actionRexMaestroControlled && (
+            <div className={paneStyles.maestroIcon}>
+              <FontAwesomeIcon
+                icon={faHexagonNodes}
+                data-tooltip-id="aegis-tooltip"
+                data-tooltip-html="Some fields here are editable in Maestro"
+              />
+            </div>
+          )}
         </div>
         <div className={paneStyles.panelSectionRow}>
           <div className={paneStyles.panelSection2Column}>

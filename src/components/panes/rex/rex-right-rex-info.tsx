@@ -2,7 +2,7 @@ import { FunctionComponent, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import rexStyles from "./rex.module.css";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { faCirclePlay, faStopwatch } from "@fortawesome/free-solid-svg-icons";
+import { faCirclePlay, faHexagonNodes, faStopwatch } from "@fortawesome/free-solid-svg-icons";
 import { upsertRexByField } from "store/rex";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -140,8 +140,19 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               </div>
             </div>
             <div className={paneStyles.panelSection}>
-              <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "6px" }}>
-                <SubpanelHeading icon={faStopwatch}>Clocks</SubpanelHeading>
+              <div className={paneStyles.titleWithMaestro}>
+                <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "6px" }}>
+                  <SubpanelHeading icon={faStopwatch}>Clocks</SubpanelHeading>
+                </div>
+                {selectedRex.maestroControlled && (
+                  <div className={paneStyles.maestroIcon}>
+                    <FontAwesomeIcon
+                      icon={faHexagonNodes}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-html="Some fields here are editable in Maestro"
+                    />
+                  </div>
+                )}
               </div>
               <div className={paneStyles.panelSectionRow}>
                 <div className={paneStyles.panelSection2Column}>
