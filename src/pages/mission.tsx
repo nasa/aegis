@@ -21,7 +21,6 @@ import { populateStore } from "store/processing/populateStore";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 import { loadAndReturnGrid } from "utils/grid";
 import { setGridCornerPoint } from "store/map";
-import { thunkAuditRexEvas } from "store/thunk/thunkRex";
 
 type RouteParams = {
   id: string;
@@ -39,8 +38,9 @@ const Main = (): JSX.Element => {
   const [permissions, setPermissions] = useState<Permission>(null);
 
   const [searchParams] = useSearchParams();
-  const evaUuid = searchParams.get("evaUuid");
-  const actionUuid = searchParams.get("actionUuid");
+  const evaRefUuid = searchParams.get("evaRefUuid");
+  const actionRefUuid = searchParams.get("actionRefUuid");
+  const rexUuid = searchParams.get("rexUuid"); // optional
 
   const params = useParams<RouteParams>();
   const slug = params.id;
@@ -65,21 +65,15 @@ const Main = (): JSX.Element => {
        * dispatch a single action to populate the stores across all slices using the wholeStoreState
        */
       dispatch(setAllSliceStores(wholeStoreState));
-      // run one-time audit for ensuring existing REXes have an as-planned EVA copy.
-      // this line and thunk function can be removed after all missions have been updated
-      const thunkRes = await dispatch(thunkAuditRexEvas());
-      if (thunkRes.meta.requestStatus === "rejected") {
-        console.error("Error running auditRexEvas thunk");
-      }
 
-      // if evaUuid, actionUuid are present in the URL, set the selected action using thunk
-      if (evaUuid && actionUuid) {
-        dispatch(thunkSelectEvaAction({ evaUuid, actionUuid }));
+      // if evaRefUuid, actionRefUuid are present in the URL, set the selected action using thunk
+      if (evaRefUuid && actionRefUuid) {
+        dispatch(thunkSelectEvaAction({ evaRefUuid, actionRefUuid, rexUuid }));
       }
     };
     populateStoreAsync();
     //eslint-disable-next-line
-  }, [permissions, evaUuid, actionUuid]);
+  }, [permissions, evaRefUuid, actionRefUuid]);
 
   useEffect(() => {
     window.sessionStorage.setItem("missionId", intMissionId.toString());

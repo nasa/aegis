@@ -54,20 +54,10 @@
 }
 
 .actionListHeader {
-  display: flex;
-  flex-direction: row;
-  padding: 0 21px 0 0;
+  padding: 5px 0 0 28px;
   font-size: 0.8rem;
   color: var(--grey4);
-  margin-bottom: 2px;
-  height: 22px;
-  align-items: flex-end;
   cursor: default;
-}
-
-.actionListHeaderType {
-  flex: 0 0 60px;
-  margin-left: 27px;
 }
 
 .actionListHeaderTitle {
@@ -93,4 +83,27 @@
 
 .copyIconSpacer {
   width: 18px;
+}
+
+.actionHeadingType {
+  font-size: 0.8rem;
+  font-weight: 400;
+  min-width: 58px;
+  max-width: 58px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  cursor: pointer;
+  margin: 0 0 0 6px;
+}
+
+.actionListHeaderType {
+  flex: 0 0 66px;
+}
+
+.actionHeadingTitleIcon {
+  width: 17px;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-top: 2px;
 }

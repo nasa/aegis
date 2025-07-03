@@ -9,7 +9,9 @@ import { setSelectedPoiUuid } from "store/poi";
 import { setSectionSelected } from "store/interface";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDuplicateActions } from "store/thunk/thunkAction";
-import { hmmFromMinutes } from "utils/formatting";
+import { hmmFromMinutes, decodeEmoji } from "utils/formatting";
+import { ActionsListHeadings } from "./actions";
+import { ActionDefType } from "./actions-action";
 
 export const Assoc_POIs: FunctionComponent<{
   stationPoiUuids: string[];
@@ -95,6 +97,10 @@ const Assoc_POI: FunctionComponent<{
     (state) => state.poi.pois.find((poi) => poi.uuid === poiUuid),
     deepEqual
   );
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
 
   // sort the actions by the order in the POI
   poiActions.sort((action1: Action, action2: Action) => {
@@ -119,20 +125,18 @@ const Assoc_POI: FunctionComponent<{
         <div className={assocPoisStyles.stationPoiSubheading}>{poi.name}</div>
       </div>
       {poiActions.length > 0 ? (
-        <div className={assocPoisStyles.actionListHeader}>
-          <div className={assocPoisStyles.actionListHeaderType}>
-            <div className={assocPoisStyles.actionListHeaderLabel}>Type</div>
-          </div>
-          <div className={assocPoisStyles.actionListHeaderTitle}>
-            <div className={assocPoisStyles.actionListHeaderLabel}>Title</div>
-          </div>
-          <div
-            className={assocPoisStyles.actionListHeaderTime}
-            data-tooltip-id="aegis-tooltip"
-            data-tooltip-html={"Max Duration (mins)"}
-          >
-            <div className={assocPoisStyles.actionListHeaderLabel}>Max</div>
-          </div>
+        <div
+          style={{
+            marginLeft: `${actionSystemVersion === 1 ? "5px" : "2px"}`,
+            marginRight: "18px",
+          }}
+        >
+          <ActionsListHeadings
+            editMode={false}
+            showCrewHeading={false}
+            editPerms={false}
+            isRex={false}
+          />
         </div>
       ) : (
         <div className={assocPoisStyles.actionListHeader}>No Actions</div>
@@ -144,73 +148,143 @@ const Assoc_POI: FunctionComponent<{
               (stationAction) => stationAction.parentActionUuid === poiAction.uuid
             ) > -1;
           return (
-            <div className={assocPoisStyles.stationPoiActionItemsWrapper} key={poiAction.uuid}>
-              <div
-                className={`${assocPoisStyles.stationPoiActionItems} ${
-                  !poiAction.enabled ? assocPoisStyles.stationPoiActionItemsDisabled : ""
-                }`}
-              >
-                <div className={actionStyles.actionHeading}>
-                  <div className={actionStyles.verticalCenter}>
-                    <div className={`${actionStyles.actionHeadingType} `}>{poiAction.type}</div>
-                  </div>
-                  <div
-                    className={`${actionStyles.actionHeadingTitleTextonly} ${actionStyles.verticalCenter}`}
-                  >
-                    {poiAction.name}
-                  </div>
-                  <div className={actionStyles.actionHeadingRight}>
-                    <div
-                      className={actionStyles.actionHeadingRightItem}
-                      data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html={"Duration (mins)"}
-                    >
-                      {hmmFromMinutes(poiAction.duration)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div>
-                {inStation ? (
-                  <FontAwesomeIcon
-                    icon={faCheck}
-                    size="xs"
-                    className={assocPoisStyles.copyIcon}
-                    data-tooltip-id="aegis-tooltip"
-                    data-tooltip-html={"Action copied to station"}
-                  />
-                ) : (
-                  <>
-                    {editMode ? (
-                      <FontAwesomeIcon
-                        icon={faClone}
-                        size="xs"
-                        className={assocPoisStyles.copyIcon}
-                        onClick={(e) => {
-                          dispatch(
-                            thunkDuplicateActions({
-                              actions: [poiAction],
-                              stationUuid: selectedStationUuid,
-                              promotingFromPoi: true,
-                              preserveRefUuid: false,
-                              saveToDb: false,
-                            })
-                          );
-                          e.stopPropagation();
-                        }}
-                        data-tooltip-id="aegis-tooltip"
-                        data-tooltip-html="Copy this action to station"
-                        style={{ cursor: "pointer" }}
-                      />
-                    ) : (
-                      <div className={assocPoisStyles.copyIconSpacer}></div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
+            <Assoc_POIAction
+              key={poiAction.uuid}
+              action={poiAction}
+              copiedToStation={inStation}
+              editMode={editMode}
+              stationUuid={selectedStationUuid}
+            />
           );
         })}
+      </div>
+    </div>
+  );
+};
+
+const Assoc_POIAction: FunctionComponent<{
+  action: Action;
+  copiedToStation: boolean;
+  editMode: boolean;
+  stationUuid: string;
+}> = ({ action, copiedToStation, editMode, stationUuid }) => {
+  const dispatch = useAppDispatch();
+  const actionSystemVersion = useAppSelector(
+    (state) => state.mission.mission.actionSystemVersion,
+    refEqual
+  );
+  return (
+    <div className={assocPoisStyles.stationPoiActionItemsWrapper} key={action.uuid}>
+      <div
+        className={`${assocPoisStyles.stationPoiActionItems} ${
+          !action.enabled ? assocPoisStyles.stationPoiActionItemsDisabled : ""
+        }`}
+      >
+        <div className={actionStyles.actionHeading}>
+          {actionSystemVersion === 1 || !action.stmAction ? (
+            <>
+              <div className={assocPoisStyles.actionHeadingTitleIcon}>
+                {decodeEmoji(action.icon ? action.icon : "2754")}
+              </div>
+              <div className={actionStyles.verticalCenter}>
+                <div className={assocPoisStyles.actionHeadingType}>{action.type}</div>
+              </div>
+              <div
+                className={`${actionStyles.actionHeadingTitleTextonly} ${actionStyles.verticalCenter}`}
+              >
+                {action.name}
+              </div>
+              <div className={actionStyles.actionHeadingRight}>
+                <div
+                  className={actionStyles.actionHeadingRightItem}
+                  data-tooltip-id="aegis-tooltip"
+                  data-tooltip-html={"Duration (h:mm)"}
+                  style={{ color: action.duration < 0 ? "var(--warning)" : "inherit" }}
+                >
+                  {hmmFromMinutes(action.duration)}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={assocPoisStyles.actionHeadingTitleIcon}>
+                {decodeEmoji(action.icon ? action.icon : "2754")}
+              </div>
+              <div className={actionStyles.verticalCenter}>
+                <div className={actionStyles.actionV2Header}>
+                  <ActionDefType
+                    actionUuid={action.uuid}
+                    type={"verbs"}
+                    selectedUuid={action.actionDefinition?.verbUuid}
+                    editMode={false}
+                  />
+                  <div className={actionStyles.actionDefType}>of</div>
+                  <ActionDefType
+                    actionUuid={action.uuid}
+                    type={"nouns"}
+                    selectedUuid={action.actionDefinition?.nounUuid}
+                    editMode={false}
+                  />
+                  <div className={actionStyles.actionDefType}>in</div>
+                  <ActionDefType
+                    actionUuid={action.uuid}
+                    type={"adjectives"}
+                    selectedUuid={action.actionDefinition?.adjectiveUuid}
+                    editMode={false}
+                  />
+                </div>
+              </div>
+              <div className={actionStyles.actionHeadingRight}>
+                <div
+                  className={actionStyles.actionHeadingRightItem}
+                  data-tooltip-id="aegis-tooltip"
+                  data-tooltip-html={"Duration (h:mm)"}
+                  style={{ color: action.duration < 0 ? "var(--warning)" : "inherit" }}
+                >
+                  {hmmFromMinutes(action.duration)}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      <div>
+        {copiedToStation ? (
+          <FontAwesomeIcon
+            icon={faCheck}
+            size="xs"
+            className={assocPoisStyles.copyIcon}
+            data-tooltip-id="aegis-tooltip"
+            data-tooltip-html={"Action copied to station"}
+          />
+        ) : (
+          <>
+            {editMode ? (
+              <FontAwesomeIcon
+                icon={faClone}
+                size="xs"
+                className={assocPoisStyles.copyIcon}
+                onClick={(e) => {
+                  dispatch(
+                    thunkDuplicateActions({
+                      actions: [action],
+                      stationUuid: stationUuid,
+                      promotingFromPoi: true,
+                      preserveRefUuid: false,
+                      saveToDb: false,
+                    })
+                  );
+                  e.stopPropagation();
+                }}
+                data-tooltip-id="aegis-tooltip"
+                data-tooltip-html="Copy this action to station"
+                style={{ cursor: "pointer" }}
+              />
+            ) : (
+              <div className={assocPoisStyles.copyIconSpacer}></div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

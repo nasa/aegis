@@ -11,6 +11,7 @@
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
+  min-height: 50px;
 }
 
 .dragableActionList {
@@ -59,8 +60,7 @@
   padding: 0 0 0 8px;
   font-size: 0.8rem;
   color: var(--grey4);
-  margin: 5px 4px 2px 31px;
-  height: 22px;
+  margin: 5px 4px 2px 15px;
   align-items: flex-end;
 }
 
@@ -71,7 +71,7 @@
 }
 
 .actionListHeaderType {
-  flex: 0 0 66px;
+  flex: 0 0 95px;
 }
 
 .actionListHeaderTitle {

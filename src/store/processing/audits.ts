@@ -1,14 +1,11 @@
 import * as httpClient_preset from "http-client/preset";
 import * as httpClient_action from "http-client/action";
 import * as httpClient_mission from "http-client/mission";
-import * as httpClient_rex from "http-client/rex";
-import * as httpClient_station from "http-client/station";
 import * as httpClient_folder from "http-client/folder";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
-import { v4 as uuidv4 } from "uuid";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
@@ -140,66 +137,10 @@ export const auditPresetsAgainstLayers = async ({
   }
   if (presetsToSaveToDb.length > 0) {
     // upsert the changed Presets to the DB
-    const upsertReponse = await httpClient_preset.upsertPresets(presetsToSaveToDb);
-    if (upsertReponse.status !== "success") {
+    const upsertResponse = await httpClient_preset.upsertPresets(presetsToSaveToDb);
+    if (upsertResponse.status !== "success") {
       // handle the error
     }
-  }
-};
-
-export const auditStationCircles = async ({
-  wholeStoreState,
-}: {
-  wholeStoreState: WholeStoreState;
-}): Promise<void> => {
-  // new stores to hold the updated values to be persisted at the end of all the audits
-  const newStations = cloneDeep(wholeStoreState.station.stations);
-
-  for (const newStation of newStations) {
-    if (!newStation.mapCircleControls) {
-      newStation.mapCircleControls = {};
-    }
-
-    //set map circle controls
-    const mapCircleControls: MapCircleControls = {};
-    wholeStoreState.mission?.mission?.circleDefinitions?.forEach((circleDef) => {
-      if (newStation.mapCircleControls[circleDef.uuid]) {
-        mapCircleControls[circleDef.uuid] = newStation.mapCircleControls[circleDef.uuid];
-      } else {
-        mapCircleControls[circleDef.uuid] = {
-          name: circleDef.name,
-          uuid: circleDef.uuid,
-          visible: false,
-          style: {
-            opacity: 1,
-            contrast: 1,
-            brightness: 1,
-            saturation: 1,
-            blendMode: "normal",
-            color: "#FFFFFF",
-            weight: 1,
-            fillColor: "none",
-            fillOpacity: 0,
-          },
-        };
-      }
-    });
-
-    newStation.mapCircleControls = mapCircleControls;
-  }
-
-  // update the store and db with the new values
-  wholeStoreState.station.stations = newStations;
-
-  // if new values were found, save them to the db
-  const dataChanged = !isEqual(newStations, wholeStoreState.station.stationsFromDb);
-
-  if (!dataChanged) {
-    return;
-  }
-  const upsertResponse = await httpClient_station.upsertStations(newStations);
-  if (upsertResponse.status !== "success") {
-    // handle the error
   }
 };
 
@@ -283,7 +224,7 @@ export const auditActions = async ({
   }
 };
 
-// Can this be removed? Check if new missiosn in v2 automatically get new action definitions.
+// Can this be removed? Check if new mission in v2 automatically get new action definitions.
 export const auditActionDefinitions = async ({
   wholeStoreState,
 }: {
@@ -309,92 +250,6 @@ export const auditActionDefinitions = async ({
     const upsertResponse = await httpClient_mission.upsertMissions([newMission]);
     if (upsertResponse.status !== "success") {
       // handle the error
-    }
-  }
-};
-
-// Can this be removed?
-export const auditPosSources = async ({
-  wholeStoreState,
-}: {
-  wholeStoreState: WholeStoreState;
-}): Promise<void> => {
-  if (wholeStoreState.rex.rexes.length === 0) return;
-
-  // loop through all rexes and audit the posSources
-  const newRexes = cloneDeep(wholeStoreState.rex.rexes);
-  let isModified: boolean = false;
-
-  const defaultPosSource = {
-    uuid: uuidv4(),
-    abbr: "T",
-    name: "Task",
-  };
-  for (const rex of newRexes) {
-    // if the posSources is empty, fill it with a default with just "Task" in it
-    if (!rex.posSources || rex.posSources.length === 0) {
-      isModified = true;
-      rex.posSources = [defaultPosSource];
-
-      // if the rex has no position entries, skip to the next rex
-      if (!rex.posEntries) continue;
-
-      // loop through every rex posEntry and add the default posSource if it doesn't exist
-      for (const posEntry of rex?.posEntries) {
-        if (!posEntry.posSourceUuid) {
-          posEntry.posSourceUuid = defaultPosSource.uuid;
-        }
-      }
-    }
-  }
-
-  // update the store and db with the new values
-  wholeStoreState.rex.rexes = newRexes;
-
-  if (isModified) {
-    const upsertResponse = await httpClient_rex.upsertRexes(newRexes);
-    if (upsertResponse.status !== "success") {
-      // handle the error
-    }
-  }
-};
-
-export const auditPosEntries = async ({
-  wholeStoreState,
-}: {
-  wholeStoreState: WholeStoreState;
-}): Promise<void> => {
-  if (wholeStoreState.rex.rexes.length === 0) return;
-
-  type PosEntryWithMaybeSeconds = PosEntry & {
-    seconds?: number;
-  };
-
-  // loop through all rexes and audit the posEntries
-  const newRexes = cloneDeep(wholeStoreState.rex.rexes);
-  let isModified: boolean = false;
-
-  for (const rex of newRexes) {
-    // if the posEntries is empty, skip to the next rex
-    if (!rex.posEntries || rex.posEntries.length === 0) continue;
-
-    // loop through every rex posEntry and if it has a seconds property, convert it to petSeconds
-    for (const posEntry of rex.posEntries) {
-      if (!posEntry.petSeconds) {
-        isModified = true;
-        posEntry.petSeconds = (posEntry as PosEntryWithMaybeSeconds).seconds || 0;
-        delete (posEntry as PosEntryWithMaybeSeconds).seconds; // remove the seconds property
-      }
-    }
-
-    // update the store and db with the new values
-    wholeStoreState.rex.rexes = newRexes;
-
-    if (isModified) {
-      const upsertResponse = await httpClient_rex.upsertRexes(newRexes);
-      if (upsertResponse.status !== "success") {
-        // handle the error
-      }
     }
   }
 };
@@ -463,79 +318,6 @@ export const auditFolders = async ({
     const upsertResponse = await httpClient_folder.upsertFolders(foldersToSaveToDb);
     if (upsertResponse.status !== "success") {
       console.error("Error saving folders to DB:", upsertResponse.message);
-    }
-  }
-};
-
-// Audit the rex status entries to make them single entries per uuid.
-// This can be deleted after !729 has been pushed to production and all missions have been updated
-export const auditRexStatusEntries = async ({
-  wholeStoreState,
-}: {
-  wholeStoreState: WholeStoreState;
-}): Promise<void> => {
-  // make rex.stationEntries, rex.traverseEntries, rex.actionEntries, and xgressEntries all contain a single value per uuid instead of an array by keeping only the last entry of each
-  // this also discards previous values like uuid, createdAt, and petSeconds that we're no longer using.
-  const newRexes = cloneDeep(wholeStoreState.rex.rexes);
-  let isModified: boolean = false;
-  for (const rex of newRexes) {
-    if (rex.stationEntries && typeof rex.stationEntries === "object") {
-      for (const stationUuid in rex.stationEntries) {
-        if (Array.isArray(rex.stationEntries[stationUuid])) {
-          isModified = true;
-          rex.stationEntries[stationUuid] = {
-            rexStatus: rex.stationEntries[stationUuid].slice(-1)[0].rexStatus,
-          };
-        }
-      }
-    }
-
-    if (rex.traverseEntries && typeof rex.traverseEntries === "object") {
-      for (const traverseUuid in rex.traverseEntries) {
-        if (Array.isArray(rex.traverseEntries[traverseUuid])) {
-          isModified = true;
-          rex.traverseEntries[traverseUuid] = {
-            rexStatus: rex.traverseEntries[traverseUuid].slice(-1)[0].rexStatus,
-          };
-        }
-      }
-    }
-
-    if (rex.actionEntries && typeof rex.actionEntries === "object") {
-      for (const actionUuid in rex.actionEntries) {
-        if (Array.isArray(rex.actionEntries[actionUuid])) {
-          isModified = true;
-          rex.actionEntries[actionUuid] = {
-            rexStatus: rex.actionEntries[actionUuid].slice(-1)[0].rexStatus,
-            mass: rex.actionEntries[actionUuid].slice(-1)[0].mass,
-          };
-        }
-      }
-    }
-
-    if (rex.xgressEntries && typeof rex.xgressEntries === "object") {
-      for (const xgressUuid in rex.xgressEntries) {
-        if (Array.isArray(rex.xgressEntries[xgressUuid])) {
-          isModified = true;
-          rex.xgressEntries[xgressUuid] = {
-            rexStatus: rex.xgressEntries[xgressUuid].slice(-1)[0].rexStatus,
-          };
-        }
-      }
-    }
-  }
-
-  if (isModified) {
-    // update the store with the new rexes
-    wholeStoreState.rex.rexes = newRexes;
-
-    // also update the rexesFromDb in the store
-    wholeStoreState.rex.rexesFromDb = newRexes;
-
-    // save changed rexes to the DB
-    const upsertResponse = await httpClient_rex.upsertRexes(newRexes);
-    if (upsertResponse.status !== "success") {
-      console.error("Error saving rexes to DB:", upsertResponse.message);
     }
   }
 };
