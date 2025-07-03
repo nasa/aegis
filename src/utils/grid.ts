@@ -10,7 +10,12 @@ export async function loadAndReturnGrid(
     globalGrid = null;
     return null;
   }
-  const loadedGrid: MissionGrid = (await getGrids(missionId, activeGridUuid, true)).data[0];
-  globalGrid = loadedGrid;
-  return loadedGrid;
+  const gridData = (await getGrids(missionId, activeGridUuid, true)).data;
+  if (gridData?.length) {
+    globalGrid = gridData[0];
+    return gridData[0];
+  } else {
+    globalGrid = null;
+    return null;
+  }
 }

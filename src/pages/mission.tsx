@@ -21,7 +21,6 @@ import { populateStore } from "store/processing/populateStore";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 import { loadAndReturnGrid } from "utils/grid";
 import { setGridCornerPoint } from "store/map";
-import { thunkAuditRexEvas } from "store/thunk/thunkRex";
 
 type RouteParams = {
   id: string;
@@ -66,12 +65,6 @@ const Main = (): JSX.Element => {
        * dispatch a single action to populate the stores across all slices using the wholeStoreState
        */
       dispatch(setAllSliceStores(wholeStoreState));
-      // run one-time audit for ensuring existing REXes have an as-planned EVA copy.
-      // this line and thunk function can be removed after all missions have been updated
-      const thunkRes = await dispatch(thunkAuditRexEvas());
-      if (thunkRes.meta.requestStatus === "rejected") {
-        console.error("Error running auditRexEvas thunk");
-      }
 
       // if evaRefUuid, actionRefUuid are present in the URL, set the selected action using thunk
       if (evaRefUuid && actionRefUuid) {
