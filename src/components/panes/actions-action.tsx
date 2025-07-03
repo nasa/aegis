@@ -340,7 +340,7 @@ const RightAction: FunctionComponent<{
 
 export default RightAction;
 
-const ActionDefType: FunctionComponent<{
+export const ActionDefType: FunctionComponent<{
   actionUuid: string;
   type: ActionDefinitionType;
   selectedUuid: string;
