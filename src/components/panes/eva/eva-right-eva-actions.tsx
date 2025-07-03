@@ -126,7 +126,7 @@ const Actions_Panel: FunctionComponent = () => {
                       actionOrderUuids={station.actionOrderUuids}
                       parentType="station"
                       highlightActions={highlightActions}
-                      isActionHiglighted={isActionHiglighted}
+                      isActionHighlighted={isActionHiglighted}
                       stations={sequenceStations}
                       pois={null}
                       rexUuid={selectedRexPartial?.uuid}
@@ -152,7 +152,7 @@ const Actions_Panel: FunctionComponent = () => {
                     actionOrderUuids={traverse.actionOrderUuids}
                     parentType="traverse"
                     highlightActions={highlightActions}
-                    isActionHiglighted={isActionHiglighted}
+                    isActionHighlighted={isActionHiglighted}
                     stations={sequenceStations}
                     pois={null}
                     rexUuid={selectedRexPartial?.uuid}

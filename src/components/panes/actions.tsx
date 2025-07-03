@@ -54,7 +54,7 @@ const Actions: FunctionComponent<{
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
-  const [isActionHiglighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
+  const [isActionHighlighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
   const [newActionUuid, setNewActionUuid] = useState(undefined);
 
@@ -120,7 +120,7 @@ const Actions: FunctionComponent<{
               parentType={parentType}
               actionOrderUuids={actionOrderUuids}
               highlightActions={highlightActions}
-              isActionHiglighted={isActionHiglighted}
+              isActionHighlighted={isActionHighlighted}
               stations={useAppSelector((state) => state.station.stations, deepEqual)}
               pois={useAppSelector((state) => state.poi.pois, deepEqual)}
               newActionUuid={newActionUuid}
@@ -392,7 +392,7 @@ export const ActionsListHeadings: FunctionComponent<{
     <div
       className={actionsStyles.actionListHeader}
       style={{
-        marginLeft: actionSystemVersion === 2 ? "50px" : "",
+        marginLeft: actionSystemVersion === 2 ? "20px" : "",
         marginRight: editMode ? "20px" : "",
       }}
     >
@@ -406,7 +406,7 @@ export const ActionsListHeadings: FunctionComponent<{
         <div className={actionsStyles.actionListHeaderLabel}>Action</div>
       </div>
       <div className={actionsStyles.actionListHeaderTime}>
-        <div className={actionsStyles.actionListHeaderLabel}>Max</div>
+        <div className={actionsStyles.actionListHeaderLabel}>Dur.</div>
       </div>
       {showCrewHeading && (
         <div className={actionsStyles.actionListHeaderCrew}>
@@ -422,7 +422,7 @@ export const ActionList: FunctionComponent<{
   actionOrderUuids: string[];
   parentType: ActionParentType;
   highlightActions: (level3Uuid: string) => void;
-  isActionHiglighted: ActionHighlight[];
+  isActionHighlighted: ActionHighlight[];
   stations: Station[];
   pois: POI[];
   rexUuid: string;
@@ -431,7 +431,7 @@ export const ActionList: FunctionComponent<{
   editMode,
   actionOrderUuids,
   parentType,
-  isActionHiglighted,
+  isActionHighlighted,
   stations,
   pois,
   rexUuid,
@@ -440,7 +440,7 @@ export const ActionList: FunctionComponent<{
   return (
     <ul className={actionsStyles.actionlist}>
       {actionOrderUuids?.map((actionUuid, index) => {
-        const highlight = isActionHiglighted.find(
+        const highlight = isActionHighlighted.find(
           (highlight) => highlight.uuid === actionUuid
         )?.highlight;
         const parentLocation =
