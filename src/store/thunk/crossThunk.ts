@@ -10,7 +10,6 @@ import {
 import { poiSlice } from "store/poi";
 import { rexSlice } from "store/rex";
 import { stationSlice } from "store/station";
-import { traverseSlice } from "store/traverse";
 
 import { obliterateState as actionObliterateState } from "store/action";
 import { obliterateState as evaObliterateState } from "store/eva";
@@ -46,8 +45,6 @@ export const thunkSelectEVASequenceItem = appCreateAsyncThunk<{
 
   if (sequenceItem?.type === "station") {
     dispatch(stationSlice.actions.setSelectedStationUuid(sequenceItemUuid));
-  } else if (sequenceItem?.type === "traverse") {
-    dispatch(traverseSlice.actions.setSelectedTraverseRightNavItem("info_panel"));
   }
 });
 
@@ -175,12 +172,13 @@ export const thunkSelectEvaAction = appCreateAsyncThunk<{
     // select the eva
     dispatch(setSelectedEvaUuid(eva.uuid));
 
-    // select the station this action belongs to
-    const evaStationUuids = eva.sequence
-      .filter((seqItem) => seqItem.type === "station")
-      .map((stationSeqItem) => stationSeqItem.uuid);
+    // get the action uuid by checking it against the eva's sequence items
+    const sequenceItemUuids = eva.sequence.map((stationSeqItem) => stationSeqItem.uuid);
     const action = getState().action.actions.find(
-      (action) => action.refUuid === actionRefUuid && evaStationUuids.includes(action.stationUuid)
+      (action) =>
+        action.refUuid === actionRefUuid &&
+        (sequenceItemUuids.includes(action.stationUuid) ||
+          sequenceItemUuids.includes(action.traverseUuid))
     );
     // select the action panel and expand the specific action
     dispatch(setSelectedEvaRightNavItem("actions_panel"));
