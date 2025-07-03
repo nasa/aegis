@@ -8,8 +8,6 @@ import {
   upsertRexFromDb,
   setSelectedRexUuid,
   upsertRexByField,
-  upsertRexes,
-  upsertRexesFromDb,
   setSelectedPosEntryUuid,
 } from "store/rex";
 import cloneDeep from "lodash/cloneDeep";
@@ -326,85 +324,5 @@ export const thunkJumpToRunningRex = appCreateAsyncThunk<void>(
     dispatch(setSelectedPosEntryUuid(null));
     dispatch(setSelectedEvaSequenceItemUuid(null));
     dispatch(thunkSetOnlyShowRunningRexEva({ show: true }));
-  }
-);
-
-// One time audit to create a copy of EVAs that belong to Rexes and set the original EVA as "as planned".
-// TODO: This can be removed after all missions have been visited after this code is on production
-export const thunkAuditRexEvas = appCreateAsyncThunk<void>(
-  "auditRexEvas",
-  async (_, { getState, dispatch }) => {
-    console.log(`thunkAuditRexEvas: Starting...`);
-    const allEvaRefUuids = getState().eva.evas.map((eva) => eva.refUuid);
-    for (const rex of getState().rex.rexes) {
-      const rexEva = getState().eva.evas.find((e) => e.uuid === rex.evaUuid);
-      // all rex evas should have at least 2 matching eva with the same refUuid (the "as planned" eva, and the executed eva)
-      const numEvas = allEvaRefUuids.filter((refUuid) => refUuid === rexEva.refUuid).length;
-      if (numEvas > 1) {
-        // do nothing. this rex has an as planned eva already
-        continue;
-      }
-
-      // Create a copy of the rex object so we can modify it
-      const rexCopy = cloneDeep(rex);
-      // Duplicate the eva (this will save to the db)
-      const dupEvaRes = await dispatch(
-        thunkDuplicateEva({ evaUuid: rex.evaUuid, includeStations: true, forRex: true })
-      );
-      if (!dupEvaRes.payload) {
-        throw new Error("thunkAuditRexEvas: Error creating EVA for Rex: " + rexEva.name);
-      }
-      const newEva = dupEvaRes.payload;
-
-      // Take the EVA we just created and set it to be the rex's eva, and the old eva becomes the "as planned"
-      // Do this incase the original EVA is using same stations with other EVAs
-      rexCopy.evaUuid = newEva.uuid;
-      const oldSequenceUuids = rexEva.sequence.map((s) => s.uuid);
-
-      // Update station and traverse rex entries
-      const newStationEntries: StationEntries = {};
-      const newTraverseEntries: TraverseEntries = {};
-      for (const [index, oldSequenceUuid] of oldSequenceUuids.entries()) {
-        if (rex.stationEntries?.[oldSequenceUuid]) {
-          // Point the uuid for station entires to the new station in the new eva
-          const newStationUuid = newEva.sequence[index].uuid;
-          newStationEntries[newStationUuid] = rex.stationEntries[oldSequenceUuid];
-        } else if (rex.traverseEntries?.[oldSequenceUuid]) {
-          // Point the uuid for traverse entires to the new traverse in the new eva
-          const newTraverseUuid = newEva.sequence[index].uuid;
-          newTraverseEntries[newTraverseUuid] = rex.traverseEntries[oldSequenceUuid];
-        }
-      }
-      rexCopy.stationEntries = newStationEntries;
-      rexCopy.traverseEntries = newTraverseEntries;
-
-      // Update action entries
-      const newActionEntries: ActionEntries = {};
-      for (const actionUuid of Object.keys(rex.actionEntries ?? {})) {
-        // Find the action that shares the same refUuid. This will be the duplicate we just created
-        const oldActionRefUuid = getState().action.actions.find(
-          (a) => a.uuid === actionUuid
-        )?.refUuid;
-        const newActionUuid = getState().action.actions.find(
-          (a) => a.refUuid === oldActionRefUuid && a.uuid !== actionUuid
-        )?.uuid;
-        if (newActionUuid) {
-          // Point the uuid for action entires to the new action in the new eva
-          newActionEntries[newActionUuid] = rex.actionEntries[actionUuid];
-        }
-      }
-      rexCopy.actionEntries = newActionEntries;
-
-      // Save updated rex to the store and DB
-      dispatch(upsertRexes([rexCopy]));
-      dispatch(upsertRexesFromDb([rexCopy]));
-      const upsertRexRes = await httpClient_Rex.upsertRexes([rexCopy]);
-      if (upsertRexRes.status !== "success") {
-        throw new Error("Error saving Rexes to db for thunkAuditRexEvas: " + upsertRexRes.message);
-      }
-
-      console.log(`thunkAuditRexEvas: Duplicated EVA ${rexEva.name}`);
-    }
-    console.log(`thunkAuditRexEvas: Done`);
   }
 );

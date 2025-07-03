@@ -5,12 +5,8 @@ import Cookies from "js-cookie";
 import {
   auditActionDefinitions,
   auditActions,
-  auditPosSources,
   auditPresetsAgainstLayers,
-  auditStationCircles,
   auditFolders,
-  auditRexStatusEntries,
-  auditPosEntries,
 } from "./audits";
 
 export const populateStore = async (params: {
@@ -61,12 +57,8 @@ export const populateStore = async (params: {
   // Run audits on the data returned, modifying the data as needed. Each audit function will save needed changes to the DB
   if (runAudit) {
     await auditPresetsAgainstLayers({ wholeStoreState });
-    await auditStationCircles({ wholeStoreState });
     await auditActionDefinitions({ wholeStoreState });
-    await auditPosSources({ wholeStoreState });
-    await auditPosEntries({ wholeStoreState });
     await auditFolders({ wholeStoreState });
-    await auditRexStatusEntries({ wholeStoreState });
     await auditActions({ wholeStoreState });
   }
 
