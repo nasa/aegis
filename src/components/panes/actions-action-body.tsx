@@ -404,7 +404,7 @@ const RightActionBody: FunctionComponent<{
                       fieldProps={{
                         name: "markerId",
                         ariaLabel: "Sample Marker ID",
-                        style: { width: "230px" },
+                        style: { width: "45px" },
                         validators: [validators.maxLength(20)],
                       }}
                       onSubmit={(value: string) => {
@@ -433,7 +433,7 @@ const RightActionBody: FunctionComponent<{
                       fieldProps={{
                         name: "containerId",
                         ariaLabel: "Container ID",
-                        style: { width: "230px" },
+                        style: { width: "45px" },
                         validators: [validators.maxLength(20)],
                       }}
                       onSubmit={(value: string) => {
@@ -462,7 +462,7 @@ const RightActionBody: FunctionComponent<{
                       fieldProps={{
                         name: "secondaryContainerId",
                         ariaLabel: "Secondary Container ID",
-                        style: { width: "230px" },
+                        style: { width: "45px" },
                         validators: [validators.maxLength(20)],
                       }}
                       onSubmit={(value: string) => {
