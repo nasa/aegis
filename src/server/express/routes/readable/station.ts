@@ -7,13 +7,18 @@ import path from "path";
 import fs from "fs";
 import { getGridFromFile } from "../grid";
 import { SCHEMA_DIR } from "utils/consts-server";
+import { getEM } from "utils/mikro";
+import { Station_db } from "server/database/models/station.model";
+import { Rex_db } from "server/database/models/rex.model";
+import { Eva_db } from "server/database/models/eva.model";
 
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { missionId } = query;
+  const { missionId, datesOnly } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
+    datesOnly: datesOnly === "true",
   };
   return queryObj;
 };
@@ -38,52 +43,92 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  try {
-    const wholeStore: OneMissionToRuleThemAll = await getAll(queryObj.missionId);
-    const allData: AllDataForExport = {
-      mission: wholeStore.mission,
-      pois: wholeStore.pois,
-      stations: wholeStore.stations,
-      actions: wholeStore.actions,
-      traverses: wholeStore.traverses,
-      evas: wholeStore.evas,
-      rexes: wholeStore.rexes,
-      level1s: wholeStore.level1s,
-      level2s: wholeStore.level2s,
-      level3s: wholeStore.level3s,
-    };
+  if (queryObj.datesOnly) {
+    try {
+      const em = getEM();
+      let partialStations: Partial<Station_db>[] = [];
 
-    // get all as-planned stations or stations not in an EVA
-    const allRexEvaUuids = allData.rexes.map((r) => r.evaUuid);
-    const asPlannedEvasSequenceItemUuids = allData.evas
-      .filter((e) => !allRexEvaUuids.includes(e.uuid))
-      ?.flatMap((e) => e.sequence.map((seq) => seq.uuid));
-    const notRexStationsUuids = allData.stations.filter((s) =>
-      asPlannedEvasSequenceItemUuids.includes(s.uuid)
-    );
-    const stations: Station[] = notRexStationsUuids;
+      const rexEvaUuidsSubquery = em
+        .createQueryBuilder(Rex_db)
+        .select("evaUuid")
+        .where({ mission: { id: queryObj.missionId } });
 
-    const gridCoordinates: MissionGridPoint[][] = allData.mission.activeGridUuid
-      ? await getGridFromFile(queryObj.missionId, allData.mission.activeGridUuid)
-      : null;
+      const asPlannedEvaSequencesQuery = em
+        .createQueryBuilder(Eva_db)
+        .select(["sequence"])
+        .where({
+          uuid: { $nin: rexEvaUuidsSubquery.getKnexQuery() },
+        });
+      const asPlannedEvaSequences = await asPlannedEvaSequencesQuery.execute();
+      const evaSequenceItemUuids = asPlannedEvaSequences.flatMap((eva) =>
+        eva.sequence.map((sequenceItem) => sequenceItem.uuid)
+      );
 
-    const exportStations: ExportStation[] = makeExportStations({
-      stations: stations,
-      missionGrid: gridCoordinates,
-      allData,
-    });
+      // get all as-planned stations
+      const stationQuery = em
+        .createQueryBuilder(Station_db)
+        .select(["uuid", "refUuid", "createdAt", "updatedAt"])
+        .where({ mission: { id: queryObj.missionId }, uuid: { $in: evaSequenceItemUuids } });
 
-    res.status(200).json({
-      status: "success",
-      message: "readable stations retrieved",
-      data: exportStations,
-    });
-    return;
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ status: "error", message: `Error getting readable stations ${e}` });
-    return;
+      partialStations = await stationQuery.execute();
+
+      res.status(200).json({
+        status: "success",
+        message: `station dates retrieved`,
+        data: partialStations,
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ status: "error", message: `Error getting stations ${e}` });
+    }
+  } else {
+    try {
+      const wholeStore: OneMissionToRuleThemAll = await getAll(queryObj.missionId);
+      const allData: AllDataForExport = {
+        mission: wholeStore.mission,
+        pois: wholeStore.pois,
+        stations: wholeStore.stations,
+        actions: wholeStore.actions,
+        traverses: wholeStore.traverses,
+        evas: wholeStore.evas,
+        rexes: wholeStore.rexes,
+        level1s: wholeStore.level1s,
+        level2s: wholeStore.level2s,
+        level3s: wholeStore.level3s,
+      };
+
+      // get all as-planned stations
+      const allRexEvaUuids = allData.rexes.map((r) => r.evaUuid);
+      const asPlannedEvasSequenceItemUuids = allData.evas
+        .filter((e) => !allRexEvaUuids.includes(e.uuid))
+        ?.flatMap((e) => e.sequence.map((seq) => seq.uuid));
+      const notRexStationsUuids = allData.stations.filter((s) =>
+        asPlannedEvasSequenceItemUuids.includes(s.uuid)
+      );
+      const stations: Station[] = notRexStationsUuids;
+
+      const gridCoordinates: MissionGridPoint[][] = allData.mission.activeGridUuid
+        ? await getGridFromFile(queryObj.missionId, allData.mission.activeGridUuid)
+        : null;
+
+      const exportStations: ExportStation[] = makeExportStations({
+        stations: stations,
+        missionGrid: gridCoordinates,
+        allData,
+      });
+
+      res.status(200).json({
+        status: "success",
+        message: "readable stations retrieved",
+        data: exportStations,
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ status: "error", message: `Error getting readable stations ${e}` });
+    }
   }
+
+  return;
 });
 
 router.get("/schema", async (req: Request, res: Response): Promise<void> => {
