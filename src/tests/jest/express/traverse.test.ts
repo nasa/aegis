@@ -58,11 +58,6 @@ describe("EVA API Endpoint", () => {
   let aegisSessionSigCookie: string;
   let newTraverse: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
 
-  test("Returns auth failure", async () => {
-    const res = await supertest(app).get("/api/v1/traverse");
-    expect(res.statusCode).toBe(401);
-  });
-
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
@@ -71,50 +66,6 @@ describe("EVA API Endpoint", () => {
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
     aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
-  describe("GET request", () => {
-    test("No permissions", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/traverse")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
-
-      expect(res.statusCode).toBe(401);
-    });
-
-    test("Returns single Traverse by traverse uuid", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/traverse")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id, uuid: testTraverses[0].uuid });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toEqual(1);
-    });
-
-    test("Returns all Traverses for mission", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/traverse")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toBeGreaterThan(1);
-    });
-
-    test("No traverses returned", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/traverse")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toEqual(0);
-    });
   });
 
   //upsert and delete tests must occur in order
@@ -220,14 +171,6 @@ describe("EVA API Endpoint", () => {
   describe("Auth with emss-token header", () => {
     const emssToken = process.env.EMSS_TOKEN || "";
     const newTraverse = generateBlankTraverse({ name: "Jest Traverse-1" });
-
-    test("GET request succeeds with emss-token", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/traverse")
-        .set("emss-token", emssToken)
-        .query({ missionId: testMissions[0].id });
-      expect(res.statusCode).toBe(200);
-    });
 
     test("POST request succeeds with emss-token", async () => {
       const requestBody: TraverseUpsertRequest = {

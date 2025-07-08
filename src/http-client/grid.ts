@@ -19,25 +19,6 @@ export async function getGrids(
   return response;
 }
 
-export async function getDrawingBounds(
-  missionId: number,
-  gridUuid: string,
-  radius: number,
-  points: AEGISPoint[]
-): Promise<WrappedResponse<GridIndex[]>> {
-  let res: Response;
-  if (missionId && gridUuid && points) {
-    const pointsString = JSON.stringify(points);
-    res = await fetch(
-      `/api/v1/grid/closestPoint?missionId=${missionId}&gridUuid=${gridUuid}&radius=${radius}&points=${pointsString}`
-    );
-  } else {
-    throw new Error("Invalid parameters for getClosestGridPoint");
-  }
-  const response: WrappedResponse<GridIndex[]> = await res.json();
-  return response;
-}
-
 export async function upsertGrids(
   grids: MissionGrid[],
   missionId: number,

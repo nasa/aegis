@@ -2,7 +2,6 @@ import express, { Request, Response } from "express";
 
 import cloneDeep from "lodash/cloneDeep";
 import { hasPerms } from "utils/permissions";
-import { Query } from "express-serve-static-core";
 import {
   EntityData,
   ForeignKeyConstraintViolationException,
@@ -15,61 +14,6 @@ import { getEM } from "utils/mikro";
 import { convertActionsTypeDbToStore, convertActionsTypeStoreToDb } from "store/storeUtils/action";
 
 const router = express.Router();
-
-const parseQuery = (query: Query) => {
-  const { uuid, stationUuid, poiUuid, socketId, missionId } = query;
-  const queryObj = {
-    missionId: missionId ? parseInt(missionId as string) : undefined,
-    actionUuid: uuid ? (uuid as string) : undefined,
-    stationUuid: stationUuid ? (stationUuid as string) : undefined,
-    poiUuid: poiUuid ? (poiUuid as string) : undefined,
-    socketId: socketId ? (socketId as string) : undefined,
-  };
-  return queryObj;
-};
-
-// get
-router.get("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-
-  const emssToken = req.headers["emss-token"] as string;
-
-  const viewPermission = await hasPerms({
-    missionId: queryObj.missionId,
-    permission: "view",
-    user: req.session.user,
-    emssToken,
-  });
-  if (!viewPermission) {
-    res.status(401).json({ status: "failure", message: "Unauthorized" });
-    return;
-  }
-  //check for required mission id is valid
-  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
-    return;
-  }
-
-  try {
-    const actions: Action[] = await getActions({
-      missionId: queryObj.missionId,
-      actionUuid: queryObj.actionUuid,
-      stationUuid: queryObj.stationUuid,
-      poiUuid: queryObj.poiUuid,
-    });
-
-    res.status(200).json({
-      status: "success",
-      message: "actions retrieved",
-      data: actions,
-    });
-    return;
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ status: "error", message: `Error getting actions ${e}` });
-    return;
-  }
-});
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {

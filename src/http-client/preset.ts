@@ -1,10 +1,3 @@
-export async function getPresets(mission: number): Promise<WrappedResponse<Preset[]>> {
-  const res = await fetch(`/api/v1/preset?missionId=${mission}`);
-  const response: WrappedResponse<Preset[]> = await res.json();
-
-  return response;
-}
-
 export async function upsertPresets(presets: Preset[]): Promise<WrappedResponse<Preset[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;

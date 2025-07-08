@@ -7,7 +7,8 @@ const globalTeardown = async (): Promise<void> => {
   const em = orm.em.fork();
 
   // run a custom query using a sql string to delete all previous test data from the database
-  const sql = `delete from "layer_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
+  const sql = `delete from "folder_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
+  delete from "layer_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
   delete from "sublayer_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
   delete from "preset_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
   delete from "action_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
