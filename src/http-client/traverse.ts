@@ -1,14 +1,3 @@
-export async function getTraverses(missionId: number = null): Promise<WrappedResponse<Traverse[]>> {
-  let res: Response;
-  if (missionId) {
-    res = await fetch(`/api/v1/traverse?missionId=${missionId}`);
-  } else {
-    res = await fetch(`/api/v1/traverse`);
-  }
-  const response: WrappedResponse<Traverse[]> = await res.json();
-  return response;
-}
-
 export async function upsertTraverses(traverses: Traverse[]): Promise<WrappedResponse<Traverse[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;

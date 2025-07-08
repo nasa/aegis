@@ -1,17 +1,3 @@
-export async function getFolders(
-  mission: number,
-  uuid?: string
-): Promise<WrappedResponse<Folder[]>> {
-  const queryParams = new URLSearchParams();
-  queryParams.append("missionId", mission.toString());
-  if (uuid) {
-    queryParams.append("uuid", uuid);
-  }
-  const res = await fetch(`/api/v1/folder?${queryParams.toString()}`);
-  const response: WrappedResponse<Folder[]> = await res.json();
-  return response;
-}
-
 export async function upsertFolders(folders: Folder[]): Promise<WrappedResponse<Folder[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;

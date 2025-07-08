@@ -1,14 +1,3 @@
-export async function getEvas(missionId: number = null): Promise<WrappedResponse<Eva[]>> {
-  let res: Response;
-  if (missionId) {
-    res = await fetch(`/api/v1/eva?missionId=${missionId}`);
-  } else {
-    res = await fetch(`/api/v1/eva`);
-  }
-  const response: WrappedResponse<Eva[]> = await res.json();
-  return response;
-}
-
 export async function upsertEvas(evas: Eva[]): Promise<WrappedResponse<Eva[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;

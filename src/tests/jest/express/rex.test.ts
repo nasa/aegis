@@ -58,11 +58,6 @@ describe("REX API Endpoint", () => {
   let aegisSessionSigCookie: string;
   let newRex: Rex = generateBlankRex({ name: "Jest Rex-1", evaUuid: "someEvaUuid" });
 
-  test("Returns auth failure", async () => {
-    const res = await supertest(app).get("/api/v1/rex");
-    expect(res.statusCode).toBe(401);
-  });
-
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
@@ -71,39 +66,6 @@ describe("REX API Endpoint", () => {
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
     aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
-  describe("GET request", () => {
-    test("No permissions", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/rex")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
-
-      expect(res.statusCode).toBe(401);
-    });
-
-    test("Returns all Rexes for mission", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/rex")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toBeGreaterThan(1);
-    });
-
-    test("No Rexes returned", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/rex")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toEqual(0);
-    });
   });
 
   //upsert and delete tests must occur in order
@@ -223,15 +185,6 @@ describe("REX API Endpoint", () => {
 describe("Auth with emss-token header", () => {
   const emssToken = process.env.EMSS_TOKEN || "";
   let newRex: Rex = generateBlankRex({ name: "Jest Rex-1", evaUuid: "someEvaUuid" });
-
-  test("GET request succeeds with emss-token", async () => {
-    const res = await supertest(app)
-      .get("/api/v1/rex")
-      .set("emss-token", emssToken)
-      .query({ missionId: testMissions[0].id });
-    expect(res.statusCode).toBe(200);
-    expect(res.body.status).toBe("success");
-  });
 
   test("POST request succeeds with emss-token", async () => {
     const requestBody: RexUpsertRequest = {

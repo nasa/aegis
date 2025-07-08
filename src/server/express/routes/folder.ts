@@ -1,5 +1,4 @@
 import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
 
 import cloneDeep from "lodash/cloneDeep";
 
@@ -17,49 +16,6 @@ import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { convertFolderDbToStore, convertFolderStoreToDb } from "store/storeUtils/folder";
 
 const router = express.Router();
-
-const parseQuery = (query: Query) => {
-  const { missionId, socketId, uuid } = query;
-  const queryObj = {
-    missionId: missionId ? parseInt(missionId as string) : undefined,
-    socketId: socketId ? (socketId as string) : undefined,
-    uuid: uuid ? uuid.toString() : null,
-  };
-  return queryObj;
-};
-
-// get
-router.get("/", async (req: Request, res: Response): Promise<void> => {
-  const queryObj = parseQuery(req.query);
-  const emssToken = req.headers["emss-token"] as string;
-
-  const viewPermission = await hasPerms({
-    missionId: queryObj.missionId,
-    permission: "view",
-    user: req.session.user,
-    emssToken,
-  });
-  if (!viewPermission) {
-    res.status(401).json({ status: "failure", message: "Unauthorized" });
-    return;
-  }
-  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
-    return;
-  }
-  try {
-    const folders: Folder[] = await getFolders(queryObj.missionId, queryObj.uuid);
-
-    res.status(200).json({
-      status: "success",
-      message: "Folders retrieved",
-      data: folders,
-    });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
-  }
-});
 
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {

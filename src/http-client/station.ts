@@ -1,14 +1,3 @@
-export async function getStations(missionId: number = null): Promise<WrappedResponse<Station[]>> {
-  let res: Response;
-  if (missionId) {
-    res = await fetch(`/api/v1/station?missionId=${missionId}`);
-  } else {
-    res = await fetch(`/api/v1/station`);
-  }
-  const response: WrappedResponse<Station[]> = await res.json();
-  return response;
-}
-
 export async function upsertStations(stations: Station[]): Promise<WrappedResponse<Station[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;

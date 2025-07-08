@@ -1,10 +1,3 @@
-export async function getRexes(missionId: number = null): Promise<WrappedResponse<Rex[]>> {
-  const res = await fetch(`/api/v1/rex?missionId=${missionId}`);
-
-  const response: WrappedResponse<Rex[]> = await res.json();
-  return response;
-}
-
 export async function upsertRexes(rexes: Rex[]): Promise<WrappedResponse<Rex[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;

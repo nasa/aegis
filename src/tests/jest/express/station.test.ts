@@ -58,11 +58,6 @@ describe("Station API Endpoint", () => {
   let aegisSessionSigCookie: string;
   let newStation: Station = generateBlankStation({ name: "Jest Station-1" });
 
-  test("Returns auth failure", async () => {
-    const res = await supertest(app).get("/api/v1/station");
-    expect(res.statusCode).toBe(401);
-  });
-
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
@@ -71,50 +66,6 @@ describe("Station API Endpoint", () => {
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
     aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
-  describe("GET request", () => {
-    test("No permissions", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/station")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
-
-      expect(res.statusCode).toBe(401);
-    });
-
-    test("Returns single station by station uuid", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/station")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id, uuid: testStations[0].uuid });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toEqual(1);
-    });
-
-    test("Returns all stations for a mission", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/station")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toBeGreaterThan(1);
-    });
-
-    test("No stations returned", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/station")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toEqual(0);
-    });
   });
 
   //upsert and delete tests must occur in order.
@@ -235,15 +186,6 @@ describe("Station API Endpoint", () => {
 describe("Auth with emss-token header", () => {
   const emssToken = process.env.EMSS_TOKEN || "";
   let newStation: Station = generateBlankStation({ name: "Jest Station-1" });
-
-  test("GET request succeeds with emss-token", async () => {
-    const res = await supertest(app)
-      .get("/api/v1/station")
-      .set("emss-token", emssToken)
-      .query({ missionId: testMissions[0].id });
-    expect(res.statusCode).toBe(200);
-    expect(res.body.status).toBe("success");
-  });
 
   test("POST request succeeds with emss-token", async () => {
     const requestBody: StationUpsertRequest = {
