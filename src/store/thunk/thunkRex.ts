@@ -329,7 +329,7 @@ export const thunkAddCollectionId = appCreateAsyncThunk<{
   // update the rex in the database
   const upsertRexRes = await httpClient_Rex.upsertRexes([runningRexFromDb]);
   if (upsertRexRes.status !== "success") {
-    throw new Error("Error upserting Rexes for action mass: " + upsertRexRes.message);
+    throw new Error("Error upserting Rexes for action collection ID: " + upsertRexRes.message);
   }
 });
 
