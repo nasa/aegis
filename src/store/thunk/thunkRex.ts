@@ -228,19 +228,20 @@ export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
     dispatch(upsertRexByField(runningRexFromDb.uuid, "traverseEntries", newEntries, true));
     dispatch(upsertRexFromDb(runningRexFromDb));
   } else if (entryType === "action") {
-    const newEntry: ActionEntry = {
-      rexStatus,
-      mass: null,
-      markerId: null,
-      containerId: null,
-      secondaryContainerId: null,
-    };
     const newEntries = cloneDeep(runningRexFromDb.actionEntries) || {};
     if (newEntries[uuid]) {
-      newEntry.mass = newEntries[uuid].mass;
-      newEntries[uuid] = newEntry;
+      newEntries[uuid] = {
+        ...newEntries[uuid],
+        rexStatus,
+      };
     } else {
-      newEntries[uuid] = newEntry;
+      newEntries[uuid] = {
+        rexStatus,
+        mass: null,
+        markerId: null,
+        containerId: null,
+        secondaryContainerId: null,
+      };
     }
     runningRexFromDb.actionEntries = newEntries;
     dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
