@@ -166,27 +166,34 @@ export function adjustGridIndex(
   lineMod: number,
   isTopLeft: boolean
 ): GridIndex {
-  let startX = index.col;
-  let startY = index.row;
+  let gridCornerX = index.col;
+  let gridCornerY = index.row;
+
+  const rowRemainder = (numRows - 1) % lineMod;
+  const colRemainder = (numCols - 1) % lineMod;
   if (isTopLeft) {
-    if (startX > 0) {
-      startX = Math.floor((startX - 1) / lineMod) * lineMod;
+    gridCornerX = Math.floor((gridCornerX - 1) / lineMod) * lineMod + colRemainder;
+    gridCornerY = Math.floor((gridCornerY - 1) / lineMod) * lineMod + rowRemainder;
+
+    if (gridCornerX < 0) {
+      gridCornerX += lineMod;
     }
-    if (startY > 0) {
-      startY = Math.floor((startY - 1) / lineMod) * lineMod;
-    }
-    if (startY < lineMod) {
-      startY = lineMod - 1;
+    if (gridCornerY < 0) {
+      gridCornerY += lineMod;
     }
   } else {
-    startX = Math.ceil((startX + 1) / lineMod) * lineMod;
-    if (startX >= numCols) {
-      startX -= lineMod;
+    gridCornerX = Math.ceil((gridCornerX + 1) / lineMod) * lineMod + colRemainder;
+    gridCornerY = Math.ceil((gridCornerY + 1) / lineMod) * lineMod + rowRemainder;
+
+    if (gridCornerX >= numCols) {
+      gridCornerX -= lineMod;
     }
-    startY = Math.ceil((startY + 1) / lineMod) * lineMod - 1;
+    if (gridCornerY >= numRows) {
+      gridCornerY -= lineMod;
+    }
   }
 
-  return { row: startY, col: startX };
+  return { row: gridCornerY, col: gridCornerX };
 }
 
 /**
