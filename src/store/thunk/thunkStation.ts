@@ -230,20 +230,26 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   stationUuid: string;
 }>("stationSave", async ({ stationUuid }, { dispatch, getState }) => {
   if (!stationUuid) return;
-  const station = getState().station.stations.find((s) => s.uuid === stationUuid);
+  const newStation = getState().station.stations.find((s) => s.uuid === stationUuid);
+  const oldStation = getState().station.stationsFromDb.find((s) => s.uuid === stationUuid);
+
   const stationActions = getState().action.actions.filter(
-    (action) => action.stationUuid === station.uuid
+    (action) => action.stationUuid === newStation.uuid
   );
   const stationActionsFromDb = getState().action.actionsFromDb.filter(
-    (action) => action.stationUuid === station.uuid
+    (action) => action.stationUuid === newStation.uuid
   );
 
   // full update traverses (including name) around this station in any eva using this station
-  await dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid, saveToDb: true }));
+  if (!isEqual(newStation.location, oldStation.location)) {
+    await dispatch(
+      thunkUpdateTraversesAroundStation({ stationUuid: newStation.uuid, saveToDb: true })
+    );
+  }
 
   // upsert the changed Station to the DB via internal API call
   const updatedStation = {
-    ...station,
+    ...newStation,
     updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
   const stationUpsertResponse = await httpClient_station.upsertStations([updatedStation]);
@@ -269,8 +275,7 @@ export const thunkSaveStation = appCreateAsyncThunk<{
 
   // if the walkback is in edit mode, cancel it out
   const stationMapDirective =
-    getState().map.mapDirective?.uuid === station.uuid ? getState().map.mapDirective : null;
-
+    getState().map.mapDirective?.uuid === newStation.uuid ? getState().map.mapDirective : null;
   if (stationMapDirective?.mapAction === "editPolyline") {
     // handle walkback edit state
     dispatch(
@@ -281,9 +286,9 @@ export const thunkSaveStation = appCreateAsyncThunk<{
     );
   }
 
-  dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
-  dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
-  dispatch(resetAllStationCirclesUIStates({ stationUuid: station.uuid }));
+  dispatch(thunkCancelMarkerMapDirective({ uuid: newStation.uuid }));
+  dispatch(setStationEditMode({ stationUuid: newStation.uuid, editMode: false }));
+  dispatch(resetAllStationCirclesUIStates({ stationUuid: newStation.uuid }));
 });
 
 export const thunkStationCancel = appCreateAsyncThunk<{

@@ -150,7 +150,7 @@ const PresetEditorRight: FunctionComponent = () => {
                 <Button
                   onClick={() => {
                     if (modified) {
-                      dispatch(thunkSavePreset({ preset: selectedPreset }));
+                      dispatch(thunkSavePreset({ presetUuid: selectedPreset.uuid }));
                     }
                   }}
                   icon={faFloppyDisk}
