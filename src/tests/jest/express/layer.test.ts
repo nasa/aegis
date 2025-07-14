@@ -4,13 +4,13 @@ import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import LayerFactory from "../factories/LayerFactory";
-import { Mission_db, Layer_db, User_db } from "server/database/models/_allModels";
+import { Mission_db, Layer_db, App_User_db } from "server/database/models/_allModels";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankLayer } from "store/storeUtils/layer";
 
 let testMissions: Mission_db[];
-let testUser: User_db;
+let testUser: App_User_db;
 let testLayers: Layer_db[];
 
 beforeAll(async () => {
@@ -236,7 +236,7 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();

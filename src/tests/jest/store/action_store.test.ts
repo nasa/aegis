@@ -4,12 +4,12 @@ import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import { createCustomTestStore } from "../factories/makeTestStore";
-import { Mission_db, User_db } from "server/database/models/_allModels";
+import { Mission_db, App_User_db } from "server/database/models/_allModels";
 import { initialState as actionInitialState } from "store/action";
 import { generateBlankAction } from "store/storeUtils/action";
 
 let testMission: Mission_db;
-let testAdmin: User_db;
+let testAdmin: App_User_db;
 
 beforeAll(async () => {
   await getORM();
@@ -150,7 +150,7 @@ afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
   await em.nativeDelete(Mission_db, { id: testMission.id });
-  await em.nativeDelete(User_db, { id: testAdmin.id });
+  await em.nativeDelete(App_User_db, { id: testAdmin.id });
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();
 });

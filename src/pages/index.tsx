@@ -1,14 +1,6 @@
 import { useAppDispatch } from "utils/useAppDispatch";
-
 import { useNavigate } from "react-router";
-import {
-  Dispatch,
-  FormEventHandler,
-  FunctionComponent,
-  SetStateAction,
-  useEffect,
-  useState,
-} from "react";
+import { FormEventHandler, FunctionComponent, useEffect, useState } from "react";
 import styles from "pages/index.module.css";
 import { login, isLoggedIn, logout } from "http-client/login";
 import { getMissionHomepageItems } from "http-client/mission";
@@ -17,14 +9,17 @@ import PetInterval from "components/page/petInterval";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faPersonWalkingArrowRight, faTv } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip } from "react-tooltip";
+import { setAppUser } from "store/user";
+import { deepEqual, useAppSelector } from "utils/useAppSelector";
 
-const Login = ({ setUser }: { setUser: Dispatch<SetStateAction<User>> }) => {
+const Login = () => {
+  const dispatch = useAppDispatch();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleLogin = async (guest: boolean = false) => {
-    let response: WrappedResponse<SessionData>;
+    let response: WrappedResponse<AppUser>;
     if (guest) {
       response = await login("guest", "guest");
     } else {
@@ -32,10 +27,22 @@ const Login = ({ setUser }: { setUser: Dispatch<SetStateAction<User>> }) => {
     }
     if (response.status === "success") {
       setErrorMessage("");
-      setUser(response.data.user);
+      dispatch(
+        setAppUser({
+          isLoggedIn: true,
+          user: response.data,
+          missionPerms: null,
+        })
+      );
     } else {
       setErrorMessage(response.message);
-      setUser(null);
+      dispatch(
+        setAppUser({
+          isLoggedIn: false,
+          user: null,
+          missionPerms: null,
+        })
+      );
     }
   };
 
@@ -98,11 +105,21 @@ const Login = ({ setUser }: { setUser: Dispatch<SetStateAction<User>> }) => {
   );
 };
 
-const Logout = ({ setUser }: { setUser: Dispatch<SetStateAction<User>> }) => {
+const Logout = () => {
+  const dispatch = useAppDispatch();
+
   const handleLogoutButtonClick = async () => {
     const response = await logout();
     if (response.data) {
-      setUser(null);
+      dispatch(
+        setAppUser({
+          isLoggedIn: false,
+          user: null,
+          missionPerms: null,
+        })
+      );
+    } else {
+      // handle failing to log out? Not sure how this would happen.
     }
   };
 
@@ -117,12 +134,12 @@ const Logout = ({ setUser }: { setUser: Dispatch<SetStateAction<User>> }) => {
   );
 };
 
-const MissionSelect = ({ user }: { user: User }) => {
+const MissionSelect = ({ appUser }: { appUser: AppUser }) => {
   const [missionHomepageItems, setMissionHomepageItems] = useState<MissionHomepageItem[]>([]);
 
   useEffect(() => {
     async function populateData() {
-      if (!user) return;
+      if (!appUser) return;
 
       const missionHomepageItemsRes = await getMissionHomepageItems();
       setMissionHomepageItems(missionHomepageItemsRes.data);
@@ -131,7 +148,7 @@ const MissionSelect = ({ user }: { user: User }) => {
     populateData().catch(() => {
       // Something went wrong. Eventually would like a logger here.
     });
-  }, [user]);
+  }, [appUser]);
 
   return (
     <>
@@ -212,20 +229,33 @@ const MissionHomepageItem = ({
 };
 
 const Left: FunctionComponent = () => {
-  const [user, setUser] = useState<User>(null);
+  const dispatch = useAppDispatch();
+  const appUser = useAppSelector((state) => state.user.appUser, deepEqual);
 
   // Populate the user store with iron session login state via API call
   useEffect(() => {
     const isLoggedInAsync = async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
-        setUser(response.data.user);
+        dispatch(
+          setAppUser({
+            isLoggedIn: true,
+            user: response.data,
+            missionPerms: null,
+          })
+        );
       } else {
-        setUser(null);
+        dispatch(
+          setAppUser({
+            isLoggedIn: false,
+            user: null,
+            missionPerms: null,
+          })
+        );
       }
     };
     isLoggedInAsync();
-  }, []);
+  }, [dispatch]);
 
   return (
     <div className={styles.left}>
@@ -262,13 +292,13 @@ const Left: FunctionComponent = () => {
             SK.
           </p>
         </div>
-        {user ? (
+        {appUser ? (
           <>
-            <MissionSelect user={user} />
-            <Logout setUser={setUser} />
+            <MissionSelect appUser={appUser} />
+            <Logout />
           </>
         ) : (
-          <Login setUser={setUser} />
+          <Login />
         )}
       </div>
       <div className={styles.leftBottom}>

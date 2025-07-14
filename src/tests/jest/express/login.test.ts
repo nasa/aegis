@@ -2,9 +2,9 @@ import supertest from "supertest";
 import app from "server/express/restApi";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
-import { User_db } from "server/database/models/user.model";
+import { App_User_db } from "server/database/models/app_user.model";
 
-let testAdmin: User_db;
+let testAdmin: App_User_db;
 
 let aegisSessionCookie: string = "";
 let aegisSessionSigCookie: string = "";
@@ -39,13 +39,11 @@ describe("Login functions", () => {
       status: "success",
       message: "login successful",
       data: {
-        user: {
-          id: testAdmin.id,
-          username: testAdmin.username,
-          isAdmin: true,
-          isSuperAdmin: false,
-          permissionList: null,
-        },
+        id: testAdmin.id,
+        username: testAdmin.username,
+        isAdmin: true,
+        isSuperAdmin: false,
+        permissionList: null,
       },
     });
     aegisSessionCookie = response.header["set-cookie"][0];
@@ -60,13 +58,11 @@ describe("Login functions", () => {
       status: "success",
       message: "Login checked",
       data: {
-        user: {
-          id: testAdmin.id,
-          username: testAdmin.username,
-          isAdmin: true,
-          isSuperAdmin: false,
-          permissionList: null,
-        },
+        id: testAdmin.id,
+        username: testAdmin.username,
+        isAdmin: true,
+        isSuperAdmin: false,
+        permissionList: null,
       },
     });
   });
@@ -86,7 +82,7 @@ describe("Login functions", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  await em.nativeDelete(User_db, { id: testAdmin.id });
+  await em.nativeDelete(App_User_db, { id: testAdmin.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();

@@ -2,17 +2,13 @@ import uniq from "lodash/uniq";
 import remove from "lodash/remove";
 import find from "lodash/find";
 import isEqual from "lodash/isEqual";
-
 import { globalValues } from "./global";
 import type { DefaultEventsMap, Socket } from "socket.io";
 
 export const setupSocketIO = (): void => {
   // initialize the global object that will store the visitor tracking data and last edit events
-
   const visitorsData: VisitorData[] = globalValues.serverSocketStatus.visitorsData;
-
   let socketInterval: NodeJS.Timeout = null;
-
   const io = globalValues.socketio;
 
   // Listen for connection events
@@ -22,37 +18,31 @@ export const setupSocketIO = (): void => {
       // emit AEGIS app version to client that just connected
       socket.emit("version", globalValues.appVersion);
 
-      socket.on("visitorJoin", (visitorJoin: VisitorJoin) => {
+      socket.on("visitorJoin", (visitorData: VisitorData) => {
         try {
           // check app version and git commit
-          if (!isEqual(visitorJoin.appVersion, globalValues.appVersion)) {
+          if (!isEqual(visitorData.appVersion, globalValues.appVersion)) {
             console.log(
-              `SocketIO - vistiorJoin: appVersion mismatch between client and server
-          client: ${JSON.stringify(visitorJoin.appVersion)}
+              `SocketIO - visitorJoin: appVersion mismatch between client and server
+          client: ${JSON.stringify(visitorData.appVersion)}
           server: ${JSON.stringify(globalValues.appVersion)}`
             );
             return;
           }
 
           // join the room for this mission
-          socket.join(visitorJoin.missionId.toString());
+          socket.join(visitorData.missionId.toString());
 
-          const visitorData: VisitorData = {
-            socketId: socket.id,
-            missionId: visitorJoin.missionId,
-            type: visitorJoin.type,
-          };
-
-          // remove this socket from tracking list if it exists
+          // set this visitor's information on the server's global
+          // remove this socket from tracking list if it exists and push the new one
           remove(visitorsData, (item) => {
             return item.socketId === visitorData.socketId;
           });
           visitorsData.push(visitorData);
 
-          const statusFromServer = getStatusFromServer(visitorJoin.missionId);
-
-          // emit visitor count to all clients in this room including this client
-          io.to(visitorJoin.missionId.toString()).emit("statusFromServer", statusFromServer);
+          // emit new status to all clients in this room including this client
+          const statusFromServer = getStatusFromServer(visitorData.missionId);
+          io.to(visitorData.missionId.toString()).emit("statusFromServer", statusFromServer);
         } catch (error) {
           console.error("SocketIO - visitorJoin: ", error);
         }
@@ -69,7 +59,7 @@ export const setupSocketIO = (): void => {
             return item.socketId === visitorBeingRemoved.socketId;
           });
           const statusFromServer = getStatusFromServer(visitorBeingRemoved.missionId);
-          // emit visitor count to all clients in this room
+          // emit updated visitor count to all clients in this room
           socket
             .to(visitorBeingRemoved.missionId.toString())
             .emit("statusFromServer", statusFromServer);
@@ -78,10 +68,10 @@ export const setupSocketIO = (): void => {
         }
       });
 
-      // sent visitor counts to all clients in every room every 10 seconds
+      // send server status to all clients in every room every 10 seconds
       if (!socketInterval) {
         socketInterval = setInterval(() => {
-          // get unique missionIds from visitorTracking. These are used as room names
+          // get unique missionIds to find all the rooms
           const missionIds = uniq(visitorsData.map((item) => item.missionId));
           for (const missionId of missionIds) {
             const statusFromServer = getStatusFromServer(missionId);
@@ -98,25 +88,26 @@ export const getStatusFromServer = (missionId: number): StatusFromServer => {
   let viewerCounts = 0;
   const visitorsData = globalValues.serverSocketStatus.visitorsData;
   for (const visitorData of visitorsData) {
-    if (visitorData.type.includes("editor") && visitorData.missionId === missionId) {
+    if (visitorData.permission.includes("editor") && visitorData.missionId === missionId) {
       editorCounts++;
     }
-    if (visitorData.type.includes("viewer") && visitorData.missionId === missionId) {
+    if (visitorData.permission.includes("viewer") && visitorData.missionId === missionId) {
       viewerCounts++;
     }
   }
-  const visitorCounts: VisitorCounts = {
-    editors: editorCounts,
-    viewers: viewerCounts,
-  };
-  return {
-    visitorCounts,
+  const serverStatus: StatusFromServer = {
+    visitorCounts: {
+      editors: editorCounts,
+      viewers: viewerCounts,
+    },
     timestamp: Date.now(),
+    serverVersion: globalValues.appVersion,
   };
+  return serverStatus;
 };
 
 /**
- * Server emits an upsert message to all cients in the mission room
+ * Server emits an upsert message to all clients in the mission room
  * @param payload
  */
 export const emitStoreUpsert = (payload: StoreUpsert): void => {
@@ -130,7 +121,7 @@ export const emitStoreUpsert = (payload: StoreUpsert): void => {
 };
 
 /**
- * Server emits a delete message to all cients in the mission room
+ * Server emits a delete message to all clients in the mission room
  * @param payload
  */
 export const emitStoreDelete = (payload: StoreDelete): void => {

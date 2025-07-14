@@ -27,7 +27,6 @@ import { obliterateState as rexObliterateState } from "store/rex";
 import { obliterateState as stationObliterateState } from "store/station";
 import { obliterateState as stmObliterateState } from "store/stm";
 import { obliterateState as traverseObliterateState } from "store/traverse";
-import { obliterateState as userObliterateState } from "store/user";
 import { obliterateState as measurementObliterateState } from "store/measure";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 
@@ -61,6 +60,7 @@ export const thunkDeletePoiAndActionsFromStore = appCreateAsyncThunk<{ poiUuid: 
     dispatch(thunkSetRightPanelIsOpenIfAuto(false));
   }
 );
+
 export const thunkObliterateEntireStore = appCreateAsyncThunk<void>(
   "cross/obliterateEntireStore",
   async (__, { dispatch }) => {
@@ -77,7 +77,7 @@ export const thunkObliterateEntireStore = appCreateAsyncThunk<void>(
     dispatch(stationObliterateState());
     dispatch(stmObliterateState());
     dispatch(traverseObliterateState());
-    dispatch(userObliterateState());
+    //dispatch(userObliterateState()); // do not remove user state.
     dispatch(measurementObliterateState());
   }
 );

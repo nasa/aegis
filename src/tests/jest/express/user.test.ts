@@ -1,13 +1,13 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import { User_db } from "server/database/models/_allModels";
+import { App_User_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankUser } from "store/storeUtils/user";
 
-let testUser: User_db;
-let testSuperAdmin: User_db;
+let testUser: App_User_db;
+let testSuperAdmin: App_User_db;
 
 beforeAll(async () => {
   await getORM();
@@ -24,7 +24,7 @@ beforeAll(async () => {
 describe("User API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newUser: User = generateBlankUser({
+  let newUser: AppUser = generateBlankUser({
     username: "JestUserForUserTest",
     password: "password",
   });
@@ -83,7 +83,7 @@ describe("User API Endpoint", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toEqual("success");
-      expect(res.body.data.user.isSuperAdmin).toBeTruthy();
+      expect(res.body.data.isSuperAdmin).toBeTruthy();
       aegisSessionCookie = res.header["set-cookie"][0];
       aegisSessionSigCookie = res.header["set-cookie"][1];
     });
@@ -127,7 +127,7 @@ describe("User API Endpoint", () => {
 
         //check if it was added to the db
         const em = getEM();
-        const userRef = await em.findOne(User_db, res.body.data[0].id);
+        const userRef = await em.findOne(App_User_db, res.body.data[0].id);
         expect(userRef).not.toBeNull();
         newUser = { ...res.body.data[0] };
       });
@@ -168,8 +168,8 @@ describe("User API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  await em.nativeDelete(User_db, { id: testUser.id });
-  await em.nativeDelete(User_db, { id: testSuperAdmin.id });
+  await em.nativeDelete(App_User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testSuperAdmin.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();

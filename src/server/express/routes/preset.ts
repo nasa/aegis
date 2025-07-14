@@ -20,7 +20,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const editPermission = await hasPerms({
     missionId,
     permission: "edit",
-    user: req.session.user,
+    appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {
@@ -32,7 +32,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     //add owner id to the evas
     const presetsToUpsert = presets.map((p) => {
       if (!p.ownerId) {
-        return { ...p, ownerId: req.session?.user?.id || -1 };
+        return { ...p, ownerId: req.session?.appUser?.id || -1 };
       } else {
         return p;
       }
@@ -74,7 +74,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const editPermission = await hasPerms({
     missionId,
     permission: "edit",
-    user: req.session.user,
+    appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {

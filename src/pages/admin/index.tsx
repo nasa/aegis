@@ -6,8 +6,7 @@ import Header from "components/interface/header";
 
 const Index: React.FunctionComponent = () => {
   const navigate = useNavigate();
-  const [admin, setAdmin] = useState(false);
-  const [user, setUser] = useState<User>(null);
+  const [user, setUser] = useState<AppUser>(null);
   const navigateMission = async () => {
     await navigate("/admin/missions");
   };
@@ -20,14 +19,17 @@ const Index: React.FunctionComponent = () => {
     await navigate("/admin/poi");
   };
 
-  //on load check login and mission id
+  const navigateVisitorData = async () => {
+    await navigate("/admin/visitorData");
+  };
+
+  //on load check login
   useEffect(() => {
     async function adminCheck() {
       const response = await isLoggedIn();
       if (response.status === "success") {
-        const user = response.data.user;
+        const user = response.data;
         if (user.isAdmin || user.isSuperAdmin) {
-          setAdmin(true);
           setUser(user);
         } else {
           navigate("/"); //Redirect to homepage
@@ -47,27 +49,34 @@ const Index: React.FunctionComponent = () => {
       description: "Modify existing missions or add new ones",
       button: "Add/Edit Missions",
       onClick: navigateMission,
-      userOneOnly: true,
+      enabled: true,
     },
     {
       title: "Users",
       description: "Register new users, or edit the old ones (super admin only)",
       button: "Register or Edit Users",
       onClick: navigateUser,
-      userOneOnly: user && user.isSuperAdmin,
+      enabled: user?.isSuperAdmin,
     },
     {
       title: "POIs",
       description: "Add new POIs or edit existing ones",
       button: "Add/Edit POIs",
       onClick: navigatePOI,
-      userOneOnly: true,
+      enabled: true,
+    },
+    {
+      title: "Visitor Data",
+      description: "View data on current visitors via sockets",
+      button: "View",
+      onClick: navigateVisitorData,
+      enabled: user?.isSuperAdmin,
     },
   ];
 
   return (
     <>
-      {admin ? (
+      {user?.isAdmin || user?.isSuperAdmin ? (
         <>
           <div>
             <div className={styles.pageStyle}>
@@ -79,7 +88,7 @@ const Index: React.FunctionComponent = () => {
                   {tileLoop.map((tile) => (
                     <div
                       key={tile.title}
-                      className={tile.userOneOnly ? styles.actionTile : styles.disabledTile}
+                      className={tile.enabled ? styles.actionTile : styles.disabledTile}
                     >
                       <div className={styles.content}>
                         <h2 className={styles.title}>{tile.title}</h2>
@@ -87,9 +96,9 @@ const Index: React.FunctionComponent = () => {
                           <p>{tile.description}</p>
                         </div>
                         <button
-                          className={tile.userOneOnly ? styles.button : styles.disabledButton}
+                          className={tile.enabled ? styles.button : styles.disabledButton}
                           onClick={tile.onClick}
-                          disabled={!tile.userOneOnly}
+                          disabled={!tile.enabled}
                         >
                           {tile.button}
                         </button>

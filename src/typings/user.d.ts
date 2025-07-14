@@ -1,4 +1,4 @@
-interface User {
+interface AppUser {
   id: number;
   username: string;
   password?: string;
@@ -17,7 +17,7 @@ interface Permission {
   };
 }
 
-type User_db_type = Omit<User, "createdAt" | "updatedAt"> & {
+type AppUser_db_type = Omit<AppUser, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };

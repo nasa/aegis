@@ -25,13 +25,13 @@ const PoiPage: React.FunctionComponent = () => {
   const [progressBarText, setProgressBarText] = useState<string>("");
   const [progressBarColor, setProgressBarColor] = useState<string>("#00ff00");
   //get current user data
-  const [currentUser, setCurrentUser] = useState<User>();
+  const [currentUser, setCurrentUser] = useState<AppUser>();
   //on load check login and mission id
   useEffect(() => {
     const isLoggedInAsync = async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
-        const user = response.data.user;
+        const user = response.data;
         if (user.isAdmin || user.isSuperAdmin) {
           setAdmin(true);
           setCurrentUser(user);

@@ -24,9 +24,9 @@ router.get("/", async (req: Request, res: Response) => {
   const viewPermission = await hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
-    user: req.session.user,
+    appUser: req.session.appUser,
   });
-  if (!viewPermission || (!req.session.user.isAdmin && !req.session.user.isSuperAdmin)) {
+  if (!viewPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }

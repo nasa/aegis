@@ -4,7 +4,7 @@ import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useParams, useSearchParams } from "react-router";
 import ReactDOM from "react-dom";
 import styles from "./mission.module.css";
-import { setUserStore } from "store/user";
+import { setAppUser } from "store/user";
 import { Tooltip } from "react-tooltip";
 import { isLoggedIn } from "http-client/login";
 import { useNavigate } from "react-router";
@@ -103,20 +103,18 @@ const Main = (): JSX.Element => {
       const response = await isLoggedIn();
       if (response.status === "success") {
         let missionPerms: Permission = null;
-        if (response.data.user.isSuperAdmin) {
+        if (response.data.isSuperAdmin) {
           missionPerms = { missionId: intMissionId, permissions: { view: true, edit: true } };
         } else {
-          missionPerms = response.data.user.permissionList?.find(
+          missionPerms = response.data.permissionList?.find(
             (permission) => permission.missionId === intMissionId
           );
           if (!missionPerms || (!missionPerms.permissions.view && !missionPerms.permissions.edit))
             navigate("/");
         }
-        dispatch(
-          setUserStore({ isLoggedIn: true, user: response.data.user, missionPerms: missionPerms })
-        );
+        dispatch(setAppUser({ isLoggedIn: true, user: response.data, missionPerms: missionPerms }));
         setPermissions(missionPerms);
-        console.log("Logged in to AEGIS with user:", response.data.user.username);
+        console.log("Logged in to AEGIS with user:", response.data.username);
       } else {
         navigate("/");
       }
@@ -132,7 +130,7 @@ const Main = (): JSX.Element => {
   }, [missionStore?.mission?.name]);
 
   // Put socket client into it's own react portal. If it's not in a portal, it will cause
-  //  the react context internally to re-render everytime a socket statuses comes in, which causes all
+  //  the react context internally to re-render every time a socket statuses comes in, which causes all
   //  descendants to re-render (like the map), which is not desired.
   function SocketClientPortal({ intMissionId }: { intMissionId: number }) {
     return ReactDOM.createPortal(<SocketClient missionId={intMissionId} />, document.body);

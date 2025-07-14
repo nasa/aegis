@@ -10,8 +10,8 @@ const router = express.Router();
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
   const viewPermission =
-    req.session?.user?.isSuperAdmin ||
-    req.session?.user?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
+    req.session?.appUser?.isSuperAdmin ||
+    req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
     (emssToken && emssToken === process.env.EMSS_TOKEN);
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -21,11 +21,11 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     let records: MissionHomepageItem[];
 
     //super admin can see all missions
-    if (req.session.user.isSuperAdmin) {
+    if (req.session.appUser.isSuperAdmin) {
       records = await getHomepageMissionItems();
     } else {
       //return all missions that they have permission for
-      const viewableMissions: number[] = req.session.user.permissionList.map((p) => {
+      const viewableMissions: number[] = req.session.appUser.permissionList.map((p) => {
         if (p.permissions.view) return p.missionId;
       });
       records = await getHomepageMissionItems(viewableMissions);

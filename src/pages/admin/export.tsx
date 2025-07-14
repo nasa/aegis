@@ -40,7 +40,7 @@ const ExportPage: React.FunctionComponent = () => {
     const isLoggedInAsync = async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
-        const user = response.data.user;
+        const user = response.data;
         if (!(user.isAdmin || user.isSuperAdmin)) {
           navigate("/admin"); //Redirect to homepage
         }

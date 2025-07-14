@@ -1,15 +1,15 @@
-export async function getUsers(userId: number = null): Promise<WrappedResponse<User[]>> {
+export async function getUsers(userId: number = null): Promise<WrappedResponse<AppUser[]>> {
   let res: Response;
   if (userId) {
     res = await fetch(`/api/v1/users?userId=${userId}`);
   } else {
     res = await fetch(`/api/v1/users`);
   }
-  const response: WrappedResponse<User[]> = await res.json();
+  const response: WrappedResponse<AppUser[]> = await res.json();
   return response;
 }
 
-export async function upsertUsers(users: User[]): Promise<WrappedResponse<User[]>> {
+export async function upsertUsers(users: AppUser[]): Promise<WrappedResponse<AppUser[]>> {
   const requestBody: UserUpsertRequest = { users };
   const res = await fetch(`/api/v1/users`, {
     method: "POST",
@@ -18,7 +18,7 @@ export async function upsertUsers(users: User[]): Promise<WrappedResponse<User[]
     },
     body: JSON.stringify(requestBody),
   });
-  const response: WrappedResponse<User[]> = await res.json();
+  const response: WrappedResponse<AppUser[]> = await res.json();
   if (res.status !== 200) {
     alert(
       `Error saving users to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`

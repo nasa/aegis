@@ -2,7 +2,7 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import {
   Mission_db,
-  User_db,
+  App_User_db,
   Station_db,
   Poi_db,
   Action_db,
@@ -28,7 +28,7 @@ import { getAll } from "../../../server/express/routes/all";
 import isEqual from "lodash/isEqual";
 
 // These global variables will store our test data
-let testUser: User_db;
+let testUser: App_User_db;
 let testMission: Mission_db;
 let duplicatedMissionId: number;
 let uuidMaps: EntityMaps;
@@ -1855,7 +1855,7 @@ describe("Mission Duplication Tests", () => {
     }
 
     // Only delete the test user, not the original mission
-    await em.nativeDelete(User_db, { id: testUser.id });
+    await em.nativeDelete(App_User_db, { id: testUser.id });
 
     // Close the ORM connection
     await closeORM();
