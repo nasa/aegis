@@ -1,7 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import {
-  User_db,
+  App_User_db,
   Mission_db,
   STM_Level1_db,
   STM_Level2_db,
@@ -20,7 +20,7 @@ import {
   generateBlankStmLvl3,
 } from "store/storeUtils/stm";
 
-let testUser: User_db;
+let testUser: App_User_db;
 let testMissions: Mission_db[];
 let stmLevel1s: STM_Level1_db[];
 
@@ -510,7 +510,7 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();

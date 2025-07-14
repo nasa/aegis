@@ -16,7 +16,7 @@ const Missions: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [missions, setMissions] = useState<Mission[]>([]);
-  const [user, setUser] = useState<User>(null);
+  const [user, setUser] = useState<AppUser>(null);
 
   const loadMissionsFromDB = useCallback(async () => {
     const missionList = (await getMissions()).data;
@@ -48,11 +48,8 @@ const Missions: React.FunctionComponent = () => {
   useEffect(() => {
     async function adminCheck() {
       const response = await isLoggedIn();
-      if (
-        response.status === "success" &&
-        (response.data.user.isAdmin || response.data.user.isSuperAdmin)
-      ) {
-        setUser(response.data.user);
+      if (response.status === "success" && (response.data.isAdmin || response.data.isSuperAdmin)) {
+        setUser(response.data);
         await loadMissionsFromDB();
       } else {
         navigate("/");
@@ -105,7 +102,11 @@ const Missions: React.FunctionComponent = () => {
 };
 
 //component to display the bulleted list of missions
-const MissionList = (props: { missions: Mission[]; user: User; loadMissionsFromDB: Function }) => {
+const MissionList = (props: {
+  missions: Mission[];
+  user: AppUser;
+  loadMissionsFromDB: Function;
+}) => {
   const navigate = useNavigate();
   const permissionList = props.user?.permissionList;
 

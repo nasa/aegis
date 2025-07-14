@@ -10,7 +10,7 @@ import { PostgreSqlDriver, defineConfig } from "@mikro-orm/postgresql";
 import { Migrator } from "@mikro-orm/migrations";
 import { SeedManager } from "@mikro-orm/seeder";
 import {
-  User_db,
+  App_User_db,
   Mission_db,
   Station_db,
   Poi_db,
@@ -44,7 +44,7 @@ export default defineConfig({
     path: path.join(__dirname, ".//seeds"), // path to the folder with seed files
   },
   entitiesTs: [
-    User_db,
+    App_User_db,
     Mission_db,
     Station_db,
     Poi_db,
@@ -63,7 +63,7 @@ export default defineConfig({
     Folder_db,
   ],
   entities: [
-    User_db,
+    App_User_db,
     Mission_db,
     Station_db,
     Poi_db,

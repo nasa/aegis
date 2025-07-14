@@ -34,7 +34,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const viewPermission = await hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
-    user: req.session?.user,
+    appUser: req.session?.appUser,
     emssToken,
   });
   if (!viewPermission) {

@@ -20,8 +20,9 @@ interface MissionState {
 
 interface UserState {
   isLoggedIn: boolean;
-  user: User;
+  appUser: AppUser;
   missionPerms: Permission;
+  launchpadUser: LaunchpadUser;
 }
 
 interface MapState {

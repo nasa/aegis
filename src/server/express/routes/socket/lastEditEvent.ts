@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 
 import { hasPerms } from "utils/permissions";
-import { globalValues } from "../global";
+import { globalValues } from "../../global";
 
 const router = express.Router();
 
@@ -14,13 +14,13 @@ const parseQuery = (query: Query) => {
   return queryObj;
 };
 
-// get
+// get the last edit event for a given mission
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   const viewPermission = await hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
-    user: req.session.user,
+    appUser: req.session.appUser,
   });
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });

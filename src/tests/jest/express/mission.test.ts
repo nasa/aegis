@@ -1,6 +1,6 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import { Mission_db, User_db } from "server/database/models/_allModels";
+import { Mission_db, App_User_db } from "server/database/models/_allModels";
 import MissionFactory from "../factories/MissionFactory";
 import UserFactory from "../factories/UserFactory";
 import * as SocketIo from "server/express/sockets";
@@ -15,8 +15,8 @@ jest.mock("server/express/sockets", () => {
 });
 
 let testMissions: Mission_db[];
-let testAdmin: User_db;
-let testSuperAdmin: User_db;
+let testAdmin: App_User_db;
+let testSuperAdmin: App_User_db;
 let newMission: Mission = generateBlankMission();
 
 beforeAll(async () => {
@@ -245,7 +245,7 @@ describe("Mission API Endpoint", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toEqual("success");
-      expect(res.body.data.user.isSuperAdmin).toBeTruthy();
+      expect(res.body.data.isSuperAdmin).toBeTruthy();
       aegisSessionCookie = res.header["set-cookie"][0];
       aegisSessionSigCookie = res.header["set-cookie"][1];
     });
@@ -345,8 +345,8 @@ describe("Mission API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  await em.nativeDelete(User_db, { id: testAdmin.id });
-  await em.nativeDelete(User_db, { id: testSuperAdmin.id });
+  await em.nativeDelete(App_User_db, { id: testAdmin.id });
+  await em.nativeDelete(App_User_db, { id: testSuperAdmin.id });
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }

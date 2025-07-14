@@ -35,7 +35,7 @@ const parseQuery = (query: Query) => {
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
 
-  if (!req.session?.user?.isSuperAdmin) {
+  if (!req.session?.appUser?.isSuperAdmin) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }

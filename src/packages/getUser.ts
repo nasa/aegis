@@ -1,8 +1,8 @@
 import { getUserFromJWT } from "@emss/oauth2-proxy-backend";
-import { EmssUser, EMSSRole } from "@emss/oauth2-proxy-common";
+import type { EMSSRole } from "@emss/oauth2-proxy-common";
 import { Request } from "express";
 
-const getMockUser = (): EmssUser => {
+const getMockUser = (): LaunchpadUser => {
   return {
     uupic: process.env.MOCK_USER_UUPIC || "1234",
     email: process.env.MOCK_USER_EMAIL || "neil.armstrong@nasa.gov",
@@ -26,7 +26,7 @@ const getMockUser = (): EmssUser => {
   };
 };
 
-export const getUser = (req: Request): EmssUser | Error => {
+export const getUser = (req: Request): LaunchpadUser | Error => {
   if (process.env.MOCK_USER === "true") {
     return getMockUser();
   }

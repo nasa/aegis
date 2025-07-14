@@ -25,9 +25,9 @@ router.use(async (req: Request, res: Response, next): Promise<void> => {
   const editPermission = await hasPerms({
     missionId: queryObj.missionId,
     permission: "edit",
-    user: req.session.user,
+    appUser: req.session.appUser,
   });
-  if (!editPermission || (!req.session.user.isAdmin && !req.session.user.isSuperAdmin)) {
+  if (!editPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }

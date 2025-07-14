@@ -2,7 +2,7 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
-import { User_db, Mission_db, Eva_db } from "server/database/models/_allModels";
+import { App_User_db, Mission_db, Eva_db } from "server/database/models/_allModels";
 import EvaFactory from "../factories/EVAFactory";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
@@ -15,7 +15,7 @@ jest.mock("server/express/sockets", () => {
   };
 });
 
-let testUser: User_db;
+let testUser: App_User_db;
 let testMissions: Mission_db[];
 let testEvas: Eva_db[];
 
@@ -225,7 +225,7 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   closeORM();

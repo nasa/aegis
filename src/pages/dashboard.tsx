@@ -3,7 +3,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { useParams } from "react-router";
 
 import styles from "./dashboard.module.css";
-import { setMissionPerms, setUserStore } from "store/user";
+import { setMissionPerms, setAppUser } from "store/user";
 import { Tooltip } from "react-tooltip";
 import { isLoggedIn } from "http-client/login";
 import { useNavigate } from "react-router";
@@ -90,13 +90,13 @@ const Main = (): JSX.Element => {
     const isLoggedInAsync = async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
-        dispatch(setUserStore({ isLoggedIn: true, user: response.data.user, missionPerms: null }));
-        if (response.data.user.isSuperAdmin) {
+        dispatch(setAppUser({ isLoggedIn: true, user: response.data, missionPerms: null }));
+        if (response.data.isSuperAdmin) {
           dispatch(
             setMissionPerms({ missionId: intMissionId, permissions: { view: true, edit: true } })
           );
         } else {
-          const perms = response.data.user.permissionList?.find(
+          const perms = response.data.permissionList?.find(
             (permission) => permission.missionId === intMissionId
           );
           if (!perms || (!perms.permissions.view && !perms.permissions.edit)) navigate("/");

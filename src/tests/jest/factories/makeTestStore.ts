@@ -185,7 +185,7 @@ export const createFullTestStore = (): StoreType => {
     },
     user: {
       ...userInitialState,
-      user: generateBlankUser({ username: "Jest testUser", password: "superSecretPassword" }),
+      appUser: generateBlankUser({ username: "Jest testUser", password: "superSecretPassword" }),
     },
     map: { ...mapInitialState },
     eva: {

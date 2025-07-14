@@ -14,8 +14,8 @@ import { generateBlankUser } from "store/storeUtils/user";
 
 const User: React.FunctionComponent = () => {
   const navigate = useNavigate();
-  const [userList, setUserList] = useState<User[]>([]);
-  const [user, setUser] = useState<User>();
+  const [userList, setUserList] = useState<AppUser[]>([]);
+  const [user, setUser] = useState<AppUser>();
   const [editMode, setEditMode] = useState<boolean>(false);
   const [infoMessage, setInfoMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -28,10 +28,10 @@ const User: React.FunctionComponent = () => {
     // This is a possible solution to the esllint error "No floating promises"
     async function adminCheck() {
       const response = await isLoggedIn();
-      if (response.status === "success" && response.data.user.isSuperAdmin) {
+      if (response.status === "success" && response.data.isSuperAdmin) {
         setIsSuperAdmin(true);
         // Get a list of users from the database
-        const users: User[] = (await getUsers()).data;
+        const users: AppUser[] = (await getUsers()).data;
         setUserList(users.sort((a, b) => a.id - b.id));
         const missions: Mission[] = (await getMissions()).data;
         setMissionList(missions);
@@ -44,7 +44,7 @@ const User: React.FunctionComponent = () => {
     });
   }, [navigate]);
 
-  const handleEdit = (user: User) => {
+  const handleEdit = (user: AppUser) => {
     let permissionList: Permission[];
 
     // if superadmin, give all permissions
@@ -72,7 +72,7 @@ const User: React.FunctionComponent = () => {
     setEditMode(true);
   };
 
-  const handleDelete = async (user: User) => {
+  const handleDelete = async (user: AppUser) => {
     const deleteRes = await deleteUsers([user.id]);
     if (deleteRes.status === "success") {
       setUserList(userList.filter((u) => u.id !== user.id));
@@ -136,7 +136,7 @@ const User: React.FunctionComponent = () => {
         missionId: mission.id,
       };
     });
-    const blankUser: User = generateBlankUser({ permissionList });
+    const blankUser: AppUser = generateBlankUser({ permissionList });
 
     // create a blank user
     setUser({

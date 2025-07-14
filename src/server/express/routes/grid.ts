@@ -41,7 +41,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const viewPermission = await hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
-    user: req.session.user,
+    appUser: req.session.appUser,
     emssToken,
   });
   if (!viewPermission) {
@@ -78,7 +78,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
   const viewPermission = await hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
-    user: req.session.user,
+    appUser: req.session.appUser,
     emssToken,
   });
   if (!viewPermission) {
@@ -120,7 +120,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const editPermission = await hasPerms({
     missionId,
     permission: "edit",
-    user: req.session.user,
+    appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {
@@ -159,7 +159,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const editPermission = await hasPerms({
     missionId,
     permission: "edit",
-    user: req.session.user,
+    appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {

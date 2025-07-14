@@ -21,7 +21,7 @@ const globalTeardown = async (): Promise<void> => {
   delete from "stm_level2_db" where level1_uuid in (select uuid from "stm_level1_db" where mission_id in (select id from "mission_db" where name like '%Jest%' ));
   delete from "stm_level1_db" where mission_id in (select id from "mission_db" where name like '%Jest%' );
   delete from "mission_db" where name like '%Jest%';
-  delete from "user_db" where username like '%Jest%';`;
+  delete from "app_user_db" where username like '%Jest%';`;
   await em.getConnection().execute(sql);
 
   // close the connection to the database

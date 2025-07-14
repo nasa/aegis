@@ -27,20 +27,17 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
   const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
 
   const storeUpsertEventHandler = useCallback(
-    (storePayload: StoreUpsert) => {
-      // ignore all events that are not for the currently selected mission
-      if (storePayload.missionId !== missionId) return;
-
+    (storeUpsert: StoreUpsert) => {
       // update the last edit event in the store
-      dispatch(setLastEditEvent(storePayload?.lastEditEvent));
+      dispatch(setLastEditEvent(storeUpsert?.lastEditEvent));
 
       const sessionSocketId =
         typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-      if (sessionSocketId === storePayload.socketId) return;
+      if (sessionSocketId === storeUpsert.socketId) return;
 
       const handleUpsertAsync = async () => {
         const thunkResponse = await dispatch(
-          thunkSocketsHandleUpsert({ storeUpsert: storePayload })
+          thunkSocketsHandleUpsert({ storeUpsert: storeUpsert })
         );
         if (thunkResponse.payload === false) {
           //gracefully reject?
@@ -53,14 +50,11 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       };
       handleUpsertAsync();
     },
-    [dispatch, missionId]
+    [dispatch]
   );
 
   const storeDeleteEventHandler = useCallback(
     (storeDelete: StoreDelete) => {
-      // ignore all events that are not for the currently selected mission
-      if (storeDelete.missionId !== missionId) return;
-
       // update the last edit event in the store
       dispatch(setLastEditEvent(storeDelete?.lastEditEvent));
 
@@ -81,13 +75,14 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       };
       handleDeleteAsync();
     },
-    [dispatch, missionId]
+    [dispatch]
   );
 
   //Handle socketio events
   useEffect(() => {
     if (!missionId || !user?.missionPerms || !interfaceStore?.appVersion) return;
-    // Create a socket connection
+    // Create a socket connection to the server.
+    // On handshake, the server will generate an socket id for the client
     if (!socket.current || (socket.current && !socket.current.connected)) {
       const socketUrl = window.location.origin;
       socket.current = io(socketUrl, {
@@ -99,27 +94,28 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
     }
 
     socket.current.on("connect", () => {
+      // put socketId and missionId in sessionStorage so it can be access around the app
+      // this could possibly be moved into a client side global?
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem("socketId", socket.current.id); // used to identify messages originated from this client
+        window.sessionStorage.setItem("missionId", missionId.toString());
+      }
+
       // Get current user permissions on this mission
       const permissionType: "viewer" | "editor" = userRef.current.missionPerms.permissions.edit
         ? "editor"
         : "viewer";
 
-      // put socketId in sessionStorage so that it persists across page refreshes
-      if (typeof window !== "undefined") {
-        window.sessionStorage.setItem("socketId", socket.current.id);
-      }
-      // put missionId in sessionStorage so that it persists across page refreshes
-      if (typeof window !== "undefined") {
-        window.sessionStorage.setItem("missionId", missionId.toString());
-      }
-
-      const visitorJoin: VisitorJoin = {
-        missionId: missionId,
+      const visitorData: VisitorData = {
         socketId: socket.current.id,
-        type: permissionType,
+        missionId,
+        permission: permissionType,
         appVersion: interfaceStoreRef.current.appVersion,
+        launchpadUser: userRef.current.launchpadUser,
+        appUser: userRef.current.appUser,
+        connectedAt: Date.now(),
       };
-      socket.current.emit("visitorJoin", visitorJoin);
+      socket.current.emit("visitorJoin", visitorData);
 
       dispatch(setSocketConnectionStatus("connected"));
     });
@@ -131,13 +127,14 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       dispatch(setSocketConnectionStatus("reconnecting"));
     });
     socket.current.io.on("reconnect", () => {
+      // after this "reconnect" event, the "connect" event will fire
       dispatch(setSocketConnectionStatus("connected"));
 
-      // hit the API to get the lastest edit event and compare it to the one in the store
+      // hit the API to get the latest edit event and compare it to the one in the store
       // if they are different, then alert the user and refresh the page
       const fetchLastEventAsync = async () => {
         const wrappedLastEditResponse = await clientFetchWithTimeout(
-          `${window.location.origin}/api/v1/socketLastEditEvent?missionId=${missionId}`,
+          `${window.location.origin}/api/v1/socket/lastEditEvent?missionId=${missionId}`,
           null,
           2000
         );
@@ -164,7 +161,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
       fetchLastEventAsync();
     });
 
-    // For non-production environments. In production we will attempt reconnects infinately
+    // For non-production environments. In production we will attempt reconnects infinitely
     socket.current.io.on("reconnect_failed", () => {
       console.error("Socket reconnection failed after maximum attempts.");
       dispatch(setSocketConnectionStatus("failed"));

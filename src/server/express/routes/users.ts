@@ -5,7 +5,7 @@ import cloneDeep from "lodash/cloneDeep";
 import { Query } from "express-serve-static-core";
 import { getEM } from "utils/mikro";
 import { EntityData } from "@mikro-orm/core";
-import { User_db } from "server/database/models/_allModels";
+import { App_User_db } from "server/database/models/_allModels";
 import bcrypt from "bcryptjs";
 import { convertUsersTypeDbToStore, convertUsersTypeStoreToDb } from "store/storeUtils/user";
 
@@ -24,13 +24,13 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
 
   //only super admin can view/edit users
-  if (!req.session.user?.isSuperAdmin) {
+  if (!req.session.appUser?.isSuperAdmin) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const users: User[] = await getUsers(queryObj.userId);
+    const users: AppUser[] = await getUsers(queryObj.userId);
 
     res.status(200).json({
       status: "success",
@@ -47,13 +47,13 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { users } = req.body as UserUpsertRequest;
   //only super admin can view/edit users
-  if (!req.session.user?.isSuperAdmin) {
+  if (!req.session.appUser?.isSuperAdmin) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const upsertedUsers: User[] = await upsertUsers(users);
+    const upsertedUsers: AppUser[] = await upsertUsers(users);
     if (upsertedUsers.length === 0) {
       res.status(500).json({ status: "error", message: "Error in query" });
       return;
@@ -74,7 +74,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { userIds } = req.body as UserDeleteRequest;
   //only super admin can view/edit users
-  if (!req.session.user?.isSuperAdmin) {
+  if (!req.session.appUser?.isSuperAdmin) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -103,13 +103,13 @@ export default router;
  * @returns array of users
  * @param userId
  */
-export async function getUsers(userId: number = null): Promise<User[]> {
+export async function getUsers(userId: number = null): Promise<AppUser[]> {
   const model = getEM();
-  let users: User_db[];
+  let users: App_User_db[];
   if (!userId) {
-    users = await model.find(User_db, {});
+    users = await model.find(App_User_db, {});
   } else {
-    users = await model.find(User_db, { id: userId });
+    users = await model.find(App_User_db, { id: userId });
   }
 
   return convertUsersTypeDbToStore(users);
@@ -120,17 +120,17 @@ export async function getUsers(userId: number = null): Promise<User[]> {
  * @returns a copy of the user objects that were upserted
  * @param users
  */
-export async function upsertUsers(users: User[]): Promise<User[]> {
+export async function upsertUsers(users: AppUser[]): Promise<AppUser[]> {
   const em = getEM();
-  const usersToUpsert: User[] = cloneDeep(users);
+  const usersToUpsert: AppUser[] = cloneDeep(users);
   const usersUpsertedToDb = [];
 
   for (const userToUpsert of usersToUpsert) {
-    const convertedUser: EntityData<User_db> = convertUsersTypeStoreToDb([userToUpsert])[0];
+    const convertedUser: EntityData<App_User_db> = convertUsersTypeStoreToDb([userToUpsert])[0];
 
     if (convertedUser.id) {
       //upserting
-      const userInDb = await em.findOne(User_db, { id: convertedUser.id });
+      const userInDb = await em.findOne(App_User_db, { id: convertedUser.id });
       if (!userInDb) {
         return [];
       }
@@ -146,7 +146,7 @@ export async function upsertUsers(users: User[]): Promise<User[]> {
       // Creating. passwords are salted in the @beforeCreate() in the user model
       // Can't use "upsert" to insert a new record if there's no other unique column in the table
       delete convertedUser.id; // Attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
-      const createReference = em.create(User_db, convertedUser);
+      const createReference = em.create(App_User_db, convertedUser);
       em.persist(createReference);
       usersUpsertedToDb.push(createReference);
     }
@@ -165,7 +165,7 @@ export async function deleteUsers(userIds: number[]): Promise<number[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const userId of userIds) {
-    const entity = await em.findOne(User_db, { id: userId });
+    const entity = await em.findOne(App_User_db, { id: userId });
     if (entity) {
       em.remove(entity);
       deletedUuids.push(userId);

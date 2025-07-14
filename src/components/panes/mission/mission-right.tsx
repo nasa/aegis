@@ -51,8 +51,8 @@ const MissionPrefsRight: FunctionComponent = () => {
   );
   const editPerms = useAppSelector(
     (state) =>
-      (state.user.missionPerms.permissions.edit && state.user.user.isAdmin) ||
-      state.user.user.isSuperAdmin,
+      (state.user.missionPerms.permissions.edit && state.user.appUser.isAdmin) ||
+      state.user.appUser.isSuperAdmin,
     refEqual
   );
 

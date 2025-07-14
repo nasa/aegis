@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 
 import bcrypt from "bcryptjs";
-import { User_db } from "server/database/models/_allModels";
+import { App_User_db } from "server/database/models/_allModels";
 import { getEM } from "utils/mikro";
 import { upsertUsers } from "./users";
 
@@ -13,7 +13,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
   try {
     const loginResult = await apiLogin(username, password);
     if (loginResult.status === "success") {
-      req.session.user = loginResult.data.user;
+      req.session.appUser = loginResult.data;
     } else {
       req.session = null;
     }
@@ -36,11 +36,11 @@ router.get("/logout", async (req: Request, res: Response): Promise<void> => {
 // isLoggedIn
 router.get("/isLoggedIn", async (req: Request, res: Response): Promise<void> => {
   try {
-    if (req.session.user) {
+    if (req.session.appUser) {
       res.status(200).json({
         status: "success",
         message: "Login checked",
-        data: { user: req.session.user },
+        data: req.session.appUser,
       });
     } else {
       res.status(200).json({ status: "failure", message: "Not Logged in", data: { user: null } });
@@ -75,9 +75,9 @@ export default router;
 export async function apiLogin(
   username: string,
   password: string
-): Promise<WrappedResponse<SessionData>> {
+): Promise<WrappedResponse<AppUser>> {
   const model = getEM();
-  const user = await model.findOne(User_db, { username });
+  const user = await model.findOne(App_User_db, { username });
   if (!user) {
     return { status: "failure", message: "No such user." };
   } else {
@@ -87,13 +87,11 @@ export async function apiLogin(
         status: "success",
         message: "login successful",
         data: {
-          user: {
-            id: user.id,
-            username: user.username,
-            permissionList: user.permissionList,
-            isAdmin: user.isAdmin,
-            isSuperAdmin: user.isSuperAdmin,
-          },
+          id: user.id,
+          username: user.username,
+          permissionList: user.permissionList,
+          isAdmin: user.isAdmin,
+          isSuperAdmin: user.isSuperAdmin,
         },
       };
     } else {
@@ -104,8 +102,8 @@ export async function apiLogin(
 
 export async function recoverWithRecoveryKey(recoveryKey: string): Promise<boolean> {
   if (recoveryKey === process.env.ADMIN_RECOVERY_KEY) {
-    const adminUserDB = await getEM().findOne(User_db, { isSuperAdmin: true });
-    const adminUser: User = {
+    const adminUserDB = await getEM().findOne(App_User_db, { isSuperAdmin: true });
+    const adminUser: AppUser = {
       ...adminUserDB,
       password: "admin",
       createdAt:
