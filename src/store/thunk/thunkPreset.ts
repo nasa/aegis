@@ -26,19 +26,20 @@ import { generateBlankPreset } from "store/storeUtils/preset";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
-  preset: Preset;
-}>("presetSave", async ({ preset }, { dispatch }) => {
-  if (!preset) return;
+  presetUuid: string;
+}>("presetSave", async ({ presetUuid }, { dispatch, getState }) => {
+  if (!presetUuid) return;
+  const preset = getState().preset.presets.find((p) => p.uuid === presetUuid);
 
   // upsert the changed Preset to the DB
   const updatedPreset = {
     ...preset,
     updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
-  const upsertReponse = await httpClient_preset.upsertPresets([updatedPreset]);
+  const upsertResponse = await httpClient_preset.upsertPresets([updatedPreset]);
 
-  if (upsertReponse.status !== "success") {
-    throw new Error("Error upserting Presets: " + upsertReponse.message);
+  if (upsertResponse.status !== "success") {
+    throw new Error("Error upserting Presets: " + upsertResponse.message);
   }
 
   // upsert the changed preset to the store

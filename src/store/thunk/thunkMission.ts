@@ -10,7 +10,7 @@ import {
 } from "store/mission";
 import { thunkGetElevation } from "./thunkElevation";
 import { thunkFullUpdateWalkback, thunkSaveStation } from "./thunkStation";
-import { setPresetCircleUIStates } from "store/preset";
+import { setPresetCircleUIStates, upsertPresetByField } from "store/preset";
 import { thunkSavePreset } from "./thunkPreset";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
@@ -29,22 +29,25 @@ import * as jsonKeysSort from "json-keys-sort";
 import { generateBlankActionTemplate } from "store/storeUtils/mission";
 import { setStationCircleUIStates, upsertStationByField } from "store/station";
 import { globalGrid } from "utils/grid";
+import isEqual from "lodash/isEqual";
+import { thunkFullUpdateTraverse } from "./thunkTraverse";
 
 export const thunkMissionSave = appCreateAsyncThunk<void>(
   "missionSave",
   async (_, { dispatch, getState }) => {
-    const mission = getState().mission.mission;
+    const newMission = getState().mission.mission;
+    const oldMission = getState().mission.missionFromDb;
 
     //Alphabetize the items by name
-    const sortedEquipmentItems = sortBy(mission.equipmentItems, [
+    const sortedEquipmentItems = sortBy(newMission.equipmentItems, [
       (item) => item.name.toLowerCase(),
     ]);
-    const sortedGeoUnits = sortBy(mission.geographicUnits, [(unit) => unit.name.toLowerCase()]);
-    const sortedCircleDefinitions = sortBy(mission.circleDefinitions, [
+    const sortedGeoUnits = sortBy(newMission.geographicUnits, [(unit) => unit.name.toLowerCase()]);
+    const sortedCircleDefinitions = sortBy(newMission.circleDefinitions, [
       "radius",
       (radius) => radius.name.toLowerCase(),
     ]);
-    const sortedTemplates = sortBy(mission.actionTemplates, [
+    const sortedTemplates = sortBy(newMission.actionTemplates, [
       "type",
       (template) => template.templateName.toLowerCase(),
     ]);
@@ -52,7 +55,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
     //save mission to db
     const upsertResponse = await httpClient_mission.upsertMissions([
       {
-        ...mission,
+        ...newMission,
         equipmentItems: sortedEquipmentItems,
         geographicUnits: sortedGeoUnits,
         circleDefinitions: sortedCircleDefinitions,
@@ -71,131 +74,136 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
     }
 
     //sync up presets circle layers
-    getState().preset.presets.forEach((preset) => {
-      const newPreset: Preset = { ...preset };
-      const oldPresetCircleUIStates: CircleUIStates =
-        getState().preset.presetCirclesUIStates[preset.uuid];
+    if (!isEqual(newMission.circleDefinitions, oldMission.circleDefinitions)) {
+      const savePresetPromises = getState().preset.presets.map((preset) => {
+        const oldPresetCircleUIStates: CircleUIStates =
+          getState().preset.presetCirclesUIStates[preset.uuid];
 
-      const newPresetCircleUIStates: CircleUIStates = { ...oldPresetCircleUIStates };
-      const newMapCircleControls: MapCircleControls = {};
+        const newPresetCircleUIStates: CircleUIStates = { ...oldPresetCircleUIStates };
+        const newMapCircleControls: MapCircleControls = {};
 
-      sortedCircleDefinitions?.forEach((circleDefinition) => {
-        //update ui states
-        if (oldPresetCircleUIStates[circleDefinition.uuid]) {
-          newPresetCircleUIStates[circleDefinition.uuid] =
-            oldPresetCircleUIStates[circleDefinition.uuid];
-        } else {
-          newPresetCircleUIStates[circleDefinition.uuid] = {
-            name: circleDefinition.name,
-            slidersSelected: false,
-          };
-        }
-        //remove any UI states circle definitions that were deleted
-        for (const uuid of Object.keys(newPresetCircleUIStates)) {
-          const isSublayer = getState().mission.sublayers?.some(
-            (sublayer) => sublayer.uuid === uuid
-          );
-          const isHeaderLayer = getState().mission.layers?.some((layer) => layer.uuid === uuid);
-          const isCircle = sortedCircleDefinitions.some(
-            (circleDefinition) => circleDefinition.uuid === uuid
-          );
+        sortedCircleDefinitions?.forEach((circleDefinition) => {
+          //update ui states
+          if (oldPresetCircleUIStates[circleDefinition.uuid]) {
+            newPresetCircleUIStates[circleDefinition.uuid] =
+              oldPresetCircleUIStates[circleDefinition.uuid];
+          } else {
+            newPresetCircleUIStates[circleDefinition.uuid] = {
+              name: circleDefinition.name,
+              slidersSelected: false,
+            };
+          }
+          //remove any UI states circle definitions that were deleted
+          for (const uuid of Object.keys(newPresetCircleUIStates)) {
+            const isSublayer = getState().mission.sublayers?.some(
+              (sublayer) => sublayer.uuid === uuid
+            );
+            const isHeaderLayer = getState().mission.layers?.some((layer) => layer.uuid === uuid);
+            const isCircle = sortedCircleDefinitions.some(
+              (circleDefinition) => circleDefinition.uuid === uuid
+            );
 
-          if (!isSublayer && !isHeaderLayer && !isCircle) delete newPresetCircleUIStates[uuid];
-        }
+            if (!isSublayer && !isHeaderLayer && !isCircle) delete newPresetCircleUIStates[uuid];
+          }
 
-        //update preset map circle controls
-        if (preset.mapCircleControls[circleDefinition.uuid]) {
-          newMapCircleControls[circleDefinition.uuid] =
-            preset.mapCircleControls[circleDefinition.uuid];
-        } else {
-          newMapCircleControls[circleDefinition.uuid] = {
-            name: circleDefinition.name,
-            uuid: circleDefinition.uuid,
-            visible: false,
-            style: {
-              opacity: 1,
-              contrast: 1,
-              brightness: 1,
-              saturation: 1,
-              blendMode: "normal",
-              color: "#FFFFFF",
-              weight: 1,
-              fillColor: "none",
-              fillOpacity: 0,
-            },
-          };
-        }
+          //update preset map circle controls
+          if (preset.mapCircleControls[circleDefinition.uuid]) {
+            newMapCircleControls[circleDefinition.uuid] =
+              preset.mapCircleControls[circleDefinition.uuid];
+          } else {
+            newMapCircleControls[circleDefinition.uuid] = {
+              name: circleDefinition.name,
+              uuid: circleDefinition.uuid,
+              visible: false,
+              style: {
+                opacity: 1,
+                contrast: 1,
+                brightness: 1,
+                saturation: 1,
+                blendMode: "normal",
+                color: "#FFFFFF",
+                weight: 1,
+                fillColor: "none",
+                fillOpacity: 0,
+              },
+            };
+          }
+        });
+
+        dispatch(
+          setPresetCircleUIStates({
+            presetUuid: preset.uuid,
+            circleUIStates: newPresetCircleUIStates,
+          })
+        );
+        dispatch(upsertPresetByField(preset.uuid, "mapCircleControls", newMapCircleControls));
+        return dispatch(thunkSavePreset({ presetUuid: preset.uuid }));
       });
+      // wait for all station saves to be completed
+      await Promise.all(savePresetPromises);
 
-      dispatch(
-        setPresetCircleUIStates({
-          presetUuid: preset.uuid,
-          circleUIStates: newPresetCircleUIStates,
-        })
-      );
-      newPreset.mapCircleControls = newMapCircleControls;
-      dispatch(thunkSavePreset({ preset: newPreset }));
-    });
+      //sync up stations circle controls
+      const saveStationPromises = getState().station.stations.map((station) => {
+        const oldStationCircleUIStates = getState().station.stationCirclesUIStates[station.uuid];
 
-    //sync up stations circle controls
-    getState().station.stations.forEach((station) => {
-      const oldStationCircleUIStates = getState().station.stationCirclesUIStates[station.uuid];
+        const newStationCircleUIStates: CircleUIStates = { ...oldStationCircleUIStates };
+        const newMapCircleControls: MapCircleControls = {};
 
-      const newStationCircleUIStates: CircleUIStates = { ...oldStationCircleUIStates };
-      const newMapCircleControls: MapCircleControls = {};
+        sortedCircleDefinitions?.forEach((circleDefinition) => {
+          //update ui states
+          if (oldStationCircleUIStates[circleDefinition.uuid]) {
+            newStationCircleUIStates[circleDefinition.uuid] =
+              oldStationCircleUIStates[circleDefinition.uuid];
+          } else {
+            newStationCircleUIStates[circleDefinition.uuid] = {
+              name: circleDefinition.name,
+              slidersSelected: false,
+            };
+          }
+          //remove any UI states circle definitions that were deleted
+          for (const uuid of Object.keys(newStationCircleUIStates)) {
+            const isCircle = sortedCircleDefinitions.some(
+              (circleDefinition) => circleDefinition.uuid === uuid
+            );
+            if (!isCircle) delete newStationCircleUIStates[uuid];
+          }
 
-      sortedCircleDefinitions?.forEach((circleDefinition) => {
-        //update ui states
-        if (oldStationCircleUIStates[circleDefinition.uuid]) {
-          newStationCircleUIStates[circleDefinition.uuid] =
-            oldStationCircleUIStates[circleDefinition.uuid];
-        } else {
-          newStationCircleUIStates[circleDefinition.uuid] = {
-            name: circleDefinition.name,
-            slidersSelected: false,
-          };
-        }
-        //remove any UI states circle definitions that were deleted
-        for (const uuid of Object.keys(newStationCircleUIStates)) {
-          const isCircle = sortedCircleDefinitions.some(
-            (circleDefinition) => circleDefinition.uuid === uuid
-          );
-          if (!isCircle) delete newStationCircleUIStates[uuid];
-        }
+          //update station map circle controls
+          if (station.mapCircleControls[circleDefinition.uuid]) {
+            newMapCircleControls[circleDefinition.uuid] =
+              station.mapCircleControls[circleDefinition.uuid];
+          } else {
+            newMapCircleControls[circleDefinition.uuid] = {
+              name: circleDefinition.name,
+              uuid: circleDefinition.uuid,
+              visible: false,
+              style: {
+                opacity: 1,
+                contrast: 1,
+                brightness: 1,
+                saturation: 1,
+                blendMode: "normal",
+                color: "#FFFFFF",
+                weight: 1,
+                fillColor: "none",
+                fillOpacity: 0,
+              },
+            };
+          }
+        });
 
-        //update station map circle controls
-        if (station.mapCircleControls[circleDefinition.uuid]) {
-          newMapCircleControls[circleDefinition.uuid] =
-            station.mapCircleControls[circleDefinition.uuid];
-        } else {
-          newMapCircleControls[circleDefinition.uuid] = {
-            name: circleDefinition.name,
-            uuid: circleDefinition.uuid,
-            visible: false,
-            style: {
-              opacity: 1,
-              contrast: 1,
-              brightness: 1,
-              saturation: 1,
-              blendMode: "normal",
-              color: "#FFFFFF",
-              weight: 1,
-              fillColor: "none",
-              fillOpacity: 0,
-            },
-          };
-        }
+        dispatch(
+          setStationCircleUIStates({
+            stationUuid: station.uuid,
+            circleUIStates: newStationCircleUIStates,
+          })
+        );
+        dispatch(upsertStationByField(station.uuid, "mapCircleControls", newMapCircleControls));
+        return dispatch(thunkSaveStation({ stationUuid: station.uuid }));
       });
-
-      dispatch(
-        setStationCircleUIStates({
-          stationUuid: station.uuid,
-          circleUIStates: newStationCircleUIStates,
-        })
-      );
-      dispatch(upsertStationByField(station.uuid, "mapCircleControls", newMapCircleControls));
-      dispatch(thunkSaveStation({ stationUuid: station.uuid }));
-    });
+      // wait for all station saves to be completed
+      await Promise.all(saveStationPromises);
+    }
 
     dispatch(setMissionSectionEditing({ section: "prefs", editMode: false }));
   }
@@ -204,7 +212,15 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
 export const thunkMissionCancel = appCreateAsyncThunk<void>(
   "missionCancel",
   async (_, { dispatch, getState }) => {
+    const oldMission = getState().mission.mission;
     const missionFromDb = getState().mission.missionFromDb;
+
+    // check if the lander location was modified. If so, we need to reset all stations and evas
+    if (!isEqual(oldMission.landerLocation, missionFromDb.landerLocation)) {
+      await dispatch(thunkUpdateLanderLocation({ location: missionFromDb.landerLocation }));
+    }
+
+    // reset mission to the copy from db
     dispatch(upsertMission(missionFromDb, true));
     dispatch(setMissionSectionEditing({ section: "prefs", editMode: false }));
   }
@@ -231,7 +247,8 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
     dispatch(upsertMissionByField("landerElevationMeters", elevation));
   }
 
-  // loop through all stations and update their walkback traverses to snap to the new lander location
+  // Loop through all stations and update their walkback traverses to snap to the new lander location
+  // This automatically saves, there's no "draft" for these changes
   // Create an array of promises for all station updates
   const stationUpdatePromises = getState().station.stations.map(async (station) => {
     const newPathRes = await dispatch(
@@ -249,9 +266,41 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
     // Return the dispatch promise but don't await it here
     return dispatch(thunkSaveStation({ stationUuid: station.uuid }));
   });
+  await Promise.all(stationUpdatePromises); // Wait for all station updates to complete
 
-  // Wait for all station updates to complete
-  await Promise.all(stationUpdatePromises);
+  // Loop through evas that have lander as their egress location as lander and update their traverses
+  // This automatically saves, there's no "draft" for these changes
+  const egressEvas = getState().eva.evas.filter(
+    (e) => e.egressLocationUuid === "lander" && e.sequence.length > 0
+  );
+  const traverseUpdateEgressPromises = egressEvas.map((eva) => {
+    return dispatch(
+      thunkFullUpdateTraverse({
+        traverseUuid: eva.sequence[0].uuid,
+        rename: false,
+        evaSequence: eva.sequence,
+        saveToDb: true,
+      })
+    );
+  });
+  await Promise.all(traverseUpdateEgressPromises);
+
+  // Loop through evas that have lander as their ingress location and update their traverses
+  // This automatically saves, there's no "draft" for these changes
+  const ingressEvas = getState().eva.evas.filter(
+    (e) => e.ingressLocationUuid === "lander" && e.sequence.length > 0
+  );
+  const traverseUpdateIngressPromises = ingressEvas.map((eva) => {
+    return dispatch(
+      thunkFullUpdateTraverse({
+        traverseUuid: eva.sequence[eva.sequence.length - 1].uuid,
+        rename: false,
+        evaSequence: eva.sequence,
+        saveToDb: true,
+      })
+    );
+  });
+  await Promise.all(traverseUpdateIngressPromises);
 });
 
 export const thunkCreateActionTemplate = appCreateAsyncThunk<void, string>(

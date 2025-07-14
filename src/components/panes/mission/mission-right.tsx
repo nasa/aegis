@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useState } from "react";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import {
   faAtlas,
@@ -27,6 +27,7 @@ import ActionTemplates_Panel from "./mission-right-actionTemplates";
 import { RightTabs } from "components/interface/side-controls";
 import Export_Panel from "./mission-right-export";
 import ActionDefinitions_Panel from "./mission-right-actionDefinitions";
+import { LoadingOverlay } from "components/interface/_global-elements";
 
 const MissionPrefsRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -60,6 +61,8 @@ const MissionPrefsRight: FunctionComponent = () => {
     [{ updatedAt: missionUpdatedAt, uuid: null }],
     [{ updatedAt: missionFromDbUpdatedAt, uuid: null }]
   );
+  // used for the loading overlay when saving a Mission
+  const [isLoading, setIsLoading] = useState(false);
 
   let panelTypes: PanelTypes;
   if (actionSystemVersion === 1) {
@@ -173,9 +176,14 @@ const MissionPrefsRight: FunctionComponent = () => {
           {missionSectionsEditing.includes("prefs") && (
             <>
               <Button
-                onClick={() => {
+                onClick={async () => {
                   if (modified) {
-                    dispatch(thunkMissionSave());
+                    setIsLoading(true); // Show loading overlay
+                    try {
+                      await dispatch(thunkMissionSave());
+                    } finally {
+                      setIsLoading(false); // Hide loading overlay
+                    }
                   }
                 }}
                 icon={faFloppyDisk}
@@ -191,8 +199,13 @@ const MissionPrefsRight: FunctionComponent = () => {
                 }}
               />
               <Button
-                onClick={() => {
-                  dispatch(thunkMissionCancel());
+                onClick={async () => {
+                  try {
+                    setIsLoading(true);
+                    await dispatch(thunkMissionCancel());
+                  } finally {
+                    setIsLoading(false);
+                  }
                 }}
                 icon={faBan}
                 toolTip="Cancel Edit"
@@ -208,6 +221,8 @@ const MissionPrefsRight: FunctionComponent = () => {
         className={paneStyles.rightActiveWindow}
         editMode={missionSectionsEditing.includes("prefs")}
       />
+
+      {isLoading && <LoadingOverlay message="Please Wait..." />}
     </>
   );
 };
