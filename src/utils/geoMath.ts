@@ -172,8 +172,8 @@ export function adjustGridIndex(
   const rowRemainder = (numRows - 1) % lineMod;
   const colRemainder = (numCols - 1) % lineMod;
   if (isTopLeft) {
-    gridCornerX = Math.floor((gridCornerX - 1) / lineMod) * lineMod + colRemainder;
-    gridCornerY = Math.floor((gridCornerY - 1) / lineMod) * lineMod + rowRemainder;
+    gridCornerX = Math.floor((gridCornerX - colRemainder - 1) / lineMod) * lineMod + colRemainder;
+    gridCornerY = Math.floor((gridCornerY - rowRemainder - 1) / lineMod) * lineMod + rowRemainder;
 
     if (gridCornerX < 0) {
       gridCornerX += lineMod;
