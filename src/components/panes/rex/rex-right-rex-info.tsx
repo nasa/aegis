@@ -149,7 +149,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     <FontAwesomeIcon
                       icon={faHexagonNodes}
                       data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html="Some fields here are editable in Maestro"
+                      data-tooltip-html="Some fields in this section are Maestro controlled"
                     />
                   </div>
                 )}
