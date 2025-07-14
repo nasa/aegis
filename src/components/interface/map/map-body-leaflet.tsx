@@ -276,9 +276,9 @@ const MapBody: FunctionComponent<{}> = () => {
 
   const [mouseLatLng, setMouseLatLng] = useState<AEGISPoint>(null);
   const [mouseGridCoord, setMouseGridCoord] = useState<string>("N/A");
-  const [mapZoom, setMapZoom] = useState<number>(0); // Used to trigger re-draw of scale. Value doens't matter
+  const [mapZoom, setMapZoom] = useState<number>(0); // Used to trigger re-draw of scale. Value doesn't matter
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
-  const [mapBounds, setMapBounds] = useState<string>(null); // Used to trigger re-draw of grid labels. Value doens't matter
+  const [mapBounds, setMapBounds] = useState<string>(null); // Used to trigger re-draw of grid labels. Value doesn't matter
   const [rexPetTime, setRexPetTime] = useState(""); // used to update the PET value via the PetInterval component
   const [gridBounds, setGridBounds] = useState<GridIndex[]>(undefined);
   const [mapGridControls, setMapGridControls] = useState<MapGridControl>(undefined);
@@ -473,7 +473,7 @@ const MapBody: FunctionComponent<{}> = () => {
       gridLabels,
       planetRadius: mission.planetRadius,
     });
-    // include map bounds in the depdencey array so the grid labels will re-draw when map moves
+    // include map bounds in the dependency array so the grid labels will re-draw when map moves
   }, [gridLabels, mission.planetRadius, mapBounds]);
 
   /**
@@ -831,7 +831,7 @@ const MapBody: FunctionComponent<{}> = () => {
     selectedRexDateTime,
   ]);
 
-  /** Determine time assosiated with currently running rex time */
+  /** Determine time associated with currently running rex time */
   useEffect(() => {
     if (selectedRex && runningRexEvaDatetime) {
       // If PET is running, update time every 10 seconds
@@ -1798,7 +1798,7 @@ const MapBody: FunctionComponent<{}> = () => {
 
               // Here we use the fact that Leaflet is already projecting the map and we convert
               // between pixel points on the leaflet instance against the coordinates underlying those points.
-              // This helps us around the south pole where we can't really use bearing to deterine our path to the next point.
+              // This helps us around the south pole where we can't really use bearing to determine our path to the next point.
               // This method results in a parabola at the south pole
 
               // get the x, y pixel coordinates of the source and destination points
@@ -1936,7 +1936,7 @@ const MapBody: FunctionComponent<{}> = () => {
 
         // Here we use the fact that Leaflet is already projecting the map and we convert
         // between pixel points on the leaflet instance against the coordinates underlying those points.
-        // This helps us around the south pole where we can't really use bearing to deterine our path to the next point.
+        // This helps us around the south pole where we can't really use bearing to determine our path to the next point.
         // This method results in a parabola at the south pole
 
         // get the x, y pixel coordinates of the source and destination points
@@ -2014,8 +2014,15 @@ const MapBody: FunctionComponent<{}> = () => {
         highlightLocation = selectedStation.location;
         panMapToLocation = selectedStation.location;
       } else if (sectionSelected === "evas") {
-        // if a sequence item is selected. highlight and pan over there
-        if (selectedEvaSequenceItemUuid) {
+        // if a pos entry is selected, highlight and pan to the pos
+        if (selectedPosEntryUuid && selectedRex?.posEntries) {
+          const posLocation = selectedRex.posEntries.find(
+            (c) => c.uuid === selectedPosEntryUuid
+          )?.location;
+          highlightLocation = posLocation;
+          panMapToLocation = posLocation;
+        } else if (selectedEvaSequenceItemUuid) {
+          // if a sequence item is selected. highlight and pan over there
           const seqItemRes = await dispatch(
             thunkGetStationOrTraverse({ uuid: selectedEvaSequenceItemUuid })
           );
@@ -2029,14 +2036,15 @@ const MapBody: FunctionComponent<{}> = () => {
               panMapToLocation = selectedStation.location;
             }
           }
-        }
-        // if a pos entry is selected, highlight and pan to the pos
-        if (selectedPosEntryUuid && selectedRex?.posEntries) {
-          const posLocation = selectedRex.posEntries.find(
-            (c) => c.uuid === selectedPosEntryUuid
-          )?.location;
-          highlightLocation = posLocation;
-          panMapToLocation = posLocation;
+        } else if (selectedEva) {
+          // if eva title is selected, pan to the midpoint of all stations in the eva
+          const allStationUuids = selectedEva.sequence
+            .filter((seqItem) => seqItem.type === "station")
+            .map((seqItem) => seqItem.uuid);
+          const allStationLocations = allStations
+            .filter((s) => allStationUuids.includes(s.uuid))
+            ?.map((s) => s.location);
+          panMapToLocation = getMidpoint(allStationLocations);
         }
       } else if (selectedMeasurementUuid) {
         const measurement = measurements.find((m) => m.uuid === selectedMeasurementUuid);
@@ -2051,13 +2059,14 @@ const MapBody: FunctionComponent<{}> = () => {
 
       if (panMapToLocation && mapDirective === null) {
         if (isNaN(panMapToLocation.lat) || isNaN(panMapToLocation.lng)) return;
+        // only pan if the location is not already in view
         if (!map.current.getBounds().contains(panMapToLocation)) {
           map.current.panTo(panMapToLocation);
         }
       }
     };
     handler();
-    // do not include selectedOrRunningRex in deps or else this will trigger a map repan whenever rex statuses change
+    // do not include selectedRex in deps or else this will trigger a map re-pan whenever rex statuses change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     map,
@@ -2070,6 +2079,7 @@ const MapBody: FunctionComponent<{}> = () => {
     selectedPosEntryUuid,
     selectedMeasurementUuid,
     measurements,
+    selectedEva?.sequence,
   ]);
 
   /**
