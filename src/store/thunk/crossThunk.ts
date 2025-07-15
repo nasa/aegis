@@ -54,7 +54,7 @@ export const thunkDeletePoiAndActionsFromStore = appCreateAsyncThunk<{ poiUuid: 
     const actions = getState().action.actions.filter(
       (storeAction: Action) => storeAction.poiUuid === poiUuid
     );
-    dispatch(poiSlice.actions.deletePoiByUuid(poiUuid));
+    dispatch(poiSlice.actions.deletePoisByUuid([poiUuid]));
     dispatch(poiSlice.actions.setSelectedPoiUuid(null));
     dispatch(actionSlice.actions.deleteActionsByUuid(actions.map((action) => action.uuid)));
     dispatch(thunkSetRightPanelIsOpenIfAuto(false));

@@ -2,10 +2,10 @@ import appCreateAsyncThunk from "./thunkUtil";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import {
-  deleteRexByUuid,
-  deleteRexFromDbByUuid,
-  upsertRex,
-  upsertRexFromDb,
+  deleteRexesByUuid,
+  deleteRexesFromDbByUuid,
+  upsertRexes,
+  upsertRexesFromDb,
   setSelectedRexUuid,
   upsertRexByField,
   setSelectedPosEntryUuid,
@@ -65,8 +65,8 @@ export const thunkCreateRex = appCreateAsyncThunk<
   if (upsertRexResponse.status !== "success") {
     throw new Error("Error upserting Rexes: " + upsertRexResponse.message);
   }
-  dispatch(upsertRex(blankRex));
-  dispatch(upsertRexFromDb(blankRex));
+  dispatch(upsertRexes([blankRex]));
+  dispatch(upsertRexesFromDb([blankRex]));
 
   // set selections
   dispatch(setSelectedRexUuid(blankRex.uuid));
@@ -106,9 +106,9 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
       throw new Error("Error upserting Rexes: " + upsertResponse.message);
     }
     // upsert the changed rex to the store
-    dispatch(upsertRex(upsertResponse.data[0], true));
+    dispatch(upsertRexes([upsertResponse.data[0]], true));
     // update the rex in the store from the DB
-    dispatch(upsertRexFromDb(upsertResponse.data[0]));
+    dispatch(upsertRexesFromDb([upsertResponse.data[0]]));
   }
 );
 
@@ -124,7 +124,7 @@ export const thunkCancelRex = appCreateAsyncThunk<{ rexUuid: string }>(
       await dispatch(thunkDeleteEva({ evaUuid: rexEvaUuid, forRex: true }));
 
       // now delete the rex
-      dispatch(deleteRexByUuid(rexUuid));
+      dispatch(deleteRexesByUuid([rexUuid]));
       dispatch(setSelectedRexUuid(null)); // reset since the rex was deleted
       dispatch(
         thunkAddRemoveFolderItem({
@@ -134,7 +134,7 @@ export const thunkCancelRex = appCreateAsyncThunk<{ rexUuid: string }>(
       );
     } else {
       // if selected rex is in the db, replace it with the one from the db (undoing any changes)
-      dispatch(upsertRex(rexFromDb, true));
+      dispatch(upsertRexes([rexFromDb], true));
     }
   }
 );
@@ -176,8 +176,8 @@ export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
     }
 
     // delete the rex from the store
-    dispatch(deleteRexByUuid(rexUuid));
-    dispatch(deleteRexFromDbByUuid(rexUuid));
+    dispatch(deleteRexesByUuid([rexUuid]));
+    dispatch(deleteRexesFromDbByUuid([rexUuid]));
   }
 );
 
@@ -189,12 +189,14 @@ export const thunkRexPetStartStop = appCreateAsyncThunk<{
   const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
 
   dispatch(
-    upsertRex({
-      ...rex,
-      petRunning: directive === "start",
-      petValueAtStartStop: petValue,
-      petStartStopTimestamp: roundDateToSecond(getAccurateNow()).toISOString(),
-    })
+    upsertRexes([
+      {
+        ...rex,
+        petRunning: directive === "start",
+        petValueAtStartStop: petValue,
+        petStartStopTimestamp: roundDateToSecond(getAccurateNow()).toISOString(),
+      },
+    ])
   );
 });
 
@@ -217,7 +219,7 @@ export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
     newEntries[uuid] = newEntry;
     runningRexFromDb.stationEntries = newEntries;
     dispatch(upsertRexByField(runningRexFromDb.uuid, "stationEntries", newEntries, true));
-    dispatch(upsertRexFromDb(runningRexFromDb));
+    dispatch(upsertRexesFromDb([runningRexFromDb]));
   } else if (entryType === "traverse") {
     const newEntry: TraverseEntry = {
       rexStatus,
@@ -226,7 +228,7 @@ export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
     newEntries[uuid] = newEntry;
     runningRexFromDb.traverseEntries = newEntries;
     dispatch(upsertRexByField(runningRexFromDb.uuid, "traverseEntries", newEntries, true));
-    dispatch(upsertRexFromDb(runningRexFromDb));
+    dispatch(upsertRexesFromDb([runningRexFromDb]));
   } else if (entryType === "action") {
     const newEntries = cloneDeep(runningRexFromDb.actionEntries) || {};
     if (newEntries[uuid]) {
@@ -245,7 +247,7 @@ export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
     }
     runningRexFromDb.actionEntries = newEntries;
     dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
-    dispatch(upsertRexFromDb(runningRexFromDb));
+    dispatch(upsertRexesFromDb([runningRexFromDb]));
   } else if (entryType === "xgress") {
     const newEntry: XgressEntry = {
       rexStatus,
@@ -254,7 +256,7 @@ export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
     newEntries[uuid] = newEntry;
     runningRexFromDb.xgressEntries = newEntries;
     dispatch(upsertRexByField(runningRexFromDb.uuid, "xgressEntries", newEntries, true));
-    dispatch(upsertRexFromDb(runningRexFromDb));
+    dispatch(upsertRexesFromDb([runningRexFromDb]));
   }
 
   // update the rex in the database
@@ -288,7 +290,7 @@ export const thunkAddRexActionMass = appCreateAsyncThunk<{
   }
   runningRexFromDb.actionEntries = newEntries;
   dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
-  dispatch(upsertRexFromDb(runningRexFromDb));
+  dispatch(upsertRexesFromDb([runningRexFromDb]));
 
   // update the rex in the database
   const upsertRexRes = await httpClient_Rex.upsertRexes([runningRexFromDb]);

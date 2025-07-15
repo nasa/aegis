@@ -21,20 +21,6 @@ export const evaSlice = createSlice({
   name: "eva",
   initialState,
   reducers: {
-    upsertEva: {
-      prepare: (eva: Eva, preserveModifiedDate: boolean = false) => {
-        if (preserveModifiedDate) {
-          return { payload: eva };
-        } else {
-          return {
-            payload: { ...eva, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
-          };
-        }
-      },
-      reducer: (state, action: { payload: Eva }) => {
-        upsertToArrayByUuid(state.evas, action.payload);
-      },
-    },
     upsertEvas: {
       prepare: (evas: Eva[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
@@ -54,9 +40,6 @@ export const evaSlice = createSlice({
     },
     upsertEvasFromDb: (state, action: { payload: Eva[] }) => {
       action.payload.forEach((eva) => upsertToArrayByUuid(state.evasFromDb, eva));
-    },
-    upsertEvaFromDb: (state, action: { payload: Eva }) => {
-      upsertToArrayByUuid(state.evasFromDb, action.payload);
     },
     upsertEvaByField: {
       prepare: (
@@ -98,20 +81,6 @@ export const evaSlice = createSlice({
         (newEva as Record<typeof key, Eva[keyof Eva]>)[key] = action.payload.value;
         upsertToArrayByUuid(state.evas, newEva);
       },
-    },
-    /* only called for populating store  */
-    setEvas: (state, action: { payload: Eva[] }) => {
-      state.evas = action.payload;
-    },
-    setEvasFromDb: (state, action: { payload: Eva[] }) => {
-      state.evasFromDb = action.payload;
-    },
-    deleteEvaByUuid: (state, action: { payload: string }) => {
-      state.evas = state.evas.filter((eva) => eva.uuid !== action.payload);
-      state.selectedEvaUuid = null;
-    },
-    deleteEvaFromDbByUuid: (state, action: { payload: string }) => {
-      state.evasFromDb = state.evasFromDb.filter((eva) => eva.uuid !== action.payload);
     },
     deleteEvasByUuid: (state, action: { payload: string[] }) => {
       state.evas = state.evas.filter((eva) => !action.payload.includes(eva.uuid));
@@ -206,15 +175,9 @@ export const evaSlice = createSlice({
 });
 
 export const {
-  upsertEva,
-  upsertEvaFromDb,
   upsertEvas,
   upsertEvasFromDb,
   upsertEvaByField,
-  setEvas,
-  setEvasFromDb,
-  deleteEvaByUuid,
-  deleteEvaFromDbByUuid,
   deleteEvasByUuid,
   deleteEvasFromDbByUuid,
   selectEva,

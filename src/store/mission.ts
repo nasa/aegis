@@ -65,21 +65,11 @@ export const missionSlice = createSlice({
         (state.mission as Record<typeof key, Mission[keyof Mission]>)[key] = action.payload.value;
       },
     },
-
-    /* only called for populating store  */
     setMission: (state, action: { payload: Mission }) => {
       state.mission = action.payload;
     },
     setMissionFromDb: (state, action: { payload: Mission }) => {
       state.missionFromDb = action.payload;
-    },
-    /* only called for populating store  */
-    setLayers: (state, action: { payload: Layer[] }) => {
-      state.layers = action.payload;
-    },
-    /* only called for populating store  */
-    setSublayers: (state, action: { payload: Sublayer[] }) => {
-      state.sublayers = action.payload;
     },
     setSelectedMissionRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
@@ -114,8 +104,6 @@ export const {
   upsertMissionByField,
   setMission,
   setMissionFromDb,
-  setLayers,
-  setSublayers,
   setSelectedMissionRightNavItem,
   setMissionSectionEditing,
   obliterateState,

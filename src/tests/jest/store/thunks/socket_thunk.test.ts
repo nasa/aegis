@@ -3,9 +3,9 @@ import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import cloneDeep from "lodash/cloneDeep";
 import { setPresetEditMode, upsertPresets } from "store/preset";
-import { setPoiEditMode, upsertPoi } from "store/poi";
-import { setStationEditMode, upsertStation } from "store/station";
-import { setEvaEditMode, upsertEva } from "store/eva";
+import { setPoiEditMode, upsertPois } from "store/poi";
+import { setStationEditMode, upsertStations } from "store/station";
+import { setEvaEditMode, upsertEvas } from "store/eva";
 import { setTraversesEditMode, upsertTraverses } from "store/traverse";
 import { setMissionSectionEditing } from "store/mission";
 import { upsertRexes } from "store/rex";
@@ -368,8 +368,7 @@ describe("Thunk Socket Tests", () => {
     it("poi", async () => {
       const data = generateBlankPoi({ name: "Jest Poi-1" });
       const dataInEditMode = generateBlankPoi({ name: "Jest Poi-1" });
-      store.dispatch(upsertPoi(data));
-      store.dispatch(upsertPoi(dataInEditMode));
+      store.dispatch(upsertPois([data, dataInEditMode]));
       store.dispatch(setPoiEditMode({ poiUuid: dataInEditMode.uuid, editMode: true }));
       const storeDelete: StoreDelete = {
         socketId: null,
@@ -404,8 +403,7 @@ describe("Thunk Socket Tests", () => {
     it("station", async () => {
       const data = generateBlankStation({ name: "Jest Station-1" });
       const dataInEditMode = generateBlankStation({ name: "Jest Station-1" });
-      store.dispatch(upsertStation(data));
-      store.dispatch(upsertStation(dataInEditMode));
+      store.dispatch(upsertStations([data, dataInEditMode]));
       store.dispatch(setStationEditMode({ stationUuid: dataInEditMode.uuid, editMode: true }));
       const storeDelete: StoreDelete = {
         socketId: null,
@@ -442,8 +440,7 @@ describe("Thunk Socket Tests", () => {
     it("eva", async () => {
       const data = generateBlankEVA({ name: "Jest Eva-1" });
       const dataInEditMode = generateBlankEVA({ name: "Jest Eva-1" });
-      store.dispatch(upsertEva(data));
-      store.dispatch(upsertEva(dataInEditMode));
+      store.dispatch(upsertEvas([data, dataInEditMode]));
       store.dispatch(setEvaEditMode({ evaUuid: dataInEditMode.uuid, editMode: true }));
       const storeDelete: StoreDelete = {
         socketId: null,

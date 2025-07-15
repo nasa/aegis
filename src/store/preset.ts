@@ -81,14 +81,6 @@ export const presetSlice = createSlice({
         upsertToArrayByUuid(state.presets, newPreset);
       },
     },
-
-    /* only called for populating store  */
-    setPresets: (state, action: { payload: Preset[] }) => {
-      state.presets = action.payload;
-    },
-    setPresetsFromDb: (state, action: { payload: Preset[] }) => {
-      state.presetsFromDb = action.payload;
-    },
     deletePresetsByUuid: (state, action: { payload: string[] }) => {
       state.presets = state.presets.filter((preset) => !action.payload.includes(preset.uuid));
     },
@@ -279,8 +271,6 @@ export const {
   upsertPresets,
   upsertPresetsFromDb,
   upsertPresetByField,
-  setPresets,
-  setPresetsFromDb,
   deletePresetsByUuid,
   deletePresetsFromDbByUuid,
   selectPreset,

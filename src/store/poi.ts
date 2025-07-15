@@ -17,20 +17,6 @@ export const poiSlice = createSlice({
   name: "poi",
   initialState,
   reducers: {
-    upsertPoi: {
-      prepare: (poi: POI, preserveModifiedDate: boolean = false) => {
-        if (preserveModifiedDate) {
-          return { payload: poi };
-        } else {
-          return {
-            payload: { ...poi, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
-          };
-        }
-      },
-      reducer: (state, action: { payload: POI }) => {
-        upsertToArrayByUuid(state.pois, action.payload);
-      },
-    },
     upsertPois: {
       prepare: (pois: POI[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
@@ -50,9 +36,6 @@ export const poiSlice = createSlice({
     },
     upsertPoisFromDb: (state, action: { payload: POI[] }) => {
       action.payload.forEach((poi) => upsertToArrayByUuid(state.poisFromDb, poi));
-    },
-    upsertPoiFromDb: (state, action: { payload: POI }) => {
-      upsertToArrayByUuid(state.poisFromDb, action.payload);
     },
     upsertPoiByField: {
       prepare: (
@@ -95,20 +78,6 @@ export const poiSlice = createSlice({
         upsertToArrayByUuid(state.pois, newPoi);
       },
     },
-
-    /* only called for populating store  */
-    setPois: (state, action: { payload: POI[] }) => {
-      state.pois = action.payload;
-    },
-    setPoisFromDb: (state, action: { payload: POI[] }) => {
-      state.poisFromDb = action.payload;
-    },
-    deletePoiByUuid: (state, action: { payload: string }) => {
-      state.pois = state.pois.filter((poi) => poi.uuid !== action.payload);
-    },
-    deletePoiFromDbByUuid: (state, action: { payload: string }) => {
-      state.poisFromDb = state.poisFromDb.filter((poi) => poi.uuid !== action.payload);
-    },
     deletePoisByUuid: (state, action: { payload: string[] }) => {
       state.pois = state.pois.filter((poi) => !action.payload.includes(poi.uuid));
     },
@@ -148,15 +117,9 @@ export const poiSlice = createSlice({
 });
 
 export const {
-  upsertPoi,
   upsertPois,
   upsertPoisFromDb,
-  upsertPoiFromDb,
   upsertPoiByField,
-  setPois,
-  setPoisFromDb,
-  deletePoiByUuid,
-  deletePoiFromDbByUuid,
   deletePoisByUuid,
   deletePoisFromDbByUuid,
   setSelectedPOIRightNavItem,

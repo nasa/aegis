@@ -14,7 +14,7 @@ import paper from "paper";
 import * as MeasureDrawing from "./measure-drawing";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { PathColorPickerMenu, Button } from "../form/globalFields";
-import { upsertMeasurementField } from "store/measure";
+import { upsertMeasurementByField } from "store/measure";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import throttle from "lodash/throttle";
@@ -182,7 +182,7 @@ const Measure: FunctionComponent = () => {
                   editMode={mapAction === null}
                   direction={"right"}
                   updateColor={(val) => {
-                    dispatch(upsertMeasurementField(selectedMeasurement.uuid, "color", val));
+                    dispatch(upsertMeasurementByField(selectedMeasurement.uuid, "color", val));
                   }}
                   styleContainer={{
                     padding: "0px 5px 0px 5px",

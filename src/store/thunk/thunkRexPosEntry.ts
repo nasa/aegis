@@ -8,8 +8,8 @@ import {
   calculatePetValue,
 } from "utils/formatting";
 import {
-  upsertRex,
-  upsertRexFromDb,
+  upsertRexes,
+  upsertRexesFromDb,
   deletePosEntryByUuid,
   setPosEntryEditingUuid,
   setRexesPosEntryEditMode,
@@ -139,8 +139,8 @@ export const thunkUpdatePosEntryLocation = appCreateAsyncThunk<{
       throw new Error("Error upserting Rex: " + rexUpsertResponse.message);
     }
     // upsert the changed rex (with new updated date) to the store
-    dispatch(upsertRex(updatedRex, true));
-    dispatch(upsertRexFromDb(updatedRex));
+    dispatch(upsertRexes([updatedRex], true));
+    dispatch(upsertRexesFromDb([updatedRex]));
     dispatch(setPosEntryEditingUuid(null));
     dispatch(
       setRexesPosEntryEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false })
@@ -268,8 +268,8 @@ export const thunkPersistPosEntries = appCreateAsyncThunk<{
     throw new Error("Error upserting Rex: " + rexUpsertResponse.message);
   }
   // upsert the changed rex (with new updated date) to the store
-  dispatch(upsertRex(updatedRex, true));
-  dispatch(upsertRexFromDb(updatedRex));
+  dispatch(upsertRexes([updatedRex], true));
+  dispatch(upsertRexesFromDb([updatedRex]));
   dispatch(setPosEntryEditingUuid(null));
   dispatch(setRexesPosEntryEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false }));
 });
@@ -297,8 +297,8 @@ export const thunkDeletePosEntryByUuid = appCreateAsyncThunk<{
   }
 
   // upsert the changed rex (with new updated date) to the store
-  dispatch(upsertRex(updatedRex, true));
-  dispatch(upsertRexFromDb(updatedRex));
+  dispatch(upsertRexes([updatedRex], true));
+  dispatch(upsertRexesFromDb([updatedRex]));
 });
 
 export const thunkCreatePosType = appCreateAsyncThunk<void>(
