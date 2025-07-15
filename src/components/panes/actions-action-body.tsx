@@ -1,7 +1,9 @@
 import {
   faAtlas,
+  faBarcode,
   faCircle,
   faClock,
+  faHexagonNodes,
   faIcons,
   faListOl,
   faLocationDot,
@@ -34,7 +36,7 @@ import { findGridCoordinatesFromPoint, getDistanceBetweenTwoCoordinates } from "
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
-import { thunkAddRexActionMass } from "store/thunk/thunkRex";
+import { thunkAddCollectionId, thunkAddRexActionMass } from "store/thunk/thunkRex";
 import { globalGrid } from "utils/grid";
 
 const RightActionBody: FunctionComponent<{
@@ -72,15 +74,22 @@ const RightActionBody: FunctionComponent<{
     refEqual
   );
 
-  const actionRexMass = useAppSelector((state) => {
+  const actionRexEntry = useAppSelector((state) => {
     if (!rexUuid) return;
     //find all action entry that match this action uuid for the running rex. return the status of the last one.
     const rex = state.rex.rexesFromDb.find((rex) => rex.uuid === rexUuid);
     if (!rex?.actionEntries || !rex.actionEntries[action.uuid]) {
       return null;
     } else {
-      return rex.actionEntries[action.uuid].mass;
+      return rex.actionEntries[action.uuid];
     }
+  }, deepEqual);
+
+  const actionRexMaestroControlled = useAppSelector((state) => {
+    if (!rexUuid) return false;
+    //find all action entry that match this action uuid for the running rex. return the status of the last one.
+    const rex = state.rex.rexesFromDb.find((rex) => rex.uuid === rexUuid);
+    return rex?.maestroControlled || false;
   }, deepEqual);
 
   const planetRadius = useAppSelector((state) => state.mission.mission.planetRadius, refEqual);
@@ -278,8 +287,19 @@ const RightActionBody: FunctionComponent<{
         </div>
       )}
       <div className={paneStyles.panelSection}>
-        <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-          <SubpanelHeading icon={faWeightHanging}>Sample Mass</SubpanelHeading>
+        <div className={paneStyles.titleWithMaestro}>
+          <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+            <SubpanelHeading icon={faWeightHanging}>Sample Mass</SubpanelHeading>
+          </div>
+          {actionRexMaestroControlled && (
+            <div className={paneStyles.maestroIcon}>
+              <FontAwesomeIcon
+                icon={faHexagonNodes}
+                data-tooltip-id="aegis-tooltip"
+                data-tooltip-html="Some fields in this section are Maestro controlled"
+              />
+            </div>
+          )}
         </div>
         <div className={paneStyles.panelSectionRow}>
           <div className={paneStyles.panelSection2Column}>
@@ -315,45 +335,151 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
             </div>
-            {rexUuid && (
-              <div className={paneStyles.panelColumnTable} style={{ marginTop: -0.5 }}>
-                <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
-                    <div className={paneStyles.inputFieldLabel}>Executed Mass (g):</div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableCell}>
-                    <div className={paneStyles.inputFieldValue}>
-                      <InLineEditInput
-                        value={actionRexMass?.toString()}
-                        editing={!isNull(rexUuid) && allowRexEdit}
-                        fieldProps={{
-                          name: "mass",
-                          ariaLabel: "Executed Sample Mass",
-                          style: { width: "45px" },
-                          validators: [
-                            validators.mustBeNumber,
-                            validators.maxLength(4),
-                            validators.mustBeInteger,
-                          ],
-                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                            e.target.value = e.target.value.replace(
-                              regExValidators.regExNumber,
-                              ""
-                            );
-                          },
-                        }}
-                        onSubmit={(value: string) => {
-                          dispatch(
-                            thunkAddRexActionMass({ uuid: action.uuid, mass: toDecimal(value) })
-                          );
-                        }}
-                        key={`${action.uuid}-mass`}
-                      />
-                    </div>
+
+            <div className={paneStyles.panelColumnTable} style={{ marginTop: -0.5 }}>
+              <div className={paneStyles.panelColumnTableRow}>
+                <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.inputFieldLabel}>Executed Mass (g):</div>
+                </div>
+                <div className={paneStyles.panelColumnTableCell}>
+                  <div className={paneStyles.inputFieldValue}>
+                    <InLineEditInput
+                      value={actionRexEntry?.mass?.toString()}
+                      editing={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      fieldProps={{
+                        name: "mass",
+                        ariaLabel: "Executed Sample Mass",
+                        style: { width: "45px" },
+                        validators: [
+                          validators.mustBeNumber,
+                          validators.maxLength(4),
+                          validators.mustBeInteger,
+                        ],
+                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                          e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
+                        },
+                      }}
+                      onSubmit={(value: string) => {
+                        dispatch(
+                          thunkAddRexActionMass({ uuid: action.uuid, mass: toDecimal(value) })
+                        );
+                      }}
+                      key={`${action.uuid}-mass`}
+                    />
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className={paneStyles.panelSection}>
+        <div className={paneStyles.titleWithMaestro}>
+          <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+            <SubpanelHeading icon={faBarcode}>Sample Collection IDs</SubpanelHeading>
+          </div>
+          {actionRexMaestroControlled && (
+            <div className={paneStyles.maestroIcon}>
+              <FontAwesomeIcon
+                icon={faHexagonNodes}
+                data-tooltip-id="aegis-tooltip"
+                data-tooltip-html="Some fields in this section are Maestro controlled"
+              />
+            </div>
+          )}
+        </div>
+        <div className={paneStyles.panelSectionRow}>
+          <div className={paneStyles.panelSection2Column}>
+            <div className={paneStyles.panelColumnTable}>
+              <div className={paneStyles.panelColumnTableRow}>
+                <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.inputFieldLabel}>Marker ID:</div>
+                </div>
+                <div className={paneStyles.panelColumnTableCell}>
+                  <div className={paneStyles.inputFieldValue}>
+                    <InLineEditInput
+                      value={actionRexEntry?.markerId?.toString()}
+                      editing={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      fieldProps={{
+                        name: "markerId",
+                        ariaLabel: "Sample Marker ID",
+                        style: { width: "45px" },
+                        validators: [validators.maxLength(20)],
+                      }}
+                      onSubmit={(value: string) => {
+                        dispatch(
+                          thunkAddCollectionId({
+                            uuid: action.uuid,
+                            id: value,
+                            collectionType: "marker",
+                          })
+                        );
+                      }}
+                      key={`${action.uuid}-markerId`}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className={paneStyles.panelColumnTableRow}>
+                <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.inputFieldLabel}>Container ID:</div>
+                </div>
+                <div className={paneStyles.panelColumnTableCell}>
+                  <div className={paneStyles.inputFieldValue}>
+                    <InLineEditInput
+                      value={actionRexEntry?.containerId?.toString()}
+                      editing={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      fieldProps={{
+                        name: "containerId",
+                        ariaLabel: "Container ID",
+                        style: { width: "45px" },
+                        validators: [validators.maxLength(20)],
+                      }}
+                      onSubmit={(value: string) => {
+                        dispatch(
+                          thunkAddCollectionId({
+                            uuid: action.uuid,
+                            id: value,
+                            collectionType: "container",
+                          })
+                        );
+                      }}
+                      key={`${action.uuid}-containerId`}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className={paneStyles.panelColumnTableRow}>
+                <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.inputFieldLabel}>Addtl. Container ID:</div>
+                </div>
+                <div className={paneStyles.panelColumnTableCell}>
+                  <div className={paneStyles.inputFieldValue}>
+                    <InLineEditInput
+                      value={actionRexEntry?.secondaryContainerId?.toString()}
+                      editing={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      fieldProps={{
+                        name: "secondaryContainerId",
+                        ariaLabel: "Secondary Container ID",
+                        style: { width: "45px" },
+                        validators: [validators.maxLength(20)],
+                      }}
+                      onSubmit={(value: string) => {
+                        dispatch(
+                          thunkAddCollectionId({
+                            uuid: action.uuid,
+                            id: value,
+                            collectionType: "secondaryContainer",
+                          })
+                        );
+                      }}
+                      key={`${action.uuid}-mass`}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
