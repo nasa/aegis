@@ -29,7 +29,6 @@ import {
   thunkSaveActions,
 } from "./thunkAction";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
-import { isModified } from "utils/component-helpers";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankStation } from "store/storeUtils/station";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
@@ -245,31 +244,34 @@ export const thunkSaveStation = appCreateAsyncThunk<{
     (action) => action.stationUuid === newStation.uuid
   );
 
-  // full update traverses (including name) around this station in any eva using this station
-  if (!isEqual(newStation.location, oldStation.location)) {
+  // update traverse names around this station in any eva using this station
+  // if the station location has changed, the traverse was already updated in thunkUpdateStationLocation
+  if (!isEqual(newStation.name, oldStation.name)) {
     await dispatch(
       thunkUpdateTraversesAroundStation({ stationUuid: newStation.uuid, saveToDb: true })
     );
   }
 
-  // upsert the changed Station to the DB via internal API call
-  const updatedStation = {
-    ...newStation,
-    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-  };
-  const stationUpsertResponse = await httpClient_station.upsertStations([updatedStation]);
+  // check if station has been modified. this may not be the case if the user only changed actions
+  if (!isEqual(newStation, oldStation)) {
+    // upsert the changed Station to the DB via internal API call
+    const updatedStation = {
+      ...newStation,
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    };
+    const stationUpsertResponse = await httpClient_station.upsertStations([updatedStation]);
 
-  if (stationUpsertResponse.status !== "success") {
-    throw new Error("Error upserting Station: " + stationUpsertResponse.message);
+    if (stationUpsertResponse.status !== "success") {
+      throw new Error("Error upserting Station: " + stationUpsertResponse.message);
+    }
+    // upsert the changed Station (with new updated date) to the store
+    dispatch(upsertStations([updatedStation], true));
+    // update the StationFromDb copy in store
+    dispatch(upsertStationsFromDb([updatedStation]));
   }
-  // upsert the changed Station (with new updated date) to the store
-  dispatch(upsertStations([updatedStation], true));
-  // update the StationFromDb copy in store
-  dispatch(upsertStationsFromDb([updatedStation]));
 
   // find out if the actions in this station have been modified and need to be persisted
-  const actionsModified = isModified(stationActions, stationActionsFromDb);
-  if (actionsModified) {
+  if (!isEqual(stationActions, stationActionsFromDb)) {
     dispatch(
       thunkSaveActions({
         actions: stationActions,

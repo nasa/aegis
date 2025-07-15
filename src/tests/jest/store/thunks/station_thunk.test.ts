@@ -297,7 +297,8 @@ describe("Thunk Station Tests", () => {
     //call the thunk
     await store.dispatch(thunkStation.thunkSaveStation({ stationUuid: station.uuid }));
     storeState = store.getState();
-    expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(1); //check the db call was made
+    //station db call not made because station itself was not modified, only actions
+    expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(0);
     expect(mockThunkSaveActions).toHaveBeenCalledTimes(1);
     expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalledTimes(1);
     expect(storeState.station.stationsEditing.length).toEqual(0);
