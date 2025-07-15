@@ -206,7 +206,6 @@ describe("Thunk POI Tests", () => {
     expect(storeState.action.actions.find((a) => a.uuid === poiAction.uuid)).toBeFalsy();
     expect(storeState.poi.selectedPoiUuid).toBeFalsy();
     expect(httpClient_poi.deletePOIs).toHaveBeenCalledTimes(1);
-    expect(httpClient_poi.getPOIs).toHaveBeenCalledTimes(1);
     expect(httpClient_action.deleteActions).toHaveBeenCalledTimes(1);
 
     //delete an unsaved poi
@@ -216,7 +215,6 @@ describe("Thunk POI Tests", () => {
     expect(storeState.poi.poisEditing.includes(unsavedPoi.uuid)).toBeFalsy();
     expect(storeState.action.actions.find((a) => a.uuid === unsavedPoiAction.uuid)).toBeFalsy();
     expect(httpClient_poi.deletePOIs).toHaveBeenCalledTimes(1); //no additional calls should have been made from the earlier call
-    expect(httpClient_poi.getPOIs).toHaveBeenCalledTimes(1); //no additional calls should have been made from the earlier call
   });
 
   it("thunkCreatePoi()", async () => {

@@ -1,4 +1,4 @@
-import { upsertPoi } from "store/poi";
+import { upsertPois } from "store/poi";
 import { createCustomTestStore } from "../factories/makeTestStore";
 import { StoreType } from "store";
 import { initialState as poiInitialState } from "store/poi";
@@ -23,7 +23,7 @@ describe("POI Store Reducers", () => {
     //upsert a new poi
     const newPoi: POI = generateBlankPoi({ name: "Jest Poi-1" });
     let poiCount = store.getState().poi.pois.length;
-    store.dispatch(upsertPoi(newPoi));
+    store.dispatch(upsertPois([newPoi]));
     expect(store.getState().poi.pois.length).toEqual(poiCount + 1);
 
     //upsert to an existing poi
@@ -33,7 +33,9 @@ describe("POI Store Reducers", () => {
     expect(existingPoi.description).toEqual("");
 
     //perform the upsert
-    store.dispatch(upsertPoi({ ...existingPoi, description: "modified description test" }, true));
+    store.dispatch(
+      upsertPois([{ ...existingPoi, description: "modified description test" }], true)
+    );
 
     //get new state and run checks
     let updatedPoi = store.getState().poi.pois.find((p) => p.uuid === testPoi.uuid);
@@ -42,7 +44,7 @@ describe("POI Store Reducers", () => {
     expect(store.getState().poi.pois.length).toEqual(poiCount); //no new pois were added
 
     //upsert again but with do not preserving modified date
-    store.dispatch(upsertPoi({ ...existingPoi, description: "modified description test 2" }));
+    store.dispatch(upsertPois([{ ...existingPoi, description: "modified description test 2" }]));
     updatedPoi = store.getState().poi.pois.find((p) => p.uuid === testPoi.uuid);
     expect(updatedPoi.description).toEqual("modified description test 2"); //description was upserted
     expect(updatedPoi.updatedAt).not.toEqual(existingPoiUpdatedDate); //did not preserve modified date

@@ -28,9 +28,6 @@ export const actionSlice = createSlice({
         action.payload.forEach((action) => upsertToArrayByUuid(state.actions, action));
       },
     },
-    upsertActionFromDb: (state, action: { payload: Action }) => {
-      upsertToArrayByUuid(state.actionsFromDb, action.payload);
-    },
     upsertActionsFromDb: (state, action: { payload: Action[] }) => {
       action.payload.forEach((action) => upsertToArrayByUuid(state.actionsFromDb, action));
     },
@@ -75,13 +72,6 @@ export const actionSlice = createSlice({
         upsertToArrayByUuid(state.actions, newAction);
       },
     },
-    /* only called for populating store  */
-    setActions: (state, action: { payload: Action[] }) => {
-      state.actions = action.payload;
-    },
-    setActionsFromDb: (state, action: { payload: Action[] }) => {
-      state.actionsFromDb = action.payload;
-    },
     deleteActionsByUuid: (state, action: { payload: string[] }) => {
       state.actions = state.actions.filter((a) => !action.payload.includes(a.uuid));
     },
@@ -103,11 +93,8 @@ export const actionSlice = createSlice({
 
 export const {
   upsertActions,
-  upsertActionFromDb,
   upsertActionsFromDb,
   upsertActionByField,
-  setActions,
-  setActionsFromDb,
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
   obliterateState,

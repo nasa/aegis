@@ -20,7 +20,7 @@ import {
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
-import { setEvaEditMode, setEvaSequence, upsertEva, upsertEvaByField } from "store/eva";
+import { setEvaEditMode, setEvaSequence, upsertEvas, upsertEvaByField } from "store/eva";
 
 // mock all calls to the db so no transactions are actually made
 // CAUTION, the import line must be below the jest.mock
@@ -226,7 +226,7 @@ describe("Thunk EVA Tests", () => {
       const unsavedEva = generateBlankEVA({ name: "Jest Eva-1" });
       const newTraverse = generateBlankTraverse({ name: "Jest Traverse-1" });
       unsavedEva.sequence = [{ uuid: newTraverse.uuid, type: "traverse" }];
-      store.dispatch(upsertEva(unsavedEva));
+      store.dispatch(upsertEvas([unsavedEva]));
       store.dispatch(setEvaEditMode({ evaUuid: unsavedEva.uuid, editMode: true }));
       store.dispatch(setTraversesEditMode({ uuids: [newTraverse.uuid], editMode: false }));
 

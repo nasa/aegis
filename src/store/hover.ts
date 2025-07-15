@@ -15,14 +15,6 @@ export const hoverSlice = createSlice({
   name: "hover",
   initialState,
   reducers: {
-    /**
-     * Change the seconds the cursor is hovering on via the timeline
-     * Also change the sequence UUID that is currently being hovered over
-     */
-
-    setTimelineHoverUuid: (state, action: { payload: string }) => {
-      state.timelineSeqItemUuid = action.payload;
-    },
     setLeftPanelHoverUuid: (state, action: { payload: string }) => {
       state.leftPanelHoverItemUuid = action.payload;
     },
@@ -31,9 +23,6 @@ export const hoverSlice = createSlice({
     },
     setMapItemHoverType: (state, action: { payload: MapItemType }) => {
       state.mapItemType = action.payload;
-    },
-    setPosEntryItemHoverUuid: (state, action: { payload: string }) => {
-      state.posEntryItemUuid = action.payload;
     },
     setSequenceHover: (
       state,
@@ -89,11 +78,9 @@ export const hoverSlice = createSlice({
 });
 
 export const {
-  setTimelineHoverUuid,
   setLeftPanelHoverUuid,
   setMapItemHoverType,
   setMapItemHoverUuid,
-  setPosEntryItemHoverUuid,
   setSequenceHover,
   setMeasurementHover,
   clearMapItemHover,

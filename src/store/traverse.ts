@@ -76,13 +76,6 @@ export const traverseSlice = createSlice({
         upsertToArrayByUuid(state.traverses, newTraverse);
       },
     },
-    /* only called for populating store  */
-    setTraverses: (state, action: { payload: Traverse[] }) => {
-      state.traverses = action.payload;
-    },
-    setTraversesFromDb: (state, action: { payload: Traverse[] }) => {
-      state.traversesFromDb = action.payload;
-    },
     deleteTraversesByUuid: (state, action: { payload: string[] }) => {
       state.traverses = state.traverses.filter(
         (traverse) => !action.payload.includes(traverse.uuid)
@@ -139,8 +132,6 @@ export const {
   upsertTraverses,
   upsertTraversesFromDb,
   upsertTraverseByField,
-  setTraverses,
-  setTraversesFromDb,
   deleteTraversesByUuid,
   deleteTraversesFromDbByUuid,
   setSelectedTraverseRightNavItem,
