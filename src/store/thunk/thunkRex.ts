@@ -327,7 +327,7 @@ export const thunkAddCollectionId = appCreateAsyncThunk<{
   }
   runningRexFromDb.actionEntries = newEntries;
   dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
-  dispatch(upsertRexFromDb(runningRexFromDb));
+  dispatch(upsertRexesFromDb([runningRexFromDb]));
 
   // update the rex in the database
   const upsertRexRes = await httpClient_Rex.upsertRexes([runningRexFromDb]);

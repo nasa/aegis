@@ -13,7 +13,6 @@ import { thunkGetElevation } from "./thunkElevation";
 import * as httpClient_Traverse from "http-client/traverse";
 import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { thunkUpdateMapDirective } from "./thunkMap";
-import { isModified } from "utils/component-helpers";
 import {
   thunkDeleteActionsFromDbAndStore,
   thunkDuplicateActions,
@@ -189,7 +188,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     /**
      * The response from thunkGetElevation is a PayloadAction.
      *  get the value by using .payload which will be either the return value
-     *  or false if the thunk was un-fullfilled.
+     *  or false if the thunk was un-fulfilled.
      */
     let newElevationProfile = null;
     if (elevationResponse && elevationResponse.payload !== false) {
@@ -344,7 +343,8 @@ export const thunkSaveTraverse = appCreateAsyncThunk<{ traverseUuid: string }>(
     const traverseActionsFromDb = getState().action.actionsFromDb.filter(
       (action) => action.traverseUuid === traverseUuid
     );
-    const traverse = getState().traverse.traverses.find((s) => s.uuid === traverseUuid);
+    const newTraverse = getState().traverse.traverses.find((s) => s.uuid === traverseUuid);
+    const oldTraverse = getState().traverse.traversesFromDb.find((s) => s.uuid === traverseUuid);
 
     // Check if the traverse name needs to be updated. Users cannot manually modify the name.
     // Name can get out of sync if a user cancels the traverse edit that had an updated name in it.
@@ -396,22 +396,26 @@ export const thunkSaveTraverse = appCreateAsyncThunk<{ traverseUuid: string }>(
       } else throw new Error("Traverse not found in EVA sequence");
     } else throw new Error("No EVA sequence found for the traverse");
 
-    // save to db
-    const updatedTraverse = {
-      ...traverse,
+    // if the traverse has been modified, update it in the db
+    const traverseWithUpdatedName = {
+      ...newTraverse,
       name: `${stationNameBefore} to ${stationNameAfter}`, // update the name just incase
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
-    const upsertTraverseRes = await httpClient_Traverse.upsertTraverses([updatedTraverse]);
-    if (upsertTraverseRes.status !== "success") {
-      throw new Error("Error upserting Traverse: " + upsertTraverseRes.message);
+    if (!isEqual(traverseWithUpdatedName, oldTraverse)) {
+      const updatedTraverse = {
+        ...traverseWithUpdatedName,
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      };
+      const upsertTraverseRes = await httpClient_Traverse.upsertTraverses([updatedTraverse]);
+      if (upsertTraverseRes.status !== "success") {
+        throw new Error("Error upserting Traverse: " + upsertTraverseRes.message);
+      }
+      dispatch(upsertTraverses([updatedTraverse], true));
+      dispatch(upsertTraversesFromDb([updatedTraverse]));
     }
-    dispatch(upsertTraverses([updatedTraverse], true));
-    dispatch(upsertTraversesFromDb([updatedTraverse]));
 
     // find out if the actions in this traverse have been modified and need to be persisted
-    const actionsModified = isModified(traverseActions, traverseActionsFromDb);
-    if (actionsModified) {
+    if (!isEqual(traverseActions, traverseActionsFromDb)) {
       dispatch(
         thunkSaveActions({
           actions: traverseActions,
