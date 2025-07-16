@@ -126,7 +126,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 }}
                 styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                 onSubmit={(value) => {
-                  dispatch(upsertMissionByField("missionBanner", value));
+                  dispatch(upsertMissionByField("missionBanner", value || ""));
                 }}
                 key={`${mission.id}-banner`}
               />
