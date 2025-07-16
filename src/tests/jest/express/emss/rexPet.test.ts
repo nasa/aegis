@@ -1,8 +1,8 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import { Mission_db, Rex_db } from "server/database/models/_allModels";
-import MissionFactory from "../factories/MissionFactory";
-import RexFactory from "../factories/RexFactory";
+import MissionFactory from "../../factories/MissionFactory";
+import RexFactory from "../../factories/RexFactory";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
