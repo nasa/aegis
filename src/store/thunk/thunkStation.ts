@@ -246,7 +246,7 @@ export const thunkSaveStation = appCreateAsyncThunk<{
 
   // update traverse names around this station in any eva using this station
   // if the station location has changed, the traverse was already updated in thunkUpdateStationLocation
-  if (!isEqual(newStation.name, oldStation.name)) {
+  if (!isEqual(newStation.name, oldStation?.name)) {
     await dispatch(
       thunkUpdateTraversesAroundStation({ stationUuid: newStation.uuid, saveToDb: true })
     );
