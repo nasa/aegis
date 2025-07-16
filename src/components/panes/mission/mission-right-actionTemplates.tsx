@@ -152,7 +152,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                               name: "type",
                               ariaLabel: "Template Name",
                               style: { width: "100%" },
-                              validators: [validators.maxLength(255)],
+                              validators: [validators.required, validators.maxLength(255)],
                             }}
                             onSubmit={(value: string) => {
                               dispatch(
