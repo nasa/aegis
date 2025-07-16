@@ -16,6 +16,7 @@ import presetRoutes from "./routes/preset";
 import rexRoutes from "./routes/rex";
 import rexPet from "./routes/emss/rexPet";
 import rexByEvaRef from "./routes/emss/getRexesByEvaRef";
+import rexStatus from "./routes/emss/rexStatus";
 import socketLastEditEventRoutes from "./routes/socket/lastEditEvent";
 import socketVisitorData from "./routes/socket/visitorData";
 import stationRoutes from "./routes/station";
@@ -124,5 +125,6 @@ app.use("/api/v1/readable/traverse", readableTraverseRoutes);
 // endpoints that require emssToken auth only
 app.use("/api/v1/emss/rexPet", rexPet);
 app.use("/api/v1/emss/getRexesByEvaRef", rexByEvaRef);
+app.use("/api/v1/emss/rexStatus", rexStatus);
 
 export default app;
