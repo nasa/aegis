@@ -1,6 +1,6 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import {
   deleteRexesByUuid,
   deleteRexesFromDbByUuid,
@@ -194,7 +194,7 @@ export const thunkRexPetStartStop = appCreateAsyncThunk<{
         ...rex,
         petRunning: directive === "start",
         petValueAtStartStop: petValue,
-        petStartStopTimestamp: roundDateToSecond(getAccurateNow()).toISOString(),
+        petStartStopTimestamp: getAccurateNow().toISOString(),
       },
     ])
   );
