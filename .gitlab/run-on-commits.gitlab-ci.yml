@@ -425,6 +425,296 @@ deploy:oxygen:
     - sed -i "s/INSERT_SUBDOMAIN/oxygen-emss-dev/g" .env
     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/oxygen/g" .env
 
+.uranium-access:
+  tags: ["uranium-emss-dev"]
+  variables:
+    DEPLOY_SUDO_PASS: "EMSSRunner1"
+  environment:
+    name: oxygen
+    url: https://131.110.163.12
+    action: access # See "action: access" comment on .carbon-access above
+
+.uranium-deploy:
+  tags: ["uranium-emss-dev"]
+  variables:
+    DEPLOY_SUDO_PASS: "EMSSRunner1"
+  environment:
+    name: uranium
+    url: https://131.110.163.12
+
+.emss-fitdock-deploy-aws:
+  stage: stageless
+  timeout: 10 minutes
+  variables:
+    INSTALL_DIR: "/home/gitlab-runner"
+    GIT_STRATEGY: none # Don't checkout the repo, just get artifacts
+
+    # Default location for container logs to go,
+    # emss-logging.fit.nasa.gov (aka jsfitdmaestroa)
+    RSYSLOG_DEFAULT_TARGET: jsfitdmaestroa.ndc.nasa.gov
+
+    RSYSLOG_EMSS_CONFIG_TEMPLATE: |
+      # load the udp module and have it listen on 514
+      module(load="imudp")
+      input(type="imudp" port="514")
+
+      template(
+        name="emssForwardFormat"
+        type="string"
+        string="<%PRI%> %TIMESTAMP:::date-rfc3339% $${LOG_DATA_SERVER_NAME} %syslogtag:1:32%%msg:::sp-if-no-1st-sp%%msg%"
+      )
+
+      # Any logs from udp: forward on to EMSS logs server
+      if $$inputname == 'imudp' then {
+        action(
+          type="omfwd"
+          Target="$${RSYSLOG_TARGET}"
+          Port="9602"
+          Protocol="tcp"
+          StreamDriver="gtls"
+          StreamDriverMode="1"
+          StreamDriverAuthMode="anon"
+          template="emssForwardFormat"
+        )
+      }
+
+  script:
+    # Do trivial sudo command so sudo session is started, and sudo password
+    # isn't required on subsequent uses of `sudo`
+    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
+
+    # print some system info just cuz it might be useful
+    - cat /etc/os-release
+    - lscpu
+    - free -h
+    - df -h
+
+    - |
+      cat <<EOF
+      # # # # # # # # # # # # # # # #
+      # Part 1: Fitdock host setup  #
+      # # # # # # # # # # # # # # # #
+      EOF
+
+    # Bootstrap fitdock if necessary
+    # ------------------------------
+    #
+    # On a totally new server, the `fitdock` command won't exist yet. Clone the
+    # FitBox repo, checking out the `fitdock` branchy, and run the setup script
+    - >
+      if ! sudo fitdock --version; then
+        sudo git clone -b fitdock https://gitlab.fit.nasa.gov/fitbox/fitbox.git /opt/fitdock
+        sudo bash /opt/fitdock/src/scripts/setup-fitdock.sh
+      fi
+
+    # Ensure `yq` command exists
+    # --------------------------
+    #
+    # Temporary fitdock addition to add yq to server. Is part of setup-fitdock.sh,
+    # so on future installations this block won't be necessary. All this block does
+    # is re-run setup-fitdock.sh to pick up the extra changes.
+    # Note that we do `git fetch origin` then `git merge origin/fitdock --ff-only`
+    # versus just `git pull origin fitdock --ff-only`, because CentOS 7 does not
+    # have `--ff-only` on the `pull` subcommand.
+    - >
+
+    # Make an obvious error if Docker is missing
+    - >
+      if ! docker --version; then
+        >&2 echo "Docker is not installed on the host"
+        exit 1
+      fi
+
+    - |
+      cat <<EOF
+      # # # # # # # # # # # # #
+      # Part 2: Setup Rsyslog #
+      # # # # # # # # # # # # #
+      EOF
+
+    # Get the vars in .env into context, so we can make the server name
+    # available to Rsyslog config.
+    - source ./.env
+    - export LOG_DATA_SERVER_NAME
+
+    # A file automatically included at Rsyslog startup. Prefix of "60" impacts
+    # when it is included relative to other files in rsyslog.d. 60 is later than
+    # all other current files present on dev servers.
+    - RSYSLOG_EMSS_CONFIG_FILE=/etc/rsyslog.d/60-emss.conf
+
+    # Capture the initial value of /etc/rsyslog.d/60-emss.conf
+    # Do `|| true` so if the file doesn't exist it doesn't cause an error that fails the GitLab job
+    - RSYSLOG_INITIAL_CONFIG=$(sudo cat "$RSYSLOG_EMSS_CONFIG_FILE" || true)
+
+    # Determine the actual Rsyslog target. If RSYSLOG_TARGET var exists, use that. Else
+    # use the RSYSLOG_DEFAULT_TARGET that is set at the emss group level CI variables.
+    # RSYSLOG_TARGET can be set on individual jobs (if you always want to make one dev
+    # server log to a different log server) or as a one-time deploy by re-running deploy
+    # with "Update CI/CD Variables"
+    - RSYSLOG_ACTUAL_TARGET=${RSYSLOG_TARGET:-$RSYSLOG_DEFAULT_TARGET}
+
+    # Print vars that impact output of config
+    - echo "RSYSLOG_TARGET = $RSYSLOG_TARGET"
+    - echo "RSYSLOG_DEFAULT_TARGET = $RSYSLOG_DEFAULT_TARGET"
+    - echo "RSYSLOG_ACTUAL_TARGET = $RSYSLOG_ACTUAL_TARGET"
+
+    # Export RSYSLOG variable, whether it is its original value or set to the default
+    - export RSYSLOG_TARGET="${RSYSLOG_ACTUAL_TARGET}"
+
+    # Here $inputname is NOT a shell variable. It is part of the Rsyslog config
+    # file. envsubst, however, will try to replace it. Rather than fighting it
+    # and preventing the substitution, here we're setting an $inputname variable
+    # that will cause the substitution to result in no change (replaces
+    # "$inputname" with "$inputname")
+    - export inputname="\$inputname"
+
+    # Replace variables in the template, and output to a temp file
+    - echo "$RSYSLOG_EMSS_CONFIG_TEMPLATE"  |  envsubst  >  /tmp/emss-rsyslog.conf
+
+    # Capture the final value
+    - RSYSLOG_FINAL_CONFIG=$(cat /tmp/emss-rsyslog.conf)
+
+    - |
+      cat <<EOF
+      # # # # # # # # # # # # # # # # # # # # # #
+      # PART 3: Shutdown other docker services  #
+      # # # # # # # # # # # # # # # # # # # # # #
+      EOF
+
+    # This runs `docker compose ls --all` which prints a table like:
+    #
+    #   NAME                STATUS              CONFIG FILES
+    #   aegis               running(4)          /opt/aegis/docker-compose.yml
+    #   maestro             exited(2)           /opt/maestro/docker-compose.yml
+    #
+    # We then run `tail -n +2` to skip the first row (just headings), followed by
+    # `awk '{ print $3 }'` to get just the third column. This results in the
+    # COMPOSE_FILES having a value of just:
+    #
+    # /opt/aegis/docker-compose.yml
+    # /opt/maestro/docker-compose.yml
+    #
+    # So just the path to the docker compose files, separated by newlines.
+    - COMPOSE_FILES=$(sudo docker compose ls --all | tail -n +2 | awk '{ print $NF }')
+
+    # Print to job log, just for info
+    - sudo docker compose ls --all
+
+    # Loop over everything in COMPOSE_FILES (whether running, exited, or otherwise), and
+    # stop/remove any of them that aren't $INSTALL_DIR/docker-compose.yml
+    - |
+      if [ "${DISABLE_SHUTDOWN_OTHER_COMPOSE}" != "true" ]; then
+        for file in $COMPOSE_FILES; do
+          if [ -z "$file" ]; then
+            echo "skipping empty line"
+          elif [ "$file" = "$INSTALL_DIR/docker-compose.yml" ]; then
+            echo "$file is the docker-compose file for this app. Keep it running."
+          else
+            echo "$file is the docker-compose file for another app. Stopping and removing it."
+            sudo docker compose --file "$file" rm --stop --volumes --force
+          fi
+        done
+      fi
+
+    # Print to job log after possible changes above, just for info
+    - sudo docker compose ls --all
+
+    - |
+      cat <<EOF
+      # # # # # # # # # #
+      # Part 4: Deploy  #
+      # # # # # # # # # #
+      EOF
+
+    # Move .env and docker-compose.yml into place
+    # /bin/cp to avoid aliased version of `cp` which doesn't allow forcing with -f
+    - /bin/cp -f ./.env "${INSTALL_DIR}/.env"
+    - /bin/cp -f ./docker-compose.yml "${INSTALL_DIR}/docker-compose.yml"
+
+    # Remove files from gitlab runner temporary directory, just to
+    # make sure things are cleaned up.
+    - rm -f .env
+    - rm -f .fitdock.yml
+    - rm -f docker-compose.yml
+
+    # Take docker-compose down, pull latest, bring it back up
+    - cd "${INSTALL_DIR}"
+    - echo $CI_JOB_TOKEN | sudo /usr/bin/docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+
+    # Get the latest of each image
+    - sudo /usr/bin/docker compose pull
+
+    # Using the new images, re-up Compose. Also remove anything no longer defined in
+    # docker-compose.yml via --remove-orphans
+    - sudo /usr/bin/docker compose up -d --remove-orphans
+
+    # remove any images, networks, or volumes no longer in use
+    - sudo /usr/bin/docker image prune --all --force
+    - sudo /usr/bin/docker network prune --force
+    - sudo /usr/bin/docker volume prune --all --force
+
+    # Print info on all docker networks
+    - |
+      for id in $(sudo docker network ls -q); do
+        sudo docker network inspect "$id";
+      done
+
+    # print docker system info
+    - sudo /usr/bin/docker system df
+
+    # Report to logging server that a deploy has occurred.
+    # The variables from .env below are available because of the
+    # `source ./.env` further up in this job.
+    # We're reporting to emss-logging.fit.nasa.gov, not to
+    # $LOG_SERVER_HTTP_ENDPOINT, because we ALWAYS want deploy info
+    # on our main logging server, even if we're devving logs on
+    # another server.
+    - >
+      curl -X PUT -L "https://emss-logging.fit.nasa.gov/applog/"
+      -H "Content-Type: application/json"
+      -d "{\"logData\":{
+      \"app\":\"${LOG_DATA_APP_ID}\",
+      \"serverName\":\"${LOG_DATA_SERVER_NAME}\",
+      \"auid\":\"${GITLAB_USER_LOGIN}\",
+      \"from\":\"server\",
+      \"logLevel\":\"info\",
+      \"logId\":\"deploy\",
+      \"deployedBranch\":\"${CI_COMMIT_REF_NAME}\",
+      \"deployedCommitHash\":\"${CI_COMMIT_SHA}\",
+      \"jobUrl\":\"${CI_JOB_URL}\",
+      \"pipelineUrl\":\"${CI_PIPELINE_URL}\"
+      }}"
+
+    # Print helpful reminders on how deploy can be modified by env vars
+    - |
+      cat <<EOF
+      Deploy complete! Deploy can be modified by retrying the deploy job with
+      "Update CI/CD Variables". The following variables can be modified:
+
+      1. DISABLE_SHUTDOWN_OTHER_COMPOSE=true
+         Don't shut down other compose apps before deploying
+
+      2. RSYSLOG_DISABLE_FORWARDING=true
+         Don't configure host's Rsyslog to forward logs
+
+      3. RSYSLOG_TARGET=jsfitdemssc1.ndc.nasa.gov
+         Send logs to Carbon instead of emss-logging for dev. Logging app needs
+         to be running on Carbon for this to work.
+      EOF
+
+deploy:uranium:
+  extends:
+    - .emss-fitdock-deploy-aws
+    - .uranium-deploy
+  needs:
+    - make-dotenv
+    - docker:retag
+    - deploy:artifactize-committed-files
+  when: manual
+  before_script:
+    - sed -i "s/INSERT_SUBDOMAIN/uranium-emss-dev/g" .env
+    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/uranium/g" .env
+
 deploy:int:
   extends: .deploy-template
   tags: ["emss-aegis-int"]
@@ -531,6 +821,11 @@ z:db-export:oxygen:
     - .db-export-template
     - .oxygen-access
 
+z:db-export:uranium:
+  extends:
+    - .db-export-template
+    - .uranium-access
+
 .db-import-template:
   when: manual
   stage: stageless
@@ -582,6 +877,12 @@ z:db-import:oxygen:
   extends:
     - .db-import-template
     - .oxygen-deploy
+  needs: ["z:db-export:prod"]
+
+z:db-import:uranium:
+  extends:
+    - .db-import-template
+    - .uranium-deploy
   needs: ["z:db-export:prod"]
 
 z:db-import:int:
@@ -661,6 +962,11 @@ z:logs:oxygen:
   extends:
     - .container-logs-template
     - .oxygen-access
+
+z:logs:uranium:
+  extends:
+    - .container-logs-template
+    - .uranium-access
 
 z:logs:int:
   extends: .container-logs-template
