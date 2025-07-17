@@ -22,7 +22,7 @@ export const measureSlice = createSlice({
         (measurement) => measurement.uuid !== action.payload
       );
     },
-    upsertMeasurementField: {
+    upsertMeasurementByField: {
       prepare: (
         measurementUuid: string,
         fieldName: keyof Measurement,
@@ -68,6 +68,6 @@ export const {
   setSelectedMeasurementUuid,
   upsertMeasurement,
   removeMeasurement,
-  upsertMeasurementField,
+  upsertMeasurementByField,
   obliterateState,
 } = measureSlice.actions;

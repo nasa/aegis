@@ -77,6 +77,9 @@ interface ActionEntries {
 interface ActionEntry {
   rexStatus: RexStatus;
   mass: number;
+  markerId: string;
+  containerId: string;
+  secondaryContainerId: string;
 }
 
 interface XgressEntries {

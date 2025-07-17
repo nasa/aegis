@@ -1,6 +1,6 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import { User_db, Mission_db, Rex_db } from "server/database/models/_allModels";
+import { App_User_db, Mission_db, Rex_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import RexFactory from "../factories/RexFactory";
@@ -14,9 +14,9 @@ jest.mock("server/express/sockets", () => {
   };
 });
 
-let testUserNoPerms: User_db;
-let testUser: User_db;
-let testSuperAdmin: User_db;
+let testUserNoPerms: App_User_db;
+let testUser: App_User_db;
+let testSuperAdmin: App_User_db;
 let testMissions: Mission_db[];
 let testRexes: Rex_db[];
 
@@ -101,7 +101,7 @@ describe("REX API Endpoint", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toEqual("success");
-      expect(res.body.data.user.isSuperAdmin).toBeTruthy();
+      expect(res.body.data.isSuperAdmin).toBeTruthy();
       aegisSessionCookie = res.header["set-cookie"][0];
       aegisSessionSigCookie = res.header["set-cookie"][1];
     });
@@ -125,7 +125,7 @@ describe("REX API Endpoint", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toEqual("success");
-      expect(res.body.data.user.isSuperAdmin).toBeFalsy();
+      expect(res.body.data.isSuperAdmin).toBeFalsy();
       aegisSessionCookie = res.header["set-cookie"][0];
       aegisSessionSigCookie = res.header["set-cookie"][1];
     });
@@ -151,9 +151,9 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(User_db, { id: testUser.id });
-  await em.nativeDelete(User_db, { id: testSuperAdmin.id });
-  await em.nativeDelete(User_db, { id: testUserNoPerms.id });
+  await em.nativeDelete(App_User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testSuperAdmin.id });
+  await em.nativeDelete(App_User_db, { id: testUserNoPerms.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();

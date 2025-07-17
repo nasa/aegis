@@ -41,7 +41,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const viewPermission = await hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
-    user: req.session.user,
+    appUser: req.session.appUser,
     emssToken,
   });
   if (!viewPermission) {
@@ -78,7 +78,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
   const viewPermission = await hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
-    user: req.session.user,
+    appUser: req.session.appUser,
     emssToken,
   });
   if (!viewPermission) {
@@ -120,7 +120,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const editPermission = await hasPerms({
     missionId,
     permission: "edit",
-    user: req.session.user,
+    appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {
@@ -159,7 +159,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const editPermission = await hasPerms({
     missionId,
     permission: "edit",
-    user: req.session.user,
+    appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {
@@ -407,7 +407,6 @@ async function saveGridFile(missionId: number, grid: MissionGrid): Promise<void>
         console.error("Error writing file", err);
         return;
       }
-      console.log("File has been saved");
     }
   );
 }
@@ -450,7 +449,6 @@ function deleteGridFile(missionId: number, gridUuid: string): void {
       console.error(`Error deleting file ${fileName}:`, err);
       return;
     }
-    console.log(`File ${fileName} was deleted successfully.`);
   });
 }
 

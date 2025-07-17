@@ -15,7 +15,7 @@ const parseQuery = (query: Query) => {
   return queryObj;
 };
 
-// Get eva refs
+// Used by Maestro to get all REX executions for a given as-planned EVA
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
 

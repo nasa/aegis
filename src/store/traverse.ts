@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import cloneDeep from "lodash/cloneDeep";
 import { setAllSliceStores } from "store/crossActions";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 
 export const initialState: TraverseState = {
@@ -23,7 +23,7 @@ export const traverseSlice = createSlice({
           return {
             payload: traverses.map((traverse) => ({
               ...traverse,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             })),
           };
         }
@@ -52,7 +52,7 @@ export const traverseSlice = createSlice({
               traverseUuid,
               fieldName,
               value,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             },
           };
         }
@@ -75,13 +75,6 @@ export const traverseSlice = createSlice({
         (newTraverse as Record<typeof key, Traverse[keyof Traverse]>)[key] = action.payload.value;
         upsertToArrayByUuid(state.traverses, newTraverse);
       },
-    },
-    /* only called for populating store  */
-    setTraverses: (state, action: { payload: Traverse[] }) => {
-      state.traverses = action.payload;
-    },
-    setTraversesFromDb: (state, action: { payload: Traverse[] }) => {
-      state.traversesFromDb = action.payload;
     },
     deleteTraversesByUuid: (state, action: { payload: string[] }) => {
       state.traverses = state.traverses.filter(
@@ -139,8 +132,6 @@ export const {
   upsertTraverses,
   upsertTraversesFromDb,
   upsertTraverseByField,
-  setTraverses,
-  setTraversesFromDb,
   deleteTraversesByUuid,
   deleteTraversesFromDbByUuid,
   setSelectedTraverseRightNavItem,

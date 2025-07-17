@@ -27,7 +27,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const editPermission = await hasPerms({
     missionId: queryObj.missionId,
     permission: "edit",
-    user: req.session.user,
+    appUser: req.session.appUser,
   });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });

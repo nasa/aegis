@@ -27,11 +27,12 @@ export const initialState: InterfaceState = {
     connectionStatus: "disconnected",
     lastEditEvent: null,
     lastStatusFromServer: {
-      timestamp: 0,
       visitorCounts: {
         editors: 0,
         viewers: 0,
       },
+      timestamp: 0,
+      serverVersion: null,
     },
   },
   folders: [],

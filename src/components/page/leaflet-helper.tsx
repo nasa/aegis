@@ -803,7 +803,7 @@ export const getLayersToAddInOrder = ({
       for (const sublayerUuid of headerLayer.sublayerUuids) {
         //check if sublayer is toggled visible in the preset
         if (selectedPreset.mapSublayerControls[sublayerUuid]?.visible) {
-          //this layer is visible - get the sublayer object from misson
+          //this layer is visible - get the sublayer object from mission
           const sublayer = missionSublayers.find((sublayer) => sublayer.uuid === sublayerUuid);
           const sublayerTimeInfo = addSublayerToLayersToAdd({ sublayer, layersToAdd, mapDateTime }); //add sublayer
           if (sublayerTimeInfo) {
@@ -1123,7 +1123,7 @@ export const drawGridLabels = ({
   // clear all grid labels
   gridLabelFeatureGroup.current.clearLayers();
 
-  // bounds near the south pole becomes a scewed shape when pulled straight from Leaflet.
+  // bounds near the south pole becomes a skewed shape when pulled straight from Leaflet.
   // This process makes a square polygon using the map viewport as extents
   // Then turns that into a polygon and gets the bounds from that for checking if a grid label is in the map bounds
   const perimeter = getBoundsFromMapViewport(map);
@@ -1161,7 +1161,7 @@ export const drawGridLabels = ({
 
 /**
  * Gets the last (most recent) 2 pos entries for each pos type
- * Get the last 2 becuase we need at least 2 in order to draw the path
+ * Get the last 2 because we need at least 2 in order to draw the path
  * The lastest (most recent) entry is in index 0
  */
 export const getLatestPosEntryByType = ({

@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "./storeUtils/store";
 import isNil from "lodash/isNil";
 import cloneDeep from "lodash/cloneDeep";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { setAllSliceStores } from "store/crossActions";
 
 export const initialState: PresetState = {
@@ -28,7 +28,7 @@ export const presetSlice = createSlice({
           return {
             payload: presets.map((preset) => ({
               ...preset,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             })),
           };
         }
@@ -57,7 +57,7 @@ export const presetSlice = createSlice({
               presetUuid,
               fieldName,
               value,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             },
           };
         }
@@ -80,14 +80,6 @@ export const presetSlice = createSlice({
         (newPreset as Record<typeof key, Preset[keyof Preset]>)[key] = action.payload.value;
         upsertToArrayByUuid(state.presets, newPreset);
       },
-    },
-
-    /* only called for populating store  */
-    setPresets: (state, action: { payload: Preset[] }) => {
-      state.presets = action.payload;
-    },
-    setPresetsFromDb: (state, action: { payload: Preset[] }) => {
-      state.presetsFromDb = action.payload;
     },
     deletePresetsByUuid: (state, action: { payload: string[] }) => {
       state.presets = state.presets.filter((preset) => !action.payload.includes(preset.uuid));
@@ -113,7 +105,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].visible =
           !state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].visible;
-        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
+        state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
       }
     },
 
@@ -127,7 +119,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].style =
           action.payload.style;
-        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
+        state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
       }
     },
 
@@ -144,7 +136,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapCircleControls[action.payload.circleDefUuid].style =
           action.payload.style;
-        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
+        state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
       }
     },
     setPresetPreviewTime: (state, action: { payload: { presetPreviewTime: string } }) => {
@@ -160,7 +152,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapCircleControls[action.payload.circleUuid].visible =
           !state.presets[presetIndex].mapCircleControls[action.payload.circleUuid].visible;
-        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
+        state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
       }
     },
 
@@ -279,8 +271,6 @@ export const {
   upsertPresets,
   upsertPresetsFromDb,
   upsertPresetByField,
-  setPresets,
-  setPresetsFromDb,
   deletePresetsByUuid,
   deletePresetsFromDbByUuid,
   selectPreset,

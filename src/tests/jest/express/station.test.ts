@@ -1,6 +1,6 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import { User_db, Mission_db, Station_db } from "server/database/models/_allModels";
+import { App_User_db, Mission_db, Station_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import StationFactory from "../factories/StationFactory";
 import MissionFactory from "../factories/MissionFactory";
@@ -15,7 +15,7 @@ jest.mock("server/express/sockets", () => {
   };
 });
 
-let testUser: User_db;
+let testUser: App_User_db;
 let testMissions: Mission_db[];
 let testStations: Station_db[];
 
@@ -58,11 +58,6 @@ describe("Station API Endpoint", () => {
   let aegisSessionSigCookie: string;
   let newStation: Station = generateBlankStation({ name: "Jest Station-1" });
 
-  test("Returns auth failure", async () => {
-    const res = await supertest(app).get("/api/v1/station");
-    expect(res.statusCode).toBe(401);
-  });
-
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
@@ -71,50 +66,6 @@ describe("Station API Endpoint", () => {
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
     aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
-  describe("GET request", () => {
-    test("No permissions", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/station")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
-
-      expect(res.statusCode).toBe(401);
-    });
-
-    test("Returns single station by station uuid", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/station")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id, uuid: testStations[0].uuid });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toEqual(1);
-    });
-
-    test("Returns all stations for a mission", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/station")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toBeGreaterThan(1);
-    });
-
-    test("No stations returned", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/station")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toEqual(0);
-    });
   });
 
   //upsert and delete tests must occur in order.
@@ -236,15 +187,6 @@ describe("Auth with emss-token header", () => {
   const emssToken = process.env.EMSS_TOKEN || "";
   let newStation: Station = generateBlankStation({ name: "Jest Station-1" });
 
-  test("GET request succeeds with emss-token", async () => {
-    const res = await supertest(app)
-      .get("/api/v1/station")
-      .set("emss-token", emssToken)
-      .query({ missionId: testMissions[0].id });
-    expect(res.statusCode).toBe(200);
-    expect(res.body.status).toBe("success");
-  });
-
   test("POST request succeeds with emss-token", async () => {
     const requestBody: StationUpsertRequest = {
       socketId: "someSocketId",
@@ -284,7 +226,7 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();

@@ -16,7 +16,9 @@ import presetRoutes from "./routes/preset";
 import rexRoutes from "./routes/rex";
 import rexPet from "./routes/emss/rexPet";
 import rexByEvaRef from "./routes/emss/getRexesByEvaRef";
-import socketLastEditEventRoutes from "./routes/socketLastEditEvents";
+import rexStatus from "./routes/emss/rexStatus";
+import socketLastEditEventRoutes from "./routes/socket/lastEditEvent";
+import socketVisitorData from "./routes/socket/visitorData";
 import stationRoutes from "./routes/station";
 import gridRoutes from "./routes/grid";
 import stmRoutes from "./routes/stm";
@@ -74,9 +76,15 @@ app.get("/api/v1/health", (req, res) => {
   res.send({ status: "ok" });
 });
 
+// socket stuff
+app.use("/api/v1/socket/visitorData", socketVisitorData);
+app.use("/api/v1/socket/lastEditEvent", socketLastEditEventRoutes);
+
+// get app version
 app.get("/api/v1/version", (req, res) => {
   res.send(globalValues.appVersion);
 });
+
 app.use("/api/v1/auth/", authRoutes);
 app.use("/api/v1/action", actionRoutes);
 app.use("/api/v1/all", allRoutes);
@@ -91,7 +99,6 @@ app.use("/api/v1/missionDump", missionDump);
 app.use("/api/v1/poi", poiRoutes);
 app.use("/api/v1/preset", presetRoutes);
 app.use("/api/v1/rex", rexRoutes);
-app.use("/api/v1/socketLastEditEvent", socketLastEditEventRoutes);
 app.use("/api/v1/station", stationRoutes);
 app.use("/api/v1/stm", stmRoutes);
 app.use("/api/v1/stmRules", stmRulesRoutes);
@@ -108,6 +115,7 @@ app.use("/api/v1/file/delete", fileDeleteRoute);
 app.use("/api/v1/log/from-client", logFromClient);
 app.use("/api/v1/folder", folderRoutes);
 
+// readable endpoints
 app.use("/api/v1/readable/action", readableActionRoutes);
 app.use("/api/v1/readable/station", readableStationRoutes);
 app.use("/api/v1/readable/eva", readableEvaRoutes);
@@ -117,5 +125,6 @@ app.use("/api/v1/readable/traverse", readableTraverseRoutes);
 // endpoints that require emssToken auth only
 app.use("/api/v1/emss/rexPet", rexPet);
 app.use("/api/v1/emss/getRexesByEvaRef", rexByEvaRef);
+app.use("/api/v1/emss/rexStatus", rexStatus);
 
 export default app;

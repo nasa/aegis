@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import cloneDeep from "lodash/cloneDeep";
 import { setAllSliceStores } from "store/crossActions";
 
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 
 export const initialState: RexState = {
@@ -19,20 +19,6 @@ export const rexSlice = createSlice({
   name: "rex",
   initialState,
   reducers: {
-    upsertRex: {
-      prepare: (rex: Rex, preserveModifiedDate: boolean = false) => {
-        if (preserveModifiedDate) {
-          return { payload: rex };
-        } else {
-          return {
-            payload: { ...rex, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
-          };
-        }
-      },
-      reducer: (state, action: { payload: Rex }) => {
-        upsertToArrayByUuid(state.rexes, action.payload);
-      },
-    },
     upsertRexes: {
       prepare: (rexes: Rex[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
@@ -41,7 +27,7 @@ export const rexSlice = createSlice({
           return {
             payload: rexes.map((rex) => ({
               ...rex,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             })),
           };
         }
@@ -49,9 +35,6 @@ export const rexSlice = createSlice({
       reducer: (state, action: { payload: Rex[] }) => {
         action.payload.forEach((rex) => upsertToArrayByUuid(state.rexes, rex));
       },
-    },
-    upsertRexFromDb: (state, action: { payload: Rex }) => {
-      upsertToArrayByUuid(state.rexesFromDb, action.payload);
     },
     upsertRexesFromDb: (state, action: { payload: Rex[] }) => {
       action.payload.forEach((rex) => upsertToArrayByUuid(state.rexesFromDb, rex));
@@ -73,7 +56,7 @@ export const rexSlice = createSlice({
               rexUuid,
               fieldName,
               value,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             },
           };
         }
@@ -96,12 +79,6 @@ export const rexSlice = createSlice({
         (newRex as Record<typeof key, Rex[keyof Rex]>)[key] = action.payload.value;
         upsertToArrayByUuid(state.rexes, newRex);
       },
-    },
-    deleteRexByUuid: (state, action: { payload: string }) => {
-      state.rexes = state.rexes.filter((rex) => rex.uuid !== action.payload);
-    },
-    deleteRexFromDbByUuid: (state, action: { payload: string }) => {
-      state.rexesFromDb = state.rexesFromDb.filter((rex) => rex.uuid !== action.payload);
     },
     deleteRexesByUuid: (state, action: { payload: string[] }) => {
       state.rexes = state.rexes.filter((rex) => !action.payload.includes(rex.uuid));
@@ -150,7 +127,7 @@ export const rexSlice = createSlice({
             payload: {
               rexUuid,
               posEntries,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             },
           };
         }
@@ -201,13 +178,9 @@ export const rexSlice = createSlice({
 });
 
 export const {
-  upsertRex,
-  upsertRexFromDb,
   upsertRexes,
   upsertRexesFromDb,
   upsertRexByField,
-  deleteRexByUuid,
-  deleteRexFromDbByUuid,
   deleteRexesByUuid,
   deleteRexesFromDbByUuid,
   setSelectedRexUuid,

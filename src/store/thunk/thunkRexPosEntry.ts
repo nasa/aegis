@@ -1,15 +1,10 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { v4 as uuidv4 } from "uuid";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
+import { getAccurateNow, secondsFromhhmmss, calculatePetValue } from "utils/formatting";
 import {
-  getAccurateNow,
-  roundDateToSecond,
-  secondsFromhhmmss,
-  calculatePetValue,
-} from "utils/formatting";
-import {
-  upsertRex,
-  upsertRexFromDb,
+  upsertRexes,
+  upsertRexesFromDb,
   deletePosEntryByUuid,
   setPosEntryEditingUuid,
   setRexesPosEntryEditMode,
@@ -61,8 +56,8 @@ export const thunkCreateInitialPosEntries = appCreateAsyncThunk<void>(
         petSeconds: seconds,
         posTypeUuids: entrylessPosTypeUuids,
         posSourceUuid: posSource.uuid,
-        createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+        createdAt: getAccurateNow().toISOString(),
+        updatedAt: getAccurateNow().toISOString(),
       };
       newPosEntries.push(newPosEntry);
     }
@@ -100,8 +95,8 @@ export const thunkCreatePosEntry = appCreateAsyncThunk<
     petSeconds: seconds,
     posTypeUuids: posTypeUuids,
     posSourceUuid: getState().rex.selectedPosSourceUuid,
-    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    createdAt: getAccurateNow().toISOString(),
+    updatedAt: getAccurateNow().toISOString(),
   };
   newPosEntries.push(newPosEntry);
   dispatch(
@@ -131,7 +126,7 @@ export const thunkUpdatePosEntryLocation = appCreateAsyncThunk<{
     const updatedRex = {
       ...selectedRex,
       posEntries: newRexPosEntries,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      updatedAt: getAccurateNow().toISOString(),
     };
     const rexUpsertResponse = await httpClient_Rex.upsertRexes([updatedRex]);
 
@@ -139,8 +134,8 @@ export const thunkUpdatePosEntryLocation = appCreateAsyncThunk<{
       throw new Error("Error upserting Rex: " + rexUpsertResponse.message);
     }
     // upsert the changed rex (with new updated date) to the store
-    dispatch(upsertRex(updatedRex, true));
-    dispatch(upsertRexFromDb(updatedRex));
+    dispatch(upsertRexes([updatedRex], true));
+    dispatch(upsertRexesFromDb([updatedRex]));
     dispatch(setPosEntryEditingUuid(null));
     dispatch(
       setRexesPosEntryEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false })
@@ -260,7 +255,7 @@ export const thunkPersistPosEntries = appCreateAsyncThunk<{
   //automatically save to the db.
   const updatedRex = {
     ...selectedRex,
-    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    updatedAt: getAccurateNow().toISOString(),
   };
   const rexUpsertResponse = await httpClient_Rex.upsertRexes([updatedRex]);
 
@@ -268,8 +263,8 @@ export const thunkPersistPosEntries = appCreateAsyncThunk<{
     throw new Error("Error upserting Rex: " + rexUpsertResponse.message);
   }
   // upsert the changed rex (with new updated date) to the store
-  dispatch(upsertRex(updatedRex, true));
-  dispatch(upsertRexFromDb(updatedRex));
+  dispatch(upsertRexes([updatedRex], true));
+  dispatch(upsertRexesFromDb([updatedRex]));
   dispatch(setPosEntryEditingUuid(null));
   dispatch(setRexesPosEntryEditMode({ rexUuid: getState().rex.selectedRexUuid, editMode: false }));
 });
@@ -289,7 +284,7 @@ export const thunkDeletePosEntryByUuid = appCreateAsyncThunk<{
   const updatedRex = {
     ...selectedRex,
     posEntries: newRexPosEntries,
-    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    updatedAt: getAccurateNow().toISOString(),
   };
   const rexUpsertResponse = await httpClient_Rex.upsertRexes([updatedRex]);
   if (rexUpsertResponse.status !== "success") {
@@ -297,8 +292,8 @@ export const thunkDeletePosEntryByUuid = appCreateAsyncThunk<{
   }
 
   // upsert the changed rex (with new updated date) to the store
-  dispatch(upsertRex(updatedRex, true));
-  dispatch(upsertRexFromDb(updatedRex));
+  dispatch(upsertRexes([updatedRex], true));
+  dispatch(upsertRexesFromDb([updatedRex]));
 });
 
 export const thunkCreatePosType = appCreateAsyncThunk<void>(

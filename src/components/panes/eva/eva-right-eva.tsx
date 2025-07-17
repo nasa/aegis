@@ -45,6 +45,7 @@ import {
 import isNull from "lodash/isNull";
 import { upsertRexByField } from "store/rex";
 import { thunkCancelRex, thunkDeleteRex, thunkSaveRex } from "store/thunk/thunkRex";
+import { LoadingOverlay } from "components/interface/_global-elements";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -545,12 +546,10 @@ const EvaRightEva: FunctionComponent = () => {
           <ActiveComponent {...evaAndRexPanelTypes[rightNavItem]?.panelProps} />
         )}
 
-        {/* Loading overlay */}
         {isDeletingEva.isDeleting && (
-          <div className={evaStyles.loadingOverlay}>
-            <div className={evaStyles.loadingSpinner}></div>
-            <div>Deleting EVA{isDeletingEva.isRexEva ? " Execution" : ""}...</div>
-          </div>
+          <LoadingOverlay
+            message={`Deleting EVA${isDeletingEva.isRexEva ? " Execution" : ""}...`}
+          />
         )}
       </>
     )

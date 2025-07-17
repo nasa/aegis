@@ -221,6 +221,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldValue}>
                       <PathColorPickerMenu
+                        key={selectedEva.uuid}
                         currentColor={selectedEva.traverseColor || "#03adfc"}
                         editMode={editMode}
                         updateColor={(val) => {

@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { setAllSliceStores } from "store/crossActions";
 
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 
 export const initialState: MissionState = {
   mission: null,
@@ -22,7 +22,7 @@ export const missionSlice = createSlice({
           return { payload: mission };
         } else {
           return {
-            payload: { ...mission, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
+            payload: { ...mission, updatedAt: getAccurateNow().toISOString() },
           };
         }
       },
@@ -45,7 +45,7 @@ export const missionSlice = createSlice({
             payload: {
               fieldName,
               value,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             },
           };
         }
@@ -65,21 +65,11 @@ export const missionSlice = createSlice({
         (state.mission as Record<typeof key, Mission[keyof Mission]>)[key] = action.payload.value;
       },
     },
-
-    /* only called for populating store  */
     setMission: (state, action: { payload: Mission }) => {
       state.mission = action.payload;
     },
     setMissionFromDb: (state, action: { payload: Mission }) => {
       state.missionFromDb = action.payload;
-    },
-    /* only called for populating store  */
-    setLayers: (state, action: { payload: Layer[] }) => {
-      state.layers = action.payload;
-    },
-    /* only called for populating store  */
-    setSublayers: (state, action: { payload: Sublayer[] }) => {
-      state.sublayers = action.payload;
     },
     setSelectedMissionRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
@@ -114,8 +104,6 @@ export const {
   upsertMissionByField,
   setMission,
   setMissionFromDb,
-  setLayers,
-  setSublayers,
   setSelectedMissionRightNavItem,
   setMissionSectionEditing,
   obliterateState,

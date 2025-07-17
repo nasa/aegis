@@ -2,7 +2,7 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
-import { User_db, Mission_db, Eva_db } from "server/database/models/_allModels";
+import { App_User_db, Mission_db, Eva_db } from "server/database/models/_allModels";
 import EvaFactory from "../factories/EVAFactory";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
@@ -15,7 +15,7 @@ jest.mock("server/express/sockets", () => {
   };
 });
 
-let testUser: User_db;
+let testUser: App_User_db;
 let testMissions: Mission_db[];
 let testEvas: Eva_db[];
 
@@ -59,11 +59,6 @@ describe("EVA API Endpoint", () => {
   let aegisSessionSigCookie: string;
   let newEVA: Eva = generateBlankEVA({ name: "Jest Eva-1" });
 
-  test("Returns auth failure", async () => {
-    const res = await supertest(app).get("/api/v1/eva");
-    expect(res.statusCode).toBe(401);
-  });
-
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
@@ -72,53 +67,6 @@ describe("EVA API Endpoint", () => {
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
     aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
-  describe("GET request", () => {
-    test("No permissions", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/eva")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
-      expect(res.statusCode).toBe(401);
-    });
-
-    test("Returns single EVA by eva uuid", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/eva")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id, uuid: testEvas[0].uuid });
-      expect(res.statusCode).toBe(200);
-
-      const wrappedResponse = res.body;
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(1);
-    });
-
-    test("Returns all EVAs for mission", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/eva")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id });
-
-      expect(res.statusCode).toBe(200);
-
-      const wrappedResponse = res.body;
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toBeGreaterThan(1);
-    });
-
-    test("No EVAs returned", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/eva")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
-      expect(res.statusCode).toBe(200);
-
-      const wrappedResponse = res.body;
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(0);
-    });
   });
 
   //upsert and delete tests must occur in order
@@ -241,14 +189,6 @@ describe("Auth with emss-token header", () => {
   const emssToken = process.env.EMSS_TOKEN || "";
   const newEva = generateBlankEVA({ name: "Jest Test New Eva" });
 
-  test("GET request succeeds with emss-token", async () => {
-    const res = await supertest(app)
-      .get("/api/v1/eva")
-      .set("emss-token", emssToken)
-      .query({ missionId: testMissions[0].id });
-    expect(res.statusCode).toBe(200);
-  });
-
   test("POST request succeeds with emss-token", async () => {
     const requestBody: EvaUpsertRequest = {
       socketId: "someSocketId",
@@ -285,7 +225,7 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   closeORM();

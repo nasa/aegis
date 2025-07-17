@@ -146,7 +146,7 @@ type TraverseDeleteRequest = {
 };
 
 type UserUpsertRequest = {
-  users: User[];
+  users: AppUser[];
 };
 
 type UserDeleteRequest = {

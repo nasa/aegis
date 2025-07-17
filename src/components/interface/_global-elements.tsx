@@ -121,3 +121,14 @@ export const SubpanelHeading: FunctionComponent<{
     </div>
   );
 };
+
+export const LoadingOverlay: FunctionComponent<{
+  message?: string;
+}> = ({ message = "Loading..." }) => {
+  return (
+    <div className={styles.loadingOverlay}>
+      <div className={styles.loadingSpinner}></div>
+      <div>{message}</div>
+    </div>
+  );
+};

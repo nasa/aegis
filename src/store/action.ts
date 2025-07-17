@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import cloneDeep from "lodash/cloneDeep";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 import { setAllSliceStores } from "store/crossActions";
 
@@ -19,7 +19,7 @@ export const actionSlice = createSlice({
           return { payload: actions };
         } else {
           const updatedActions = actions.map((a) => {
-            return { ...a, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() };
+            return { ...a, updatedAt: getAccurateNow().toISOString() };
           });
           return { payload: updatedActions };
         }
@@ -27,9 +27,6 @@ export const actionSlice = createSlice({
       reducer: (state, action: { payload: Action[] }) => {
         action.payload.forEach((action) => upsertToArrayByUuid(state.actions, action));
       },
-    },
-    upsertActionFromDb: (state, action: { payload: Action }) => {
-      upsertToArrayByUuid(state.actionsFromDb, action.payload);
     },
     upsertActionsFromDb: (state, action: { payload: Action[] }) => {
       action.payload.forEach((action) => upsertToArrayByUuid(state.actionsFromDb, action));
@@ -51,7 +48,7 @@ export const actionSlice = createSlice({
               actionUuid,
               fieldName,
               value,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             },
           };
         }
@@ -75,13 +72,6 @@ export const actionSlice = createSlice({
         upsertToArrayByUuid(state.actions, newAction);
       },
     },
-    /* only called for populating store  */
-    setActions: (state, action: { payload: Action[] }) => {
-      state.actions = action.payload;
-    },
-    setActionsFromDb: (state, action: { payload: Action[] }) => {
-      state.actionsFromDb = action.payload;
-    },
     deleteActionsByUuid: (state, action: { payload: string[] }) => {
       state.actions = state.actions.filter((a) => !action.payload.includes(a.uuid));
     },
@@ -103,11 +93,8 @@ export const actionSlice = createSlice({
 
 export const {
   upsertActions,
-  upsertActionFromDb,
   upsertActionsFromDb,
   upsertActionByField,
-  setActions,
-  setActionsFromDb,
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
   obliterateState,

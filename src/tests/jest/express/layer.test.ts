@@ -4,14 +4,13 @@ import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import LayerFactory from "../factories/LayerFactory";
-import { Mission_db, Layer_db, User_db } from "server/database/models/_allModels";
-import { v4 as uuidv4 } from "uuid";
+import { Mission_db, Layer_db, App_User_db } from "server/database/models/_allModels";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankLayer } from "store/storeUtils/layer";
 
 let testMissions: Mission_db[];
-let testUser: User_db;
+let testUser: App_User_db;
 let testLayers: Layer_db[];
 
 beforeAll(async () => {
@@ -50,11 +49,6 @@ describe("Layer API Endpoint ", () => {
   let aegisSessionSigCookie: string;
   let newLayer: Layer = generateBlankLayer();
 
-  test("Returns auth failure", async () => {
-    const res = await supertest(app).get("/api/v1/eva");
-    expect(res.statusCode).toBe(401);
-  });
-
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
@@ -63,56 +57,6 @@ describe("Layer API Endpoint ", () => {
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
     aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
-  describe("GET request", () => {
-    test("No permissions", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
-
-      expect(res.statusCode).toBe(401);
-    });
-
-    test("Returns empty non-existant layer uuid for mission", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id, uuid: uuidv4() });
-
-      expect(res.statusCode).toBe(200);
-
-      const layers: Layer[] = res.body.data;
-      expect(res.body.status).toBe("success");
-      expect(layers.length).toEqual(0);
-    });
-
-    test("Returns single layer by layer uuid", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id, uuid: testLayers[0].uuid });
-
-      expect(res.statusCode).toBe(200);
-
-      const layers: Layer[] = res.body.data;
-      expect(res.body.status).toBe("success");
-      expect(layers.length).toEqual(1);
-    });
-
-    test("Returns layers for mission", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id });
-
-      expect(res.statusCode).toBe(200);
-
-      const layers: Layer[] = res.body.data;
-      expect(res.body.status).toBe("success");
-      expect(layers.length).toBeGreaterThan(1);
-    });
   });
 
   //upsert and delete tests must occur in order
@@ -292,7 +236,7 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();

@@ -524,3 +524,15 @@
   color: var(--grey1);
   font-weight: 600;
 }
+
+.titleWithMaestro {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.maestroIcon {
+  color: var(--maestroConnection);
+  margin: -8px 10px 0 0;
+}

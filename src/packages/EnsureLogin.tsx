@@ -1,8 +1,11 @@
 import { FC, useEffect } from "react";
 import { getCurrentUser } from "./getCurrentUser";
 import { setupFetchFns } from "./fetchFns";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { setLaunchpadUser } from "store/user";
 
 export const EnsureLogin: FC<{ fqdn?: string }> = ({ fqdn = "" }) => {
+  const dispatch = useAppDispatch();
   useEffect(() => {
     setupFetchFns();
     getCurrentUser().then((user) => {
@@ -11,8 +14,9 @@ export const EnsureLogin: FC<{ fqdn?: string }> = ({ fqdn = "" }) => {
         return;
       }
       console.log(`Launchpad authorized with user: ${user.display_name || "unknown user"}`);
+      dispatch(setLaunchpadUser(user));
     });
-  }, [fqdn]);
+  }, [dispatch, fqdn]);
 
   // component has no display, just ensures login
   return null;

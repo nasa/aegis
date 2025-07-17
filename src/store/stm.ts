@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import cloneDeep from "lodash/cloneDeep";
 import { setAllSliceStores } from "store/crossActions";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 
 export const initialState: STMState = {
@@ -25,7 +25,7 @@ export const stmSlice = createSlice({
           return {
             payload: rules.map((rule) => ({
               ...rule,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             })),
           };
         }
@@ -49,9 +49,7 @@ export const stmSlice = createSlice({
             ruleUuid,
             fieldName,
             value,
-            updatedAt: preserveModifiedDate
-              ? null
-              : roundDateToSecond(getAccurateNow()).toISOString(),
+            updatedAt: preserveModifiedDate ? null : getAccurateNow().toISOString(),
           },
         };
       },

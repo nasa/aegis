@@ -31,7 +31,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const viewPermission = await hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
-    user: req.session.user,
+    appUser: req.session.appUser,
     emssToken,
   });
   if (!viewPermission) {
@@ -51,6 +51,13 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
     return;
   }
+  if (!queryObj.datesOnly && !queryObj.actionRefUuid && !queryObj.evaRefUuid) {
+    res.status(400).json({
+      status: "error",
+      message: "Either action refUuid or evaRefUuid must be specified",
+    });
+    return;
+  }
   if (queryObj.evaRefUuid && (queryObj.actionRefUuid || queryObj.datesOnly)) {
     res.status(400).json({
       status: "error",
@@ -62,7 +69,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   if (queryObj.datesOnly) {
     try {
       const em = getEM();
-      let actions: Action_db[] = [];
+      let partialActions: Partial<Action_db>[] = [];
       if (queryObj.rexUuid) {
         // get the rex version of action
         // Get a rex eva sequence
@@ -78,7 +85,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         );
         const actionQuery = em
           .createQueryBuilder(Action_db)
-          .select(["uuid", "createdAt", "updatedAt"])
+          .select(["uuid", "refUuid", "createdAt", "updatedAt"])
           .where({
             refUuid: queryObj.actionRefUuid,
             $or: [
@@ -86,7 +93,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
               { traverse: { uuid: { $in: evaSequenceItemUuids } } },
             ],
           });
-        actions = await actionQuery.execute();
+        partialActions = await actionQuery.execute();
       } else {
         // get as-planned version of action
         // Get all of the as-planned EVA sequences
@@ -104,7 +111,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         // get actions that match the refUuid and are not part of a rex eva
         const actionQuery = em
           .createQueryBuilder(Action_db)
-          .select(["uuid", "createdAt", "updatedAt"])
+          .select(["uuid", "refUuid", "createdAt", "updatedAt"])
           .where({
             refUuid: queryObj.actionRefUuid,
             $or: [
@@ -112,20 +119,13 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
               { traverse: { uuid: { $in: rexEvaSequenceItemUuids } } },
             ],
           });
-        actions = await actionQuery.execute();
+        partialActions = await actionQuery.execute();
       }
-      // Transform to desired format
-      const dateActions = actions.map((action) => ({
-        actionUuid: action.uuid,
-        actionRefUuid: action.refUuid,
-        createdAt: action.createdAt,
-        updatedAt: action.updatedAt,
-      }));
 
       res.status(200).json({
         status: "success",
         message: `action dates retrieved`,
-        data: dateActions,
+        data: partialActions,
       });
     } catch (e) {
       console.error(e);

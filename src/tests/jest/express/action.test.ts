@@ -1,7 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import {
-  User_db,
+  App_User_db,
   Action_db,
   Mission_db,
   Station_db,
@@ -23,7 +23,7 @@ jest.mock("server/express/sockets", () => {
   };
 });
 
-let testUser: User_db;
+let testUser: App_User_db;
 let testMissions: Mission_db[];
 const testActions: Action_db[] = [];
 let testStation: Station_db;
@@ -82,11 +82,6 @@ describe("Action API Endpoint", () => {
   let aegisSessionSigCookie: string;
   let newAction: Action = generateBlankAction({ name: "Jest Test New Action" });
 
-  test("Returns auth failure", async () => {
-    const res = await supertest(app).get("/api/v1/action");
-    expect(res.statusCode).toBe(401);
-  });
-
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
@@ -95,78 +90,6 @@ describe("Action API Endpoint", () => {
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
     aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
-  describe("GET request", () => {
-    test("No permissions", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/action")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
-      expect(res.statusCode).toBe(401);
-    });
-
-    test("Returns single action by action uuid", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/action")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ uuid: testActions[0].uuid, missionId: testMissions[0].id });
-      expect(res.statusCode).toBe(200);
-
-      const wrappedResponse = res.body;
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(1);
-    });
-
-    test("Returns single action by station uuid", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/action")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ stationUuid: testStation.uuid, missionId: testMissions[0].id });
-      expect(res.statusCode).toBe(200);
-
-      const wrappedResponse = res.body;
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(1);
-      expect(wrappedResponse.data[0].stationUuid).toEqual(testStation.uuid);
-    });
-
-    test("Returns single action by poi uuid", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/action")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ poiUuid: testPoi.uuid, missionId: testMissions[0].id });
-      expect(res.statusCode).toBe(200);
-
-      const wrappedResponse = res.body;
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(1);
-      expect(wrappedResponse.data[0].poiUuid).toEqual(testPoi.uuid);
-    });
-
-    test("Returns all actions for mission", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/action")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id });
-      expect(res.statusCode).toBe(200);
-
-      const wrappedResponse = res.body;
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toBeGreaterThan(1);
-    });
-
-    test("No actions returned", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/action")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
-      expect(res.statusCode).toBe(200);
-
-      const wrappedResponse = res.body;
-      expect(wrappedResponse.status).toBe("success");
-      expect(wrappedResponse.data.length).toEqual(0);
-    });
   });
 
   //upsert and delete tests must occur in order
@@ -288,14 +211,6 @@ describe("Action API Endpoint", () => {
     const emssToken = process.env.EMSS_TOKEN || "";
     newAction = generateBlankAction({ name: "Jest Test New Action" });
 
-    test("GET request succeeds with emss-token", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/action")
-        .set("emss-token", emssToken)
-        .query({ missionId: testMissions[0].id });
-      expect(res.statusCode).toBe(200);
-    });
-
     test("POST request succeeds with emss-token", async () => {
       const requestBody: ActionUpsertRequest = {
         socketId: "someSocketId",
@@ -335,7 +250,7 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();

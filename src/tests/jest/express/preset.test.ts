@@ -1,6 +1,6 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import { Mission_db, Preset_db, User_db } from "server/database/models/_allModels";
+import { Mission_db, Preset_db, App_User_db } from "server/database/models/_allModels";
 import MissionFactory from "../factories/MissionFactory";
 import PresetFactory from "../factories/PresetFactory";
 import UserFactory from "../factories/UserFactory";
@@ -15,7 +15,7 @@ jest.mock("server/express/sockets", () => {
   };
 });
 
-let testUser: User_db;
+let testUser: App_User_db;
 let testMissions: Mission_db[];
 let testPresets: Preset_db[];
 
@@ -58,11 +58,6 @@ describe("Preset API Endpoint", () => {
   let aegisSessionSigCookie: string;
   let newPreset: Preset = generateBlankPreset({ name: "Preset Jest Test" });
 
-  test("Returns auth failure", async () => {
-    const res = await supertest(app).get("/api/v1/preset").query({ missionId: testMissions[0].id });
-    expect(res.statusCode).toBe(401);
-  });
-
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
@@ -71,39 +66,6 @@ describe("Preset API Endpoint", () => {
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
     aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
-  describe("GET request", () => {
-    test("No permissions", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/preset")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
-
-      expect(res.statusCode).toBe(401);
-    });
-
-    test("Returns all mission presets for mission", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/preset")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toBeGreaterThanOrEqual(1);
-    });
-
-    test("No presets returned", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/preset")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[1].id });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data.length).toEqual(0);
-    });
   });
 
   //upsert and delete tests must occur in order
@@ -225,14 +187,6 @@ describe("Auth with emss-token header", () => {
   const emssToken = process.env.EMSS_TOKEN || "";
   const newPreset = generateBlankPreset({ name: "Jest Test New Preset" });
 
-  test("GET request succeeds with emss-token", async () => {
-    const res = await supertest(app)
-      .get("/api/v1/preset")
-      .set("emss-token", emssToken)
-      .query({ missionId: testMissions[0].id });
-    expect(res.statusCode).toBe(200);
-  });
-
   test("POST request succeeds with emss-token", async () => {
     const requestBody: PresetUpsertRequest = {
       socketId: "someSocketId",
@@ -269,7 +223,7 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await closeORM();

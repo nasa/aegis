@@ -44,8 +44,8 @@ export class Rex_db implements Rex_db_type {
   @Property({ type: MikroTypes.boolean, nullable: false, default: false })
   maestroControlled: boolean;
 
-  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
+  @Property({ type: MikroTypes.datetime, length: 3 })
   createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
+  @Property({ type: MikroTypes.datetime, length: 3 })
   updatedAt!: Date;
 }

@@ -13,6 +13,7 @@ import AdminMissionGrid from "components/admin/gridUpload";
 import AdminMissionDuplicate from "pages/admin/missionDuplicate";
 import AdminPOI from "pages/admin/poi";
 import AdminUser from "pages/admin/user";
+import VisitorData from "pages/admin/visitorData";
 import { EnsureLogin } from "packages/EnsureLogin";
 
 const App = (): React.ReactElement => {
@@ -33,6 +34,7 @@ const App = (): React.ReactElement => {
         <Route path="/admin/mission_duplicate/:id" element={<AdminMissionDuplicate />} />
         <Route path="/admin/poi" element={<AdminPOI />} />
         <Route path="/admin/user" element={<AdminUser />} />
+        <Route path="/admin/visitorData" element={<VisitorData />} />
       </Routes>
     </>
   );

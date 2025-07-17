@@ -7,7 +7,7 @@ const router = express.Router();
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId } = req.body;
 
-  if (!req.session?.user?.isSuperAdmin) {
+  if (!req.session?.appUser?.isSuperAdmin) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }

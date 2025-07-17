@@ -27,14 +27,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     viewPermission = await hasPerms({
       missionId: queryObj.missionId,
       permission: "view",
-      user: req.session.user,
+      appUser: req.session.appUser,
       emssToken,
     });
   } else {
     //no mission was specified. check if they are allowed to view at least one mission
     viewPermission =
-      req.session?.user?.isSuperAdmin ||
-      req.session?.user?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
+      req.session?.appUser?.isSuperAdmin ||
+      req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
       (emssToken && emssToken === process.env.EMSS_TOKEN);
   }
   if (!viewPermission) {
@@ -48,11 +48,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       records = await getMission(queryObj.missionId);
     } else {
       //super admin and emss token can see all missions
-      if (req.session?.user?.isSuperAdmin || (emssToken && emssToken === process.env.EMSS_TOKEN)) {
+      if (
+        req.session?.appUser?.isSuperAdmin ||
+        (emssToken && emssToken === process.env.EMSS_TOKEN)
+      ) {
         records = await getMission();
       } else {
         //return all missions that they have permission for
-        const viewableMissions: number[] = req.session.user.permissionList.map((p) => {
+        const viewableMissions: number[] = req.session.appUser.permissionList.map((p) => {
           if (p.permissions.view) return p.missionId;
         });
         records = await getMission(viewableMissions);

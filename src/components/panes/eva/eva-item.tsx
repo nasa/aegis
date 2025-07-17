@@ -1,4 +1,4 @@
-import { ModifiedIndicator } from "components/interface/_global-elements";
+import { LoadingOverlay, ModifiedIndicator } from "components/interface/_global-elements";
 import { Button, Dropdown } from "components/interface/form/globalFields";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
@@ -248,13 +248,7 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
       </div>
       {isExpanded && <EvaSequence evaUuid={dropdownEvaUuid} />}
 
-      {/* Loading overlay */}
-      {isCreatingRex && (
-        <div className={evaStyles.loadingOverlay}>
-          <div className={evaStyles.loadingSpinner}></div>
-          <div>Creating REX Execution...</div>
-        </div>
-      )}
+      {isCreatingRex && <LoadingOverlay message="Creating REX Execution..." />}
     </div>
   );
 };

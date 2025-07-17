@@ -1,6 +1,6 @@
 // import all models here so that they can be exported from a single file. This avoids circular dependency issues
 // The order of imports is important. Models that are referenced by other models must be imported first.
-import { User_db } from "./user.model";
+import { App_User_db } from "./app_user.model";
 import { Mission_db } from "./mission.model";
 import { Station_db } from "./station.model";
 import { Poi_db } from "./poi.model";
@@ -19,7 +19,7 @@ import { STM_Rule_db } from "./stm_rules.model";
 import { Folder_db } from "./folder.model";
 
 export {
-  User_db,
+  App_User_db,
   Mission_db,
   Station_db,
   Poi_db,

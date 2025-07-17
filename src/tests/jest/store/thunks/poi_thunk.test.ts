@@ -7,7 +7,6 @@ import {
   thunkUpdatePoiLocation,
 } from "store/thunk/thunkPoi";
 import { createCustomTestStore } from "../../factories/makeTestStore";
-import { roundDateToSecond } from "utils/formatting";
 import { initialState as poiInitialState } from "store/poi";
 import { initialState as actionInitialState } from "store/action";
 
@@ -69,7 +68,7 @@ describe("Thunk POI Tests", () => {
     const poiModified = {
       ...poi,
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const newPoiAction: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
     const store = createCustomTestStore({
@@ -104,7 +103,7 @@ describe("Thunk POI Tests", () => {
     const poiActionModified = {
       ...poiAction,
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const store = createCustomTestStore({
       poi: { ...poiInitialState, pois: [poi], poisFromDb: [poi], poisEditing: [poi.uuid] },
@@ -130,14 +129,14 @@ describe("Thunk POI Tests", () => {
     const poiModified = {
       ...poi,
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const unsavedPoi: POI = generateBlankPoi({ name: "Jest Poi-1" });
     const newPoiAction: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
     const newPoiActionModified = {
       ...newPoiAction,
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const store = createCustomTestStore({
       poi: {
@@ -206,7 +205,6 @@ describe("Thunk POI Tests", () => {
     expect(storeState.action.actions.find((a) => a.uuid === poiAction.uuid)).toBeFalsy();
     expect(storeState.poi.selectedPoiUuid).toBeFalsy();
     expect(httpClient_poi.deletePOIs).toHaveBeenCalledTimes(1);
-    expect(httpClient_poi.getPOIs).toHaveBeenCalledTimes(1);
     expect(httpClient_action.deleteActions).toHaveBeenCalledTimes(1);
 
     //delete an unsaved poi
@@ -216,7 +214,6 @@ describe("Thunk POI Tests", () => {
     expect(storeState.poi.poisEditing.includes(unsavedPoi.uuid)).toBeFalsy();
     expect(storeState.action.actions.find((a) => a.uuid === unsavedPoiAction.uuid)).toBeFalsy();
     expect(httpClient_poi.deletePOIs).toHaveBeenCalledTimes(1); //no additional calls should have been made from the earlier call
-    expect(httpClient_poi.getPOIs).toHaveBeenCalledTimes(1); //no additional calls should have been made from the earlier call
   });
 
   it("thunkCreatePoi()", async () => {

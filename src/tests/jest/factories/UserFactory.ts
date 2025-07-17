@@ -1,12 +1,12 @@
 import { EntityData } from "@mikro-orm/core";
 import { Factory } from "@mikro-orm/seeder";
-import { User_db } from "server/database/models/_allModels";
+import { App_User_db } from "server/database/models/_allModels";
 import { convertUsersTypeStoreToDb, generateBlankUser } from "store/storeUtils/user";
 
-export default class UserFactory extends Factory<User_db> {
-  model = User_db;
+export default class UserFactory extends Factory<App_User_db> {
+  model = App_User_db;
   // use Partial in order to skip the "id" field
-  definition(): Partial<EntityData<User_db>> {
+  definition(): Partial<EntityData<App_User_db>> {
     const storeUser = generateBlankUser({
       username: "Jest testUser",
       password: "superSecretPassword",

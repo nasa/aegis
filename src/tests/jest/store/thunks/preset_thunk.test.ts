@@ -35,8 +35,9 @@ describe("Thunk Preset Tests", () => {
     const presetCopy = store.getState().preset.presets[0];
     store.dispatch(setPresetEditMode({ presetUuid: presetCopy.uuid, editMode: true }));
     const newName = "Jest Test Preset Modified";
+    store.dispatch(upsertPresetByField(presetCopy.uuid, "name", newName));
 
-    await store.dispatch(thunkSavePreset({ preset: { ...presetCopy, name: newName } }));
+    await store.dispatch(thunkSavePreset({ presetUuid: presetCopy.uuid }));
     expect(store.getState().preset.presets.find((p) => p.uuid === presetCopy.uuid).name).toEqual(
       newName
     );

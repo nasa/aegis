@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import cloneDeep from "lodash/cloneDeep";
 import { setAllSliceStores } from "store/crossActions";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 
 export const initialState: StationState = {
@@ -17,20 +17,6 @@ export const stationSlice = createSlice({
   name: "station",
   initialState,
   reducers: {
-    upsertStation: {
-      prepare: (station: Station, preserveModifiedDate: boolean = false) => {
-        if (preserveModifiedDate) {
-          return { payload: station };
-        } else {
-          return {
-            payload: { ...station, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
-          };
-        }
-      },
-      reducer: (state, action: { payload: Station }) => {
-        upsertToArrayByUuid(state.stations, action.payload);
-      },
-    },
     upsertStations: {
       prepare: (stations: Station[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
@@ -39,7 +25,7 @@ export const stationSlice = createSlice({
           return {
             payload: stations.map((station) => ({
               ...station,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             })),
           };
         }
@@ -50,9 +36,6 @@ export const stationSlice = createSlice({
     },
     upsertStationsFromDb: (state, action: { payload: Station[] }) => {
       action.payload.forEach((station) => upsertToArrayByUuid(state.stationsFromDb, station));
-    },
-    upsertStationFromDb: (state, action: { payload: Station }) => {
-      upsertToArrayByUuid(state.stationsFromDb, action.payload);
     },
     upsertStationByField: {
       prepare: (
@@ -71,7 +54,7 @@ export const stationSlice = createSlice({
               stationUuid,
               fieldName,
               value,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             },
           };
         }
@@ -94,21 +77,6 @@ export const stationSlice = createSlice({
         (newStation as Record<typeof key, Station[keyof Station]>)[key] = action.payload.value;
         upsertToArrayByUuid(state.stations, newStation);
       },
-    },
-    /* only called for populating store  */
-    setStations: (state, action: { payload: Station[] }) => {
-      state.stations = action.payload;
-    },
-    setStationsFromDb: (state, action: { payload: Station[] }) => {
-      state.stationsFromDb = action.payload;
-    },
-    deleteStationByUuid: (state, action: { payload: string }) => {
-      state.stations = state.stations.filter((station) => station.uuid !== action.payload);
-    },
-    deleteStationFromDbByUuid: (state, action: { payload: string }) => {
-      state.stationsFromDb = state.stationsFromDb.filter(
-        (station) => station.uuid !== action.payload
-      );
     },
     deleteStationsByUuid: (state, action: { payload: string[] }) => {
       state.stations = state.stations.filter((station) => !action.payload.includes(station.uuid));
@@ -167,7 +135,7 @@ export const stationSlice = createSlice({
       if (stationIndex >= 0) {
         state.stations[stationIndex].mapCircleControls[action.payload.circleUuid].visible =
           !state.stations[stationIndex].mapCircleControls[action.payload.circleUuid].visible;
-        state.stations[stationIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
+        state.stations[stationIndex].updatedAt = getAccurateNow().toISOString();
       }
     },
     setStationCircleStyle: (
@@ -180,7 +148,7 @@ export const stationSlice = createSlice({
       if (stationIndex >= 0) {
         state.stations[stationIndex].mapCircleControls[action.payload.circleDefUuid].style =
           action.payload.style;
-        state.stations[stationIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
+        state.stations[stationIndex].updatedAt = getAccurateNow().toISOString();
       }
     },
     setStationCircleUIStates: (
@@ -207,9 +175,6 @@ export const stationSlice = createSlice({
       state.stationCirclesUIStates[action.payload.stationUuid][action.payload.circleDefUuid] =
         action.payload.circleUIState;
     },
-    deleteStationCirclesUIStates: (state, action: { payload: { stationUuid: string } }) => {
-      delete state.stationCirclesUIStates[action.payload.stationUuid];
-    },
     resetAllStationCirclesUIStates: (state, action: { payload: { stationUuid: string } }) => {
       // set all tabSelected values to null
       Object.keys(state.stationCirclesUIStates[action.payload.stationUuid]).forEach((uuid) => {
@@ -231,15 +196,9 @@ export const stationSlice = createSlice({
 });
 
 export const {
-  upsertStation,
   upsertStations,
   upsertStationsFromDb,
-  upsertStationFromDb,
   upsertStationByField,
-  setStations,
-  setStationsFromDb,
-  deleteStationByUuid,
-  deleteStationFromDbByUuid,
   deleteStationsByUuid,
   deleteStationsFromDbByUuid,
   setSelectedStationRightNavItem,
@@ -251,7 +210,6 @@ export const {
   setStationCircleStyle,
   setStationCircleUIStates,
   setStationCircleUIState,
-  deleteStationCirclesUIStates,
   resetAllStationCirclesUIStates,
   obliterateState,
 } = stationSlice.actions;

@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import cloneDeep from "lodash/cloneDeep";
 import { setAllSliceStores } from "store/crossActions";
 
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 
 export const initialState: PoiState = {
@@ -17,20 +17,6 @@ export const poiSlice = createSlice({
   name: "poi",
   initialState,
   reducers: {
-    upsertPoi: {
-      prepare: (poi: POI, preserveModifiedDate: boolean = false) => {
-        if (preserveModifiedDate) {
-          return { payload: poi };
-        } else {
-          return {
-            payload: { ...poi, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
-          };
-        }
-      },
-      reducer: (state, action: { payload: POI }) => {
-        upsertToArrayByUuid(state.pois, action.payload);
-      },
-    },
     upsertPois: {
       prepare: (pois: POI[], preserveModifiedDate: boolean = false) => {
         if (preserveModifiedDate) {
@@ -39,7 +25,7 @@ export const poiSlice = createSlice({
           return {
             payload: pois.map((poi) => ({
               ...poi,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             })),
           };
         }
@@ -50,9 +36,6 @@ export const poiSlice = createSlice({
     },
     upsertPoisFromDb: (state, action: { payload: POI[] }) => {
       action.payload.forEach((poi) => upsertToArrayByUuid(state.poisFromDb, poi));
-    },
-    upsertPoiFromDb: (state, action: { payload: POI }) => {
-      upsertToArrayByUuid(state.poisFromDb, action.payload);
     },
     upsertPoiByField: {
       prepare: (
@@ -71,7 +54,7 @@ export const poiSlice = createSlice({
               poiUuid,
               fieldName,
               value,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             },
           };
         }
@@ -94,20 +77,6 @@ export const poiSlice = createSlice({
         (newPoi as Record<typeof key, POI[keyof POI]>)[key] = action.payload.value;
         upsertToArrayByUuid(state.pois, newPoi);
       },
-    },
-
-    /* only called for populating store  */
-    setPois: (state, action: { payload: POI[] }) => {
-      state.pois = action.payload;
-    },
-    setPoisFromDb: (state, action: { payload: POI[] }) => {
-      state.poisFromDb = action.payload;
-    },
-    deletePoiByUuid: (state, action: { payload: string }) => {
-      state.pois = state.pois.filter((poi) => poi.uuid !== action.payload);
-    },
-    deletePoiFromDbByUuid: (state, action: { payload: string }) => {
-      state.poisFromDb = state.poisFromDb.filter((poi) => poi.uuid !== action.payload);
     },
     deletePoisByUuid: (state, action: { payload: string[] }) => {
       state.pois = state.pois.filter((poi) => !action.payload.includes(poi.uuid));
@@ -148,15 +117,9 @@ export const poiSlice = createSlice({
 });
 
 export const {
-  upsertPoi,
   upsertPois,
   upsertPoisFromDb,
-  upsertPoiFromDb,
   upsertPoiByField,
-  setPois,
-  setPoisFromDb,
-  deletePoiByUuid,
-  deletePoiFromDbByUuid,
   deletePoisByUuid,
   deletePoisFromDbByUuid,
   setSelectedPOIRightNavItem,

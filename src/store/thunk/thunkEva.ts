@@ -1,19 +1,19 @@
 import {
-  deleteEvaByUuid,
-  deleteEvaFromDbByUuid,
   selectEva,
   setEvaEditMode,
   setEvaSequence,
   upsertExpandedEvaUuids,
   setSelectedEvaRightNavItem,
   setSelectedEvaUuid,
-  upsertEva,
   upsertEvaByField,
-  upsertEvaFromDb,
   deleteExpandedEvaUuids,
   setOnlyShowRunningRex,
   setEvaDropdownUIState,
   setSelectedEvaSequenceItemUuid,
+  upsertEvas,
+  upsertEvasFromDb,
+  deleteEvasByUuid,
+  deleteEvasFromDbByUuid,
 } from "store/eva";
 import appCreateAsyncThunk from "./thunkUtil";
 import { generateUniqueName } from "utils/names/unique-name";
@@ -37,7 +37,7 @@ import {
   thunkSaveTraverse,
   thunkUpdateTraversesAroundStation,
 } from "./thunkTraverse";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { thunkDeleteStations, thunkDuplicateStation, thunkSaveStation } from "./thunkStation";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankEVA } from "store/storeUtils/eva";
@@ -206,15 +206,15 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   const evaUpsertResponse = await httpClient_Eva.upsertEvas([
     {
       ...eva,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      updatedAt: getAccurateNow().toISOString(),
     },
   ]);
   if (evaUpsertResponse.status !== "success") {
     throw new Error("Error upserting Eva: " + evaUpsertResponse.message);
   }
   // upsert the changed eva (with new updated date) to the store
-  dispatch(upsertEva(eva, true));
-  dispatch(upsertEvaFromDb(eva));
+  dispatch(upsertEvas([eva], true));
+  dispatch(upsertEvasFromDb([eva]));
   dispatch(setEvaEditMode({ evaUuid: eva.uuid, editMode: false }));
 });
 
@@ -258,7 +258,7 @@ export const thunkCancelEva = appCreateAsyncThunk<{
       })
     );
     // eva is already saved once to the db, replace all values with the one from the db (undoing any changes)
-    dispatch(upsertEva(evaFromDb, true));
+    dispatch(upsertEvas([evaFromDb], true));
   } else {
     // delete any traverses
     const traverseUuids = eva.sequence.filter((s) => s.type === "traverse")?.map((t) => t.uuid);
@@ -277,7 +277,7 @@ export const thunkCancelEva = appCreateAsyncThunk<{
     }
 
     // eva has never been saved to the db, so just delete the eva from the store
-    dispatch(deleteEvaByUuid(eva.uuid));
+    dispatch(deleteEvasByUuid([eva.uuid]));
     dispatch(thunkSetRightPanelIsOpenIfAuto(false));
     dispatch(
       thunkAddRemoveFolderItem({
@@ -371,9 +371,9 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
       throw new Error("Error deleting Eva: " + deleteResponse.message);
     }
     // remove the corresponding eva from the store
-    dispatch(deleteEvaFromDbByUuid(eva.uuid));
+    dispatch(deleteEvasFromDbByUuid([eva.uuid]));
   }
-  dispatch(deleteEvaByUuid(eva.uuid));
+  dispatch(deleteEvasByUuid([eva.uuid]));
 
   dispatch(
     thunkAddRemoveFolderItem({
@@ -412,7 +412,7 @@ export const thunkCreateEva = appCreateAsyncThunk<void>(
     });
 
     // upsert the new eva
-    dispatch(upsertEva(blankEva));
+    dispatch(upsertEvas([blankEva]));
     dispatch(selectEva({ uuid: blankEva.uuid }));
     dispatch(setEvaEditMode({ evaUuid: blankEva.uuid, editMode: true }));
     dispatch(thunkSetRightPanelIsOpenIfAuto(true));
@@ -453,7 +453,7 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
   const eva = getState().eva.evas.find((e) => e.uuid === evaUuid);
   const newEva: Eva = cloneDeep(eva);
   newEva.uuid = uuidv4();
-  const newDateString = roundDateToSecond(getAccurateNow()).toISOString();
+  const newDateString = getAccurateNow().toISOString();
   newEva.updatedAt = newDateString;
   newEva.createdAt = newDateString;
   if (!forRex) {
@@ -550,8 +550,8 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
   }
 
   // upsert eva and persist to the db
-  dispatch(upsertEva(newEva, true));
-  dispatch(upsertEvaFromDb(newEva));
+  dispatch(upsertEvas([newEva], true));
+  dispatch(upsertEvasFromDb([newEva]));
   const upsertEvasResponse = await httpClient_Eva.upsertEvas([newEva]);
   if (upsertEvasResponse.status !== "success") {
     throw new Error("Error upserting EVA: " + upsertEvasResponse.message);

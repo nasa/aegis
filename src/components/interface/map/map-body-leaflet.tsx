@@ -84,6 +84,7 @@ import { addTimeToDateTime } from "utils/timeLayers";
 import { EARTH_RADIUS } from "utils/consts";
 import { globalGrid } from "utils/grid";
 import { selectAsPlannedStations } from "store/selectors";
+import { LoadingOverlay } from "../_global-elements";
 
 const MapBody: FunctionComponent<{}> = () => {
   const dispatch = useAppDispatch();
@@ -276,15 +277,16 @@ const MapBody: FunctionComponent<{}> = () => {
 
   const [mouseLatLng, setMouseLatLng] = useState<AEGISPoint>(null);
   const [mouseGridCoord, setMouseGridCoord] = useState<string>("N/A");
-  const [mapZoom, setMapZoom] = useState<number>(0); // Used to trigger re-draw of scale. Value doens't matter
+  const [mapZoom, setMapZoom] = useState<number>(0); // Used to trigger re-draw of scale. Value doesn't matter
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
-  const [mapBounds, setMapBounds] = useState<string>(null); // Used to trigger re-draw of grid labels. Value doens't matter
+  const [mapBounds, setMapBounds] = useState<string>(null); // Used to trigger re-draw of grid labels. Value doesn't matter
   const [rexPetTime, setRexPetTime] = useState(""); // used to update the PET value via the PetInterval component
   const [gridBounds, setGridBounds] = useState<GridIndex[]>(undefined);
   const [mapGridControls, setMapGridControls] = useState<MapGridControl>(undefined);
   const [mapDateTime, setMapDateTime] = useState<string>(undefined);
   const [timeLayerInfo, setTimeLayerInfo] = useState<TimeLayerInfo>(undefined);
   const [selectedRexDateTime, setSelectedRexDateTime] = useState<string>(null);
+  const [isLoading, setIsLoading] = useState(false); // used for loading overlay for long running processes
 
   /**
    * Set the eyeball menu toggles from the cookie
@@ -473,7 +475,7 @@ const MapBody: FunctionComponent<{}> = () => {
       gridLabels,
       planetRadius: mission.planetRadius,
     });
-    // include map bounds in the depdencey array so the grid labels will re-draw when map moves
+    // include map bounds in the dependency array so the grid labels will re-draw when map moves
   }, [gridLabels, mission.planetRadius, mapBounds]);
 
   /**
@@ -549,7 +551,7 @@ const MapBody: FunctionComponent<{}> = () => {
   useEffect(() => {
     if (!map.current) return;
 
-    map.current.on("click", (e) => {
+    map.current.on("click", async (e) => {
       // if user is creating or updating a new poi or station, use the click update the location of the new poi/station
       if (!mapDirective) return;
       if (
@@ -560,12 +562,17 @@ const MapBody: FunctionComponent<{}> = () => {
           mapDirective.mapItemType === "posEntry") &&
         (mapDirective.mapAction === "editMarker" || mapDirective.mapAction === "createMarker")
       ) {
-        saveUpdatedItemPosition({
-          dispatch,
-          uuid: mapDirective.uuid,
-          mapItemType: mapDirective.mapItemType,
-          location: convertLeafletLatLngToAegisPoint(e.latlng),
-        });
+        try {
+          setIsLoading(true);
+          await saveUpdatedItemPosition({
+            dispatch,
+            uuid: mapDirective.uuid,
+            mapItemType: mapDirective.mapItemType,
+            location: convertLeafletLatLngToAegisPoint(e.latlng),
+          });
+        } finally {
+          setIsLoading(false);
+        }
 
         // reset the map directive
         dispatch(updateMapDirective(null));
@@ -587,7 +594,7 @@ const MapBody: FunctionComponent<{}> = () => {
     map.current.on("zoomend", () => {
       setMapBounds(map.current.getBounds().toBBoxString()); // trigger to redraw grid labels
       setMeasureStartingCoords(map, dispatch);
-      setMapZoom(map.current.getZoom()); // triger to redraw scale bar
+      setMapZoom(map.current.getZoom()); // trigger to redraw scale bar
     });
 
     map.current.on("moveend", () => {
@@ -831,7 +838,7 @@ const MapBody: FunctionComponent<{}> = () => {
     selectedRexDateTime,
   ]);
 
-  /** Determine time assosiated with currently running rex time */
+  /** Determine time associated with currently running rex time */
   useEffect(() => {
     if (selectedRex && runningRexEvaDatetime) {
       // If PET is running, update time every 10 seconds
@@ -1371,14 +1378,19 @@ const MapBody: FunctionComponent<{}> = () => {
         dispatch(setSectionSelected("mission"));
         dispatch(thunkSetRightPanelIsOpenIfAuto(true));
       },
-      onDragEnd: (marker: AEGISMarker) => {
+      onDragEnd: async (marker: AEGISMarker) => {
         const newLocation = convertLeafletLatLngToAegisPoint(marker.getLatLng());
-        saveUpdatedItemPosition({
-          dispatch,
-          uuid: "lander",
-          mapItemType: "lander",
-          location: newLocation,
-        });
+        try {
+          setIsLoading(true);
+          await saveUpdatedItemPosition({
+            dispatch,
+            uuid: "lander",
+            mapItemType: "lander",
+            location: newLocation,
+          });
+        } finally {
+          setIsLoading(false);
+        }
         dispatch(updateMapDirective(null));
       },
       tooltipOptions: {
@@ -1798,7 +1810,7 @@ const MapBody: FunctionComponent<{}> = () => {
 
               // Here we use the fact that Leaflet is already projecting the map and we convert
               // between pixel points on the leaflet instance against the coordinates underlying those points.
-              // This helps us around the south pole where we can't really use bearing to deterine our path to the next point.
+              // This helps us around the south pole where we can't really use bearing to determine our path to the next point.
               // This method results in a parabola at the south pole
 
               // get the x, y pixel coordinates of the source and destination points
@@ -1936,7 +1948,7 @@ const MapBody: FunctionComponent<{}> = () => {
 
         // Here we use the fact that Leaflet is already projecting the map and we convert
         // between pixel points on the leaflet instance against the coordinates underlying those points.
-        // This helps us around the south pole where we can't really use bearing to deterine our path to the next point.
+        // This helps us around the south pole where we can't really use bearing to determine our path to the next point.
         // This method results in a parabola at the south pole
 
         // get the x, y pixel coordinates of the source and destination points
@@ -2014,8 +2026,15 @@ const MapBody: FunctionComponent<{}> = () => {
         highlightLocation = selectedStation.location;
         panMapToLocation = selectedStation.location;
       } else if (sectionSelected === "evas") {
-        // if a sequence item is selected. highlight and pan over there
-        if (selectedEvaSequenceItemUuid) {
+        // if a pos entry is selected, highlight and pan to the pos
+        if (selectedPosEntryUuid && selectedRex?.posEntries) {
+          const posLocation = selectedRex.posEntries.find(
+            (c) => c.uuid === selectedPosEntryUuid
+          )?.location;
+          highlightLocation = posLocation;
+          panMapToLocation = posLocation;
+        } else if (selectedEvaSequenceItemUuid) {
+          // if a sequence item is selected. highlight and pan over there
           const seqItemRes = await dispatch(
             thunkGetStationOrTraverse({ uuid: selectedEvaSequenceItemUuid })
           );
@@ -2029,14 +2048,15 @@ const MapBody: FunctionComponent<{}> = () => {
               panMapToLocation = selectedStation.location;
             }
           }
-        }
-        // if a pos entry is selected, highlight and pan to the pos
-        if (selectedPosEntryUuid && selectedRex?.posEntries) {
-          const posLocation = selectedRex.posEntries.find(
-            (c) => c.uuid === selectedPosEntryUuid
-          )?.location;
-          highlightLocation = posLocation;
-          panMapToLocation = posLocation;
+        } else if (selectedEva) {
+          // if eva title is selected, pan to the midpoint of all stations in the eva
+          const allStationUuids = selectedEva.sequence
+            .filter((seqItem) => seqItem.type === "station")
+            .map((seqItem) => seqItem.uuid);
+          const allStationLocations = allStations
+            .filter((s) => allStationUuids.includes(s.uuid))
+            ?.map((s) => s.location);
+          panMapToLocation = getMidpoint(allStationLocations);
         }
       } else if (selectedMeasurementUuid) {
         const measurement = measurements.find((m) => m.uuid === selectedMeasurementUuid);
@@ -2051,13 +2071,14 @@ const MapBody: FunctionComponent<{}> = () => {
 
       if (panMapToLocation && mapDirective === null) {
         if (isNaN(panMapToLocation.lat) || isNaN(panMapToLocation.lng)) return;
+        // only pan if the location is not already in view
         if (!map.current.getBounds().contains(panMapToLocation)) {
           map.current.panTo(panMapToLocation);
         }
       }
     };
     handler();
-    // do not include selectedOrRunningRex in deps or else this will trigger a map repan whenever rex statuses change
+    // do not include selectedOrRunningRex in deps or else this will trigger a map re-pan whenever rex statuses change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     map,
@@ -2070,6 +2091,7 @@ const MapBody: FunctionComponent<{}> = () => {
     selectedPosEntryUuid,
     selectedMeasurementUuid,
     measurements,
+    selectedEva?.sequence,
   ]);
 
   /**
@@ -2159,48 +2181,56 @@ const MapBody: FunctionComponent<{}> = () => {
   }, [mapHoverItemUuid, mapHoverItemType]);
 
   return (
-    <div className={styles.mapContainer} ref={mapContainerRef}>
-      <PetInterval runningRex={selectedRex} rexPetTime={rexPetTime} setRexPetTime={setRexPetTime} />
-      <div className={styles.map} ref={mapRef} />
+    <>
+      <div className={styles.mapContainer} ref={mapContainerRef}>
+        <PetInterval
+          runningRex={selectedRex}
+          rexPetTime={rexPetTime}
+          setRexPetTime={setRexPetTime}
+        />
+        <div className={styles.map} ref={mapRef} />
 
-      <div className={styles.mapViewDisplay}>
-        <MapViewMenu
-          mapDisplayPois={mapDisplayPois}
-          setMapDisplayPois={setMapDisplayPois}
-          mapDisplayStations={mapDisplayStations}
-          setMapDisplayStations={setMapDisplayStations}
-          mapDisplayActions={mapDisplayActions}
-          setMapDisplayActions={setMapDisplayActions}
-          showArrows={showArrows}
-          setShowArrows={setShowArrows}
-          mapDisplayPos={mapDisplayPos}
-          setMapDisplayPos={setMapDisplayPos}
-          showScaleBar={showScaleBar}
-          setShowScaleBar={setShowScaleBar}
-          showMouseLatLon={showMouseLatLon}
-          setShowMouseLatLon={setShowMouseLatLon}
-          showSunEarth={showSunEarth}
-          setShowSunEarth={setShowSunEarth}
-        />
+        <div className={styles.mapViewDisplay}>
+          <MapViewMenu
+            mapDisplayPois={mapDisplayPois}
+            setMapDisplayPois={setMapDisplayPois}
+            mapDisplayStations={mapDisplayStations}
+            setMapDisplayStations={setMapDisplayStations}
+            mapDisplayActions={mapDisplayActions}
+            setMapDisplayActions={setMapDisplayActions}
+            showArrows={showArrows}
+            setShowArrows={setShowArrows}
+            mapDisplayPos={mapDisplayPos}
+            setMapDisplayPos={setMapDisplayPos}
+            showScaleBar={showScaleBar}
+            setShowScaleBar={setShowScaleBar}
+            showMouseLatLon={showMouseLatLon}
+            setShowMouseLatLon={setShowMouseLatLon}
+            showSunEarth={showSunEarth}
+            setShowSunEarth={setShowSunEarth}
+          />
+        </div>
+        {sectionSelected === "evas" && selectedRex && <MapPositionMenu />}
+        <div className={styles.mapPresetDisplay}>
+          <MapPresetMenu
+            selectedPreset={selectedPreset}
+            setSelectedPreset={(preset: Preset) => {
+              dispatch(setSelectedPresetUuid(preset.uuid));
+            }}
+            presetsFromDb={presetsFromDb}
+          />
+        </div>
+        <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
+        <div className={styles.mapPositionDisplay}>
+          {showMouseLatLon && mouseLatLng && latLngDiv(mouseLatLng)}
+          {mouseGridCoord && mouseGridCoordDiv(mouseGridCoord)}
+          {timeLayerInfo && layerTimeDiv(timeLayerInfo)}
+        </div>
+        {showSunEarth && <SunEarth type="editor" selectedPreset={selectedPreset} />}
       </div>
-      {sectionSelected === "evas" && selectedRex && <MapPositionMenu />}
-      <div className={styles.mapPresetDisplay}>
-        <MapPresetMenu
-          selectedPreset={selectedPreset}
-          setSelectedPreset={(preset: Preset) => {
-            dispatch(setSelectedPresetUuid(preset.uuid));
-          }}
-          presetsFromDb={presetsFromDb}
-        />
-      </div>
-      <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
-      <div className={styles.mapPositionDisplay}>
-        {showMouseLatLon && mouseLatLng && latLngDiv(mouseLatLng)}
-        {mouseGridCoord && mouseGridCoordDiv(mouseGridCoord)}
-        {timeLayerInfo && layerTimeDiv(timeLayerInfo)}
-      </div>
-      {showSunEarth && <SunEarth type="editor" selectedPreset={selectedPreset} />}
-    </div>
+
+      {isLoading && <LoadingOverlay message="Please Wait..." />}
+    </>
   );
 };
 

@@ -3,7 +3,7 @@ import { types as MikroTypes } from "@mikro-orm/core";
 import * as bcrypt from "bcryptjs";
 
 @Entity()
-export class User_db implements User_db_type {
+export class App_User_db implements AppUser_db_type {
   @PrimaryKey({ type: MikroTypes.integer })
   id!: number;
 
@@ -18,9 +18,9 @@ export class User_db implements User_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   permissionList?: Permission[];
 
-  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
+  @Property({ type: MikroTypes.datetime, length: 3 })
   createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, columnType: "timestamptz(3)" })
+  @Property({ type: MikroTypes.datetime, length: 3 })
   updatedAt!: Date;
 
   @BeforeCreate()

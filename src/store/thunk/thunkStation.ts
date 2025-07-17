@@ -1,15 +1,14 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import {
-  upsertStation,
+  upsertStations,
+  upsertStationsFromDb,
   setStationEditMode,
   setSelectedStationUuid,
-  deleteStationByUuid,
-  upsertStationFromDb,
+  deleteStationsByUuid,
+  deleteStationsFromDbByUuid,
   setStationCircleUIStates,
   resetAllStationCirclesUIStates,
   upsertStationByField,
-  deleteStationsByUuid,
-  deleteStationsFromDbByUuid,
   selectStation,
 } from "store/station";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/geoMath";
@@ -29,8 +28,7 @@ import {
   thunkDuplicateActions,
   thunkSaveActions,
 } from "./thunkAction";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
-import { isModified } from "utils/component-helpers";
+import { getAccurateNow } from "utils/formatting";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankStation } from "store/storeUtils/station";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
@@ -69,7 +67,7 @@ export const thunkUpdateStationLocation = appCreateAsyncThunk<{
     dispatch(upsertStationByField(station.uuid, "location", location, false));
   } else {
     //upsert station location and elevation
-    dispatch(upsertStation({ ...station, location, elevation: elevation.payload as number }));
+    dispatch(upsertStations([{ ...station, location, elevation: elevation.payload as number }]));
   }
 
   //update walkback path, elevation, and snap to new location
@@ -100,12 +98,14 @@ export const thunkUpdateWalkbackPath = appCreateAsyncThunk<{
   //save walkback
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
   dispatch(
-    upsertStation({
-      ...station,
-      walkbackPath: path,
-      walkbackPathSegmentDistances: pathSegmentDistances,
-      walkbackPathSegmentElevations: null,
-    })
+    upsertStations([
+      {
+        ...station,
+        walkbackPath: path,
+        walkbackPathSegmentDistances: pathSegmentDistances,
+        walkbackPathSegmentElevations: null,
+      },
+    ])
   );
 });
 
@@ -170,12 +170,14 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
 
   //save walkback
   dispatch(
-    upsertStation({
-      ...station,
-      walkbackPath: newPath,
-      walkbackPathSegmentDistances: pathSegmentDistances,
-      walkbackPathSegmentElevations: newElevationProfile,
-    })
+    upsertStations([
+      {
+        ...station,
+        walkbackPath: newPath,
+        walkbackPathSegmentDistances: pathSegmentDistances,
+        walkbackPathSegmentElevations: newElevationProfile,
+      },
+    ])
   );
 
   return newPath;
@@ -217,12 +219,14 @@ export const thunkResetWalkback = appCreateAsyncThunk<{
 
   //update store
   dispatch(
-    upsertStation({
-      ...station,
-      walkbackPath: newPath,
-      walkbackPathSegmentDistances: newPathSegmentDistances,
-      walkbackPathSegmentElevations: newElevationProfile,
-    })
+    upsertStations([
+      {
+        ...station,
+        walkbackPath: newPath,
+        walkbackPathSegmentDistances: newPathSegmentDistances,
+        walkbackPathSegmentElevations: newElevationProfile,
+      },
+    ])
   );
 });
 
@@ -230,35 +234,44 @@ export const thunkSaveStation = appCreateAsyncThunk<{
   stationUuid: string;
 }>("stationSave", async ({ stationUuid }, { dispatch, getState }) => {
   if (!stationUuid) return;
-  const station = getState().station.stations.find((s) => s.uuid === stationUuid);
+  const newStation = getState().station.stations.find((s) => s.uuid === stationUuid);
+  const oldStation = getState().station.stationsFromDb.find((s) => s.uuid === stationUuid);
+
   const stationActions = getState().action.actions.filter(
-    (action) => action.stationUuid === station.uuid
+    (action) => action.stationUuid === newStation.uuid
   );
   const stationActionsFromDb = getState().action.actionsFromDb.filter(
-    (action) => action.stationUuid === station.uuid
+    (action) => action.stationUuid === newStation.uuid
   );
 
-  // full update traverses (including name) around this station in any eva using this station
-  await dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid, saveToDb: true }));
-
-  // upsert the changed Station to the DB via internal API call
-  const updatedStation = {
-    ...station,
-    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
-  };
-  const stationUpsertResponse = await httpClient_station.upsertStations([updatedStation]);
-
-  if (stationUpsertResponse.status !== "success") {
-    throw new Error("Error upserting Station: " + stationUpsertResponse.message);
+  // update traverse names around this station in any eva using this station
+  // if the station location has changed, the traverse was already updated in thunkUpdateStationLocation
+  if (!isEqual(newStation.name, oldStation?.name)) {
+    await dispatch(
+      thunkUpdateTraversesAroundStation({ stationUuid: newStation.uuid, saveToDb: true })
+    );
   }
-  // upsert the changed Station (with new updated date) to the store
-  dispatch(upsertStation(updatedStation, true));
-  // update the StationFromDb copy in store
-  dispatch(upsertStationFromDb(updatedStation));
+
+  // check if station has been modified. this may not be the case if the user only changed actions
+  if (!isEqual(newStation, oldStation)) {
+    // upsert the changed Station to the DB via internal API call
+    const updatedStation = {
+      ...newStation,
+      updatedAt: getAccurateNow().toISOString(),
+    };
+    const stationUpsertResponse = await httpClient_station.upsertStations([updatedStation]);
+
+    if (stationUpsertResponse.status !== "success") {
+      throw new Error("Error upserting Station: " + stationUpsertResponse.message);
+    }
+    // upsert the changed Station (with new updated date) to the store
+    dispatch(upsertStations([updatedStation], true));
+    // update the StationFromDb copy in store
+    dispatch(upsertStationsFromDb([updatedStation]));
+  }
 
   // find out if the actions in this station have been modified and need to be persisted
-  const actionsModified = isModified(stationActions, stationActionsFromDb);
-  if (actionsModified) {
+  if (!isEqual(stationActions, stationActionsFromDb)) {
     dispatch(
       thunkSaveActions({
         actions: stationActions,
@@ -269,8 +282,7 @@ export const thunkSaveStation = appCreateAsyncThunk<{
 
   // if the walkback is in edit mode, cancel it out
   const stationMapDirective =
-    getState().map.mapDirective?.uuid === station.uuid ? getState().map.mapDirective : null;
-
+    getState().map.mapDirective?.uuid === newStation.uuid ? getState().map.mapDirective : null;
   if (stationMapDirective?.mapAction === "editPolyline") {
     // handle walkback edit state
     dispatch(
@@ -281,9 +293,9 @@ export const thunkSaveStation = appCreateAsyncThunk<{
     );
   }
 
-  dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
-  dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
-  dispatch(resetAllStationCirclesUIStates({ stationUuid: station.uuid }));
+  dispatch(thunkCancelMarkerMapDirective({ uuid: newStation.uuid }));
+  dispatch(setStationEditMode({ stationUuid: newStation.uuid, editMode: false }));
+  dispatch(resetAllStationCirclesUIStates({ stationUuid: newStation.uuid }));
 });
 
 export const thunkStationCancel = appCreateAsyncThunk<{
@@ -303,7 +315,7 @@ export const thunkStationCancel = appCreateAsyncThunk<{
   if (stationFromDb) {
     //station is already saved once to the db,
     // replace it with the one from the db (undoing any changes)
-    dispatch(upsertStation(stationFromDb, true));
+    dispatch(upsertStations([stationFromDb], true));
 
     //check if location was changed. if so, revert back traverses
     if (station.location !== stationFromDb.location) {
@@ -320,7 +332,7 @@ export const thunkStationCancel = appCreateAsyncThunk<{
     dispatch(deleteActionsByUuid(addedActionsToDelete.map((a) => a.uuid)));
   } else {
     // station hasn't been saved to the db. delete the station and actions from the store
-    dispatch(deleteStationByUuid(station.uuid));
+    dispatch(deleteStationsByUuid([station.uuid]));
     dispatch(setSelectedStationUuid(null));
     dispatch(deleteActionsByUuid(stationActions.map((a) => a.uuid)));
     dispatch(thunkSetRightPanelIsOpenIfAuto(false));
@@ -484,7 +496,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
       name: randomName,
       mapCircleControls: blankMapCircleControls,
     });
-    dispatch(upsertStation(blankStation, false));
+    dispatch(upsertStations([blankStation], false));
     dispatch(selectStation({ uuid: blankStation.uuid }));
     dispatch(thunkSetRightPanelIsOpenIfAuto(true));
     dispatch(setStationEditMode({ stationUuid: blankStation.uuid, editMode: true }));
@@ -524,7 +536,7 @@ export const thunkDuplicateStation = appCreateAsyncThunk<
   const newStation: Station = cloneDeep(station);
   newStation.uuid = uuidv4();
   if (!preserveRefUuid) newStation.refUuid = uuidv4();
-  const newDateString = roundDateToSecond(getAccurateNow()).toISOString();
+  const newDateString = getAccurateNow().toISOString();
   newStation.updatedAt = newDateString;
   newStation.createdAt = newDateString;
   // preservingRefUuids only occurs when duplicating an EVA for a REX, in which case, keep the name.
@@ -537,8 +549,8 @@ export const thunkDuplicateStation = appCreateAsyncThunk<
   newStation.actionOrderUuids = [];
 
   // upsert new station and persist to the db
-  dispatch(upsertStation(newStation, true));
-  dispatch(upsertStationFromDb(newStation));
+  dispatch(upsertStations([newStation], true));
+  dispatch(upsertStationsFromDb([newStation]));
   const upsertStationResponse = await httpClient_station.upsertStations([newStation]);
   if (upsertStationResponse.status !== "success") {
     throw new Error("Error upserting Station: " + upsertStationResponse.message);

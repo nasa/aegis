@@ -2,13 +2,13 @@ import supertest from "supertest";
 import app from "server/express/restApi";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
-import { User_db } from "server/database/models/user.model";
+import { App_User_db } from "server/database/models/app_user.model";
 import MissionFactory from "tests/jest/factories/MissionFactory";
 import { Mission_db } from "server/database/models/_allModels";
 import * as fileFunctions from "server/file/file";
 
-let testUser: User_db;
-let testAdmin: User_db;
+let testUser: App_User_db;
+let testAdmin: App_User_db;
 let testMissions: Mission_db[];
 
 let aegisSessionCookie: string;
@@ -222,8 +222,8 @@ describe("Admin user with Edit permissions", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = getEM();
-  await em.nativeDelete(User_db, { id: testAdmin.id });
-  await em.nativeDelete(User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testAdmin.id });
+  await em.nativeDelete(App_User_db, { id: testUser.id });
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
