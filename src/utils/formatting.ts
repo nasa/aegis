@@ -165,13 +165,6 @@ export function getJulianDate(date: Date): string {
 }
 
 /**
- * Round Date to nearest second
- */
-export function roundDateToSecond(date: Date): Date {
-  return new Date(Math.round(date.getTime() / 1000) * 1000);
-}
-
-/**
  * Convert any string to a valid decimal number by stripping out all non-numeric characters
  */
 export function toDecimal(str: string): number {

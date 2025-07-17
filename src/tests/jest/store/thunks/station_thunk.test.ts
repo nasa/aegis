@@ -1,5 +1,4 @@
 import { createCustomTestStore } from "../../factories/makeTestStore";
-import { roundDateToSecond } from "utils/formatting";
 import { initialState as evaInitialState } from "store/eva";
 import { initialState as stationInitialState } from "store/station";
 import { initialState as missionInitialState } from "store/mission";
@@ -220,7 +219,7 @@ describe("Thunk Station Tests", () => {
       ...station,
       name: "Jest Station-1 Modified",
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const newStationAction: Action = generateBlankAction({
       name: "Jest Action-1",
@@ -274,7 +273,7 @@ describe("Thunk Station Tests", () => {
     const stationActionModified: Action = {
       ...stationAction,
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const store = createCustomTestStore({
       station: {
@@ -310,7 +309,7 @@ describe("Thunk Station Tests", () => {
     const stationModified = {
       ...station,
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
       location: { lat: 1, lng: 2 },
     };
     const unsavedStation: Station = generateBlankStation({ name: "Jest Station-1" });
@@ -325,7 +324,7 @@ describe("Thunk Station Tests", () => {
     const stationActionModified = {
       ...stationAction,
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const newStationAction: Action = generateBlankAction({
       name: "Jest Action-1",

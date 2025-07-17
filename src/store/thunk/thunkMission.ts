@@ -12,7 +12,7 @@ import { thunkGetElevation } from "./thunkElevation";
 import { thunkFullUpdateWalkback, thunkSaveStation } from "./thunkStation";
 import { setPresetCircleUIStates, upsertPresetByField } from "store/preset";
 import { thunkSavePreset } from "./thunkPreset";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
@@ -60,7 +60,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
         geographicUnits: sortedGeoUnits,
         circleDefinitions: sortedCircleDefinitions,
         actionTemplates: sortedTemplates,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+        updatedAt: getAccurateNow().toISOString(),
       },
     ]);
 
@@ -346,8 +346,8 @@ export const thunkCreateTemplateFromAction = appCreateAsyncThunk<{ actionUuid: s
       equipmentItemsUsage: action.equipmentItemsUsage,
       geographicUnitsUsage: action.geographicUnitsUsage,
       stmAction: action.stmAction,
-      createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      createdAt: getAccurateNow().toISOString(),
+      updatedAt: getAccurateNow().toISOString(),
     };
 
     //upsert action template
@@ -367,7 +367,7 @@ export const thunkUpdateActionTemplate = appCreateAsyncThunk<{
   const newActionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || [];
   const itemIndex = newActionTemplates.findIndex((t) => t.uuid === uuid);
   if (itemIndex >= 0) {
-    newActionTemplates[itemIndex].updatedAt = roundDateToSecond(getAccurateNow()).toISOString();
+    newActionTemplates[itemIndex].updatedAt = getAccurateNow().toISOString();
     (
       newActionTemplates[itemIndex] as Record<
         typeof fieldName,
@@ -520,8 +520,8 @@ export const thunkDuplicateActionTemplate = appCreateAsyncThunk<{ actionTemplate
 
     const duplicatedActionTemplate: ActionTemplate = cloneDeep(modelTemplate);
     duplicatedActionTemplate.uuid = uuidv4();
-    duplicatedActionTemplate.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
-    duplicatedActionTemplate.updatedAt = roundDateToSecond(getAccurateNow()).toISOString();
+    duplicatedActionTemplate.createdAt = getAccurateNow().toISOString();
+    duplicatedActionTemplate.updatedAt = getAccurateNow().toISOString();
     duplicatedActionTemplate.templateName = makeUniqueStringCopy(
       modelTemplate.templateName,
       actionTemplates.map((a) => a.templateName)

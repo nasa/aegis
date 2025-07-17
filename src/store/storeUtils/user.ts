@@ -1,6 +1,6 @@
-import { roundDateToSecond } from "utils/formatting";
 import { App_User_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
+import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank user
@@ -15,8 +15,8 @@ export const generateBlankUser = (partialUser?: Partial<AppUser>): AppUser => {
     isAdmin: false,
     isSuperAdmin: false,
     permissionList: null,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
+    createdAt: getAccurateNow().toISOString(),
+    updatedAt: getAccurateNow().toISOString(),
   };
   return { ...defaultNewUser, ...partialUser };
 };

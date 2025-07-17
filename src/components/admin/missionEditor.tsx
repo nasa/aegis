@@ -10,7 +10,7 @@ import adminStyles from "components/admin/admin.module.css";
 import isEmpty from "lodash/isEmpty";
 import pick from "lodash/pick";
 import { upsertMissions } from "http-client/mission";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 
 const MissionEditor: FunctionComponent<{
   mission: Mission;
@@ -65,7 +65,7 @@ const MissionEditor: FunctionComponent<{
       projResUnitsPerPixel: parseFloat(missionValues.projResUnitsPerPixel) || null,
 
       createdAt: mission.createdAt,
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: getAccurateNow().toISOString(),
     };
 
     const res = await upsertMissions([missionToSave]);

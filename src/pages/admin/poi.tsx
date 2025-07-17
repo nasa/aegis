@@ -7,7 +7,7 @@ import Header from "components/interface/header";
 import { getMissions } from "http-client/mission";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { decodeEmoji, roundDateToSecond } from "utils/formatting";
+import { decodeEmoji, getAccurateNow } from "utils/formatting";
 import { GeoJsonFile } from "typings/geojson";
 import { validators } from "components/interface/form/formValidators";
 import { Feature } from "geojson";
@@ -102,8 +102,8 @@ const PoiPage: React.FunctionComponent = () => {
               lng: poi.properties.x,
             },
             icon: emoji,
-            updatedAt: roundDateToSecond(new Date()).toISOString(),
-            createdAt: roundDateToSecond(new Date()).toISOString(),
+            updatedAt: getAccurateNow().toISOString(),
+            createdAt: getAccurateNow().toISOString(),
           };
           const poiSet = await upsertPOIs([poiData]);
           if (poiSet.status !== "success") {

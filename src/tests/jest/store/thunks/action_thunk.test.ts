@@ -1,5 +1,4 @@
 import { createCustomTestStore } from "../../factories/makeTestStore";
-import { roundDateToSecond } from "utils/formatting";
 import { initialState as missionInitialState } from "store/mission";
 import { initialState as actionInitialState } from "store/action";
 import { initialState as stationInitialState } from "store/station";
@@ -170,7 +169,7 @@ describe("Thunk Action Tests", () => {
       ...stationAction,
       name: "Jest Action-1 Modified",
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const unsavedStationAction: Action = generateBlankAction({
       name: "Jest Action-1",

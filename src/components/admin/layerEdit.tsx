@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import styles from "./admin.module.css";
 import { upsertLayers } from "http-client/layer";
-import { roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 
 /** Render a single Layer record from the DB */
 const LayerEdit: FunctionComponent<{ layer: Layer; refreshLayerList: Function }> = (props: {
@@ -19,7 +19,7 @@ const LayerEdit: FunctionComponent<{ layer: Layer; refreshLayerList: Function }>
     const res: WrappedResponse<Layer[]> = await upsertLayers([
       {
         ...layer,
-        updatedAt: roundDateToSecond(new Date()).toISOString(),
+        updatedAt: getAccurateNow().toISOString(),
       },
     ]);
     props.refreshLayerList();
