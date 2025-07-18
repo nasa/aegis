@@ -21,7 +21,7 @@ import {
   thunkDuplicateActions,
   thunkSaveActions,
 } from "./thunkAction";
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankPoi } from "store/storeUtils/poi";
@@ -75,7 +75,7 @@ export const thunkSavePoi = appCreateAsyncThunk<{
   //save poi to db
   const updatedPoi = {
     ...poi,
-    updatedAt: getAccurateNow().toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
   const poiUpsertResponse = await httpClient_poi.upsertPOIs([updatedPoi]);
 
@@ -206,7 +206,7 @@ export const thunkDuplicatePoi = appCreateAsyncThunk<{ poiUuid: string }>(
     const newPoi: POI = cloneDeep(poi);
     newPoi.uuid = uuidv4();
     newPoi.updatedAt = null;
-    newPoi.createdAt = getAccurateNow().toISOString();
+    newPoi.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
     newPoi.name = makeUniqueStringCopy(
       poi.name,
       getState().poi.pois.map((item) => item.name)

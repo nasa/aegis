@@ -10,7 +10,7 @@ import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import cloneDeep from "lodash/cloneDeep";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { thunkGetElevation } from "./thunkElevation";
 import { upsertStationByField, upsertStationsFromDb } from "store/station";
@@ -111,7 +111,7 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
       const newAction = newActions[i];
       newAction.uuid = uuidv4();
       if (!preserveRefUuid) newAction.refUuid = uuidv4();
-      const newDateString = getAccurateNow().toISOString();
+      const newDateString = roundDateToSecond(getAccurateNow()).toISOString();
       newAction.createdAt = newDateString;
       newAction.updatedAt = newDateString;
       newAction.stationUuid = stationUuid;
@@ -142,7 +142,7 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
       //set parent info
       if (promotingFromPoi) {
         newAction.parentActionUuid = actions[i].uuid;
-        newAction.parentCopyDate = getAccurateNow().toISOString();
+        newAction.parentCopyDate = roundDateToSecond(getAccurateNow()).toISOString();
       } else {
         newAction.parentActionUuid = actions[i].parentActionUuid;
         newAction.parentCopyDate = actions[i].parentCopyDate;
@@ -226,7 +226,7 @@ export const thunkSaveActions = appCreateAsyncThunk<{
     if (isModified([action], [actionsFromDb.find((a) => a.uuid === action.uuid)])) {
       changedActions.push({
         ...action,
-        updatedAt: getAccurateNow().toISOString(),
+        updatedAt: roundDateToSecond(new Date()).toISOString(),
       });
     }
   }

@@ -17,7 +17,7 @@ import {
   STM_Rule_db,
   Folder_db,
 } from "server/database/models/_allModels";
-import { initializeUuidMaps, copyMissionAssets } from "./helpers";
+import { initializeUuidMaps, copyMissionAssets, roundDateToSecond } from "./helpers";
 import {
   processStations,
   processPois,
@@ -39,7 +39,6 @@ import {
   updatePoiActionOrder,
   updateTraverseActionOrder,
 } from "./entityProcessors";
-import { getAccurateNow } from "utils/formatting";
 
 // Create a new mission based on the original
 export const createNewMission = (
@@ -51,8 +50,8 @@ export const createNewMission = (
     ...originalMission,
     id: undefined, // Let the database assign a new ID
     name: `${originalMission.name} - ${nameSuffix}`,
-    createdAt: getAccurateNow().toISOString(),
-    updatedAt: getAccurateNow().toISOString(),
+    createdAt: roundDateToSecond(new Date()),
+    updatedAt: roundDateToSecond(new Date()),
   });
 };
 

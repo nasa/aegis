@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import cloneDeep from "lodash/cloneDeep";
 import { setAllSliceStores } from "store/crossActions";
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 
 export const initialState: StationState = {
@@ -25,7 +25,7 @@ export const stationSlice = createSlice({
           return {
             payload: stations.map((station) => ({
               ...station,
-              updatedAt: getAccurateNow().toISOString(),
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
             })),
           };
         }
@@ -54,7 +54,7 @@ export const stationSlice = createSlice({
               stationUuid,
               fieldName,
               value,
-              updatedAt: getAccurateNow().toISOString(),
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
             },
           };
         }
@@ -135,7 +135,7 @@ export const stationSlice = createSlice({
       if (stationIndex >= 0) {
         state.stations[stationIndex].mapCircleControls[action.payload.circleUuid].visible =
           !state.stations[stationIndex].mapCircleControls[action.payload.circleUuid].visible;
-        state.stations[stationIndex].updatedAt = getAccurateNow().toISOString();
+        state.stations[stationIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
     setStationCircleStyle: (
@@ -148,7 +148,7 @@ export const stationSlice = createSlice({
       if (stationIndex >= 0) {
         state.stations[stationIndex].mapCircleControls[action.payload.circleDefUuid].style =
           action.payload.style;
-        state.stations[stationIndex].updatedAt = getAccurateNow().toISOString();
+        state.stations[stationIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
     setStationCircleUIStates: (

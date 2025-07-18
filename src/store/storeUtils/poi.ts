@@ -1,4 +1,4 @@
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { Poi_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
@@ -23,7 +23,7 @@ export const generateBlankPoi = (partialPoi?: Partial<POI>): POI => {
     icon: "1F534",
     tags: [],
     status: "Candidate",
-    createdAt: getAccurateNow().toISOString(),
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     updatedAt: null,
   };
   return { ...defaultNewPoi, ...partialPoi };

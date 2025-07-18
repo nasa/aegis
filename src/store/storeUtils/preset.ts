@@ -1,4 +1,4 @@
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { Preset_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
@@ -25,7 +25,7 @@ export const generateBlankPreset = (partialPreset?: Partial<Preset>): Preset => 
     earthAzimuth: 0,
     earthEnabled: false,
     earthAsMoon: false,
-    createdAt: getAccurateNow().toISOString(),
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     updatedAt: null,
   };
   return { ...defaultNewPreset, ...partialPreset };

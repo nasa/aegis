@@ -1,4 +1,4 @@
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { Eva_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
@@ -26,7 +26,7 @@ export const generateBlankEVA = (partialEVA?: Partial<Eva>): Eva => {
     ingressLocationUuid: "lander",
     traverseColor: null,
     datetime: "",
-    createdAt: getAccurateNow().toISOString(),
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     updatedAt: null,
   };
   return { ...defaultNewEVA, ...partialEVA };

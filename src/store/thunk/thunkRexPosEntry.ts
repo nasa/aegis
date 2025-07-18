@@ -1,7 +1,12 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { v4 as uuidv4 } from "uuid";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
-import { getAccurateNow, secondsFromhhmmss, calculatePetValue } from "utils/formatting";
+import {
+  getAccurateNow,
+  roundDateToSecond,
+  secondsFromhhmmss,
+  calculatePetValue,
+} from "utils/formatting";
 import {
   upsertRexes,
   upsertRexesFromDb,
@@ -56,8 +61,8 @@ export const thunkCreateInitialPosEntries = appCreateAsyncThunk<void>(
         petSeconds: seconds,
         posTypeUuids: entrylessPosTypeUuids,
         posSourceUuid: posSource.uuid,
-        createdAt: getAccurateNow().toISOString(),
-        updatedAt: getAccurateNow().toISOString(),
+        createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
       };
       newPosEntries.push(newPosEntry);
     }
@@ -95,8 +100,8 @@ export const thunkCreatePosEntry = appCreateAsyncThunk<
     petSeconds: seconds,
     posTypeUuids: posTypeUuids,
     posSourceUuid: getState().rex.selectedPosSourceUuid,
-    createdAt: getAccurateNow().toISOString(),
-    updatedAt: getAccurateNow().toISOString(),
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
   newPosEntries.push(newPosEntry);
   dispatch(
@@ -126,7 +131,7 @@ export const thunkUpdatePosEntryLocation = appCreateAsyncThunk<{
     const updatedRex = {
       ...selectedRex,
       posEntries: newRexPosEntries,
-      updatedAt: getAccurateNow().toISOString(),
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     const rexUpsertResponse = await httpClient_Rex.upsertRexes([updatedRex]);
 
@@ -255,7 +260,7 @@ export const thunkPersistPosEntries = appCreateAsyncThunk<{
   //automatically save to the db.
   const updatedRex = {
     ...selectedRex,
-    updatedAt: getAccurateNow().toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
   const rexUpsertResponse = await httpClient_Rex.upsertRexes([updatedRex]);
 
@@ -284,7 +289,7 @@ export const thunkDeletePosEntryByUuid = appCreateAsyncThunk<{
   const updatedRex = {
     ...selectedRex,
     posEntries: newRexPosEntries,
-    updatedAt: getAccurateNow().toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
   const rexUpsertResponse = await httpClient_Rex.upsertRexes([updatedRex]);
   if (rexUpsertResponse.status !== "success") {

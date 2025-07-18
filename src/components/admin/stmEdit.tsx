@@ -3,6 +3,7 @@ import stmStyles from "./stmEdit.module.css";
 import adminStyles from "./admin.module.css";
 import { deleteSTMs, upsertSTMs } from "http-client/stm";
 import { v4 as uuidv4 } from "uuid";
+import { roundDateToSecond } from "utils/formatting";
 import {
   generateBlankStmLvl1,
   generateBlankStmLvl2,
@@ -10,7 +11,6 @@ import {
 } from "store/storeUtils/stm";
 import { Checkbox } from "components/interface/form/globalFields";
 import { upsertMissions } from "http-client/mission";
-import { getAccurateNow } from "utils/formatting";
 
 const STMEdit: FunctionComponent<{
   reloadSTMfromDB: (missionId: number) => void;
@@ -109,8 +109,8 @@ const destructiveImportSTM = async (stmJson: string, missionId: number) => {
       name: obj.name,
       numbering: obj.numbering,
       missionId,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: new Date(Date.now()).toISOString(),
+      updatedAt: new Date(Date.now()).toISOString(),
     };
     await upsertSTMs(missionId, [newLevel1], "Level1");
 
@@ -122,8 +122,8 @@ const destructiveImportSTM = async (stmJson: string, missionId: number) => {
         name: level2.name,
         numbering: level2.numbering,
         level1Uuid: newLevel1.uuid,
-        createdAt: getAccurateNow().toISOString(),
-        updatedAt: getAccurateNow().toISOString(),
+        createdAt: new Date(Date.now()).toISOString(),
+        updatedAt: new Date(Date.now()).toISOString(),
       };
       await upsertSTMs(missionId, [newLevel2], "Level2");
 
@@ -135,8 +135,8 @@ const destructiveImportSTM = async (stmJson: string, missionId: number) => {
           name: level3s.name,
           numbering: level3s.numbering,
           level2Uuid: newLevel2.uuid,
-          createdAt: getAccurateNow().toISOString(),
-          updatedAt: getAccurateNow().toISOString(),
+          createdAt: new Date(Date.now()).toISOString(),
+          updatedAt: new Date(Date.now()).toISOString(),
         };
         await upsertSTMs(missionId, [newLevel3], "Level3");
       });
@@ -401,8 +401,8 @@ const NewLevel1Fields: FunctionComponent<{
     const upsertRecord: STMLevel1 = {
       ...newLevel1,
       missionId: missionId,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
     await upsertSTMs(missionId, [upsertRecord], "Level1");
     setNewLevel1(generateBlankStmLvl1()); //reset to blank new object
@@ -458,8 +458,8 @@ const NewLevel2Fields: FunctionComponent<{
     const upsertRecord: STMLevel2 = {
       ...newLevel2,
       level1Uuid: level1Uuid,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
     await upsertSTMs(missionId, [upsertRecord], "Level2");
     setNewLevel2(generateBlankStmLvl2()); //reset to blank new object with new uuid
@@ -517,8 +517,8 @@ const NewLevel3Fields: FunctionComponent<{
     const upsertRecord: STMLevel3 = {
       ...newLevel3,
       level2Uuid: level2Uuid,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: roundDateToSecond(new Date()).toISOString(),
     };
     await upsertSTMs(missionId, [upsertRecord], "Level3");
     setNewLevel3(generateBlankStmLvl3());

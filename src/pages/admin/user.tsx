@@ -9,8 +9,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { getMissions } from "../../http-client/mission";
 import React from "react";
+import { roundDateToSecond } from "utils/formatting";
 import { generateBlankUser } from "store/storeUtils/user";
-import { getAccurateNow } from "utils/formatting";
 
 const User: React.FunctionComponent = () => {
   const navigate = useNavigate();
@@ -110,7 +110,7 @@ const User: React.FunctionComponent = () => {
       {
         ...user,
         permissionList: permList,
-        updatedAt: getAccurateNow().toISOString(),
+        updatedAt: roundDateToSecond(new Date()).toISOString(),
       },
     ]);
     if (updatedUser.status === "success") {

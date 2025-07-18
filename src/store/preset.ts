@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { upsertToArrayByUuid } from "./storeUtils/store";
 import isNil from "lodash/isNil";
 import cloneDeep from "lodash/cloneDeep";
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { setAllSliceStores } from "store/crossActions";
 
 export const initialState: PresetState = {
@@ -28,7 +28,7 @@ export const presetSlice = createSlice({
           return {
             payload: presets.map((preset) => ({
               ...preset,
-              updatedAt: getAccurateNow().toISOString(),
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
             })),
           };
         }
@@ -57,7 +57,7 @@ export const presetSlice = createSlice({
               presetUuid,
               fieldName,
               value,
-              updatedAt: getAccurateNow().toISOString(),
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
             },
           };
         }
@@ -105,7 +105,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].visible =
           !state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].visible;
-        state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
+        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
 
@@ -119,7 +119,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].style =
           action.payload.style;
-        state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
+        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
 
@@ -136,7 +136,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapCircleControls[action.payload.circleDefUuid].style =
           action.payload.style;
-        state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
+        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
     setPresetPreviewTime: (state, action: { payload: { presetPreviewTime: string } }) => {
@@ -152,7 +152,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapCircleControls[action.payload.circleUuid].visible =
           !state.presets[presetIndex].mapCircleControls[action.payload.circleUuid].visible;
-        state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
+        state.presets[presetIndex].updatedAt = roundDateToSecond(new Date()).toISOString();
       }
     },
 

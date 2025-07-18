@@ -1,6 +1,6 @@
 import { EntityData } from "@mikro-orm/core";
 import { Folder_db } from "server/database/models/_allModels";
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -15,8 +15,8 @@ export const generateBlankFolder = (partialFolder?: Partial<Folder>): Folder => 
     name: "",
     type: "poi", // Default type
     items: [],
-    createdAt: getAccurateNow().toISOString(),
-    updatedAt: getAccurateNow().toISOString(),
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
   return { ...defaultNewFolder, ...partialFolder };
 };
