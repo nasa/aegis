@@ -1,4 +1,4 @@
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { Rex_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
@@ -71,8 +71,8 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     xgressEntries: null,
     actionEntries: null,
     maestroControlled: false,
-    createdAt: getAccurateNow().toISOString(),
-    updatedAt: getAccurateNow().toISOString(),
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
   return { ...defaultNewRex, ...partialRex };
 };
@@ -96,8 +96,8 @@ export const generateBlankPosEntry = (partialPosEntry?: Partial<PosEntry>): PosE
     petSeconds: 0,
     posTypeUuids: [],
     posSourceUuid: null,
-    createdAt: getAccurateNow().toISOString(),
-    updatedAt: getAccurateNow().toISOString(),
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
   return { ...defaultNewPosEntry, ...partialPosEntry };
 };

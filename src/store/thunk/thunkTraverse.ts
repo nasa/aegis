@@ -11,7 +11,7 @@ import { getTotalDistance } from "utils/geoMath";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
 import * as httpClient_Traverse from "http-client/traverse";
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { thunkUpdateMapDirective } from "./thunkMap";
 import {
   thunkDeleteActionsFromDbAndStore,
@@ -202,7 +202,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       path: newPath,
       pathSegmentDistances: pathSegmentDistances,
       pathSegmentElevations: newElevationProfile,
-      updatedAt: getAccurateNow().toISOString(),
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     };
     if (saveToDb) {
       const upsertTraverseRes = await httpClient_Traverse.upsertTraverses([newTraverse]);
@@ -404,7 +404,7 @@ export const thunkSaveTraverse = appCreateAsyncThunk<{ traverseUuid: string }>(
     if (!isEqual(traverseWithUpdatedName, oldTraverse)) {
       const updatedTraverse = {
         ...traverseWithUpdatedName,
-        updatedAt: getAccurateNow().toISOString(),
+        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
       };
       const upsertTraverseRes = await httpClient_Traverse.upsertTraverses([updatedTraverse]);
       if (upsertTraverseRes.status !== "success") {
@@ -455,7 +455,7 @@ export const thunkDuplicateTraverse = appCreateAsyncThunk<
   const newTraverse: Traverse = cloneDeep(traverse);
   newTraverse.uuid = uuidv4();
   if (!preserveRefUuid) newTraverse.refUuid = uuidv4();
-  const newDateString = getAccurateNow().toISOString();
+  const newDateString = roundDateToSecond(getAccurateNow()).toISOString();
   newTraverse.updatedAt = newDateString;
   newTraverse.createdAt = newDateString;
   newTraverse.actionOrderUuids = [];
