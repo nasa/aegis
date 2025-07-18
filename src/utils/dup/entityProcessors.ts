@@ -17,8 +17,7 @@ import {
   STM_Rule_db,
   Folder_db,
 } from "server/database/models/_allModels";
-import { createUuidMapping } from "./helpers";
-import { getAccurateNow } from "utils/formatting";
+import { createUuidMapping, roundDateToSecond } from "./helpers";
 
 // Duplicate/Restore Stations
 export const processStations = (
@@ -36,8 +35,8 @@ export const processStations = (
       ...station,
       uuid: newUuid,
       mission: newMission,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
     };
 
     delete stationData.action;
@@ -64,8 +63,8 @@ export const processPois = (
       ...poi,
       uuid: newUuid,
       mission: newMission,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
     };
 
     delete poiData.station;
@@ -115,8 +114,8 @@ export const processTraverses = (
       ...traverse,
       uuid: newUuid,
       mission: newMission,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
     };
 
     delete traverseData.action;
@@ -203,8 +202,8 @@ export const processActions = (
       station: null,
       traverse: null,
       parentAction: null, // Handle parent action relationship
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
     });
     em.persist(newAction);
   }
@@ -354,8 +353,8 @@ export const processLayers = (
       ...layer,
       uuid: newUuid,
       mission: newMission,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
     });
 
     em.persist(newLayer);
@@ -410,8 +409,8 @@ export const processSublayers = async (
       uuid: newUuid,
       mission: newMission,
       layer: layerEntity, // Set the layer reference immediately
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
     });
 
     em.persist(newSublayer);
@@ -499,8 +498,8 @@ export const processEvas = (
       sequence: newSequence,
       egressLocationUuid: newEgressLocationUuid,
       ingressLocationUuid: newIngressLocationUuid,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
     });
 
     em.persist(newEva);
@@ -584,8 +583,8 @@ export const processPresets = (
       mission: newMission,
       mapSublayerControls: newMapSublayerControls,
       layerOrder: newLayerOrder,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
     });
 
     em.persist(newPreset);
@@ -608,8 +607,8 @@ export const processRexes = (
       ...rex,
       uuid: newUuid,
       mission: newMission,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
     };
 
     // Update eva UUID reference
@@ -686,8 +685,8 @@ export const processStmEntities = async (
       ...stm1Data,
       uuid: newUuid,
       mission: newMission,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
       // level2s collection will be managed by MikroORM via the level2.level1 relationship
     });
     em.persist(newStm1);
@@ -707,8 +706,8 @@ export const processStmEntities = async (
       ...stm2Data,
       uuid: newUuid,
       level1: null, // Initially set to null
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
       // level3s collection will be managed by MikroORM via the level3.level2 relationship
     });
 
@@ -737,8 +736,8 @@ export const processStmEntities = async (
       ...stm3, // No collection property to exclude here
       uuid: newUuid,
       level2: null, // Initially set to null
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
     });
 
     // Find the corresponding new Level 2 object
@@ -815,8 +814,8 @@ export const processStmRules = async (
         uuid: newUuid,
         mission: newMission,
         stmUuid: newStmUuid,
-        createdAt: getAccurateNow().toISOString(),
-        updatedAt: getAccurateNow().toISOString(),
+        createdAt: roundDateToSecond(new Date()),
+        updatedAt: roundDateToSecond(new Date()),
       });
 
       em.persist(newRule);
@@ -902,8 +901,8 @@ export const processFolders = (
       uuid: newUuid,
       mission: newMission,
       items: newItems,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()),
+      updatedAt: roundDateToSecond(new Date()),
     });
     em.persist(newFolder);
   }

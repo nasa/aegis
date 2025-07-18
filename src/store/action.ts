@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import cloneDeep from "lodash/cloneDeep";
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 import { setAllSliceStores } from "store/crossActions";
 
@@ -19,7 +19,7 @@ export const actionSlice = createSlice({
           return { payload: actions };
         } else {
           const updatedActions = actions.map((a) => {
-            return { ...a, updatedAt: getAccurateNow().toISOString() };
+            return { ...a, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() };
           });
           return { payload: updatedActions };
         }
@@ -48,7 +48,7 @@ export const actionSlice = createSlice({
               actionUuid,
               fieldName,
               value,
-              updatedAt: getAccurateNow().toISOString(),
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
             },
           };
         }

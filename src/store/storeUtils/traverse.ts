@@ -1,4 +1,4 @@
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { Traverse_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
@@ -22,7 +22,7 @@ export const generateBlankTraverse = (partialTraverse?: Partial<Traverse>): Trav
     status: null,
     color: null,
     actionOrderUuids: [],
-    createdAt: getAccurateNow().toISOString(),
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
     updatedAt: null,
   };
   return { ...defaultNewTraverse, ...partialTraverse };

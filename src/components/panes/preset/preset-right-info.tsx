@@ -14,7 +14,7 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { Button } from "components/interface/form/globalFields";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faMessage } from "@fortawesome/free-solid-svg-icons";
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -33,7 +33,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         //there should only be one of these
         if (preset.missionDefault) {
           // save the preset to the store and db
-          const modifiedDate = getAccurateNow().toISOString();
+          const modifiedDate = roundDateToSecond(getAccurateNow()).toISOString();
           const updatedPreset = { ...preset, missionDefault: false, updatedAt: modifiedDate };
           dispatch(upsertPresets([updatedPreset], true));
           dispatch(upsertPresetsFromDb([updatedPreset]));

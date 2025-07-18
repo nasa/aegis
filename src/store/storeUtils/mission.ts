@@ -1,4 +1,4 @@
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { Mission_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
@@ -47,8 +47,8 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     stmLevel1Name: "Goal",
     stmLevel2Name: "Objective",
     stmLevel3Name: "Investigation",
-    updatedAt: getAccurateNow().toISOString(),
-    createdAt: getAccurateNow().toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
+    createdAt: roundDateToSecond(new Date()).toISOString(),
   };
   return { ...defaultNewMission, ...partialMission };
 };
@@ -78,8 +78,8 @@ export const generateBlankActionTemplate = (
     crewAssigned: [],
     mass: null,
     priority: null,
-    createdAt: getAccurateNow().toISOString(),
-    updatedAt: getAccurateNow().toISOString(),
+    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
   };
   return { ...defaultNewActionTemplate, ...partialActionTemplate };
 };

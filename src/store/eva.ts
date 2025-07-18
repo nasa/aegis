@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import cloneDeep from "lodash/cloneDeep";
 import { setAllSliceStores } from "store/crossActions";
 
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 
 export const initialState: EvaState = {
@@ -29,7 +29,7 @@ export const evaSlice = createSlice({
           return {
             payload: evas.map((eva) => ({
               ...eva,
-              updatedAt: getAccurateNow().toISOString(),
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
             })),
           };
         }
@@ -58,7 +58,7 @@ export const evaSlice = createSlice({
               evaUuid,
               fieldName,
               value,
-              updatedAt: getAccurateNow().toISOString(),
+              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
             },
           };
         }
@@ -142,7 +142,7 @@ export const evaSlice = createSlice({
           payload: {
             evaUuid: payload.evaUuid,
             sequence: payload.sequence,
-            updatedAt: getAccurateNow().toISOString(),
+            updatedAt: roundDateToSecond(new Date()).toISOString(),
           },
         };
       },

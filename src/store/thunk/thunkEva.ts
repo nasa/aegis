@@ -37,7 +37,7 @@ import {
   thunkSaveTraverse,
   thunkUpdateTraversesAroundStation,
 } from "./thunkTraverse";
-import { getAccurateNow } from "utils/formatting";
+import { getAccurateNow, roundDateToSecond } from "utils/formatting";
 import { thunkDeleteStations, thunkDuplicateStation, thunkSaveStation } from "./thunkStation";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankEVA } from "store/storeUtils/eva";
@@ -206,7 +206,7 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   const evaUpsertResponse = await httpClient_Eva.upsertEvas([
     {
       ...eva,
-      updatedAt: getAccurateNow().toISOString(),
+      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
     },
   ]);
   if (evaUpsertResponse.status !== "success") {
@@ -453,7 +453,7 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
   const eva = getState().eva.evas.find((e) => e.uuid === evaUuid);
   const newEva: Eva = cloneDeep(eva);
   newEva.uuid = uuidv4();
-  const newDateString = getAccurateNow().toISOString();
+  const newDateString = roundDateToSecond(getAccurateNow()).toISOString();
   newEva.updatedAt = newDateString;
   newEva.createdAt = newDateString;
   if (!forRex) {

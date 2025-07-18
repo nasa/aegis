@@ -4,8 +4,8 @@ import { getTotalDistance } from "utils/geoMath";
 import { removeMeasurement, setSelectedMeasurementUuid, upsertMeasurement } from "store/measure";
 import { v4 as uuidv4 } from "uuid";
 import { updateMapDirective } from "store/map";
+import { roundDateToSecond } from "utils/formatting";
 import { thunkClearAllMapSelections } from "./crossThunk";
-import { getAccurateNow } from "utils/formatting";
 
 export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   {
@@ -91,7 +91,7 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
 
     const newMeasurement: Measurement = {
       uuid: measurementUuid,
-      createdAt: getAccurateNow().toISOString(),
+      createdAt: roundDateToSecond(new Date()).toISOString(),
       color,
       path,
       pathSegmentDistances: [distance],

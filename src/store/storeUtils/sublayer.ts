@@ -1,7 +1,7 @@
+import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { Sublayer_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
-import { getAccurateNow } from "utils/formatting";
 /**
  * Generate a blank sublayer
  * @param partialSublayer any fields that are to be overriden from default
@@ -37,8 +37,8 @@ export const generateBlankSublayer = (partialSublayer?: Partial<Sublayer>): Subl
     style: defaultSublayerStyle,
     isTimeBased: false,
     timeLayerManifest: null,
-    createdAt: getAccurateNow().toISOString(),
-    updatedAt: getAccurateNow().toISOString(),
+    createdAt: roundDateToSecond(new Date()).toISOString(),
+    updatedAt: roundDateToSecond(new Date()).toISOString(),
   };
   return { ...defaultNewSublayer, ...partialSublayer };
 };
