@@ -26,7 +26,6 @@ import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankAction } from "store/storeUtils/action";
-import { roundDateToSecond } from "utils/formatting";
 
 const mockThunkGetElevation = jest.fn();
 jest.mock("store/thunk/thunkElevation", () => ({
@@ -284,12 +283,12 @@ describe("Thunk Traverse Tests", () => {
     const traverseAction = generateBlankAction({
       name: "Jest Traverse Action",
       traverseUuid: traverse.uuid,
-      updatedAt: roundDateToSecond(new Date("1/1/2000")).toISOString(),
+      updatedAt: new Date("1/1/2000").toISOString(),
     });
     const traverseActionModified = {
       ...traverseAction,
       name: "Jest Traverse Action Modified",
-      updatedAt: roundDateToSecond(new Date("1/2/2000")).toISOString(),
+      updatedAt: new Date("1/2/2000").toISOString(),
     };
     const station = generateBlankStation({
       name: "Jest Station-1",

@@ -7,7 +7,6 @@ import {
   thunkUpdatePoiLocation,
 } from "store/thunk/thunkPoi";
 import { createCustomTestStore } from "../../factories/makeTestStore";
-import { roundDateToSecond } from "utils/formatting";
 import { initialState as poiInitialState } from "store/poi";
 import { initialState as actionInitialState } from "store/action";
 
@@ -69,7 +68,7 @@ describe("Thunk POI Tests", () => {
     const poiModified = {
       ...poi,
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const newPoiAction: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
     const store = createCustomTestStore({
@@ -104,7 +103,7 @@ describe("Thunk POI Tests", () => {
     const poiActionModified = {
       ...poiAction,
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const store = createCustomTestStore({
       poi: { ...poiInitialState, pois: [poi], poisFromDb: [poi], poisEditing: [poi.uuid] },
@@ -130,14 +129,14 @@ describe("Thunk POI Tests", () => {
     const poiModified = {
       ...poi,
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const unsavedPoi: POI = generateBlankPoi({ name: "Jest Poi-1" });
     const newPoiAction: Action = generateBlankAction({ name: "Jest Action-1", poiUuid: poi.uuid });
     const newPoiActionModified = {
       ...newPoiAction,
       description: "modified description",
-      updatedAt: roundDateToSecond(new Date()).toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const store = createCustomTestStore({
       poi: {

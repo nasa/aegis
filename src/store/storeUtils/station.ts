@@ -1,4 +1,4 @@
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { Station_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
@@ -29,7 +29,7 @@ export const generateBlankStation = (partialStation?: Partial<Station>): Station
     walkbackPathSegmentElevations: null,
     walkbackTraverseRate: null,
     mapCircleControls: {},
-    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    createdAt: getAccurateNow().toISOString(),
     updatedAt: null,
   };
   return { ...defaultNewStation, ...partialStation };
