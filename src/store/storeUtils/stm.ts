@@ -1,9 +1,9 @@
-import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { STM_Level1_db, STM_Rule_db } from "server/database/models/_allModels";
 import { STM_Level2_db } from "server/database/models/_allModels";
 import { STM_Level3_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
+import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank stm lvl 1
@@ -16,8 +16,8 @@ export const generateBlankStmLvl1 = (partialStm?: Partial<STMLevel1>): STMLevel1
     name: "",
     numbering: "",
     missionId: null,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
+    createdAt: getAccurateNow().toISOString(),
+    updatedAt: getAccurateNow().toISOString(),
   };
   return { ...defaultNewStm, ...partialStm };
 };
@@ -75,8 +75,8 @@ export const generateBlankStmLvl2 = (partialStm?: Partial<STMLevel2>): STMLevel2
     name: "",
     numbering: "",
     level1Uuid: null,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
+    createdAt: getAccurateNow().toISOString(),
+    updatedAt: getAccurateNow().toISOString(),
   };
   return { ...defaultNewStm, ...partialStm };
 };
@@ -134,8 +134,8 @@ export const generateBlankStmLvl3 = (partialStm?: Partial<STMLevel3>): STMLevel3
     name: "",
     numbering: "",
     level2Uuid: null,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
+    createdAt: getAccurateNow().toISOString(),
+    updatedAt: getAccurateNow().toISOString(),
   };
   return { ...defaultNewStm, ...partialStm };
 };
@@ -197,8 +197,8 @@ export const generateBlankStmRule = ({ stmUuid }: { stmUuid: string }): STMRule 
     verbAny: false,
     nounAny: false,
     adjectiveAny: false,
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
+    createdAt: getAccurateNow().toISOString(),
+    updatedAt: getAccurateNow().toISOString(),
   };
 };
 

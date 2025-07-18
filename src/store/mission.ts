@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { setAllSliceStores } from "store/crossActions";
 
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 
 export const initialState: MissionState = {
   mission: null,
@@ -22,7 +22,7 @@ export const missionSlice = createSlice({
           return { payload: mission };
         } else {
           return {
-            payload: { ...mission, updatedAt: roundDateToSecond(getAccurateNow()).toISOString() },
+            payload: { ...mission, updatedAt: getAccurateNow().toISOString() },
           };
         }
       },
@@ -45,7 +45,7 @@ export const missionSlice = createSlice({
             payload: {
               fieldName,
               value,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             },
           };
         }

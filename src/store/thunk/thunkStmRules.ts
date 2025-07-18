@@ -8,7 +8,7 @@ import {
   upsertSTMRulesFromDb,
 } from "store/stm";
 import * as httpClient_stm from "http-client/stm";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 
 export const thunkCreateStmRule = appCreateAsyncThunk<{ stmUuid: string }>(
   "stmRuleCreate",
@@ -25,7 +25,7 @@ export const thunkSaveStmRule = appCreateAsyncThunk<{ stmRule: STMRule }>(
     const stmRuleUpsertResponse = await httpClient_stm.upsertStmRules([
       {
         ...stmRule,
-        updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+        updatedAt: getAccurateNow().toISOString(),
       },
     ]);
 

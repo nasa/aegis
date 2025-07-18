@@ -1,7 +1,7 @@
-import { roundDateToSecond } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { Layer_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
+import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank layer
@@ -13,8 +13,8 @@ export const generateBlankLayer = (partialLayer?: Partial<Layer>): Layer => {
     uuid: uuidv4(),
     missionId: null,
     name: "",
-    createdAt: roundDateToSecond(new Date()).toISOString(),
-    updatedAt: roundDateToSecond(new Date()).toISOString(),
+    createdAt: getAccurateNow().toISOString(),
+    updatedAt: getAccurateNow().toISOString(),
   };
   return { ...defaultNewLayer, ...partialLayer };
 };

@@ -20,7 +20,7 @@ import { makeUniqueStringCopy } from "utils/names/duplicate";
 import * as httpClient_preset from "http-client/preset";
 import cloneDeep from "lodash/cloneDeep";
 import sortBy from "lodash/sortBy";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankPreset } from "store/storeUtils/preset";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
@@ -34,7 +34,7 @@ export const thunkSavePreset = appCreateAsyncThunk<{
   // upsert the changed Preset to the DB
   const updatedPreset = {
     ...preset,
-    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    updatedAt: getAccurateNow().toISOString(),
   };
   const upsertResponse = await httpClient_preset.upsertPresets([updatedPreset]);
 
@@ -254,7 +254,7 @@ export const thunkDuplicatePreset = appCreateAsyncThunk<{ presetUuid: string }>(
     //duplicate preset
     const newPreset: Preset = cloneDeep(preset);
     newPreset.uuid = uuidv4();
-    newPreset.createdAt = roundDateToSecond(getAccurateNow()).toISOString();
+    newPreset.createdAt = getAccurateNow().toISOString();
     newPreset.updatedAt = null;
     newPreset.name = makeUniqueStringCopy(
       preset.name,
