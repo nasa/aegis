@@ -6,7 +6,7 @@ import {
   getSlope,
   getTotalDistance,
   calcPathDurationMins,
-} from "utils/geoMath";
+} from "utils/mapping/geoMath";
 import { LatLng } from "leaflet";
 
 describe("Geomath Functions", () => {

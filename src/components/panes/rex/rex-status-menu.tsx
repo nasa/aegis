@@ -5,7 +5,7 @@ import evaStyles from "../eva/eva.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkAddRexStatusEntry } from "store/thunk/thunkRex";
-import { getRexStatusDisplayProperties } from "utils/rex";
+import { getRexStatusDisplayProperties } from "utils/component-helpers";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 
 export const RexStatusMenu: FunctionComponent<{

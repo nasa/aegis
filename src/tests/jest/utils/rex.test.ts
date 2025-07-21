@@ -1,4 +1,4 @@
-import { getRexStatusDisplayProperties } from "utils/rex";
+import { getRexStatusDisplayProperties } from "utils/component-helpers";
 import {
   faCircle,
   faCircleCheck,

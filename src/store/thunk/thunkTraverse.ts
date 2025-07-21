@@ -7,7 +7,7 @@ import {
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
-import { getTotalDistance } from "utils/geoMath";
+import { getTotalDistance } from "utils/mapping/geoMath";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
 import * as httpClient_Traverse from "http-client/traverse";

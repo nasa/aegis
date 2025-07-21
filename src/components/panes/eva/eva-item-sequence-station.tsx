@@ -21,7 +21,7 @@ import {
   thunkDeleteStationFromEva,
   thunkReorderStationInEva,
 } from "store/thunk/thunkEva";
-import { getRexStatusDisplayProperties } from "../../../utils/rex";
+import { getRexStatusDisplayProperties } from "../../../utils/component-helpers";
 import PetInterval from "components/page/petInterval";
 import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";

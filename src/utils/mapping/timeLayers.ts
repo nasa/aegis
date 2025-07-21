@@ -1,4 +1,4 @@
-import { secondsFromhhmmss } from "./formatting";
+import { secondsFromhhmmss } from "../formatting";
 
 /**
  * Match given time to closest time in timelayermanifest

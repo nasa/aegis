@@ -2,7 +2,7 @@ import { asError } from "@emss/utils";
 import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 import { globalValues } from "server/express/global";
-import serverLogger from "utils/serverLogger";
+import serverLogger from "utils/logging/serverLogger";
 
 /**
  * `/api/v1/socket/status`

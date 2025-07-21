@@ -3,7 +3,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import gridStyles from "./preset-right-grid.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faInfo, faPaintBrush } from "@fortawesome/free-solid-svg-icons";
-import { globalGrid } from "utils/grid";
+import { globalGrid } from "utils/mapping/grid";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { upsertPresetByField } from "store/preset";
 import Settings_subpanel from "components/interface/settings-and-slider";

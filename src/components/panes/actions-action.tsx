@@ -14,7 +14,7 @@ import capitalize from "lodash/capitalize";
 import { collapseActions, expandActions } from "store/interface";
 import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
-import { getRexStatusDisplayProperties } from "../../utils/rex";
+import { getRexStatusDisplayProperties } from "../../utils/component-helpers";
 import { RexStatusMenu } from "./rex/rex-status-menu";
 import { actionTypes } from "store/storeUtils/store";
 import { thunkUpsertActionDefinitionSelection } from "store/thunk/thunkAction";

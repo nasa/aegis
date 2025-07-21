@@ -11,7 +11,7 @@ import {
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 
 import styles from "./timeline.module.css";
-import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { clearMapItemHover } from "store/hover";
 import throttle from "lodash/throttle";

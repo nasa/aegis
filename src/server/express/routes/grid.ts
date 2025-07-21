@@ -13,7 +13,7 @@ import {
   QueryOrder,
   ForeignKeyConstraintViolationException,
 } from "@mikro-orm/core";
-import { findClosestPointInGrid } from "utils/geoMath";
+import { findClosestPointInGrid } from "utils/mapping/geoMath";
 import { Grid_db, Mission_db } from "server/database/models/_allModels";
 import * as fs from "fs";
 import { mkdir } from "node:fs/promises";

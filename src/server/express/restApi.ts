@@ -37,7 +37,7 @@ import logFromClient from "./routes/logFromClient";
 import path from "path";
 import { getUser } from "packages/getUser";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
-import serverLogger from "utils/serverLogger";
+import serverLogger from "utils/logging/serverLogger";
 import folderRoutes from "./routes/folder";
 import readableActionRoutes from "./routes/readable/action";
 import readableStationRoutes from "./routes/readable/station";

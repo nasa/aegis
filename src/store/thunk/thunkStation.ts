@@ -11,7 +11,7 @@ import {
   upsertStationByField,
   selectStation,
 } from "store/station";
-import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/geoMath";
+import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mapping/geoMath";
 import { thunkGetElevation } from "./thunkElevation";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
