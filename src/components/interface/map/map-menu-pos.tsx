@@ -31,7 +31,7 @@ import { setHoverUuidsForPosEntry } from "store/hover";
 import { PosKabobMenu } from "./map-menu-pos-menu";
 import orderBy from "lodash/orderBy";
 import isEqual from "lodash/isEqual";
-import { calcPathDurationMins, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import { calcPathDurationMins, getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 
 export const MapPositionMenu: FunctionComponent = () => {

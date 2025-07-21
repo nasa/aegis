@@ -45,11 +45,11 @@ import {
   adjustGridIndex,
   convertLeafletLatLngToAegisPoint,
   findClosestPointInGrid,
-} from "utils/geoMath";
+} from "utils/mapping/geoMath";
 import { Feature } from "geojson";
 import { getGrids } from "http-client/grid";
 import PresetMenu from "../interface/map/map-menu-preset";
-import { addTimeToDateTime } from "utils/timeLayers";
+import { addTimeToDateTime } from "utils/mapping/timeLayers";
 import { EARTH_RADIUS } from "utils/consts";
 
 const MapBody: FunctionComponent<{

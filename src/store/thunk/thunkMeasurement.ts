@@ -1,6 +1,6 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
-import { getTotalDistance } from "utils/geoMath";
+import { getTotalDistance } from "utils/mapping/geoMath";
 import { removeMeasurement, setSelectedMeasurementUuid, upsertMeasurement } from "store/measure";
 import { v4 as uuidv4 } from "uuid";
 import { updateMapDirective } from "store/map";

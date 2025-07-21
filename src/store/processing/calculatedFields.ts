@@ -1,4 +1,4 @@
-import { calcPathDurationMins, calculateAscentAndDescent } from "utils/geoMath";
+import { calcPathDurationMins, calculateAscentAndDescent } from "utils/mapping/geoMath";
 import { mergeEquipmentItems } from "store/storeUtils/store";
 import { isNotNumber } from "utils/formatting";
 

@@ -28,7 +28,7 @@ import {
 import * as jsonKeysSort from "json-keys-sort";
 import { generateBlankActionTemplate } from "store/storeUtils/mission";
 import { setStationCircleUIStates, upsertStationByField } from "store/station";
-import { globalGrid } from "utils/grid";
+import { globalGrid } from "utils/mapping/grid";
 import isEqual from "lodash/isEqual";
 import { thunkFullUpdateTraverse } from "./thunkTraverse";
 

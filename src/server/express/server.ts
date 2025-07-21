@@ -7,7 +7,7 @@ import app from "./restApi";
 import { setupSocketIO } from "./sockets";
 import { globalValues } from "./global";
 import { getORM } from "utils/mikro";
-import serverLogger from "utils/serverLogger";
+import serverLogger from "utils/logging/serverLogger";
 import packageJson from "../../../package.json";
 
 // start the database connection

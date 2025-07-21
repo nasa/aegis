@@ -13,8 +13,8 @@ import { validators } from "components/interface/form/formValidators";
 import { thunkUpdatePoiLatLngField } from "store/thunk/thunkPoi";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
-import { globalGrid } from "utils/grid";
-import { findGridCoordinatesFromPoint } from "utils/geoMath";
+import { globalGrid } from "utils/mapping/grid";
+import { findGridCoordinatesFromPoint } from "utils/mapping/geoMath";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;

@@ -20,8 +20,8 @@ import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { toDecimal } from "utils/formatting";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkVerifyNoStationsBeingEdited } from "store/thunk/thunkStation";
-import { globalGrid } from "utils/grid";
-import { findGridCoordinatesFromPoint } from "utils/geoMath";
+import { globalGrid } from "utils/mapping/grid";
+import { findGridCoordinatesFromPoint } from "utils/mapping/geoMath";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();

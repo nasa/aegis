@@ -29,7 +29,7 @@ import {
 import "components/dashboard/map.module.css";
 import { point } from "@turf/helpers";
 import { circle } from "@turf/turf";
-import { addTimeToDateTime } from "utils/timeLayers";
+import { addTimeToDateTime } from "utils/mapping/timeLayers";
 import PetInterval from "components/page/petInterval";
 import { EARTH_RADIUS } from "utils/consts";
 

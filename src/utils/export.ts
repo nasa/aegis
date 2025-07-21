@@ -2,7 +2,7 @@ import { stripHtml } from "string-strip-html";
 import { convertNodeToHTML, convertStringToNodes } from "components/interface/form/wysiwyg";
 import { decodeEmoji } from "./formatting";
 import reduce from "lodash/reduce";
-import { findGridCoordinatesFromPoint } from "./geoMath";
+import { findGridCoordinatesFromPoint } from "./mapping/geoMath";
 import {
   getCalculatedFieldsByEva,
   getCalculatedFieldsByPoi,

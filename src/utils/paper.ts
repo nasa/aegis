@@ -1,5 +1,5 @@
 import last from "lodash/last";
-import { getSlope } from "./geoMath";
+import { getSlope } from "./mapping/geoMath";
 
 /**
  * Get the hover data from an array of graph data items given a mouse hover x point

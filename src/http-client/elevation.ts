@@ -1,5 +1,5 @@
 import { clientFetchWithTimeout } from "utils/fetch-with-timeout";
-import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 
 export async function getElevationProfile(
   missionId: number,
