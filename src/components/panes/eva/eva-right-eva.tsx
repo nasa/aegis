@@ -117,19 +117,17 @@ const EvaRightEva: FunctionComponent = () => {
       };
     }
   }, deepEqual);
-
-  const calculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByEva({
-        evaUuid: state.eva.selectedEvaUuid,
-        evas: state.eva.evas,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-        traverses: state.traverse.traverses,
-      }),
-    deepEqual
-  );
+  const calculatedFields = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
+    return getCalculatedFieldsByEva({
+      eva,
+      evaStations: state.station.stations,
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      missionTraverseRate: state.mission.mission.traverseRate,
+      evaActions: state.action.actions,
+      evaTraverses: state.traverse.traverses,
+    });
+  }, deepEqual);
   const traverseCalculatedFieldsInSequence = useAppSelector((state) => {
     const eva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
     if (!eva) return [];
@@ -141,13 +139,19 @@ const EvaRightEva: FunctionComponent = () => {
     });
     const traverseCalculatedFields: TraverseCalculatedFields[] = [];
     for (const traverseUuid of traverseUuidsInThisEva) {
+      const traverse = state.traverse.traverses.find((t) => t.uuid === traverseUuid);
+      const traverseEva = state.eva.evas.find((eva) =>
+        eva.sequence.some((seqItem) => seqItem.uuid === traverse.uuid)
+      );
+      const traverseActions = state.action.actions.filter(
+        (a) => a.traverseUuid === traverse.uuid && a.enabled
+      );
       traverseCalculatedFields.push(
         getCalculatedFieldsByTraverse({
-          traverseUuid,
-          traverses: state.traverse.traverses,
-          mission: state.mission.mission,
-          evas: state.eva.evas,
-          actions: state.action.actions,
+          traverse,
+          missionTraverseRate: state.mission.mission.traverseRate,
+          traverseEva,
+          traverseActions,
         })
       );
     }
@@ -165,12 +169,15 @@ const EvaRightEva: FunctionComponent = () => {
     });
     const stationCalculatedFields: StationCalculatedFields[] = [];
     for (const stationUuid of stationUuidsInThisEva) {
+      const station = state.station.stations.find((s) => s.uuid === stationUuid);
+      const stationActions = state.action.actions.filter(
+        (a) => a.stationUuid === stationUuid && a.enabled
+      );
       stationCalculatedFields.push(
         getCalculatedFieldsByStation({
-          stationUuid,
-          stations: state.station.stations,
-          mission: state.mission.mission,
-          actions: state.action.actions,
+          station,
+          missionWalkbackRate: state.mission.mission.walkbackRate,
+          stationActions,
         })
       );
     }

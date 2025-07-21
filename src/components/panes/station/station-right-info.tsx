@@ -93,16 +93,16 @@ const Info_Panel: FunctionComponent<{
     return numEvas;
   }, refEqual);
 
-  const calculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByStation({
-        stationUuid: selectedStation.uuid,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-      }),
-    deepEqual
-  );
+  const calculatedFields = useAppSelector((state) => {
+    const stationActions = state.action.actions.filter(
+      (a) => a.stationUuid === selectedStation.uuid && a.enabled
+    );
+    return getCalculatedFieldsByStation({
+      station: selectedStation,
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      stationActions,
+    });
+  }, deepEqual);
   const missionEquipItems = useAppSelector(
     (state) => state.mission.mission.equipmentItems,
     shallowEqual

@@ -328,12 +328,12 @@ export const EvaEgressIngressListing: FunctionComponent<{
   const evaCalculatedFields: EvaCalculatedFields = useAppSelector(
     (state) =>
       getCalculatedFieldsByEva({
-        evaUuid: eva.uuid,
-        evas: state.eva.evas,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-        traverses: state.traverse.traverses,
+        eva,
+        evaStations: state.station.stations,
+        missionWalkbackRate: state.mission.mission.walkbackRate,
+        missionTraverseRate: state.mission.mission.traverseRate,
+        evaActions: state.action.actions,
+        evaTraverses: state.traverse.traverses,
       }),
     deepEqual
   );

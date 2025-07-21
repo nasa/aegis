@@ -63,18 +63,17 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     (state) => state.mission.mission?.traverseRate,
     refEqual
   );
-  const evaCalculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByEva({
-        evaUuid: selectedEvaUuid,
-        evas: state.eva.evas,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-        traverses: state.traverse.traverses,
-      }),
-    deepEqual
-  );
+  const evaCalculatedFields = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid);
+    return getCalculatedFieldsByEva({
+      eva,
+      evaStations: state.station.stations,
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      missionTraverseRate: state.mission.mission.traverseRate,
+      evaActions: state.action.actions,
+      evaTraverses: state.traverse.traverses,
+    });
+  }, deepEqual);
   const missionEquipItems = useAppSelector(
     (state) => state.mission.mission.equipmentItems,
     shallowEqual

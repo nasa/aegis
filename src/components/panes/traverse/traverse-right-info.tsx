@@ -55,17 +55,20 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedTraverse.uuid),
     refEqual
   );
-  const calculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByTraverse({
-        traverseUuid: selectedTraverse.uuid,
-        traverses: state.traverse.traverses,
-        mission: state.mission.mission,
-        evas: state.eva.evas,
-        actions: state.action.actions,
-      }),
-    deepEqual
-  );
+  const calculatedFields = useAppSelector((state) => {
+    const traverseEva = state.eva.evas.find((eva) =>
+      eva.sequence.some((seqItem) => seqItem.uuid === selectedTraverse.uuid)
+    );
+    const traverseActions = state.action.actions.filter(
+      (a) => a.traverseUuid === selectedTraverse.uuid && a.enabled
+    );
+    return getCalculatedFieldsByTraverse({
+      traverse: selectedTraverse,
+      missionTraverseRate: state.mission.mission.traverseRate,
+      traverseEva,
+      traverseActions,
+    });
+  }, deepEqual);
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === selectedTraverse.uuid ? state.map.mapDirective : null;
   }, shallowEqual);
