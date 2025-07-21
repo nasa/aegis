@@ -131,9 +131,10 @@ export const makeExportPois = (params: {
       allData,
       missionGrid,
     });
+    const poiActions = allData.actions.filter((a) => a.poiUuid === poi.uuid && a.enabled);
     const poiCalculatedFields = getCalculatedFieldsByPoi({
       poiUuid: poi.uuid,
-      actions: allData.actions,
+      poiActions,
     });
     const exportPoi: ExportPOI = {
       ...poi,
@@ -164,11 +165,13 @@ export const makeExportStations = (params: {
       allData,
       missionGrid,
     });
+    const stationActions = allData.actions.filter(
+      (a) => a.stationUuid === station.uuid && a.enabled
+    );
     const stationCalculatedFields = getCalculatedFieldsByStation({
-      stationUuid: station.uuid,
-      stations: allData.stations,
-      mission: allData.mission,
-      actions: allData.actions,
+      station,
+      missionWalkbackRate: allData.mission.walkbackRate,
+      stationActions,
     });
     const ExportStation: ExportStation = {
       ...station,
@@ -212,12 +215,17 @@ export const makeExportTraverses = (params: {
 }): ExportTraverse[] => {
   const { traverses, allData, missionGrid } = params;
   const exportTraverses: ExportTraverse[] = traverses.map((traverse) => {
+    const traverseEva = allData.evas.find((eva) =>
+      eva.sequence.some((seqItem) => seqItem.uuid === traverse.uuid)
+    );
+    const traverseActions = allData.actions.filter(
+      (a) => a.traverseUuid === traverse.uuid && a.enabled
+    );
     const traverseCalculatedFields = getCalculatedFieldsByTraverse({
-      traverseUuid: traverse.uuid,
-      traverses: allData.traverses,
-      mission: allData.mission,
-      evas: allData.evas,
-      actions: allData.actions,
+      traverse: traverse,
+      missionTraverseRate: allData.mission.traverseRate,
+      traverseEva: traverseEva,
+      traverseActions,
     });
     const actionsReadable: ExportAction[] = makeExportActions({
       actions: allData.actions.filter((a) => traverse.actionOrderUuids?.includes(a.uuid)),
@@ -246,12 +254,12 @@ export const makeExportEvas = (params: {
   const { evas, allData, missionGrid } = params;
   const exportEvas: ExportEva[] = evas.map((eva) => {
     const evaCalculatedFields = getCalculatedFieldsByEva({
-      evaUuid: eva.uuid,
-      evas: allData.evas,
-      stations: allData.stations,
-      mission: allData.mission,
-      actions: allData.actions,
-      traverses: allData.traverses,
+      eva,
+      evaStations: allData.stations,
+      missionTraverseRate: allData.mission.traverseRate,
+      missionWalkbackRate: allData.mission.walkbackRate,
+      evaActions: allData.actions,
+      evaTraverses: allData.traverses,
     });
     const exportEva: ExportEva = {
       ...eva,

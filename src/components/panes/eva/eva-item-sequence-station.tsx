@@ -79,16 +79,17 @@ const SequenceItemStation: FunctionComponent<{
     return asPlannedStations;
   }, deepEqual);
 
-  const thisStationCalculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByStation({
-        stationUuid,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-      }),
-    deepEqual
-  );
+  const thisStationCalculatedFields = useAppSelector((state) => {
+    const station = state.station.stations.find((s) => s.uuid === stationUuid);
+    const stationActions = state.action.actions.filter(
+      (a) => a.stationUuid === stationUuid && a.enabled
+    );
+    return getCalculatedFieldsByStation({
+      station,
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      stationActions,
+    });
+  }, deepEqual);
 
   const stationRexStatus = useAppSelector((state) => {
     const rex = state.rex.rexesFromDb.find((rex) => rex.evaUuid === evaUuid);
@@ -106,18 +107,17 @@ const SequenceItemStation: FunctionComponent<{
     refEqual
   );
 
-  const sequenceItemCalculatedData = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByEva({
-        evaUuid,
-        evas: state.eva.evas,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-        traverses: state.traverse.traverses,
-      })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === stationUuid),
-    deepEqual
-  );
+  const sequenceItemCalculatedData = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
+    return getCalculatedFieldsByEva({
+      eva,
+      evaStations: state.station.stations,
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      missionTraverseRate: state.mission.mission.traverseRate,
+      evaActions: state.action.actions,
+      evaTraverses: state.traverse.traverses,
+    })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === stationUuid);
+  }, deepEqual);
 
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
 

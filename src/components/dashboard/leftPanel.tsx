@@ -22,28 +22,32 @@ const LeftTopPanel: FunctionComponent<{ mapDisplayPos: MapDisplayPos }> = ({ map
   );
   const evaStations = useAppSelector(selectEvaStations(runningRexFromDb?.evaUuid), deepEqual);
   const evaTraverses = useAppSelector(selectEvaTraverses(runningRexFromDb?.evaUuid), deepEqual);
-  const evaCalculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByEva({
-        evaUuid: runningRexFromDb?.evaUuid,
-        evas: state.eva.evas,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-        traverses: state.traverse.traverses,
-      }),
-    deepEqual
-  );
+  const evaCalculatedFields = useAppSelector((state) => {
+    const eva = state.eva.evasFromDb.find((eva) => eva.uuid === runningRexFromDb?.evaUuid);
+    return getCalculatedFieldsByEva({
+      eva,
+      evaStations: state.station.stations.filter((station) =>
+        eva.sequence.some((seq) => seq.uuid === station.uuid)
+      ),
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      missionTraverseRate: state.mission.mission.traverseRate,
+      evaActions: state.action.actions,
+      evaTraverses: state.traverse.traverses,
+    });
+  }, deepEqual);
   const allStationsCalculatedFields: StationCalculatedFields[] = useAppSelector((state) => {
     const calculatedFields: StationCalculatedFields[] = [];
     for (const sequenceItem of runningEvaSequence) {
       if (sequenceItem.type === "station") {
+        const station = state.station.stations.find((s) => s.uuid === sequenceItem.uuid);
+        const stationActions = state.action.actions.filter(
+          (a) => a.stationUuid === sequenceItem.uuid && a.enabled
+        );
         calculatedFields.push(
           getCalculatedFieldsByStation({
-            stationUuid: sequenceItem.uuid,
-            stations: state.station.stations,
-            mission: state.mission.mission,
-            actions: state.action.actions,
+            station,
+            missionWalkbackRate: state.mission.mission.walkbackRate,
+            stationActions,
           })
         );
       }

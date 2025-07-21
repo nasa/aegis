@@ -41,14 +41,15 @@ const Info_Panel: FunctionComponent<{
     refEqual
   );
 
-  const poiCalcFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByPoi({
-        poiUuid: selectedPoi.uuid,
-        actions: state.action.actions,
-      }),
-    deepEqual
-  );
+  const poiCalcFields = useAppSelector((state) => {
+    const poiActions = state.action.actions.filter(
+      (a) => a.poiUuid === selectedPoi.uuid && a.enabled
+    );
+    return getCalculatedFieldsByPoi({
+      poiUuid: selectedPoi.uuid,
+      poiActions,
+    });
+  }, deepEqual);
 
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === selectedPoi.uuid ? state.map.mapDirective : null;

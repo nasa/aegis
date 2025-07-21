@@ -22,9 +22,12 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   );
 
   const actionsCalculatedFields = useAppSelector((state) => {
+    const poiActions = state.action.actions.filter(
+      (a) => a.poiUuid === selectedPoiUuid && a.enabled
+    );
     const poiCalculatedFields = getCalculatedFieldsByPoi({
       poiUuid: selectedPoiUuid,
-      actions: state.action.actions,
+      poiActions,
     });
     const newActionsCalculatedFields: ActionsCalculatedFields = {
       actionCount: poiCalculatedFields.actionCount,

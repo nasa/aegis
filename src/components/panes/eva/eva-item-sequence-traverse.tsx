@@ -49,17 +49,21 @@ const SequenceItemTraverse: FunctionComponent<{
     );
     return { uuid: traverse?.uuid, duration: traverse?.duration, updatedAt: traverse?.updatedAt };
   }, deepEqual);
-  const thisTraverseCalculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByTraverse({
-        traverseUuid,
-        traverses: state.traverse.traverses,
-        mission: state.mission.mission,
-        evas: state.eva.evas,
-        actions: state.action.actions,
-      }),
-    deepEqual
-  );
+  const thisTraverseCalculatedFields = useAppSelector((state) => {
+    const traverse = state.traverse.traverses.find((traverse) => traverse.uuid === traverseUuid);
+    const traverseEva = state.eva.evas.find((eva) =>
+      eva.sequence.some((seqItem) => seqItem.uuid === traverse.uuid)
+    );
+    const traverseActions = state.action.actions.filter(
+      (a) => a.traverseUuid === traverse.uuid && a.enabled
+    );
+    return getCalculatedFieldsByTraverse({
+      traverse,
+      missionTraverseRate: state.mission.mission.traverseRate,
+      traverseEva,
+      traverseActions,
+    });
+  }, deepEqual);
 
   const traverseRexStatus = useAppSelector((state) => {
     const rex = state.rex.rexesFromDb.find((rex) => rex.evaUuid === evaUuid);
@@ -76,19 +80,18 @@ const SequenceItemTraverse: FunctionComponent<{
     refEqual
   );
 
-  const sequenceItemCalculatedDataEndSeconds = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByEva({
-        evaUuid,
-        evas: state.eva.evas,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-        traverses: state.traverse.traverses,
-      })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === traverseUuid)
-        ?.manualEndSeconds,
-    refEqual
-  );
+  const sequenceItemCalculatedDataEndSeconds = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
+    return getCalculatedFieldsByEva({
+      eva,
+      evaStations: state.station.stations,
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      missionTraverseRate: state.mission.mission.traverseRate,
+      evaActions: state.action.actions,
+      evaTraverses: state.traverse.traverses,
+    })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === traverseUuid)
+      ?.manualEndSeconds;
+  }, refEqual);
 
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
   // returns the rex from db object if this is a rex eva and is executing
