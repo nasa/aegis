@@ -57,7 +57,7 @@
 }
 
 .sublayerDisabled {
-  background-color: var(--grey2);
+  background-color: var(--grey1);
   color: var(--grey3) !important;
 }
 
