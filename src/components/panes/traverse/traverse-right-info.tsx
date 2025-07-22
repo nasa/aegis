@@ -57,10 +57,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   );
   const calculatedFields = useAppSelector((state) => {
     const traverseEva = state.eva.evas.find((eva) =>
-      eva.sequence.some((seqItem) => seqItem.uuid === selectedTraverse.uuid)
+      eva.sequence.some((seqItem) => seqItem.uuid === selectedTraverse?.uuid)
     );
     const traverseActions = state.action.actions.filter(
-      (a) => a.traverseUuid === selectedTraverse.uuid && a.enabled
+      (a) => a.traverseUuid === selectedTraverse?.uuid && a.enabled
     );
     return getCalculatedFieldsByTraverse({
       traverse: selectedTraverse,

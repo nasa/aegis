@@ -95,10 +95,10 @@ const NavTimeline: FunctionComponent = () => {
         (traverse) => traverse.uuid === traverseSeqItem.uuid
       );
       const traverseEva = state.eva.evas.find((eva) =>
-        eva.sequence.some((seqItem) => seqItem.uuid === traverse.uuid)
+        eva.sequence.some((seqItem) => seqItem.uuid === traverse?.uuid)
       );
       const traverseActions = state.action.actions.filter(
-        (a) => a.traverseUuid === traverse.uuid && a.enabled
+        (a) => a.traverseUuid === traverse?.uuid && a.enabled
       );
       allTraverseCalculatedFields.push(
         getCalculatedFieldsByTraverse({

@@ -29,10 +29,10 @@ const Actions_Panel: FunctionComponent<{
   );
   const actionsCalculatedFields = useAppSelector((state) => {
     const traverseEva = state.eva.evas.find((eva) =>
-      eva.sequence.some((seqItem) => seqItem.uuid === selectedTraverse.uuid)
+      eva.sequence.some((seqItem) => seqItem.uuid === selectedTraverse?.uuid)
     );
     const traverseActions = state.action.actions.filter(
-      (a) => a.traverseUuid === selectedTraverse.uuid && a.enabled
+      (a) => a.traverseUuid === selectedTraverse?.uuid && a.enabled
     );
     const calculatedFields = getCalculatedFieldsByTraverse({
       traverse: selectedTraverse,

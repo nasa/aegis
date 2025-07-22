@@ -323,7 +323,10 @@ export const getCalculatedTimeOfSequenceItem = (params: {
     let thisStationCalculatedTime: number;
     if (seqItem.type === "station") {
       const station = stations.find((station) => station.uuid === seqItem.uuid);
-      const stationActions = actions.filter((a) => a.stationUuid === station.uuid && a.enabled);
+      let stationActions: Action[] = [];
+      if (station) {
+        stationActions = actions.filter((a) => a.stationUuid === station.uuid && a.enabled);
+      }
       thisStationCalculatedTime = getCalculatedFieldsByStation({
         station,
         missionWalkbackRate: mission.walkbackRate,
@@ -334,7 +337,10 @@ export const getCalculatedTimeOfSequenceItem = (params: {
       const traverseEva = evas.find((eva) =>
         eva.sequence.some((seqItem) => seqItem.uuid === traverse.uuid)
       );
-      const traverseActions = actions.filter((a) => a.traverseUuid === traverse.uuid && a.enabled);
+      let traverseActions: Action[] = [];
+      if (traverse) {
+        traverseActions = actions.filter((a) => a.traverseUuid === traverse.uuid && a.enabled);
+      }
       thisTraverseCalculatedTime = getCalculatedFieldsByTraverse({
         traverse,
         missionTraverseRate: mission.traverseRate,
@@ -416,9 +422,10 @@ export const getCalculatedFieldsByEva = (params: {
     let thisTraverse: Traverse;
     if (seqItem.type === "station") {
       thisStation = evaStations.find((station) => station.uuid === seqItem.uuid);
-      const stationActions = evaActions.filter(
-        (a) => a.stationUuid === thisStation.uuid && a.enabled
-      );
+      let stationActions: Action[] = [];
+      if (thisStation) {
+        stationActions = evaActions.filter((a) => a.stationUuid === thisStation.uuid && a.enabled);
+      }
       thisStationCalculatedFields = getCalculatedFieldsByStation({
         station: thisStation,
         missionWalkbackRate,
@@ -426,9 +433,12 @@ export const getCalculatedFieldsByEva = (params: {
       });
     } else if (seqItem.type === "traverse") {
       thisTraverse = evaTraverses.find((traverse) => traverse.uuid === seqItem.uuid);
-      const traverseActions = evaActions.filter(
-        (a) => a.traverseUuid === thisTraverse.uuid && a.enabled
-      );
+      let traverseActions: Action[] = [];
+      if (thisTraverse) {
+        traverseActions = evaActions.filter(
+          (a) => a.traverseUuid === thisTraverse.uuid && a.enabled
+        );
+      }
       thisTraverseCalculatedFields = getCalculatedFieldsByTraverse({
         traverse: thisTraverse,
         missionTraverseRate,
