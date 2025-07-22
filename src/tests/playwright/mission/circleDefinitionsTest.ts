@@ -1,9 +1,21 @@
 import { expect, Page } from "@playwright/test";
 
+async function waitForSaveButton(page: Page, isActive: boolean) {
+  const dataTooltipContent = isActive ? "Save Mission" : "Save Mission (nothing to save)";
+  await page.getByLabel("saveButton").waitFor({ timeout: 1000 });
+  await expect(page.getByLabel("saveButton")).toHaveAttribute(
+    "data-tooltip-html",
+    dataTooltipContent,
+    {
+      timeout: 1000,
+    }
+  );
+}
+
 export async function circleDefinitionsTest(page: Page): Promise<string> {
   await page.goto("http://localhost:4000/mission/22");
   //go to mission section
-  await page.waitForTimeout(2000);
+  await page.waitForLoadState("networkidle");
   await page.getByLabel("mission Section", { exact: true }).click();
   await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
     "Mission Configuration"
@@ -24,7 +36,7 @@ export async function circleDefinitionsTest(page: Page): Promise<string> {
     .count();
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
+  await waitForSaveButton(page, false);
   await page.getByLabel("addNewRadiusButton", { exact: true }).click();
   await expect(await page.getByLabel("Circle Definition Range").last()).toHaveValue("0");
   await page.getByLabel("Circle Definition Name").last().fill("--TEST RADIUS ONE--");
@@ -32,7 +44,7 @@ export async function circleDefinitionsTest(page: Page): Promise<string> {
   await page.getByLabel("addNewRadiusButton", { exact: true }).click();
   await page.getByLabel("Circle Definition Name").last().fill("--TEST RADIUS TWO--");
   await page.getByLabel("Circle Definition Range").last().fill("100");
-  await page.waitForTimeout(200);
+  await waitForSaveButton(page, true);
   await page.getByLabel("saveButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
 
@@ -64,10 +76,10 @@ export async function circleDefinitionsTest(page: Page): Promise<string> {
   //edit and check saved circle definitions.
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
+  await waitForSaveButton(page, false);
   await page.getByLabel("Circle Definition Name").nth(test1Index).fill("--TEST RADIUS ONE B--");
   await page.getByLabel("Circle Definition Range").nth(test1Index).fill("250");
-  await page.waitForTimeout(200);
+  await waitForSaveButton(page, true);
   await page.getByLabel("saveButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
   test1Index = -1;
@@ -94,12 +106,12 @@ export async function circleDefinitionsTest(page: Page): Promise<string> {
   //edit and cancel saved circle definitions
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
+  await waitForSaveButton(page, false);
   await page.getByLabel("saveButton");
   await page.getByLabel("Circle Definition Name").nth(test2Index).fill("--TEST RADIUS TWO B--");
   await page.getByLabel("Circle Definition Range").nth(test2Index).fill("1");
   await page.getByLabel("deleteButton", { exact: true }).nth(test1Index).click();
-  await page.waitForTimeout(200);
+  await waitForSaveButton(page, true);
   await page.getByLabel("cancelButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
 
@@ -112,9 +124,9 @@ export async function circleDefinitionsTest(page: Page): Promise<string> {
   // delete saved circle definitions
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
+  await waitForSaveButton(page, false);
   await page.getByLabel("deleteButton", { exact: true }).nth(test1Index).click();
-  await page.waitForTimeout(200);
+  await waitForSaveButton(page, true);
   await page.getByLabel("saveButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
 
@@ -146,9 +158,9 @@ export async function circleDefinitionsTest(page: Page): Promise<string> {
   //delete and save
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
+  await waitForSaveButton(page, false);
   await page.getByLabel("deleteButton", { exact: true }).nth(test2Index).click();
-  await page.waitForTimeout(200);
+  await waitForSaveButton(page, true);
   await page.getByLabel("saveButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
   await expect(page.getByLabel("saveButton", { exact: true })).toHaveCount(0);

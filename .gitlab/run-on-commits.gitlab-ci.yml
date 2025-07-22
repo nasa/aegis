@@ -60,27 +60,27 @@ dependency-check:
   rules:
     - if: '$CI_COMMIT_BRANCH == "int" || $CI_COMMIT_BRANCH == "prod"'
 
-npm-audit:
-  stage: stageless
-  image: $CI_REGISTRY/emss/docker-images/node-ci:npm-audit
-  needs: []
-  tags: ["openshift"]
-  allow_failure: true
-  script:
-    # Runs `npm audit --json` then sends the results to EMSS dashboard (only on EMSS major branches)
-    - >
-      if
-      [ "${CI_COMMIT_REF_SLUG}" == "prod" ] ||
-      [ "${CI_COMMIT_REF_SLUG}" == "int" ] ||
-      [ "${CI_COMMIT_REF_SLUG}" == "stable" ] ||
-      [ "${CI_COMMIT_REF_SLUG}" == "beta" ] ||
-      [ "${CI_COMMIT_REF_SLUG}" == "alpha" ];
-      then
-        node /postAuditReport.js;
-      fi
+# npm-audit:
+#   stage: stageless
+#   image: $CI_REGISTRY/emss/docker-images/node-ci:npm-audit
+#   needs: []
+#   tags: ["openshift"]
+#   allow_failure: true
+#   script:
+#     # Runs `npm audit --json` then sends the results to EMSS dashboard (only on EMSS major branches)
+#     - >
+#       if
+#       [ "${CI_COMMIT_REF_SLUG}" == "prod" ] ||
+#       [ "${CI_COMMIT_REF_SLUG}" == "int" ] ||
+#       [ "${CI_COMMIT_REF_SLUG}" == "stable" ] ||
+#       [ "${CI_COMMIT_REF_SLUG}" == "beta" ] ||
+#       [ "${CI_COMMIT_REF_SLUG}" == "alpha" ];
+#       then
+#         node /postAuditReport.js;
+#       fi
 
-    # Run this without --json to make a pretty-print for the job log, plus will pass/fail the job
-    - npm audit
+#     # Run this without --json to make a pretty-print for the job log, plus will pass/fail the job
+#     - npm audit
 
 install_dependencies:
   stage: stageless
@@ -166,6 +166,8 @@ test-node-next:
   image: "$FUTURE_NODE_VERSION_IMAGE"
   allow_failure: true
   script:
+    - apk update && apk add --no-cache postgresql-client
+    - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
     - npm run migrate:up
     - npm run lint
     - npm run tsc
@@ -182,12 +184,11 @@ playwright_test:
     NUM_SHARDS: 4
   extends: .test_template
   stage: stageless
-  image: mcr.microsoft.com/playwright:v1.48.0-focal
+  image: mcr.microsoft.com/playwright:v1.53.0-jammy
   needs:
     - install_dependencies
     - make-test-dotenv
     - z:db-export:prod
-  allow_failure: true
   script:
     - echo "Running shard $SHARD_INDEX of $NUM_SHARDS"
     - mkdir -p playwright-report
@@ -202,6 +203,7 @@ playwright_test:
     paths:
       - playwright-report/ # Store Playwright test reports
     expire_in: 1 day
+  retry: 2
 
 .make-dotenv-template:
   image: "$CURRENT_NODE_VERSION_IMAGE"

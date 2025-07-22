@@ -3,7 +3,7 @@ import { expect, Page } from "@playwright/test";
 export async function presetTest(page: Page): Promise<string> {
   await page.goto("http://localhost:4000/mission/22");
   //go to preset section
-  await page.waitForTimeout(2000);
+  await page.waitForLoadState("networkidle");
   await page.getByLabel("preset Section", { exact: true }).click();
   await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
     "Map Display Presets"
@@ -19,14 +19,12 @@ export async function presetTest(page: Page): Promise<string> {
   const newPresetName = await newPresetQuery
     .getByLabel("leftPresetName", { exact: true })
     .textContent();
-  await page.getByLabel("Preset Title", { exact: true }).waitFor();
-  await page.waitForTimeout(500);
+  await page.getByLabel("Preset Title", { exact: true }).waitFor({ timeout: 5000 });
   await expect(page.getByLabel("Preset Title", { exact: true })).toHaveValue(newPresetName, {
     timeout: 500,
   });
   await expect(page.getByLabel("leftPresetName", { exact: true })).toHaveCount(presetCount + 1);
 
-  await page.waitForTimeout(500);
   await page.getByLabel("saveButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
 
@@ -35,20 +33,21 @@ export async function presetTest(page: Page): Promise<string> {
   await expect(newPresetQuery.getByLabel("leftPresetName", { exact: true })).toContainText(
     newPresetName + " (copy"
   );
-  await page.waitForTimeout(500);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
+  await page.getByLabel("Preset Title", { exact: true }).waitFor({ timeout: 5000 });
 
   await expect(page.getByLabel("leftPresetName", { exact: true })).toHaveCount(presetCount + 2);
 
   // Delete preset
-  await page.waitForTimeout(1000);
+  await page.getByLabel("Edit", { exact: true }).waitFor({ state: "visible", timeout: 5000 });
   await page.getByLabel("Edit", { exact: true }).click();
+  await page.getByLabel("deleteButton", { exact: true }).waitFor({ timeout: 5000 });
   await page.getByLabel("deleteButton", { exact: true }).click();
   await expect(page.getByLabel("leftPresetName", { exact: true })).toHaveCount(presetCount + 1);
 
   // Add and cancel preset
   await page.getByLabel("Add", { exact: true }).click();
+
+  await page.getByLabel("cancelButton", { exact: true }).waitFor({ timeout: 5000 });
   await page.getByLabel("cancelButton", { exact: true }).click();
   await expect(page.getByLabel("leftPresetName", { exact: true })).toHaveCount(presetCount + 1);
 

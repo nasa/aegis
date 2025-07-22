@@ -5,7 +5,7 @@ const authFile = "./.local/playwright/auth.json";
 
 setup("authenticate", async ({ page }) => {
   await page.goto("http://localhost:4000");
-  await page.waitForTimeout(2000);
+  await page.waitForLoadState("networkidle");
   await page.getByLabel("Username").click();
   await page.getByLabel("Username").fill("Playwright admin");
   await page.getByLabel("Username").press("Tab");

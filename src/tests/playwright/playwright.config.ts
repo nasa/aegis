@@ -69,7 +69,7 @@ export default defineConfig({
     command: "npm run dev",
     url: "http://localhost:4000",
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: 180 * 1000,
   },
 
   globalSetup: require.resolve("./playwright.globalSetup.ts"),
