@@ -25,7 +25,7 @@ const Actions_Panel: FunctionComponent<{
   );
   const actionsCalculatedFields = useAppSelector((state) => {
     const stationActions = state.action.actions.filter(
-      (a) => a.stationUuid === selectedStation.uuid && a.enabled
+      (a) => a.stationUuid === selectedStation?.uuid && a.enabled
     );
     const calculatedFields = getCalculatedFieldsByStation({
       station: selectedStation,

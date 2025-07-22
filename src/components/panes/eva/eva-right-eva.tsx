@@ -141,10 +141,10 @@ const EvaRightEva: FunctionComponent = () => {
     for (const traverseUuid of traverseUuidsInThisEva) {
       const traverse = state.traverse.traverses.find((t) => t.uuid === traverseUuid);
       const traverseEva = state.eva.evas.find((eva) =>
-        eva.sequence.some((seqItem) => seqItem.uuid === traverse.uuid)
+        eva.sequence.some((seqItem) => seqItem.uuid === traverse?.uuid)
       );
       const traverseActions = state.action.actions.filter(
-        (a) => a.traverseUuid === traverse.uuid && a.enabled
+        (a) => a.traverseUuid === traverse?.uuid && a.enabled
       );
       traverseCalculatedFields.push(
         getCalculatedFieldsByTraverse({
