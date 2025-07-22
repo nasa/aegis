@@ -2229,7 +2229,11 @@ const MapBody: FunctionComponent<{}> = () => {
         {showSunEarth && <SunEarth type="editor" selectedPreset={selectedPreset} />}
       </div>
 
-      {isLoading && <LoadingOverlay message="Please Wait..." />}
+      {isLoading && (
+        <div>
+          <LoadingOverlay message="Please Wait..." />
+        </div>
+      )}
     </>
   );
 };

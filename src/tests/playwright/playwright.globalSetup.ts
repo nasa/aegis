@@ -8,7 +8,7 @@ async function globalSetup(): Promise<void> {
   const salt = await bcrypt.genSalt();
   const saltedPwd = bcrypt.hashSync("playwrightpassword", salt);
   const sql = `
-    INSERT INTO "user_db" (username, password, is_super_admin, created_at, updated_at)
+    INSERT INTO "app_user_db" (username, password, is_super_admin, created_at, updated_at)
     VALUES ('${username}', '${saltedPwd}', true, '${new Date().toISOString()}', '${new Date().toISOString()}')
   `;
   await database.executeQuery(sql);

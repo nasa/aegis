@@ -126,7 +126,7 @@ export const LoadingOverlay: FunctionComponent<{
   message?: string;
 }> = ({ message = "Loading..." }) => {
   return (
-    <div className={styles.loadingOverlay}>
+    <div className={styles.loadingOverlay} aria-label="loading-overlay">
       <div className={styles.loadingSpinner}></div>
       <div>{message}</div>
     </div>

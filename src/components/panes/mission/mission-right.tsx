@@ -222,7 +222,11 @@ const MissionPrefsRight: FunctionComponent = () => {
         editMode={missionSectionsEditing.includes("prefs")}
       />
 
-      {isLoading && <LoadingOverlay message="Please Wait..." />}
+      {isLoading && (
+        <div>
+          <LoadingOverlay message="Please Wait..." />
+        </div>
+      )}
     </>
   );
 };

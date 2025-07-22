@@ -1,4 +1,4 @@
-import { FunctionComponent, useState, ReactNode, useRef, Children } from "react";
+import { FunctionComponent, useState, ReactNode, useRef, Children, KeyboardEvent } from "react";
 import styles from "./folders.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -227,7 +227,7 @@ const FolderComponent = ({
     dispatch(setFolderInterfaceEditing({ folderUuid: folder.uuid, editing: false }));
   };
 
-  const handleSaveEdit = (e: React.MouseEvent) => {
+  const handleSaveEdit = (e: KeyboardEvent<HTMLDivElement> | React.MouseEvent) => {
     e.stopPropagation();
     const newFolder = { ...folder, name: folderInterface.editingNameValue };
     dispatch(thunkSaveFolder({ folder: newFolder }));
@@ -248,7 +248,12 @@ const FolderComponent = ({
             icon={folderInterface.isOpen ? faFolderOpen : faFolder}
             className={styles.folderIcon}
           />
-          <div className={styles.folderName}>
+          <div
+            className={styles.folderName}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSaveEdit(e);
+            }}
+          >
             <InLineEditInput
               value={folderInterface.editingNameValue || folder.name}
               editing={folderInterface.editing}

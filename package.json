@@ -17,6 +17,7 @@
     "test:coverage": "jest --config ./src/tests/jest/jest.config.ts --coverage --reporters=default --reporters=jest-junit  --maxWorkers 50%",
     "test:playwright": "playwright test --config=./src/tests/playwright/playwright.config.ts",
     "test:playwright:ci": "playwright test --config=./src/tests/playwright/playwright.config.ts --shard=$SHARD_INDEX/$NUM_SHARDS",
+    "test:playwright:ui": "playwright test --config ./src/tests/playwright/playwright.config.ts --ui",
     "seed": "npx mikro-orm seeder:run",
     "migrate:up": "npx mikro-orm migration:up",
     "migrate:down": "npx mikro-orm migration:down",

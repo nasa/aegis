@@ -15,7 +15,7 @@ import { populateStore } from "store/processing/populateStore";
 import LeftTopPanel from "components/dashboard/leftPanel";
 import MapBody from "components/dashboard/map";
 import DashTimeline from "components/dashboard/dashTimeline";
-import { deepEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import MiniMap from "components/dashboard/miniMap";
 
 type RouteParams = {
@@ -34,6 +34,7 @@ const Main = (): JSX.Element => {
     const defaultPresetUuid = state.preset.presetsFromDb.find((p) => p.missionDefault)?.uuid;
     return state.preset.presetsFromDb.find((p) => p.uuid === defaultPresetUuid);
   }, deepEqual);
+  const missionTitle = useAppSelector((state) => state.mission.mission?.name, refEqual);
 
   // set default view to task and crew regardless of what is in the cookie
   const taskSourceUuid = runningRexFromDb?.posSources?.find((source) => source.abbr === "T")?.uuid;
@@ -109,6 +110,13 @@ const Main = (): JSX.Element => {
     };
     isLoggedInAsync();
   }, [navigate, intMissionId, dispatch]);
+
+  useEffect(() => {
+    if (!missionTitle) {
+      return;
+    }
+    document.title = `${missionTitle} - AEGIS`;
+  }, [missionTitle]);
 
   return (
     <>

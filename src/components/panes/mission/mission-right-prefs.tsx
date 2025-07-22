@@ -119,7 +119,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 value={mission.missionBanner}
                 editing={editMode}
                 fieldProps={{
-                  name: "name",
+                  name: "missionBanner",
                   ariaLabel: "Mission Banner",
                   style: { width: "100%" },
                   validators: [validators.maxLength(255)],
