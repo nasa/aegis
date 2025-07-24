@@ -7,10 +7,9 @@ import { Eva_db, Rex_db } from "server/database/models/_allModels";
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { evaRefUuid, emssToken } = query;
+  const { evaRefUuid } = query;
   const queryObj = {
     evaRefUuid: evaRefUuid ? (evaRefUuid as string) : undefined,
-    emssToken: emssToken ? (emssToken as string) : undefined,
   };
   return queryObj;
 };
@@ -18,11 +17,12 @@ const parseQuery = (query: Query) => {
 // Used by Maestro to get all REX executions for a given as-planned EVA
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
+  const emssToken = req.headers["emss-token"] as string;
 
   // Check if user has EMSS permissions
-  const editPermission = queryObj.emssToken && queryObj.emssToken === process.env.EMSS_TOKEN;
+  const viewPermissions = emssToken && emssToken === process.env.EMSS_TOKEN;
 
-  if (!editPermission) {
+  if (!viewPermissions) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
