@@ -114,10 +114,17 @@ export const RexStatusMenu: FunctionComponent<{
         data-tooltip-id="aegis-tooltip"
         data-tooltip-html={rexStatusDisplayProperties.tooltip}
       >
-        <FontAwesomeIcon
-          icon={rexStatusDisplayProperties.icon}
-          className={`${evaStyles.rexStatusIcon} ${rexStatusDisplayProperties.iconStyle}`}
-        />
+        {rexStatus !== "skipped" ? (
+          <FontAwesomeIcon
+            icon={rexStatusDisplayProperties.icon}
+            className={`${evaStyles.rexStatusIcon} ${rexStatusDisplayProperties.iconStyle}`}
+          />
+        ) : (
+          <div
+            className={rexStyles.rexStatusMenuIconSkipped}
+            style={{ width: "16px", height: "16px" }}
+          />
+        )}
       </div>
     </>
   );
@@ -135,10 +142,17 @@ const RexStatusMenuItem: FunctionComponent<{
         handleRexStatusClick(rexStatus);
       }}
     >
-      <FontAwesomeIcon
-        icon={getRexStatusDisplayProperties(rexStatus).icon}
-        className={`${evaStyles.rexStatusMenuIcon} ${getRexStatusDisplayProperties(rexStatus).iconStyle}`}
-      />
+      {rexStatus !== "skipped" ? (
+        <FontAwesomeIcon
+          icon={getRexStatusDisplayProperties(rexStatus).icon}
+          className={`${evaStyles.rexStatusMenuIcon} ${getRexStatusDisplayProperties(rexStatus).iconStyle}`}
+        />
+      ) : (
+        <div
+          className={rexStyles.rexStatusMenuIconSkipped}
+          style={{ width: "15px", height: "15px" }}
+        />
+      )}
       <div className={rexStyles.rexStatusMenuItemTitle}>{title}</div>
     </div>
   );

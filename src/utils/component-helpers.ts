@@ -1,12 +1,5 @@
 import sortBy from "lodash/sortBy";
-import {
-  IconDefinition,
-  faCircle,
-  faCircleCheck,
-  faCirclePlay,
-  faCircleXmark,
-} from "@fortawesome/free-regular-svg-icons";
-import actionStyles from "components/panes/actions-action.module.css";
+import { IconDefinition, faSquare, faSquareCheck } from "@fortawesome/free-regular-svg-icons";
 import rexStyles from "components/panes/rex/rex.module.css";
 
 export const getAlertColor = (
@@ -105,9 +98,9 @@ export const getRexStatusDisplayProperties = (
 } => {
   if (!rexStatus)
     return {
-      icon: faCirclePlay,
+      icon: faSquare,
       iconStyle: rexStyles.rexStatusIconPending,
-      tooltip: "Status pending",
+      tooltip: "Pending",
       headerBackgroundColor: "var(--grey2)",
       bodyBackgroundColor: "var(--grey2)",
       customTextClassName: null,
@@ -115,39 +108,39 @@ export const getRexStatusDisplayProperties = (
   switch (rexStatus) {
     case "pending":
       return {
-        icon: faCirclePlay,
+        icon: faSquare,
         iconStyle: rexStyles.rexStatusIconPending,
-        tooltip: "Status pending",
+        tooltip: "Pending",
         headerBackgroundColor: "var(--grey2)",
         bodyBackgroundColor: "var(--grey2)",
         customTextClassName: null,
       };
     case "in-progress":
       return {
-        icon: faCircle,
+        icon: faSquare,
         iconStyle: rexStyles.rexStatusIconInProgress,
-        tooltip: "Status in progress",
+        tooltip: "In Progress",
         headerBackgroundColor: "var(--rexDim)",
         bodyBackgroundColor: "var(--grey2)",
         customTextClassName: null,
       };
     case "complete":
       return {
-        icon: faCircleCheck,
+        icon: faSquareCheck,
         iconStyle: rexStyles.rexStatusIconComplete,
-        tooltip: "Status complete",
+        tooltip: "Complete",
         headerBackgroundColor: "var(--grey1)",
         bodyBackgroundColor: "var(--grey1)",
-        customTextClassName: null,
+        customTextClassName: rexStyles.headingCompleted,
       };
     case "skipped":
       return {
-        icon: faCircleXmark,
+        icon: null,
         iconStyle: rexStyles.rexStatusIconSkipped,
-        tooltip: "Status skipped",
+        tooltip: "Skipped",
         headerBackgroundColor: "var(--grey1)",
         bodyBackgroundColor: "var(--grey1)",
-        customTextClassName: actionStyles.actionHeadingSkipped,
+        customTextClassName: rexStyles.headingSkipped,
       };
   }
 };

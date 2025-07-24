@@ -122,16 +122,14 @@ const RightAction: FunctionComponent<{
                 <RexStatusMenu
                   rexStatus={actionRexStatusEntry}
                   divClassName={actionStyles.actionHeadingRexStatusWrapper}
-                  divStyle={{ marginTop: editMode ? "6px" : "1px" }}
+                  divStyle={{ marginTop: editMode ? "5px" : "3px" }}
                   entryType="action"
                   uuid={action.uuid}
                   editPerms={editPerms}
                   maestroControlled={rexMaestroControlled}
                 />
               ) : (
-                <div className={actionStyles.actionHeadingRexStatusWrapper}>
-                  <div className={actionStyles.actionHeadingRexStatusIconBlank}></div>
-                </div>
+                <div className={actionStyles.actionHeadingRexStatusWrapper}></div>
               )}
             </>
           )}

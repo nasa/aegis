@@ -242,6 +242,11 @@ const EvaRightEva: FunctionComponent = () => {
   );
   const modified = evaModified || traversesModified || rexModified;
 
+  const selectedRexIsExecuting = useAppSelector((state) => {
+    const selectedRex = state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid);
+    return selectedRex?.isRunning;
+  }, refEqual);
+
   // generate evaReportSequenceItems from the eva sequence
   useEffect(() => {
     const generateEvaReportSequenceItemsAsync = async () => {
@@ -396,7 +401,7 @@ const EvaRightEva: FunctionComponent = () => {
 
   return (
     partialSelectedEva && (
-      <>
+      <div className={selectedRexIsExecuting ? evaStyles.rightPaneExecuting : evaStyles.rightPane}>
         <div className={paneStyles.rightTopTitle}>
           <div className={evaStyles.rightTopTitleText}>
             <InLineEditInput
@@ -558,7 +563,7 @@ const EvaRightEva: FunctionComponent = () => {
             message={`Deleting EVA${isDeletingEva.isRexEva ? " Execution" : ""}...`}
           />
         )}
-      </>
+      </div>
     )
   );
 };

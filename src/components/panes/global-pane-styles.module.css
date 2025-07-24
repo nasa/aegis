@@ -221,6 +221,7 @@
 .leftPanelContainerTop {
   flex: 1 1 auto;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 .leftPanelContainerBottom {
   flex: 0 0 auto;
