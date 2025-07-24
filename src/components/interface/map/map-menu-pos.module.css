@@ -16,6 +16,15 @@
   width: 370px;
 }
 
+.mapPosDisplayExecuting {
+  border: 2px solid var(--rex);
+  border-radius: var(--radius);
+  background-color: var(--grey2);
+  pointer-events: all;
+  max-height: 90%;
+  width: 370px;
+}
+
 .menuOpen {
   padding: 5px;
 }

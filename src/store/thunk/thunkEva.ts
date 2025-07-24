@@ -7,13 +7,13 @@ import {
   setSelectedEvaUuid,
   upsertEvaByField,
   deleteExpandedEvaUuids,
-  setOnlyShowRunningRex,
   setEvaDropdownUIState,
   setSelectedEvaSequenceItemUuid,
   upsertEvas,
   upsertEvasFromDb,
   deleteEvasByUuid,
   deleteEvasFromDbByUuid,
+  setOnlyShowRunningRex,
 } from "store/eva";
 import appCreateAsyncThunk from "./thunkUtil";
 import { generateUniqueName } from "utils/names/unique-name";
@@ -797,20 +797,6 @@ export const thunkSetOnlyShowRunningRexEva = appCreateAsyncThunk<{ show: boolean
       if (!runningRex) return;
       dispatch(setSelectedEvaUuid(runningRex.evaUuid));
       dispatch(setSelectedRexUuid(runningRex.uuid));
-      // get as-planned eva uuid and set the dropdown
-      const allRexEvas = getState().rex.rexes.map((r) => r.evaUuid);
-      const runningRexEva = getState().eva.evas.find((e) => e.uuid === runningRex.evaUuid);
-      const asPlannedEva = getState().eva.evas.find(
-        (e) => e.refUuid === runningRexEva.refUuid && !allRexEvas.includes(e.uuid)
-      );
-      dispatch(
-        setEvaDropdownUIState({
-          asPlannedEvaUuid: asPlannedEva?.uuid,
-          dropdownEvaUuid: runningRex.evaUuid,
-        })
-      );
-      // expand the eva
-      dispatch(upsertExpandedEvaUuids([asPlannedEva.uuid]));
     }
   }
 );

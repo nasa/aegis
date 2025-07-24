@@ -12,6 +12,7 @@ export const initialState: EvaState = {
   expandedEvaUuids: [],
   evaDropdownUIStates: {},
   showRunningRexOnly: false,
+  runningRexExpanded: true,
   evas: [],
   evasFromDb: [],
   evasEditing: [],
@@ -101,6 +102,9 @@ export const evaSlice = createSlice({
     setOnlyShowRunningRex: (state, action: { payload: boolean }) => {
       state.showRunningRexOnly = action.payload;
     },
+    setRunningRexExpanded: (state, action: { payload: boolean }) => {
+      state.runningRexExpanded = action.payload;
+    },
     upsertExpandedEvaUuids: (state, action: { payload: string[] }) => {
       // add uuids that are not already in the array
       action.payload.forEach((uuid) => {
@@ -185,6 +189,7 @@ export const {
   setSelectedEvaSequenceItemUuid,
   setSelectedEvaRightNavItem,
   setOnlyShowRunningRex,
+  setRunningRexExpanded,
   setEvaDropdownUIState,
   upsertExpandedEvaUuids,
   deleteExpandedEvaUuids,

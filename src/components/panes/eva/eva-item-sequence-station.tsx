@@ -226,11 +226,9 @@ const SequenceItemStation: FunctionComponent<{
           dispatch(setHoverUuidsForSequence({ sequenceUuid: null, mapItemType: null }));
         }}
       >
-        {thisStation ? (
-          <div className={evaStyles.iconCustom}>{decodeEmoji(thisStation.icon)}</div>
-        ) : (
-          <div className={evaStyles.iconCustom} />
-        )}
+        <div className={evaStyles.iconCustom}>
+          {decodeEmoji(thisStation?.icon ? thisStation.icon : "2754")}
+        </div>
 
         {isRexEva && (
           <RexStatusMenu
@@ -288,7 +286,6 @@ const SequenceItemStation: FunctionComponent<{
               <Dropdown
                 selected={thisStation?.uuid || ""}
                 arrowStyle={{ top: "1px" }}
-                containerStyle={{ width: "190px" }}
                 selectStyle={{ width: "100%" }}
                 onChange={(val) => {
                   dispatch(

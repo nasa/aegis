@@ -1,4 +1,5 @@
 .titleWrapper {
+  flex: 0 0 1em;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -13,21 +14,17 @@
   font-weight: 500;
   color: var(--eva);
 }
-.evaPanelContainer {
-  background-color: var(--grey2);
-  margin: 2px 8px 2px 8px;
-  border-radius: var(--panelRadius);
-}
 
 .nameitem {
   display: flex;
   padding: 2px 4px 2px 0;
   user-select: none;
-  align-items: center;
 }
 
 .name {
   display: flex;
+  flex-direction: column;
+  gap: 2px;
   width: 100%;
   font-size: 0.9em;
   font-weight: 500;
@@ -37,6 +34,34 @@
   border-radius: var(--radius);
   border: 1px solid var(--grey2);
   align-items: center;
+}
+
+.nameTopRow {
+  flex: 1;
+  width: 100%;
+  display: flex;
+}
+
+.nameBottomRow {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  justify-content: right;
+}
+
+.addRexButton {
+  height: 20px;
+  width: 110px;
+  margin-left: 3px;
+  text-transform: none;
+}
+
+.noRexes {
+  width: 100%;
+  font-size: 0.8rem;
+  color: var(--grey4);
+  text-transform: none;
+  margin-top: auto;
 }
 
 .nameSelected {
@@ -84,7 +109,7 @@
   color: #ffffff;
 }
 .dropdownSelector {
-  width: 100px;
+  width: 100%;
 }
 
 .sliderIcon {
@@ -131,7 +156,6 @@
 .evaItem {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
 }
 
 .evaItemName {
@@ -189,7 +213,7 @@
 
 .evaItemNameRexComplete {
   background-color: var(--grey1);
-  color: var(--grey5);
+  color: var(--grey4);
 }
 
 .evaItemLeft {
@@ -360,10 +384,64 @@
 }
 
 .rexIconWrapper {
-  color: var(--rex);
-  padding-right: 5px;
+  background-color: var(--rex);
+  color: black;
+  padding: 2px 4px 2px 4px;
+  margin-right: 4px;
+  border: 1px solid var(--rex);
+  border-radius: var(--radius);
 }
 .rexIconWrapperSelected {
-  color: #10bc44;
-  padding-right: 5px;
+  border: 1px solid var(--grey3);
+}
+
+.executingEvaContainer {
+  max-height: 50%;
+  display: flex;
+  flex-direction: column;
+}
+
+.executingEvaContainerCollapsed {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.executingEvaContainerOnly {
+  display: flex;
+  flex-direction: column;
+  border-bottom: none;
+}
+
+.allEvaContainer {
+  max-height: 50%;
+  display: flex;
+  flex-direction: column;
+}
+
+.allEvaContainerRexCollapsed {
+  max-height: calc(100% - 93px);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.allEvaContainerNoExecuting {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.rightPaneExecuting {
+  height: 100%;
+  border-radius: var(--radius);
+  border: 2px solid var(--rex);
+  display: flex;
+  flex-direction: column;
+}
+
+.rightPane {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
