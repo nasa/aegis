@@ -19,6 +19,7 @@ type Rex = {
   actionEntries: ActionEntries;
   xgressEntries: XgressEntries | null;
   maestroControlled: boolean;
+  maestroExecutionHash: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
