@@ -138,10 +138,10 @@ export async function getStations(missionId: number, stationUUID?: string): Prom
   const em = getEM();
 
   //find stations by either mission Id or uuid
-  let dbstations: Loaded<Station_db, "poi">[];
+  let dbStations: Loaded<Station_db, "poi">[];
 
   if (stationUUID) {
-    dbstations = await em.find(
+    dbStations = await em.find(
       Station_db,
       { uuid: stationUUID },
       {
@@ -150,7 +150,7 @@ export async function getStations(missionId: number, stationUUID?: string): Prom
       }
     );
   } else {
-    dbstations = await em.find(
+    dbStations = await em.find(
       Station_db,
       { mission: { id: missionId } },
       {
@@ -161,7 +161,20 @@ export async function getStations(missionId: number, stationUUID?: string): Prom
   }
 
   //convert foreign keys
-  return convertStationsTypeDbToStore(dbstations);
+  return convertStationsTypeDbToStore(dbStations);
+}
+
+/**
+ * Gets station refUuids by their uuids.
+ * @param stationUuids array of station uuids to retrieve
+ * @returns array of stations refUuids
+ */
+export async function getStationRefUuids(stationUuids: string[]): Promise<string[]> {
+  const em = getEM();
+  const dbStations: Loaded<Station_db>[] = await em.find(Station_db, {
+    uuid: { $in: stationUuids },
+  });
+  return dbStations.map((s) => s.refUuid);
 }
 
 /**

@@ -3,14 +3,16 @@ import { getORM, getEM, closeORM } from "utils/mikro";
 import { Mission_db, App_User_db } from "server/database/models/_allModels";
 import MissionFactory from "../factories/MissionFactory";
 import UserFactory from "../factories/UserFactory";
-import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankMission, convertMissionsTypeDbToStore } from "store/storeUtils/mission";
+// suppress socketio calls because they won't work during jest testing
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
     ...jest.requireActual("server/express/sockets"),
+    emitStoreUpsert: jest.fn(),
+    emitStoreDelete: jest.fn(),
   };
 });
 
@@ -24,7 +26,7 @@ beforeAll(async () => {
   const em = getEM();
   testMissions = await new MissionFactory(em).create(3);
   testAdmin = await new UserFactory(em).createOne({
-    username: "JesttestAdminForMission",
+    username: "Jest testAdminForMission",
     isAdmin: true,
     permissionList: [
       {
@@ -51,13 +53,9 @@ beforeAll(async () => {
     ],
   });
   testSuperAdmin = await new UserFactory(em).createOne({
-    username: "JesttestSuperAdminForMission",
+    username: "Jest testSuperAdminForMission",
     isSuperAdmin: true,
   });
-
-  // suppress socketio calls because they won't work during jest testing
-  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
-  jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
 describe("Mission API Endpoint", () => {

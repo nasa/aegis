@@ -130,16 +130,16 @@ export async function getTraverses(missionId: number, traverseUuid?: string): Pr
   const em = getEM();
 
   //find traverses by either mission Id or uuid
-  let dbtraverses: Loaded<Traverse_db, never>[];
+  let dbTraverses: Loaded<Traverse_db, never>[];
 
   if (traverseUuid) {
-    dbtraverses = await em.find(
+    dbTraverses = await em.find(
       Traverse_db,
       { uuid: traverseUuid },
       { orderBy: [{ name: QueryOrder.ASC }] }
     );
   } else {
-    dbtraverses = await em.find(
+    dbTraverses = await em.find(
       Traverse_db,
       { mission: { id: missionId } },
       { orderBy: [{ name: QueryOrder.ASC }] }
@@ -147,7 +147,20 @@ export async function getTraverses(missionId: number, traverseUuid?: string): Pr
   }
 
   //convert foreign keys
-  return convertTraversesTypeDbToStore(dbtraverses);
+  return convertTraversesTypeDbToStore(dbTraverses);
+}
+
+/**
+ * Gets traverses refUuids by their uuids.
+ * @param traverseUuids array of traverse uuids to retrieve
+ * @returns array of traverse refUuids
+ */
+export async function getTraverseRefUuids(traverseUuids: string[]): Promise<string[]> {
+  const em = getEM();
+  const dbTraverses: Loaded<Traverse_db>[] = await em.find(Traverse_db, {
+    uuid: { $in: traverseUuids },
+  });
+  return dbTraverses.map((t) => t.refUuid);
 }
 
 /**

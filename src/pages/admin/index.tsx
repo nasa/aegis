@@ -19,8 +19,8 @@ const Index: React.FunctionComponent = () => {
     await navigate("/admin/poi");
   };
 
-  const navigateVisitorData = async () => {
-    await navigate("/admin/visitorData");
+  const navigateVisitors = async () => {
+    await navigate("/admin/serverSocketStatus");
   };
 
   //on load check login
@@ -66,10 +66,10 @@ const Index: React.FunctionComponent = () => {
       enabled: true,
     },
     {
-      title: "Visitor Data",
+      title: "Visitors",
       description: "View data on current visitors via sockets",
       button: "View",
-      onClick: navigateVisitorData,
+      onClick: navigateVisitors,
       enabled: user?.isSuperAdmin,
     },
   ];

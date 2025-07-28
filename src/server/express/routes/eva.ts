@@ -131,12 +131,12 @@ export async function getEVAs(missionId: number, evaUuid?: string): Promise<Eva[
   const em = getEM();
 
   //find evas by either mission Id or uuid
-  let dbevas: Loaded<Eva_db, never>[];
+  let dbEvas: Loaded<Eva_db, never>[];
 
   if (evaUuid) {
-    dbevas = await em.find(Eva_db, { uuid: evaUuid }, { orderBy: [{ name: QueryOrder.ASC }] });
+    dbEvas = await em.find(Eva_db, { uuid: evaUuid }, { orderBy: [{ name: QueryOrder.ASC }] });
   } else {
-    dbevas = await em.find(
+    dbEvas = await em.find(
       Eva_db,
       { mission: { id: missionId } },
       { orderBy: [{ name: QueryOrder.ASC }] }
@@ -144,7 +144,20 @@ export async function getEVAs(missionId: number, evaUuid?: string): Promise<Eva[
   }
 
   //convert foreign keys
-  return convertEVAsTypeDbToStore(dbevas);
+  return convertEVAsTypeDbToStore(dbEvas);
+}
+
+/**
+ * Gets EVA(s) refUuids by their uuids.
+ * @param evaUuids array of EVA uuids to retrieve
+ * @returns array of EVA refUuids
+ */
+export async function getEVARefUuids(evaUuids: string[]): Promise<string[]> {
+  const em = getEM();
+  const dbEvas: Loaded<Eva_db>[] = await em.find(Eva_db, {
+    uuid: { $in: evaUuids },
+  });
+  return dbEvas.map((e) => e.refUuid);
 }
 
 /**

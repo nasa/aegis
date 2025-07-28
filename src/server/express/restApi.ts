@@ -20,7 +20,7 @@ import rexByEvaRef from "./routes/emss/getRexesByEvaRef";
 import rexStatus from "./routes/emss/rexStatus";
 import getMissions from "./routes/emss/getMissions";
 import socketLastEditEventRoutes from "./routes/socket/lastEditEvent";
-import socketVisitorData from "./routes/socket/visitorData";
+import serverSocketStatus from "./routes/socket/serverSocketStatus";
 import stationRoutes from "./routes/station";
 import gridRoutes from "./routes/grid";
 import stmRoutes from "./routes/stm";
@@ -79,7 +79,7 @@ app.get("/api/v1/health", (req, res) => {
 });
 
 // socket stuff
-app.use("/api/v1/socket/visitorData", socketVisitorData);
+app.use("/api/v1/socket/serverSocketStatus", serverSocketStatus);
 app.use("/api/v1/socket/lastEditEvent", socketLastEditEventRoutes);
 
 // get app version

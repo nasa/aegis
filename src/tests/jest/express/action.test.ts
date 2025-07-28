@@ -12,14 +12,16 @@ import ActionFactory from "../factories/ActionFactory";
 import MissionFactory from "../factories/MissionFactory";
 import StationFactory from "../factories/StationFactory";
 import PoiFactory from "../factories/PoiFactory";
-import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankAction } from "store/storeUtils/action";
+// suppress socketio calls because they won't work during jest testing
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
     ...jest.requireActual("server/express/sockets"),
+    emitStoreUpsert: jest.fn(),
+    emitStoreDelete: jest.fn(),
   };
 });
 
@@ -34,7 +36,7 @@ beforeAll(async () => {
   const em = getEM();
   testMissions = await new MissionFactory(em).create(3);
   testUser = await new UserFactory(em).createOne({
-    username: "Jestaction",
+    username: "Jest Action",
     permissionList: [
       {
         missionId: testMissions[0].id,
@@ -71,10 +73,6 @@ beforeAll(async () => {
       poi: testPoi,
     })
   );
-
-  // suppress socketio calls because they won't work during jest testing
-  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
-  jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
 describe("Action API Endpoint", () => {
