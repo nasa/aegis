@@ -71,6 +71,7 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     xgressEntries: null,
     actionEntries: null,
     maestroControlled: false,
+    maestroExecutionHash: null,
     createdAt: getAccurateNow().toISOString(),
     updatedAt: getAccurateNow().toISOString(),
   };
@@ -128,8 +129,9 @@ export function convertRexesTypeDbToStore(dbRexs: Rex_db[]): Rex[] {
       actionEntries: dbRex.actionEntries,
       xgressEntries: dbRex.xgressEntries,
       maestroControlled: dbRex.maestroControlled,
-      updatedAt: dbRex.createdAt.toISOString(),
-      createdAt: dbRex.updatedAt.toISOString(),
+      maestroExecutionHash: dbRex.maestroExecutionHash,
+      updatedAt: dbRex.updatedAt.toISOString(),
+      createdAt: dbRex.createdAt.toISOString(),
     };
     rexs.push(convertedRex);
   }
@@ -163,6 +165,7 @@ export function convertRexesTypeStoreToDb(storeRexs: Rex[]): EntityData<Rex_db>[
       actionEntries: storeRex.actionEntries,
       xgressEntries: storeRex.xgressEntries,
       maestroControlled: storeRex.maestroControlled,
+      maestroExecutionHash: storeRex.maestroExecutionHash,
       updatedAt: new Date(storeRex.updatedAt),
       createdAt: new Date(storeRex.createdAt),
     };
