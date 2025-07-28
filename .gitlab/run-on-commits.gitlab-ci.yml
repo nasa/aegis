@@ -425,23 +425,6 @@ deploy:oxygen:
     - sed -i "s/INSERT_SUBDOMAIN/oxygen-emss-dev/g" .env
     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/oxygen/g" .env
 
-.uranium-access:
-  tags: ["uranium-emss-dev"]
-  variables:
-    DEPLOY_SUDO_PASS: ""
-  environment:
-    name: uranium
-    url: https://131.110.163.12
-    action: access # See "action: access" comment on .carbon-access above
-
-.uranium-deploy:
-  tags: ["uranium-emss-dev"]
-  variables:
-    DEPLOY_SUDO_PASS: ""
-  environment:
-    name: uranium
-    url: https://131.110.163.12
-
 deploy:uranium:
   extends:
     - .emss-fitdock-deploy
