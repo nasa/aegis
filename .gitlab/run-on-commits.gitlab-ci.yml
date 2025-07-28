@@ -428,7 +428,7 @@ deploy:oxygen:
 .uranium-access:
   tags: ["uranium-emss-dev"]
   variables:
-    DEPLOY_SUDO_PASS: "EMSSRunner1"
+    DEPLOY_SUDO_PASS: ""
   environment:
     name: uranium
     url: https://131.110.163.12
@@ -437,7 +437,7 @@ deploy:oxygen:
 .uranium-deploy:
   tags: ["uranium-emss-dev"]
   variables:
-    DEPLOY_SUDO_PASS: "EMSSRunner1"
+    DEPLOY_SUDO_PASS: ""
   environment:
     name: uranium
     url: https://131.110.163.12
