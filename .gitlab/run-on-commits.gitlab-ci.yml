@@ -442,14 +442,6 @@ deploy:oxygen:
     name: uranium
     url: https://131.110.163.12
 
-.zirconium-deploy:
-  tags: ["ec2"]
-  variables:
-    DEPLOY_SUDO_PASS: "EMSSRunner1"
-  environment:
-    name: uranium
-    url: https://131.110.163.29
-
 deploy:uranium:
   extends:
     - .emss-fitdock-deploy
@@ -462,19 +454,6 @@ deploy:uranium:
   before_script:
     - sed -i "s/INSERT_SUBDOMAIN/uranium-emss-dev/g" .env
     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/uranium/g" .env
-
-deploy:zirconium:
-  extends:
-    - .emss-fitdock-deploy
-    - .zirconium-deploy
-  needs:
-    - make-dotenv
-    - docker:retag
-    - deploy:artifactize-committed-files
-  when: manual
-  before_script:
-    - sed -i "s/INSERT_SUBDOMAIN/zirconium-emss-dev/g" .env
-    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/zirconium/g" .env
 
 deploy:int:
   extends: .deploy-template
