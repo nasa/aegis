@@ -66,39 +66,56 @@ export default router;
  * @param missionId
  */
 export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll> {
-  const everything: OneMissionToRuleThemAll = {
-    mission: null,
-    actions: [],
-    evas: [],
-    layers: [],
-    sublayers: [],
-    pois: [],
-    presets: [],
-    rexes: [],
-    stations: [],
-    level1s: [],
-    level2s: [],
-    level3s: [],
-    stmRules: [],
-    traverses: [],
-    folders: [],
+  // All queries start simultaneously and use different connections from the pool
+  const [
+    mission,
+    actions,
+    evas,
+    layers,
+    sublayers,
+    pois,
+    presets,
+    rexes,
+    stations,
+    level1s,
+    level2s,
+    level3s,
+    stmRules,
+    traverses,
+    folders,
+  ] = await Promise.all([
+    getMission(missionId).then((result) => result?.[0] || null),
+    getActions({ missionId }),
+    getEVAs(missionId),
+    getLayers(missionId),
+    getSublayers(missionId),
+    getPois(missionId),
+    getPresets(missionId),
+    getRexes(missionId),
+    getStations(missionId),
+    getLevel1s(missionId),
+    getLevel2s(missionId),
+    getLevel3s(missionId),
+    getStmRules(missionId),
+    getTraverses(missionId),
+    getFolders(missionId),
+  ]);
+  const allData: OneMissionToRuleThemAll = {
+    mission,
+    actions,
+    evas,
+    layers,
+    sublayers,
+    pois,
+    presets,
+    rexes,
+    stations,
+    level1s,
+    level2s,
+    level3s,
+    stmRules,
+    traverses,
+    folders,
   };
-
-  everything.mission = (await getMission(missionId))?.[0];
-  everything.actions = await getActions({ missionId });
-  everything.evas = await getEVAs(missionId);
-  everything.layers = await getLayers(missionId);
-  everything.sublayers = await getSublayers(missionId);
-  everything.pois = await getPois(missionId);
-  everything.presets = await getPresets(missionId);
-  everything.rexes = await getRexes(missionId);
-  everything.stations = await getStations(missionId);
-  everything.level1s = await getLevel1s(missionId);
-  everything.level2s = await getLevel2s(missionId);
-  everything.level3s = await getLevel3s(missionId);
-  everything.stmRules = await getStmRules(missionId);
-  everything.traverses = await getTraverses(missionId);
-  everything.folders = await getFolders(missionId);
-
-  return everything;
+  return allData;
 }

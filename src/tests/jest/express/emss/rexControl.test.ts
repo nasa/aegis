@@ -7,10 +7,13 @@ import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
 
+// suppress socketio calls because they won't work during jest testing
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
     ...jest.requireActual("server/express/sockets"),
+    emitStoreUpsert: jest.fn(),
+    emitStoreDelete: jest.fn(),
   };
 });
 
@@ -50,8 +53,6 @@ describe("REX Control API Endpoint", () => {
         rex.name = `Jest REX ${idx + 1}`;
       })
       .create(3);
-
-    jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
   });
 
   describe("POST request - Authentication", () => {

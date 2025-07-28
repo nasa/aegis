@@ -503,7 +503,7 @@ export const thunkMakeExportString = appCreateAsyncThunk<
       selectedExportedData = { ...selectedExportedData, rexes };
     }
 
-    // convert object to readble string
+    // convert object to readable string
     const sortedJson = jsonKeysSort.sort(selectedExportedData);
     const dataStr = JSON.stringify(sortedJson, null, 2);
 

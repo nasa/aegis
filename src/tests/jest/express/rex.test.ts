@@ -4,14 +4,16 @@ import { App_User_db, Mission_db, Rex_db } from "server/database/models/_allMode
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import RexFactory from "../factories/RexFactory";
-import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankRex } from "store/storeUtils/rex";
+// suppress socketio calls because they won't work during jest testing
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
     ...jest.requireActual("server/express/sockets"),
+    emitStoreUpsert: jest.fn(),
+    emitStoreDelete: jest.fn(),
   };
 });
 
@@ -47,10 +49,6 @@ beforeAll(async () => {
       rex.mission = testMissions[0];
     })
     .create(2);
-
-  // suppress socketio calls because they won't work during jest testing
-  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
-  jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
 describe("REX API Endpoint", () => {

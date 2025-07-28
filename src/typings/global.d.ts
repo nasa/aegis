@@ -13,7 +13,7 @@ type GlobalValues = {
     ClientToServerEvents,
     ServerToClientEvents,
     import("socket.io/dist/typed-events").DefaultEventsMap,
-    SocketData
+    {}
   >;
   serverSocketStatus: ServerSocketStatus;
   socketInterval: NodeJS.Timeout;

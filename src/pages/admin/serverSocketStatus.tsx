@@ -9,9 +9,9 @@ import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { faCaretDown, faCaretRight, faPen, faEye } from "@fortawesome/free-solid-svg-icons";
 import uniq from "lodash/uniq";
 
-const VisitorData: React.FunctionComponent = () => {
+const ServerSocketStatus: React.FunctionComponent = () => {
   const navigate = useNavigate();
-  const [visitorData, setVisitorData] = useState<VisitorData[]>([]);
+  const [serverSocketStatus, setServerSocketStatus] = useState<ServerSocketStatus>(null);
 
   //on load check login
   useEffect(() => {
@@ -25,8 +25,8 @@ const VisitorData: React.FunctionComponent = () => {
       } else {
         navigate("/");
       }
-      const res = await fetch(`/api/v1/socket/visitorData`);
-      setVisitorData(await res.json());
+      const res = await fetch(`/api/v1/socket/serverSocketStatus`);
+      setServerSocketStatus(await res.json());
     })();
   }, [navigate]);
 
@@ -44,8 +44,25 @@ const VisitorData: React.FunctionComponent = () => {
           <div className={adminStyles.missionBack}>
             <FontAwesomeIcon icon={faArrowAltCircleLeft} size="xl" onClick={handleBack} />
           </div>
-          <h2>Visitor Data from Server Socket Status</h2>
-          <PrintUsers visitorData={visitorData} />
+          <h2>Maestro Connections</h2>
+          {!serverSocketStatus?.maestroVisitors?.length ? (
+            <p>No Maestro servers connected.</p>
+          ) : (
+            <ul>
+              {serverSocketStatus.maestroVisitors.map((visitor) => (
+                <li key={visitor.socketId}>
+                  <strong>{visitor.name}</strong> (connected at{" "}
+                  {new Date(visitor.connectedAt).toUTCString()})
+                </li>
+              ))}
+            </ul>
+          )}
+          <h2>Visitor Connections</h2>
+          {!serverSocketStatus?.visitorsData?.length ? (
+            <p>No visitors connected.</p>
+          ) : (
+            <PrintUsers visitorData={serverSocketStatus?.visitorsData} />
+          )}
         </div>
       </div>
     </>
@@ -168,4 +185,4 @@ const PrintUsers: FunctionComponent<{
   );
 };
 
-export default VisitorData;
+export default ServerSocketStatus;
