@@ -635,9 +635,9 @@ deploy:oxygen:
           sudo apt-get update
           sudo apt-get install -y rsyslog-gnutls
         elif command -v yum >/dev/null; then
-          sudo yum install -y rsyslog-gnutls
+          sudo yum install -y rsyslog-openssl gnutls
         elif command -v dnf >/dev/null; then
-          sudo dnf install -y rsyslog-gnutls
+          sudo dnf install -y rsyslog-openssl gnutls
         else
           echo "Unsupported package manager. Cannot install rsyslog-gnutls."
           exit 1
