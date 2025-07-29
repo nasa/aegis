@@ -2,7 +2,7 @@ import { test, expect, Page } from "@playwright/test";
 
 async function waitForSaveButton(page: Page, isActive: boolean) {
   const dataTooltipContent = isActive ? "Save Station" : "Save Station (nothing to save)";
-  await page.getByLabel("saveStation").waitFor({ timeout: 1000 });
+  await page.getByLabel("saveStation").waitFor({ timeout: 1000 }); // give time for the store to update
   await expect(page.getByLabel("saveStation")).toHaveAttribute(
     "data-tooltip-html",
     dataTooltipContent,
@@ -34,7 +34,7 @@ test("create edit cancel delete station", async ({ page }) => {
   await page.getByLabel("Station", { exact: true }).fill("Playwright Test Station");
   await expect(page.getByLabel("stationList-item", { exact: true })).toContainText([
     /Playwright Test Station/,
-  ]); // give time for the store to update
+  ]);
   await waitForSaveButton(page, true);
   await page.getByLabel("saveStation", { exact: true }).click();
   await page.getByLabel("editStation", { exact: true }).waitFor({ timeout: 5000 });
@@ -49,7 +49,7 @@ test("create edit cancel delete station", async ({ page }) => {
   await page.getByLabel("Station", { exact: true }).fill("Playwright Test Station edited");
   await expect(page.getByLabel("stationList-item", { exact: true })).toContainText([
     /Playwright Test Station edited/,
-  ]); // give time for the store to update
+  ]);
   await waitForSaveButton(page, true);
   await page.getByLabel("cancelStation", { exact: true }).click();
   await page.getByLabel("editStation", { exact: true }).waitFor({ timeout: 5000 });
