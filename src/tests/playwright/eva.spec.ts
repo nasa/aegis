@@ -18,7 +18,7 @@ test("create edit cancel delete eva", async ({ page }) => {
   await page.getByLabel("EVA Title", { exact: true }).fill("Playwright Test Eva");
   await expect(page.getByLabel("evaList-item", { exact: true })).toContainText([
     /Playwright Test Eva/,
-  ]); // give time for the store to update
+  ]);
   await page.getByLabel("saveEva", { exact: true }).click();
   await expect(page.getByLabel("EVA Title", { exact: true })).toContainText("Playwright Test Eva");
 
@@ -28,7 +28,7 @@ test("create edit cancel delete eva", async ({ page }) => {
   await page.getByLabel("EVA Title", { exact: true }).fill("Playwright Test Eva edited");
   await expect(page.getByLabel("evaList-item", { exact: true })).toContainText([
     /Playwright Test Eva edited/,
-  ]); // give time for the store to update
+  ]);
   await page.getByLabel("cancelEva", { exact: true }).click();
   await expect(page.getByLabel("EVA Title", { exact: true })).toContainText("Playwright Test Eva");
 
