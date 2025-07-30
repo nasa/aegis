@@ -111,6 +111,7 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
     (state) => state.eva.expandedEvaUuids.includes(asPlannedEva.uuid),
     shallowEqual
   );
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   // set styles. if this eva is selected, highlight it. if the sequence item is selected, emphasize it
   const selectedStyleState: null | "highlight" = useMemo(() => {
@@ -222,22 +223,24 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
               <div className={evaStyles.noRexes}>As Planned</div>
             )}
 
-            <Button
-              onClick={async () => {
-                setIsCreatingRex(true); // Show loading overlay
-                try {
-                  await dispatch(thunkCreateRex({ asPlannedEvaUuid: asPlannedEva.uuid }));
-                } finally {
-                  // Hide loading overlay when operation completes (success or failure)
-                  setIsCreatingRex(false);
-                }
-              }}
-              label={"Add REX"}
-              icon={faPlusCircle}
-              className={evaStyles.addRexButton}
-              enabled={true}
-              toolTip="Add Real-time Execution (REX)"
-            />
+            {editPerms && (
+              <Button
+                onClick={async () => {
+                  setIsCreatingRex(true); // Show loading overlay
+                  try {
+                    await dispatch(thunkCreateRex({ asPlannedEvaUuid: asPlannedEva.uuid }));
+                  } finally {
+                    // Hide loading overlay when operation completes (success or failure)
+                    setIsCreatingRex(false);
+                  }
+                }}
+                label={"Add REX"}
+                icon={faPlusCircle}
+                className={evaStyles.addRexButton}
+                enabled={true}
+                toolTip="Add Real-time Execution (REX)"
+              />
+            )}
           </div>
         </div>
       </div>
