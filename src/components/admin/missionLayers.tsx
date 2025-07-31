@@ -10,12 +10,12 @@ import { generateBlankSublayer } from "store/storeUtils/sublayer";
 import {
   faLayerGroup,
   faBezierCurve,
-  faVectorSquare,
   faClock,
   faCaretDown,
   faCaretUp,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import GridSquareIcon from "assets/draw-square-regular-full.svg?react";
 
 const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission: Mission }) => {
   const [allLayers, setAllLayers] = useState<Layer[]>(null);
@@ -266,7 +266,7 @@ const LayerList = (props: {
                       <li>
                         {sublayer.type === "tile" && <FontAwesomeIcon icon={faLayerGroup} />}
                         {sublayer.type === "vector-tile" && (
-                          <FontAwesomeIcon icon={faVectorSquare} />
+                          <GridSquareIcon className={adminStyles.iconSvg} />
                         )}
                         {sublayer.type === "vector" && <FontAwesomeIcon icon={faBezierCurve} />}
                         {sublayer.isTimeBased && <FontAwesomeIcon icon={faClock} />}
