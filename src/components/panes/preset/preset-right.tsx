@@ -9,7 +9,6 @@ import {
   faLayerGroup,
   faTrashAlt,
   faSun,
-  faVectorSquare,
 } from "@fortawesome/free-solid-svg-icons";
 
 import Info_panel from "./preset-right-info";
@@ -29,6 +28,7 @@ import { validators } from "components/interface/form/formValidators";
 import { isModified } from "utils/component-helpers";
 import { RightTabs } from "components/interface/side-controls";
 import Grid_Panel from "./preset-right-grid";
+import GridSquareIcon from "assets/draw-square-regular-full.svg?react";
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -79,7 +79,7 @@ const PresetEditorRight: FunctionComponent = () => {
       title: "Grid Configuration",
       panel: Grid_Panel,
       selectedColor: "white",
-      icon: faVectorSquare,
+      svgComponent: GridSquareIcon,
     },
   };
 

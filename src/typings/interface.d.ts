@@ -23,7 +23,8 @@ interface PanelType {
   panelProps?: React.ComponentProps<any>;
   selectedColor: string;
   unselectedColor?: string;
-  icon: IconProp;
+  icon?: IconProp;
+  svgComponent?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   ariaLabel?: string;
   panelGroup?: string[];
 }
