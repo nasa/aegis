@@ -49,7 +49,7 @@
       "groupName": null,
       "matchUpdateTypes": ["major"],
       "excludePackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
-      "excludePackagePatterns": ["eslint", "jest", "mikro", "fontawesome"],
+      "excludePackagePatterns": ["eslint", "jest", "mikro", "fontawesome", "fortawesome"],
       "labels": ["Renovate"]
     },
     {
