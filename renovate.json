@@ -12,12 +12,39 @@
   "packageRules": [
     {
       "groupName": "react",
-      "matchPackageNames": ["react", "react-dom"],
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
       "labels": ["Renovate"]
     },
     {
       "groupName": "ESLint and plugins",
       "matchPackageNames": ["/eslint/"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "jest",
+      "matchPackageNames": ["/jest/"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "mikro",
+      "matchPackageNames": ["/mikro/"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "All patch updates",
+      "matchUpdateTypes": ["patch"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "All minor updates",
+      "matchUpdateTypes": ["minor"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": null,
+      "matchUpdateTypes": ["major"],
+      "excludePackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "excludePackagePatterns": ["/eslint/", "/jest/", "/mikro/"],
       "labels": ["Renovate"]
     }
   ]
