@@ -11,6 +11,16 @@
   "labels": ["Renovate"],
   "packageRules": [
     {
+      "groupName": "Playwright",
+      "matchPackagePatterns": ["playwright"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "Infrastructure and CI updates",
+      "matchManagers": ["dockerfile", "docker-compose", "gitlabci", "gitlabci-include"],
+      "labels": ["Renovate", "ci"]
+    },
+    {
       "groupName": "All patch updates",
       "matchUpdateTypes": ["patch"],
       "labels": ["Renovate"]
@@ -44,18 +54,6 @@
       "groupName": "FontAwesome",
       "matchPackagePatterns": ["fontawesome", "fortawesome"],
       "labels": ["Renovate"]
-    },
-    {
-      "groupName": null,
-      "matchUpdateTypes": ["major"],
-      "excludePackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
-      "excludePackagePatterns": ["eslint", "jest", "mikro", "fontawesome", "fortawesome"],
-      "labels": ["Renovate"]
-    },
-    {
-      "groupName": "Infrastructure and CI updates",
-      "matchManagers": ["dockerfile", "docker-compose", "gitlabci", "gitlabci-include"],
-      "labels": ["Renovate", "ci"]
     }
   ]
 }
