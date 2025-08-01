@@ -11,26 +11,6 @@
   "labels": ["Renovate"],
   "packageRules": [
     {
-      "groupName": "react",
-      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
-      "labels": ["Renovate"]
-    },
-    {
-      "groupName": "ESLint and plugins",
-      "matchPackageNames": ["/eslint/"],
-      "labels": ["Renovate"]
-    },
-    {
-      "groupName": "jest",
-      "matchPackageNames": ["/jest/"],
-      "labels": ["Renovate"]
-    },
-    {
-      "groupName": "mikro",
-      "matchPackageNames": ["/mikro/"],
-      "labels": ["Renovate"]
-    },
-    {
       "groupName": "All patch updates",
       "matchUpdateTypes": ["patch"],
       "labels": ["Renovate"]
@@ -41,10 +21,35 @@
       "labels": ["Renovate"]
     },
     {
+      "groupName": "React",
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "ESLint",
+      "matchPackagePatterns": ["eslint"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "Jest",
+      "matchPackagePatterns": ["jest"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "Mikro",
+      "matchPackagePatterns": ["mikro"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "FontAwesome",
+      "matchPackagePatterns": ["fontawesome", "fortawesome"],
+      "labels": ["Renovate"]
+    },
+    {
       "groupName": null,
       "matchUpdateTypes": ["major"],
       "excludePackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
-      "excludePackagePatterns": ["/eslint/", "/jest/", "/mikro/"],
+      "excludePackagePatterns": ["eslint", "jest", "mikro", "fontawesome"],
       "labels": ["Renovate"]
     },
     {
