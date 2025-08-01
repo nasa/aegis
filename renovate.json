@@ -51,6 +51,6 @@
       "groupName": "Infrastructure and CI updates",
       "matchManagers": ["dockerfile", "docker-compose", "gitlab-ci"],
       "labels": ["Renovate", "Infrastructure"]
-    },
+    }
   ]
 }
