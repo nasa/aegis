@@ -30,6 +30,7 @@ import {
   getCalculatedFieldsByStation,
 } from "store/processing/calculatedFields";
 import { selectAsPlannedStations } from "store/selectors";
+import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
 
 const SequenceItemStation: FunctionComponent<{
   evaUuid: string;
@@ -78,6 +79,35 @@ const SequenceItemStation: FunctionComponent<{
     }
     return asPlannedStations;
   }, deepEqual);
+
+  // Get folder data for stations
+  const folders = useAppSelector(
+    (state) => state.interface.folders.filter((f) => f.type === "station"),
+    deepEqual
+  );
+
+  // Create a mapping from station UUIDs to their folder UUIDs
+  const itemsToFolders = folders.reduce<Record<string, string>>((map, folder) => {
+    folder.items?.forEach((itemUuid) => {
+      map[itemUuid] = folder.uuid;
+    });
+    return map;
+  }, {});
+
+  // Generate organized station dropdown options with custom filtering
+  const stationDropdownOptions = createFolderOrganizedDropdownOptions({
+    items: partialStatonsForDropdown,
+    folders,
+    itemsToFolders,
+    filterFn: (partialStation) => {
+      // filter out stations that are already in the sequence and stations that don't have locations
+      // for rex, all the stations are duplicated so we need to get the as-planned copies.
+      const isStationInSequence = evaSequence.map((s) => s.uuid).includes(partialStation.uuid);
+      return (
+        !(isStationInSequence && partialStation.uuid !== stationUuid) && !!partialStation.location
+      );
+    },
+  });
 
   const thisStationCalculatedFields = useAppSelector((state) => {
     const station = state.station.stations.find((s) => s.uuid === stationUuid);
@@ -300,25 +330,7 @@ const SequenceItemStation: FunctionComponent<{
                 toolTip="Station"
               >
                 <option value="">-- Select a station --</option>
-                {partialStatonsForDropdown.map((partialStation) => {
-                  // filter out stations that are already in the sequence and stations that don't have locations
-                  // for rex, all the stations are duplicated so we need to get the as-planned copies.
-                  const isStationInSequence = evaSequence
-                    .map((s) => s.uuid)
-                    .includes(partialStation.uuid);
-                  if (
-                    (isStationInSequence && partialStation.uuid !== stationUuid) ||
-                    !partialStation.location
-                  ) {
-                    return null;
-                  } else {
-                    return (
-                      <option key={partialStation.uuid} value={partialStation.uuid}>
-                        {partialStation.name}
-                      </option>
-                    );
-                  }
-                })}
+                {stationDropdownOptions}
               </Dropdown>
             </div>
             <div className={evaStyles.evaItemNameButtons}>
