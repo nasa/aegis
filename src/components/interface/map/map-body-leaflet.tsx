@@ -32,7 +32,7 @@ import {
   findClosestPointInGrid,
   findGridCoordinatesFromPoint,
   getMidpoint,
-} from "utils/geoMath";
+} from "utils/mapping/geoMath";
 import {
   decodeEmoji,
   secondsFromhhmmss,
@@ -80,9 +80,9 @@ import { thunkMarkerOnClick, thunkPolylineOnClick } from "store/thunk/thunkMap";
 import { Feature } from "geojson";
 import { setSelectedPresetUuid } from "store/preset";
 import { getCalculatedTimeOfSequenceItem } from "store/processing/calculatedFields";
-import { addTimeToDateTime } from "utils/timeLayers";
+import { addTimeToDateTime } from "utils/mapping/timeLayers";
 import { EARTH_RADIUS } from "utils/consts";
-import { globalGrid } from "utils/grid";
+import { globalGrid } from "utils/mapping/grid";
 import { selectAsPlannedStations } from "store/selectors";
 import { LoadingOverlay } from "../_global-elements";
 
@@ -2229,7 +2229,11 @@ const MapBody: FunctionComponent<{}> = () => {
         {showSunEarth && <SunEarth type="editor" selectedPreset={selectedPreset} />}
       </div>
 
-      {isLoading && <LoadingOverlay message="Please Wait..." />}
+      {isLoading && (
+        <div>
+          <LoadingOverlay message="Please Wait..." />
+        </div>
+      )}
     </>
   );
 };

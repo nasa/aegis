@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { UserConfig, defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import svgr from "vite-plugin-svgr";
 import path from "path";
 import packageJSON from "./package.json";
 import _ from "lodash";
@@ -8,7 +9,7 @@ import _ from "lodash";
 export const config: UserConfig = {
   root: "./src",
   envDir: "../",
-  plugins: [react()],
+  plugins: [react(), svgr()],
   resolve: {
     //alias paths so that the import statements are shorter and start from the src folder
     alias: {
@@ -21,6 +22,7 @@ export const config: UserConfig = {
       typings: path.resolve(__dirname, "./src/typings"),
       utils: path.resolve(__dirname, "./src/utils"),
       packages: path.resolve(__dirname, "./src/packages"),
+      assets: path.resolve(__dirname, "./src/assets"),
     },
   },
   //server configurations for running vite as a server (only happens in local dev). On docker/production, nginx serves the front end

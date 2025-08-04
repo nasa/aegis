@@ -1,0 +1,58 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:js-app"],
+  "npm": {
+    "minimumReleaseAge": "7 days"
+  },
+  "major": {
+    "dependencyDashboardApproval": true
+  },
+  "labels": ["Renovate"],
+  "packageRules": [
+    {
+      "groupName": "React",
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "ESLint",
+      "matchPackagePatterns": ["eslint"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "Jest",
+      "matchPackagePatterns": ["jest"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "Mikro",
+      "matchPackagePatterns": ["mikro"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "FontAwesome",
+      "matchPackagePatterns": ["fontawesome", "fortawesome"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "Playwright",
+      "matchPackagePatterns": ["playwright"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "All patch updates",
+      "matchUpdateTypes": ["patch"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "All minor updates",
+      "matchUpdateTypes": ["minor"],
+      "labels": ["Renovate"]
+    },
+    {
+      "groupName": "Infrastructure and CI updates",
+      "matchManagers": ["dockerfile", "docker-compose", "gitlabci", "gitlabci-include"],
+      "labels": ["Renovate", "ci"]
+    }
+  ]
+}

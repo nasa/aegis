@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import cloneDeep from "lodash/cloneDeep";
 import { setAllSliceStores } from "store/crossActions";
 
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 
 export const initialState: EvaState = {
@@ -12,6 +12,7 @@ export const initialState: EvaState = {
   expandedEvaUuids: [],
   evaDropdownUIStates: {},
   showRunningRexOnly: false,
+  runningRexExpanded: true,
   evas: [],
   evasFromDb: [],
   evasEditing: [],
@@ -29,7 +30,7 @@ export const evaSlice = createSlice({
           return {
             payload: evas.map((eva) => ({
               ...eva,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             })),
           };
         }
@@ -58,7 +59,7 @@ export const evaSlice = createSlice({
               evaUuid,
               fieldName,
               value,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             },
           };
         }
@@ -101,6 +102,9 @@ export const evaSlice = createSlice({
     setOnlyShowRunningRex: (state, action: { payload: boolean }) => {
       state.showRunningRexOnly = action.payload;
     },
+    setRunningRexExpanded: (state, action: { payload: boolean }) => {
+      state.runningRexExpanded = action.payload;
+    },
     upsertExpandedEvaUuids: (state, action: { payload: string[] }) => {
       // add uuids that are not already in the array
       action.payload.forEach((uuid) => {
@@ -142,7 +146,7 @@ export const evaSlice = createSlice({
           payload: {
             evaUuid: payload.evaUuid,
             sequence: payload.sequence,
-            updatedAt: roundDateToSecond(new Date()).toISOString(),
+            updatedAt: getAccurateNow().toISOString(),
           },
         };
       },
@@ -185,6 +189,7 @@ export const {
   setSelectedEvaSequenceItemUuid,
   setSelectedEvaRightNavItem,
   setOnlyShowRunningRex,
+  setRunningRexExpanded,
   setEvaDropdownUIState,
   upsertExpandedEvaUuids,
   deleteExpandedEvaUuids,

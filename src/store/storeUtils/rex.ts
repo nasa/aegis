@@ -1,4 +1,4 @@
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { v4 as uuidv4 } from "uuid";
 import { Rex_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
@@ -71,8 +71,9 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     xgressEntries: null,
     actionEntries: null,
     maestroControlled: false,
-    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    maestroExecutionHash: null,
+    createdAt: getAccurateNow().toISOString(),
+    updatedAt: getAccurateNow().toISOString(),
   };
   return { ...defaultNewRex, ...partialRex };
 };
@@ -96,8 +97,8 @@ export const generateBlankPosEntry = (partialPosEntry?: Partial<PosEntry>): PosE
     petSeconds: 0,
     posTypeUuids: [],
     posSourceUuid: null,
-    createdAt: roundDateToSecond(getAccurateNow()).toISOString(),
-    updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+    createdAt: getAccurateNow().toISOString(),
+    updatedAt: getAccurateNow().toISOString(),
   };
   return { ...defaultNewPosEntry, ...partialPosEntry };
 };
@@ -128,8 +129,9 @@ export function convertRexesTypeDbToStore(dbRexs: Rex_db[]): Rex[] {
       actionEntries: dbRex.actionEntries,
       xgressEntries: dbRex.xgressEntries,
       maestroControlled: dbRex.maestroControlled,
-      updatedAt: dbRex.createdAt.toISOString(),
-      createdAt: dbRex.updatedAt.toISOString(),
+      maestroExecutionHash: dbRex.maestroExecutionHash,
+      updatedAt: dbRex.updatedAt.toISOString(),
+      createdAt: dbRex.createdAt.toISOString(),
     };
     rexs.push(convertedRex);
   }
@@ -163,6 +165,7 @@ export function convertRexesTypeStoreToDb(storeRexs: Rex[]): EntityData<Rex_db>[
       actionEntries: storeRex.actionEntries,
       xgressEntries: storeRex.xgressEntries,
       maestroControlled: storeRex.maestroControlled,
+      maestroExecutionHash: storeRex.maestroExecutionHash,
       updatedAt: new Date(storeRex.updatedAt),
       createdAt: new Date(storeRex.createdAt),
     };

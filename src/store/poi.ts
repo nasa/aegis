@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import cloneDeep from "lodash/cloneDeep";
 import { setAllSliceStores } from "store/crossActions";
 
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { upsertToArrayByUuid } from "store/storeUtils/store";
 
 export const initialState: PoiState = {
@@ -25,7 +25,7 @@ export const poiSlice = createSlice({
           return {
             payload: pois.map((poi) => ({
               ...poi,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             })),
           };
         }
@@ -54,7 +54,7 @@ export const poiSlice = createSlice({
               poiUuid,
               fieldName,
               value,
-              updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+              updatedAt: getAccurateNow().toISOString(),
             },
           };
         }

@@ -545,7 +545,24 @@ export const RightTabs: FunctionComponent<{
               data-tooltip-id="aegis-tooltip"
               data-tooltip-html={panelTypes[panelType].title}
             >
-              <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
+              {panelTypes[panelType].icon && (
+                <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />
+              )}
+              {panelTypes[panelType].svgComponent &&
+                (() => {
+                  // render the svg component provided
+                  const SvgComponent = panelTypes[panelType].svgComponent;
+                  return (
+                    <SvgComponent
+                      fill={
+                        selectedRightNavItem === panelType
+                          ? panelTypes[panelType].selectedColor
+                          : panelTypes[panelType].unselectedColor || "white"
+                      }
+                      className={paneStyles.iconSvg}
+                    />
+                  );
+                })()}
             </div>
           </div>
         );

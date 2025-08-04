@@ -10,7 +10,7 @@ import app from "server/express/restApi";
 let testMissions: Mission_db[];
 let testEvas: Eva_db[];
 let testRexes: Rex_db[];
-const emssToken = process.env.EMSS_TOKEN || "test-emss-token";
+const emssToken = process.env.EMSS_TOKEN;
 
 beforeAll(async () => {
   await getORM();
@@ -34,7 +34,7 @@ beforeAll(async () => {
 
 describe("GET REX BY EVA REF Endpoint", () => {
   describe("Authentication", () => {
-    test("fails without emss-token", async () => {
+    test("Fails without emss-token", async () => {
       const res = await supertest(app)
         .get("/api/v1/emss/getRexesByEvaRef")
         .query({ evaRefUuid: testEvas[0].refUuid });
@@ -43,10 +43,11 @@ describe("GET REX BY EVA REF Endpoint", () => {
       expect(res.body.message).toBe("Unauthorized");
     });
 
-    test("fails with invalid emss-token", async () => {
+    test("Fails with invalid emss-token", async () => {
       const res = await supertest(app)
         .get("/api/v1/emss/getRexesByEvaRef")
-        .query({ evaRefUuid: testEvas[0].refUuid, emssToken: "no-token" });
+        .set("emss-token", "invalid-token")
+        .query({ evaRefUuid: testEvas[0].refUuid });
       expect(res.statusCode).toBe(401);
       expect(res.body.status).toBe("failure");
       expect(res.body.message).toBe("Unauthorized");
@@ -54,10 +55,10 @@ describe("GET REX BY EVA REF Endpoint", () => {
   });
 
   describe("Eva Ref validation", () => {
-    test("errors for missing evaRefUuid", async () => {
+    test("Errors for missing evaRefUuid", async () => {
       const res = await supertest(app)
         .get("/api/v1/emss/getRexesByEvaRef")
-        .query({ emssToken: emssToken });
+        .set("emss-token", emssToken);
       expect(res.statusCode).toBe(500);
       expect(res.body.status).toBe("error");
       expect(res.body.message).toContain("No EVA Ref given");
@@ -65,19 +66,21 @@ describe("GET REX BY EVA REF Endpoint", () => {
   });
 
   describe("Eva Ref functionality", () => {
-    test("returns empty array for non-existent ref", async () => {
+    test("Returns empty array for non-existent ref", async () => {
       const res = await supertest(app)
         .get("/api/v1/emss/getRexesByEvaRef")
-        .query({ evaRefUuid: "non-existent-ref", emssToken: emssToken });
+        .set("emss-token", emssToken)
+        .query({ evaRefUuid: "non-existent-ref" });
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.data).toEqual([]);
     });
 
-    test("retrieves rexes for existing ref", async () => {
+    test("Retrieves rexes for existing ref", async () => {
       const res = await supertest(app)
         .get("/api/v1/emss/getRexesByEvaRef")
-        .query({ evaRefUuid: testEvas[0].refUuid, emssToken: emssToken });
+        .set("emss-token", emssToken)
+        .query({ evaRefUuid: testEvas[0].refUuid });
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.message).toContain("Rexes retrieved");

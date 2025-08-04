@@ -74,17 +74,23 @@ const TraverseEditorRight: FunctionComponent = () => {
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
-  const calculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByTraverse({
-        traverseUuid: selectedEvaSequenceItemUuid,
-        traverses: state.traverse.traverses,
-        mission: state.mission.mission,
-        evas: state.eva.evas,
-        actions: state.action.actions,
-      }),
-    deepEqual
-  );
+  const calculatedFields = useAppSelector((state) => {
+    const traverse = state.traverse.traverses.find(
+      (traverse) => traverse.uuid === selectedEvaSequenceItemUuid
+    );
+    const traverseEva = state.eva.evas.find((eva) =>
+      eva.sequence.some((seqItem) => seqItem.uuid === traverse?.uuid)
+    );
+    const traverseActions = state.action.actions.filter(
+      (a) => a.traverseUuid === traverse?.uuid && a.enabled
+    );
+    return getCalculatedFieldsByTraverse({
+      traverse,
+      missionTraverseRate: state.mission.mission.traverseRate,
+      traverseEva,
+      traverseActions,
+    });
+  }, deepEqual);
 
   //track modified
   let saveButtonState: saveButtonState = "disabled";

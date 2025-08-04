@@ -7,13 +7,13 @@ import {
   setSelectedEvaUuid,
   upsertEvaByField,
   deleteExpandedEvaUuids,
-  setOnlyShowRunningRex,
   setEvaDropdownUIState,
   setSelectedEvaSequenceItemUuid,
   upsertEvas,
   upsertEvasFromDb,
   deleteEvasByUuid,
   deleteEvasFromDbByUuid,
+  setOnlyShowRunningRex,
 } from "store/eva";
 import appCreateAsyncThunk from "./thunkUtil";
 import { generateUniqueName } from "utils/names/unique-name";
@@ -37,7 +37,7 @@ import {
   thunkSaveTraverse,
   thunkUpdateTraversesAroundStation,
 } from "./thunkTraverse";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { thunkDeleteStations, thunkDuplicateStation, thunkSaveStation } from "./thunkStation";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankEVA } from "store/storeUtils/eva";
@@ -206,7 +206,7 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   const evaUpsertResponse = await httpClient_Eva.upsertEvas([
     {
       ...eva,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      updatedAt: getAccurateNow().toISOString(),
     },
   ]);
   if (evaUpsertResponse.status !== "success") {
@@ -453,7 +453,7 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
   const eva = getState().eva.evas.find((e) => e.uuid === evaUuid);
   const newEva: Eva = cloneDeep(eva);
   newEva.uuid = uuidv4();
-  const newDateString = roundDateToSecond(getAccurateNow()).toISOString();
+  const newDateString = getAccurateNow().toISOString();
   newEva.updatedAt = newDateString;
   newEva.createdAt = newDateString;
   if (!forRex) {
@@ -797,20 +797,6 @@ export const thunkSetOnlyShowRunningRexEva = appCreateAsyncThunk<{ show: boolean
       if (!runningRex) return;
       dispatch(setSelectedEvaUuid(runningRex.evaUuid));
       dispatch(setSelectedRexUuid(runningRex.uuid));
-      // get as-planned eva uuid and set the dropdown
-      const allRexEvas = getState().rex.rexes.map((r) => r.evaUuid);
-      const runningRexEva = getState().eva.evas.find((e) => e.uuid === runningRex.evaUuid);
-      const asPlannedEva = getState().eva.evas.find(
-        (e) => e.refUuid === runningRexEva.refUuid && !allRexEvas.includes(e.uuid)
-      );
-      dispatch(
-        setEvaDropdownUIState({
-          asPlannedEvaUuid: asPlannedEva?.uuid,
-          dropdownEvaUuid: runningRex.evaUuid,
-        })
-      );
-      // expand the eva
-      dispatch(upsertExpandedEvaUuids([asPlannedEva.uuid]));
     }
   }
 );

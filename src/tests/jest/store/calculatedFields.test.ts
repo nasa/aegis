@@ -42,7 +42,8 @@ describe("Calculated fields", () => {
     const allCalculatedFields: PoiCalculatedFields[] = [];
     for (const poi of wholeStoreState.poi.pois) {
       const actions = wholeStoreState.action.actions;
-      allCalculatedFields.push(getCalculatedFieldsByPoi({ actions, poiUuid: poi.uuid }));
+      const poiActions = actions.filter((a) => a.poiUuid === poi.uuid && a.enabled);
+      allCalculatedFields.push(getCalculatedFieldsByPoi({ poiActions, poiUuid: poi.uuid }));
     }
 
     //check poi that has no actions
@@ -97,12 +98,14 @@ describe("Calculated fields", () => {
 
     const allCalculatedFields: StationCalculatedFields[] = [];
     for (const station of wholeStoreState.station.stations) {
+      const stationActions = wholeStoreState.action.actions.filter(
+        (a) => a.stationUuid === station.uuid && a.enabled
+      );
       allCalculatedFields.push(
         getCalculatedFieldsByStation({
-          stations: wholeStoreState.station.stations,
-          mission: wholeStoreState.mission.mission,
-          actions: wholeStoreState.action.actions,
-          stationUuid: station.uuid,
+          station,
+          missionWalkbackRate: wholeStoreState.mission.mission.walkbackRate,
+          stationActions,
         })
       );
     }
@@ -197,13 +200,18 @@ describe("Calculated fields", () => {
 
     const allCalculatedFields: TraverseCalculatedFields[] = [];
     for (const traverse of wholeStoreState.traverse.traverses) {
+      const traverseEva = wholeStoreState.eva.evas.find((eva) =>
+        eva.sequence.some((seqItem) => seqItem.uuid === traverse.uuid)
+      );
+      const traverseActions = wholeStoreState.action.actions.filter(
+        (a) => a.traverseUuid === traverse.uuid && a.enabled
+      );
       allCalculatedFields.push(
         getCalculatedFieldsByTraverse({
-          traverses: wholeStoreState.traverse.traverses,
-          mission: wholeStoreState.mission.mission,
-          evas: wholeStoreState.eva.evas,
-          traverseUuid: traverse.uuid,
-          actions: wholeStoreState.action.actions,
+          traverse,
+          missionTraverseRate: wholeStoreState.mission.mission.traverseRate,
+          traverseEva,
+          traverseActions,
         })
       );
     }
@@ -255,21 +263,21 @@ describe("Calculated fields", () => {
     wholeStoreState.station.stations = [station1, station2];
     wholeStoreState.eva.evas = [eva];
 
-    const allEvacalculatedFields: EvaCalculatedFields[] = [];
+    const allEvaCalculatedFields: EvaCalculatedFields[] = [];
     for (const eva of wholeStoreState.eva.evas) {
-      allEvacalculatedFields.push(
+      allEvaCalculatedFields.push(
         getCalculatedFieldsByEva({
-          evaUuid: eva.uuid,
-          evas: wholeStoreState.eva.evas,
-          stations: wholeStoreState.station.stations,
-          mission: wholeStoreState.mission.mission,
-          actions: wholeStoreState.action.actions,
-          traverses: wholeStoreState.traverse.traverses,
+          eva,
+          evaStations: wholeStoreState.station.stations,
+          missionWalkbackRate: wholeStoreState.mission.mission.walkbackRate,
+          missionTraverseRate: wholeStoreState.mission.mission.traverseRate,
+          evaActions: wholeStoreState.action.actions,
+          evaTraverses: wholeStoreState.traverse.traverses,
         })
       );
     }
 
-    const evaCalcFields = allEvacalculatedFields.find((c) => c.uuid === eva.uuid);
+    const evaCalcFields = allEvaCalculatedFields.find((c) => c.uuid === eva.uuid);
     const expectedEvaCalcFields: EvaCalculatedFields = {
       uuid: eva.uuid,
       reportItems: [],

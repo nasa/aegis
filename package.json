@@ -1,6 +1,6 @@
 {
   "name": "aegis",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "private": true,
   "scripts": {
     "dev": "concurrently -n vite,api \"npm run vite:dev:wait\" \"npm run api:dev\"",
@@ -17,6 +17,7 @@
     "test:coverage": "jest --config ./src/tests/jest/jest.config.ts --coverage --reporters=default --reporters=jest-junit  --maxWorkers 50%",
     "test:playwright": "playwright test --config=./src/tests/playwright/playwright.config.ts",
     "test:playwright:ci": "playwright test --config=./src/tests/playwright/playwright.config.ts --shard=$SHARD_INDEX/$NUM_SHARDS",
+    "test:playwright:ui": "playwright test --config ./src/tests/playwright/playwright.config.ts --ui",
     "seed": "npx mikro-orm seeder:run",
     "migrate:up": "npx mikro-orm migration:up",
     "migrate:down": "npx mikro-orm migration:down",
@@ -178,11 +179,11 @@
     "socket.io": "4.8.1",
     "socket.io-client": "4.8.1",
     "string-strip-html": "13.4.12",
-    "supertest": "7.1.1",
-    "ts-jest": "29.4.0",
     "stylelint": "16.20.0",
     "stylelint-config-css-modules": "4.4.0",
     "stylelint-config-standard": "38.0.0",
+    "supertest": "7.1.1",
+    "ts-jest": "29.4.0",
     "typescript": "5.8.3",
     "typescript-json-schema": "0.65.1",
     "unique-names-generator": "4.7.1",
@@ -190,6 +191,7 @@
     "user-agent-data-types": "0.4.2",
     "uuid": "11.1.0",
     "vite": "6.3.5",
+    "vite-plugin-svgr": "4.3.0",
     "wait-on": "8.0.3"
   },
   "mikro-orm": {

@@ -15,10 +15,12 @@ import poiRoutes from "./routes/poi";
 import presetRoutes from "./routes/preset";
 import rexRoutes from "./routes/rex";
 import rexPet from "./routes/emss/rexPet";
+import rexControl from "./routes/emss/rexControl";
 import rexByEvaRef from "./routes/emss/getRexesByEvaRef";
 import rexStatus from "./routes/emss/rexStatus";
+import getMissions from "./routes/emss/getMissions";
 import socketLastEditEventRoutes from "./routes/socket/lastEditEvent";
-import socketVisitorData from "./routes/socket/visitorData";
+import serverSocketStatus from "./routes/socket/serverSocketStatus";
 import stationRoutes from "./routes/station";
 import gridRoutes from "./routes/grid";
 import stmRoutes from "./routes/stm";
@@ -37,7 +39,7 @@ import logFromClient from "./routes/logFromClient";
 import path from "path";
 import { getUser } from "packages/getUser";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
-import serverLogger from "utils/serverLogger";
+import serverLogger from "utils/logging/serverLogger";
 import folderRoutes from "./routes/folder";
 import readableActionRoutes from "./routes/readable/action";
 import readableStationRoutes from "./routes/readable/station";
@@ -77,7 +79,7 @@ app.get("/api/v1/health", (req, res) => {
 });
 
 // socket stuff
-app.use("/api/v1/socket/visitorData", socketVisitorData);
+app.use("/api/v1/socket/serverSocketStatus", serverSocketStatus);
 app.use("/api/v1/socket/lastEditEvent", socketLastEditEventRoutes);
 
 // get app version
@@ -124,7 +126,9 @@ app.use("/api/v1/readable/traverse", readableTraverseRoutes);
 
 // endpoints that require emssToken auth only
 app.use("/api/v1/emss/rexPet", rexPet);
+app.use("/api/v1/emss/rexControl", rexControl);
 app.use("/api/v1/emss/getRexesByEvaRef", rexByEvaRef);
 app.use("/api/v1/emss/rexStatus", rexStatus);
+app.use("/api/v1/emss/getMissions", getMissions);
 
 export default app;

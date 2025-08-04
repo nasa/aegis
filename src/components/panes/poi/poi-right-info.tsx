@@ -13,8 +13,8 @@ import { validators } from "components/interface/form/formValidators";
 import { thunkUpdatePoiLatLngField } from "store/thunk/thunkPoi";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
-import { globalGrid } from "utils/grid";
-import { findGridCoordinatesFromPoint } from "utils/geoMath";
+import { globalGrid } from "utils/mapping/grid";
+import { findGridCoordinatesFromPoint } from "utils/mapping/geoMath";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -41,14 +41,15 @@ const Info_Panel: FunctionComponent<{
     refEqual
   );
 
-  const poiCalcFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByPoi({
-        poiUuid: selectedPoi.uuid,
-        actions: state.action.actions,
-      }),
-    deepEqual
-  );
+  const poiCalcFields = useAppSelector((state) => {
+    const poiActions = state.action.actions.filter(
+      (a) => a.poiUuid === selectedPoi.uuid && a.enabled
+    );
+    return getCalculatedFieldsByPoi({
+      poiUuid: selectedPoi.uuid,
+      poiActions,
+    });
+  }, deepEqual);
 
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === selectedPoi.uuid ? state.map.mapDirective : null;

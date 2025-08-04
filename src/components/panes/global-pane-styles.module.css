@@ -221,6 +221,7 @@
 .leftPanelContainerTop {
   flex: 1 1 auto;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 .leftPanelContainerBottom {
   flex: 0 0 auto;
@@ -535,4 +536,10 @@
 .maestroIcon {
   color: var(--maestroConnection);
   margin: -8px 10px 0 0;
+}
+
+.iconSvg {
+  font-size: 1.5em;
+  margin-top: -2px;
+  height: 1em;
 }

@@ -11,7 +11,7 @@ import {
   upsertStationByField,
   selectStation,
 } from "store/station";
-import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/geoMath";
+import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mapping/geoMath";
 import { thunkGetElevation } from "./thunkElevation";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
@@ -28,7 +28,7 @@ import {
   thunkDuplicateActions,
   thunkSaveActions,
 } from "./thunkAction";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankStation } from "store/storeUtils/station";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
@@ -257,7 +257,7 @@ export const thunkSaveStation = appCreateAsyncThunk<{
     // upsert the changed Station to the DB via internal API call
     const updatedStation = {
       ...newStation,
-      updatedAt: roundDateToSecond(getAccurateNow()).toISOString(),
+      updatedAt: getAccurateNow().toISOString(),
     };
     const stationUpsertResponse = await httpClient_station.upsertStations([updatedStation]);
 
@@ -536,7 +536,7 @@ export const thunkDuplicateStation = appCreateAsyncThunk<
   const newStation: Station = cloneDeep(station);
   newStation.uuid = uuidv4();
   if (!preserveRefUuid) newStation.refUuid = uuidv4();
-  const newDateString = roundDateToSecond(getAccurateNow()).toISOString();
+  const newDateString = getAccurateNow().toISOString();
   newStation.updatedAt = newDateString;
   newStation.createdAt = newDateString;
   // preservingRefUuids only occurs when duplicating an EVA for a REX, in which case, keep the name.

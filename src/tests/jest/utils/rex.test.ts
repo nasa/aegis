@@ -1,35 +1,30 @@
-import { getRexStatusDisplayProperties } from "utils/rex";
-import {
-  faCircle,
-  faCircleCheck,
-  faCirclePlay,
-  faCircleXmark,
-} from "@fortawesome/free-regular-svg-icons";
+import { getRexStatusDisplayProperties } from "utils/component-helpers";
+import { faSquare, faSquareCheck } from "@fortawesome/free-regular-svg-icons";
 
 describe("getRexStatusDisplayProperties()", () => {
   test("no rex status", () => {
     const response = getRexStatusDisplayProperties(null);
-    expect(response.icon).toBe(faCirclePlay);
-    expect(response.tooltip).toEqual("Status pending");
+    expect(response.icon).toBe(faSquare);
+    expect(response.tooltip).toEqual("Pending");
   });
   test("rex status pending", () => {
     const response = getRexStatusDisplayProperties("pending");
-    expect(response.icon).toBe(faCirclePlay);
-    expect(response.tooltip).toEqual("Status pending");
+    expect(response.icon).toBe(faSquare);
+    expect(response.tooltip).toEqual("Pending");
   });
   test("rex status in-progress", () => {
     const response = getRexStatusDisplayProperties("in-progress");
-    expect(response.icon).toBe(faCircle);
-    expect(response.tooltip).toEqual("Status in progress");
+    expect(response.icon).toBe(faSquare);
+    expect(response.tooltip).toEqual("In Progress");
   });
   test("rex status complete", () => {
     const response = getRexStatusDisplayProperties("complete");
-    expect(response.icon).toBe(faCircleCheck);
-    expect(response.tooltip).toEqual("Status complete");
+    expect(response.icon).toBe(faSquareCheck);
+    expect(response.tooltip).toEqual("Complete");
   });
   test("rex status skipped", () => {
     const response = getRexStatusDisplayProperties("skipped");
-    expect(response.icon).toBe(faCircleXmark);
-    expect(response.tooltip).toEqual("Status skipped");
+    expect(response.icon).toBe(null);
+    expect(response.tooltip).toEqual("Skipped");
   });
 });

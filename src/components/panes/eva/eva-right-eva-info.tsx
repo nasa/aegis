@@ -35,6 +35,7 @@ import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 import { faClock } from "@fortawesome/free-regular-svg-icons";
 import { thunkChangeIngressEgress } from "store/thunk/thunkEva";
 import { selectAsPlannedStations } from "store/selectors";
+import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
 
 type XgressData = {
   uuid: string; // uuid of the xgress station or "lander"
@@ -63,18 +64,17 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     (state) => state.mission.mission?.traverseRate,
     refEqual
   );
-  const evaCalculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByEva({
-        evaUuid: selectedEvaUuid,
-        evas: state.eva.evas,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-        traverses: state.traverse.traverses,
-      }),
-    deepEqual
-  );
+  const evaCalculatedFields = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid);
+    return getCalculatedFieldsByEva({
+      eva,
+      evaStations: state.station.stations,
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      missionTraverseRate: state.mission.mission.traverseRate,
+      evaActions: state.action.actions,
+      evaTraverses: state.traverse.traverses,
+    });
+  }, deepEqual);
   const missionEquipItems = useAppSelector(
     (state) => state.mission.mission.equipmentItems,
     shallowEqual
@@ -91,6 +91,27 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
         }),
     deepEqual
   );
+
+  // Get folder data for stations
+  const folders = useAppSelector(
+    (state) => state.interface.folders.filter((f) => f.type === "station"),
+    deepEqual
+  );
+
+  // Create a mapping from station UUIDs to their folder UUIDs
+  const itemsToFolders = folders.reduce<Record<string, string>>((map, folder) => {
+    folder.items?.forEach((itemUuid) => {
+      map[itemUuid] = folder.uuid;
+    });
+    return map;
+  }, {});
+
+  // Generate organized station dropdown options
+  const stationDropdownOptions = createFolderOrganizedDropdownOptions({
+    items: stationListForXgressDropdown,
+    folders,
+    itemsToFolders,
+  });
 
   const egressData: XgressData = useAppSelector((state) => {
     const station = state.station.stations.find(
@@ -293,13 +314,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                               <></>
                             )}
                             <option value="lander">Lander</option>
-                            {stationListForXgressDropdown.map((station) => {
-                              return (
-                                <option key={station.uuid} value={station.uuid}>
-                                  {station.name}
-                                </option>
-                              );
-                            })}
+                            {stationDropdownOptions}
                           </Dropdown>
                         ) : (
                           <div className={evaStyles.stationWrapperRight}>
@@ -346,13 +361,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                               <></>
                             )}
                             <option value="lander">Lander</option>
-                            {stationListForXgressDropdown.map((station) => {
-                              return (
-                                <option key={station.uuid} value={station.uuid}>
-                                  {station.name}
-                                </option>
-                              );
-                            })}
+                            {stationDropdownOptions}
                           </Dropdown>
                         ) : (
                           <div className={evaStyles.stationWrapperRight}>

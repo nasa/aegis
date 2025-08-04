@@ -17,7 +17,7 @@ import {
   convertLeafletLatLngsToAegisPoints,
   getBoundsFromMapViewport,
   getDistanceBetweenTwoCoordinates,
-} from "utils/geoMath";
+} from "utils/mapping/geoMath";
 import styles from "./leaflet-helper.module.css";
 import { HighlightableLayerOptions, HighlightablePolyline } from "leaflet-highlightable-layers";
 import Color from "color";
@@ -41,7 +41,7 @@ import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkUpdatePosEntryLocation } from "store/thunk/thunkRexPosEntry";
 import { EARTH_RADIUS } from "utils/consts";
-import { checkTimeInBounds, matchTimeToManifest } from "utils/timeLayers";
+import { checkTimeInBounds, matchTimeToManifest } from "utils/mapping/timeLayers";
 
 // make color filter settings for tile sublayer. This is the format of leaflet.tilelayer.colorfilter package
 export const makeTileLayerColorFilter = (mapSublayerControl: MapSublayerControl): string[] => {

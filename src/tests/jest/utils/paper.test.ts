@@ -1,7 +1,7 @@
 import { getHoverValue } from "../../../utils/paper";
-import { getSlope } from "../../../utils/geoMath";
+import { getSlope } from "../../../utils/mapping/geoMath";
 
-jest.mock("../../../utils/geoMath");
+jest.mock("../../../utils/mapping/geoMath");
 
 describe("getHoverValue", () => {
   beforeEach(() => {

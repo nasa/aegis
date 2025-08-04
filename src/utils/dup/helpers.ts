@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
 import { copyDirectoryContents } from "server/file/file";
-import { roundDateToSecond } from "../formatting"; // Assuming this exists in src/utils
 
 // Creates a new UUID and stores mapping from old to new
 export const createUuidMapping = (oldUuid: string, uuidMap: UuidMap): string => {
@@ -46,6 +45,3 @@ export const copyMissionAssets = async (
     throw new Error(`Failed to copy mission assets: ${error}`);
   }
 };
-
-// Re-export roundDateToSecond if it's needed by other dup files, or import directly where needed
-export { roundDateToSecond };

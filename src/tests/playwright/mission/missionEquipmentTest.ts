@@ -30,10 +30,22 @@ const eq2Alt: MissionEquipment = {
   singleUse: false,
 };
 
+async function waitForSaveButton(page: Page, isActive: boolean) {
+  const dataTooltipContent = isActive ? "Save Mission" : "Save Mission (nothing to save)";
+  await page.getByLabel("saveButton").waitFor({ timeout: 1000 });
+  await expect(page.getByLabel("saveButton")).toHaveAttribute(
+    "data-tooltip-html",
+    dataTooltipContent,
+    {
+      timeout: 1000,
+    }
+  );
+}
+
 export async function missionEquipmentTest(page: Page): Promise<string> {
   await page.goto("http://localhost:4000/mission/22");
   //go to mission section
-  await page.waitForTimeout(2000);
+  await page.waitForLoadState("networkidle");
   await page.getByLabel("mission Section", { exact: true }).click();
   await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
     "Mission Configuration"
@@ -52,7 +64,7 @@ export async function missionEquipmentTest(page: Page): Promise<string> {
   const startingNumEquipment = await page.getByLabel("equipmentList-item", { exact: true }).count();
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
+  await waitForSaveButton(page, false);
 
   await page.getByLabel("addNewEquipmentButton", { exact: true }).click();
   await page.getByLabel("Equipment item name", { exact: true }).last().fill(eq1.name);
@@ -62,7 +74,7 @@ export async function missionEquipmentTest(page: Page): Promise<string> {
   await page.getByLabel("Equipment item name", { exact: true }).last().fill(eq2.name);
   await page.getByLabel("Equipment item quantity", { exact: true }).last().fill(eq2.quantity);
   await page.getByLabel("checkbox", { exact: true }).last().setChecked(eq2.singleUse);
-  await page.waitForTimeout(200);
+  await waitForSaveButton(page, true);
   await page.getByLabel("saveButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
 
@@ -99,7 +111,7 @@ export async function missionEquipmentTest(page: Page): Promise<string> {
   // Edit mission equipment and cancel
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
+  await waitForSaveButton(page, false);
 
   await page.getByLabel("Equipment item name", { exact: true }).nth(test1Index).fill(eq1Alt.name);
   await page
@@ -113,7 +125,7 @@ export async function missionEquipmentTest(page: Page): Promise<string> {
     .nth(test2Index)
     .fill(eq2Alt.quantity);
   await page.getByLabel("checkbox", { exact: true }).nth(test2Index).setChecked(eq2Alt.singleUse);
-  await page.waitForTimeout(200);
+  await waitForSaveButton(page, true);
   await page.getByLabel("cancelButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
 
@@ -137,10 +149,10 @@ export async function missionEquipmentTest(page: Page): Promise<string> {
   // Delete some mission equipment and cancel
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
+  await waitForSaveButton(page, false);
 
   await page.getByLabel("deleteButton", { exact: true }).nth(test1Index).click();
-  await page.waitForTimeout(200);
+  await waitForSaveButton(page, true);
   await page.getByLabel("cancelButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
 
@@ -160,9 +172,9 @@ export async function missionEquipmentTest(page: Page): Promise<string> {
   // Make sure clicking single use box counts as edit
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
+  await waitForSaveButton(page, false);
   await page.getByLabel("checkbox", { exact: true }).nth(test2Index).setChecked(eq2Alt.singleUse);
-  await page.waitForTimeout(200);
+  await waitForSaveButton(page, true);
   await page.getByLabel("cancelButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
   await expect(page.getByLabel("checkboxText", { exact: true }).nth(test2Index)).toContainText(
@@ -172,14 +184,14 @@ export async function missionEquipmentTest(page: Page): Promise<string> {
   // Test edit with eq1
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
+  await waitForSaveButton(page, false);
   await page.getByLabel("Equipment item name", { exact: true }).nth(test1Index).fill(eq1Alt.name);
   await page
     .getByLabel("Equipment item quantity", { exact: true })
     .nth(test1Index)
     .fill(eq1Alt.quantity);
   await page.getByLabel("checkbox", { exact: true }).nth(test1Index).setChecked(eq1Alt.singleUse);
-  await page.waitForTimeout(200);
+  await waitForSaveButton(page, true);
   await page.getByLabel("saveButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
   await expect(page.getByLabel("checkboxText", { exact: true }).nth(test2Index)).toContainText(
@@ -220,11 +232,11 @@ export async function missionEquipmentTest(page: Page): Promise<string> {
   // Test delete while tearing down equipment
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
-  await page.waitForTimeout(1000);
+  await waitForSaveButton(page, false);
 
   await page.getByLabel("deleteButton", { exact: true }).nth(test2Index).click();
   await page.getByLabel("deleteButton", { exact: true }).nth(test1Index).click();
-  await page.waitForTimeout(200);
+  await waitForSaveButton(page, true);
   await page.getByLabel("saveButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
 

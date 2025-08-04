@@ -87,13 +87,8 @@
   color: var(--grey3);
 }
 
-.actionHeadingSkipped {
-  color: var(--grey4);
-  text-decoration: line-through;
-}
-
 .actionHeadingRexStatusWrapper {
-  margin: 2px 4px 0 2px;
+  margin: 0 4px 0 2px;
   user-select: none;
 }
 

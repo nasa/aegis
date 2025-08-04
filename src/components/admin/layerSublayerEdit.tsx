@@ -1,11 +1,11 @@
 import { FunctionComponent, useState, useEffect } from "react";
 import styles from "./admin.module.css";
 import { upsertSublayers } from "http-client/sublayer";
-import { roundDateToSecond } from "utils/formatting";
 import { validators } from "components/interface/form/formValidators";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
-import { getManifestJsonTimeBounds } from "utils/timeLayers";
+import { getManifestJsonTimeBounds } from "utils/mapping/timeLayers";
 import { validateImportableSublayer } from "utils/validateSchema";
+import { getAccurateNow } from "utils/formatting";
 
 interface SublayerProps {
   sublayer: Sublayer;
@@ -37,7 +37,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     const res: WrappedResponse<Sublayer[]> = await upsertSublayers([
       {
         ...sublayer,
-        updatedAt: roundDateToSecond(new Date()).toISOString(),
+        updatedAt: getAccurateNow().toISOString(),
       },
     ]);
     props.refreshLayerList();

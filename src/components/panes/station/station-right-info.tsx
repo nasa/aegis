@@ -15,7 +15,7 @@ import { LastEdited, SubpanelHeading } from "components/interface/_global-elemen
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStationByField } from "store/station";
-import { calcCentroidofCoordinates, findGridCoordinatesFromPoint } from "utils/geoMath";
+import { calcCentroidofCoordinates, findGridCoordinatesFromPoint } from "utils/mapping/geoMath";
 import { formatNumberWithCommas, isNotNumber, toDecimal } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
@@ -30,7 +30,7 @@ import { validators, regExValidators } from "components/interface/form/formValid
 import CalculatedDwell from "../calculated-dwell";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
-import { globalGrid } from "utils/grid";
+import { globalGrid } from "utils/mapping/grid";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -93,16 +93,16 @@ const Info_Panel: FunctionComponent<{
     return numEvas;
   }, refEqual);
 
-  const calculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByStation({
-        stationUuid: selectedStation.uuid,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-      }),
-    deepEqual
-  );
+  const calculatedFields = useAppSelector((state) => {
+    const stationActions = state.action.actions.filter(
+      (a) => a.stationUuid === selectedStation?.uuid && a.enabled
+    );
+    return getCalculatedFieldsByStation({
+      station: selectedStation,
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      stationActions,
+    });
+  }, deepEqual);
   const missionEquipItems = useAppSelector(
     (state) => state.mission.mission.equipmentItems,
     shallowEqual

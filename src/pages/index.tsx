@@ -449,6 +449,8 @@ const Home: React.FunctionComponent = () => {
     dispatch(thunkObliterateEntireStore());
   }, [dispatch]);
 
+  document.title = "AEGIS";
+
   return (
     <>
       <div className={styles.main}>

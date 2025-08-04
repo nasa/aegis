@@ -1,7 +1,7 @@
 import { LoadingOverlay, ModifiedIndicator } from "components/interface/_global-elements";
 import { Button, Dropdown } from "components/interface/form/globalFields";
 import { FunctionComponent, useCallback, useMemo, useState } from "react";
-import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual, shallowEqual } from "utils/useAppSelector";
 import {
   upsertExpandedEvaUuids,
   setSelectedEvaUuid,
@@ -9,32 +9,20 @@ import {
   deleteExpandedEvaUuids,
 } from "store/eva";
 import evaStyles from "./eva.module.css";
-import paneStyles from "../global-pane-styles.module.css";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCaretDown,
   faCaretRight,
   faPersonWalkingArrowRight,
   faPlusCircle,
-  faSliders,
 } from "@fortawesome/free-solid-svg-icons";
-import EvaItemSequence from "./eva-item-sequence";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkAddStationToEva, thunkChangeEvaDropdown } from "store/thunk/thunkEva";
-import {
-  decodeEmoji,
-  hhmmssFromSeconds,
-  hmmFromMinutes,
-  isNotNumber,
-  secondsFromhhmmss,
-} from "utils/formatting";
-import { setHoverUuidsForSequence } from "store/hover";
+import { thunkChangeEvaDropdown } from "store/thunk/thunkEva";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
-import { RexStatusMenu } from "../rex/rex-status-menu";
-import PetInterval from "components/page/petInterval";
-import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 import { thunkCreateRex } from "store/thunk/thunkRex";
 import { setSelectedRexUuid } from "store/rex";
+import { EvaSequence } from "./eva-item-sequence";
 
 const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
   evaUuid,
@@ -123,6 +111,7 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
     (state) => state.eva.expandedEvaUuids.includes(asPlannedEva.uuid),
     shallowEqual
   );
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   // set styles. if this eva is selected, highlight it. if the sequence item is selected, emphasize it
   const selectedStyleState: null | "highlight" = useMemo(() => {
@@ -186,28 +175,57 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
             handleClickOnEvaName();
           }}
         >
-          <div className={evaStyles.nameText}>{asPlannedEva.name}</div>
-          <ModifiedIndicator
-            obj1={[thisEva, ...evaTraversesForModified]}
-            obj2={[thisEvaFromDb, ...evaTraversesFromDbForModified]}
-          />
+          <div className={evaStyles.nameTopRow}>
+            <div className={evaStyles.nameText}>{asPlannedEva.name}</div>
+            <ModifiedIndicator
+              obj1={[thisEva, ...evaTraversesForModified]}
+              obj2={[thisEvaFromDb, ...evaTraversesFromDbForModified]}
+            />
 
-          <div className={evaStyles.nameSpacer} />
-          {isDropdownRexUuidRunning && (
-            <div
-              className={`${selectedStyleState === "highlight" ? evaStyles.rexIconWrapperSelected : evaStyles.rexIconWrapper}`}
-            >
-              <FontAwesomeIcon icon={faPersonWalkingArrowRight} />
-            </div>
-          )}
-          <div className={evaStyles.nameIcons}>
-            <Dropdown
-              selected={dropdownEvaUuid}
-              arrowClassName={evaStyles.dropdownArrow}
-              selectClassName={`${evaStyles.dropdownSelector}`}
-              onChange={async (val) => {
-                dispatch(upsertExpandedEvaUuids([asPlannedEva.uuid]));
-                if (val === "") {
+            <div className={evaStyles.nameSpacer} />
+            {isDropdownRexUuidRunning && (
+              <FontAwesomeIcon
+                icon={faPersonWalkingArrowRight}
+                className={`${evaStyles.rexIconWrapper} ${selectedStyleState === "highlight" && evaStyles.rexIconWrapperSelected}`}
+                data-tooltip-id="aegis-tooltip"
+                data-tooltip-html={"Execution in Progress"}
+              />
+            )}
+          </div>
+          <div className={evaStyles.nameBottomRow}>
+            {evaRexesPartialForDropdown.length > 0 ? (
+              <Dropdown
+                selected={dropdownEvaUuid}
+                arrowClassName={evaStyles.dropdownArrow}
+                selectClassName={`${evaStyles.dropdownSelector}`}
+                onChange={async (val) => {
+                  dispatch(upsertExpandedEvaUuids([asPlannedEva.uuid]));
+                  dispatch(
+                    thunkChangeEvaDropdown({
+                      dropdownEvaUuid: val,
+                      asPlanedEvaUuid: asPlannedEva.uuid,
+                    })
+                  );
+                }}
+              >
+                {!showRunningRexOnly && (
+                  <option key={asPlannedEva.uuid} value={asPlannedEva.uuid}>
+                    As Planned
+                  </option>
+                )}
+                {evaRexesPartialForDropdown.map((rexPartial) => (
+                  <option key={rexPartial.uuid} value={rexPartial.evaUuid}>
+                    {rexPartial.name}
+                  </option>
+                ))}
+              </Dropdown>
+            ) : (
+              <div className={evaStyles.noRexes}>As Planned</div>
+            )}
+
+            {editPerms && (
+              <Button
+                onClick={async () => {
                   setIsCreatingRex(true); // Show loading overlay
                   try {
                     await dispatch(thunkCreateRex({ asPlannedEvaUuid: asPlannedEva.uuid }));
@@ -215,234 +233,22 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
                     // Hide loading overlay when operation completes (success or failure)
                     setIsCreatingRex(false);
                   }
-                } else {
-                  dispatch(
-                    thunkChangeEvaDropdown({
-                      dropdownEvaUuid: val,
-                      asPlanedEvaUuid: asPlannedEva.uuid,
-                    })
-                  );
-                }
-              }}
-              toolTip="Executions"
-            >
-              {!showRunningRexOnly && (
-                <option key={asPlannedEva.uuid} value={asPlannedEva.uuid}>
-                  As Planned
-                </option>
-              )}
-              {evaRexesPartialForDropdown.map((rexPartial) => (
-                <option key={rexPartial.uuid} value={rexPartial.evaUuid}>
-                  {rexPartial.name}
-                </option>
-              ))}
-              {!showRunningRexOnly && (
-                <option key={""} value={""}>
-                  + Add REX
-                </option>
-              )}
-            </Dropdown>
-            <FontAwesomeIcon icon={faSliders} style={{}} />
+                }}
+                label={"Add REX"}
+                icon={faPlusCircle}
+                className={evaStyles.addRexButton}
+                enabled={true}
+                toolTip="Add Real-time Execution (REX)"
+              />
+            )}
           </div>
         </div>
       </div>
       {isExpanded && <EvaSequence evaUuid={dropdownEvaUuid} />}
 
-      {isCreatingRex && <LoadingOverlay message="Creating REX Execution..." />}
+      {isCreatingRex && <LoadingOverlay message="Creating Real-time Execution (REX)..." />}
     </div>
   );
 };
 
 export default EvaItem;
-
-export const EvaSequence: FunctionComponent<{
-  evaUuid: string;
-}> = ({ evaUuid }) => {
-  const dispatch = useAppDispatch();
-  const eva = useAppSelector((state) => {
-    return state.eva.evas.find((eva) => eva.uuid === evaUuid);
-  }, deepEqual);
-  const editMode = useAppSelector((state) => state.eva.evasEditing.includes(evaUuid), refEqual);
-  const isRexEva = useAppSelector((state) => {
-    const rexEvaUuids = state.rex.rexes.map((rex) => rex.evaUuid);
-    return rexEvaUuids.includes(evaUuid);
-  }, refEqual);
-
-  return (
-    <>
-      <div className={evaStyles.evaSequenceContainer}>
-        <EvaEgressIngressListing eva={eva} isEgress={true} isRexEva={isRexEva} />
-        <EvaItemSequence evaUuid={evaUuid} />
-        <EvaEgressIngressListing eva={eva} isEgress={false} isRexEva={isRexEva} />
-      </div>
-      {editMode && (
-        <div className={evaStyles.evaFooterContainer}>
-          <div className={paneStyles.iconButtons}>
-            <Button
-              onClick={() => {
-                dispatch(thunkAddStationToEva({ evaUuid }));
-              }}
-              label="Add Station"
-              icon={faPlusCircle}
-              style={{ width: "105px" }}
-            />
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
-export const EvaEgressIngressListing: FunctionComponent<{
-  eva: Eva;
-  isEgress: boolean;
-  isRexEva: boolean;
-}> = ({ isEgress, eva, isRexEva }) => {
-  const dispatch = useAppDispatch();
-  const station = useAppSelector((state) => {
-    return state.station.stations.find(
-      (station) => station.uuid === (isEgress ? eva.egressLocationUuid : eva.ingressLocationUuid)
-    );
-  }, deepEqual);
-
-  // returns the rex from db object if this is a rex eva and is executing
-  const rexFromDbIfExecuting = useAppSelector((state) => {
-    if (!isRexEva) return null;
-    return state.rex.rexesFromDb.find((rex) => rex.isRunning && rex.evaUuid === eva.uuid);
-  }, deepEqual);
-
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
-
-  const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
-
-  const xgressIdentifier = isEgress ? "egress" : "ingress";
-
-  const xgressRexStatus = useAppSelector((state) => {
-    const rex = state.rex.rexes.find((rex) => rex.evaUuid === eva.uuid);
-    if (!rex || !rex.xgressEntries) return null;
-    return rex.xgressEntries[xgressIdentifier]?.rexStatus;
-  }, deepEqual);
-
-  const [rexPetTime, setRexPetTime] = useState("");
-
-  const evaCalculatedFields: EvaCalculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByEva({
-        evaUuid: eva.uuid,
-        evas: state.eva.evas,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-        traverses: state.traverse.traverses,
-      }),
-    deepEqual
-  );
-
-  const displayInProgressItemTimeRemaining = useCallback(
-    (rexPetSeconds: number) => {
-      let totalEvaTime;
-      if (isNotNumber(eva.duration)) {
-        if (evaCalculatedFields) {
-          totalEvaTime = evaCalculatedFields.totalEvaTime;
-        } else {
-          return null;
-        }
-      } else {
-        totalEvaTime = eva.duration;
-      }
-      let secondsRemaining = 0;
-      if (xgressIdentifier === "egress") {
-        secondsRemaining = (eva.egressDuration * 60 - rexPetSeconds) * -1;
-      } else {
-        secondsRemaining = (totalEvaTime * 60 - eva.ingressDuration * 60 - rexPetSeconds) * -1;
-      }
-      return hhmmssFromSeconds(secondsRemaining);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [evaCalculatedFields, eva]
-  );
-
-  let xgressStyle = null;
-  if (
-    (xgressIdentifier === "egress" && hoverItemUuid === eva.egressLocationUuid) ||
-    (xgressIdentifier === "ingress" && hoverItemUuid === eva.ingressLocationUuid)
-  ) {
-    xgressStyle = evaStyles.evaItemNameHoverMode;
-  }
-
-  if (xgressRexStatus === "in-progress") {
-    xgressStyle = evaStyles.evaItemNameRexInProgress;
-  } else if (xgressRexStatus === "complete") {
-    xgressStyle = evaStyles.evaItemNameRexComplete;
-  } else if (xgressRexStatus === "skipped") {
-    xgressStyle = evaStyles.evaItemNameRexSkipped;
-  }
-
-  const icon = station ? station.icon : "1f680"; //rocket
-  const name = `${isEgress ? "Egress" : "Ingress"} at ${station ? station.name : "Lander"}`;
-
-  return (
-    <div className={evaStyles.evaItem}>
-      <PetInterval
-        runningRex={rexFromDbIfExecuting}
-        rexPetTime={rexPetTime}
-        setRexPetTime={setRexPetTime}
-      />
-      <div className={evaStyles.iconCustom}>{decodeEmoji(icon)}</div>
-      {isRexEva && (
-        <RexStatusMenu
-          rexStatus={xgressRexStatus}
-          divClassName={evaStyles.rexStatusWrapper}
-          entryType="xgress"
-          uuid={xgressIdentifier}
-          editPerms={!!(editPerms && rexFromDbIfExecuting)} // the !! converts result into boolean
-          maestroControlled={rexFromDbIfExecuting?.maestroControlled}
-        />
-      )}
-      <div
-        className={`${evaStyles.evaItemName} ${xgressStyle}`}
-        style={{ cursor: "pointer" }}
-        onClick={() => {
-          dispatch(setSelectedEvaUuid(eva.uuid));
-          dispatch(thunkSetRightPanelIsOpenIfAuto(true));
-          dispatch(setSelectedEvaSequenceItemUuid(null));
-        }}
-        onMouseEnter={() => {
-          dispatch(
-            setHoverUuidsForSequence({
-              sequenceUuid: isEgress ? eva.egressLocationUuid : eva.ingressLocationUuid,
-              mapItemType: null,
-            })
-          );
-        }}
-        onMouseLeave={() => {
-          dispatch(setHoverUuidsForSequence({ sequenceUuid: null, mapItemType: null }));
-        }}
-      >
-        <div className={evaStyles.evaItemLeft}>
-          <div className={evaStyles.evaItemNameText}>{name}</div>
-        </div>
-        <div className={evaStyles.evaItemRight}>
-          <div
-            className={evaStyles.evaItemRightItem}
-            data-tooltip-id="aegis-tooltip"
-            data-tooltip-html={isEgress ? "Egress duration (hh:mm)" : "Ingress duration (hh:mm)"}
-            data-tooltip-place="right"
-          >
-            {hmmFromMinutes(isEgress ? eva.egressDuration : eva.ingressDuration)}
-          </div>
-          {rexFromDbIfExecuting && xgressRexStatus === "in-progress" && (
-            <div
-              className={evaStyles.evaItemRightItem}
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={"Time remaining (hh:mm:ss)"}
-              data-tooltip-place="right"
-            >
-              {displayInProgressItemTimeRemaining(secondsFromhhmmss(rexPetTime))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};

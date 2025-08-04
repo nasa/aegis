@@ -1,4 +1,6 @@
 import sortBy from "lodash/sortBy";
+import { IconDefinition, faSquare, faSquareCheck } from "@fortawesome/free-regular-svg-icons";
+import rexStyles from "components/panes/rex/rex.module.css";
 
 export const getAlertColor = (
   reportItems: ReportItem[],
@@ -81,5 +83,64 @@ export const makeTraverseRateString = (
     return `Using EVA Rate: ${evaDefault}`;
   } else {
     return `Using Mission Rate: ${missionDefault}`;
+  }
+};
+
+export const getRexStatusDisplayProperties = (
+  rexStatus: RexStatus
+): {
+  icon: IconDefinition;
+  iconStyle: string;
+  tooltip: string;
+  headerBackgroundColor: string;
+  bodyBackgroundColor: string;
+  customTextClassName: string;
+} => {
+  if (!rexStatus)
+    return {
+      icon: faSquare,
+      iconStyle: rexStyles.rexStatusIconPending,
+      tooltip: "Pending",
+      headerBackgroundColor: "var(--grey2)",
+      bodyBackgroundColor: "var(--grey2)",
+      customTextClassName: null,
+    };
+  switch (rexStatus) {
+    case "pending":
+      return {
+        icon: faSquare,
+        iconStyle: rexStyles.rexStatusIconPending,
+        tooltip: "Pending",
+        headerBackgroundColor: "var(--grey2)",
+        bodyBackgroundColor: "var(--grey2)",
+        customTextClassName: null,
+      };
+    case "in-progress":
+      return {
+        icon: faSquare,
+        iconStyle: rexStyles.rexStatusIconInProgress,
+        tooltip: "In Progress",
+        headerBackgroundColor: "var(--rexDim)",
+        bodyBackgroundColor: "var(--grey2)",
+        customTextClassName: null,
+      };
+    case "complete":
+      return {
+        icon: faSquareCheck,
+        iconStyle: rexStyles.rexStatusIconComplete,
+        tooltip: "Complete",
+        headerBackgroundColor: "var(--grey1)",
+        bodyBackgroundColor: "var(--grey1)",
+        customTextClassName: rexStyles.headingCompleted,
+      };
+    case "skipped":
+      return {
+        icon: null,
+        iconStyle: rexStyles.rexStatusIconSkipped,
+        tooltip: "Skipped",
+        headerBackgroundColor: "var(--grey1)",
+        bodyBackgroundColor: "var(--grey1)",
+        customTextClassName: rexStyles.headingSkipped,
+      };
   }
 };

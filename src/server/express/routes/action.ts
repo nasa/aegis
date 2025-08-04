@@ -126,15 +126,28 @@ export async function getActions(filter: ActionFilterOptions): Promise<Action[]>
   if (filter?.stationUuid) whereClause.station = { uuid: filter.stationUuid };
   if (filter?.missionId) whereClause.mission = { id: filter.missionId };
 
-  const dbactions: Loaded<Action_db>[] = await em.find(
+  const dbActions: Loaded<Action_db>[] = await em.find(
     Action_db,
     { ...whereClause },
     { orderBy: [{ name: QueryOrder.ASC }] }
   );
 
   //convert foreign keys
-  const actions = convertActionsTypeDbToStore(dbactions) as Action[];
-  return actions;
+  return convertActionsTypeDbToStore(dbActions) as Action[];
+}
+
+/**
+ * Gets action refUuids by their uuids.
+ * @param actionUuids array of action uuids to retrieve
+ * @returns array of action refUuids
+ */
+export async function getActionRefUuids(actionUuids: string[]): Promise<string[]> {
+  const em = getEM();
+
+  const dbActions: Loaded<Action_db>[] = await em.find(Action_db, {
+    uuid: { $in: actionUuids },
+  });
+  return dbActions.map((a) => a.refUuid);
 }
 
 /**

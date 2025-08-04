@@ -38,6 +38,7 @@ interface EvaState {
   expandedEvaUuids: string[];
   evaDropdownUIStates: EvaDropdownUIStates;
   showRunningRexOnly: boolean;
+  runningRexExpanded: boolean;
   evas: Eva[];
   evasFromDb: Eva[];
   evasEditing: string[];

@@ -7,6 +7,8 @@ const Info_subpanel: FunctionComponent<{
 }> = ({ sublayer }) => {
   return (
     <div className={styles.container}>
+      <div className={styles.title}>Name</div>
+      <div className={styles.description}>{sublayer.name.replace(/_/g, " ") || "None"}</div>
       <div className={styles.title}>Description</div>
       <div className={styles.description}>{sublayer.description || "None"}</div>
       {sublayer.legend && (

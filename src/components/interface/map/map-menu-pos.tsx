@@ -31,7 +31,7 @@ import { setHoverUuidsForPosEntry } from "store/hover";
 import { PosKabobMenu } from "./map-menu-pos-menu";
 import orderBy from "lodash/orderBy";
 import isEqual from "lodash/isEqual";
-import { calcPathDurationMins, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import { calcPathDurationMins, getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 
 export const MapPositionMenu: FunctionComponent = () => {
@@ -104,6 +104,12 @@ export const MapPositionMenu: FunctionComponent = () => {
     const selectedEva = state.eva.evas.find((e) => e.uuid === selectedRex?.evaUuid);
     return `${selectedEva?.name} - ${selectedRex?.name}`;
   }, refEqual);
+
+  const selectedRexIsExecuting = useAppSelector((state) => {
+    const selectedRex = state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid);
+    return selectedRex?.isRunning;
+  }, refEqual);
+
   const [selectedPosTypeUuids, setSelectedPosTypeUuids] = useState<string[]>([]);
   const [showPosList, setShowPosList] = useState(false);
   const [showMenu, setShowMenu] = useState(true);
@@ -205,10 +211,15 @@ export const MapPositionMenu: FunctionComponent = () => {
       })
     );
   };
+
+  const posMapClass = selectedRexIsExecuting
+    ? posMenuStyles.mapPosDisplayExecuting
+    : posMenuStyles.mapPosDisplay;
+
   return (
     <div className={posMenuStyles.mapPosDisplayContainer}>
       <div
-        className={`${posMenuStyles.mapPosDisplay} ${showMenu ? posMenuStyles.menuOpen : posMenuStyles.menuClosed}`}
+        className={`${posMapClass} ${showMenu ? posMenuStyles.menuOpen : posMenuStyles.menuClosed}`}
       >
         {!showMenu && (
           <div

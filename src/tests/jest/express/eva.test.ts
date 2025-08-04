@@ -4,14 +4,16 @@ import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import { App_User_db, Mission_db, Eva_db } from "server/database/models/_allModels";
 import EvaFactory from "../factories/EVAFactory";
-import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankEVA } from "store/storeUtils/eva";
+// suppress socketio calls because they won't work during jest testing
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
     ...jest.requireActual("server/express/sockets"),
+    emitStoreUpsert: jest.fn(),
+    emitStoreDelete: jest.fn(),
   };
 });
 
@@ -24,7 +26,7 @@ beforeAll(async () => {
   const em = getEM();
   testMissions = await new MissionFactory(em).create(3);
   testUser = await new UserFactory(em).createOne({
-    username: "Jesteva",
+    username: "Jest Eva",
     permissionList: [
       {
         missionId: testMissions[0].id,
@@ -48,10 +50,6 @@ beforeAll(async () => {
       eva.ownerId = testUser.id;
     })
     .create(2);
-
-  // suppress socketio calls because they won't work during jest testing
-  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
-  jest.spyOn(SocketIo, "emitStoreDelete").mockImplementation(() => {});
 });
 
 describe("EVA API Endpoint", () => {

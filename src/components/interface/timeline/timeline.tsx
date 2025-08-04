@@ -11,7 +11,7 @@ import {
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 
 import styles from "./timeline.module.css";
-import { getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { clearMapItemHover } from "store/hover";
 import throttle from "lodash/throttle";
@@ -69,13 +69,16 @@ const NavTimeline: FunctionComponent = () => {
       ? eva.sequence.filter((s) => s.type === "station")
       : [];
     const allStationCalculatedFields: StationCalculatedFields[] = [];
-    for (const station of stationsInEvaSequence) {
+    for (const stationSeqItem of stationsInEvaSequence) {
+      const station = state.station.stations.find((s) => s.uuid === stationSeqItem.uuid);
+      const stationActions = state.action.actions.filter(
+        (a) => a.stationUuid === stationSeqItem.uuid && a.enabled
+      );
       allStationCalculatedFields.push(
         getCalculatedFieldsByStation({
-          stationUuid: station.uuid,
-          stations: state.station.stations,
-          mission: state.mission.mission,
-          actions: state.action.actions,
+          station,
+          missionWalkbackRate: state.mission.mission.walkbackRate,
+          stationActions,
         })
       );
     }
@@ -87,14 +90,22 @@ const NavTimeline: FunctionComponent = () => {
       ? eva.sequence.filter((s) => s.type === "traverse")
       : [];
     const allTraverseCalculatedFields: TraverseCalculatedFields[] = [];
-    for (const traverse of traversesInEvaSequence) {
+    for (const traverseSeqItem of traversesInEvaSequence) {
+      const traverse = state.traverse.traverses.find(
+        (traverse) => traverse.uuid === traverseSeqItem.uuid
+      );
+      const traverseEva = state.eva.evas.find((eva) =>
+        eva.sequence.some((seqItem) => seqItem.uuid === traverse?.uuid)
+      );
+      const traverseActions = state.action.actions.filter(
+        (a) => a.traverseUuid === traverse?.uuid && a.enabled
+      );
       allTraverseCalculatedFields.push(
         getCalculatedFieldsByTraverse({
-          traverseUuid: traverse.uuid,
-          traverses: state.traverse.traverses,
-          mission: state.mission.mission,
-          evas: state.eva.evas,
-          actions: state.action.actions,
+          traverse,
+          missionTraverseRate: state.mission.mission.traverseRate,
+          traverseEva,
+          traverseActions,
         })
       );
     }

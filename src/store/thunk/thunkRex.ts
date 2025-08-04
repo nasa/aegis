@@ -1,6 +1,6 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
-import { getAccurateNow, roundDateToSecond } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
 import {
   deleteRexesByUuid,
   deleteRexesFromDbByUuid,
@@ -17,7 +17,7 @@ import * as httpClient_Rex from "http-client/rex";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { thunkCancelPosEntry } from "./thunkRexPosEntry";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
-import { thunkDeleteEva, thunkDuplicateEva, thunkSetOnlyShowRunningRexEva } from "./thunkEva";
+import { thunkDeleteEva, thunkDuplicateEva } from "./thunkEva";
 import {
   setEvaDropdownUIState,
   setSelectedEvaUuid,
@@ -53,7 +53,7 @@ export const thunkCreateRex = appCreateAsyncThunk<
   const rexNames = getState()
     .rex.rexes.filter((r) => evaUuidsWithSameRefUuid.includes(r.evaUuid))
     .map((r) => r.name);
-  const randomName = makeUniqueStringCopy("New REX", rexNames, false);
+  const randomName = makeUniqueStringCopy("REX", rexNames, false);
   const blankRex = generateBlankRex({
     missionId: getState().mission.mission.id,
     name: randomName,
@@ -194,7 +194,7 @@ export const thunkRexPetStartStop = appCreateAsyncThunk<{
         ...rex,
         petRunning: directive === "start",
         petValueAtStartStop: petValue,
-        petStartStopTimestamp: roundDateToSecond(getAccurateNow()).toISOString(),
+        petStartStopTimestamp: getAccurateNow().toISOString(),
       },
     ])
   );
@@ -369,6 +369,6 @@ export const thunkJumpToRunningRex = appCreateAsyncThunk<void>(
     dispatch(setSectionSelected("evas"));
     dispatch(setSelectedPosEntryUuid(null));
     dispatch(setSelectedEvaSequenceItemUuid(null));
-    dispatch(thunkSetOnlyShowRunningRexEva({ show: true }));
+    dispatch(setOnlyShowRunningRex(true));
   }
 );

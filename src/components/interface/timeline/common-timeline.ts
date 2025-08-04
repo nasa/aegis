@@ -1,7 +1,7 @@
 import isNumber from "lodash/isNumber";
 import { MutableRefObject } from "react";
 import { isNotNumber } from "utils/formatting";
-import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 
 /**
  * Populate storeRefs with all our store information so paper.js can read it.

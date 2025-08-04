@@ -935,3 +935,10 @@
   user-select: none;
   cursor: pointer;
 }
+
+.iconSvg {
+  font-size: 1.4em;
+  margin-top: -2px;
+  height: 1em;
+  vertical-align: -0.25em;
+}

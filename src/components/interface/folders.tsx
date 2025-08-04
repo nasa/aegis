@@ -1,4 +1,12 @@
-import { FunctionComponent, useState, ReactNode, useRef, Children } from "react";
+import {
+  FunctionComponent,
+  useState,
+  ReactNode,
+  useRef,
+  Children,
+  KeyboardEvent,
+  MouseEvent,
+} from "react";
 import styles from "./folders.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -67,7 +75,7 @@ const DraggableItem = ({
 const FolderMenu: FunctionComponent<{
   folderUuid: string;
   folderInterface: FolderInterface;
-  handleCancel: (e: React.MouseEvent) => void;
+  handleCancel: (e: MouseEvent) => void;
   editPerms: boolean;
 }> = ({ folderUuid, folderInterface, handleCancel, editPerms }) => {
   const dispatch = useAppDispatch();
@@ -78,7 +86,7 @@ const FolderMenu: FunctionComponent<{
     refEqual
   );
 
-  const handleMenuOpen = (e: React.MouseEvent) => {
+  const handleMenuOpen = (e: MouseEvent) => {
     const x = e.clientX + 5;
     menuRef.current.style.left = `${x}px`;
     menuRef.current.style.top = `${e.clientY}px`;
@@ -205,7 +213,7 @@ const FolderComponent = ({
 
   const folderContents = itemUuids.filter((itemUuid) => itemsToFolders[itemUuid] === folder.uuid);
 
-  const handleFolderClick = (e: React.MouseEvent) => {
+  const handleFolderClick = (e: MouseEvent) => {
     // Only toggle if clicking the folder area, not the menu or input
     if (
       !(e.target as HTMLElement).closest(".folderMenu") &&
@@ -221,13 +229,13 @@ const FolderComponent = ({
     }
   };
 
-  const handleCancelEdit = (e: React.MouseEvent) => {
+  const handleCancelEdit = (e: MouseEvent) => {
     e.stopPropagation();
     dispatch(setFolderInterfaceNameValue({ folderUuid: folder.uuid, editingNameValue: null }));
     dispatch(setFolderInterfaceEditing({ folderUuid: folder.uuid, editing: false }));
   };
 
-  const handleSaveEdit = (e: React.MouseEvent) => {
+  const handleSaveEdit = (e: KeyboardEvent<HTMLDivElement> | MouseEvent) => {
     e.stopPropagation();
     const newFolder = { ...folder, name: folderInterface.editingNameValue };
     dispatch(thunkSaveFolder({ folder: newFolder }));
@@ -248,7 +256,12 @@ const FolderComponent = ({
             icon={folderInterface.isOpen ? faFolderOpen : faFolder}
             className={styles.folderIcon}
           />
-          <div className={styles.folderName}>
+          <div
+            className={styles.folderName}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSaveEdit(e);
+            }}
+          >
             <InLineEditInput
               value={folderInterface.editingNameValue || folder.name}
               editing={folderInterface.editing}

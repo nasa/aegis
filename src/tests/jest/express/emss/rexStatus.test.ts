@@ -10,7 +10,6 @@ import {
 } from "server/database/models/_allModels";
 import MissionFactory from "../../factories/MissionFactory";
 import RexFactory from "../../factories/RexFactory";
-import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import EvaFactory from "tests/jest/factories/EVAFactory";
@@ -18,10 +17,13 @@ import StationFactory from "tests/jest/factories/StationFactory";
 import TraverseFactory from "tests/jest/factories/TraverseFactory";
 import ActionFactory from "tests/jest/factories/ActionFactory";
 
+// suppress socketio calls because they won't work during jest testing
 jest.mock("server/express/sockets", () => {
   return {
     __esModule: true,
     ...jest.requireActual("server/express/sockets"),
+    emitStoreUpsert: jest.fn(),
+    emitStoreDelete: jest.fn(),
   };
 });
 
@@ -93,8 +95,6 @@ beforeAll(async () => {
       rex.isRunning = idx === 0; // create one rex that is running, one that is not
     })
     .create(2);
-
-  jest.spyOn(SocketIo, "emitStoreUpsert").mockImplementation(() => {});
 });
 
 describe("REX Status API Endpoint", () => {

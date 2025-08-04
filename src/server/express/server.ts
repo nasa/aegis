@@ -1,13 +1,14 @@
 import dotenv from "dotenv";
 dotenv.config({ override: true });
 import { createServer, Server as NetServer } from "http";
-import { DefaultEventsMap, Server as SocketServer } from "socket.io";
+import { Server as SocketServer } from "socket.io";
+import type { DefaultEventsMap } from "socket.io";
 import app from "./restApi";
 
 import { setupSocketIO } from "./sockets";
 import { globalValues } from "./global";
 import { getORM } from "utils/mikro";
-import serverLogger from "utils/serverLogger";
+import serverLogger from "utils/logging/serverLogger";
 import packageJson from "../../../package.json";
 
 // start the database connection
@@ -22,7 +23,7 @@ globalValues.socketio = new SocketServer<
   ClientToServerEvents,
   ServerToClientEvents,
   DefaultEventsMap,
-  SocketData
+  {}
 >(server, {
   transports: ["websocket"],
   path: "/api/v1/socketio",

@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test("create edit cancel delete eva", async ({ page }) => {
   await page.goto("http://localhost:4000/mission/22");
-  await page.waitForTimeout(2000);
+  await page.waitForLoadState("networkidle");
 
   // go to eva section
   await page.getByLabel("evas Section", { exact: true }).click();
@@ -14,23 +14,23 @@ test("create edit cancel delete eva", async ({ page }) => {
   await expect(page.getByLabel("evaList-item", { exact: true })).toHaveCount(startingNumEvas + 1);
 
   // edit eva name and save
-  await page.getByLabel("Eva", { exact: true }).click();
-  await page.getByLabel("Eva", { exact: true }).fill("Playwright Test Eva");
+  await page.getByLabel("EVA Title", { exact: true }).click();
+  await page.getByLabel("EVA Title", { exact: true }).fill("Playwright Test Eva");
   await expect(page.getByLabel("evaList-item", { exact: true })).toContainText([
     /Playwright Test Eva/,
-  ]); // give time for the store to update
+  ]);
   await page.getByLabel("saveEva", { exact: true }).click();
-  await expect(page.getByLabel("Eva", { exact: true })).toContainText("Playwright Test Eva");
+  await expect(page.getByLabel("EVA Title", { exact: true })).toContainText("Playwright Test Eva");
 
   // edit eva name and cancel
   await page.getByLabel("editEva", { exact: true }).click();
-  await page.getByLabel("Eva", { exact: true }).click();
-  await page.getByLabel("Eva", { exact: true }).fill("Playwright Test Eva edited");
+  await page.getByLabel("EVA Title", { exact: true }).click();
+  await page.getByLabel("EVA Title", { exact: true }).fill("Playwright Test Eva edited");
   await expect(page.getByLabel("evaList-item", { exact: true })).toContainText([
     /Playwright Test Eva edited/,
-  ]); // give time for the store to update
+  ]);
   await page.getByLabel("cancelEva", { exact: true }).click();
-  await expect(page.getByLabel("Eva", { exact: true })).toContainText("Playwright Test Eva");
+  await expect(page.getByLabel("EVA Title", { exact: true })).toContainText("Playwright Test Eva");
 
   // delete eva
   const dialogPromise = new Promise<void>((resolve) => {

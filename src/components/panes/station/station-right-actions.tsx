@@ -24,11 +24,13 @@ const Actions_Panel: FunctionComponent<{
     deepEqual
   );
   const actionsCalculatedFields = useAppSelector((state) => {
+    const stationActions = state.action.actions.filter(
+      (a) => a.stationUuid === selectedStation?.uuid && a.enabled
+    );
     const calculatedFields = getCalculatedFieldsByStation({
-      stationUuid: selectedStation.uuid,
-      stations: state.station.stations,
-      mission: state.mission.mission,
-      actions: state.action.actions,
+      station: selectedStation,
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      stationActions,
     });
     const newActionsCalculatedFields: ActionsCalculatedFields = {
       actionCount: calculatedFields.actionCount,

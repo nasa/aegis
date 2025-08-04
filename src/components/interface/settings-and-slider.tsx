@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import styles from "./settings-and-slider.module.css";
 import { Dropdown } from "components/interface/form/globalFields";
 
@@ -22,8 +22,6 @@ const Settings_subpanel: FunctionComponent<{
   } else if (type === "circle") {
     layerStyle = mapCircleControls[uuid]?.style;
   }
-
-  const [chosenColor, setChosenColor] = useState<string>(layerStyle?.color || "#ffffff");
 
   //default setting options to show
   let showSliders = {
@@ -89,13 +87,6 @@ const Settings_subpanel: FunctionComponent<{
       layerStyle: { ...layerStyle, [property]: value },
     });
   };
-
-  useEffect(() => {
-    styleSetter({
-      uuid,
-      layerStyle: { ...layerStyle, color: chosenColor },
-    });
-  }, [chosenColor, layerStyle, styleSetter, uuid]);
 
   return (
     <div className={styles.slidersContainer}>
@@ -169,7 +160,7 @@ const Settings_subpanel: FunctionComponent<{
             <CompactColor
               color={layerStyle?.color}
               onChange={(color) => {
-                setChosenColor(color.hex);
+                setStyle(color.hex, "color");
               }}
             />
           </div>

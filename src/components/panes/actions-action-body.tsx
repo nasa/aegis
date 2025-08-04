@@ -32,12 +32,15 @@ import round from "lodash/round";
 import isNull from "lodash/isNull";
 import { EquipmentSelector, GeographicUnitSelector } from "./actions-action-body-multiselectors";
 import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
-import { findGridCoordinatesFromPoint, getDistanceBetweenTwoCoordinates } from "utils/geoMath";
+import {
+  findGridCoordinatesFromPoint,
+  getDistanceBetweenTwoCoordinates,
+} from "utils/mapping/geoMath";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkAddCollectionId, thunkAddRexActionMass } from "store/thunk/thunkRex";
-import { globalGrid } from "utils/grid";
+import { globalGrid } from "utils/mapping/grid";
 
 const RightActionBody: FunctionComponent<{
   editMode: boolean;

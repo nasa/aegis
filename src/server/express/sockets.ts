@@ -4,17 +4,19 @@ import find from "lodash/find";
 import isEqual from "lodash/isEqual";
 import { globalValues } from "./global";
 import type { DefaultEventsMap, Socket } from "socket.io";
+import { emitMaestroStoreDelete, emitMaestroStoreUpsert } from "server/express/maestro-sockets";
 
 export const setupSocketIO = (): void => {
   // initialize the global object that will store the visitor tracking data and last edit events
   const visitorsData: VisitorData[] = globalValues.serverSocketStatus.visitorsData;
+  const maestroVisitors: MaestroVisitor[] = globalValues.serverSocketStatus.maestroVisitors;
   let socketInterval: NodeJS.Timeout = null;
   const io = globalValues.socketio;
 
   // Listen for connection events
   io.on(
     "connection",
-    (socket: Socket<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, SocketData>) => {
+    (socket: Socket<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, {}>) => {
       // emit AEGIS app version to client that just connected
       socket.emit("version", globalValues.appVersion);
 
@@ -48,21 +50,39 @@ export const setupSocketIO = (): void => {
         }
       });
 
+      socket.on("maestroJoin", (maestroVisitor: MaestroVisitor) => {
+        socket.join(`maestro`); // join a maestro room
+
+        // set this visitor's information on the server's global
+        // remove this socket from tracking list if it exists and push the new one
+        remove(maestroVisitors, (item) => {
+          return item.socketId === maestroVisitor.socketId;
+        });
+        maestroVisitors.push(maestroVisitor);
+      });
+
       socket.on("disconnect", () => {
         try {
+          // remove if this is a maestro visitor
+          remove(maestroVisitors, (item) => {
+            return item.socketId === socket.id;
+          });
+
+          // remove this socket from the visitor tracking
           const visitorBeingRemoved = find(visitorsData, {
             socketId: socket.id,
           });
-          if (!visitorBeingRemoved) return;
-          // remove this socket from the visitor tracking
-          remove(visitorsData, (item) => {
-            return item.socketId === visitorBeingRemoved.socketId;
-          });
-          const statusFromServer = getStatusFromServer(visitorBeingRemoved.missionId);
-          // emit updated visitor count to all clients in this room
-          socket
-            .to(visitorBeingRemoved.missionId.toString())
-            .emit("statusFromServer", statusFromServer);
+          if (visitorBeingRemoved) {
+            remove(visitorsData, (item) => {
+              return item.socketId === visitorBeingRemoved.socketId;
+            });
+
+            // emit updated visitor count to all clients in this room
+            const statusFromServer = getStatusFromServer(visitorBeingRemoved.missionId);
+            socket
+              .to(visitorBeingRemoved.missionId.toString())
+              .emit("statusFromServer", statusFromServer);
+          }
         } catch (error) {
           console.error("SocketIO - disconnect: ", error);
         }
@@ -107,39 +127,52 @@ export const getStatusFromServer = (missionId: number): StatusFromServer => {
 };
 
 /**
- * Server emits an upsert message to all clients in the mission room
+ * Server emits an upsert message to all clients in the mission room, and maestro room
  * @param payload
  */
 export const emitStoreUpsert = (payload: StoreUpsert): void => {
   const io = globalValues.socketio;
   if (io) {
-    payload = addLastEditEvent(payload) as StoreUpsert;
+    payload = addLastEditEvent(payload);
     io.to(payload.missionId.toString()).emit("storeUpsert", payload);
+    // check if we need to emit to maestro room
+    if (globalValues.serverSocketStatus.maestroVisitors?.length === 0) return; // no maestro connected
+    if (["eva", "station", "traverse", "action", "mission", "rex"].includes(payload.type)) {
+      emitMaestroStoreUpsert(payload);
+    }
   } else {
     console.error("Socket.io not initialized. Unable to emit upsert.");
   }
 };
 
 /**
- * Server emits a delete message to all clients in the mission room
+ * Server emits a delete message to all clients in the mission room, and maestro room
  * @param payload
  */
 export const emitStoreDelete = (payload: StoreDelete): void => {
   const io = globalValues.socketio;
   if (io) {
-    payload = addLastEditEvent(payload) as StoreDelete;
+    payload = addLastEditEvent(payload);
     io.to(payload.missionId.toString()).emit("storeDelete", payload);
+    // check if we need to emit to maestro room
+    if (globalValues.serverSocketStatus.maestroVisitors?.length === 0) return; // no maestro connected
+    if (["eva", "station", "traverse", "action", "mission", "rex"].includes(payload.type)) {
+      emitMaestroStoreDelete(payload);
+    }
   } else {
     console.error("Socket.io not initialized. Unable to emit delete.");
   }
 };
 
 /**
- * updates the global last edit event for this mission
+ * Updates the global last edit event for this mission and adds it to the payload
+ * Use function overloading to handle both StoreUpsert and StoreDelete types
  * @param payload
  * @returns
  */
-const addLastEditEvent = (payload: StoreUpsert | StoreDelete) => {
+function addLastEditEvent(payload: StoreUpsert): StoreUpsert;
+function addLastEditEvent(payload: StoreDelete): StoreDelete;
+function addLastEditEvent(payload: StoreUpsert | StoreDelete) {
   // store the last edit event for this mission
   globalValues.serverSocketStatus.lastEditEvents[payload.missionId] = {
     socketId: payload.socketId,
@@ -150,4 +183,4 @@ const addLastEditEvent = (payload: StoreUpsert | StoreDelete) => {
   // add the last edit event to the payload
   payload.lastEditEvent = globalValues.serverSocketStatus.lastEditEvents[payload.missionId];
   return payload;
-};
+}

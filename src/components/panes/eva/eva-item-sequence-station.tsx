@@ -21,7 +21,7 @@ import {
   thunkDeleteStationFromEva,
   thunkReorderStationInEva,
 } from "store/thunk/thunkEva";
-import { getRexStatusDisplayProperties } from "../../../utils/rex";
+import { getRexStatusDisplayProperties } from "../../../utils/component-helpers";
 import PetInterval from "components/page/petInterval";
 import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
@@ -30,6 +30,7 @@ import {
   getCalculatedFieldsByStation,
 } from "store/processing/calculatedFields";
 import { selectAsPlannedStations } from "store/selectors";
+import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
 
 const SequenceItemStation: FunctionComponent<{
   evaUuid: string;
@@ -79,16 +80,46 @@ const SequenceItemStation: FunctionComponent<{
     return asPlannedStations;
   }, deepEqual);
 
-  const thisStationCalculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByStation({
-        stationUuid,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-      }),
+  // Get folder data for stations
+  const folders = useAppSelector(
+    (state) => state.interface.folders.filter((f) => f.type === "station"),
     deepEqual
   );
+
+  // Create a mapping from station UUIDs to their folder UUIDs
+  const itemsToFolders = folders.reduce<Record<string, string>>((map, folder) => {
+    folder.items?.forEach((itemUuid) => {
+      map[itemUuid] = folder.uuid;
+    });
+    return map;
+  }, {});
+
+  // Generate organized station dropdown options with custom filtering
+  const stationDropdownOptions = createFolderOrganizedDropdownOptions({
+    items: partialStatonsForDropdown,
+    folders,
+    itemsToFolders,
+    filterFn: (partialStation) => {
+      // filter out stations that are already in the sequence and stations that don't have locations
+      // for rex, all the stations are duplicated so we need to get the as-planned copies.
+      const isStationInSequence = evaSequence.map((s) => s.uuid).includes(partialStation.uuid);
+      return (
+        !(isStationInSequence && partialStation.uuid !== stationUuid) && !!partialStation.location
+      );
+    },
+  });
+
+  const thisStationCalculatedFields = useAppSelector((state) => {
+    const station = state.station.stations.find((s) => s.uuid === stationUuid);
+    const stationActions = state.action.actions.filter(
+      (a) => a.stationUuid === stationUuid && a.enabled
+    );
+    return getCalculatedFieldsByStation({
+      station,
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      stationActions,
+    });
+  }, deepEqual);
 
   const stationRexStatus = useAppSelector((state) => {
     const rex = state.rex.rexesFromDb.find((rex) => rex.evaUuid === evaUuid);
@@ -106,18 +137,17 @@ const SequenceItemStation: FunctionComponent<{
     refEqual
   );
 
-  const sequenceItemCalculatedData = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByEva({
-        evaUuid,
-        evas: state.eva.evas,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-        traverses: state.traverse.traverses,
-      })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === stationUuid),
-    deepEqual
-  );
+  const sequenceItemCalculatedData = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
+    return getCalculatedFieldsByEva({
+      eva,
+      evaStations: state.station.stations,
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      missionTraverseRate: state.mission.mission.traverseRate,
+      evaActions: state.action.actions,
+      evaTraverses: state.traverse.traverses,
+    })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === stationUuid);
+  }, deepEqual);
 
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
 
@@ -226,11 +256,9 @@ const SequenceItemStation: FunctionComponent<{
           dispatch(setHoverUuidsForSequence({ sequenceUuid: null, mapItemType: null }));
         }}
       >
-        {thisStation ? (
-          <div className={evaStyles.iconCustom}>{decodeEmoji(thisStation.icon)}</div>
-        ) : (
-          <div className={evaStyles.iconCustom} />
-        )}
+        <div className={evaStyles.iconCustom}>
+          {decodeEmoji(thisStation?.icon ? thisStation.icon : "2754")}
+        </div>
 
         {isRexEva && (
           <RexStatusMenu
@@ -288,7 +316,6 @@ const SequenceItemStation: FunctionComponent<{
               <Dropdown
                 selected={thisStation?.uuid || ""}
                 arrowStyle={{ top: "1px" }}
-                containerStyle={{ width: "190px" }}
                 selectStyle={{ width: "100%" }}
                 onChange={(val) => {
                   dispatch(
@@ -303,25 +330,7 @@ const SequenceItemStation: FunctionComponent<{
                 toolTip="Station"
               >
                 <option value="">-- Select a station --</option>
-                {partialStatonsForDropdown.map((partialStation) => {
-                  // filter out stations that are already in the sequence and stations that don't have locations
-                  // for rex, all the stations are duplicated so we need to get the as-planned copies.
-                  const isStationInSequence = evaSequence
-                    .map((s) => s.uuid)
-                    .includes(partialStation.uuid);
-                  if (
-                    (isStationInSequence && partialStation.uuid !== stationUuid) ||
-                    !partialStation.location
-                  ) {
-                    return null;
-                  } else {
-                    return (
-                      <option key={partialStation.uuid} value={partialStation.uuid}>
-                        {partialStation.name}
-                      </option>
-                    );
-                  }
-                })}
+                {stationDropdownOptions}
               </Dropdown>
             </div>
             <div className={evaStyles.evaItemNameButtons}>

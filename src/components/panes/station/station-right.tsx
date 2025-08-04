@@ -87,16 +87,17 @@ const StationEditorRight: FunctionComponent = () => {
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
-  const calculatedFieldsReportItems = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByStation({
-        stationUuid: selectedStationUuid,
-        stations: state.station.stations,
-        mission: state.mission.mission,
-        actions: state.action.actions,
-      })?.reportItems,
-    deepEqual
-  );
+  const calculatedFieldsReportItems = useAppSelector((state) => {
+    const station = state.station.stations.find((station) => station.uuid === selectedStationUuid);
+    const stationActions = state.action.actions.filter(
+      (a) => a.stationUuid === selectedStationUuid && a.enabled
+    );
+    return getCalculatedFieldsByStation({
+      station,
+      missionWalkbackRate: state.mission.mission.walkbackRate,
+      stationActions,
+    })?.reportItems;
+  }, deepEqual);
 
   const otherStationNames = useAppSelector(
     (state) =>

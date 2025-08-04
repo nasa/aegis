@@ -43,6 +43,8 @@ export class Rex_db implements Rex_db_type {
   ownerId: number;
   @Property({ type: MikroTypes.boolean, nullable: false, default: false })
   maestroControlled: boolean;
+  @Property({ type: MikroTypes.string, nullable: true })
+  maestroExecutionHash: string | null;
 
   @Property({ type: MikroTypes.datetime, length: 3 })
   createdAt!: Date;

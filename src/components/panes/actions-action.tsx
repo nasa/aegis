@@ -14,7 +14,7 @@ import capitalize from "lodash/capitalize";
 import { collapseActions, expandActions } from "store/interface";
 import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
-import { getRexStatusDisplayProperties } from "../../utils/rex";
+import { getRexStatusDisplayProperties } from "../../utils/component-helpers";
 import { RexStatusMenu } from "./rex/rex-status-menu";
 import { actionTypes } from "store/storeUtils/store";
 import { thunkUpsertActionDefinitionSelection } from "store/thunk/thunkAction";
@@ -122,16 +122,14 @@ const RightAction: FunctionComponent<{
                 <RexStatusMenu
                   rexStatus={actionRexStatusEntry}
                   divClassName={actionStyles.actionHeadingRexStatusWrapper}
-                  divStyle={{ marginTop: editMode ? "6px" : "1px" }}
+                  divStyle={{ marginTop: editMode ? "5px" : "3px" }}
                   entryType="action"
                   uuid={action.uuid}
                   editPerms={editPerms}
                   maestroControlled={rexMaestroControlled}
                 />
               ) : (
-                <div className={actionStyles.actionHeadingRexStatusWrapper}>
-                  <div className={actionStyles.actionHeadingRexStatusIconBlank}></div>
-                </div>
+                <div className={actionStyles.actionHeadingRexStatusWrapper}></div>
               )}
             </>
           )}
