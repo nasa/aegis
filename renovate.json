@@ -11,16 +11,6 @@
   "labels": ["Renovate"],
   "packageRules": [
     {
-      "groupName": "Playwright",
-      "matchPackagePatterns": ["playwright"],
-      "labels": ["Renovate"]
-    },
-    {
-      "groupName": "Infrastructure and CI updates",
-      "matchManagers": ["dockerfile", "docker-compose", "gitlabci", "gitlabci-include"],
-      "labels": ["Renovate", "ci"]
-    },
-    {
       "groupName": "All patch updates",
       "matchUpdateTypes": ["patch"],
       "labels": ["Renovate"]
@@ -31,29 +21,8 @@
       "labels": ["Renovate"]
     },
     {
-      "groupName": "React",
-      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
-      "labels": ["Renovate"]
-    },
-    {
-      "groupName": "ESLint",
-      "matchPackagePatterns": ["eslint"],
-      "labels": ["Renovate"]
-    },
-    {
-      "groupName": "Jest",
-      "matchPackagePatterns": ["jest"],
-      "labels": ["Renovate"]
-    },
-    {
-      "groupName": "Mikro",
-      "matchPackagePatterns": ["mikro"],
-      "labels": ["Renovate"]
-    },
-    {
-      "groupName": "FontAwesome",
-      "matchPackagePatterns": ["fontawesome", "fortawesome"],
-      "labels": ["Renovate"]
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     }
   ]
 }
