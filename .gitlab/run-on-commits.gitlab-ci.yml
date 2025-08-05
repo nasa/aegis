@@ -159,7 +159,7 @@ playwright_test:
     NUM_SHARDS: 4
   extends: .test_template
   stage: stageless
-  image: mcr.microsoft.com/playwright:v1.54.1-jammy
+  image: mcr.microsoft.com/playwright:v1.54.2-jammy
   needs:
     - install_dependencies
     - make-test-dotenv
