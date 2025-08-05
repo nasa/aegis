@@ -1,43 +1,44 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:js-app"],
-  "npm": {
-    "minimumReleaseAge": "7 days"
-  },
-  "major": {
-    "dependencyDashboardApproval": true
-  },
+  "extends": ["config:js-app", ":maintainLockFilesWeekly"],
+  "npm": {"minimumReleaseAge": "7 days"},
+  "major": {"dependencyDashboardApproval": true},
   "labels": ["Renovate"],
   "packageRules": [
     {
       "groupName": "React",
-      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ],
       "labels": ["Renovate"]
     },
     {
       "groupName": "ESLint",
-      "matchPackagePatterns": ["eslint"],
-      "labels": ["Renovate"]
+      "labels": ["Renovate"],
+      "matchPackageNames": ["/eslint/"]
     },
     {
       "groupName": "Jest",
-      "matchPackagePatterns": ["jest"],
-      "labels": ["Renovate"]
+      "labels": ["Renovate"],
+      "matchPackageNames": ["/jest/"]
     },
     {
       "groupName": "Mikro",
-      "matchPackagePatterns": ["mikro"],
-      "labels": ["Renovate"]
+      "labels": ["Renovate"],
+      "matchPackageNames": ["/mikro/"]
     },
     {
       "groupName": "FontAwesome",
-      "matchPackagePatterns": ["fontawesome", "fortawesome"],
-      "labels": ["Renovate"]
+      "labels": ["Renovate"],
+      "matchPackageNames": ["/fontawesome/", "/fortawesome/"]
     },
     {
       "groupName": "Playwright",
-      "matchPackagePatterns": ["playwright"],
-      "labels": ["Renovate"]
+      "labels": ["Renovate"],
+      "matchPackageNames": ["/playwright/"]
     },
     {
       "groupName": "All patch updates",
@@ -51,7 +52,7 @@
     },
     {
       "groupName": "Infrastructure and CI updates",
-      "matchManagers": ["dockerfile", "docker-compose", "gitlabci", "gitlabci-include"],
+      "matchManagers": ["dockerfile", "docker-compose"],
       "labels": ["Renovate", "ci"]
     }
   ]
