@@ -1,3 +1,12 @@
+stages:
+  - stageless
+
+default:
+  timeout: 10 minutes
+
+variables:
+  HOME: "/tmp" # required for openshift for now
+
 # These includes do not define the order of the pipeline. That is determined by
 # the `needs` value for each job
 include:

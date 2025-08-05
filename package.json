@@ -3,6 +3,7 @@
   "version": "1.1.7",
   "private": true,
   "scripts": {
+    "bom": "docker run -it -v .:/repo -w /repo --name node-sbom --rm eegitlabregistry.fit.nasa.gov/emss/docker-images/node-ci:sbom /make-sbom.sh",
     "dev": "concurrently -n vite,api \"npm run vite:dev:wait\" \"npm run api:dev\"",
     "build": "npm run vite:build && npm run api:build",
     "lint": "concurrently -n js,css \"npm run lint:js\" \"npm run lint:css\"",
