@@ -1,6 +1,3 @@
-stages:
-  - stageless
-
 .db-export-template:
   needs: []
   # I don't think we want to do this, because I don't think we want GitLab to consider this a
@@ -28,8 +25,22 @@ stages:
 
 z:db-export:prod:
   extends: .db-export-template
-  when: always
+  rules:
+    - if: $SCHEDULE_TYPE == "backup"
+      when: always
   tags: ["emss-aegis-prod"]
   resource_group: prod # prevents concurrent executions of this job when there are multiple pipelines
   variables:
     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
+
+npm-audit:
+  stage: stageless
+  rules:
+    - if: $SCHEDULE_TYPE == "audit"
+      when: always
+  tags: ["openshift"]
+  image: $CI_REGISTRY/emss/docker-images/node-ci:npm-audit
+  allow_failure: true
+  script:
+    # Run this without --json to make a pretty-print for the job log, plus will pass/fail the job
+    - npm audit
