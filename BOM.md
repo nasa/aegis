@@ -9,7 +9,7 @@ This document is broken up into sections by license type. Licenses are in alphab
 - 1 packages: [0BSD](https://opensource.org/licenses/0BSD)
 - 6 packages: [Apache-2.0](https://opensource.org/licenses/Apache-2.0)
 - 2 packages: [Apache-2.0](https://opensource.org/licenses/Apache-2.0) and [MIT](https://opensource.org/licenses/MIT)
-- 3 packages: [BSD-2-Clause](https://opensource.org/licenses/BSD-2-Clause)
+- 4 packages: [BSD-2-Clause](https://opensource.org/licenses/BSD-2-Clause)
 - 4 packages: [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause)
 - 13 packages: [ISC](https://opensource.org/licenses/ISC)
 - 126 packages: [MIT](https://opensource.org/licenses/MIT)
@@ -25,7 +25,7 @@ This document is broken up into sections by license type. Licenses are in alphab
 ### Apache-2.0
 
 - [@jercle/yargonaut](https://www.npmjs.com/package/@jercle/yargonaut) @ 1.1.5
-- [@swc/core](https://www.npmjs.com/package/@swc/core) @ 1.12.1
+- [@swc/core](https://www.npmjs.com/package/@swc/core) @ 1.13.3
 - [@swc/counter](https://www.npmjs.com/package/@swc/counter) @ 0.1.3
 - [@swc/types](https://www.npmjs.com/package/@swc/types) @ 0.1.23
 - [reflect-metadata](https://www.npmjs.com/package/reflect-metadata) @ 0.2.2
@@ -33,12 +33,13 @@ This document is broken up into sections by license type. Licenses are in alphab
 
 ### Apache-2.0 AND MIT
 
-- [@swc/core-linux-x64-gnu](https://www.npmjs.com/package/@swc/core-linux-x64-gnu) @ 1.12.1
-- [@swc/core-linux-x64-musl](https://www.npmjs.com/package/@swc/core-linux-x64-musl) @ 1.12.1
+- [@swc/core-linux-x64-gnu](https://www.npmjs.com/package/@swc/core-linux-x64-gnu) @ 1.13.3
+- [@swc/core-linux-x64-musl](https://www.npmjs.com/package/@swc/core-linux-x64-musl) @ 1.13.3
 
 ### BSD-2-Clause
 
 - [dotenv](https://www.npmjs.com/package/dotenv) @ 16.5.0
+- [dotenv](https://www.npmjs.com/package/dotenv) @ 17.2.1
 - [esprima](https://www.npmjs.com/package/esprima) @ 4.0.1
 - [uri-js](https://www.npmjs.com/package/uri-js) @ 4.4.1
 
@@ -69,7 +70,7 @@ This document is broken up into sections by license type. Licenses are in alphab
 
 - [@cspotcode/source-map-support](https://www.npmjs.com/package/@cspotcode/source-map-support) @ 0.8.1
 - [@jridgewell/resolve-uri](https://www.npmjs.com/package/@jridgewell/resolve-uri) @ 3.1.2
-- [@jridgewell/sourcemap-codec](https://www.npmjs.com/package/@jridgewell/sourcemap-codec) @ 1.5.0
+- [@jridgewell/sourcemap-codec](https://www.npmjs.com/package/@jridgewell/sourcemap-codec) @ 1.5.4
 - [@jridgewell/trace-mapping](https://www.npmjs.com/package/@jridgewell/trace-mapping) @ 0.3.9
 - [@mikro-orm/cli](https://www.npmjs.com/package/@mikro-orm/cli) @ 6.4.16
 - [@mikro-orm/core](https://www.npmjs.com/package/@mikro-orm/core) @ 6.4.16
@@ -88,7 +89,7 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [@tsconfig/node14](https://www.npmjs.com/package/@tsconfig/node14) @ 1.0.3
 - [@tsconfig/node16](https://www.npmjs.com/package/@tsconfig/node16) @ 1.0.4
 - [@types/argparse](https://www.npmjs.com/package/@types/argparse) @ 1.0.38
-- [@types/node](https://www.npmjs.com/package/@types/node) @ 22.15.32
+- [@types/node](https://www.npmjs.com/package/@types/node) @ 24.1.0
 - [acorn-walk](https://www.npmjs.com/package/acorn-walk) @ 8.3.4
 - [acorn](https://www.npmjs.com/package/acorn) @ 8.15.0
 - [ajv-draft-04](https://www.npmjs.com/package/ajv-draft-04) @ 1.0.0
@@ -116,7 +117,7 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [esm](https://www.npmjs.com/package/esm) @ 3.2.25
 - [fast-deep-equal](https://www.npmjs.com/package/fast-deep-equal) @ 3.1.3
 - [fast-glob](https://www.npmjs.com/package/fast-glob) @ 3.3.3
-- [figlet](https://www.npmjs.com/package/figlet) @ 1.8.1
+- [figlet](https://www.npmjs.com/package/figlet) @ 1.8.2
 - [fill-range](https://www.npmjs.com/package/fill-range) @ 7.1.1
 - [fs-extra](https://www.npmjs.com/package/fs-extra) @ 11.3.0
 - [function-bind](https://www.npmjs.com/package/function-bind) @ 1.1.2
@@ -146,11 +147,11 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [ms](https://www.npmjs.com/package/ms) @ 2.1.2
 - [path-parse](https://www.npmjs.com/package/path-parse) @ 1.0.7
 - [path-type](https://www.npmjs.com/package/path-type) @ 4.0.0
-- [pg-cloudflare](https://www.npmjs.com/package/pg-cloudflare) @ 1.2.5
+- [pg-cloudflare](https://www.npmjs.com/package/pg-cloudflare) @ 1.2.7
 - [pg-connection-string](https://www.npmjs.com/package/pg-connection-string) @ 2.6.2
-- [pg-connection-string](https://www.npmjs.com/package/pg-connection-string) @ 2.9.0
-- [pg-pool](https://www.npmjs.com/package/pg-pool) @ 3.10.0
-- [pg-protocol](https://www.npmjs.com/package/pg-protocol) @ 1.10.0
+- [pg-connection-string](https://www.npmjs.com/package/pg-connection-string) @ 2.9.1
+- [pg-pool](https://www.npmjs.com/package/pg-pool) @ 3.10.1
+- [pg-protocol](https://www.npmjs.com/package/pg-protocol) @ 1.10.3
 - [pg-types](https://www.npmjs.com/package/pg-types) @ 2.2.0
 - [pg](https://www.npmjs.com/package/pg) @ 8.16.0
 - [pgpass](https://www.npmjs.com/package/pgpass) @ 1.0.5
@@ -186,7 +187,7 @@ This document is broken up into sections by license type. Licenses are in alphab
 - [ts-node](https://www.npmjs.com/package/ts-node) @ 10.9.2
 - [tsconfig-paths](https://www.npmjs.com/package/tsconfig-paths) @ 4.2.0
 - [umzug](https://www.npmjs.com/package/umzug) @ 3.8.2
-- [undici-types](https://www.npmjs.com/package/undici-types) @ 6.21.0
+- [undici-types](https://www.npmjs.com/package/undici-types) @ 7.8.0
 - [universalify](https://www.npmjs.com/package/universalify) @ 2.0.1
 - [v8-compile-cache-lib](https://www.npmjs.com/package/v8-compile-cache-lib) @ 3.0.1
 - [wrap-ansi](https://www.npmjs.com/package/wrap-ansi) @ 7.0.0

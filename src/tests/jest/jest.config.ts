@@ -18,7 +18,6 @@ const config = {
     "^typings$": "<rootDir>/typings/index.d",
     "^typings/(.*)$": "<rootDir>/typings/$1",
     "^utils/(.*)$": "<rootDir>/utils/$1",
-    "^.+\\.(css|sass|scss)$": "<rootDir>/__mocks__/styleMock.js",
   },
   collectCoverageFrom: [
     "<rootDir>/**/*.{js,jsx,ts,tsx}",

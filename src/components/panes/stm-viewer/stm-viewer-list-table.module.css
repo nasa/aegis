@@ -138,7 +138,6 @@
 
 .truncateXLine {
   display: -webkit-box;
-  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.15em;
@@ -150,7 +149,6 @@
 
 .truncate1Line {
   display: -webkit-box;
-  -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
   overflow: hidden;
   text-overflow: ellipsis;

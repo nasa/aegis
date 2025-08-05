@@ -90,7 +90,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 export default router;
 
-export async function downloadFileFromBox(
+async function downloadFileFromBox(
   client: BoxClient,
   itemId: string,
   downloadFilePath: string

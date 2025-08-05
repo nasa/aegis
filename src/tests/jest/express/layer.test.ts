@@ -1,5 +1,4 @@
 import { describe, expect, afterAll, beforeAll, test } from "@jest/globals";
-import "@testing-library/jest-dom";
 import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
