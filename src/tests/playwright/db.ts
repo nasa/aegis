@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config({ override: true });
+dotenv.config({ override: true, quiet: true });
 
 import { Client } from "pg";
 

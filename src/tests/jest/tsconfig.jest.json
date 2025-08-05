@@ -2,6 +2,6 @@
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "types": ["jest", "node", "react", "react-dom", "react-test-renderer"]
+    "types": ["jest", "node", "react", "react-dom"]
   }
 }

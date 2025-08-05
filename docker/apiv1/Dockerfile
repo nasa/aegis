@@ -2,7 +2,7 @@
 #   (which is true when building locally) then use the value to the right of the = operator
 # Base image optionally from arg
 # ref: https://eegitlab.fit.nasa.gov/emss/docs/-/blob/main/docker.md#base-images-as-arg
-ARG APIV1_BASE_IMAGE=node:20.11.0-alpine
+ARG APIV1_BASE_IMAGE=node:22.17.1-alpine
 
 # # # # # # # #
 # BASE image  #
@@ -56,7 +56,7 @@ ENV NODE_ENV=production
 RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci --omit=dev
 
 # Install rsync into the docker image to allow copying files when duplicating missions
-RUN apk add --no-cache rsync=3.4.0-r0
+RUN apk add --no-cache rsync=3.4.1-r0
 
 # Add tini init to run node to prevent running node as PID 1
 # https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md#handling-kernel-signals

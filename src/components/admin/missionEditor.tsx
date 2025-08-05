@@ -2,7 +2,7 @@ import { getElevationSinglePoint } from "http-client/elevation";
 import { Dispatch, FunctionComponent, SetStateAction, useEffect, useRef } from "react";
 import FileManager from "./fileManager";
 import { Form } from "react-final-form";
-import { AnyObject } from "final-form";
+import type { AnyObject } from "final-form";
 import { FFInput, FFTextArea } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import Projection from "components/admin/projection";
@@ -210,8 +210,8 @@ const MissionEditor: FunctionComponent<{
                               type="button"
                               onClick={() => {
                                 const point: AEGISPoint = {
-                                  lat: parseFloat(values.landerLocation.lat),
-                                  lng: parseFloat(values.landerLocation.lng),
+                                  lat: values.landerLocation.lat,
+                                  lng: values.landerLocation.lng,
                                 };
                                 calcLanderElevation(point);
                               }}

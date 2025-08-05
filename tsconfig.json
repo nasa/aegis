@@ -19,7 +19,7 @@
     "noImplicitAny": true,
     "noUnusedLocals": true,
     "noUnusedParameters": false,
-    "types": ["node", "jest", "@testing-library/jest-dom"],
+    "types": ["node", "jest"],
 
     "skipLibCheck": false /* Skip type checking all .d.ts files. */,
 
@@ -29,9 +29,9 @@
     "strictBindCallApply": true,
     "noImplicitThis": true,
     "useUnknownInCatchVariables": true,
-    "strictFunctionTypes": false, // causes type check errors = 81
-    "strictNullChecks": false, // causes type check errors = 876
-    "strictPropertyInitialization": false, // requires strictNullChecks=true, increased errors = 41
+    "strictFunctionTypes": false,
+    "strictNullChecks": false,
+    "strictPropertyInitialization": false, // requires strictNullChecks=true
     "noEmit": true,
     "isolatedModules": true,
     "incremental": true,

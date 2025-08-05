@@ -9,14 +9,17 @@ import "./styles/globals.css";
 import "leaflet/dist/leaflet.css";
 import "./styles/leaflet-blend.css";
 import "./styles/fonts.css";
+import { CookiesProvider } from "react-cookie";
 
 const root = createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
     <Provider store={store}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <CookiesProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </CookiesProvider>
     </Provider>
   </React.StrictMode>
 );
