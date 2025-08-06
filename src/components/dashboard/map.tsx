@@ -27,6 +27,7 @@ import {
   getMapItemByUuid,
   scaleBarDiv,
   drawOrUpdateMarkerOnMap,
+  drawLanderOnMap,
   drawPolylineOnMap,
   drawPosPathOnMap,
   drawPosMarkerOnMap,
@@ -898,18 +899,10 @@ const MapBody: FunctionComponent<{
   useEffect(() => {
     if (!map.current || !mission.landerLocation) return;
 
-    drawOrUpdateMarkerOnMap({
+    drawLanderOnMap({
       map,
-      featureGroup: null,
-      name: "Lander",
-      uuid: "lander",
-      iconEmoji: "1f680", //rocket
-      mapItemType: "lander",
       location: mission.landerLocation,
-      isWin10,
-      iconClassName: styles.mapIcon,
-      iconWin10ClassName: styles.mapIconWin10,
-      iconWrapperClassName: styles.iconWrapper,
+      sizePx: 39, // bigger than default 30px
       tooltipOptions: {
         className: styles.tooltip,
         permanent: false,
