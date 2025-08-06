@@ -1,5 +1,6 @@
 import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
+import missionStyles from "./mission.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, shallowEqual, deepEqual } from "utils/useAppSelector";
@@ -8,7 +9,6 @@ import { LastEdited, SubpanelHeading } from "components/interface/_global-elemen
 import {
   faFileInvoice,
   faInfoCircle,
-  faLocationDot,
   faMessage,
   faMountain,
   faXmark,
@@ -151,7 +151,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>
-              <SubpanelHeading icon={faLocationDot}>Lander Location</SubpanelHeading>
+              <div className={missionStyles.lander}>
+                <img
+                  src="/images/lander.svg"
+                  alt="Lander Icon"
+                  style={{ width: "15px", marginRight: "3px" }}
+                />
+                <div>Lander Location</div>
+              </div>
             </div>
 
             {editMode ? (

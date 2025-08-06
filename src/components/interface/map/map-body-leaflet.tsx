@@ -62,6 +62,7 @@ import {
   getMapItemByUuid,
   scaleBarDiv,
   drawOrUpdateMarkerOnMap,
+  drawLanderOnMap,
   drawPolylineOnMap,
   drawPosPathOnMap,
   drawPosMarkerOnMap,
@@ -1366,14 +1367,9 @@ const MapBody: FunctionComponent<{}> = () => {
   useEffect(() => {
     if (!map.current || mapDirective || !mission.landerLocation) return;
 
-    drawOrUpdateMarkerOnMap({
+    drawLanderOnMap({
       map,
-      name: "Lander",
-      uuid: "lander",
-      iconEmoji: "1f680", //rocket
-      mapItemType: "lander",
       location: mission.landerLocation,
-      isWin10,
       onClick: () => {
         dispatch(setSectionSelected("mission"));
         dispatch(thunkSetRightPanelIsOpenIfAuto(true));
@@ -1397,11 +1393,8 @@ const MapBody: FunctionComponent<{}> = () => {
         permanent: false,
         offset: new L.Point(0, -10),
       },
-      iconClassName: styles.mapIcon,
-      iconWin10ClassName: styles.mapIconWin10,
-      iconWrapperClassName: styles.iconWrapper,
     });
-  }, [map, mapDirective, mission.landerLocation, isWin10, dispatch]);
+  }, [map, mapDirective, mission.landerLocation, dispatch, setIsLoading]);
 
   /**
    * Draw station walkback on the map when the selected station changes
