@@ -1,5 +1,5 @@
 variables:
-  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:22.17.1-alpine"
+  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:22.18.0-alpine"
   # "Future" might be older if waiting on a newer version to come out
   FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:24.4.1-alpine"
 
