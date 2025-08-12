@@ -68,6 +68,7 @@ import {
   setFolderInterfaceNameValue,
 } from "store/interface";
 import cloneDeep from "lodash/cloneDeep";
+import { thunkSetOnlyShowRunningRexEva } from "./thunkEva";
 
 /**
  * Handles the storeUpsert socket event
@@ -209,6 +210,10 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     }
     dispatch(upsertRexes(changedRexes, true));
     dispatch(upsertRexesFromDb(changedRexes));
+    // disengage showRunningRexOnly if there are now no running rexes
+    if (!getState().rex.rexesFromDb.some((rex) => rex.isRunning)) {
+      dispatch(thunkSetOnlyShowRunningRexEva({ show: false }));
+    }
   } else if (storeUpsert.type === "stmRule") {
     const changedStmRules = storeUpsert.data as STMRule[];
     for (const changedStmRule of changedStmRules) {
