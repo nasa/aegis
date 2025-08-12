@@ -1,4 +1,9 @@
-import { faCaretDown, faCaretRight, faGripVertical } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCaretDown,
+  faCaretRight,
+  faGripVertical,
+  faCircle,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Dropdown, InLineEditInput } from "components/interface/form/globalFields";
 import { FunctionComponent } from "react";
@@ -111,6 +116,14 @@ const RightAction: FunctionComponent<{
   const crewRightStyle = action?.crewAssigned?.includes("EV2")
     ? actionStyles.actionDualButtonsSelected
     : undefined;
+
+  const actionParentPoiName = useAppSelector((state) => {
+    if (!action.parentActionUuid) return undefined;
+    const parentAction = state.action.actions.find((a) => a.uuid === action.parentActionUuid);
+    if (!parentAction || !parentAction.poiUuid) return undefined;
+    const poi = state.poi.pois.find((p) => p.uuid === parentAction.poiUuid);
+    return poi?.name;
+  }, refEqual);
 
   return (
     <>
@@ -274,6 +287,16 @@ const RightAction: FunctionComponent<{
                 className={actionStyles.actionHeadingRight}
                 style={editMode ? { marginTop: "5px" } : undefined}
               >
+                {action.parentActionUuid && (
+                  <div
+                    className={actionStyles.actionHeadingRightItem}
+                    style={{ marginRight: "0", cursor: "pointer" }}
+                    data-tooltip-id="aegis-tooltip"
+                    data-tooltip-html={"Copied from POI: " + actionParentPoiName}
+                  >
+                    <FontAwesomeIcon icon={faCircle} />
+                  </div>
+                )}
                 <div
                   className={actionStyles.actionHeadingRightItem}
                   data-tooltip-id="aegis-tooltip"
