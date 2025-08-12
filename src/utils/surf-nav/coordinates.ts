@@ -15,10 +15,10 @@ import {
  * You can access these functions in the surf_nav repo at:
  * https://gitlab.fit.nasa.gov/cm-artemis-integration/cm-ehp/surf-nav
  *
- * and the file these consts are in is:
+ * and the file these functions are in is:
  * https://gitlab.fit.nasa.gov/cm-artemis-integration/cm-ehp/surf-nav/-/blob/main/surf_nav/nav_tools/coordinates.py?ref_type=heads
  *
- * The following consts are also EXPORT CONTROLLED! Authorization is required to export or reuse these items
+ * The following functions are also EXPORT CONTROLLED! Authorization is required to export or reuse these items
  */
 
 export function latlong_to_lps(
