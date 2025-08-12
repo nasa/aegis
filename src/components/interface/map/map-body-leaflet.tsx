@@ -29,8 +29,8 @@ import { setSelectedPosEntryUuid } from "store/rex";
 import {
   adjustGridIndex,
   convertLeafletLatLngToAegisPoint,
-  findClosestPointInGrid,
-  findGridCoordinatesFromPoint,
+  findClosestPointInGlobalGrid,
+  getGridCoordinatesFromPoint,
   getMidpoint,
 } from "utils/mapping/geoMath";
 import {
@@ -584,12 +584,12 @@ const MapBody: FunctionComponent<{}> = () => {
 
     map.current.on("mousemove", (e) => {
       setMouseLatLng({ lat: e.latlng.lat, lng: e.latlng.lng });
-      const positionCoords = findGridCoordinatesFromPoint(
-        globalGrid?.coordinates,
-        e.latlng,
-        mission.planetRadius
+      const gridCoords = getGridCoordinatesFromPoint(
+        convertLeafletLatLngToAegisPoint(e.latlng),
+        mission.planetRadius,
+        globalGrid?.coordinates
       );
-      setMouseGridCoord(positionCoords);
+      setMouseGridCoord(gridCoords);
     });
 
     map.current.on("zoomend", () => {
@@ -1233,8 +1233,8 @@ const MapBody: FunctionComponent<{}> = () => {
       );
 
       setGridBounds([
-        findClosestPointInGrid(globalGrid.coordinates, gridStart, mission.planetRadius),
-        findClosestPointInGrid(globalGrid.coordinates, gridEnd, mission.planetRadius),
+        findClosestPointInGlobalGrid(globalGrid.coordinates, gridStart, mission.planetRadius),
+        findClosestPointInGlobalGrid(globalGrid.coordinates, gridEnd, mission.planetRadius),
       ]);
       setMapGridControls(selectedPreset.mapGridControl);
     } else {

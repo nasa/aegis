@@ -2,7 +2,7 @@ import { stripHtml } from "string-strip-html";
 import { convertNodeToHTML, convertStringToNodes } from "components/interface/form/wysiwyg";
 import { decodeEmoji } from "./formatting";
 import reduce from "lodash/reduce";
-import { findGridCoordinatesFromPoint } from "./mapping/geoMath";
+import { getGridCoordinatesFromPoint } from "./mapping/geoMath";
 import {
   getCalculatedFieldsByEva,
   getCalculatedFieldsByPoi,
@@ -111,9 +111,11 @@ export const makeExportActions = (params: {
             priority,
           }))
         : null,
-      gridCoordinates: missionGrid
-        ? findGridCoordinatesFromPoint(missionGrid, action.location, allData.mission.planetRadius)
-        : null,
+      gridCoordinates: getGridCoordinatesFromPoint(
+        action.location,
+        allData.mission.planetRadius,
+        missionGrid
+      ),
     };
     return exportAction;
   });
@@ -147,9 +149,11 @@ export const makeExportPois = (params: {
       calculatedFields: poiCalculatedFields,
       elevationRelative: poi.elevation - allData.mission.landerElevationMeters,
       iconEmojiDecoded: decodeEmoji(poi.icon),
-      gridCoordinates: missionGrid
-        ? findGridCoordinatesFromPoint(missionGrid, poi.location, allData.mission.planetRadius)
-        : null,
+      gridCoordinates: getGridCoordinatesFromPoint(
+        poi.location,
+        allData.mission.planetRadius,
+        missionGrid
+      ),
     };
     return exportPoi;
   });
@@ -204,9 +208,11 @@ export const makeExportStations = (params: {
           };
         }
       }),
-      gridCoordinates: missionGrid
-        ? findGridCoordinatesFromPoint(missionGrid, station.location, allData.mission.planetRadius)
-        : null,
+      gridCoordinates: getGridCoordinatesFromPoint(
+        station.location,
+        allData.mission.planetRadius,
+        missionGrid
+      ),
       actionOrderRefUuids: station.actionOrderUuids?.map(
         (actionOrderUuid) => allData.actions.find((a) => a.uuid === actionOrderUuid)?.refUuid
       ),
@@ -355,9 +361,11 @@ export const makeExportMission = (params: {
   if (!mission) throw new Error("Mission is required to export");
   const exportMission: ExportMission = {
     ...mission,
-    gridCoordinates: missionGrid
-      ? findGridCoordinatesFromPoint(missionGrid, mission?.landerLocation, mission.planetRadius)
-      : null,
+    gridCoordinates: getGridCoordinatesFromPoint(
+      mission.landerLocation,
+      mission.planetRadius,
+      missionGrid
+    ),
   };
 
   return exportMission;

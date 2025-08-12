@@ -15,7 +15,7 @@ import { LastEdited, SubpanelHeading } from "components/interface/_global-elemen
 import { Button, InLineEditInput } from "components/interface/form/globalFields";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStationByField } from "store/station";
-import { calcCentroidofCoordinates, findGridCoordinatesFromPoint } from "utils/mapping/geoMath";
+import { calcCentroidofCoordinates, findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
 import { formatNumberWithCommas, isNotNumber, toDecimal } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
@@ -31,6 +31,8 @@ import CalculatedDwell from "../calculated-dwell";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import { globalGrid } from "utils/mapping/grid";
+import { SURF_NAV_MOON_MEAN_RADIUS } from "utils/consts";
+import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -114,8 +116,14 @@ const Info_Panel: FunctionComponent<{
   );
 
   const stationGridCoordinates = useAppSelector((state) => {
+    if (
+      selectedStation.location &&
+      state.mission.mission.planetRadius === SURF_NAV_MOON_MEAN_RADIUS
+    ) {
+      return getLGRSCoordsFromLatLng(selectedStation.location.lat, selectedStation.location.lng);
+    }
     if (selectedStation.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
-      return findGridCoordinatesFromPoint(
+      return findGlobalGridCoordsFromPoint(
         globalGrid.coordinates,
         selectedStation.location,
         state.mission.mission.planetRadius

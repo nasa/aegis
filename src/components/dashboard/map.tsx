@@ -45,7 +45,7 @@ import { circle } from "@turf/turf";
 import {
   adjustGridIndex,
   convertLeafletLatLngToAegisPoint,
-  findClosestPointInGrid,
+  findClosestPointInGlobalGrid,
 } from "utils/mapping/geoMath";
 import { Feature } from "geojson";
 import { getGrids } from "http-client/grid";
@@ -769,8 +769,8 @@ const MapBody: FunctionComponent<{
     );
 
     setGridBounds([
-      findClosestPointInGrid(chosenGrid.coordinates, gridStart, mission.planetRadius),
-      findClosestPointInGrid(chosenGrid.coordinates, gridEnd, mission.planetRadius),
+      findClosestPointInGlobalGrid(chosenGrid.coordinates, gridStart, mission.planetRadius),
+      findClosestPointInGlobalGrid(chosenGrid.coordinates, gridEnd, mission.planetRadius),
     ]);
     setGridBounds(null);
   }, [map, mapBounds, chosenGrid, mapZoom, mission.id, mission.planetRadius]);

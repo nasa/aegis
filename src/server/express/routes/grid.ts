@@ -13,7 +13,7 @@ import {
   QueryOrder,
   ForeignKeyConstraintViolationException,
 } from "@mikro-orm/core";
-import { findClosestPointInGrid } from "utils/mapping/geoMath";
+import { findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
 import { Grid_db, Mission_db } from "server/database/models/_allModels";
 import * as fs from "fs";
 import { mkdir } from "node:fs/promises";
@@ -311,7 +311,7 @@ export async function getClosestPoints(
   const closestPoints: GridIndex[] = [];
   for (let i = 0; i < points.length; i++) {
     const point: AEGISPoint = points[i];
-    const closestPointIndex: GridIndex = findClosestPointInGrid(grid, point, radius);
+    const closestPointIndex: GridIndex = findClosestPointInGlobalGrid(grid, point, radius);
     closestPoints.push(closestPointIndex);
   }
 
