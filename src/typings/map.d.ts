@@ -111,3 +111,8 @@ type GridLabelItem = {
   id: string;
   latLng: L.LatLngExpression;
 };
+
+type GridAcc = {
+  eastingCoord: string;
+  northingCoord: string;
+};

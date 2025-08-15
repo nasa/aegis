@@ -32,7 +32,7 @@ import isNull from "lodash/isNull";
 import { EquipmentSelector, GeographicUnitSelector } from "./actions-action-body-multiselectors";
 import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
 import {
-  findGridCoordinatesFromPoint,
+  findGlobalGridCoordsFromPoint,
   getDistanceBetweenTwoCoordinates,
 } from "utils/mapping/geoMath";
 import Picker from "@emoji-mart/react";
@@ -40,6 +40,8 @@ import emojiPickerData from "@emoji-mart/data";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkAddCollectionId, thunkAddRexActionMass } from "store/thunk/thunkRex";
 import { globalGrid } from "utils/mapping/grid";
+import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { SURF_NAV_MOON_MEAN_RADIUS } from "utils/consts";
 
 const RightActionBody: FunctionComponent<{
   editMode: boolean;
@@ -88,12 +90,14 @@ const RightActionBody: FunctionComponent<{
   const planetRadius = useAppSelector((state) => state.mission.mission.planetRadius, refEqual);
 
   const actionGridCoordinates = useAppSelector((state) => {
-    if (action.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
-      return findGridCoordinatesFromPoint(globalGrid.coordinates, action.location, planetRadius);
+    if (action.location && planetRadius === SURF_NAV_MOON_MEAN_RADIUS) {
+      return getLGRSCoordsFromLatLng(action.location.lat, action.location.lng);
+    } else if (action.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
+      return findGlobalGridCoordsFromPoint(globalGrid.coordinates, action.location, planetRadius);
     } else {
       return "Not set";
     }
-  }, deepEqual);
+  }, shallowEqual);
 
   const actionParentPoi = useAppSelector((state) => {
     if (!action.parentActionUuid) return undefined;
