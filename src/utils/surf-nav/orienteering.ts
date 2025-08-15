@@ -57,15 +57,26 @@ export function xy_from_bearings(
   y_landmark_list: number[],
   bearing_list: number[]
 ): SN_XYPair {
-  const angles_in_radians = bearing_list.map((bearing) =>
-    degreesToRadians(angle_bearing_conversion(bearing))
-  );
-  const A: number[][] = angles_in_radians.map((angle) => [Math.tan(angle) * -1, 1]);
-  const b: number[][] = angles_in_radians.map((angle, index) => [
-    Math.tan(angle) * -1 * x_landmark_list[index] + y_landmark_list[index],
-  ]);
+  // Start with the first bearing to initialize the matrices
+  const angle_0 = degreesToRadians(angle_bearing_conversion(bearing_list[0]));
 
-  // Least squares solution (numpy not in typescript so we're doing it manually)
+  // Initialize A and b matrices with first row
+  const A: number[][] = [[-Math.tan(angle_0), 1]];
+  const b: number[] = [-Math.tan(angle_0) * x_landmark_list[0] + y_landmark_list[0]];
+
+  // Add additional rows for each subsequent bearing
+  for (let i = 1; i < bearing_list.length; i++) {
+    const x_landmark = x_landmark_list[i];
+    const y_landmark = y_landmark_list[i];
+    const angle = degreesToRadians(angle_bearing_conversion(bearing_list[i]));
+
+    const A_i = [-Math.tan(angle), 1];
+    A.push(A_i);
+    const b_i = -Math.tan(angle) * x_landmark + y_landmark;
+    b.push(b_i);
+  }
+
+  // Least squares solution (numpy not in typescript it will be done manually)
   const A_T: number[][] = A[0].map((_, colIndex) => A.map((row) => row[colIndex]));
   const A_T_A: number[][] = A_T.map((A_T_row) =>
     A_T.map((A_T_column) =>
@@ -77,7 +88,7 @@ export function xy_from_bearings(
   ); // Nested A_T map allows for easier traversal of A - but mathematical basis is still A_T * A
 
   const A_T_b: number[] = A_T.map((A_T_row) =>
-    A_T_row.reduce((sum, curr_A_value, A_row_index) => sum + curr_A_value * b[A_row_index][0], 0)
+    A_T_row.reduce((sum, curr_A_value, A_row_index) => sum + curr_A_value * b[A_row_index], 0)
   );
 
   // A_T_A is 2x2, A_T_b is 2x1
