@@ -77,7 +77,7 @@ export function xy_from_bearings(
   ); // Nested A_T map allows for easier traversal of A - but mathematical basis is still A_T * A
 
   const A_T_b: number[] = A_T.map((A_T_row) =>
-    b[0].reduce((sum, curr_b_value, b_index) => sum + curr_b_value * A_T_row[b_index], 0)
+    A_T_row.reduce((sum, curr_A_value, A_row_index) => sum + curr_A_value * b[A_row_index][0], 0)
   );
 
   // A_T_A is 2x2, A_T_b is 2x1

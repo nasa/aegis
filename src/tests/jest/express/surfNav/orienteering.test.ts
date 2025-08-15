@@ -2,6 +2,7 @@ import {
   xy_from_range_bearing,
   range_bearing_from_xy,
   haversine,
+  xy_from_bearings,
 } from "../../../../utils/surf-nav/orienteering";
 
 describe("Surf-nav orienteering tests", () => {
@@ -102,6 +103,44 @@ describe("Surf-nav orienteering tests", () => {
       const result = range_bearing_from_xy(0, 0, 0, -1);
       expect(Math.abs(result.range - 1)).toBeLessThanOrEqual(1e-3);
       expect(Math.abs(result.bearing - 0)).toBeLessThanOrEqual(1e-3);
+    });
+  });
+
+  describe("xy_from_bearings", () => {
+    it("landmark1 Q1, landmark2 Q4", () => {
+      const result = xy_from_bearings([1, -1], [1, 1], [45, 315]);
+      expect(Math.abs(result.x - 0)).toBeLessThanOrEqual(1e-3);
+      expect(Math.abs(result.y - 0)).toBeLessThanOrEqual(1e-3);
+    });
+
+    it("landmark1 Q4, landmark2 Q1", () => {
+      const result = xy_from_bearings([-1, 1], [1, 1], [315, 45]);
+      expect(Math.abs(result.x - 0)).toBeLessThanOrEqual(1e-3);
+      expect(Math.abs(result.y - 0)).toBeLessThanOrEqual(1e-3);
+    });
+
+    it("landmark1 Q2, landmark2 Q3", () => {
+      const result = xy_from_bearings([1, -1], [-1, -1], [135, 225]);
+      expect(Math.abs(result.x - 0)).toBeLessThanOrEqual(1e-3);
+      expect(Math.abs(result.y - 0)).toBeLessThanOrEqual(1e-3);
+    });
+
+    it("intercept at (0.5, 1.5)", () => {
+      const result = xy_from_bearings([1, 2], [1, 3], [135, 45]);
+      expect(Math.abs(result.x - 0.5)).toBeLessThanOrEqual(1e-3);
+      expect(Math.abs(result.y - 1.5)).toBeLessThanOrEqual(1e-3);
+    });
+
+    it("4 lines diamond center", () => {
+      const result = xy_from_bearings([2, 0, -2, 3], [1, 1, -1, 0], [45, -45, 45, -45]);
+      expect(Math.abs(result.x - 1)).toBeLessThanOrEqual(1e-3);
+      expect(Math.abs(result.y - 1)).toBeLessThanOrEqual(1e-3);
+    });
+
+    it("intercept at origin", () => {
+      const result = xy_from_bearings([0, 1], [-1, 1], [180, 45]);
+      expect(Math.abs(result.x - 0)).toBeLessThanOrEqual(1e-3);
+      expect(Math.abs(result.y - 0)).toBeLessThanOrEqual(1e-3);
     });
   });
 
