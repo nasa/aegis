@@ -1,23 +1,10 @@
-stages:
-  - stageless
-
-default:
-  timeout: 10 minutes
-
 variables:
-  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:20.11.0-alpine"
+  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:22.18.0-alpine"
   # "Future" might be older if waiting on a newer version to come out
-  FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:21-alpine"
+  FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:24.4.1-alpine"
 
   # Default image unless otherwise specified
 image: "$CURRENT_NODE_VERSION_IMAGE"
-
-# This folder is cached between builds
-# http://docs.gitlab.com/ee/ci/yaml/README.html#cache
-cache:
-  key: ${CI_COMMIT_REF_SLUG}
-  paths:
-    - .next/cache/
 
 include:
   # A11y tests. Disabled for now.
@@ -60,27 +47,16 @@ dependency-check:
   rules:
     - if: '$CI_COMMIT_BRANCH == "int" || $CI_COMMIT_BRANCH == "prod"'
 
-# npm-audit:
-#   stage: stageless
-#   image: $CI_REGISTRY/emss/docker-images/node-ci:npm-audit
-#   needs: []
-#   tags: ["openshift"]
-#   allow_failure: true
-#   script:
-#     # Runs `npm audit --json` then sends the results to EMSS dashboard (only on EMSS major branches)
-#     - >
-#       if
-#       [ "${CI_COMMIT_REF_SLUG}" == "prod" ] ||
-#       [ "${CI_COMMIT_REF_SLUG}" == "int" ] ||
-#       [ "${CI_COMMIT_REF_SLUG}" == "stable" ] ||
-#       [ "${CI_COMMIT_REF_SLUG}" == "beta" ] ||
-#       [ "${CI_COMMIT_REF_SLUG}" == "alpha" ];
-#       then
-#         node /postAuditReport.js;
-#       fi
-
-#     # Run this without --json to make a pretty-print for the job log, plus will pass/fail the job
-#     - npm audit
+npm-audit:
+  stage: stageless
+  image: $CI_REGISTRY/emss/docker-images/node-ci:npm-audit
+  when: manual
+  needs: []
+  tags: ["openshift"]
+  allow_failure: true
+  script:
+    # Run this without --json to make a pretty-print for the job log, plus will pass/fail the job
+    - npm audit
 
 install_dependencies:
   stage: stageless
@@ -98,17 +74,16 @@ install_dependencies:
 #
 node-sbom:
   stage: stageless
-  allow_failure: true
   tags: ["docker", "linux"] # Can't be openshift due to it not pulling latest tag
   needs: ["install_dependencies"]
-  image: $CI_REGISTRY/emss/docker-images:node-ci-sbom
+  image: $CI_REGISTRY/emss/docker-images/node-ci:sbom
   script:
-    - /create-and-compare-bom.sh ./BOM.md
+    - /make-sbom.sh
   artifacts:
     when: always
     paths:
       - "./bom.json"
-      - "./new-bom.md"
+      - "./BOM.md"
     expire_in: 1 day
 
 # Template for `test` and `test-node-next` jobs, adding database service, etc.
@@ -184,7 +159,7 @@ playwright_test:
     NUM_SHARDS: 4
   extends: .test_template
   stage: stageless
-  image: mcr.microsoft.com/playwright:v1.53.0-jammy
+  image: mcr.microsoft.com/playwright:v1.54.2-jammy
   needs:
     - install_dependencies
     - make-test-dotenv

@@ -515,40 +515,14 @@ export const getCalculatedFieldsByEva = (params: {
     eva.egressDuration +
     eva.ingressDuration;
 
-  // check if max time exceeds limit
-  if (
-    eva.duration &&
-    evaCalculatedFields.totalEvaTime > eva.duration &&
-    evaCalculatedFields.totalEvaTime <= eva.duration
-  ) {
-    newReportItems.push({
-      message:
-        "Calculated max EVA duration exceeds defined maximum by " +
-        (evaCalculatedFields.totalEvaTime - eva.duration).toFixed(0) +
-        " minutes but calculated nominal EVA duration is within limit",
-      type: "warning",
-    } as ReportItem);
-  } else if (
-    // check if max time exceeds limit and is also above nominal
-    eva.duration &&
-    evaCalculatedFields.totalEvaTime > eva.duration * 1.25
-  ) {
-    newReportItems.push({
-      message:
-        "Calculated max EVA duration exceeds defined maximum by " +
-        (evaCalculatedFields.totalEvaTime - eva.duration).toFixed(0) +
-        " minutes",
-      type: "error",
-    } as ReportItem);
-  }
   // check if nominal time exceeds limit
-  if (eva.duration && evaCalculatedFields.totalEvaTime > eva.duration * 0.75) {
+  if (eva.duration && evaCalculatedFields.totalEvaTime > eva.duration) {
     newReportItems.push({
       message:
-        "Calculated nominal EVA duration exceeds defined maximum by " +
+        "Calculated EVA duration exceeds set EVA duration by " +
         (evaCalculatedFields.totalEvaTime - eva.duration).toFixed(0) +
         " minutes",
-      type: "error",
+      type: "warning",
     } as ReportItem);
   }
 

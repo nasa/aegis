@@ -325,6 +325,82 @@ export const drawOrUpdateMarkerOnMap = async ({
   }
 };
 
+export const drawLanderOnMap = async ({
+  map,
+  location,
+  onClick = () => {},
+  onDragEnd = () => {},
+  tooltipOptions = {},
+  sizePx = 35,
+}: {
+  map: MutableRefObject<L.Map>;
+  location: AEGISPoint;
+  onClick?: () => void;
+  onDragEnd?: (marker: AEGISMarker) => void;
+  tooltipOptions?: L.TooltipOptions;
+  sizePx?: number;
+}): Promise<void> => {
+  if (isNaN(location.lat) || isNaN(location.lng)) return;
+
+  const name = "Lander";
+  const uuid = "lander";
+
+  // Create custom SVG icon for lander
+  const html = ReactDOMServer.renderToString(
+    <div className={styles.iconWrapper}>
+      <div className={styles.mapLanderIcon}>
+        <img
+          style={{
+            width: `${sizePx}px`,
+            height: `${sizePx}px`,
+          }}
+          src="/images/lander.svg"
+        ></img>
+      </div>
+    </div>
+  );
+  const icon = L.divIcon({ html });
+
+  const existingLayer = getMapItemByUuid(map, uuid, "lander") as AEGISMarker;
+
+  if (existingLayer && existingLayer.mapItemType === "lander") {
+    existingLayer.setLatLng(location as L.LatLng);
+    existingLayer.setIcon(icon);
+  } else {
+    const marker = L.marker(location as AEGISPoint, {
+      icon,
+    }) as AEGISMarker;
+    marker.uuid = uuid;
+    marker.mapItemType = "lander";
+
+    // marker handlers
+    marker.bindTooltip(`${name}`, {
+      sticky: false,
+      direction: "top",
+      offset: new L.Point(0, -20),
+      className: "leaflet-tooltip-own",
+      ...tooltipOptions,
+    });
+
+    if (onClick) {
+      marker.on("click", () => {
+        onClick();
+      });
+    }
+
+    if (onDragEnd) {
+      // dragend handler that causes edit to be saved on mouseup
+      marker.on("dragend", (e) => {
+        map.current.getContainer().style.cursor = "grab";
+        onDragEnd(e.target as AEGISMarker);
+      });
+    }
+
+    // lander does not have a feature group
+    map.current.addLayer(marker);
+  }
+};
+
 /**
  * Draw polylines on the map
  */

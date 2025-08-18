@@ -1,5 +1,6 @@
 import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
+import missionStyles from "./mission.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, shallowEqual, deepEqual } from "utils/useAppSelector";
@@ -8,7 +9,6 @@ import { LastEdited, SubpanelHeading } from "components/interface/_global-elemen
 import {
   faFileInvoice,
   faInfoCircle,
-  faLocationDot,
   faMessage,
   faMountain,
   faXmark,
@@ -21,7 +21,9 @@ import { toDecimal } from "utils/formatting";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkVerifyNoStationsBeingEdited } from "store/thunk/thunkStation";
 import { globalGrid } from "utils/mapping/grid";
-import { findGridCoordinatesFromPoint } from "utils/mapping/geoMath";
+import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
+import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { SURF_NAV_MOON_MEAN_RADIUS } from "utils/consts";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -37,8 +39,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   }, shallowEqual);
 
   const landerGridCoordinates = useAppSelector((state) => {
-    if (mission.landerLocation && globalGrid?.coordinates && state.map.gridCornerPoint) {
-      return findGridCoordinatesFromPoint(
+    if (mission.landerLocation && mission.planetRadius === SURF_NAV_MOON_MEAN_RADIUS) {
+      return getLGRSCoordsFromLatLng(mission.landerLocation.lat, mission.landerLocation.lng);
+    } else if (mission.landerLocation && globalGrid?.coordinates && state.map.gridCornerPoint) {
+      return findGlobalGridCoordsFromPoint(
         globalGrid.coordinates,
         mission.landerLocation,
         state.mission.mission.planetRadius
@@ -151,7 +155,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>
-              <SubpanelHeading icon={faLocationDot}>Lander Location</SubpanelHeading>
+              <div className={missionStyles.lander}>
+                <img
+                  src="/images/lander.svg"
+                  alt="Lander Icon"
+                  style={{ width: "15px", marginRight: "3px" }}
+                />
+                <div>Lander Location</div>
+              </div>
             </div>
 
             {editMode ? (

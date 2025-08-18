@@ -11,11 +11,9 @@ import {
   useEffect,
 } from "react";
 import styles from "./globalFields.module.css";
-import { TagsInput } from "react-tag-input-component";
 import { decodeEmoji } from "utils/formatting";
-import { Form } from "react-final-form";
+import { Field, FieldRenderProps, Form } from "react-final-form";
 import React from "react";
-import { Field, FieldMetaState } from "react-final-form";
 import { composeValidators } from "components/interface/form/formValidators";
 import Select from "react-select";
 import { FFTextProps, FFCheckboxProps, FFSelectProps, FFTextAreaProps } from "typings/form";
@@ -374,42 +372,6 @@ export const InLineEditInput: FunctionComponent<{
   );
 };
 
-export const Tags: FunctionComponent<{
-  value: string[];
-  editing: boolean;
-  onChange: (tags: string[]) => void;
-  name: string;
-  separators: string[];
-  placeHolder: string;
-  onExisting: (tag: string) => void;
-}> = ({ value, editing, onChange, name, separators, placeHolder, onExisting }) => {
-  return (
-    <>
-      {editing && (
-        <div className={styles.tagsContainer}>
-          <TagsInput
-            value={value}
-            onChange={onChange}
-            name={name}
-            separators={separators}
-            placeHolder={placeHolder}
-            onExisting={onExisting}
-          />
-        </div>
-      )}
-      {!editing && (
-        <div className={styles.tagListContainer}>
-          {value.map((tag) => (
-            <div className={styles.tagListItem} key={tag}>
-              {tag}
-            </div>
-          ))}
-        </div>
-      )}
-    </>
-  );
-};
-
 export const Checkbox: FunctionComponent<{
   checked: boolean;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -477,7 +439,7 @@ export const Checkbox: FunctionComponent<{
 };
 
 export const ValidationErrors: FunctionComponent<{
-  meta: FieldMetaState<unknown>;
+  meta: FieldRenderProps<unknown>["meta"];
 }> = ({ meta }) => {
   return meta.error && meta.touched ? (
     <div className={formStyles.error}>
@@ -496,7 +458,7 @@ export const ValidationErrors: FunctionComponent<{
 };
 
 /**
- * This component wraps the CicrularSlider component from react-circular-slider
+ * This component wraps the CircularSlider component from react-circular-slider
  */
 export const DegreesInputSlider: FunctionComponent<{
   value?: number;

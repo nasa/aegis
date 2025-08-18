@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-dotenv.config({ override: true });
+dotenv.config({ override: true, quiet: true });
 import { createServer, Server as NetServer } from "http";
 import { Server as SocketServer } from "socket.io";
 import type { DefaultEventsMap } from "socket.io";

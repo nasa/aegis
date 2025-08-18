@@ -27,6 +27,7 @@ import {
   getMapItemByUuid,
   scaleBarDiv,
   drawOrUpdateMarkerOnMap,
+  drawLanderOnMap,
   drawPolylineOnMap,
   drawPosPathOnMap,
   drawPosMarkerOnMap,
@@ -44,7 +45,7 @@ import { circle } from "@turf/turf";
 import {
   adjustGridIndex,
   convertLeafletLatLngToAegisPoint,
-  findClosestPointInGrid,
+  findClosestPointInGlobalGrid,
 } from "utils/mapping/geoMath";
 import { Feature } from "geojson";
 import { getGrids } from "http-client/grid";
@@ -768,8 +769,8 @@ const MapBody: FunctionComponent<{
     );
 
     setGridBounds([
-      findClosestPointInGrid(chosenGrid.coordinates, gridStart, mission.planetRadius),
-      findClosestPointInGrid(chosenGrid.coordinates, gridEnd, mission.planetRadius),
+      findClosestPointInGlobalGrid(chosenGrid.coordinates, gridStart, mission.planetRadius),
+      findClosestPointInGlobalGrid(chosenGrid.coordinates, gridEnd, mission.planetRadius),
     ]);
     setGridBounds(null);
   }, [map, mapBounds, chosenGrid, mapZoom, mission.id, mission.planetRadius]);
@@ -898,18 +899,10 @@ const MapBody: FunctionComponent<{
   useEffect(() => {
     if (!map.current || !mission.landerLocation) return;
 
-    drawOrUpdateMarkerOnMap({
+    drawLanderOnMap({
       map,
-      featureGroup: null,
-      name: "Lander",
-      uuid: "lander",
-      iconEmoji: "1f680", //rocket
-      mapItemType: "lander",
       location: mission.landerLocation,
-      isWin10,
-      iconClassName: styles.mapIcon,
-      iconWin10ClassName: styles.mapIconWin10,
-      iconWrapperClassName: styles.iconWrapper,
+      sizePx: 39, // bigger than default 30px
       tooltipOptions: {
         className: styles.tooltip,
         permanent: false,

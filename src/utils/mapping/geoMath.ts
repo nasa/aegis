@@ -1,5 +1,7 @@
 import meanBy from "lodash/meanBy";
 import isEqual from "lodash/isEqual";
+import { SURF_NAV_MOON_MEAN_RADIUS } from "utils/consts";
+import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 
 /**
  * This uses the 'haversine' formula to calculate the great-circle distance between two points
@@ -28,12 +30,34 @@ export function getDistanceBetweenTwoCoordinates(
 }
 
 /**
+ * Find the grid coordinates of a point depending on which grid should be used
+ * @param {AEGISPoint} point - the point to find coordinates for
+ * @param {number} radius - The radius of the planet in question (usually meters)
+ * @reference http://www.movable-type.co.uk/scripts/latlong.html
+ */
+export function getGridCoordinatesFromPoint(
+  point: AEGISPoint,
+  radius: number,
+  globalGrid: MissionGridPoint[][]
+): string {
+  if (!point) return null;
+
+  if (radius === SURF_NAV_MOON_MEAN_RADIUS) {
+    return getLGRSCoordsFromLatLng(point.lat, point.lng);
+  } else if (globalGrid) {
+    return findGlobalGridCoordsFromPoint(globalGrid, point, radius);
+  } else {
+    return null;
+  }
+}
+
+/**
  * Performs binary search to find the closest grid coordinate to a specific point
  * @param {MissionGridPoint[][]} grid - the grid to find coordinates in
  * @param {AEGISPoint} point - the point to look for
  * @param {number} radius - The radius of the planet in question (usually meters)
  */
-export function findClosestPointInGrid(
+export function findClosestPointInGlobalGrid(
   grid: MissionGridPoint[][],
   point: AEGISPoint,
   radius: number
@@ -93,14 +117,14 @@ export function findClosestPointInGrid(
  * @param {AEGISPoint} point - the point to find coordinates for
  * @param {number} radius - The radius of the planet in question (usually meters)
  */
-export function findGridCoordinatesFromPoint(
+export function findGlobalGridCoordsFromPoint(
   grid: MissionGridPoint[][],
   point: AEGISPoint,
   radius: number
 ): string {
   if (!grid || !point) return null;
 
-  const closestPoint: GridIndex = findClosestPointInGrid(grid, point, radius);
+  const closestPoint: GridIndex = findClosestPointInGlobalGrid(grid, point, radius);
 
   const upperCoord = closestPoint.row > 0 ? grid[closestPoint.row - 1][closestPoint.col] : null;
   const lowerCoord =

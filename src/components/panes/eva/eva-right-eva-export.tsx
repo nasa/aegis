@@ -127,8 +127,9 @@ const Export_Panel: FunctionComponent = () => {
                 label="Export Full Traverse as GeoJSON"
                 style={{ width: "225px", marginLeft: "18px", marginTop: "8px" }}
                 onClick={() => {
-                  const traversesGeoJson: FeatureCollection<LineString> = {
+                  const traversesGeoJson = {
                     type: "FeatureCollection",
+                    start_datetime: selectedEva.datetime,
                     features: [
                       {
                         type: "Feature",
@@ -141,7 +142,7 @@ const Export_Panel: FunctionComponent = () => {
                         },
                       },
                     ],
-                  };
+                  } as unknown as FeatureCollection<LineString>;
                   downloadGeoJson(traversesGeoJson, `${selectedEva.name}-traverse.geojson`);
                 }}
               />

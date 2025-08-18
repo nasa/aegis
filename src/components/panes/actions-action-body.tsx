@@ -25,7 +25,6 @@ import { upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { decodeEmoji, longdateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
-import ReactDOMServer from "react-dom/server";
 import STMSelector from "./stm/stm-selector";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import round from "lodash/round";
@@ -33,7 +32,7 @@ import isNull from "lodash/isNull";
 import { EquipmentSelector, GeographicUnitSelector } from "./actions-action-body-multiselectors";
 import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
 import {
-  findGridCoordinatesFromPoint,
+  findGlobalGridCoordsFromPoint,
   getDistanceBetweenTwoCoordinates,
 } from "utils/mapping/geoMath";
 import Picker from "@emoji-mart/react";
@@ -41,6 +40,8 @@ import emojiPickerData from "@emoji-mart/data";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkAddCollectionId, thunkAddRexActionMass } from "store/thunk/thunkRex";
 import { globalGrid } from "utils/mapping/grid";
+import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { SURF_NAV_MOON_MEAN_RADIUS } from "utils/consts";
 
 const RightActionBody: FunctionComponent<{
   editMode: boolean;
@@ -52,15 +53,6 @@ const RightActionBody: FunctionComponent<{
   allowRexEdit: boolean;
 }> = ({ editMode, action, parentType, parentLocation, parentElevation, rexUuid, allowRexEdit }) => {
   const dispatch = useAppDispatch();
-  const parentAction = useAppSelector(
-    (state) =>
-      state.action.actions.find((storeAction) => storeAction.uuid === action.parentActionUuid),
-    deepEqual
-  );
-  const parentPoiName = useAppSelector(
-    (state) => state.poi.pois.find((storePoi) => storePoi.uuid === parentAction?.poiUuid)?.name,
-    refEqual
-  );
 
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === action.uuid ? state.map.mapDirective : null;
@@ -98,29 +90,24 @@ const RightActionBody: FunctionComponent<{
   const planetRadius = useAppSelector((state) => state.mission.mission.planetRadius, refEqual);
 
   const actionGridCoordinates = useAppSelector((state) => {
-    if (action.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
-      return findGridCoordinatesFromPoint(globalGrid.coordinates, action.location, planetRadius);
+    if (action.location && planetRadius === SURF_NAV_MOON_MEAN_RADIUS) {
+      return getLGRSCoordsFromLatLng(action.location.lat, action.location.lng);
+    } else if (action.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
+      return findGlobalGridCoordsFromPoint(globalGrid.coordinates, action.location, planetRadius);
     } else {
       return "Not set";
     }
-  }, deepEqual);
+  }, shallowEqual);
+
+  const actionParentPoi = useAppSelector((state) => {
+    if (!action.parentActionUuid) return undefined;
+    const parentAction = state.action.actions.find((a) => a.uuid === action.parentActionUuid);
+    if (!parentAction || !parentAction.poiUuid) return undefined;
+    const poi = state.poi.pois.find((p) => p.uuid === parentAction.poiUuid);
+    return poi;
+  }, refEqual);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-
-  const buildActionTooltip = () => {
-    if (parentAction && parentPoiName) {
-      const dateString = longdateFromDateString(action.parentCopyDate) + "Z";
-      return ReactDOMServer.renderToStaticMarkup(
-        <>
-          Copied from POI {parentPoiName} - {parentAction.name}
-          <br />
-          on {dateString}
-        </>
-      );
-    } else {
-      return <></>;
-    }
-  };
 
   const dispatchStationMapAction = (mapAction: MapAction) => {
     dispatch(
@@ -784,6 +771,28 @@ const RightActionBody: FunctionComponent<{
         </div>
       </div>
 
+      {actionParentPoi && (
+        <div className={paneStyles.panelSection}>
+          <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+            <SubpanelHeading icon={faCircle}>Copied from POI</SubpanelHeading>
+          </div>
+
+          <div className={paneStyles.panelSectionRow} style={{ marginLeft: "18px" }}>
+            <div className={paneStyles.displayFieldLabel}>
+              <div style={{ lineHeight: "1.4em" }}>
+                <span style={{ marginRight: "4px" }}>
+                  {decodeEmoji(actionParentPoi?.icon ? actionParentPoi?.icon : "2754")}
+                </span>
+                <span style={{ color: "var(--grey5)" }}>{actionParentPoi?.name} </span>
+                <div style={{ marginLeft: "2px" }}>
+                  at {longdateFromDateString(action.parentCopyDate) + "Z"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={paneStyles.panelSection}>
         <div className={paneStyles.displayFieldLabel}>Last Edited:</div>
       </div>
@@ -791,18 +800,6 @@ const RightActionBody: FunctionComponent<{
         <div className={paneStyles.displayFieldValue}>
           <LastEdited updatedAt={action?.updatedAt} />
         </div>
-        {action.parentActionUuid && (
-          <div style={{ flex: "0 0 20px" }}>
-            <FontAwesomeIcon
-              id={`${action.uuid}-${action.parentActionUuid}`}
-              icon={faCircle}
-              size="sm"
-              className={actionStyles.iconFaded}
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={buildActionTooltip()}
-            />
-          </div>
-        )}
       </div>
     </div>
   );

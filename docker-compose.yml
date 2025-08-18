@@ -91,7 +91,7 @@ services:
 
   oauth2-proxy:
     container_name: "${LOG_DATA_APP_ID}--oauth2"
-    image: quay.io/oauth2-proxy/oauth2-proxy:v7.5.1
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.11.0
     restart: always
     command:
       - --http-address
@@ -132,7 +132,7 @@ services:
 
   redis:
     container_name: "${LOG_DATA_APP_ID}--redis"
-    image: redis:7.2.4-alpine3.19
+    image: redis:7.2.5-alpine3.19
     restart: always
     volumes:
       - ${REDIS_CACHE_DIR}:/data
