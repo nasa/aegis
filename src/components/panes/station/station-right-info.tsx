@@ -306,7 +306,7 @@ const Info_Panel: FunctionComponent<{
                         <div
                           style={{ color: "var(--grey5)" }}
                           className={paneStyles.inputFieldLabel}
-                        >{`Using Calculated Total Dwell Time: ${(calculatedFields?.totalDwellTime).toFixed(0)}`}</div>
+                        >{`Using Calculated Total Dwell Time: ${Math.round(calculatedFields?.totalDwellTime)}`}</div>
                       )}
                     </div>
                   </div>
@@ -347,7 +347,7 @@ const Info_Panel: FunctionComponent<{
                         {calculatedFields?.totalActionTime === 0 ? (
                           <>0</>
                         ) : (
-                          <>{calculatedFields?.totalActionTime.toFixed(0)}</>
+                          <>{Math.round(calculatedFields?.totalActionTime)}</>
                         )}
                       </div>
                     </div>
@@ -679,7 +679,7 @@ const Info_Panel: FunctionComponent<{
                         {!selectedStation.location ? (
                           <>N/A</>
                         ) : (
-                          calculatedFields?.walkbackDurationMinutes?.toFixed(0)
+                          Math.round(calculatedFields?.walkbackDurationMinutes)
                         )}
                       </div>
                     </div>

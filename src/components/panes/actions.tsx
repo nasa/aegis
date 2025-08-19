@@ -324,7 +324,7 @@ export const ActionsTopSection: FunctionComponent<{
                     {actionsCalculatedFields?.totalActionTime === 0 ? (
                       <>0</>
                     ) : (
-                      <>{actionsCalculatedFields?.totalActionTime.toFixed(0)}</>
+                      <>{Math.round(actionsCalculatedFields?.totalActionTime)}</>
                     )}
                   </div>
                 </div>
