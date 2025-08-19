@@ -207,12 +207,6 @@
   padding: 7px 0 0 5px;
 }
 
-.mapLanderIcon {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 .mapEVIconMinimap {
   position: relative;
   height: 0;
