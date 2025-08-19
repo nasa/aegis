@@ -1,4 +1,4 @@
-import { FunctionComponent, useCallback, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { Button } from "components/interface/form/globalFields";
 import evaStyles from "./eva.module.css";
@@ -8,18 +8,10 @@ import SequenceItemStation from "./eva-item-sequence-station";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkAddStationToEva } from "store/thunk/thunkEva";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
-import {
-  decodeEmoji,
-  hhmmssFromSeconds,
-  hmmFromMinutes,
-  isNotNumber,
-  secondsFromhhmmss,
-} from "utils/formatting";
+import { decodeEmoji, hmmFromMinutes } from "utils/formatting";
 import { setHoverUuidsForSequence } from "store/hover";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { RexStatusMenu } from "../rex/rex-status-menu";
-import PetInterval from "components/page/petInterval";
-import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
 
 export const EvaSequence: FunctionComponent<{
@@ -90,45 +82,6 @@ export const EvaEgressIngressListing: FunctionComponent<{
     return rex.xgressEntries[xgressIdentifier]?.rexStatus;
   }, deepEqual);
 
-  const [rexPetTime, setRexPetTime] = useState("");
-
-  const evaCalculatedFields: EvaCalculatedFields = useAppSelector(
-    (state) =>
-      getCalculatedFieldsByEva({
-        eva,
-        evaStations: state.station.stations,
-        missionWalkbackRate: state.mission.mission.walkbackRate,
-        missionTraverseRate: state.mission.mission.traverseRate,
-        evaActions: state.action.actions,
-        evaTraverses: state.traverse.traverses,
-      }),
-    deepEqual
-  );
-
-  const displayInProgressItemTimeRemaining = useCallback(
-    (rexPetSeconds: number) => {
-      let totalEvaTime;
-      if (isNotNumber(eva.duration)) {
-        if (evaCalculatedFields) {
-          totalEvaTime = evaCalculatedFields.totalEvaTime;
-        } else {
-          return null;
-        }
-      } else {
-        totalEvaTime = eva.duration;
-      }
-      let secondsRemaining = 0;
-      if (xgressIdentifier === "egress") {
-        secondsRemaining = (eva.egressDuration * 60 - rexPetSeconds) * -1;
-      } else {
-        secondsRemaining = (totalEvaTime * 60 - eva.ingressDuration * 60 - rexPetSeconds) * -1;
-      }
-      return hhmmssFromSeconds(secondsRemaining);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [evaCalculatedFields, eva]
-  );
-
   let xgressStyle = null;
   if (
     (xgressIdentifier === "egress" && hoverItemUuid === eva.egressLocationUuid) ||
@@ -150,11 +103,6 @@ export const EvaEgressIngressListing: FunctionComponent<{
 
   return (
     <div className={evaStyles.evaItem}>
-      <PetInterval
-        runningRex={rexFromDbIfExecuting}
-        rexPetTime={rexPetTime}
-        setRexPetTime={setRexPetTime}
-      />
       <div className={evaStyles.iconCustom}>{decodeEmoji(icon)}</div>
       {isRexEva && (
         <RexStatusMenu
@@ -198,16 +146,6 @@ export const EvaEgressIngressListing: FunctionComponent<{
           >
             {hmmFromMinutes(isEgress ? eva.egressDuration : eva.ingressDuration)}
           </div>
-          {rexFromDbIfExecuting && xgressRexStatus === "in-progress" && (
-            <div
-              className={evaStyles.evaItemRightItem}
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={"Time remaining (hh:mm:ss)"}
-              data-tooltip-place="right"
-            >
-              {displayInProgressItemTimeRemaining(secondsFromhhmmss(rexPetTime))}
-            </div>
-          )}
         </div>
       </div>
     </div>

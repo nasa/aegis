@@ -341,7 +341,7 @@
 .iconTraverse {
   border-left: 5px dotted var(--eva);
   overflow-y: visible;
-  height: 32px;
+  height: 21px;
 }
 
 .iconTraverseDotsContainerSmall {

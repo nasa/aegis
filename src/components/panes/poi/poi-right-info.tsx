@@ -156,7 +156,7 @@ const Info_Panel: FunctionComponent<{
                         {poiCalcFields?.totalActionTime === 0 ? (
                           <>0</>
                         ) : (
-                          <>{poiCalcFields?.totalActionTime.toFixed(0)}</>
+                          <>{Math.round(poiCalcFields?.totalActionTime)}</>
                         )}
                       </div>
                     </div>

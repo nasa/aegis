@@ -1,31 +1,22 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
-import { FunctionComponent, useCallback, useState } from "react";
+import { FunctionComponent, useCallback } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
-import {
-  secondsFromhhmmss,
-  hhmmssFromSeconds,
-  hmmFromMinutes,
-  isNotNumber,
-} from "utils/formatting";
+import { hmmFromMinutes, isNotNumber } from "utils/formatting";
 import { setHoverUuidsForSequence } from "store/hover";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { getRexStatusDisplayProperties } from "../../../utils/component-helpers";
-import PetInterval from "components/page/petInterval";
 import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
-import {
-  getCalculatedFieldsByEva,
-  getCalculatedFieldsByTraverse,
-} from "store/processing/calculatedFields";
+import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 
 const SequenceItemTraverse: FunctionComponent<{
   evaUuid: string;
   traverseUuid: string;
   isRexRunning: boolean;
-}> = ({ evaUuid, traverseUuid, isRexRunning }) => {
+}> = ({ evaUuid, traverseUuid }) => {
   const dispatch = useAppDispatch();
 
   const isRexEva = useAppSelector((state) => {
@@ -80,28 +71,12 @@ const SequenceItemTraverse: FunctionComponent<{
     refEqual
   );
 
-  const sequenceItemCalculatedDataEndSeconds = useAppSelector((state) => {
-    const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
-    return getCalculatedFieldsByEva({
-      eva,
-      evaStations: state.station.stations,
-      missionWalkbackRate: state.mission.mission.walkbackRate,
-      missionTraverseRate: state.mission.mission.traverseRate,
-      evaActions: state.action.actions,
-      evaTraverses: state.traverse.traverses,
-    })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === traverseUuid)
-      ?.manualEndSeconds;
-  }, refEqual);
-
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
   // returns the rex from db object if this is a rex eva and is executing
   const rexFromDbIfExecuting = useAppSelector((state) => {
     if (!isRexEva) return null;
     return state.rex.rexesFromDb.find((rex) => rex.isRunning && rex.evaUuid === evaUuid);
   }, deepEqual);
-
-  // used to update the PET value via the PetInterval component
-  const [rexPetTime, setRexPetTime] = useState("");
 
   // determine styling
   let evaSequenceStyle = null;
@@ -141,15 +116,6 @@ const SequenceItemTraverse: FunctionComponent<{
     thisTraverseForModified.duration,
   ]);
 
-  const displayInProgressItemTimeRemaining = useCallback(
-    (rexPetSeconds: number) => {
-      if (!sequenceItemCalculatedDataEndSeconds) return "N/A";
-      const secondsRemaining = (sequenceItemCalculatedDataEndSeconds - rexPetSeconds) * -1;
-      return hhmmssFromSeconds(secondsRemaining);
-    },
-    [sequenceItemCalculatedDataEndSeconds]
-  );
-
   const getTraverseDisplay = (name: string) => {
     if (!name) {
       return "No traverse name";
@@ -188,12 +154,6 @@ const SequenceItemTraverse: FunctionComponent<{
 
   return (
     <div className={evaStyles.evaSequence}>
-      <PetInterval
-        runningRex={rexFromDbIfExecuting}
-        rexPetTime={rexPetTime}
-        setRexPetTime={setRexPetTime}
-      />
-
       <div
         className={evaStyles.evaItem}
         key={`${traverseUuid}`}
@@ -252,17 +212,6 @@ const SequenceItemTraverse: FunctionComponent<{
             >
               {displayTraverseDuration()}
             </div>
-
-            {isRexRunning && traverseRexStatus === "in-progress" && (
-              <div
-                className={evaStyles.evaItemRightItem}
-                data-tooltip-id="aegis-tooltip"
-                data-tooltip-html={"Time remaining"}
-                data-tooltip-place="right"
-              >
-                {displayInProgressItemTimeRemaining(secondsFromhhmmss(rexPetTime))}
-              </div>
-            )}
           </div>
         </div>
       </div>

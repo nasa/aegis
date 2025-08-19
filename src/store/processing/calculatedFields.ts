@@ -520,7 +520,7 @@ export const getCalculatedFieldsByEva = (params: {
     newReportItems.push({
       message:
         "Calculated EVA duration exceeds set EVA duration by " +
-        (evaCalculatedFields.totalEvaTime - eva.duration).toFixed(0) +
+        Math.round(evaCalculatedFields.totalEvaTime - eva.duration) +
         " minutes",
       type: "warning",
     } as ReportItem);

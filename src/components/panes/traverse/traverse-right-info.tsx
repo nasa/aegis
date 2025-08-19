@@ -193,7 +193,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         <div
                           style={{ color: "var(--grey5)" }}
                           className={paneStyles.inputFieldLabel}
-                        >{`Using Calculated Total: ${(calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes).toFixed(0)}`}</div>
+                        >{`Using Calculated Total: ${Math.round(calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes)}`}</div>
                       )}
                     </div>
                   </div>
@@ -332,7 +332,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields.durationMinutes.toFixed(0)}
+                        {Math.round(calculatedFields.durationMinutes)}
                       </div>
                     </div>
                   </div>
@@ -434,7 +434,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         {calculatedFields?.totalActionTime === 0 ? (
                           <>0</>
                         ) : (
-                          <>{calculatedFields?.totalActionTime.toFixed(0)}</>
+                          <>{Math.round(calculatedFields?.totalActionTime)}</>
                         )}
                       </div>
                     </div>
@@ -473,9 +473,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {(
+                        {Math.round(
                           calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes
-                        ).toFixed(0)}
+                        )}
                       </div>
                     </div>
                   </div>
