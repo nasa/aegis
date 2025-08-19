@@ -191,7 +191,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                     name: "petSeconds",
                                     ariaLabel: "PET Timer",
                                     style: { width: "90px" },
-                                    validators: [validators.maxLength(9), validators.mustBeHHMMSS],
+                                    validators: [
+                                      validators.maxLength(9),
+                                      validators.mustBeHHMMSS,
+                                      validators.required,
+                                    ],
                                     onChange: () => {},
                                   }}
                                   onSubmit={(val: string) => {
