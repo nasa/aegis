@@ -331,7 +331,7 @@ export const drawLanderOnMap = async ({
   onClick = () => {},
   onDragEnd = () => {},
   tooltipOptions = {},
-  sizePx = 30,
+  sizePx = 35,
 }: {
   map: MutableRefObject<L.Map>;
   location: AEGISPoint;
