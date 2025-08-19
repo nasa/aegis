@@ -194,7 +194,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                     validators: [
                                       validators.maxLength(9),
                                       validators.mustBeHHMMSS,
-                                      validators.minLength(8),
+                                      validators.required,
                                     ],
                                     onChange: () => {},
                                   }}
