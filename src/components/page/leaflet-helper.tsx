@@ -331,7 +331,7 @@ export const drawLanderOnMap = async ({
   onClick = () => {},
   onDragEnd = () => {},
   tooltipOptions = {},
-  sizePx = 35,
+  sizePx = 30,
 }: {
   map: MutableRefObject<L.Map>;
   location: AEGISPoint;
@@ -345,21 +345,11 @@ export const drawLanderOnMap = async ({
   const name = "Lander";
   const uuid = "lander";
 
-  // Create custom SVG icon for lander
-  const html = ReactDOMServer.renderToString(
-    <div className={styles.iconWrapper}>
-      <div className={styles.mapLanderIcon}>
-        <img
-          style={{
-            width: `${sizePx}px`,
-            height: `${sizePx}px`,
-          }}
-          src="/images/lander.svg"
-        ></img>
-      </div>
-    </div>
-  );
-  const icon = L.divIcon({ html });
+  const icon = L.icon({
+    iconUrl: "/images/lander.svg",
+    iconSize: [sizePx, sizePx],
+    iconAnchor: [sizePx / 2, sizePx / 2],
+  });
 
   const existingLayer = getMapItemByUuid(map, uuid, "lander") as AEGISMarker;
 
@@ -368,7 +358,7 @@ export const drawLanderOnMap = async ({
     existingLayer.setIcon(icon);
   } else {
     const marker = L.marker(location as AEGISPoint, {
-      icon,
+      icon: icon,
     }) as AEGISMarker;
     marker.uuid = uuid;
     marker.mapItemType = "lander";
