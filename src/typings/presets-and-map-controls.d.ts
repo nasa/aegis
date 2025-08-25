@@ -28,6 +28,10 @@ interface MapSublayerStyle {
   weight: number; //stroke weight
   fillColor: string;
   fillOpacity: number;
+  isDashed: boolean;
+  dashLen: number;
+  altColor: string; // for dashed lines
+  altOpacity: number; // for dashed lines
 }
 
 type MapSublayerStyleKeys = keyof MapSublayerStyle;

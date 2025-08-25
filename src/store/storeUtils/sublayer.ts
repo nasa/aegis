@@ -2,23 +2,28 @@ import { v4 as uuidv4 } from "uuid";
 import { Sublayer_db } from "server/database/models/_allModels";
 import { EntityData } from "@mikro-orm/core";
 import { getAccurateNow } from "utils/formatting";
+
+export const defaultSublayerStyle: MapSublayerStyle = {
+  opacity: 1,
+  contrast: 1,
+  brightness: 1,
+  saturation: 1,
+  blendMode: "normal",
+  color: "#FFFFFF",
+  weight: 1,
+  fillColor: "none",
+  fillOpacity: 0,
+  isDashed: false,
+  dashLen: 10,
+  altColor: "#FFFFFF",
+  altOpacity: 100,
+};
 /**
  * Generate a blank sublayer
- * @param partialSublayer any fields that are to be overriden from default
+ * @param partialSublayer any fields that are to be overridden from default
  * @returns the generated layer
  */
 export const generateBlankSublayer = (partialSublayer?: Partial<Sublayer>): Sublayer => {
-  const defaultSublayerStyle: MapSublayerStyle = {
-    opacity: 0,
-    contrast: 0,
-    brightness: 0,
-    saturation: 0,
-    blendMode: "normal",
-    color: "",
-    weight: 0,
-    fillColor: "",
-    fillOpacity: 0,
-  };
   const defaultNewSublayer: Sublayer = {
     uuid: uuidv4(),
     missionId: null,

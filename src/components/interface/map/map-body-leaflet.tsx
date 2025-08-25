@@ -771,22 +771,53 @@ const MapBody: FunctionComponent<{}> = () => {
 
             if (station.mapCircleControls[circleDefinition.uuid]?.visible) {
               // Turf Coords are in (lng, lat) format
-              const geoJSONCircle: AEGISGeoJSONCircle = L.geoJSON(
-                circle(point([station.location.lng, station.location.lat]), drawDistance, {
-                  steps: 256,
-                }),
-                {
-                  style: {
-                    ...station.mapCircleControls[circleDefinition.uuid]?.style,
-                    interactive: false,
-                  },
-                }
-              ) as AEGISGeoJSONCircle;
 
-              geoJSONCircle.mapItemType = "stationCircle";
-              geoJSONCircle.uuid = `${station.uuid}-${circleDefinition.uuid}`; // Add unique identifier
+              const circleStyle = station.mapCircleControls[circleDefinition.uuid]?.style;
 
-              stationCirclesFeatureGroup.current.addLayer(geoJSONCircle);
+              const dashLen = circleStyle?.dashLen || 10;
+
+              const stationCircles: AEGISGeoJSONCircle[] = [];
+
+              stationCircles.push(
+                L.geoJSON(
+                  circle(point([station.location.lng, station.location.lat]), drawDistance, {
+                    steps: 256,
+                  }),
+                  {
+                    style: {
+                      ...circleStyle,
+                      interactive: false,
+                      dashArray: circleStyle.isDashed ? `${dashLen}, ${dashLen}` : undefined,
+                    },
+                  }
+                ) as AEGISGeoJSONCircle
+              );
+
+              if (circleStyle?.isDashed) {
+                stationCircles.push(
+                  L.geoJSON(
+                    circle(point([station.location.lng, station.location.lat]), drawDistance, {
+                      steps: 256,
+                    }),
+                    {
+                      style: {
+                        ...circleStyle,
+                        color: circleStyle?.altColor,
+                        opacity: circleStyle?.altOpacity,
+                        interactive: false,
+                        dashArray: `${dashLen}, ${dashLen}`,
+                        dashOffset: `${dashLen}`,
+                      },
+                    }
+                  ) as AEGISGeoJSONCircle
+                );
+              }
+
+              stationCircles.forEach((circleLayer) => {
+                circleLayer.mapItemType = "stationCircle";
+                circleLayer.uuid = `${station.uuid}-${circleDefinition.uuid}`; // Add unique identifier
+                stationCirclesFeatureGroup.current.addLayer(circleLayer);
+              });
             }
           });
         }
@@ -1191,22 +1222,52 @@ const MapBody: FunctionComponent<{}> = () => {
       const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
 
       if (selectedPreset.mapCircleControls[circleDefinition.uuid]?.visible) {
-        // Turf Coords are in (lng, lat) format
-        const geoJSONCircle: AEGISGeoJSONCircle = L.geoJSON(
-          circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
-            steps: 256,
-          }),
-          {
-            style: {
-              ...selectedPreset.mapCircleControls[circleDefinition.uuid]?.style,
-              interactive: false,
-            },
-          }
-        ) as AEGISGeoJSONCircle;
+        const circleStyle = selectedPreset.mapCircleControls[circleDefinition.uuid]?.style;
 
-        geoJSONCircle.mapItemType = "landerCircle";
+        const landerCircle: AEGISGeoJSONCircle[] = [];
 
-        map.current.addLayer(geoJSONCircle);
+        const dashLen = circleStyle?.dashLen || 10;
+
+        landerCircle.push(
+          L.geoJSON(
+            circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
+              steps: 256,
+            }),
+            {
+              style: {
+                ...circleStyle,
+                interactive: false,
+                dashArray: circleStyle.isDashed ? `${dashLen}, ${dashLen}` : undefined,
+              },
+            }
+          ) as AEGISGeoJSONCircle
+        );
+
+        if (circleStyle?.isDashed) {
+          landerCircle.push(
+            L.geoJSON(
+              circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
+                steps: 256,
+              }),
+              {
+                style: {
+                  ...circleStyle,
+                  color: circleStyle?.altColor,
+                  opacity: circleStyle?.altOpacity,
+                  interactive: false,
+                  dashArray: `${dashLen}, ${dashLen}`,
+                  dashOffset: `${dashLen}`,
+                },
+              }
+            ) as AEGISGeoJSONCircle
+          );
+        }
+
+        landerCircle.forEach((circleLayer) => {
+          circleLayer.mapItemType = "landerCircle";
+          circleLayer.uuid = `lander-${circleDefinition.uuid}`; // Add unique identifier
+          map.current.addLayer(circleLayer);
+        });
       }
     });
   }, [
