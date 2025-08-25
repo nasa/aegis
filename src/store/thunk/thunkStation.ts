@@ -32,6 +32,7 @@ import { getAccurateNow } from "utils/formatting";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankStation } from "store/storeUtils/station";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
+import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 export const thunkUpdateStationLatLngField = appCreateAsyncThunk<{
   stationUuid: string;
@@ -477,17 +478,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
         name: landerRadius.name,
         uuid: landerRadius.uuid,
         visible: false,
-        style: {
-          opacity: 1,
-          contrast: 1,
-          brightness: 1,
-          saturation: 1,
-          blendMode: "normal",
-          color: "#FFFFFF",
-          weight: 1,
-          fillColor: "none",
-          fillOpacity: 0,
-        },
+        style: defaultSublayerStyle,
       };
     });
 

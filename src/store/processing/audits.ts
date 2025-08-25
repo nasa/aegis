@@ -6,6 +6,7 @@ import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
+import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
@@ -71,15 +72,19 @@ export const auditPresetsAgainstLayers = async ({
           sublayerUuid: sublayer.uuid,
           visible: false,
           style: {
-            opacity: sublayer.style.opacity || 1,
-            contrast: sublayer.style.contrast || 1,
-            brightness: sublayer.style.brightness || 1,
-            saturation: sublayer.style.saturation || 1,
-            blendMode: sublayer.style.blendMode || "normal",
-            color: sublayer.style.color || "#FFFFFF",
-            weight: sublayer.style.weight || 1,
-            fillColor: sublayer.style.fillColor || "#FFFFFF",
-            fillOpacity: sublayer.style.fillOpacity || 0,
+            opacity: sublayer.style.opacity ?? defaultSublayerStyle.opacity,
+            contrast: sublayer.style.contrast ?? defaultSublayerStyle.contrast,
+            brightness: sublayer.style.brightness ?? defaultSublayerStyle.brightness,
+            saturation: sublayer.style.saturation ?? defaultSublayerStyle.saturation,
+            blendMode: sublayer.style.blendMode ?? defaultSublayerStyle.blendMode,
+            color: sublayer.style.color ?? defaultSublayerStyle.color,
+            weight: sublayer.style.weight ?? defaultSublayerStyle.weight,
+            fillColor: sublayer.style.fillColor ?? defaultSublayerStyle.fillColor,
+            fillOpacity: sublayer.style.fillOpacity ?? defaultSublayerStyle.fillOpacity,
+            isDashed: sublayer.style.isDashed ?? defaultSublayerStyle.isDashed,
+            dashLen: sublayer.style.dashLen ?? defaultSublayerStyle.dashLen,
+            altColor: sublayer.style.altColor ?? defaultSublayerStyle.altColor,
+            altOpacity: sublayer.style.altOpacity ?? defaultSublayerStyle.altOpacity,
           },
         };
       }
@@ -107,17 +112,7 @@ export const auditPresetsAgainstLayers = async ({
           name: circleDef.name,
           uuid: circleDef.uuid,
           visible: false,
-          style: {
-            opacity: 1,
-            contrast: 1,
-            brightness: 1,
-            saturation: 1,
-            blendMode: "normal",
-            color: "#FFFFFF",
-            weight: 1,
-            fillColor: "none",
-            fillOpacity: 0,
-          },
+          style: defaultSublayerStyle,
         };
       }
     });

@@ -1,6 +1,6 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useCallback } from "react";
 import styles from "./settings-and-slider.module.css";
-import { Dropdown } from "components/interface/form/globalFields";
+import { Checkbox, Dropdown } from "components/interface/form/globalFields";
 
 import { getPercentOrDefault } from "utils/formatting";
 import CompactColor from "@uiw/react-color-compact";
@@ -33,6 +33,10 @@ const Settings_subpanel: FunctionComponent<{
     colorPicker: false,
     weight: false,
     fillOpacity: false,
+    isDashed: false,
+    dashLen: false,
+    altColor: false,
+    altOpacity: false,
   };
 
   if (type === "vector") {
@@ -45,6 +49,10 @@ const Settings_subpanel: FunctionComponent<{
       colorPicker: true,
       weight: true,
       fillOpacity: true,
+      isDashed: false,
+      dashLen: false,
+      altColor: false,
+      altOpacity: false,
     };
   } else if (type === "circle") {
     showSliders = {
@@ -56,6 +64,10 @@ const Settings_subpanel: FunctionComponent<{
       colorPicker: true,
       weight: true,
       fillOpacity: false,
+      isDashed: true,
+      dashLen: true,
+      altColor: true,
+      altOpacity: true,
     };
   } else if (type === "vector-tile") {
     showSliders = {
@@ -67,6 +79,10 @@ const Settings_subpanel: FunctionComponent<{
       colorPicker: true,
       weight: true,
       fillOpacity: false,
+      isDashed: false,
+      dashLen: false,
+      altColor: false,
+      altOpacity: false,
     };
   } else if (type === "grid") {
     showSliders = {
@@ -78,27 +94,27 @@ const Settings_subpanel: FunctionComponent<{
       colorPicker: true,
       weight: true,
       fillOpacity: false,
+      isDashed: false,
+      dashLen: false,
+      altColor: false,
+      altOpacity: false,
     };
   }
 
-  const setStyle = (value: number | string, property: MapSublayerStyleKeys) => {
-    styleSetter({
-      uuid,
-      layerStyle: { ...layerStyle, [property]: value },
-    });
-  };
+  const setStyle = useCallback(
+    (value: number | string | boolean, property: MapSublayerStyleKeys) => {
+      styleSetter({
+        uuid,
+        layerStyle: { ...layerStyle, [property]: value },
+      });
+    },
+    [uuid, layerStyle, styleSetter]
+  );
 
   return (
     <div className={styles.slidersContainer}>
       <div className={styles.sliderTitle}>Display Adjustments</div>
-      {showSliders.opacity && (
-        <Slider
-          display={type === "vector" ? "Stroke Opacity" : "Opacity"}
-          name="opacity"
-          value={getPercentOrDefault(layerStyle?.opacity)}
-          onChange={(e) => setStyle(Number(e.target.value) / 100, "opacity")}
-        />
-      )}
+
       {showSliders.contrast && (
         <Slider
           display="Contrast"
@@ -121,6 +137,96 @@ const Settings_subpanel: FunctionComponent<{
           name="saturation"
           value={getPercentOrDefault(layerStyle?.saturation)}
           onChange={(e) => setStyle(Number(e.target.value) / 100, "saturation")}
+        />
+      )}
+      {showSliders.colorPicker && (
+        <div className={styles.listItem}>
+          <div className={styles.listItemText}>Stroke Color</div>
+          <div className={styles.listItemControl}>
+            <CompactColor
+              key={`1-${JSON.stringify(layerStyle)}`} // changing the key blows it away and re-mounts
+              color={layerStyle?.color}
+              onChange={(color) => {
+                setStyle(color.hex, "color");
+              }}
+            />
+          </div>
+        </div>
+      )}
+      {showSliders.opacity && (
+        <Slider
+          display={type === "vector" || type === "circle" ? "Stroke Opacity" : "Opacity"}
+          name="opacity"
+          value={getPercentOrDefault(layerStyle?.opacity)}
+          onChange={(e) => setStyle(Number(e.target.value) / 100, "opacity")}
+        />
+      )}
+      {showSliders.weight && (
+        <Slider
+          display="Stroke Weight"
+          name="weight"
+          value={layerStyle?.weight ? layerStyle.weight : 2}
+          onChange={(e) => setStyle(Number(e.target.value), "weight")}
+          min={1}
+          max={5}
+          unit={"px"}
+        />
+      )}
+      {showSliders.isDashed && (
+        <div className={styles.listItem}>
+          <div className={styles.listItemText}>Dashed Line</div>
+          <div className={styles.listItemControl}>
+            <Checkbox
+              checked={layerStyle?.isDashed || false}
+              onChange={(e) => {
+                setStyle(e.target.checked, "isDashed");
+              }}
+              toolTip="Dashed Line"
+            />
+          </div>
+        </div>
+      )}
+      {layerStyle?.isDashed && showSliders.dashLen && (
+        <Slider
+          display="Dash Length"
+          name="dashLen"
+          value={layerStyle?.dashLen ? layerStyle.dashLen : 10}
+          onChange={(e) => {
+            setStyle(Number(e.target.value), "dashLen");
+          }}
+          min={1}
+          max={20}
+          unit={"px"}
+        />
+      )}
+      {layerStyle?.isDashed && showSliders.altColor && (
+        <div className={styles.listItem}>
+          <div className={styles.listItemText}>Alternate Color</div>
+          <div className={styles.listItemControl}>
+            <CompactColor
+              key={`2-${JSON.stringify(layerStyle)}`} // changing the key blows it away and re-mounts
+              color={`${layerStyle?.altColor}`}
+              onChange={(color) => {
+                setStyle(color.hex, "altColor");
+              }}
+            />
+          </div>
+        </div>
+      )}
+      {layerStyle?.isDashed && showSliders.altOpacity && (
+        <Slider
+          display="Alt Opacity"
+          name="dashedOpacity"
+          value={getPercentOrDefault(layerStyle?.altOpacity)}
+          onChange={(e) => setStyle(Number(e.target.value) / 100, "altOpacity")}
+        />
+      )}
+      {showSliders.fillOpacity && (
+        <Slider
+          display="Fill Opacity"
+          name="fillOpacity"
+          value={getPercentOrDefault(layerStyle?.fillOpacity)}
+          onChange={(e) => setStyle(Number(e.target.value) / 100, "fillOpacity")}
         />
       )}
       {showSliders.blendMode && (
@@ -152,38 +258,6 @@ const Settings_subpanel: FunctionComponent<{
             </Dropdown>
           </div>
         </div>
-      )}
-      {showSliders.colorPicker && (
-        <div className={styles.listItem}>
-          <div className={styles.listItemText}>Stroke Color</div>
-          <div className={styles.listItemControl}>
-            <CompactColor
-              color={layerStyle?.color}
-              onChange={(color) => {
-                setStyle(color.hex, "color");
-              }}
-            />
-          </div>
-        </div>
-      )}
-      {showSliders.weight && (
-        <Slider
-          display="Stroke Weight"
-          name="weight"
-          value={layerStyle?.weight ? layerStyle.weight : 2}
-          onChange={(e) => setStyle(Number(e.target.value), "weight")}
-          min={1}
-          max={5}
-          unit={"px"}
-        />
-      )}
-      {showSliders.fillOpacity && (
-        <Slider
-          display="Fill Opacity"
-          name="fillOpacity"
-          value={getPercentOrDefault(layerStyle?.fillOpacity)}
-          onChange={(e) => setStyle(Number(e.target.value) / 100, "fillOpacity")}
-        />
       )}
     </div>
   );
