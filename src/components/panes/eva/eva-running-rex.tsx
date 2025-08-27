@@ -48,7 +48,7 @@ const EvaRunningRex: FunctionComponent = () => {
   const evaTraversesForModified = useAppSelector((state) => {
     const traverseUuidInEva = thisEva?.sequence.filter((item) => item.type === "traverse");
     const traverseSubset = state.traverse.traverses.filter((traverse) =>
-      traverseUuidInEva.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
+      traverseUuidInEva?.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
     );
     return traverseSubset.map((traverse) => {
       return { uuid: traverse.uuid, updatedAt: traverse.updatedAt };
@@ -99,6 +99,11 @@ const EvaRunningRex: FunctionComponent = () => {
     }
     dispatch(setSelectedEvaSequenceItemUuid(null));
   }, [selectedEvaUuid, evaUuid, selectedEvaSequenceItemUuid, dispatch, rexUuid]);
+
+  // Early return if no running rex or eva data
+  if (!rexUuid || !evaUuid || !thisEva) {
+    return null;
+  }
 
   return (
     <div

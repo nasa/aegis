@@ -101,7 +101,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                   )
                                 );
 
-                                if (!selectedRex.posEntries) {
+                                if (
+                                  !selectedRex.posEntries ||
+                                  selectedRex.posEntries.length === 0
+                                ) {
                                   dispatch(thunkCreateInitialPosEntries());
                                 }
 
@@ -149,7 +152,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     <FontAwesomeIcon
                       icon={faHexagonNodes}
                       data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html="Some fields in this section are Maestro controlled"
+                      data-tooltip-html="Fields in this section are Maestro controlled"
                     />
                   </div>
                 )}

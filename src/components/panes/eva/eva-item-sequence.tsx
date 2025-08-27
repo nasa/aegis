@@ -60,14 +60,14 @@ export const EvaEgressIngressListing: FunctionComponent<{
   const dispatch = useAppDispatch();
   const station = useAppSelector((state) => {
     return state.station.stations.find(
-      (station) => station.uuid === (isEgress ? eva.egressLocationUuid : eva.ingressLocationUuid)
+      (station) => station.uuid === (isEgress ? eva?.egressLocationUuid : eva?.ingressLocationUuid)
     );
   }, deepEqual);
 
   // returns the rex from db object if this is a rex eva and is executing
   const rexFromDbIfExecuting = useAppSelector((state) => {
     if (!isRexEva) return null;
-    return state.rex.rexesFromDb.find((rex) => rex.isRunning && rex.evaUuid === eva.uuid);
+    return state.rex.rexesFromDb.find((rex) => rex.isRunning && rex.evaUuid === eva?.uuid);
   }, deepEqual);
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
@@ -77,10 +77,12 @@ export const EvaEgressIngressListing: FunctionComponent<{
   const xgressIdentifier = isEgress ? "egress" : "ingress";
 
   const xgressRexStatus = useAppSelector((state) => {
-    const rex = state.rex.rexes.find((rex) => rex.evaUuid === eva.uuid);
+    const rex = state.rex.rexes.find((rex) => rex.evaUuid === eva?.uuid);
     if (!rex || !rex.xgressEntries) return null;
     return rex.xgressEntries[xgressIdentifier]?.rexStatus;
   }, deepEqual);
+
+  if (!eva) return null;
 
   let xgressStyle = null;
   if (
@@ -98,12 +100,20 @@ export const EvaEgressIngressListing: FunctionComponent<{
     xgressStyle = evaStyles.evaItemNameRexSkipped;
   }
 
-  const icon = station ? station.icon : "1f680"; //rocket
-  const name = `${isEgress ? "Egress" : "Ingress"} at ${station ? station.name : "Lander"}`;
+  // if egress / ingress is at a station, use station icon
+  let xgressIcon;
+  if (station) {
+    const icon = station?.icon ? station.icon : "2754";
+    xgressIcon = decodeEmoji(icon);
+  } else {
+    xgressIcon = <img src="/images/lander.svg" alt="lander" className={evaStyles.landerImage} />;
+  }
+
+  const xgressName = `${isEgress ? "Egress" : "Ingress"} at ${station ? station.name : "Lander"}`;
 
   return (
     <div className={evaStyles.evaItem}>
-      <div className={evaStyles.iconCustom}>{decodeEmoji(icon)}</div>
+      <div className={evaStyles.iconCustom}>{xgressIcon}</div>
       {isRexEva && (
         <RexStatusMenu
           rexStatus={xgressRexStatus}
@@ -135,7 +145,7 @@ export const EvaEgressIngressListing: FunctionComponent<{
         }}
       >
         <div className={evaStyles.evaItemLeft}>
-          <div className={evaStyles.evaItemNameText}>{name}</div>
+          <div className={evaStyles.evaItemNameText}>{xgressName}</div>
         </div>
         <div className={evaStyles.evaItemRight}>
           <div

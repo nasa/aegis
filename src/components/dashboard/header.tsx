@@ -2,13 +2,13 @@ import styles from "./header.module.css";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useNavigate } from "react-router";
 import { FunctionComponent, useState } from "react";
-import PetInterval from "components/page/petInterval";
 import {
   faArrowDownUpAcrossLine,
   faArrowRightArrowLeft,
   faBars,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import DashboardPETClock from "./headerPetClock";
 import ReactDOMServer from "react-dom/server";
 import { longdateFromDateString } from "utils/formatting";
 
@@ -25,8 +25,6 @@ const DashboardHeader: FunctionComponent = () => {
   const socketStatus = useAppSelector((state) => state.interface.socketStatus, deepEqual);
 
   const [isMouseInHeader, setIsMouseInHeader] = useState(false);
-  // used to update the PET value via the PetInterval component
-  const [rexPetTime, setRexPetTime] = useState("");
 
   return (
     <div
@@ -38,7 +36,6 @@ const DashboardHeader: FunctionComponent = () => {
         setIsMouseInHeader(false);
       }}
     >
-      <PetInterval runningRex={runningRex} rexPetTime={rexPetTime} setRexPetTime={setRexPetTime} />
       <div className={styles.left}>
         <div className={styles.item}>
           <div className={styles.headerLabel}>Mission</div>
@@ -52,7 +49,7 @@ const DashboardHeader: FunctionComponent = () => {
         )}
         {runningRex && (
           <div className={styles.item}>
-            <div className={styles.headerLabel}>REX Event</div>
+            <div className={styles.headerLabel}>Execution</div>
             <div className={styles.headerText}>{runningRex.name}</div>
           </div>
         )}
@@ -64,54 +61,39 @@ const DashboardHeader: FunctionComponent = () => {
           </div>
         </div>
         <div className={`${styles.item}`}>
-          {socketStatus.connectionStatus === "connected" ? (
-            <FontAwesomeIcon
-              icon={faArrowRightArrowLeft}
-              size="xl"
-              className={`${styles.connectionIcon} ${!isMouseInHeader && styles.hide}`}
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={ReactDOMServer.renderToStaticMarkup(
-                <>
-                  Connected to server
-                  <br />
-                  Last Server Status:{" "}
-                  {longdateFromDateString(
-                    new Date(socketStatus.lastStatusFromServer.timestamp).toISOString()
-                  ) || "None"}
-                  <br />
-                  Last Edit Event:{" "}
-                  {longdateFromDateString(socketStatus.lastEditEvent?.datestamp) || "None"}
-                  <br />
-                  Editors: {socketStatus.lastStatusFromServer.visitorCounts.editors}
-                  <br />
-                  Viewers: {socketStatus.lastStatusFromServer.visitorCounts.viewers}
-                </>
-              )}
-            />
-          ) : (
-            <FontAwesomeIcon
-              icon={faArrowDownUpAcrossLine}
-              size="xl"
-              className={styles.connectionIconBroken}
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={ReactDOMServer.renderToStaticMarkup(
-                <>
-                  <span className={styles.disconnectedText}>Disconnected from server</span>
-                  <br />
-                  Last Server Status:{" "}
-                  {longdateFromDateString(
-                    new Date(socketStatus.lastStatusFromServer.timestamp).toISOString()
-                  ) || "None"}
-                  <br />
-                  Last Edit Event:{" "}
-                  {longdateFromDateString(socketStatus.lastEditEvent?.datestamp) || "None"}
-                </>
-              )}
-            />
-          )}
+          <FontAwesomeIcon
+            icon={
+              socketStatus.connectionStatus === "connected"
+                ? faArrowRightArrowLeft
+                : faArrowDownUpAcrossLine
+            }
+            size="xl"
+            className={
+              socketStatus.connectionStatus === "connected"
+                ? styles.connectionIcon
+                : styles.connectionIconBroken
+            }
+            data-tooltip-id="aegis-tooltip"
+            data-tooltip-html={ReactDOMServer.renderToStaticMarkup(
+              <>
+                Connected to server
+                <br />
+                Last Server Status:{" "}
+                {longdateFromDateString(
+                  new Date(socketStatus.lastStatusFromServer.timestamp).toISOString()
+                ) || "None"}
+                <br />
+                Last Edit Event:{" "}
+                {longdateFromDateString(socketStatus.lastEditEvent?.datestamp) || "None"}
+                <br />
+                Editors: {socketStatus.lastStatusFromServer.visitorCounts.editors}
+                <br />
+                Viewers: {socketStatus.lastStatusFromServer.visitorCounts.viewers}
+              </>
+            )}
+          />
         </div>
         <div className={styles.item}>
-          <span className={styles.wordMark}>AEGIS</span>
           <div className={styles.logoRight}>
             <div>
               <img className={styles.meatball} src="/images/logo_NASA.svg" alt="NASA meatball" />
@@ -131,6 +113,11 @@ const DashboardHeader: FunctionComponent = () => {
             </div>
           </div>
         </div>
+        {runningRex && (
+          <div className={styles.item}>
+            <DashboardPETClock />
+          </div>
+        )}
       </div>
     </div>
   );

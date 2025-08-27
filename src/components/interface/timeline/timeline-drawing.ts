@@ -707,7 +707,7 @@ export const drawPetLine = (
 
   //remove old line, draw new line
   paperGroupsRef.current.petLine.removeChildren();
-  if (xLoc <= paperVars.timelineLeft + paperVars.timelineWidth) {
+  if (xLoc <= paperVars.timelineLeft + paperVars.timelineWidth && xLoc >= paperVars.timelineLeft) {
     paperGroupsRef.current.petLine.addChild(
       drawTimeMarker(
         paperDataRef,

@@ -74,6 +74,6 @@ interface StmEntitiesResult {
 
 // Type definitions for REX entries (assuming these exist elsewhere or should be defined here)
 // Replace with actual definitions if available
-type DupStationEntries = Record<string, StationEntry>;
-type DupTraverseEntries = Record<string, TraverseEntry>;
+type DupStationEntries = Record<string, ActivityEntry>;
+type DupTraverseEntries = Record<string, ActivityEntry>;
 type DupActionEntries = Record<string, ActionEntry>;

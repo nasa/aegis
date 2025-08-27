@@ -32,9 +32,9 @@ export class Rex_db implements Rex_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   posSources: PosSource[];
   @Property({ type: MikroTypes.json, nullable: true })
-  stationEntries: StationEntries;
+  stationEntries: ActivityEntries;
   @Property({ type: MikroTypes.json, nullable: true })
-  traverseEntries: TraverseEntries;
+  traverseEntries: ActivityEntries;
   @Property({ type: MikroTypes.json, nullable: true })
   actionEntries: ActionEntries;
   @Property({ type: MikroTypes.json, nullable: true })
@@ -45,9 +45,14 @@ export class Rex_db implements Rex_db_type {
   maestroControlled: boolean;
   @Property({ type: MikroTypes.string, nullable: true })
   maestroExecutionHash: string | null;
+  @Property({ type: MikroTypes.json, nullable: true })
+  maestroActivityPropertiesByRefUuid: MaestroActivityPropertiesByRefUuid | null;
 
   @Property({ type: MikroTypes.datetime, length: 3 })
   createdAt!: Date;
   @Property({ type: MikroTypes.datetime, length: 3 })
   updatedAt!: Date;
+
+  @Property({ type: MikroTypes.integer, version: true })
+  version!: number; //used for optimistic locking
 }

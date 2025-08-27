@@ -145,12 +145,12 @@ const Actions_Panel: FunctionComponent = () => {
                     <div className={evaStyles.iconTraverseDotsContainerSmall}>
                       <div className={evaStyles.iconTraverseSmall} />
                     </div>
-                    <div>{traverse.name}</div>
+                    <div>{traverse?.name}</div>
                     <div className={actionsStyles.evaActionsStationTitleLine}></div>
                   </div>
                   <ActionList
                     editMode={false}
-                    actionOrderUuids={traverse.actionOrderUuids}
+                    actionOrderUuids={traverse?.actionOrderUuids}
                     parentType="traverse"
                     highlightActions={highlightActions}
                     isActionHighlighted={isActionHiglighted}

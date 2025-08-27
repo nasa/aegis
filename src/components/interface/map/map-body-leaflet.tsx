@@ -1547,6 +1547,8 @@ const MapBody: FunctionComponent<{}> = () => {
           filteredPosEntries = posEntriesWithLocations;
         }
         posEntriesToShow = orderBy(filteredPosEntries, ["createdAt"], "desc");
+        // gather the latest 2 pos entries (need 2 in order to draw a polyline) for each type.
+        // Most recent/latest entry is first in the array.
         posTypeLatestEntries = getLatestPosEntryByType({
           allPosEntries: filteredPosEntries,
         });
@@ -1569,7 +1571,7 @@ const MapBody: FunctionComponent<{}> = () => {
 
       let isRecent = false;
       posEntry.posTypeUuids.forEach((posTypeUuid) => {
-        if (posTypeLatestEntries[posTypeUuid][0]?.uuid === posEntry.uuid) {
+        if (posTypeLatestEntries[posTypeUuid]?.[0]?.uuid === posEntry.uuid) {
           isRecent = true;
           customPosTypesUuids.push(posTypeUuid);
         }
@@ -1585,7 +1587,7 @@ const MapBody: FunctionComponent<{}> = () => {
         let lastEntry = false;
         // check if this is the latest (most recent) entry for a pos type
         for (const posTypeUuid in posTypeLatestEntries) {
-          if (posTypeLatestEntries[posTypeUuid][0].uuid === posEntry.uuid) {
+          if (posTypeLatestEntries[posTypeUuid]?.[0]?.uuid === posEntry.uuid) {
             lastEntry = true;
             break;
           }
@@ -1733,6 +1735,7 @@ const MapBody: FunctionComponent<{}> = () => {
     //set in local state to be used in other use effects. Do this last so markers exist
     setLatestPosEntriesByType(posTypeLatestEntries);
     setPosEntriesShowing(posEntriesToShow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     map,
     dispatch,
@@ -1740,10 +1743,9 @@ const MapBody: FunctionComponent<{}> = () => {
     selectedRex,
     sectionSelected,
     isWin10,
-    rexPetTime,
     egressLocation,
     selectedEva?.egressLocationUuid,
-  ]);
+  ]); // do not include dependency for rexPetTime
 
   /**
    * Update position entry tooltips when rex is ticking

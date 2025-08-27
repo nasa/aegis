@@ -45,10 +45,12 @@ export const MapViewMenu: FunctionComponent<{
     (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
     deepEqual
   );
-  const selectedRexPosSourcesFromDb = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid)?.posSources,
-    deepEqual
-  );
+  const selectedRexPosSourcesFromDb = useAppSelector((state) => {
+    // Try to get the selected rex first, then fall back to running rex if no selection
+    const selectedRex = state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid);
+    const runningRex = state.rex.rexesFromDb.find((r) => r.isRunning);
+    return selectedRex?.posSources || runningRex?.posSources;
+  }, deepEqual);
   const earthMoonName = selectedPreset?.earthAsMoon ? "Moon" : "Earth";
   const sunEarthEnabled: boolean = selectedPreset?.sunEnabled || selectedPreset?.earthEnabled;
 

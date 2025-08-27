@@ -1,7 +1,25 @@
 .mapContainer {
   position: absolute;
-  width: 100%;
-  height: 100%;
+  width: 25%;
+  height: 35%;
+  bottom: 4px;
+  right: 4px;
+  background-color: var(--dashboardBackground);
+  box-sizing: border-box;
+}
+
+/* Add a border to the map container */
+.mapContainer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid black;
+  border-radius: var(--panelRadius);
+  pointer-events: none;
+  z-index: 1000;
 }
 
 .map {
@@ -10,7 +28,8 @@
   height: 100%;
   z-index: 1;
   outline: none;
-  border-bottom-left-radius: var(--dashboardRadius);
+  border-radius: var(--panelRadius);
+  overflow: hidden;
 }
 
 .followMenuWrapper {

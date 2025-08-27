@@ -30,6 +30,7 @@ function makeControlUpdateRequest(
     maestroControlled?: boolean;
     startStopExecution?: "start" | "stop";
     maestroExecutionHash?: string;
+    maestroActivityProperties?: Record<string, unknown> | null;
   }> = {}
 ) {
   return {
@@ -116,7 +117,7 @@ describe("REX Control API Endpoint", () => {
       expect(res.statusCode).toBe(400);
       expect(res.body.status).toBe("failure");
       expect(res.body.message).toContain(
-        "At least one of maestroControlled, startStopExecution, or maestroExecutionHash must be provided"
+        "At least one of maestroControlled, startStopExecution, maestroExecutionHash, or maestroActivityProperties must be provided"
       );
     });
 
@@ -156,11 +157,23 @@ describe("REX Control API Endpoint", () => {
     });
 
     test("Successfully updates rex control settings", async () => {
+      const activityProperties: MaestroActivityProperties = {
+        "activity-uuid-1": {
+          color: "#ff0000",
+          number: 1,
+        },
+        "activity-uuid-2": {
+          color: "#00ff00",
+          number: 2,
+        },
+      };
+
       const requestBody = makeControlUpdateRequest({
         rexUuid: testRexes[0].uuid,
         maestroControlled: true,
         startStopExecution: "start",
         maestroExecutionHash: "updated-hash-67890",
+        maestroActivityProperties: activityProperties,
       });
 
       const res = await supertest(app)
@@ -179,6 +192,7 @@ describe("REX Control API Endpoint", () => {
       expect(updatedRex?.maestroControlled).toBe(requestBody.maestroControlled);
       expect(updatedRex?.isRunning).toBe(true); // "start" sets to true
       expect(updatedRex?.maestroExecutionHash).toBe(requestBody.maestroExecutionHash);
+      expect(updatedRex?.maestroActivityPropertiesByRefUuid).toEqual(activityProperties);
     });
 
     test("Successfully updates maestroControlled", async () => {
@@ -206,26 +220,26 @@ describe("REX Control API Endpoint", () => {
       const em = getEM();
 
       // First, ensure we know the current state by resetting it
-      testRexes[0].maestroControlled = false;
-      testRexes[0].isRunning = false;
-      testRexes[0].maestroExecutionHash = "";
-      await em.persistAndFlush(testRexes[0]);
-
-      const requestBody = {
-        rexUuid: testRexes[0].uuid,
-        maestroExecutionHash: "hash-update-12345",
-      };
+      const rexRecord = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
+      rexRecord.maestroControlled = false;
+      rexRecord.isRunning = false;
+      rexRecord.maestroExecutionHash = "";
+      em.persistAndFlush(rexRecord);
 
       const res = await supertest(app)
         .post("/api/v1/emss/rexControl")
         .set("emss-token", emssToken)
-        .send(requestBody);
+        .send({
+          rexUuid: rexRecord.uuid,
+          maestroExecutionHash: "hash-update-12345",
+        });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.data.uuid).toBe(testRexes[0].uuid);
       expect(res.body.data.maestroExecutionHash).toBe("hash-update-12345");
 
+      em.clear(); // need to clear because Mikro-ORM caches entities
       const freshRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
       expect(freshRex.maestroExecutionHash).toBe("hash-update-12345");
     });
@@ -316,12 +330,9 @@ describe("REX Control API Endpoint", () => {
       const em = getEM();
 
       // First, manually set testRexes[0] to running
-      testRexes[0].isRunning = true;
-      await em.persistAndFlush(testRexes[0]);
-
-      // Verify testRexes[0] is running
-      const rex0Before = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
-      expect(rex0Before?.isRunning).toBe(true);
+      const rexRecord = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
+      rexRecord.isRunning = true;
+      await em.persistAndFlush(rexRecord);
 
       // Now start testRexes[1] - this should stop testRexes[0]
       const startRequestBody = makeControlUpdateRequest({
@@ -345,6 +356,41 @@ describe("REX Control API Endpoint", () => {
 
       // Check that testRexes[0] is no longer running
       expect(testRexes[0].isRunning).toBe(false);
+    });
+
+    test("Successfully updates maestroActivityProperties", async () => {
+      const em = getEM();
+
+      // First, ensure we know the current state by resetting it
+      const rexRecord = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
+      rexRecord.maestroControlled = false;
+      rexRecord.isRunning = false;
+      rexRecord.maestroActivityPropertiesByRefUuid = null;
+      await em.persistAndFlush(rexRecord);
+
+      const activityProperties: MaestroActivityPropertiesByRefUuid = {
+        "activity-refuuid-test": {
+          color: "#blue",
+          number: 1,
+        },
+      };
+      const requestBody = {
+        rexUuid: testRexes[0].uuid,
+        maestroActivityProperties: activityProperties,
+      };
+
+      const res = await supertest(app)
+        .post("/api/v1/emss/rexControl")
+        .set("emss-token", emssToken)
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe("success");
+      expect(res.body.data.uuid).toBe(testRexes[0].uuid);
+
+      em.clear(); // need to clear because Mikro-ORM caches entities
+      const freshRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
+      expect(freshRex.maestroActivityPropertiesByRefUuid).toEqual(activityProperties);
     });
 
     test("Updates with empty hash are handled correctly", async () => {

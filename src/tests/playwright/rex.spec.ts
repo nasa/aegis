@@ -55,6 +55,10 @@ test("create edit cancel delete rex", async ({ page }) => {
   await expect(
     page.getByLabel("evaList-item").filter({ hasText: "Playwright Test REX" })
   ).toHaveCount(0);
+  await page.waitForSelector('text="Deleting EVA Execution..."', {
+    state: "hidden",
+    timeout: 5000,
+  }); // wait for the deleting overlay to disappear
 
   // delete eva
   const dialogPromiseDeleteEva = new Promise<void>((resolve) => {

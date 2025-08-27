@@ -63,7 +63,7 @@ const ReportItems: FunctionComponent<{
               );
             }}
           >
-            {evaReportSequenceItem.icon && decodeEmoji(evaReportSequenceItem.icon)}{" "}
+            {evaReportSequenceItem.icon ? decodeEmoji(evaReportSequenceItem.icon) : null}{" "}
             {evaReportSequenceItem.name}
           </div>
         )}

@@ -14,12 +14,13 @@ type Rex = {
   posEntries: PosEntry[];
   posTypes: PosType[];
   posSources: PosSource[];
-  stationEntries: StationEntries;
-  traverseEntries: TraverseEntries;
+  stationEntries: ActivityEntries;
+  traverseEntries: ActivityEntries;
   actionEntries: ActionEntries;
   xgressEntries: XgressEntries | null;
   maestroControlled: boolean;
   maestroExecutionHash: string | null;
+  maestroActivityPropertiesByRefUuid: MaestroActivityPropertiesByRefUuid | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -55,24 +56,27 @@ interface PosType {
   pathColor: string;
 }
 
-interface StationEntries {
-  [stationUuid: string]: StationEntry;
-}
-
-interface StationEntry {
+interface ActivityEntry {
   rexStatus: RexStatus;
+  maestroPercentCompleteEv1?: number;
+  maestroPercentCompleteEv2?: number;
 }
 
-interface TraverseEntries {
-  [traverseUuid: string]: TraverseEntry;
+interface ActivityEntries {
+  [stationOrTraverseUuid: string]: ActivityEntry; // "activity" is Station or Traverse
 }
 
-interface TraverseEntry {
-  rexStatus: RexStatus;
+interface MaestroActivityPropertyEntry {
+  color: string; // hex color for the activity
+  number: number; // number of the activity in the maestro procedure
 }
 
-interface ActionEntries {
-  [actionUuid: string]: ActionEntry;
+interface MaestroActivityPropertiesByRefUuid {
+  [refUuid: string]: MaestroActivityPropertyEntry;
+}
+
+interface MaestroActivityProperties {
+  [uuid: string]: MaestroActivityPropertyEntry;
 }
 
 interface ActionEntry {
@@ -83,10 +87,14 @@ interface ActionEntry {
   secondaryContainerId: string;
 }
 
-interface XgressEntries {
-  [xgressUuid: string]: XgressEntry;
+interface ActionEntries {
+  [actionUuid: string]: ActionEntry;
 }
 
 interface XgressEntry {
   rexStatus: RexStatus;
+}
+
+interface XgressEntries {
+  [xgressUuid: string]: XgressEntry;
 }

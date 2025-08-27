@@ -63,7 +63,7 @@ export const createFullTestStore = (): StoreType => {
     pois.push(poi);
   }
   for (let i = 0; i < pois.length; i++) {
-    const action = generateBlankAction({ name: "Jest Action-1", poiUuid: pois[i].uuid });
+    const action = generateBlankAction({ name: `Jest Action-${i}`, poiUuid: pois[i].uuid });
     action.duration = i + 6;
     action.poiUuid = pois[i].uuid;
     actions.push(action);
@@ -73,7 +73,7 @@ export const createFullTestStore = (): StoreType => {
   const stations: Station[] = [];
   for (let i = 0; i < 4; i++) {
     const station = generateBlankStation({
-      name: "Jest Station-1",
+      name: `Jest Station-${i}`,
       location: { lat: i, lng: i + 0.1 },
     });
     stations.push(station);
@@ -107,7 +107,7 @@ export const createFullTestStore = (): StoreType => {
     { uuid: stations[2].uuid, type: "station" },
     { uuid: traverses[3].uuid, type: "traverse" },
   ];
-  const eva2: Eva = generateBlankEVA({ name: "Jest Eva-1 Planned No Rex" });
+  const eva2: Eva = generateBlankEVA({ name: "Jest Eva-2 Planned No Rex" });
   eva2.traverseRate = 2;
   eva2.sequence = [
     { uuid: traverses[4].uuid, type: "traverse" },
@@ -124,12 +124,14 @@ export const createFullTestStore = (): StoreType => {
       const traverse = traverses.find((t) => t.uuid === seq.uuid);
       const dupTraverse = cloneDeep(traverse);
       dupTraverse.uuid = uuidv4();
+      dupTraverse.name = traverse.name + " For Rex";
       traverses.push(dupTraverse);
 
       const action = actions.find((a) => a.traverseUuid === seq.uuid);
       const dupAction = cloneDeep(action);
       dupAction.uuid = uuidv4();
       dupAction.traverseUuid = dupTraverse.uuid;
+      dupAction.name = action.name + " For Rex";
       dupTraverse.actionOrderUuids = [dupAction.uuid];
       actions.push(dupAction);
 
@@ -138,12 +140,14 @@ export const createFullTestStore = (): StoreType => {
       const station = stations.find((s) => s.uuid === seq.uuid);
       const dupStation = cloneDeep(station);
       dupStation.uuid = uuidv4();
+      dupStation.name = station.name + " For Rex";
       stations.push(dupStation);
 
       const action = actions.find((a) => a.stationUuid === seq.uuid);
       const dupAction = cloneDeep(action);
       dupAction.uuid = uuidv4();
       dupAction.stationUuid = dupStation.uuid;
+      dupAction.name = action.name + " For Rex";
       dupStation.actionOrderUuids = [dupAction.uuid];
       actions.push(dupAction);
 

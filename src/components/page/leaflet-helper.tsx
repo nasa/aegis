@@ -331,7 +331,7 @@ export const drawLanderOnMap = async ({
   onClick = () => {},
   onDragEnd = () => {},
   tooltipOptions = {},
-  sizePx = 35,
+  sizePx = 30,
 }: {
   map: MutableRefObject<L.Map>;
   location: AEGISPoint;
@@ -721,6 +721,11 @@ export const drawPosMarkerOnMap = async ({
   const posTypeUuidsEmojisToShow = showOldMarkers
     ? posTypeUuids
     : overridePosTypesUuidsToDraw || posTypeUuids;
+
+  // Don't create marker if there's nothing to show
+  if (!posTypeUuidsEmojisToShow || posTypeUuidsEmojisToShow.length === 0) {
+    return null;
+  }
 
   // draw icons and bars. draw icons in reverse order so the first one is on top
   const jsx = (

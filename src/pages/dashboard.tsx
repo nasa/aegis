@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useParams } from "react-router";
+import { useCookies } from "react-cookie";
 
 import styles from "./dashboard.module.css";
 import { setMissionPerms, setAppUser } from "store/user";
@@ -12,11 +13,12 @@ import DashboardHeader from "components/dashboard/header";
 import SocketClient from "components/page/socketClient";
 import { setAllSliceStores } from "store/crossActions";
 import { populateStore } from "store/processing/populateStore";
-import LeftTopPanel from "components/dashboard/leftPanel";
 import MapBody from "components/dashboard/map";
-import DashTimeline from "components/dashboard/dashTimeline";
+import DashTimeline from "components/dashboard/timeline/dashTimeline";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import MiniMap from "components/dashboard/miniMap";
+import { setGridCornerPoint } from "store/map";
+import { loadAndReturnGrid } from "utils/mapping/grid";
 
 type RouteParams = {
   id: string;
@@ -25,6 +27,7 @@ type RouteParams = {
 const Main = (): JSX.Element => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const [eyeballMenuCookie] = useCookies(["AEGIS_Map_View_Settings"]);
 
   const runningRexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((r) => r.isRunning),
@@ -34,11 +37,8 @@ const Main = (): JSX.Element => {
     const defaultPresetUuid = state.preset.presetsFromDb.find((p) => p.missionDefault)?.uuid;
     return state.preset.presetsFromDb.find((p) => p.uuid === defaultPresetUuid);
   }, deepEqual);
-  const missionTitle = useAppSelector((state) => state.mission.mission?.name, refEqual);
-
-  // set default view to task and crew regardless of what is in the cookie
-  const taskSourceUuid = runningRexFromDb?.posSources?.find((source) => source.abbr === "T")?.uuid;
-  const crewSourceUuid = runningRexFromDb?.posSources?.find((source) => source.abbr === "C")?.uuid;
+  const activeGridUuid = useAppSelector((state) => state.mission.mission?.activeGridUuid, refEqual);
+  const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
 
   // props that are passed between the big map and mini map
   const [hasPermissions, setHasPermissions] = useState(false);
@@ -54,11 +54,11 @@ const Main = (): JSX.Element => {
     showMarkers: true,
     showOldMarkers: false,
     fadeOldMarkers: false,
-    sourceUuids: [taskSourceUuid, crewSourceUuid],
+    sourceUuids: [],
   });
   const [showScaleBar, setShowScaleBar] = useState(true);
   const [selectedPreset, setSelectedPreset] = useState<Preset>(defaultPreset);
-  const [showArrows, setShowArrows] = useState(false);
+  const [showArrows, setShowArrows] = useState(true);
 
   const params = useParams<RouteParams>();
   const slug = params.id;
@@ -68,6 +68,31 @@ const Main = (): JSX.Element => {
     // set selected preset to default preset for initial load
     setSelectedPreset(defaultPreset);
   }, [defaultPreset]);
+
+  // Set default sourceUuids when runningRexFromDb changes, reading from cookie settings
+  useEffect(() => {
+    if (!runningRexFromDb?.posSources) return;
+
+    const taskSourceUuid = runningRexFromDb.posSources.find((source) => source.abbr === "T")?.uuid;
+    const crewSourceUuid = runningRexFromDb.posSources.find((source) => source.abbr === "C")?.uuid;
+
+    // Get existing settings from cookie, similar to map-body-leaflet
+    const existingSettings = eyeballMenuCookie["AEGIS_Map_View_Settings"];
+
+    if (existingSettings?.mapDisplayPos) {
+      // Use cookie settings but override sourceUuids with task and crew defaults
+      setMapDisplayPos({
+        ...existingSettings.mapDisplayPos,
+        sourceUuids: [taskSourceUuid, crewSourceUuid].filter(Boolean), // filter out undefined values
+      });
+    } else {
+      // No cookie settings, just update sourceUuids on current state
+      setMapDisplayPos((prevMapDisplayPos) => ({
+        ...prevMapDisplayPos,
+        sourceUuids: [taskSourceUuid, crewSourceUuid].filter(Boolean),
+      }));
+    }
+  }, [runningRexFromDb?.posSources, eyeballMenuCookie]);
 
   useEffect(() => {
     const populateStoreAsync = async () => {
@@ -112,11 +137,25 @@ const Main = (): JSX.Element => {
   }, [navigate, intMissionId, dispatch]);
 
   useEffect(() => {
-    if (!missionTitle) {
+    if (!missionName) {
       return;
     }
-    document.title = `${missionTitle} - AEGIS`;
-  }, [missionTitle]);
+    document.title = `${missionName} - AEGIS`;
+  }, [missionName]);
+
+  // in it's own useEffect incase grid changes while user is on the page
+  useEffect(() => {
+    const loadGridAsync = async () => {
+      const newGrid: MissionGrid = await loadAndReturnGrid(intMissionId, activeGridUuid);
+      if (newGrid?.coordinates && newGrid.coordinates.length > 0) {
+        dispatch(setGridCornerPoint(newGrid.coordinates[0][0]));
+      } else {
+        dispatch(setGridCornerPoint(null));
+      }
+    };
+
+    loadGridAsync();
+  }, [dispatch, intMissionId, activeGridUuid]);
 
   return (
     <>
@@ -131,18 +170,6 @@ const Main = (): JSX.Element => {
         <DashboardHeader />
         {hasPermissions && runningRexFromDb ? (
           <div className={styles.mainContent}>
-            <div className={styles.leftPanel}>
-              <LeftTopPanel mapDisplayPos={mapDisplayPos} />
-              <div className={styles.miniMapContainer}>
-                <MiniMap
-                  bigMapBounds={bigMapBounds}
-                  mapDisplayPos={mapDisplayPos}
-                  showScaleBar={showScaleBar}
-                  selectedPreset={selectedPreset}
-                  showArrows={showArrows}
-                />
-              </div>
-            </div>
             <div className={`${styles.middlePanel} ${styles.mapBody}`}>
               <MapBody
                 setBigMapBounds={setBigMapBounds}
@@ -154,6 +181,13 @@ const Main = (): JSX.Element => {
                 setSelectedPreset={setSelectedPreset}
                 showArrows={showArrows}
                 setShowArrows={setShowArrows}
+              />
+              <MiniMap
+                bigMapBounds={bigMapBounds}
+                mapDisplayPos={mapDisplayPos}
+                showScaleBar={showScaleBar}
+                selectedPreset={selectedPreset}
+                showArrows={showArrows}
               />
             </div>
             <div className={styles.rightPanel}>
