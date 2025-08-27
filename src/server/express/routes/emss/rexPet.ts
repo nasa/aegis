@@ -4,6 +4,8 @@ import { Rex_db } from "../../../database/models/_allModels";
 import { emitStoreUpsert } from "../../sockets";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { validators } from "components/interface/form/formValidators";
+import { OptimisticLockError } from "@mikro-orm/core";
+import random from "lodash/random";
 
 const router = express.Router();
 
@@ -63,12 +65,27 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const updatedRex = await updateRexPetClock({
-      rexUuid: rexUuid,
-      petStartStopTimestamp: petStartStopTimestamp,
-      petValueAtStartStop: petValueAtStartStop,
-      petRunning: petRunning,
-    });
+    let updatedRex = null;
+    for (let tries = 0; tries < 7; tries++) {
+      try {
+        updatedRex = await updateRexPetClock({
+          rexUuid: rexUuid,
+          petStartStopTimestamp: petStartStopTimestamp,
+          petValueAtStartStop: petValueAtStartStop,
+          petRunning: petRunning,
+        });
+        break; // if successful, exit the retry loop
+      } catch (e) {
+        if (e instanceof OptimisticLockError) {
+          // lock error. wait anywhere from 100-200ms before retrying
+          await new Promise((resolve) => setTimeout(resolve, random(100, 200)));
+        } else {
+          // some other kind of error happened
+          // re-throw it so the outer try/catch can grab it and exit the while loop
+          throw e;
+        }
+      }
+    }
 
     emitStoreUpsert({
       missionId: updatedRex.missionId,
@@ -122,25 +139,32 @@ export async function updateRexPetClock(params: {
   petRunning: boolean;
 }): Promise<Rex> {
   const em = getEM();
-  // Find the REX entity by its UUID and mission context
-  const rexEntity = await em.findOne(Rex_db, { uuid: params.rexUuid });
+  await em.begin(); // start a transaction
 
-  if (!rexEntity) {
-    throw new Error(`Rex with uuid ${params.rexUuid} not found.`);
+  let rexEntity = null;
+  try {
+    // Find and validate the REX entity by its UUID
+    rexEntity = await em.findOne(Rex_db, { uuid: params.rexUuid });
+    if (!rexEntity) {
+      throw new Error(`Rex with uuid ${params.rexUuid} not found.`);
+    }
+    if (!rexEntity.isRunning) {
+      throw new Error(
+        `Rex with uuid ${params.rexUuid} is not running. PET update cannot be applied.`
+      );
+    }
+
+    // Update the PET-specific fields
+    rexEntity.petStartStopTimestamp = params.petStartStopTimestamp;
+    rexEntity.petValueAtStartStop = params.petValueAtStartStop;
+    rexEntity.petRunning = params.petRunning;
+
+    em.persist(rexEntity);
+    await em.commit(); // commit the transaction. will also flush
+  } catch (error) {
+    await em.rollback();
+    throw error; // re-throw the error to be handled by the caller
   }
-
-  if (!rexEntity.isRunning) {
-    throw new Error(
-      `Rex with uuid ${params.rexUuid} is not running. PET update cannot be applied.`
-    );
-  }
-
-  // Update the PET-specific fields
-  rexEntity.petStartStopTimestamp = params.petStartStopTimestamp;
-  rexEntity.petValueAtStartStop = params.petValueAtStartStop;
-  rexEntity.petRunning = params.petRunning;
-
-  await em.persistAndFlush(rexEntity);
 
   // Convert the updated DB entity back to the store type (Rex)
   const updatedRexStoreFormatArray = convertRexesTypeDbToStore([rexEntity]);

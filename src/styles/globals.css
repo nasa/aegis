@@ -125,6 +125,21 @@ body {
   display: none;
 }
 
+.leaflet-tooltip-gridLabels-dashboard {
+  position: relative;
+  top: -5px !important;
+  padding: 0 2px 0 2px !important;
+  border-radius: 0 !important;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-left: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+.leaflet-tooltip-gridLabels-dashboard::before {
+  display: none;
+}
+
 /* Leaflet crispness override */
 .leaflet-container .leaflet-overlay-pane svg,
 .leaflet-container .leaflet-marker-pane img,

@@ -474,7 +474,8 @@ const EvaRightEva: FunctionComponent = () => {
                 onClick={async () => {
                   if (isRexEva) {
                     // this is a rex EVA
-                    const confirmMsg = "Are you sure you want to delete this EVA execution?";
+                    const confirmMsg =
+                      "Are you sure you want to delete this Real-time Execution (REX)?";
                     if (!window.confirm(confirmMsg)) return;
                     setIsDeletingEva({ isDeleting: true, isRexEva: true });
                     try {
@@ -488,7 +489,7 @@ const EvaRightEva: FunctionComponent = () => {
                     // check if this as-planned EVA has rexes
                     if (isAsPlannedEvaWithRexes) {
                       confirmMsg +=
-                        "\nWARNING: This EVA has rexes. Deleting this EVA will delete ALL rexes in this EVA.";
+                        "\nWARNING: This EVA has REXes. Deleting this EVA will delete ALL REXes in this EVA.";
                     }
                     if (!window.confirm(confirmMsg)) return;
                     setIsDeletingEva({ isDeleting: true, isRexEva: false });

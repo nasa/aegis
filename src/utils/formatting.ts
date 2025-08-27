@@ -273,7 +273,7 @@ export const calculatePetValue = ({
 
   let newPetSeconds = accurateNow - datePetStartStopTimestamp;
   newPetSeconds = newPetSeconds + petSecondsAtStartStop * 1000;
-  newPetSeconds = Math.floor(newPetSeconds / 1000);
+  newPetSeconds = Math.round(newPetSeconds / 1000);
 
   return hhmmssFromSeconds(newPetSeconds);
 };

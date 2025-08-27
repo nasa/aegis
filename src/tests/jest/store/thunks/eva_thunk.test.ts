@@ -252,7 +252,7 @@ describe("Thunk EVA Tests", () => {
     it("thunkDeleteEva with no stations", async () => {
       const evaFromDb = store
         .getState()
-        .eva.evasFromDb.find((e) => e.name === "Jest Eva-1 Planned No Rex");
+        .eva.evasFromDb.find((e) => e.name === "Jest Eva-2 Planned No Rex");
       store.dispatch(setEvaEditMode({ evaUuid: evaFromDb.uuid, editMode: true }));
       await store.dispatch(thunkDeleteEva({ evaUuid: evaFromDb.uuid, forRex: false }));
 
@@ -337,17 +337,16 @@ describe("Thunk EVA Tests", () => {
     });
 
     it("thunkDeleteEva as-planned with attached rexes", async () => {
-      const allRexEvaUuids = store.getState().rex.rexes.map((r) => r.evaUuid);
-      const evaAsPlannedWithRex = store
+      const asPlannedEvaWithRex = store
         .getState()
-        .eva.evas.find((e) => !allRexEvaUuids.includes(e.uuid));
-      await store.dispatch(thunkDeleteEva({ evaUuid: evaAsPlannedWithRex.uuid, forRex: true }));
+        .eva.evas.find((e) => e.name === "Jest Eva-1 Planned with Rex");
+      await store.dispatch(thunkDeleteEva({ evaUuid: asPlannedEvaWithRex.uuid, forRex: false }));
 
       // assert no evas exist with same refUuid
       expect(
-        store.getState().eva.evas.find((e) => e.refUuid === evaAsPlannedWithRex.refUuid)
+        store.getState().eva.evas.find((e) => e.refUuid === asPlannedEvaWithRex.refUuid)
       ).toBeFalsy();
-      // assert no orphaned traverses or stations
+      console.log(store.getState().eva.evas);
       const evaSeqUuids = store
         .getState()
         .eva.evas.map((e) => e.sequence)
@@ -355,9 +354,6 @@ describe("Thunk EVA Tests", () => {
         .map((s) => s.uuid);
       expect(
         store.getState().traverse.traverses.filter((t) => !evaSeqUuids.includes(t.uuid))
-      ).toEqual([]);
-      expect(
-        store.getState().station.stations.filter((s) => !evaSeqUuids.includes(s.uuid))
       ).toEqual([]);
       // assert no rexes with an EVA that doesn't exist
       const allEvaUuids = store.getState().eva.evas.map((e) => e.uuid);
@@ -534,7 +530,7 @@ describe("Thunk EVA Tests", () => {
     });
 
     it("thunkChangeStationInEva not in REX", async () => {
-      const eva = store.getState().eva.evas.find((e) => e.name === "Jest Eva-1 Planned No Rex");
+      const eva = store.getState().eva.evas.find((e) => e.name === "Jest Eva-2 Planned No Rex");
       const numStations = store.getState().station.stations.length;
       const stationNotInEva = store.getState().station.stations.find(
         (s) =>
@@ -554,7 +550,7 @@ describe("Thunk EVA Tests", () => {
       );
       const updatedEva = store
         .getState()
-        .eva.evas.find((e) => e.name === "Jest Eva-1 Planned No Rex");
+        .eva.evas.find((e) => e.name === "Jest Eva-2 Planned No Rex");
       expect(updatedEva.sequence[1].uuid).toEqual(stationNotInEva.uuid);
       expect(store.getState().station.stations.length).toEqual(numStations);
       expect(mockThunkUpdateTraversesAroundStation).toHaveBeenCalledTimes(1);

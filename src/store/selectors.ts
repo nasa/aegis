@@ -1,22 +1,34 @@
 import sortBy from "lodash/sortBy";
 import concat from "lodash/concat";
-import flatten from "lodash/flatten";
 import type { RootState } from "store";
 
 /**
  * Gets all Stations for an EVA. If no EVA uuid is provided, use the selectedEvaUuid
+ * Also includes ingress and egress stations if they are not "lander"
  */
 export const selectEvaStations =
   (evaUuid?: string) =>
   (state: RootState): Station[] => {
+    const evaStations: Station[] = [];
     const eva = state.eva.evas.find((e) => e.uuid === (evaUuid || state.eva.selectedEvaUuid));
-    if (eva?.sequence) {
-      return eva.sequence
+    if (!eva) return [];
+    if (eva.sequence) {
+      const sequenceStations = eva.sequence
         .filter((seqItem) => seqItem.type === "station")
-        .map((stationSeqItem) => {
-          return state.station.stations.find((s) => s.uuid === stationSeqItem.uuid);
-        });
+        .map((stationSeqItem) =>
+          state.station.stations.find((s) => s.uuid === stationSeqItem.uuid)
+        );
+      evaStations.push(...sequenceStations);
     }
+    if (eva.ingressLocationUuid !== "lander") {
+      const ingressStation = state.station.stations.find((s) => s.uuid === eva.ingressLocationUuid);
+      if (ingressStation) evaStations.push(ingressStation);
+    }
+    if (eva.egressLocationUuid !== "lander") {
+      const egressStation = state.station.stations.find((s) => s.uuid === eva.egressLocationUuid);
+      if (egressStation) evaStations.push(egressStation);
+    }
+    return evaStations;
   };
 
 /**
@@ -26,13 +38,14 @@ export const selectEvaTraverses =
   (evaUuid?: string) =>
   (state: RootState): Traverse[] => {
     const eva = state.eva.evas.find((e) => e.uuid === (evaUuid || state.eva.selectedEvaUuid));
-    if (eva?.sequence) {
-      return eva.sequence
-        .filter((seqItem) => seqItem.type === "traverse")
-        .map((traverseSeqItem) => {
-          return state.traverse.traverses.find((t) => t.uuid === traverseSeqItem.uuid);
-        });
-    }
+    if (!eva?.sequence) return [];
+
+    const traverseSeqItems = eva.sequence.filter((seqItem) => seqItem.type === "traverse");
+    const traverses = traverseSeqItems.map((traverseSeqItem) =>
+      state.traverse.traverses.find((t) => t.uuid === traverseSeqItem.uuid)
+    );
+
+    return traverses;
   };
 
 /**
@@ -42,14 +55,15 @@ export const selectEvaActions =
   (evaUuid?: string) =>
   (state: RootState): Action[] => {
     const eva = state.eva.evas.find((e) => e.uuid === (evaUuid || state.eva.selectedEvaUuid));
-    if (eva?.sequence) {
-      const actions: Action[][] = eva.sequence
-        .filter((seqItem) => seqItem.type === "station")
-        .map((stationSeqItem) => {
-          return state.action.actions.filter((a) => a.stationUuid === stationSeqItem.uuid);
-        });
-      return flatten(actions);
-    }
+    if (!eva?.sequence) return [];
+
+    const stationSeqItems = eva.sequence.filter((seqItem) => seqItem.type === "station");
+    const actionArrays = stationSeqItems.map((stationSeqItem) =>
+      state.action.actions.filter((a) => a.stationUuid === stationSeqItem.uuid)
+    );
+    const allActions = actionArrays.flat();
+
+    return allActions;
   };
 
 /**
@@ -80,4 +94,90 @@ export const selectAsPlannedStations = (state: RootState): Station[] => {
     (station) => !allStationUuids.includes(station.uuid)
   );
   return sortBy(stationList, (station) => station.name.toLowerCase());
+};
+
+/**
+ * This selector takes maestroActivityPropertiesByRefUuid and returns a new object where the keys are
+ * converted from station/traverse refUuids to their corresponding regular UUIDs.
+ */
+export const selectConvertMaestroActivityPropertiesByRefUuidToUuid = (
+  state: RootState,
+  {
+    maestroActivityPropertiesByRefUuid,
+    rexUuid,
+  }: { maestroActivityPropertiesByRefUuid: MaestroActivityPropertiesByRefUuid; rexUuid: string }
+): MaestroActivityProperties => {
+  if (!maestroActivityPropertiesByRefUuid) return {};
+  // loop through the maestroActivityProperty keys which are refUuids for stations and traverses,
+  // and create an object that keys to the non-ref uuids
+  const activityProperties: MaestroActivityProperties = {};
+  for (const [key, value] of Object.entries(maestroActivityPropertiesByRefUuid)) {
+    const uuid = getSequenceUuidByRefUuidAndRexUuid(state, {
+      refUuid: key,
+      rexUuid,
+    });
+    if (uuid) {
+      activityProperties[uuid] = { ...value };
+    }
+  }
+
+  // handle xgress entries
+  for (const [key, value] of Object.entries(maestroActivityPropertiesByRefUuid)) {
+    if (key.endsWith("gress")) {
+      activityProperties[key] = { ...value };
+    }
+  }
+
+  // return the new object with non-ref keys
+  return activityProperties;
+};
+
+/**
+ * Get non-ref sequence item (station or traverse) by refUuid and rexUuid
+ * Returns the UUID of the non-ref sequence item or undefined if not found
+ * If refUuid is null, returns the as-planned sequence uuid
+ */
+export const getSequenceUuidByRefUuidAndRexUuid = (
+  state: RootState,
+  { refUuid, rexUuid }: { refUuid: string | null; rexUuid: string }
+): string | undefined => {
+  // Find all the station or traverse records that have this refUuid
+  const allStationUuidsWithRefUuid = state.station?.stations
+    .filter((station) => station.refUuid === refUuid)
+    .map((station) => station.uuid);
+  const allTraverseUuidsWithRefUuid = state.traverse?.traverses
+    .filter((traverse) => traverse.refUuid === refUuid)
+    .map((traverse) => traverse.uuid);
+  const combinedUuids = [...allStationUuidsWithRefUuid, ...allTraverseUuidsWithRefUuid];
+
+  let arrayOfUuidsFromSequence = [];
+  // If refUuid is null, find EVAs that are not referenced by any REX records
+  if (refUuid === null) {
+    // Get all REX EVA UUIDs to filter out
+    const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
+
+    // Find EVAs that are not referenced by any REX
+    const nonRexEvas = state.eva.evasFromDb.filter((eva) => !allRexEvasUuids.includes(eva.uuid));
+
+    // Check if we have any non-REX EVAs. This should never happen since a rex eva can't exist without and as-planned eva existing
+    if (!nonRexEvas || nonRexEvas.length === 0) {
+      return undefined;
+    }
+
+    // Find the as-planned EVA (should be the first non-REX EVA)
+    const targetEva = nonRexEvas[0];
+    arrayOfUuidsFromSequence = targetEva?.sequence?.map((seq) => seq.uuid);
+  } else {
+    // rexUuids isn't null, so we need to find using the eva from the provided rexUuid
+
+    // Find the EVA sequence from the rexUuid
+    const evaUuidFromRex = state.rex.rexesFromDb.find((rex) => rex.uuid === rexUuid)?.evaUuid;
+    const evaSequenceFromRexEva = state.eva.evasFromDb.find(
+      (eva) => eva.uuid === evaUuidFromRex
+    )?.sequence;
+    arrayOfUuidsFromSequence = evaSequenceFromRexEva?.map((seq) => seq.uuid);
+  }
+
+  // Return the uuid in the eva sequence that is in combinedUuids
+  return arrayOfUuidsFromSequence?.find((uuid) => combinedUuids.includes(uuid));
 };

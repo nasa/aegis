@@ -1,0 +1,22 @@
+.timeLabels {
+  position: relative;
+  height: 0;
+  top: -11px;
+  left: 5px;
+  z-index: 20;
+  color: black;
+}
+
+.timeLabel {
+  position: relative;
+  height: 0;
+  border-radius: 0;
+  font-size: 1.3rem;
+  font-weight: 500;
+  margin-left: 0;
+  box-shadow: none;
+}
+
+.timeLabelText {
+  width: fit-content;
+}

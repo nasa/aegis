@@ -374,7 +374,7 @@ const RightActionBody: FunctionComponent<{
               <FontAwesomeIcon
                 icon={faHexagonNodes}
                 data-tooltip-id="aegis-tooltip"
-                data-tooltip-html="Some fields in this section are Maestro controlled"
+                data-tooltip-html="Fields in this section are Maestro controlled"
               />
             </div>
           )}

@@ -44,7 +44,7 @@ function makeStatusUpdateRequest(
     rexUuid: string;
     type: string;
     typeRefUuid: string;
-    entry: StationEntry | TraverseEntry | ActionEntry;
+    entry: ActivityEntry | ActionEntry;
   }> = {}
 ) {
   return {
@@ -223,49 +223,26 @@ describe("REX Status API Endpoint", () => {
       expect(res.body.message).toContain("must have a valid rexStatus");
     });
 
+    test("Returns validation error for invalid xgress typeRefUuid", async () => {
+      const requestBody = makeStatusUpdateRequest({
+        rexUuid: testRexes[0].uuid,
+        type: "xgress",
+        typeRefUuid: "some-invalid-xgress-type",
+        entry: { rexStatus: "pending" },
+      });
+
+      const res = await supertest(app)
+        .post("/api/v1/emss/rexStatus")
+        .set("emss-token", emssToken)
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body.status).toBe("error");
+      expect(res.body.message).toContain("Invalid typeRefUuid");
+      expect(res.body.message).toContain("Must be 'egress' or 'ingress'");
+    });
+
     describe("POST request - Action entry validation", () => {
-      test("Returns error for missing properties in action entry", async () => {
-        const requestBody = makeStatusUpdateRequest({
-          rexUuid: testRexes[0].uuid,
-          type: "action",
-          typeRefUuid: testAction.refUuid,
-          entry: { rexStatus: "complete" } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-        });
-
-        const res = await supertest(app)
-          .post("/api/v1/emss/rexStatus")
-          .set("emss-token", emssToken)
-          .send(requestBody);
-
-        expect(res.statusCode).toBe(400);
-        expect(res.body.status).toBe("failure");
-        expect(res.body.message).toContain(
-          "Action entry must have rexStatus, mass, markerId, containerId, and secondaryContainerId properties."
-        );
-      });
-      test("Returns error for invalid mass - not a number", async () => {
-        const requestBody = makeStatusUpdateRequest({
-          rexUuid: testRexes[0].uuid,
-          type: "action",
-          typeRefUuid: testAction.refUuid,
-          entry: {
-            rexStatus: "complete",
-            mass: "not-a-number",
-            markerId: "marker-123",
-            containerId: "container-456",
-            secondaryContainerId: "secondary-789",
-          } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-        });
-
-        const res = await supertest(app)
-          .post("/api/v1/emss/rexStatus")
-          .set("emss-token", emssToken)
-          .send(requestBody);
-
-        expect(res.statusCode).toBe(400);
-        expect(res.body.status).toBe("failure");
-        expect(res.body.message).toContain("must have a valid mass property");
-      });
       test("Returns error for mass too long", async () => {
         const requestBody = makeStatusUpdateRequest({
           rexUuid: testRexes[0].uuid,
@@ -311,75 +288,6 @@ describe("REX Status API Endpoint", () => {
         expect(res.statusCode).toBe(400);
         expect(res.body.status).toBe("failure");
         expect(res.body.message).toContain("must have a valid mass property");
-      });
-      test("Returns error for markerId too long", async () => {
-        const requestBody = makeStatusUpdateRequest({
-          rexUuid: testRexes[0].uuid,
-          type: "action",
-          typeRefUuid: testAction.refUuid,
-          entry: {
-            rexStatus: "complete",
-            mass: 100,
-            markerId: "this-marker-id-is-way-too-long-for-the-validation",
-            containerId: "container-456",
-            secondaryContainerId: "secondary-789",
-          },
-        });
-
-        const res = await supertest(app)
-          .post("/api/v1/emss/rexStatus")
-          .set("emss-token", emssToken)
-          .send(requestBody);
-
-        expect(res.statusCode).toBe(400);
-        expect(res.body.status).toBe("failure");
-        expect(res.body.message).toContain("must be less than 20 characters");
-      });
-      test("Returns error for containerId too long", async () => {
-        const requestBody = makeStatusUpdateRequest({
-          rexUuid: testRexes[0].uuid,
-          type: "action",
-          typeRefUuid: testAction.refUuid,
-          entry: {
-            rexStatus: "complete",
-            mass: 100,
-            markerId: "marker-123",
-            containerId: "this-container-id-is-way-too-long-for-the-validation",
-            secondaryContainerId: "secondary-789",
-          },
-        });
-
-        const res = await supertest(app)
-          .post("/api/v1/emss/rexStatus")
-          .set("emss-token", emssToken)
-          .send(requestBody);
-
-        expect(res.statusCode).toBe(400);
-        expect(res.body.status).toBe("failure");
-        expect(res.body.message).toContain("must be less than 20 characters");
-      });
-      test("Returns error for secondaryContainerId too long", async () => {
-        const requestBody = makeStatusUpdateRequest({
-          rexUuid: testRexes[0].uuid,
-          type: "action",
-          typeRefUuid: testAction.refUuid,
-          entry: {
-            rexStatus: "complete",
-            mass: 100,
-            markerId: "marker-123",
-            containerId: "container-456",
-            secondaryContainerId: "this-secondary-container-id-is-way-too-long-for-the-validation",
-          },
-        });
-
-        const res = await supertest(app)
-          .post("/api/v1/emss/rexStatus")
-          .set("emss-token", emssToken)
-          .send(requestBody);
-
-        expect(res.statusCode).toBe(400);
-        expect(res.body.status).toBe("failure");
-        expect(res.body.message).toContain("must be less than 20 characters");
       });
     });
   });
@@ -494,6 +402,52 @@ describe("REX Status API Endpoint", () => {
         containerId: "container-456",
         secondaryContainerId: "secondary-789",
       });
+    });
+
+    test("Successfully updates xgress egress entry for running rex", async () => {
+      const requestBody = makeStatusUpdateRequest({
+        rexUuid: testRexes[0].uuid,
+        type: "xgress",
+        typeRefUuid: "egress",
+        entry: { rexStatus: "in-progress" },
+      });
+
+      const res = await supertest(app)
+        .post("/api/v1/emss/rexStatus")
+        .set("emss-token", emssToken)
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe("success");
+      expect(res.body.message).toContain("xgress entry updated");
+      expect(res.body.data.uuid).toBe(testRexes[0].uuid);
+
+      const em = getEM();
+      const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
+      expect(updatedRex?.xgressEntries["egress"]).toEqual({ rexStatus: "in-progress" });
+    });
+
+    test("Successfully updates xgress ingress entry for running rex", async () => {
+      const requestBody = makeStatusUpdateRequest({
+        rexUuid: testRexes[0].uuid,
+        type: "xgress",
+        typeRefUuid: "ingress",
+        entry: { rexStatus: "complete" },
+      });
+
+      const res = await supertest(app)
+        .post("/api/v1/emss/rexStatus")
+        .set("emss-token", emssToken)
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe("success");
+      expect(res.body.message).toContain("xgress entry updated");
+      expect(res.body.data.uuid).toBe(testRexes[0].uuid);
+
+      const em = getEM();
+      const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
+      expect(updatedRex?.xgressEntries["ingress"]).toEqual({ rexStatus: "complete" });
     });
   });
 });

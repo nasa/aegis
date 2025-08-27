@@ -52,7 +52,7 @@ const SequenceItemStation: FunctionComponent<{
 
   // get a list of stations for the dropdown menu when selecting a station for the eva sequence
   // only return some of the properties in station to reduce re-renders
-  const partialStatonsForDropdown = useAppSelector((state) => {
+  const partialStationsForDropdown = useAppSelector((state) => {
     const asPlannedStations = selectAsPlannedStations(state).map((s) => {
       return { name: s.name, uuid: s.uuid, location: s.location };
     });
@@ -86,7 +86,7 @@ const SequenceItemStation: FunctionComponent<{
 
   // Generate organized station dropdown options with custom filtering
   const stationDropdownOptions = createFolderOrganizedDropdownOptions({
-    items: partialStatonsForDropdown,
+    items: partialStationsForDropdown,
     folders,
     itemsToFolders,
     filterFn: (partialStation) => {

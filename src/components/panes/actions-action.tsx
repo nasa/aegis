@@ -118,7 +118,7 @@ const RightAction: FunctionComponent<{
     : undefined;
 
   const actionParentPoiName = useAppSelector((state) => {
-    if (!action.parentActionUuid) return undefined;
+    if (!action || !action.parentActionUuid) return undefined;
     const parentAction = state.action.actions.find((a) => a.uuid === action.parentActionUuid);
     if (!parentAction || !parentAction.poiUuid) return undefined;
     const poi = state.poi.pois.find((p) => p.uuid === parentAction.poiUuid);
