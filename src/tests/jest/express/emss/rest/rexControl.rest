@@ -31,7 +31,6 @@ emss-token: {{$dotenv EMSS_TOKEN}}
       "color": "#ff00ff",
       "number": 3
     }
-   
   }
 }
 

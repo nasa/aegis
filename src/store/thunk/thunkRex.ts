@@ -367,5 +367,7 @@ export const thunkJumpToRunningRex = appCreateAsyncThunk<void>(
     dispatch(setSelectedPosEntryUuid(null));
     dispatch(setSelectedEvaSequenceItemUuid(null));
     dispatch(setOnlyShowRunningRex(true));
+    dispatch(setSelectedEvaUuid(runningRex.evaUuid));
+    dispatch(setSelectedRexUuid(runningRex.uuid));
   }
 );
