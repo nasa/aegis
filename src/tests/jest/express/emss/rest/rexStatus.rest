@@ -8,7 +8,7 @@ POST http://localhost:4000/api/v1/emss/rexStatus
 Content-Type: application/json
 emss-token: {{$dotenv EMSS_TOKEN}}
 
-{
+[{
   "rexUuid": "4d3eb10c-d526-44b1-90e7-fdbca3d67fb0",
   // "type": "station",
   // "typeRefUuid": "6735ac0d-566d-4adc-9946-702610cdc8ff",
@@ -19,7 +19,7 @@ emss-token: {{$dotenv EMSS_TOKEN}}
   "entry": {
     "rexStatus": "complete"
   }
-}
+}]
 
 ###
 
@@ -29,7 +29,7 @@ POST http://localhost:4000/api/v1/emss/rexStatus
 Content-Type: application/json
 emss-token: {{$dotenv EMSS_TOKEN}}
 
-{
+[{
   "rexUuid": "4d3eb10c-d526-44b1-90e7-fdbca3d67fb0",
   "type": "xgress",
   "typeRefUuid": "egress",
@@ -38,7 +38,7 @@ emss-token: {{$dotenv EMSS_TOKEN}}
     "maestroPercentCompleteEv1": 50,
     "maestroPercentCompleteEv2": 75
   }
-}
+}]
 
 ###
 
@@ -48,16 +48,16 @@ POST http://localhost:4000/api/v1/emss/rexStatus
 Content-Type: application/json
 emss-token: {{$dotenv EMSS_TOKEN}}
 
-{
+[{
   "rexUuid": "4d3eb10c-d526-44b1-90e7-fdbca3d67fb0",
   "type": "traverse",
-  "typeRefUuid": "d275e068-d237-4b99-a1f5-74bf2fadb4e5", 
+  "typeRefUuid": "d275e068-d237-4b99-a1f5-74bf2fadb4e5",
   "entry": {
     "rexStatus": "in-progress",
     "maestroPercentCompleteEv1": 20,
     "maestroPercentCompleteEv2": 80
   }
-}
+}]
 
 ###
 
@@ -67,14 +67,60 @@ POST http://localhost:4000/api/v1/emss/rexStatus
 Content-Type: application/json
 emss-token: {{$dotenv EMSS_TOKEN}}
 
-{
+[{
   "rexUuid": "4d3eb10c-d526-44b1-90e7-fdbca3d67fb0",
   "type": "station",
-  "typeRefUuid": "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216", 
+  "typeRefUuid": "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216",
   "entry": {
     "rexStatus": "in-progress",
     "maestroPercentCompleteEv1": 50,
     "maestroPercentCompleteEv2": 75
   }
-}
+}]
 
+###
+
+# testing multiple statuses
+POST http://localhost:4000/api/v1/emss/rexStatus
+# POST https://iron-emss-dev.fit.nasa.gov/api/v1/emss/rexStatus
+Content-Type: application/json
+emss-token: {{$dotenv EMSS_TOKEN}}
+
+[{
+  "rexUuid": "4d3eb10c-d526-44b1-90e7-fdbca3d67fb0",
+  "type": "station",
+  "typeRefUuid": "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216",
+  "entry": {
+    "rexStatus": "complete",
+    "maestroPercentCompleteEv1": 100,
+    "maestroPercentCompleteEv2": 100
+  }
+},
+{
+  "rexUuid": "4d3eb10c-d526-44b1-90e7-fdbca3d67fb0",
+  "type": "traverse",
+  "typeRefUuid": "d275e068-d237-4b99-a1f5-74bf2fadb4e5",
+  "entry": {
+    "rexStatus": "in-progress",
+    "maestroPercentCompleteEv1": 20,
+    "maestroPercentCompleteEv2": 80
+  }
+},
+{
+  "rexUuid": "4d3eb10c-d526-44b1-90e7-fdbca3d67fb0",
+  "type": "action",
+  "typeRefUuid": "6e2ee00b-0bd4-44fb-a238-329c5e7714b3",
+  "entry": {
+    "rexStatus": "in-progress"
+  }
+},
+{
+  "rexUuid": "4d3eb10c-d526-44b1-90e7-fdbca3d67fb0",
+  "type": "action",
+  "typeRefUuid": "6e2ee00b-0bd4-44fb-a238-329c5e7714b3",
+  "entry": {
+    "rexStatus": "skipped",
+    "mass": 123
+  }
+}
+]

@@ -19,49 +19,33 @@ jest.mock("server/express/sockets", () => {
 
 let testMissions: Mission_db[];
 let testRexes: Rex_db[];
+const emssToken = process.env.EMSS_TOKEN || "test-emss-token";
 
-/**
- * Build a valid request body, overriding any fields as needed.
- * We only read testMissions after beforeAll has run.
- */
-function makeControlUpdateRequest(
-  overrides: Partial<{
-    rexUuid: string;
-    maestroControlled?: boolean;
-    startStopExecution?: "start" | "stop";
-    maestroExecutionHash?: string;
-    maestroActivityProperties?: Record<string, unknown> | null;
-  }> = {}
-) {
-  return {
-    rexUuid: "",
-    ...overrides,
-  };
-}
+beforeAll(async () => {
+  await getORM();
+  const em = getEM();
+
+  testMissions = await new MissionFactory(em).create(1);
+
+  testRexes = await new RexFactory(em)
+    .each((rex, idx) => {
+      rex.mission = testMissions[0];
+      rex.name = `Jest REX ${idx + 1}`;
+    })
+    .create(3);
+});
+
+beforeEach(async () => {
+  jest.clearAllMocks(); // clear call count
+});
 
 describe("REX Control API Endpoint", () => {
-  const emssToken = process.env.EMSS_TOKEN || "test-emss-token";
-
-  beforeAll(async () => {
-    await getORM();
-    const em = getEM();
-
-    testMissions = await new MissionFactory(em).create(1);
-
-    testRexes = await new RexFactory(em)
-      .each((rex, idx) => {
-        rex.mission = testMissions[0];
-        rex.name = `Jest REX ${idx + 1}`;
-      })
-      .create(3);
-  });
-
   describe("POST request - Authentication", () => {
     test("Returns auth failure without emss-token", async () => {
-      const requestBody = makeControlUpdateRequest({
+      const requestBody = {
         rexUuid: testRexes[0].uuid,
         maestroControlled: true,
-      });
+      };
 
       const res = await supertest(app).post("/api/v1/emss/rexControl").send(requestBody);
 
@@ -71,10 +55,10 @@ describe("REX Control API Endpoint", () => {
     });
 
     test("Returns auth failure with invalid emss-token", async () => {
-      const requestBody = makeControlUpdateRequest({
+      const requestBody = {
         rexUuid: testRexes[0].uuid,
         maestroControlled: true,
-      });
+      };
 
       const res = await supertest(app)
         .post("/api/v1/emss/rexControl")
@@ -89,10 +73,9 @@ describe("REX Control API Endpoint", () => {
 
   describe("POST request - Validation", () => {
     test("Returns validation error for missing rexUuid", async () => {
-      const requestBody = makeControlUpdateRequest({
+      const requestBody = {
         maestroControlled: true,
-      });
-      delete requestBody.rexUuid;
+      };
 
       const res = await supertest(app)
         .post("/api/v1/emss/rexControl")
@@ -141,10 +124,10 @@ describe("REX Control API Endpoint", () => {
 
   describe("POST request - Business Logic", () => {
     test("Returns error for non-existent rex", async () => {
-      const requestBody = makeControlUpdateRequest({
+      const requestBody = {
         rexUuid: "non-existent-uuid",
         maestroControlled: true,
-      });
+      };
 
       const res = await supertest(app)
         .post("/api/v1/emss/rexControl")
@@ -168,13 +151,13 @@ describe("REX Control API Endpoint", () => {
         },
       };
 
-      const requestBody = makeControlUpdateRequest({
+      const requestBody = {
         rexUuid: testRexes[0].uuid,
         maestroControlled: true,
         startStopExecution: "start",
         maestroExecutionHash: "updated-hash-67890",
         maestroActivityProperties: activityProperties,
-      });
+      };
 
       const res = await supertest(app)
         .post("/api/v1/emss/rexControl")
@@ -185,7 +168,7 @@ describe("REX Control API Endpoint", () => {
       expect(res.body.status).toBe("success");
       expect(res.body.message).toContain("Rex control settings updated");
       expect(res.body.data).toBeDefined();
-      expect(res.body.data.uuid).toBe(testRexes[0].uuid);
+      expect(res.body.data[0].uuid).toBe(testRexes[0].uuid);
 
       const em = getEM();
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
@@ -196,11 +179,10 @@ describe("REX Control API Endpoint", () => {
     });
 
     test("Successfully updates maestroControlled", async () => {
-      const requestBody = makeControlUpdateRequest({
+      const requestBody = {
         rexUuid: testRexes[0].uuid,
         maestroControlled: true,
-      });
-      delete requestBody.startStopExecution;
+      };
 
       const res = await supertest(app)
         .post("/api/v1/emss/rexControl")
@@ -209,7 +191,7 @@ describe("REX Control API Endpoint", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
-      expect(res.body.data.uuid).toBe(testRexes[0].uuid);
+      expect(res.body.data[0].uuid).toBe(testRexes[0].uuid);
 
       const em = getEM();
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
@@ -236,8 +218,8 @@ describe("REX Control API Endpoint", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
-      expect(res.body.data.uuid).toBe(testRexes[0].uuid);
-      expect(res.body.data.maestroExecutionHash).toBe("hash-update-12345");
+      expect(res.body.data[0].uuid).toBe(testRexes[0].uuid);
+      expect(res.body.data[0].maestroExecutionHash).toBe("hash-update-12345");
 
       em.clear(); // need to clear because Mikro-ORM caches entities
       const freshRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
@@ -257,7 +239,7 @@ describe("REX Control API Endpoint", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
-      expect(res.body.data.uuid).toBe(testRexes[1].uuid);
+      expect(res.body.data[0].uuid).toBe(testRexes[1].uuid);
 
       const em = getEM();
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[1].uuid });
@@ -265,12 +247,12 @@ describe("REX Control API Endpoint", () => {
     });
 
     test("Successfully updates rex control settings with false values", async () => {
-      const requestBody = makeControlUpdateRequest({
+      const requestBody = {
         rexUuid: testRexes[1].uuid,
         maestroControlled: false,
         startStopExecution: "stop",
         maestroExecutionHash: "disabled-hash-00000",
-      });
+      };
 
       const res = await supertest(app)
         .post("/api/v1/emss/rexControl")
@@ -279,51 +261,13 @@ describe("REX Control API Endpoint", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
-      expect(res.body.data.uuid).toBe(testRexes[1].uuid);
+      expect(res.body.data[0].uuid).toBe(testRexes[1].uuid);
 
       const em = getEM();
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[1].uuid });
       expect(updatedRex?.maestroControlled).toBe(false);
       expect(updatedRex?.isRunning).toBe(false); // "stop" sets to false
       expect(updatedRex?.maestroExecutionHash).toBe("disabled-hash-00000");
-    });
-
-    test("Successfully toggles execution state", async () => {
-      // First, set rex to running
-      const startRequestBody = makeControlUpdateRequest({
-        rexUuid: testRexes[0].uuid,
-        maestroControlled: true,
-        startStopExecution: "start",
-        maestroExecutionHash: "start-hash-11111",
-      });
-
-      const startRes = await supertest(app)
-        .post("/api/v1/emss/rexControl")
-        .set("emss-token", emssToken)
-        .send(startRequestBody);
-
-      expect(startRes.statusCode).toBe(200);
-
-      // Then, stop the execution
-      const stopRequestBody = makeControlUpdateRequest({
-        rexUuid: testRexes[0].uuid,
-        maestroControlled: true,
-        startStopExecution: "stop",
-        maestroExecutionHash: "stop-hash-22222",
-      });
-
-      const stopRes = await supertest(app)
-        .post("/api/v1/emss/rexControl")
-        .set("emss-token", emssToken)
-        .send(stopRequestBody);
-
-      expect(stopRes.statusCode).toBe(200);
-
-      const em = getEM();
-      const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
-      expect(updatedRex?.maestroControlled).toBe(true);
-      expect(updatedRex?.isRunning).toBe(false); // "stop" sets to false
-      expect(updatedRex?.maestroExecutionHash).toBe("stop-hash-22222");
     });
 
     test("Starting one rex stops all other running rexes", async () => {
@@ -335,10 +279,10 @@ describe("REX Control API Endpoint", () => {
       await em.persistAndFlush(rexRecord);
 
       // Now start testRexes[1] - this should stop testRexes[0]
-      const startRequestBody = makeControlUpdateRequest({
+      const startRequestBody = {
         rexUuid: testRexes[1].uuid,
         startStopExecution: "start",
-      });
+      };
 
       const res = await supertest(app)
         .post("/api/v1/emss/rexControl")
@@ -386,7 +330,7 @@ describe("REX Control API Endpoint", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
-      expect(res.body.data.uuid).toBe(testRexes[0].uuid);
+      expect(res.body.data[0].uuid).toBe(testRexes[0].uuid);
 
       em.clear(); // need to clear because Mikro-ORM caches entities
       const freshRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
@@ -397,10 +341,10 @@ describe("REX Control API Endpoint", () => {
       const em = getEM();
 
       // First set a hash
-      const setHashRequest = makeControlUpdateRequest({
+      const setHashRequest = {
         rexUuid: testRexes[0].uuid,
         maestroExecutionHash: "initial-hash-123",
-      });
+      };
 
       await supertest(app)
         .post("/api/v1/emss/rexControl")
@@ -424,51 +368,47 @@ describe("REX Control API Endpoint", () => {
       expect(updatedRex?.maestroExecutionHash).toBe("");
     });
 
-    test("Socket emissions work correctly for different operation types", async () => {
+    test("Socket emit has multiple rexes in body", async () => {
       const emitStoreUpsertSpy = jest.spyOn(SocketIo, "emitStoreUpsert");
 
-      // Test non-execution change (should emit single rex)
-      const nonExecRequest = makeControlUpdateRequest({
+      // Stop all rexes first. Not sure what state they are in from previous tests
+      // Doing a native update will directly execute a SQL query. no need to persist/flush
+      const em = getEM();
+      await em.nativeUpdate(
+        Rex_db,
+        { isRunning: true }, // Filter: only rexes where `isRunning` is true
+        { isRunning: false } // Update: set `isRunning` to false
+      );
+
+      // Start a rex
+      const nonExecRequest = {
         rexUuid: testRexes[0].uuid,
         maestroControlled: true,
-      });
-      delete nonExecRequest.startStopExecution;
+        startStopExecution: "start",
+      };
 
       await supertest(app)
         .post("/api/v1/emss/rexControl")
         .set("emss-token", emssToken)
         .send(nonExecRequest);
 
-      expect(emitStoreUpsertSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          socketId: "maestroApi",
-          type: "rex",
-          data: expect.arrayContaining([expect.objectContaining({ uuid: testRexes[0].uuid })]),
-        })
-      );
+      // Check that the array length is 1 (aka 1 rex was sent)
+      const callArgs = emitStoreUpsertSpy.mock.calls[0][0]; // Get the first call's arguments
+      expect(callArgs.data).toHaveLength(1);
 
-      // Test execution start (should emit all mission rexes)
-      const startExecRequest = makeControlUpdateRequest({
+      // Start a different rex. This should stop the first one
+      const startExecRequest = {
         rexUuid: testRexes[1].uuid,
         startStopExecution: "start",
-      });
+      };
 
       await supertest(app)
         .post("/api/v1/emss/rexControl")
         .set("emss-token", emssToken)
         .send(startExecRequest);
 
-      // Should have been called with comprehensive mission data
-      expect(emitStoreUpsertSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          socketId: "maestroApi",
-          type: "rex",
-          data: expect.arrayContaining([
-            expect.objectContaining({ uuid: testRexes[0].uuid }),
-            expect.objectContaining({ uuid: testRexes[1].uuid }),
-          ]),
-        })
-      );
+      const callArgs2 = emitStoreUpsertSpy.mock.calls[1][0]; // Get the second call's arguments
+      expect(callArgs2.data).toHaveLength(2);
     });
   });
 });

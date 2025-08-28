@@ -30,12 +30,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   // Check if user has EMSS permissions
   const editPermission = emssToken && emssToken === process.env.EMSS_TOKEN;
-
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
+  // validate inputs
   if (!rexUuid) {
     res.status(400).json({
       status: "failure",
@@ -43,7 +43,6 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
     return;
   }
-
   // Check that at least one optional parameter is provided
   if (
     maestroControlled === undefined &&
@@ -58,7 +57,6 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
     return;
   }
-
   // Validate startStopExecution if provided
   if (startStopExecution !== undefined && !["start", "stop"].includes(startStopExecution)) {
     res.status(400).json({
@@ -69,17 +67,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    let updatedRex = null;
-    let allRunningRexesBeforeUpdate = null;
+    let updatedRexes: Rex[] = [];
     for (let tries = 0; tries < 7; tries++) {
       try {
-        ({ updatedRex, allRunningRexesBeforeUpdate } = await updateRexControl({
+        updatedRexes = await updateRexControl({
           rexUuid: rexUuid,
           maestroControlled: maestroControlled,
           startStopExecution: startStopExecution,
           maestroExecutionHash: maestroExecutionHash,
           maestroActivityProperties: maestroActivityProperties,
-        }));
+        });
         break; // if successful, exit the retry loop
       } catch (e) {
         if (e instanceof OptimisticLockError) {
@@ -93,31 +90,17 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // If we're starting execution, we need to emit updates for all affected REX records
-    if (startStopExecution === "start") {
-      // Include the updated REX (now running) along with the previously running REX records (now stopped)
-      const allAffectedRexes = [...allRunningRexesBeforeUpdate, updatedRex];
-
-      emitStoreUpsert({
-        missionId: updatedRex.missionId,
-        socketId: "maestroApi",
-        type: "rex",
-        data: allAffectedRexes,
-      } as StoreUpsert);
-    } else {
-      // For other operations, just emit the single updated REX
-      emitStoreUpsert({
-        missionId: updatedRex.missionId,
-        socketId: "maestroApi",
-        type: "rex",
-        data: [updatedRex],
-      } as StoreUpsert);
-    }
+    emitStoreUpsert({
+      missionId: updatedRexes[0].missionId,
+      socketId: "maestroApi",
+      type: "rex",
+      data: updatedRexes,
+    } as StoreUpsert);
 
     res.status(200).json({
       status: "success",
-      message: `Rex control settings updated for uuid ${updatedRex.uuid}`,
-      data: updatedRex,
+      message: `Rex control settings updated for rex uuid(s) ${updatedRexes.map((r) => r.uuid).toString()}`,
+      data: updatedRexes,
     });
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : String(e);
@@ -154,10 +137,7 @@ export async function updateRexControl({
   startStopExecution?: "start" | "stop";
   maestroExecutionHash?: string;
   maestroActivityProperties?: MaestroActivityPropertiesByRefUuid;
-}): Promise<{
-  updatedRex: Rex;
-  allRunningRexesBeforeUpdate: Rex[];
-}> {
+}): Promise<Rex[]> {
   const em = getEM();
   await em.begin(); // start a transaction
 
@@ -203,10 +183,10 @@ export async function updateRexControl({
     throw error; // re-throw the error to be handled by the caller
   }
 
-  return {
-    updatedRex: convertRexesTypeDbToStore([rexEntity])[0],
-    allRunningRexesBeforeUpdate: convertRexesTypeDbToStore(allRunningRexesBeforeUpdate),
-  };
+  return [
+    convertRexesTypeDbToStore([rexEntity])[0],
+    ...convertRexesTypeDbToStore(allRunningRexesBeforeUpdate),
+  ];
 }
 
 export default router;
