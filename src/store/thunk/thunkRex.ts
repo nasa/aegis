@@ -39,7 +39,7 @@ export const thunkCreateRex = appCreateAsyncThunk<
 
   // duplicate the EVA (this will save to the db)
   const dupEvaThunkRes = await dispatch(
-    thunkDuplicateEva({ evaUuid: asPlannedEvaUuid, includeStations: true, forRex: true })
+    thunkDuplicateEva({ evaUuid: asPlannedEvaUuid, includeStations: true, isRexEva: true })
   );
   if (dupEvaThunkRes?.meta.requestStatus === "rejected" || !dupEvaThunkRes.payload) {
     throw new Error("Error creating Rexes. Cannot duplicate EVA ");

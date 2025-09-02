@@ -193,10 +193,10 @@ export const getCalculatedFieldsByStation = (params: {
 export const getCalculatedFieldsByTraverse = (params: {
   traverse: Traverse;
   missionTraverseRate: number;
-  traverseEva: Eva;
+  evaTraverseRate: number;
   traverseActions: Action[];
 }): TraverseCalculatedFields => {
-  const { traverse, missionTraverseRate, traverseEva, traverseActions } = params;
+  const { traverse, missionTraverseRate, evaTraverseRate, traverseActions } = params;
   if (!traverse) return;
 
   //calculate total traverse action time
@@ -231,8 +231,8 @@ export const getCalculatedFieldsByTraverse = (params: {
   const newReportItems: ReportItem[] = [];
 
   let traverseRate = missionTraverseRate;
-  if (traverseEva.traverseRate) {
-    traverseRate = traverseEva.traverseRate;
+  if (evaTraverseRate) {
+    traverseRate = evaTraverseRate;
   }
   if (traverse.traverseRate) {
     traverseRate = traverse.traverseRate;
@@ -344,7 +344,7 @@ export const getCalculatedTimeOfSequenceItem = (params: {
       thisTraverseCalculatedTime = getCalculatedFieldsByTraverse({
         traverse,
         missionTraverseRate: mission.traverseRate,
-        traverseEva,
+        evaTraverseRate: traverseEva?.traverseRate,
         traverseActions,
       }).durationMinutes;
     }
@@ -442,7 +442,7 @@ export const getCalculatedFieldsByEva = (params: {
       thisTraverseCalculatedFields = getCalculatedFieldsByTraverse({
         traverse: thisTraverse,
         missionTraverseRate,
-        traverseEva: eva,
+        evaTraverseRate: eva.traverseRate,
         traverseActions,
       });
     }

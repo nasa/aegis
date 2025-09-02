@@ -37,7 +37,7 @@ const Actions_Panel: FunctionComponent<{
     const calculatedFields = getCalculatedFieldsByTraverse({
       traverse: selectedTraverse,
       missionTraverseRate: state.mission.mission.traverseRate,
-      traverseEva,
+      evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
     });
     const newActionsCalculatedFields: ActionsCalculatedFields = {

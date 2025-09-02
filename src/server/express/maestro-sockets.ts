@@ -38,7 +38,7 @@ export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<
         allEvaSequenceUuids.includes(action.stationUuid)
     );
 
-    // return if none of the actions are in an eva
+    // return if none of the actions are in an eva.
     if (actionsForMaestro.length === 0) return;
 
     const exportedActionData = makeExportActions({

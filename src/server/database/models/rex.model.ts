@@ -44,7 +44,9 @@ export class Rex_db implements Rex_db_type {
   @Property({ type: MikroTypes.boolean, nullable: false, default: false })
   maestroControlled: boolean;
   @Property({ type: MikroTypes.string, nullable: true })
-  maestroExecutionHash: string | null;
+  maestroEventId: string | null;
+  @Property({ type: MikroTypes.string, nullable: true })
+  maestroEventUrl: string | null;
   @Property({ type: MikroTypes.json, nullable: true })
   maestroActivityPropertiesByRefUuid: MaestroActivityPropertiesByRefUuid | null;
 

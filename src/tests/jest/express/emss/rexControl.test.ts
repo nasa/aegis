@@ -100,7 +100,7 @@ describe("REX Control API Endpoint", () => {
       expect(res.statusCode).toBe(400);
       expect(res.body.status).toBe("failure");
       expect(res.body.message).toContain(
-        "At least one of maestroControlled, startStopExecution, maestroExecutionHash, or maestroActivityProperties must be provided"
+        "At least one of maestroControlled, startStopExecution, maestroEventId, maestroEventUrl, or maestroActivityProperties must be provided"
       );
     });
 
@@ -119,6 +119,36 @@ describe("REX Control API Endpoint", () => {
       expect(res.statusCode).toBe(400);
       expect(res.body.status).toBe("failure");
       expect(res.body.message).toContain("startStopExecution must be 'start' or 'stop'");
+    });
+
+    test("Returns validation error for invalid maestroEventUrl", async () => {
+      const requestBody = {
+        rexUuid: testRexes[0].uuid,
+        maestroEventUrl: "not-a-valid-url",
+      };
+
+      const res = await supertest(app)
+        .post("/api/v1/emss/rexControl")
+        .set("emss-token", emssToken)
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.status).toBe("failure");
+      expect(res.body.message).toContain("Must be a valid URL");
+
+      const requestBody2 = {
+        rexUuid: testRexes[0].uuid,
+        maestroEventUrl: "something://invalid-protocol.com",
+      };
+
+      const res2 = await supertest(app)
+        .post("/api/v1/emss/rexControl")
+        .set("emss-token", emssToken)
+        .send(requestBody2);
+
+      expect(res2.statusCode).toBe(400);
+      expect(res2.body.status).toBe("failure");
+      expect(res2.body.message).toContain("Invalid protocol");
     });
   });
 
@@ -155,7 +185,7 @@ describe("REX Control API Endpoint", () => {
         rexUuid: testRexes[0].uuid,
         maestroControlled: true,
         startStopExecution: "start",
-        maestroExecutionHash: "updated-hash-67890",
+        maestroEventId: "updated-event-67890",
         maestroActivityProperties: activityProperties,
       };
 
@@ -174,7 +204,7 @@ describe("REX Control API Endpoint", () => {
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
       expect(updatedRex?.maestroControlled).toBe(requestBody.maestroControlled);
       expect(updatedRex?.isRunning).toBe(true); // "start" sets to true
-      expect(updatedRex?.maestroExecutionHash).toBe(requestBody.maestroExecutionHash);
+      expect(updatedRex?.maestroEventId).toBe(requestBody.maestroEventId);
       expect(updatedRex?.maestroActivityPropertiesByRefUuid).toEqual(activityProperties);
     });
 
@@ -198,14 +228,14 @@ describe("REX Control API Endpoint", () => {
       expect(updatedRex?.maestroControlled).toBe(true);
     });
 
-    test("Successfully updates execution hash", async () => {
+    test("Successfully updates maestro event id", async () => {
       const em = getEM();
 
       // First, ensure we know the current state by resetting it
       const rexRecord = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
       rexRecord.maestroControlled = false;
       rexRecord.isRunning = false;
-      rexRecord.maestroExecutionHash = "";
+      rexRecord.maestroEventId = "";
       em.persistAndFlush(rexRecord);
 
       const res = await supertest(app)
@@ -213,17 +243,17 @@ describe("REX Control API Endpoint", () => {
         .set("emss-token", emssToken)
         .send({
           rexUuid: rexRecord.uuid,
-          maestroExecutionHash: "hash-update-12345",
+          maestroEventId: "event-update-12345",
         });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.data[0].uuid).toBe(testRexes[0].uuid);
-      expect(res.body.data[0].maestroExecutionHash).toBe("hash-update-12345");
+      expect(res.body.data[0].maestroEventId).toBe("event-update-12345");
 
       em.clear(); // need to clear because Mikro-ORM caches entities
       const freshRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
-      expect(freshRex.maestroExecutionHash).toBe("hash-update-12345");
+      expect(freshRex.maestroEventId).toBe("event-update-12345");
     });
 
     test("Successfully updates execution state", async () => {
@@ -251,7 +281,7 @@ describe("REX Control API Endpoint", () => {
         rexUuid: testRexes[1].uuid,
         maestroControlled: false,
         startStopExecution: "stop",
-        maestroExecutionHash: "disabled-hash-00000",
+        maestroEventId: "disabled-event-00000",
       };
 
       const res = await supertest(app)
@@ -267,7 +297,7 @@ describe("REX Control API Endpoint", () => {
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[1].uuid });
       expect(updatedRex?.maestroControlled).toBe(false);
       expect(updatedRex?.isRunning).toBe(false); // "stop" sets to false
-      expect(updatedRex?.maestroExecutionHash).toBe("disabled-hash-00000");
+      expect(updatedRex?.maestroEventId).toBe("disabled-event-00000");
     });
 
     test("Starting one rex stops all other running rexes", async () => {
@@ -337,35 +367,35 @@ describe("REX Control API Endpoint", () => {
       expect(freshRex.maestroActivityPropertiesByRefUuid).toEqual(activityProperties);
     });
 
-    test("Updates with empty hash are handled correctly", async () => {
+    test("Updates with empty string for maestroEventId are handled correctly", async () => {
       const em = getEM();
 
-      // First set a hash
-      const setHashRequest = {
+      // First set an initial event id
+      const setEventIdRequest = {
         rexUuid: testRexes[0].uuid,
-        maestroExecutionHash: "initial-hash-123",
+        maestroEventId: "initial-event-123",
       };
 
       await supertest(app)
         .post("/api/v1/emss/rexControl")
         .set("emss-token", emssToken)
-        .send(setHashRequest);
+        .send(setEventIdRequest);
 
       // Now clear it with empty string
-      const clearHashRequest = {
+      const clearEventIdRequest = {
         rexUuid: testRexes[0].uuid,
-        maestroExecutionHash: "",
+        maestroEventId: "",
       };
 
       const res = await supertest(app)
         .post("/api/v1/emss/rexControl")
         .set("emss-token", emssToken)
-        .send(clearHashRequest);
+        .send(clearEventIdRequest);
 
       expect(res.statusCode).toBe(200);
 
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
-      expect(updatedRex?.maestroExecutionHash).toBe("");
+      expect(updatedRex?.maestroEventId).toBe(null);
     });
 
     test("Socket emit has multiple rexes in body", async () => {

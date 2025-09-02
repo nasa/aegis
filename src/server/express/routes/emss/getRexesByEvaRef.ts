@@ -27,6 +27,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  // validate inputs
   if (!queryObj.evaRefUuid) {
     res.status(500).json({ status: "error", message: "No EVA Ref given" });
     return;
@@ -43,7 +44,10 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     const rexEvasQuery = em
       .createQueryBuilder(Rex_db)
       .select(["uuid", "name", "createdAt", "updatedAt", "isRunning"])
-      .where({ evaUuid: { $in: refEvaSubQuery.getKnexQuery() } });
+      .where({
+        evaUuid: { $in: refEvaSubQuery.getKnexQuery() },
+        maestroEventId: null,
+      });
 
     const dbRexes = await rexEvasQuery.execute();
 

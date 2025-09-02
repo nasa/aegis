@@ -5,7 +5,7 @@ import { EntityData } from "@mikro-orm/core";
 
 /**
  * Generate a blank rex
- * @param partialRex any fields that are to be overriden from default
+ * @param partialRex any fields that are to be overridden from default
  * @returns the generated rex
  */
 export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }): Rex => {
@@ -71,7 +71,8 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     xgressEntries: null,
     actionEntries: null,
     maestroControlled: false,
-    maestroExecutionHash: null,
+    maestroEventId: null,
+    maestroEventUrl: null,
     maestroActivityPropertiesByRefUuid: null,
     createdAt: getAccurateNow().toISOString(),
     updatedAt: getAccurateNow().toISOString(),
@@ -105,12 +106,12 @@ export const generateBlankPosEntry = (partialPosEntry?: Partial<PosEntry>): PosE
 };
 /**
  * Converts db rex fks to their uuid/id arrays
- * @param dbRexs an array of rexs in mikro db format
- * @returns an a converted array of rexs or a single rex
+ * @param dbRexes an array of rexes in mikro db format
+ * @returns an a converted array of rexes or a single rex
  */
-export function convertRexesTypeDbToStore(dbRexs: Rex_db[]): Rex[] {
-  const rexs: Rex[] = [];
-  for (const dbRex of dbRexs) {
+export function convertRexesTypeDbToStore(dbRexes: Rex_db[]): Rex[] {
+  const rexes: Rex[] = [];
+  for (const dbRex of dbRexes) {
     const convertedRex: Rex = {
       uuid: dbRex.uuid,
       ownerId: dbRex.ownerId,
@@ -130,24 +131,25 @@ export function convertRexesTypeDbToStore(dbRexs: Rex_db[]): Rex[] {
       actionEntries: dbRex.actionEntries,
       xgressEntries: dbRex.xgressEntries,
       maestroControlled: dbRex.maestroControlled,
-      maestroExecutionHash: dbRex.maestroExecutionHash,
+      maestroEventId: dbRex.maestroEventId,
+      maestroEventUrl: dbRex.maestroEventUrl,
       maestroActivityPropertiesByRefUuid: dbRex.maestroActivityPropertiesByRefUuid,
       updatedAt: dbRex.updatedAt.toISOString(),
       createdAt: dbRex.createdAt.toISOString(),
     };
-    rexs.push(convertedRex);
+    rexes.push(convertedRex);
   }
-  return rexs;
+  return rexes;
 }
 
 /**
- * Converts rexs that come from the store into the db type
- * @param storeRexs
+ * Converts rexes that come from the store into the db type
+ * @param storeRexes
  * @returns
  */
-export function convertRexesTypeStoreToDb(storeRexs: Rex[]): EntityData<Rex_db>[] {
-  const dbRexs: EntityData<Rex_db>[] = [];
-  for (const storeRex of storeRexs) {
+export function convertRexesTypeStoreToDb(storeRexes: Rex[]): EntityData<Rex_db>[] {
+  const dbRexes: EntityData<Rex_db>[] = [];
+  for (const storeRex of storeRexes) {
     const convertedRecord: EntityData<Rex_db> = {
       mission: storeRex.missionId,
       uuid: storeRex.uuid,
@@ -167,12 +169,13 @@ export function convertRexesTypeStoreToDb(storeRexs: Rex[]): EntityData<Rex_db>[
       actionEntries: storeRex.actionEntries,
       xgressEntries: storeRex.xgressEntries,
       maestroControlled: storeRex.maestroControlled,
-      maestroExecutionHash: storeRex.maestroExecutionHash,
+      maestroEventId: storeRex.maestroEventId,
+      maestroEventUrl: storeRex.maestroEventUrl,
       maestroActivityPropertiesByRefUuid: storeRex.maestroActivityPropertiesByRefUuid,
       updatedAt: new Date(storeRex.updatedAt),
       createdAt: new Date(storeRex.createdAt),
     };
-    dbRexs.push(convertedRecord);
+    dbRexes.push(convertedRecord);
   }
-  return dbRexs;
+  return dbRexes;
 }

@@ -84,11 +84,35 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         </div>
                       </div>
                     </div>
-                    <div className={paneStyles.panelColumnTableRow}>
+                    {selectedRex.maestroControlled && (
+                      <>
+                        <div className={paneStyles.panelColumnTableRow}>
+                          <div className={paneStyles.panelColumnTableCellLeft}>
+                            <div className={paneStyles.inputFieldLabel}>Event ID:</div>
+                          </div>
+                          <div className={paneStyles.panelColumnTableCell}>
+                            <div className={rexStyles.selectedEvaLabelRight}>
+                              <div>{selectedRex.maestroEventId || "None"}</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className={paneStyles.panelColumnTableRow}>
+                          <div className={paneStyles.panelColumnTableCellLeft}>
+                            <div className={paneStyles.inputFieldLabel}>Event URL:</div>
+                          </div>
+                          <div className={paneStyles.panelColumnTableCell}>
+                            <div className={rexStyles.selectedEvaLabelRight}>
+                              <div>{selectedRex.maestroEventUrl || "None"}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <div className={paneStyles.panelColumnTableRow} style={{ height: "2.5em" }}>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.inputFieldLabel}>Execution Status:</div>
                       </div>
-                      <div className={rexStyles.evaDropdownContainer}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         {editMode && selectedRex.evaUuid && !isOtherRexRunning ? (
                           <Button
                             onClick={() => {
@@ -122,7 +146,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               }
                             }}
                             label={selectedRex.isRunning ? "Stop Execution" : "Execute EVA"}
-                            style={{ width: "130px", marginTop: "10px" }}
+                            style={{ width: "130px" }}
                           />
                         ) : (
                           <div className={rexStyles.selectedEvaLabelRight}>
