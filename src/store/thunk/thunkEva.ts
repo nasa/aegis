@@ -438,26 +438,39 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
   {
     evaUuid: string;
     includeStations: boolean;
-    forRex: boolean;
+    isRexEva: boolean; // set to true if this eva is being duplicated for creating a rex
   },
   Eva,
   false
->("evaDuplicate", async ({ evaUuid, includeStations, forRex }, { dispatch, getState }) => {
+>("evaDuplicate", async ({ evaUuid, includeStations, isRexEva }, { dispatch, getState }) => {
   if (!evaUuid) return;
   //make a copy of the eva
   const eva = getState().eva.evas.find((e) => e.uuid === evaUuid);
-  const newEva: Eva = cloneDeep(eva);
+  let newEva: Eva = cloneDeep(eva);
   newEva.uuid = uuidv4();
-  const newDateString = getAccurateNow().toISOString();
-  newEva.updatedAt = newDateString;
-  newEva.createdAt = newDateString;
-  if (!forRex) {
+  if (!isRexEva) {
+    const newDateString = getAccurateNow().toISOString();
+    newEva.updatedAt = newDateString;
+    newEva.createdAt = newDateString;
     newEva.refUuid = uuidv4();
     newEva.name = makeUniqueStringCopy(
       eva.name,
       getState().eva.evas.map((item) => item.name)
     );
   }
+  // Upsert eva and persist to the db. Do this first so it's in the DB when
+  //  emits go out for the new traverses they can access the eva traverse rate
+  //  for calculatedFields
+  dispatch(upsertEvas([newEva], true));
+  dispatch(upsertEvasFromDb([newEva]));
+  const upsertEvasResponse = await httpClient_Eva.upsertEvas([newEva]);
+  if (upsertEvasResponse.status !== "success") {
+    throw new Error("Error upserting EVA: " + upsertEvasResponse.message);
+  }
+  // re-clone the Eva object because apparently after upserting to the store
+  //  redux freezes the object back to read-only and we can't make direct
+  //  changes to it anymore
+  newEva = cloneDeep(newEva);
 
   //duplicate the stations
   if (includeStations) {
@@ -468,22 +481,27 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
         return stationSeqItem.uuid;
       });
     const evaStations = getState().station.stations.filter((s) => evaStationUuids.includes(s.uuid));
-    for (const station of evaStations) {
-      //make a copy
-      const newStationRes = (
-        await dispatch(
-          thunkDuplicateStation({
-            stationUuid: station.uuid,
-            preserveRefUuid: forRex,
-          })
-        )
-      ).payload;
-      if (newStationRes) {
-        //update this station uuid in new eva sequence
-        const sequenceIndex = newEva.sequence.findIndex((seqItem) => seqItem.uuid === station.uuid);
-        newEva.sequence[sequenceIndex].uuid = newStationRes.uuid;
-      }
-    }
+    // run in parallel
+    await Promise.all(
+      evaStations.map(async (station) => {
+        //make a copy
+        const newStationRes = (
+          await dispatch(
+            thunkDuplicateStation({
+              stationUuid: station.uuid,
+              preserveRefUuid: isRexEva,
+            })
+          )
+        ).payload;
+        if (newStationRes) {
+          //update this station uuid in new eva sequence
+          const sequenceIndex = newEva.sequence.findIndex(
+            (seqItem) => seqItem.uuid === station.uuid
+          );
+          newEva.sequence[sequenceIndex].uuid = newStationRes.uuid;
+        }
+      })
+    );
   }
 
   //duplicate the traverses
@@ -496,26 +514,30 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
   const evaTraverses = getState().traverse.traverses.filter((t) =>
     evaTraverseUuids.includes(t.uuid)
   );
-  for (const traverse of evaTraverses) {
-    //update this traverse uuid in new eva sequence
-    const sequenceIndex = newEva.sequence.findIndex((seqItem) => seqItem.uuid === traverse.uuid);
-
-    const newTraverseRes = (
-      await dispatch(
-        thunkDuplicateTraverse({
-          traverseUuid: traverse.uuid,
-          preserveRefUuid: forRex,
-        })
-      )
-    ).payload;
-    if (newTraverseRes) {
-      // update this traverse uuid in new eva sequence
-      newEva.sequence[sequenceIndex].uuid = newTraverseRes.uuid;
-    }
-  }
+  // run in parallel
+  await Promise.all(
+    evaTraverses.map(async (traverse) => {
+      const newTraverseRes = (
+        await dispatch(
+          thunkDuplicateTraverse({
+            traverseUuid: traverse.uuid,
+            preserveRefUuid: isRexEva,
+          })
+        )
+      ).payload;
+      if (newTraverseRes) {
+        //update this traverse uuid in new eva sequence
+        const sequenceIndex = newEva.sequence.findIndex(
+          (seqItem) => seqItem.uuid === traverse.uuid
+        );
+        // update this traverse uuid in new eva sequence
+        newEva.sequence[sequenceIndex].uuid = newTraverseRes.uuid;
+      }
+    })
+  );
 
   // if this is for a REX, then we also need to duplicate the ingress/egress locations if they are not lander
-  if (forRex) {
+  if (isRexEva) {
     if (eva.ingressLocationUuid !== "lander") {
       const newIngressStation = await dispatch(
         thunkDuplicateStation({
@@ -544,15 +566,15 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
     }
   }
 
-  // upsert eva and persist to the db
+  // upsert eva again but with the new station/traverse/xgress uuids
   dispatch(upsertEvas([newEva], true));
   dispatch(upsertEvasFromDb([newEva]));
-  const upsertEvasResponse = await httpClient_Eva.upsertEvas([newEva]);
-  if (upsertEvasResponse.status !== "success") {
-    throw new Error("Error upserting EVA: " + upsertEvasResponse.message);
+  const upsertEvasResponse2 = await httpClient_Eva.upsertEvas([newEva]);
+  if (upsertEvasResponse2.status !== "success") {
+    throw new Error("Error upserting EVA: " + upsertEvasResponse2.message);
   }
 
-  if (!forRex) {
+  if (!isRexEva) {
     dispatch(selectEva({ uuid: newEva.uuid }));
     dispatch(thunkSetRightPanelIsOpenIfAuto(true));
   }

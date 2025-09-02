@@ -15,9 +15,10 @@ emss-token: {{$dotenv EMSS_TOKEN}}
 
 {
   "rexUuid": "4d3eb10c-d526-44b1-90e7-fdbca3d67fb0",
-  "maestroControlled": false,
+  "maestroControlled": true,
   "startStopExecution": "start",
-  "maestroExecutionHash": "test-execution-hash-12345",
+  "maestroEventId": "test-execution-hash-12345",
+  "maestroEventUrl": "https://maestro-server.example.com",
   "maestroActivityProperties": {
     "egress": {
       "color": "#ff0000",
@@ -61,14 +62,15 @@ emss-token: {{$dotenv EMSS_TOKEN}}
 
 ###
 
-// Only update execution hash
+// Only update execution event id and server
 POST http://localhost:4000/api/v1/emss/rexControl
 Content-Type: application/json
 emss-token: {{$dotenv EMSS_TOKEN}}
 
 {
   "rexUuid": "4d3eb10c-d526-44b1-90e7-fdbca3d67fb0",
-  "maestroExecutionHash": "new-hash-98765"
+  "maestroEventId": "new-event-98765",
+  "maestroEventUrl": "https://new-maestro-server.example.com"
 }
 
 ###

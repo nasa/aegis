@@ -12,7 +12,8 @@ interface RexControlUpdateRequest {
   rexUuid: string;
   maestroControlled?: boolean;
   startStopExecution?: "start" | "stop";
-  maestroExecutionHash?: string;
+  maestroEventId?: string;
+  maestroEventUrl?: string;
   maestroActivityProperties?: MaestroActivityPropertiesByRefUuid | null;
 }
 
@@ -23,7 +24,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     rexUuid,
     maestroControlled,
     startStopExecution,
-    maestroExecutionHash,
+    maestroEventId,
+    maestroEventUrl,
     maestroActivityProperties,
   } = req.body as RexControlUpdateRequest;
   const emssToken = req.headers["emss-token"] as string;
@@ -47,13 +49,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   if (
     maestroControlled === undefined &&
     startStopExecution === undefined &&
-    maestroExecutionHash === undefined &&
+    maestroEventId === undefined &&
+    maestroEventUrl === undefined &&
     maestroActivityProperties === undefined
   ) {
     res.status(400).json({
       status: "failure",
       message:
-        "At least one of maestroControlled, startStopExecution, maestroExecutionHash, or maestroActivityProperties must be provided",
+        "At least one of maestroControlled, startStopExecution, maestroEventId, maestroEventUrl, or maestroActivityProperties must be provided",
     });
     return;
   }
@@ -65,6 +68,20 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
     return;
   }
+  // validate maestroEventURL
+  if (maestroEventUrl) {
+    try {
+      const parsedUrl = new URL(maestroEventUrl);
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:")
+        throw new Error("Invalid protocol. Must be http or https");
+    } catch (e) {
+      res.status(400).json({
+        status: "failure",
+        message: "Must be a valid URL " + e,
+      });
+      return;
+    }
+  }
 
   try {
     let updatedRexes: Rex[] = [];
@@ -74,7 +91,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
           rexUuid: rexUuid,
           maestroControlled: maestroControlled,
           startStopExecution: startStopExecution,
-          maestroExecutionHash: maestroExecutionHash,
+          maestroEventId: maestroEventId,
+          maestroEventUrl: maestroEventUrl,
           maestroActivityProperties: maestroActivityProperties,
         });
         break; // if successful, exit the retry loop
@@ -129,15 +147,10 @@ export async function updateRexControl({
   rexUuid,
   maestroControlled,
   startStopExecution,
-  maestroExecutionHash,
+  maestroEventId,
+  maestroEventUrl,
   maestroActivityProperties,
-}: {
-  rexUuid: string;
-  maestroControlled?: boolean;
-  startStopExecution?: "start" | "stop";
-  maestroExecutionHash?: string;
-  maestroActivityProperties?: MaestroActivityPropertiesByRefUuid;
-}): Promise<Rex[]> {
+}: RexControlUpdateRequest): Promise<Rex[]> {
   const em = getEM();
   await em.begin(); // start a transaction
 
@@ -170,8 +183,11 @@ export async function updateRexControl({
 
     // Update the target REX entity directly - only update fields that are explicitly provided
     if (maestroControlled !== undefined) rexEntity.maestroControlled = maestroControlled;
-    if (maestroExecutionHash !== undefined) rexEntity.maestroExecutionHash = maestroExecutionHash;
+    if (maestroEventId !== undefined) {
+      rexEntity.maestroEventId = maestroEventId === "" ? null : maestroEventId;
+    }
     if (startStopExecution !== undefined) rexEntity.isRunning = startStopExecution === "start";
+    if (maestroEventUrl !== undefined) rexEntity.maestroEventUrl = maestroEventUrl;
     if (maestroActivityProperties !== undefined)
       rexEntity.maestroActivityPropertiesByRefUuid = maestroActivityProperties;
     rexEntity.updatedAt = new Date();

@@ -65,7 +65,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     return getCalculatedFieldsByTraverse({
       traverse: selectedTraverse,
       missionTraverseRate: state.mission.mission.traverseRate,
-      traverseEva,
+      evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
     });
   }, deepEqual);

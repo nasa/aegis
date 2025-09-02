@@ -87,7 +87,7 @@ const TraverseEditorRight: FunctionComponent = () => {
     return getCalculatedFieldsByTraverse({
       traverse,
       missionTraverseRate: state.mission.mission.traverseRate,
-      traverseEva,
+      evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
     });
   }, deepEqual);

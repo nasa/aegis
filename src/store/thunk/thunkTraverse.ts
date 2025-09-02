@@ -454,10 +454,13 @@ export const thunkDuplicateTraverse = appCreateAsyncThunk<
   //duplicate traverse
   const newTraverse: Traverse = cloneDeep(traverse);
   newTraverse.uuid = uuidv4();
-  if (!preserveRefUuid) newTraverse.refUuid = uuidv4();
-  const newDateString = getAccurateNow().toISOString();
-  newTraverse.updatedAt = newDateString;
-  newTraverse.createdAt = newDateString;
+  // preservingRefUuids only occurs when duplicating an EVA for a REX.
+  if (!preserveRefUuid) {
+    newTraverse.refUuid = uuidv4();
+    const newDateString = getAccurateNow().toISOString();
+    newTraverse.updatedAt = newDateString;
+    newTraverse.createdAt = newDateString;
+  }
   newTraverse.actionOrderUuids = [];
 
   // duplicating traverse and persist to the db
