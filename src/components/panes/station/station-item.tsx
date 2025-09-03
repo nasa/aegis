@@ -5,7 +5,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, setSelectedStationUuid } from "store/station";
 import stationStyles from "./station.module.css";
-import { decodeEmoji } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { setHoverUuidsForSequence } from "store/hover";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 
@@ -86,7 +86,7 @@ const StationItem: FunctionComponent<{
       }}
     >
       <div className={stationStyles.itemIcon}>
-        {decodeEmoji(station.icon ? station.icon : "2754")}
+        <EmojiRenderer iconValue={station?.icon ? station.icon : "2754"} customSizeEm={1.4} />
       </div>
       <div className={`${stationStyles.name} ${isStationSelectedOrHoveredStyle}`}>
         <div>{station.name}</div>

@@ -30,7 +30,7 @@ import {
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
-import { decodeEmoji } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 import { faClock } from "@fortawesome/free-regular-svg-icons";
 import { thunkChangeIngressEgress } from "store/thunk/thunkEva";
@@ -319,7 +319,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         ) : (
                           <div className={evaStyles.stationWrapperRight}>
                             <div className={evaStyles.iconCustomSmall}>
-                              {decodeEmoji(egressData.icon)}
+                              <EmojiRenderer iconValue={egressData.icon} />
                             </div>
                             <div className={evaStyles.stationNameRight}>{egressData.name}</div>
                           </div>
@@ -366,7 +366,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         ) : (
                           <div className={evaStyles.stationWrapperRight}>
                             <div className={evaStyles.iconCustomSmall}>
-                              {decodeEmoji(ingressData.icon)}
+                              <EmojiRenderer iconValue={ingressData.icon} />
                             </div>
                             <div className={evaStyles.stationNameRight}>{ingressData.name}</div>
                           </div>

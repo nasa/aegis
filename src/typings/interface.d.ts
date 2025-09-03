@@ -8,7 +8,8 @@ interface PaneType {
   leftPane: React.FunctionComponent;
   rightPane: React.FunctionComponent;
   color: string;
-  icon: IconProp;
+  icon?: IconProp;
+  svgComponent?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   fullScreen: boolean;
 }
 

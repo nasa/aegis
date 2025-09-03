@@ -12,7 +12,8 @@ import actionsStyles from "./actions.module.css";
 import actionStyles from "./actions-action.module.css";
 import { upsertActions, upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { decodeEmoji, hmmFromMinutes, titleCase } from "utils/formatting";
+import { hmmFromMinutes, titleCase } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { validators } from "components/interface/form/formValidators";
 import capitalize from "lodash/capitalize";
@@ -235,7 +236,7 @@ const RightAction: FunctionComponent<{
                 className={actionStyles.actionHeadingTitleIcon}
                 style={{ marginTop: editMode ? "4px" : "2px" }}
               >
-                {decodeEmoji(action.icon ? action.icon : "2800")}
+                <EmojiRenderer iconValue={action.icon ? action.icon : "2800"} customSizeEm={1.5} />
               </div>
               {actionSystemVersion === 1 || !action.stmAction ? (
                 <div className={actionStyles.actionHeadingTitle}>

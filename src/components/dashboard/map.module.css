@@ -147,8 +147,6 @@
 .iconWrapper {
   display: flex;
   position: relative;
-  top: -100%;
-  left: -100%;
 }
 
 .posIcon {

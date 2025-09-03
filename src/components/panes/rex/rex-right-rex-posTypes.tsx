@@ -30,9 +30,7 @@ import {
   thunkDeletePosSource,
   thunkUpdatePosSourceField,
 } from "store/thunk/thunkRexPosSource";
-import Picker from "@emoji-mart/react";
-import emojiPickerData from "@emoji-mart/data";
-import { decodeEmoji } from "utils/formatting";
+import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { upsertRexByField } from "store/rex";
 
 const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
@@ -258,7 +256,7 @@ const PosType: FunctionComponent<{
               }}
             />
           )}
-          {!editMode && item.icon && decodeEmoji(item.icon)}
+          {!editMode && item.icon && <EmojiRenderer iconValue={item.icon} />}
         </div>
         <div className={rexStyles.propertyRowPathColor}>
           <PathColorPickerMenu
@@ -326,15 +324,15 @@ const PosIconMenu: FunctionComponent<{
             e.stopPropagation();
           }}
         >
-          <Picker
-            data={emojiPickerData}
+          <EmojiPicker
             emojiButtonSize={30}
             emojiSize={20}
             perLine={10}
             darkMode={true}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onEmojiSelect={(e: any) => {
-              updateIcon(e.unified);
+            onEmojiSelect={(e) => {
+              // Handle both standard emojis (unified) and custom emojis (id)
+              const iconValue = e.unified || e.id;
+              updateIcon(iconValue);
               dialogRef.current?.close();
             }}
           />
@@ -350,7 +348,7 @@ const PosIconMenu: FunctionComponent<{
           e.stopPropagation();
         }}
       >
-        {item.icon && decodeEmoji(item.icon)}
+        {item.icon && <EmojiRenderer iconValue={item.icon} />}
       </div>
     </>
   );

@@ -11,7 +11,7 @@ import {
   useEffect,
 } from "react";
 import styles from "./globalFields.module.css";
-import { decodeEmoji } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { Field, FieldRenderProps, Form } from "react-final-form";
 import React from "react";
 import { composeValidators } from "components/interface/form/formValidators";
@@ -174,7 +174,9 @@ export const IconDropdown: FunctionComponent<{
     return (
       <div className={styles.iconDropdownContainer}>
         <div className={styles.iconDropdownModalItemNotEditing}>
-          <div className={styles.itemIcon}>{decodeEmoji(selected)}</div>
+          <div className={styles.itemIcon}>
+            <EmojiRenderer iconValue={selected} />
+          </div>
         </div>
       </div>
     );
@@ -187,7 +189,9 @@ export const IconDropdown: FunctionComponent<{
             expanded && styles.iconDropdownModalItemSelectedExpanded
           }`}
         >
-          <div className={styles.itemIcon}>{decodeEmoji(selected)}</div>
+          <div className={styles.itemIcon}>
+            <EmojiRenderer iconValue={selected} />
+          </div>
         </div>
       );
     } else {
@@ -224,7 +228,9 @@ export const IconDropdown: FunctionComponent<{
                   key={`${item}_${index}`}
                   onClick={() => setSelected(item)}
                 >
-                  <div className={styles.itemIcon}>{decodeEmoji(item)}</div>
+                  <div className={styles.itemIcon}>
+                    <EmojiRenderer iconValue={item} />
+                  </div>
                 </div>
               );
             })}
