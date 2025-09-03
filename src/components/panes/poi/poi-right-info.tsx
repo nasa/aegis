@@ -57,8 +57,13 @@ const Info_Panel: FunctionComponent<{
     return state.map.mapDirective?.uuid === selectedPoi.uuid ? state.map.mapDirective : null;
   }, shallowEqual);
 
+  const missionUsingLGRSCoordinates = useAppSelector(
+    (state) => state.mission.mission.usingLGRSCoordinates,
+    refEqual
+  );
+
   const poiGridCoordinates = useAppSelector((state) => {
-    if (selectedPoi.location && state.mission.mission.planetRadius === SURF_NAV_MOON_MEAN_RADIUS) {
+    if (selectedPoi.location && missionUsingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(selectedPoi.location.lat, selectedPoi.location.lng);
     } else if (selectedPoi.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(

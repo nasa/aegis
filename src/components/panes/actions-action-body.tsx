@@ -89,8 +89,13 @@ const RightActionBody: FunctionComponent<{
 
   const planetRadius = useAppSelector((state) => state.mission.mission.planetRadius, refEqual);
 
+  const missionUsingLGRSCoordinates = useAppSelector(
+    (state) => state.mission.mission.usingLGRSCoordinates,
+    refEqual
+  );
+
   const actionGridCoordinates = useAppSelector((state) => {
-    if (action.location && planetRadius === SURF_NAV_MOON_MEAN_RADIUS) {
+    if (action.location && missionUsingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(action.location.lat, action.location.lng);
     } else if (action.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(globalGrid.coordinates, action.location, planetRadius);

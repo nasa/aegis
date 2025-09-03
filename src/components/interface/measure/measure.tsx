@@ -106,7 +106,8 @@ const Measure: FunctionComponent = () => {
     MeasureDrawing.drawMeasureSegmentDistances(
       measurePaperDataRef,
       measurePaperGroupsRef,
-      selectedMeasurement?.pathSegmentDistances
+      selectedMeasurement?.pathSegmentDistances,
+      selectedMeasurement?.pathSegmentBearings
     );
     //eslint-disable-next-line
   }, [selectedMeasurement, setHoverValues]);
