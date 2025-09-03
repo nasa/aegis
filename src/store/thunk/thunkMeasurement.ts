@@ -72,7 +72,6 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
     const measurementUuid = uuidv4();
     const path: AEGISPoint[] = getState().map.measureInitialCoords;
     const distance = getTotalDistance(path, mission.planetRadius);
-    const bearing = getBearingFromLatLngPoints(path[0], path[1]);
 
     //get elevation traverse
     const elevationResponse = await dispatch(
@@ -106,7 +105,7 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
       path,
       pathSegmentDistances: [distance],
       pathSegmentElevations: newElevationProfile,
-      pathSegmentBearings: [bearing],
+      pathSegmentBearings: [],
     };
     dispatch(thunkClearAllMapSelections());
     dispatch(upsertMeasurement(newMeasurement));
