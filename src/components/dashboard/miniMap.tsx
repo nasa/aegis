@@ -460,24 +460,52 @@ const MiniMap: FunctionComponent<{
       const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
 
       if (selectedPreset.mapCircleControls[circleDefinition.uuid]?.visible) {
-        if (selectedPreset.mapCircleControls[circleDefinition.uuid]?.visible) {
-          // Turf Coords are in (lng, lat) format
-          const geoJSONCircle: AEGISGeoJSONCircle = L.geoJSON(
+        const circleStyle = selectedPreset.mapCircleControls[circleDefinition.uuid]?.style;
+
+        const landerCircle: AEGISGeoJSONCircle[] = [];
+
+        const dashLen = circleStyle?.dashLen || 10;
+
+        landerCircle.push(
+          L.geoJSON(
             circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
               steps: 256,
             }),
             {
               style: {
-                ...selectedPreset.mapCircleControls[circleDefinition.uuid]?.style,
+                ...circleStyle,
                 interactive: false,
+                dashArray: circleStyle.isDashed ? `${dashLen}, ${dashLen}` : undefined,
               },
             }
-          ) as AEGISGeoJSONCircle;
+          ) as AEGISGeoJSONCircle
+        );
 
-          geoJSONCircle.mapItemType = "landerCircle";
-
-          map.current.addLayer(geoJSONCircle);
+        if (circleStyle?.isDashed) {
+          landerCircle.push(
+            L.geoJSON(
+              circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
+                steps: 256,
+              }),
+              {
+                style: {
+                  ...circleStyle,
+                  color: circleStyle?.altColor,
+                  opacity: circleStyle?.altOpacity,
+                  interactive: false,
+                  dashArray: `${dashLen}, ${dashLen}`,
+                  dashOffset: `${dashLen}`,
+                },
+              }
+            ) as AEGISGeoJSONCircle
+          );
         }
+
+        landerCircle.forEach((circleLayer) => {
+          circleLayer.mapItemType = "landerCircle";
+          circleLayer.uuid = `lander-${circleDefinition.uuid}`; // Add unique identifier
+          map.current.addLayer(circleLayer);
+        });
       }
     });
   }, [
