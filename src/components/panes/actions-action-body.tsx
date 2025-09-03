@@ -23,7 +23,7 @@ import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { decodeEmoji, longdateFromDateString, toDecimal } from "utils/formatting";
+import { longdateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import STMSelector from "./stm/stm-selector";
 import { validators, regExValidators } from "components/interface/form/formValidators";
@@ -35,8 +35,7 @@ import {
   findGlobalGridCoordsFromPoint,
   getDistanceBetweenTwoCoordinates,
 } from "utils/mapping/geoMath";
-import Picker from "@emoji-mart/react";
-import emojiPickerData from "@emoji-mart/data";
+import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkAddCollectionId, thunkAddRexActionMass } from "store/thunk/thunkRex";
 import { globalGrid } from "utils/mapping/grid";
@@ -737,7 +736,7 @@ const RightActionBody: FunctionComponent<{
 
         <div className={paneStyles.panelSectionRow} style={{ marginLeft: "18px" }}>
           <div className={paneStyles.rightTopTitleIcon}>
-            <>{decodeEmoji(action.icon ? action.icon : "2754")}</>
+            <EmojiRenderer iconValue={action.icon ? action.icon : "2754"} />
           </div>
           {editMode && (
             <>
@@ -751,15 +750,15 @@ const RightActionBody: FunctionComponent<{
               <div className={actionStyles.iconPickerContainer}>
                 {showEmojiPicker && (
                   <div className={actionStyles.iconPicker}>
-                    <Picker
-                      data={emojiPickerData}
+                    <EmojiPicker
                       emojiButtonSize={30}
                       emojiSize={20}
                       perLine={10}
                       darkMode={true}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      onEmojiSelect={(e: any) => {
-                        dispatch(upsertActionByField(action.uuid, "icon", e.unified));
+                      onEmojiSelect={(e) => {
+                        // Handle both standard emojis (unified) and custom emojis (id)
+                        const iconValue = e.unified || e.id;
+                        dispatch(upsertActionByField(action.uuid, "icon", iconValue));
                         setShowEmojiPicker(false);
                       }}
                     />
@@ -781,7 +780,9 @@ const RightActionBody: FunctionComponent<{
             <div className={paneStyles.displayFieldLabel}>
               <div style={{ lineHeight: "1.4em" }}>
                 <span style={{ marginRight: "4px" }}>
-                  {decodeEmoji(actionParentPoi?.icon ? actionParentPoi?.icon : "2754")}
+                  <EmojiRenderer
+                    iconValue={actionParentPoi?.icon ? actionParentPoi?.icon : "2754"}
+                  />
                 </span>
                 <span style={{ color: "var(--grey5)" }}>{actionParentPoi?.name} </span>
                 <div style={{ marginLeft: "2px" }}>

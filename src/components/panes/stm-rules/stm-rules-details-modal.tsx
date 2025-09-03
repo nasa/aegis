@@ -31,7 +31,7 @@ import { stmRulesToggleRex } from "store/interface";
 import cloneDeep from "lodash/cloneDeep";
 import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
 import Action from "components/panes/actions-action";
-import { decodeEmoji } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 
 const STMRuleDetailsModal: FunctionComponent<{
   isModalOpen: boolean;
@@ -430,7 +430,9 @@ const STMRuleStation: FunctionComponent<{
   return (
     <div key={stationUuid} className={styles.evaStation}>
       <div className={styles.stationHeaderRow}>
-        <div>{decodeEmoji(station.icon ? station.icon : "2754")}</div>
+        <div>
+          <EmojiRenderer iconValue={station.icon ? station.icon : "2754"} />
+        </div>
         <div className={styles.stationName}>{station.name}</div>
       </div>
       <div className={styles.stationLineRow}>

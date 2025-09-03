@@ -497,7 +497,24 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
                   }
                 }}
               >
-                <FontAwesomeIcon icon={pane.icon} size="lg" />
+                {pane.icon && <FontAwesomeIcon icon={pane.icon} size="lg" />}
+                {pane.svgComponent &&
+                  (() => {
+                    const SvgComponent = pane.svgComponent;
+                    return (
+                      <SvgComponent
+                        fill={pane.color}
+                        className={paneStyles.iconSvg}
+                        style={
+                          {
+                            width: "30px",
+                            height: "30px",
+                            color: pane.color,
+                          } as React.CSSProperties
+                        }
+                      />
+                    );
+                  })()}
                 {itemModified && (
                   <svg height="6" width="6" style={{ position: "absolute", top: "31", left: "31" }}>
                     <circle cx="3" cy="3" r="3" fill="#ff0000" />

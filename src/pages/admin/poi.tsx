@@ -7,7 +7,8 @@ import Header from "components/interface/header";
 import { getMissions } from "http-client/mission";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { decodeEmoji, getAccurateNow } from "utils/formatting";
+import { getAccurateNow } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { GeoJsonFile } from "typings/geojson";
 import { validators } from "components/interface/form/formValidators";
 import { Feature } from "geojson";
@@ -358,7 +359,9 @@ const PoiPage: React.FunctionComponent = () => {
                   <div className={styles.poiList}>
                     {poiList.map((poi) => (
                       <div className={styles.poiCard} key={poi.uuid}>
-                        <div className={styles.poiIcon}>{decodeEmoji(poi.icon)}</div>
+                        <div className={styles.poiIcon}>
+                          <EmojiRenderer iconValue={poi.icon} />
+                        </div>
                         <div className={styles.poiName}>
                           <h3>{poi.name}</h3>
                         </div>

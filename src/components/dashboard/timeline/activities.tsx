@@ -1,6 +1,6 @@
 import { FunctionComponent, useLayoutEffect, useRef } from "react";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
-import { decodeEmoji } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import styles from "./activities.module.css";
 import { selectConvertMaestroActivityPropertiesByRefUuidToUuid } from "store/selectors";
 
@@ -91,12 +91,12 @@ const Activity: FunctionComponent<{
   let stationIcon;
   if (sequenceItem.uuid === "egress" || sequenceItem.uuid === "ingress") {
     stationIcon = sequenceItem.icon ? (
-      decodeEmoji(sequenceItem.icon)
+      <EmojiRenderer iconValue={sequenceItem.icon} />
     ) : (
       <img src="/images/lander.svg" alt="lander" className={styles.landerImage} />
     );
   } else {
-    stationIcon = decodeEmoji(sequenceItem.icon ? sequenceItem.icon : "2754");
+    stationIcon = <EmojiRenderer iconValue={sequenceItem.icon ? sequenceItem.icon : "2754"} />;
   }
 
   return (

@@ -5,7 +5,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import poiStyles from "./poi.module.css";
 import { setSelectedPoiUuid, setSelectedPOIRightNavItem } from "store/poi";
-import { decodeEmoji } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { setHoverUuidsForSequence } from "store/hover";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import sortBy from "lodash/sortBy";
@@ -69,7 +69,9 @@ const PoiItem: FunctionComponent<{
         dispatch(setHoverUuidsForSequence({ sequenceUuid: null, mapItemType: null }));
       }}
     >
-      <div className={poiStyles.itemIcon}>{decodeEmoji(poi.icon)}</div>
+      <div className={poiStyles.itemIcon}>
+        <EmojiRenderer iconValue={poi.icon} />
+      </div>
       <div className={`${poiStyles.name} ${isPoiSelectedOrHoveredStyle}`}>
         <div>{poi.name}</div>
         <ModifiedIndicator obj1={[poi, ...poiActions]} obj2={[poiFromDb, ...poiActionsFromDb]} />

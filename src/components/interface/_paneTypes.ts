@@ -10,14 +10,8 @@ import MissionConfig from "components/panes/mission/mission";
 import MissionConfigRight from "components/panes/mission/mission-right";
 import StmViewerPage from "components/panes/stm-viewer/stm-viewer-page";
 import StmRulesPage from "components/panes/stm-rules/stm-rules-page";
-import {
-  faCircle,
-  faFlask,
-  faGlobe,
-  faLocationDot,
-  faRocket,
-  faRoute,
-} from "@fortawesome/free-solid-svg-icons";
+import StationIcon from "public/images/station.svg?react";
+import { faCircle, faFlask, faGlobe, faRocket, faRoute } from "@fortawesome/free-solid-svg-icons";
 import { ReactNode } from "react";
 
 export const getPaneTypes = (actionSystemVersion = 1): PaneTypes => {
@@ -51,7 +45,7 @@ export const getPaneTypes = (actionSystemVersion = 1): PaneTypes => {
       leftPane: StationEditor,
       rightPane: StationEditorRight,
       color: "var(--station)",
-      icon: faLocationDot,
+      svgComponent: StationIcon,
       fullScreen: false,
     },
     evas: {

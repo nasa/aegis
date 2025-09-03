@@ -6,7 +6,8 @@ import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowDown, faArrowUp, faTrash } from "@fortawesome/free-solid-svg-icons";
-import { hmmFromMinutes, decodeEmoji, isNotNumber } from "utils/formatting";
+import { hmmFromMinutes, isNotNumber } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { setHoverUuidsForSequence } from "store/hover";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
@@ -217,7 +218,10 @@ const SequenceItemStation: FunctionComponent<{
         }}
       >
         <div className={evaStyles.iconCustom}>
-          {decodeEmoji(thisStation?.icon ? thisStation.icon : "2754")}
+          <EmojiRenderer
+            iconValue={thisStation?.icon ? thisStation.icon : "2754"}
+            customSizeEm={1.4}
+          />
         </div>
 
         {isRexEva && (

@@ -8,7 +8,8 @@ import SequenceItemStation from "./eva-item-sequence-station";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkAddStationToEva } from "store/thunk/thunkEva";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
-import { decodeEmoji, hmmFromMinutes } from "utils/formatting";
+import { hmmFromMinutes } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { setHoverUuidsForSequence } from "store/hover";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { RexStatusMenu } from "../rex/rex-status-menu";
@@ -104,7 +105,7 @@ export const EvaEgressIngressListing: FunctionComponent<{
   let xgressIcon;
   if (station) {
     const icon = station?.icon ? station.icon : "2754";
-    xgressIcon = decodeEmoji(icon);
+    xgressIcon = <EmojiRenderer iconValue={icon} />;
   } else {
     xgressIcon = <img src="/images/lander.svg" alt="lander" className={evaStyles.landerImage} />;
   }

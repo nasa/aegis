@@ -25,11 +25,10 @@ import Info_Panel from "./station-right-info";
 import Poi_Panel from "./station-right-poi";
 import Actions_Panel from "./station-right-actions";
 import Report_Panel from "../report";
-import { decodeEmoji } from "utils/formatting";
+import { EmojiRenderer, EmojiPicker } from "components/interface/emojis";
 import { getAlertColor, isModified } from "utils/component-helpers";
-import Picker from "@emoji-mart/react";
-import emojiPickerData from "@emoji-mart/data";
 import { useAppDispatch } from "utils/useAppDispatch";
+
 import {
   thunkDeleteStations,
   thunkSaveStation,
@@ -188,7 +187,7 @@ const StationEditorRight: FunctionComponent = () => {
       <>
         <div className={paneStyles.rightTopTitle}>
           <div className={paneStyles.rightTopTitleIcon}>
-            {decodeEmoji(selectedStation.icon ? selectedStation.icon : "2754")}
+            <EmojiRenderer iconValue={selectedStation.icon ? selectedStation.icon : "2754"} />
           </div>
           {stationsEditing.includes(selectedStationUuid) && (
             <>
@@ -202,15 +201,15 @@ const StationEditorRight: FunctionComponent = () => {
               <div className={stationStyles.iconPickerContainer}>
                 {showEmojiPicker && (
                   <div className={stationStyles.iconPicker}>
-                    <Picker
-                      data={emojiPickerData}
+                    <EmojiPicker
                       emojiButtonSize={30}
                       emojiSize={20}
                       perLine={10}
                       darkMode={true}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      onEmojiSelect={(e: any) => {
-                        dispatch(upsertStationByField(selectedStation.uuid, "icon", e.unified));
+                      onEmojiSelect={(e) => {
+                        // For custom emojis, use the id, for standard emojis use unified
+                        const iconValue = e.unified || e.id;
+                        dispatch(upsertStationByField(selectedStation.uuid, "icon", iconValue));
                         setShowEmojiPicker(false);
                       }}
                     />

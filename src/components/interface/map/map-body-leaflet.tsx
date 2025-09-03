@@ -33,13 +33,8 @@ import {
   getGridCoordinatesFromPoint,
   getMidpoint,
 } from "utils/mapping/geoMath";
-import {
-  decodeEmoji,
-  secondsFromhhmmss,
-  hhmmssFromSeconds,
-  titleCase,
-  isISOString,
-} from "utils/formatting";
+import { secondsFromhhmmss, hhmmssFromSeconds, titleCase, isISOString } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { clearMapItemHover, setHoverUuidsForSequence, setHoverUuidsForPosEntry } from "store/hover";
 
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -1919,7 +1914,7 @@ const MapBody: FunctionComponent<{}> = () => {
         }
         const html = ReactDOMServer.renderToString(
           <div className={isWin10 ? styles.mapIconWin10 : styles.mapIcon}>
-            {decodeEmoji("1f468-200d-1f680")}
+            <EmojiRenderer iconValue="1f468-200d-1f680" />
           </div>
         );
         const icon = L.divIcon({ html });
@@ -1972,7 +1967,7 @@ const MapBody: FunctionComponent<{}> = () => {
         icon: L.divIcon({
           html: ReactDOMServer.renderToString(
             <div className={isWin10 ? styles.mapIconWin10 : styles.mapIcon}>
-              {decodeEmoji("274c")}
+              <EmojiRenderer iconValue="274c" />
             </div>
           ),
         }),

@@ -6,12 +6,12 @@ import VectorTileLayer from "leaflet-vector-tile-layer";
 import { Dispatch, MutableRefObject, SetStateAction } from "react";
 import ReactDOMServer from "react-dom/server";
 import {
-  decodeEmoji,
   getDateAndTimeFromISOString,
   getPercentOrDefault,
   hhmmssFromSeconds,
   secondsFromhhmmss,
 } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import {
   convertLeafletLatLngToAegisPoint,
   convertLeafletLatLngsToAegisPoints,
@@ -266,10 +266,11 @@ export const drawOrUpdateMarkerOnMap = async ({
       <div
         className={`${isWin10 ? styles.mapIconWin10 : styles.mapIcon} ${isWin10 ? iconWin10ClassName : iconClassName}`}
       >
-        {decodeEmoji(iconEmoji)}
+        <EmojiRenderer iconValue={iconEmoji} customSizeEm={1.8} />
       </div>
     </div>
   );
+
   const icon = L.divIcon({ html });
 
   const existingLayer = getMapItemByUuid(map, uuid, mapItemType) as AEGISMarker;
@@ -703,7 +704,7 @@ export const drawPosMarkerOnMap = async ({
           style={{ left: count * 2, top: count * 2 }}
           key={`icon_${posTypeUuid}`}
         >
-          {decodeEmoji(entryPosType?.icon)}
+          <EmojiRenderer iconValue={entryPosType?.icon} />
         </div>
       );
 
