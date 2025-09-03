@@ -205,7 +205,8 @@ export function drawMeasureSegmentDistances(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
   measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
   pathSegmentDistances: number[],
-  pathSegmentBearings: number[]
+  pathSegmentBearings: number[],
+  usingLGRSCoordinates: boolean
 ): void {
   const paperVars = measurePaperDataRef.current.paperVars;
   const paperStyles = measurePaperDataRef.current.styles;
@@ -266,7 +267,7 @@ export function drawMeasureSegmentDistances(
 
     lineSegmentMarksGroup.addChild(distanceLabel);
 
-    if (pathSegmentBearings && pathSegmentBearings.length > i) {
+    if (usingLGRSCoordinates && pathSegmentBearings && pathSegmentBearings.length > i) {
       const segmentBearing = pathSegmentBearings[i];
       const bearingLabel = new paper.PointText({
         point: new paper.Point(labelLocX, paperVars.graphHeight + 15),
