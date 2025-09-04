@@ -697,6 +697,8 @@ const MapBody: FunctionComponent<{
     isWin10,
     asPlannedStationUuids,
     selectedEva,
+    mission.circleDefinitions,
+    mission.planetRadius,
   ]);
 
   /**
