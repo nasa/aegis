@@ -4,6 +4,7 @@ import { FunctionComponent, ReactNode } from "react";
 import styles from "./_global-elements.module.css";
 import { longdateFromDateString } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
+import { faInfoCircle } from "@fortawesome/free-solid-svg-icons";
 
 export const ModifiedIndicator: FunctionComponent<{
   obj1: MustContainIsModified[];
@@ -113,11 +114,20 @@ export const LastEdited: FunctionComponent<{
 export const SubpanelHeading: FunctionComponent<{
   icon: IconProp;
   children: ReactNode;
-}> = ({ icon, children }) => {
+  helpCopy?: string;
+}> = ({ icon, children, helpCopy = null }) => {
   return (
     <div style={{ color: "var(--grey5)" }}>
       <FontAwesomeIcon icon={icon} style={{ width: "15px", marginRight: "3px" }} />
       <span>{children}</span>
+      {helpCopy && (
+        <FontAwesomeIcon
+          icon={faInfoCircle}
+          className={styles.helpInfoIcon}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-html={helpCopy}
+        />
+      )}
     </div>
   );
 };

@@ -47,6 +47,8 @@ export class Action_db implements Action_db_type {
 
   @Property({ type: MikroTypes.text })
   description!: string;
+  @Property({ type: MikroTypes.text, nullable: true })
+  descriptionTask!: string;
   @Property({ type: MikroTypes.string, nullable: true })
   icon: string;
   @Property({ type: MikroTypes.json, nullable: true })
