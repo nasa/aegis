@@ -110,6 +110,7 @@ export function convertActionsTypeStoreToDb(storeActions: Action[]): EntityData<
       stmPriorities: storeAction.stmPriorities,
       type: storeAction.type,
       description: storeAction.description,
+      descriptionTask: storeAction.descriptionTask,
       stmAction: storeAction.stmAction,
       actionDefinition: storeAction.actionDefinition,
       icon: storeAction.icon,
