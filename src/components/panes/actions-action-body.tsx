@@ -189,6 +189,28 @@ const RightActionBody: FunctionComponent<{
             key={action.uuid}
           />
         </div>
+        {parentType !== "poi" && (
+          <>
+            <div className={paneStyles.panelSectionTitle} style={{ marginTop: "15px" }}>
+              <SubpanelHeading
+                icon={faMessage}
+                helpCopy="Visible in Maestro. Task description to be read to crew."
+              >
+                Task Description
+              </SubpanelHeading>
+            </div>
+            <div className={paneStyles.descriptionContainer}>
+              <WysiwygTextArea
+                value={action.descriptionTask}
+                editing={editMode}
+                onChange={(value) => {
+                  dispatch(upsertActionByField(action.uuid, "descriptionTask", value));
+                }}
+                key={action.uuid}
+              />
+            </div>
+          </>
+        )}
       </div>
       <div className={paneStyles.panelSection}>
         <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
