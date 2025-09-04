@@ -9,8 +9,14 @@ ARG APIV1_BASE_IMAGE=node:22.18.0-alpine
 # # # # # # # #
 FROM $APIV1_BASE_IMAGE AS base
 
-# Set the working directory. It will create if doens't exist
+# Set the working directory. It will create if doesn't exist
 WORKDIR /app
+
+# Make GIT_COMMIT available inside docker/kaniko so it can be baked into the code at build time
+# The GIT_COMMIT value is passed in using MAP_ENV_VARS_TO_BUILD_ARGS from the job pipeline.
+# When building this container locally, this is not available so "localDev" will be used as default value
+ARG GIT_COMMIT=localDev
+ENV GIT_COMMIT=$GIT_COMMIT
 
 # The * after npmrc ensure copy operation will not fail if the file does not exist
 COPY .npmrc* .
@@ -33,6 +39,7 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci
 
 # Copy the rest of the files and build the app
 COPY . /app
+
 RUN npm run api:build
 
 # # # # # # # #

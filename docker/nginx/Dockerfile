@@ -20,6 +20,12 @@ RUN npm ci
 # Copy the rest of the files
 COPY . /clientsrc
 
+# Make GIT_COMMIT available inside docker/kaniko so it can be baked into the code at build time
+# The GIT_COMMIT value is passed in using MAP_ENV_VARS_TO_BUILD_ARGS from the job pipeline.
+# When building this container locally, this is not available so "localDev" will be used as default value
+ARG GIT_COMMIT=localDev
+ENV GIT_COMMIT=$GIT_COMMIT
+
 # Build the React client
 RUN npm run vite:build
 

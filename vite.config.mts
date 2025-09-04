@@ -1,10 +1,12 @@
 /// <reference types="vite/client" />
+import dotenv from "dotenv";
+dotenv.config({ override: true, quiet: true });
 import { UserConfig, defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import svgr from "vite-plugin-svgr";
 import path from "path";
-import packageJSON from "./package.json";
 import _ from "lodash";
+import packageJSON from "./package.json";
 
 export const config: UserConfig = {
   root: "./src",
@@ -91,10 +93,13 @@ export const config: UserConfig = {
       external: ["path", "os", "crypto"],
     },
   },
-  // variables that are set at build time
+  // build time variables
   define: {
     __APP_VERSION__: JSON.stringify(packageJSON.version),
-    __GIT_COMMIT__: JSON.stringify(process.env.CI_COMMIT_SHA || "LOCAL_DEV"),
+    // In the pipeline, GIT_COMMIT will be populated when the ci job passes it in MAP_ENV_VARS_TO_BUILD_ARGS
+    //   to give it to kaniko docker to use during build. However when running this locally
+    //   with NO docker container, we need to set a default value of "localDev"
+    __GIT_COMMIT__: JSON.stringify(process.env.GIT_COMMIT || "localDev"),
   },
 };
 

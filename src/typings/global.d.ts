@@ -20,6 +20,6 @@ type GlobalValues = {
   appVersion: AppVersion;
 };
 
-// Client types. These are set in vite.config.mts at vite build time
+// these are defined in esbuild.mjs and vite.config.mts
 declare const __APP_VERSION__: string;
 declare const __GIT_COMMIT__: string;
