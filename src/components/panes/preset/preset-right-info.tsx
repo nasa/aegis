@@ -85,7 +85,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             <WysiwygTextArea
               key={selectedPreset?.uuid}
               value={selectedPreset?.description}
-              defaultValue="Enter description here"
               editing={editMode}
               onChange={(value) => {
                 dispatch(upsertPresetByField(selectedPresetUuid, "description", value));

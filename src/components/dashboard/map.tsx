@@ -87,7 +87,7 @@ const MapBody: FunctionComponent<{
   const highlightFeatureGroup = useRef<L.FeatureGroup>(null);
 
   /**
-   * All states are FromDb thereby requring all changes to be saved before they
+   * All states are FromDb thereby requiring all changes to be saved before they
    *   show up on the dashboard
    */
   const mission: MissionSelectProperties = useAppSelector(
@@ -210,9 +210,9 @@ const MapBody: FunctionComponent<{
 
   const [rexPetTime, setRexPetTime] = useState(""); // used to update the PET value via the PetInterval component
 
-  const [mapZoom, setMapZoom] = useState<number>(0); // Used to trigger re-draw of scale. Value doens't matter
+  const [mapZoom, setMapZoom] = useState<number>(0); // Used to trigger re-draw of scale. Value doesn't matter
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
-  const [mapBounds, setMapBounds] = useState<L.LatLngBoundsLiteral>(null); // Used to trigger re-draw of grid labels. Value doens't matter
+  const [mapBounds, setMapBounds] = useState<L.LatLngBoundsLiteral>(null); // Used to trigger re-draw of grid labels. Value doesn't matter
   const [showMenu, setShowMenu] = useState<boolean>(false);
   const [isWin10, setIsWin10] = useState<boolean>(false);
 
@@ -227,7 +227,7 @@ const MapBody: FunctionComponent<{
 
   const [followModeOptions, setFollowModeOptions] =
     useState<MapFollowOptions>(defaultFollowOptions);
-  const [followMode, setfollowMode] = useState<boolean>(true);
+  const [followMode, setFollowMode] = useState<boolean>(true);
 
   const getMapBounds = (): L.LatLngBoundsLiteral => {
     if (!map.current) return null;
@@ -504,7 +504,7 @@ const MapBody: FunctionComponent<{
   ]);
 
   /**
-   * Whenever presets changes, update the local copy of the selected preset just incase that got changed too
+   * Whenever presets changes, update the local copy of the selected preset just in-case that got changed too
    */
   useEffect(() => {
     if (!selectedPreset) return;
@@ -626,7 +626,7 @@ const MapBody: FunctionComponent<{
     }
   }, [selectedRexDateTime]);
 
-  /** Determine time assosiated with currently running rex time */
+  /** Determine time associated with currently running rex time */
   useEffect(() => {
     if (runningEvaFromDb?.datetime) {
       if (runningRexFromDb.petRunning && rexPetTime.endsWith("0")) {
@@ -1339,7 +1339,7 @@ const MapBody: FunctionComponent<{
             <div
               className={styles.followButtonWrapper}
               onClick={(e) => {
-                setfollowMode(!followMode);
+                setFollowMode(!followMode);
                 e.stopPropagation();
               }}
               data-tooltip-id="aegis-tooltip"

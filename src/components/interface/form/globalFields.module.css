@@ -353,12 +353,22 @@
   cursor: pointer;
 }
 
-.pickerMenu {
+.colorPickerMenu {
   position: fixed;
-  z-index: 100;
   display: flex;
   flex-direction: column;
   font-weight: normal;
+}
+.colorPickerCover {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+}
+.colorPickerPopover {
+  position: absolute;
+  z-index: 100;
 }
 
 .dialogContainer {
