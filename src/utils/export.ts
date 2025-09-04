@@ -102,6 +102,7 @@ export const makeExportActions = (params: {
       ...action,
       _itemType: "Action",
       descriptionReadable: decodeWsywig(action.description),
+      descriptionTaskReadable: decodeWsywig(action.descriptionTask),
       parentPoiName: allData.pois.find((p) => p.uuid === action.poiUuid)?.name,
       parentStationName: actionStation?.name,
       parentTraverseName: actionTraverse?.name,
