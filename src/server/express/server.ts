@@ -9,7 +9,6 @@ import { setupSocketIO } from "./sockets";
 import { globalValues } from "./global";
 import { getORM } from "utils/mikro";
 import serverLogger from "utils/logging/serverLogger";
-import packageJson from "../../../package.json";
 
 // start the database connection
 getORM();
@@ -29,9 +28,10 @@ globalValues.socketio = new SocketServer<
   path: "/api/v1/socketio",
   addTrailingSlash: false,
 });
+// these values are defined in esbuild.mjs and populated at build time
 globalValues.appVersion = {
-  version: packageJson.version || "unknown version",
-  gitCommit: process.env.CI_COMMIT_SHA || "LOCAL_DEV",
+  version: typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "unknown",
+  gitCommit: typeof __GIT_COMMIT__ !== "undefined" ? __GIT_COMMIT__ : "unknown",
 };
 
 setupSocketIO();

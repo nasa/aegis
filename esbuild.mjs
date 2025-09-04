@@ -1,5 +1,8 @@
+import dotenv from "dotenv";
+dotenv.config({ override: true, quiet: true });
 import { rmSync } from "fs";
 import * as esbuild from "esbuild";
+import packageJSON from "./package.json" with { type: "json" };
 
 // Remove the previous build directory
 rmSync("./.local/express/dist", { recursive: true, force: true });
@@ -21,7 +24,11 @@ const watchPlugin = {
 
 // Run esbuild with the specified options
 const context = await esbuild.context({
-  entryPoints: ["src/server/express/server.ts"],
+  entryPoints: {
+    api: "src/server/express/server.ts",
+    startLoadTest: "src/tests/loadTest/startLoadTest.ts", // load test jobs are run in ci
+    loadTest: "src/tests/loadTest/loadTest.ts", // load test jobs that are run in ci
+  },
   bundle: true,
   sourcemap: true,
   format: "cjs",
@@ -45,9 +52,17 @@ const context = await esbuild.context({
     "libsql",
     "tedious",
   ],
-  outfile: "./.local/express/dist/api.js",
+  outdir: "./.local/express/dist",
   tsconfig: "./tsconfig.json",
   plugins: [watchPlugin],
+  // build time variables
+  define: {
+    __APP_VERSION__: JSON.stringify(packageJSON.version),
+    // In the pipeline, GIT_COMMIT will be populated when the ci job passes it in MAP_ENV_VARS_TO_BUILD_ARGS
+    //   to give it to kaniko docker to use during build. However when running this locally
+    //   with NO docker container, we need to set a default value of "localDev"
+    __GIT_COMMIT__: JSON.stringify(process.env.GIT_COMMIT || "localDev"),
+  },
 });
 
 const isWatchMode = process.argv.includes("--watch");

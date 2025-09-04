@@ -179,7 +179,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     if (isISOString(`${evaDate}T${evaTime}Z`)) {
       newDatetime = getISOStringFromDateAndTime(evaDate, evaTime);
     }
-    console.log(newDatetime);
     dispatch(upsertEvaByField(selectedEva.uuid, "datetime", newDatetime));
   }
 

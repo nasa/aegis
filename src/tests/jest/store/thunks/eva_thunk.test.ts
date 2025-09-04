@@ -346,7 +346,6 @@ describe("Thunk EVA Tests", () => {
       expect(
         store.getState().eva.evas.find((e) => e.refUuid === asPlannedEvaWithRex.refUuid)
       ).toBeFalsy();
-      console.log(store.getState().eva.evas);
       const evaSeqUuids = store
         .getState()
         .eva.evas.map((e) => e.sequence)
