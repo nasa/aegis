@@ -57,6 +57,7 @@ const Main = (): JSX.Element => {
     sourceUuids: [],
   });
   const [showScaleBar, setShowScaleBar] = useState(true);
+  // store preset in local state so it can be passed to both maps
   const [selectedPreset, setSelectedPreset] = useState<Preset>(defaultPreset);
   const [showArrows, setShowArrows] = useState(true);
 
@@ -66,8 +67,8 @@ const Main = (): JSX.Element => {
 
   useEffect(() => {
     // set selected preset to default preset for initial load
-    setSelectedPreset(defaultPreset);
-  }, [defaultPreset]);
+    if (!selectedPreset) setSelectedPreset(defaultPreset);
+  }, [defaultPreset, selectedPreset]);
 
   // Set default sourceUuids when runningRexFromDb changes, reading from cookie settings
   useEffect(() => {
@@ -143,7 +144,7 @@ const Main = (): JSX.Element => {
     document.title = `${missionName} - AEGIS`;
   }, [missionName]);
 
-  // in it's own useEffect incase grid changes while user is on the page
+  // in it's own useEffect in-case grid changes while user is on the page
   useEffect(() => {
     const loadGridAsync = async () => {
       const newGrid: MissionGrid = await loadAndReturnGrid(intMissionId, activeGridUuid);

@@ -526,53 +526,54 @@ export const PathColorPickerMenu: FunctionComponent<{
   direction = "left",
   hasDarkBorder,
 }) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const handleMenuOpen = (e: React.MouseEvent) => {
-    const directionPadding = direction === "left" ? -250 : 0;
-    const x = e.clientX + directionPadding;
-    menuRef.current.style.left = `${x}px`;
-    menuRef.current.style.top = `${e.clientY}px`;
-
-    dialogRef.current?.showModal();
-  };
 
   return (
     <>
-      <dialog
-        ref={dialogRef}
-        className={styles.dialogContainer}
-        onClick={() => {
-          dialogRef.current?.close();
-        }}
-      >
-        <div className={styles.pickerMenu} ref={menuRef}>
-          <CompactColor
-            color={currentColor}
-            onChange={(color) => {
-              updateColor(color.hex);
-            }}
-          />
-        </div>
-      </dialog>
-
-      <div
-        style={styleContainer}
-        className={`${styles.propertyPathColor} ${hasDarkBorder ? styles.propertyPathColorDark : styles.propertyPathColorLight} ${editMode ? styles.propertyEditMode : ""}`}
-        onClick={(e) => {
-          if (!editMode) return;
-          handleMenuOpen(e);
-          dialogRef.current?.showModal();
-          e.stopPropagation();
-        }}
-      >
+      <div>
         <div
-          className={styles.pathColorSample}
-          style={{
-            backgroundColor: currentColor,
+          style={styleContainer}
+          className={`${styles.propertyPathColor} ${hasDarkBorder ? styles.propertyPathColorDark : styles.propertyPathColorLight} ${editMode ? styles.propertyEditMode : ""}`}
+          onClick={() => {
+            if (!editMode) return;
+            setShowColorPicker(true);
           }}
-        ></div>
+        >
+          <div
+            className={styles.pathColorSample}
+            style={{
+              backgroundColor: currentColor,
+            }}
+          ></div>
+        </div>
+        {showColorPicker ? (
+          <>
+            <div className={styles.colorPickerPopover}>
+              <div
+                className={styles.colorPickerCover}
+                onClick={() => {
+                  setShowColorPicker(false);
+                }}
+              ></div>
+              <div
+                className={styles.colorPickerMenu}
+                ref={menuRef}
+                style={direction === "left" ? { transform: "translateX(-180px)" } : null}
+              >
+                <CompactColor
+                  color={currentColor}
+                  onChange={(color) => {
+                    updateColor(color.hex);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                />
+              </div>
+            </div>
+          </>
+        ) : null}
       </div>
     </>
   );
