@@ -136,6 +136,7 @@ export const makeExportActions = (params: {
       gridCoordinates: getGridCoordinatesFromPoint(
         action.location,
         allData.mission.planetRadius,
+        allData.mission.usingLGRSCoordinates,
         missionGrid
       ),
       rexUuid,
@@ -175,6 +176,7 @@ export const makeExportPois = (params: {
       gridCoordinates: getGridCoordinatesFromPoint(
         poi.location,
         allData.mission.planetRadius,
+        allData.mission.usingLGRSCoordinates,
         missionGrid
       ),
     };
@@ -246,6 +248,7 @@ export const makeExportStations = (params: {
       gridCoordinates: getGridCoordinatesFromPoint(
         station.location,
         allData.mission.planetRadius,
+        allData.mission.usingLGRSCoordinates,
         missionGrid
       ),
       actionOrderRefUuids: station.actionOrderUuids?.map(
@@ -416,6 +419,7 @@ export const makeExportMission = (params: {
     gridCoordinates: getGridCoordinatesFromPoint(
       mission.landerLocation,
       mission.planetRadius,
+      mission.usingLGRSCoordinates,
       missionGrid
     ),
   };

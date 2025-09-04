@@ -40,7 +40,6 @@ import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkAddCollectionId, thunkAddRexActionMass } from "store/thunk/thunkRex";
 import { globalGrid } from "utils/mapping/grid";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
-import { SURF_NAV_MOON_MEAN_RADIUS } from "utils/consts";
 
 const RightActionBody: FunctionComponent<{
   editMode: boolean;
@@ -88,8 +87,13 @@ const RightActionBody: FunctionComponent<{
 
   const planetRadius = useAppSelector((state) => state.mission.mission.planetRadius, refEqual);
 
+  const missionUsingLGRSCoordinates = useAppSelector(
+    (state) => state.mission.mission.usingLGRSCoordinates,
+    refEqual
+  );
+
   const actionGridCoordinates = useAppSelector((state) => {
-    if (action.location && planetRadius === SURF_NAV_MOON_MEAN_RADIUS) {
+    if (action.location && missionUsingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(action.location.lat, action.location.lng);
     } else if (action.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(globalGrid.coordinates, action.location, planetRadius);

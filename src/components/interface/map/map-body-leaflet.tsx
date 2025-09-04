@@ -117,6 +117,7 @@ const MapBody: FunctionComponent<{}> = () => {
         "projOriginX",
         "projOriginY",
         "circleDefinitions",
+        "usingLGRSCoordinates",
       ]),
     deepEqual
   );
@@ -582,6 +583,7 @@ const MapBody: FunctionComponent<{}> = () => {
       const gridCoords = getGridCoordinatesFromPoint(
         convertLeafletLatLngToAegisPoint(e.latlng),
         mission.planetRadius,
+        mission.usingLGRSCoordinates,
         globalGrid?.coordinates
       );
       setMouseGridCoord(gridCoords);

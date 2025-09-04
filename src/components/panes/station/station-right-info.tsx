@@ -31,7 +31,6 @@ import CalculatedDwell from "../calculated-dwell";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import { globalGrid } from "utils/mapping/grid";
-import { SURF_NAV_MOON_MEAN_RADIUS } from "utils/consts";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 
 const Info_Panel: FunctionComponent<{
@@ -115,11 +114,13 @@ const Info_Panel: FunctionComponent<{
     refEqual
   );
 
+  const missionUsingLGRSCoordinates = useAppSelector(
+    (state) => state.mission.mission.usingLGRSCoordinates,
+    refEqual
+  );
+
   const stationGridCoordinates = useAppSelector((state) => {
-    if (
-      selectedStation.location &&
-      state.mission.mission.planetRadius === SURF_NAV_MOON_MEAN_RADIUS
-    ) {
+    if (selectedStation.location && missionUsingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(selectedStation.location.lat, selectedStation.location.lng);
     }
     if (selectedStation.location && globalGrid?.coordinates && state.map.gridCornerPoint) {

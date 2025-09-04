@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import { updateMapDirective } from "store/map";
 import { thunkClearAllMapSelections } from "./crossThunk";
 import { getAccurateNow } from "utils/formatting";
+import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
 
 export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   {
@@ -34,6 +35,13 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
     })
   );
 
+  //calculate new path bearings
+  const pathSegmentBearings: number[] = [];
+  for (let i = 1; i < path.length; i++) {
+    const bearing = getBearingFromLatLngPoints(path[i - 1], path[i]);
+    pathSegmentBearings.push(bearing);
+  }
+
   /**
    * The response from thunkGetElevation is a PayloadAction.
    *  get the value by using .payload which will be either the return value
@@ -50,6 +58,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
     path,
     pathSegmentDistances: pathSegmentDistances,
     pathSegmentElevations: newElevationProfile,
+    pathSegmentBearings: pathSegmentBearings,
   };
 
   //update the store
@@ -96,6 +105,7 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
       path,
       pathSegmentDistances: [distance],
       pathSegmentElevations: newElevationProfile,
+      pathSegmentBearings: [],
     };
     dispatch(thunkClearAllMapSelections());
     dispatch(upsertMeasurement(newMeasurement));

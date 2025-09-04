@@ -111,6 +111,7 @@ const MapBody: FunctionComponent<{
         "projOriginX",
         "projOriginY",
         "circleDefinitions",
+        "usingLGRSCoordinates",
       ]),
     deepEqual
   );

@@ -15,7 +15,6 @@ import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 import { globalGrid } from "utils/mapping/grid";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
-import { SURF_NAV_MOON_MEAN_RADIUS } from "utils/consts";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 
 const Info_Panel: FunctionComponent<{
@@ -57,8 +56,13 @@ const Info_Panel: FunctionComponent<{
     return state.map.mapDirective?.uuid === selectedPoi.uuid ? state.map.mapDirective : null;
   }, shallowEqual);
 
+  const missionUsingLGRSCoordinates = useAppSelector(
+    (state) => state.mission.mission.usingLGRSCoordinates,
+    refEqual
+  );
+
   const poiGridCoordinates = useAppSelector((state) => {
-    if (selectedPoi.location && state.mission.mission.planetRadius === SURF_NAV_MOON_MEAN_RADIUS) {
+    if (selectedPoi.location && missionUsingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(selectedPoi.location.lat, selectedPoi.location.lng);
     } else if (selectedPoi.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
