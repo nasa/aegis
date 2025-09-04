@@ -93,6 +93,12 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
       newElevationProfile = elevationResponse.payload as number[][];
     }
 
+    const pathSegmentBearings: number[] = [];
+    for (let i = 1; i < path.length; i++) {
+      const bearing = getBearingFromLatLngPoints(path[i - 1], path[i]);
+      pathSegmentBearings.push(bearing);
+    }
+
     // random rgb color
     const color = `rgb(${Math.floor(Math.random() * 255)}, ${Math.floor(
       Math.random() * 255
@@ -105,7 +111,7 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
       path,
       pathSegmentDistances: [distance],
       pathSegmentElevations: newElevationProfile,
-      pathSegmentBearings: [],
+      pathSegmentBearings,
     };
     dispatch(thunkClearAllMapSelections());
     dispatch(upsertMeasurement(newMeasurement));
