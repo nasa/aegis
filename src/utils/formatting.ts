@@ -79,7 +79,7 @@ export function hhmmssmmmFromSeconds(secondsParam: number): string {
  */
 export function hhmmFromMinutes(minutesParam: number): string {
   const hours = Math.abs(Math.trunc(minutesParam / 60));
-  const minutes = Math.abs(Math.round(minutesParam)) % 60;
+  const minutes = Math.abs(Math.ceil(minutesParam)) % 60;
   let timeStr = padZeros(hours, 2) + ":" + padZeros(minutes, 2);
   if (minutesParam < 0) {
     timeStr = "-" + timeStr;
@@ -92,7 +92,7 @@ export function hhmmFromMinutes(minutesParam: number): string {
  */
 export function hmmFromMinutes(minutesParam: number): string {
   const hours = Math.abs(Math.trunc(minutesParam / 60));
-  const minutes = Math.abs(Math.round(minutesParam)) % 60;
+  const minutes = Math.abs(Math.ceil(minutesParam)) % 60;
   let timeStr = padZeros(hours, 1) + ":" + padZeros(minutes, 2);
   if (minutesParam < 0) {
     timeStr = "-" + timeStr;
@@ -273,7 +273,7 @@ export const calculatePetValue = ({
 
   let newPetSeconds = accurateNow - datePetStartStopTimestamp;
   newPetSeconds = newPetSeconds + petSecondsAtStartStop * 1000;
-  newPetSeconds = Math.round(newPetSeconds / 1000);
+  newPetSeconds = Math.ceil(newPetSeconds / 1000);
 
   return hhmmssFromSeconds(newPetSeconds);
 };

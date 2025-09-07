@@ -547,7 +547,7 @@ export const PositionRow: FunctionComponent<{
         radius
       );
       setDist(newDistance.toFixed(2));
-      setDuration(Math.round(calcPathDurationMins([newDistance], traverseRate)));
+      setDuration(Math.ceil(calcPathDurationMins([newDistance], traverseRate)));
     } else {
       setDist(null);
       setDuration(null);

@@ -160,7 +160,7 @@ const Info_Panel: FunctionComponent<{
                         {poiCalcFields?.totalActionTime === 0 ? (
                           <>0</>
                         ) : (
-                          <>{Math.round(poiCalcFields?.totalActionTime)}</>
+                          <>{Math.ceil(poiCalcFields?.totalActionTime)}</>
                         )}
                       </div>
                     </div>
