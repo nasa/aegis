@@ -1,5 +1,6 @@
-import { App_User_db } from "server/database/models/_allModels";
-import { EntityData } from "@mikro-orm/core";
+import type { EntityData } from "@mikro-orm/postgresql";
+import type { App_User_db } from "server/database/models/_allModels";
+
 import { getAccurateNow } from "utils/formatting";
 
 /**
