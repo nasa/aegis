@@ -1,6 +1,8 @@
+import type { EntityData } from "@mikro-orm/postgresql";
+
 import { Factory } from "@mikro-orm/seeder";
+
 import { STM_Level3_db } from "server/database/models/_allModels";
-import { EntityData } from "@mikro-orm/core";
 import { convertStms3TypeStoreToDb, generateBlankStmLvl3 } from "store/storeUtils/stm";
 
 export default class STMLevel3Factory extends Factory<STM_Level3_db> {

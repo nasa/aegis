@@ -1,7 +1,9 @@
+import type { EntityData } from "@mikro-orm/postgresql";
+
 import { Factory } from "@mikro-orm/seeder";
-import { Preset_db } from "server/database/models/_allModels";
 import { v4 } from "uuid";
-import { EntityData } from "@mikro-orm/core";
+
+import { Preset_db } from "server/database/models/_allModels";
 import { convertPresetsTypeStoreToDb, generateBlankPreset } from "store/storeUtils/preset";
 
 export default class PresetFactory extends Factory<Preset_db> {

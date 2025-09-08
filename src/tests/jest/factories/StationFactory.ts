@@ -1,6 +1,8 @@
+import type { EntityData } from "@mikro-orm/postgresql";
+
 import { Factory } from "@mikro-orm/seeder";
+
 import { Station_db } from "server/database/models/_allModels";
-import { EntityData } from "@mikro-orm/core";
 import { convertStationsTypeStoreToDb, generateBlankStation } from "store/storeUtils/station";
 
 export default class StationFactory extends Factory<Station_db> {

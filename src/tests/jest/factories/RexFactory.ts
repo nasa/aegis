@@ -1,7 +1,9 @@
+import type { EntityData } from "@mikro-orm/postgresql";
+
 import { Factory } from "@mikro-orm/seeder";
-import { Rex_db } from "server/database/models/_allModels";
 import { v4 as uuidv4 } from "uuid";
-import { EntityData } from "@mikro-orm/core";
+
+import { Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeStoreToDb, generateBlankRex } from "store/storeUtils/rex";
 
 export default class RexFactory extends Factory<Rex_db> {
