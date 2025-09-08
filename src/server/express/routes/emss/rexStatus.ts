@@ -1,5 +1,11 @@
-import express, { Request, Response } from "express";
+import type { Request, Response } from "express";
+import { OptimisticLockError } from "@mikro-orm/postgresql";
+import express from "express";
+import random from "lodash/random";
+
+import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
+
 import {
   Action_db,
   Eva_db,
@@ -8,9 +14,6 @@ import {
   Traverse_db,
 } from "../../../database/models/_allModels";
 import { emitStoreUpsert } from "../../sockets";
-import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
-import { OptimisticLockError } from "@mikro-orm/core";
-import random from "lodash/random";
 
 const router = express.Router();
 

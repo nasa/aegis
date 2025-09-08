@@ -1,13 +1,14 @@
-import express, { Request, Response } from "express";
+import type { EntityData } from "@mikro-orm/postgresql";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
 
+import bcrypt from "bcryptjs";
+import express from "express";
 import cloneDeep from "lodash/cloneDeep";
 
-import { Query } from "express-serve-static-core";
-import { getEM } from "utils/mikro";
-import { EntityData } from "@mikro-orm/core";
 import { App_User_db } from "server/database/models/_allModels";
-import bcrypt from "bcryptjs";
 import { convertUsersTypeDbToStore, convertUsersTypeStoreToDb } from "store/storeUtils/user";
+import { getEM } from "utils/mikro";
 
 const router = express.Router();
 

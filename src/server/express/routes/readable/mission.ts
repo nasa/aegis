@@ -1,9 +1,13 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
-import { hasPerms } from "utils/permissions";
-import { getMission } from "../mission";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
+
+import express from "express";
+
 import { makeExportMission } from "utils/export";
+import { hasPerms } from "utils/permissions";
+
 import { getGridFromFile } from "../grid";
+import { getMission } from "../mission";
 
 const router = express.Router();
 

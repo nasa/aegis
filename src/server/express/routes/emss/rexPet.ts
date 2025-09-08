@@ -1,11 +1,14 @@
-import express, { Request, Response } from "express";
+import type { Request, Response } from "express";
+import { OptimisticLockError } from "@mikro-orm/postgresql";
+import express from "express";
+import random from "lodash/random";
+
+import { validators } from "components/interface/form/formValidators";
+import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
+
 import { Rex_db } from "../../../database/models/_allModels";
 import { emitStoreUpsert } from "../../sockets";
-import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
-import { validators } from "components/interface/form/formValidators";
-import { OptimisticLockError } from "@mikro-orm/core";
-import random from "lodash/random";
 
 const router = express.Router();
 

@@ -1,19 +1,17 @@
-import express, { Request, Response } from "express";
+import type { EntityData } from "@mikro-orm/postgresql";
+import type { Request, Response } from "express";
 
+import { ForeignKeyConstraintViolationException, OptimisticLockError } from "@mikro-orm/postgresql";
+import express from "express";
 import cloneDeep from "lodash/cloneDeep";
+import random from "lodash/random";
 
+import { Rex_db } from "server/database/models/_allModels";
+import { convertRexesTypeDbToStore, convertRexesTypeStoreToDb } from "store/storeUtils/rex";
+import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
 
-import { getEM } from "utils/mikro";
-import {
-  EntityData,
-  ForeignKeyConstraintViolationException,
-  OptimisticLockError,
-} from "@mikro-orm/core";
-import { Rex_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
-import { convertRexesTypeDbToStore, convertRexesTypeStoreToDb } from "store/storeUtils/rex";
-import random from "lodash/random";
 
 const router = express.Router();
 

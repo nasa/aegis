@@ -1,19 +1,15 @@
-import express, { Request, Response } from "express";
-
+import type { Request, Response } from "express";
+import type { EntityData, Loaded } from "@mikro-orm/postgresql";
+import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/postgresql";
+import express from "express";
 import cloneDeep from "lodash/cloneDeep";
 
-import { hasPerms } from "utils/permissions";
-
 import { getEM } from "utils/mikro";
-import {
-  Loaded,
-  EntityData,
-  QueryOrder,
-  ForeignKeyConstraintViolationException,
-} from "@mikro-orm/core";
+import { hasPerms } from "utils/permissions";
 import { Folder_db } from "server/database/models/_allModels";
-import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { convertFolderDbToStore, convertFolderStoreToDb } from "store/storeUtils/folder";
+
+import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 
 const router = express.Router();
 

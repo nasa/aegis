@@ -1,5 +1,6 @@
+import type { EntityManager, Dictionary } from "@mikro-orm/postgresql";
 import { Seeder } from "@mikro-orm/seeder";
-import { EntityManager, Dictionary } from "@mikro-orm/core";
+
 import { App_User_db } from "../../models/_allModels";
 
 export class UserSeeder extends Seeder {

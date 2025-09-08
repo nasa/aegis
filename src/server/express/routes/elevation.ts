@@ -1,5 +1,7 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
+
+import express from "express";
 
 import { hasPerms } from "utils/permissions";
 
