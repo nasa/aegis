@@ -56,7 +56,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <div className={paneStyles.panelSection2Column}>
                         <div className={paneStyles.panelColumnTable}>
                           <div className={paneStyles.panelColumnTableRow}>
-                            <div className={paneStyles.panelColumnTableCellLeft}>
+                            <div className={paneStyles.panelColumnTableCell}>
                               <div className={paneStyles.displayFieldLabel}>
                                 Number of Grid Columns:
                               </div>
@@ -68,7 +68,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             </div>
                           </div>
                           <div className={paneStyles.panelColumnTableRow}>
-                            <div className={paneStyles.panelColumnTableCellLeft}>
+                            <div className={paneStyles.panelColumnTableCell}>
                               <div className={paneStyles.displayFieldLabel}>
                                 Number of Grid Rows:
                               </div>
@@ -136,7 +136,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           <div className={paneStyles.panelSection2Column}>
                             <div className={paneStyles.panelColumnTable}>
                               <div className={paneStyles.panelColumnTableRow}>
-                                <div className={paneStyles.panelColumnTableCellLeft}>
+                                <div className={paneStyles.panelColumnTableCell}>
                                   <div className={paneStyles.displayFieldLabel}>
                                     Grid Visibility:
                                   </div>
@@ -148,7 +148,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                 </div>
                               </div>
                               <div className={paneStyles.panelColumnTableRow}>
-                                <div className={paneStyles.panelColumnTableCellLeft}>
+                                <div className={paneStyles.panelColumnTableCell}>
                                   <div className={paneStyles.displayFieldLabel}>
                                     Grid Label Visibility:
                                   </div>

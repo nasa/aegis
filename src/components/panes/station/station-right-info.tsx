@@ -266,7 +266,7 @@ const Info_Panel: FunctionComponent<{
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -302,7 +302,7 @@ const Info_Panel: FunctionComponent<{
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       {isNotNumber(selectedStation?.duration) && (
                         <div
                           style={{ color: "var(--grey5)" }}
@@ -330,7 +330,7 @@ const Info_Panel: FunctionComponent<{
                     }}
                     style={{ cursor: "pointer" }}
                   >
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -340,7 +340,7 @@ const Info_Panel: FunctionComponent<{
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Total Action Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -354,7 +354,7 @@ const Info_Panel: FunctionComponent<{
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Total Mass (g):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -365,7 +365,7 @@ const Info_Panel: FunctionComponent<{
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>&nbsp;</div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>EVAs Using this Station:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -473,7 +473,7 @@ const Info_Panel: FunctionComponent<{
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Lat:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -511,7 +511,7 @@ const Info_Panel: FunctionComponent<{
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Lng:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -551,7 +551,7 @@ const Info_Panel: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Relative Elevation (m):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -565,7 +565,7 @@ const Info_Panel: FunctionComponent<{
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Grid Coords:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -658,7 +658,7 @@ const Info_Panel: FunctionComponent<{
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Distance (m):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -672,7 +672,7 @@ const Info_Panel: FunctionComponent<{
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -688,7 +688,7 @@ const Info_Panel: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Total Ascent (m):</div>
                     </div>
 
@@ -705,7 +705,7 @@ const Info_Panel: FunctionComponent<{
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Total Descent (m):</div>
                     </div>
 
@@ -728,7 +728,7 @@ const Info_Panel: FunctionComponent<{
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>
                         Walkback Traverse Rate (km/h):
                       </div>
@@ -765,7 +765,7 @@ const Info_Panel: FunctionComponent<{
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div style={{ color: "var(--grey5)" }} className={paneStyles.inputFieldLabel}>
                         {makeTraverseRateString(
                           selectedStation.walkbackTraverseRate,
@@ -794,7 +794,7 @@ const Info_Panel: FunctionComponent<{
                           className={paneStyles.panelColumnTableRow}
                           key={`${equipmentItem.name}${index}`}
                         >
-                          <div className={paneStyles.panelColumnTableCellLeft}>
+                          <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
@@ -815,7 +815,7 @@ const Info_Panel: FunctionComponent<{
                           className={paneStyles.panelColumnTableRow}
                           key={`${equipmentItem.name}${index}`}
                         >
-                          <div className={paneStyles.panelColumnTableCellLeft}>
+                          <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
@@ -835,7 +835,7 @@ const Info_Panel: FunctionComponent<{
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldLabel}>Last Edited:</div>
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>

@@ -64,7 +64,7 @@ const Export_panel: FunctionComponent = () => {
                 <div className={paneStyles.panelSection2Column}>
                   <div className={paneStyles.panelColumnTable}>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <Checkbox
                           label="All EVAs (including stations with associated actions and traverses)"
                           checked={selectEvas}
