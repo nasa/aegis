@@ -53,7 +53,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 <div className={paneStyles.panelSection2Column}>
                   <div className={paneStyles.panelColumnTable}>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.inputFieldLabel}>Maestro Controlled:</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -87,7 +87,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     {selectedRex.maestroControlled && (
                       <>
                         <div className={paneStyles.panelColumnTableRow}>
-                          <div className={paneStyles.panelColumnTableCellLeft}>
+                          <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.inputFieldLabel}>Event ID:</div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
@@ -97,7 +97,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           </div>
                         </div>
                         <div className={paneStyles.panelColumnTableRow}>
-                          <div className={paneStyles.panelColumnTableCellLeft}>
+                          <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.inputFieldLabel}>Event URL:</div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>

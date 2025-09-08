@@ -325,7 +325,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                             <div className={paneStyles.panelSection2Column}>
                               <div className={paneStyles.panelColumnTable}>
                                 <div className={paneStyles.panelColumnTableRow}>
-                                  <div className={paneStyles.panelColumnTableCellLeft}>
+                                  <div className={paneStyles.panelColumnTableCell}>
                                     <div className={paneStyles.inputFieldLabel}>
                                       Duration (mins):
                                     </div>
@@ -377,7 +377,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                             <div className={paneStyles.panelSection2Column}>
                               <div className={paneStyles.panelColumnTable}>
                                 <div className={paneStyles.panelColumnTableRow}>
-                                  <div className={paneStyles.panelColumnTableCellLeft}>
+                                  <div className={paneStyles.panelColumnTableCell}>
                                     <div className={paneStyles.inputFieldLabel}>
                                       Expected Sample Mass (g):
                                     </div>

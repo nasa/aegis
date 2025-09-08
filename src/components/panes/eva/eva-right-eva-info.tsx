@@ -235,7 +235,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldLabel}>Traverse Color:</div>
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
@@ -264,14 +264,14 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>EVA Egress Location:</div>
                     </div>
                   </div>
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>EVA Ingress Location:</div>
                     </div>
                   </div>
@@ -282,7 +282,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         {editMode ? (
                           <Dropdown
@@ -329,7 +329,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         {editMode ? (
                           <Dropdown
@@ -380,7 +380,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>Egress Duration (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -417,7 +417,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>Ingress Duration (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -523,7 +523,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>Duration (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -560,7 +560,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>Traverse Rate (km/h):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -591,7 +591,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div style={{ color: "var(--grey5)" }} className={paneStyles.inputFieldLabel}>
                         {makeTraverseRateString(
                           selectedEva.traverseRate,
@@ -615,7 +615,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 <div className={paneStyles.panelSection2Column}>
                   <div className={paneStyles.panelColumnTable}>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldLabel}>EVA Duration (mins):</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -639,7 +639,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldLabel}>Traverse Time (mins):</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -653,7 +653,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldLabel}>Traverse Distance (m):</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -669,7 +669,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     <div className={paneStyles.panelColumnTableRow}>
                       <div className={paneStyles.panelColumnTable}>
                         <div className={paneStyles.panelColumnTableRow}>
-                          <div className={paneStyles.panelColumnTableCellLeft}>
+                          <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldLabel}>Total Ascent (m):</div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
@@ -681,7 +681,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           </div>
                         </div>
                         <div className={paneStyles.panelColumnTableRow}>
-                          <div className={paneStyles.panelColumnTableCellLeft}>
+                          <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldLabel}>Total Descent (m):</div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
@@ -699,7 +699,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     <CalculatedDwell actionsCalculatedFields={evaCalculatedFields} />
                     <div className={paneStyles.panelColumnTableRow}>&nbsp;</div>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -709,7 +709,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldLabel}>
                           Total Action Time (mins):
                         </div>
@@ -725,7 +725,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldLabel}>Total Mass (g):</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -754,7 +754,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           className={paneStyles.panelColumnTableRow}
                           key={`${equipmentItem.name}${index}`}
                         >
-                          <div className={paneStyles.panelColumnTableCellLeft}>
+                          <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
@@ -775,7 +775,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           className={paneStyles.panelColumnTableRow}
                           key={`${equipmentItem.name}${index}`}
                         >
-                          <div className={paneStyles.panelColumnTableCellLeft}>
+                          <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
@@ -795,7 +795,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldLabel}>Last Edited:</div>
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>

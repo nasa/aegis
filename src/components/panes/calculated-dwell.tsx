@@ -9,7 +9,7 @@ const CalculatedDwell: FunctionComponent<{
       <>
         <div className={paneStyles.panelColumnTableRow}>
           <div
-            className={`${paneStyles.panelColumnTableCellLeft} ${paneStyles.panelColumnTableCellLeftSurround}`}
+            className={`${paneStyles.panelColumnTableCell} ${paneStyles.panelColumnTableCellLeftSurround}`}
           >
             <div
               className={paneStyles.displayFieldLabel}
@@ -45,7 +45,7 @@ const CalculatedDwell: FunctionComponent<{
           </div>
         </div>
         <div className={paneStyles.panelColumnTableRow}>
-          <div className={paneStyles.panelColumnTableCellLeft}>
+          <div className={paneStyles.panelColumnTableCell}>
             <div
               className={paneStyles.displayFieldLabel}
               style={{ paddingLeft: "10px" }}
@@ -67,7 +67,7 @@ const CalculatedDwell: FunctionComponent<{
           </div>
         </div>
         <div className={paneStyles.panelColumnTableRow}>
-          <div className={paneStyles.panelColumnTableCellLeft}>
+          <div className={paneStyles.panelColumnTableCell}>
             <div
               className={paneStyles.displayFieldLabel}
               style={{ paddingLeft: "10px" }}

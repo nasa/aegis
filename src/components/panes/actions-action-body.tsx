@@ -224,7 +224,7 @@ const RightActionBody: FunctionComponent<{
           <div className={paneStyles.panelSection2Column}>
             <div className={paneStyles.panelColumnTable}>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldLabel}>Duration (mins):</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -268,7 +268,7 @@ const RightActionBody: FunctionComponent<{
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.inputFieldLabel}>Priority (1-99):</div>
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
@@ -320,7 +320,7 @@ const RightActionBody: FunctionComponent<{
           <div className={paneStyles.panelSection2Column}>
             <div className={paneStyles.panelColumnTable} style={{ alignContent: "center" }}>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldLabel}>Planned Mass (g):</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -353,7 +353,7 @@ const RightActionBody: FunctionComponent<{
 
             <div className={paneStyles.panelColumnTable} style={{ marginTop: -0.5 }}>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldLabel}>Executed Mass (g):</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -408,7 +408,7 @@ const RightActionBody: FunctionComponent<{
           <div className={paneStyles.panelSection2Column}>
             <div className={paneStyles.panelColumnTable}>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldLabel}>Marker ID:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -437,7 +437,7 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldLabel}>Container ID:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -466,7 +466,7 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldLabel}>Addtl. Container ID:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -633,7 +633,7 @@ const RightActionBody: FunctionComponent<{
           <div className={paneStyles.panelSection2Column}>
             <div className={paneStyles.panelColumnTable} style={{ flex: "0 0 160px" }}>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.displayFieldLabel}>Lat:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -666,7 +666,7 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.displayFieldLabel}>Lng:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -699,7 +699,7 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.displayFieldLabel}>Grid Coords:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -710,7 +710,7 @@ const RightActionBody: FunctionComponent<{
             {(parentType === "station" || parentType === "poi") && (
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldLabel}>
                       Elevation Relative to {parentType === "station" ? "Station" : "POI"} (m):
                     </div>
@@ -726,7 +726,7 @@ const RightActionBody: FunctionComponent<{
                   </div>
                 </div>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldLabel}>
                       Distance to {parentType === "station" ? "Station" : "POI"} (m):
                     </div>
