@@ -2,11 +2,8 @@ import express, { Request, Response } from "express";
 import { Query } from "express-serve-static-core";
 import { hasPerms } from "utils/permissions";
 import { getMission } from "../mission";
-import path from "path";
-import fs from "fs";
 import { makeExportMission } from "utils/export";
 import { getGridFromFile } from "../grid";
-import { SCHEMA_DIR } from "utils/consts-server";
 
 const router = express.Router();
 
@@ -83,26 +80,6 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     console.error(e);
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
   }
-});
-
-router.get("/schema", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "exportMission.json"), "utf8");
-    const schema = JSON.parse(schemaFile);
-    res.status(200).json({
-      status: "success",
-      message: "mission schema retrieved",
-      data: schema,
-    });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({
-      status: "error",
-      message: `Error retrieving schema: ${e}`,
-      data: null,
-    });
-  }
-  return;
 });
 
 export default router;

@@ -3,10 +3,7 @@ import { Query } from "express-serve-static-core";
 import { hasPerms } from "utils/permissions";
 import { makeExportActions } from "utils/export";
 import { getAll } from "../all";
-import path from "path";
-import fs from "fs";
 import { getGridFromFile } from "../grid";
-import { SCHEMA_DIR } from "utils/consts-server";
 import { getEM } from "utils/mikro";
 import { Action_db, Eva_db, Rex_db } from "server/database/models/_allModels";
 
@@ -228,26 +225,6 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       res.status(500).json({ status: "error", message: `Error getting readable actions ${e}` });
     }
   }
-});
-
-router.get("/schema", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "exportAction.json"), "utf8");
-    const schema = JSON.parse(schemaFile);
-    res.status(200).json({
-      status: "success",
-      message: "action schema retrieved",
-      data: schema,
-    });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({
-      status: "error",
-      message: `Error retrieving schema: ${e}`,
-      data: null,
-    });
-  }
-  return;
 });
 
 export default router;
