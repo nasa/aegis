@@ -3,9 +3,6 @@ import { Query } from "express-serve-static-core";
 import { hasPerms } from "utils/permissions";
 import { makeExportTraverses } from "utils/export";
 import { getAll } from "../all";
-import path from "path";
-import fs from "fs";
-import { SCHEMA_DIR } from "utils/consts-server";
 import { getGridFromFile } from "../grid";
 import { Traverse_db } from "server/database/models/traverse.model";
 import { getEM } from "utils/mikro";
@@ -130,26 +127,6 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
   }
-});
-
-router.get("/schema", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "exportTraverse.json"), "utf8");
-    const schema = JSON.parse(schemaFile);
-    res.status(200).json({
-      status: "success",
-      message: "traverse schema retrieved",
-      data: schema,
-    });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({
-      status: "error",
-      message: `Error retrieving schema: ${e}`,
-      data: null,
-    });
-  }
-  return;
 });
 
 export default router;
