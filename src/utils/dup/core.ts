@@ -1,4 +1,5 @@
-import { EntityManager } from "@mikro-orm/core";
+import type { EntityManager } from "@mikro-orm/postgresql";
+
 import {
   Mission_db,
   Station_db,
@@ -17,7 +18,8 @@ import {
   STM_Rule_db,
   Folder_db,
 } from "server/database/models/_allModels";
-import { initializeUuidMaps, copyMissionAssets } from "./helpers";
+import { getAccurateNow } from "utils/formatting";
+
 import {
   processStations,
   processPois,
@@ -39,7 +41,7 @@ import {
   updatePoiActionOrder,
   updateTraverseActionOrder,
 } from "./entityProcessors";
-import { getAccurateNow } from "utils/formatting";
+import { initializeUuidMaps, copyMissionAssets } from "./helpers";
 
 // Create a new mission based on the original
 export const createNewMission = (
