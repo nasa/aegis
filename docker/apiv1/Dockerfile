@@ -71,4 +71,4 @@ RUN apk add --no-cache tini~=0.19.0
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # This image is intended to be run with docker-compose.
-CMD ["/bin/sh", "-c", "npm run migrate:up && npm run api"]
+CMD ["/bin/sh", "-c", "npm run migration:up && npm run api"]
