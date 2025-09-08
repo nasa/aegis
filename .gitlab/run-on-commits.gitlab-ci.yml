@@ -123,7 +123,7 @@ test:
     # Load production database dump
     - apk update && apk add --no-cache postgresql-client # Install psql client using apk for Alpine
     - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
-    - npm run migrate:up
+    - npm run migration:up
     - npm run lint
     - npm run tsc
     - npm run test:coverage
@@ -147,7 +147,7 @@ test-node-next:
   script:
     - apk update && apk add --no-cache postgresql-client
     - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
-    - npm run migrate:up
+    - npm run migration:up
     - npm run lint
     - npm run tsc
     - npm t
@@ -174,7 +174,7 @@ playwright_test:
     - apt-get update && apt-get install -y postgresql-client # Fast install, fine not in the image
     - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
     - npx playwright install-deps # Install Playwright dependencies
-    - npm run migrate:up
+    - npm run migration:up
     - npm run test:playwright:ci # Run Playwright tests
   timeout: 10 minutes
   artifacts:

@@ -126,7 +126,7 @@ To delete all the database data, delete the `./.local/database` directory. This 
 3. Retrieve a dump from CI/CD by executing one of the export jobs (such as `z:db-export:prod`). The job will generate an artifact called `aegis.sql`. Download this sql dump.
 4. Drop the .sql file into the `.local/db-init/` folder.
 5. Start the aegis database container.
-6. If there are any db changes to apply on your current branch, run `npm run migrate:up`
+6. If there are any db changes to apply on your current branch, run `npm run migration:up`
 
 ## Helpful Docker Commands
 

@@ -6,6 +6,7 @@
 #
 # A version of the gdal image has been uploaded to public docker.com so devs don't have to auth
 # with eegitlab to pull the image on local builds
+# hadolint global ignore=DL3006
 ARG GDAL_BASE_IMAGE=jackievu/aegis:gdal
 
 FROM $GDAL_BASE_IMAGE AS base
