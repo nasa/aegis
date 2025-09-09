@@ -324,7 +324,7 @@ export const ActionsTopSection: FunctionComponent<{
                     {actionsCalculatedFields?.totalActionTime === 0 ? (
                       <>0</>
                     ) : (
-                      <>{Math.round(actionsCalculatedFields?.totalActionTime)}</>
+                      <>{Math.ceil(actionsCalculatedFields?.totalActionTime)}</>
                     )}
                   </div>
                 </div>

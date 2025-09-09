@@ -112,8 +112,8 @@ describe("hhmmFromMinutes", () => {
 
   it("should round minutes", () => {
     expect(hhmmFromMinutes(9.7)).toEqual("00:10");
-    expect(hhmmFromMinutes(63.3)).toEqual("01:03");
-    expect(hhmmFromMinutes(600.1)).toEqual("10:00");
+    expect(hhmmFromMinutes(63.3)).toEqual("01:04");
+    expect(hhmmFromMinutes(600.1)).toEqual("10:01");
   });
 });
 
@@ -142,8 +142,8 @@ describe("hmmFromMinutes", () => {
 
   it("should round minutes", () => {
     expect(hmmFromMinutes(9.7)).toEqual("0:10");
-    expect(hmmFromMinutes(63.3)).toEqual("1:03");
-    expect(hmmFromMinutes(600.1)).toEqual("10:00");
+    expect(hmmFromMinutes(63.3)).toEqual("1:04");
+    expect(hmmFromMinutes(600.1)).toEqual("10:01");
   });
 });
 

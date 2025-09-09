@@ -193,7 +193,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         <div
                           style={{ color: "var(--grey5)" }}
                           className={paneStyles.inputFieldLabel}
-                        >{`Using Calculated Total: ${Math.round(calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes)}`}</div>
+                        >{`Using Calculated Total: ${Math.ceil(calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes)}`}</div>
                       )}
                     </div>
                   </div>
@@ -332,7 +332,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {Math.round(calculatedFields.durationMinutes)}
+                        {Math.ceil(calculatedFields.durationMinutes)}
                       </div>
                     </div>
                   </div>
@@ -434,7 +434,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         {calculatedFields?.totalActionTime === 0 ? (
                           <>0</>
                         ) : (
-                          <>{Math.round(calculatedFields?.totalActionTime)}</>
+                          <>{Math.ceil(calculatedFields?.totalActionTime)}</>
                         )}
                       </div>
                     </div>
@@ -473,7 +473,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {Math.round(
+                        {Math.ceil(
                           calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes
                         )}
                       </div>

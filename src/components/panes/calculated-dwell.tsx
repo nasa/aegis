@@ -39,7 +39,7 @@ const CalculatedDwell: FunctionComponent<{
               actionsCalculatedFields.totalUnassignedTime !== 0 ? (
                 <>Incompl.</>
               ) : (
-                <>{Math.round(actionsCalculatedFields.totalDwellTime) || "0"}</>
+                <>{Math.ceil(actionsCalculatedFields.totalDwellTime) || "0"}</>
               )}
             </div>
           </div>
@@ -61,7 +61,7 @@ const CalculatedDwell: FunctionComponent<{
               actionsCalculatedFields.totalUnassignedTime !== 0 ? (
                 <>Incompl.</>
               ) : (
-                <>{Math.round(actionsCalculatedFields.totalEv1Time) || "0"}</>
+                <>{Math.ceil(actionsCalculatedFields.totalEv1Time) || "0"}</>
               )}
             </div>
           </div>
@@ -83,7 +83,7 @@ const CalculatedDwell: FunctionComponent<{
               actionsCalculatedFields.totalUnassignedTime !== 0 ? (
                 <>Incompl.</>
               ) : (
-                <>{Math.round(actionsCalculatedFields.totalEv2Time) || "0"}</>
+                <>{Math.ceil(actionsCalculatedFields.totalEv2Time) || "0"}</>
               )}
             </div>
           </div>

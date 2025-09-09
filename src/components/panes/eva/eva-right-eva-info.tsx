@@ -733,7 +733,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                               : undefined
                           }
                         >
-                          {Math.round(evaCalculatedFields.totalEvaTime) || 0}
+                          {Math.ceil(evaCalculatedFields.totalEvaTime) || 0}
                         </div>
                       </div>
                     </div>
@@ -746,7 +746,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           {evaCalculatedFields.totalTraverseTime === 0 ? (
                             <>0</>
                           ) : (
-                            Math.round(evaCalculatedFields.totalTraverseTime)
+                            Math.ceil(evaCalculatedFields.totalTraverseTime)
                           )}
                         </div>
                       </div>
@@ -818,7 +818,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           {evaCalculatedFields.totalActionTime === 0 ? (
                             <>0</>
                           ) : (
-                            Math.round(evaCalculatedFields.totalActionTime)
+                            Math.ceil(evaCalculatedFields.totalActionTime)
                           )}
                         </div>
                       </div>
