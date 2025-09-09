@@ -20,7 +20,10 @@ import capitalize from "lodash/capitalize";
 import { collapseActions, expandActions } from "store/interface";
 import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
-import { getRexStatusDisplayProperties } from "../../utils/component-helpers";
+import {
+  getRexStatusDisplayProperties,
+  getActionDefinitionName,
+} from "../../utils/component-helpers";
 import { RexStatusMenu } from "./rex/rex-status-menu";
 import { actionTypes } from "store/storeUtils/store";
 import { thunkUpsertActionDefinitionSelection } from "store/thunk/thunkAction";
@@ -368,12 +371,12 @@ export const ActionDefType: FunctionComponent<{
   selectedUuid: string;
   editMode: boolean;
 }> = ({ actionUuid, type, selectedUuid, editMode }) => {
-  const actionDefinitions = useAppSelector(
+  const actionDefinitionItems = useAppSelector(
     (state) => state.mission.mission.actionDefinitions[type],
     deepEqual
   );
 
-  const selectedActionDef = actionDefinitions.find((actionDef) => actionDef.uuid === selectedUuid);
+  const selectedName = getActionDefinitionName({ actionDefinitionItems, uuid: selectedUuid });
 
   return (
     <>
@@ -382,11 +385,11 @@ export const ActionDefType: FunctionComponent<{
           className={actionStyles.actionDefType}
           style={{ color: `var(--${type.slice(0, -1)})` }}
         >
-          {selectedActionDef?.name ? selectedActionDef?.name : capitalize(type.slice(0, -1))}
+          {selectedName || capitalize(type.slice(0, -1))}
         </span>
       ) : (
         <ActionDefDropdown
-          actionDefinitions={actionDefinitions}
+          actionDefinitionItems={actionDefinitionItems}
           actionUuid={actionUuid}
           type={type}
           selectedUuid={selectedUuid}
@@ -398,10 +401,10 @@ export const ActionDefType: FunctionComponent<{
 
 const ActionDefDropdown: FunctionComponent<{
   actionUuid: string;
-  actionDefinitions: ActionDefinitionItem[];
+  actionDefinitionItems: ActionDefinitionItem[];
   type: ActionDefinitionType;
   selectedUuid: string;
-}> = ({ actionUuid, actionDefinitions, type, selectedUuid }) => {
+}> = ({ actionUuid, actionDefinitionItems, type, selectedUuid }) => {
   const dispatch = useAppDispatch();
 
   return (
@@ -415,7 +418,7 @@ const ActionDefDropdown: FunctionComponent<{
       containerStyle={{ width: "70px" }}
     >
       <option value="">{capitalize(type)}</option>
-      {actionDefinitions.map((actionDef) => (
+      {actionDefinitionItems.map((actionDef) => (
         <option
           key={actionDef.uuid}
           value={actionDef.uuid}

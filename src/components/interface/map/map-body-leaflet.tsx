@@ -81,6 +81,7 @@ import { EARTH_RADIUS } from "utils/consts";
 import { globalGrid } from "utils/mapping/grid";
 import { selectAsPlannedStations } from "store/selectors";
 import { LoadingOverlay } from "../_global-elements";
+import { getStmActionName } from "utils/component-helpers";
 
 const MapBody: FunctionComponent<{}> = () => {
   const dispatch = useAppDispatch();
@@ -118,6 +119,7 @@ const MapBody: FunctionComponent<{}> = () => {
         "projOriginY",
         "circleDefinitions",
         "usingLGRSCoordinates",
+        "actionDefinitions",
       ]),
     deepEqual
   );
@@ -926,10 +928,18 @@ const MapBody: FunctionComponent<{}> = () => {
     // draw or update all actions
     actionsToShow.forEach((action) => {
       if (action.location) {
+        let actionName = `${titleCase(action.type)}: ${action.name}`;
+        if (action.stmAction) {
+          actionName = getStmActionName({
+            actionDefinition: action.actionDefinition,
+            actionDefinitions: mission.actionDefinitions,
+          });
+        }
+
         drawOrUpdateMarkerOnMap({
           map,
           featureGroup: actionFeatureGroup,
-          name: `${titleCase(action.type)}: ${action.name}`,
+          name: actionName,
           uuid: action.uuid,
           iconEmoji: action.icon ? action.icon : "2754", //default to question mark
           location: action.location,
@@ -956,6 +966,7 @@ const MapBody: FunctionComponent<{}> = () => {
       }
     });
   }, [
+    mission.actionDefinitions,
     actions,
     selectedStation,
     selectedPoi,

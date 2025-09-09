@@ -144,3 +144,35 @@ export const getRexStatusDisplayProperties = (
       };
   }
 };
+
+export const getActionDefinitionName = ({
+  actionDefinitionItems,
+  uuid,
+}: {
+  actionDefinitionItems: ActionDefinitionItem[];
+  uuid: string;
+}): string | undefined => {
+  const actionDef = actionDefinitionItems.find((actionDefItem) => actionDefItem.uuid === uuid);
+  return actionDef?.name;
+};
+
+export const getStmActionName = ({
+  actionDefinition,
+  actionDefinitions,
+}: {
+  actionDefinition: ActionDefinition;
+  actionDefinitions: ActionDefinitions;
+}): string => {
+  const allDefs = [
+    ...actionDefinitions.verbs,
+    ...actionDefinitions.nouns,
+    ...actionDefinitions.adjectives,
+  ];
+  const verbDef = allDefs.find((def) => def.uuid === actionDefinition.verbUuid);
+  const nounDef = allDefs.find((def) => def.uuid === actionDefinition.nounUuid);
+  const adjectiveDef = allDefs.find((def) => def.uuid === actionDefinition.adjectiveUuid);
+  const verbName = verbDef?.name;
+  const nounName = nounDef?.name;
+  const adjectiveName = adjectiveDef?.name;
+  return `${verbName || "Unknown"} of ${nounName || "Unknown"} in ${adjectiveName || "Unknown"}`;
+};

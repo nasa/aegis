@@ -73,6 +73,7 @@ const MiniMap: FunctionComponent<{
         "projOriginY",
         "circleDefinitions",
         "usingLGRSCoordinates",
+        "actionDefinitions",
       ]),
     deepEqual
   );
