@@ -22,6 +22,7 @@ import reverse from "lodash/reverse";
 import uniqBy from "lodash/uniqBy";
 import orderBy from "lodash/orderBy";
 import { secondsFromhhmmss, hhmmssFromSeconds, titleCase } from "utils/formatting";
+import { getStmActionName } from "utils/component-helpers";
 import PetInterval from "../page/petInterval";
 import { isWindows10 } from "utils/browser";
 import {
@@ -112,6 +113,7 @@ const MapBody: FunctionComponent<{
         "projOriginY",
         "circleDefinitions",
         "usingLGRSCoordinates",
+        "actionDefinitions",
       ]),
     deepEqual
   );
@@ -753,10 +755,17 @@ const MapBody: FunctionComponent<{
     // draw or update all actions
     actionsToShow.forEach((action) => {
       if (action.location) {
+        let actionName = `${titleCase(action.type)}: ${action.name}`;
+        if (action.stmAction) {
+          actionName = getStmActionName({
+            actionDefinition: action.actionDefinition,
+            actionDefinitions: mission.actionDefinitions,
+          });
+        }
         drawOrUpdateMarkerOnMap({
           map,
           featureGroup: actionFeatureGroup,
-          name: `${titleCase(action.type)}: ${action.name}`,
+          name: actionName,
           uuid: action.uuid,
           iconEmoji: action.icon ? action.icon : "2754", //default to question mark
           mapItemType: "action",
@@ -773,7 +782,14 @@ const MapBody: FunctionComponent<{
         });
       }
     });
-  }, [actionsFromDb, stationsInProgress, mapDisplayActions, isWin10, traversesInProgress]);
+  }, [
+    actionsFromDb,
+    stationsInProgress,
+    mapDisplayActions,
+    isWin10,
+    traversesInProgress,
+    mission.actionDefinitions,
+  ]);
 
   /**
    * Determine traverses to show and draw them on map when traverses or selections change

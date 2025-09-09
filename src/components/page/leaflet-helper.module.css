@@ -213,15 +213,13 @@
 }
 
 .mapEVIcon {
-  position: relative;
-  height: 0;
-  width: 0;
-  padding: 7px 0 0 5px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
 }
 
 .mapEVIconMinimap {
-  position: relative;
-  height: 0;
-  width: 0;
-  padding: 0 0 0 2px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
 }

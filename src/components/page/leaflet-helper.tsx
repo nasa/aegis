@@ -685,9 +685,12 @@ export const drawPosMarkerOnMap = async ({
 
     const jsx =
       overrideEVIcon && entryPosType.name.substring(0, 2) === "EV" ? (
-        // draw custom SVG icon for EVs. On the mini map, make it smaller
+        // draw custom SVG icon for EVs. On the mini map, make it smaller - apply small offset for stacking
         <div
           className={miniMap ? styles.mapEVIconMinimap : styles.mapEVIcon}
+          style={{
+            transform: `translate(calc(-50% + ${count * 2}px), 0px)`,
+          }}
           key={`icon_${posTypeUuid}`}
         >
           <img
@@ -698,7 +701,7 @@ export const drawPosMarkerOnMap = async ({
           ></img>
         </div>
       ) : (
-        // draw the emoji as is
+        // draw the emoji as is - use count offset for stacking
         <div
           className={`${isWin10 ? styles.posIconWin10 : styles.posIcon} ${isWin10 ? iconWin10ClassName : iconClassName}`}
           style={{ left: count * 2, top: count * 2 }}
