@@ -10,7 +10,6 @@ import {
   useRef,
   useEffect,
 } from "react";
-import styles from "./globalFields.module.css";
 import { EmojiRenderer } from "components/interface/emojis";
 import { Field, FieldRenderProps, Form } from "react-final-form";
 import React from "react";
@@ -49,10 +48,10 @@ export const Button: FunctionComponent<{
   enabled = true,
   iconStyle,
 }) => {
-  const enabledStyle = !enabled ? styles.buttonDisabled : "";
+  const enabledStyle = !enabled ? formStyles.buttonDisabled : "";
   return (
     <div
-      className={`${styles.button} ${className} ${enabledStyle} `}
+      className={`${formStyles.button} ${className} ${enabledStyle} `}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={toolTip}
       onClick={(e) => {
@@ -65,7 +64,7 @@ export const Button: FunctionComponent<{
         <FontAwesomeIcon
           icon={icon}
           size={size}
-          className={styles.buttonLabelIcon}
+          className={formStyles.buttonLabelIcon}
           style={iconStyle}
         />
       )}
@@ -95,11 +94,15 @@ export const TextboxButton: FunctionComponent<{
   labelStyle,
   enabled = true,
 }) => {
-  const enabledStyle = !enabled ? styles.iconButtonDisabled : "";
+  const enabledStyle = !enabled ? formStyles.iconButtonDisabled : "";
   return (
     <div
-      className={`${styles.textboxButton} ${enabledStyle} ${
-        active ? (!whiteOnToggle ? styles.textboxActiveGrey : styles.textboxActiveWhite) : ""
+      className={`${formStyles.textboxButton} ${enabledStyle} ${
+        active
+          ? !whiteOnToggle
+            ? formStyles.textboxActiveGrey
+            : formStyles.textboxActiveWhite
+          : ""
       }`}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={toolTip}
@@ -108,7 +111,7 @@ export const TextboxButton: FunctionComponent<{
       }}
       style={style}
     >
-      {icon && <FontAwesomeIcon icon={icon} size="lg" className={styles.buttonLabelIcon} />}
+      {icon && <FontAwesomeIcon icon={icon} size="lg" className={formStyles.buttonLabelIcon} />}
       <div style={labelStyle}>{label}</div>
     </div>
   );
@@ -137,7 +140,7 @@ export const Dropdown: FunctionComponent<{
 }) => {
   return (
     <div
-      className={styles.select}
+      className={formStyles.select}
       style={containerStyle}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={toolTip}
@@ -155,7 +158,7 @@ export const Dropdown: FunctionComponent<{
       >
         {children}
       </select>
-      <div className={`${styles.select_arrow} ${arrowClassName}`} style={arrowStyle}>
+      <div className={`${formStyles.select_arrow} ${arrowClassName}`} style={arrowStyle}>
         <FontAwesomeIcon icon={faChevronDown} size="xs" />
       </div>
     </div>
@@ -172,9 +175,9 @@ export const IconDropdown: FunctionComponent<{
 
   if (!editing) {
     return (
-      <div className={styles.iconDropdownContainer}>
-        <div className={styles.iconDropdownModalItemNotEditing}>
-          <div className={styles.itemIcon}>
+      <div className={formStyles.iconDropdownContainer}>
+        <div className={formStyles.iconDropdownModalItemNotEditing}>
+          <div className={formStyles.itemIcon}>
             <EmojiRenderer iconValue={selected} />
           </div>
         </div>
@@ -185,11 +188,11 @@ export const IconDropdown: FunctionComponent<{
     if (selected) {
       selectedItem = (
         <div
-          className={`${styles.iconDropdownModalItemSelected} ${
-            expanded && styles.iconDropdownModalItemSelectedExpanded
+          className={`${formStyles.iconDropdownModalItemSelected} ${
+            expanded && formStyles.iconDropdownModalItemSelectedExpanded
           }`}
         >
-          <div className={styles.itemIcon}>
+          <div className={formStyles.itemIcon}>
             <EmojiRenderer iconValue={selected} />
           </div>
         </div>
@@ -197,11 +200,11 @@ export const IconDropdown: FunctionComponent<{
     } else {
       selectedItem = (
         <div
-          className={` ${styles.iconDropdownModalItemSelected} ${
-            expanded && styles.iconDropdownModalItemSelectedExpanded
+          className={` ${formStyles.iconDropdownModalItemSelected} ${
+            expanded && formStyles.iconDropdownModalItemSelectedExpanded
           }`}
         >
-          <div className={styles.iconDropdownModalItemLabel}></div>
+          <div className={formStyles.iconDropdownModalItemLabel}></div>
         </div>
       );
     }
@@ -209,26 +212,26 @@ export const IconDropdown: FunctionComponent<{
     return (
       <div
         tabIndex={0}
-        className={styles.iconDropdownContainer}
+        className={formStyles.iconDropdownContainer}
         onClick={() => setExpanded(!expanded)}
         onBlur={() => {
           setExpanded(false);
         }}
       >
         {selectedItem}
-        <span className={styles.colorSelectArrow}>
+        <span className={formStyles.colorSelectArrow}>
           <FontAwesomeIcon icon={faChevronDown} size="xs" />
         </span>
         {expanded && (
-          <div className={styles.iconDropdownModalList}>
+          <div className={formStyles.iconDropdownModalList}>
             {items.map((item, index) => {
               return (
                 <div
-                  className={styles.iconDropdownModalItem}
+                  className={formStyles.iconDropdownModalItem}
                   key={`${item}_${index}`}
                   onClick={() => setSelected(item)}
                 >
-                  <div className={styles.itemIcon}>
+                  <div className={formStyles.itemIcon}>
                     <EmojiRenderer iconValue={item} />
                   </div>
                 </div>
@@ -267,14 +270,14 @@ export const MultiSelectDropdown: FunctionComponent<{
     <>
       <div
         tabIndex={0}
-        className={`${styles.multiselectDropdownContainer} ${containerClassName}`}
+        className={`${formStyles.multiselectDropdownContainer} ${containerClassName}`}
         style={containerStyle}
         onBlur={() => {
           if (closeOnBlur) setMenuOpen(false);
         }}
       >
         <div
-          className={`${styles.multiselectDropdownHeader} ${headerClassName}`}
+          className={`${formStyles.multiselectDropdownHeader} ${headerClassName}`}
           onClick={() => {
             setMenuOpen(!menuOpen);
           }}
@@ -287,11 +290,11 @@ export const MultiSelectDropdown: FunctionComponent<{
           />
         </div>
         {menuOpen && (
-          <div className={styles.multiselectDropdownItems}>
+          <div className={formStyles.multiselectDropdownItems}>
             {items.map((item) => (
               <div
                 key={item.value}
-                className={styles.multiselectDropdownItem}
+                className={formStyles.multiselectDropdownItem}
                 onClick={(e) => {
                   // toggle the selectedItem
                   toggleItem(item.value);
@@ -304,7 +307,7 @@ export const MultiSelectDropdown: FunctionComponent<{
                   <FontAwesomeIcon icon={faSquare} style={{ marginRight: "5px" }} />
                 )}
 
-                <div className={styles.multiselectDropdownItemTitle}>{item.label}</div>
+                <div className={formStyles.multiselectDropdownItemTitle}>{item.label}</div>
               </div>
             ))}
           </div>
@@ -320,7 +323,7 @@ export const MultiSelectDropdown: FunctionComponent<{
  * The onSubmit function is called onchange. This is where the redux store update action should be defined
  * To use validators with this component, import validators from /utils/formValidator.ts and
  *    pass them them in as an array in the fieldProps.validators property.
- * New validators can be added and exported from /utils/formValidators
+ * New validators can be added and exported from ./formValidators
  */
 export const InLineEditInput: FunctionComponent<{
   value: string;
@@ -351,8 +354,8 @@ export const InLineEditInput: FunctionComponent<{
               <form onSubmit={handleSubmit}>
                 <FFInput
                   {...fieldProps}
-                  className={styles.inLineEditInput + " " + fieldProps.className}
-                  classNameError={styles.inLineEditInputError}
+                  className={formStyles.inLineEditInput + " " + fieldProps.className}
+                  classNameError={formStyles.inLineEditInputError}
                   onChange={() => {
                     form.submit();
                   }}
@@ -365,12 +368,60 @@ export const InLineEditInput: FunctionComponent<{
       )}
       {!editing && (
         <div
-          className={styles.inLineEditValue}
+          className={formStyles.inLineEditValue}
           style={styleValue}
           data-tooltip-id="aegis-tooltip"
           data-tooltip-html={fieldProps.ariaLabel}
           aria-label={fieldProps.ariaLabel}
         >
+          {value}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const TextArea: FunctionComponent<{
+  value: string;
+  editing: boolean;
+  fieldProps: FFTextAreaProps;
+  styleValue?: CSSProperties;
+  styleContainer?: CSSProperties;
+  onSubmit?: (value: string) => void;
+}> = ({ value, editing, styleValue, styleContainer, onSubmit, fieldProps }) => {
+  const debouncedSubmitRef = useRef(
+    debounce((formValue) => {
+      if (onSubmit) onSubmit(formValue);
+    }, 50)
+  );
+
+  return (
+    <div style={styleContainer}>
+      {debouncedSubmitRef.current && editing && (
+        <Form
+          //only called if all validation passes
+          onSubmit={(formValues) => {
+            debouncedSubmitRef.current(formValues[fieldProps.name]);
+          }}
+          initialValues={{ [fieldProps.name]: value }}
+          render={({ handleSubmit, form }) => {
+            return (
+              <form onSubmit={handleSubmit}>
+                <FFTextArea
+                  className={formStyles.textArea}
+                  classNameError={formStyles.textAreaError}
+                  onChange={() => {
+                    form.submit();
+                  }}
+                  {...fieldProps}
+                />
+              </form>
+            );
+          }}
+        />
+      )}
+      {!editing && (
+        <div className={formStyles.textAreaValue} style={styleValue}>
           {value}
         </div>
       )}
@@ -401,11 +452,11 @@ export const Checkbox: FunctionComponent<{
   labelPlacement = "right",
   uniqueId,
 }) => {
-  const editableStyle = editable ? "null" : styles.notEditable;
+  const editableStyle = editable ? "null" : formStyles.notEditable;
 
   return (
     <div
-      className={`${styles.checkboxContainer} ${editableStyle}`}
+      className={`${formStyles.checkboxContainer} ${editableStyle}`}
       onClick={onClick}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={toolTip}
@@ -427,7 +478,7 @@ export const Checkbox: FunctionComponent<{
         id={uniqueId}
         checked={checked}
         onChange={onChange}
-        className={checked ? styles.checkboxChecked : ""}
+        className={checked ? formStyles.checkboxChecked : ""}
       />
       {labelPlacement === "right" ? (
         <label
@@ -474,10 +525,10 @@ export const DegreesInputSlider: FunctionComponent<{
   icon: IconDefinition;
   isDragging?: Function;
 }> = ({ value, label, editable = true, onChange, icon, isDragging }) => {
-  const editableStyle = editable ? "" : styles.notEditable;
+  const editableStyle = editable ? "" : formStyles.notEditable;
 
   return (
-    <div className={`${styles.degreesInputSlider} ${editableStyle}`}>
+    <div className={`${formStyles.degreesInputSlider} ${editableStyle}`}>
       <CircularSlider
         width={100}
         min={0}
@@ -534,14 +585,14 @@ export const PathColorPickerMenu: FunctionComponent<{
       <div>
         <div
           style={styleContainer}
-          className={`${styles.propertyPathColor} ${hasDarkBorder ? styles.propertyPathColorDark : styles.propertyPathColorLight} ${editMode ? styles.propertyEditMode : ""}`}
+          className={`${formStyles.propertyPathColor} ${hasDarkBorder ? formStyles.propertyPathColorDark : formStyles.propertyPathColorLight} ${editMode ? formStyles.propertyEditMode : ""}`}
           onClick={() => {
             if (!editMode) return;
             setShowColorPicker(true);
           }}
         >
           <div
-            className={styles.pathColorSample}
+            className={formStyles.pathColorSample}
             style={{
               backgroundColor: currentColor,
             }}
@@ -549,15 +600,15 @@ export const PathColorPickerMenu: FunctionComponent<{
         </div>
         {showColorPicker ? (
           <>
-            <div className={styles.colorPickerPopover}>
+            <div className={formStyles.colorPickerPopover}>
               <div
-                className={styles.colorPickerCover}
+                className={formStyles.colorPickerCover}
                 onClick={() => {
                   setShowColorPicker(false);
                 }}
               ></div>
               <div
-                className={styles.colorPickerMenu}
+                className={formStyles.colorPickerMenu}
                 ref={menuRef}
                 style={direction === "left" ? { transform: "translateX(-180px)" } : null}
               >
@@ -661,7 +712,7 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
 };
 
 /**
- * Should not be called directly. Use the WysiwygTextArea component instead
+ * Should not be called directly. Use the WysiwygTextArea or TextArea component instead
  * @param param0
  * @returns
  */

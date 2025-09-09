@@ -22,6 +22,7 @@ import { RightTabs } from "components/interface/side-controls";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import isNull from "lodash/isNull";
 import { thunkCancelTraverse, thunkSaveTraverse } from "store/thunk/thunkTraverse";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 const TraverseEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -92,6 +93,26 @@ const TraverseEditorRight: FunctionComponent = () => {
     });
   }, deepEqual);
 
+  // Return the traverse as-planned eva's edit warning settings
+  const evaEditWarning: {
+    showEditWarning: boolean;
+    editWarningMsg: string;
+    evaName: string;
+    evaRexIsRunning: boolean;
+  } = useAppSelector((state) => {
+    const traverseEva = state.eva.evas.find((eva) =>
+      eva.sequence.some((seqItem) => seqItem.uuid === selectedTraverse.uuid)
+    );
+    const asPlannedEva = getAsPlannedEvaFromRefUuid(state, traverseEva.refUuid);
+    const selectedRex = state.rex.rexesFromDb.find((rex) => rex.evaUuid === traverseEva?.uuid);
+    return {
+      showEditWarning: asPlannedEva?.showEditWarning,
+      editWarningMsg: asPlannedEva?.editWarningMsg,
+      evaName: asPlannedEva?.name,
+      evaRexIsRunning: selectedRex?.isRunning,
+    };
+  }, deepEqual);
+
   //track modified
   let saveButtonState: saveButtonState = "disabled";
   if (elevationPendingIndex > -1) {
@@ -160,6 +181,12 @@ const TraverseEditorRight: FunctionComponent = () => {
               <Button
                 icon={faEdit}
                 onClick={() => {
+                  if (evaEditWarning?.showEditWarning && !evaEditWarning?.evaRexIsRunning) {
+                    window.alert(
+                      `Edit Warning: This traverse is part of EVA ${evaEditWarning?.evaName} that has the following edit warning:
+                      \n${evaEditWarning?.editWarningMsg || "Default warning message: Do not edit this Traverse."}`
+                    );
+                  }
                   dispatch(
                     setTraversesEditMode({ uuids: [selectedEvaSequenceItemUuid], editMode: true })
                   );

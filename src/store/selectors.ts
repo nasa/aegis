@@ -181,3 +181,14 @@ export const getSequenceUuidByRefUuidAndRexUuid = (
   // Return the uuid in the eva sequence that is in combinedUuids
   return arrayOfUuidsFromSequence?.find((uuid) => combinedUuids.includes(uuid));
 };
+
+export const getAsPlannedEvaFromRefUuid = (state: RootState, refUuid: string): Eva | undefined => {
+  // get all rex eva uuids
+  const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
+  // the as-planned eva is the one that is not in any rex
+  const asPlannedEva = state.eva.evas.find(
+    (eva) => !allRexEvasUuids.includes(eva.uuid) && eva.refUuid === refUuid
+  );
+  if (!asPlannedEva) return undefined;
+  return asPlannedEva;
+};

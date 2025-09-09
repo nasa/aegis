@@ -5,7 +5,7 @@ import { EntityData } from "@mikro-orm/core";
 
 /**
  * Generate a blank eva
- * @param partialEVA any fields that are to be overriden from default
+ * @param partialEVA any fields that are to be overridden from default
  * @returns the generated eva
  */
 export const generateBlankEVA = (partialEVA?: Partial<Eva>): Eva => {
@@ -26,6 +26,8 @@ export const generateBlankEVA = (partialEVA?: Partial<Eva>): Eva => {
     ingressLocationUuid: "lander",
     traverseColor: null,
     datetime: "",
+    showEditWarning: false,
+    editWarningMsg: "",
     createdAt: getAccurateNow().toISOString(),
     updatedAt: null,
   };
@@ -39,26 +41,28 @@ export const generateBlankEVA = (partialEVA?: Partial<Eva>): Eva => {
  */
 export function convertEVAsTypeDbToStore(dbEVAs: Eva_db[]): Eva[] {
   const evas: Eva[] = [];
-  for (const dbeva of dbEVAs) {
+  for (const dbEva of dbEVAs) {
     const convertedEVA: Eva = {
-      uuid: dbeva.uuid,
-      refUuid: dbeva.refUuid,
-      missionId: dbeva.mission.id,
-      name: dbeva.name,
-      status: dbeva.status,
-      sequence: dbeva.sequence,
-      description: dbeva.description,
-      duration: dbeva.duration,
-      traverseRate: dbeva.traverseRate,
-      egressDuration: dbeva.egressDuration,
-      ingressDuration: dbeva.ingressDuration,
-      egressLocationUuid: dbeva.egressLocationUuid,
-      ingressLocationUuid: dbeva.ingressLocationUuid,
-      ownerId: dbeva.ownerId,
-      traverseColor: dbeva.traverseColor,
-      datetime: dbeva.datetime,
-      createdAt: dbeva.createdAt.toISOString(),
-      updatedAt: dbeva.updatedAt.toISOString(),
+      uuid: dbEva.uuid,
+      refUuid: dbEva.refUuid,
+      missionId: dbEva.mission.id,
+      name: dbEva.name,
+      status: dbEva.status,
+      sequence: dbEva.sequence,
+      description: dbEva.description,
+      duration: dbEva.duration,
+      traverseRate: dbEva.traverseRate,
+      egressDuration: dbEva.egressDuration,
+      ingressDuration: dbEva.ingressDuration,
+      egressLocationUuid: dbEva.egressLocationUuid,
+      ingressLocationUuid: dbEva.ingressLocationUuid,
+      ownerId: dbEva.ownerId,
+      traverseColor: dbEva.traverseColor,
+      datetime: dbEva.datetime,
+      showEditWarning: dbEva.showEditWarning,
+      editWarningMsg: dbEva.editWarningMsg,
+      createdAt: dbEva.createdAt.toISOString(),
+      updatedAt: dbEva.updatedAt.toISOString(),
     };
     evas.push(convertedEVA);
   }
@@ -90,6 +94,8 @@ export function convertEVAsTypeStoreToDb(storeEVAs: Eva[]): EntityData<Eva_db>[]
       traverseColor: storeEva.traverseColor,
       ownerId: storeEva.ownerId,
       datetime: storeEva.datetime,
+      showEditWarning: storeEva.showEditWarning,
+      editWarningMsg: storeEva.editWarningMsg,
       updatedAt: new Date(storeEva.updatedAt),
       createdAt: new Date(storeEva.createdAt),
     };
