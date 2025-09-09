@@ -46,6 +46,7 @@ import isNull from "lodash/isNull";
 import { upsertRexByField } from "store/rex";
 import { thunkCancelRex, thunkDeleteRex, thunkSaveRex } from "store/thunk/thunkRex";
 import { LoadingOverlay } from "components/interface/_global-elements";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -69,6 +70,19 @@ const EvaRightEva: FunctionComponent = () => {
     const numMatchingRefUuids = state.eva.evas.filter((e) => e.refUuid === evaRefUuid).length;
     return numMatchingRefUuids > 1;
   }, refEqual);
+
+  // The as-planned eva edit settings
+  const editWarning: { showEditWarning: boolean; editWarningMsg: string } = useAppSelector(
+    (state) => {
+      const selectedEva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
+      const asPlannedEva = getAsPlannedEvaFromRefUuid(state, selectedEva.refUuid);
+      return {
+        showEditWarning: asPlannedEva?.showEditWarning,
+        editWarningMsg: asPlannedEva?.editWarningMsg,
+      };
+    },
+    deepEqual
+  );
 
   // get EVA and REX objects
   const partialSelectedEva = useAppSelector((state) => {
@@ -511,6 +525,11 @@ const EvaRightEva: FunctionComponent = () => {
                 ariaLabel="editEva"
                 icon={faEdit}
                 onClick={() => {
+                  if (editWarning.showEditWarning && !selectedRexIsExecuting) {
+                    window.alert(
+                      `Edit Warning:\n${editWarning.editWarningMsg || "Default warning message: Do not edit this EVA."}`
+                    );
+                  }
                   dispatch(setEvaEditMode({ evaUuid: partialSelectedEva.uuid, editMode: true }));
                 }}
                 label="Edit"

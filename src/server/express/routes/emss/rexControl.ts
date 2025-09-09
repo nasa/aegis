@@ -102,7 +102,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
           await new Promise((resolve) => setTimeout(resolve, random(100, 200)));
         } else {
           // some other kind of error happened
-          // re-throw it so the outer try/catch can grab it and exit the while loop
+          // re-throw it so the outer try/catch can grab it and exit the for loop
           throw e;
         }
       }

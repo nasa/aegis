@@ -412,3 +412,28 @@
   flex-direction: column;
   justify-content: space-around;
 }
+
+.textArea {
+  height: 100px;
+  background-color: var(--grey1);
+  color: #ffffff;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  cursor: text;
+  width: 100%;
+}
+
+.textAreaValue {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: white;
+  padding-left: 5px;
+  margin-top: 3px;
+  overflow: auto;
+  max-height: 450px;
+  white-space: pre-wrap; /* for line breaks */
+}
+
+.textAreaError {
+  border: 1px solid var(--error);
+}

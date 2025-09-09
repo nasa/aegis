@@ -451,3 +451,9 @@
   display: flex;
   flex-direction: column;
 }
+
+.evaCheckboxContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}

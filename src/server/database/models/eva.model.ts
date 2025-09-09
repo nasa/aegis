@@ -43,6 +43,10 @@ export class Eva_db implements Eva_db_type {
   ownerId: number;
   @Property({ type: MikroTypes.string, nullable: true })
   datetime: string;
+  @Property({ type: MikroTypes.boolean, nullable: false, default: false })
+  showEditWarning: boolean;
+  @Property({ type: MikroTypes.text, nullable: true })
+  editWarningMsg: string;
 
   @Property({ type: MikroTypes.datetime, length: 3 })
   createdAt!: Date;

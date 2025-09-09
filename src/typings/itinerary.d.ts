@@ -19,6 +19,8 @@ interface Eva {
   traverseColor: string;
   ownerId: number;
   datetime: string;
+  showEditWarning: boolean;
+  editWarningMsg: string;
 
   createdAt?: string;
   updatedAt?: string;

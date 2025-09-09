@@ -38,7 +38,7 @@ import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import Station_Circles_Panel from "./station-right-circles";
-import { selectAsPlannedStations } from "store/selectors";
+import { getAsPlannedEvaFromRefUuid, selectAsPlannedStations } from "store/selectors";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -111,6 +111,27 @@ const StationEditorRight: FunctionComponent = () => {
     const asPlannedStationUuids = selectAsPlannedStations(state).map((station) => station.uuid);
     return !asPlannedStationUuids.includes(selectedStationUuid);
   }, refEqual);
+
+  // If this station is part of an eva it will return the as-planned eva's edit warning settings
+  const evaEditWarning: {
+    showEditWarning: boolean;
+    editWarningMsg: string;
+    evaName: string;
+    evaRexIsRunning: boolean;
+  } | null = useAppSelector((state) => {
+    const stationEva = state.eva.evas.find((eva) =>
+      eva.sequence.some((seqItem) => seqItem.uuid === selectedStationUuid)
+    );
+    if (!stationEva) return null; // station is not part of an eva
+    const asPlannedEva = getAsPlannedEvaFromRefUuid(state, stationEva.refUuid);
+    const selectedRex = state.rex.rexesFromDb.find((rex) => rex.evaUuid === stationEva?.uuid);
+    return {
+      showEditWarning: asPlannedEva?.showEditWarning,
+      editWarningMsg: asPlannedEva?.editWarningMsg,
+      evaName: asPlannedEva?.name,
+      evaRexIsRunning: selectedRex?.isRunning,
+    };
+  }, deepEqual);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -277,6 +298,16 @@ const StationEditorRight: FunctionComponent = () => {
                 ariaLabel="editStation"
                 icon={faEdit}
                 onClick={() => {
+                  if (
+                    evaEditWarning &&
+                    evaEditWarning?.showEditWarning &&
+                    !evaEditWarning?.evaRexIsRunning
+                  ) {
+                    window.alert(
+                      `Edit Warning: This station is part of EVA ${evaEditWarning?.evaName} that has the following edit warning:
+                      \n${evaEditWarning?.editWarningMsg || "Default warning message: Do not edit this Station."}`
+                    );
+                  }
                   dispatch(
                     setStationEditMode({ stationUuid: selectedStation.uuid, editMode: true })
                   );
