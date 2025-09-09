@@ -6,7 +6,8 @@ import {
   OneToMany,
   Collection,
   types as MikroTypes,
-} from "@mikro-orm/core";
+} from "@mikro-orm/postgresql";
+
 import { Mission_db, STM_Level2_db } from "./_allModels";
 
 @Entity()

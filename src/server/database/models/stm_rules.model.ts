@@ -1,4 +1,11 @@
-import { Entity, PrimaryKey, Property, ManyToOne, types as MikroTypes } from "@mikro-orm/core";
+import {
+  Entity,
+  PrimaryKey,
+  Property,
+  ManyToOne,
+  types as MikroTypes,
+} from "@mikro-orm/postgresql";
+
 import { Mission_db } from "./_allModels";
 
 @Entity()

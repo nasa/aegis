@@ -1,17 +1,15 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { EntityData, Loaded } from "@mikro-orm/postgresql";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
 
+import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/postgresql";
+import express from "express";
+import cloneDeep from "lodash/cloneDeep";
+
+import { Layer_db } from "server/database/models/_allModels";
+import { convertLayersTypeDbToStore, convertLayersTypeStoreToDb } from "store/storeUtils/layer";
 import { hasPerms } from "utils/permissions";
 import { getEM } from "utils/mikro";
-import {
-  EntityData,
-  ForeignKeyConstraintViolationException,
-  Loaded,
-  QueryOrder,
-} from "@mikro-orm/core";
-import { Layer_db } from "server/database/models/_allModels";
-import cloneDeep from "lodash/cloneDeep";
-import { convertLayersTypeDbToStore, convertLayersTypeStoreToDb } from "store/storeUtils/layer";
 
 const router = express.Router();
 

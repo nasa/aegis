@@ -1,6 +1,9 @@
-import express, { Request, Response } from "express";
-import { getEM } from "utils/mikro";
+import type { Request, Response } from "express";
+
+import express from "express";
+
 import { Eva_db, Mission_db, Rex_db } from "server/database/models/_allModels";
+import { getEM } from "utils/mikro";
 
 export type MissionsWithEvas = {
   [missionId: number]: {

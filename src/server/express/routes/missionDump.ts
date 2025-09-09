@@ -1,5 +1,9 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { EntityManager } from "@mikro-orm/postgresql";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
+
+import express from "express";
+
 import {
   Mission_db,
   Station_db,
@@ -19,7 +23,6 @@ import {
   Folder_db,
 } from "server/database/models/_allModels";
 import { getEM } from "utils/mikro";
-import { EntityManager } from "@mikro-orm/core";
 
 const router = express.Router();
 

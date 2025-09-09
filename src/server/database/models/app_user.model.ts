@@ -1,5 +1,6 @@
-import { BeforeCreate, Entity, PrimaryKey, Property } from "@mikro-orm/core";
-import { types as MikroTypes } from "@mikro-orm/core";
+import { BeforeCreate, Entity, PrimaryKey, Property } from "@mikro-orm/postgresql";
+import { types as MikroTypes } from "@mikro-orm/postgresql";
+
 import * as bcrypt from "bcryptjs";
 
 @Entity()

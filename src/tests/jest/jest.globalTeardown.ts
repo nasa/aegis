@@ -1,4 +1,5 @@
-import { MikroORM } from "@mikro-orm/core";
+import { MikroORM } from "@mikro-orm/postgresql";
+
 import config from "../../server/database/mikro-orm.config";
 
 const globalTeardown = async (): Promise<void> => {

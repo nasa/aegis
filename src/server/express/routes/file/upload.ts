@@ -1,10 +1,12 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
 
+import path from "node:path";
+
+import express from "express";
 import multer from "multer";
-import path from "path";
-import { deleteFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
 
+import { deleteFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
 import { hasPerms } from "utils/permissions";
 
 // Express router to replace nextConnect

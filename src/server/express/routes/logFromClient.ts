@@ -1,6 +1,10 @@
+import type { Request, Response } from "express";
+
+import express from "express";
+
 import { sendClientLogsToLogstash } from "@emss/logger";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
-import express, { Request, Response } from "express";
+
 import { getUser } from "packages/getUser";
 import serverLogger from "utils/logging/serverLogger";
 

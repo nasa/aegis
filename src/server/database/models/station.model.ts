@@ -6,8 +6,9 @@ import {
   OneToMany,
   PrimaryKey,
   Property,
-} from "@mikro-orm/core";
-import { types as MikroTypes } from "@mikro-orm/core";
+} from "@mikro-orm/postgresql";
+import { types as MikroTypes } from "@mikro-orm/postgresql";
+
 import { Action_db, Mission_db, Poi_db } from "./_allModels";
 
 @Entity()

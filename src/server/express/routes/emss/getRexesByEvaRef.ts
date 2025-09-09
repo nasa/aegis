@@ -1,5 +1,7 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
+
+import express from "express";
 
 import { getEM } from "utils/mikro";
 import { Eva_db, Rex_db } from "server/database/models/_allModels";

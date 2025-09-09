@@ -1,13 +1,17 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
+
+import express from "express";
+
+import { Eva_db } from "server/database/models/eva.model";
+import { Rex_db } from "server/database/models/rex.model";
+import { Traverse_db } from "server/database/models/traverse.model";
 import { hasPerms } from "utils/permissions";
 import { makeExportTraverses } from "utils/export";
+import { getEM } from "utils/mikro";
+
 import { getAll } from "../all";
 import { getGridFromFile } from "../grid";
-import { Traverse_db } from "server/database/models/traverse.model";
-import { getEM } from "utils/mikro";
-import { Rex_db } from "server/database/models/rex.model";
-import { Eva_db } from "server/database/models/eva.model";
 
 const router = express.Router();
 

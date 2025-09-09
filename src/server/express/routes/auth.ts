@@ -1,8 +1,11 @@
-import express, { Request, Response } from "express";
+import type { Request, Response } from "express";
 
 import bcrypt from "bcryptjs";
+import express from "express";
+
 import { App_User_db } from "server/database/models/_allModels";
 import { getEM } from "utils/mikro";
+
 import { upsertUsers } from "./users";
 
 const router = express.Router();

@@ -1,6 +1,7 @@
-import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/core";
+import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/postgresql";
+import { types as MikroTypes } from "@mikro-orm/postgresql";
+
 import { Poi_db, Station_db, Mission_db, Traverse_db } from "./_allModels";
-import { types as MikroTypes } from "@mikro-orm/core";
 
 @Entity()
 export class Action_db implements Action_db_type {

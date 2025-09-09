@@ -1,9 +1,10 @@
-import express, { Request, Response } from "express";
-import { renameFile } from "server/file/file"; // Assuming this function is compatible with Express
-// Assuming you have a session middleware compatible with Express
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
 
-import { hasPerms } from "utils/permissions";
-import { Query } from "express-serve-static-core";
+import express from "express";
+
+import { renameFile } from "server/file/file"; // Assuming this function is compatible with Express
+import { hasPerms } from "utils/permissions"; // Assuming you have a session middleware compatible with Express
 
 const router = express.Router();
 

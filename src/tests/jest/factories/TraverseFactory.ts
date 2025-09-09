@@ -1,6 +1,8 @@
+import type { EntityData } from "@mikro-orm/postgresql";
+
 import { Factory } from "@mikro-orm/seeder";
+
 import { Traverse_db } from "server/database/models/_allModels";
-import { EntityData } from "@mikro-orm/core";
 import { convertTraversesTypeStoreToDb, generateBlankTraverse } from "store/storeUtils/traverse";
 
 export default class TraverseFactory extends Factory<Traverse_db> {

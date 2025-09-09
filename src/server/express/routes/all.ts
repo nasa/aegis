@@ -1,20 +1,22 @@
-import express, { Request, Response } from "express";
-import { hasPerms } from "utils/permissions";
-import { Query } from "express-serve-static-core";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
 
-import { getMission } from "./mission";
+import express from "express";
+
 import { getActions } from "./action";
 import { getEVAs } from "./eva";
+import { getFolders } from "./folder";
 import { getLayers } from "./layer";
+import { getMission } from "./mission";
 import { getSublayers } from "./sublayer";
 import { getPois } from "./poi";
 import { getPresets } from "./preset";
 import { getRexes } from "./rex";
 import { getStations } from "./station";
 import { getLevel1s, getLevel2s, getLevel3s } from "./stm";
-import { getTraverses } from "./traverse";
 import { getStmRules } from "./stmRules";
-import { getFolders } from "./folder";
+import { getTraverses } from "./traverse";
+import { hasPerms } from "utils/permissions";
 
 const router = express.Router();
 

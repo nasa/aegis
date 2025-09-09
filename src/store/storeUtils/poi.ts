@@ -1,7 +1,9 @@
-import { getAccurateNow } from "utils/formatting";
+import type { EntityData } from "@mikro-orm/postgresql";
+import type { Poi_db } from "server/database/models/_allModels";
+
 import { v4 as uuidv4 } from "uuid";
-import { Poi_db } from "server/database/models/_allModels";
-import { EntityData } from "@mikro-orm/core";
+
+import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank poi

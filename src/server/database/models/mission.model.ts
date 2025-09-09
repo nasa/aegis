@@ -1,4 +1,4 @@
-import { Entity, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/core";
+import { Entity, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/postgresql";
 
 @Entity()
 export class Mission_db implements Mission_db_type {

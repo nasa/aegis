@@ -1,7 +1,9 @@
-import express, { Request, Response } from "express";
-import { listFiles } from "server/file/file"; // Assuming this function is compatible with Express
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
 
-import { Query } from "express-serve-static-core";
+import express from "express";
+
+import { listFiles } from "server/file/file"; // Assuming this function is compatible with Express
 import { hasPerms } from "utils/permissions";
 
 // Define the GISfile type if it's not already defined elsewhere

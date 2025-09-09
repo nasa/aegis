@@ -1,4 +1,5 @@
-import { EntityManager } from "@mikro-orm/core";
+import type { EntityManager } from "@mikro-orm/postgresql";
+
 import {
   Mission_db,
   Station_db,
@@ -17,8 +18,9 @@ import {
   STM_Rule_db,
   Folder_db,
 } from "server/database/models/_allModels";
-import { createUuidMapping } from "./helpers";
 import { getAccurateNow } from "utils/formatting";
+
+import { createUuidMapping } from "./helpers";
 
 // Duplicate/Restore Stations
 export const processStations = (

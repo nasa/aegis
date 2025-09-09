@@ -1,16 +1,10 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { EntityData, EntityName, Loaded } from "@mikro-orm/postgresql";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
 
-import { hasPerms } from "utils/permissions";
+import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/postgresql";
+import express from "express";
 
-import { getEM } from "utils/mikro";
-import {
-  EntityData,
-  EntityName,
-  ForeignKeyConstraintViolationException,
-  Loaded,
-  QueryOrder,
-} from "@mikro-orm/core";
 import { STM_Level1_db, STM_Level2_db, STM_Level3_db } from "server/database/models/_allModels";
 import {
   convertStms1TypeDbToStore,
@@ -20,6 +14,8 @@ import {
   convertStms3TypeDbToStore,
   convertStms3TypeStoreToDb,
 } from "store/storeUtils/stm";
+import { getEM } from "utils/mikro";
+import { hasPerms } from "utils/permissions";
 
 const router = express.Router();
 

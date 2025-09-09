@@ -1,5 +1,8 @@
-import express, { Request, Response } from "express";
+import type { Request, Response } from "express";
+
+import express from "express";
 import sortBy from "lodash/sortBy";
+
 import { Mission_db, Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
