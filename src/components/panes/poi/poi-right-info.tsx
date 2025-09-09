@@ -15,7 +15,6 @@ import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 import { globalGrid } from "utils/mapping/grid";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
-import { SURF_NAV_MOON_MEAN_RADIUS } from "utils/consts";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 
 const Info_Panel: FunctionComponent<{
@@ -57,8 +56,13 @@ const Info_Panel: FunctionComponent<{
     return state.map.mapDirective?.uuid === selectedPoi.uuid ? state.map.mapDirective : null;
   }, shallowEqual);
 
+  const missionUsingLGRSCoordinates = useAppSelector(
+    (state) => state.mission.mission.usingLGRSCoordinates,
+    refEqual
+  );
+
   const poiGridCoordinates = useAppSelector((state) => {
-    if (selectedPoi.location && state.mission.mission.planetRadius === SURF_NAV_MOON_MEAN_RADIUS) {
+    if (selectedPoi.location && missionUsingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(selectedPoi.location.lat, selectedPoi.location.lng);
     } else if (selectedPoi.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
@@ -132,7 +136,7 @@ const Info_Panel: FunctionComponent<{
                     }}
                     style={{ cursor: "pointer" }}
                   >
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -148,7 +152,7 @@ const Info_Panel: FunctionComponent<{
                     }}
                     style={{ cursor: "pointer" }}
                   >
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Total Action Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -156,13 +160,13 @@ const Info_Panel: FunctionComponent<{
                         {poiCalcFields?.totalActionTime === 0 ? (
                           <>0</>
                         ) : (
-                          <>{poiCalcFields?.totalActionTime.toFixed(0)}</>
+                          <>{Math.round(poiCalcFields?.totalActionTime)}</>
                         )}
                       </div>
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Total Mass (g):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -172,7 +176,7 @@ const Info_Panel: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Stations using this POI:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -244,7 +248,7 @@ const Info_Panel: FunctionComponent<{
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Lat:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -282,7 +286,7 @@ const Info_Panel: FunctionComponent<{
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Lng:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -322,7 +326,7 @@ const Info_Panel: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Relative Elevation (m):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -336,7 +340,7 @@ const Info_Panel: FunctionComponent<{
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Grid Coords:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -351,7 +355,7 @@ const Info_Panel: FunctionComponent<{
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldLabel}>Last Edited:</div>
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>

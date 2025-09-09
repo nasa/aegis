@@ -8,7 +8,7 @@ import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselect
 import { thunkGetHighlightedActions } from "store/thunk/thunkAction";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
-import { decodeEmoji } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 
 const Actions_Panel: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -118,7 +118,9 @@ const Actions_Panel: FunctionComponent = () => {
                 return (
                   <div key={`${sequenceItem.uuid}-${index}`}>
                     <div className={actionsStyles.evaActionsStationTitleContainer}>
-                      <div className={evaStyles.iconCustomSmall}>{decodeEmoji(station.icon)}</div>
+                      <div className={evaStyles.iconCustomSmall}>
+                        <EmojiRenderer iconValue={station.icon} />
+                      </div>
                       <div>{station.name}</div>
                       <div className={actionsStyles.evaActionsStationTitleLine}></div>
                     </div>
@@ -145,12 +147,12 @@ const Actions_Panel: FunctionComponent = () => {
                     <div className={evaStyles.iconTraverseDotsContainerSmall}>
                       <div className={evaStyles.iconTraverseSmall} />
                     </div>
-                    <div>{traverse.name}</div>
+                    <div>{traverse?.name}</div>
                     <div className={actionsStyles.evaActionsStationTitleLine}></div>
                   </div>
                   <ActionList
                     editMode={false}
-                    actionOrderUuids={traverse.actionOrderUuids}
+                    actionOrderUuids={traverse?.actionOrderUuids}
                     parentType="traverse"
                     highlightActions={highlightActions}
                     isActionHighlighted={isActionHiglighted}

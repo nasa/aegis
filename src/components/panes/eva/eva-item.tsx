@@ -84,7 +84,7 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
   const evaTraversesForModified = useAppSelector((state) => {
     const traverseUuidInEva = thisEva?.sequence.filter((item) => item.type === "traverse");
     const traverseSubset = state.traverse.traverses.filter((traverse) =>
-      traverseUuidInEva.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
+      traverseUuidInEva?.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
     );
     return traverseSubset.map((traverse) => {
       return { uuid: traverse.uuid, updatedAt: traverse.updatedAt };

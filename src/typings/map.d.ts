@@ -105,6 +105,8 @@ type MissionSelectProperties = Pick<
   | "projOriginX"
   | "projOriginY"
   | "circleDefinitions"
+  | "usingLGRSCoordinates"
+  | "actionDefinitions"
 >;
 
 type GridLabelItem = {

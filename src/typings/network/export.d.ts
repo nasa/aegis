@@ -5,6 +5,7 @@ interface ExportMission extends Mission {
 interface ExportAction extends Action {
   _itemType: string;
   descriptionReadable: string;
+  descriptionTaskReadable: string;
   parentPoiName: string;
   parentStationName: string;
   parentTraverseName: string;
@@ -17,6 +18,7 @@ interface ExportAction extends Action {
   actionDefinitionReadable: ActionDefinitionReadable | null;
   stmPrioritiesReadable: StmPriorityReadable[] | null;
   gridCoordinates: string;
+  rexUuid: string | null; // the rex uuid if this action is in an EVA that is in a rex
 }
 
 interface ActionDefinitionReadable {
@@ -56,6 +58,7 @@ interface ExportStation extends Station {
   poisAssociatedReadable: PoiSummaryReadable[];
   gridCoordinates: string;
   actionOrderRefUuids: string[];
+  rexUuid: string | null; // the rex uuid if this station is in an EVA that is in a rex
 }
 
 interface ExportStationCalculatedFields extends StationCalculatedFields {
@@ -68,6 +71,7 @@ interface ExportTraverse extends Traverse {
   calculatedFields: TraverseCalculatedFields;
   actionsReadable: ExportAction[];
   actionOrderRefUuids: string[];
+  rexUuid: string | null; // the rex uuid if this traverse is in an EVA that is in a rex
 }
 
 interface EvaSequenceItemRefUuid extends EvaSequenceItem {
@@ -81,6 +85,7 @@ interface ExportEva extends Eva {
   egressLocationRefUuid: string; // station refUuid or "lander"
   ingressLocationRefUuid: string; // station refUuid or "lander"
   calculatedFields: ExportEvaCalculatedFields;
+  rexUuid: string | null; // the rex uuid if this eva is in a rex
 }
 
 interface ExportEvaCalculatedFields extends EvaCalculatedFields {

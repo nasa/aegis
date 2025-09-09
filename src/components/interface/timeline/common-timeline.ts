@@ -83,7 +83,13 @@ export const processEvaDataFromStore = ({
         EVASequenceItemForTimeline.stationElevation = mission.landerElevationMeters;
         EVASequenceItemForTimeline.stationDistFromLanderMeters = 0;
         EVASequenceItemForTimeline.stationWalkback = null;
-        EVASequenceItemForTimeline.icon = "1f680"; //rocket
+        // get egress location from eva. If station, set the icon to the station icon, otherwise set it to null
+        let egressIcon = null;
+        if (selectedEva.egressLocationUuid !== "lander") {
+          const egressStation = evaStations.find((s) => s.uuid === selectedEva.egressLocationUuid);
+          egressIcon = egressStation ? egressStation.icon : null;
+        }
+        EVASequenceItemForTimeline.icon = egressIcon; // replaced at render time with lander image
       } else if (sequenceItem.uuid === "ingress") {
         EVASequenceItemForTimeline.name = "Ingress";
         EVASequenceItemForTimeline.totalDurationMins = selectedEva.ingressDuration;
@@ -92,7 +98,15 @@ export const processEvaDataFromStore = ({
         EVASequenceItemForTimeline.stationElevation = mission.landerElevationMeters;
         EVASequenceItemForTimeline.stationDistFromLanderMeters = 0;
         EVASequenceItemForTimeline.stationWalkback = null;
-        EVASequenceItemForTimeline.icon = "1f680"; //rocket
+        // get ingress location from eva. If station, set the icon to the station icon, otherwise set it to null
+        let ingressIcon = null;
+        if (selectedEva.ingressLocationUuid !== "lander") {
+          const ingressStation = evaStations.find(
+            (s) => s.uuid === selectedEva.ingressLocationUuid
+          );
+          ingressIcon = ingressStation ? ingressStation.icon : null;
+        }
+        EVASequenceItemForTimeline.icon = ingressIcon;
       } else {
         const station = evaStations.find((s) => s?.uuid === sequenceItem.uuid);
         if (!station) continue; //skip if station doesn't exist (happens when station hasn't been selected yet when editing sequence)

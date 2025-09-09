@@ -53,7 +53,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 <div className={paneStyles.panelSection2Column}>
                   <div className={paneStyles.panelColumnTable}>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.inputFieldLabel}>Maestro Controlled:</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -84,11 +84,35 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         </div>
                       </div>
                     </div>
-                    <div className={paneStyles.panelColumnTableRow}>
+                    {selectedRex.maestroControlled && (
+                      <>
+                        <div className={paneStyles.panelColumnTableRow}>
+                          <div className={paneStyles.panelColumnTableCell}>
+                            <div className={paneStyles.inputFieldLabel}>Event ID:</div>
+                          </div>
+                          <div className={paneStyles.panelColumnTableCell}>
+                            <div className={rexStyles.selectedEvaLabelRight}>
+                              <div>{selectedRex.maestroEventId || "None"}</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className={paneStyles.panelColumnTableRow}>
+                          <div className={paneStyles.panelColumnTableCell}>
+                            <div className={paneStyles.inputFieldLabel}>Event URL:</div>
+                          </div>
+                          <div className={paneStyles.panelColumnTableCell}>
+                            <div className={rexStyles.selectedEvaLabelRight}>
+                              <div>{selectedRex.maestroEventUrl || "None"}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <div className={paneStyles.panelColumnTableRow} style={{ height: "2.5em" }}>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.inputFieldLabel}>Execution Status:</div>
                       </div>
-                      <div className={rexStyles.evaDropdownContainer}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         {editMode && selectedRex.evaUuid && !isOtherRexRunning ? (
                           <Button
                             onClick={() => {
@@ -101,7 +125,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                   )
                                 );
 
-                                if (!selectedRex.posEntries) {
+                                if (
+                                  !selectedRex.posEntries ||
+                                  selectedRex.posEntries.length === 0
+                                ) {
                                   dispatch(thunkCreateInitialPosEntries());
                                 }
 
@@ -119,7 +146,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               }
                             }}
                             label={selectedRex.isRunning ? "Stop Execution" : "Execute EVA"}
-                            style={{ width: "130px", marginTop: "10px" }}
+                            style={{ width: "130px" }}
                           />
                         ) : (
                           <div className={rexStyles.selectedEvaLabelRight}>
@@ -149,7 +176,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     <FontAwesomeIcon
                       icon={faHexagonNodes}
                       data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html="Some fields in this section are Maestro controlled"
+                      data-tooltip-html="Fields in this section are Maestro controlled"
                     />
                   </div>
                 )}
@@ -191,7 +218,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                     name: "petSeconds",
                                     ariaLabel: "PET Timer",
                                     style: { width: "90px" },
-                                    validators: [validators.maxLength(9), validators.mustBeHHMMSS],
+                                    validators: [
+                                      validators.maxLength(9),
+                                      validators.mustBeHHMMSS,
+                                      validators.required,
+                                    ],
                                     onChange: () => {},
                                   }}
                                   onSubmit={(val: string) => {

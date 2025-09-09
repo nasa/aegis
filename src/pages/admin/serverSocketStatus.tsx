@@ -108,8 +108,8 @@ const PrintUsers: FunctionComponent<{
             launchpadUsers.findIndex((visitor) => visitor?.uupic === user?.uupic) === index
         );
         uniqueUsers.sort((a, b) => {
-          const sa = a.surname || "";
-          const sb = b.surname || "";
+          const sa = a?.surname || "";
+          const sb = b?.surname || "";
           return sa.localeCompare(sb);
         });
 
@@ -142,11 +142,11 @@ const PrintUsers: FunctionComponent<{
               <ul>
                 {uniqueUsers.map((user) => {
                   const allVisitorRecords = missionVisitorData.filter(
-                    (visitor) => visitor.launchpadUser.uupic === user.uupic
+                    (visitor) => visitor.launchpadUser?.uupic === user?.uupic
                   );
                   const displayName = user?.display_name || `${user?.surname}, ${user?.givenname}`;
                   return (
-                    <li key={`${missionId}-${user.uupic}`}>
+                    <li key={`${missionId}-${user?.uupic}`}>
                       ({allVisitorRecords.length}) {displayName}
                       {allVisitorRecords.map((record, index) => {
                         return (

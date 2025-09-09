@@ -1,8 +1,10 @@
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
 import {
+  Checkbox,
   Dropdown,
   InLineEditInput,
   PathColorPickerMenu,
+  TextArea,
 } from "components/interface/form/globalFields";
 import { FunctionComponent, useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -26,15 +28,16 @@ import {
   faQuestionCircle,
   faToolbox,
   faRoute,
+  faLock,
 } from "@fortawesome/free-solid-svg-icons";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
-import { decodeEmoji } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 import { faClock } from "@fortawesome/free-regular-svg-icons";
 import { thunkChangeIngressEgress } from "store/thunk/thunkEva";
-import { selectAsPlannedStations } from "store/selectors";
+import { getAsPlannedEvaFromRefUuid, selectAsPlannedStations } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
 
 type XgressData = {
@@ -48,6 +51,18 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
+    deepEqual
+  );
+  // The as-planned eva edit settings
+  const editWarning: { showEditWarning: boolean; editWarningMsg: string } = useAppSelector(
+    (state) => {
+      const selectedEva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
+      const asPlannedEva = getAsPlannedEvaFromRefUuid(state, selectedEva.refUuid);
+      return {
+        showEditWarning: asPlannedEva?.showEditWarning,
+        editWarningMsg: asPlannedEva?.editWarningMsg,
+      };
+    },
     deepEqual
   );
   // returns rex name if this is a rex eva, else returns null
@@ -179,7 +194,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     if (isISOString(`${evaDate}T${evaTime}Z`)) {
       newDatetime = getISOStringFromDateAndTime(evaDate, evaTime);
     }
-    console.log(newDatetime);
     dispatch(upsertEvaByField(selectedEva.uuid, "datetime", newDatetime));
   }
 
@@ -215,6 +229,90 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading
+                icon={faLock}
+                helpCopy={`Show popup warning if a user tries to edit this EVA, or any station used in this EVA, or any executions created from this EVA.
+                        <br /><br />This is intended to be turned on when this EVA's linked Maestro procedure is finalized and submitted in a flight note
+                        to deter editors from changing things after this point. Turning this on will not actually prevent any edits from happening.
+                        It will simply show a warning when an edit is initiated.`}
+              >
+                Deter Editing
+              </SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSection2Column} style={{ paddingTop: "5px" }}>
+              <div className={paneStyles.panelColumnTable}>
+                {rexEvaName && (
+                  <div className={paneStyles.panelDisplayVal} style={{ paddingBottom: "5px" }}>
+                    These fields are controlled by the as-planned EVA
+                  </div>
+                )}
+
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCell} style={{ minWidth: "120px" }}>
+                    <div className={paneStyles.displayFieldLabel}>Display Edit Warning:</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.displayFieldValue}>
+                      {editMode && !rexEvaName ? (
+                        <div className={evaStyles.evaCheckboxContainer}>
+                          <Checkbox
+                            checked={editWarning.showEditWarning}
+                            editable={editMode}
+                            onChange={(e) => {
+                              dispatch(
+                                upsertEvaByField(
+                                  selectedEva.uuid,
+                                  "showEditWarning",
+                                  e.target.checked
+                                )
+                              );
+                            }}
+                            label=""
+                            labelStyle={null}
+                            labelPlacement="left"
+                            uniqueId="showEditWarning"
+                          />
+                        </div>
+                      ) : (
+                        <div>{editWarning.showEditWarning ? "Yes" : "No"}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCell} style={{ verticalAlign: "top" }}>
+                    <div
+                      className={paneStyles.displayFieldLabel}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-html="Optional warning message to display. If left blank, a generic message will be shown."
+                    >
+                      Warning Message:
+                    </div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell} style={{ width: "100%" }}>
+                    <div className={paneStyles.inputFieldValue}>
+                      <TextArea
+                        value={editWarning.editWarningMsg || ""}
+                        editing={editMode && !rexEvaName}
+                        fieldProps={{
+                          name: "editWarningMsg",
+                          ariaLabel: "Edit Warning Message",
+                          validators: [validators.maxLength(1024)],
+                        }}
+                        onSubmit={(val: string) => {
+                          dispatch(upsertEvaByField(selectedEva.uuid, "editWarningMsg", val || ""));
+                        }}
+                        key={`${selectedEva.uuid}-editWarningMsg`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
@@ -236,7 +334,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldLabel}>Traverse Color:</div>
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
@@ -265,14 +363,14 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>EVA Egress Location:</div>
                     </div>
                   </div>
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>EVA Ingress Location:</div>
                     </div>
                   </div>
@@ -283,7 +381,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         {editMode ? (
                           <Dropdown
@@ -319,7 +417,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         ) : (
                           <div className={evaStyles.stationWrapperRight}>
                             <div className={evaStyles.iconCustomSmall}>
-                              {decodeEmoji(egressData.icon)}
+                              <EmojiRenderer iconValue={egressData.icon} />
                             </div>
                             <div className={evaStyles.stationNameRight}>{egressData.name}</div>
                           </div>
@@ -330,7 +428,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         {editMode ? (
                           <Dropdown
@@ -366,7 +464,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         ) : (
                           <div className={evaStyles.stationWrapperRight}>
                             <div className={evaStyles.iconCustomSmall}>
-                              {decodeEmoji(ingressData.icon)}
+                              <EmojiRenderer iconValue={ingressData.icon} />
                             </div>
                             <div className={evaStyles.stationNameRight}>{ingressData.name}</div>
                           </div>
@@ -381,7 +479,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>Egress Duration (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -418,7 +516,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>Ingress Duration (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -524,7 +622,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>Duration (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -561,7 +659,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>Traverse Rate (km/h):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -592,7 +690,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div style={{ color: "var(--grey5)" }} className={paneStyles.inputFieldLabel}>
                         {makeTraverseRateString(
                           selectedEva.traverseRate,
@@ -616,7 +714,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 <div className={paneStyles.panelSection2Column}>
                   <div className={paneStyles.panelColumnTable}>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldLabel}>EVA Duration (mins):</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -635,12 +733,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                               : undefined
                           }
                         >
-                          {evaCalculatedFields.totalEvaTime.toFixed(0) || 0}
+                          {Math.round(evaCalculatedFields.totalEvaTime) || 0}
                         </div>
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldLabel}>Traverse Time (mins):</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -648,13 +746,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           {evaCalculatedFields.totalTraverseTime === 0 ? (
                             <>0</>
                           ) : (
-                            evaCalculatedFields.totalTraverseTime.toFixed(0)
+                            Math.round(evaCalculatedFields.totalTraverseTime)
                           )}
                         </div>
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldLabel}>Traverse Distance (m):</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -670,7 +768,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     <div className={paneStyles.panelColumnTableRow}>
                       <div className={paneStyles.panelColumnTable}>
                         <div className={paneStyles.panelColumnTableRow}>
-                          <div className={paneStyles.panelColumnTableCellLeft}>
+                          <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldLabel}>Total Ascent (m):</div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
@@ -682,7 +780,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           </div>
                         </div>
                         <div className={paneStyles.panelColumnTableRow}>
-                          <div className={paneStyles.panelColumnTableCellLeft}>
+                          <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldLabel}>Total Descent (m):</div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
@@ -700,7 +798,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     <CalculatedDwell actionsCalculatedFields={evaCalculatedFields} />
                     <div className={paneStyles.panelColumnTableRow}>&nbsp;</div>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -710,7 +808,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldLabel}>
                           Total Action Time (mins):
                         </div>
@@ -720,13 +818,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           {evaCalculatedFields.totalActionTime === 0 ? (
                             <>0</>
                           ) : (
-                            evaCalculatedFields.totalActionTime.toFixed(0)
+                            Math.round(evaCalculatedFields.totalActionTime)
                           )}
                         </div>
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
-                      <div className={paneStyles.panelColumnTableCellLeft}>
+                      <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldLabel}>Total Mass (g):</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -755,7 +853,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           className={paneStyles.panelColumnTableRow}
                           key={`${equipmentItem.name}${index}`}
                         >
-                          <div className={paneStyles.panelColumnTableCellLeft}>
+                          <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
@@ -776,7 +874,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           className={paneStyles.panelColumnTableRow}
                           key={`${equipmentItem.name}${index}`}
                         >
-                          <div className={paneStyles.panelColumnTableCellLeft}>
+                          <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
@@ -796,7 +894,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldLabel}>Last Edited:</div>
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>

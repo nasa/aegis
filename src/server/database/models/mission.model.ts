@@ -77,6 +77,8 @@ export class Mission_db implements Mission_db_type {
   actionDefinitions: ActionDefinitions;
   @Property({ type: MikroTypes.boolean, default: false })
   isArchived: boolean;
+  @Property({ type: MikroTypes.boolean, default: false })
+  usingLGRSCoordinates: boolean;
 
   @Property({ type: MikroTypes.datetime, length: 3 })
   createdAt!: Date;

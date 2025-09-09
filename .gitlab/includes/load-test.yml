@@ -1,0 +1,152 @@
+#
+# This file handles the load test setup/job
+#
+
+stages:
+  - stageless
+
+# Sets up a username and database on the docker container of the server
+.setup-load-test-template:
+  when: manual
+  stage: stageless
+  needs:
+    - make-dotenv
+  script:
+    # init sudo ability
+    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
+    - PROJECT_DIR=$(pwd)
+    - cd /opt/aegis
+
+    # Load environment variables from the .env artifact so we can read
+    # the LOADTEST_PASSWORD variable
+    - source .env
+
+    # Install apache2-utils for htpasswd to create a bcrypt hashed password
+    - sudo apt-get update && sudo apt-get install -y apache2-utils
+    - |
+      BCRYPT_HASH=$(htpasswd -nbB user "${LOADTEST_PASSWORD}" | cut -d: -f2)
+
+    # add user to the database only if it doesn't already exist
+    - sudo docker compose exec database psql -U postgres -d aegis -c "INSERT INTO app_user_db (username, password, is_super_admin, created_at, updated_at) SELECT 'loadtest', '${BCRYPT_HASH}', true, NOW(), NOW() WHERE NOT EXISTS (SELECT 1 FROM app_user_db WHERE username = 'loadtest');"
+
+setup-load-test:int:
+  extends: .setup-load-test-template
+  needs:
+    - deploy:int # ensure the database is deployed before running this job
+  tags: ["emss-aegis-int"]
+  variables:
+    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
+  resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
+  only:
+    - int
+
+setup-load-test:carbon:
+  extends:
+    - .setup-load-test-template
+    - .carbon-deploy # use the deploy template since we are modifying the database
+  needs:
+    - deploy:carbon
+
+setup-load-test:gold:
+  extends:
+    - .setup-load-test-template
+    - .gold-deploy # use the deploy template since we are modifying the database
+  needs:
+    - deploy:gold
+
+setup-load-test:iron:
+  extends:
+    - .setup-load-test-template
+    - .iron-deploy # use the deploy template since we are modifying the database
+  needs:
+    - deploy:iron
+
+setup-load-test:neon:
+  extends:
+    - .setup-load-test-template
+    - .neon-deploy # use the deploy template since we are modifying the database
+  needs:
+    - deploy:neon
+
+setup-load-test:oxygen:
+  extends:
+    - .setup-load-test-template
+    - .oxygen-deploy # use the deploy template since we are modifying the database
+  needs:
+    - deploy:oxygen
+
+# Runs the actual load test on 16 shards. Each one will start 30 (defined in startLoadTest.ts) clients
+.run-load-test-template:
+  when: manual
+  stage: stageless
+  image: "$CURRENT_NODE_VERSION_IMAGE"
+  timeout: 10 minutes
+  parallel: 16
+  tags:
+    - openshift-test
+  variables:
+    GIT_COMMIT: $CI_COMMIT_SHORT_SHA
+  script:
+    # Load environment variables from the .env artifact so we can read
+    # the LOADTEST_PASSWORD variable at runtime
+    - source .env
+
+    - npm run api:build
+    - node ./.local/express/dist/startLoadTest.js https://${SERVER_SUBDOMAIN}.fit.nasa.gov/
+
+run-load-test:int:
+  extends: .run-load-test-template
+  needs:
+    - setup-load-test:int
+    - install_dependencies
+    - make-dotenv
+  variables:
+    SERVER_SUBDOMAIN: aegis-int
+  resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
+  only:
+    - int
+
+run-load-test:carbon:
+  extends: .run-load-test-template
+  needs:
+    - setup-load-test:carbon
+    - install_dependencies
+    - make-dotenv
+  variables:
+    SERVER_SUBDOMAIN: carbon-emss-dev
+
+run-load-test:gold:
+  extends: .run-load-test-template
+  needs:
+    - setup-load-test:gold
+    - install_dependencies
+    - make-dotenv
+  variables:
+    SERVER_SUBDOMAIN: gold-emss-dev
+
+run-load-test:iron:
+  extends: .run-load-test-template
+  needs:
+    - setup-load-test:iron
+    - install_dependencies
+    - make-dotenv
+  variables:
+    SERVER_SUBDOMAIN: iron-emss-dev
+
+run-load-test:neon:
+  extends: .run-load-test-template
+  needs:
+    - setup-load-test:neon
+    - install_dependencies
+    - make-dotenv
+  variables:
+    SERVER_SUBDOMAIN: neon-emss-dev
+
+run-load-test:oxygen:
+  extends: .run-load-test-template
+  needs:
+    - setup-load-test:oxygen
+    - install_dependencies
+    - make-dotenv
+  variables:
+    SERVER_SUBDOMAIN: oxygen-emss-dev

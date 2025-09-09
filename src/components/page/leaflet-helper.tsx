@@ -6,12 +6,12 @@ import VectorTileLayer from "leaflet-vector-tile-layer";
 import { Dispatch, MutableRefObject, SetStateAction } from "react";
 import ReactDOMServer from "react-dom/server";
 import {
-  decodeEmoji,
   getDateAndTimeFromISOString,
   getPercentOrDefault,
   hhmmssFromSeconds,
   secondsFromhhmmss,
 } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import {
   convertLeafletLatLngToAegisPoint,
   convertLeafletLatLngsToAegisPoints,
@@ -266,10 +266,11 @@ export const drawOrUpdateMarkerOnMap = async ({
       <div
         className={`${isWin10 ? styles.mapIconWin10 : styles.mapIcon} ${isWin10 ? iconWin10ClassName : iconClassName}`}
       >
-        {decodeEmoji(iconEmoji)}
+        <EmojiRenderer iconValue={iconEmoji} customSizeEm={1.8} />
       </div>
     </div>
   );
+
   const icon = L.divIcon({ html });
 
   const existingLayer = getMapItemByUuid(map, uuid, mapItemType) as AEGISMarker;
@@ -331,7 +332,7 @@ export const drawLanderOnMap = async ({
   onClick = () => {},
   onDragEnd = () => {},
   tooltipOptions = {},
-  sizePx = 35,
+  sizePx = 30,
 }: {
   map: MutableRefObject<L.Map>;
   location: AEGISPoint;
@@ -345,21 +346,11 @@ export const drawLanderOnMap = async ({
   const name = "Lander";
   const uuid = "lander";
 
-  // Create custom SVG icon for lander
-  const html = ReactDOMServer.renderToString(
-    <div className={styles.iconWrapper}>
-      <div className={styles.mapLanderIcon}>
-        <img
-          style={{
-            width: `${sizePx}px`,
-            height: `${sizePx}px`,
-          }}
-          src="/images/lander.svg"
-        ></img>
-      </div>
-    </div>
-  );
-  const icon = L.divIcon({ html });
+  const icon = L.icon({
+    iconUrl: "/images/lander.svg",
+    iconSize: [sizePx, sizePx],
+    iconAnchor: [sizePx / 2, sizePx / 2],
+  });
 
   const existingLayer = getMapItemByUuid(map, uuid, "lander") as AEGISMarker;
 
@@ -368,7 +359,7 @@ export const drawLanderOnMap = async ({
     existingLayer.setIcon(icon);
   } else {
     const marker = L.marker(location as AEGISPoint, {
-      icon,
+      icon: icon,
     }) as AEGISMarker;
     marker.uuid = uuid;
     marker.mapItemType = "lander";
@@ -694,9 +685,12 @@ export const drawPosMarkerOnMap = async ({
 
     const jsx =
       overrideEVIcon && entryPosType.name.substring(0, 2) === "EV" ? (
-        // draw custom SVG icon for EVs. On the mini map, make it smaller
+        // draw custom SVG icon for EVs. On the mini map, make it smaller - apply small offset for stacking
         <div
           className={miniMap ? styles.mapEVIconMinimap : styles.mapEVIcon}
+          style={{
+            transform: `translate(calc(-50% + ${count * 2}px), 0px)`,
+          }}
           key={`icon_${posTypeUuid}`}
         >
           <img
@@ -707,13 +701,13 @@ export const drawPosMarkerOnMap = async ({
           ></img>
         </div>
       ) : (
-        // draw the emoji as is
+        // draw the emoji as is - use count offset for stacking
         <div
           className={`${isWin10 ? styles.posIconWin10 : styles.posIcon} ${isWin10 ? iconWin10ClassName : iconClassName}`}
           style={{ left: count * 2, top: count * 2 }}
           key={`icon_${posTypeUuid}`}
         >
-          {decodeEmoji(entryPosType?.icon)}
+          <EmojiRenderer iconValue={entryPosType?.icon} />
         </div>
       );
 
@@ -731,6 +725,11 @@ export const drawPosMarkerOnMap = async ({
   const posTypeUuidsEmojisToShow = showOldMarkers
     ? posTypeUuids
     : overridePosTypesUuidsToDraw || posTypeUuids;
+
+  // Don't create marker if there's nothing to show
+  if (!posTypeUuidsEmojisToShow || posTypeUuidsEmojisToShow.length === 0) {
+    return null;
+  }
 
   // draw icons and bars. draw icons in reverse order so the first one is on top
   const jsx = (

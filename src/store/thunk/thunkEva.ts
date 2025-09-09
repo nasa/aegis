@@ -72,31 +72,9 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   if (!evaUuid) return;
   const eva = cloneDeep(getState().eva.evas.find((e) => e.uuid === evaUuid));
 
-  // prune traverses from the db that are no longer in any EVA
-  // this can happen as users are adding/removing stations, and subsequently traverses, from the EVA sequence
-  const traverseUuidsInAnyEva: string[] = [];
-  getState().eva.evas.forEach((eva) => {
-    eva.sequence.forEach((sequenceItem) => {
-      if (sequenceItem.type === "traverse") {
-        traverseUuidsInAnyEva.push(sequenceItem.uuid);
-      }
-    });
-  });
-  const traversesToDelete = getState().traverse.traversesFromDb.filter((traverse) => {
-    return !traverseUuidsInAnyEva.includes(traverse.uuid);
-  });
-  if (traversesToDelete.length > 0) {
-    const traverseToDeleteUuids = traversesToDelete.map((t) => t.uuid);
-    const deleteTraverseRes = await httpClient_Traverse.deleteTraverses(traverseToDeleteUuids);
-    if (deleteTraverseRes.status !== "success") {
-      throw new Error("Error deleting traverses in evaSave: " + deleteTraverseRes.message);
-    }
-    dispatch(deleteTraversesFromDbByUuid(traverseToDeleteUuids));
-    dispatch(deleteTraversesByUuid(traverseToDeleteUuids));
-  }
-
   // if this is rex eva, duplicate any stations in sequences we newly changed to, or any new ingress/egress stations
   // and delete the old sequence stations and old ingress/egress stations
+  const stationUuidsToDelete: string[] = [];
   const isRexEva = getState().rex.rexes.some((r) => r.evaUuid === eva.uuid);
   if (isRexEva) {
     // check any sequences changes
@@ -122,15 +100,8 @@ export const thunkSaveEva = appCreateAsyncThunk<{
               throw new Error("Error duplicating station in thunkSaveEva");
             }
           }
-          if (oldSequence[i]) {
-            // delete the old station
-            const deleteRes = await dispatch(
-              thunkDeleteStations({ stationUuids: [oldSequence[i].uuid], skipValidation: true })
-            );
-            if (deleteRes.meta.requestStatus === "rejected") {
-              throw new Error("Error deleting station in thunkSaveEva");
-            }
-          }
+          // delete the old station
+          if (oldSequence[i]) stationUuidsToDelete.push(oldSequence[i].uuid);
         }
       }
     }
@@ -151,15 +122,8 @@ export const thunkSaveEva = appCreateAsyncThunk<{
           throw new Error("Error duplicating ingress station in thunkSaveEva");
         }
       }
-      if (oldEva.ingressLocationUuid !== "lander") {
-        // delete the old ingress station
-        const deleteRes = await dispatch(
-          thunkDeleteStations({ stationUuids: [oldEva.ingressLocationUuid] })
-        );
-        if (deleteRes.meta.requestStatus === "rejected") {
-          throw new Error("Error deleting ingress station in thunkSaveEva");
-        }
-      }
+      if (oldEva.ingressLocationUuid !== "lander")
+        stationUuidsToDelete.push(oldEva.ingressLocationUuid);
     }
     // check egress
     if (eva.egressLocationUuid !== oldEva.egressLocationUuid) {
@@ -177,15 +141,8 @@ export const thunkSaveEva = appCreateAsyncThunk<{
           throw new Error("Error duplicating egress station in thunkSaveEva");
         }
       }
-      if (oldEva.egressLocationUuid !== "lander") {
-        // delete the old egress station
-        const deleteRes = await dispatch(
-          thunkDeleteStations({ stationUuids: [oldEva.egressLocationUuid] })
-        );
-        if (deleteRes.meta.requestStatus === "rejected") {
-          throw new Error("Error deleting egress station in thunkSaveEva");
-        }
-      }
+      if (oldEva.egressLocationUuid !== "lander")
+        stationUuidsToDelete.push(oldEva.egressLocationUuid);
     }
   }
 
@@ -216,6 +173,42 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   dispatch(upsertEvas([eva], true));
   dispatch(upsertEvasFromDb([eva]));
   dispatch(setEvaEditMode({ evaUuid: eva.uuid, editMode: false }));
+
+  // finally delete anything that needs to be deleted that we held off on earlier
+  // do this last to avoid race conditions as components try to re-render with the new data
+
+  // delete stations
+  if (stationUuidsToDelete.length > 0) {
+    const deleteRes = await dispatch(
+      thunkDeleteStations({ stationUuids: stationUuidsToDelete, skipValidation: true })
+    );
+    if (deleteRes.meta.requestStatus === "rejected") {
+      throw new Error("Error deleting station in thunkSaveEva");
+    }
+  }
+
+  // prune traverses from the db that are no longer in any EVA
+  // this can happen as users are adding/removing stations, and subsequently traverses, from the EVA sequence
+  const traverseUuidsInAnyEva: string[] = [];
+  getState().eva.evas.forEach((eva) => {
+    eva.sequence.forEach((sequenceItem) => {
+      if (sequenceItem.type === "traverse") {
+        traverseUuidsInAnyEva.push(sequenceItem.uuid);
+      }
+    });
+  });
+  const traversesToDelete = getState().traverse.traversesFromDb.filter((traverse) => {
+    return !traverseUuidsInAnyEva.includes(traverse.uuid);
+  });
+  if (traversesToDelete.length > 0) {
+    const traverseToDeleteUuids = traversesToDelete.map((t) => t.uuid);
+    const deleteTraverseRes = await httpClient_Traverse.deleteTraverses(traverseToDeleteUuids);
+    if (deleteTraverseRes.status !== "success") {
+      throw new Error("Error deleting traverses in evaSave: " + deleteTraverseRes.message);
+    }
+    dispatch(deleteTraversesFromDbByUuid(traverseToDeleteUuids));
+    dispatch(deleteTraversesByUuid(traverseToDeleteUuids));
+  }
 });
 
 /**
@@ -301,8 +294,10 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
   if (getState().eva.selectedEvaUuid === evaUuid) dispatch(setSelectedEvaUuid(null));
 
   // Handle if deleting an "as planned" EVA (aka no REX attached)
+  //  Check "forRex" because when thunkDeleteEva is triggered from thunkDeleteRex,
+  //  the rex is already deleted at this point.
   const allRexEvaUuids = getState().rex.rexes.map((r) => r.evaUuid);
-  if (!allRexEvaUuids.includes(eva.uuid)) {
+  if (!allRexEvaUuids.includes(eva.uuid) && !forRex) {
     // This eva does not belong to any REX, so this is a planned EVA.
     // Delete the rexes and their evas first
     const evaUuidsWithMatchingRefUuid = getState()
@@ -443,26 +438,39 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
   {
     evaUuid: string;
     includeStations: boolean;
-    forRex: boolean;
+    isRexEva: boolean; // set to true if this eva is being duplicated for creating a rex
   },
   Eva,
   false
->("evaDuplicate", async ({ evaUuid, includeStations, forRex }, { dispatch, getState }) => {
+>("evaDuplicate", async ({ evaUuid, includeStations, isRexEva }, { dispatch, getState }) => {
   if (!evaUuid) return;
   //make a copy of the eva
   const eva = getState().eva.evas.find((e) => e.uuid === evaUuid);
-  const newEva: Eva = cloneDeep(eva);
+  let newEva: Eva = cloneDeep(eva);
   newEva.uuid = uuidv4();
-  const newDateString = getAccurateNow().toISOString();
-  newEva.updatedAt = newDateString;
-  newEva.createdAt = newDateString;
-  if (!forRex) {
+  if (!isRexEva) {
+    const newDateString = getAccurateNow().toISOString();
+    newEva.updatedAt = newDateString;
+    newEva.createdAt = newDateString;
     newEva.refUuid = uuidv4();
     newEva.name = makeUniqueStringCopy(
       eva.name,
       getState().eva.evas.map((item) => item.name)
     );
   }
+  // Upsert eva and persist to the db. Do this first so it's in the DB when
+  //  emits go out for the new traverses they can access the eva traverse rate
+  //  for calculatedFields
+  dispatch(upsertEvas([newEva], true));
+  dispatch(upsertEvasFromDb([newEva]));
+  const upsertEvasResponse = await httpClient_Eva.upsertEvas([newEva]);
+  if (upsertEvasResponse.status !== "success") {
+    throw new Error("Error upserting EVA: " + upsertEvasResponse.message);
+  }
+  // re-clone the Eva object because apparently after upserting to the store
+  //  redux freezes the object back to read-only and we can't make direct
+  //  changes to it anymore
+  newEva = cloneDeep(newEva);
 
   //duplicate the stations
   if (includeStations) {
@@ -473,22 +481,27 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
         return stationSeqItem.uuid;
       });
     const evaStations = getState().station.stations.filter((s) => evaStationUuids.includes(s.uuid));
-    for (const station of evaStations) {
-      //make a copy
-      const newStationRes = (
-        await dispatch(
-          thunkDuplicateStation({
-            stationUuid: station.uuid,
-            preserveRefUuid: forRex,
-          })
-        )
-      ).payload;
-      if (newStationRes) {
-        //update this station uuid in new eva sequence
-        const sequenceIndex = newEva.sequence.findIndex((seqItem) => seqItem.uuid === station.uuid);
-        newEva.sequence[sequenceIndex].uuid = newStationRes.uuid;
-      }
-    }
+    // run in parallel
+    await Promise.all(
+      evaStations.map(async (station) => {
+        //make a copy
+        const newStationRes = (
+          await dispatch(
+            thunkDuplicateStation({
+              stationUuid: station.uuid,
+              preserveRefUuid: isRexEva,
+            })
+          )
+        ).payload;
+        if (newStationRes) {
+          //update this station uuid in new eva sequence
+          const sequenceIndex = newEva.sequence.findIndex(
+            (seqItem) => seqItem.uuid === station.uuid
+          );
+          newEva.sequence[sequenceIndex].uuid = newStationRes.uuid;
+        }
+      })
+    );
   }
 
   //duplicate the traverses
@@ -501,26 +514,30 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
   const evaTraverses = getState().traverse.traverses.filter((t) =>
     evaTraverseUuids.includes(t.uuid)
   );
-  for (const traverse of evaTraverses) {
-    //update this traverse uuid in new eva sequence
-    const sequenceIndex = newEva.sequence.findIndex((seqItem) => seqItem.uuid === traverse.uuid);
-
-    const newTraverseRes = (
-      await dispatch(
-        thunkDuplicateTraverse({
-          traverseUuid: traverse.uuid,
-          preserveRefUuid: forRex,
-        })
-      )
-    ).payload;
-    if (newTraverseRes) {
-      // update this traverse uuid in new eva sequence
-      newEva.sequence[sequenceIndex].uuid = newTraverseRes.uuid;
-    }
-  }
+  // run in parallel
+  await Promise.all(
+    evaTraverses.map(async (traverse) => {
+      const newTraverseRes = (
+        await dispatch(
+          thunkDuplicateTraverse({
+            traverseUuid: traverse.uuid,
+            preserveRefUuid: isRexEva,
+          })
+        )
+      ).payload;
+      if (newTraverseRes) {
+        //update this traverse uuid in new eva sequence
+        const sequenceIndex = newEva.sequence.findIndex(
+          (seqItem) => seqItem.uuid === traverse.uuid
+        );
+        // update this traverse uuid in new eva sequence
+        newEva.sequence[sequenceIndex].uuid = newTraverseRes.uuid;
+      }
+    })
+  );
 
   // if this is for a REX, then we also need to duplicate the ingress/egress locations if they are not lander
-  if (forRex) {
+  if (isRexEva) {
     if (eva.ingressLocationUuid !== "lander") {
       const newIngressStation = await dispatch(
         thunkDuplicateStation({
@@ -549,15 +566,15 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
     }
   }
 
-  // upsert eva and persist to the db
+  // upsert eva again but with the new station/traverse/xgress uuids
   dispatch(upsertEvas([newEva], true));
   dispatch(upsertEvasFromDb([newEva]));
-  const upsertEvasResponse = await httpClient_Eva.upsertEvas([newEva]);
-  if (upsertEvasResponse.status !== "success") {
-    throw new Error("Error upserting EVA: " + upsertEvasResponse.message);
+  const upsertEvasResponse2 = await httpClient_Eva.upsertEvas([newEva]);
+  if (upsertEvasResponse2.status !== "success") {
+    throw new Error("Error upserting EVA: " + upsertEvasResponse2.message);
   }
 
-  if (!forRex) {
+  if (!isRexEva) {
     dispatch(selectEva({ uuid: newEva.uuid }));
     dispatch(thunkSetRightPanelIsOpenIfAuto(true));
   }

@@ -1,18 +1,13 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Dropdown } from "components/interface/form/globalFields";
-import { FunctionComponent, useCallback, useState } from "react";
+import { FunctionComponent, useCallback } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowDown, faArrowUp, faTrash } from "@fortawesome/free-solid-svg-icons";
-import {
-  secondsFromhhmmss,
-  hhmmssFromSeconds,
-  hmmFromMinutes,
-  decodeEmoji,
-  isNotNumber,
-} from "utils/formatting";
+import { hmmFromMinutes, isNotNumber } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { setHoverUuidsForSequence } from "store/hover";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
@@ -22,13 +17,9 @@ import {
   thunkReorderStationInEva,
 } from "store/thunk/thunkEva";
 import { getRexStatusDisplayProperties } from "../../../utils/component-helpers";
-import PetInterval from "components/page/petInterval";
 import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
-import {
-  getCalculatedFieldsByEva,
-  getCalculatedFieldsByStation,
-} from "store/processing/calculatedFields";
+import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import { selectAsPlannedStations } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
 
@@ -36,7 +27,7 @@ const SequenceItemStation: FunctionComponent<{
   evaUuid: string;
   stationUuid: string;
   isRexRunning: boolean; // if the eva that this station belongs to is in a running rex
-}> = ({ evaUuid, stationUuid, isRexRunning }) => {
+}> = ({ evaUuid, stationUuid }) => {
   const dispatch = useAppDispatch();
 
   const isRexEva = useAppSelector((state) => {
@@ -62,7 +53,7 @@ const SequenceItemStation: FunctionComponent<{
 
   // get a list of stations for the dropdown menu when selecting a station for the eva sequence
   // only return some of the properties in station to reduce re-renders
-  const partialStatonsForDropdown = useAppSelector((state) => {
+  const partialStationsForDropdown = useAppSelector((state) => {
     const asPlannedStations = selectAsPlannedStations(state).map((s) => {
       return { name: s.name, uuid: s.uuid, location: s.location };
     });
@@ -96,7 +87,7 @@ const SequenceItemStation: FunctionComponent<{
 
   // Generate organized station dropdown options with custom filtering
   const stationDropdownOptions = createFolderOrganizedDropdownOptions({
-    items: partialStatonsForDropdown,
+    items: partialStationsForDropdown,
     folders,
     itemsToFolders,
     filterFn: (partialStation) => {
@@ -137,18 +128,6 @@ const SequenceItemStation: FunctionComponent<{
     refEqual
   );
 
-  const sequenceItemCalculatedData = useAppSelector((state) => {
-    const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
-    return getCalculatedFieldsByEva({
-      eva,
-      evaStations: state.station.stations,
-      missionWalkbackRate: state.mission.mission.walkbackRate,
-      missionTraverseRate: state.mission.mission.traverseRate,
-      evaActions: state.action.actions,
-      evaTraverses: state.traverse.traverses,
-    })?.sequenceItemsCalculatedData?.find((sequenceItem) => sequenceItem.uuid === stationUuid);
-  }, deepEqual);
-
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
 
   // returns the rex from db object if this is a rex eva and is executing
@@ -156,9 +135,6 @@ const SequenceItemStation: FunctionComponent<{
     if (!isRexEva) return null;
     return state.rex.rexesFromDb.find((rex) => rex.isRunning && rex.evaUuid === evaUuid);
   }, deepEqual);
-
-  // used to update the PET value via the PetInterval component
-  const [rexPetTime, setRexPetTime] = useState("");
 
   // determine styling
   let evaSequenceStyle = null;
@@ -215,15 +191,6 @@ const SequenceItemStation: FunctionComponent<{
     return isNotNumber(durationMinutes) ? "N/A" : hmmFromMinutes(durationMinutes);
   }, [thisStation?.duration, thisStationCalculatedFields?.totalDwellTime]);
 
-  const displayInProgressItemTimeRemaining = useCallback(
-    (rexPetSeconds: number) => {
-      if (!sequenceItemCalculatedData) return "N/A";
-      const secondsRemaining = (sequenceItemCalculatedData.manualEndSeconds - rexPetSeconds) * -1;
-      return hhmmssFromSeconds(secondsRemaining);
-    },
-    [sequenceItemCalculatedData]
-  );
-
   const handleSequenceItemClick = useCallback(
     (sequenceItemUuid: string) => {
       if (selectedEvaSequenceItemUuid === sequenceItemUuid) {
@@ -240,12 +207,6 @@ const SequenceItemStation: FunctionComponent<{
 
   return (
     <div className={evaStyles.evaSequence}>
-      <PetInterval
-        runningRex={rexFromDbIfExecuting}
-        rexPetTime={rexPetTime}
-        setRexPetTime={setRexPetTime}
-      />
-
       <div
         className={evaStyles.evaItem}
         key={`${sequenceIndex}${evaUuid}${stationUuid}`}
@@ -257,7 +218,10 @@ const SequenceItemStation: FunctionComponent<{
         }}
       >
         <div className={evaStyles.iconCustom}>
-          {decodeEmoji(thisStation?.icon ? thisStation.icon : "2754")}
+          <EmojiRenderer
+            iconValue={thisStation?.icon ? thisStation.icon : "2754"}
+            customSizeEm={1.4}
+          />
         </div>
 
         {isRexEva && (
@@ -297,17 +261,6 @@ const SequenceItemStation: FunctionComponent<{
               >
                 {displayStationDwellTime()}
               </div>
-
-              {isRexRunning && stationRexStatus === "in-progress" && (
-                <div
-                  className={evaStyles.evaItemRightItem}
-                  data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html={"Time remaining (hh:mm:ss)"}
-                  data-tooltip-place="right"
-                >
-                  {displayInProgressItemTimeRemaining(secondsFromhhmmss(rexPetTime))}
-                </div>
-              )}
             </div>
           </div>
         ) : (

@@ -154,6 +154,7 @@ interface Measurement {
   path: AEGISPoint[];
   pathSegmentDistances: number[]; //meters
   pathSegmentElevations: number[][]; //meters
+  pathSegmentBearings: number[]; //degrees
 }
 
 interface MeasureState {

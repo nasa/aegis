@@ -5,10 +5,15 @@ import cloneDeep from "lodash/cloneDeep";
 import { hasPerms } from "utils/permissions";
 
 import { getEM } from "utils/mikro";
-import { EntityData, ForeignKeyConstraintViolationException } from "@mikro-orm/core";
+import {
+  EntityData,
+  ForeignKeyConstraintViolationException,
+  OptimisticLockError,
+} from "@mikro-orm/core";
 import { Rex_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { convertRexesTypeDbToStore, convertRexesTypeStoreToDb } from "store/storeUtils/rex";
+import random from "lodash/random";
 
 const router = express.Router();
 
@@ -44,7 +49,22 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       }
     });
     //perform the upsert
-    const upsertResponse: Rex[] = await upsertRexes(rexesToUpsert);
+    let upsertResponse = null;
+    for (let tries = 0; tries < 7; tries++) {
+      try {
+        upsertResponse = await upsertRexes(rexesToUpsert);
+        break; // if successful, exit the retry loop
+      } catch (e) {
+        if (e instanceof OptimisticLockError) {
+          // lock error. wait anywhere from 100-200ms before retrying
+          await new Promise((resolve) => setTimeout(resolve, random(100, 200)));
+        } else {
+          // some other kind of error happened
+          // re-throw it so the outer try/catch can grab it and exit the for loop
+          throw e;
+        }
+      }
+    }
 
     //check response
     if (upsertResponse.length === 0) {
@@ -138,23 +158,28 @@ export async function getRexes(missionId: number): Promise<Rex[]> {
 }
 
 /**
- * upserts rexes into the database
+ * upsert rexes into the database
  * @param rexes rexes to upsert
  * @returns the upserted rexes
  */
 export async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
   const em = getEM();
+  await em.begin(); // start a transaction
 
   const rexesToUpsert: Rex[] = cloneDeep(rexes);
   const rexesUpsertedToDb = [];
-
-  for (const rexToUpsert of rexesToUpsert) {
-    const upsertRecord: EntityData<Rex_db> = convertRexesTypeStoreToDb([rexToUpsert])[0];
-    const rexUpsertReference: Rex_db = await em.upsert(Rex_db, upsertRecord);
-    em.persist(rexUpsertReference);
-    rexesUpsertedToDb.push(rexUpsertReference);
+  try {
+    for (const rexToUpsert of rexesToUpsert) {
+      const upsertRecord: EntityData<Rex_db> = convertRexesTypeStoreToDb([rexToUpsert])[0];
+      const rexUpsertReference: Rex_db = await em.upsert(Rex_db, upsertRecord);
+      em.persist(rexUpsertReference);
+      rexesUpsertedToDb.push(rexUpsertReference);
+    }
+    await em.commit();
+  } catch (e) {
+    await em.rollback(); // rollback the transaction
+    throw e; // re-throw the error to be handled by the caller
   }
-  await em.flush();
 
   //convert foreign keys
   return convertRexesTypeDbToStore(rexesUpsertedToDb);

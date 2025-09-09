@@ -19,6 +19,8 @@ interface Eva {
   traverseColor: string;
   ownerId: number;
   datetime: string;
+  showEditWarning: boolean;
+  editWarningMsg: string;
 
   createdAt?: string;
   updatedAt?: string;
@@ -206,6 +208,10 @@ type Action = {
    * Science explanation of details of the action. e.g. "Photograph contact point between two units."
    */
   description: string;
+  /**
+   * Task description for the crew.
+   */
+  descriptionTask: string;
 
   // Action system v2 types
   stmAction: boolean;

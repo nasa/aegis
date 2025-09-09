@@ -14,6 +14,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     version: 0,
     name: "",
     isArchived: false,
+    usingLGRSCoordinates: false,
     description: "",
     actionSystemVersion: 1,
     actionDefinitions: null,

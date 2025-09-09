@@ -32,6 +32,7 @@ import { getAccurateNow } from "utils/formatting";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankStation } from "store/storeUtils/station";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
+import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 export const thunkUpdateStationLatLngField = appCreateAsyncThunk<{
   stationUuid: string;
@@ -477,17 +478,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
         name: landerRadius.name,
         uuid: landerRadius.uuid,
         visible: false,
-        style: {
-          opacity: 1,
-          contrast: 1,
-          brightness: 1,
-          saturation: 1,
-          blendMode: "normal",
-          color: "#FFFFFF",
-          weight: 1,
-          fillColor: "none",
-          fillOpacity: 0,
-        },
+        style: defaultSublayerStyle,
       };
     });
 
@@ -535,12 +526,12 @@ export const thunkDuplicateStation = appCreateAsyncThunk<
   //duplicate station
   const newStation: Station = cloneDeep(station);
   newStation.uuid = uuidv4();
-  if (!preserveRefUuid) newStation.refUuid = uuidv4();
-  const newDateString = getAccurateNow().toISOString();
-  newStation.updatedAt = newDateString;
-  newStation.createdAt = newDateString;
-  // preservingRefUuids only occurs when duplicating an EVA for a REX, in which case, keep the name.
+  // preservingRefUuids only occurs when duplicating an EVA for a REX.
   if (!preserveRefUuid) {
+    newStation.refUuid = uuidv4();
+    const newDateString = getAccurateNow().toISOString();
+    newStation.updatedAt = newDateString;
+    newStation.createdAt = newDateString;
     newStation.name = makeUniqueStringCopy(
       station.name,
       getState().station.stations.map((s) => s.name)

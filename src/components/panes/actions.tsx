@@ -300,7 +300,7 @@ export const ActionsTopSection: FunctionComponent<{
           <div className={paneStyles.panelSection2Column}>
             <div className={paneStyles.panelColumnTable}>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -310,7 +310,7 @@ export const ActionsTopSection: FunctionComponent<{
                 </div>
               </div>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div
                     className={paneStyles.displayFieldLabel}
                     data-tooltip-id="aegis-tooltip"
@@ -324,13 +324,13 @@ export const ActionsTopSection: FunctionComponent<{
                     {actionsCalculatedFields?.totalActionTime === 0 ? (
                       <>0</>
                     ) : (
-                      <>{actionsCalculatedFields?.totalActionTime.toFixed(0)}</>
+                      <>{Math.round(actionsCalculatedFields?.totalActionTime)}</>
                     )}
                   </div>
                 </div>
               </div>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.displayFieldLabel}>Total Planned Mass (g):</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -342,7 +342,7 @@ export const ActionsTopSection: FunctionComponent<{
               {rexUuid && (
                 <>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Total Executed Mass (g):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -350,7 +350,7 @@ export const ActionsTopSection: FunctionComponent<{
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Executed Delta Mass (g):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>

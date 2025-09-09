@@ -37,15 +37,13 @@ export function xy_from_range_bearing(
 
 // Given a landmark and the x,y coordinates of the crew, calculate the range and bearing from the landmark to the crew
 export function range_bearing_from_xy(
+  x_dest: number,
+  y_dest: number,
   x_source: number,
-  y_source: number,
-  x_destination: number,
-  y_destination: number
+  y_source: number
 ): SN_RangeBearingPair {
-  const range = Math.sqrt(
-    Math.pow(x_source - x_destination, 2) + Math.pow(y_source - y_destination, 2)
-  );
-  const angle = radiansToDegrees(Math.atan2(y_source - y_destination, x_source - x_destination));
+  const range = Math.sqrt(Math.pow(x_dest - x_source, 2) + Math.pow(y_dest - y_source, 2));
+  const angle = radiansToDegrees(Math.atan2(y_dest - y_source, x_dest - x_source));
   const bearing = angle_bearing_conversion(angle);
 
   return { range: range, bearing: bearing };

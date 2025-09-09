@@ -18,18 +18,21 @@ beforeAll(async () => {
 
   testMissions = await new MissionFactory(em).create(1);
 
+  // create 3 EVAs with the same refUuid, (1 as-planned, 2 executed)
+  // create 2 REXes linked to the first 2 EVAs
   testEvas = await new EvaFactory(em)
     .each((eva) => {
       eva.mission = testMissions[0];
+      eva.refUuid = `some-ref-uuid`;
     })
-    .create(2);
+    .create(3);
 
   testRexes = await new RexFactory(em)
     .each((rex, idx) => {
       rex.mission = testMissions[0];
-      rex.evaUuid = idx < 2 ? testEvas[0].uuid : testEvas[1].uuid;
+      rex.evaUuid = testEvas[idx].uuid;
     })
-    .create(3);
+    .create(2);
 });
 
 describe("GET REX BY EVA REF Endpoint", () => {
@@ -87,6 +90,24 @@ describe("GET REX BY EVA REF Endpoint", () => {
       expect(res.body.data.length).toBe(2);
       const uuids = res.body.data.map((r: { uuid: string }) => r.uuid);
       expect(uuids).toEqual(expect.arrayContaining([testRexes[0].uuid, testRexes[1].uuid]));
+    });
+
+    test("Does not retrieve rex if it has a maestroEventId", async () => {
+      // First, update one rex to have a maestroEventId
+      const em = getEM();
+      const rexToUpdate = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
+      rexToUpdate.maestroEventId = "some-event-uuid";
+      await em.flush();
+
+      const res = await supertest(app)
+        .get("/api/v1/emss/getRexesByEvaRef")
+        .set("emss-token", emssToken)
+        .query({ evaRefUuid: testEvas[0].refUuid });
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe("success");
+      expect(res.body.message).toContain("Rexes retrieved");
+      expect(res.body.data.length).toBe(1);
+      expect(res.body.data[0].uuid).toBe(testRexes[1].uuid);
     });
   });
 });

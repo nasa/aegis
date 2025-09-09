@@ -33,6 +33,10 @@ include:
       # Retag job template
       - "/jobs/container-retag.gitlab-ci.yml"
 
+  # Adds jobs to export/import db, dump logs, and load tests on servers
+  - local: .gitlab/includes/server-jobs.yml
+  - local: .gitlab/includes/load-test.yml
+
 project-check:
   variables:
     SCAN_FOR_DOCS: "no"
@@ -119,7 +123,7 @@ test:
     # Load production database dump
     - apk update && apk add --no-cache postgresql-client # Install psql client using apk for Alpine
     - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
-    - npm run migrate:up
+    - npm run migration:up
     - npm run lint
     - npm run tsc
     - npm run test:coverage
@@ -143,7 +147,7 @@ test-node-next:
   script:
     - apk update && apk add --no-cache postgresql-client
     - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
-    - npm run migrate:up
+    - npm run migration:up
     - npm run lint
     - npm run tsc
     - npm t
@@ -170,7 +174,7 @@ playwright_test:
     - apt-get update && apt-get install -y postgresql-client # Fast install, fine not in the image
     - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
     - npx playwright install-deps # Install Playwright dependencies
-    - npm run migrate:up
+    - npm run migration:up
     - npm run test:playwright:ci # Run Playwright tests
   timeout: 10 minutes
   artifacts:
@@ -216,7 +220,7 @@ playwright_test:
 
     # Determine which docker image type (dev, int, or prod) to deploy based on branch
     # Append the commit sha in order to ensure the correct build is being deployed in the case
-    # multiple devs are building images simutaneously
+    # multiple devs are building images simultaneously
     - >
       if [ "${CI_COMMIT_REF_SLUG}" == "prod" ]; then
           IMAGE_VERSION="prod-${CI_COMMIT_SHORT_SHA}"
@@ -269,9 +273,11 @@ docker:build:nginx:
     MULTISTAGE_TARGET: prod
     NGINX_BASE_IMAGE: eegitlabregistry.fit.nasa.gov/emss/docker-images/nginx:1.23.0-alpine
     NODE_BASE_IMAGE: $CURRENT_NODE_VERSION_IMAGE
+    GIT_COMMIT: $CI_COMMIT_SHORT_SHA
     MAP_ENV_VARS_TO_BUILD_ARGS: |
       NGINX_BASE_IMAGE
       NODE_BASE_IMAGE
+      GIT_COMMIT
 
 docker:build:gdal:
   extends: .kaniko-build-template
@@ -288,8 +294,10 @@ docker:build:apiv1:
     SERVICE_NAME: apiv1
     MULTISTAGE_TARGET: prod
     APIV1_BASE_IMAGE: $CURRENT_NODE_VERSION_IMAGE
+    GIT_COMMIT: $CI_COMMIT_SHORT_SHA
     MAP_ENV_VARS_TO_BUILD_ARGS: |
       APIV1_BASE_IMAGE
+      GIT_COMMIT
 
 #
 # Retag docker images after necessary jobs pass (e.g. unit testing passes)
@@ -327,6 +335,10 @@ deploy:artifactize-committed-files:
 
 .deploy-template:
   extends: .emss-fitdock-deploy # use job template from gitlab-templates repo
+  needs:
+    - make-dotenv
+    - docker:retag
+    - deploy:artifactize-committed-files
   stage: stageless
   timeout: 10 minutes
 
@@ -334,10 +346,6 @@ deploy:carbon:
   extends:
     - .deploy-template
     - .carbon-deploy
-  needs:
-    - make-dotenv
-    - docker:retag
-    - deploy:artifactize-committed-files
   when: manual
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
@@ -348,10 +356,6 @@ deploy:gold:
   extends:
     - .deploy-template
     - .gold-deploy
-  needs:
-    - make-dotenv
-    - docker:retag
-    - deploy:artifactize-committed-files
   when: manual
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
@@ -362,10 +366,6 @@ deploy:iron:
   extends:
     - .deploy-template
     - .iron-deploy
-  needs:
-    - make-dotenv
-    - docker:retag
-    - deploy:artifactize-committed-files
   when: manual
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
@@ -376,10 +376,6 @@ deploy:neon:
   extends:
     - .deploy-template
     - .neon-deploy
-  needs:
-    - make-dotenv
-    - docker:retag
-    - deploy:artifactize-committed-files
   when: manual
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
@@ -390,10 +386,6 @@ deploy:oxygen:
   extends:
     - .deploy-template
     - .oxygen-deploy
-  needs:
-    - make-dotenv
-    - docker:retag
-    - deploy:artifactize-committed-files
   when: manual
   before_script:
     # This is currently our hack to change out a necessary var for Launchpad Auth
@@ -404,10 +396,6 @@ deploy:int:
   extends: .deploy-template
   tags: ["emss-aegis-int"]
   resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
-  needs:
-    - make-dotenv
-    - docker:retag
-    - deploy:artifactize-committed-files
   environment:
     name: integration
     url: $URL
@@ -425,10 +413,6 @@ deploy:prod:
   extends: .deploy-template
   tags: ["emss-aegis-prod"]
   resource_group: prod # prevents concurrent executions on this environment when there are multiple pipelines
-  needs:
-    - make-dotenv
-    - docker:retag
-    - deploy:artifactize-committed-files
   environment:
     name: production
     url: $URL
@@ -442,209 +426,3 @@ deploy:prod:
     # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/aegis/g" .env
     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/prod/g" .env
-
-.db-export-template:
-  needs: []
-  # I don't think we want to do this, because I don't think we want GitLab to consider this a
-  # deployment. It's just grabbing some data off of Production.
-  # environment:
-  #   name: production
-  #   url: https://aegis.fit.nasa.gov
-  when: manual
-  stage: stageless
-  timeout: 10 minutes
-  variables:
-    GIT_STRATEGY: none
-  script:
-    # init sudo ability
-    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
-    - PROJECT_DIR=$(pwd)
-    - cd /opt/aegis
-    - sudo docker compose exec database pg_dump -U postgres aegis > "${PROJECT_DIR}/aegis.sql"
-  artifacts:
-    paths:
-      - aegis.sql
-    expire_in: 1 day
-
-z:db-export:prod:
-  extends: .db-export-template
-  when: always
-  tags: ["emss-aegis-prod"]
-  resource_group: prod # prevents concurrent executions on this environment when there are multiple pipelines
-  variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
-
-z:db-export:int:
-  extends: .db-export-template
-  tags: ["emss-aegis-int"]
-  resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
-  variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
-
-z:db-export:carbon:
-  extends:
-    - .db-export-template
-    - .carbon-access
-
-z:db-export:gold:
-  extends:
-    - .db-export-template
-    - .gold-access
-
-z:db-export:iron:
-  extends:
-    - .db-export-template
-    - .iron-access
-
-z:db-export:neon:
-  extends:
-    - .db-export-template
-    - .neon-access
-
-z:db-export:oxygen:
-  extends:
-    - .db-export-template
-    - .oxygen-access
-
-.db-import-template:
-  when: manual
-  stage: stageless
-  timeout: 10 minutes
-  variables:
-    GIT_STRATEGY: none
-  script:
-    # init sudo ability
-    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
-    - PROJECT_DIR=$(pwd)
-    - cd /opt/aegis
-    - cp "${PROJECT_DIR}/aegis.sql" /d1/aegis/db-init/aegis.sql
-
-    # Stop docker compose, then remove database files
-    - sudo /usr/bin/docker compose down --remove-orphans
-    - sudo rm -rf /d1/aegis/postgres
-
-    # Bring docker compose back up, which will use the file at /d1/aegis/db-init/aegis.sql, then remove it
-    - sudo /usr/bin/docker compose up -d
-    - sudo rm -f /d1/aegis/db-init/aegis.sql
-
-    # Migrations will be run when the apiv1 container restarts
-
-z:db-import:carbon:
-  extends:
-    - .db-import-template
-    - .carbon-deploy
-  needs: ["z:db-export:prod"]
-
-z:db-import:gold:
-  extends:
-    - .db-import-template
-    - .gold-deploy
-  needs: ["z:db-export:prod"]
-
-z:db-import:iron:
-  extends:
-    - .db-import-template
-    - .iron-deploy
-  needs: ["z:db-export:prod"]
-
-z:db-import:neon:
-  extends:
-    - .db-import-template
-    - .neon-deploy
-  needs: ["z:db-export:prod"]
-
-z:db-import:oxygen:
-  extends:
-    - .db-import-template
-    - .oxygen-deploy
-  needs: ["z:db-export:prod"]
-
-z:db-import:int:
-  extends: .db-import-template
-  tags: ["emss-aegis-int"]
-  needs: ["z:db-export:prod"]
-  resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
-  environment:
-    name: integration
-    url: $URL
-  variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
-    URL: https://aegis-int.fit.nasa.gov
-
-.container-logs-template:
-  when: manual
-  needs: []
-  stage: stageless
-  timeout: 10 minutes
-  variables:
-    GIT_STRATEGY: none
-  script:
-    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
-
-    # OS info and partition usage
-    - cat /etc/os-release
-    - df -h
-
-    # Setup artifact directories
-    - LOG_ARTIFACTS=$(pwd)/log_artifacts
-    - mkdir -p "${LOG_ARTIFACTS}"
-
-    - cd /opt/aegis
-
-    # print last 100 lines to job output
-    - sudo docker compose logs nginx --tail 100
-    - sudo docker compose logs database --tail 100
-    - sudo docker compose logs gdal --tail 100
-    - sudo docker compose logs apiv1 --tail 100
-    - sudo journalctl --unit=rsyslog -n 200 --no-pager
-
-    # Put the full logs into artifacts. Full logs may hit the job log length
-    # limit, and generally make the job log unreadably long
-    - sudo docker compose logs nginx > "${LOG_ARTIFACTS}/nginx"
-    - sudo docker compose logs database > "${LOG_ARTIFACTS}/database"
-    - sudo docker compose logs gdal > "${LOG_ARTIFACTS}/gdal"
-    - sudo docker compose logs apiv1 > "${LOG_ARTIFACTS}/apiv1"
-    - sudo journalctl --unit=rsyslog --no-pager > "${LOG_ARTIFACTS}/host-rsyslog"
-
-  artifacts:
-    when: always
-    paths:
-      - ./log_artifacts
-    expire_in: 1 day
-
-z:logs:carbon:
-  extends:
-    - .container-logs-template
-    - .carbon-access
-
-z:logs:gold:
-  extends:
-    - .container-logs-template
-    - .gold-access
-
-z:logs:iron:
-  extends:
-    - .container-logs-template
-    - .iron-access
-
-z:logs:neon:
-  extends:
-    - .container-logs-template
-    - .neon-access
-
-z:logs:oxygen:
-  extends:
-    - .container-logs-template
-    - .oxygen-access
-
-z:logs:int:
-  extends: .container-logs-template
-  tags: ["emss-aegis-int"]
-  variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
-
-z:logs:prod:
-  extends: .container-logs-template
-  tags: ["emss-aegis-prod"]
-  variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable

@@ -110,17 +110,17 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
     for (let i = 0; i < newActions.length; i++) {
       const newAction = newActions[i];
       newAction.uuid = uuidv4();
-      if (!preserveRefUuid) newAction.refUuid = uuidv4();
-      const newDateString = getAccurateNow().toISOString();
-      newAction.createdAt = newDateString;
-      newAction.updatedAt = newDateString;
       newAction.stationUuid = stationUuid;
       newAction.poiUuid = poiUuid;
       newAction.traverseUuid = traverseUuid;
 
-      // set name
-      // preservingRefUuids only occurs when duplicating an EVA for a REX, in which case, keep the name.
+      // preservingRefUuids only occurs when duplicating an EVA for a REX.
       if (!preserveRefUuid) {
+        newAction.refUuid = uuidv4();
+        const newDateString = getAccurateNow().toISOString();
+        newAction.createdAt = newDateString;
+        newAction.updatedAt = newDateString;
+        // set name
         if (stationUuid) {
           newAction.name = makeUniqueStringCopy(
             newAction.name,

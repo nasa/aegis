@@ -9,7 +9,8 @@ import { setSelectedPoiUuid } from "store/poi";
 import { setSectionSelected } from "store/interface";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDuplicateActions } from "store/thunk/thunkAction";
-import { hmmFromMinutes, decodeEmoji } from "utils/formatting";
+import { hmmFromMinutes } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { ActionsListHeadings } from "./actions";
 import { ActionDefType } from "./actions-action";
 
@@ -184,7 +185,7 @@ const Assoc_POIAction: FunctionComponent<{
           {actionSystemVersion === 1 || !action.stmAction ? (
             <>
               <div className={assocPoisStyles.actionHeadingTitleIcon}>
-                {decodeEmoji(action.icon ? action.icon : "2754")}
+                <EmojiRenderer iconValue={action.icon ? action.icon : "2754"} />
               </div>
               <div className={actionStyles.verticalCenter}>
                 <div className={assocPoisStyles.actionHeadingType}>{action.type}</div>
@@ -208,7 +209,7 @@ const Assoc_POIAction: FunctionComponent<{
           ) : (
             <>
               <div className={assocPoisStyles.actionHeadingTitleIcon}>
-                {decodeEmoji(action.icon ? action.icon : "2754")}
+                <EmojiRenderer iconValue={action.icon ? action.icon : "2754"} />
               </div>
               <div className={actionStyles.verticalCenter}>
                 <div className={actionStyles.actionV2Header}>

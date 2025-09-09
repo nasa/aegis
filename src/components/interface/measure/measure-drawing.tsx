@@ -204,7 +204,9 @@ export function drawElevationProfile(
 export function drawMeasureSegmentDistances(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
   measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
-  pathSegmentDistances: number[]
+  pathSegmentDistances: number[],
+  pathSegmentBearings: number[],
+  usingLGRSCoordinates: boolean
 ): void {
   const paperVars = measurePaperDataRef.current.paperVars;
   const paperStyles = measurePaperDataRef.current.styles;
@@ -264,6 +266,20 @@ export function drawMeasureSegmentDistances(
     lineSegmentMarksGroup.addChild(rightSegmentArrow);
 
     lineSegmentMarksGroup.addChild(distanceLabel);
+
+    if (usingLGRSCoordinates && pathSegmentBearings && pathSegmentBearings.length > i) {
+      const segmentBearing = pathSegmentBearings[i];
+      const bearingLabel = new paper.PointText({
+        point: new paper.Point(labelLocX, paperVars.graphHeight + 15),
+        justification: "center",
+        fontFamily: measurePaperDataRef.current.styles.gNavigatorFontFamilyActivity,
+        fontSize: 12,
+        fillColor: paperStyles.grey5,
+        content: `${segmentBearing.toFixed(0)}°`,
+      });
+      lineSegmentMarksGroup.addChild(bearingLabel);
+    }
+
     leftLocX = rightXLoc;
     locX = rightXLoc;
   }

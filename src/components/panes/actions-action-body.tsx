@@ -23,7 +23,7 @@ import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { decodeEmoji, longdateFromDateString, toDecimal } from "utils/formatting";
+import { longdateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import STMSelector from "./stm/stm-selector";
 import { validators, regExValidators } from "components/interface/form/formValidators";
@@ -35,13 +35,11 @@ import {
   findGlobalGridCoordsFromPoint,
   getDistanceBetweenTwoCoordinates,
 } from "utils/mapping/geoMath";
-import Picker from "@emoji-mart/react";
-import emojiPickerData from "@emoji-mart/data";
+import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkAddCollectionId, thunkAddRexActionMass } from "store/thunk/thunkRex";
 import { globalGrid } from "utils/mapping/grid";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
-import { SURF_NAV_MOON_MEAN_RADIUS } from "utils/consts";
 
 const RightActionBody: FunctionComponent<{
   editMode: boolean;
@@ -89,8 +87,13 @@ const RightActionBody: FunctionComponent<{
 
   const planetRadius = useAppSelector((state) => state.mission.mission.planetRadius, refEqual);
 
+  const missionUsingLGRSCoordinates = useAppSelector(
+    (state) => state.mission.mission.usingLGRSCoordinates,
+    refEqual
+  );
+
   const actionGridCoordinates = useAppSelector((state) => {
-    if (action.location && planetRadius === SURF_NAV_MOON_MEAN_RADIUS) {
+    if (action.location && missionUsingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(action.location.lat, action.location.lng);
     } else if (action.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(globalGrid.coordinates, action.location, planetRadius);
@@ -190,6 +193,28 @@ const RightActionBody: FunctionComponent<{
             key={action.uuid}
           />
         </div>
+        {parentType !== "poi" && (
+          <>
+            <div className={paneStyles.panelSectionTitle} style={{ marginTop: "15px" }}>
+              <SubpanelHeading
+                icon={faMessage}
+                helpCopy="Visible in Maestro. Task description to be read to crew."
+              >
+                Task Description
+              </SubpanelHeading>
+            </div>
+            <div className={paneStyles.descriptionContainer}>
+              <WysiwygTextArea
+                value={action.descriptionTask}
+                editing={editMode}
+                onChange={(value) => {
+                  dispatch(upsertActionByField(action.uuid, "descriptionTask", value));
+                }}
+                key={action.uuid}
+              />
+            </div>
+          </>
+        )}
       </div>
       <div className={paneStyles.panelSection}>
         <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
@@ -199,7 +224,7 @@ const RightActionBody: FunctionComponent<{
           <div className={paneStyles.panelSection2Column}>
             <div className={paneStyles.panelColumnTable}>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldLabel}>Duration (mins):</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -243,7 +268,7 @@ const RightActionBody: FunctionComponent<{
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.inputFieldLabel}>Priority (1-99):</div>
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
@@ -295,7 +320,7 @@ const RightActionBody: FunctionComponent<{
           <div className={paneStyles.panelSection2Column}>
             <div className={paneStyles.panelColumnTable} style={{ alignContent: "center" }}>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldLabel}>Planned Mass (g):</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -328,7 +353,7 @@ const RightActionBody: FunctionComponent<{
 
             <div className={paneStyles.panelColumnTable} style={{ marginTop: -0.5 }}>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldLabel}>Executed Mass (g):</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -374,7 +399,7 @@ const RightActionBody: FunctionComponent<{
               <FontAwesomeIcon
                 icon={faHexagonNodes}
                 data-tooltip-id="aegis-tooltip"
-                data-tooltip-html="Some fields in this section are Maestro controlled"
+                data-tooltip-html="Fields in this section are Maestro controlled"
               />
             </div>
           )}
@@ -383,7 +408,7 @@ const RightActionBody: FunctionComponent<{
           <div className={paneStyles.panelSection2Column}>
             <div className={paneStyles.panelColumnTable}>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldLabel}>Marker ID:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -412,7 +437,7 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldLabel}>Container ID:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -441,7 +466,7 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldLabel}>Addtl. Container ID:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -608,7 +633,7 @@ const RightActionBody: FunctionComponent<{
           <div className={paneStyles.panelSection2Column}>
             <div className={paneStyles.panelColumnTable} style={{ flex: "0 0 160px" }}>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.displayFieldLabel}>Lat:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -641,7 +666,7 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.displayFieldLabel}>Lng:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -674,7 +699,7 @@ const RightActionBody: FunctionComponent<{
                 </div>
               </div>
               <div className={paneStyles.panelColumnTableRow}>
-                <div className={paneStyles.panelColumnTableCellLeft}>
+                <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.displayFieldLabel}>Grid Coords:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
@@ -685,7 +710,7 @@ const RightActionBody: FunctionComponent<{
             {(parentType === "station" || parentType === "poi") && (
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldLabel}>
                       Elevation Relative to {parentType === "station" ? "Station" : "POI"} (m):
                     </div>
@@ -701,7 +726,7 @@ const RightActionBody: FunctionComponent<{
                   </div>
                 </div>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldLabel}>
                       Distance to {parentType === "station" ? "Station" : "POI"} (m):
                     </div>
@@ -737,7 +762,7 @@ const RightActionBody: FunctionComponent<{
 
         <div className={paneStyles.panelSectionRow} style={{ marginLeft: "18px" }}>
           <div className={paneStyles.rightTopTitleIcon}>
-            <>{decodeEmoji(action.icon ? action.icon : "2754")}</>
+            <EmojiRenderer iconValue={action.icon ? action.icon : "2754"} />
           </div>
           {editMode && (
             <>
@@ -751,15 +776,15 @@ const RightActionBody: FunctionComponent<{
               <div className={actionStyles.iconPickerContainer}>
                 {showEmojiPicker && (
                   <div className={actionStyles.iconPicker}>
-                    <Picker
-                      data={emojiPickerData}
+                    <EmojiPicker
                       emojiButtonSize={30}
                       emojiSize={20}
                       perLine={10}
                       darkMode={true}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      onEmojiSelect={(e: any) => {
-                        dispatch(upsertActionByField(action.uuid, "icon", e.unified));
+                      onEmojiSelect={(e) => {
+                        // Handle both standard emojis (unified) and custom emojis (id)
+                        const iconValue = e.unified || e.id;
+                        dispatch(upsertActionByField(action.uuid, "icon", iconValue));
                         setShowEmojiPicker(false);
                       }}
                     />
@@ -781,7 +806,9 @@ const RightActionBody: FunctionComponent<{
             <div className={paneStyles.displayFieldLabel}>
               <div style={{ lineHeight: "1.4em" }}>
                 <span style={{ marginRight: "4px" }}>
-                  {decodeEmoji(actionParentPoi?.icon ? actionParentPoi?.icon : "2754")}
+                  <EmojiRenderer
+                    iconValue={actionParentPoi?.icon ? actionParentPoi?.icon : "2754"}
+                  />
                 </span>
                 <span style={{ color: "var(--grey5)" }}>{actionParentPoi?.name} </span>
                 <div style={{ marginLeft: "2px" }}>

@@ -12,7 +12,7 @@ import MeasureHoverValues from "./measure-hover";
 import MeasureTabs from "./measure-tabs";
 import paper from "paper";
 import * as MeasureDrawing from "./measure-drawing";
-import { deepEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { PathColorPickerMenu, Button } from "../form/globalFields";
 import { upsertMeasurementByField } from "store/measure";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -35,6 +35,12 @@ const Measure: FunctionComponent = () => {
       ? state.map.mapDirective
       : null;
   }, deepEqual);
+
+  const missionUsingLGRSCoordinates = useAppSelector(
+    (state) => state.mission.mission?.usingLGRSCoordinates,
+    refEqual
+  );
+
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   const initHoverValues: MeasureHoverValues = {
@@ -106,7 +112,9 @@ const Measure: FunctionComponent = () => {
     MeasureDrawing.drawMeasureSegmentDistances(
       measurePaperDataRef,
       measurePaperGroupsRef,
-      selectedMeasurement?.pathSegmentDistances
+      selectedMeasurement?.pathSegmentDistances,
+      selectedMeasurement?.pathSegmentBearings,
+      missionUsingLGRSCoordinates
     );
     //eslint-disable-next-line
   }, [selectedMeasurement, setHoverValues]);

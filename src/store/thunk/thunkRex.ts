@@ -39,7 +39,7 @@ export const thunkCreateRex = appCreateAsyncThunk<
 
   // duplicate the EVA (this will save to the db)
   const dupEvaThunkRes = await dispatch(
-    thunkDuplicateEva({ evaUuid: asPlannedEvaUuid, includeStations: true, forRex: true })
+    thunkDuplicateEva({ evaUuid: asPlannedEvaUuid, includeStations: true, isRexEva: true })
   );
   if (dupEvaThunkRes?.meta.requestStatus === "rejected" || !dupEvaThunkRes.payload) {
     throw new Error("Error creating Rexes. Cannot duplicate EVA ");
@@ -145,7 +145,7 @@ export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
     if (!rexUuid) return;
     const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
     if (rex.isRunning && getState().eva.showRunningRexOnly) {
-      dispatch(setOnlyShowRunningRex());
+      dispatch(setOnlyShowRunningRex(false));
     }
 
     // delete from dropdown UI state
@@ -165,19 +165,16 @@ export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
     dispatch(setSelectedPosEntryUuid(null));
     dispatch(setSelectedRexUuid(null));
 
-    // delete the eva
-    await dispatch(thunkDeleteEva({ evaUuid: rex.evaUuid, forRex: true }));
-
-    // delete from DB
-
+    // delete the rex from the store and DB
+    dispatch(deleteRexesByUuid([rexUuid]));
+    dispatch(deleteRexesFromDbByUuid([rexUuid]));
     const deleteResponse = await httpClient_Rex.deleteRexes([rexUuid]);
     if (deleteResponse.status !== "success") {
       throw new Error("Error deleting Rex: " + deleteResponse.message);
     }
 
-    // delete the rex from the store
-    dispatch(deleteRexesByUuid([rexUuid]));
-    dispatch(deleteRexesFromDbByUuid([rexUuid]));
+    // delete the eva last to prevent race conditions
+    await dispatch(thunkDeleteEva({ evaUuid: rex.evaUuid, forRex: true }));
   }
 );
 
@@ -212,7 +209,7 @@ export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
   if (!runningRex) return null;
   //modify the rex object based on the entry type. upsert to both copies in the store
   if (entryType === "station") {
-    const newEntry: StationEntry = {
+    const newEntry: ActivityEntry = {
       rexStatus,
     };
     const newEntries = cloneDeep(runningRexFromDb.stationEntries) || {};
@@ -221,7 +218,7 @@ export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
     dispatch(upsertRexByField(runningRexFromDb.uuid, "stationEntries", newEntries, true));
     dispatch(upsertRexesFromDb([runningRexFromDb]));
   } else if (entryType === "traverse") {
-    const newEntry: TraverseEntry = {
+    const newEntry: ActivityEntry = {
       rexStatus,
     };
     const newEntries = cloneDeep(runningRexFromDb.traverseEntries) || {};
@@ -370,5 +367,7 @@ export const thunkJumpToRunningRex = appCreateAsyncThunk<void>(
     dispatch(setSelectedPosEntryUuid(null));
     dispatch(setSelectedEvaSequenceItemUuid(null));
     dispatch(setOnlyShowRunningRex(true));
+    dispatch(setSelectedEvaUuid(runningRex.evaUuid));
+    dispatch(setSelectedRexUuid(runningRex.uuid));
   }
 );

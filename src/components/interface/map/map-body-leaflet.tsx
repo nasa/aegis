@@ -33,13 +33,8 @@ import {
   getGridCoordinatesFromPoint,
   getMidpoint,
 } from "utils/mapping/geoMath";
-import {
-  decodeEmoji,
-  secondsFromhhmmss,
-  hhmmssFromSeconds,
-  titleCase,
-  isISOString,
-} from "utils/formatting";
+import { secondsFromhhmmss, hhmmssFromSeconds, titleCase, isISOString } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { clearMapItemHover, setHoverUuidsForSequence, setHoverUuidsForPosEntry } from "store/hover";
 
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -86,6 +81,7 @@ import { EARTH_RADIUS } from "utils/consts";
 import { globalGrid } from "utils/mapping/grid";
 import { selectAsPlannedStations } from "store/selectors";
 import { LoadingOverlay } from "../_global-elements";
+import { getStmActionName } from "utils/component-helpers";
 
 const MapBody: FunctionComponent<{}> = () => {
   const dispatch = useAppDispatch();
@@ -122,6 +118,8 @@ const MapBody: FunctionComponent<{}> = () => {
         "projOriginX",
         "projOriginY",
         "circleDefinitions",
+        "usingLGRSCoordinates",
+        "actionDefinitions",
       ]),
     deepEqual
   );
@@ -587,6 +585,7 @@ const MapBody: FunctionComponent<{}> = () => {
       const gridCoords = getGridCoordinatesFromPoint(
         convertLeafletLatLngToAegisPoint(e.latlng),
         mission.planetRadius,
+        mission.usingLGRSCoordinates,
         globalGrid?.coordinates
       );
       setMouseGridCoord(gridCoords);
@@ -771,22 +770,53 @@ const MapBody: FunctionComponent<{}> = () => {
 
             if (station.mapCircleControls[circleDefinition.uuid]?.visible) {
               // Turf Coords are in (lng, lat) format
-              const geoJSONCircle: AEGISGeoJSONCircle = L.geoJSON(
-                circle(point([station.location.lng, station.location.lat]), drawDistance, {
-                  steps: 256,
-                }),
-                {
-                  style: {
-                    ...station.mapCircleControls[circleDefinition.uuid]?.style,
-                    interactive: false,
-                  },
-                }
-              ) as AEGISGeoJSONCircle;
 
-              geoJSONCircle.mapItemType = "stationCircle";
-              geoJSONCircle.uuid = `${station.uuid}-${circleDefinition.uuid}`; // Add unique identifier
+              const circleStyle = station.mapCircleControls[circleDefinition.uuid]?.style;
 
-              stationCirclesFeatureGroup.current.addLayer(geoJSONCircle);
+              const dashLen = circleStyle?.dashLen || 10;
+
+              const stationCircles: AEGISGeoJSONCircle[] = [];
+
+              stationCircles.push(
+                L.geoJSON(
+                  circle(point([station.location.lng, station.location.lat]), drawDistance, {
+                    steps: 256,
+                  }),
+                  {
+                    style: {
+                      ...circleStyle,
+                      interactive: false,
+                      dashArray: circleStyle.isDashed ? `${dashLen}, ${dashLen}` : undefined,
+                    },
+                  }
+                ) as AEGISGeoJSONCircle
+              );
+
+              if (circleStyle?.isDashed) {
+                stationCircles.push(
+                  L.geoJSON(
+                    circle(point([station.location.lng, station.location.lat]), drawDistance, {
+                      steps: 256,
+                    }),
+                    {
+                      style: {
+                        ...circleStyle,
+                        color: circleStyle?.altColor,
+                        opacity: circleStyle?.altOpacity,
+                        interactive: false,
+                        dashArray: `${dashLen}, ${dashLen}`,
+                        dashOffset: `${dashLen}`,
+                      },
+                    }
+                  ) as AEGISGeoJSONCircle
+                );
+              }
+
+              stationCircles.forEach((circleLayer) => {
+                circleLayer.mapItemType = "stationCircle";
+                circleLayer.uuid = `${station.uuid}-${circleDefinition.uuid}`; // Add unique identifier
+                stationCirclesFeatureGroup.current.addLayer(circleLayer);
+              });
             }
           });
         }
@@ -898,10 +928,18 @@ const MapBody: FunctionComponent<{}> = () => {
     // draw or update all actions
     actionsToShow.forEach((action) => {
       if (action.location) {
+        let actionName = `${titleCase(action.type)}: ${action.name}`;
+        if (action.stmAction) {
+          actionName = getStmActionName({
+            actionDefinition: action.actionDefinition,
+            actionDefinitions: mission.actionDefinitions,
+          });
+        }
+
         drawOrUpdateMarkerOnMap({
           map,
           featureGroup: actionFeatureGroup,
-          name: `${titleCase(action.type)}: ${action.name}`,
+          name: actionName,
           uuid: action.uuid,
           iconEmoji: action.icon ? action.icon : "2754", //default to question mark
           location: action.location,
@@ -928,6 +966,7 @@ const MapBody: FunctionComponent<{}> = () => {
       }
     });
   }, [
+    mission.actionDefinitions,
     actions,
     selectedStation,
     selectedPoi,
@@ -1191,22 +1230,52 @@ const MapBody: FunctionComponent<{}> = () => {
       const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
 
       if (selectedPreset.mapCircleControls[circleDefinition.uuid]?.visible) {
-        // Turf Coords are in (lng, lat) format
-        const geoJSONCircle: AEGISGeoJSONCircle = L.geoJSON(
-          circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
-            steps: 256,
-          }),
-          {
-            style: {
-              ...selectedPreset.mapCircleControls[circleDefinition.uuid]?.style,
-              interactive: false,
-            },
-          }
-        ) as AEGISGeoJSONCircle;
+        const circleStyle = selectedPreset.mapCircleControls[circleDefinition.uuid]?.style;
 
-        geoJSONCircle.mapItemType = "landerCircle";
+        const landerCircle: AEGISGeoJSONCircle[] = [];
 
-        map.current.addLayer(geoJSONCircle);
+        const dashLen = circleStyle?.dashLen || 10;
+
+        landerCircle.push(
+          L.geoJSON(
+            circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
+              steps: 256,
+            }),
+            {
+              style: {
+                ...circleStyle,
+                interactive: false,
+                dashArray: circleStyle.isDashed ? `${dashLen}, ${dashLen}` : undefined,
+              },
+            }
+          ) as AEGISGeoJSONCircle
+        );
+
+        if (circleStyle?.isDashed) {
+          landerCircle.push(
+            L.geoJSON(
+              circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
+                steps: 256,
+              }),
+              {
+                style: {
+                  ...circleStyle,
+                  color: circleStyle?.altColor,
+                  opacity: circleStyle?.altOpacity,
+                  interactive: false,
+                  dashArray: `${dashLen}, ${dashLen}`,
+                  dashOffset: `${dashLen}`,
+                },
+              }
+            ) as AEGISGeoJSONCircle
+          );
+        }
+
+        landerCircle.forEach((circleLayer) => {
+          circleLayer.mapItemType = "landerCircle";
+          circleLayer.uuid = `lander-${circleDefinition.uuid}`; // Add unique identifier
+          map.current.addLayer(circleLayer);
+        });
       }
     });
   }, [
@@ -1486,6 +1555,8 @@ const MapBody: FunctionComponent<{}> = () => {
           filteredPosEntries = posEntriesWithLocations;
         }
         posEntriesToShow = orderBy(filteredPosEntries, ["createdAt"], "desc");
+        // gather the latest 2 pos entries (need 2 in order to draw a polyline) for each type.
+        // Most recent/latest entry is first in the array.
         posTypeLatestEntries = getLatestPosEntryByType({
           allPosEntries: filteredPosEntries,
         });
@@ -1508,7 +1579,7 @@ const MapBody: FunctionComponent<{}> = () => {
 
       let isRecent = false;
       posEntry.posTypeUuids.forEach((posTypeUuid) => {
-        if (posTypeLatestEntries[posTypeUuid][0]?.uuid === posEntry.uuid) {
+        if (posTypeLatestEntries[posTypeUuid]?.[0]?.uuid === posEntry.uuid) {
           isRecent = true;
           customPosTypesUuids.push(posTypeUuid);
         }
@@ -1524,7 +1595,7 @@ const MapBody: FunctionComponent<{}> = () => {
         let lastEntry = false;
         // check if this is the latest (most recent) entry for a pos type
         for (const posTypeUuid in posTypeLatestEntries) {
-          if (posTypeLatestEntries[posTypeUuid][0].uuid === posEntry.uuid) {
+          if (posTypeLatestEntries[posTypeUuid]?.[0]?.uuid === posEntry.uuid) {
             lastEntry = true;
             break;
           }
@@ -1672,6 +1743,7 @@ const MapBody: FunctionComponent<{}> = () => {
     //set in local state to be used in other use effects. Do this last so markers exist
     setLatestPosEntriesByType(posTypeLatestEntries);
     setPosEntriesShowing(posEntriesToShow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     map,
     dispatch,
@@ -1679,10 +1751,9 @@ const MapBody: FunctionComponent<{}> = () => {
     selectedRex,
     sectionSelected,
     isWin10,
-    rexPetTime,
     egressLocation,
     selectedEva?.egressLocationUuid,
-  ]);
+  ]); // do not include dependency for rexPetTime
 
   /**
    * Update position entry tooltips when rex is ticking
@@ -1856,7 +1927,7 @@ const MapBody: FunctionComponent<{}> = () => {
         }
         const html = ReactDOMServer.renderToString(
           <div className={isWin10 ? styles.mapIconWin10 : styles.mapIcon}>
-            {decodeEmoji("1f468-200d-1f680")}
+            <EmojiRenderer iconValue="1f468-200d-1f680" />
           </div>
         );
         const icon = L.divIcon({ html });
@@ -1909,7 +1980,7 @@ const MapBody: FunctionComponent<{}> = () => {
         icon: L.divIcon({
           html: ReactDOMServer.renderToString(
             <div className={isWin10 ? styles.mapIconWin10 : styles.mapIcon}>
-              {decodeEmoji("274c")}
+              <EmojiRenderer iconValue="274c" />
             </div>
           ),
         }),

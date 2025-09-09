@@ -301,6 +301,12 @@
   width: 20px;
 }
 
+.landerImage {
+  width: 18px;
+  height: 18px;
+  margin-left: 4px;
+}
+
 .stationWrapperRight {
   display: flex;
   user-select: none;
@@ -334,14 +340,14 @@
 }
 
 .iconTraverseDotsContainer {
-  margin-left: 12px;
-  width: 16px;
+  margin-left: 10px;
+  width: 18px;
 }
 
 .iconTraverse {
   border-left: 5px dotted var(--eva);
   overflow-y: visible;
-  height: 32px;
+  height: 21px;
 }
 
 .iconTraverseDotsContainerSmall {
@@ -444,4 +450,10 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.evaCheckboxContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 }

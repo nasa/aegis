@@ -5,7 +5,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 
 import { faCircleInfo, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { decodeEmoji } from "utils/formatting";
+import { EmojiRenderer } from "components/interface/emojis";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 
 const Report_Panel: FunctionComponent<{
@@ -63,7 +63,9 @@ const ReportItems: FunctionComponent<{
               );
             }}
           >
-            {evaReportSequenceItem.icon && decodeEmoji(evaReportSequenceItem.icon)}{" "}
+            {evaReportSequenceItem.icon ? (
+              <EmojiRenderer iconValue={evaReportSequenceItem.icon} />
+            ) : null}{" "}
             {evaReportSequenceItem.name}
           </div>
         )}

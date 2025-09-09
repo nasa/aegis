@@ -31,6 +31,7 @@ import { setStationCircleUIStates, upsertStationByField } from "store/station";
 import { globalGrid } from "utils/mapping/grid";
 import isEqual from "lodash/isEqual";
 import { thunkFullUpdateTraverse } from "./thunkTraverse";
+import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 export const thunkMissionSave = appCreateAsyncThunk<void>(
   "missionSave",
@@ -115,17 +116,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
               name: circleDefinition.name,
               uuid: circleDefinition.uuid,
               visible: false,
-              style: {
-                opacity: 1,
-                contrast: 1,
-                brightness: 1,
-                saturation: 1,
-                blendMode: "normal",
-                color: "#FFFFFF",
-                weight: 1,
-                fillColor: "none",
-                fillOpacity: 0,
-              },
+              style: defaultSublayerStyle,
             };
           }
         });
@@ -177,17 +168,7 @@ export const thunkMissionSave = appCreateAsyncThunk<void>(
               name: circleDefinition.name,
               uuid: circleDefinition.uuid,
               visible: false,
-              style: {
-                opacity: 1,
-                contrast: 1,
-                brightness: 1,
-                saturation: 1,
-                blendMode: "normal",
-                color: "#FFFFFF",
-                weight: 1,
-                fillColor: "none",
-                fillOpacity: 0,
-              },
+              style: defaultSublayerStyle,
             };
           }
         });

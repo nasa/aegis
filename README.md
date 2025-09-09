@@ -126,7 +126,7 @@ To delete all the database data, delete the `./.local/database` directory. This 
 3. Retrieve a dump from CI/CD by executing one of the export jobs (such as `z:db-export:prod`). The job will generate an artifact called `aegis.sql`. Download this sql dump.
 4. Drop the .sql file into the `.local/db-init/` folder.
 5. Start the aegis database container.
-6. If there are any db changes to apply on your current branch, run `npm run migrate:up`
+6. If there are any db changes to apply on your current branch, run `npm run migration:up`
 
 ## Helpful Docker Commands
 
@@ -140,3 +140,14 @@ docker logs <container name> -f
 # Restart individual services
 docker restart <container name>
 ```
+
+## Load Testing
+
+The pipeline is setup to allow you to run a load test on the various EMSS dev servers, and the `int` servers. Speaking generally, the load test will start up a bunch of worker threads that will connect to the dev environment only via web-sockets. Each worker will maintain a state of the redux store and appropriately dispatch changes as they are received via sockets. At the end of the test, all of the workers will report back with a hash of the final redux store state for comparison with all other clients. If any client missed messages, was corrupted, or has a mis-matched store for any reason, the job will fail.
+
+### To start a load test:
+
+1.  Deploy the application to the dev environment
+2.  Run the `setup-load-test` job
+3.  Start the `run-load-test` job. The load test will run for about 3-ish minutes. Once the test is going, navigate to the dev environment in your browser and start performing actions that cause socket emits.
+4.  Once the duration has timed out, return back to the job in the pipeline to view the pass/fail results.

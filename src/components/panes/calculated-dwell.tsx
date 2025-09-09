@@ -9,7 +9,7 @@ const CalculatedDwell: FunctionComponent<{
       <>
         <div className={paneStyles.panelColumnTableRow}>
           <div
-            className={`${paneStyles.panelColumnTableCellLeft} ${paneStyles.panelColumnTableCellLeftSurround}`}
+            className={`${paneStyles.panelColumnTableCell} ${paneStyles.panelColumnTableCellLeftSurround}`}
           >
             <div
               className={paneStyles.displayFieldLabel}
@@ -39,13 +39,13 @@ const CalculatedDwell: FunctionComponent<{
               actionsCalculatedFields.totalUnassignedTime !== 0 ? (
                 <>Incompl.</>
               ) : (
-                <>{actionsCalculatedFields.totalDwellTime.toFixed(0) || "0"}</>
+                <>{Math.round(actionsCalculatedFields.totalDwellTime) || "0"}</>
               )}
             </div>
           </div>
         </div>
         <div className={paneStyles.panelColumnTableRow}>
-          <div className={paneStyles.panelColumnTableCellLeft}>
+          <div className={paneStyles.panelColumnTableCell}>
             <div
               className={paneStyles.displayFieldLabel}
               style={{ paddingLeft: "10px" }}
@@ -61,13 +61,13 @@ const CalculatedDwell: FunctionComponent<{
               actionsCalculatedFields.totalUnassignedTime !== 0 ? (
                 <>Incompl.</>
               ) : (
-                <>{actionsCalculatedFields.totalEv1Time.toFixed(0) || "0"}</>
+                <>{Math.round(actionsCalculatedFields.totalEv1Time) || "0"}</>
               )}
             </div>
           </div>
         </div>
         <div className={paneStyles.panelColumnTableRow}>
-          <div className={paneStyles.panelColumnTableCellLeft}>
+          <div className={paneStyles.panelColumnTableCell}>
             <div
               className={paneStyles.displayFieldLabel}
               style={{ paddingLeft: "10px" }}
@@ -83,7 +83,7 @@ const CalculatedDwell: FunctionComponent<{
               actionsCalculatedFields.totalUnassignedTime !== 0 ? (
                 <>Incompl.</>
               ) : (
-                <>{actionsCalculatedFields.totalEv2Time.toFixed(0) || "0"}</>
+                <>{Math.round(actionsCalculatedFields.totalEv2Time) || "0"}</>
               )}
             </div>
           </div>

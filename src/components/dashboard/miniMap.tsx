@@ -29,10 +29,12 @@ import {
 } from "components/page/leaflet-helper";
 import "components/dashboard/map.module.css";
 import { point } from "@turf/helpers";
-import { circle } from "@turf/turf";
+import { circle, lineString } from "@turf/turf";
 import { addTimeToDateTime } from "utils/mapping/timeLayers";
 import PetInterval from "components/page/petInterval";
 import { EARTH_RADIUS } from "utils/consts";
+import isEqual from "lodash/isEqual";
+import { selectEvaStations, selectEvaTraverses } from "store/selectors";
 
 const MiniMap: FunctionComponent<{
   bigMapBounds: L.LatLngBoundsLiteral;
@@ -45,6 +47,7 @@ const MiniMap: FunctionComponent<{
   const map = useRef<L.Map>(null);
   const crs = useRef<L.Proj.CRS>(null);
   const stationFeatureGroup = useRef<L.FeatureGroup>(null);
+  const stationCirclesFeatureGroup = useRef<L.FeatureGroup>(null);
   const gridLabelFeatureGroup = useRef<L.FeatureGroup>(null);
   const posEntryFeatureGroup = useRef<L.FeatureGroup>(null);
   const bigMapBoxFeatureGroup = useRef<L.FeatureGroup>(null);
@@ -69,6 +72,8 @@ const MiniMap: FunctionComponent<{
         "projOriginX",
         "projOriginY",
         "circleDefinitions",
+        "usingLGRSCoordinates",
+        "actionDefinitions",
       ]),
     deepEqual
   );
@@ -80,28 +85,26 @@ const MiniMap: FunctionComponent<{
     deepEqual
   );
   const runningEvaFromDb = useAppSelector(
-    (state) => state.eva.evasFromDb.find((eva) => eva.uuid === runningRexFromDb.evaUuid),
+    (state) => state.eva.evasFromDb.find((eva) => eva.uuid === runningRexFromDb?.evaUuid),
     deepEqual
   );
   const stationsToShow = useAppSelector((state) => {
     if (!runningEvaFromDb) return [];
-    const stationSequenceItems = runningEvaFromDb.sequence.filter(
-      (item) => item.type === "station"
-    );
-    const stationsInEva = state.station.stationsFromDb.filter((station) =>
-      stationSequenceItems.find((item) => item.uuid === station.uuid)
-    );
-    return stationsInEva;
+    return selectEvaStations(runningEvaFromDb.uuid)(state);
   }, deepEqual);
   const traversesToShow = useAppSelector((state) => {
     if (!runningEvaFromDb) return [];
-    const traverseSequenceItems = runningEvaFromDb.sequence.filter(
-      (item) => item.type === "traverse"
-    );
-    const traversesInEva = state.traverse.traversesFromDb.filter((traverse) =>
-      traverseSequenceItems.find((item) => item.uuid === traverse.uuid)
-    );
-    return traversesInEva;
+    return selectEvaTraverses(runningEvaFromDb.uuid)(state);
+  }, deepEqual);
+  const egressLocation = useAppSelector((state) => {
+    if (runningEvaFromDb?.egressLocationUuid === "lander") {
+      return state.mission.mission.landerLocation;
+    } else {
+      const foundStation = state.station.stations.find(
+        (station) => station.uuid === runningEvaFromDb?.egressLocationUuid
+      );
+      return foundStation ? foundStation.location : null;
+    }
   }, deepEqual);
 
   const [latestPosEntriesByType, setLatestPosEntriesByType] = useState<{
@@ -181,6 +184,9 @@ const MiniMap: FunctionComponent<{
     if (!stationFeatureGroup.current) {
       stationFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
+    if (!stationCirclesFeatureGroup.current) {
+      stationCirclesFeatureGroup.current = L.featureGroup().addTo(map.current);
+    }
     if (!gridLabelFeatureGroup.current) {
       gridLabelFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
@@ -192,15 +198,26 @@ const MiniMap: FunctionComponent<{
     }
 
     // draw the box for the big map bounds
-    if (bigMapBounds && !mission.projIsCustom) {
+    if (bigMapBounds) {
       bigMapBoxFeatureGroup.current.clearLayers();
       bigMapBoxFeatureGroup.current.addLayer(
-        L.rectangle(bigMapBounds, {
-          color: "#ffffff",
-          weight: 2,
-          fillOpacity: 0,
-          interactive: false,
-        })
+        L.geoJSON(
+          lineString([
+            [bigMapBounds[0][1], bigMapBounds[0][0]],
+            [bigMapBounds[2][1], bigMapBounds[2][0]],
+            [bigMapBounds[1][1], bigMapBounds[1][0]],
+            [bigMapBounds[3][1], bigMapBounds[3][0]],
+            [bigMapBounds[0][1], bigMapBounds[0][0]],
+          ]),
+          {
+            style: {
+              color: "#ffffff",
+              weight: 2,
+              fillOpacity: 0,
+              interactive: false,
+            },
+          }
+        )
       );
     }
   }, [mapRef, map, mission, bigMapBounds]);
@@ -264,10 +281,14 @@ const MiniMap: FunctionComponent<{
 
     // get the coordinates of all objects that are in progress
     for (const station of stationsToShow) {
-      objectCoordinates.push(station.location);
+      if (station?.location) {
+        objectCoordinates.push(station.location);
+      }
     }
     for (const traverse of traversesToShow) {
-      objectCoordinates = objectCoordinates.concat(traverse.path);
+      if (traverse?.path) {
+        objectCoordinates = objectCoordinates.concat(traverse.path);
+      }
     }
     for (const posTypeUuid in latestPosEntriesByType) {
       const lastPosEntry = latestPosEntriesByType[posTypeUuid][0];
@@ -316,9 +337,14 @@ const MiniMap: FunctionComponent<{
     // remove all stations from the map
     stationFeatureGroup.current.clearLayers();
 
+    // Remove each circle layer individually because leaflet doesn't clear these geojson layers with .clearLayers()
+    stationCirclesFeatureGroup.current.eachLayer((layer) => {
+      layer.remove();
+    });
+
     // draw all stations
     stationsToShow.forEach((station) => {
-      if (station.location) {
+      if (station?.location) {
         drawOrUpdateMarkerOnMap({
           map,
           featureGroup: stationFeatureGroup,
@@ -335,11 +361,84 @@ const MiniMap: FunctionComponent<{
             interactive: false,
           },
         });
+
+        const circleDefinitions = mission.circleDefinitions;
+
+        // draw circle around station for each mapCircleControl.
+        circleDefinitions?.forEach((circleDefinition) => {
+          /*
+           * Map does NOT think in terms of planets for coordinates,
+           * and currently acts as if coordinates correspond to earth.
+           * Therefore, it is necessary to calculate distance in relation
+           * to the radius of the earth, and not in relation to the planet
+           * the mission is on for the projection.
+           *
+           * Previously, non-equatorial map projections required an additional
+           * adjustment of Initial Radius Adjust * Earth Radius / (2 * Planet Radius).
+           * This is seemingly no longer needed, but keep this in mind in case.
+           */
+          const earthRadiusInMeters = EARTH_RADIUS;
+          const radiusAdjustment = earthRadiusInMeters / mission.planetRadius;
+
+          const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
+
+          if (station.mapCircleControls[circleDefinition.uuid]?.visible) {
+            // Turf Coords are in (lng, lat) format
+
+            const circleStyle = station.mapCircleControls[circleDefinition.uuid]?.style;
+
+            const dashLen = circleStyle?.dashLen || 10;
+
+            const stationCircles: AEGISGeoJSONCircle[] = [];
+
+            stationCircles.push(
+              L.geoJSON(
+                circle(point([station.location.lng, station.location.lat]), drawDistance, {
+                  steps: 256,
+                }),
+                {
+                  style: {
+                    ...circleStyle,
+                    interactive: false,
+                    dashArray: circleStyle.isDashed ? `${dashLen}, ${dashLen}` : undefined,
+                  },
+                }
+              ) as AEGISGeoJSONCircle
+            );
+
+            if (circleStyle?.isDashed) {
+              stationCircles.push(
+                L.geoJSON(
+                  circle(point([station.location.lng, station.location.lat]), drawDistance, {
+                    steps: 256,
+                  }),
+                  {
+                    style: {
+                      ...circleStyle,
+                      color: circleStyle?.altColor,
+                      opacity: circleStyle?.altOpacity,
+                      interactive: false,
+                      dashArray: `${dashLen}, ${dashLen}`,
+                      dashOffset: `${dashLen}`,
+                    },
+                  }
+                ) as AEGISGeoJSONCircle
+              );
+            }
+
+            stationCircles.forEach((circleLayer) => {
+              circleLayer.mapItemType = "stationCircle";
+              circleLayer.uuid = `${station.uuid}-${circleDefinition.uuid}`; // Add unique identifier
+              stationCirclesFeatureGroup.current.addLayer(circleLayer);
+            });
+          }
+        });
       }
     });
 
     stationFeatureGroup.current.setZIndex(999);
-  }, [stationsToShow, isWin10]);
+    stationCirclesFeatureGroup.current.setZIndex(998);
+  }, [stationsToShow, isWin10, mission.circleDefinitions, mission.planetRadius]);
 
   /**
    * Determine current map time and update the map time state
@@ -365,7 +464,7 @@ const MiniMap: FunctionComponent<{
     } else {
       setSelectedRexDateTime(null);
     }
-  }, [rexPetTime, runningEvaFromDb.datetime, runningRexFromDb]);
+  }, [rexPetTime, runningEvaFromDb?.datetime, runningRexFromDb]);
 
   /**
    * Determine traverses to show and draw them on map when traverses or selections change
@@ -381,6 +480,8 @@ const MiniMap: FunctionComponent<{
     });
     // draw all traverses in the selectedEva sequence
     traversesToShow.forEach((traverse) => {
+      if (!traverse) return;
+
       const baseColor = traverse.color || runningEvaFromDb?.traverseColor || "#03adfc";
 
       drawPolylineOnMap({
@@ -443,24 +544,52 @@ const MiniMap: FunctionComponent<{
       const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
 
       if (selectedPreset.mapCircleControls[circleDefinition.uuid]?.visible) {
-        if (selectedPreset.mapCircleControls[circleDefinition.uuid]?.visible) {
-          // Turf Coords are in (lng, lat) format
-          const geoJSONCircle: AEGISGeoJSONCircle = L.geoJSON(
+        const circleStyle = selectedPreset.mapCircleControls[circleDefinition.uuid]?.style;
+
+        const landerCircle: AEGISGeoJSONCircle[] = [];
+
+        const dashLen = circleStyle?.dashLen || 10;
+
+        landerCircle.push(
+          L.geoJSON(
             circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
               steps: 256,
             }),
             {
               style: {
-                ...selectedPreset.mapCircleControls[circleDefinition.uuid]?.style,
+                ...circleStyle,
                 interactive: false,
+                dashArray: circleStyle.isDashed ? `${dashLen}, ${dashLen}` : undefined,
               },
             }
-          ) as AEGISGeoJSONCircle;
+          ) as AEGISGeoJSONCircle
+        );
 
-          geoJSONCircle.mapItemType = "landerCircle";
-
-          map.current.addLayer(geoJSONCircle);
+        if (circleStyle?.isDashed) {
+          landerCircle.push(
+            L.geoJSON(
+              circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
+                steps: 256,
+              }),
+              {
+                style: {
+                  ...circleStyle,
+                  color: circleStyle?.altColor,
+                  opacity: circleStyle?.altOpacity,
+                  interactive: false,
+                  dashArray: `${dashLen}, ${dashLen}`,
+                  dashOffset: `${dashLen}`,
+                },
+              }
+            ) as AEGISGeoJSONCircle
+          );
         }
+
+        landerCircle.forEach((circleLayer) => {
+          circleLayer.mapItemType = "landerCircle";
+          circleLayer.uuid = `lander-${circleDefinition.uuid}`; // Add unique identifier
+          map.current.addLayer(circleLayer);
+        });
       }
     });
   }, [
@@ -499,9 +628,11 @@ const MiniMap: FunctionComponent<{
     // determine which pos entries to show
     if (mapDisplayPos.show) {
       let filteredPosEntries: PosEntry[] = [];
-      if (mapDisplayPos.sourceUuids.length > 0) {
+      // Filter out any undefined values from sourceUuids before checking length
+      const validSourceUuids = mapDisplayPos.sourceUuids.filter((uuid) => uuid != null);
+      if (validSourceUuids.length > 0) {
         filteredPosEntries = runningRexFromDb?.posEntries?.filter((posEntry) =>
-          mapDisplayPos.sourceUuids.includes(posEntry.posSourceUuid)
+          validSourceUuids.includes(posEntry.posSourceUuid)
         );
       } else {
         filteredPosEntries = runningRexFromDb?.posEntries;
@@ -521,6 +652,7 @@ const MiniMap: FunctionComponent<{
     for (const posEntry of posEntriesToShow) {
       if (!mapDisplayPos.show) break; //exit for, no markers need to be drawn
       if (!posEntry.location) continue; // go to next pos entry
+      if (isEqual(posEntry.location, egressLocation)) continue; // don't draw pos entries on top of lander
 
       // determine if this is one of the latest entries.
       const overridePosTypesUuidsToDraw: string[] = [];
@@ -561,7 +693,7 @@ const MiniMap: FunctionComponent<{
     }
     //set in local state to be used in other use effects. Do this last so markers exist
     setLatestPosEntriesByType(posTypeLatestEntries);
-  }, [map, runningRexFromDb, isWin10, mapDisplayPos]);
+  }, [map, runningRexFromDb, isWin10, mapDisplayPos, egressLocation]);
 
   return (
     <div className={styles.mapContainer} ref={mapContainerRef}>

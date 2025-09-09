@@ -104,7 +104,7 @@ const NavTimeline: FunctionComponent = () => {
         getCalculatedFieldsByTraverse({
           traverse,
           missionTraverseRate: state.mission.mission.traverseRate,
-          traverseEva,
+          evaTraverseRate: traverseEva?.traverseRate,
           traverseActions,
         })
       );

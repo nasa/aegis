@@ -30,9 +30,8 @@ import { collapseActions, expandActions } from "store/interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
-import { decodeEmoji, toDecimal } from "utils/formatting";
-import Picker from "@emoji-mart/react";
-import emojiPickerData from "@emoji-mart/data";
+import { toDecimal } from "utils/formatting";
+import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { ActionTemplateMenu } from "../mission-actionTemplates-menu";
 import capitalize from "lodash/capitalize";
 
@@ -128,7 +127,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                             className={actionStyles.actionsHeadingTitleIcon}
                             aria-label="Emoji Display"
                           >
-                            {decodeEmoji(actionTemplate.icon ? actionTemplate.icon : "2754")}
+                            <EmojiRenderer
+                              iconValue={actionTemplate.icon ? actionTemplate.icon : "2754"}
+                            />
                           </div>
                         </div>
                         <div className={actionStyles.verticalCenter}>
@@ -141,7 +142,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                       <>
                         <div className={actionStyles.verticalCenter}>
                           <div className={actionStyles.actionsHeadingTitleIcon}>
-                            {decodeEmoji(actionTemplate.icon ? actionTemplate.icon : "2754")}
+                            <EmojiRenderer
+                              iconValue={actionTemplate.icon ? actionTemplate.icon : "2754"}
+                            />
                           </div>
                         </div>
                         <div className={actionStyles.verticalCenter}>
@@ -322,7 +325,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                             <div className={paneStyles.panelSection2Column}>
                               <div className={paneStyles.panelColumnTable}>
                                 <div className={paneStyles.panelColumnTableRow}>
-                                  <div className={paneStyles.panelColumnTableCellLeft}>
+                                  <div className={paneStyles.panelColumnTableCell}>
                                     <div className={paneStyles.inputFieldLabel}>
                                       Duration (mins):
                                     </div>
@@ -374,7 +377,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                             <div className={paneStyles.panelSection2Column}>
                               <div className={paneStyles.panelColumnTable}>
                                 <div className={paneStyles.panelColumnTableRow}>
-                                  <div className={paneStyles.panelColumnTableCellLeft}>
+                                  <div className={paneStyles.panelColumnTableCell}>
                                     <div className={paneStyles.inputFieldLabel}>
                                       Expected Sample Mass (g):
                                     </div>
@@ -486,7 +489,9 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                             style={{ marginLeft: "18px" }}
                           >
                             <div className={paneStyles.rightTopTitleIcon}>
-                              <>{decodeEmoji(actionTemplate.icon ? actionTemplate.icon : "2754")}</>
+                              <EmojiRenderer
+                                iconValue={actionTemplate.icon ? actionTemplate.icon : "2754"}
+                              />
                             </div>
                             {editMode && (
                               <>
@@ -501,20 +506,19 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                 <div className={actionStyles.iconPickerContainer}>
                                   {showEmojiPicker && (
                                     <div className={actionStyles.iconPicker}>
-                                      <Picker
-                                        ariaLabel="Emoji Picker"
-                                        data={emojiPickerData}
+                                      <EmojiPicker
                                         emojiButtonSize={30}
                                         emojiSize={20}
                                         perLine={10}
                                         darkMode={true}
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        onEmojiSelect={(e: any) => {
+                                        onEmojiSelect={(e) => {
+                                          // Handle both standard emojis (unified) and custom emojis (id)
+                                          const iconValue = e.unified || e.id;
                                           dispatch(
                                             thunkUpdateActionTemplate({
                                               uuid: actionTemplate.uuid,
                                               fieldName: "icon",
-                                              value: e.unified,
+                                              value: iconValue,
                                             })
                                           );
                                           setShowEmojiPicker(false);

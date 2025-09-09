@@ -210,7 +210,7 @@ describe("Calculated fields", () => {
         getCalculatedFieldsByTraverse({
           traverse,
           missionTraverseRate: wholeStoreState.mission.mission.traverseRate,
-          traverseEva,
+          evaTraverseRate: traverseEva.traverseRate,
           traverseActions,
         })
       );

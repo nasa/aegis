@@ -75,16 +75,39 @@ export const makeExportActions = (params: {
   const { actions, allData, missionGrid } = params;
   if (!actions || actions.length === 0) return [];
   const actionDefinitions: ActionDefinitions = allData.mission.actionDefinitions;
+
   const exportActions: ExportAction[] = actions.map((action) => {
+    let rexUuid = null;
+    const actionStation = action.stationUuid
+      ? allData.stations.find((s) => s.uuid === action.stationUuid)
+      : null;
+    const actionTraverse = action.traverseUuid
+      ? allData.traverses.find((t) => t.uuid === action.traverseUuid)
+      : null;
+    if (actionStation || actionTraverse) {
+      // Use a "find" instead of "filter" because if this station is in more than one EVA
+      //  then we know it's an as-planned station and it will fail when it tries to find the rex
+      // Traverses can only be in one EVA
+      const evaThisStationOrTraverseIsIn = allData.evas.find((eva) =>
+        eva.sequence.some((seqItem) => seqItem.uuid === actionStation?.uuid || actionTraverse?.uuid)
+      );
+      if (evaThisStationOrTraverseIsIn) {
+        // check if this eva is in a rex
+        const rex = allData.rexes.find((r) => r.evaUuid === evaThisStationOrTraverseIsIn.uuid);
+        if (rex) rexUuid = rex.uuid;
+      }
+    }
+
     const exportAction: ExportAction = {
       ...action,
       _itemType: "Action",
       descriptionReadable: decodeWsywig(action.description),
+      descriptionTaskReadable: decodeWsywig(action.descriptionTask),
       parentPoiName: allData.pois.find((p) => p.uuid === action.poiUuid)?.name,
-      parentStationName: allData.stations.find((s) => s.uuid === action.stationUuid)?.name,
-      parentTraverseName: allData.traverses.find((t) => t.uuid === action.traverseUuid)?.name,
-      stationRefUuid: allData.stations.find((s) => s.uuid === action.stationUuid)?.refUuid,
-      traverseRefUuid: allData.traverses.find((s) => s.uuid === action.traverseUuid)?.refUuid,
+      parentStationName: actionStation?.name,
+      parentTraverseName: actionTraverse?.name,
+      stationRefUuid: actionStation?.refUuid,
+      traverseRefUuid: actionTraverse?.refUuid,
       stmUuidRefsReadable: getStmNames({
         stmUuidRefs: action.stmUuidRefs,
         level1s: allData.level1s,
@@ -114,8 +137,10 @@ export const makeExportActions = (params: {
       gridCoordinates: getGridCoordinatesFromPoint(
         action.location,
         allData.mission.planetRadius,
+        allData.mission.usingLGRSCoordinates,
         missionGrid
       ),
+      rexUuid,
     };
     return exportAction;
   });
@@ -152,6 +177,7 @@ export const makeExportPois = (params: {
       gridCoordinates: getGridCoordinatesFromPoint(
         poi.location,
         allData.mission.planetRadius,
+        allData.mission.usingLGRSCoordinates,
         missionGrid
       ),
     };
@@ -185,6 +211,18 @@ export const makeExportStations = (params: {
         missionGrid,
       });
     }
+    let rexUuid = null;
+    // Use a "find" instead of "filter" because if this station is in more than one EVA
+    //  then we know it's an as-planned station and it will fail when it tries to find the rex
+    const evaThisStationIsIn = allData.evas.find((eva) =>
+      eva.sequence.some((seqItem) => seqItem.type === "station" && seqItem.uuid === station.uuid)
+    );
+    if (evaThisStationIsIn) {
+      // Check if this eva is in a rex
+      const rex = allData.rexes.find((r) => r.evaUuid === evaThisStationIsIn.uuid);
+      if (rex) rexUuid = rex.uuid;
+    }
+
     const ExportStation: ExportStation = {
       ...station,
       _itemType: "Station",
@@ -211,11 +249,13 @@ export const makeExportStations = (params: {
       gridCoordinates: getGridCoordinatesFromPoint(
         station.location,
         allData.mission.planetRadius,
+        allData.mission.usingLGRSCoordinates,
         missionGrid
       ),
       actionOrderRefUuids: station.actionOrderUuids?.map(
         (actionOrderUuid) => allData.actions.find((a) => a.uuid === actionOrderUuid)?.refUuid
       ),
+      rexUuid,
     };
     return ExportStation;
   });
@@ -240,7 +280,7 @@ export const makeExportTraverses = (params: {
     const traverseCalculatedFields = getCalculatedFieldsByTraverse({
       traverse: traverse,
       missionTraverseRate: allData.mission.traverseRate,
-      traverseEva: traverseEva,
+      evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
     });
     let actionsReadable: ExportAction[] = null;
@@ -251,6 +291,16 @@ export const makeExportTraverses = (params: {
         missionGrid,
       });
     }
+    let rexUuid = null;
+    const evaThisTraverseIsIn = allData.evas.find((eva) =>
+      eva.sequence.some((seqItem) => seqItem.type === "traverse" && seqItem.uuid === traverse.uuid)
+    );
+    if (evaThisTraverseIsIn) {
+      // Check if this eva is in a rex
+      const rex = allData.rexes.find((r) => r.evaUuid === evaThisTraverseIsIn.uuid);
+      if (rex) rexUuid = rex.uuid;
+    }
+
     return {
       ...traverse,
       _itemType: "Traverse",
@@ -260,6 +310,7 @@ export const makeExportTraverses = (params: {
       actionOrderRefUuids: traverse.actionOrderUuids?.map(
         (actionOrderUuid) => allData.actions.find((a) => a.uuid === actionOrderUuid)?.refUuid
       ),
+      rexUuid,
     };
   });
   return exportTraverses;
@@ -283,6 +334,10 @@ export const makeExportEvas = (params: {
       evaActions: allData.actions,
       evaTraverses: allData.traverses,
     });
+    let rexUuid = null;
+    const rex = allData.rexes.find((r) => r.evaUuid === eva.uuid);
+    if (rex) rexUuid = rex.uuid;
+
     const exportEva: ExportEva = {
       ...eva,
       _itemType: "EVA",
@@ -332,6 +387,7 @@ export const makeExportEvas = (params: {
           mission: allData.mission,
         }),
       },
+      rexUuid,
     };
     return exportEva;
   });
@@ -364,6 +420,7 @@ export const makeExportMission = (params: {
     gridCoordinates: getGridCoordinatesFromPoint(
       mission.landerLocation,
       mission.planetRadius,
+      mission.usingLGRSCoordinates,
       missionGrid
     ),
   };

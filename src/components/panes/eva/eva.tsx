@@ -156,7 +156,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                           thunkDuplicateEva({
                             evaUuid: selectedEvaUuid,
                             includeStations: false,
-                            forRex: false,
+                            isRexEva: false,
                           })
                         );
                       }
@@ -180,7 +180,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                             thunkDuplicateEva({
                               evaUuid: selectedEvaUuid,
                               includeStations: true,
-                              forRex: false,
+                              isRexEva: false,
                             })
                           );
                         }

@@ -1,6 +1,5 @@
 import meanBy from "lodash/meanBy";
 import isEqual from "lodash/isEqual";
-import { SURF_NAV_MOON_MEAN_RADIUS } from "utils/consts";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 
 /**
@@ -38,11 +37,12 @@ export function getDistanceBetweenTwoCoordinates(
 export function getGridCoordinatesFromPoint(
   point: AEGISPoint,
   radius: number,
+  usingLGRSCoordinates: boolean,
   globalGrid: MissionGridPoint[][]
 ): string {
   if (!point) return null;
 
-  if (radius === SURF_NAV_MOON_MEAN_RADIUS) {
+  if (usingLGRSCoordinates) {
     return getLGRSCoordsFromLatLng(point.lat, point.lng);
   } else if (globalGrid) {
     return findGlobalGridCoordsFromPoint(globalGrid, point, radius);

@@ -15,12 +15,14 @@ import {
   Dispatch,
   SetStateAction,
   useCallback,
+  useMemo,
 } from "react";
 import pick from "lodash/pick";
 import reverse from "lodash/reverse";
 import uniqBy from "lodash/uniqBy";
 import orderBy from "lodash/orderBy";
 import { secondsFromhhmmss, hhmmssFromSeconds, titleCase } from "utils/formatting";
+import { getStmActionName } from "utils/component-helpers";
 import PetInterval from "../page/petInterval";
 import { isWindows10 } from "utils/browser";
 import {
@@ -48,10 +50,12 @@ import {
   findClosestPointInGlobalGrid,
 } from "utils/mapping/geoMath";
 import { Feature } from "geojson";
-import { getGrids } from "http-client/grid";
 import PresetMenu from "../interface/map/map-menu-preset";
 import { addTimeToDateTime } from "utils/mapping/timeLayers";
 import { EARTH_RADIUS } from "utils/consts";
+import { globalGrid } from "utils/mapping/grid";
+import { selectAsPlannedStations } from "store/selectors";
+import isEqual from "lodash/isEqual";
 
 const MapBody: FunctionComponent<{
   setShowScaleBar: Dispatch<SetStateAction<boolean>>;
@@ -78,13 +82,14 @@ const MapBody: FunctionComponent<{
   const map = useRef<L.Map>(null);
   const crs = useRef<L.Proj.CRS>(null);
   const stationFeatureGroup = useRef<L.FeatureGroup>(null);
+  const stationCirclesFeatureGroup = useRef<L.FeatureGroup>(null);
   const actionFeatureGroup = useRef<L.FeatureGroup>(null);
   const gridLabelFeatureGroup = useRef<L.FeatureGroup>(null);
   const posEntryFeatureGroup = useRef<L.FeatureGroup>(null);
   const highlightFeatureGroup = useRef<L.FeatureGroup>(null);
 
   /**
-   * All states are FromDb thereby requring all changes to be saved before they
+   * All states are FromDb thereby requiring all changes to be saved before they
    *   show up on the dashboard
    */
   const mission: MissionSelectProperties = useAppSelector(
@@ -107,6 +112,8 @@ const MapBody: FunctionComponent<{
         "projOriginX",
         "projOriginY",
         "circleDefinitions",
+        "usingLGRSCoordinates",
+        "actionDefinitions",
       ]),
     deepEqual
   );
@@ -125,7 +132,7 @@ const MapBody: FunctionComponent<{
   const stationsInProgress: Station[] = useAppSelector((state) => {
     const stationsInProgress: Station[] = [];
     for (const stationUuid in runningRexFromDb.stationEntries) {
-      const stationEntry: StationEntry = runningRexFromDb.stationEntries[stationUuid];
+      const stationEntry: ActivityEntry = runningRexFromDb.stationEntries[stationUuid];
       if (stationEntry.rexStatus === "in-progress") {
         stationsInProgress.push(
           state.station.stationsFromDb.find((station) => station.uuid === stationUuid)
@@ -137,7 +144,7 @@ const MapBody: FunctionComponent<{
   const traversesInProgress: Traverse[] = useAppSelector((state) => {
     const traversesInProgress: Traverse[] = [];
     for (const traverseUuid in runningRexFromDb.traverseEntries) {
-      const traverseEntry: TraverseEntry = runningRexFromDb.traverseEntries[traverseUuid];
+      const traverseEntry: ActivityEntry = runningRexFromDb.traverseEntries[traverseUuid];
       if (traverseEntry.rexStatus === "in-progress") {
         traversesInProgress.push(
           state.traverse.traversesFromDb.find((traverse) => traverse.uuid === traverseUuid)
@@ -148,7 +155,32 @@ const MapBody: FunctionComponent<{
   }, deepEqual);
 
   const runningEvaFromDb = useAppSelector(
-    (state) => state.eva.evasFromDb.find((eva) => eva.uuid === runningRexFromDb.evaUuid),
+    (state) => state.eva.evasFromDb.find((eva) => eva.uuid === runningRexFromDb?.evaUuid),
+    deepEqual
+  );
+  const selectedEva = useAppSelector(
+    (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
+    deepEqual
+  );
+  const asPlannedStationUuids = useAppSelector(
+    (state) => selectAsPlannedStations(state).map((s) => s.uuid),
+    deepEqual
+  );
+
+  const gridCorner = useAppSelector((state) => state.map.gridCornerPoint, deepEqual);
+
+  const egressLocation = useAppSelector(
+    (state) => {
+      if (isEqual(runningEvaFromDb?.egressLocationUuid, "lander")) {
+        return state.mission.mission.landerLocation;
+      } else {
+        const foundStation = state.station.stations.find(
+          (station) => station.uuid === runningEvaFromDb?.egressLocationUuid
+        );
+        return foundStation ? foundStation.location : null;
+      }
+    },
+
     deepEqual
   );
 
@@ -173,8 +205,8 @@ const MapBody: FunctionComponent<{
     showLabels: false,
   });
   const [showSunEarth, setShowSunEarth] = useState<boolean>(true);
-  const [chosenGrid, setChosenGrid] = useState<MissionGrid>(undefined);
   const [gridBounds, setGridBounds] = useState<GridIndex[]>(undefined);
+  const [mapGridControls, setMapGridControls] = useState<MapGridControl>(undefined);
   const [mapDateTime, setMapDateTime] = useState<string>(undefined);
   const [selectedRexDateTime, setSelectedRexDateTime] = useState<string>(null);
 
@@ -182,38 +214,70 @@ const MapBody: FunctionComponent<{
 
   const [rexPetTime, setRexPetTime] = useState(""); // used to update the PET value via the PetInterval component
 
-  const [mapZoom, setMapZoom] = useState<number>(0); // Used to trigger re-draw of scale. Value doens't matter
+  const [mapZoom, setMapZoom] = useState<number>(0); // Used to trigger re-draw of scale. Value doesn't matter
   const [gridLabels, setGridLabels] = useState<GridLabelItem[]>([]);
-  const [mapBounds, setMapBounds] = useState<L.LatLngBoundsLiteral>(null); // Used to trigger re-draw of grid labels. Value doens't matter
+  const [mapBounds, setMapBounds] = useState<L.LatLngBoundsLiteral>(null); // Used to trigger re-draw of grid labels. Value doesn't matter
   const [showMenu, setShowMenu] = useState<boolean>(false);
   const [isWin10, setIsWin10] = useState<boolean>(false);
 
-  // get all the posTypes and build the object to manage their follow modes local state
-  const followPosOptions: MapFollowOptions = runningRexFromDb.posTypes.reduce(
-    (followOptionsForPos: MapFollowOptions, posType: PosType) => {
-      followOptionsForPos[posType.uuid] = {
-        follow: posType.name === "EV1" || posType.name === "EV2",
-        name: posType.name,
-      };
-      return followOptionsForPos;
-    },
-    {}
+  // Default follow options for stations and traverses
+  const defaultFollowOptions: MapFollowOptions = useMemo(
+    () => ({
+      stations: { follow: true, name: "Stations" },
+      traverses: { follow: true, name: "Traverses" },
+    }),
+    []
   );
-  const [followModeOptions, setFollowModeOptions] = useState<MapFollowOptions>({
-    stations: { follow: true, name: "Stations" },
-    traverses: { follow: true, name: "Traverses" },
-    ...followPosOptions,
-  });
-  const [followMode, setfollowMode] = useState<boolean>(true);
 
+  const [followModeOptions, setFollowModeOptions] =
+    useState<MapFollowOptions>(defaultFollowOptions);
+  const [followMode, setFollowMode] = useState<boolean>(true);
+
+  const getMapBounds = (): L.LatLngBoundsLiteral => {
+    if (!map.current) return null;
+    const size: L.Point = map.current.getSize();
+    const northWest = map.current.containerPointToLatLng([0, 0]);
+    const northEast = map.current.containerPointToLatLng([size.x, 0]);
+    const southWest = map.current.containerPointToLatLng([0, size.y]);
+    const southEast = map.current.containerPointToLatLng([size.x, size.y]);
+    return [
+      [southWest.lat, southWest.lng],
+      [northEast.lat, northEast.lng],
+      [northWest.lat, northWest.lng],
+      [southEast.lat, southEast.lng],
+    ];
+  };
+
+  // Update followModeOptions when runningRexFromDb.posTypes changes
   useEffect(() => {
-    const checkWindowsVersion = async () => {
-      const result = await isWindows10();
-      setIsWin10(result);
-    };
+    if (!runningRexFromDb?.posTypes) return;
 
-    checkWindowsVersion();
-  }, []);
+    const followPosOptions: MapFollowOptions = runningRexFromDb.posTypes.reduce(
+      (followOptionsForPos: MapFollowOptions, posType: PosType) => {
+        followOptionsForPos[posType.uuid] = {
+          follow: posType.name === "EV1" || posType.name === "EV2",
+          name: posType.name,
+        };
+        return followOptionsForPos;
+      },
+      {}
+    );
+
+    setFollowModeOptions((prevOptions) => ({
+      ...defaultFollowOptions,
+      ...followPosOptions,
+      // Preserve any existing follow state for pos types that haven't changed
+      ...Object.keys(prevOptions).reduce((preserved, key) => {
+        if (key !== "stations" && key !== "traverses" && followPosOptions[key]) {
+          preserved[key] = {
+            ...followPosOptions[key],
+            follow: prevOptions[key]?.follow ?? followPosOptions[key].follow,
+          };
+        }
+        return preserved;
+      }, {} as MapFollowOptions),
+    }));
+  }, [runningRexFromDb?.posTypes, defaultFollowOptions]);
 
   // put this in a useCallback so props isn't a dependency on map instantiation
   const updateBigMapBounds = useCallback(
@@ -229,6 +293,12 @@ const MapBody: FunctionComponent<{
    */
   useLayoutEffect(() => {
     if (!mapRef.current || !map || !mission) return;
+
+    const isWin10Async = async () => {
+      const isWin10 = await isWindows10();
+      setIsWin10(isWin10);
+    };
+    isWin10Async();
 
     // instantiate the prog4leaflet crs using the values in the mission config
     if (mission.projIsCustom === true) {
@@ -263,32 +333,20 @@ const MapBody: FunctionComponent<{
 
       map.current.on("zoomend", () => {
         // set the map bounds
-        const bounds = map.current.getBounds();
-        const boundsArray: L.LatLngBoundsLiteral = [
-          [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
-          [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
-        ];
+        const boundsArray: L.LatLngBoundsLiteral = getMapBounds();
         updateBigMapBounds(boundsArray);
         setMapZoom(map.current.getZoom());
       });
 
       map.current.on("moveend", () => {
         // set the map bounds
-        const bounds = map.current.getBounds();
-        const boundsArray: L.LatLngBoundsLiteral = [
-          [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
-          [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
-        ];
+        const boundsArray: L.LatLngBoundsLiteral = getMapBounds();
         updateBigMapBounds(boundsArray);
       });
 
       map.current.on("load", () => {
         // set the map bounds
-        const bounds = map.current.getBounds();
-        const boundsArray: L.LatLngBoundsLiteral = [
-          [bounds.getSouthWest().lat, bounds.getSouthWest().lng],
-          [bounds.getNorthEast().lat, bounds.getNorthEast().lng],
-        ];
+        const boundsArray: L.LatLngBoundsLiteral = getMapBounds();
         updateBigMapBounds(boundsArray);
       });
     }
@@ -299,6 +357,9 @@ const MapBody: FunctionComponent<{
 
     if (!stationFeatureGroup.current) {
       stationFeatureGroup.current = L.featureGroup().addTo(map.current);
+    }
+    if (!stationCirclesFeatureGroup.current) {
+      stationCirclesFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
     if (!actionFeatureGroup.current) {
       actionFeatureGroup.current = L.featureGroup().addTo(map.current);
@@ -355,7 +416,7 @@ const MapBody: FunctionComponent<{
    * Pan/zoom map view in follow mode
    */
   useEffect(() => {
-    if (!followMode) return;
+    if (!followMode || !runningRexFromDb?.posTypes) return;
     let objectCoordinates: AEGISPoint[] = [];
 
     // get the coordinates of all objects that are in progress
@@ -388,22 +449,22 @@ const MapBody: FunctionComponent<{
     // egress and ingress
     if (runningRexFromDb.xgressEntries?.["egress"]?.rexStatus === "in-progress") {
       let egressCoordinates: AEGISPoint;
-      if (runningEvaFromDb.egressLocationUuid === "lander") {
+      if (runningEvaFromDb?.egressLocationUuid === "lander") {
         egressCoordinates = mission.landerLocation;
       } else {
         egressCoordinates = stationsFromDb.find(
-          (station) => station.uuid === runningEvaFromDb.egressLocationUuid
+          (station) => station.uuid === runningEvaFromDb?.egressLocationUuid
         )?.location;
       }
       objectCoordinates.push(egressCoordinates);
     }
     if (runningRexFromDb.xgressEntries?.["ingress"]?.rexStatus === "in-progress") {
       let ingressCoordinates: AEGISPoint;
-      if (runningEvaFromDb.ingressLocationUuid === "lander") {
+      if (runningEvaFromDb?.ingressLocationUuid === "lander") {
         ingressCoordinates = mission.landerLocation;
       } else {
         ingressCoordinates = stationsFromDb.find(
-          (station) => station.uuid === runningEvaFromDb.ingressLocationUuid
+          (station) => station.uuid === runningEvaFromDb?.ingressLocationUuid
         )?.location;
       }
       objectCoordinates.push(ingressCoordinates);
@@ -450,7 +511,7 @@ const MapBody: FunctionComponent<{
   ]);
 
   /**
-   * Whenever presets changes, update the local copy of the selected preset just incase that got changed too
+   * Whenever presets changes, update the local copy of the selected preset just in-case that got changed too
    */
   useEffect(() => {
     if (!selectedPreset) return;
@@ -492,7 +553,7 @@ const MapBody: FunctionComponent<{
       gridLabels,
       planetRadius: mission.planetRadius,
     });
-    // include map bounds in the depdencey array so the grid labels will re-draw when map moves
+    // include map bounds in the dependency array so the grid labels will re-draw when map moves
   }, [gridLabels, mission.planetRadius, mapBounds]);
 
   /**
@@ -501,23 +562,36 @@ const MapBody: FunctionComponent<{
   useEffect(() => {
     if (!stationsFromDb || !map.current) return;
 
-    let stationsToShow: Station[] = [];
+    const stationUuidsToShow: string[] = [];
+    // always show the stations on a selected EVA
+    if (runningEvaFromDb) {
+      const stationSequenceItems = runningEvaFromDb.sequence.filter(
+        (item) => item.type === "station"
+      );
+      stationUuidsToShow.push(...stationSequenceItems.map((item) => item.uuid));
+      if (runningEvaFromDb.egressLocationUuid !== "lander")
+        stationUuidsToShow.push(runningEvaFromDb.egressLocationUuid);
+      if (runningEvaFromDb.ingressLocationUuid !== "lander")
+        stationUuidsToShow.push(runningEvaFromDb.ingressLocationUuid);
+    }
+
+    // for the rest of the stations (not selected), check eyeball menu setting and folder settings
     if (mapDisplayStations.show) {
-      stationsToShow = stationsFromDb;
-    } else {
-      if (runningEvaFromDb) {
-        const stationSequenceItems = runningEvaFromDb.sequence.filter(
-          (item) => item.type === "station"
-        );
-        const stationsInEva = stationsFromDb.filter((station) =>
-          stationSequenceItems.find((item) => item.uuid === station.uuid)
-        );
-        stationsToShow = stationsInEva;
-      }
+      stationUuidsToShow.push(...asPlannedStationUuids);
     }
 
     // remove all stations from the map
     stationFeatureGroup.current.clearLayers();
+
+    // Remove each circle layer individually because leaflet doesn't clear these geojson layers with .clearLayers()
+    stationCirclesFeatureGroup.current.eachLayer((layer) => {
+      layer.remove();
+    });
+
+    // get the station object for all the station uuids to show
+    const stationsToShow: Station[] = stationsFromDb.filter((station) =>
+      stationUuidsToShow.includes(station.uuid)
+    );
 
     // draw all stations
     stationsToShow.forEach((station) => {
@@ -540,11 +614,95 @@ const MapBody: FunctionComponent<{
             opacity: 0.65,
           },
         });
+
+        if (mapDisplayStations.showCircles) {
+          const circleDefinitions = mission.circleDefinitions;
+
+          // draw circle around station for each mapCircleControl.
+          circleDefinitions?.forEach((circleDefinition) => {
+            /*
+             * Map does NOT think in terms of planets for coordinates,
+             * and currently acts as if coordinates correspond to earth.
+             * Therefore, it is necessary to calculate distance in relation
+             * to the radius of the earth, and not in relation to the planet
+             * the mission is on for the projection.
+             *
+             * Previously, non-equatorial map projections required an additional
+             * adjustment of Initial Radius Adjust * Earth Radius / (2 * Planet Radius).
+             * This is seemingly no longer needed, but keep this in mind in case.
+             */
+            const earthRadiusInMeters = EARTH_RADIUS;
+            const radiusAdjustment = earthRadiusInMeters / mission.planetRadius;
+
+            const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
+
+            if (station.mapCircleControls[circleDefinition.uuid]?.visible) {
+              // Turf Coords are in (lng, lat) format
+
+              const circleStyle = station.mapCircleControls[circleDefinition.uuid]?.style;
+
+              const dashLen = circleStyle?.dashLen || 10;
+
+              const stationCircles: AEGISGeoJSONCircle[] = [];
+
+              stationCircles.push(
+                L.geoJSON(
+                  circle(point([station.location.lng, station.location.lat]), drawDistance, {
+                    steps: 256,
+                  }),
+                  {
+                    style: {
+                      ...circleStyle,
+                      interactive: false,
+                      dashArray: circleStyle.isDashed ? `${dashLen}, ${dashLen}` : undefined,
+                    },
+                  }
+                ) as AEGISGeoJSONCircle
+              );
+
+              if (circleStyle?.isDashed) {
+                stationCircles.push(
+                  L.geoJSON(
+                    circle(point([station.location.lng, station.location.lat]), drawDistance, {
+                      steps: 256,
+                    }),
+                    {
+                      style: {
+                        ...circleStyle,
+                        color: circleStyle?.altColor,
+                        opacity: circleStyle?.altOpacity,
+                        interactive: false,
+                        dashArray: `${dashLen}, ${dashLen}`,
+                        dashOffset: `${dashLen}`,
+                      },
+                    }
+                  ) as AEGISGeoJSONCircle
+                );
+              }
+
+              stationCircles.forEach((circleLayer) => {
+                circleLayer.mapItemType = "stationCircle";
+                circleLayer.uuid = `${station.uuid}-${circleDefinition.uuid}`; // Add unique identifier
+                stationCirclesFeatureGroup.current.addLayer(circleLayer);
+              });
+            }
+          });
+        }
       }
     });
 
     stationFeatureGroup.current.setZIndex(999);
-  }, [stationsFromDb, runningEvaFromDb, mapDisplayStations, isWin10]);
+    stationCirclesFeatureGroup.current.setZIndex(998);
+  }, [
+    stationsFromDb,
+    runningEvaFromDb,
+    mapDisplayStations,
+    isWin10,
+    asPlannedStationUuids,
+    selectedEva,
+    mission.circleDefinitions,
+    mission.planetRadius,
+  ]);
 
   /**
    * Determine current map time and update the map time state
@@ -557,7 +715,7 @@ const MapBody: FunctionComponent<{
     }
   }, [selectedRexDateTime]);
 
-  /** Determine time assosiated with currently running rex time */
+  /** Determine time associated with currently running rex time */
   useEffect(() => {
     if (runningEvaFromDb?.datetime) {
       if (runningRexFromDb.petRunning && rexPetTime.endsWith("0")) {
@@ -570,7 +728,7 @@ const MapBody: FunctionComponent<{
     } else {
       setSelectedRexDateTime(null);
     }
-  }, [rexPetTime, runningEvaFromDb.datetime, runningRexFromDb]);
+  }, [rexPetTime, runningEvaFromDb?.datetime, runningRexFromDb]);
 
   /**
    * Determine actions to show and draw them on map when actions or selections change
@@ -597,10 +755,17 @@ const MapBody: FunctionComponent<{
     // draw or update all actions
     actionsToShow.forEach((action) => {
       if (action.location) {
+        let actionName = `${titleCase(action.type)}: ${action.name}`;
+        if (action.stmAction) {
+          actionName = getStmActionName({
+            actionDefinition: action.actionDefinition,
+            actionDefinitions: mission.actionDefinitions,
+          });
+        }
         drawOrUpdateMarkerOnMap({
           map,
           featureGroup: actionFeatureGroup,
-          name: `${titleCase(action.type)}: ${action.name}`,
+          name: actionName,
           uuid: action.uuid,
           iconEmoji: action.icon ? action.icon : "2754", //default to question mark
           mapItemType: "action",
@@ -617,7 +782,14 @@ const MapBody: FunctionComponent<{
         });
       }
     });
-  }, [actionsFromDb, stationsInProgress, mapDisplayActions, isWin10, traversesInProgress]);
+  }, [
+    actionsFromDb,
+    stationsInProgress,
+    mapDisplayActions,
+    isWin10,
+    traversesInProgress,
+    mission.actionDefinitions,
+  ]);
 
   /**
    * Determine traverses to show and draw them on map when traverses or selections change
@@ -713,24 +885,52 @@ const MapBody: FunctionComponent<{
       const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
 
       if (selectedPreset.mapCircleControls[circleDefinition.uuid]?.visible) {
-        if (selectedPreset.mapCircleControls[circleDefinition.uuid]?.visible) {
-          // Turf Coords are in (lng, lat) format
-          const geoJSONCircle: AEGISGeoJSONCircle = L.geoJSON(
+        const circleStyle = selectedPreset.mapCircleControls[circleDefinition.uuid]?.style;
+
+        const landerCircle: AEGISGeoJSONCircle[] = [];
+
+        const dashLen = circleStyle?.dashLen || 10;
+
+        landerCircle.push(
+          L.geoJSON(
             circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
               steps: 256,
             }),
             {
               style: {
-                ...selectedPreset.mapCircleControls[circleDefinition.uuid]?.style,
+                ...circleStyle,
                 interactive: false,
+                dashArray: circleStyle.isDashed ? `${dashLen}, ${dashLen}` : undefined,
               },
             }
-          ) as AEGISGeoJSONCircle;
+          ) as AEGISGeoJSONCircle
+        );
 
-          geoJSONCircle.mapItemType = "landerCircle";
-
-          map.current.addLayer(geoJSONCircle);
+        if (circleStyle?.isDashed) {
+          landerCircle.push(
+            L.geoJSON(
+              circle(point([landerLocation.lng, landerLocation.lat]), drawDistance, {
+                steps: 256,
+              }),
+              {
+                style: {
+                  ...circleStyle,
+                  color: circleStyle?.altColor,
+                  opacity: circleStyle?.altOpacity,
+                  interactive: false,
+                  dashArray: `${dashLen}, ${dashLen}`,
+                  dashOffset: `${dashLen}`,
+                },
+              }
+            ) as AEGISGeoJSONCircle
+          );
         }
+
+        landerCircle.forEach((circleLayer) => {
+          circleLayer.mapItemType = "landerCircle";
+          circleLayer.uuid = `lander-${circleDefinition.uuid}`; // Add unique identifier
+          map.current.addLayer(circleLayer);
+        });
       }
     });
   }, [
@@ -742,44 +942,36 @@ const MapBody: FunctionComponent<{
   ]);
 
   /**
-   * Get grid from the database
-   */
-  useEffect(() => {
-    async function fetchGrids() {
-      if (!mission.activeGridUuid) return;
-      const grid: MissionGrid = (await getGrids(mission.id, mission.activeGridUuid, true)).data[0];
-      setChosenGrid(grid);
-    }
-
-    fetchGrids();
-  }, [mission.activeGridUuid, mission.id]);
-
-  /**
    * Set grid settings
    */
   useEffect(() => {
-    if (!map || !mapBounds || !chosenGrid) return;
+    if (!map || !mapBounds || !globalGrid?.coordinates || !gridCorner || !selectedPreset) return;
 
-    const size: L.Point = map.current.getSize();
-    const gridStart: AEGISPoint = convertLeafletLatLngToAegisPoint(
-      map.current.containerPointToLatLng([0, 0])
-    );
-    const gridEnd: AEGISPoint = convertLeafletLatLngToAegisPoint(
-      map.current.containerPointToLatLng([size.x, size.y])
-    );
+    if (selectedPreset.mapGridControl?.visible) {
+      const size: L.Point = map.current.getSize();
+      const gridStart: AEGISPoint = convertLeafletLatLngToAegisPoint(
+        map.current.containerPointToLatLng([0, 0])
+      );
+      const gridEnd: AEGISPoint = convertLeafletLatLngToAegisPoint(
+        map.current.containerPointToLatLng([size.x, size.y])
+      );
 
-    setGridBounds([
-      findClosestPointInGlobalGrid(chosenGrid.coordinates, gridStart, mission.planetRadius),
-      findClosestPointInGlobalGrid(chosenGrid.coordinates, gridEnd, mission.planetRadius),
-    ]);
-    setGridBounds(null);
-  }, [map, mapBounds, chosenGrid, mapZoom, mission.id, mission.planetRadius]);
+      setGridBounds([
+        findClosestPointInGlobalGrid(globalGrid.coordinates, gridStart, mission.planetRadius),
+        findClosestPointInGlobalGrid(globalGrid.coordinates, gridEnd, mission.planetRadius),
+      ]);
+      setMapGridControls(selectedPreset.mapGridControl);
+    } else {
+      setGridBounds(null);
+      setMapGridControls(null);
+    }
+  }, [gridCorner, map, mapBounds, mapZoom, mission.id, mission.planetRadius, selectedPreset]);
 
   /**
    * Draw grid
    */
   useEffect(() => {
-    if (!map || !mission?.planetRadius || !mapBounds || !chosenGrid) return;
+    if (!map || !mission?.planetRadius || !mapBounds || !globalGrid?.coordinates) return;
 
     map.current.eachLayer((layer: AEGISGeoJSONGrid | AEGISGeoJSONGridPoint) => {
       if (layer?.mapItemType === "Grid System" || layer?.mapItemType === "Grid Point") {
@@ -787,9 +979,9 @@ const MapBody: FunctionComponent<{
       }
     });
 
-    if (!gridBounds) return;
+    if (!gridBounds || !mapGridControls) return;
 
-    const gridCoordinates: MissionGridPoint[][] = chosenGrid.coordinates;
+    const gridCoordinates: MissionGridPoint[][] = globalGrid.coordinates;
 
     const basePointsShown =
       (gridBounds[1].row - gridBounds[0].row) * (gridBounds[1].col - gridBounds[0].col);
@@ -802,15 +994,15 @@ const MapBody: FunctionComponent<{
 
     const startIndex: GridIndex = adjustGridIndex(
       gridBounds[0],
-      chosenGrid.coordinates.length,
-      chosenGrid.coordinates[0].length,
+      globalGrid.coordinates.length,
+      globalGrid.coordinates[0].length,
       lineZoomLevel,
       true
     );
     const endIndex: GridIndex = adjustGridIndex(
       gridBounds[1],
-      chosenGrid.coordinates.length,
-      chosenGrid.coordinates[0].length,
+      globalGrid.coordinates.length,
+      globalGrid.coordinates[0].length,
       lineZoomLevel,
       false
     );
@@ -849,36 +1041,36 @@ const MapBody: FunctionComponent<{
     const geoJSONGrid: AEGISGeoJSONGrid = L.geoJSON(featureCollection(lines), {
       style: {
         interactive: false,
-        color: "white",
         fillColor: "none",
-        weight: 1,
-        opacity: 1,
+        ...mapGridControls.style,
       },
     }) as AEGISGeoJSONGrid;
     geoJSONGrid.mapItemType = "Grid System";
     map.current.addLayer(geoJSONGrid);
 
-    for (let i = endIndex.row; i >= startIndex.row; i -= lineZoomLevel) {
-      for (let j = startIndex.col; j < endIndex.col; j += lineZoomLevel) {
-        if (i !== startIndex.row && j !== endIndex.col) {
-          const point: MissionGridPoint = gridCoordinates[i][j];
-          if (point.name === null) {
-            continue;
+    if (mapGridControls.labelsVisible) {
+      for (let i = endIndex.row; i >= startIndex.row; i -= lineZoomLevel) {
+        for (let j = startIndex.col; j < endIndex.col; j += lineZoomLevel) {
+          if (i !== startIndex.row && j !== endIndex.col) {
+            const point: MissionGridPoint = gridCoordinates[i][j];
+            if (point.name === null) {
+              continue;
+            }
+            const latLng: L.LatLng = { ...point.coordinates } as L.LatLng;
+            const marker: AEGISGeoJSONGridPoint = L.tooltip({
+              sticky: false,
+              direction: "right",
+              offset: new L.Point(0, -8),
+              permanent: true,
+              className: "leaflet-tooltip-gridLabels-dashboard",
+              interactive: false,
+              opacity: 0.5,
+            })
+              .setLatLng(latLng)
+              .setContent(point.name) as AEGISGeoJSONGridPoint;
+            marker.mapItemType = "Grid Point";
+            marker.addTo(map.current);
           }
-          const latLng: L.LatLng = { ...point.coordinates } as L.LatLng;
-          const marker: AEGISGeoJSONGridPoint = L.tooltip({
-            sticky: false,
-            direction: "right",
-            offset: new L.Point(0, -8),
-            permanent: true,
-            className: "leaflet-tooltip-gridLabels",
-            interactive: false,
-            opacity: 0.8,
-          })
-            .setLatLng(latLng)
-            .setContent(point.name) as AEGISGeoJSONGridPoint;
-          marker.mapItemType = "Grid Point";
-          marker.addTo(map.current);
         }
       }
     }
@@ -887,10 +1079,10 @@ const MapBody: FunctionComponent<{
     map,
     mapZoom,
     mapBounds,
-    chosenGrid,
     mission.id,
     mission.activeGridUuid,
     gridBounds,
+    mapGridControls,
   ]);
 
   /**
@@ -986,9 +1178,11 @@ const MapBody: FunctionComponent<{
       );
       // filter out the pos entries that are not from a selected source. Empty source array means "all".
       let filteredPosEntries: PosEntry[] = [];
-      if (mapDisplayPos.sourceUuids.length > 0) {
+      // Filter out any undefined values from sourceUuids before checking length
+      const validSourceUuids = mapDisplayPos.sourceUuids.filter((uuid) => uuid != null);
+      if (validSourceUuids.length > 0) {
         filteredPosEntries = posEntriesWithLocations?.filter((posEntry) =>
-          mapDisplayPos.sourceUuids.includes(posEntry.posSourceUuid)
+          validSourceUuids.includes(posEntry.posSourceUuid)
         );
       } else {
         filteredPosEntries = posEntriesWithLocations;
@@ -1008,12 +1202,14 @@ const MapBody: FunctionComponent<{
     for (const posEntry of posEntriesToShow) {
       if (!mapDisplayPos.showMarkers) break; //exit for, no markers need to be drawn
       if (!posEntry.location) continue; // go to next pos entry
+      if (isEqual(posEntry.location, egressLocation)) continue; // don't draw pos entries on top of lander
 
       // determine if this is one of the latest entries. If so, determine which latest pos types exist in this entry
       const customPosTypesUuids: string[] = [];
+
       let isRecent = false;
       posEntry.posTypeUuids.forEach((posTypeUuid) => {
-        if (posTypeLatestEntries[posTypeUuid][0]?.uuid === posEntry.uuid) {
+        if (posTypeLatestEntries[posTypeUuid]?.[0]?.uuid === posEntry.uuid) {
           isRecent = true;
           customPosTypesUuids.push(posTypeUuid);
         }
@@ -1029,7 +1225,7 @@ const MapBody: FunctionComponent<{
         let lastEntry = false;
         // check if this is the latest (most recent) entry for a pos type
         for (const posTypeUuid in posTypeLatestEntries) {
-          if (posTypeLatestEntries[posTypeUuid][0].uuid === posEntry.uuid) {
+          if (posTypeLatestEntries[posTypeUuid]?.[0]?.uuid === posEntry.uuid) {
             lastEntry = true;
             break;
           }
@@ -1042,7 +1238,7 @@ const MapBody: FunctionComponent<{
       if (mapDisplayPos.showLatestLabels) {
         // check each pos type for this pos entry
         posEntry.posTypeUuids.forEach((posTypeUuid) => {
-          if (posTypeLatestEntries[posTypeUuid][0]?.uuid === posEntry.uuid) {
+          if (posTypeLatestEntries[posTypeUuid]?.[0]?.uuid === posEntry.uuid) {
             keepTooltipOpen = true;
           }
         });
@@ -1160,7 +1356,7 @@ const MapBody: FunctionComponent<{
     setLatestPosEntriesByType(posTypeLatestEntries);
     setPosEntriesShowing(posEntriesToShow);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, mapDisplayPos, runningRexFromDb, isWin10]); // do not include dependency for rexPetTime
+  }, [map, mapDisplayPos, runningRexFromDb, isWin10, egressLocation]); // do not include dependency for rexPetTime
 
   /**
    * Update position entry tooltips when rex is ticking
@@ -1274,7 +1470,7 @@ const MapBody: FunctionComponent<{
             <div
               className={styles.followButtonWrapper}
               onClick={(e) => {
-                setfollowMode(!followMode);
+                setFollowMode(!followMode);
                 e.stopPropagation();
               }}
               data-tooltip-id="aegis-tooltip"

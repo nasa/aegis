@@ -2,6 +2,7 @@
 #   (which is true when building locally) then use the value to the right of the = operator
 # Base image optionally from arg
 # ref: https://eegitlab.fit.nasa.gov/emss/docs/-/blob/main/docker.md#base-images-as-arg
+# hadolint global ignore=DL3006
 ARG APIV1_BASE_IMAGE=node:22.18.0-alpine
 
 # # # # # # # #
@@ -9,8 +10,14 @@ ARG APIV1_BASE_IMAGE=node:22.18.0-alpine
 # # # # # # # #
 FROM $APIV1_BASE_IMAGE AS base
 
-# Set the working directory. It will create if doens't exist
+# Set the working directory. It will create if doesn't exist
 WORKDIR /app
+
+# Make GIT_COMMIT available inside docker/kaniko so it can be baked into the code at build time
+# The GIT_COMMIT value is passed in using MAP_ENV_VARS_TO_BUILD_ARGS from the job pipeline.
+# When building this container locally, this is not available so "localDev" will be used as default value
+ARG GIT_COMMIT=localDev
+ENV GIT_COMMIT=$GIT_COMMIT
 
 # The * after npmrc ensure copy operation will not fail if the file does not exist
 COPY .npmrc* .
@@ -33,6 +40,7 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci
 
 # Copy the rest of the files and build the app
 COPY . /app
+
 RUN npm run api:build
 
 # # # # # # # #
@@ -55,13 +63,15 @@ ENV NODE_ENV=production
 # Use the cache mount to avoid re-downloading and speed up install (only for local builds)
 RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci --omit=dev
 
-# Install rsync into the docker image to allow copying files when duplicating missions
-RUN apk add --no-cache rsync=3.4.1-r0
+# Install system packages:
+# - rsync - allow copying files when duplicating missions
+# - tini - init system for running node as PID 1 
+#   <https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md#handling-kernel-signals>
+RUN apk add --no-cache \
+  rsync=3.4.1-r0 \
+  tini=0.19.0-r3
 
-# Add tini init to run node to prevent running node as PID 1
-# https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md#handling-kernel-signals
-RUN apk add --no-cache tini~=0.19.0
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # This image is intended to be run with docker-compose.
-CMD ["/bin/sh", "-c", "npm run migrate:up && npm run api"]
+CMD ["/bin/sh", "-c", "npm run migration:up && npm run api"]

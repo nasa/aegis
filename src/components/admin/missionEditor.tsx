@@ -3,7 +3,7 @@ import { Dispatch, FunctionComponent, SetStateAction, useEffect, useRef } from "
 import FileManager from "./fileManager";
 import { Form } from "react-final-form";
 import type { AnyObject } from "final-form";
-import { FFInput, FFTextArea } from "components/interface/form/globalFields";
+import { FFCheckbox, FFInput, FFTextArea } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import Projection from "components/admin/projection";
 import adminStyles from "components/admin/admin.module.css";
@@ -30,6 +30,7 @@ const MissionEditor: FunctionComponent<{
       version: mission.version,
       name: missionValues.name,
       isArchived: missionValues.isArchived,
+      usingLGRSCoordinates: missionValues.usingLGRSCoordinates,
       actionSystemVersion: missionValues.actionSystemVersion,
       actionDefinitions: mission.actionDefinitions,
       equipmentItems: mission.equipmentItems,
@@ -253,6 +254,14 @@ const MissionEditor: FunctionComponent<{
                               name="walkbackRate"
                               label={{ label: "Default Walkback Rate (km/h)" }}
                               validators={[validators.mustBeNumber, validators.mustBeInteger]}
+                            />
+                          </div>
+                        </div>
+                        <div id="usingLGRSCoordinates">
+                          <div className={adminStyles.editDiv}>
+                            <FFCheckbox
+                              name="usingLGRSCoordinates"
+                              label={{ label: "Using LGRS Coordinate System" }}
                             />
                           </div>
                         </div>

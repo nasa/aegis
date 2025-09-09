@@ -190,7 +190,8 @@
 
 .rightTopTitleIcon {
   font-size: 1.2em;
-  min-height: 29px;
+  display: flex;
+  align-items: center;
 }
 
 .rightTopTitleNoIcon {
@@ -541,4 +542,8 @@
   font-size: 1.5em;
   margin-top: -2px;
   height: 1em;
+}
+
+.iconSvg polygon {
+  fill: inherit !important;
 }

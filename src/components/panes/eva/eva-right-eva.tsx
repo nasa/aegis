@@ -46,6 +46,7 @@ import isNull from "lodash/isNull";
 import { upsertRexByField } from "store/rex";
 import { thunkCancelRex, thunkDeleteRex, thunkSaveRex } from "store/thunk/thunkRex";
 import { LoadingOverlay } from "components/interface/_global-elements";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -69,6 +70,19 @@ const EvaRightEva: FunctionComponent = () => {
     const numMatchingRefUuids = state.eva.evas.filter((e) => e.refUuid === evaRefUuid).length;
     return numMatchingRefUuids > 1;
   }, refEqual);
+
+  // The as-planned eva edit settings
+  const editWarning: { showEditWarning: boolean; editWarningMsg: string } = useAppSelector(
+    (state) => {
+      const selectedEva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
+      const asPlannedEva = getAsPlannedEvaFromRefUuid(state, selectedEva.refUuid);
+      return {
+        showEditWarning: asPlannedEva?.showEditWarning,
+        editWarningMsg: asPlannedEva?.editWarningMsg,
+      };
+    },
+    deepEqual
+  );
 
   // get EVA and REX objects
   const partialSelectedEva = useAppSelector((state) => {
@@ -150,7 +164,7 @@ const EvaRightEva: FunctionComponent = () => {
         getCalculatedFieldsByTraverse({
           traverse,
           missionTraverseRate: state.mission.mission.traverseRate,
-          traverseEva,
+          evaTraverseRate: traverseEva?.traverseRate,
           traverseActions,
         })
       );
@@ -474,7 +488,8 @@ const EvaRightEva: FunctionComponent = () => {
                 onClick={async () => {
                   if (isRexEva) {
                     // this is a rex EVA
-                    const confirmMsg = "Are you sure you want to delete this EVA execution?";
+                    const confirmMsg =
+                      "Are you sure you want to delete this Real-time Execution (REX)?";
                     if (!window.confirm(confirmMsg)) return;
                     setIsDeletingEva({ isDeleting: true, isRexEva: true });
                     try {
@@ -488,7 +503,7 @@ const EvaRightEva: FunctionComponent = () => {
                     // check if this as-planned EVA has rexes
                     if (isAsPlannedEvaWithRexes) {
                       confirmMsg +=
-                        "\nWARNING: This EVA has rexes. Deleting this EVA will delete ALL rexes in this EVA.";
+                        "\nWARNING: This EVA has REXes. Deleting this EVA will delete ALL REXes in this EVA.";
                     }
                     if (!window.confirm(confirmMsg)) return;
                     setIsDeletingEva({ isDeleting: true, isRexEva: false });
@@ -510,6 +525,11 @@ const EvaRightEva: FunctionComponent = () => {
                 ariaLabel="editEva"
                 icon={faEdit}
                 onClick={() => {
+                  if (editWarning.showEditWarning && !selectedRexIsExecuting) {
+                    window.alert(
+                      `Edit Warning:\n${editWarning.editWarningMsg || "Default warning message: Do not edit this EVA."}`
+                    );
+                  }
                   dispatch(setEvaEditMode({ evaUuid: partialSelectedEva.uuid, editMode: true }));
                 }}
                 label="Edit"

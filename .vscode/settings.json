@@ -24,5 +24,9 @@
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true
   },
+  "workbench.editorAssociations": {
+    "*.svg": "default"
+  },
+  "svg.preview.mode": "svg",
   "cssModules.camelCase": true
 }

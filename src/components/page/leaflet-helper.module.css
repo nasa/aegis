@@ -164,16 +164,28 @@
   user-select: none;
   filter: drop-shadow(0 0 1px rgb(0 0 0 / 50%)) drop-shadow(0 0 1px rgb(0 0 0 / 50%))
     drop-shadow(0 0 1px rgb(0 0 0 / 50%)) drop-shadow(0 0 1px rgb(0 0 0 / 50%));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 30px;
 }
 
 .mapIconWin10 {
   color: rgb(0 0 0 / 100%);
   user-select: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 30px;
 }
 
 .iconWrapper {
   display: flex;
   position: relative;
+  justify-content: center;
+  align-items: center;
 }
 
 .posIcon {
@@ -201,21 +213,13 @@
 }
 
 .mapEVIcon {
-  position: relative;
-  height: 0;
-  width: 0;
-  padding: 7px 0 0 5px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
 }
 
-.mapLanderIcon {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 .mapEVIconMinimap {
-  position: relative;
-  height: 0;
-  width: 0;
-  padding: 0 0 0 2px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
 }

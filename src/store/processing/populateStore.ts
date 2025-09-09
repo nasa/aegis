@@ -12,10 +12,18 @@ import {
 export const populateStore = async (params: {
   missionId: number;
   runAudit: boolean;
+  loadTestOptions?: {
+    // used for load testing ONLY
+    serverURL?: string;
+    cookies?: string;
+  };
 }): Promise<WholeStoreState> => {
-  const { missionId, runAudit } = params;
+  const { missionId, runAudit, loadTestOptions: externalOptions } = params;
   //get all data for a mission from a single endpoint
-  const allDataRes: WrappedResponse<OneMissionToRuleThemAll> = await getAll(missionId);
+  const allDataRes: WrappedResponse<OneMissionToRuleThemAll> = await getAll(
+    missionId,
+    externalOptions
+  );
   if (allDataRes.status !== "success" || !allDataRes.data) {
     return;
   } //gracefully handle an error if no data is returned?
@@ -48,7 +56,9 @@ export const populateStore = async (params: {
 
   // Generate folders interface states for the store (using cookies if available)
   generateFoldersInterfaceStates({ wholeStoreState });
-  // these values are from the vite.config.mts file and are set at build time
+
+  // These values are from the vite.config.mts file and are set at build time
+  // However when running a load test where this file is spun up on the server, these are set in the esbuild.mjs file
   wholeStoreState.interface.appVersion = {
     version: __APP_VERSION__,
     gitCommit: __GIT_COMMIT__,

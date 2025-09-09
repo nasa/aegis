@@ -65,7 +65,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     return getCalculatedFieldsByTraverse({
       traverse: selectedTraverse,
       missionTraverseRate: state.mission.mission.traverseRate,
-      traverseEva,
+      evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
     });
   }, deepEqual);
@@ -148,7 +148,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -188,19 +188,19 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       {isNotNumber(selectedTraverse?.duration) && (
                         <div
                           style={{ color: "var(--grey5)" }}
                           className={paneStyles.inputFieldLabel}
-                        >{`Using Calculated Total: ${(calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes).toFixed(0)}`}</div>
+                        >{`Using Calculated Total: ${Math.round(calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes)}`}</div>
                       )}
                     </div>
                   </div>
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>Traverse Rate (km/h):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -235,7 +235,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div style={{ color: "var(--grey5)" }} className={paneStyles.inputFieldLabel}>
                         {makeTraverseRateString(
                           selectedTraverse.traverseRate,
@@ -317,7 +317,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Movement Distance (m):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -327,17 +327,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Movement Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields.durationMinutes.toFixed(0)}
+                        {Math.round(calculatedFields.durationMinutes)}
                       </div>
                     </div>
                   </div>
                   <div className={`${paneStyles.panelColumnTableRow}`}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>
                         Path Color:
                         <br />
@@ -378,7 +378,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Total Ascent (m):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -388,7 +388,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Total Descent (m):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -416,7 +416,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     }}
                     style={{ cursor: "pointer" }}
                   >
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -426,7 +426,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Total Action Time (mins):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -434,13 +434,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         {calculatedFields?.totalActionTime === 0 ? (
                           <>0</>
                         ) : (
-                          <>{calculatedFields?.totalActionTime.toFixed(0)}</>
+                          <>{Math.round(calculatedFields?.totalActionTime)}</>
                         )}
                       </div>
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>Total Mass (g):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
@@ -466,16 +466,16 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCellLeft}>
+                    <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>
                         Total Time of Actions and Movement (mins):
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {(
+                        {Math.round(
                           calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes
-                        ).toFixed(0)}
+                        )}
                       </div>
                     </div>
                   </div>
@@ -488,7 +488,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCellLeft}>
+                  <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldLabel}>Last Edited:</div>
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>

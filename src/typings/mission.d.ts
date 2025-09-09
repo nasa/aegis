@@ -8,6 +8,7 @@ interface Mission {
   missionBanner: string | null;
   version: number;
   isArchived: boolean;
+  usingLGRSCoordinates: boolean;
   actionSystemVersion: number;
   actionDefinitions: ActionDefinitions | null;
   landerLocation: AEGISPoint;

@@ -27,6 +27,7 @@ import {
   deleteEvasByUuid,
   deleteEvasFromDbByUuid,
   setEvaEditMode,
+  setOnlyShowRunningRex,
   setSelectedEvaSequenceItemUuid,
   setSelectedEvaUuid,
   upsertEvas,
@@ -51,6 +52,7 @@ import {
   deleteRexesFromDbByUuid,
   setPosEntryEditingUuid,
   setRexesPosEntryEditMode,
+  setSelectedRexUuid,
   upsertRexes,
   upsertRexesFromDb,
 } from "store/rex";
@@ -66,6 +68,7 @@ import {
   setFolders,
   setFolderInterfaceEditing,
   setFolderInterfaceNameValue,
+  setRightPanelIsOpen,
 } from "store/interface";
 import cloneDeep from "lodash/cloneDeep";
 import { thunkSetOnlyShowRunningRexEva } from "./thunkEva";
@@ -353,6 +356,17 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
       const rexDeleted = getState().rex.rexes.find((rex) => rex.uuid === deletedUuid);
       if (getState().eva.evasEditing.includes(rexDeleted.evaUuid)) {
         deletedMessages.push(getConflictMessage("rex", rexDeleted.name, "delete"));
+      }
+      if (rexDeleted.isRunning) {
+        dispatch(setOnlyShowRunningRex(false));
+      }
+      if (rexDeleted.uuid === getState().rex.selectedRexUuid) {
+        dispatch(setSelectedRexUuid(null));
+        //close right panel
+        dispatch(setRightPanelIsOpen(false));
+      }
+      if (rexDeleted.evaUuid === getState().eva.selectedEvaUuid) {
+        dispatch(setSelectedEvaUuid(null));
       }
     }
     dispatch(deleteRexesByUuid(storeDelete.uuids));
