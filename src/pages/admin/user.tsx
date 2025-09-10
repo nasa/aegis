@@ -20,12 +20,12 @@ const User: React.FunctionComponent = () => {
   const [infoMessage, setInfoMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [createMode, setCreateMode] = useState<boolean>(false);
-  const [isSuperadmin, setIsSuperAdmin] = useState<boolean>(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
   const [missionList, setMissionList] = useState<Mission[]>([]);
 
   //on load check login and mission id
   useEffect(() => {
-    // This is a possible solution to the esllint error "No floating promises"
+    // This is a possible solution to the eslint error "No floating promises"
     async function adminCheck() {
       const response = await isLoggedIn();
       if (response.status === "success" && response.data.isSuperAdmin) {
@@ -147,7 +147,7 @@ const User: React.FunctionComponent = () => {
 
   return (
     <>
-      {isSuperadmin && (
+      {isSuperAdmin && (
         <div className={styles.pageStyle}>
           <div className={styles.header}>
             <Header />

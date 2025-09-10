@@ -27,7 +27,7 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = await hasPerms({
+  const viewPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
     appUser: req.session.appUser,
@@ -58,7 +58,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, stmRules } = req.body as STMRuleUpsertRequest;
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
@@ -97,7 +97,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, stmRuleUuids } = req.body as STMRuleDeleteRequest;
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,

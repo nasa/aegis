@@ -360,7 +360,10 @@ const Info_Panel: FunctionComponent<{
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldValue}>
-                      <LastEdited updatedAt={selectedPoi?.updatedAt} />
+                      <LastEdited
+                        updatedAt={selectedPoi?.updatedAt}
+                        infoString={`poi uuid: ${selectedPoi?.uuid}`}
+                      />
                     </div>
                   </div>
                 </div>

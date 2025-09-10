@@ -20,7 +20,7 @@ const parseQuery = (query: Query) => {
 // get the last edit event for a given mission
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = await hasPerms({
+  const viewPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
     appUser: req.session.appUser,

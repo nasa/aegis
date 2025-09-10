@@ -8,6 +8,7 @@ import { getEM } from "utils/mikro";
 
 import { Rex_db } from "../../../database/models/_allModels";
 import { emitStoreUpsert } from "../../sockets";
+import { hasPerms } from "utils/permissions";
 
 const router = express.Router();
 
@@ -33,8 +34,13 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   } = req.body as RexControlUpdateRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  // Check if user has EMSS permissions
-  const editPermission = emssToken && emssToken === process.env.EMSS_TOKEN;
+  // Check if user has EMSS permissions or super admin for the backend emss admin page
+  const editPermission = hasPerms({
+    missionId: null,
+    permission: null,
+    appUser: req.session?.appUser,
+    emssToken: emssToken,
+  });
   if (!editPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;

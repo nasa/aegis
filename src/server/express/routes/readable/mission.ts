@@ -4,7 +4,7 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 
 import { makeExportMission } from "utils/export";
-import { hasPerms } from "utils/permissions";
+import { hasPerms, emssTokenIsValid } from "utils/permissions";
 
 import { getGridFromFile } from "../grid";
 import { getMission } from "../mission";
@@ -25,7 +25,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   let viewPermission;
   if (queryObj.missionId) {
-    viewPermission = await hasPerms({
+    viewPermission = hasPerms({
       missionId: queryObj.missionId,
       permission: "view",
       appUser: req.session.appUser,
@@ -36,7 +36,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     viewPermission =
       req.session?.appUser?.isSuperAdmin ||
       req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
-      (emssToken && emssToken === process.env.EMSS_TOKEN);
+      emssTokenIsValid(emssToken);
   }
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -49,10 +49,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       records = await getMission(queryObj.missionId);
     } else {
       //super admin and emss token can see all missions
-      if (
-        req.session?.appUser?.isSuperAdmin ||
-        (emssToken && emssToken === process.env.EMSS_TOKEN)
-      ) {
+      if (req.session?.appUser?.isSuperAdmin || emssTokenIsValid(emssToken)) {
         records = await getMission();
       } else {
         //return all missions that they have permission for

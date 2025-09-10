@@ -1,6 +1,9 @@
 import express, { Application } from "express";
 import cookieSession from "cookie-session";
 import cors from "cors";
+import { globalValues } from "./global";
+import path from "path";
+
 import authRoutes from "./routes/auth";
 import actionRoutes from "./routes/action";
 import allRoutes from "./routes/all";
@@ -14,13 +17,6 @@ import missionDump from "./routes/missionDump";
 import poiRoutes from "./routes/poi";
 import presetRoutes from "./routes/preset";
 import rexRoutes from "./routes/rex";
-import rexPet from "./routes/emss/rexPet";
-import rexControl from "./routes/emss/rexControl";
-import rexByEvaRef from "./routes/emss/getRexesByEvaRef";
-import rexStatus from "./routes/emss/rexStatus";
-import getMissions from "./routes/emss/getMissions";
-import socketLastEditEventRoutes from "./routes/socket/lastEditEvent";
-import serverSocketStatus from "./routes/socket/serverSocketStatus";
 import stationRoutes from "./routes/station";
 import gridRoutes from "./routes/grid";
 import stmRoutes from "./routes/stm";
@@ -29,24 +25,35 @@ import sublayerRoutes from "./routes/sublayer";
 import traverseRoutes from "./routes/traverse";
 import usersRoutes from "./routes/users";
 import timeRoutes from "./routes/time";
+import folderRoutes from "./routes/folder";
+
+import rexPet from "./routes/emss/rexPet";
+import rexControl from "./routes/emss/rexControl";
+import rexByEvaRef from "./routes/emss/getRexesByEvaRef";
+import rexStatus from "./routes/emss/rexStatus";
+import getMissions from "./routes/emss/getMissions";
+import enableEmssApi from "./routes/emss/enableEmssApi";
+
+import socketLastEditEventRoutes from "./routes/socket/lastEditEvent";
+import serverSocketStatus from "./routes/socket/serverSocketStatus";
+
 import boxDownloadFileRoute from "./routes/file/boxDownloadFile";
 import boxGetFolderItems from "./routes/file/boxGetFolderItems";
 import fileUploadRoute from "./routes/file/upload";
 import fileListRoute from "./routes/file/list";
 import fileRenameRoute from "./routes/file/rename";
 import fileDeleteRoute from "./routes/file/delete";
+
 import logFromClient from "./routes/logFromClient";
-import path from "path";
+import serverLogger from "utils/logging/serverLogger";
 import { getUser } from "packages/getUser";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
-import serverLogger from "utils/logging/serverLogger";
-import folderRoutes from "./routes/folder";
+
 import readableActionRoutes from "./routes/readable/action";
 import readableStationRoutes from "./routes/readable/station";
 import readableEvaRoutes from "./routes/readable/eva";
 import readableMissionRoutes from "./routes/readable/mission";
 import readableTraverseRoutes from "./routes/readable/traverse";
-import { globalValues } from "./global";
 
 const app: Application = express();
 
@@ -130,5 +137,6 @@ app.use("/api/v1/emss/rexControl", rexControl);
 app.use("/api/v1/emss/getRexesByEvaRef", rexByEvaRef);
 app.use("/api/v1/emss/rexStatus", rexStatus);
 app.use("/api/v1/emss/getMissions", getMissions);
+app.use("/api/v1/emss/enableEmssApi", enableEmssApi);
 
 export default app;

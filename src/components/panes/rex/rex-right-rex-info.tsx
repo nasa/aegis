@@ -308,7 +308,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        <LastEdited updatedAt={selectedRex?.updatedAt} />
+                        <LastEdited
+                          updatedAt={selectedRex?.updatedAt}
+                          infoString={`rex uuid: ${selectedRex?.uuid}`}
+                        />
                       </div>
                     </div>
                   </div>

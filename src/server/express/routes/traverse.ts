@@ -22,7 +22,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, traverses } = req.body as TraverseUpsertRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
@@ -70,7 +70,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, traverseUuids } = req.body as TraverseDeleteRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,

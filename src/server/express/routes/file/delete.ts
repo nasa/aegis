@@ -18,7 +18,7 @@ const parseQuery = (query: Query) => {
 
 router.delete("/", async (req: Request, res: Response) => {
   const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "edit",
     appUser: req.session.appUser,

@@ -18,7 +18,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, presets } = req.body as PresetUpsertRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
@@ -72,7 +72,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, presetUuids } = req.body as PresetDeleteRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,

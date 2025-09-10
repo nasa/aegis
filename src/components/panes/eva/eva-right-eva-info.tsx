@@ -899,7 +899,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldValue}>
-                      <LastEdited updatedAt={selectedEva?.updatedAt} />
+                      <LastEdited
+                        updatedAt={selectedEva?.updatedAt}
+                        infoString={`eva uuid: ${selectedEva?.uuid}`}
+                      />
                     </div>
                   </div>
                 </div>

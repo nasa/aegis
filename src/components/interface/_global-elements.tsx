@@ -44,7 +44,8 @@ export const ModifiedIndicator: FunctionComponent<{
 
 export const LastEdited: FunctionComponent<{
   updatedAt: string;
-}> = ({ updatedAt }) => {
+  infoString?: string;
+}> = ({ updatedAt, infoString }) => {
   const returnDivContent = (updatedAt: string) => {
     if (!updatedAt) return <>N/A</>;
     const date = new Date(updatedAt);
@@ -104,7 +105,8 @@ export const LastEdited: FunctionComponent<{
     <div
       className={styles.updatedAt}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={`${longdateFromDateString(updatedAt)} Z`}
+      data-tooltip-html={`${longdateFromDateString(updatedAt)} Z
+      ${infoString ? `<br />${infoString}` : ""}`}
     >
       {<>{returnDivContent(updatedAt)}</>}
     </div>

@@ -26,7 +26,7 @@ const parseQuery = (query: Query) => {
 // get boxDownloadFile
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "edit",
     appUser: req.session.appUser,
