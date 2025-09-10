@@ -17,7 +17,7 @@ const router = express.Router();
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { socketId, missionId, evas } = req.body as EvaUpsertRequest;
   const emssToken = req.headers["emss-token"] as string;
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
@@ -72,7 +72,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { socketId, missionId, evaUuids } = req.body as EvaDeleteRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,

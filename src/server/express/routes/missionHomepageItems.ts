@@ -6,6 +6,7 @@ import sortBy from "lodash/sortBy";
 import { Mission_db, Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
+import { emssTokenIsValid } from "utils/permissions";
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const viewPermission =
     req.session?.appUser?.isSuperAdmin ||
     req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
-    (emssToken && emssToken === process.env.EMSS_TOKEN);
+    emssTokenIsValid(emssToken);
   if (!viewPermission) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;

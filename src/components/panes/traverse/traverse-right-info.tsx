@@ -493,7 +493,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldValue}>
-                      <LastEdited updatedAt={selectedTraverse?.updatedAt} />
+                      <LastEdited
+                        updatedAt={selectedTraverse?.updatedAt}
+                        infoString={`traverse uuid: ${selectedTraverse?.uuid}`}
+                      />
                     </div>
                   </div>
                 </div>

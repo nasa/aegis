@@ -51,8 +51,6 @@ const Mission: React.FunctionComponent = () => {
           />
         </div>
         <MissionEditor mission={mission} setMission={setMission} />
-        {/*
-            <MissionSTM mission={mission} setMission={setMission} /> */}
       </div>
     </div>
   );

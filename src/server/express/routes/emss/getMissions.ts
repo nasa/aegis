@@ -4,6 +4,7 @@ import express from "express";
 
 import { Eva_db, Mission_db, Rex_db } from "server/database/models/_allModels";
 import { getEM } from "utils/mikro";
+import { emssTokenIsValid } from "utils/permissions";
 
 export type MissionsWithEvas = {
   [missionId: number]: {
@@ -23,7 +24,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
 
   // Check if user has EMSS permissions
-  const viewPermissions = emssToken && emssToken === process.env.EMSS_TOKEN;
+  const viewPermissions = emssTokenIsValid(emssToken);
 
   if (!viewPermissions) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });

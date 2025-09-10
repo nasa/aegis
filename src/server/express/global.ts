@@ -6,6 +6,7 @@ export const globalValues: GlobalValues = {
     lastEditEvents: {},
   },
   ormCache: null,
-  socketInterval: null,
+  socketInterval: null, // ensures only 1 interval is running
   appVersion: null,
+  isEmssApiEnabled: true,
 };

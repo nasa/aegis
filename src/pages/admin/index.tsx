@@ -15,12 +15,12 @@ const Index: React.FunctionComponent = () => {
     await navigate("/admin/user");
   };
 
-  const navigatePOI = async () => {
-    await navigate("/admin/poi");
-  };
-
   const navigateVisitors = async () => {
     await navigate("/admin/serverSocketStatus");
+  };
+
+  const navigateEmss = async () => {
+    await navigate("/admin/emss");
   };
 
   //on load check login
@@ -59,17 +59,17 @@ const Index: React.FunctionComponent = () => {
       enabled: user?.isSuperAdmin,
     },
     {
-      title: "POIs",
-      description: "Add new POIs or edit existing ones",
-      button: "Add/Edit POIs",
-      onClick: navigatePOI,
-      enabled: true,
-    },
-    {
       title: "Visitors",
       description: "View data on current visitors via sockets",
       button: "View",
       onClick: navigateVisitors,
+      enabled: user?.isSuperAdmin,
+    },
+    {
+      title: "EMSS",
+      description: "View data on current EMSS connections",
+      button: "View",
+      onClick: navigateEmss,
       enabled: user?.isSuperAdmin,
     },
   ];

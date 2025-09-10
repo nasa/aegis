@@ -29,7 +29,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   const emssToken = req.headers["emss-token"] as string;
 
-  const viewPermission = await hasPerms({
+  const viewPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
     appUser: req.session.appUser,
@@ -61,7 +61,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, pois } = req.body as POIUpsertRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
@@ -116,7 +116,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, poiUuids } = req.body as POIDeleteRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,

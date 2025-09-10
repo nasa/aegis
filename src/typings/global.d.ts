@@ -18,6 +18,7 @@ type GlobalValues = {
   serverSocketStatus: ServerSocketStatus;
   socketInterval: NodeJS.Timeout;
   appVersion: AppVersion;
+  isEmssApiEnabled: boolean;
 };
 
 // these are defined in esbuild.mjs and vite.config.mts

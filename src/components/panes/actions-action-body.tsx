@@ -825,7 +825,7 @@ const RightActionBody: FunctionComponent<{
       </div>
       <div className={paneStyles.lastEditedContainer}>
         <div className={paneStyles.displayFieldValue}>
-          <LastEdited updatedAt={action?.updatedAt} />
+          <LastEdited updatedAt={action?.updatedAt} infoString={`action uuid: ${action?.uuid}`} />
         </div>
       </div>
     </div>

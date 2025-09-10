@@ -20,7 +20,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, rexes } = req.body as RexUpsertRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
@@ -98,7 +98,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, uuids } = req.body as RexDeleteRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,

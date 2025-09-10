@@ -24,7 +24,7 @@ const parseQuery = (query: Query) => {
 // Middleware to check user session
 router.use(async (req: Request, res: Response, next): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "edit",
     appUser: req.session.appUser,

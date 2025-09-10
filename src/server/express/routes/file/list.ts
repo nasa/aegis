@@ -23,7 +23,7 @@ const parseQuery = (query: Query) => {
 
 router.get("/", async (req: Request, res: Response) => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = await hasPerms({
+  const viewPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
     appUser: req.session.appUser,

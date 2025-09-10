@@ -3,7 +3,7 @@ import { FunctionComponent, useEffect, useRef } from "react";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import type { Socket } from "socket.io-client";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { cleanupSocket, createSocket, attachSocketListeners } from "utils/socketStuff";
+import { cleanupSocketListeners, createSocket, attachSocketListeners } from "utils/socketStuff";
 
 const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   const dispatch = useAppDispatch();
@@ -30,7 +30,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
 
     // Clean up the socket connection on unmount
     return () => {
-      cleanupSocket(socket.current);
+      cleanupSocketListeners(socket.current);
     };
   }, [dispatch, socket, missionId, user, interfaceStore.appVersion]);
 
