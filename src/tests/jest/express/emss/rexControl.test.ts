@@ -19,7 +19,7 @@ jest.mock("server/express/sockets", () => {
 
 let testMissions: Mission_db[];
 let testRexes: Rex_db[];
-const emssToken = process.env.EMSS_TOKEN || "test-emss-token";
+const emssToken = process.env.EMSS_TOKEN;
 
 beforeAll(async () => {
   await getORM();
@@ -343,7 +343,7 @@ describe("REX Control API Endpoint", () => {
       await em.persistAndFlush(rexRecord);
 
       const activityProperties: MaestroActivityPropertiesByRefUuid = {
-        "activity-refuuid-test": {
+        "activity-refUuid-test": {
           color: "#blue",
           number: 1,
         },

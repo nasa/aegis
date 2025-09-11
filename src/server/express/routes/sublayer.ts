@@ -14,7 +14,7 @@ import {
   convertSublayersTypeDbToStore,
   convertSublayersTypeStoreToDb,
 } from "store/storeUtils/sublayer";
-import { SCHEMA_DIR } from "utils/consts-server";
+import { SCHEMA_DIR } from "utils/validateSchemaServer";
 import { hasPerms } from "utils/permissions";
 import { getEM } from "utils/mikro";
 

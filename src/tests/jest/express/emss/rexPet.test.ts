@@ -18,6 +18,7 @@ jest.mock("server/express/sockets", () => {
 
 let testMissions: Mission_db[];
 let testRexes: Rex_db[];
+const emssToken = process.env.EMSS_TOKEN;
 
 /**
  * Build a valid request body, overriding any fields as needed.
@@ -55,8 +56,6 @@ beforeAll(async () => {
 });
 
 describe("REX PET API Endpoint", () => {
-  const emssToken = process.env.EMSS_TOKEN || "test-emss-token";
-
   describe("POST request - Authentication", () => {
     test("Returns auth failure without emss-token", async () => {
       const requestBody = makePetUpdateRequest({
