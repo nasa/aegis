@@ -32,6 +32,7 @@ import rexControl from "./routes/emss/rexControl";
 import rexByEvaRef from "./routes/emss/getRexesByEvaRef";
 import rexStatus from "./routes/emss/rexStatus";
 import getMissions from "./routes/emss/getMissions";
+import rexOverwrite from "./routes/emss/rexOverwrite";
 import enableEmssApi from "./routes/emss/enableEmssApi";
 
 import socketLastEditEventRoutes from "./routes/socket/lastEditEvent";
@@ -138,5 +139,6 @@ app.use("/api/v1/emss/getRexesByEvaRef", rexByEvaRef);
 app.use("/api/v1/emss/rexStatus", rexStatus);
 app.use("/api/v1/emss/getMissions", getMissions);
 app.use("/api/v1/emss/enableEmssApi", enableEmssApi);
+app.use("/api/v1/emss/rexOverwrite", rexOverwrite);
 
 export default app;

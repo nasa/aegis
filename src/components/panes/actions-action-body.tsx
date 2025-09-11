@@ -366,9 +366,9 @@ const RightActionBody: FunctionComponent<{
                         ariaLabel: "Executed Sample Mass",
                         style: { width: "45px" },
                         validators: [
-                          validators.mustBeNumber,
                           validators.maxLength(4),
                           validators.mustBeInteger,
+                          validators.mustBeNumberGTZero,
                         ],
                         onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                           e.target.value = e.target.value.replace(regExValidators.regExNumber, "");

@@ -1,5 +1,3 @@
-type RexStatus = "pending" | "in-progress" | "complete" | "skipped";
-
 type Rex = {
   missionId: number;
   uuid: string;
@@ -57,6 +55,7 @@ interface PosType {
   pathColor: string;
 }
 
+type RexStatus = "pending" | "in-progress" | "complete" | "skipped";
 interface ActivityEntry {
   rexStatus: RexStatus;
   maestroPercentCompleteEv1?: number;
@@ -67,25 +66,25 @@ interface ActivityEntries {
   [stationOrTraverseUuid: string]: ActivityEntry; // "activity" is Station or Traverse
 }
 
-interface MaestroActivityPropertyEntry {
+interface MaestroActivityProperty {
   color: string; // hex color for the activity
   number: number; // number of the activity in the maestro procedure
 }
 
 interface MaestroActivityPropertiesByRefUuid {
-  [refUuid: string]: MaestroActivityPropertyEntry;
+  [refUuid: string]: MaestroActivityProperty;
 }
 
 interface MaestroActivityProperties {
-  [uuid: string]: MaestroActivityPropertyEntry;
+  [uuid: string]: MaestroActivityProperty;
 }
 
 interface ActionEntry {
   rexStatus: RexStatus;
-  mass: number;
-  markerId: string;
-  containerId: string;
-  secondaryContainerId: string;
+  mass?: number;
+  markerId?: string;
+  containerId?: string;
+  secondaryContainerId?: string;
 }
 
 interface ActionEntries {
@@ -99,3 +98,22 @@ interface XgressEntry {
 interface XgressEntries {
   [xgressUuid: string]: XgressEntry;
 }
+
+// properties from REX that maestro should include in /rexOverwrite endpoint
+type RexOverwrite = Pick<
+  Rex,
+  | "uuid"
+  | "petStartStopTimestamp"
+  | "petValueAtStartStop"
+  | "petRunning"
+  | "isRunning"
+  | "xgressEntries"
+  | "maestroControlled"
+  | "maestroEventId"
+  | "maestroEventUrl"
+  | "maestroActivityPropertiesByRefUuid"
+> & {
+  stationEntriesByRefUuid: { [stationOrTraverseRefUuid: string]: ActivityEntry };
+  traverseEntriesByRefUuid: { [stationOrTraverseRefUuid: string]: ActivityEntry };
+  actionEntriesByRefUuid: { [actionRefUuid: string]: ActionEntry };
+};

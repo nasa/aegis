@@ -42,8 +42,9 @@
     "version:minor": "npm version minor && git push",
     "version:major": "npm version major && git push",
     "make-dotenv": "make-dotenv && npx prettier --write ./env.secret.ts --ignore-path .prettierignore",
-    "schema:create": "concurrently \"npm run schema:create:sublayerImportable\"",
-    "schema:create:sublayerImportable": "typescript-json-schema ./tsconfig.schema.json SublayerImportable --noExtraProps --required --ignoreErrors -o ./.local/schemas/sublayerImportable.json"
+    "schema:create": "concurrently \"npm run schema:create:sublayerImportable\" \"npm run schema:create:rexOverwrite\"",
+    "schema:create:sublayerImportable": "typescript-json-schema ./tsconfig.schema.json SublayerImportable --noExtraProps --required --ignoreErrors -o ./.local/schemas/sublayerImportable.json",
+    "schema:create:rexOverwrite": "typescript-json-schema ./tsconfig.schema.json RexOverwrite --noExtraProps --required --ignoreErrors -o ./.local/schemas/rexOverwrite.json"
   },
   "dependencies": {
     "@mikro-orm/cli": "6.4.16",

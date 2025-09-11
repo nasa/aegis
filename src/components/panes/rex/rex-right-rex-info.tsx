@@ -113,36 +113,29 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         <div className={paneStyles.inputFieldLabel}>Execution Status:</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
-                        {editMode && selectedRex.evaUuid && !isOtherRexRunning ? (
+                        {editMode && !isOtherRexRunning ? (
                           <Button
                             onClick={() => {
-                              if (selectedRex.evaUuid) {
+                              dispatch(
+                                upsertRexByField(
+                                  selectedRex.uuid,
+                                  "isRunning",
+                                  !selectedRex.isRunning
+                                )
+                              );
+
+                              if (!selectedRex.posEntries || selectedRex.posEntries.length === 0) {
+                                dispatch(thunkCreateInitialPosEntries());
+                              }
+
+                              if (selectedRex.petRunning) {
                                 dispatch(
-                                  upsertRexByField(
-                                    selectedRex.uuid,
-                                    "isRunning",
-                                    !selectedRex.isRunning
-                                  )
+                                  thunkRexPetStartStop({
+                                    rexUuid: selectedRex.uuid,
+                                    directive: "stop",
+                                    petValue: rexPetTime,
+                                  })
                                 );
-
-                                if (
-                                  !selectedRex.posEntries ||
-                                  selectedRex.posEntries.length === 0
-                                ) {
-                                  dispatch(thunkCreateInitialPosEntries());
-                                }
-
-                                if (selectedRex.petRunning) {
-                                  dispatch(
-                                    thunkRexPetStartStop({
-                                      rexUuid: selectedRex.uuid,
-                                      directive: "stop",
-                                      petValue: rexPetTime,
-                                    })
-                                  );
-                                }
-                              } else {
-                                alert("Please select an EVA to start the Real-time execution");
                               }
                             }}
                             label={selectedRex.isRunning ? "Stop Execution" : "Execute EVA"}

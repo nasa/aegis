@@ -23,7 +23,7 @@ type RexStatusRequest = {
   rexUuid: string;
   type: "station" | "traverse" | "action" | "xgress";
   typeRefUuid: string; // uuid of the station, traverse, or action -- or "egress" or "ingress" for xgress items
-  entry: ActivityEntry | ActionEntry;
+  entry: ActivityEntry | ActionEntry | XgressEntry;
 };
 
 type RexStatusByTypeRefUuid = {
