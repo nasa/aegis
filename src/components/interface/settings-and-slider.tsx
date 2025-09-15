@@ -4,6 +4,7 @@ import { Checkbox, Dropdown } from "components/interface/form/globalFields";
 
 import { getPercentOrDefault } from "utils/formatting";
 import CompactColor from "@uiw/react-color-compact";
+import { COLOR_PALATTE } from "utils/consts";
 
 const Settings_subpanel: FunctionComponent<{
   type: "vector" | "circle" | "vector-tile" | "tile" | "grid";
@@ -146,6 +147,7 @@ const Settings_subpanel: FunctionComponent<{
             <CompactColor
               key={`1-${JSON.stringify(layerStyle)}`} // changing the key blows it away and re-mounts
               color={layerStyle?.color}
+              colors={COLOR_PALATTE}
               onChange={(color) => {
                 setStyle(color.hex, "color");
               }}
@@ -206,6 +208,7 @@ const Settings_subpanel: FunctionComponent<{
             <CompactColor
               key={`2-${JSON.stringify(layerStyle)}`} // changing the key blows it away and re-mounts
               color={`${layerStyle?.altColor}`}
+              colors={COLOR_PALATTE}
               onChange={(color) => {
                 setStyle(color.hex, "altColor");
               }}

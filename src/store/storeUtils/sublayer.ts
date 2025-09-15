@@ -18,7 +18,7 @@ export const defaultSublayerStyle: MapSublayerStyle = {
   isDashed: false,
   dashLen: 10,
   altColor: "#FFFFFF",
-  altOpacity: 100,
+  altOpacity: 1,
 };
 /**
  * Generate a blank sublayer
