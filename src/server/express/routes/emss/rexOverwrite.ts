@@ -9,9 +9,8 @@ import {
 } from "../../../database/models/_allModels";
 import { emitStoreUpsert } from "../../sockets";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
-import { OptimisticLockError } from "@mikro-orm/core";
-import random from "lodash/random";
 import { validateRexOverwrite } from "../../../../utils/rexOverwriteValidator";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -34,25 +33,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    let updatedRexes: Rex[];
-    // try to update the rex a max of 7 times
-    for (let tries = 0; tries < 7; tries++) {
-      try {
-        updatedRexes = await overwriteRex(req.body);
-        break; // if successful, exit the retry loop
-      } catch (e) {
-        if (e instanceof OptimisticLockError) {
-          // lock error. wait anywhere from 100-200ms before retrying
-          await new Promise((resolve) => setTimeout(resolve, random(100, 200)));
-        } else {
-          // some other kind of error happened
-          // re-throw it so the outer try/catch can grab it and exit the for loop
-          throw e;
-        }
-      }
-    }
-    if (!updatedRexes) {
-      throw new Error("Failed to update Rex(es) after multiple attempts");
+    const updatedRexes: Rex[] = await upsertDatabaseRetry(() => overwriteRex(req.body));
+
+    if (!updatedRexes || updatedRexes.length === 0) {
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update Rex(es) after multiple tries",
+        data: null,
+      });
+      return;
     }
 
     emitStoreUpsert({

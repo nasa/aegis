@@ -69,7 +69,7 @@ beforeAll(async () => {
     .createOne();
   testRexes = await new RexFactory(em)
     .each((rex, idx) => {
-      rex.name = `Jest Rex ${idx + 1}`;
+      rex.name = `Jest Rex rexOverwrite ${idx + 1}`;
       rex.mission = testMission;
       rex.evaUuid = testEva.uuid;
       rex.isRunning = idx === 1; // create one rex that is running, one that is not
@@ -420,6 +420,7 @@ describe("REX Status API Endpoint", () => {
       expect(response.body.message).toContain("Rex updated for rex uuids");
 
       // Check that the array length is 2 (aka 2 rexes were sent because one was stopped)
+      expect(response.body.data.length).toBe(2);
       const callArgs = emitStoreUpsertSpy.mock.calls[0][0]; // Get the first call's arguments
       expect(callArgs.data).toHaveLength(2);
     });

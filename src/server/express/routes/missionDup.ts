@@ -4,6 +4,7 @@ import express from "express";
 
 import { fetchMissionEntities, createMissionCopy } from "utils/dup/core";
 import { getEM } from "utils/mikro";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -23,12 +24,23 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    // duplicate mission
-    const newMissionId = await duplicateMission(parseInt(missionId as string));
+    const newMissionId: number | null = await upsertDatabaseRetry(() =>
+      duplicateMission(parseInt(missionId as string))
+    );
+
+    // Check response
+    if (newMissionId === null || newMissionId === undefined) {
+      res.status(500).json({
+        status: "error",
+        message: "Failed to duplicate mission after multiple tries",
+        data: null,
+      });
+      return;
+    }
 
     res.status(200).json({
       status: "success",
-      message: `mission duplicated. New mission ID: ${newMissionId}`,
+      message: `Mission duplicated. New mission ID: ${newMissionId}`,
       data: newMissionId,
     });
   } catch (e) {
@@ -44,6 +56,7 @@ const duplicateMission = async (missionId: number | undefined): Promise<number> 
     throw new Error("Mission ID is required");
   }
   const em = getEM();
+  await em.begin(); // Start a transaction
 
   try {
     // 1. Fetch the original mission and related entities
@@ -55,8 +68,10 @@ const duplicateMission = async (missionId: number | undefined): Promise<number> 
       copyAssets: true,
     });
 
+    await em.commit(); // Commit the transaction
     return newMissionId;
   } catch (error) {
+    await em.rollback(); // Rollback the transaction
     throw new Error(`Failed to duplicate mission: ${error}`);
   }
 };

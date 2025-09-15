@@ -25,4 +25,7 @@ export class STM_Level3_db implements STMLevel3_db_type {
   createdAt!: Date;
   @Property({ type: MikroTypes.datetime, length: 3 })
   updatedAt!: Date;
+
+  @Property({ type: MikroTypes.integer, version: true })
+  version!: number; //used for optimistic locking
 }

@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import type { EntityData, Loaded } from "@mikro-orm/postgresql";
+
 import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/postgresql";
 import express from "express";
 import cloneDeep from "lodash/cloneDeep";
@@ -10,6 +11,7 @@ import { Folder_db } from "server/database/models/_allModels";
 import { convertFolderDbToStore, convertFolderStoreToDb } from "store/storeUtils/folder";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -30,19 +32,19 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const upsertResponse: Folder[] = await upsertFolders(folders);
+    const upsertResponse: Folder[] = await upsertDatabaseRetry(() => upsertFolders(folders));
 
-    //check response
-    if (upsertResponse.length === 0) {
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
       res.status(500).json({
         status: "error",
-        message: "Upsert response did not return a value",
+        message: "Failed to update folder after multiple tries",
         data: null,
       });
       return;
     }
 
-    // emit the upserted item to all clients via socket.io
+    // Emit the upserted item to all clients via socket.io
     emitStoreUpsert({
       missionId,
       socketId,
@@ -148,23 +150,30 @@ export async function getFolders(missionId: number, folderUuid?: string): Promis
  * @param folders the Folder objects to upsert
  * @returns a copy of the Folder objects that was upserted
  */
-export async function upsertFolders(folders: Folder[]): Promise<Folder[]> {
+async function upsertFolders(folders: Folder[]): Promise<Folder[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
-  const foldersToUpsert = cloneDeep(folders); //create a copy to manipulate
+  const foldersToUpsert = cloneDeep(folders); // Create a copy to manipulate
   const foldersUpsertedToDb = [];
 
-  for (const folderToUpsert of foldersToUpsert) {
-    const convertedFolder: EntityData<Folder_db> = convertFolderStoreToDb(folderToUpsert);
+  try {
+    for (const folderToUpsert of foldersToUpsert) {
+      const convertedFolder: EntityData<Folder_db> = convertFolderStoreToDb(folderToUpsert);
 
-    //upsert folder
-    const folderRefFromDb: Folder_db = await em.upsert(Folder_db, convertedFolder);
-    em.persist(folderRefFromDb);
-    foldersUpsertedToDb.push(folderRefFromDb);
+      // Upsert folder
+      const folderRefFromDb: Folder_db = await em.upsert(Folder_db, convertedFolder);
+      em.persist(folderRefFromDb);
+      foldersUpsertedToDb.push(folderRefFromDb);
+    }
+
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
 
-  await em.flush();
-  //convert to store format
+  // Convert to store format
   return foldersUpsertedToDb.map(convertFolderDbToStore);
 }
 
@@ -173,7 +182,7 @@ export async function upsertFolders(folders: Folder[]): Promise<Folder[]> {
  * @param folderUuids Folder uuids to delete
  * @returns the uuids of the deleted Folders
  */
-export async function deleteFolders(folderUuids: string[]): Promise<string[]> {
+async function deleteFolders(folderUuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const folderUuid of folderUuids) {

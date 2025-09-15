@@ -84,6 +84,5 @@ export default defineConfig({
     Folder_db,
   ],
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
-  allowGlobalContext: true,
   extensions: [Migrator, SeedManager],
 });

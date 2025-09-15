@@ -10,6 +10,7 @@ import { emitStoreDelete, emitStoreUpsert } from "server/express/sockets";
 import { convertActionsTypeDbToStore, convertActionsTypeStoreToDb } from "store/storeUtils/action";
 import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -29,19 +30,29 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   try {
-    await upsertActions(actions);
+    const upsertResponse = await upsertDatabaseRetry(() => upsertActions(actions));
+
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update action after multiple tries",
+        data: null,
+      });
+      return;
+    }
 
     // emit the upserted item to all clients via socket.io
     emitStoreUpsert({
       missionId,
       socketId,
       type: "action",
-      data: actions,
+      data: upsertResponse,
     } as StoreUpsert);
     res.status(200).json({
       status: "success",
-      message: `Action(s) upserted with Uuids ${actions.map((a) => a.uuid)}`,
-      data: actions,
+      message: `Action(s) upserted with Uuids ${upsertResponse.map((a) => a.uuid)}`,
+      data: upsertResponse,
     });
     return;
   } catch (e) {
@@ -153,18 +164,29 @@ export async function getActionRefUuids(actionUuids: string[]): Promise<string[]
  * @param actions array of actions upsert
  * @returns a copy of the array of actions that was upserted
  */
-export async function upsertActions(actions: Action[]): Promise<void> {
+async function upsertActions(actions: Action[]): Promise<Action[]> {
   const em = getEM();
+  await em.begin();
 
-  const actionsToUpsert = cloneDeep(actions); //create a copy to manipulate
-  //convert fks
-  for (const actionToUpsert of actionsToUpsert) {
-    const convertedRecord: EntityData<Action_db> = convertActionsTypeStoreToDb([actionToUpsert])[0];
-    const upsertReference: Action_db = await em.upsert(Action_db, convertedRecord);
-    em.persist(upsertReference);
+  const actionsToUpsert = cloneDeep(actions); // Create a copy to manipulate
+  const actionsUpsertedToDb = [];
+  try {
+    for (const actionToUpsert of actionsToUpsert) {
+      // Convert fks
+      const convertedRecord: EntityData<Action_db> = convertActionsTypeStoreToDb([
+        actionToUpsert,
+      ])[0];
+      const upsertReference: Action_db = await em.upsert(Action_db, convertedRecord);
+      em.persist(upsertReference);
+      actionsUpsertedToDb.push(upsertReference);
+    }
+
+    await em.commit(); // Flush and commit transaction
+  } catch (e) {
+    await em.rollback();
+    throw e; // Re-throw the error to be handled by the caller
   }
-
-  await em.flush();
+  return convertActionsTypeDbToStore(actionsUpsertedToDb);
 }
 
 /**
@@ -172,7 +194,7 @@ export async function upsertActions(actions: Action[]): Promise<void> {
  * @param actionUuids action uuids to delete
  * @returns the uuids of the deleted actions
  */
-export async function deleteActions(actionUuids: string[]): Promise<string[]> {
+async function deleteActions(actionUuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const actionUuid of actionUuids) {

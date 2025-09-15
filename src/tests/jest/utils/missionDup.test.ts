@@ -97,9 +97,9 @@ const safeSerialize = <T extends Record<string, any>>(obj: T): Partial<T> => {
 
 // What properties to exclude in comparisons for each entity type
 const CHANGING_PROPS = {
-  mission: ["id", "uuid", "createdAt", "updatedAt", "name", "activeGridUuid"],
-  station: ["uuid", "mission", "createdAt", "updatedAt", "actionOrderUuids", "poi"],
-  poi: ["uuid", "mission", "createdAt", "updatedAt", "actionOrderUuids", "station"],
+  mission: ["id", "uuid", "createdAt", "updatedAt", "name", "activeGridUuid", "version"],
+  station: ["uuid", "mission", "createdAt", "updatedAt", "actionOrderUuids", "poi", "version"],
+  poi: ["uuid", "mission", "createdAt", "updatedAt", "actionOrderUuids", "station", "version"],
   action: [
     "uuid",
     "mission",
@@ -109,10 +109,11 @@ const CHANGING_PROPS = {
     "station",
     "traverse",
     "parentAction",
+    "version",
   ],
-  stmLevel1: ["uuid", "mission", "createdAt", "updatedAt", "level2s"],
-  stmLevel2: ["uuid", "level1", "createdAt", "updatedAt", "level3s"],
-  stmLevel3: ["uuid", "level2", "createdAt", "updatedAt"],
+  stmLevel1: ["uuid", "mission", "createdAt", "updatedAt", "level2s", "version"],
+  stmLevel2: ["uuid", "level1", "createdAt", "updatedAt", "level3s", "version"],
+  stmLevel3: ["uuid", "level2", "createdAt", "updatedAt", "version"],
   // Add more entity types as needed
 };
 

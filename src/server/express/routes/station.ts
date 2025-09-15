@@ -14,6 +14,7 @@ import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    //add owner id to the evas
+    // Add owner id to the stations
     const stationsToUpsert = stations.map((s) => {
       if (!s.ownerId) {
         return { ...s, ownerId: req.session?.appUser?.id || -1 };
@@ -42,18 +43,22 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         return s;
       }
     });
-    const upsertResponse: Station[] = await upsertStations(stationsToUpsert);
 
-    //check response
-    if (upsertResponse.length === 0) {
+    const upsertResponse: Station[] = await upsertDatabaseRetry(() =>
+      upsertStations(stationsToUpsert)
+    );
+
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
       res.status(500).json({
         status: "error",
-        message: "Upsert response did not return a value",
+        message: "Failed to update station after multiple tries",
         data: null,
       });
+      return;
     }
 
-    // emit the upserted item to all clients via socket.io
+    // Emit the upserted item to all clients via socket.io
     emitStoreUpsert({
       missionId,
       socketId,
@@ -179,37 +184,45 @@ export async function getStationRefUuids(stationUuids: string[]): Promise<string
  * @param stations the stations to upsert
  * @returns a copy of the stations that was upserted
  */
-export async function upsertStations(stations: Station[]): Promise<Station[]> {
+async function upsertStations(stations: Station[]): Promise<Station[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
-  const stationsToUpsert = cloneDeep(stations); //create a copy to manipulate
+  const stationsToUpsert = cloneDeep(stations); // Create a copy to manipulate
   const stationsUpsertedToDb = [];
 
-  for (const stationToUpsert of stationsToUpsert) {
-    const convertedStation: EntityData<Station_db> = convertStationsTypeStoreToDb([
-      stationToUpsert,
-    ])[0];
+  try {
+    for (const stationToUpsert of stationsToUpsert) {
+      const convertedStation: EntityData<Station_db> = convertStationsTypeStoreToDb([
+        stationToUpsert,
+      ])[0];
 
-    //upsert station
-    const stationRefFromDb: Station_db = await em.upsert(Station_db, convertedStation);
-    await em.populate(stationRefFromDb, ["poi"]); //need to populate pois in order to remove them
+      // Upsert station
+      const stationRefFromDb: Station_db = await em.upsert(Station_db, convertedStation);
+      await em.populate(stationRefFromDb, ["poi"]); // Need to populate pois in order to remove them
 
-    //remove all pois
-    stationRefFromDb.poi.removeAll();
-    //add back pois
-    if (stationToUpsert.poiUuids) {
-      for (const uuid of stationToUpsert.poiUuids) {
-        const poiReference = em.getReference(Poi_db, uuid);
-        stationRefFromDb.poi.add(poiReference);
+      // Remove all POIs
+      stationRefFromDb.poi.removeAll();
+
+      // Add back POIs
+      if (stationToUpsert.poiUuids) {
+        for (const uuid of stationToUpsert.poiUuids) {
+          const poiReference = em.getReference(Poi_db, uuid);
+          stationRefFromDb.poi.add(poiReference);
+        }
       }
+
+      em.persist(stationRefFromDb);
+      stationsUpsertedToDb.push(stationRefFromDb);
     }
 
-    em.persist(stationRefFromDb);
-    stationsUpsertedToDb.push(stationRefFromDb);
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
 
-  await em.flush();
-  //convert foreign keys
+  // Convert foreign keys
   return convertStationsTypeDbToStore(stationsUpsertedToDb);
 }
 
@@ -219,7 +232,7 @@ export async function upsertStations(stations: Station[]): Promise<Station[]> {
  * @param stationUuids station uuids to delete
  * @returns the uuids of the deleted station
  */
-export async function deleteStations(stationUuids: string[]): Promise<string[]> {
+async function deleteStations(stationUuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const stationUuid of stationUuids) {

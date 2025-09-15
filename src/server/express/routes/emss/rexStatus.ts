@@ -1,7 +1,5 @@
 import type { Request, Response } from "express";
-import { OptimisticLockError } from "@mikro-orm/postgresql";
 import express from "express";
-import random from "lodash/random";
 
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
@@ -15,6 +13,7 @@ import {
 } from "../../../database/models/_allModels";
 import { emitStoreUpsert } from "../../sockets";
 import { emssTokenIsValid } from "utils/permissions";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -162,22 +161,17 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    let updatedRex: Rex;
-    // iteratively update each rexUuid
-    for (let tries = 0; tries < 7; tries++) {
-      try {
-        updatedRex = await updateRexStatus(rexStatusByTypeRefUuid);
-        break; // if successful, exit the retry loop
-      } catch (e) {
-        if (e instanceof OptimisticLockError) {
-          // lock error. wait anywhere from 100-200ms before retrying
-          await new Promise((resolve) => setTimeout(resolve, random(100, 200)));
-        } else {
-          // some other kind of error happened
-          // re-throw it so the outer try/catch can grab it and exit the for loop
-          throw e;
-        }
-      }
+    const updatedRex: Rex = await upsertDatabaseRetry(() =>
+      updateRexStatus(rexStatusByTypeRefUuid)
+    );
+
+    if (!updatedRex) {
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update rex after multiple tries",
+        data: null,
+      });
+      return;
     }
 
     emitStoreUpsert({

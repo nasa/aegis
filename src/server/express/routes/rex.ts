@@ -1,10 +1,9 @@
 import type { EntityData } from "@mikro-orm/postgresql";
 import type { Request, Response } from "express";
 
-import { ForeignKeyConstraintViolationException, OptimisticLockError } from "@mikro-orm/postgresql";
+import { ForeignKeyConstraintViolationException } from "@mikro-orm/postgresql";
 import express from "express";
 import cloneDeep from "lodash/cloneDeep";
-import random from "lodash/random";
 
 import { Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeDbToStore, convertRexesTypeStoreToDb } from "store/storeUtils/rex";
@@ -12,6 +11,7 @@ import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -39,6 +39,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // Add owner id to the rexes
     const rexesToUpsert = rexes.map((r) => {
       if (!r.ownerId) {
         return { ...r, ownerId: req.session?.appUser?.id || -1 };
@@ -46,35 +47,21 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         return r;
       }
     });
-    //perform the upsert
-    let upsertResponse = null;
-    for (let tries = 0; tries < 7; tries++) {
-      try {
-        upsertResponse = await upsertRexes(rexesToUpsert);
-        break; // if successful, exit the retry loop
-      } catch (e) {
-        if (e instanceof OptimisticLockError) {
-          // lock error. wait anywhere from 100-200ms before retrying
-          await new Promise((resolve) => setTimeout(resolve, random(100, 200)));
-        } else {
-          // some other kind of error happened
-          // re-throw it so the outer try/catch can grab it and exit the for loop
-          throw e;
-        }
-      }
-    }
 
-    //check response
-    if (upsertResponse.length === 0) {
+    // Perform the upsert
+    const upsertResponse: Rex[] = await upsertDatabaseRetry(() => upsertRexes(rexesToUpsert));
+
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
       res.status(500).json({
         status: "error",
-        message: "Upsert response did not return a value",
+        message: "Failed to update rex after multiple tries",
         data: null,
       });
       return;
     }
 
-    // emit the upserted item to all clients via socket.io
+    // Emit the upserted item to all clients via socket.io
     emitStoreUpsert({
       missionId,
       socketId,
@@ -160,7 +147,7 @@ export async function getRexes(missionId: number): Promise<Rex[]> {
  * @param rexes rexes to upsert
  * @returns the upserted rexes
  */
-export async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
+async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
   const em = getEM();
   await em.begin(); // start a transaction
 
@@ -173,7 +160,7 @@ export async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
       em.persist(rexUpsertReference);
       rexesUpsertedToDb.push(rexUpsertReference);
     }
-    await em.commit();
+    await em.commit(); // Flush and commit the transaction
   } catch (e) {
     await em.rollback(); // rollback the transaction
     throw e; // re-throw the error to be handled by the caller
@@ -188,7 +175,7 @@ export async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
  * @param uuids rex uuids to delete
  * @returns the uuids of the deleted rexes
  */
-export async function deleteRexes(uuids: string[]): Promise<string[]> {
+async function deleteRexes(uuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const uuid of uuids) {

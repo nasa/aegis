@@ -27,7 +27,6 @@ const MissionEditor: FunctionComponent<{
 
     const missionToSave: Mission = {
       id: mission.id,
-      version: mission.version,
       name: missionValues.name,
       isArchived: missionValues.isArchived,
       usingLGRSCoordinates: missionValues.usingLGRSCoordinates,

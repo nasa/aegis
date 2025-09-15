@@ -24,6 +24,9 @@ export class App_User_db implements AppUser_db_type {
   @Property({ type: MikroTypes.datetime, length: 3 })
   updatedAt!: Date;
 
+  @Property({ type: MikroTypes.integer, version: true })
+  version!: number; //used for optimistic locking
+
   @BeforeCreate()
   async beforeCreate(): Promise<void> {
     const salt = await bcrypt.genSalt();

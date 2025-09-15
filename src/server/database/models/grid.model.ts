@@ -21,4 +21,7 @@ export class Grid_db implements Grid_db_type {
   name!: string;
   @Property({ type: MikroTypes.boolean, nullable: true })
   isActiveGrid!: boolean;
+
+  @Property({ type: MikroTypes.integer, version: true })
+  version!: number; //used for optimistic locking
 }

@@ -12,6 +12,7 @@ import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -73,7 +74,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    //add owner id to the evas
+    // Add owner id to the POIs
     const poisToUpsert = pois.map((p) => {
       if (!p.ownerId) {
         return { ...p, ownerId: req.session?.appUser?.id || -1 };
@@ -81,18 +82,20 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         return p;
       }
     });
-    const upsertResponse: POI[] = await upsertPois(poisToUpsert);
-    //check response
-    if (upsertResponse.length === 0) {
+
+    const upsertResponse: POI[] = await upsertDatabaseRetry(() => upsertPois(poisToUpsert));
+
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
       res.status(500).json({
         status: "error",
-        message: "Upsert response did not return a value",
+        message: "Failed to update poi after multiple tries",
         data: null,
       });
       return;
     }
 
-    // emit the upserted item to all clients via socket.io
+    // Emit the upserted item to all clients via socket.io
     emitStoreUpsert({
       missionId,
       socketId,
@@ -170,27 +173,33 @@ export async function getPois(missionId: number): Promise<POI[]> {
 }
 
 /**
- * Inserts or Updates Pois into the database
- * @param pois the poi objects to upsert
- * @returns a copy of the poi objects that was upserted
+ * Inserts or Updates POIs into the database
+ * @param pois the POI objects to upsert
+ * @returns a copy of the POI objects that was upserted
  */
-export async function upsertPois(pois: POI[]): Promise<POI[]> {
+async function upsertPois(pois: POI[]): Promise<POI[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
-  const poisToUpsert = cloneDeep(pois); //create a copy to manipulate
+  const poisToUpsert = cloneDeep(pois); // Create a copy to manipulate
   const poisUpsertedToDb = [];
 
-  //build poi to upsert
-  for (const poiToUpsert of poisToUpsert) {
-    //convert fks
-    const convertedPoi: EntityData<Poi_db> = convertPoisTypeStoreToDb([poiToUpsert])[0];
-    const poiUpsertReference: Poi_db = await em.upsert(Poi_db, convertedPoi);
-    em.persist(poiUpsertReference);
-    poisUpsertedToDb.push(poiUpsertReference);
+  try {
+    for (const poiToUpsert of poisToUpsert) {
+      // Convert foreign keys and upsert
+      const convertedPoi: EntityData<Poi_db> = convertPoisTypeStoreToDb([poiToUpsert])[0];
+      const poiUpsertReference: Poi_db = await em.upsert(Poi_db, convertedPoi);
+      em.persist(poiUpsertReference);
+      poisUpsertedToDb.push(poiUpsertReference);
+    }
+
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
 
-  await em.flush();
-  //convert foreign keys
+  // Convert foreign keys
   return convertPoisTypeDbToStore(poisUpsertedToDb);
 }
 
@@ -199,7 +208,7 @@ export async function upsertPois(pois: POI[]): Promise<POI[]> {
  * @param poiUuids Pois uuids to delete
  * @returns the uuids of the deleted POIs
  */
-export async function deletePois(poiUuids: string[]): Promise<string[]> {
+async function deletePois(poiUuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const poiUuid of poiUuids) {
