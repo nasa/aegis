@@ -75,10 +75,7 @@ router.get("/adminRecovery", async (req: Request, res: Response): Promise<void> 
 
 export default router;
 
-export async function apiLogin(
-  username: string,
-  password: string
-): Promise<WrappedResponse<AppUser>> {
+async function apiLogin(username: string, password: string): Promise<WrappedResponse<AppUser>> {
   const model = getEM();
   const user = await model.findOne(App_User_db, { username });
   if (!user) {
@@ -103,7 +100,7 @@ export async function apiLogin(
   }
 }
 
-export async function recoverWithRecoveryKey(recoveryKey: string): Promise<boolean> {
+async function recoverWithRecoveryKey(recoveryKey: string): Promise<boolean> {
   if (recoveryKey === process.env.ADMIN_RECOVERY_KEY) {
     const adminUserDB = await getEM().findOne(App_User_db, { isSuperAdmin: true });
     const adminUser: AppUser = {

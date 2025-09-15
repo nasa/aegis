@@ -17,6 +17,7 @@ import {
 import { SCHEMA_DIR } from "utils/validateSchemaServer";
 import { hasPerms } from "utils/permissions";
 import { getEM } from "utils/mikro";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -98,24 +99,23 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    //perform the upsert
-    const upsertResponse: Sublayer[] = await upsertSublayers(sublayers);
+    const upsertResponse: Sublayer[] = await upsertDatabaseRetry(() => upsertSublayers(sublayers));
 
-    //check response
-    if (upsertResponse.length === 0) {
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
       res.status(500).json({
         status: "error",
-        message:
-          "Upsert response did not return a value. Could you be trying to insert a second time-based sublayer?",
+        message: "Failed to update sublayer after multiple tries",
         data: null,
       });
-    } else {
-      res.status(200).json({
-        status: "success",
-        message: `Sublayer upserted with ID ${upsertResponse.map((s) => s.uuid)}`,
-        data: upsertResponse,
-      });
+      return;
     }
+
+    res.status(200).json({
+      status: "success",
+      message: `Sublayer upserted with ID ${upsertResponse.map((s) => s.uuid)}`,
+      data: upsertResponse,
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
@@ -203,26 +203,33 @@ export async function getSublayers(missionId: number, sublayerUUID?: string): Pr
 /**
  * Inserts or Updates sublayers into the database
  * @param sublayers the sublayers to upsert
- * @returns a copy of the sublayers  that was upserted
+ * @returns a copy of the sublayers that was upserted
  */
-export async function upsertSublayers(sublayers: Sublayer[]): Promise<Sublayer[]> {
+async function upsertSublayers(sublayers: Sublayer[]): Promise<Sublayer[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
+
   const sublayersToUpsert: Sublayer[] = cloneDeep(sublayers);
   const sublayersUpsertedToDb = [];
 
-  for (const sublayerToUpsert of sublayersToUpsert) {
-    //convert fks and upsert
-    const convertedRecord: EntityData<Sublayer_db> = convertSublayersTypeStoreToDb([
-      sublayerToUpsert,
-    ])[0];
-    const upsertReference = await em.upsert(Sublayer_db, convertedRecord);
-    em.persist(upsertReference);
-    sublayersUpsertedToDb.push(upsertReference);
+  try {
+    for (const sublayerToUpsert of sublayersToUpsert) {
+      // Convert foreign keys and upsert
+      const convertedRecord: EntityData<Sublayer_db> = convertSublayersTypeStoreToDb([
+        sublayerToUpsert,
+      ])[0];
+      const upsertReference = await em.upsert(Sublayer_db, convertedRecord);
+      em.persist(upsertReference);
+      sublayersUpsertedToDb.push(upsertReference);
+    }
+
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
 
-  await em.flush();
-
-  //convert fks back
+  // Convert foreign keys back
   return convertSublayersTypeDbToStore(sublayersUpsertedToDb);
 }
 
@@ -231,7 +238,7 @@ export async function upsertSublayers(sublayers: Sublayer[]): Promise<Sublayer[]
  * @param uuids sublayer uuids to delete
  * @returns the uuids of the deleted sublayers
  */
-export async function deleteSublayers(uuids: string[]): Promise<string[]> {
+async function deleteSublayers(uuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const uuid of uuids) {

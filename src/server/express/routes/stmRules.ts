@@ -12,6 +12,7 @@ import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -42,7 +43,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const records: STMRule[] = await getStmRules(queryObj.missionId);
+    const records: STMRule[] = await upsertDatabaseRetry(() => getStmRules(queryObj.missionId));
 
     res.status(200).json({
       status: "success",
@@ -75,7 +76,17 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const upsertResponse: STMRule[] = await upsertStmRules(missionId, stmRules);
 
-    // emit the upserted item to all clients via socket.io
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update stm rules after multiple tries",
+        data: null,
+      });
+      return;
+    }
+
+    // Emit the upserted item to all clients via socket.io
     emitStoreUpsert({
       missionId,
       socketId,
@@ -161,27 +172,34 @@ export async function getStmRules(missionId: number): Promise<STMRule[]> {
  * @param stmRules the stm rule to create
  * @returns the created stm rule
  */
-export async function upsertStmRules(missionId: number, stmRules: STMRule[]): Promise<STMRule[]> {
+async function upsertStmRules(missionId: number, stmRules: STMRule[]): Promise<STMRule[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
-  const stmRulesToUpsert = cloneDeep(stmRules); //create a copy to manipulate
+  const stmRulesToUpsert = cloneDeep(stmRules); // Create a copy to manipulate
   const stmRulesUpsertedToDb = [];
 
-  //build stm rule to upsert
-  for (const stmRuleToUpsert of stmRulesToUpsert) {
-    //convert fks
-    stmRuleToUpsert.missionId = missionId;
-    const convertedStmRule: EntityData<STM_Rule_db> = convertStmRulesTypeStoreToDb([
-      stmRuleToUpsert,
-    ])[0];
-    const stmRuleUpsertReference: STM_Rule_db = await em.upsert(STM_Rule_db, convertedStmRule);
-    em.persist(stmRuleUpsertReference);
+  try {
+    // Build stm rule to upsert
+    for (const stmRuleToUpsert of stmRulesToUpsert) {
+      // Convert foreign keys
+      stmRuleToUpsert.missionId = missionId;
+      const convertedStmRule: EntityData<STM_Rule_db> = convertStmRulesTypeStoreToDb([
+        stmRuleToUpsert,
+      ])[0];
+      const stmRuleUpsertReference: STM_Rule_db = await em.upsert(STM_Rule_db, convertedStmRule);
+      em.persist(stmRuleUpsertReference);
 
-    stmRulesUpsertedToDb.push(stmRuleUpsertReference);
+      stmRulesUpsertedToDb.push(stmRuleUpsertReference);
+    }
+
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
 
-  await em.flush();
-  //convert foreign keys
+  // Convert foreign keys
   return convertStmRulesTypeDbToStore(stmRulesUpsertedToDb);
 }
 
@@ -190,7 +208,7 @@ export async function upsertStmRules(missionId: number, stmRules: STMRule[]): Pr
  * @param stmRuleUuids the stm rule uuids to delete
  * @returns the deleted stm rules
  */
-export async function deleteStmRules(stmRuleUuids: string[]): Promise<string[]> {
+async function deleteStmRules(stmRuleUuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const stmRuleUuid of stmRuleUuids) {

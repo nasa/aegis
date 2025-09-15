@@ -75,4 +75,7 @@ export class Action_db implements Action_db_type {
   createdAt: Date;
   @Property({ type: MikroTypes.datetime, length: 3 })
   updatedAt: Date;
+
+  @Property({ type: MikroTypes.integer, version: true })
+  version!: number; //used for optimistic locking
 }

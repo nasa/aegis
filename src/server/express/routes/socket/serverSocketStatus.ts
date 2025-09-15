@@ -27,8 +27,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(200).json(globalValues.serverSocketStatus || null);
     return;
   } catch (e) {
-    serverLogger.error(asError(e), { logId: "error in socketStatus route" });
-    res.status(400).json({ error: e.toString() });
+    serverLogger.error(asError(e), { logId: "Error in socketStatus route" });
+    res.status(500).json({ status: "error", message: e.toString() });
     return;
   }
 });

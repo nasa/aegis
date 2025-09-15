@@ -48,7 +48,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 export default router;
 
-export async function getHomepageMissionItems(
+async function getHomepageMissionItems(
   missionIdList: number | number[] = null
 ): Promise<MissionHomepageItem[]> {
   const em = getEM();

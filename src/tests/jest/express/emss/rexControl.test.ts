@@ -406,7 +406,7 @@ describe("REX Control API Endpoint", () => {
       const em = getEM();
       await em.nativeUpdate(
         Rex_db,
-        { isRunning: true }, // Filter: only rexes where `isRunning` is true
+        { isRunning: true, uuid: { $in: testRexes.map((r) => r.uuid) } }, // Filter: only rexes where `isRunning` is true
         { isRunning: false } // Update: set `isRunning` to false
       );
 

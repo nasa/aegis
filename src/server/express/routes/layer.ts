@@ -10,6 +10,7 @@ import { Layer_db } from "server/database/models/_allModels";
 import { convertLayersTypeDbToStore, convertLayersTypeStoreToDb } from "store/storeUtils/layer";
 import { hasPerms } from "utils/permissions";
 import { getEM } from "utils/mikro";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -72,22 +73,23 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const upsertResponse: Layer[] = await upsertLayers(layers);
+    const upsertResponse: Layer[] = await upsertDatabaseRetry(() => upsertLayers(layers));
 
-    //check response
-    if (upsertResponse.length === 0) {
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
       res.status(500).json({
         status: "error",
-        message: "Upsert response did not return a value",
+        message: "Failed to update layer after multiple tries",
         data: null,
       });
-    } else {
-      res.status(200).json({
-        status: "success",
-        message: `Layer upserted with ID ${upsertResponse.map((l) => l.uuid)}`,
-        data: upsertResponse,
-      });
+      return;
     }
+
+    res.status(200).json({
+      status: "success",
+      message: `Layer upserted with ID ${upsertResponse.map((l) => l.uuid)}`,
+      data: upsertResponse,
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
@@ -180,27 +182,35 @@ export async function getLayers(missionId: number, layerUUID?: string): Promise<
 
 /**
  * Inserts or Updates layers into the database
- * @param layer the layer objects to upsert
+ * @param layers the layer objects to upsert
  * @returns a copy of the layer objects that was upserted
  */
-export async function upsertLayers(layers: Layer[]): Promise<Layer[]> {
+async function upsertLayers(layers: Layer[]): Promise<Layer[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
   const layersToUpsert: Layer[] = cloneDeep(layers);
   const layersUpsertedToDb = [];
 
-  for (const layerToUpsert of layersToUpsert) {
-    //convert fks and upsert
-    const convertedRecord: EntityData<Layer_db> = convertLayersTypeStoreToDb([layerToUpsert])[0];
-    const upsertReference = await em.upsert(Layer_db, convertedRecord);
+  try {
+    for (const layerToUpsert of layersToUpsert) {
+      // Convert foreign keys and upsert
+      const convertedRecord: EntityData<Layer_db> = convertLayersTypeStoreToDb([layerToUpsert])[0];
+      const upsertReference = await em.upsert(Layer_db, convertedRecord);
 
-    em.persist(upsertReference);
+      em.persist(upsertReference);
 
-    //convert fks back
-    const convertedLayer: Layer = convertLayersTypeDbToStore([upsertReference])[0];
-    layersUpsertedToDb.push(convertedLayer);
+      // Convert foreign keys back
+      const convertedLayer: Layer = convertLayersTypeDbToStore([upsertReference])[0];
+      layersUpsertedToDb.push(convertedLayer);
+    }
+
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
-  await em.flush();
+
   return layersUpsertedToDb;
 }
 
@@ -209,7 +219,7 @@ export async function upsertLayers(layers: Layer[]): Promise<Layer[]> {
  * @param uuids layer uuids to delete
  * @returns the uuids of the deleted layers
  */
-export async function deleteLayers(uuids: string[]): Promise<string[]> {
+async function deleteLayers(uuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const uuid of uuids) {

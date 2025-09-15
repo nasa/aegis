@@ -6,7 +6,6 @@ interface Mission {
   name: string;
   description: string | null;
   missionBanner: string | null;
-  version: number;
   isArchived: boolean;
   usingLGRSCoordinates: boolean;
   actionSystemVersion: number;

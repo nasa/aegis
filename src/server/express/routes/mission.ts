@@ -32,6 +32,7 @@ import {
 import { getEM } from "utils/mikro";
 
 import { emitStoreUpsert } from "../sockets";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -97,7 +98,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { socketId, missions } = req.body as MissionUpsertRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  //must have edit permission the mission ids
+  // Must have edit permission for the mission IDs
   for (const mission of missions) {
     const canEditThisMission = hasPerms({
       missionId: mission.id,
@@ -112,19 +113,19 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    //perform the upsert
-    const upsertResponse: Mission[] = await upsertMissions(missions);
-
-    //check response
-    if (upsertResponse.length === 0) {
-      res
-        .status(500)
-        .json({ status: "error", message: "Upsert response did not return a value", data: null });
+    const upsertResponse: Mission[] = await upsertDatabaseRetry(() => upsertMissions(missions));
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update mission after multiple tries",
+        data: null,
+      });
       return;
     }
 
-    //For each mission upserted, emit and log.
-    //This is done in a loop since sockets are filtered to only process
+    // For each mission upserted, emit and log.
+    // This is done in a loop since sockets are filtered to only process
     //  messages that match the missionId field.
     for (const upsertedMission of upsertResponse) {
       // emit the upserted item to all clients via socket.io
@@ -208,33 +209,39 @@ export async function getMission(missionIdList: number | number[] = null): Promi
  * @param missions the mission objects to upsert
  * @returns a copy of the mission objects that was upserted
  */
-export async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
+async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
   const missionsCopy: Mission[] = cloneDeep(missions);
-  const missionsUpsertedToDb: Mission[] = [];
+  const missionsUpsertedToDb = [];
 
-  for (const missionCopy of missionsCopy) {
-    const upsertRecord: EntityData<Mission_db> = convertMissionsTypeStoreToDb([missionCopy])[0];
+  try {
+    for (const missionCopy of missionsCopy) {
+      const upsertRecord: EntityData<Mission_db> = convertMissionsTypeStoreToDb([missionCopy])[0];
 
-    let dbReference: Mission_db;
-    if (missionCopy.id) {
-      //update record
-      upsertRecord.version++;
-      dbReference = await em.upsert(Mission_db, upsertRecord);
-    } else {
-      //insert record.
-      //Can't use "upsert" to insert a new record if there's no other unique column in the table
-      delete upsertRecord.id; //attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
-      upsertRecord.version = 1;
-      dbReference = em.create(Mission_db, upsertRecord as RequiredEntityData<Mission_db>);
+      let dbReference: Mission_db;
+      if (missionCopy.id) {
+        // Update record
+        dbReference = await em.upsert(Mission_db, upsertRecord);
+      } else {
+        // Insert record.
+        // Can't use "upsert" to insert a new record if there's no other unique column in the table
+        delete upsertRecord.id; // Attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
+        dbReference = em.create(Mission_db, upsertRecord as RequiredEntityData<Mission_db>);
+      }
+
+      //have to both persist and flush in order to get the new mission id back
+      await em.persistAndFlush(dbReference);
+      missionsUpsertedToDb.push(dbReference);
     }
-
-    //have to both persist and flush in order to get the new mission id back
-    await em.persistAndFlush(dbReference);
-    missionsUpsertedToDb.push(convertMissionsTypeDbToStore([dbReference])[0]);
+    await em.commit();
+  } catch (e) {
+    await em.rollback(); // rollback the transaction
+    throw e; // re-throw the error to be handled by the caller
   }
-  return missionsUpsertedToDb;
+
+  return convertMissionsTypeDbToStore(missionsUpsertedToDb);
 }
 
 /**

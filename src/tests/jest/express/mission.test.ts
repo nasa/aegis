@@ -189,7 +189,6 @@ describe("Mission API Endpoint", () => {
       expect(res.body.data).not.toBeNull();
       const upsertedMission = res.body.data[0];
       expect(upsertedMission).not.toBeNull();
-      expect(upsertedMission.version).toEqual(1);
       expect(upsertedMission.name).toEqual("Jest Mission-1 Modified");
     });
   });
@@ -273,7 +272,6 @@ describe("Mission API Endpoint", () => {
         .send({ missions: [newMission] });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.data[0].version).toEqual(2);
       expect(res.body.data[0].name).toEqual("Mission Jest Test Modified");
     });
 
@@ -321,7 +319,6 @@ describe("Mission API Endpoint", () => {
       expect(res.body.data).not.toBeNull();
       const upsertedMission = res.body.data[0];
       expect(upsertedMission).not.toBeNull();
-      expect(upsertedMission.version).toEqual(1);
       expect(upsertedMission.name).toEqual("Jest Mission-1 Modified via token");
     });
 

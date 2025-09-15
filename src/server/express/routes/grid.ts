@@ -14,6 +14,7 @@ import { Grid_db, Mission_db } from "server/database/models/_allModels";
 import { findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
 import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -126,15 +127,18 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const upsertResponse: MissionGrid[] = await upsertGrids(grids, upsertFullGrid);
+    const upsertResponse: MissionGrid[] = await upsertDatabaseRetry(() =>
+      upsertGrids(grids, upsertFullGrid)
+    );
 
-    //check response
-    if (upsertResponse === null) {
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
       res.status(500).json({
         status: "error",
-        message: "Upsert response did not return a value",
+        message: "Failed to update grid after multiple tries",
         data: null,
       });
+      return;
     }
 
     res.status(200).json({
@@ -198,17 +202,17 @@ export default router;
  * @param gridUUID optional. UUID of the grid to retrieve
  * @returns array of grids
  */
-export async function getGridsInformation(
+async function getGridsInformation(
   missionId: number,
   gridUUID?: string
 ): Promise<MissionGridInformation[]> {
   const em = getEM();
 
   //find grids by uuid
-  let dbgrids: Loaded<Grid_db, "missions">[];
+  let dbGrids: Loaded<Grid_db, "missions">[];
 
   if (gridUUID) {
-    dbgrids = await em.find(
+    dbGrids = await em.find(
       Grid_db,
       { uuid: gridUUID },
       {
@@ -217,7 +221,7 @@ export async function getGridsInformation(
       }
     );
   } else if (missionId) {
-    dbgrids = await em.find(
+    dbGrids = await em.find(
       Grid_db,
       { mission: { id: missionId } },
       {
@@ -226,14 +230,14 @@ export async function getGridsInformation(
       }
     );
   } else {
-    dbgrids = await em.find(
+    dbGrids = await em.find(
       Grid_db,
       {},
       { orderBy: [{ name: QueryOrder.ASC }], populate: ["mission"] }
     );
   }
 
-  const converted = convertGridsTypeDbToLocal(dbgrids);
+  const converted = convertGridsTypeDbToLocal(dbGrids);
   return converted;
 }
 
@@ -242,7 +246,7 @@ export async function getGridsInformation(
  * @param gridUUID optional. UUID of the grid to retrieve
  * @returns array of grids
  */
-export async function getGrids(
+async function getGrids(
   missionId: number,
   getFullGrids: boolean,
   gridUUID?: string
@@ -295,7 +299,7 @@ const readJsonFile = async (filePath: string) => {
  * @param gridUUID optional. UUID of the grid to retrieve
  * @returns array of grids
  */
-export async function getClosestPoints(
+async function getClosestPoints(
   missionId: number,
   gridUUID: string,
   points: AEGISPoint[],
@@ -320,45 +324,52 @@ export async function getClosestPoints(
  * @param grids the grids to upsert
  * @returns a copy of the grids that was upserted
  */
-export async function upsertGridsInformation(
+async function upsertGridsInformation(
   grids: MissionGridInformation[]
 ): Promise<MissionGridInformation[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
-  const gridsToUpsert = cloneDeep(grids); //create a copy to manipulate
+  const gridsToUpsert = cloneDeep(grids); // Create a copy to manipulate
   const gridsUpsertedToDb = [];
 
-  for (const gridToUpsert of gridsToUpsert) {
-    const convertedGrid: EntityData<Grid_db> = convertGridsTypeStoreToDb([gridToUpsert])[0];
+  try {
+    for (const gridToUpsert of gridsToUpsert) {
+      const convertedGrid: EntityData<Grid_db> = convertGridsTypeStoreToDb([gridToUpsert])[0];
 
-    //upsert grid
-    const gridRefFromDb: Grid_db = await em.upsert(Grid_db, convertedGrid);
-    try {
-      await em.populate(gridRefFromDb, ["mission"]); // need to populate mission in order to remove them
-    } catch (error) {
-      console.error("Error populating mission:", error);
-    }
-
-    //remove all missions
-    gridRefFromDb.mission = undefined;
-    //add back missions
-    if (gridToUpsert.missionId) {
-      const missionReference = em.getReference(Mission_db, gridToUpsert.missionId);
-      gridRefFromDb.mission = missionReference;
-      if (gridRefFromDb.isActiveGrid) {
-        missionReference.activeGridUuid = gridRefFromDb.uuid;
+      // Upsert grid
+      const gridRefFromDb: Grid_db = await em.upsert(Grid_db, convertedGrid);
+      try {
+        await em.populate(gridRefFromDb, ["mission"]); // Need to populate mission in order to remove them
+      } catch (error) {
+        console.error("Error populating mission:", error);
       }
 
-      // Persist the mission reference
-      em.persist(missionReference);
+      // Remove all missions
+      gridRefFromDb.mission = undefined;
+      // Add back missions
+      if (gridToUpsert.missionId) {
+        const missionReference = em.getReference(Mission_db, gridToUpsert.missionId);
+        gridRefFromDb.mission = missionReference;
+        if (gridRefFromDb.isActiveGrid) {
+          missionReference.activeGridUuid = gridRefFromDb.uuid;
+        }
+
+        // Persist the mission reference
+        em.persist(missionReference);
+      }
+
+      em.persist(gridRefFromDb);
+      gridsUpsertedToDb.push(gridRefFromDb);
     }
 
-    em.persist(gridRefFromDb);
-    gridsUpsertedToDb.push(gridRefFromDb);
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
 
-  await em.flush();
-  //convert foreign keys
+  // Convert foreign keys
   const converted = convertGridsTypeDbToLocal(gridsUpsertedToDb);
   return converted;
 }
@@ -368,10 +379,7 @@ export async function upsertGridsInformation(
  * @param grid the grid to upsert
  * @returns a copy of the grids that was upserted
  */
-export async function upsertGrids(
-  grids: MissionGrid[],
-  upsertFullGrid: boolean
-): Promise<MissionGrid[]> {
+async function upsertGrids(grids: MissionGrid[], upsertFullGrid: boolean): Promise<MissionGrid[]> {
   const gridsToReturn: MissionGrid[] = [];
   const gridsInfo: MissionGridInformation[] = await upsertGridsInformation(
     grids.map((g) => g.gridInformation)
@@ -414,7 +422,7 @@ async function saveGridFile(missionId: number, grid: MissionGrid): Promise<void>
  * @param gridUuids grid uuids to delete
  * @returns the uuids of the deleted grid
  */
-export async function deleteGrids(missionId: number, gridUuids: string[]): Promise<string[]> {
+async function deleteGrids(missionId: number, gridUuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const gridUuid of gridUuids) {
@@ -454,7 +462,7 @@ function deleteGridFile(missionId: number, gridUuid: string): void {
  * @param dbGrids an array of grids in mikro db format
  * @returns an a converted array of grids or a single grid
  */
-export function convertGridsTypeDbToLocal(dbGrids: Grid_db[]): MissionGridInformation[] {
+function convertGridsTypeDbToLocal(dbGrids: Grid_db[]): MissionGridInformation[] {
   const grids: MissionGridInformation[] = [];
   for (const dbGrid of dbGrids) {
     const convertedGrid: MissionGridInformation = {
@@ -477,9 +485,7 @@ export function convertGridsTypeDbToLocal(dbGrids: Grid_db[]): MissionGridInform
  * @param storeGrids
  * @returns
  */
-export function convertGridsTypeStoreToDb(
-  storeGrids: MissionGridInformation[]
-): EntityData<Grid_db>[] {
+function convertGridsTypeStoreToDb(storeGrids: MissionGridInformation[]): EntityData<Grid_db>[] {
   const dbGrids: EntityData<Grid_db>[] = [];
   for (const storeGrid of storeGrids) {
     //mission references are not converted here, they are converted in the upsert function

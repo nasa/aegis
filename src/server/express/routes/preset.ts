@@ -10,6 +10,7 @@ import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    //add owner id to the evas
+    // Add owner id to the presets
     const presetsToUpsert = presets.map((p) => {
       if (!p.ownerId) {
         return { ...p, ownerId: req.session?.appUser?.id || -1 };
@@ -38,17 +39,22 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         return p;
       }
     });
-    const upsertResponse: Preset[] = await upsertPresets(presetsToUpsert);
-    //check response
-    if (upsertResponse.length === 0) {
+
+    const upsertResponse: Preset[] = await upsertDatabaseRetry(() =>
+      upsertPresets(presetsToUpsert)
+    );
+
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
       res.status(500).json({
         status: "error",
-        message: "Upsert response did not return a value",
+        message: "Failed to update preset after multiple tries",
         data: null,
       });
       return;
     }
-    // emit the upserted preset to all clients via socket.io
+
+    // Emit the upserted preset to all clients via socket.io
     emitStoreUpsert({
       missionId,
       socketId,
@@ -121,28 +127,35 @@ export async function getPresets(missionId: number): Promise<Preset[]> {
   return convertPresetsTypeDbToStore(dbPresets);
 }
 
-export async function upsertPresets(presets: Preset[]): Promise<Preset[]> {
+async function upsertPresets(presets: Preset[]): Promise<Preset[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
-  const presetsToUpsert = cloneDeep(presets); //create a copy to manipulate
+  const presetsToUpsert = cloneDeep(presets); // Create a copy to manipulate
   const presetsUpsertedToDb = [];
 
-  for (const presetToUpsert of presetsToUpsert) {
-    const em = getEM();
-    const convertedPreset: EntityData<Preset_db> = convertPresetsTypeStoreToDb([presetToUpsert])[0];
-    const upsertedPreset = await em.upsert(Preset_db, convertedPreset);
+  try {
+    for (const presetToUpsert of presetsToUpsert) {
+      const convertedPreset: EntityData<Preset_db> = convertPresetsTypeStoreToDb([
+        presetToUpsert,
+      ])[0];
+      const upsertedPreset = await em.upsert(Preset_db, convertedPreset);
 
-    //upsert poi
-    em.persist(upsertedPreset);
-    presetsUpsertedToDb.push(upsertedPreset);
+      em.persist(upsertedPreset);
+      presetsUpsertedToDb.push(upsertedPreset);
+    }
+
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
 
-  await em.flush();
-  //convert foreign keys
+  // Convert foreign keys
   return convertPresetsTypeDbToStore(presetsUpsertedToDb);
 }
 
-export async function deletePresets(presetUuids: string[]): Promise<string[]> {
+async function deletePresets(presetUuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const presetUuid of presetUuids) {

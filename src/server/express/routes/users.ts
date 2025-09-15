@@ -9,6 +9,7 @@ import cloneDeep from "lodash/cloneDeep";
 import { App_User_db } from "server/database/models/_allModels";
 import { convertUsersTypeDbToStore, convertUsersTypeStoreToDb } from "store/storeUtils/user";
 import { getEM } from "utils/mikro";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -54,16 +55,22 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const upsertedUsers: AppUser[] = await upsertUsers(users);
-    if (upsertedUsers.length === 0) {
-      res.status(500).json({ status: "error", message: "Error in query" });
+    const upsertResponse: AppUser[] = await upsertDatabaseRetry(() => upsertUsers(users));
+
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update app user after multiple tries",
+        data: null,
+      });
       return;
     }
 
     res.status(200).json({
       status: "success",
       message: "user upserted",
-      data: upsertedUsers,
+      data: upsertResponse,
     });
   } catch (e) {
     console.error(e);
@@ -104,7 +111,7 @@ export default router;
  * @returns array of users
  * @param userId
  */
-export async function getUsers(userId: number = null): Promise<AppUser[]> {
+async function getUsers(userId: number = null): Promise<AppUser[]> {
   const model = getEM();
   let users: App_User_db[];
   if (!userId) {
@@ -123,38 +130,46 @@ export async function getUsers(userId: number = null): Promise<AppUser[]> {
  */
 export async function upsertUsers(users: AppUser[]): Promise<AppUser[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
+
   const usersToUpsert: AppUser[] = cloneDeep(users);
   const usersUpsertedToDb = [];
 
-  for (const userToUpsert of usersToUpsert) {
-    const convertedUser: EntityData<App_User_db> = convertUsersTypeStoreToDb([userToUpsert])[0];
+  try {
+    for (const userToUpsert of usersToUpsert) {
+      const convertedUser: EntityData<App_User_db> = convertUsersTypeStoreToDb([userToUpsert])[0];
 
-    if (convertedUser.id) {
-      //upserting
-      const userInDb = await em.findOne(App_User_db, { id: convertedUser.id });
-      if (!userInDb) {
-        return [];
+      if (convertedUser.id) {
+        // Upserting
+        const userInDb = await em.findOne(App_User_db, { id: convertedUser.id });
+        if (!userInDb) {
+          throw new Error(`User with id ${convertedUser.id} not found for update`);
+        }
+        // Encrypt new password
+        if (convertedUser.password !== userInDb.password) {
+          const salt = await bcrypt.genSalt();
+          convertedUser.password = await bcrypt.hash(convertedUser.password, salt);
+        }
+        const updatedUser = em.assign(userInDb, convertedUser);
+        em.persist(updatedUser);
+        usersUpsertedToDb.push(updatedUser);
+      } else {
+        // Creating. passwords are salted in the @beforeCreate() in the user model
+        // Can't use "upsert" to insert a new record if there's no other unique column in the table
+        delete convertedUser.id; // Attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
+        const createReference = em.create(App_User_db, convertedUser);
+        em.persist(createReference);
+        usersUpsertedToDb.push(createReference);
       }
-      //encrypt new password
-      if (convertedUser.password !== userInDb.password) {
-        const salt = await bcrypt.genSalt();
-        convertedUser.password = await bcrypt.hash(convertedUser.password, salt);
-      }
-      const updatedUser = em.assign(userInDb, convertedUser);
-      em.persist(updatedUser);
-      usersUpsertedToDb.push(updatedUser);
-    } else {
-      // Creating. passwords are salted in the @beforeCreate() in the user model
-      // Can't use "upsert" to insert a new record if there's no other unique column in the table
-      delete convertedUser.id; // Attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
-      const createReference = em.create(App_User_db, convertedUser);
-      em.persist(createReference);
-      usersUpsertedToDb.push(createReference);
     }
 
-    await em.flush();
-    return convertUsersTypeDbToStore(usersUpsertedToDb);
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
+
+  return convertUsersTypeDbToStore(usersUpsertedToDb);
 }
 
 /**
@@ -162,7 +177,7 @@ export async function upsertUsers(users: AppUser[]): Promise<AppUser[]> {
  * @param userIds user IDs to delete
  * @returns the uuids of the deleted users
  */
-export async function deleteUsers(userIds: number[]): Promise<number[]> {
+async function deleteUsers(userIds: number[]): Promise<number[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const userId of userIds) {

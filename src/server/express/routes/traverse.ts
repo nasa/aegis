@@ -14,6 +14,7 @@ import { hasPerms } from "utils/permissions";
 import { getEM } from "utils/mikro";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
+import { upsertDatabaseRetry } from "utils/database";
 
 const router = express.Router();
 
@@ -34,19 +35,19 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const upsertResponse: Traverse[] = await upsertTraverses(traverses);
+    const upsertResponse: Traverse[] = await upsertDatabaseRetry(() => upsertTraverses(traverses));
 
-    //check response
-    if (upsertResponse.length === 0) {
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
       res.status(500).json({
         status: "error",
-        message: "Upsert response did not return a value",
+        message: "Failed to update traverse after multiple tries",
         data: null,
       });
       return;
     }
 
-    // emit the upserted item to all clients via socket.io
+    // Emit the upserted item to all clients via socket.io
     emitStoreUpsert({
       missionId,
       socketId,
@@ -165,25 +166,32 @@ export async function getTraverseRefUuids(traverseUuids: string[]): Promise<stri
  * @param traverses the Traverse objects to upsert
  * @returns a copy of the Traverse objects that was upserted
  */
-export async function upsertTraverses(traverses: Traverse[]): Promise<Traverse[]> {
+async function upsertTraverses(traverses: Traverse[]): Promise<Traverse[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
-  const traversesToUpsert = cloneDeep(traverses); //create a copy to manipulate
+  const traversesToUpsert = cloneDeep(traverses); // Create a copy to manipulate
   const traversesUpsertedToDb = [];
 
-  for (const traverseToUpsert of traversesToUpsert) {
-    const convertedTraverse: EntityData<Traverse_db> = convertTraversesTypeStoreToDb([
-      traverseToUpsert,
-    ])[0];
+  try {
+    for (const traverseToUpsert of traversesToUpsert) {
+      const convertedTraverse: EntityData<Traverse_db> = convertTraversesTypeStoreToDb([
+        traverseToUpsert,
+      ])[0];
 
-    //upsert traverse
-    const traverseRefFromDb: Traverse_db = await em.upsert(Traverse_db, convertedTraverse);
-    em.persist(traverseRefFromDb);
-    traversesUpsertedToDb.push(traverseRefFromDb);
+      // Upsert traverse
+      const traverseRefFromDb: Traverse_db = await em.upsert(Traverse_db, convertedTraverse);
+      em.persist(traverseRefFromDb);
+      traversesUpsertedToDb.push(traverseRefFromDb);
+    }
+
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
 
-  await em.flush();
-  //convert foreign keys
+  // Convert foreign keys
   return convertTraversesTypeDbToStore(traversesUpsertedToDb);
 }
 
@@ -192,7 +200,7 @@ export async function upsertTraverses(traverses: Traverse[]): Promise<Traverse[]
  * @param traverseUuids Traverse uuid to delete
  * @returns the uuids of the deleted Traverses
  */
-export async function deleteTraverses(traverseUuids: string[]): Promise<string[]> {
+async function deleteTraverses(traverseUuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const traverseUuid of traverseUuids) {
