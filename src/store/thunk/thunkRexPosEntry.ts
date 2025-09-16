@@ -22,39 +22,24 @@ export const thunkCreateInitialPosEntries = appCreateAsyncThunk<void>(
   "createInitialPosEntries",
   async (__, { dispatch, getState }) => {
     const runningRex = getState().rex.rexes.find((r) => r.isRunning);
-    const runningRexEva = getState().eva.evas.find((eva) => eva.uuid === runningRex.evaUuid);
-    const mission = getState().mission.mission;
-    const stationList = getState().station.stations;
     if (!runningRex) return null;
 
+    const runningRexEva = getState().eva.evas.find((eva) => eva.uuid === runningRex.evaUuid);
     const posEntryLocation: AEGISPoint =
       runningRexEva?.egressLocationUuid === "lander"
-        ? mission.landerLocation
-        : stationList.find((station) => station.uuid === runningRexEva?.egressLocationUuid)
-            ?.location;
-    const seconds = 0;
+        ? getState().mission.mission.landerLocation
+        : getState().station.stations.find(
+            (station) => station.uuid === runningRexEva?.egressLocationUuid
+          )?.location;
 
     const newPosEntries = [];
-
     for (const posSource of runningRex?.posSources) {
-      // Find all posTypes that are not already in a posEntry for this posSource
-      const entrylessPosTypeUuids = runningRex.posTypes
-        .filter((posType) => {
-          return !runningRex.posEntries?.some(
-            (entry: PosEntry) =>
-              entry.posTypeUuids.includes(posType.uuid) && entry.posSourceUuid === posSource.uuid
-          );
-        })
-        .map((posType) => posType.uuid);
-
-      const newUuid = uuidv4();
-
       const newPosEntry: PosEntry = {
-        uuid: newUuid,
+        uuid: uuidv4(),
         location: posEntryLocation,
         elevation: null,
-        petSeconds: seconds,
-        posTypeUuids: entrylessPosTypeUuids,
+        petSeconds: 0,
+        posTypeUuids: runningRex.posTypes.map((posType) => posType.uuid),
         posSourceUuid: posSource.uuid,
         createdAt: getAccurateNow().toISOString(),
         updatedAt: getAccurateNow().toISOString(),
@@ -62,7 +47,7 @@ export const thunkCreateInitialPosEntries = appCreateAsyncThunk<void>(
       newPosEntries.push(newPosEntry);
     }
 
-    await dispatch(
+    dispatch(
       upsertPosEntries({ rexUuid: getState().rex.selectedRexUuid, posEntries: newPosEntries })
     );
 
@@ -250,11 +235,11 @@ export const thunkCancelPosEntry = appCreateAsyncThunk<{
 export const thunkPersistPosEntries = appCreateAsyncThunk<{
   rexUuid: string;
 }>("persistPosEntries", async ({ rexUuid }, { dispatch, getState }) => {
-  const selectedRex = getState().rex.rexes.find((r) => r.uuid === rexUuid);
+  const rexRecord = getState().rex.rexes.find((r) => r.uuid === rexUuid);
 
   //automatically save to the db.
   const updatedRex = {
-    ...selectedRex,
+    ...rexRecord,
     updatedAt: getAccurateNow().toISOString(),
   };
   const rexUpsertResponse = await httpClient_Rex.upsertRexes([updatedRex]);

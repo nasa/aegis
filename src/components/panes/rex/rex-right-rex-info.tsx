@@ -124,10 +124,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                 )
                               );
 
+                              // if this is the first time we're starting this rex, add the initial pos entries
                               if (!selectedRex.posEntries || selectedRex.posEntries.length === 0) {
                                 dispatch(thunkCreateInitialPosEntries());
                               }
 
+                              // if pet was running, stop it. Pet can only be running if rex is running
                               if (selectedRex.petRunning) {
                                 dispatch(
                                   thunkRexPetStartStop({

@@ -3,6 +3,7 @@ import { getEM } from "utils/mikro";
 import {
   Action_db,
   Eva_db,
+  Mission_db,
   Rex_db,
   Station_db,
   Traverse_db,
@@ -11,6 +12,7 @@ import { emitStoreUpsert } from "../../sockets";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { validateRexOverwrite } from "../../../../utils/rexOverwriteValidator";
 import { upsertDatabaseRetry } from "utils/database";
+import { v4 as uuidv4 } from "uuid";
 
 const router = express.Router();
 
@@ -136,7 +138,6 @@ async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
       };
       rexEntity.stationEntries[stationUuid] = updatedStationEntry;
     }
-
     for (const refUuid in rexOverwrite.traverseEntriesByRefUuid) {
       if (!rexEntity.traverseEntries) rexEntity.traverseEntries = {}; // init if empty
       // get the traverse uuid from the refUuid
@@ -188,8 +189,9 @@ async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
       rexEntity.xgressEntries[refUuid] = updatedXgressEntry;
     }
 
-    // Check if we are toggling this on for the first time, and if we need to stop other running rex records
+    // Check if we are starting the execution
     if (rexOverwrite.isRunning && !rexEntity.isRunning) {
+      // Check if we need to stop other running rex records
       allRunningRexesBeforeUpdate = await em.find(Rex_db, {
         mission: rexEntity.mission,
         isRunning: true,
@@ -202,6 +204,38 @@ async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
           runningRex.isRunning = false;
           runningRex.updatedAt = new Date();
           em.persist(runningRex);
+        }
+      }
+
+      // Check if initial crew positions need to be generated
+      if (!rexEntity.posEntries || rexEntity.posEntries.length === 0) {
+        // Get egress location
+        let egressLocation: AEGISPoint | null = null;
+        const rexEva = await em.findOne(Eva_db, { uuid: rexEntity.evaUuid });
+        if (rexEva?.egressLocationUuid === "lander") {
+          const missionRecord = await em.findOne(Mission_db, { id: rexEntity.mission.id });
+          if (missionRecord?.landerLocation) egressLocation = missionRecord.landerLocation;
+        } else {
+          const stationRecord = await em.findOne(Station_db, { uuid: rexEva?.egressLocationUuid });
+          if (stationRecord?.location) egressLocation = stationRecord.location;
+        }
+
+        // Add pos entries for each pos source. Each entry will include all pos types
+        if (egressLocation) {
+          if (!rexEntity.posEntries) rexEntity.posEntries = [];
+          for (const posSource of rexEntity.posSources) {
+            const newPosEntry: PosEntry = {
+              uuid: uuidv4(),
+              location: egressLocation,
+              elevation: null,
+              petSeconds: 0,
+              posTypeUuids: rexEntity.posTypes.map((posType) => posType.uuid),
+              posSourceUuid: posSource.uuid,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            rexEntity.posEntries.push(newPosEntry);
+          }
         }
       }
     }

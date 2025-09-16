@@ -759,7 +759,7 @@ const MapBody: FunctionComponent<{
         if (action.stmAction) {
           actionName = getStmActionName({
             actionDefinition: action.actionDefinition,
-            actionDefinitions: mission.actionDefinitions,
+            missionActionDefs: mission.actionDefinitions,
           });
         }
         drawOrUpdateMarkerOnMap({

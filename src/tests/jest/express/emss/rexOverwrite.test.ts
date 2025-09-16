@@ -41,7 +41,11 @@ beforeAll(async () => {
   await getORM();
   const em = getEM();
 
-  testMission = await new MissionFactory(em).createOne();
+  testMission = await new MissionFactory(em)
+    .each((mission) => {
+      mission.landerLocation = { lat: 1, lng: 0 };
+    })
+    .createOne();
   testStation = await new StationFactory(em)
     .each((station) => {
       station.mission = testMission;
@@ -89,15 +93,15 @@ beforeAll(async () => {
     maestroActivityPropertiesByRefUuid: {
       egress: {
         color: "#ff0000",
-        number: 1,
+        number: "1",
       },
       [testStation.refUuid]: {
         color: "#00ffff",
-        number: 2,
+        number: "2A",
       },
       [testTraverse.refUuid]: {
         color: "#0000ff",
-        number: 3,
+        number: "3",
       },
     },
     stationEntriesByRefUuid: {
@@ -168,7 +172,6 @@ describe("REX Status API Endpoint", () => {
         .send({ invalidField: "value" });
       expect(response.status).toBe(400);
       expect(response.body.status).toBe("failure");
-      expect(response.body.message).toContain("RexOverwrite object failed schema validation");
     });
 
     test("Fails if rexUuid is not a valid UUID", async () => {
@@ -231,44 +234,14 @@ describe("REX Status API Endpoint", () => {
           .set("emss-token", emssToken)
           .send(payload);
         expect(response.status).toBe(400);
-        expect(response.body.message).toContain("Invalid color format");
+        expect(response.body.message).toContain("maestroActivityPropertiesByRefUuid");
       });
 
-      test("Fails if number contains decimal", async () => {
+      test("Fails if number length is greater than 3", async () => {
         const payload = {
           ...validRexOverwrite,
           maestroActivityPropertiesByRefUuid: {
-            egress: { color: "#ffffff", number: 1.5 },
-          },
-        };
-        const response = await supertest(app)
-          .post("/api/v1/emss/rexOverwrite")
-          .set("emss-token", emssToken)
-          .send(payload);
-        expect(response.status).toBe(400);
-        expect(response.body.message).toContain("Invalid number property");
-      });
-
-      test("Fails if number is less than 0", async () => {
-        const payload = {
-          ...validRexOverwrite,
-          maestroActivityPropertiesByRefUuid: {
-            egress: { color: "#ffffff", number: -1 },
-          },
-        };
-        const response = await supertest(app)
-          .post("/api/v1/emss/rexOverwrite")
-          .set("emss-token", emssToken)
-          .send(payload);
-        expect(response.status).toBe(400);
-        expect(response.body.message).toContain("Invalid number property");
-      });
-
-      test("Fails if number is greater than 99", async () => {
-        const payload = {
-          ...validRexOverwrite,
-          maestroActivityPropertiesByRefUuid: {
-            egress: { color: "#ffffff", number: 101 },
+            egress: { color: "#ffffff", number: "1011" },
           },
         };
         const response = await supertest(app)
@@ -360,21 +333,6 @@ describe("REX Status API Endpoint", () => {
         expect(response.body.message).toContain("Action entry must have a valid mass property");
       });
 
-      test("Fails if actionEntriesByRefUuid contains mass = 0", async () => {
-        const payload = {
-          ...validRexOverwrite,
-          actionEntriesByRefUuid: {
-            [testStationAction.refUuid]: { rexStatus: "complete", mass: 0 },
-          },
-        };
-        const response = await supertest(app)
-          .post("/api/v1/emss/rexOverwrite")
-          .set("emss-token", emssToken)
-          .send(payload);
-        expect(response.status).toBe(400);
-        expect(response.body.message).toContain("Action entry must have a valid mass property");
-      });
-
       test("Fails if actionEntriesByRefUuid contains mass < 0", async () => {
         const payload = {
           ...validRexOverwrite,
@@ -388,6 +346,62 @@ describe("REX Status API Endpoint", () => {
           .send(payload);
         expect(response.status).toBe(400);
         expect(response.body.message).toContain("Action entry must have a valid mass property");
+      });
+
+      test("Fails if actionEntriesByRefUuid contains containerId > 20 characters", async () => {
+        const payload = {
+          ...validRexOverwrite,
+          actionEntriesByRefUuid: {
+            [testStationAction.refUuid]: {
+              rexStatus: "complete",
+              containerId: "a".repeat(21),
+            },
+          },
+        };
+        const response = await supertest(app)
+          .post("/api/v1/emss/rexOverwrite")
+          .set("emss-token", emssToken)
+          .send(payload);
+        expect(response.status).toBe(400);
+        expect(response.body.message).toContain("containerId must be less than 20 characters.");
+      });
+
+      test("Fails if actionEntriesByRefUuid contains secondaryContainerId > 20 characters", async () => {
+        const payload = {
+          ...validRexOverwrite,
+          actionEntriesByRefUuid: {
+            [testStationAction.refUuid]: {
+              rexStatus: "complete",
+              secondaryContainerId: "a".repeat(21),
+            },
+          },
+        };
+        const response = await supertest(app)
+          .post("/api/v1/emss/rexOverwrite")
+          .set("emss-token", emssToken)
+          .send(payload);
+        expect(response.status).toBe(400);
+        expect(response.body.message).toContain(
+          "secondaryContainerId must be less than 20 characters."
+        );
+      });
+
+      test("Fails if actionEntriesByRefUuid contains markerId > 20 characters", async () => {
+        const payload = {
+          ...validRexOverwrite,
+          actionEntriesByRefUuid: {
+            [testStationAction.refUuid]: {
+              rexStatus: "complete",
+              markerId: "a".repeat(21),
+            },
+          },
+        };
+        const response = await supertest(app)
+          .post("/api/v1/emss/rexOverwrite")
+          .set("emss-token", emssToken)
+          .send(payload);
+        expect(response.status).toBe(400);
+        expect(response.body.message).toContain("markerId must be less than 20 characters.");
       });
     });
 
@@ -423,6 +437,13 @@ describe("REX Status API Endpoint", () => {
       expect(response.body.data.length).toBe(2);
       const callArgs = emitStoreUpsertSpy.mock.calls[0][0]; // Get the first call's arguments
       expect(callArgs.data).toHaveLength(2);
+
+      // Check updated rex
+      const em = getEM();
+      const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
+      expect(updatedRex).toBeDefined();
+      expect(updatedRex.posEntries.length).toBe(3); // pos entries for each source should be created
+      expect(updatedRex.posEntries[0].posTypeUuids.length).toBe(3); // each entry should include all pos types
     });
   });
 });

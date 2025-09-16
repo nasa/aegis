@@ -158,19 +158,19 @@ export const getActionDefinitionName = ({
 
 export const getStmActionName = ({
   actionDefinition,
-  actionDefinitions,
+  missionActionDefs,
 }: {
   actionDefinition: ActionDefinition;
-  actionDefinitions: ActionDefinitions;
+  missionActionDefs: ActionDefinitions;
 }): string => {
   const allDefs = [
-    ...actionDefinitions.verbs,
-    ...actionDefinitions.nouns,
-    ...actionDefinitions.adjectives,
+    ...missionActionDefs.verbs,
+    ...missionActionDefs.nouns,
+    ...missionActionDefs.adjectives,
   ];
-  const verbDef = allDefs.find((def) => def.uuid === actionDefinition.verbUuid);
-  const nounDef = allDefs.find((def) => def.uuid === actionDefinition.nounUuid);
-  const adjectiveDef = allDefs.find((def) => def.uuid === actionDefinition.adjectiveUuid);
+  const verbDef = allDefs.find((def) => def.uuid === actionDefinition?.verbUuid);
+  const nounDef = allDefs.find((def) => def.uuid === actionDefinition?.nounUuid);
+  const adjectiveDef = allDefs.find((def) => def.uuid === actionDefinition?.adjectiveUuid);
   const verbName = verbDef?.name;
   const nounName = nounDef?.name;
   const adjectiveName = adjectiveDef?.name;
