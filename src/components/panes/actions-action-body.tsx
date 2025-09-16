@@ -368,7 +368,7 @@ const RightActionBody: FunctionComponent<{
                         validators: [
                           validators.maxLength(4),
                           validators.mustBeInteger,
-                          validators.mustBeNumberGTZero,
+                          validators.mustBeNumberGTEZero,
                         ],
                         onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                           e.target.value = e.target.value.replace(regExValidators.regExNumber, "");

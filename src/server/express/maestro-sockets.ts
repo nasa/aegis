@@ -106,6 +106,21 @@ export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<
     io.to("maestro").emit("storeUpsertForMaestro", maestroPayload);
   } else if (storeUpsert.type === "traverse") {
     const allData = await getAll(storeUpsert.missionId);
+    const traverseData = storeUpsert.data as Traverse[];
+    // Check if traverse is in an eva
+    // Technically traverses are *always* in an eva, so always send it, with the one exception where
+    //    a new station (and therefore a traverse is generated) is added to an EVA. The traverse gets
+    //    auto saved to the db to prevent weird cancel behaviors, but the EVA sequence in the DB hasn't
+    //    been updated yet. If thats the case, don't send to Maestro. Check for this case below.
+    const allEvaTraverses = allData.evas.flatMap((eva) =>
+      eva.sequence.filter((seqItem) => seqItem.type === "traverse").map((seqItem) => seqItem.uuid)
+    );
+    const traversesForMaestro = traverseData.filter((station) =>
+      allEvaTraverses.includes(station.uuid)
+    );
+    // return if none of the traverses are in an eva
+    if (traversesForMaestro.length === 0) return;
+
     const exportedTraverses: ExportTraverse[] = makeExportTraverses({
       traverses: storeUpsert.data as Traverse[],
       missionGrid: null, // not used
@@ -121,8 +136,6 @@ export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<
       evas: evaData,
       allData,
       missionGrid: null, // not used
-      exportStations: false,
-      exportTraverses: false,
     });
     maestroPayload.data = evasForMaestro;
     io.to("maestro").emit("storeUpsertForMaestro", maestroPayload);

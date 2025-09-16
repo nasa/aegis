@@ -4,17 +4,17 @@ type Rex = {
   ownerId: number;
   name: string;
   description: string;
-  petStartStopTimestamp: string; // the timestamp the play/pause button was clicked
+  petStartStopTimestamp: string | null; // the timestamp the play/pause button was clicked
   petValueAtStartStop: string; // the value of the pet timer when the play/pause button was clicked in "+hh:mm:ss"
   petRunning: boolean; // whether the timer is currently running
   evaUuid: string;
   isRunning: boolean;
-  posEntries: PosEntry[];
+  posEntries: PosEntry[] | null;
   posTypes: PosType[];
   posSources: PosSource[];
-  stationEntries: ActivityEntries;
-  traverseEntries: ActivityEntries;
-  actionEntries: ActionEntries;
+  stationEntries: ActivityEntries | null;
+  traverseEntries: ActivityEntries | null;
+  actionEntries: ActionEntries | null;
   xgressEntries: XgressEntries | null;
   maestroControlled: boolean;
   maestroEventId: string | null;
@@ -67,8 +67,8 @@ interface ActivityEntries {
 }
 
 interface MaestroActivityProperty {
-  color: string; // hex color for the activity
-  number: number; // number of the activity in the maestro procedure
+  color?: string | null; // hex color for the activity
+  number?: string | null; // string of the activity number in the maestro procedure
 }
 
 interface MaestroActivityPropertiesByRefUuid {
@@ -113,7 +113,7 @@ type RexOverwrite = Pick<
   | "maestroEventUrl"
   | "maestroActivityPropertiesByRefUuid"
 > & {
-  stationEntriesByRefUuid: { [stationOrTraverseRefUuid: string]: ActivityEntry };
-  traverseEntriesByRefUuid: { [stationOrTraverseRefUuid: string]: ActivityEntry };
-  actionEntriesByRefUuid: { [actionRefUuid: string]: ActionEntry };
+  stationEntriesByRefUuid: { [stationOrTraverseRefUuid: string]: ActivityEntry } | null;
+  traverseEntriesByRefUuid: { [stationOrTraverseRefUuid: string]: ActivityEntry } | null;
+  actionEntriesByRefUuid: { [actionRefUuid: string]: ActionEntry } | null;
 };

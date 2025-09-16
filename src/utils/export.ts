@@ -89,7 +89,9 @@ export const makeExportActions = (params: {
       //  then we know it's an as-planned station and it will fail when it tries to find the rex
       // Traverses can only be in one EVA
       const evaThisStationOrTraverseIsIn = allData.evas.find((eva) =>
-        eva.sequence.some((seqItem) => seqItem.uuid === actionStation?.uuid || actionTraverse?.uuid)
+        eva.sequence.some(
+          (seqItem) => seqItem.uuid === (actionStation?.uuid || actionTraverse?.uuid)
+        )
       );
       if (evaThisStationOrTraverseIsIn) {
         // check if this eva is in a rex

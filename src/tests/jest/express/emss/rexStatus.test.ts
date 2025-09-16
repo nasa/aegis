@@ -440,6 +440,72 @@ describe("REX Status API Endpoint", () => {
         expect(res.body.status).toBe("failure");
         expect(res.body.message).toContain("must have a valid mass property");
       });
+      test("Returns error for containerId too long", async () => {
+        const requestBody = [
+          makeStatusUpdateRequest({
+            rexUuid: testRexes[0].uuid,
+            type: "action",
+            typeRefUuid: testAction.refUuid,
+            entry: {
+              rexStatus: "complete",
+              containerId: "container-id-that-is-way-too-long",
+            },
+          }),
+        ];
+
+        const res = await supertest(app)
+          .post("/api/v1/emss/rexStatus")
+          .set("emss-token", emssToken)
+          .send(requestBody);
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.status).toBe("failure");
+        expect(res.body.message).toContain("containerId must be less than 20 characters");
+      });
+      test("Returns error for secondaryContainerId too long", async () => {
+        const requestBody = [
+          makeStatusUpdateRequest({
+            rexUuid: testRexes[0].uuid,
+            type: "action",
+            typeRefUuid: testAction.refUuid,
+            entry: {
+              rexStatus: "complete",
+              secondaryContainerId: "secondary-container-id-that-is-way-too-long",
+            },
+          }),
+        ];
+
+        const res = await supertest(app)
+          .post("/api/v1/emss/rexStatus")
+          .set("emss-token", emssToken)
+          .send(requestBody);
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.status).toBe("failure");
+        expect(res.body.message).toContain("secondaryContainerId must be less than 20 characters");
+      });
+      test("Returns error for markerId too long", async () => {
+        const requestBody = [
+          makeStatusUpdateRequest({
+            rexUuid: testRexes[0].uuid,
+            type: "action",
+            typeRefUuid: testAction.refUuid,
+            entry: {
+              rexStatus: "complete",
+              markerId: "marker-id-that-is-way-too-long",
+            },
+          }),
+        ];
+
+        const res = await supertest(app)
+          .post("/api/v1/emss/rexStatus")
+          .set("emss-token", emssToken)
+          .send(requestBody);
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.status).toBe("failure");
+        expect(res.body.message).toContain("markerId must be less than 20 characters");
+      });
     });
   });
 

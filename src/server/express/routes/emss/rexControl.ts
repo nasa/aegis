@@ -4,10 +4,11 @@ import express from "express";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
 
-import { Rex_db } from "../../../database/models/_allModels";
+import { Eva_db, Mission_db, Rex_db, Station_db } from "../../../database/models/_allModels";
 import { emitStoreUpsert } from "../../sockets";
 import { hasPerms } from "utils/permissions";
 import { upsertDatabaseRetry } from "utils/database";
+import { v4 as uuidv4 } from "uuid";
 
 const router = express.Router();
 
@@ -90,6 +91,32 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
   }
+  // validate maestro activity properties
+  if (maestroActivityProperties) {
+    for (const refUuid in maestroActivityProperties) {
+      const activityProperty = maestroActivityProperties[refUuid];
+      // validate color is a hex color
+      if (activityProperty.color) {
+        const hexColorRegex = /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{4}|[A-Fa-f0-9]{6})$/;
+        const isValidColor = hexColorRegex.test(activityProperty.color);
+        if (!isValidColor) {
+          res.status(400).json({
+            status: "failure",
+            message: `Invalid color format in maestroActivityProperties for refUuid ${refUuid}. Must be a hex color.`,
+          });
+          return;
+        }
+      }
+      // validate number
+      if (activityProperty.number && activityProperty.number.length > 3) {
+        res.status(400).json({
+          status: "failure",
+          message: `Invalid number property in maestroActivityProperties for refUuid ${refUuid}. Must be less than 4 characters.`,
+        });
+        return;
+      }
+    }
+  }
 
   try {
     const updatedRexes: Rex[] = await upsertDatabaseRetry(() =>
@@ -167,8 +194,8 @@ export async function updateRexControl({
       throw new Error(`Rex with uuid ${rexUuid} not found.`);
     }
 
-    // Handle execution state changes first (if stopping all other running REX records)
     if (startStopExecution === "start") {
+      // Check if we need to stop other running rex records
       allRunningRexesBeforeUpdate = await em.find(Rex_db, {
         mission: rexEntity.mission,
         isRunning: true,
@@ -181,6 +208,38 @@ export async function updateRexControl({
           runningRex.isRunning = false;
           runningRex.updatedAt = new Date();
           em.persist(runningRex);
+        }
+      }
+
+      // Check if initial crew positions need to be generated
+      if (!rexEntity.posEntries || rexEntity.posEntries.length === 0) {
+        // Get egress location
+        let egressLocation: AEGISPoint | null = null;
+        const rexEva = await em.findOne(Eva_db, { uuid: rexEntity.evaUuid });
+        if (rexEva?.egressLocationUuid === "lander") {
+          const missionRecord = await em.findOne(Mission_db, { id: rexEntity.mission.id });
+          if (missionRecord?.landerLocation) egressLocation = missionRecord.landerLocation;
+        } else {
+          const stationRecord = await em.findOne(Station_db, { uuid: rexEva?.egressLocationUuid });
+          if (stationRecord?.location) egressLocation = stationRecord.location;
+        }
+
+        // Add pos entries for each pos source. Each entry will include all pos types
+        if (egressLocation) {
+          if (!rexEntity.posEntries) rexEntity.posEntries = [];
+          for (const posSource of rexEntity.posSources) {
+            const newPosEntry: PosEntry = {
+              uuid: uuidv4(),
+              location: egressLocation,
+              elevation: null,
+              petSeconds: 0,
+              posTypeUuids: rexEntity.posTypes.map((posType) => posType.uuid),
+              posSourceUuid: posSource.uuid,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            rexEntity.posEntries.push(newPosEntry);
+          }
         }
       }
     }

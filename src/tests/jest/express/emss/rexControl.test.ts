@@ -1,11 +1,12 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { getORM, getEM, closeORM } from "utils/mikro";
-import { Mission_db, Rex_db } from "server/database/models/_allModels";
+import { Eva_db, Mission_db, Rex_db } from "server/database/models/_allModels";
 import MissionFactory from "../../factories/MissionFactory";
 import RexFactory from "../../factories/RexFactory";
 import * as SocketIo from "server/express/sockets";
 import supertest from "supertest";
 import app from "server/express/restApi";
+import EvaFactory from "tests/jest/factories/EVAFactory";
 
 // suppress socketio calls because they won't work during jest testing
 jest.mock("server/express/sockets", () => {
@@ -17,7 +18,8 @@ jest.mock("server/express/sockets", () => {
   };
 });
 
-let testMissions: Mission_db[];
+let testMission: Mission_db;
+let testEva: Eva_db;
 let testRexes: Rex_db[];
 const emssToken = process.env.EMSS_TOKEN;
 
@@ -25,11 +27,20 @@ beforeAll(async () => {
   await getORM();
   const em = getEM();
 
-  testMissions = await new MissionFactory(em).create(1);
-
+  testMission = await new MissionFactory(em)
+    .each((mission) => {
+      mission.landerLocation = { lat: 1, lng: 0 };
+    })
+    .createOne();
+  testEva = await new EvaFactory(em)
+    .each((eva) => {
+      eva.mission = testMission;
+    })
+    .createOne();
   testRexes = await new RexFactory(em)
     .each((rex, idx) => {
-      rex.mission = testMissions[0];
+      rex.mission = testMission;
+      rex.evaUuid = testEva.uuid;
       rex.name = `Jest REX ${idx + 1}`;
     })
     .create(3);
@@ -173,11 +184,11 @@ describe("REX Control API Endpoint", () => {
       const activityProperties: MaestroActivityProperties = {
         "activity-uuid-1": {
           color: "#ff0000",
-          number: 1,
+          number: "1",
         },
         "activity-uuid-2": {
           color: "#00ff00",
-          number: 2,
+          number: "2",
         },
       };
 
@@ -202,10 +213,13 @@ describe("REX Control API Endpoint", () => {
 
       const em = getEM();
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
-      expect(updatedRex?.maestroControlled).toBe(requestBody.maestroControlled);
-      expect(updatedRex?.isRunning).toBe(true); // "start" sets to true
-      expect(updatedRex?.maestroEventId).toBe(requestBody.maestroEventId);
-      expect(updatedRex?.maestroActivityPropertiesByRefUuid).toEqual(activityProperties);
+      expect(updatedRex).toBeDefined();
+      expect(updatedRex.maestroControlled).toBe(requestBody.maestroControlled);
+      expect(updatedRex.isRunning).toBe(true); // "start" sets to true
+      expect(updatedRex.maestroEventId).toBe(requestBody.maestroEventId);
+      expect(updatedRex.maestroActivityPropertiesByRefUuid).toEqual(activityProperties);
+      expect(updatedRex.posEntries.length).toBe(3); // pos entries for each source should be created
+      expect(updatedRex.posEntries[0].posTypeUuids.length).toBe(3); // each entry should include all pos types
     });
 
     test("Successfully updates maestroControlled", async () => {
@@ -344,8 +358,8 @@ describe("REX Control API Endpoint", () => {
 
       const activityProperties: MaestroActivityPropertiesByRefUuid = {
         "activity-refUuid-test": {
-          color: "#blue",
-          number: 1,
+          color: "#ffffff",
+          number: "1A",
         },
       };
       const requestBody = {
@@ -448,9 +462,8 @@ afterAll(async () => {
   for (const rex of testRexes) {
     await em.nativeDelete(Rex_db, { uuid: rex.uuid });
   }
-  for (const mission of testMissions) {
-    await em.nativeDelete(Mission_db, { id: mission.id });
-  }
+  await em.nativeDelete(Eva_db, { uuid: testEva.uuid });
+  await em.nativeDelete(Mission_db, { id: testMission.id });
   await closeORM();
   jest.restoreAllMocks();
 });

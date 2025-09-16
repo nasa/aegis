@@ -39,10 +39,7 @@ export const validateRexOverwrite = (rexOverwrite: RexOverwrite): string | null 
   // first validate the schema. All properties required
   const valid = rexOverwriteSchemaValidator(rexOverwrite);
   if (!valid) {
-    return (
-      "RexOverwrite object failed schema validation: " +
-      JSON.stringify(rexOverwriteSchemaValidator.errors)
-    );
+    return JSON.stringify(rexOverwriteSchemaValidator.errors);
   }
 
   // check rex uuid is a valid format
@@ -90,19 +87,17 @@ export const validateRexOverwrite = (rexOverwrite: RexOverwrite): string | null 
         return `Invalid refUuid format in maestroActivityPropertiesByRefUuid: ${refUuid}. Must be a valid UUID.`;
       }
       const activityProperty = rexOverwrite.maestroActivityPropertiesByRefUuid[refUuid];
-      // validate color is a hex color
-      const hexColorRegex = /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{4}|[A-Fa-f0-9]{6})$/;
-      const isValidColor = hexColorRegex.test(activityProperty.color);
-      if (!isValidColor) {
-        return `Invalid color format in maestroActivityPropertiesByRefUuid for refUuid ${refUuid}. Must be a hex color.`;
+      if (activityProperty.color) {
+        // validate color is a hex color
+        const hexColorRegex = /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{4}|[A-Fa-f0-9]{6})$/;
+        const isValidColor = hexColorRegex.test(activityProperty.color);
+        if (!isValidColor) {
+          return `Invalid color format in maestroActivityPropertiesByRefUuid for refUuid ${refUuid}. Must be a hex color.`;
+        }
       }
       // validate number
-      if (
-        activityProperty.number.toString().length > 2 ||
-        !Number.isInteger(activityProperty.number) ||
-        activityProperty.number <= 0
-      ) {
-        return `Invalid number property in maestroActivityPropertiesByRefUuid for refUuid ${refUuid}. Must be a positive integer less than 99.`;
+      if (activityProperty.number && activityProperty.number.length > 3) {
+        return `Invalid number property in maestroActivityPropertiesByRefUuid for refUuid ${refUuid}. Must be less than 4 characters.`;
       }
     }
   }
@@ -136,9 +131,24 @@ export const validateRexOverwrite = (rexOverwrite: RexOverwrite): string | null 
       if (
         actionEntry.mass.toString().length > 4 ||
         !Number.isInteger(actionEntry.mass) ||
-        actionEntry.mass <= 0
+        actionEntry.mass < 0
       ) {
-        return "Action entry must have a valid mass property. Must be integer between 1 and 9999";
+        return "Action entry must have a valid mass property. Must be integer between 0 and 9999";
+      }
+    }
+    if (actionEntry.containerId) {
+      if (actionEntry.containerId.toString().length > 20) {
+        return "Action entry containerId must be less than 20 characters.";
+      }
+    }
+    if (actionEntry.secondaryContainerId) {
+      if (actionEntry.secondaryContainerId.toString().length > 20) {
+        return "Action entry secondaryContainerId must be less than 20 characters.";
+      }
+    }
+    if (actionEntry.markerId) {
+      if (actionEntry.markerId.toString().length > 20) {
+        return "Action entry markerId must be less than 20 characters.";
       }
     }
   }

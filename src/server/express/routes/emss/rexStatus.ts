@@ -139,11 +139,39 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         if (
           isNaN(actionEntry.mass) ||
           actionEntry.mass.toString().length > 4 ||
-          !Number.isInteger(Number(actionEntry.mass))
+          !Number.isInteger(Number(actionEntry.mass)) ||
+          actionEntry.mass < 0
         ) {
           res.status(400).json({
             status: "failure",
             message: "Action entry must have a valid mass property.",
+          });
+          return;
+        }
+      }
+      if (actionEntry.containerId) {
+        if (actionEntry.containerId.toString().length > 20) {
+          res.status(400).json({
+            status: "failure",
+            message: "Action entry containerId must be less than 20 characters.",
+          });
+          return;
+        }
+      }
+      if (actionEntry.secondaryContainerId) {
+        if (actionEntry.secondaryContainerId.toString().length > 20) {
+          res.status(400).json({
+            status: "failure",
+            message: "Action entry secondaryContainerId must be less than 20 characters.",
+          });
+          return;
+        }
+      }
+      if (actionEntry.markerId) {
+        if (actionEntry.markerId.toString().length > 20) {
+          res.status(400).json({
+            status: "failure",
+            message: "Action entry markerId must be less than 20 characters.",
           });
           return;
         }
