@@ -25,7 +25,7 @@ emss-token: {{$dotenv EMSS_TOKEN}}
     },
      "d275e068-d237-4b99-a1f5-74bf2fadb4e5": {
       "color": "#001aff",
-      "number": "2A"
+      "number": "A"
     },
     "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216": {
       "color": "#ff00ff",
