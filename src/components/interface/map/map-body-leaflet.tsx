@@ -158,6 +158,21 @@ const MapBody: FunctionComponent<{}> = () => {
   const selectedRex = useAppSelector((state) => {
     return state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid);
   }, deepEqual);
+
+  // Extract posTypes, posSources, and posEntries directly with selectors that use deepEqual to prevent unnecessary re-renders
+  const posTypes = useAppSelector(
+    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid)?.posTypes || [],
+    deepEqual
+  );
+  const posSources = useAppSelector(
+    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid)?.posSources || [],
+    deepEqual
+  );
+  const posEntries = useAppSelector(
+    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid)?.posEntries || [],
+    deepEqual
+  );
+
   const runningRexEvaDatetime = useAppSelector((state) => {
     const runningRexEva = state.eva.evas.find((eva) => eva.uuid === selectedRex?.evaUuid);
     return runningRexEva ? runningRexEva.datetime : null;
@@ -1542,9 +1557,7 @@ const MapBody: FunctionComponent<{}> = () => {
     if (mapDisplayPos.show) {
       //there's a rex selected and we're on the eva section
       if (sectionSelected === "evas" && selectedRex) {
-        const posEntriesWithLocations = selectedRex?.posEntries?.filter(
-          (posEntry) => posEntry.location
-        );
+        const posEntriesWithLocations = posEntries?.filter((posEntry) => posEntry.location);
         // filter out the pos entries that are not from a selected source. Empty source array means "all".
         let filteredPosEntries: PosEntry[] = [];
         if (mapDisplayPos.sourceUuids.length > 0) {
@@ -1658,7 +1671,7 @@ const MapBody: FunctionComponent<{}> = () => {
     if (mapDisplayPos.showPaths) {
       //hide old paths
       if (!mapDisplayPos.showOldPaths) {
-        for (const posType of selectedRex?.posTypes) {
+        for (const posType of posTypes) {
           if (!posTypeLatestEntries[posType.uuid] || posTypeLatestEntries[posType.uuid].length <= 1)
             continue;
           //loop over posTypes and get their latest entries
@@ -1679,8 +1692,8 @@ const MapBody: FunctionComponent<{}> = () => {
         }
       } else {
         // show all paths
-        const posTypes = selectedRex?.posTypes;
-        posTypes?.forEach((posType) => {
+        const rexPosTypes = posTypes;
+        rexPosTypes?.forEach((posType) => {
           const posEntriesForType = posEntriesToShow.filter((posEntry) =>
             posEntry.posTypeUuids.includes(posType.uuid)
           );
@@ -1748,7 +1761,9 @@ const MapBody: FunctionComponent<{}> = () => {
     map,
     dispatch,
     mapDisplayPos,
-    selectedRex,
+    posTypes,
+    posSources,
+    posEntries,
     sectionSelected,
     isWin10,
     egressLocation,
@@ -1785,7 +1800,7 @@ const MapBody: FunctionComponent<{}> = () => {
               entry.createdAt > latestPosEntry.createdAt
           );
           if (otherPosEntriesWithThisType.length === 0) {
-            const posTypeAbbr = selectedRex?.posTypes?.find(
+            const posTypeAbbr = posTypes?.find(
               (posTypeFromRex) => posTypeFromRex.uuid === posTypeUuidFromEntry
             )?.abbr;
             markerPosTypeAbbrs.push(posTypeAbbr);
@@ -1794,7 +1809,7 @@ const MapBody: FunctionComponent<{}> = () => {
 
         // set the marker tooltip
         const timeToShow = hhmmssFromSeconds(rexPetSeconds - latestPosEntry.petSeconds);
-        const sourceAbbr = selectedRex?.posSources?.find(
+        const sourceAbbr = posSources?.find(
           (posSource) => posSource.uuid === latestPosEntry.posSourceUuid
         )?.abbr;
         const newLabel = `${timeToShow} / ${markerPosTypeAbbrs} (${sourceAbbr})`;
@@ -1805,11 +1820,11 @@ const MapBody: FunctionComponent<{}> = () => {
       for (let i = 0; i < posEntriesShowing.length; i++) {
         //build label
         const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesShowing[i].petSeconds);
-        const sourceAbbr = selectedRex?.posSources?.find(
+        const sourceAbbr = posSources?.find(
           (posSource) => posSource.uuid === posEntriesShowing[i].posSourceUuid
         )?.abbr;
         const markerPosTypeAbbrs = posEntriesShowing[i].posTypeUuids.map((posTypeUuid) => {
-          const posType = selectedRex?.posTypes?.find((posType) => posType.uuid === posTypeUuid);
+          const posType = posTypes?.find((posType) => posType.uuid === posTypeUuid);
           return posType?.abbr;
         });
         const newLabel = `${timeToShow} / ${markerPosTypeAbbrs} (${sourceAbbr})`;
@@ -1826,7 +1841,8 @@ const MapBody: FunctionComponent<{}> = () => {
     posEntriesShowing,
     latestPosEntriesByType,
     mapDisplayPos.showLatestLabels,
-    selectedRex,
+    posTypes,
+    posSources,
   ]);
 
   /**
