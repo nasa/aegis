@@ -129,6 +129,16 @@ const MapBody: FunctionComponent<{
     (state) => state.rex.rexesFromDb.find((r) => r.isRunning),
     deepEqual
   );
+  // Extract posTypes and posSources directly with selectors that use deepEqual to prevent unnecessary re-renders
+  const posTypes = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((r) => r.isRunning)?.posTypes || [],
+    deepEqual
+  );
+  const posSources = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((r) => r.isRunning)?.posSources || [],
+    deepEqual
+  );
+
   const stationsInProgress: Station[] = useAppSelector((state) => {
     const stationsInProgress: Station[] = [];
     for (const stationUuid in runningRexFromDb.stationEntries) {
@@ -250,9 +260,9 @@ const MapBody: FunctionComponent<{
 
   // Update followModeOptions when runningRexFromDb.posTypes changes
   useEffect(() => {
-    if (!runningRexFromDb?.posTypes) return;
+    if (!posTypes) return;
 
-    const followPosOptions: MapFollowOptions = runningRexFromDb.posTypes.reduce(
+    const followPosOptions: MapFollowOptions = posTypes.reduce(
       (followOptionsForPos: MapFollowOptions, posType: PosType) => {
         followOptionsForPos[posType.uuid] = {
           follow: posType.name === "EV1" || posType.name === "EV2",
@@ -262,6 +272,8 @@ const MapBody: FunctionComponent<{
       },
       {}
     );
+
+    console.log("Setting follow options", followPosOptions);
 
     setFollowModeOptions((prevOptions) => ({
       ...defaultFollowOptions,
@@ -277,7 +289,7 @@ const MapBody: FunctionComponent<{
         return preserved;
       }, {} as MapFollowOptions),
     }));
-  }, [runningRexFromDb?.posTypes, defaultFollowOptions]);
+  }, [posTypes, defaultFollowOptions]);
 
   // put this in a useCallback so props isn't a dependency on map instantiation
   const updateBigMapBounds = useCallback(
@@ -416,7 +428,7 @@ const MapBody: FunctionComponent<{
    * Pan/zoom map view in follow mode
    */
   useEffect(() => {
-    if (!followMode || !runningRexFromDb?.posTypes) return;
+    if (!followMode || !posTypes) return;
     let objectCoordinates: AEGISPoint[] = [];
 
     // get the coordinates of all objects that are in progress
@@ -508,6 +520,7 @@ const MapBody: FunctionComponent<{
     runningEvaFromDb,
     stationsFromDb,
     runningRexFromDb,
+    posTypes,
   ]);
 
   /**
@@ -1388,7 +1401,7 @@ const MapBody: FunctionComponent<{
               entry.createdAt > latestPosEntry.createdAt
           );
           if (otherPosEntriesWithThisType.length === 0) {
-            const posTypeAbbr = runningRexFromDb?.posTypes?.find(
+            const posTypeAbbr = posTypes.find(
               (posTypeFromRex) => posTypeFromRex.uuid === posTypeUuidFromEntry
             )?.abbr;
             markerPosTypeAbbrs.push(posTypeAbbr);
@@ -1397,7 +1410,7 @@ const MapBody: FunctionComponent<{
 
         // set the marker tooltip
         const timeToShow = hhmmssFromSeconds(rexPetSeconds - latestPosEntry.petSeconds);
-        const sourceAbbr = runningRexFromDb?.posSources?.find(
+        const sourceAbbr = posSources.find(
           (posSource) => posSource.uuid === latestPosEntry.posSourceUuid
         )?.abbr;
         const newLabel = `${timeToShow} / ${markerPosTypeAbbrs} (${sourceAbbr})`;
@@ -1408,13 +1421,11 @@ const MapBody: FunctionComponent<{
       for (let i = 0; i < posEntriesShowing.length; i++) {
         //build label
         const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesShowing[i].petSeconds);
-        const sourceAbbr = runningRexFromDb?.posSources?.find(
+        const sourceAbbr = posSources.find(
           (posSource) => posSource.uuid === posEntriesShowing[i].posSourceUuid
         )?.abbr;
         const markerPosTypeAbbrs = posEntriesShowing[i].posTypeUuids.map((posTypeUuid) => {
-          const posType = runningRexFromDb?.posTypes?.find(
-            (posType) => posType.uuid === posTypeUuid
-          );
+          const posType = posTypes.find((posType) => posType.uuid === posTypeUuid);
           return posType?.abbr;
         });
         const newLabel = `${timeToShow} / ${markerPosTypeAbbrs} (${sourceAbbr})`;
@@ -1425,7 +1436,7 @@ const MapBody: FunctionComponent<{
         }
       }
     }
-  }, [rexPetTime, posEntriesShowing, latestPosEntriesByType, mapDisplayPos, runningRexFromDb]);
+  }, [rexPetTime, posEntriesShowing, latestPosEntriesByType, mapDisplayPos, posSources, posTypes]);
 
   return (
     <div
@@ -1486,7 +1497,7 @@ const MapBody: FunctionComponent<{
                   { label: "Stations", value: "stations" },
                   { label: "Traverses", value: "traverses" },
                 ].concat(
-                  runningRexFromDb.posTypes.map((posType) => {
+                  posTypes.map((posType) => {
                     return { label: posType.name, value: posType.uuid };
                   })
                 )}
