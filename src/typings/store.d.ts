@@ -141,10 +141,8 @@ interface RexState {
   rexes: Rex[];
   rexesFromDb: Rex[];
   selectedRexUuid: string;
-  rexesPosEntriesEditing: string[];
   selectedPosEntryUuid: string;
-  posEntryEditingUuid: string; //only one can be in edit mode at a time
-  selectedPosSourceUuid: string;
+  posEntryInEdit: PosEntry | null;
 }
 
 interface Measurement {

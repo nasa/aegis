@@ -9,10 +9,8 @@ export const initialState: RexState = {
   rexes: [],
   rexesFromDb: [],
   selectedRexUuid: null,
-  rexesPosEntriesEditing: [],
   selectedPosEntryUuid: null,
-  posEntryEditingUuid: null,
-  selectedPosSourceUuid: null,
+  posEntryInEdit: null,
 };
 
 export const rexSlice = createSlice({
@@ -90,23 +88,23 @@ export const rexSlice = createSlice({
       state.selectedRexUuid = action.payload;
       state.selectedPosEntryUuid = null;
     },
-    setRexesPosEntryEditMode: (
-      state,
-      action: { payload: { rexUuid: string; editMode: boolean } }
-    ) => {
-      if (action.payload.editMode) {
-        state.rexesPosEntriesEditing.push(action.payload.rexUuid);
-      } else {
-        state.rexesPosEntriesEditing = state.rexesPosEntriesEditing.filter(
-          (uuid) => uuid !== action.payload.rexUuid
-        );
-      }
-    },
     setSelectedPosEntryUuid: (state, action: { payload: string }) => {
       state.selectedPosEntryUuid = action.payload;
     },
-    setPosEntryEditingUuid: (state, action: { payload: string }) => {
-      state.posEntryEditingUuid = action.payload;
+    setPosEntryInEdit: (state, action: { payload: PosEntry | null }) => {
+      state.posEntryInEdit = action.payload;
+    },
+    clearPosEntryInEdit: (state) => {
+      // clear everything but the posTypes and the posSource
+      state.posEntryInEdit = {
+        ...state.posEntryInEdit,
+        uuid: null,
+        location: null,
+        elevation: null,
+        petSeconds: null,
+        createdAt: null,
+        updatedAt: null,
+      };
     },
     upsertPosEntries: {
       prepare: ({
@@ -165,9 +163,6 @@ export const rexSlice = createSlice({
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
     },
-    setSelectedPosSourceUuid: (state, action: { payload: string }) => {
-      state.selectedPosSourceUuid = action.payload;
-    },
   },
   extraReducers: (builder) => {
     // reducer called across slices. This handles this slice's portion of the reducer's state
@@ -184,11 +179,10 @@ export const {
   deleteRexesByUuid,
   deleteRexesFromDbByUuid,
   setSelectedRexUuid,
-  setRexesPosEntryEditMode,
   setSelectedPosEntryUuid,
-  setPosEntryEditingUuid,
+  setPosEntryInEdit,
+  clearPosEntryInEdit,
   upsertPosEntries,
   deletePosEntryByUuid,
   obliterateState,
-  setSelectedPosSourceUuid,
 } = rexSlice.actions;
