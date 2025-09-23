@@ -14,7 +14,7 @@ export const selectEvaStations =
     if (!eva) return [];
     if (eva.sequence) {
       const sequenceStations = eva.sequence
-        .filter((seqItem) => seqItem.type === "station")
+        .filter((seqItem) => seqItem.type === "station" && seqItem.uuid) // if a station hasn't be selected yet, uuid will be blank
         .map((stationSeqItem) =>
           state.station.stations.find((s) => s.uuid === stationSeqItem.uuid)
         );

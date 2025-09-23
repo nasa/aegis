@@ -306,15 +306,6 @@ const RightActionBody: FunctionComponent<{
           <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
             <SubpanelHeading icon={faWeightHanging}>Sample Mass</SubpanelHeading>
           </div>
-          {actionRexMaestroControlled && (
-            <div className={paneStyles.maestroIcon}>
-              <FontAwesomeIcon
-                icon={faHexagonNodes}
-                data-tooltip-id="aegis-tooltip"
-                data-tooltip-html="Some fields in this section are Maestro controlled"
-              />
-            </div>
-          )}
         </div>
         <div className={paneStyles.panelSectionRow}>
           <div className={paneStyles.panelSection2Column}>
@@ -360,7 +351,7 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <InLineEditInput
                       value={actionRexEntry?.mass?.toString()}
-                      editing={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      editing={!isNull(rexUuid) && allowRexEdit}
                       fieldProps={{
                         name: "mass",
                         ariaLabel: "Executed Sample Mass",

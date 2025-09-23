@@ -121,7 +121,6 @@ beforeAll(async () => {
     actionEntriesByRefUuid: {
       [testStationAction.refUuid]: {
         rexStatus: "complete",
-        mass: 1,
         markerId: "marker-123",
       },
     },
@@ -318,11 +317,11 @@ describe("REX Status API Endpoint", () => {
     });
 
     describe("actionEntriesByRefUuid mass validation", () => {
-      test("Fails if actionEntriesByRefUuid contains mass > 9999", async () => {
+      test("Fails if actionEntriesByRefUuid contains mass", async () => {
         const payload = {
           ...validRexOverwrite,
           actionEntriesByRefUuid: {
-            [testStationAction.refUuid]: { rexStatus: "complete", mass: 10000 },
+            [testStationAction.refUuid]: { rexStatus: "complete", mass: 1 },
           },
         };
         const response = await supertest(app)
@@ -330,14 +329,15 @@ describe("REX Status API Endpoint", () => {
           .set("emss-token", emssToken)
           .send(payload);
         expect(response.status).toBe(400);
-        expect(response.body.message).toContain("Action entry must have a valid mass property");
+        expect(response.body.message).toContain(
+          "Action entry mass property should not be provided."
+        );
       });
-
-      test("Fails if actionEntriesByRefUuid contains mass < 0", async () => {
+      test("Fails if actionEntriesByRefUuid contains mass = 0", async () => {
         const payload = {
           ...validRexOverwrite,
           actionEntriesByRefUuid: {
-            [testStationAction.refUuid]: { rexStatus: "complete", mass: -10 },
+            [testStationAction.refUuid]: { rexStatus: "complete", mass: 0 },
           },
         };
         const response = await supertest(app)
@@ -345,9 +345,23 @@ describe("REX Status API Endpoint", () => {
           .set("emss-token", emssToken)
           .send(payload);
         expect(response.status).toBe(400);
-        expect(response.body.message).toContain("Action entry must have a valid mass property");
+        expect(response.body.message).toContain(
+          "Action entry mass property should not be provided."
+        );
       });
-
+      test("Fails if actionEntriesByRefUuid contains mass is null", async () => {
+        const payload = {
+          ...validRexOverwrite,
+          actionEntriesByRefUuid: {
+            [testStationAction.refUuid]: { rexStatus: "complete", mass: null },
+          } as ActionEntries,
+        };
+        const response = await supertest(app)
+          .post("/api/v1/emss/rexOverwrite")
+          .set("emss-token", emssToken)
+          .send(payload);
+        expect(response.status).toBe(400); // schema error
+      });
       test("Fails if actionEntriesByRefUuid contains containerId > 20 characters", async () => {
         const payload = {
           ...validRexOverwrite,

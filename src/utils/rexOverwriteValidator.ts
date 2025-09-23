@@ -126,15 +126,8 @@ export const validateRexOverwrite = (rexOverwrite: RexOverwrite): string | null 
       return `Invalid actionRefUuid format in actionEntriesByRefUuid: ${actionRefUuid}. Must be a valid UUID.`;
     }
     const actionEntry = rexOverwrite.actionEntriesByRefUuid[actionRefUuid];
-    if (actionEntry.mass !== undefined && actionEntry.mass !== null) {
-      // if a mass was provided, check that it is a valid number
-      if (
-        actionEntry.mass.toString().length > 4 ||
-        !Number.isInteger(actionEntry.mass) ||
-        actionEntry.mass < 0
-      ) {
-        return "Action entry must have a valid mass property. Must be integer between 0 and 9999";
-      }
+    if ("mass" in actionEntry) {
+      return "Action entry mass property should not be provided.";
     }
     if (actionEntry.containerId) {
       if (actionEntry.containerId.toString().length > 20) {
