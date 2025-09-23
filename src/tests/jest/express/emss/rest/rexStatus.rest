@@ -120,7 +120,6 @@ emss-token: {{$dotenv EMSS_TOKEN}}
   "typeRefUuid": "6e2ee00b-0bd4-44fb-a238-329c5e7714b3",
   "entry": {
     "rexStatus": "skipped",
-    "mass": 123
   }
 }
 ]

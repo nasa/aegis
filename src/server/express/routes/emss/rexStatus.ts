@@ -134,20 +134,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // validate values normally checked by the UI
     if (rexStatus.type === "action") {
       const actionEntry = rexStatus.entry as ActionEntry;
-      if (actionEntry.mass !== undefined && actionEntry.mass !== null) {
-        // if a mass was provided, check that it is a valid number
-        if (
-          isNaN(actionEntry.mass) ||
-          actionEntry.mass.toString().length > 4 ||
-          !Number.isInteger(Number(actionEntry.mass)) ||
-          actionEntry.mass < 0
-        ) {
-          res.status(400).json({
-            status: "failure",
-            message: "Action entry must have a valid mass property.",
-          });
-          return;
-        }
+      if ("mass" in actionEntry) {
+        res.status(400).json({
+          status: "failure",
+          message: "Action entry mass property should not be provided.",
+        });
+        return;
       }
       if (actionEntry.containerId) {
         if (actionEntry.containerId.toString().length > 20) {
@@ -317,7 +309,6 @@ async function updateRexStatus(rexStatusByTypeRefUuid: RexStatusByTypeRefUuid): 
         if (!updatedActionEntry) {
           updatedActionEntry = {
             rexStatus: "pending",
-            mass: 0,
             markerId: "",
             containerId: "",
             secondaryContainerId: "",

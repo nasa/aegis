@@ -165,7 +165,6 @@ async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
       if (!updatedActionEntry) {
         updatedActionEntry = {
           rexStatus: "pending",
-          mass: 0,
           markerId: "",
           containerId: "",
           secondaryContainerId: "",
