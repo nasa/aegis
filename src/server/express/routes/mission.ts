@@ -33,6 +33,8 @@ import { getEM } from "utils/mikro";
 
 import { emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -66,6 +68,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       emssTokenIsValid(emssToken);
   }
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "mission",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -88,7 +99,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     }
     res.status(200).json({ status: "success", message: "mission retrieved", data: records });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "mission",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: `Error processing the GET request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
   }
 });
@@ -107,6 +127,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       emssToken,
     });
     if (!canEditThisMission) {
+      apiRouteLogger({
+        logLevel: "warn",
+        httpMethod: "POST",
+        responseStatus: 401,
+        routeName: "mission",
+        appUsername: req.session?.appUser?.username,
+        missionId: mission.id,
+        message: "Unauthorized",
+      });
       res.status(401).json({ status: "failure", message: "Unauthorized" });
       return;
     }
@@ -116,9 +145,19 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     const upsertResponse: Mission[] = await upsertDatabaseRetry(() => upsertMissions(missions));
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "mission",
+        appUsername: req.session?.appUser?.username,
+        uuids: missions?.map((m) => m.id.toString()),
+        message: "Failed to update mission after multiple tries due to optimistic locking",
+        error: new Error("Failed to update mission after multiple tries due to optimistic locking"),
+      });
       res.status(500).json({
         status: "error",
-        message: "Failed to update mission after multiple tries",
+        message: "Failed to update mission after multiple tries due to optimistic locking",
         data: null,
       });
       return;
@@ -142,7 +181,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       });
     }
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "mission",
+      appUsername: req.session?.appUser?.username,
+      uuids: missions?.map((m) => m.id.toString()),
+      message: `Error processing the POST request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
   }
 });
@@ -155,11 +203,29 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   //  or if no mission id (create mission) must be an admin to the back end or user 1
   for (const missionIdToDelete of missionIds) {
     if (!missionIdToDelete || isNaN(missionIdToDelete)) {
-      res.status(500).json({ status: "error", message: "Invalid mission ID" });
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "DELETE",
+        responseStatus: 400,
+        routeName: "mission",
+        appUsername: req.session?.appUser?.username,
+        missionId: missionIdToDelete,
+        message: "Invalid mission ID",
+      });
+      res.status(400).json({ status: "error", message: "Invalid mission ID" });
       return;
     }
 
     if (!req.session?.appUser?.isSuperAdmin) {
+      apiRouteLogger({
+        logLevel: "warn",
+        httpMethod: "DELETE",
+        responseStatus: 401,
+        routeName: "mission",
+        appUsername: req.session?.appUser?.username,
+        missionId: missionIdToDelete,
+        message: "Unauthorized",
+      });
       res.status(401).json({ status: "failure", message: "Unauthorized" });
       return;
     }
@@ -170,16 +236,44 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     if (deletedMissionIds.length > 0) {
       res.status(200).json({ status: "success", message: "Mission Deleted" });
     } else {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "DELETE",
+        responseStatus: 404,
+        routeName: "mission",
+        appUsername: req.session?.appUser?.username,
+        uuids: missionIds.map((id) => id.toString()),
+        message: "No record found. Nothing deleted",
+      });
       res.status(404).json({ status: "failure", message: "No record found. Nothing deleted" });
     }
   } catch (e) {
-    console.error(e);
     if (e instanceof ForeignKeyConstraintViolationException) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "mission",
+        appUsername: req.session?.appUser?.username,
+        uuids: missionIds.map((id) => id.toString()),
+        message: "Cannot delete mission. This mission is referenced elsewhere",
+        error: asError(e),
+      });
       res.status(500).json({
         status: "error",
         message: "Cannot delete mission. This mission is referenced elsewhere",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "mission",
+        appUsername: req.session?.appUser?.username,
+        uuids: missionIds.map((id) => id.toString()),
+        message: "Error processing the DELETE request",
+        error: asError(e),
+      });
       res.status(500).json({ status: "error", message: "Error processing the DELETE request" });
     }
   }

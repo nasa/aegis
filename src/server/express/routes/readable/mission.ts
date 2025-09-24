@@ -5,6 +5,8 @@ import express from "express";
 
 import { makeExportMission } from "utils/export";
 import { hasPerms, emssTokenIsValid } from "utils/permissions";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 import { getGridFromFile } from "../grid";
 import { getMission } from "../mission";
@@ -39,6 +41,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       emssTokenIsValid(emssToken);
   }
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "readable/mission",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -78,7 +89,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: exportMissions,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "readable/mission",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: `Error processing the GET request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
   }
 });

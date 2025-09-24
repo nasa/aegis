@@ -7,6 +7,8 @@ import { App_User_db } from "server/database/models/_allModels";
 import { getEM } from "utils/mikro";
 
 import { upsertUsers } from "./users";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -22,6 +24,15 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
     }
     res.status(200).json(loginResult);
   } catch (error) {
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "auth/login",
+      appUsername: username,
+      message: "Unexpected error :" + error,
+      error: asError(error),
+    });
     res.status(500).json({ status: "error", message: "Unexpected error :" + error });
   }
 });
@@ -32,6 +43,15 @@ router.get("/logout", async (req: Request, res: Response): Promise<void> => {
     req.session = null;
     res.status(200).json({ status: "success", message: "Logged out", data: true });
   } catch (error) {
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "auth/logout",
+      appUsername: req.session?.appUser?.username,
+      message: `Unexpected error: ${error}`,
+      error: asError(error),
+    });
     res.status(500).json({ status: "error", message: `Unexpected error: ${error}`, data: false });
   }
 });
@@ -49,6 +69,15 @@ router.get("/isLoggedIn", async (req: Request, res: Response): Promise<void> => 
       res.status(200).json({ status: "failure", message: "Not Logged in", data: { user: null } });
     }
   } catch (e) {
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "auth/isLoggedIn",
+      appUsername: req.session?.appUser?.username,
+      message: `Unexpected error: ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Unexpected error: ${e}` });
   }
 });
@@ -69,6 +98,15 @@ router.get("/adminRecovery", async (req: Request, res: Response): Promise<void> 
       throw new Error("Method not allowed");
     }
   } catch (e) {
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "auth/adminRecovery",
+      appUsername: req.session?.appUser?.username,
+      message: `Unexpected error: ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Unexpected error: ${e}` });
   }
 });

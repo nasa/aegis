@@ -7,6 +7,8 @@ import { Action_db, Eva_db, Rex_db } from "server/database/models/_allModels";
 import { makeExportActions } from "utils/export";
 import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 import { getAll } from "../all";
 import { getGridFromFile } from "../grid";
@@ -36,16 +38,43 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "readable/action",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   //check for required mission id is valid
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "readable/action",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
   if (queryObj.datesOnly && !queryObj.actionRefUuid) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "readable/action",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "datesOnly query requires action refUuid to be specified",
+    });
     res.status(400).json({
       status: "error",
       message: "datesOnly query requires action refUuid to be specified",
@@ -53,6 +82,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   if (!queryObj.datesOnly && !queryObj.actionRefUuid && !queryObj.evaRefUuid) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "readable/action",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Either action refUuid or evaRefUuid must be specified",
+    });
     res.status(400).json({
       status: "error",
       message: "Either action refUuid or evaRefUuid must be specified",
@@ -60,6 +98,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   if (queryObj.evaRefUuid && (queryObj.actionRefUuid || queryObj.datesOnly)) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "readable/action",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "evaRefUuid cannot be used with action refUuid or datesOnly",
+    });
     res.status(400).json({
       status: "error",
       message: "evaRefUuid cannot be used with action refUuid or datesOnly",
@@ -129,7 +176,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         data: partialActions,
       });
     } catch (e) {
-      console.error(e);
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "GET",
+        responseStatus: 500,
+        routeName: "readable/action",
+        appUsername: req.session?.appUser?.username,
+        missionId: queryObj.missionId,
+        message: `Error getting actions ${e}`,
+        error: asError(e),
+      });
       res.status(500).json({ status: "error", message: `Error getting actions ${e}` });
     }
   } else {
@@ -225,7 +281,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         data: exportActions,
       });
     } catch (e) {
-      console.error(e);
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "GET",
+        responseStatus: 500,
+        routeName: "readable/action",
+        appUsername: req.session?.appUser?.username,
+        missionId: queryObj.missionId,
+        message: `Error getting readable actions ${e}`,
+        error: asError(e),
+      });
       res.status(500).json({ status: "error", message: `Error getting readable actions ${e}` });
     }
   }
