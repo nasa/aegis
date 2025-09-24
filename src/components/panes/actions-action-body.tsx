@@ -16,7 +16,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { Button, InLineEditInput } from "components/interface/form/globalFields";
+import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { FunctionComponent, useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
@@ -204,12 +204,13 @@ const RightActionBody: FunctionComponent<{
               </SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <WysiwygTextArea
-                value={action.descriptionTask}
+              <TextArea
+                value={action.descriptionTask || ""}
                 editing={editMode}
-                onChange={(value) => {
+                onSubmit={(value: string) => {
                   dispatch(upsertActionByField(action.uuid, "descriptionTask", value));
                 }}
+                fieldProps={{ name: "descriptionTask", ariaLabel: "Task Description" }}
                 key={action.uuid}
               />
             </div>
