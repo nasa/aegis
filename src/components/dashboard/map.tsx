@@ -272,9 +272,6 @@ const MapBody: FunctionComponent<{
       },
       {}
     );
-
-    console.log("Setting follow options", followPosOptions);
-
     setFollowModeOptions((prevOptions) => ({
       ...defaultFollowOptions,
       ...followPosOptions,

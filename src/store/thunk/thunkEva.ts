@@ -81,29 +81,37 @@ export const thunkSaveEva = appCreateAsyncThunk<{
     const oldEva = getState().eva.evasFromDb.find((e) => e.uuid === eva.uuid);
     const oldSequence = oldEva.sequence;
     const newSequence = eva.sequence;
-    for (let i = 0; i < Math.max(newSequence?.length, oldSequence?.length); i++) {
-      if (oldSequence[i]?.type === "station" || newSequence[i]?.type === "station") {
-        // check if the station has changed. Either of these could be null/undefined if the sequence is shorter
-        if (oldSequence[i]?.uuid !== newSequence[i]?.uuid) {
-          if (newSequence[i]) {
-            // duplicate the station and save to db
-            const newStation = await dispatch(
-              thunkDuplicateStation({
-                stationUuid: newSequence[i].uuid,
-                preserveRefUuid: true,
-              })
-            );
-            if (newStation.payload) {
-              // update the sequence with the new station uuid
-              newSequence[i].uuid = newStation.payload.uuid;
-            } else {
-              throw new Error("Error duplicating station in thunkSaveEva");
-            }
-          }
-          // delete the old station
-          if (oldSequence[i]) stationUuidsToDelete.push(oldSequence[i].uuid);
-        }
+
+    // find all stations that were added in the new sequence that are not in the old sequence
+    // also check that they are not blank stations (no uuid)
+    const newStationUuids: string[] = newSequence
+      .filter(
+        (s) => s.type === "station" && s.uuid && !oldSequence.map((o) => o.uuid).includes(s.uuid)
+      )
+      .map((seq) => seq.uuid);
+    for (let i = 0; i < newStationUuids.length; i++) {
+      // duplicate the station and save to db
+      const newStation = await dispatch(
+        thunkDuplicateStation({
+          stationUuid: newStationUuids[i],
+          preserveRefUuid: true,
+        })
+      );
+      if (newStation.payload) {
+        // update the sequence with the new duplicated station uuid
+        const sequenceIndex = newSequence.findIndex((s) => s.uuid === newStationUuids[i]);
+        newSequence[sequenceIndex].uuid = newStation.payload.uuid;
+      } else {
+        throw new Error("Error duplicating station in thunkSaveEva");
       }
+    }
+
+    // find all stations that are no longer in the new sequence (they were deleted)
+    const deletedStationUuids: string[] = oldSequence
+      .filter((s) => s.type === "station" && !newSequence.map((n) => n.uuid).includes(s.uuid))
+      .map((seq) => seq.uuid);
+    if (deletedStationUuids.length > 0) {
+      stationUuidsToDelete.push(...deletedStationUuids);
     }
 
     // check ingress
