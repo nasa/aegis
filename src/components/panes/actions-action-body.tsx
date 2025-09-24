@@ -458,7 +458,7 @@ const RightActionBody: FunctionComponent<{
               </div>
               <div className={paneStyles.panelColumnTableRow}>
                 <div className={paneStyles.panelColumnTableCell}>
-                  <div className={paneStyles.inputFieldLabel}>Addtl. Container ID:</div>
+                  <div className={paneStyles.inputFieldLabel}>2nd Container ID:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldValue}>

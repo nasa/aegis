@@ -258,7 +258,7 @@ export const ActionsTopSection: FunctionComponent<{
     // loop through all actions
     for (const actionUuid of actionOrderUuids) {
       const action = state.action.actions.find((a) => a.uuid === actionUuid);
-      if (!action || !action.enabled || !action.mass) continue;
+      if (!action || !action.enabled) continue;
       if (!rex.actionEntries || !rex.actionEntries[actionUuid]) continue;
       if (isNull(rex.actionEntries[actionUuid].mass)) continue; // this action has a non-null mass actual entry
       if (!isNull(mass)) {
