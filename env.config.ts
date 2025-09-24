@@ -250,7 +250,7 @@ export const config: DotenvConfig<typeof environments> = {
     //    local: "https://localhost:9443/applog"
     //    (this may be problematic if we disallow insecure certs in emss/packages,
     //    "logger" package, as you'll need to setup a trusted cert)
-    local: "https://carbon-emss-dev.fit.nasa.gov/applog",
+    local: "",
 
     // Send this app's logs to a location in FIT. Typically this will be to the
     // emss-logging server, but could also be to dev servers running emss/logs
