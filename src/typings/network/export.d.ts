@@ -5,7 +5,6 @@ interface ExportMission extends Mission {
 interface ExportAction extends Action {
   _itemType: string;
   descriptionReadable: string;
-  descriptionTaskReadable: string;
   parentPoiName: string;
   parentStationName: string;
   parentTraverseName: string;
