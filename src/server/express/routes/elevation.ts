@@ -4,6 +4,8 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 
 import { hasPerms } from "utils/permissions";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -27,11 +29,29 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "elevation",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "elevation",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
   const postData: ElevationProfilePostData = req.body;
@@ -76,7 +96,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         segment.map((elevation) => parseFloat(String(elevation)))
       );
     } catch (e) {
-      console.error("Error parsing initResJson", e);
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "elevation",
+        appUsername: req.session?.appUser?.username,
+        missionId: queryObj.missionId,
+        message: "Error parsing initResJson. " + e + " | Response: " + JSON.stringify(initRes),
+        error: asError(e),
+      });
       res.status(500).json({
         status: "error",
         message: "Error parsing initResJson. " + e + " | Response: " + JSON.stringify(initRes),
@@ -91,13 +120,32 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         message: "Success POSTing the job to docker.",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "elevation",
+        appUsername: req.session?.appUser?.username,
+        missionId: queryObj.missionId,
+        message: "Error POSTing the job to docker. Error: " + initResJson.message,
+        error: new Error("Error POSTing the job to docker. Error: " + initResJson.message),
+      });
       res.status(500).json({
         status: "error",
         message: "Error POSTing the job to docker. Error: " + initResJson.message,
       });
     }
   } catch (e) {
-    console.error("Posting error", e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "elevation",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Error POSTing the job to docker. " + e + " | Response: " + JSON.stringify(initRes),
+      error: asError(e),
+    });
     res.status(500).json({
       status: "error",
       message: "Error POSTing the job to docker. " + e + " | Response: " + JSON.stringify(initRes),

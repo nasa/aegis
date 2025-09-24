@@ -23,7 +23,7 @@ export async function unzip(
   filename: string,
   outputDir: string,
   subfolder?: string
-): Promise<boolean> {
+): Promise<void> {
   const unzipDirectory = subfolder
     ? `${destRoot}/${outputDir}/${subfolder}`
     : `${destRoot}/${outputDir}`;
@@ -43,7 +43,6 @@ export async function unzip(
     await deleteFile(filename);
 
     console.log(`${new Date()} File unzip success. Extracted ${numFiles} files. Deleted .zip`);
-    return true;
   } catch (e) {
     //cleanup
     if (subfolder) {
@@ -52,9 +51,8 @@ export async function unzip(
       }
     }
     await deleteFile(filename);
-
-    console.warn(`${new Date()} Error in unzip. ${e}`);
-    return false;
+    // rethrow the error after cleanup so the calling function can catch it
+    throw e;
   }
 }
 

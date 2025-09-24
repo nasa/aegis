@@ -17,6 +17,8 @@ import { getLevel1s, getLevel2s, getLevel3s } from "./stm";
 import { getStmRules } from "./stmRules";
 import { getTraverses } from "./traverse";
 import { hasPerms } from "utils/permissions";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -40,11 +42,29 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "all",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "all",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
   try {
@@ -55,7 +75,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: record,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "all",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: `Error getting everything ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error getting everything ${e}` });
   }
 });

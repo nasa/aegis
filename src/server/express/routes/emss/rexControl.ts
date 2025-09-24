@@ -9,6 +9,8 @@ import { emitStoreUpsert } from "../../sockets";
 import { hasPerms } from "utils/permissions";
 import { upsertDatabaseRetry } from "utils/database";
 import { v4 as uuidv4 } from "uuid";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -42,12 +44,30 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     emssToken: emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "emss/rexControl",
+      appUsername: req.session?.appUser?.username,
+      uuids: [rexUuid],
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   // validate inputs
   if (!rexUuid) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "emss/rexControl",
+      appUsername: req.session?.appUser?.username,
+      uuids: [rexUuid],
+      message: "Missing required body parameter: rexUuid",
+    });
     res.status(400).json({
       status: "failure",
       message: "Missing required body parameter: rexUuid",
@@ -62,6 +82,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     maestroEventUrl === undefined &&
     maestroActivityProperties === undefined
   ) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "emss/rexControl",
+      appUsername: req.session?.appUser?.username,
+      uuids: [rexUuid],
+      message:
+        "At least one of maestroControlled, startStopExecution, maestroEventId, maestroEventUrl, or maestroActivityProperties must be provided",
+    });
     res.status(400).json({
       status: "failure",
       message:
@@ -71,6 +101,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
   // Validate startStopExecution if provided
   if (startStopExecution !== undefined && !["start", "stop"].includes(startStopExecution)) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "emss/rexControl",
+      appUsername: req.session?.appUser?.username,
+      uuids: [rexUuid],
+      message: "startStopExecution must be 'start' or 'stop' if provided",
+    });
     res.status(400).json({
       status: "failure",
       message: "startStopExecution must be 'start' or 'stop' if provided",
@@ -84,6 +123,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:")
         throw new Error("Invalid protocol. Must be http or https");
     } catch (e) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "emss/rexControl",
+        appUsername: req.session?.appUser?.username,
+        uuids: [rexUuid],
+        message: "Must be a valid URL " + e,
+      });
       res.status(400).json({
         status: "failure",
         message: "Must be a valid URL " + e,
@@ -100,6 +148,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         const hexColorRegex = /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{4}|[A-Fa-f0-9]{6})$/;
         const isValidColor = hexColorRegex.test(activityProperty.color);
         if (!isValidColor) {
+          apiRouteLogger({
+            logLevel: "notice",
+            httpMethod: "POST",
+            responseStatus: 400,
+            routeName: "emss/rexControl",
+            appUsername: req.session?.appUser?.username,
+            uuids: [rexUuid],
+            message: `Invalid color format in maestroActivityProperties for refUuid ${refUuid}. Must be a hex color.`,
+          });
           res.status(400).json({
             status: "failure",
             message: `Invalid color format in maestroActivityProperties for refUuid ${refUuid}. Must be a hex color.`,
@@ -109,6 +166,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       }
       // validate number
       if (activityProperty.number && activityProperty.number.length > 3) {
+        apiRouteLogger({
+          logLevel: "notice",
+          httpMethod: "POST",
+          responseStatus: 400,
+          routeName: "emss/rexControl",
+          appUsername: req.session?.appUser?.username,
+          uuids: [rexUuid],
+          message: `Invalid number property in maestroActivityProperties for refUuid ${refUuid}. Must be less than 4 characters.`,
+        });
         res.status(400).json({
           status: "failure",
           message: `Invalid number property in maestroActivityProperties for refUuid ${refUuid}. Must be less than 4 characters.`,
@@ -131,9 +197,19 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     );
 
     if (!updatedRexes || updatedRexes.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "emss/rexControl",
+        appUsername: req.session?.appUser?.username,
+        uuids: [rexUuid],
+        message: "Failed to update rex after multiple tries due to optimistic locking",
+        error: new Error("Failed to update rex after multiple tries due to optimistic locking"),
+      });
       res.status(500).json({
         status: "error",
-        message: "Failed to update rex after multiple tries",
+        message: "Failed to update rex after multiple tries due to optimistic locking",
         data: null,
       });
       return;
@@ -156,6 +232,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check if it's a specific business logic error
     if (errorMessage.includes("not found")) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 404,
+        routeName: "emss/rexControl",
+        appUsername: req.session?.appUser?.username,
+        uuids: [rexUuid],
+        message: errorMessage,
+      });
       res.status(404).json({
         status: "failure",
         message: errorMessage,
@@ -164,6 +249,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     // Generic server error
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "emss/rexControl",
+      appUsername: req.session?.appUser?.username,
+      uuids: [rexUuid],
+      message: `Error processing the POST request: ${errorMessage}`,
+      error: asError(e),
+    });
     res
       .status(500)
       .json({ status: "error", message: `Error processing the POST request: ${errorMessage}` });

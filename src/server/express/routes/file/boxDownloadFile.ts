@@ -9,6 +9,8 @@ import express from "express";
 
 import { unzip } from "server/file/file";
 import { hasPerms } from "utils/permissions";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -32,6 +34,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     appUser: req.session.appUser,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "file/boxDownloadFile",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      uuids: [queryObj.itemId],
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -62,11 +74,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     const fileExtension = metadata.name.split(".").pop();
     if (fileExtension === "zip") {
       //unzip the file into the subfolder
-      const unzipStatus = await unzip(metadata.name, queryObj.path);
-      if (!unzipStatus) {
-        res.status(500).json({ error: "Error unzipping file" });
-        return;
-      }
+      await unzip(metadata.name, queryObj.path);
     } else {
       // if the file is not a zip file, move it to the correct location
 
@@ -85,7 +93,17 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
     res.status(200).json({ data: { success: true } });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "file/boxDownloadFile",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      uuids: [queryObj.itemId],
+      message: e.toString(),
+      error: asError(e),
+    });
     res.status(500).json({ error: e.toString() });
   }
 });

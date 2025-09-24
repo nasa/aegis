@@ -105,7 +105,7 @@ describe("STM API Endpoint", () => {
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .query({ missionId: testMissions[0].id });
 
-      expect(res.statusCode).toBe(500);
+      expect(res.statusCode).toBe(400);
       expect(res.body.status).toBe("error");
     });
 

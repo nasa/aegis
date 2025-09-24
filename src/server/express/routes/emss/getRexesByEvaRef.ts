@@ -6,6 +6,8 @@ import express from "express";
 import { getEM } from "utils/mikro";
 import { Eva_db, Rex_db } from "server/database/models/_allModels";
 import { emssTokenIsValid } from "utils/permissions";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -26,13 +28,28 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const viewPermissions = emssTokenIsValid(emssToken);
 
   if (!viewPermissions) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "emss/getRexesByEvaRef",
+      message: "Unauthorized access attempt",
+      uuids: [queryObj.evaRefUuid],
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   // validate inputs
   if (!queryObj.evaRefUuid) {
-    res.status(500).json({ status: "error", message: "No EVA Ref given" });
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "emss/getRexesByEvaRef",
+      message: "No EVA Ref given",
+    });
+    res.status(400).json({ status: "failure", message: "No EVA Ref given" });
     return;
   }
 
@@ -68,7 +85,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: refRexes,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "emss/getRexesByEvaRef",
+      message: "Error getting rexes",
+      uuids: [queryObj.evaRefUuid],
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error getting rexes ${e}` });
   }
 });

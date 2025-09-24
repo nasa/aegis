@@ -7,6 +7,8 @@ import { Mission_db, Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
 import { emssTokenIsValid } from "utils/permissions";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -18,6 +20,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
     emssTokenIsValid(emssToken);
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "missionHomepageItems",
+      appUsername: req.session?.appUser?.username,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -41,7 +51,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: records,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "missionHomepageItems",
+      appUsername: req.session?.appUser?.username,
+      message: `Error processing the GET request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
   }
 });

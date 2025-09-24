@@ -5,6 +5,8 @@ import express from "express";
 
 import { renameFile } from "server/file/file"; // Assuming this function is compatible with Express
 import { hasPerms } from "utils/permissions"; // Assuming you have a session middleware compatible with Express
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -27,6 +29,15 @@ router.get("/", async (req: Request, res: Response) => {
     appUser: req.session.appUser,
   });
   if (!editPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "file/rename",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -42,7 +53,16 @@ router.get("/", async (req: Request, res: Response) => {
     }
     res.status(200).json("Success");
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "file/rename",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: e.toString(),
+      error: asError(e),
+    });
     res.status(500).json({ error: e.toString() });
   }
 });

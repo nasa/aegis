@@ -99,23 +99,18 @@ describe("File Functions", () => {
 
   describe("Unzip File", () => {
     test("Unzip File: Success", async () => {
-      //zip file has to be in the root of the static directory
       const testZipFile = path.join(__dirname, `./factories/testZip.zip`);
       fs.copyFileSync(testZipFile, path.join(staticTestDir, "../testUnzip.zip"));
 
-      const fileUnzipped = await unzip("testUnzip.zip", "jestTest", "testUnzipContents");
-      expect(fileUnzipped).toBe(true);
+      await unzip("testUnzip.zip", "jestTest", "testUnzipContents");
       expect(fs.existsSync(path.join(staticTestDir, "../testUnzip.zip"))).toBe(false);
       expect(fs.existsSync(path.join(staticTestDir, "/testUnzipContents/testFile.txt"))).toBe(true);
     });
 
     test("Unzip File: Failure zip file doesn't exist", async () => {
-      const fileUnzipped = await unzip(
-        "testZipDoesNotExist.zip",
-        "jestTest",
-        "testZipContentsDoesNotExist"
-      );
-      expect(fileUnzipped).toBe(false);
+      await expect(
+        unzip("testZipDoesNotExist.zip", "jestTest", "testZipContentsDoesNotExist")
+      ).rejects.toThrow();
       expect(fs.existsSync(path.join(staticTestDir, "/testZipContentsDoesNotExist/"))).toBe(false);
     });
   });

@@ -5,6 +5,8 @@ import BoxSDK from "box-node-sdk";
 import express from "express";
 
 import { hasPerms } from "utils/permissions";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -27,6 +29,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     appUser: req.session.appUser,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "file/boxGetFolderItems",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      uuids: [queryObj.itemId],
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -61,7 +73,17 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
     res.status(200).json({ data: { ...folderItems, entries: entriesWithSize } });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "file/boxGetFolderItems",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      uuids: [queryObj.itemId],
+      message: e.toString(),
+      error: asError(e),
+    });
     res.status(500).json({ error: e.toString() });
   }
 });

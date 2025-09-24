@@ -13,6 +13,8 @@ import { hasPerms } from "utils/permissions";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -37,11 +39,29 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "poi",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "poi",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
   try {
@@ -52,7 +72,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: pois,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "poi",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: `Error processing the GET request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
   }
 });
@@ -69,6 +98,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "poi",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: pois?.map((p) => p.uuid),
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -87,9 +126,20 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "poi",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: pois?.map((p) => p.uuid),
+        message: "Failed to update poi after multiple tries due to optimistic locking",
+        error: new Error("Failed to update poi after multiple tries due to optimistic locking"),
+      });
       res.status(500).json({
         status: "error",
-        message: "Failed to update poi after multiple tries",
+        message: "Failed to update poi after multiple tries due to optimistic locking",
         data: null,
       });
       return;
@@ -109,7 +159,17 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: upsertResponse,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "poi",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: pois?.map((p) => p.uuid),
+      message: `Error processing the POST request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
   }
 });
@@ -126,6 +186,16 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "DELETE",
+      responseStatus: 401,
+      routeName: "poi",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: poiUuids,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -147,13 +217,33 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "POI deleted",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "DELETE",
+        responseStatus: 404,
+        routeName: "poi",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: poiUuids,
+        message: "No record found. Nothing deleted",
+      });
       res.status(404).json({
         status: "failure",
         message: "No record found. Nothing deleted",
       });
     }
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "DELETE",
+      responseStatus: 500,
+      routeName: "poi",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: poiUuids,
+      message: `Error processing the DELETE request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the DELETE request ${e}` });
   }
 });

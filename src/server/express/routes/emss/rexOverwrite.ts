@@ -13,6 +13,8 @@ import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { validateRexOverwrite } from "../../../../utils/rexOverwriteValidator";
 import { upsertDatabaseRetry } from "utils/database";
 import { v4 as uuidv4 } from "uuid";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -23,6 +25,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   // Check if user has EMSS permissions
   const editPermission = emssToken && emssToken === process.env.EMSS_TOKEN;
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "emss/rexOverwrite",
+      uuids: [req.body.uuid],
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -30,6 +40,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   // validate inputs
   const validateMsgs = validateRexOverwrite(req.body);
   if (validateMsgs) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "emss/rexOverwrite",
+      uuids: [req.body.uuid],
+      message: validateMsgs,
+    });
     res.status(400).json({ status: "failure", message: validateMsgs });
     return;
   }
@@ -38,9 +56,18 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     const updatedRexes: Rex[] = await upsertDatabaseRetry(() => overwriteRex(req.body));
 
     if (!updatedRexes || updatedRexes.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "emss/rexOverwrite",
+        uuids: [req.body.uuid],
+        message: "Failed to update Rex(es) after multiple tries due to optimistic locking",
+        error: new Error("Failed to update rex after multiple tries due to optimistic locking"),
+      });
       res.status(500).json({
         status: "error",
-        message: "Failed to update Rex(es) after multiple tries",
+        message: "Failed to update Rex(es) after multiple tries due to optimistic locking",
         data: null,
       });
       return;
@@ -59,6 +86,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : String(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "emss/rexOverwrite",
+      uuids: [req.body.uuid],
+      message: `Error processing the POST request: ${errorMessage}`,
+      error: asError(e),
+    });
     res
       .status(500)
       .json({ status: "error", message: `Error processing the POST request: ${errorMessage}` });

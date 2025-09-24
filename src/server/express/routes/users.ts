@@ -10,6 +10,8 @@ import { App_User_db } from "server/database/models/_allModels";
 import { convertUsersTypeDbToStore, convertUsersTypeStoreToDb } from "store/storeUtils/user";
 import { getEM } from "utils/mikro";
 import { upsertDatabaseRetry } from "utils/database";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -27,6 +29,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   //only super admin can view/edit users
   if (!req.session.appUser?.isSuperAdmin) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "users",
+      appUsername: req.session?.appUser?.username,
+      uuids: queryObj.userId ? [queryObj.userId.toString()] : [],
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -40,7 +51,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: users,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "users",
+      appUsername: req.session?.appUser?.username,
+      uuids: queryObj.userId ? [queryObj.userId.toString()] : [],
+      message: `Error processing the GET request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
   }
 });
@@ -50,6 +70,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { users } = req.body as UserUpsertRequest;
   //only super admin can view/edit users
   if (!req.session.appUser?.isSuperAdmin) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "users",
+      appUsername: req.session?.appUser?.username,
+      uuids: users?.map((u) => u.id?.toString()),
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -59,9 +88,21 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "users",
+        appUsername: req.session?.appUser?.username,
+        uuids: users?.map((u) => u.id?.toString()),
+        message: "Failed to update app user after multiple tries due to optimistic locking",
+        error: new Error(
+          "Failed to update app user after multiple tries due to optimistic locking"
+        ),
+      });
       res.status(500).json({
         status: "error",
-        message: "Failed to update app user after multiple tries",
+        message: "Failed to update app user after multiple tries due to optimistic locking",
         data: null,
       });
       return;
@@ -73,7 +114,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: upsertResponse,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "users",
+      appUsername: req.session?.appUser?.username,
+      uuids: users?.map((u) => u.id?.toString()),
+      message: `Error processing the POST request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
   }
 });
@@ -83,6 +133,15 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { userIds } = req.body as UserDeleteRequest;
   //only super admin can view/edit users
   if (!req.session.appUser?.isSuperAdmin) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "DELETE",
+      responseStatus: 401,
+      routeName: "users",
+      appUsername: req.session?.appUser?.username,
+      uuids: userIds?.map((id) => id.toString()),
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -96,10 +155,29 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "user deleted",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "users",
+        appUsername: req.session?.appUser?.username,
+        uuids: userIds?.map((id) => id.toString()),
+        message: "Error in query",
+        error: new Error("Error in query"),
+      });
       res.status(500).json({ status: "error", message: "Error in query" });
     }
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "DELETE",
+      responseStatus: 500,
+      routeName: "users",
+      appUsername: req.session?.appUser?.username,
+      uuids: userIds?.map((id) => id.toString()),
+      message: `Error processing the DELETE request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the DELETE request ${e}` });
   }
 });

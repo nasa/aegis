@@ -15,6 +15,8 @@ import { hasPerms } from "utils/permissions";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -30,6 +32,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "station",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: stations?.map((s) => s.uuid),
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -50,9 +62,20 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "station",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: stations?.map((s) => s.uuid),
+        message: "Failed to update station after multiple tries due to optimistic locking",
+        error: new Error("Failed to update station after multiple tries due to optimistic locking"),
+      });
       res.status(500).json({
         status: "error",
-        message: "Failed to update station after multiple tries",
+        message: "Failed to update station after multiple tries due to optimistic locking",
         data: null,
       });
       return;
@@ -72,7 +95,17 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: upsertResponse,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "station",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: stations?.map((s) => s.uuid),
+      message: `Error processing the POST request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
   }
 });
@@ -89,6 +122,16 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "DELETE",
+      responseStatus: 401,
+      routeName: "station",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: stationUuids,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -110,19 +153,50 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "Station Deleted",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "DELETE",
+        responseStatus: 404,
+        routeName: "station",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: stationUuids,
+        message: "Record not found. Nothing deleted",
+      });
       res.status(404).json({
         status: "failure",
         message: "Record not found. Nothing deleted",
       });
     }
   } catch (e) {
-    console.error(e);
     if (e instanceof ForeignKeyConstraintViolationException) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "station",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: stationUuids,
+        message: "Cannot delete station. This station is referenced elsewhere",
+        error: asError(e),
+      });
       res.status(500).json({
         status: "error",
         message: "Cannot delete station. This station is referenced elsewhere",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "station",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: stationUuids,
+        message: "Error processing the DELETE request",
+        error: asError(e),
+      });
       res.status(500).json({ status: "error", message: "Error processing the DELETE request" });
     }
   }
