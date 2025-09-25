@@ -58,7 +58,7 @@ const Emss: React.FunctionComponent = () => {
     socket.current.on("connect", () => {
       const aegisAdmin: MaestroVisitor = {
         socketId: socket.current.id,
-        name: "EMSS Monitoring Interface",
+        name: "AEGIS Admin Page",
         connectedAt: Date.now(),
       };
       socket.current.emit("maestroJoin", aegisAdmin);
@@ -72,6 +72,10 @@ const Emss: React.FunctionComponent = () => {
 
   const toggleEmssApi = async () => {
     try {
+      if (isEmssApiEnabled) {
+        const response = confirm("Are you sure you want to turn off the EMSS API?");
+        if (!response) return;
+      }
       await fetch(`/api/v1/emss/enableEmssApi`, {
         method: "POST",
         headers: {
@@ -131,6 +135,8 @@ const Emss: React.FunctionComponent = () => {
             {isEmssApiEnabled ? "Turn Off" : "Turn On"}
           </button>
           <br />
+          Disabling the EMSS API will block the EMSS Token causing any connections validating via
+          the token to be rejected.
           <h4>Clear REX properties</h4>
           <div style={{ paddingLeft: "30px" }}>
             <div>
@@ -211,9 +217,10 @@ const Emss: React.FunctionComponent = () => {
               style={{ cursor: "pointer" }}
             />
           </div>
-          Open browser console to monitor socket messages on the Maestro room.
+          This page is connected to the Maestro socket room. Open browser console to monitor socket
+          messages on this room.
           {!serverSocketStatus?.maestroVisitors?.length ? (
-            <p>No Maestro servers connected.</p>
+            <p>No visitors in the Maestro socket room.</p>
           ) : (
             <ul>
               {serverSocketStatus.maestroVisitors.map((visitor) => (
