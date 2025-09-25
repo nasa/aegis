@@ -314,7 +314,10 @@ const EvaRightEva: FunctionComponent = () => {
 
   const [reportsTabIconColor, setReportsTabIconColor] = useState<string>("var(--eva)");
   const [reportsTabIcon, setReportsTabIcon] = useState<IconDefinition>(faTriangleExclamation);
-  const [isDeletingEva, setIsDeletingEva] = useState({ isDeleting: false, isRexEva: false }); // for loading overlay
+  const [showOverlay, setShowOverlay] = useState<{ showOverlay: boolean; message?: string }>({
+    showOverlay: false,
+    message: "",
+  }); // for loading overlay
 
   const evaPanelTypes: PanelTypes = {
     info_panel: {
@@ -491,11 +494,11 @@ const EvaRightEva: FunctionComponent = () => {
                     const confirmMsg =
                       "Are you sure you want to delete this Real-time Execution (REX)?";
                     if (!window.confirm(confirmMsg)) return;
-                    setIsDeletingEva({ isDeleting: true, isRexEva: true });
+                    setShowOverlay({ showOverlay: true, message: "Deleting EVA Execution..." });
                     try {
                       await dispatch(thunkDeleteRex({ rexUuid: partialSelectedRex?.uuid }));
                     } finally {
-                      setIsDeletingEva({ isDeleting: false, isRexEva: true });
+                      setShowOverlay({ showOverlay: false });
                     }
                   } else {
                     // this is an as-planned EVA
@@ -506,13 +509,13 @@ const EvaRightEva: FunctionComponent = () => {
                         "\nWARNING: This EVA has REXes. Deleting this EVA will delete ALL REXes in this EVA.";
                     }
                     if (!window.confirm(confirmMsg)) return;
-                    setIsDeletingEva({ isDeleting: true, isRexEva: false });
+                    setShowOverlay({ showOverlay: true, message: "Deleting EVA..." });
                     try {
                       await dispatch(
                         thunkDeleteEva({ evaUuid: partialSelectedEva.uuid, forRex: false })
                       );
                     } finally {
-                      setIsDeletingEva({ isDeleting: false, isRexEva: false });
+                      setShowOverlay({ showOverlay: false });
                     }
                   }
                 }}
@@ -543,10 +546,16 @@ const EvaRightEva: FunctionComponent = () => {
               <>
                 <Button
                   ariaLabel="saveEva"
-                  onClick={() => {
+                  onClick={async () => {
                     if (modified) {
-                      dispatch(thunkSaveEva({ evaUuid: partialSelectedEva.uuid }));
-                      if (isRexEva) dispatch(thunkSaveRex({ rexUuid: partialSelectedRex?.uuid }));
+                      setShowOverlay({
+                        showOverlay: true,
+                        message: `Saving EVA${isRexEva ? " and REX" : ""}...`,
+                      }); // show loading overlay
+                      await dispatch(thunkSaveEva({ evaUuid: partialSelectedEva.uuid }));
+                      if (isRexEva)
+                        await dispatch(thunkSaveRex({ rexUuid: partialSelectedRex?.uuid }));
+                      setShowOverlay({ showOverlay: false }); // hide loading overlay
                     }
                   }}
                   icon={faFloppyDisk}
@@ -578,11 +587,7 @@ const EvaRightEva: FunctionComponent = () => {
           <ActiveComponent {...evaAndRexPanelTypes[rightNavItem]?.panelProps} />
         )}
 
-        {isDeletingEva.isDeleting && (
-          <LoadingOverlay
-            message={`Deleting EVA${isDeletingEva.isRexEva ? " Execution" : ""}...`}
-          />
-        )}
+        {showOverlay.showOverlay && <LoadingOverlay message={showOverlay.message} />}
       </div>
     )
   );

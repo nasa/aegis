@@ -1,26 +1,19 @@
+import type { EntityManager } from "@mikro-orm/postgresql";
+
 import { MikroORM, RequestContext } from "@mikro-orm/postgresql";
-import type {
-  AbstractSqlConnection,
-  AbstractSqlDriver,
-  AbstractSqlPlatform,
-  EntityManager,
-} from "@mikro-orm/postgresql";
+
 import config from "../server/database/mikro-orm.config";
 import { globalValues } from "../server/express/global";
 
-export const getORM = async (): Promise<
-  MikroORM<EntityManager<AbstractSqlDriver<AbstractSqlConnection, AbstractSqlPlatform>>>
-> => {
+export const getORM = async (): Promise<MikroORM> => {
   if (!globalValues.ormCache) {
     globalValues.ormCache = await MikroORM.init(config);
   }
   return globalValues.ormCache;
 };
 
-export const getEM = (): EntityManager<
-  AbstractSqlDriver<AbstractSqlConnection, AbstractSqlPlatform>
-> => {
-  let em = RequestContext.getEntityManager() as EntityManager;
+export const getEM = (): EntityManager => {
+  let em = RequestContext.getEntityManager();
   if (!globalValues.ormCache) {
     throw new Error("Run Mikro.getORM() first");
   }
@@ -30,7 +23,7 @@ export const getEM = (): EntityManager<
       throw new Error("Entity Manager not initialized");
     }
   }
-  return em;
+  return em as EntityManager;
 };
 
 export const closeORM = async (): Promise<void> => {

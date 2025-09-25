@@ -1,10 +1,16 @@
-import express, { Request, Response } from "express";
-import { getEM } from "utils/mikro";
-import { Rex_db } from "../../../database/models/_allModels";
-import { emitStoreUpsert } from "../../sockets";
+import type { Request, Response } from "express";
+import express from "express";
+
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
-import { OptimisticLockError } from "@mikro-orm/core";
-import random from "lodash/random";
+import { getEM } from "utils/mikro";
+
+import { Eva_db, Mission_db, Rex_db, Station_db } from "../../../database/models/_allModels";
+import { emitStoreUpsert } from "../../sockets";
+import { hasPerms } from "utils/permissions";
+import { upsertDatabaseRetry } from "utils/database";
+import { v4 as uuidv4 } from "uuid";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -30,15 +36,38 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   } = req.body as RexControlUpdateRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  // Check if user has EMSS permissions
-  const editPermission = emssToken && emssToken === process.env.EMSS_TOKEN;
+  // Check if user has EMSS permissions or super admin for the backend emss admin page
+  const editPermission = hasPerms({
+    missionId: null,
+    permission: null,
+    appUser: req.session?.appUser,
+    emssToken: emssToken,
+  });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "emss/rexControl",
+      appUsername: req.session?.appUser?.username,
+      uuids: [rexUuid],
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   // validate inputs
   if (!rexUuid) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "emss/rexControl",
+      appUsername: req.session?.appUser?.username,
+      uuids: [rexUuid],
+      message: "Missing required body parameter: rexUuid",
+    });
     res.status(400).json({
       status: "failure",
       message: "Missing required body parameter: rexUuid",
@@ -53,6 +82,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     maestroEventUrl === undefined &&
     maestroActivityProperties === undefined
   ) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "emss/rexControl",
+      appUsername: req.session?.appUser?.username,
+      uuids: [rexUuid],
+      message:
+        "At least one of maestroControlled, startStopExecution, maestroEventId, maestroEventUrl, or maestroActivityProperties must be provided",
+    });
     res.status(400).json({
       status: "failure",
       message:
@@ -62,6 +101,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
   // Validate startStopExecution if provided
   if (startStopExecution !== undefined && !["start", "stop"].includes(startStopExecution)) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "emss/rexControl",
+      appUsername: req.session?.appUser?.username,
+      uuids: [rexUuid],
+      message: "startStopExecution must be 'start' or 'stop' if provided",
+    });
     res.status(400).json({
       status: "failure",
       message: "startStopExecution must be 'start' or 'stop' if provided",
@@ -75,6 +123,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:")
         throw new Error("Invalid protocol. Must be http or https");
     } catch (e) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "emss/rexControl",
+        appUsername: req.session?.appUser?.username,
+        uuids: [rexUuid],
+        message: "Must be a valid URL " + e,
+      });
       res.status(400).json({
         status: "failure",
         message: "Must be a valid URL " + e,
@@ -82,30 +139,80 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
   }
-
-  try {
-    let updatedRexes: Rex[] = [];
-    for (let tries = 0; tries < 7; tries++) {
-      try {
-        updatedRexes = await updateRexControl({
-          rexUuid: rexUuid,
-          maestroControlled: maestroControlled,
-          startStopExecution: startStopExecution,
-          maestroEventId: maestroEventId,
-          maestroEventUrl: maestroEventUrl,
-          maestroActivityProperties: maestroActivityProperties,
-        });
-        break; // if successful, exit the retry loop
-      } catch (e) {
-        if (e instanceof OptimisticLockError) {
-          // lock error. wait anywhere from 100-200ms before retrying
-          await new Promise((resolve) => setTimeout(resolve, random(100, 200)));
-        } else {
-          // some other kind of error happened
-          // re-throw it so the outer try/catch can grab it and exit the for loop
-          throw e;
+  // validate maestro activity properties
+  if (maestroActivityProperties) {
+    for (const refUuid in maestroActivityProperties) {
+      const activityProperty = maestroActivityProperties[refUuid];
+      // validate color is a hex color
+      if (activityProperty.color) {
+        const hexColorRegex = /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{4}|[A-Fa-f0-9]{6})$/;
+        const isValidColor = hexColorRegex.test(activityProperty.color);
+        if (!isValidColor) {
+          apiRouteLogger({
+            logLevel: "notice",
+            httpMethod: "POST",
+            responseStatus: 400,
+            routeName: "emss/rexControl",
+            appUsername: req.session?.appUser?.username,
+            uuids: [rexUuid],
+            message: `Invalid color format in maestroActivityProperties for refUuid ${refUuid}. Must be a hex color.`,
+          });
+          res.status(400).json({
+            status: "failure",
+            message: `Invalid color format in maestroActivityProperties for refUuid ${refUuid}. Must be a hex color.`,
+          });
+          return;
         }
       }
+      // validate number
+      if (activityProperty.number && activityProperty.number.length > 3) {
+        apiRouteLogger({
+          logLevel: "notice",
+          httpMethod: "POST",
+          responseStatus: 400,
+          routeName: "emss/rexControl",
+          appUsername: req.session?.appUser?.username,
+          uuids: [rexUuid],
+          message: `Invalid number property in maestroActivityProperties for refUuid ${refUuid}. Must be less than 4 characters.`,
+        });
+        res.status(400).json({
+          status: "failure",
+          message: `Invalid number property in maestroActivityProperties for refUuid ${refUuid}. Must be less than 4 characters.`,
+        });
+        return;
+      }
+    }
+  }
+
+  try {
+    const updatedRexes: Rex[] = await upsertDatabaseRetry(() =>
+      updateRexControl({
+        rexUuid: rexUuid,
+        maestroControlled: maestroControlled,
+        startStopExecution: startStopExecution,
+        maestroEventId: maestroEventId,
+        maestroEventUrl: maestroEventUrl,
+        maestroActivityProperties: maestroActivityProperties,
+      })
+    );
+
+    if (!updatedRexes || updatedRexes.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "emss/rexControl",
+        appUsername: req.session?.appUser?.username,
+        uuids: [rexUuid],
+        message: "Failed to update rex after multiple tries due to optimistic locking",
+        error: new Error("Failed to update rex after multiple tries due to optimistic locking"),
+      });
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update rex after multiple tries due to optimistic locking",
+        data: null,
+      });
+      return;
     }
 
     emitStoreUpsert({
@@ -125,6 +232,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check if it's a specific business logic error
     if (errorMessage.includes("not found")) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 404,
+        routeName: "emss/rexControl",
+        appUsername: req.session?.appUser?.username,
+        uuids: [rexUuid],
+        message: errorMessage,
+      });
       res.status(404).json({
         status: "failure",
         message: errorMessage,
@@ -133,6 +249,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     // Generic server error
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "emss/rexControl",
+      appUsername: req.session?.appUser?.username,
+      uuids: [rexUuid],
+      message: `Error processing the POST request: ${errorMessage}`,
+      error: asError(e),
+    });
     res
       .status(500)
       .json({ status: "error", message: `Error processing the POST request: ${errorMessage}` });
@@ -163,8 +289,8 @@ export async function updateRexControl({
       throw new Error(`Rex with uuid ${rexUuid} not found.`);
     }
 
-    // Handle execution state changes first (if stopping all other running REX records)
     if (startStopExecution === "start") {
+      // Check if we need to stop other running rex records
       allRunningRexesBeforeUpdate = await em.find(Rex_db, {
         mission: rexEntity.mission,
         isRunning: true,
@@ -177,6 +303,38 @@ export async function updateRexControl({
           runningRex.isRunning = false;
           runningRex.updatedAt = new Date();
           em.persist(runningRex);
+        }
+      }
+
+      // Check if initial crew positions need to be generated
+      if (!rexEntity.posEntries || rexEntity.posEntries.length === 0) {
+        // Get egress location
+        let egressLocation: AEGISPoint | null = null;
+        const rexEva = await em.findOne(Eva_db, { uuid: rexEntity.evaUuid });
+        if (rexEva?.egressLocationUuid === "lander") {
+          const missionRecord = await em.findOne(Mission_db, { id: rexEntity.mission.id });
+          if (missionRecord?.landerLocation) egressLocation = missionRecord.landerLocation;
+        } else {
+          const stationRecord = await em.findOne(Station_db, { uuid: rexEva?.egressLocationUuid });
+          if (stationRecord?.location) egressLocation = stationRecord.location;
+        }
+
+        // Add pos entries for each pos source. Each entry will include all pos types
+        if (egressLocation) {
+          if (!rexEntity.posEntries) rexEntity.posEntries = [];
+          for (const posSource of rexEntity.posSources) {
+            const newPosEntry: PosEntry = {
+              uuid: uuidv4(),
+              location: egressLocation,
+              elevation: null,
+              petSeconds: 0,
+              posTypeUuids: rexEntity.posTypes.map((posType) => posType.uuid),
+              posSourceUuid: posSource.uuid,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            rexEntity.posEntries.push(newPosEntry);
+          }
         }
       }
     }

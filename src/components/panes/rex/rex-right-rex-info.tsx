@@ -113,36 +113,31 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         <div className={paneStyles.inputFieldLabel}>Execution Status:</div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
-                        {editMode && selectedRex.evaUuid && !isOtherRexRunning ? (
+                        {editMode && !isOtherRexRunning ? (
                           <Button
                             onClick={() => {
-                              if (selectedRex.evaUuid) {
+                              dispatch(
+                                upsertRexByField(
+                                  selectedRex.uuid,
+                                  "isRunning",
+                                  !selectedRex.isRunning
+                                )
+                              );
+
+                              // if this is the first time we're starting this rex, add the initial pos entries
+                              if (!selectedRex.posEntries || selectedRex.posEntries.length === 0) {
+                                dispatch(thunkCreateInitialPosEntries());
+                              }
+
+                              // if pet was running, stop it. Pet can only be running if rex is running
+                              if (selectedRex.petRunning) {
                                 dispatch(
-                                  upsertRexByField(
-                                    selectedRex.uuid,
-                                    "isRunning",
-                                    !selectedRex.isRunning
-                                  )
+                                  thunkRexPetStartStop({
+                                    rexUuid: selectedRex.uuid,
+                                    directive: "stop",
+                                    petValue: rexPetTime,
+                                  })
                                 );
-
-                                if (
-                                  !selectedRex.posEntries ||
-                                  selectedRex.posEntries.length === 0
-                                ) {
-                                  dispatch(thunkCreateInitialPosEntries());
-                                }
-
-                                if (selectedRex.petRunning) {
-                                  dispatch(
-                                    thunkRexPetStartStop({
-                                      rexUuid: selectedRex.uuid,
-                                      directive: "stop",
-                                      petValue: rexPetTime,
-                                    })
-                                  );
-                                }
-                              } else {
-                                alert("Please select an EVA to start the Real-time execution");
                               }
                             }}
                             label={selectedRex.isRunning ? "Stop Execution" : "Execute EVA"}
@@ -308,7 +303,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        <LastEdited updatedAt={selectedRex?.updatedAt} />
+                        <LastEdited
+                          updatedAt={selectedRex?.updatedAt}
+                          infoString={`rex uuid: ${selectedRex?.uuid}`}
+                        />
                       </div>
                     </div>
                   </div>

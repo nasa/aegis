@@ -1,4 +1,11 @@
-import { Entity, PrimaryKey, Property, ManyToOne, types as MikroTypes } from "@mikro-orm/core";
+import {
+  Entity,
+  PrimaryKey,
+  Property,
+  ManyToOne,
+  types as MikroTypes,
+} from "@mikro-orm/postgresql";
+
 import { Mission_db } from "./_allModels";
 
 @Entity()
@@ -30,4 +37,7 @@ export class STM_Rule_db implements STMRule_db_type {
   createdAt!: Date;
   @Property({ type: MikroTypes.datetime, length: 3 })
   updatedAt!: Date;
+
+  @Property({ type: MikroTypes.integer, version: true })
+  version!: number; //used for optimistic locking
 }

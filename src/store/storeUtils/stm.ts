@@ -1,8 +1,10 @@
+import type { EntityData } from "@mikro-orm/postgresql";
+import type { STM_Level1_db, STM_Rule_db } from "server/database/models/_allModels";
+import type { STM_Level2_db } from "server/database/models/_allModels";
+import type { STM_Level3_db } from "server/database/models/_allModels";
+
 import { v4 as uuidv4 } from "uuid";
-import { STM_Level1_db, STM_Rule_db } from "server/database/models/_allModels";
-import { STM_Level2_db } from "server/database/models/_allModels";
-import { STM_Level3_db } from "server/database/models/_allModels";
-import { EntityData } from "@mikro-orm/core";
+
 import { getAccurateNow } from "utils/formatting";
 
 /**

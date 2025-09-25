@@ -1,15 +1,20 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { EntityData, Loaded } from "@mikro-orm/postgresql";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
 
+import { QueryOrder } from "@mikro-orm/postgresql";
+import express from "express";
 import cloneDeep from "lodash/cloneDeep";
 
-import { hasPerms } from "utils/permissions";
-
-import { getEM } from "utils/mikro";
-import { EntityData, Loaded, QueryOrder } from "@mikro-orm/core";
 import { STM_Rule_db } from "server/database/models/_allModels";
 import { convertStmRulesTypeDbToStore, convertStmRulesTypeStoreToDb } from "store/storeUtils/stm";
+import { getEM } from "utils/mikro";
+import { hasPerms } from "utils/permissions";
+
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
+import { upsertDatabaseRetry } from "utils/database";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -25,22 +30,40 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = await hasPerms({
+  const viewPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
     appUser: req.session.appUser,
   });
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "stmRules",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "stmRules",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
 
   try {
-    const records: STMRule[] = await getStmRules(queryObj.missionId);
+    const records: STMRule[] = await upsertDatabaseRetry(() => getStmRules(queryObj.missionId));
 
     res.status(200).json({
       status: "success",
@@ -48,7 +71,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: records,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "stmRules",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: `Error processing the GET request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
   }
 });
@@ -56,12 +88,22 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, stmRules } = req.body as STMRuleUpsertRequest;
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "stmRules",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: stmRules?.map((r) => r.uuid),
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -73,7 +115,30 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const upsertResponse: STMRule[] = await upsertStmRules(missionId, stmRules);
 
-    // emit the upserted item to all clients via socket.io
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "stmRules",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: stmRules?.map((r) => r.uuid),
+        message: "Failed to update stm rules after multiple tries due to optimistic locking",
+        error: new Error(
+          "Failed to update stm rules after multiple tries due to optimistic locking"
+        ),
+      });
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update stm rules after multiple tries due to optimistic locking",
+        data: null,
+      });
+      return;
+    }
+
+    // Emit the upserted item to all clients via socket.io
     emitStoreUpsert({
       missionId,
       socketId,
@@ -87,7 +152,17 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: upsertResponse,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "stmRules",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: stmRules?.map((r) => r.uuid),
+      message: `Error processing the POST request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
   }
 });
@@ -95,17 +170,37 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, stmRuleUuids } = req.body as STMRuleDeleteRequest;
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "DELETE",
+      responseStatus: 401,
+      routeName: "stmRules",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: stmRuleUuids,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   if (!missionId || isNaN(missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "DELETE",
+      responseStatus: 400,
+      routeName: "stmRules",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: stmRuleUuids,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
 
@@ -126,7 +221,17 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       data: deletedUuids,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "DELETE",
+      responseStatus: 500,
+      routeName: "stmRules",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: stmRuleUuids,
+      message: `Error processing the DELETE request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the DELETE request ${e}` });
   }
 });
@@ -159,27 +264,34 @@ export async function getStmRules(missionId: number): Promise<STMRule[]> {
  * @param stmRules the stm rule to create
  * @returns the created stm rule
  */
-export async function upsertStmRules(missionId: number, stmRules: STMRule[]): Promise<STMRule[]> {
+async function upsertStmRules(missionId: number, stmRules: STMRule[]): Promise<STMRule[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
-  const stmRulesToUpsert = cloneDeep(stmRules); //create a copy to manipulate
+  const stmRulesToUpsert = cloneDeep(stmRules); // Create a copy to manipulate
   const stmRulesUpsertedToDb = [];
 
-  //build stm rule to upsert
-  for (const stmRuleToUpsert of stmRulesToUpsert) {
-    //convert fks
-    stmRuleToUpsert.missionId = missionId;
-    const convertedStmRule: EntityData<STM_Rule_db> = convertStmRulesTypeStoreToDb([
-      stmRuleToUpsert,
-    ])[0];
-    const stmRuleUpsertReference: STM_Rule_db = await em.upsert(STM_Rule_db, convertedStmRule);
-    em.persist(stmRuleUpsertReference);
+  try {
+    // Build stm rule to upsert
+    for (const stmRuleToUpsert of stmRulesToUpsert) {
+      // Convert foreign keys
+      stmRuleToUpsert.missionId = missionId;
+      const convertedStmRule: EntityData<STM_Rule_db> = convertStmRulesTypeStoreToDb([
+        stmRuleToUpsert,
+      ])[0];
+      const stmRuleUpsertReference: STM_Rule_db = await em.upsert(STM_Rule_db, convertedStmRule);
+      em.persist(stmRuleUpsertReference);
 
-    stmRulesUpsertedToDb.push(stmRuleUpsertReference);
+      stmRulesUpsertedToDb.push(stmRuleUpsertReference);
+    }
+
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
 
-  await em.flush();
-  //convert foreign keys
+  // Convert foreign keys
   return convertStmRulesTypeDbToStore(stmRulesUpsertedToDb);
 }
 
@@ -188,7 +300,7 @@ export async function upsertStmRules(missionId: number, stmRules: STMRule[]): Pr
  * @param stmRuleUuids the stm rule uuids to delete
  * @returns the deleted stm rules
  */
-export async function deleteStmRules(stmRuleUuids: string[]): Promise<string[]> {
+async function deleteStmRules(stmRuleUuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const stmRuleUuid of stmRuleUuids) {

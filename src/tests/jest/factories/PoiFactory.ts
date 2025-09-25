@@ -1,6 +1,8 @@
+import type { EntityData } from "@mikro-orm/postgresql";
+
 import { Factory } from "@mikro-orm/seeder";
+
 import { Poi_db } from "server/database/models/_allModels";
-import { EntityData } from "@mikro-orm/core";
 import { convertPoisTypeStoreToDb, generateBlankPoi } from "store/storeUtils/poi";
 
 export default class PoiFactory extends Factory<Poi_db> {

@@ -307,7 +307,7 @@ const Info_Panel: FunctionComponent<{
                         <div
                           style={{ color: "var(--grey5)" }}
                           className={paneStyles.inputFieldLabel}
-                        >{`Using Calculated Total Dwell Time: ${Math.round(calculatedFields?.totalDwellTime)}`}</div>
+                        >{`Using Calculated Total Dwell Time: ${Math.ceil(calculatedFields?.totalDwellTime)}`}</div>
                       )}
                     </div>
                   </div>
@@ -348,7 +348,7 @@ const Info_Panel: FunctionComponent<{
                         {calculatedFields?.totalActionTime === 0 ? (
                           <>0</>
                         ) : (
-                          <>{Math.round(calculatedFields?.totalActionTime)}</>
+                          <>{Math.ceil(calculatedFields?.totalActionTime)}</>
                         )}
                       </div>
                     </div>
@@ -680,7 +680,7 @@ const Info_Panel: FunctionComponent<{
                         {!selectedStation.location ? (
                           <>N/A</>
                         ) : (
-                          Math.round(calculatedFields?.walkbackDurationMinutes)
+                          Math.ceil(calculatedFields?.walkbackDurationMinutes)
                         )}
                       </div>
                     </div>
@@ -840,7 +840,10 @@ const Info_Panel: FunctionComponent<{
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldValue}>
-                      <LastEdited updatedAt={selectedStation?.updatedAt} />
+                      <LastEdited
+                        updatedAt={selectedStation?.updatedAt}
+                        infoString={`station uuid: ${selectedStation?.uuid}`}
+                      />
                     </div>
                   </div>
                 </div>

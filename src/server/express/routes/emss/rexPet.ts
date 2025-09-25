@@ -1,11 +1,16 @@
-import express, { Request, Response } from "express";
+import type { Request, Response } from "express";
+import express from "express";
+
+import { validators } from "components/interface/form/formValidators";
+import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
+
 import { Rex_db } from "../../../database/models/_allModels";
 import { emitStoreUpsert } from "../../sockets";
-import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
-import { validators } from "components/interface/form/formValidators";
-import { OptimisticLockError } from "@mikro-orm/core";
-import random from "lodash/random";
+import { emssTokenIsValid } from "utils/permissions";
+import { upsertDatabaseRetry } from "utils/database";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -23,9 +28,17 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
 
   // Check if user has EMSS permissions
-  const editPermission = emssToken && emssToken === process.env.EMSS_TOKEN;
+  const editPermission = emssTokenIsValid(emssToken);
 
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "emss/rexPet",
+      uuids: [rexUuid],
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -36,6 +49,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     !petValueAtStartStop ||
     petRunning === undefined // Check for boolean presence
   ) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "emss/rexPet",
+      uuids: [rexUuid],
+      message:
+        "Missing required body parameters (rexUuid, petStartStopTimestamp, petValueAtStartStop, petRunning)",
+    });
     res.status(400).json({
       status: "failure",
       message:
@@ -47,6 +69,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   // check format of petValueAtStartStop
   const isValidHHMMSS = typeof validators.mustBeHHMMSS(petValueAtStartStop) === "undefined";
   if (!isValidHHMMSS) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "emss/rexPet",
+      uuids: [rexUuid],
+      message: "Invalid petValueAtStartStop format.",
+    });
     res.status(400).json({
       status: "failure",
       message: "Invalid petValueAtStartStop format.",
@@ -57,6 +87,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   // check format of petStartStopTimestamp
   const isValidTimestamp = typeof validators.mustBeISOString(petStartStopTimestamp) === "undefined";
   if (!isValidTimestamp) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "emss/rexPet",
+      uuids: [rexUuid],
+      message: "Invalid petStartStopTimestamp format.",
+    });
     res.status(400).json({
       status: "failure",
       message: "Invalid petStartStopTimestamp format.",
@@ -65,26 +103,31 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    let updatedRex = null;
-    for (let tries = 0; tries < 7; tries++) {
-      try {
-        updatedRex = await updateRexPetClock({
-          rexUuid: rexUuid,
-          petStartStopTimestamp: petStartStopTimestamp,
-          petValueAtStartStop: petValueAtStartStop,
-          petRunning: petRunning,
-        });
-        break; // if successful, exit the retry loop
-      } catch (e) {
-        if (e instanceof OptimisticLockError) {
-          // lock error. wait anywhere from 100-200ms before retrying
-          await new Promise((resolve) => setTimeout(resolve, random(100, 200)));
-        } else {
-          // some other kind of error happened
-          // re-throw it so the outer try/catch can grab it and exit the for loop
-          throw e;
-        }
-      }
+    const updatedRex = await upsertDatabaseRetry(() =>
+      updateRexPetClock({
+        rexUuid: rexUuid,
+        petStartStopTimestamp: petStartStopTimestamp,
+        petValueAtStartStop: petValueAtStartStop,
+        petRunning: petRunning,
+      })
+    );
+
+    if (!updatedRex) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "emss/rexPet",
+        uuids: [rexUuid],
+        message: "Failed to update rex after multiple tries due to optimistic locking",
+        error: new Error("Failed to update rex after multiple tries due to optimistic locking"),
+      });
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update rex after multiple tries due to optimistic locking",
+        data: null,
+      });
+      return;
     }
 
     emitStoreUpsert({
@@ -104,6 +147,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check if it's a specific business logic error
     if (errorMessage.includes("not found")) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 404,
+        routeName: "emss/rexPet",
+        uuids: [rexUuid],
+        message: errorMessage,
+      });
       res.status(404).json({
         status: "failure",
         message: errorMessage,
@@ -112,6 +163,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     if (errorMessage.includes("not running")) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "emss/rexPet",
+        uuids: [rexUuid],
+        message: errorMessage,
+      });
       res.status(400).json({
         status: "failure",
         message: errorMessage,
@@ -120,6 +179,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     // Generic server error
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "emss/rexPet",
+      uuids: [rexUuid],
+      message: `Error processing the POST request: ${errorMessage}`,
+      error: asError(e),
+    });
     res
       .status(500)
       .json({ status: "error", message: `Error processing the POST request: ${errorMessage}` });

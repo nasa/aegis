@@ -62,8 +62,8 @@ describe("GET REX BY EVA REF Endpoint", () => {
       const res = await supertest(app)
         .get("/api/v1/emss/getRexesByEvaRef")
         .set("emss-token", emssToken);
-      expect(res.statusCode).toBe(500);
-      expect(res.body.status).toBe("error");
+      expect(res.statusCode).toBe(400);
+      expect(res.body.status).toBe("failure");
       expect(res.body.message).toContain("No EVA Ref given");
     });
   });

@@ -15,7 +15,6 @@ import { makeExportRexes } from "utils/export";
 import * as jsonKeysSort from "json-keys-sort";
 import * as httpClient_Rex from "http-client/rex";
 import { generateBlankRex } from "store/storeUtils/rex";
-import { thunkCancelPosEntry } from "./thunkRexPosEntry";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { thunkDeleteEva, thunkDuplicateEva } from "./thunkEva";
 import {
@@ -83,18 +82,7 @@ export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
     const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
 
     const rexToSave: Rex = cloneDeep(rex);
-    // check if pos entry is mid-edit
-    if (getState().rex.posEntryEditingUuid) {
-      const positionEntryInEdit = rex.posEntries.find(
-        (c) => c.uuid === getState().rex.posEntryEditingUuid
-      );
-      if (positionEntryInEdit) {
-        await dispatch(thunkCancelPosEntry({ posEntryUuid: positionEntryInEdit.uuid }));
-        // the record will be removed via reducer but it may not hit the store before we upsert. Manually change it here
-        const newAllPosEntries = rex.posEntries.filter((c) => c.uuid !== positionEntryInEdit.uuid);
-        rexToSave.posEntries = newAllPosEntries;
-      }
-    }
+
     // if we are stopping execution and had "only show running rex" enabled, disable it so everything re-appears
     const rexFromDb = getState().rex.rexesFromDb.find((r) => r.uuid === rexUuid);
     if (rexFromDb.isRunning && !rex.isRunning && getState().eva.showRunningRexOnly) {

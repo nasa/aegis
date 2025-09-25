@@ -1,6 +1,7 @@
-import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/core";
+import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/postgresql";
+import { types as MikroTypes } from "@mikro-orm/postgresql";
+
 import { Poi_db, Station_db, Mission_db, Traverse_db } from "./_allModels";
-import { types as MikroTypes } from "@mikro-orm/core";
 
 @Entity()
 export class Action_db implements Action_db_type {
@@ -74,4 +75,7 @@ export class Action_db implements Action_db_type {
   createdAt: Date;
   @Property({ type: MikroTypes.datetime, length: 3 })
   updatedAt: Date;
+
+  @Property({ type: MikroTypes.integer, version: true })
+  version!: number; //used for optimistic locking
 }

@@ -1,18 +1,18 @@
-import express, { Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { EntityData, Loaded } from "@mikro-orm/postgresql";
 
+import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/postgresql";
+import express from "express";
 import cloneDeep from "lodash/cloneDeep";
 
-import { getEM } from "utils/mikro";
-import {
-  EntityData,
-  ForeignKeyConstraintViolationException,
-  Loaded,
-  QueryOrder,
-} from "@mikro-orm/core";
-import { hasPerms } from "utils/permissions";
 import { Eva_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "server/express/sockets";
 import { convertEVAsTypeDbToStore, convertEVAsTypeStoreToDb } from "store/storeUtils/eva";
+import { getEM } from "utils/mikro";
+import { hasPerms } from "utils/permissions";
+import { upsertDatabaseRetry } from "utils/database";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -20,19 +20,29 @@ const router = express.Router();
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { socketId, missionId, evas } = req.body as EvaUpsertRequest;
   const emssToken = req.headers["emss-token"] as string;
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "eva",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: evas?.map((e) => e.uuid),
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    //add owner id to the evas
+    // Add owner id to the evas
     const evasToUpsert = evas.map((e) => {
       if (!e.ownerId) {
         return { ...e, ownerId: req.session?.appUser?.id || -1 }; // default to -1 if no user (emss-token call)
@@ -40,32 +50,54 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         return e;
       }
     });
-    const upsertResponse: Eva[] = await upsertEVAs(evasToUpsert);
 
-    //check response
-    if (upsertResponse.length === 0) {
+    const upsertResponse: Eva[] = await upsertDatabaseRetry(() => upsertEVAs(evasToUpsert));
+
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "eva",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: evas?.map((e) => e.uuid),
+        message: "Failed to update eva after multiple tries due to optimistic locking",
+        error: new Error("Failed to update eva after multiple tries due to optimistic locking"),
+      });
       res.status(500).json({
         status: "error",
-        message: "Upsert response did not return a value",
+        message: "Failed to update eva after multiple tries due to optimistic locking",
         data: null,
       });
       return;
-    } else {
-      // emit the upserted item to all clients via socket.io
-      emitStoreUpsert({
-        missionId,
-        socketId,
-        type: "eva",
-        data: upsertResponse,
-      } as StoreUpsert);
-      res.status(200).json({
-        status: "success",
-        message: `EVAs upserted with Uuids ${upsertResponse.map((e) => e.uuid)}`,
-        data: upsertResponse,
-      });
     }
+
+    // Emit the upserted item to all clients via socket.io
+    emitStoreUpsert({
+      missionId,
+      socketId,
+      type: "eva",
+      data: upsertResponse,
+    } as StoreUpsert);
+    res.status(200).json({
+      status: "success",
+      message: `EVAs upserted with Uuids ${upsertResponse.map((e) => e.uuid)}`,
+      data: upsertResponse,
+    });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "eva",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: evas?.map((e) => e.uuid),
+      message: `Error processing the POST request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
   }
 });
@@ -75,13 +107,23 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { socketId, missionId, evaUuids } = req.body as EvaDeleteRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "DELETE",
+      responseStatus: 401,
+      routeName: "eva",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: evaUuids,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -101,6 +143,16 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "EVA Deleted",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "DELETE",
+        responseStatus: 404,
+        routeName: "eva",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: evaUuids,
+        message: "Record not found. Nothing deleted",
+      });
       res.status(404).json({
         status: "failure",
         message: "Record not found. Nothing deleted",
@@ -109,11 +161,33 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   } catch (e) {
     console.error(e);
     if (e instanceof ForeignKeyConstraintViolationException) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "eva",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: evaUuids,
+        message: "Cannot delete eva. This EVA is referenced elsewhere",
+        error: asError(e),
+      });
       res.status(500).json({
         status: "error",
         message: "Cannot delete eva. This EVA is referenced elsewhere",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "eva",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: evaUuids,
+        message: "Error processing the DELETE request",
+        error: asError(e),
+      });
       res.status(500).json({ status: "error", message: "Error processing the DELETE request" });
     }
   }
@@ -165,21 +239,28 @@ export async function getEVARefUuids(evaUuids: string[]): Promise<string[]> {
  * @param evas the EVA objects to upsert
  * @returns a copy of the EVA objects that was upserted
  */
-export async function upsertEVAs(evas: Eva[]): Promise<Eva[]> {
+async function upsertEVAs(evas: Eva[]): Promise<Eva[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
-  const evasToUpsert = cloneDeep(evas); //create a copy to manipulate
+  const evasToUpsert = cloneDeep(evas); // Create a copy to manipulate
   const evasUpsertedToDb = [];
 
-  for (const evaToUpsert of evasToUpsert) {
-    const convertedEva: EntityData<Eva_db> = convertEVAsTypeStoreToDb([evaToUpsert])[0];
-    const evaRefFromDb: Eva_db = await em.upsert(Eva_db, convertedEva);
-    em.persist(evaRefFromDb);
-    evasUpsertedToDb.push(evaRefFromDb);
+  try {
+    for (const evaToUpsert of evasToUpsert) {
+      const convertedEva: EntityData<Eva_db> = convertEVAsTypeStoreToDb([evaToUpsert])[0];
+      const evaRefFromDb: Eva_db = await em.upsert(Eva_db, convertedEva);
+      em.persist(evaRefFromDb);
+      evasUpsertedToDb.push(evaRefFromDb);
+    }
+
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
 
-  await em.flush();
-  //convert foreign keys
+  // Convert foreign keys
   return convertEVAsTypeDbToStore(evasUpsertedToDb);
 }
 
@@ -188,7 +269,7 @@ export async function upsertEVAs(evas: Eva[]): Promise<Eva[]> {
  * @param evaUuids EVA uuids to delete
  * @returns the uuids of the deleted EVA
  */
-export async function deleteEVAs(evaUuids: string[]): Promise<string[]> {
+async function deleteEVAs(evaUuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const evaUuid of evaUuids) {

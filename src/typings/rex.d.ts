@@ -1,22 +1,20 @@
-type RexStatus = "pending" | "in-progress" | "complete" | "skipped";
-
 type Rex = {
   missionId: number;
   uuid: string;
   ownerId: number;
   name: string;
   description: string;
-  petStartStopTimestamp: string; // the timestamp the play/pause button was clicked
+  petStartStopTimestamp: string | null; // the timestamp the play/pause button was clicked
   petValueAtStartStop: string; // the value of the pet timer when the play/pause button was clicked in "+hh:mm:ss"
   petRunning: boolean; // whether the timer is currently running
   evaUuid: string;
   isRunning: boolean;
-  posEntries: PosEntry[];
+  posEntries: PosEntry[] | null;
   posTypes: PosType[];
   posSources: PosSource[];
-  stationEntries: ActivityEntries;
-  traverseEntries: ActivityEntries;
-  actionEntries: ActionEntries;
+  stationEntries: ActivityEntries | null;
+  traverseEntries: ActivityEntries | null;
+  actionEntries: ActionEntries | null;
   xgressEntries: XgressEntries | null;
   maestroControlled: boolean;
   maestroEventId: string | null;
@@ -57,6 +55,7 @@ interface PosType {
   pathColor: string;
 }
 
+type RexStatus = "pending" | "in-progress" | "complete" | "skipped";
 interface ActivityEntry {
   rexStatus: RexStatus;
   maestroPercentCompleteEv1?: number;
@@ -67,25 +66,25 @@ interface ActivityEntries {
   [stationOrTraverseUuid: string]: ActivityEntry; // "activity" is Station or Traverse
 }
 
-interface MaestroActivityPropertyEntry {
-  color: string; // hex color for the activity
-  number: number; // number of the activity in the maestro procedure
+interface MaestroActivityProperty {
+  color?: string | null; // hex color for the activity
+  number?: string | null; // string of the activity number in the maestro procedure
 }
 
 interface MaestroActivityPropertiesByRefUuid {
-  [refUuid: string]: MaestroActivityPropertyEntry;
+  [refUuid: string]: MaestroActivityProperty;
 }
 
 interface MaestroActivityProperties {
-  [uuid: string]: MaestroActivityPropertyEntry;
+  [uuid: string]: MaestroActivityProperty;
 }
 
 interface ActionEntry {
   rexStatus: RexStatus;
-  mass: number;
-  markerId: string;
-  containerId: string;
-  secondaryContainerId: string;
+  mass?: number;
+  markerId?: string;
+  containerId?: string;
+  secondaryContainerId?: string;
 }
 
 interface ActionEntries {
@@ -99,3 +98,22 @@ interface XgressEntry {
 interface XgressEntries {
   [xgressUuid: string]: XgressEntry;
 }
+
+// properties from REX that maestro should include in /rexOverwrite endpoint
+type RexOverwrite = Pick<
+  Rex,
+  | "uuid"
+  | "petStartStopTimestamp"
+  | "petValueAtStartStop"
+  | "petRunning"
+  | "isRunning"
+  | "xgressEntries"
+  | "maestroControlled"
+  | "maestroEventId"
+  | "maestroEventUrl"
+  | "maestroActivityPropertiesByRefUuid"
+> & {
+  stationEntriesByRefUuid: { [stationOrTraverseRefUuid: string]: ActivityEntry } | null;
+  traverseEntriesByRefUuid: { [stationOrTraverseRefUuid: string]: ActivityEntry } | null;
+  actionEntriesByRefUuid: { [actionRefUuid: string]: ActionEntry } | null;
+};

@@ -11,9 +11,9 @@ import AdminMissionLayers from "pages/admin/missionLayers";
 import AdminMissionSTM from "pages/admin/missionSTM";
 import AdminMissionGrid from "components/admin/gridUpload";
 import AdminMissionDuplicate from "pages/admin/missionDuplicate";
-import AdminPOI from "pages/admin/poi";
 import AdminUser from "pages/admin/user";
 import ServerSocketStatus from "pages/admin/serverSocketStatus";
+import Emss from "pages/admin/emss";
 import { EnsureLogin } from "packages/EnsureLogin";
 
 const App = (): React.ReactElement => {
@@ -32,9 +32,9 @@ const App = (): React.ReactElement => {
         <Route path="/admin/mission_stm/:id" element={<AdminMissionSTM />} />
         <Route path="/admin/mission_grid/:id" element={<AdminMissionGrid />} />
         <Route path="/admin/mission_duplicate/:id" element={<AdminMissionDuplicate />} />
-        <Route path="/admin/poi" element={<AdminPOI />} />
         <Route path="/admin/user" element={<AdminUser />} />
         <Route path="/admin/serverSocketStatus" element={<ServerSocketStatus />} />
+        <Route path="/admin/emss" element={<Emss />} />
       </Routes>
     </>
   );

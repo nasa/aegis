@@ -1,13 +1,17 @@
-import express, { Request, Response } from "express";
+import type { EntityData } from "@mikro-orm/postgresql";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
 
+import bcrypt from "bcryptjs";
+import express from "express";
 import cloneDeep from "lodash/cloneDeep";
 
-import { Query } from "express-serve-static-core";
-import { getEM } from "utils/mikro";
-import { EntityData } from "@mikro-orm/core";
 import { App_User_db } from "server/database/models/_allModels";
-import bcrypt from "bcryptjs";
 import { convertUsersTypeDbToStore, convertUsersTypeStoreToDb } from "store/storeUtils/user";
+import { getEM } from "utils/mikro";
+import { upsertDatabaseRetry } from "utils/database";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -25,6 +29,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   //only super admin can view/edit users
   if (!req.session.appUser?.isSuperAdmin) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "users",
+      appUsername: req.session?.appUser?.username,
+      uuids: queryObj.userId ? [queryObj.userId.toString()] : [],
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -38,7 +51,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: users,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "users",
+      appUsername: req.session?.appUser?.username,
+      uuids: queryObj.userId ? [queryObj.userId.toString()] : [],
+      message: `Error processing the GET request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
   }
 });
@@ -48,24 +70,60 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { users } = req.body as UserUpsertRequest;
   //only super admin can view/edit users
   if (!req.session.appUser?.isSuperAdmin) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "users",
+      appUsername: req.session?.appUser?.username,
+      uuids: users?.map((u) => u.id?.toString()),
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const upsertedUsers: AppUser[] = await upsertUsers(users);
-    if (upsertedUsers.length === 0) {
-      res.status(500).json({ status: "error", message: "Error in query" });
+    const upsertResponse: AppUser[] = await upsertDatabaseRetry(() => upsertUsers(users));
+
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "users",
+        appUsername: req.session?.appUser?.username,
+        uuids: users?.map((u) => u.id?.toString()),
+        message: "Failed to update app user after multiple tries due to optimistic locking",
+        error: new Error(
+          "Failed to update app user after multiple tries due to optimistic locking"
+        ),
+      });
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update app user after multiple tries due to optimistic locking",
+        data: null,
+      });
       return;
     }
 
     res.status(200).json({
       status: "success",
       message: "user upserted",
-      data: upsertedUsers,
+      data: upsertResponse,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "users",
+      appUsername: req.session?.appUser?.username,
+      uuids: users?.map((u) => u.id?.toString()),
+      message: `Error processing the POST request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
   }
 });
@@ -75,6 +133,15 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { userIds } = req.body as UserDeleteRequest;
   //only super admin can view/edit users
   if (!req.session.appUser?.isSuperAdmin) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "DELETE",
+      responseStatus: 401,
+      routeName: "users",
+      appUsername: req.session?.appUser?.username,
+      uuids: userIds?.map((id) => id.toString()),
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -88,10 +155,29 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "user deleted",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "users",
+        appUsername: req.session?.appUser?.username,
+        uuids: userIds?.map((id) => id.toString()),
+        message: "Error in query",
+        error: new Error("Error in query"),
+      });
       res.status(500).json({ status: "error", message: "Error in query" });
     }
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "DELETE",
+      responseStatus: 500,
+      routeName: "users",
+      appUsername: req.session?.appUser?.username,
+      uuids: userIds?.map((id) => id.toString()),
+      message: `Error processing the DELETE request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the DELETE request ${e}` });
   }
 });
@@ -103,7 +189,7 @@ export default router;
  * @returns array of users
  * @param userId
  */
-export async function getUsers(userId: number = null): Promise<AppUser[]> {
+async function getUsers(userId: number = null): Promise<AppUser[]> {
   const model = getEM();
   let users: App_User_db[];
   if (!userId) {
@@ -122,38 +208,46 @@ export async function getUsers(userId: number = null): Promise<AppUser[]> {
  */
 export async function upsertUsers(users: AppUser[]): Promise<AppUser[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
+
   const usersToUpsert: AppUser[] = cloneDeep(users);
   const usersUpsertedToDb = [];
 
-  for (const userToUpsert of usersToUpsert) {
-    const convertedUser: EntityData<App_User_db> = convertUsersTypeStoreToDb([userToUpsert])[0];
+  try {
+    for (const userToUpsert of usersToUpsert) {
+      const convertedUser: EntityData<App_User_db> = convertUsersTypeStoreToDb([userToUpsert])[0];
 
-    if (convertedUser.id) {
-      //upserting
-      const userInDb = await em.findOne(App_User_db, { id: convertedUser.id });
-      if (!userInDb) {
-        return [];
+      if (convertedUser.id) {
+        // Upserting
+        const userInDb = await em.findOne(App_User_db, { id: convertedUser.id });
+        if (!userInDb) {
+          throw new Error(`User with id ${convertedUser.id} not found for update`);
+        }
+        // Encrypt new password
+        if (convertedUser.password !== userInDb.password) {
+          const salt = await bcrypt.genSalt();
+          convertedUser.password = await bcrypt.hash(convertedUser.password, salt);
+        }
+        const updatedUser = em.assign(userInDb, convertedUser);
+        em.persist(updatedUser);
+        usersUpsertedToDb.push(updatedUser);
+      } else {
+        // Creating. passwords are salted in the @beforeCreate() in the user model
+        // Can't use "upsert" to insert a new record if there's no other unique column in the table
+        delete convertedUser.id; // Attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
+        const createReference = em.create(App_User_db, convertedUser);
+        em.persist(createReference);
+        usersUpsertedToDb.push(createReference);
       }
-      //encrypt new password
-      if (convertedUser.password !== userInDb.password) {
-        const salt = await bcrypt.genSalt();
-        convertedUser.password = await bcrypt.hash(convertedUser.password, salt);
-      }
-      const updatedUser = em.assign(userInDb, convertedUser);
-      em.persist(updatedUser);
-      usersUpsertedToDb.push(updatedUser);
-    } else {
-      // Creating. passwords are salted in the @beforeCreate() in the user model
-      // Can't use "upsert" to insert a new record if there's no other unique column in the table
-      delete convertedUser.id; // Attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
-      const createReference = em.create(App_User_db, convertedUser);
-      em.persist(createReference);
-      usersUpsertedToDb.push(createReference);
     }
 
-    await em.flush();
-    return convertUsersTypeDbToStore(usersUpsertedToDb);
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
+
+  return convertUsersTypeDbToStore(usersUpsertedToDb);
 }
 
 /**
@@ -161,7 +255,7 @@ export async function upsertUsers(users: AppUser[]): Promise<AppUser[]> {
  * @param userIds user IDs to delete
  * @returns the uuids of the deleted users
  */
-export async function deleteUsers(userIds: number[]): Promise<number[]> {
+async function deleteUsers(userIds: number[]): Promise<number[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const userId of userIds) {

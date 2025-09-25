@@ -124,6 +124,9 @@ test:
     - apk update && apk add --no-cache postgresql-client # Install psql client using apk for Alpine
     - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
     - npm run migration:up
+    # Create schemas so the references resolve
+    - npm run schema:create
+    # Run all the other things
     - npm run lint
     - npm run tsc
     - npm run test:coverage
@@ -145,9 +148,13 @@ test-node-next:
   image: "$FUTURE_NODE_VERSION_IMAGE"
   allow_failure: true
   script:
-    - apk update && apk add --no-cache postgresql-client
+    # Load production database dump
+    - apk update && apk add --no-cache postgresql-client # Install psql client using apk for Alpine
     - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
     - npm run migration:up
+    # Create schemas so the references resolve
+    - npm run schema:create
+    # Run all the other things
     - npm run lint
     - npm run tsc
     - npm t

@@ -57,6 +57,19 @@
   font-size: 1rem;
   font-weight: bold;
   color: black;
+  background-color: white;
+  padding: 0 3px 0 2px;
+  margin: 2px 0 0 2px;
+  border: 1px solid black;
+  border-radius: var(--radius);
+  height: fit-content;
+}
+
+.activityNumberLetter {
+  font-size: 1rem;
+  font-weight: 400;
+  color: white;
+  background-color: black;
   padding: 0 3px 0 2px;
   margin: 2px 0 0 2px;
   border: 1px solid black;

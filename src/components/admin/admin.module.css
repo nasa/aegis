@@ -942,3 +942,9 @@
   height: 1em;
   vertical-align: -0.25em;
 }
+
+.refreshTitle {
+  display: flex;
+  align-items: center;
+  column-gap: 10px;
+}

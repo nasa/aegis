@@ -1,19 +1,19 @@
-import express, { Request, Response } from "express";
+import type { Request, Response } from "express";
+import type { EntityData, Loaded } from "@mikro-orm/postgresql";
 
+import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/postgresql";
+import express from "express";
 import cloneDeep from "lodash/cloneDeep";
 
-import { hasPerms } from "utils/permissions";
-
 import { getEM } from "utils/mikro";
-import {
-  Loaded,
-  EntityData,
-  QueryOrder,
-  ForeignKeyConstraintViolationException,
-} from "@mikro-orm/core";
+import { hasPerms } from "utils/permissions";
 import { Folder_db } from "server/database/models/_allModels";
-import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { convertFolderDbToStore, convertFolderStoreToDb } from "store/storeUtils/folder";
+
+import { emitStoreDelete, emitStoreUpsert } from "../sockets";
+import { upsertDatabaseRetry } from "utils/database";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -22,31 +22,52 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, folders } = req.body as FolderUpsertRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "folder",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: folders?.map((f) => f.uuid),
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const upsertResponse: Folder[] = await upsertFolders(folders);
+    const upsertResponse: Folder[] = await upsertDatabaseRetry(() => upsertFolders(folders));
 
-    //check response
-    if (upsertResponse.length === 0) {
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "folder",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: folders?.map((f) => f.uuid),
+        message: "Failed to update folder after multiple tries due to optimistic locking",
+        error: new Error("Failed to update folder after multiple tries due to optimistic locking"),
+      });
       res.status(500).json({
         status: "error",
-        message: "Upsert response did not return a value",
+        message: "Failed to update folder after multiple tries due to optimistic locking",
         data: null,
       });
       return;
     }
 
-    // emit the upserted item to all clients via socket.io
+    // Emit the upserted item to all clients via socket.io
     emitStoreUpsert({
       missionId,
       socketId,
@@ -60,7 +81,17 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: upsertResponse,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "folder",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: folders?.map((f) => f.uuid),
+      message: `Error processing the POST request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
   }
 });
@@ -70,13 +101,23 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, folderUuids } = req.body as FolderDeleteRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "DELETE",
+      responseStatus: 401,
+      routeName: "folder",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: folderUuids,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -97,6 +138,16 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "Folders Deleted",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "DELETE",
+        responseStatus: 404,
+        routeName: "folder",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: folderUuids,
+        message: "Records not found. Nothing deleted",
+      });
       res.status(404).json({
         status: "failure",
         message: "Records not found. Nothing deleted",
@@ -105,11 +156,33 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   } catch (e) {
     console.error(e);
     if (e instanceof ForeignKeyConstraintViolationException) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "folder",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: folderUuids,
+        message: "Cannot delete folder. This Folder is referenced elsewhere",
+        error: asError(e),
+      });
       res.status(500).json({
         status: "error",
         message: "Cannot delete folder. This Folder is referenced elsewhere",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "folder",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: folderUuids,
+        message: "Error processing the DELETE request",
+        error: asError(e),
+      });
       res.status(500).json({ status: "error", message: "Error processing the DELETE request" });
     }
   }
@@ -152,23 +225,30 @@ export async function getFolders(missionId: number, folderUuid?: string): Promis
  * @param folders the Folder objects to upsert
  * @returns a copy of the Folder objects that was upserted
  */
-export async function upsertFolders(folders: Folder[]): Promise<Folder[]> {
+async function upsertFolders(folders: Folder[]): Promise<Folder[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
-  const foldersToUpsert = cloneDeep(folders); //create a copy to manipulate
+  const foldersToUpsert = cloneDeep(folders); // Create a copy to manipulate
   const foldersUpsertedToDb = [];
 
-  for (const folderToUpsert of foldersToUpsert) {
-    const convertedFolder: EntityData<Folder_db> = convertFolderStoreToDb(folderToUpsert);
+  try {
+    for (const folderToUpsert of foldersToUpsert) {
+      const convertedFolder: EntityData<Folder_db> = convertFolderStoreToDb(folderToUpsert);
 
-    //upsert folder
-    const folderRefFromDb: Folder_db = await em.upsert(Folder_db, convertedFolder);
-    em.persist(folderRefFromDb);
-    foldersUpsertedToDb.push(folderRefFromDb);
+      // Upsert folder
+      const folderRefFromDb: Folder_db = await em.upsert(Folder_db, convertedFolder);
+      em.persist(folderRefFromDb);
+      foldersUpsertedToDb.push(folderRefFromDb);
+    }
+
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
 
-  await em.flush();
-  //convert to store format
+  // Convert to store format
   return foldersUpsertedToDb.map(convertFolderDbToStore);
 }
 
@@ -177,7 +257,7 @@ export async function upsertFolders(folders: Folder[]): Promise<Folder[]> {
  * @param folderUuids Folder uuids to delete
  * @returns the uuids of the deleted Folders
  */
-export async function deleteFolders(folderUuids: string[]): Promise<string[]> {
+async function deleteFolders(folderUuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const folderUuid of folderUuids) {

@@ -6,7 +6,8 @@ import {
   OneToMany,
   Collection,
   types as MikroTypes,
-} from "@mikro-orm/core";
+} from "@mikro-orm/postgresql";
+
 import { Mission_db, STM_Level2_db } from "./_allModels";
 
 @Entity()
@@ -28,4 +29,7 @@ export class STM_Level1_db implements STMLevel1_db_type {
   createdAt!: Date;
   @Property({ type: MikroTypes.datetime, length: 3 })
   updatedAt!: Date;
+
+  @Property({ type: MikroTypes.integer, version: true })
+  version!: number; //used for optimistic locking
 }

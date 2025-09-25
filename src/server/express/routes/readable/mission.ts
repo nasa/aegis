@@ -1,9 +1,15 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
-import { hasPerms } from "utils/permissions";
-import { getMission } from "../mission";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
+
+import express from "express";
+
 import { makeExportMission } from "utils/export";
+import { hasPerms, emssTokenIsValid } from "utils/permissions";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
+
 import { getGridFromFile } from "../grid";
+import { getMission } from "../mission";
 
 const router = express.Router();
 
@@ -21,7 +27,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   let viewPermission;
   if (queryObj.missionId) {
-    viewPermission = await hasPerms({
+    viewPermission = hasPerms({
       missionId: queryObj.missionId,
       permission: "view",
       appUser: req.session.appUser,
@@ -32,9 +38,18 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     viewPermission =
       req.session?.appUser?.isSuperAdmin ||
       req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
-      (emssToken && emssToken === process.env.EMSS_TOKEN);
+      emssTokenIsValid(emssToken);
   }
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "readable/mission",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -45,10 +60,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       records = await getMission(queryObj.missionId);
     } else {
       //super admin and emss token can see all missions
-      if (
-        req.session?.appUser?.isSuperAdmin ||
-        (emssToken && emssToken === process.env.EMSS_TOKEN)
-      ) {
+      if (req.session?.appUser?.isSuperAdmin || emssTokenIsValid(emssToken)) {
         records = await getMission();
       } else {
         //return all missions that they have permission for
@@ -77,7 +89,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: exportMissions,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "readable/mission",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: `Error processing the GET request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
   }
 });

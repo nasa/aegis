@@ -1,6 +1,8 @@
+import type { EntityData } from "@mikro-orm/postgresql";
+
 import { Factory } from "@mikro-orm/seeder";
+
 import { Eva_db } from "server/database/models/_allModels";
-import { EntityData } from "@mikro-orm/core";
 import { convertEVAsTypeStoreToDb, generateBlankEVA } from "store/storeUtils/eva";
 
 export default class EvaFactory extends Factory<Eva_db> {

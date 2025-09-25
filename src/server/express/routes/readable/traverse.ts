@@ -1,13 +1,19 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
+
+import express from "express";
+
+import { Eva_db } from "server/database/models/eva.model";
+import { Rex_db } from "server/database/models/rex.model";
+import { Traverse_db } from "server/database/models/traverse.model";
 import { hasPerms } from "utils/permissions";
 import { makeExportTraverses } from "utils/export";
+import { getEM } from "utils/mikro";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
+
 import { getAll } from "../all";
 import { getGridFromFile } from "../grid";
-import { Traverse_db } from "server/database/models/traverse.model";
-import { getEM } from "utils/mikro";
-import { Rex_db } from "server/database/models/rex.model";
-import { Eva_db } from "server/database/models/eva.model";
 
 const router = express.Router();
 
@@ -24,19 +30,37 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   const emssToken = req.headers["emss-token"] as string;
 
-  const viewPermission = await hasPerms({
+  const viewPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
     appUser: req.session.appUser,
     emssToken,
   });
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "readable/traverse",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   //check for required mission id is valid
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "readable/traverse",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
 
@@ -75,7 +99,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         data: partialTraverses,
       });
     } catch (e) {
-      console.error(e);
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "GET",
+        responseStatus: 500,
+        routeName: "readable/traverse",
+        appUsername: req.session?.appUser?.username,
+        missionId: queryObj.missionId,
+        message: `Error getting traverses ${e}`,
+        error: asError(e),
+      });
       res.status(500).json({ status: "error", message: `Error getting traverses ${e}` });
       return;
     }
@@ -122,7 +155,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       });
       return;
     } catch (e) {
-      console.error(e);
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "GET",
+        responseStatus: 500,
+        routeName: "readable/traverse",
+        appUsername: req.session?.appUser?.username,
+        missionId: queryObj.missionId,
+        message: `Error getting readable traverses ${e}`,
+        error: asError(e),
+      });
       res.status(500).json({ status: "error", message: `Error getting readable traverses ${e}` });
       return;
     }

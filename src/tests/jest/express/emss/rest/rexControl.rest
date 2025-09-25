@@ -9,7 +9,6 @@
 
 // Full update with all parameters
 POST http://localhost:4000/api/v1/emss/rexControl
-# POST https://iron-emss-dev.fit.nasa.gov/api/v1/emss/rexControl
 Content-Type: application/json
 emss-token: {{$dotenv EMSS_TOKEN}}
 
@@ -17,20 +16,20 @@ emss-token: {{$dotenv EMSS_TOKEN}}
   "rexUuid": "4d3eb10c-d526-44b1-90e7-fdbca3d67fb0",
   "maestroControlled": true,
   "startStopExecution": "start",
-  "maestroEventId": "test-execution-hash-12345",
+  "maestroEventId": "test-execution-event-12345",
   "maestroEventUrl": "https://maestro-server.example.com",
   "maestroActivityProperties": {
     "egress": {
       "color": "#ff0000",
-      "number": 1
+      "number": "1"
     },
      "d275e068-d237-4b99-a1f5-74bf2fadb4e5": {
       "color": "#001aff",
-      "number": 2
+      "number": "A"
     },
     "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216": {
       "color": "#ff00ff",
-      "number": 3
+      "number": "3"
     }
   }
 }

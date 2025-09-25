@@ -390,7 +390,7 @@ describe("REX Status API Endpoint", () => {
     });
 
     describe("POST request - Action entry validation", () => {
-      test("Returns error for mass too long", async () => {
+      test("Returns error if mass is present", async () => {
         const requestBody = [
           makeStatusUpdateRequest({
             rexUuid: testRexes[0].uuid,
@@ -398,7 +398,7 @@ describe("REX Status API Endpoint", () => {
             typeRefUuid: testAction.refUuid,
             entry: {
               rexStatus: "complete",
-              mass: 123456,
+              mass: 10,
               markerId: "marker-123",
               containerId: "container-456",
               secondaryContainerId: "secondary-789",
@@ -413,9 +413,9 @@ describe("REX Status API Endpoint", () => {
 
         expect(res.statusCode).toBe(400);
         expect(res.body.status).toBe("failure");
-        expect(res.body.message).toContain("must have a valid mass property");
+        expect(res.body.message).toContain("Action entry mass property should not be provided.");
       });
-      test("Returns error for mass not being an integer", async () => {
+      test("Returns error for containerId too long", async () => {
         const requestBody = [
           makeStatusUpdateRequest({
             rexUuid: testRexes[0].uuid,
@@ -423,10 +423,7 @@ describe("REX Status API Endpoint", () => {
             typeRefUuid: testAction.refUuid,
             entry: {
               rexStatus: "complete",
-              mass: 12.4,
-              markerId: "marker-123",
-              containerId: "container-456",
-              secondaryContainerId: "secondary-789",
+              containerId: "container-id-that-is-way-too-long",
             },
           }),
         ];
@@ -438,7 +435,51 @@ describe("REX Status API Endpoint", () => {
 
         expect(res.statusCode).toBe(400);
         expect(res.body.status).toBe("failure");
-        expect(res.body.message).toContain("must have a valid mass property");
+        expect(res.body.message).toContain("containerId must be less than 20 characters");
+      });
+      test("Returns error for secondaryContainerId too long", async () => {
+        const requestBody = [
+          makeStatusUpdateRequest({
+            rexUuid: testRexes[0].uuid,
+            type: "action",
+            typeRefUuid: testAction.refUuid,
+            entry: {
+              rexStatus: "complete",
+              secondaryContainerId: "secondary-container-id-that-is-way-too-long",
+            },
+          }),
+        ];
+
+        const res = await supertest(app)
+          .post("/api/v1/emss/rexStatus")
+          .set("emss-token", emssToken)
+          .send(requestBody);
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.status).toBe("failure");
+        expect(res.body.message).toContain("secondaryContainerId must be less than 20 characters");
+      });
+      test("Returns error for markerId too long", async () => {
+        const requestBody = [
+          makeStatusUpdateRequest({
+            rexUuid: testRexes[0].uuid,
+            type: "action",
+            typeRefUuid: testAction.refUuid,
+            entry: {
+              rexStatus: "complete",
+              markerId: "marker-id-that-is-way-too-long",
+            },
+          }),
+        ];
+
+        const res = await supertest(app)
+          .post("/api/v1/emss/rexStatus")
+          .set("emss-token", emssToken)
+          .send(requestBody);
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.status).toBe("failure");
+        expect(res.body.message).toContain("markerId must be less than 20 characters");
       });
     });
   });
@@ -517,7 +558,6 @@ describe("REX Status API Endpoint", () => {
           typeRefUuid: testAction.refUuid,
           entry: {
             rexStatus: "skipped",
-            mass: 100,
             markerId: "marker-123",
             containerId: "container-456",
             secondaryContainerId: "secondary-789",
@@ -538,7 +578,6 @@ describe("REX Status API Endpoint", () => {
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
       expect(updatedRex?.actionEntries[testAction.uuid]).toEqual({
         rexStatus: "skipped",
-        mass: 100,
         markerId: "marker-123",
         containerId: "container-456",
         secondaryContainerId: "secondary-789",

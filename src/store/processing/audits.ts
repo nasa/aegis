@@ -1,4 +1,5 @@
 import * as httpClient_preset from "http-client/preset";
+import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
 import * as httpClient_mission from "http-client/mission";
 import * as httpClient_folder from "http-client/folder";
@@ -7,6 +8,8 @@ import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
+import reduce from "lodash/reduce";
+import { convertNodeToHTML } from "components/interface/form/wysiwyg";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
@@ -102,22 +105,6 @@ export const auditPresetsAgainstLayers = async ({
     if (!preset.mapCircleControls) {
       preset.mapCircleControls = {};
     }
-
-    const mapCircleControls: MapCircleControls = {};
-    wholeStoreState.mission.mission.circleDefinitions?.forEach((circleDef) => {
-      if (preset.mapCircleControls[circleDef.uuid]) {
-        mapCircleControls[circleDef.uuid] = preset.mapCircleControls[circleDef.uuid];
-      } else {
-        mapCircleControls[circleDef.uuid] = {
-          name: circleDef.name,
-          uuid: circleDef.uuid,
-          visible: false,
-          style: defaultSublayerStyle,
-        };
-      }
-    });
-
-    preset.mapCircleControls = mapCircleControls;
   }
 
   // save changed presets to the DB
@@ -314,5 +301,170 @@ export const auditFolders = async ({
     if (upsertResponse.status !== "success") {
       console.error("Error saving folders to DB:", upsertResponse.message);
     }
+  }
+};
+
+// Remove circle audits once they are in prod
+export const auditLanderCircles = async ({
+  wholeStoreState,
+}: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  const newPresets = cloneDeep(wholeStoreState.preset.presets);
+
+  for (const preset of newPresets) {
+    for (const circle of wholeStoreState.mission.mission.circleDefinitions) {
+      //add to sublayer control
+      const presetCircle = preset.mapCircleControls[circle.uuid];
+      let altOpacityFix = presetCircle.style.altOpacity ?? defaultSublayerStyle.altOpacity;
+      if (altOpacityFix > 1) {
+        altOpacityFix = 1;
+      }
+      preset.mapCircleControls[circle.uuid] = {
+        name: circle.name,
+        uuid: circle.uuid,
+        visible: preset.mapCircleControls[circle.uuid].visible || false,
+        style: {
+          opacity: presetCircle.style.opacity ?? defaultSublayerStyle.opacity,
+          contrast: presetCircle.style.contrast ?? defaultSublayerStyle.contrast,
+          brightness: presetCircle.style.brightness ?? defaultSublayerStyle.brightness,
+          saturation: presetCircle.style.saturation ?? defaultSublayerStyle.saturation,
+          blendMode: presetCircle.style.blendMode ?? defaultSublayerStyle.blendMode,
+          color: presetCircle.style.color ?? defaultSublayerStyle.color,
+          weight: presetCircle.style.weight ?? defaultSublayerStyle.weight,
+          fillColor: presetCircle.style.fillColor ?? defaultSublayerStyle.fillColor,
+          fillOpacity: presetCircle.style.fillOpacity ?? defaultSublayerStyle.fillOpacity,
+          isDashed: presetCircle.style.isDashed ?? defaultSublayerStyle.isDashed,
+          dashLen: presetCircle.style.dashLen ?? defaultSublayerStyle.dashLen,
+          altColor: presetCircle.style.altColor ?? defaultSublayerStyle.altColor,
+          altOpacity: altOpacityFix,
+        },
+      };
+    }
+  }
+
+  // save changed presets to the DB
+  const presetsToSaveToDb: Preset[] = [];
+  for (const [index, preset] of newPresets.entries()) {
+    if (!isEqual(preset, wholeStoreState.preset.presets[index])) {
+      presetsToSaveToDb.push(preset);
+      // update the db copy of the preset in the store as well
+      wholeStoreState.preset.presets[index] = preset;
+      wholeStoreState.preset.presetsFromDb[index] = preset;
+    }
+  }
+  if (presetsToSaveToDb.length > 0) {
+    // upsert the changed Presets to the DB
+    const upsertResponse = await httpClient_preset.upsertPresets(presetsToSaveToDb);
+    if (upsertResponse.status !== "success") {
+      // handle the error
+    }
+  }
+};
+
+// Remove circle audits once they are in prod
+export const auditStationCircles = async ({
+  wholeStoreState,
+}: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  const newStations = cloneDeep(wholeStoreState.station.stations);
+
+  for (const station of newStations) {
+    for (const circleDef of wholeStoreState.mission.mission.circleDefinitions || []) {
+      const stationCircle = station.mapCircleControls[circleDef.uuid];
+      let altOpacityFix = stationCircle.style.altOpacity ?? defaultSublayerStyle.altOpacity;
+      if (altOpacityFix > 1) {
+        altOpacityFix = 1;
+      }
+      station.mapCircleControls[circleDef.uuid] = {
+        name: circleDef.name,
+        uuid: circleDef.uuid,
+        visible: stationCircle ? stationCircle.visible : false,
+        style: {
+          opacity: stationCircle.style.opacity ?? defaultSublayerStyle.opacity,
+          contrast: stationCircle.style.contrast ?? defaultSublayerStyle.contrast,
+          brightness: stationCircle.style.brightness ?? defaultSublayerStyle.brightness,
+          saturation: stationCircle.style.saturation ?? defaultSublayerStyle.saturation,
+          blendMode: stationCircle.style.blendMode ?? defaultSublayerStyle.blendMode,
+          color: stationCircle.style.color ?? defaultSublayerStyle.color,
+          weight: stationCircle.style.weight ?? defaultSublayerStyle.weight,
+          fillColor: stationCircle.style.fillColor ?? defaultSublayerStyle.fillColor,
+          fillOpacity: stationCircle.style.fillOpacity ?? defaultSublayerStyle.fillOpacity,
+          isDashed: stationCircle.style.isDashed ?? defaultSublayerStyle.isDashed,
+          dashLen: stationCircle.style.dashLen ?? defaultSublayerStyle.dashLen,
+          altColor: stationCircle.style.altColor ?? defaultSublayerStyle.altColor,
+          altOpacity: altOpacityFix,
+        },
+      };
+    }
+  }
+
+  // save changed stations to the DB
+  const stationsToSaveToDb: Station[] = [];
+  for (const [index, station] of newStations.entries()) {
+    if (!isEqual(station, wholeStoreState.station.stations[index])) {
+      stationsToSaveToDb.push(station);
+      // update the db copy of the station in the store as well
+      wholeStoreState.station.stations[index] = station;
+      wholeStoreState.station.stations[index] = station;
+    }
+  }
+  if (stationsToSaveToDb.length > 0) {
+    // upsert the changed Stations to the DB
+    const upsertResponse = await httpClient_station.upsertStations(stationsToSaveToDb);
+    if (upsertResponse.status !== "success") {
+      // handle the error
+    }
+  }
+};
+
+/**
+ * Strip out all slate and rich text formatting from the description fields
+ *   and convert them into plaintext
+ */
+export const auditTaskDescriptions = async ({
+  wholeStoreState,
+}: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  const convertSlateToPlaintext = (description: string): string => {
+    if (!description) return null;
+    // Convert a string to a slate JSON object.
+    let jsonSlateNodes;
+    try {
+      jsonSlateNodes = JSON.parse(description);
+    } catch (e) {
+      // If it's not in JSON form then it must be already a plain string
+      return null;
+    }
+
+    // convert to html
+    const html = reduce(
+      jsonSlateNodes,
+      (htmlString, decendant) => htmlString + convertNodeToHTML(decendant),
+      ""
+    );
+    // convert to plaintext
+    let plainText = decodeURIComponent(html); // replace url encoded sequences
+    plainText = plainText.replace(/<br \/>/gm, "\n"); // replace all <br /> with newlines
+    plainText = plainText.replace(/<\/p>/gm, "\n"); // replace all </p> with newlines
+    plainText = plainText.replace(/<\/li>/gm, "\n"); // replace all </li> with newlines
+    plainText = plainText.replace(/<[^>]*>?/gm, ""); // strip out rest of html tags
+
+    return plainText;
+  };
+
+  //convert action descriptions
+  const newActions = cloneDeep(wholeStoreState.action.actions);
+  for (const action of newActions) {
+    const newDescriptionTask = convertSlateToPlaintext(action.descriptionTask);
+    if (newDescriptionTask) {
+      action.descriptionTask = newDescriptionTask;
+    }
+  }
+  if (!isEqual(newActions, wholeStoreState.action.actions)) {
+    httpClient_action.upsertActions(newActions);
+    wholeStoreState.action.actions = newActions;
   }
 };

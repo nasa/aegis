@@ -1,0 +1,64 @@
+// This file is for use with the vscode plugin, Simple REST Client
+// (https://marketplace.visualstudio.com/items?itemName=Tino.simple-rest-client)
+// With the plugin installed, click the "Send Request" text that appears above the `POST` entry below to hit local dev and test the endpoint.
+
+// Below uuids are from the _TEST Mission (22) using the rex that has been created there. This means that the uuids will be the same in all envs since this is on prod.
+
+POST http://localhost:4000/api/v1/emss/rexOverwrite
+Content-Type: application/json
+emss-token: {{$dotenv EMSS_TOKEN}}
+
+{
+  "uuid": "4d3eb10c-d526-44b1-90e7-fdbca3d67fb0",
+  "petStartStopTimestamp": "2025-09-04T01:00:00Z",
+  "petValueAtStartStop": "00:05:30",
+  "petRunning": true,
+  "maestroControlled": true,
+  "isRunning": true,
+  "maestroEventId": "111-222-333-444-555-666",
+  "maestroEventUrl": "https://maestro-server.example.com/events/111-222-333-444-555-666",
+  "maestroActivityPropertiesByRefUuid": {
+    "egress": {
+      "color": "#ff0000",
+      "number": "1"
+    },
+     "d275e068-d237-4b99-a1f5-74bf2fadb4e5": {
+      "color": "#001aff",
+      "number": "2A"
+    },
+    "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216": {
+      "color": "#ff00ff",
+      "number": "3"
+    }
+  },
+  "stationEntriesByRefUuid": {
+    "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216": {
+      "rexStatus": "complete",
+      "maestroPercentCompleteEv1": 0,
+      "maestroPercentCompleteEv2": 100
+    }
+  },
+  "traverseEntriesByRefUuid": {
+    "d275e068-d237-4b99-a1f5-74bf2fadb4e5": {
+      "rexStatus": "in-progress",
+      "maestroPercentCompleteEv1": 20,
+      "maestroPercentCompleteEv2": 80
+    }
+  },
+  "actionEntriesByRefUuid": {
+    "6e2ee00b-0bd4-44fb-a238-329c5e7714b3": {
+      "rexStatus": "complete",
+      "mass": 1,
+      "markerId": "marker-123"
+    }
+  },
+  "xgressEntries": {
+    "egress": {
+      "rexStatus": "complete"
+    },
+    "ingress": {
+      "rexStatus": "in-progress"
+    }
+  }
+}
+

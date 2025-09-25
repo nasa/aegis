@@ -1,5 +1,7 @@
-import { EntityData } from "@mikro-orm/core";
+import type { EntityData } from "@mikro-orm/postgresql";
+
 import { Factory } from "@mikro-orm/seeder";
+
 import { Sublayer_db } from "server/database/models/_allModels";
 import { convertSublayersTypeStoreToDb, generateBlankSublayer } from "store/storeUtils/sublayer";
 

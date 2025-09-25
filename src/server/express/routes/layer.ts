@@ -1,17 +1,18 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { EntityData, Loaded } from "@mikro-orm/postgresql";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
 
+import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/postgresql";
+import express from "express";
+import cloneDeep from "lodash/cloneDeep";
+
+import { Layer_db } from "server/database/models/_allModels";
+import { convertLayersTypeDbToStore, convertLayersTypeStoreToDb } from "store/storeUtils/layer";
 import { hasPerms } from "utils/permissions";
 import { getEM } from "utils/mikro";
-import {
-  EntityData,
-  ForeignKeyConstraintViolationException,
-  Loaded,
-  QueryOrder,
-} from "@mikro-orm/core";
-import { Layer_db } from "server/database/models/_allModels";
-import cloneDeep from "lodash/cloneDeep";
-import { convertLayersTypeDbToStore, convertLayersTypeStoreToDb } from "store/storeUtils/layer";
+import { upsertDatabaseRetry } from "utils/database";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -29,18 +30,38 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   const emssToken = req.headers["emss-token"] as string;
 
-  const viewPermission = await hasPerms({
+  const viewPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
     appUser: req.session.appUser,
     emssToken,
   });
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "layer",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      uuids: queryObj.uuid ? [queryObj.uuid] : undefined,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "layer",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      uuids: queryObj.uuid ? [queryObj.uuid] : undefined,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
   try {
@@ -52,7 +73,17 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: records,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "layer",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      uuids: queryObj.uuid ? [queryObj.uuid] : undefined,
+      message: `Error processing the GET request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
   }
 });
@@ -62,36 +93,68 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, layers } = req.body as LayerUpsertRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "layer",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: layers?.map((l) => l.uuid),
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   try {
-    const upsertResponse: Layer[] = await upsertLayers(layers);
+    const upsertResponse: Layer[] = await upsertDatabaseRetry(() => upsertLayers(layers));
 
-    //check response
-    if (upsertResponse.length === 0) {
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "layer",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: layers?.map((l) => l.uuid),
+        message: "Failed to update layer after multiple tries due to optimistic locking",
+        error: new Error("Failed to update layer after multiple tries due to optimistic locking"),
+      });
       res.status(500).json({
         status: "error",
-        message: "Upsert response did not return a value",
+        message: "Failed to update layer after multiple tries due to optimistic locking",
         data: null,
       });
-    } else {
-      res.status(200).json({
-        status: "success",
-        message: `Layer upserted with ID ${upsertResponse.map((l) => l.uuid)}`,
-        data: upsertResponse,
-      });
+      return;
     }
+
+    res.status(200).json({
+      status: "success",
+      message: `Layer upserted with ID ${upsertResponse.map((l) => l.uuid)}`,
+      data: upsertResponse,
+    });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "layer",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: layers?.map((l) => l.uuid),
+      message: `Error processing the POST request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
   }
 });
@@ -101,13 +164,23 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, layerUuids } = req.body as LayerDeleteRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "DELETE",
+      responseStatus: 401,
+      routeName: "layer",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: layerUuids,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -121,19 +194,50 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "Layer Deleted",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "DELETE",
+        responseStatus: 404,
+        routeName: "layer",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: layerUuids,
+        message: "Record not found. Nothing deleted",
+      });
       res.status(404).json({
         status: "failure",
         message: "Record not found. Nothing deleted",
       });
     }
   } catch (e) {
-    console.error(e);
     if (e instanceof ForeignKeyConstraintViolationException) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "layer",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: layerUuids,
+        message: "Cannot delete layer. This layer is referenced elsewhere",
+        error: asError(e),
+      });
       res.status(500).json({
         status: "error",
         message: "Cannot delete layer. This layer is referenced elsewhere",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "layer",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: layerUuids,
+        message: `Error processing the DELETE request ${e}`,
+        error: asError(e),
+      });
       res
         .status(500)
         .json({ status: "error", message: `Error processing the DELETE request ${e}` });
@@ -182,27 +286,35 @@ export async function getLayers(missionId: number, layerUUID?: string): Promise<
 
 /**
  * Inserts or Updates layers into the database
- * @param layer the layer objects to upsert
+ * @param layers the layer objects to upsert
  * @returns a copy of the layer objects that was upserted
  */
-export async function upsertLayers(layers: Layer[]): Promise<Layer[]> {
+async function upsertLayers(layers: Layer[]): Promise<Layer[]> {
   const em = getEM();
+  await em.begin(); // Start a transaction
 
   const layersToUpsert: Layer[] = cloneDeep(layers);
   const layersUpsertedToDb = [];
 
-  for (const layerToUpsert of layersToUpsert) {
-    //convert fks and upsert
-    const convertedRecord: EntityData<Layer_db> = convertLayersTypeStoreToDb([layerToUpsert])[0];
-    const upsertReference = await em.upsert(Layer_db, convertedRecord);
+  try {
+    for (const layerToUpsert of layersToUpsert) {
+      // Convert foreign keys and upsert
+      const convertedRecord: EntityData<Layer_db> = convertLayersTypeStoreToDb([layerToUpsert])[0];
+      const upsertReference = await em.upsert(Layer_db, convertedRecord);
 
-    em.persist(upsertReference);
+      em.persist(upsertReference);
 
-    //convert fks back
-    const convertedLayer: Layer = convertLayersTypeDbToStore([upsertReference])[0];
-    layersUpsertedToDb.push(convertedLayer);
+      // Convert foreign keys back
+      const convertedLayer: Layer = convertLayersTypeDbToStore([upsertReference])[0];
+      layersUpsertedToDb.push(convertedLayer);
+    }
+
+    await em.commit(); // Flush and commit the transaction
+  } catch (e) {
+    await em.rollback(); // Rollback the transaction
+    throw e; // Re-throw the error to be handled by the caller
   }
-  await em.flush();
+
   return layersUpsertedToDb;
 }
 
@@ -211,7 +323,7 @@ export async function upsertLayers(layers: Layer[]): Promise<Layer[]> {
  * @param uuids layer uuids to delete
  * @returns the uuids of the deleted layers
  */
-export async function deleteLayers(uuids: string[]): Promise<string[]> {
+async function deleteLayers(uuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const uuid of uuids) {

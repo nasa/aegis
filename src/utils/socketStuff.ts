@@ -176,7 +176,7 @@ export const attachSocketListeners = (
   });
 };
 
-export const cleanupSocket = (socket: Socket): void => {
+export const cleanupSocketListeners = (socket: Socket): void => {
   socket.off("connect");
   socket.off("disconnect");
   socket.io.off("reconnect_attempt");

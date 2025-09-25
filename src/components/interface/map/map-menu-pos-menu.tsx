@@ -1,27 +1,19 @@
 import { faEllipsisV, faTrashAlt, faEdit } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Dispatch, FunctionComponent, SetStateAction, useRef } from "react";
+import { FunctionComponent, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkCancelPosEntry, thunkDeletePosEntryByUuid } from "store/thunk/thunkRexPosEntry";
+import { thunkCancelPosEntryInEdit, thunkDeletePosEntryByUuid } from "store/thunk/thunkRexPosEntry";
 import styles from "./map-menu-pos.module.css";
-import { useAppSelector, refEqual } from "utils/useAppSelector";
-import {
-  setPosEntryEditingUuid,
-  setRexesPosEntryEditMode,
-  setSelectedPosEntryUuid,
-} from "store/rex";
+import { setPosEntryInEdit, setSelectedPosEntryUuid } from "store/rex";
 
 export const PosKabobMenu: FunctionComponent<{
   posEntry: PosEntry;
   isSelected: boolean;
   isEditing: boolean;
-  setSelectedPosTypes: Dispatch<SetStateAction<string[]>>;
-}> = ({ posEntry, isSelected, isEditing, setSelectedPosTypes }) => {
+}> = ({ posEntry, isSelected, isEditing }) => {
   const dispatch = useAppDispatch();
   const dialogRef = useRef(null);
   const menuRef = useRef(null);
-  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
-  const posEntryEditingUuid = useAppSelector((state) => state.rex.posEntryEditingUuid, refEqual);
 
   const handleMenuOpen = (e: React.MouseEvent) => {
     const x = e.clientX + 5;
@@ -38,12 +30,9 @@ export const PosKabobMenu: FunctionComponent<{
 
   const handleEdit = async (posEntryUuid: string) => {
     //cancel out anything else in edit before putting this one in edit
-    await dispatch(thunkCancelPosEntry({ posEntryUuid: posEntryEditingUuid }));
-
-    setSelectedPosTypes(posEntry.posTypeUuids);
+    await dispatch(thunkCancelPosEntryInEdit());
+    dispatch(setPosEntryInEdit(posEntry));
     dispatch(setSelectedPosEntryUuid(posEntryUuid));
-    dispatch(setPosEntryEditingUuid(posEntry.uuid));
-    dispatch(setRexesPosEntryEditMode({ rexUuid: selectedRexUuid, editMode: true }));
   };
   return (
     <>
@@ -64,7 +53,7 @@ export const PosKabobMenu: FunctionComponent<{
               }}
             >
               <FontAwesomeIcon icon={faEdit} className={styles.historicPosIcon}></FontAwesomeIcon>
-              Edit Crew or Location
+              Edit
             </div>
           )}
           <div

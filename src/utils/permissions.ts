@@ -1,3 +1,5 @@
+import { globalValues } from "server/express/global";
+
 /**
  * Checks if a user has a given permission for a given mission.
  * @param missionId
@@ -5,7 +7,7 @@
  * @param user
  * @returns
  */
-export const hasPerms = async ({
+export const hasPerms = ({
   missionId,
   permission,
   appUser,
@@ -15,9 +17,9 @@ export const hasPerms = async ({
   permission: keyof Permission["permissions"];
   appUser: AppUser;
   emssToken?: string;
-}): Promise<boolean> => {
-  // check the EMSS token. If it's valid, then the user has permissions
-  if (emssToken && emssToken === process.env.EMSS_TOKEN) return true;
+}): boolean => {
+  // check the EMSS token. This overrides and grants them access to everything
+  if (emssTokenIsValid(emssToken)) return true;
 
   // if no user session then no permissions for anything
   if (!appUser) return false;
@@ -30,4 +32,8 @@ export const hasPerms = async ({
   }
 
   return false;
+};
+
+export const emssTokenIsValid = (emssToken: string): boolean => {
+  return globalValues.isEmssApiEnabled && emssToken && emssToken === process.env.EMSS_TOKEN;
 };

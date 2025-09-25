@@ -16,7 +16,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { Button, InLineEditInput } from "components/interface/form/globalFields";
+import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { FunctionComponent, useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
@@ -204,12 +204,13 @@ const RightActionBody: FunctionComponent<{
               </SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <WysiwygTextArea
-                value={action.descriptionTask}
+              <TextArea
+                value={action.descriptionTask || ""}
                 editing={editMode}
-                onChange={(value) => {
+                onSubmit={(value: string) => {
                   dispatch(upsertActionByField(action.uuid, "descriptionTask", value));
                 }}
+                fieldProps={{ name: "descriptionTask", ariaLabel: "Task Description" }}
                 key={action.uuid}
               />
             </div>
@@ -306,15 +307,6 @@ const RightActionBody: FunctionComponent<{
           <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
             <SubpanelHeading icon={faWeightHanging}>Sample Mass</SubpanelHeading>
           </div>
-          {actionRexMaestroControlled && (
-            <div className={paneStyles.maestroIcon}>
-              <FontAwesomeIcon
-                icon={faHexagonNodes}
-                data-tooltip-id="aegis-tooltip"
-                data-tooltip-html="Some fields in this section are Maestro controlled"
-              />
-            </div>
-          )}
         </div>
         <div className={paneStyles.panelSectionRow}>
           <div className={paneStyles.panelSection2Column}>
@@ -360,15 +352,15 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <InLineEditInput
                       value={actionRexEntry?.mass?.toString()}
-                      editing={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      editing={!isNull(rexUuid) && allowRexEdit}
                       fieldProps={{
                         name: "mass",
                         ariaLabel: "Executed Sample Mass",
                         style: { width: "45px" },
                         validators: [
-                          validators.mustBeNumber,
                           validators.maxLength(4),
                           validators.mustBeInteger,
+                          validators.mustBeNumberGTEZero,
                         ],
                         onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                           e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
@@ -467,7 +459,7 @@ const RightActionBody: FunctionComponent<{
               </div>
               <div className={paneStyles.panelColumnTableRow}>
                 <div className={paneStyles.panelColumnTableCell}>
-                  <div className={paneStyles.inputFieldLabel}>Addtl. Container ID:</div>
+                  <div className={paneStyles.inputFieldLabel}>2nd Container ID:</div>
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldValue}>
@@ -825,7 +817,7 @@ const RightActionBody: FunctionComponent<{
       </div>
       <div className={paneStyles.lastEditedContainer}>
         <div className={paneStyles.displayFieldValue}>
-          <LastEdited updatedAt={action?.updatedAt} />
+          <LastEdited updatedAt={action?.updatedAt} infoString={`action uuid: ${action?.uuid}`} />
         </div>
       </div>
     </div>

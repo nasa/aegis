@@ -22,6 +22,7 @@ import CircularSlider from "@fseehawer/react-circular-slider";
 import CompactColor from "@uiw/react-color-compact";
 import { faSquare } from "@fortawesome/free-regular-svg-icons";
 import debounce from "lodash/debounce";
+import { COLOR_PALATTE } from "utils/consts";
 
 export const Button: FunctionComponent<{
   onClick: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
@@ -614,6 +615,7 @@ export const PathColorPickerMenu: FunctionComponent<{
               >
                 <CompactColor
                   color={currentColor}
+                  colors={COLOR_PALATTE}
                   onChange={(color) => {
                     updateColor(color.hex);
                   }}

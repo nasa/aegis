@@ -420,13 +420,14 @@
 }
 
 .allEvaContainer {
-  max-height: 50%;
+  max-height: calc(100% - 93px);
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 
 .allEvaContainerRexCollapsed {
-  max-height: calc(100% - 93px);
+  max-height: calc(100% - 88px);
   display: flex;
   flex-direction: column;
   overflow-y: auto;

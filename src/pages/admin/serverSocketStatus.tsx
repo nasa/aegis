@@ -6,7 +6,13 @@ import React from "react";
 import Header from "components/interface/header";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
-import { faCaretDown, faCaretRight, faPen, faEye } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCaretDown,
+  faCaretRight,
+  faPen,
+  faEye,
+  faArrowRotateRight,
+} from "@fortawesome/free-solid-svg-icons";
 import uniq from "lodash/uniq";
 
 const ServerSocketStatus: React.FunctionComponent = () => {
@@ -44,20 +50,19 @@ const ServerSocketStatus: React.FunctionComponent = () => {
           <div className={adminStyles.missionBack}>
             <FontAwesomeIcon icon={faArrowAltCircleLeft} size="xl" onClick={handleBack} />
           </div>
-          <h2>Maestro Connections</h2>
-          {!serverSocketStatus?.maestroVisitors?.length ? (
-            <p>No Maestro servers connected.</p>
-          ) : (
-            <ul>
-              {serverSocketStatus.maestroVisitors.map((visitor) => (
-                <li key={visitor.socketId}>
-                  <strong>{visitor.name}</strong> (connected at{" "}
-                  {new Date(visitor.connectedAt).toUTCString()})
-                </li>
-              ))}
-            </ul>
-          )}
-          <h2>Visitor Connections</h2>
+          <div className={adminStyles.refreshTitle}>
+            <h2>Visitor Connections</h2>
+            <FontAwesomeIcon
+              icon={faArrowRotateRight}
+              onClick={() => {
+                (async () => {
+                  const res = await fetch(`/api/v1/socket/serverSocketStatus`);
+                  setServerSocketStatus(await res.json());
+                })();
+              }}
+              style={{ cursor: "pointer" }}
+            />
+          </div>
           {!serverSocketStatus?.visitorsData?.length ? (
             <p>No visitors connected.</p>
           ) : (

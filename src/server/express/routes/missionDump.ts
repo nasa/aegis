@@ -1,5 +1,9 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { EntityManager } from "@mikro-orm/postgresql";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
+
+import express from "express";
+
 import {
   Mission_db,
   Station_db,
@@ -19,7 +23,8 @@ import {
   Folder_db,
 } from "server/database/models/_allModels";
 import { getEM } from "utils/mikro";
-import { EntityManager } from "@mikro-orm/core";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -36,11 +41,29 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
 
   if (!req.session?.appUser?.isSuperAdmin) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "missionDump",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   if (!queryObj.missionId) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "missionDump",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Mission ID is required",
+    });
     res.status(400).json({ status: "failure", message: "Mission ID is required" });
     return;
   }
@@ -55,7 +78,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: missionData,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "missionDump",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: `Error exporting mission: ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error exporting mission: ${e}` });
   }
 });

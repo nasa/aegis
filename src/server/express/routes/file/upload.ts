@@ -1,11 +1,15 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
 
+import path from "node:path";
+
+import express from "express";
 import multer from "multer";
-import path from "path";
-import { deleteFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
 
+import { deleteFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
 import { hasPerms } from "utils/permissions";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 // Express router to replace nextConnect
 const router = express.Router();
@@ -22,12 +26,21 @@ const parseQuery = (query: Query) => {
 // Middleware to check user session
 router.use(async (req: Request, res: Response, next): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "edit",
     appUser: req.session.appUser,
   });
   if (!editPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "file/upload",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -61,21 +74,37 @@ const upload = multer({
 });
 
 // POST endpoint
-router.post("/", upload.single("uploadFile"), async (req, res) => {
+router.post("/", upload.single("uploadFile"), async (req: Request, res: Response) => {
+  const queryObj = parseQuery(req.query);
   try {
     if (req.file) {
       // File processing logic
-      const unzipStatus = await unzip(filename, req.body.path, req.body.subfolder); // unzip the file
-      if (unzipStatus) {
-        res.status(200).json("File extracted");
-      } else {
-        res.status(500).json("File extraction failed. Check server logs");
-      }
+      await unzip(filename, req.body.path, req.body.subfolder); // unzip the file
+      res.status(200).json("File extracted");
     } else {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "file/upload",
+        appUsername: req.session?.appUser?.username,
+        missionId: queryObj.missionId,
+        message: "No file provided in request body",
+      });
       res.status(400).json("No file provided in request body");
     }
   } catch (error) {
-    res.status(400).json(error instanceof Error ? error.message : "Error uploading file");
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "file/upload",
+      appUsername: req.session.appUser?.username,
+      missionId: queryObj.missionId,
+      message: error instanceof Error ? error.message : "Error uploading file",
+      error: asError(error),
+    });
+    res.status(500).json(error instanceof Error ? error.message : "Error uploading file");
   }
 });
 

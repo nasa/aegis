@@ -235,9 +235,7 @@ const MissionList = (props: {
         return (
           <li key={mission.id}>
             <>
-              <span className={styles.noPermission}>
-                {mission.name} (v{mission.version}) [No Edit Permissions]
-              </span>
+              <span className={styles.noPermission}>{mission.name} [No Edit Permissions]</span>
             </>
           </li>
         );

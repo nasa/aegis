@@ -1,17 +1,18 @@
-import { getAccurateNow } from "utils/formatting";
+import type { EntityData } from "@mikro-orm/postgresql";
+import type { Mission_db } from "server/database/models/_allModels";
+
 import { v4 as uuidv4 } from "uuid";
-import { Mission_db } from "server/database/models/_allModels";
-import { EntityData } from "@mikro-orm/core";
+
+import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank mission
- * @param partialMission any fields that are to be overriden from default
+ * @param partialMission any fields that are to be overridden from default
  * @returns the generated mission
  */
 export const generateBlankMission = (partialMission?: Partial<Mission>): Mission => {
   const defaultNewMission: Mission = {
     id: null,
-    version: 0,
     name: "",
     isArchived: false,
     usingLGRSCoordinates: false,
@@ -56,7 +57,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
 
 /**
  * Generate a blank action template
- * @param partialActionTemplate any fields that are to be overriden from default
+ * @param partialActionTemplate any fields that are to be overridden from default
  * @returns the generated action template
  */
 export const generateBlankActionTemplate = (

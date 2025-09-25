@@ -21,7 +21,7 @@ jest.mock("http-client/rex");
 jest.mock("http-client/eva");
 import * as httpClient_rex from "http-client/rex";
 import * as httpClient_eva from "http-client/eva";
-import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
+import { generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
 
@@ -74,9 +74,6 @@ describe("Thunk Rex Tests", () => {
   test("thunkSaveRex", async () => {
     const eva = generateBlankEVA();
     const rex = generateBlankRex({ name: "Jest Rex-1", evaUuid: eva.uuid });
-    // put a pos entry in edit
-    const posEntry = generateBlankPosEntry();
-    rex.posEntries = [posEntry];
     const rexModified = { ...rex, name: "Jest Rex-1 Modified" };
     const store = createCustomTestStore({
       rex: {
@@ -84,15 +81,12 @@ describe("Thunk Rex Tests", () => {
         rexes: [rexModified],
         rexesFromDb: [rex],
         selectedRexUuid: rex.uuid,
-        posEntryEditingUuid: posEntry.uuid,
       },
     });
     await store.dispatch(thunkSaveRex({ rexUuid: rexModified.uuid }));
     expect(httpClient_rex.upsertRexes).toHaveBeenCalledTimes(1);
     const savedRex = store.getState().rex.rexesFromDb.find((r) => r.uuid === rex.uuid);
     expect(savedRex.name).toEqual("Jest Rex-1 Modified");
-    expect(savedRex.posEntries.length).toEqual(0);
-    expect(store.getState().rex.posEntryEditingUuid).toBeNull();
   });
 
   test("thunkCancelRex", async () => {

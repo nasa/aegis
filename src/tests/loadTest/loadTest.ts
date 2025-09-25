@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config({ override: true, quiet: true });
-import { attachSocketListeners, cleanupSocket, createSocket } from "utils/socketStuff";
+import { attachSocketListeners, cleanupSocketListeners, createSocket } from "utils/socketStuff";
 import reduxStore, { RootState } from "store/index";
 import { populateStore } from "store/processing/populateStore";
 import { setAllSliceStores } from "store/crossActions";
@@ -90,7 +90,7 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
   // if duration is reached, resolve the promise and exit
   setTimeout(() => {
     keepAlive = false;
-    cleanupSocket(socket);
+    cleanupSocketListeners(socket);
     const finalStoreState: RootState = reduxStore.getState();
     resolve({ finalState: finalStoreState });
   }, duration);

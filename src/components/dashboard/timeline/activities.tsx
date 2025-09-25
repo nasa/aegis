@@ -87,6 +87,7 @@ const Activity: FunctionComponent<{
 
   // set display number to what was provided by maestro. If nothing was provided, use the iterative number from parent component
   const displayNumber = maestroActivityProperties[sequenceItem.uuid]?.number || activityNumber;
+  const displayNumberIsNumeric = !isNaN(Number(displayNumber));
 
   let stationIcon;
   if (sequenceItem.uuid === "egress" || sequenceItem.uuid === "ingress") {
@@ -110,7 +111,11 @@ const Activity: FunctionComponent<{
       <div className={styles.evBox}>
         <div className={styles.evBoxColorLine} style={{ backgroundColor: boxColor }}></div>
         <div className={styles.evBoxMain}>
-          <div className={styles.activityNumber}>{displayNumber}</div>
+          <div
+            className={displayNumberIsNumeric ? styles.activityNumber : styles.activityNumberLetter}
+          >
+            {displayNumber}
+          </div>
           {sequenceItem.type === "station" && (
             <div className={styles.stationIcon}>{stationIcon}</div>
           )}

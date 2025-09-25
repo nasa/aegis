@@ -1,5 +1,9 @@
-import express, { Request, Response } from "express";
+import type { Request, Response } from "express";
+import express from "express";
+
+import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
+
 import {
   Action_db,
   Eva_db,
@@ -8,9 +12,10 @@ import {
   Traverse_db,
 } from "../../../database/models/_allModels";
 import { emitStoreUpsert } from "../../sockets";
-import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
-import { OptimisticLockError } from "@mikro-orm/core";
-import random from "lodash/random";
+import { emssTokenIsValid } from "utils/permissions";
+import { upsertDatabaseRetry } from "utils/database";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -19,7 +24,7 @@ type RexStatusRequest = {
   rexUuid: string;
   type: "station" | "traverse" | "action" | "xgress";
   typeRefUuid: string; // uuid of the station, traverse, or action -- or "egress" or "ingress" for xgress items
-  entry: ActivityEntry | ActionEntry;
+  entry: ActivityEntry | ActionEntry | XgressEntry;
 };
 
 type RexStatusByTypeRefUuid = {
@@ -30,14 +35,29 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
 
   // Check if user has EMSS permissions
-  const editPermission = emssToken && emssToken === process.env.EMSS_TOKEN;
+  const editPermission = emssTokenIsValid(emssToken);
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "emss/rexStatus",
+      uuids: [req.body.rexUuid],
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   // validate inputs
   if (!Array.isArray(req.body)) {
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "emss/rexStatus",
+      message: "Request body must be an array",
+    });
     res.status(400).json({
       status: "failure",
       message: "Request body must be an array",
@@ -50,6 +70,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       rexUuidToValidate = rexStatus.rexUuid;
     } else {
       if (rexUuidToValidate !== rexStatus.rexUuid) {
+        apiRouteLogger({
+          logLevel: "notice",
+          httpMethod: "POST",
+          responseStatus: 400,
+          routeName: "emss/rexStatus",
+          uuids: [rexStatus.rexUuid],
+          message: "All entries must have the same rexUuid",
+        });
         res.status(400).json({
           status: "failure",
           message: "All entries must have the same rexUuid",
@@ -58,6 +86,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       }
     }
     if (!rexStatus.rexUuid || !rexStatus.type || !rexStatus.typeRefUuid || !rexStatus.entry) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "emss/rexStatus",
+        uuids: [rexStatus.rexUuid],
+        message:
+          "Missing required body parameters. Required parameters are rexUuid, type, typeRefUuid, and entry.",
+      });
       res.status(400).json({
         status: "failure",
         message:
@@ -66,6 +103,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
     if (!["station", "traverse", "action", "xgress"].includes(rexStatus.type)) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "emss/rexStatus",
+        uuids: [rexStatus.rexUuid],
+        message: `Invalid type: ${rexStatus.type}. Must be 'station', 'traverse', 'action', or 'xgress'.`,
+      });
       res.status(400).json({
         status: "failure",
         message: `Invalid type: ${rexStatus.type}. Must be 'station', 'traverse', 'action', or 'xgress'.`,
@@ -77,6 +122,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       rexStatus.typeRefUuid !== "egress" &&
       rexStatus.typeRefUuid !== "ingress"
     ) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "emss/rexStatus",
+        uuids: [rexStatus.rexUuid],
+        message: `Invalid typeRefUuid: ${rexStatus.typeRefUuid} for xgress. Must be 'egress' or 'ingress'.`,
+      });
       res.status(400).json({
         status: "failure",
         message: `Invalid typeRefUuid: ${rexStatus.typeRefUuid} for xgress. Must be 'egress' or 'ingress'.`,
@@ -84,6 +137,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
     if (!["complete", "in-progress", "pending", "skipped"].includes(rexStatus.entry?.rexStatus)) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "emss/rexStatus",
+        uuids: [rexStatus.rexUuid],
+        message: "Entry must have a valid rexStatus property.",
+      });
       res.status(400).json({
         status: "failure",
         message: "Entry must have a valid rexStatus property.",
@@ -101,6 +162,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         rexStatus.entry.maestroPercentCompleteEv1 < 0 ||
         rexStatus.entry.maestroPercentCompleteEv1 > 100
       ) {
+        apiRouteLogger({
+          logLevel: "notice",
+          httpMethod: "POST",
+          responseStatus: 400,
+          routeName: "emss/rexStatus",
+          uuids: [rexStatus.rexUuid],
+          message:
+            "Entry must have a valid maestroPercentCompleteEv1 property between 0 and 100, or null.",
+        });
         res.status(400).json({
           status: "failure",
           message:
@@ -120,6 +190,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         rexStatus.entry.maestroPercentCompleteEv2 < 0 ||
         rexStatus.entry.maestroPercentCompleteEv2 > 100
       ) {
+        apiRouteLogger({
+          logLevel: "notice",
+          httpMethod: "POST",
+          responseStatus: 400,
+          routeName: "emss/rexStatus",
+          uuids: [rexStatus.rexUuid],
+          message:
+            "Entry must have a valid maestroPercentCompleteEv2 property between 0 and 100, or null.",
+        });
         res.status(400).json({
           status: "failure",
           message:
@@ -131,16 +210,68 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // validate values normally checked by the UI
     if (rexStatus.type === "action") {
       const actionEntry = rexStatus.entry as ActionEntry;
-      if (actionEntry.mass !== undefined && actionEntry.mass !== null) {
-        // if a mass was provided, check that it is a valid number
-        if (
-          isNaN(actionEntry.mass) ||
-          actionEntry.mass.toString().length > 4 ||
-          !Number.isInteger(Number(actionEntry.mass))
-        ) {
+      if ("mass" in actionEntry) {
+        apiRouteLogger({
+          logLevel: "notice",
+          httpMethod: "POST",
+          responseStatus: 400,
+          routeName: "emss/rexStatus",
+          uuids: [rexStatus.rexUuid],
+          message: "Action entry mass property should not be provided.",
+        });
+        res.status(400).json({
+          status: "failure",
+          message: "Action entry mass property should not be provided.",
+        });
+        return;
+      }
+      if (actionEntry.containerId) {
+        if (actionEntry.containerId.toString().length > 20) {
+          apiRouteLogger({
+            logLevel: "notice",
+            httpMethod: "POST",
+            responseStatus: 400,
+            routeName: "emss/rexStatus",
+            uuids: [rexStatus.rexUuid],
+            message: "Action entry containerId must be less than 20 characters.",
+          });
           res.status(400).json({
             status: "failure",
-            message: "Action entry must have a valid mass property.",
+            message: "Action entry containerId must be less than 20 characters.",
+          });
+          return;
+        }
+      }
+      if (actionEntry.secondaryContainerId) {
+        if (actionEntry.secondaryContainerId.toString().length > 20) {
+          apiRouteLogger({
+            logLevel: "notice",
+            httpMethod: "POST",
+            responseStatus: 400,
+            routeName: "emss/rexStatus",
+            uuids: [rexStatus.rexUuid],
+            message: "Action entry secondaryContainerId must be less than 20 characters.",
+          });
+          res.status(400).json({
+            status: "failure",
+            message: "Action entry secondaryContainerId must be less than 20 characters.",
+          });
+          return;
+        }
+      }
+      if (actionEntry.markerId) {
+        if (actionEntry.markerId.toString().length > 20) {
+          apiRouteLogger({
+            logLevel: "notice",
+            httpMethod: "POST",
+            responseStatus: 400,
+            routeName: "emss/rexStatus",
+            uuids: [rexStatus.rexUuid],
+            message: "Action entry markerId must be less than 20 characters.",
+          });
+          res.status(400).json({
+            status: "failure",
+            message: "Action entry markerId must be less than 20 characters.",
           });
           return;
         }
@@ -158,22 +289,26 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    let updatedRex: Rex;
-    // iteratively update each rexUuid
-    for (let tries = 0; tries < 7; tries++) {
-      try {
-        updatedRex = await updateRexStatus(rexStatusByTypeRefUuid);
-        break; // if successful, exit the retry loop
-      } catch (e) {
-        if (e instanceof OptimisticLockError) {
-          // lock error. wait anywhere from 100-200ms before retrying
-          await new Promise((resolve) => setTimeout(resolve, random(100, 200)));
-        } else {
-          // some other kind of error happened
-          // re-throw it so the outer try/catch can grab it and exit the for loop
-          throw e;
-        }
-      }
+    const updatedRex: Rex = await upsertDatabaseRetry(() =>
+      updateRexStatus(rexStatusByTypeRefUuid)
+    );
+
+    if (!updatedRex) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "emss/rexStatus",
+        uuids: [Object.values(rexStatusByTypeRefUuid)[0]?.rexUuid], // rex uuid from first entry
+        message: "Failed to update rex after multiple tries due to optimistic locking",
+        error: new Error("Failed to update rex after multiple tries due to optimistic locking"),
+      });
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update rex after multiple tries due to optimistic locking",
+        data: null,
+      });
+      return;
     }
 
     emitStoreUpsert({
@@ -189,6 +324,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : String(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "emss/rexStatus",
+      uuids: [Object.values(rexStatusByTypeRefUuid)[0]?.rexUuid], // rex uuid from first entry
+      message: `Error processing the POST request: ${errorMessage}`,
+      error: asError(e),
+    });
     res
       .status(500)
       .json({ status: "error", message: `Error processing the POST request: ${errorMessage}` });
@@ -291,7 +435,6 @@ async function updateRexStatus(rexStatusByTypeRefUuid: RexStatusByTypeRefUuid): 
         if (!updatedActionEntry) {
           updatedActionEntry = {
             rexStatus: "pending",
-            mass: 0,
             markerId: "",
             containerId: "",
             secondaryContainerId: "",

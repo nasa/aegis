@@ -1,8 +1,14 @@
-import express, { Request, Response } from "express";
+import type { Request, Response } from "express";
+
+import express from "express";
 import sortBy from "lodash/sortBy";
+
 import { Mission_db, Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { getEM } from "utils/mikro";
+import { emssTokenIsValid } from "utils/permissions";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -12,8 +18,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const viewPermission =
     req.session?.appUser?.isSuperAdmin ||
     req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
-    (emssToken && emssToken === process.env.EMSS_TOKEN);
+    emssTokenIsValid(emssToken);
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "missionHomepageItems",
+      appUsername: req.session?.appUser?.username,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -37,14 +51,22 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: records,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "missionHomepageItems",
+      appUsername: req.session?.appUser?.username,
+      message: `Error processing the GET request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
   }
 });
 
 export default router;
 
-export async function getHomepageMissionItems(
+async function getHomepageMissionItems(
   missionIdList: number | number[] = null
 ): Promise<MissionHomepageItem[]> {
   const em = getEM();

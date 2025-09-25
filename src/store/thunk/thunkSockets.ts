@@ -50,8 +50,6 @@ import { setMission, setMissionFromDb, setMissionSectionEditing } from "store/mi
 import {
   deleteRexesByUuid,
   deleteRexesFromDbByUuid,
-  setPosEntryEditingUuid,
-  setRexesPosEntryEditMode,
   setSelectedRexUuid,
   upsertRexes,
   upsertRexesFromDb,
@@ -193,22 +191,6 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
       //check changes on rex object
       if (getState().eva.evasEditing.includes(changedRex.evaUuid)) {
         upsertMessages.push(getConflictMessage("rex", changedRex.name, "upsert"));
-      }
-      //check changes on crew pos inside rex object. this is handled separately
-      if (getState().rex.rexesPosEntriesEditing.includes(changedRex.uuid)) {
-        upsertMessages.push(getConflictMessage("crew position on", changedRex.name, "upsert"));
-        //if there was an open map directive for one of the crew pos, cancel it
-        if (getState().map.mapDirective?.mapItemType === "posEntry") {
-          dispatch(
-            updateMapDirective({
-              mapItemType: "posEntry",
-              uuid: getState().rex.posEntryEditingUuid,
-              mapAction: "cancelEditMarker",
-            })
-          );
-        }
-        dispatch(setRexesPosEntryEditMode({ rexUuid: changedRex.uuid, editMode: false }));
-        dispatch(setPosEntryEditingUuid(null));
       }
     }
     dispatch(upsertRexes(changedRexes, true));

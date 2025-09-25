@@ -160,7 +160,7 @@ const Info_Panel: FunctionComponent<{
                         {poiCalcFields?.totalActionTime === 0 ? (
                           <>0</>
                         ) : (
-                          <>{Math.round(poiCalcFields?.totalActionTime)}</>
+                          <>{Math.ceil(poiCalcFields?.totalActionTime)}</>
                         )}
                       </div>
                     </div>
@@ -360,7 +360,10 @@ const Info_Panel: FunctionComponent<{
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldValue}>
-                      <LastEdited updatedAt={selectedPoi?.updatedAt} />
+                      <LastEdited
+                        updatedAt={selectedPoi?.updatedAt}
+                        infoString={`poi uuid: ${selectedPoi?.uuid}`}
+                      />
                     </div>
                   </div>
                 </div>

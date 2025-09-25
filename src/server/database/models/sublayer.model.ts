@@ -1,4 +1,11 @@
-import { Entity, ManyToOne, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/core";
+import {
+  Entity,
+  ManyToOne,
+  PrimaryKey,
+  Property,
+  types as MikroTypes,
+} from "@mikro-orm/postgresql";
+
 import { Layer_db, Mission_db } from "./_allModels";
 
 @Entity()
@@ -44,4 +51,7 @@ export class Sublayer_db implements Sublayer_db_type {
   createdAt!: Date;
   @Property({ type: MikroTypes.datetime, length: 3 })
   updatedAt!: Date;
+
+  @Property({ type: MikroTypes.integer, version: true })
+  version!: number; //used for optimistic locking
 }

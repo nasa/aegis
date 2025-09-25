@@ -1,6 +1,8 @@
+import type { EntityData } from "@mikro-orm/postgresql";
+
 import { Factory } from "@mikro-orm/seeder";
+
 import { Action_db } from "server/database/models/_allModels";
-import { EntityData } from "@mikro-orm/core";
 import { convertActionsTypeStoreToDb, generateBlankAction } from "store/storeUtils/action";
 
 export default class ActionFactory extends Factory<Action_db> {

@@ -1,6 +1,15 @@
-import { Collection, Entity, ManyToOne, OneToMany, PrimaryKey, Property } from "@mikro-orm/core";
+import {
+  Collection,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryKey,
+  Property,
+} from "@mikro-orm/postgresql";
+import { types as MikroTypes } from "@mikro-orm/postgresql";
+
 import { Mission_db, Action_db } from "./_allModels";
-import { types as MikroTypes } from "@mikro-orm/core";
+
 @Entity()
 export class Traverse_db implements Traverse_db_type {
   @PrimaryKey({ type: MikroTypes.string, unique: true })
@@ -42,4 +51,7 @@ export class Traverse_db implements Traverse_db_type {
   createdAt!: Date;
   @Property({ type: MikroTypes.datetime, length: 3 })
   updatedAt!: Date;
+
+  @Property({ type: MikroTypes.integer, version: true })
+  version!: number; //used for optimistic locking
 }

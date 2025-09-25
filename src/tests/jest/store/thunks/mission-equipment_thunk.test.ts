@@ -22,7 +22,7 @@ beforeEach(() => {
 });
 
 afterAll(() => {
-  // restore original implmentation
+  // restore original implementation
   alertSpy.mockRestore();
 });
 

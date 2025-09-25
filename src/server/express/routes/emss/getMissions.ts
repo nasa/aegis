@@ -1,6 +1,12 @@
-import express, { Request, Response } from "express";
-import { getEM } from "utils/mikro";
+import { asError } from "@emss/utils";
+import type { Request, Response } from "express";
+
+import express from "express";
+
 import { Eva_db, Mission_db, Rex_db } from "server/database/models/_allModels";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { getEM } from "utils/mikro";
+import { emssTokenIsValid } from "utils/permissions";
 
 export type MissionsWithEvas = {
   [missionId: number]: {
@@ -20,9 +26,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
 
   // Check if user has EMSS permissions
-  const viewPermissions = emssToken && emssToken === process.env.EMSS_TOKEN;
+  const viewPermissions = emssTokenIsValid(emssToken);
 
   if (!viewPermissions) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "emss/getMissions",
+      message: "Unauthorized access attempt",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -95,7 +108,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: missions,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "emss/getMissions",
+      message: "Error getting missions and their evas",
+      error: asError(e),
+    });
     res
       .status(500)
       .json({ status: "error", message: `Error getting missions and their evas ${e}` });

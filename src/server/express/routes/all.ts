@@ -1,20 +1,24 @@
-import express, { Request, Response } from "express";
-import { hasPerms } from "utils/permissions";
-import { Query } from "express-serve-static-core";
+import type { Request, Response } from "express";
+import type { Query } from "express-serve-static-core";
 
-import { getMission } from "./mission";
+import express from "express";
+
 import { getActions } from "./action";
 import { getEVAs } from "./eva";
+import { getFolders } from "./folder";
 import { getLayers } from "./layer";
+import { getMission } from "./mission";
 import { getSublayers } from "./sublayer";
 import { getPois } from "./poi";
 import { getPresets } from "./preset";
 import { getRexes } from "./rex";
 import { getStations } from "./station";
 import { getLevel1s, getLevel2s, getLevel3s } from "./stm";
-import { getTraverses } from "./traverse";
 import { getStmRules } from "./stmRules";
-import { getFolders } from "./folder";
+import { getTraverses } from "./traverse";
+import { hasPerms } from "utils/permissions";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -31,18 +35,36 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   const emssToken = req.headers["emss-token"] as string;
 
-  const viewPermission = await hasPerms({
+  const viewPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
     appUser: req.session?.appUser,
     emssToken,
   });
   if (!viewPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "all",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
+    apiRouteLogger({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "all",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
   try {
@@ -53,7 +75,16 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: record,
     });
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "all",
+      appUsername: req.session?.appUser?.username,
+      missionId: queryObj.missionId,
+      message: `Error getting everything ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error getting everything ${e}` });
   }
 });

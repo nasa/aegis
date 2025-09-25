@@ -1,17 +1,18 @@
-import express, { Request, Response } from "express";
+import type { EntityData, Loaded } from "@mikro-orm/postgresql";
+import type { Request, Response } from "express";
 
+import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/postgresql";
+import express from "express";
 import cloneDeep from "lodash/cloneDeep";
-import { hasPerms } from "utils/permissions";
-import {
-  EntityData,
-  ForeignKeyConstraintViolationException,
-  Loaded,
-  QueryOrder,
-} from "@mikro-orm/core";
+
 import { Action_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "server/express/sockets";
-import { getEM } from "utils/mikro";
 import { convertActionsTypeDbToStore, convertActionsTypeStoreToDb } from "store/storeUtils/action";
+import { getEM } from "utils/mikro";
+import { hasPerms } from "utils/permissions";
+import { upsertDatabaseRetry } from "utils/database";
+import { apiRouteLogger } from "utils/logging/serverLogger";
+import { asError } from "@emss/utils";
 
 const router = express.Router();
 
@@ -20,34 +21,75 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
 
   const { socketId, missionId, actions } = req.body as ActionUpsertRequest;
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "action",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: actions?.map((a) => a.uuid),
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   try {
-    await upsertActions(actions);
+    const upsertResponse = await upsertDatabaseRetry(() => upsertActions(actions));
+
+    // Check response
+    if (!upsertResponse || upsertResponse.length === 0) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "action",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: actions?.map((a) => a.uuid),
+        message: "Failed to update action after multiple tries due to optimistic locking",
+        error: new Error("Failed to update action after multiple tries due to optimistic locking"),
+      });
+      res.status(500).json({
+        status: "error",
+        message: "Failed to update action after multiple tries due to optimistic locking",
+        data: null,
+      });
+      return;
+    }
 
     // emit the upserted item to all clients via socket.io
     emitStoreUpsert({
       missionId,
       socketId,
       type: "action",
-      data: actions,
+      data: upsertResponse,
     } as StoreUpsert);
     res.status(200).json({
       status: "success",
-      message: `Action(s) upserted with Uuids ${actions.map((a) => a.uuid)}`,
-      data: actions,
+      message: `Action(s) upserted with Uuids ${upsertResponse.map((a) => a.uuid)}`,
+      data: upsertResponse,
     });
     return;
   } catch (e) {
-    console.error(e);
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "action",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: actions?.map((a) => a.uuid),
+      message: `Error processing the POST request ${e}`,
+      error: asError(e),
+    });
     res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
     return;
   }
@@ -58,13 +100,23 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
 
   const { socketId, missionId, actionUuids } = req.body as ActionDeleteRequest;
-  const editPermission = await hasPerms({
+  const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
     emssToken,
   });
   if (!editPermission) {
+    apiRouteLogger({
+      logLevel: "warn",
+      httpMethod: "DELETE",
+      responseStatus: 401,
+      routeName: "action",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: actionUuids,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -84,6 +136,16 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "Action Deleted",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "DELETE",
+        responseStatus: 404,
+        routeName: "action",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: actionUuids,
+        message: "Record not found. Nothing deleted",
+      });
       res.status(404).json({
         status: "failure",
         message: "Record not found. Nothing deleted",
@@ -92,11 +154,33 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   } catch (e) {
     console.error(e);
     if (e instanceof ForeignKeyConstraintViolationException) {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "action",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: actionUuids,
+        message: "Cannot delete action. This action is referenced elsewhere",
+        error: asError(e),
+      });
       res.status(500).json({
         status: "error",
         message: "Cannot delete action. This action is referenced elsewhere",
       });
     } else {
+      apiRouteLogger({
+        logLevel: "error",
+        httpMethod: "DELETE",
+        responseStatus: 500,
+        routeName: "action",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: actionUuids,
+        message: `Error processing the DELETE request ${e}`,
+        error: asError(e),
+      });
       res
         .status(500)
         .json({ status: "error", message: `Error processing the DELETE request ${e}` });
@@ -155,18 +239,29 @@ export async function getActionRefUuids(actionUuids: string[]): Promise<string[]
  * @param actions array of actions upsert
  * @returns a copy of the array of actions that was upserted
  */
-export async function upsertActions(actions: Action[]): Promise<void> {
+async function upsertActions(actions: Action[]): Promise<Action[]> {
   const em = getEM();
+  await em.begin();
 
-  const actionsToUpsert = cloneDeep(actions); //create a copy to manipulate
-  //convert fks
-  for (const actionToUpsert of actionsToUpsert) {
-    const convertedRecord: EntityData<Action_db> = convertActionsTypeStoreToDb([actionToUpsert])[0];
-    const upsertReference: Action_db = await em.upsert(Action_db, convertedRecord);
-    em.persist(upsertReference);
+  const actionsToUpsert = cloneDeep(actions); // Create a copy to manipulate
+  const actionsUpsertedToDb = [];
+  try {
+    for (const actionToUpsert of actionsToUpsert) {
+      // Convert fks
+      const convertedRecord: EntityData<Action_db> = convertActionsTypeStoreToDb([
+        actionToUpsert,
+      ])[0];
+      const upsertReference: Action_db = await em.upsert(Action_db, convertedRecord);
+      em.persist(upsertReference);
+      actionsUpsertedToDb.push(upsertReference);
+    }
+
+    await em.commit(); // Flush and commit transaction
+  } catch (e) {
+    await em.rollback();
+    throw e; // Re-throw the error to be handled by the caller
   }
-
-  await em.flush();
+  return convertActionsTypeDbToStore(actionsUpsertedToDb);
 }
 
 /**
@@ -174,7 +269,7 @@ export async function upsertActions(actions: Action[]): Promise<void> {
  * @param actionUuids action uuids to delete
  * @returns the uuids of the deleted actions
  */
-export async function deleteActions(actionUuids: string[]): Promise<string[]> {
+async function deleteActions(actionUuids: string[]): Promise<string[]> {
   const em = getEM();
   const deletedUuids = [];
   for (const actionUuid of actionUuids) {

@@ -33,7 +33,10 @@ export function drawTimeMarker(
   });
   verticalLine.name = "lineMarker";
   const seconds = Math.round((xLoc - paperVars.timelineLeft) * (1 / paperVars.pixelsPerSecondX));
-  const timeMins = Math.floor((seconds % 3600) / 60);
+  const displaySeconds = Math.ceil(
+    (xLoc - paperVars.timelineLeft) * (1 / paperVars.pixelsPerSecondX)
+  );
+  const timeMins = Math.floor((displaySeconds % 3600) / 60);
   const timeHrs = Math.floor(seconds / 3600);
   const timeLabel = new paper.PointText({
     point: new paper.Point(xLoc - 30, paperVars.timelineTop + paperVars.timelineHeight + 40),
@@ -594,7 +597,7 @@ export function drawSequenceBottomSection(
         (paperVars.timelineLeft + paperVars.timelineWidth - xLoc) *
         (1 / paperVars.pixelsPerSecondX);
       const timeHrs = Math.floor(seconds / 3600);
-      const timeMins = Math.round((seconds % 3600) / 60);
+      const timeMins = Math.ceil((seconds % 3600) / 60);
       const availableLabel = new paper.PointText({
         point: new paper.Point(availableMiddleX, paperVars.sequenceTop + 14),
         justification: "center",

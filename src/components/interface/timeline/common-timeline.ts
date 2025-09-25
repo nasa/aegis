@@ -267,7 +267,7 @@ export const processEvaDataFromStore = ({
         (calculated) => calculated?.uuid === traverse.uuid
       );
 
-      //subdivide seach traverse segment for greater accuracy
+      //subdivide each traverse segment for greater accuracy
       const divisor = calculatedFields.distanceMeters * 0.01; //meters
       const newTraverse: AEGISPoint[] = addPointsAtMeters(
         traverse.path,
@@ -278,9 +278,8 @@ export const processEvaDataFromStore = ({
 
       const durationIsManual = !isNotNumber(traverse.duration);
 
-      EVASequenceItemForTimeline.totalDurationMins = durationIsManual ? traverse.duration : 0;
-      storeRef.current.evaLengthCalculatedMins += durationIsManual ? traverse.duration : 0;
       //loop through new subdivided traverse
+      let calculatedDuration = 0;
       for (let i = 0; i < newTraverse.length; i++) {
         if (mission.landerLocation) {
           //calculate distance from lander. Track max distance
@@ -306,21 +305,23 @@ export const processEvaDataFromStore = ({
             const duration = isNaN(traverseRate)
               ? 0
               : (distanceSegment / (+traverseRate * 1000)) * 60;
-            EVASequenceItemForTimeline.totalDurationMins += duration;
-            storeRef.current.evaLengthCalculatedMins += duration;
+            calculatedDuration += duration;
           }
         }
       }
 
-      if (!durationIsManual) {
-        // calculate duration from actions assigned to traverse
-        // note: this is the "dwell time" which is crew member time spent at the traverse actions that is the longest
+      if (durationIsManual) {
+        // assign total duration for the traverse and add it to the eva total duration
+        EVASequenceItemForTimeline.totalDurationMins = traverse.duration;
+        storeRef.current.evaLengthCalculatedMins += traverse.duration;
+      } else {
+        // add traverse action durations onto the total duration for the traverse        // note: this is the "dwell time" which is crew member time spent at the traverse actions that is the longest
         const actionDurationMins = calculatedFields?.totalDwellTime;
-        // add traverse action durations onto the total duration for the traverse
-        EVASequenceItemForTimeline.totalDurationMins += actionDurationMins;
+        const calcTraversePlusActionDuration = Math.ceil(calculatedDuration) + actionDurationMins;
 
-        // add action durations to the sum for total length calculated
-        storeRef.current.evaLengthCalculatedMins += actionDurationMins;
+        // assign total duration for the traverse and add it to the eva total duration
+        EVASequenceItemForTimeline.totalDurationMins = calcTraversePlusActionDuration;
+        storeRef.current.evaLengthCalculatedMins += calcTraversePlusActionDuration;
       }
     }
     storeRef.current.sequenceItems.push(EVASequenceItemForTimeline);
