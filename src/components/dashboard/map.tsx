@@ -1481,8 +1481,6 @@ const MapBody: FunctionComponent<{
                 setFollowMode(!followMode);
                 e.stopPropagation();
               }}
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-html="Toggle Follow Mode"
             >
               <div className={`${styles.followButton} ${followMode && styles.followSelected}`}>
                 Auto Pan/Zoom Map
