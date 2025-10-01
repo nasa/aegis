@@ -105,16 +105,14 @@ const SequenceItemTraverse: FunctionComponent<{
   }
 
   const displayTraverseDuration = useCallback(() => {
+    const traverseCalculatedTime = thisTraverseCalculatedFields
+      ? thisTraverseCalculatedFields.durationMinutes + thisTraverseCalculatedFields.totalActionTime
+      : null;
     const durationMinutes = isNotNumber(thisTraverseForModified?.duration)
-      ? thisTraverseCalculatedFields?.durationMinutes +
-          thisTraverseCalculatedFields?.totalActionTime || null
+      ? traverseCalculatedTime
       : thisTraverseForModified.duration;
     return isNotNumber(durationMinutes) ? "N/A" : hmmFromMinutes(durationMinutes);
-  }, [
-    thisTraverseCalculatedFields?.durationMinutes,
-    thisTraverseCalculatedFields?.totalActionTime,
-    thisTraverseForModified.duration,
-  ]);
+  }, [thisTraverseCalculatedFields, thisTraverseForModified.duration]);
 
   const getTraverseDisplay = (name: string) => {
     if (!name) {

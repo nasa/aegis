@@ -186,7 +186,7 @@ const SequenceItemStation: FunctionComponent<{
 
   const displayStationDwellTime = useCallback(() => {
     const durationMinutes = isNotNumber(thisStation?.duration)
-      ? thisStationCalculatedFields?.totalDwellTime || null
+      ? (thisStationCalculatedFields?.totalDwellTime ?? null)
       : thisStation.duration;
     return isNotNumber(durationMinutes) ? "N/A" : hmmFromMinutes(durationMinutes);
   }, [thisStation?.duration, thisStationCalculatedFields?.totalDwellTime]);
