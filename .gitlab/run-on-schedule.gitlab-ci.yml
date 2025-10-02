@@ -1,3 +1,6 @@
+.include:
+  - local: .gitlab/includes/db-import.yml
+
 .db-export-template:
   needs: []
   # I don't think we want to do this, because I don't think we want GitLab to consider this a
@@ -20,7 +23,7 @@
     name: "$CI_JOB_STARTED_AT$-aegis.sql"
     paths:
       - aegis.sql
-    # hold on to this artifact longer than default (1 day). . The latest for any branch never expires
+    # hold on to this artifact longer than default (1 day). The latest for any branch never expires
     expire_in: 60 days
 
 z:db-export:prod:
