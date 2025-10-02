@@ -13,6 +13,8 @@ import { traverseSlice, initialState as traverseInitialState } from "./traverse"
 import { userSlice, initialState as userInitialState } from "./user";
 import { rexSlice, initialState as rexInitialState } from "./rex";
 import { measureSlice, initialState as measureInitialState } from "./measure";
+import { isRejected } from "@reduxjs/toolkit";
+import type { Middleware } from "@reduxjs/toolkit";
 
 export const initialState: WholeStoreState = {
   hover: hoverInitialState,
@@ -50,9 +52,18 @@ export const sliceReducers = combineReducers({
 
 export type RootState = ReturnType<typeof sliceReducers>;
 
+// Add middleware to log rejected thunks to the browser console
+const rejectedActionLogger: Middleware<{}, RootState> = () => (next) => (action) => {
+  if (isRejected(action)) {
+    console.error("Rejected async thunk. Action = ", { action });
+  }
+  return next(action);
+};
+
 export const store: StoreType = configureStore({
   reducer: sliceReducers,
   preloadedState: initialState,
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(rejectedActionLogger),
   devTools: {
     name: `AEGIS Tab-${Math.random()}`, // Include git branch name
   },
