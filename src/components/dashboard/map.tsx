@@ -143,10 +143,14 @@ const MapBody: FunctionComponent<{
     const stationsInProgress: Station[] = [];
     for (const stationUuid in runningRexFromDb.stationEntries) {
       const stationEntry: ActivityEntry = runningRexFromDb.stationEntries[stationUuid];
-      if (stationEntry.rexStatus === "in-progress") {
-        stationsInProgress.push(
-          state.station.stationsFromDb.find((station) => station.uuid === stationUuid)
-        );
+      const evaSequenceUuids =
+        state.eva.evas
+          .find((e) => e.uuid === runningRexFromDb.evaUuid)
+          ?.sequence.map((item) => item.uuid) || [];
+      // only get stations that are currently in the sequence. There might be old entries for stations that were deleted
+      if (stationEntry.rexStatus === "in-progress" && evaSequenceUuids.includes(stationUuid)) {
+        const station = state.station.stationsFromDb.find((s) => s.uuid === stationUuid);
+        if (station) stationsInProgress.push(station);
       }
     }
     return stationsInProgress;
@@ -155,10 +159,16 @@ const MapBody: FunctionComponent<{
     const traversesInProgress: Traverse[] = [];
     for (const traverseUuid in runningRexFromDb.traverseEntries) {
       const traverseEntry: ActivityEntry = runningRexFromDb.traverseEntries[traverseUuid];
-      if (traverseEntry.rexStatus === "in-progress") {
-        traversesInProgress.push(
-          state.traverse.traversesFromDb.find((traverse) => traverse.uuid === traverseUuid)
+      const evaSequenceUuids =
+        state.eva.evas
+          .find((e) => e.uuid === runningRexFromDb.evaUuid)
+          ?.sequence.map((item) => item.uuid) || [];
+      // only get traverses that are currently in the sequence. There might be old entries for traverses that were deleted
+      if (traverseEntry.rexStatus === "in-progress" && evaSequenceUuids.includes(traverseUuid)) {
+        const traverse = state.traverse.traversesFromDb.find(
+          (traverse) => traverse.uuid === traverseUuid
         );
+        if (traverse) traversesInProgress.push(traverse);
       }
     }
     return traversesInProgress;

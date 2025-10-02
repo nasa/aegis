@@ -224,7 +224,7 @@ const SequenceItemStation: FunctionComponent<{
           />
         </div>
 
-        {isRexEva && (
+        {isRexEva && stationUuid && (
           <RexStatusMenu
             rexStatus={stationRexStatus}
             divClassName={evaStyles.rexStatusWrapper}
