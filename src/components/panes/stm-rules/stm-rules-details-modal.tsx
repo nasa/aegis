@@ -531,7 +531,11 @@ const STMRuleDetailsButtons: FunctionComponent<{
     (state) => state.stm.ruleEditingUuid === rule.uuid,
     shallowEqual
   );
+  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
   const modified = true; //not implemented
+
+  if (!editPerms) return null;
+
   return (
     <div className={paneStyles.saveCancelContainer} style={{ marginTop: "2px", marginRight: "0" }}>
       {!isEditing ? (
