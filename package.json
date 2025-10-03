@@ -1,6 +1,6 @@
 {
   "name": "aegis",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "private": true,
   "scripts": {
     "bom": "docker run -it -v .:/repo -w /repo --name node-sbom --rm eegitlabregistry.fit.nasa.gov/emss/docker-images/node-ci:sbom /make-sbom.sh",
