@@ -200,7 +200,7 @@ export const getCalculatedFieldsByTraverse = (params: {
   if (!traverse) return;
 
   //calculate total traverse action time
-  let totalDuration = 0;
+  let actionTotalDuration = 0;
   let totalEv1Duration = 0;
   let totalEv2Duration = 0;
   let totalUnassignedDuration = 0;
@@ -210,7 +210,7 @@ export const getCalculatedFieldsByTraverse = (params: {
   let actionCount = 0;
   let totalEquipmentItems: EquipmentItemUsage[] = [];
   traverseActions.forEach((action) => {
-    totalDuration += action.duration;
+    actionTotalDuration += action.duration;
     if (action.crewAssigned?.includes("EV1")) {
       totalEv1Duration += action.duration;
     }
@@ -239,7 +239,7 @@ export const getCalculatedFieldsByTraverse = (params: {
   }
 
   // get duration minutes
-  const durationMinutes = calcPathDurationMins(traverse.pathSegmentDistances, traverseRate);
+  const traverseDurationMins = calcPathDurationMins(traverse.pathSegmentDistances, traverseRate);
 
   // get distance meters
   const distanceMeters = traverse.pathSegmentDistances?.reduce(
@@ -252,25 +252,28 @@ export const getCalculatedFieldsByTraverse = (params: {
 
   // check if calculated duration is greater than predicted durationLower
   if (!isNotNumber(traverse?.duration)) {
-    if (traverse?.duration > (durationMinutes + totalDuration) * 1.25) {
+    if (traverse?.duration > (Math.ceil(traverseDurationMins) + actionTotalDuration) * 1.25) {
       newReportItems.push({
         message:
           "Traverse duration is significantly more than the calculated total duration of actions and movement",
         type: "warning",
       } as ReportItem);
-    } else if (traverse?.duration > durationMinutes + totalDuration * 1.1) {
+    } else if (traverse?.duration > Math.ceil(traverseDurationMins) + actionTotalDuration * 1.1) {
       newReportItems.push({
         message:
           "Traverse duration is more than the calculated total duration of actions and movement",
         type: "warning",
       } as ReportItem);
-    } else if (traverse?.duration < (durationMinutes + totalDuration) * 0.75) {
+    } else if (
+      traverse?.duration <
+      (Math.ceil(traverseDurationMins) + actionTotalDuration) * 0.75
+    ) {
       newReportItems.push({
         message:
           "Traverse duration is significantly less than the calculated total duration of actions and movement",
         type: "warning",
       } as ReportItem);
-    } else if (traverse?.duration < durationMinutes + totalDuration * 0.9) {
+    } else if (traverse?.duration < Math.ceil(traverseDurationMins) + actionTotalDuration * 0.9) {
       newReportItems.push({
         message:
           "Traverse duration is less than the calculated total duration of actions and movement",
@@ -282,14 +285,14 @@ export const getCalculatedFieldsByTraverse = (params: {
   const newCalculatedFields: TraverseCalculatedFields = {
     uuid: traverse.uuid,
     reportItems: newReportItems,
-    totalActionTime: totalDuration,
+    totalActionTime: actionTotalDuration,
     totalEv1Time: totalEv1Duration,
     totalEv2Time: totalEv2Duration,
     totalUnassignedTime: totalUnassignedDuration,
     totalDwellTime: totalDwellTime,
     actionCount,
     totalMass,
-    durationMinutes,
+    durationMinutes: traverseDurationMins,
     distanceMeters,
     ascentDescent,
   };

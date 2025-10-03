@@ -59,12 +59,27 @@ const DraggableItem = ({
     disabled: !editPerms,
   });
 
+  // This is to prevent dnd-kit from initiating a drag when clicking on interactive elements within the draggable item.
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (
+      e.target instanceof HTMLElement &&
+      (e.target.closest("button") ||
+        e.target.closest("input") ||
+        e.target.closest("select") ||
+        e.target.closest("textarea") ||
+        e.target.closest('[role="menuitem"]'))
+    ) {
+      e.stopPropagation();
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
       {...(editPerms ? listeners : {})}
       {...(editPerms ? attributes : {})}
       className={`${styles.draggableItem} ${isDragging ? styles.isDragging : ""}`}
+      onPointerDownCapture={handlePointerDown}
     >
       {children}
     </div>
