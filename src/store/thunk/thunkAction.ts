@@ -20,7 +20,7 @@ import * as httpClient_station from "http-client/station";
 import * as httpClient_poi from "http-client/poi";
 import * as httpClient_traverse from "http-client/traverse";
 import { generateBlankAction } from "store/storeUtils/action";
-import { upsertTraverseByField } from "store/traverse";
+import { upsertTraverseByField, upsertTraversesFromDb } from "store/traverse";
 
 export const thunkCreateAction = appCreateAsyncThunk<
   {
@@ -189,7 +189,7 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
       actionOrderUuids = actionOrderUuids.concat(newActions.map((a) => a.uuid));
       dispatch(upsertTraverseByField(traverseUuid, "actionOrderUuids", actionOrderUuids, true));
       if (saveToDb) {
-        dispatch(upsertTraverseByField(traverseUuid, "actionOrderUuids", actionOrderUuids, true));
+        dispatch(upsertTraversesFromDb([{ ...traverse, actionOrderUuids }]));
         const upsertTraversesResponse = await httpClient_traverse.upsertTraverses([
           { ...traverse, actionOrderUuids },
         ]);
