@@ -228,9 +228,6 @@ export const interfaceSlice = createSlice({
     setLastEditEvent: (state, action: { payload: EditEvent }) => {
       state.socketStatus.lastEditEvent = action.payload;
     },
-    setAEGISVersion: (state, action: { payload: AppVersion }) => {
-      state.appVersion = action.payload;
-    },
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
@@ -276,6 +273,5 @@ export const {
   setLastStatusFromServer,
   setSocketConnectionStatus,
   setLastEditEvent,
-  setAEGISVersion,
   obliterateState,
 } = interfaceSlice.actions;

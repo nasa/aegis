@@ -2,7 +2,6 @@ import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { AppDispatch } from "store";
 import {
-  setAEGISVersion,
   setLastEditEvent,
   setLastStatusFromServer,
   setSocketConnectionStatus,
@@ -110,7 +109,6 @@ export const attachSocketListeners = (
           `A new version of AEGIS is available. Please refresh your browser to get the latest version. \nCurrent version: ${interfaceStoreRef.current.appVersion.version}/${interfaceStoreRef.current.appVersion.gitCommit}\nNew version: ${appVersion.version}/${appVersion.gitCommit} `
         );
       }
-      dispatch(setAEGISVersion(appVersion));
     }
   });
 
