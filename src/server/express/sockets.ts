@@ -29,7 +29,6 @@ export const setupSocketIO = (): void => {
           client: ${JSON.stringify(visitorData.appVersion)}
           server: ${JSON.stringify(globalValues.appVersion)}`
             );
-            return;
           }
 
           // join the room for this mission
