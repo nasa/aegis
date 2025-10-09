@@ -11,7 +11,7 @@ include:
   # - template: "Verify/Accessibility.gitlab-ci.yml"
 
   - project: "emss/gitlab-templates"
-    ref: 2.5.0
+    ref: 2.6.0
     file:
       # Run standard FIT developer-ecosystem/ci-job-templates with emss
       # stageless overrides.
