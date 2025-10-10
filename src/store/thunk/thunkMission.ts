@@ -294,7 +294,6 @@ export const thunkCreateActionTemplate = appCreateAsyncThunk<void, string>(
 
     const blankActionTemplate: ActionTemplate = generateBlankActionTemplate({
       templateName: randomName,
-      missionId: getState().mission.mission?.id,
     });
 
     //upsert action template
@@ -315,18 +314,23 @@ export const thunkCreateTemplateFromAction = appCreateAsyncThunk<{ actionUuid: s
 
     const newActionTemplate: ActionTemplate = {
       uuid: uuidv4(),
-      missionId: action.missionId,
       templateName: `Template of ${action.name}`,
-      type: action.type,
       name: action.name,
       actionDefinition: action.actionDefinition,
-      description: action.description,
-      duration: action.duration,
-      mass: action.mass,
       icon: action.icon,
+      description: action.description,
+      descriptionTask: action.descriptionTask,
+      status: action.status,
+      type: action.type,
+      duration: action.duration,
+      stmAction: action.stmAction,
+      stmUuidRefs: action.stmUuidRefs,
+      stmPriorities: action.stmPriorities,
       equipmentItemsUsage: action.equipmentItemsUsage,
       geographicUnitsUsage: action.geographicUnitsUsage,
-      stmAction: action.stmAction,
+      crewAssigned: action.crewAssigned,
+      mass: action.mass,
+      priority: action.priority,
       createdAt: getAccurateNow().toISOString(),
       updatedAt: getAccurateNow().toISOString(),
     };

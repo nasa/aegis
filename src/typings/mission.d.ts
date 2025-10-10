@@ -52,7 +52,22 @@ type Mission_db_type = Omit<Mission, "createdAt" | "updatedAt"> & {
 
 type ActionDefinitionType = "verbs" | "nouns" | "adjectives";
 
-type ActionTemplate = Partial<Action> & { templateName: string; uuid: string; type: string };
+// Explicitly omit all of the fields from Action that should not be an actionTemplate
+type ActionTemplate = Omit<
+  Action,
+  | "missionId"
+  | "refUuid"
+  | "poiUuid"
+  | "stationUuid"
+  | "traverseUuid"
+  | "parentActionUuid"
+  | "parentCopyDate"
+  | "location"
+  | "elevation"
+  | "enabled"
+> & {
+  templateName: string;
+};
 
 /**
  * The object we put in the "measure tool" area of MMGIS config about the dem
