@@ -364,6 +364,11 @@ export const auditActionTemplates = async ({
   const newActionTemplates = cloneDeep(wholeStoreState.mission.mission.actionTemplates);
   let isModified = false;
 
+  // if newActionTemplates is not iterable
+  if (!newActionTemplates || !Array.isArray(newActionTemplates)) {
+    return;
+  }
+
   for (const actionTemplate of newActionTemplates) {
     if ("missionId" in actionTemplate) {
       // @ts-ignore
