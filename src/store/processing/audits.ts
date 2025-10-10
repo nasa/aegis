@@ -352,3 +352,37 @@ export const auditTaskDescriptions = async ({
     wholeStoreState.action.actions = newActions;
   }
 };
+
+/**
+ * Strip out missionID from all action templates
+ */
+export const auditActionTemplates = async ({
+  wholeStoreState,
+}: {
+  wholeStoreState: WholeStoreState;
+}): Promise<void> => {
+  const newActionTemplates = cloneDeep(wholeStoreState.mission.mission.actionTemplates);
+  let isModified = false;
+
+  for (const actionTemplate of newActionTemplates) {
+    if ("missionId" in actionTemplate) {
+      // @ts-ignore
+      delete actionTemplate.missionId;
+      isModified = true;
+    }
+  }
+
+  if (isModified) {
+    // update the store with the new action templates
+    wholeStoreState.mission.mission.actionTemplates = newActionTemplates;
+    wholeStoreState.mission.missionFromDb.actionTemplates = newActionTemplates;
+
+    // upsert the changes to the mission table in the db
+    const upsertResponse = await httpClient_mission.upsertMissions([
+      wholeStoreState.mission.mission,
+    ]);
+    if (upsertResponse.status !== "success") {
+      // handle the error
+    }
+  }
+};

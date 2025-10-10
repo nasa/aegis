@@ -66,9 +66,11 @@ export const generateBlankActionTemplate = (
   const defaultNewActionTemplate: ActionTemplate = {
     uuid: uuidv4(),
     templateName: null,
-    missionId: null,
     name: "",
+    actionDefinition: null,
+    icon: null,
     description: "",
+    descriptionTask: "",
     status: "Candidate",
     type: "other",
     duration: 6,
