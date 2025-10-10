@@ -419,11 +419,7 @@ const ActionDefDropdown: FunctionComponent<{
     >
       <option value="">{capitalize(type)}</option>
       {actionDefinitionItems.map((actionDef) => (
-        <option
-          key={actionDef.uuid}
-          value={actionDef.uuid}
-          selected={actionDef.uuid === selectedUuid}
-        >
+        <option key={actionDef.uuid} value={actionDef.uuid}>
           {actionDef.name}
         </option>
       ))}
