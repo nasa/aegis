@@ -163,9 +163,27 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         evas = asPlannedEvas;
       }
 
-      const gridCoordinates: MissionGridPoint[][] = allData.mission.activeGridUuid
-        ? await getGridFromFile(queryObj.missionId, allData.mission.activeGridUuid)
-        : null;
+      let gridCoordinates = null;
+      if (allData.mission.activeGridUuid) {
+        try {
+          gridCoordinates = await getGridFromFile(
+            queryObj.missionId,
+            allData.mission.activeGridUuid
+          );
+        } catch (e) {
+          // something went wrong with fetching grids. Report an error but continue without grid data
+          apiRouteLogger({
+            logLevel: "error",
+            httpMethod: "GET",
+            responseStatus: null,
+            routeName: "readable/eva",
+            appUsername: req.session?.appUser?.username,
+            missionId: queryObj.missionId,
+            message: `Error getGridFromFile: ${e}`,
+            error: asError(e),
+          });
+        }
+      }
 
       const exportEvas: ExportEva[] = makeExportEvas({
         evas: evas,
