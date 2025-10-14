@@ -73,6 +73,11 @@ const PoiEditorRight: FunctionComponent = () => {
       }),
     deepEqual
   );
+  const stationNamesAssociatedWithPoi = useAppSelector((state) => {
+    return state.station.stations
+      .filter((station) => station.poiUuids?.includes(selectedPoiUuid))
+      .map((s) => s.name);
+  }, shallowEqual);
 
   const poiModified = isModified([selectedPoi], [selectedPoiFromDb]);
   const actionModified = isModified(poiActions, poiActionsFromDb);
@@ -192,7 +197,13 @@ const PoiEditorRight: FunctionComponent = () => {
                 icon={faTrashAlt}
                 onClick={() => {
                   if (selectedPoi) {
-                    if (window.confirm("Are you sure you want to delete this POI?")) {
+                    let confirmMsg = "Are you sure you want to delete this POI?";
+                    if (stationNamesAssociatedWithPoi.length > 0) {
+                      // if the poi is associated with stations, show those station names in the confirm dialog
+                      const stationList = stationNamesAssociatedWithPoi.join(", ");
+                      confirmMsg += `\n\nThis POI is associated with the following station(s): ${stationList}`;
+                    }
+                    if (window.confirm(confirmMsg)) {
                       dispatch(
                         thunkDeletePoi({
                           poi: selectedPoi,

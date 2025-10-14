@@ -8,6 +8,7 @@ import {
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkGetElevation } from "./thunkElevation";
 import * as httpClient_poi from "http-client/poi";
+import * as httpClient_station from "http-client/station";
 import { upsertActions, deleteActionsByUuid } from "store/action";
 import { thunkDeletePoiAndActionsFromStore } from "./crossThunk";
 import { setPoiEditMode, setSelectedPoiUuid, upsertPois } from "store/poi";
@@ -26,6 +27,7 @@ import { isModified } from "utils/component-helpers";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankPoi } from "store/storeUtils/poi";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
+import { upsertStations, upsertStationsFromDb } from "store/station";
 
 export const thunkUpdatePoiLatLngField = appCreateAsyncThunk<{
   poiUuid: string;
@@ -140,6 +142,25 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
   const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi.uuid);
   const poiFromDb = getState().poi.poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
 
+  // remove poi from any stations that reference it
+  const stationsWithThisPoi = getState().station.stations.filter((s) =>
+    s.poiUuids?.includes(poi.uuid)
+  );
+  // only poi's saved to the db can be associated with stations
+  if (poiFromDb && stationsWithThisPoi.length > 0) {
+    const updatedStations = cloneDeep(stationsWithThisPoi);
+    // remove this poi uuid from each station's poiUuids array
+    updatedStations.forEach((s) => (s.poiUuids = s.poiUuids.filter((uuid) => uuid !== poi.uuid)));
+    // persist the updated stations to the db
+    const upsertStationsResponse = await httpClient_station.upsertStations(updatedStations);
+    if (upsertStationsResponse.status !== "success") {
+      throw new Error("Error upserting stations: " + upsertStationsResponse.message);
+    }
+    // update the stations in the store
+    dispatch(upsertStations(updatedStations, true));
+    dispatch(upsertStationsFromDb(updatedStations));
+  }
+
   // if the selected poi is in poisFromDb then delete it from the db
   if (poiFromDb) {
     // delete actions from the db via internal api call
@@ -158,11 +179,13 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     dispatch(deletePoisFromDbByUuid([poi.uuid]));
     dispatch(setSelectedPoiUuid(null));
   } else {
-    // if the selected poi is not in poisFromDb then delete it from the store
+    // if the selected poi is not in poisFromDb then only delete it from the store copies
     dispatch(deletePoisByUuid([poi.uuid]));
     dispatch(setSelectedPoiUuid(null));
     dispatch(deleteActionsByUuid(poiActions.map((a) => a.uuid)));
   }
+
+  // remove from folder
   dispatch(
     thunkAddRemoveFolderItem({
       itemUuid: poi.uuid,
@@ -170,7 +193,7 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
     })
   );
   dispatch(setPoiEditMode({ poiUuid: poi.uuid, editMode: false }));
-  //if we're in the middle of a map action, cancel it
+  // if we're in the middle of a map action, cancel it
   dispatch(thunkCancelMarkerMapDirective({ uuid: poi.uuid }));
 
   // close right panel
