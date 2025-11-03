@@ -12,6 +12,7 @@ import {
   faPen,
   faEye,
   faArrowRotateRight,
+  faPlug,
 } from "@fortawesome/free-solid-svg-icons";
 import uniq from "lodash/uniq";
 
@@ -66,7 +67,10 @@ const ServerSocketStatus: React.FunctionComponent = () => {
           {!serverSocketStatus?.visitorsData?.length ? (
             <p>No visitors connected.</p>
           ) : (
-            <PrintUsers visitorData={serverSocketStatus?.visitorsData} />
+            <div>
+              <p>{serverSocketStatus.visitorsData.length} visitors connected</p>
+              <PrintUserLists visitorData={serverSocketStatus?.visitorsData} />
+            </div>
           )}
         </div>
       </div>
@@ -74,7 +78,7 @@ const ServerSocketStatus: React.FunctionComponent = () => {
   );
 };
 
-const PrintUsers: FunctionComponent<{
+const PrintUserLists: FunctionComponent<{
   visitorData: VisitorData[];
 }> = ({ visitorData }) => {
   // Get unique missionIds and sort them
@@ -103,24 +107,11 @@ const PrintUsers: FunctionComponent<{
   return (
     <div>
       {missionIds.map((missionId) => {
-        // Filter data for this mission
+        // Separate filtered users into editors and viewers
         const missionVisitorData = visitorData.filter((visitor) => visitor.missionId === missionId);
 
-        // Get sorted unique users in this mission
-        const launchpadUsers = missionVisitorData.map((visitor) => visitor.launchpadUser);
-        const uniqueUsers = launchpadUsers.filter(
-          (user, index) =>
-            launchpadUsers.findIndex((visitor) => visitor?.uupic === user?.uupic) === index
-        );
-        uniqueUsers.sort((a, b) => {
-          const sa = a?.surname || "";
-          const sb = b?.surname || "";
-          return sa.localeCompare(sb);
-        });
-
-        // Count editor and viewer connections
-        const editorCount = missionVisitorData.filter((v) => v.permission === "editor").length;
-        const viewerCount = missionVisitorData.filter((v) => v.permission === "viewer").length;
+        const missionEditorData = missionVisitorData.filter((v) => v.permission === "editor");
+        const missionViewerData = missionVisitorData.filter((v) => v.permission === "viewer");
 
         return (
           <div key={missionId}>
@@ -138,54 +129,108 @@ const PrintUsers: FunctionComponent<{
                 ) : (
                   <FontAwesomeIcon icon={faCaretRight} size="lg" style={{ paddingRight: 5 }} />
                 )}
-                MissionId {missionId}: ({editorCount} <FontAwesomeIcon icon={faPen} /> {viewerCount}{" "}
-                <FontAwesomeIcon icon={faEye} />)
+                MissionId {missionId}: ({missionVisitorData.length}{" "}
+                <FontAwesomeIcon icon={faPlug} />)
               </h3>
             </div>
-
             {expandedMissions[missionId] && (
-              <ul>
-                {uniqueUsers.map((user) => {
-                  const allVisitorRecords = missionVisitorData.filter(
-                    (visitor) => visitor.launchpadUser?.uupic === user?.uupic
-                  );
-                  const displayName = user?.display_name || `${user?.surname}, ${user?.givenname}`;
-                  return (
-                    <li key={`${missionId}-${user?.uupic}`}>
-                      ({allVisitorRecords.length}) {displayName}
-                      {allVisitorRecords.map((record, index) => {
-                        return (
-                          <div key={`${record.socketId}-${index}`}>
-                            {index > 0 ? <br /> : ""}
-                            <div
-                              style={{ paddingLeft: "20px" }}
-                              key={`${record.socketId}-${index}`}
-                            >
-                              Permission:
-                              <span
-                                style={{
-                                  color: record.permission === "editor" ? "orangered" : "inherit",
-                                }}
-                              >
-                                {` ${record.permission}`}
-                              </span>
-                              <br />
-                              App User: {record.appUser.username || "N/A"} <br />
-                              Version: {record.appVersion.version} - {record.appVersion.gitCommit}{" "}
-                              <br />
-                              Connected At: {new Date(record.connectedAt).toUTCString()}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </li>
-                  );
-                })}
-              </ul>
+              <div style={{ paddingLeft: "40px" }}>
+                {missionEditorData.length > 0 && (
+                  <PrintUsers
+                    missionId={missionId}
+                    visitorData={missionEditorData}
+                    permission="Editor"
+                  />
+                )}
+                {missionViewerData.length > 0 && (
+                  <PrintUsers
+                    missionId={missionId}
+                    visitorData={missionViewerData}
+                    permission="Viewer"
+                  />
+                )}
+              </div>
             )}
           </div>
         );
       })}
+    </div>
+  );
+};
+
+const PrintUsers: FunctionComponent<{
+  missionId: number;
+  visitorData: VisitorData[];
+  permission: "Editor" | "Viewer";
+}> = ({ missionId, visitorData, permission }) => {
+  const [showUsers, setShowUsers] = useState<boolean>(true);
+  // Get sorted unique users in this mission
+  const launchpadUsers = visitorData.map((visitor) => visitor.launchpadUser);
+  const uniqueUsers = launchpadUsers.filter(
+    (user, index) => launchpadUsers.findIndex((visitor) => visitor?.uupic === user?.uupic) === index
+  );
+
+  uniqueUsers.sort((a, b) => {
+    const sa = a?.surname || "";
+    const sb = b?.surname || "";
+    return sa.localeCompare(sb);
+  });
+
+  return (
+    <div>
+      <div
+        onClick={() => setShowUsers(!showUsers)}
+        style={{
+          cursor: "pointer",
+          userSelect: "none",
+        }}
+      >
+        <h4>
+          {showUsers ? (
+            <FontAwesomeIcon icon={faCaretDown} size="lg" style={{ paddingRight: 5 }} />
+          ) : (
+            <FontAwesomeIcon icon={faCaretRight} size="lg" style={{ paddingRight: 5 }} />
+          )}
+          {permission}s: ({visitorData.length}{" "}
+          <FontAwesomeIcon icon={permission === "Editor" ? faPen : faEye} />)
+        </h4>
+      </div>
+      {showUsers && (
+        <ul>
+          {uniqueUsers.map((user) => {
+            const allVisitorRecords = visitorData.filter(
+              (visitor) => visitor.launchpadUser?.uupic === user?.uupic
+            );
+            const displayName = user?.display_name || `${user?.surname}, ${user?.givenname}`;
+            return (
+              <li key={`${missionId}-${user?.uupic}`}>
+                ({allVisitorRecords.length}) {displayName}
+                {allVisitorRecords.map((record, index) => {
+                  return (
+                    <div key={`${record.socketId}-${index}`}>
+                      {index > 0 ? <br /> : ""}
+                      <div style={{ paddingLeft: "20px" }} key={`${record.socketId}-${index}`}>
+                        Permission:
+                        <span
+                          style={{
+                            color: record.permission === "editor" ? "orangered" : "inherit",
+                          }}
+                        >
+                          {` ${record.permission}`}
+                        </span>
+                        <br />
+                        App User: {record.appUser.username || "N/A"} <br />
+                        Version: {record.appVersion.version} - {record.appVersion.gitCommit} <br />
+                        Connected At: {new Date(record.connectedAt).toUTCString()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 };

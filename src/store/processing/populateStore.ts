@@ -7,7 +7,6 @@ import {
   auditActions,
   auditPresetsAgainstLayers,
   auditFolders,
-  auditTaskDescriptions,
   auditActionTemplates,
 } from "./audits";
 
@@ -72,7 +71,6 @@ export const populateStore = async (params: {
     await auditActionDefinitions({ wholeStoreState });
     await auditFolders({ wholeStoreState });
     await auditActions({ wholeStoreState });
-    await auditTaskDescriptions({ wholeStoreState });
     await auditActionTemplates({ wholeStoreState });
   }
 
