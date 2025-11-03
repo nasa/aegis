@@ -7,8 +7,6 @@ import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
-import reduce from "lodash/reduce";
-import { convertNodeToHTML } from "components/interface/form/wysiwyg";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
@@ -300,56 +298,6 @@ export const auditFolders = async ({
     if (upsertResponse.status !== "success") {
       console.error("Error saving folders to DB:", upsertResponse.message);
     }
-  }
-};
-
-/**
- * Strip out all slate and rich text formatting from the description fields
- *   and convert them into plaintext
- */
-export const auditTaskDescriptions = async ({
-  wholeStoreState,
-}: {
-  wholeStoreState: WholeStoreState;
-}): Promise<void> => {
-  const convertSlateToPlaintext = (description: string): string => {
-    if (!description) return null;
-    // Convert a string to a slate JSON object.
-    let jsonSlateNodes;
-    try {
-      jsonSlateNodes = JSON.parse(description);
-    } catch (e) {
-      // If it's not in JSON form then it must be already a plain string
-      return null;
-    }
-
-    // convert to html
-    const html = reduce(
-      jsonSlateNodes,
-      (htmlString, decendant) => htmlString + convertNodeToHTML(decendant),
-      ""
-    );
-    // convert to plaintext
-    let plainText = decodeURIComponent(html); // replace url encoded sequences
-    plainText = plainText.replace(/<br \/>/gm, "\n"); // replace all <br /> with newlines
-    plainText = plainText.replace(/<\/p>/gm, "\n"); // replace all </p> with newlines
-    plainText = plainText.replace(/<\/li>/gm, "\n"); // replace all </li> with newlines
-    plainText = plainText.replace(/<[^>]*>?/gm, ""); // strip out rest of html tags
-
-    return plainText;
-  };
-
-  //convert action descriptions
-  const newActions = cloneDeep(wholeStoreState.action.actions);
-  for (const action of newActions) {
-    const newDescriptionTask = convertSlateToPlaintext(action.descriptionTask);
-    if (newDescriptionTask) {
-      action.descriptionTask = newDescriptionTask;
-    }
-  }
-  if (!isEqual(newActions, wholeStoreState.action.actions)) {
-    httpClient_action.upsertActions(newActions);
-    wholeStoreState.action.actions = newActions;
   }
 };
 

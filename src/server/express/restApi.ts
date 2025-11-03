@@ -27,10 +27,8 @@ import usersRoutes from "./routes/users";
 import timeRoutes from "./routes/time";
 import folderRoutes from "./routes/folder";
 
-import rexPet from "./routes/emss/rexPet";
 import rexControl from "./routes/emss/rexControl";
 import rexByEvaRef from "./routes/emss/getRexesByEvaRef";
-import rexStatus from "./routes/emss/rexStatus";
 import getMissions from "./routes/emss/getMissions";
 import rexOverwrite from "./routes/emss/rexOverwrite";
 import enableEmssApi from "./routes/emss/enableEmssApi";
@@ -133,10 +131,8 @@ app.use("/api/v1/readable/mission", readableMissionRoutes);
 app.use("/api/v1/readable/traverse", readableTraverseRoutes);
 
 // endpoints that require emssToken auth only
-app.use("/api/v1/emss/rexPet", rexPet);
 app.use("/api/v1/emss/rexControl", rexControl);
 app.use("/api/v1/emss/getRexesByEvaRef", rexByEvaRef);
-app.use("/api/v1/emss/rexStatus", rexStatus);
 app.use("/api/v1/emss/getMissions", getMissions);
 app.use("/api/v1/emss/enableEmssApi", enableEmssApi);
 app.use("/api/v1/emss/rexOverwrite", rexOverwrite);
