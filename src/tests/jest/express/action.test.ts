@@ -1,5 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { getORM, getEM, closeORM } from "utils/mikro";
+import { MikroORM } from "@mikro-orm/postgresql";
+import config from "server/database/mikro-orm.config";
+import { globalValues } from "server/express/global";
 import {
   App_User_db,
   Action_db,
@@ -32,8 +34,10 @@ let testStation: Station_db;
 let testPoi: Poi_db;
 
 beforeAll(async () => {
-  await getORM();
-  const em = getEM();
+  // Initialize MikroORM and set it in globalValues
+  globalValues.orm = await MikroORM.init(config);
+
+  const em = globalValues.orm.em.fork();
   testMissions = await new MissionFactory(em).create(3);
   testUser = await new UserFactory(em).createOne({
     username: "Jest Action",
@@ -149,7 +153,7 @@ describe("Action API Endpoint", () => {
       newAction = { ...upsertedAction };
 
       //check if it was added to the db
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       const actionReference = await em.findOne(Action_db, upsertedAction.uuid);
       expect(actionReference).not.toBeNull();
     });
@@ -252,7 +256,7 @@ describe("Action API Endpoint", () => {
 
 afterAll(async () => {
   //Cleanup our Database
-  const em = getEM();
+  const em = globalValues.orm.em.fork();
   for (let i = 0; i < testActions.length; i++) {
     await em.nativeDelete(Action_db, { uuid: testActions[i].uuid });
   }
@@ -264,7 +268,8 @@ afterAll(async () => {
   await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
-  await closeORM();
+  await globalValues.orm.close();
+  globalValues.orm = null;
 
   jest.restoreAllMocks();
 });

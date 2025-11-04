@@ -7,10 +7,10 @@ import { Eva_db } from "server/database/models/eva.model";
 import { Station_db } from "server/database/models/station.model";
 import { Rex_db } from "server/database/models/rex.model";
 import { makeExportStations } from "utils/export";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { globalValues } from "../../global";
 
 import { getAll } from "../all";
 import { getGridFromFile } from "../grid";
@@ -66,7 +66,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   if (queryObj.datesOnly) {
     try {
-      const em = getEM();
+      const em = globalValues.orm.em;
       let partialStations: Partial<Station_db>[] = [];
 
       const rexEvaUuidsSubquery = em

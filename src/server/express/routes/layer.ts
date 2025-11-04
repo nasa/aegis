@@ -9,7 +9,7 @@ import cloneDeep from "lodash/cloneDeep";
 import { Layer_db } from "server/database/models/_allModels";
 import { convertLayersTypeDbToStore, convertLayersTypeStoreToDb } from "store/storeUtils/layer";
 import { hasPerms } from "utils/permissions";
-import { getEM } from "utils/mikro";
+import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -269,7 +269,7 @@ export default router;
  * @returns array of layers
  */
 export async function getLayers(missionId: number, layerUUID?: string): Promise<Layer[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   let layers_db: Loaded<Layer_db, never>[];
   if (layerUUID) {
@@ -305,7 +305,7 @@ export async function getLayers(missionId: number, layerUUID?: string): Promise<
  * @returns a copy of the layer objects that was upserted
  */
 async function upsertLayers(layers: Layer[]): Promise<Layer[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const layersToUpsert: Layer[] = cloneDeep(layers);
@@ -339,7 +339,7 @@ async function upsertLayers(layers: Layer[]): Promise<Layer[]> {
  * @returns the uuids of the deleted layers
  */
 async function deleteLayers(uuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const uuid of uuids) {
     const entity = await em.findOne(Layer_db, uuid);

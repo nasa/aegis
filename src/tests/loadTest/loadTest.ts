@@ -1,5 +1,4 @@
-import dotenv from "dotenv";
-dotenv.config({ override: true, quiet: true });
+import "utils/loadEnv";
 import { attachSocketListeners, cleanupSocketListeners, createSocket } from "utils/socketStuff";
 import reduxStore, { RootState } from "store/index";
 import { populateStore } from "store/processing/populateStore";

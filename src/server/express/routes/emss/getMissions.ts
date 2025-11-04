@@ -5,7 +5,7 @@ import express from "express";
 
 import { Eva_db, Mission_db, Rex_db } from "server/database/models/_allModels";
 import { apiRouteLogger } from "utils/logging/serverLogger";
-import { getEM } from "utils/mikro";
+import { globalValues } from "../../global";
 import { emssTokenIsValid } from "utils/permissions";
 
 export type MissionsWithEvas = {
@@ -41,7 +41,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const em = getEM();
+    const em = globalValues.orm.em;
 
     const rexEvasSubquery = em.createQueryBuilder(Rex_db).select("evaUuid");
     const evaQuery = em

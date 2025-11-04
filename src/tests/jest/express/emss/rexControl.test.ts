@@ -1,5 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { getORM, getEM, closeORM } from "utils/mikro";
+import { MikroORM } from "@mikro-orm/postgresql";
+import config from "server/database/mikro-orm.config";
+import { globalValues } from "server/express/global";
 import { Eva_db, Mission_db, Rex_db } from "server/database/models/_allModels";
 import MissionFactory from "../../factories/MissionFactory";
 import RexFactory from "../../factories/RexFactory";
@@ -24,8 +26,10 @@ let testRexes: Rex_db[];
 const emssToken = process.env.EMSS_TOKEN;
 
 beforeAll(async () => {
-  await getORM();
-  const em = getEM();
+  // Initialize MikroORM and set it in globalValues
+  globalValues.orm = await MikroORM.init(config);
+
+  const em = globalValues.orm.em.fork();
 
   testMission = await new MissionFactory(em)
     .each((mission) => {
@@ -211,7 +215,7 @@ describe("REX Control API Endpoint", () => {
       expect(res.body.data).toBeDefined();
       expect(res.body.data[0].uuid).toBe(testRexes[0].uuid);
 
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
       expect(updatedRex).toBeDefined();
       expect(updatedRex.maestroControlled).toBe(requestBody.maestroControlled);
@@ -237,13 +241,13 @@ describe("REX Control API Endpoint", () => {
       expect(res.body.status).toBe("success");
       expect(res.body.data[0].uuid).toBe(testRexes[0].uuid);
 
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
       expect(updatedRex?.maestroControlled).toBe(true);
     });
 
     test("Successfully updates maestro event id", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // First, ensure we know the current state by resetting it
       const rexRecord = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
@@ -285,7 +289,7 @@ describe("REX Control API Endpoint", () => {
       expect(res.body.status).toBe("success");
       expect(res.body.data[0].uuid).toBe(testRexes[1].uuid);
 
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[1].uuid });
       expect(updatedRex?.isRunning).toBe(true);
     });
@@ -307,7 +311,7 @@ describe("REX Control API Endpoint", () => {
       expect(res.body.status).toBe("success");
       expect(res.body.data[0].uuid).toBe(testRexes[1].uuid);
 
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[1].uuid });
       expect(updatedRex?.maestroControlled).toBe(false);
       expect(updatedRex?.isRunning).toBe(false); // "stop" sets to false
@@ -315,7 +319,7 @@ describe("REX Control API Endpoint", () => {
     });
 
     test("Starting one rex stops all other running rexes", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // First, manually set testRexes[0] to running
       const rexRecord = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
@@ -347,7 +351,7 @@ describe("REX Control API Endpoint", () => {
     });
 
     test("Successfully updates maestroActivityProperties", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // First, ensure we know the current state by resetting it
       const rexRecord = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
@@ -382,7 +386,7 @@ describe("REX Control API Endpoint", () => {
     });
 
     test("Updates with empty string for maestroEventId are handled correctly", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // First set an initial event id
       const setEventIdRequest = {
@@ -417,7 +421,7 @@ describe("REX Control API Endpoint", () => {
 
       // Stop all rexes first. Not sure what state they are in from previous tests
       // Doing a native update will directly execute a SQL query. no need to persist/flush
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       await em.nativeUpdate(
         Rex_db,
         { isRunning: true, uuid: { $in: testRexes.map((r) => r.uuid) } }, // Filter: only rexes where `isRunning` is true
@@ -458,12 +462,13 @@ describe("REX Control API Endpoint", () => {
 });
 
 afterAll(async () => {
-  const em = getEM();
+  const em = globalValues.orm.em.fork();
   for (const rex of testRexes) {
     await em.nativeDelete(Rex_db, { uuid: rex.uuid });
   }
   await em.nativeDelete(Eva_db, { uuid: testEva.uuid });
   await em.nativeDelete(Mission_db, { id: testMission.id });
-  await closeORM();
+  await globalValues.orm.close();
+  globalValues.orm = null;
   jest.restoreAllMocks();
 });

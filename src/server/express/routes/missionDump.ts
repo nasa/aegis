@@ -22,7 +22,7 @@ import {
   STM_Rule_db,
   Folder_db,
 } from "server/database/models/_allModels";
-import { getEM } from "utils/mikro";
+import { globalValues } from "../global";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -100,7 +100,7 @@ export default router;
  * @returns A structured object containing all mission data
  */
 const dumpMissionData = async (missionId: number): Promise<MissionDump> => {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   // Fetch mission and all related entities
   const mission = await em.findOne(Mission_db, { id: missionId });

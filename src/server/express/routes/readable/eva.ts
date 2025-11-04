@@ -7,9 +7,9 @@ import { Eva_db } from "server/database/models/eva.model";
 import { Rex_db } from "server/database/models/rex.model";
 import { makeExportEvas } from "utils/export";
 import { hasPerms } from "utils/permissions";
-import { getEM } from "utils/mikro";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { globalValues } from "../../global";
 
 import { getAll } from "../all";
 import { getGridFromFile } from "../grid";
@@ -70,7 +70,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   if (queryObj.datesOnly) {
     try {
-      const em = getEM();
+      const em = globalValues.orm.em;
       let partialEvas: Partial<Eva_db>[] = [];
 
       // all planned/executed evas for this mission

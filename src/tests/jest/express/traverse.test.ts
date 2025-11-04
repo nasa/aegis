@@ -1,5 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { getORM, getEM, closeORM } from "utils/mikro";
+import { MikroORM } from "@mikro-orm/postgresql";
+import config from "server/database/mikro-orm.config";
+import { globalValues } from "server/express/global";
 import { Mission_db, Traverse_db, App_User_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
@@ -22,8 +24,10 @@ let testMissions: Mission_db[];
 let testTraverses: Traverse_db[];
 
 beforeAll(async () => {
-  await getORM();
-  const em = getEM();
+  // Initialize MikroORM and set it in globalValues
+  globalValues.orm = await MikroORM.init(config);
+
+  const em = globalValues.orm.em.fork();
   testMissions = await new MissionFactory(em).create(3);
   testUser = await new UserFactory(em).createOne({
     username: "JestTraverse",
@@ -126,7 +130,7 @@ describe("EVA API Endpoint", () => {
       newTraverse = { ...res.body.data[0] };
 
       //check if it was added to the db
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       const traverseReference = await em.findOne(Traverse_db, res.body.data[0].uuid);
       expect(traverseReference).not.toBeNull();
     });
@@ -214,7 +218,7 @@ describe("EVA API Endpoint", () => {
 
 afterAll(async () => {
   //Cleanup our Database
-  const em = getEM();
+  const em = globalValues.orm.em.fork();
   for (let i = 0; i < testTraverses.length; i++) {
     await em.nativeDelete(Traverse_db, { uuid: testTraverses[i].uuid });
   }
@@ -224,7 +228,8 @@ afterAll(async () => {
   await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
-  await closeORM();
+  await globalValues.orm.close();
+  globalValues.orm = null;
 
   jest.restoreAllMocks();
 });

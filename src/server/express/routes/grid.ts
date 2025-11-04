@@ -12,8 +12,8 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { Grid_db, Mission_db } from "server/database/models/_allModels";
 import { findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -366,7 +366,7 @@ async function getGridsInformation(
   missionId: number,
   gridUUID?: string
 ): Promise<MissionGridInformation[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   //find grids by uuid
   let dbGrids: Loaded<Grid_db, "missions">[];
@@ -487,7 +487,7 @@ async function getClosestPoints(
 async function upsertGridsInformation(
   grids: MissionGridInformation[]
 ): Promise<MissionGridInformation[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const gridsToUpsert = cloneDeep(grids); // Create a copy to manipulate
@@ -583,7 +583,7 @@ async function saveGridFile(missionId: number, grid: MissionGrid): Promise<void>
  * @returns the uuids of the deleted grid
  */
 async function deleteGrids(missionId: number, gridUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const gridUuid of gridUuids) {
     const entity = await em.findOne(Grid_db, { uuid: gridUuid }, { populate: ["mission"] });

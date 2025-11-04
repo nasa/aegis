@@ -8,8 +8,8 @@ import cloneDeep from "lodash/cloneDeep";
 import { Eva_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "server/express/sockets";
 import { convertEVAsTypeDbToStore, convertEVAsTypeStoreToDb } from "store/storeUtils/eva";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -217,7 +217,7 @@ export default router;
  * @returns array of evas
  */
 export async function getEVAs(missionId: number, evaUuid?: string): Promise<Eva[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   //find evas by either mission Id or uuid
   let dbEvas: Loaded<Eva_db, never>[];
@@ -242,7 +242,7 @@ export async function getEVAs(missionId: number, evaUuid?: string): Promise<Eva[
  * @returns array of EVA refUuids
  */
 export async function getEVARefUuids(evaUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const dbEvas: Loaded<Eva_db>[] = await em.find(Eva_db, {
     uuid: { $in: evaUuids },
   });
@@ -255,7 +255,7 @@ export async function getEVARefUuids(evaUuids: string[]): Promise<string[]> {
  * @returns a copy of the EVA objects that was upserted
  */
 async function upsertEVAs(evas: Eva[]): Promise<Eva[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const evasToUpsert = cloneDeep(evas); // Create a copy to manipulate
@@ -285,7 +285,7 @@ async function upsertEVAs(evas: Eva[]): Promise<Eva[]> {
  * @returns the uuids of the deleted EVA
  */
 async function deleteEVAs(evaUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const evaUuid of evaUuids) {
     const entity = await em.findOne(Eva_db, { uuid: evaUuid });

@@ -16,8 +16,8 @@ import {
 } from "store/storeUtils/sublayer";
 import { SCHEMA_DIR } from "utils/validateSchemaServer";
 import { hasPerms } from "utils/permissions";
-import { getEM } from "utils/mikro";
 import { upsertDatabaseRetry } from "utils/database";
+import { globalValues } from "../global";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -303,7 +303,7 @@ export default router;
  * @returns array of sublayers
  */
 export async function getSublayers(missionId: number, sublayerUUID?: string): Promise<Sublayer[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   let sublayers_db: Loaded<Sublayer_db, never>[];
   if (sublayerUUID) {
@@ -335,7 +335,7 @@ export async function getSublayers(missionId: number, sublayerUUID?: string): Pr
  * @returns a copy of the sublayers that was upserted
  */
 async function upsertSublayers(sublayers: Sublayer[]): Promise<Sublayer[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const sublayersToUpsert: Sublayer[] = cloneDeep(sublayers);
@@ -368,7 +368,7 @@ async function upsertSublayers(sublayers: Sublayer[]): Promise<Sublayer[]> {
  * @returns the uuids of the deleted sublayers
  */
 async function deleteSublayers(uuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const uuid of uuids) {
     const entity = await em.findOne(Sublayer_db, uuid);

@@ -3,6 +3,7 @@ import cookieSession from "cookie-session";
 import cors from "cors";
 import { globalValues } from "./global";
 import path from "path";
+import { RequestContext } from "@mikro-orm/postgresql";
 
 import authRoutes from "./routes/auth";
 import actionRoutes from "./routes/action";
@@ -69,6 +70,17 @@ app.use(
 // static asset passthrough for dev. This path is one level above src (relative from build output folder)
 app.use("/static", express.static(path.join(__dirname, `../../../${process.env.STATIC_DIR}`)));
 
+// socket stuff
+app.use("/api/v1/socket/serverSocketStatus", serverSocketStatus);
+app.use("/api/v1/socket/lastEditEvent", socketLastEditEventRoutes);
+
+// Mikro-ORM RequestContext should be last middleware before routes
+// <https://mikro-orm.io/docs/identity-map#request-context>
+// use Mikro-ORM RequestContext for express and socketio handlers
+app.use((_req, _res, next) => {
+  RequestContext.create(globalValues.orm.em, next);
+});
+
 // get user info from launchpad
 app.get("/api/v1/user/current", (req, res) => {
   const user = getUser(req);
@@ -83,10 +95,6 @@ app.get("/api/v1/user/current", (req, res) => {
 app.get("/api/v1/health", (req, res) => {
   res.send({ status: "ok" });
 });
-
-// socket stuff
-app.use("/api/v1/socket/serverSocketStatus", serverSocketStatus);
-app.use("/api/v1/socket/lastEditEvent", socketLastEditEventRoutes);
 
 // get app version
 app.get("/api/v1/version", (req, res) => {
