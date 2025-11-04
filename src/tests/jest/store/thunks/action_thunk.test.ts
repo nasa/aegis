@@ -240,9 +240,9 @@ describe("Thunk Action Tests", () => {
     const stmUuid1 = uuidv4();
     const stmUuid2 = uuidv4();
     const action1: Action = generateBlankAction({ name: "Jest Action-1", stationUuid: uuidv4() });
-    action1.stmUuidRefs = [stmUuid1, stmUuid2];
+    action1.stmPriorities = { [stmUuid1]: 1, [stmUuid2]: 1 };
     const action2: Action = generateBlankAction({ name: "Jest Action-1", stationUuid: uuidv4() });
-    action2.stmUuidRefs = [stmUuid1, uuidv4()];
+    action2.stmPriorities = { [stmUuid1]: 2 };
     const actionWithNoStm: Action = generateBlankAction({
       name: "Jest Action-1",
       stationUuid: uuidv4(),

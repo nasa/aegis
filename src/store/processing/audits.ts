@@ -132,25 +132,13 @@ export const auditActions = async ({
   const newActions = cloneDeep(wholeStoreState.action.actions);
 
   /**
-   * Action STM UUID Refs Audit
-   * Audit the stm UUID refs on each action to ensure they still exist.
+   * Action STM UUID Audit
+   * Audit the stm UUIDs on each action to ensure they still exist.
    * They may not exist if they were deleted from the admin side.
    */
   const stmLevel3Uuids = wholeStoreState.stm.level3s.map((i) => i.uuid);
   for (const action of newActions) {
-    if (!action.stmUuidRefs) continue;
-    let newUuidRefs = clone(action.stmUuidRefs); //make a copy to splice from
     let isChanged = false;
-    for (const stmUuid of action.stmUuidRefs) {
-      if (stmLevel3Uuids.indexOf(stmUuid) < 0) {
-        //stm doesn't exist. remove it from our copy
-        isChanged = true;
-        newUuidRefs = newUuidRefs.filter((uuid) => uuid != stmUuid);
-      }
-    }
-    if (isChanged) action.stmUuidRefs = newUuidRefs;
-
-    // also check the action.stmPriorities and remove any that don't have a matching stmUuid
     if (action.stmPriorities) {
       const newPriorities: StmPriorities = clone(action.stmPriorities); //make a copy to splice from
       isChanged = false;
@@ -165,26 +153,6 @@ export const auditActions = async ({
     }
   }
 
-  /**
-   * Action stmPriorities Audit
-   * Add stmPriorities for any missing stmUuidRefs and make the default priority 2
-   * TODO: remove this when we remove the stmUuidRefs field from the db
-   */
-  for (const action of newActions) {
-    if (!action.stmUuidRefs) continue;
-    // if action.stmPriorities is null, create it
-    let newPriorities: StmPriorities = {};
-    if (action.stmPriorities) newPriorities = clone(action.stmPriorities); //make a copy to splice from
-    let isChanged = false;
-    for (const stmUuid of action.stmUuidRefs) {
-      if (!newPriorities[stmUuid]) {
-        isChanged = true;
-        newPriorities[stmUuid] = 2;
-      }
-    }
-    if (isChanged) action.stmPriorities = newPriorities;
-  }
-
   // update the store and db with the new values
   const actionsToSaveToDb: Action[] = [];
   for (const [index, action] of newActions.entries()) {
@@ -196,10 +164,7 @@ export const auditActions = async ({
     }
   }
   if (actionsToSaveToDb.length > 0) {
-    const upsertResponse = await httpClient_action.upsertActions(actionsToSaveToDb);
-    if (upsertResponse.status !== "success") {
-      // handle the error
-    }
+    await httpClient_action.upsertActions(actionsToSaveToDb);
   }
 
   /**

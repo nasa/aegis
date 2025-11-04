@@ -75,7 +75,6 @@ export const generateBlankActionTemplate = (
     type: "other",
     duration: 6,
     stmAction: false,
-    stmUuidRefs: null,
     stmPriorities: null,
     equipmentItemsUsage: null,
     geographicUnitsUsage: null,

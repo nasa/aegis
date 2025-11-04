@@ -30,24 +30,6 @@ const decodeWsywig = (string: string): string => {
   return newString;
 };
 
-export const getStmNames = (params: {
-  stmUuidRefs: string[];
-  level3s: STMLevel3[];
-  level2s: STMLevel2[];
-  level1s: STMLevel1[];
-}): string[] => {
-  const { stmUuidRefs, level3s, level2s, level1s } = params;
-  if (!stmUuidRefs || stmUuidRefs.length === 0) return [];
-  return stmUuidRefs?.map((stmUuidRef) => {
-    const stmLevel3 = level3s.find((s) => s.uuid === stmUuidRef);
-    const stmLevel2 = level2s.find((s) => s.uuid === stmLevel3?.level2Uuid);
-    const stmLevel1 = level1s.find((s) => s.uuid === stmLevel2?.level1Uuid);
-    if (stmLevel3)
-      return `${stmLevel1.numbering}${stmLevel2.numbering}${stmLevel3.numbering} ${stmLevel3.name}`;
-    return "";
-  });
-};
-
 export const makeEquipmentReadable = (params: {
   equipmentItems: EquipmentItemUsage[];
   mission: Mission;
@@ -109,12 +91,6 @@ export const makeExportActions = (params: {
       parentTraverseName: actionTraverse?.name,
       stationRefUuid: actionStation?.refUuid,
       traverseRefUuid: actionTraverse?.refUuid,
-      stmUuidRefsReadable: getStmNames({
-        stmUuidRefs: action.stmUuidRefs,
-        level1s: allData.level1s,
-        level2s: allData.level2s,
-        level3s: allData.level3s,
-      }),
       iconEmojiDecoded: decodeEmoji(action.icon),
       equipmentItemsUsageReadable: makeEquipmentReadable({
         equipmentItems: action.equipmentItemsUsage,

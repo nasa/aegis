@@ -172,7 +172,7 @@ type Poi_db_type = Omit<POI, "missionId" | "createdAt" | "updatedAt"> & {
 type POIStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 
 type StmPriorities = {
-  [key: string]: number; // key is the uuid of the STM level
+  [uuid: string]: number; // key is the uuid of the STM level
 };
 
 /**
@@ -198,7 +198,6 @@ type Action = {
   /**
    * Allow linkage to any part of the STM hierarchy
    */
-  stmUuidRefs: string[] | null; // uuid of the STMs selected for this action
   stmPriorities: StmPriorities | null; // the priority of each STM selected for this action (L/M/H)
   /**
    * The type of action to be taken
