@@ -201,9 +201,55 @@ export const auditActions = async ({
       // handle the error
     }
   }
+
+  /**
+   * Check any actions that do not exist on their parent object (traverse, station or poi) and remove them
+   * This audit can be removed after its been pushed to production and all missions have been visited
+   * This audit is to fix a one time bug
+   */
+  const actionUuidsToDelete: string[] = [];
+  const allActionUuidsOnParents: string[] = [];
+
+  // put all action uuids from parents into a single array for easy checking
+  for (const poi of wholeStoreState.poi.pois) {
+    if (poi.actionOrderUuids) allActionUuidsOnParents.push(...poi.actionOrderUuids);
+  }
+  for (const station of wholeStoreState.station.stations) {
+    if (station.actionOrderUuids) allActionUuidsOnParents.push(...station.actionOrderUuids);
+  }
+  for (const traverse of wholeStoreState.traverse.traverses) {
+    if (traverse.actionOrderUuids) allActionUuidsOnParents.push(...traverse.actionOrderUuids);
+  }
+  // check each action to see if it exists on a parent
+  for (const action of newActions) {
+    if (action.poiUuid && allActionUuidsOnParents.includes(action.uuid)) continue;
+    if (action.stationUuid && allActionUuidsOnParents.includes(action.uuid)) continue;
+    if (action.traverseUuid && allActionUuidsOnParents.includes(action.uuid)) continue;
+    // action has no parent, remove it
+    actionUuidsToDelete.push(action.uuid);
+    console.log(
+      `Audit Actions: Found orphaned action: ${action.uuid} - poiUuid: ${action.poiUuid} stationUuid: ${action.stationUuid} traverseUuid: ${action.traverseUuid}`
+    );
+  }
+  // delete from database and store
+  if (actionUuidsToDelete.length > 0) {
+    console.log("Audit Actions: Deleting orphaned actions:", actionUuidsToDelete);
+    // delete from store
+    for (const actionUuid of actionUuidsToDelete) {
+      const indexInActions = newActions.findIndex((a) => a.uuid === actionUuid);
+      if (indexInActions >= 0) {
+        newActions.splice(indexInActions, 1);
+      }
+    }
+    // delete from db
+    const deleteResponse = await httpClient_action.deleteActions(actionUuidsToDelete);
+    if (deleteResponse.status !== "success") {
+      // handle the error
+    }
+  }
 };
 
-// Can this be removed? Check if new mission in v2 automatically get new action definitions.
+// This audit cannot be removed until new action v2 missions are created with default action definitions. Currently they are not.
 export const auditActionDefinitions = async ({
   wholeStoreState,
 }: {
@@ -297,45 +343,6 @@ export const auditFolders = async ({
     const upsertResponse = await httpClient_folder.upsertFolders(foldersToSaveToDb);
     if (upsertResponse.status !== "success") {
       console.error("Error saving folders to DB:", upsertResponse.message);
-    }
-  }
-};
-
-/**
- * Strip out missionID from all action templates
- */
-export const auditActionTemplates = async ({
-  wholeStoreState,
-}: {
-  wholeStoreState: WholeStoreState;
-}): Promise<void> => {
-  const newActionTemplates = cloneDeep(wholeStoreState.mission.mission.actionTemplates);
-  let isModified = false;
-
-  // if newActionTemplates is not iterable
-  if (!newActionTemplates || !Array.isArray(newActionTemplates)) {
-    return;
-  }
-
-  for (const actionTemplate of newActionTemplates) {
-    if ("missionId" in actionTemplate) {
-      // @ts-ignore
-      delete actionTemplate.missionId;
-      isModified = true;
-    }
-  }
-
-  if (isModified) {
-    // update the store with the new action templates
-    wholeStoreState.mission.mission.actionTemplates = newActionTemplates;
-    wholeStoreState.mission.missionFromDb.actionTemplates = newActionTemplates;
-
-    // upsert the changes to the mission table in the db
-    const upsertResponse = await httpClient_mission.upsertMissions([
-      wholeStoreState.mission.mission,
-    ]);
-    if (upsertResponse.status !== "success") {
-      // handle the error
     }
   }
 };

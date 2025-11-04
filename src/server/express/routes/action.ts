@@ -154,14 +154,14 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       apiRouteLogger({
         logLevel: "notice",
         httpMethod: "DELETE",
-        responseStatus: 404,
+        responseStatus: 400,
         routeName: "action",
         appUsername: req.session?.appUser?.username,
         missionId,
         uuids: actionUuids,
         message: "Record not found. Nothing deleted",
       });
-      res.status(404).json({
+      res.status(400).json({
         status: "failure",
         message: "Record not found. Nothing deleted",
       });
