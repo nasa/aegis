@@ -43,7 +43,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  if (!rexes) {
+  if (!rexes || rexes.length === 0) {
     apiRouteLogger({
       logLevel: "notice",
       httpMethod: "POST",
@@ -52,11 +52,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       appUsername: req.session?.appUser?.username,
       missionId,
       uuids: rexes?.map((r) => r.uuid),
-      message: `No rexes provided to upsert`,
+      message: `No rexes provided in request body`,
     });
     res.status(400).json({
       status: "failure",
-      message: `No rexes provided to upsert`,
+      message: `No rexes provided in request body`,
     });
     return;
   }

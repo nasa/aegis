@@ -161,6 +161,19 @@ describe("Mission API Endpoint", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty missions array", async () => {
+      const requestBody: MissionUpsertRequest = {
+        socketId: "someSocketId",
+        missions: [],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/mission")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(400);
+    });
+
     test("Create new mission - No permissions", async () => {
       const requestBody: MissionUpsertRequest = {
         socketId: "someSocketId",

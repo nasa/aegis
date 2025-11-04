@@ -96,6 +96,20 @@ describe("Station API Endpoint", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty stations array", async () => {
+      const requestBody: StationUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        stations: [],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/station")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(400);
+    });
+
     test("Create new station", async () => {
       const requestBody: StationUpsertRequest = {
         socketId: "someSocketId",

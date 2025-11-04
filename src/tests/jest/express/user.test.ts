@@ -113,6 +113,18 @@ describe("User API Endpoint", () => {
     });
 
     describe("POST request", () => {
+      test("Empty users array", async () => {
+        const requestBody: UserUpsertRequest = {
+          users: [],
+        };
+        const res = await supertest(app)
+          .post("/api/v1/users")
+          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .send(requestBody);
+
+        expect(res.statusCode).toBe(400);
+      });
+
       test("Create new user", async () => {
         const requestBody: UserUpsertRequest = {
           users: [newUser],

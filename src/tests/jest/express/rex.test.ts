@@ -96,6 +96,20 @@ describe("REX API Endpoint", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty rexes array", async () => {
+      const requestBody: RexUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        rexes: [],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/rex")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(400);
+    });
+
     test("Create new Rex", async () => {
       const requestBody: RexUpsertRequest = {
         socketId: "someSocketId",

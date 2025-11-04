@@ -284,6 +284,21 @@ describe("STM API Endpoint", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty stmObjects array", async () => {
+      const requestBody: STMUpsertRequest = {
+        missionId: testMissions[0].id,
+        stmObjects: [],
+        stmType: "Level1",
+      };
+      const res = await supertest(app)
+        .post("/api/v1/stm")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.status).toBe("failure");
+    });
+
     describe("Level1", () => {
       test("Create new level1", async () => {
         newLevel1.missionId = testMissions[0].id;

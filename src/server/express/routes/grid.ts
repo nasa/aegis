@@ -209,6 +209,22 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!grids || grids.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "grid",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: grids?.map((g) => g.gridInformation.uuid),
+        message: "No grids provided in request body",
+      });
+      res.status(400).json({ status: "error", message: "No grids provided in request body" });
+      return;
+    }
+
     const upsertResponse: MissionGrid[] = await upsertDatabaseRetry(() =>
       upsertGrids(grids, upsertFullGrid)
     );

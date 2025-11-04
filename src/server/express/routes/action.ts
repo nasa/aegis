@@ -42,6 +42,21 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   try {
+    // validate
+    if (!actions || actions.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "action",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        message: "No actions provided in request body",
+      });
+      res.status(400).json({ status: "failure", message: "No actions provided in request body" });
+      return;
+    }
+
     const upsertResponse = await upsertDatabaseRetry(() => upsertActions(actions));
 
     // Check response

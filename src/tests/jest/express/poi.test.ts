@@ -134,6 +134,20 @@ describe("Poi API Endpoint", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty POIs array", async () => {
+      const requestBody: POIUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        pois: [],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/poi")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(400);
+    });
+
     test("Create new Poi", async () => {
       const requestBody: POIUpsertRequest = {
         socketId: "someSocketId",

@@ -84,6 +84,20 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!users || users.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "users",
+        appUsername: req.session?.appUser?.username,
+        uuids: users?.map((u) => u.id?.toString()),
+        message: `No users provided in request body`,
+      });
+      res.status(400).json({ status: "failure", message: `No users provided in request body` });
+      return;
+    }
     const upsertResponse: AppUser[] = await upsertDatabaseRetry(() => upsertUsers(users));
 
     // Check response

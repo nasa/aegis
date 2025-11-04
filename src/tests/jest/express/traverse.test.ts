@@ -96,6 +96,20 @@ describe("EVA API Endpoint", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty traverses array", async () => {
+      const requestBody: TraverseUpsertRequest = {
+        missionId: testMissions[0].id,
+        socketId: "someSocketId",
+        traverses: [],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/traverse")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(400);
+    });
+
     test("Create new Traverse", async () => {
       const requestBody: TraverseUpsertRequest = {
         missionId: testMissions[0].id,
