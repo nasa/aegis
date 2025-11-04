@@ -5,6 +5,7 @@ import { Button, Dropdown } from "components/interface/form/globalFields";
 import Action from "./actions-action";
 import isNull from "lodash/isNull";
 import clone from "lodash/clone";
+import isNil from "lodash/isNil";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
 import { STM_Coverage } from "./stm/stm-coverage";
@@ -249,8 +250,7 @@ export const ActionsTopSection: FunctionComponent<{
     return stmUuidRefs;
   }, deepEqual);
 
-  // there's a difference between null and 0. Only calculate rex mass if it's 0. Null means it hasn't been executed yet.
-
+  // there's a difference between null/undefined and 0. Only calculate rex mass if it's 0. Null/undefined means it hasn't been filled in.
   const rexMass = useAppSelector((state) => {
     if (!rexUuid || !actionOrderUuids) return null;
     const rex = state.rex.rexes.find((r) => r.uuid === rexUuid);
@@ -259,8 +259,13 @@ export const ActionsTopSection: FunctionComponent<{
     for (const actionUuid of actionOrderUuids) {
       const action = state.action.actions.find((a) => a.uuid === actionUuid);
       if (!action || !action.enabled) continue;
-      if (!rex.actionEntries || !rex.actionEntries[actionUuid]) continue;
-      if (isNull(rex.actionEntries[actionUuid].mass)) continue; // this action has a non-null mass actual entry
+      if (
+        !rex.actionEntries ||
+        !rex.actionEntries[actionUuid] ||
+        isNil(rex.actionEntries[actionUuid].mass) // checks for null or undefined
+      )
+        continue;
+      // this action has a non-null mass actual entry
       if (!isNull(mass)) {
         mass += rex.actionEntries[actionUuid].mass;
       } else {
