@@ -105,11 +105,11 @@ const PoiEditorRight: FunctionComponent = () => {
       icon: faPersonDigging,
     },
     report_panel: {
-      title: "Station Report",
+      title: "POI Report",
       panel: Report_Panel,
       panelProps: {
         reportItems: calculatedFieldsReportItems,
-        reportTitle: "Station Report",
+        reportTitle: "POI Report",
       },
       selectedColor: !isNull(reportsTabIconColor) ? reportsTabIconColor : "white",
       unselectedColor: reportsTabIconColor,

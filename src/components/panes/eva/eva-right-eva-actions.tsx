@@ -55,11 +55,16 @@ const Actions_Panel: FunctionComponent = () => {
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const evaActionOrderUuids = selectedEva?.sequence.flatMap((sequenceItem) => {
-    if (sequenceItem.type !== "station") return null;
-    return sequenceStations.find((station) => station.uuid === sequenceItem.uuid)?.actionOrderUuids;
+    if (sequenceItem.type === "station") {
+      return sequenceStations.find((station) => station.uuid === sequenceItem.uuid)
+        ?.actionOrderUuids;
+    } else if (sequenceItem.type === "traverse") {
+      return sequenceTraverses.find((traverse) => traverse.uuid === sequenceItem.uuid)
+        ?.actionOrderUuids;
+    }
   });
 
-  const [isActionHiglighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
+  const [isActionHighlighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
 
   //set state of highlighted actions when the STM is hovered over
   const highlightActions = useCallback(
@@ -129,7 +134,7 @@ const Actions_Panel: FunctionComponent = () => {
                       actionOrderUuids={station.actionOrderUuids}
                       parentType="station"
                       highlightActions={highlightActions}
-                      isActionHighlighted={isActionHiglighted}
+                      isActionHighlighted={isActionHighlighted}
                       stations={sequenceStations}
                       pois={null}
                       rexUuid={selectedRexPartial?.uuid}
@@ -155,7 +160,7 @@ const Actions_Panel: FunctionComponent = () => {
                     actionOrderUuids={traverse?.actionOrderUuids}
                     parentType="traverse"
                     highlightActions={highlightActions}
-                    isActionHighlighted={isActionHiglighted}
+                    isActionHighlighted={isActionHighlighted}
                     stations={sequenceStations}
                     pois={null}
                     rexUuid={selectedRexPartial?.uuid}
