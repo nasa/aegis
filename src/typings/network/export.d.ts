@@ -10,7 +10,6 @@ interface ExportAction extends Action {
   parentTraverseName: string;
   stationRefUuid: string;
   traverseRefUuid: string;
-  stmUuidRefsReadable: string[];
   iconEmojiDecoded: string;
   equipmentItemsUsageReadable: EquipmentItemUsageReadable[] | null;
   geographicalUnitsReadable: string[] | null;

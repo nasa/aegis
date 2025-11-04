@@ -7,7 +7,7 @@ import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank action
- * @param partialAction any fields that are to be overriden from default
+ * @param partialAction any fields that are to be overridden from default
  * @returns the generated action
  */
 export const generateBlankAction = (partialAction?: Partial<Action>): Action => {
@@ -22,7 +22,6 @@ export const generateBlankAction = (partialAction?: Partial<Action>): Action => 
     parentActionUuid: null,
     parentCopyDate: null,
     priority: null,
-    stmUuidRefs: null,
     stmPriorities: null,
     type: "other",
     description: "",
@@ -52,37 +51,36 @@ export const generateBlankAction = (partialAction?: Partial<Action>): Action => 
  */
 export function convertActionsTypeDbToStore(dbActions: Action_db[]): Action[] {
   const actions: Action[] = [];
-  for (const dbaction of dbActions) {
+  for (const dbAction of dbActions) {
     const convertedAction: Action = {
-      uuid: dbaction.uuid,
-      refUuid: dbaction.refUuid,
-      name: dbaction.name,
-      missionId: dbaction.mission.id,
-      poiUuid: dbaction.poi?.uuid,
-      stationUuid: dbaction.station?.uuid,
-      traverseUuid: dbaction.traverse?.uuid,
-      parentActionUuid: dbaction.parentAction?.uuid,
-      parentCopyDate: dbaction.parentCopyDate?.toISOString(),
-      priority: dbaction.priority,
-      stmUuidRefs: dbaction.stmUuidRefs,
-      stmPriorities: dbaction.stmPriorities,
-      type: dbaction.type,
-      description: dbaction.description,
-      descriptionTask: dbaction.descriptionTask,
-      stmAction: dbaction.stmAction,
-      actionDefinition: dbaction.actionDefinition,
-      icon: dbaction.icon,
-      location: dbaction.location,
-      elevation: dbaction.elevation,
-      duration: dbaction.duration,
-      equipmentItemsUsage: dbaction.equipmentItemsUsage,
-      geographicUnitsUsage: dbaction.geographicUnitsUsage,
-      mass: dbaction.mass,
-      status: dbaction.status,
-      enabled: dbaction.enabled,
-      crewAssigned: dbaction.crewAssigned,
-      createdAt: dbaction.createdAt?.toISOString(),
-      updatedAt: dbaction.updatedAt?.toISOString(),
+      uuid: dbAction.uuid,
+      refUuid: dbAction.refUuid,
+      name: dbAction.name,
+      missionId: dbAction.mission.id,
+      poiUuid: dbAction.poi?.uuid,
+      stationUuid: dbAction.station?.uuid,
+      traverseUuid: dbAction.traverse?.uuid,
+      parentActionUuid: dbAction.parentAction?.uuid,
+      parentCopyDate: dbAction.parentCopyDate?.toISOString(),
+      priority: dbAction.priority,
+      stmPriorities: dbAction.stmPriorities,
+      type: dbAction.type,
+      description: dbAction.description,
+      descriptionTask: dbAction.descriptionTask,
+      stmAction: dbAction.stmAction,
+      actionDefinition: dbAction.actionDefinition,
+      icon: dbAction.icon,
+      location: dbAction.location,
+      elevation: dbAction.elevation,
+      duration: dbAction.duration,
+      equipmentItemsUsage: dbAction.equipmentItemsUsage,
+      geographicUnitsUsage: dbAction.geographicUnitsUsage,
+      mass: dbAction.mass,
+      status: dbAction.status,
+      enabled: dbAction.enabled,
+      crewAssigned: dbAction.crewAssigned,
+      createdAt: dbAction.createdAt?.toISOString(),
+      updatedAt: dbAction.updatedAt?.toISOString(),
     };
     actions.push(convertedAction);
   }
@@ -108,7 +106,6 @@ export function convertActionsTypeStoreToDb(storeActions: Action[]): EntityData<
       parentAction: storeAction.parentActionUuid,
       parentCopyDate: storeAction.parentCopyDate ? new Date(storeAction.parentCopyDate) : null,
       priority: storeAction.priority,
-      stmUuidRefs: storeAction.stmUuidRefs,
       stmPriorities: storeAction.stmPriorities,
       type: storeAction.type,
       description: storeAction.description,

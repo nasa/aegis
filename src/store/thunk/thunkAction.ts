@@ -291,8 +291,8 @@ export const thunkGetHighlightedActions = appCreateAsyncThunk<
   const actionHighlights = [];
   for (const action of actions) {
     const highlight: ActionHighlight = { uuid: action.uuid, highlight: false };
-    if (action.stmUuidRefs && stmUuid) {
-      for (const actionSTMUuid of action.stmUuidRefs) {
+    if (action.stmPriorities && stmUuid) {
+      for (const actionSTMUuid of Object.keys(action.stmPriorities)) {
         if (actionSTMUuid === stmUuid) {
           highlight.highlight = true;
         }

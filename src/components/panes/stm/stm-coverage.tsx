@@ -6,12 +6,18 @@ import uniq from "lodash/uniq";
 import ReactDOMServer from "react-dom/server";
 
 export const STM_Coverage: FunctionComponent<{
-  stmUuidRefs: string[][]; //2d array of action stmUuidRefs
+  stmUuidsByActionUuid: string[][]; //2d array of stm uuids by action uuid
   horizontal: boolean;
   onLevel3Hover?: (level3Uuid: string) => void;
-  stmUuidRefsCompleted?: string[][]; //used in rex mode
-  stmUuidRefsInProgress?: string[][]; //used in rex mode
-}> = ({ stmUuidRefs, horizontal, onLevel3Hover, stmUuidRefsCompleted, stmUuidRefsInProgress }) => {
+  completedStmUuidsByAction?: string[][]; //used in rex mode
+  inProgressStmUuidsByAction?: string[][]; //used in rex mode
+}> = ({
+  stmUuidsByActionUuid,
+  horizontal,
+  onLevel3Hover,
+  completedStmUuidsByAction,
+  inProgressStmUuidsByAction,
+}) => {
   const allSTMLevel1 = useAppSelector((state) => state.stm.level1s, deepEqual);
   const allSTMLevel2 = useAppSelector((state) => state.stm.level2s, deepEqual);
   const allSTMLevel3 = useAppSelector((state) => state.stm.level3s, deepEqual);
@@ -20,14 +26,14 @@ export const STM_Coverage: FunctionComponent<{
   //get all STM level3s
   const stms3s: STMLevel3[] = [];
   //get all stms for actions
-  if (stmUuidRefs) {
-    for (const stmUuidRefsSingle of stmUuidRefs) {
-      if (!stmUuidRefsSingle || stmUuidRefsSingle.length === 0) {
+  if (stmUuidsByActionUuid) {
+    for (const stmUuids of stmUuidsByActionUuid) {
+      if (!stmUuids || stmUuids.length === 0) {
         continue; //no referenced uuids. skip to next action
       } else {
         //loop through all uuids and find the stm level3
-        for (const stmUuidRef of stmUuidRefsSingle) {
-          const level3 = allSTMLevel3?.find((level3) => level3.uuid === stmUuidRef);
+        for (const stmUuid of stmUuids) {
+          const level3 = allSTMLevel3?.find((level3) => level3.uuid === stmUuid);
           if (level3) stms3s.push(level3);
         }
       }
@@ -40,12 +46,12 @@ export const STM_Coverage: FunctionComponent<{
 
   let stmsInPrg: string[] = [];
   //get all stms for actions
-  if (stmUuidRefsInProgress) {
-    for (const stmUuidRefs of stmUuidRefsInProgress) {
-      if (!stmUuidRefs || stmUuidRefs.length === 0) {
+  if (inProgressStmUuidsByAction) {
+    for (const stmUuids of inProgressStmUuidsByAction) {
+      if (!stmUuids || stmUuids.length === 0) {
         continue; //no referenced uuids. skip to next action
       } else {
-        stmsInPrg = stmsInPrg.concat(stmUuidRefs);
+        stmsInPrg = stmsInPrg.concat(stmUuids);
       }
     }
   }
@@ -53,19 +59,19 @@ export const STM_Coverage: FunctionComponent<{
   const inProgressLevel3Uuids = uniq(stmsInPrg);
 
   //get all completed stm level3s uuids
-  let stmsCmplt: string[] = [];
+  let stmsCompleted: string[] = [];
   //get all stms for actions
-  if (stmUuidRefsCompleted) {
-    for (const stmUuidRefs of stmUuidRefsCompleted) {
-      if (!stmUuidRefs || stmUuidRefs.length === 0) {
+  if (completedStmUuidsByAction) {
+    for (const stmUuids of completedStmUuidsByAction) {
+      if (!stmUuids || stmUuids.length === 0) {
         continue; //no referenced uuids. skip to next action
       } else {
-        stmsCmplt = stmsCmplt.concat(stmUuidRefs);
+        stmsCompleted = stmsCompleted.concat(stmUuids);
       }
     }
   }
   //filter unique and sort
-  const completedLevel3Uuids = uniq(stmsCmplt);
+  const completedLevel3Uuids = uniq(stmsCompleted);
 
   //build hover tooltip jsx
   function buildSTMTooltip(stmUuid: string, stmType: string, full: boolean) {

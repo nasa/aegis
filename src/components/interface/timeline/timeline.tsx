@@ -24,7 +24,7 @@ import TimelineHoverValues from "./timeline-hover";
 import { selectEvaActions, selectEvaStations, selectEvaTraverses } from "store/selectors";
 import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../../page/petInterval";
-import { getStmUuidRefs } from "store/storeUtils/store";
+import { getStmUuids } from "store/storeUtils/store";
 import {
   getCalculatedFieldsByStation,
   getCalculatedFieldsByTraverse,
@@ -148,13 +148,13 @@ const NavTimeline: FunctionComponent = () => {
 
   evaActions?.forEach((action) => {
     if (action.enabled) {
-      coveredSTMs.push(getStmUuidRefs(action.stmPriorities));
+      coveredSTMs.push(getStmUuids(action.stmPriorities));
       if (runningRex?.actionEntries) {
         const rexStatus = runningRex.actionEntries[action.uuid]?.rexStatus;
         if (rexStatus === "complete") {
-          completedSTMs.push(getStmUuidRefs(action.stmPriorities));
+          completedSTMs.push(getStmUuids(action.stmPriorities));
         } else if (rexStatus === "in-progress") {
-          inProgressSTMs.push(getStmUuidRefs(action.stmPriorities));
+          inProgressSTMs.push(getStmUuids(action.stmPriorities));
         }
       }
     }
@@ -420,10 +420,10 @@ const NavTimeline: FunctionComponent = () => {
       {actionSystemVersion === 1 && (
         <div className={styles.timelineRight}>
           <STM_Coverage
-            stmUuidRefs={coveredSTMs}
+            stmUuidsByActionUuid={coveredSTMs}
             horizontal={false}
-            stmUuidRefsCompleted={completedSTMs}
-            stmUuidRefsInProgress={inProgressSTMs}
+            completedStmUuidsByAction={completedSTMs}
+            inProgressStmUuidsByAction={inProgressSTMs}
           />
         </div>
       )}
