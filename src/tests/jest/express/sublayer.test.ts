@@ -141,6 +141,19 @@ describe("Layer API Endpoint ", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty sublayers array", async () => {
+      const requestBody: SublayerUpsertRequest = {
+        missionId: testMissions[0].id,
+        sublayers: [],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/sublayer")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(400);
+    });
+
     test("Create new sublayer", async () => {
       const requestBody: SublayerUpsertRequest = {
         missionId: testMissions[0].id,

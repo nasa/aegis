@@ -113,6 +113,21 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!pois || pois.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "poi",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        message: "No POIs provided in request body",
+      });
+      res.status(400).json({ status: "failure", message: "No POIs provided in request body" });
+      return;
+    }
+
     // Add owner id to the POIs
     const poisToUpsert = pois.map((p) => {
       if (!p.ownerId) {

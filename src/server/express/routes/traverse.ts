@@ -47,6 +47,21 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!traverses || traverses.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "traverse",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        message: "No traverses provided in request body",
+      });
+      res.status(400).json({ status: "failure", message: "No traverses provided in request body" });
+      return;
+    }
+
     const upsertResponse: Traverse[] = await upsertDatabaseRetry(() => upsertTraverses(traverses));
 
     // Check response

@@ -42,6 +42,21 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!evas || evas.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "eva",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        message: "No EVAs provided in request body",
+      });
+      res.status(400).json({ status: "failure", message: "No EVAs provided in request body" });
+      return;
+    }
+
     // Add owner id to the evas
     const evasToUpsert = evas.map((e) => {
       if (!e.ownerId) {

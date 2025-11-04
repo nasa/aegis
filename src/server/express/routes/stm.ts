@@ -162,6 +162,24 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!stmObjects || stmObjects.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "stm",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: stmObjects?.map((o) => o.uuid),
+        message: `No STM objects provided in request body`,
+      });
+      res.status(400).json({
+        status: "failure",
+        message: `No STM objects provided in request body`,
+      });
+      return;
+    }
     if (!["Level1", "Level2", "Level3"].includes(stmType)) {
       apiRouteLogger({
         logLevel: "notice",

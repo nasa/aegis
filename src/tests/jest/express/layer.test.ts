@@ -86,6 +86,19 @@ describe("Layer API Endpoint ", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty layers array", async () => {
+      const requestBody: LayerUpsertRequest = {
+        missionId: testMissions[0].id,
+        layers: [],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/layer")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(400);
+    });
+
     test("Create new layer", async () => {
       const newLayerData = {
         ...newLayer,

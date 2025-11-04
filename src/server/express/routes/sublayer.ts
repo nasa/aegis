@@ -149,6 +149,21 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!sublayers || sublayers.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "sublayer",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: sublayers?.map((s) => s.uuid),
+        message: `No sublayers provided in request body`,
+      });
+      res.status(400).json({ status: "failure", message: `No sublayers provided in request body` });
+      return;
+    }
     const upsertResponse: Sublayer[] = await upsertDatabaseRetry(() => upsertSublayers(sublayers));
 
     // Check response

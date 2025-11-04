@@ -118,6 +118,19 @@ describe("Action API Endpoint", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty actions array", async () => {
+      const requestBody: ActionUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        actions: [],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/action")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+      expect(res.statusCode).toBe(400);
+    });
+
     test("Create new action", async () => {
       const requestBody: ActionUpsertRequest = {
         socketId: "someSocketId",

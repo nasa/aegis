@@ -95,6 +95,19 @@ describe("EVA API Endpoint", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty EVA array", async () => {
+      const requestBody: EvaUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        evas: [],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/eva")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+      expect(res.statusCode).toBe(400);
+    });
+
     test("Create new EVA", async () => {
       const requestBody: EvaUpsertRequest = {
         socketId: "someSocketId",

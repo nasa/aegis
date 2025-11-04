@@ -107,12 +107,38 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!missionId || isNaN(missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
-    return;
-  }
 
   try {
+    // validate
+    if (!stmRules || stmRules.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "stmRules",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: stmRules?.map((r) => r.uuid),
+        message: "No stm rules provided in request body",
+      });
+      res.status(400).json({ status: "failure", message: "No stm rules provided in request body" });
+      return;
+    }
+    if (!missionId || isNaN(missionId)) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "stmRules",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: stmRules?.map((r) => r.uuid),
+        message: "Invalid mission ID",
+      });
+      res.status(400).json({ status: "error", message: "Invalid mission ID" });
+      return;
+    }
+
     const upsertResponse: STMRule[] = await upsertStmRules(missionId, stmRules);
 
     // Check response

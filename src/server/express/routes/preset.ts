@@ -43,6 +43,21 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!presets || presets.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "preset",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        message: "No presets provided in request body",
+      });
+      res.status(400).json({ status: "failure", message: "No presets provided in request body" });
+      return;
+    }
+
     // Add owner id to the presets
     const presetsToUpsert = presets.map((p) => {
       if (!p.ownerId) {

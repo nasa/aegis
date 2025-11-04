@@ -96,6 +96,20 @@ describe("Preset API Endpoint", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty presets array", async () => {
+      const requestBody: PresetUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        presets: [],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/preset")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(400);
+    });
+
     test("Create new preset", async () => {
       const requestBody: PresetUpsertRequest = {
         socketId: "someSocketId",

@@ -44,6 +44,21 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!folders || folders.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "folder",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        message: "No folders provided in request body",
+      });
+      res.status(400).json({ status: "failure", message: "No folders provided in request body" });
+      return;
+    }
+
     const upsertResponse: Folder[] = await upsertDatabaseRetry(() => upsertFolders(folders));
 
     // Check response
