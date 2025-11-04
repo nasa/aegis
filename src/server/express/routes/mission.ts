@@ -29,7 +29,7 @@ import {
   convertMissionsTypeDbToStore,
   convertMissionsTypeStoreToDb,
 } from "store/storeUtils/mission";
-import { getEM } from "utils/mikro";
+import { globalValues } from "../global";
 
 import { emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
@@ -287,7 +287,7 @@ export default router;
  * @param missionIdList
  */
 export async function getMission(missionIdList: number | number[] = null): Promise<Mission[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   let missions: Mission_db[];
   if (!missionIdList) {
     missions = await em.find(Mission_db, {});
@@ -304,7 +304,7 @@ export async function getMission(missionIdList: number | number[] = null): Promi
  * @returns a copy of the mission objects that was upserted
  */
 async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const missionsCopy: Mission[] = cloneDeep(missions);
@@ -344,7 +344,7 @@ async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
  * @returns the ids of the deleted missions
  */
 export async function deleteMissions(missionIds: number[]): Promise<number[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedMissionIds = [];
 
   for (const missionId of missionIds) {

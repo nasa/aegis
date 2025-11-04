@@ -1,5 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { getORM, getEM, closeORM } from "utils/mikro";
+import { MikroORM } from "@mikro-orm/postgresql";
+import config from "server/database/mikro-orm.config";
+import { globalValues } from "server/express/global";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import { App_User_db, Mission_db, Eva_db } from "server/database/models/_allModels";
@@ -22,8 +24,10 @@ let testMissions: Mission_db[];
 let testEvas: Eva_db[];
 
 beforeAll(async () => {
-  await getORM();
-  const em = getEM();
+  // Initialize MikroORM and set it in globalValues
+  globalValues.orm = await MikroORM.init(config);
+
+  const em = globalValues.orm.em.fork();
   testMissions = await new MissionFactory(em).create(3);
   testUser = await new UserFactory(em).createOne({
     username: "Jest Eva",
@@ -113,7 +117,7 @@ describe("EVA API Endpoint", () => {
       newEVA = { ...upsertedEVA };
 
       //check if it was added to the db
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       const evaReference = await em.findOne(Eva_db, upsertedEVA.uuid);
       expect(evaReference).not.toBeNull();
     });
@@ -216,7 +220,7 @@ describe("Auth with emss-token header", () => {
 
 afterAll(async () => {
   //Cleanup our Database
-  const em = getEM();
+  const em = globalValues.orm.em.fork();
   for (let i = 0; i < testEvas.length; i++) {
     await em.nativeDelete(Eva_db, { uuid: testEvas[i].uuid });
   }
@@ -226,7 +230,8 @@ afterAll(async () => {
   await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
-  closeORM();
+  await globalValues.orm.close();
+  globalValues.orm = null;
 
   jest.restoreAllMocks();
 });

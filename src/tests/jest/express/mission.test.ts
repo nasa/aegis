@@ -1,5 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { getORM, getEM, closeORM } from "utils/mikro";
+import { MikroORM } from "@mikro-orm/postgresql";
+import config from "server/database/mikro-orm.config";
+import { globalValues } from "server/express/global";
 import { Mission_db, App_User_db } from "server/database/models/_allModels";
 import MissionFactory from "../factories/MissionFactory";
 import UserFactory from "../factories/UserFactory";
@@ -22,8 +24,10 @@ let testSuperAdmin: App_User_db;
 let newMission: Mission = generateBlankMission();
 
 beforeAll(async () => {
-  await getORM();
-  const em = getEM();
+  // Initialize MikroORM and set it in globalValues
+  globalValues.orm = await MikroORM.init(config);
+
+  const em = globalValues.orm.em.fork();
   testMissions = await new MissionFactory(em).create(3);
   testAdmin = await new UserFactory(em).createOne({
     username: "Jest testAdminForMission",
@@ -258,7 +262,7 @@ describe("Mission API Endpoint", () => {
       expect(res.body.data[0].version).toEqual(1);
 
       //check if it was added to the db
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       const missionReference = await em.findOne(Mission_db, res.body.data[0].id);
       expect(missionReference).not.toBeNull();
       newMission = { ...res.body.data[0] };
@@ -285,7 +289,7 @@ describe("Mission API Endpoint", () => {
       expect(res.body.status).toBe("success");
 
       // Verify the mission was actually deleted from the database
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       const deletedMission = await em.findOne(Mission_db, newMission.id);
       expect(deletedMission).toBeNull();
     });
@@ -339,7 +343,7 @@ describe("Mission API Endpoint", () => {
 
 afterAll(async () => {
   //Cleanup our Database
-  const em = getEM();
+  const em = globalValues.orm.em.fork();
   await em.nativeDelete(App_User_db, { id: testAdmin.id });
   await em.nativeDelete(App_User_db, { id: testSuperAdmin.id });
   for (let i = 0; i < testMissions.length; i++) {
@@ -347,7 +351,8 @@ afterAll(async () => {
   }
 
   // Closing the DB connection allows Jest to exit successfully.
-  await closeORM();
+  await globalValues.orm.close();
+  globalValues.orm = null;
 
   jest.restoreAllMocks();
 });

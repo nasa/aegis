@@ -8,11 +8,11 @@ import cloneDeep from "lodash/cloneDeep";
 import { Action_db } from "server/database/models/_allModels";
 import { emitStoreDelete, emitStoreUpsert } from "server/express/sockets";
 import { convertActionsTypeDbToStore, convertActionsTypeStoreToDb } from "store/storeUtils/action";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
 import { upsertDatabaseRetry } from "utils/database";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { globalValues } from "../global";
 
 const router = express.Router();
 
@@ -196,7 +196,7 @@ export default router;
  * @returns array of actions
  */
 export async function getActions(filter: ActionFilterOptions): Promise<Action[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   //build filter where clause
   const whereClause: {
@@ -226,7 +226,7 @@ export async function getActions(filter: ActionFilterOptions): Promise<Action[]>
  * @returns array of action refUuids
  */
 export async function getActionRefUuids(actionUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   const dbActions: Loaded<Action_db>[] = await em.find(Action_db, {
     uuid: { $in: actionUuids },
@@ -240,7 +240,7 @@ export async function getActionRefUuids(actionUuids: string[]): Promise<string[]
  * @returns a copy of the array of actions that was upserted
  */
 async function upsertActions(actions: Action[]): Promise<Action[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin();
 
   const actionsToUpsert = cloneDeep(actions); // Create a copy to manipulate
@@ -270,7 +270,8 @@ async function upsertActions(actions: Action[]): Promise<Action[]> {
  * @returns the uuids of the deleted actions
  */
 async function deleteActions(actionUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
+
   const deletedUuids = [];
   for (const actionUuid of actionUuids) {
     const entity = await em.findOne(Action_db, { uuid: actionUuid });

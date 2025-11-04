@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import { getEM } from "utils/mikro";
+import { globalValues } from "../../global";
 import {
   Action_db,
   Eva_db,
@@ -103,7 +103,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 // update the rex record. More than one rex may be updated if we need to stop a previously running rex
 async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // start a transaction
 
   let rexEntity = null;

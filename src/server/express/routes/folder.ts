@@ -5,10 +5,10 @@ import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/p
 import express from "express";
 import cloneDeep from "lodash/cloneDeep";
 
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
 import { Folder_db } from "server/database/models/_allModels";
 import { convertFolderDbToStore, convertFolderStoreToDb } from "store/storeUtils/folder";
+import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
@@ -197,7 +197,7 @@ export default router;
  * @returns array of folders
  */
 export async function getFolders(missionId: number, folderUuid?: string): Promise<Folder[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   //find folders by either mission Id or uuid
   let dbFolders: Loaded<Folder_db, never>[];
@@ -226,7 +226,7 @@ export async function getFolders(missionId: number, folderUuid?: string): Promis
  * @returns a copy of the Folder objects that was upserted
  */
 async function upsertFolders(folders: Folder[]): Promise<Folder[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const foldersToUpsert = cloneDeep(folders); // Create a copy to manipulate
@@ -258,7 +258,7 @@ async function upsertFolders(folders: Folder[]): Promise<Folder[]> {
  * @returns the uuids of the deleted Folders
  */
 async function deleteFolders(folderUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const folderUuid of folderUuids) {
     const entity = await em.findOne(Folder_db, { uuid: folderUuid });

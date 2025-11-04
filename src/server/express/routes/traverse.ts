@@ -11,7 +11,7 @@ import {
   convertTraversesTypeStoreToDb,
 } from "store/storeUtils/traverse";
 import { hasPerms } from "utils/permissions";
-import { getEM } from "utils/mikro";
+import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
@@ -201,7 +201,7 @@ export default router;
  * @returns array of traverses
  */
 export async function getTraverses(missionId: number, traverseUuid?: string): Promise<Traverse[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   //find traverses by either mission Id or uuid
   let dbTraverses: Loaded<Traverse_db, never>[];
@@ -230,7 +230,7 @@ export async function getTraverses(missionId: number, traverseUuid?: string): Pr
  * @returns array of traverse refUuids
  */
 export async function getTraverseRefUuids(traverseUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const dbTraverses: Loaded<Traverse_db>[] = await em.find(Traverse_db, {
     uuid: { $in: traverseUuids },
   });
@@ -243,7 +243,7 @@ export async function getTraverseRefUuids(traverseUuids: string[]): Promise<stri
  * @returns a copy of the Traverse objects that was upserted
  */
 async function upsertTraverses(traverses: Traverse[]): Promise<Traverse[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const traversesToUpsert = cloneDeep(traverses); // Create a copy to manipulate
@@ -277,7 +277,7 @@ async function upsertTraverses(traverses: Traverse[]): Promise<Traverse[]> {
  * @returns the uuids of the deleted Traverses
  */
 async function deleteTraverses(traverseUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const traverseUuid of traverseUuids) {
     const entity = await em.findOne(Traverse_db, { uuid: traverseUuid });

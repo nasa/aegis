@@ -10,8 +10,8 @@ import {
   convertStationsTypeDbToStore,
   convertStationsTypeStoreToDb,
 } from "store/storeUtils/station";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
@@ -211,7 +211,7 @@ export default router;
  * @returns array of stations
  */
 export async function getStations(missionId: number, stationUUID?: string): Promise<Station[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   //find stations by either mission Id or uuid
   let dbStations: Loaded<Station_db, "poi">[];
@@ -246,7 +246,7 @@ export async function getStations(missionId: number, stationUUID?: string): Prom
  * @returns array of stations refUuids
  */
 export async function getStationRefUuids(stationUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const dbStations: Loaded<Station_db>[] = await em.find(Station_db, {
     uuid: { $in: stationUuids },
   });
@@ -259,7 +259,7 @@ export async function getStationRefUuids(stationUuids: string[]): Promise<string
  * @returns a copy of the stations that was upserted
  */
 async function upsertStations(stations: Station[]): Promise<Station[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const stationsToUpsert = cloneDeep(stations); // Create a copy to manipulate
@@ -307,7 +307,7 @@ async function upsertStations(stations: Station[]): Promise<Station[]> {
  * @returns the uuids of the deleted station
  */
 async function deleteStations(stationUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const stationUuid of stationUuids) {
     const entity = await em.findOne(Station_db, { uuid: stationUuid }, { populate: ["poi"] });

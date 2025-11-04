@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import express from "express";
 
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
-import { getEM } from "utils/mikro";
+import { globalValues } from "../../global";
 
 import { Eva_db, Mission_db, Rex_db, Station_db } from "../../../database/models/_allModels";
 import { emitStoreUpsert } from "../../sockets";
@@ -277,7 +277,7 @@ export async function updateRexControl({
   maestroEventUrl,
   maestroActivityProperties,
 }: RexControlUpdateRequest): Promise<Rex[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // start a transaction
 
   let rexEntity = null;

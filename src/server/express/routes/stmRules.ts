@@ -8,8 +8,8 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { STM_Rule_db } from "server/database/models/_allModels";
 import { convertStmRulesTypeDbToStore, convertStmRulesTypeStoreToDb } from "store/storeUtils/stm";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
@@ -244,7 +244,7 @@ export default router;
  * @returns array of stm rules returns empty array if no records found
  */
 export async function getStmRules(missionId: number): Promise<STMRule[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   const stmRules: Loaded<STM_Rule_db, never>[] = await em.find(
     STM_Rule_db,
@@ -265,7 +265,7 @@ export async function getStmRules(missionId: number): Promise<STMRule[]> {
  * @returns the created stm rule
  */
 async function upsertStmRules(missionId: number, stmRules: STMRule[]): Promise<STMRule[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const stmRulesToUpsert = cloneDeep(stmRules); // Create a copy to manipulate
@@ -301,7 +301,7 @@ async function upsertStmRules(missionId: number, stmRules: STMRule[]): Promise<S
  * @returns the deleted stm rules
  */
 async function deleteStmRules(stmRuleUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const stmRuleUuid of stmRuleUuids) {
     const entity = await em.findOne(STM_Rule_db, { uuid: stmRuleUuid });

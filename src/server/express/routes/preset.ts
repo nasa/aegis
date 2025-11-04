@@ -6,8 +6,8 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { Preset_db } from "server/database/models/_allModels";
 import { convertPresetsTypeDbToStore, convertPresetsTypeStoreToDb } from "store/storeUtils/preset";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
@@ -172,7 +172,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 export default router;
 
 export async function getPresets(missionId: number): Promise<Preset[]> {
-  const model = getEM();
+  const model = globalValues.orm.em;
   const dbPresets = await model.find(Preset_db, { mission: missionId });
 
   /** transform the Mikro Preset_db types into Preset types used in the Store.
@@ -181,7 +181,7 @@ export async function getPresets(missionId: number): Promise<Preset[]> {
 }
 
 async function upsertPresets(presets: Preset[]): Promise<Preset[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const presetsToUpsert = cloneDeep(presets); // Create a copy to manipulate
@@ -209,7 +209,7 @@ async function upsertPresets(presets: Preset[]): Promise<Preset[]> {
 }
 
 async function deletePresets(presetUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const presetUuid of presetUuids) {
     const entity = await em.findOne(Preset_db, { uuid: presetUuid });

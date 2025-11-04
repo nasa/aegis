@@ -5,10 +5,10 @@ import express from "express";
 
 import { Action_db, Eva_db, Rex_db } from "server/database/models/_allModels";
 import { makeExportActions } from "utils/export";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { globalValues } from "../../global";
 
 import { getAll } from "../all";
 import { getGridFromFile } from "../grid";
@@ -116,7 +116,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   if (queryObj.datesOnly) {
     try {
-      const em = getEM();
+      const em = globalValues.orm.em;
       let partialActions: Partial<Action_db>[] = [];
       if (queryObj.rexUuid) {
         // get the rex version of action

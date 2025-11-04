@@ -1,8 +1,6 @@
 import reducer, { initialState, deleteActionsFromDbByUuid } from "store/action";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
-import { MikroORM } from "@mikro-orm/postgresql";
-import config from "server/database/mikro-orm.config";
-import { globalValues } from "server/express/global";
+import { getORM, getEM, closeORM } from "utils/mikro";
 import UserFactory from "../factories/UserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import { createCustomTestStore } from "../factories/makeTestStore";
@@ -14,10 +12,8 @@ let testMission: Mission_db;
 let testAdmin: App_User_db;
 
 beforeAll(async () => {
-  // Initialize MikroORM and set it in globalValues
-  globalValues.orm = await MikroORM.init(config);
-
-  const em = globalValues.orm.em.fork();
+  await getORM();
+  const em = getEM();
   testMission = await new MissionFactory(em).createOne();
   testAdmin = await new UserFactory(em).createOne({
     permissionList: [
@@ -152,10 +148,9 @@ describe("Action Store Tests with mock store", () => {
 
 afterAll(async () => {
   //Cleanup our Database
-  const em = globalValues.orm.em.fork();
+  const em = getEM();
   await em.nativeDelete(Mission_db, { id: testMission.id });
   await em.nativeDelete(App_User_db, { id: testAdmin.id });
   // Closing the DB connection allows Jest to exit successfully.
-  await globalValues.orm.close();
-  globalValues.orm = null;
+  await closeORM();
 });
