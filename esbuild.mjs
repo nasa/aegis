@@ -33,7 +33,7 @@ const context = await esbuild.context({
   sourcemap: true,
   format: "cjs",
   platform: "node",
-  target: "node20",
+  target: "node22",
   // esbuild will not bundle the following packages due to an esm/cjs conflict. This sets them as external to the bundler.
   external: [
     "@mikro-orm/mongodb",
