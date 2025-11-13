@@ -18,7 +18,12 @@ import {
   faPlusCircle,
   faWeightHanging,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button, Dropdown, InLineEditInput } from "components/interface/form/globalFields";
+import {
+  Button,
+  Dropdown,
+  InLineEditInput,
+  TextArea,
+} from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
   EquipmentSelector,
@@ -29,7 +34,6 @@ import { thunkCreateActionTemplate, thunkUpdateActionTemplate } from "store/thun
 import { collapseActions, expandActions } from "store/interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { validators, regExValidators } from "components/interface/form/formValidators";
-import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { toDecimal } from "utils/formatting";
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { ActionTemplateMenu } from "../mission-actionTemplates-menu";
@@ -297,11 +301,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                             <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
                           </div>
                           <div className={paneStyles.descriptionContainer}>
-                            <WysiwygTextArea
+                            <TextArea
                               key={actionTemplate.uuid}
                               value={actionTemplate.description}
                               editing={editMode}
-                              onChange={(value) => {
+                              onSubmit={(value: string) => {
                                 dispatch(
                                   thunkUpdateActionTemplate({
                                     uuid: actionTemplate.uuid,
@@ -310,7 +314,10 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                   })
                                 );
                               }}
-                              ariaLabel="Template Description"
+                              fieldProps={{
+                                name: "templateDescription",
+                                ariaLabel: "Template Description",
+                              }}
                             />
                           </div>
                         </div>

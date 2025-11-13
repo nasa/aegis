@@ -4,7 +4,6 @@ interface ExportMission extends Mission {
 
 interface ExportAction extends Action {
   _itemType: string;
-  descriptionReadable: string;
   parentPoiName: string;
   parentStationName: string;
   parentTraverseName: string;
@@ -33,7 +32,6 @@ interface StmPriorityReadable {
 
 interface ExportPOI extends POI {
   _itemType: string;
-  descriptionReadable: string;
   actionsReadable: ExportAction[];
   calculatedFields: PoiCalculatedFields;
   elevationRelative: number;
@@ -48,7 +46,6 @@ type PoiSummaryReadable = {
 
 interface ExportStation extends Station {
   _itemType: string;
-  descriptionReadable: string;
   actionsReadable: ExportAction[];
   calculatedFields: ExportStationCalculatedFields;
   elevationRelative: number;
@@ -65,7 +62,6 @@ interface ExportStationCalculatedFields extends StationCalculatedFields {
 
 interface ExportTraverse extends Traverse {
   _itemType: string;
-  descriptionReadable: string;
   calculatedFields: TraverseCalculatedFields;
   actionsReadable: ExportAction[];
   actionOrderRefUuids: string[];
@@ -77,7 +73,6 @@ interface EvaSequenceItemRefUuid extends EvaSequenceItem {
 }
 interface ExportEva extends Eva {
   _itemType: string;
-  descriptionReadable: string;
   sequenceReadable: (ExportStation | ExportTraverse)[]; // stations and traverses in order
   sequenceRefUuids: EvaSequenceItemRefUuid[];
   egressLocationRefUuid: string; // station refUuid or "lander"
@@ -92,7 +87,6 @@ interface ExportEvaCalculatedFields extends EvaCalculatedFields {
 
 interface ExportRex extends Rex {
   _itemType: string;
-  descriptionReadable: string;
 }
 
 type EquipmentItemUsageReadable = {

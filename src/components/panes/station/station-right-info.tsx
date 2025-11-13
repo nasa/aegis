@@ -12,7 +12,7 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { Button, InLineEditInput } from "components/interface/form/globalFields";
+import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedStationRightNavItem, upsertStationByField } from "store/station";
 import { calcCentroidofCoordinates, findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
@@ -24,7 +24,6 @@ import {
   thunkUpdateStationLocation,
 } from "store/thunk/thunkStation";
 import { makeTraverseRateString } from "utils/component-helpers";
-import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import round from "lodash/round";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
@@ -247,13 +246,14 @@ const Info_Panel: FunctionComponent<{
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <WysiwygTextArea
+              <TextArea
                 key={selectedStation.uuid}
                 value={selectedStation.description}
                 editing={editMode}
-                onChange={(value) => {
+                onSubmit={(value: string) => {
                   dispatch(upsertStationByField(selectedStation.uuid, "description", value));
                 }}
+                fieldProps={{ name: "stationDescription", ariaLabel: "Station Description" }}
               />
             </div>
           </div>
