@@ -30,7 +30,6 @@ import {
   faRoute,
   faLock,
 } from "@fortawesome/free-solid-svg-icons";
-import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
 import { EmojiRenderer } from "components/interface/emojis";
@@ -316,13 +315,14 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <WysiwygTextArea
+              <TextArea
                 key={selectedEva.uuid}
-                value={selectedEva.description}
+                value={selectedEva.description || ""}
                 editing={editMode}
-                onChange={(value) => {
+                onSubmit={(value: string) => {
                   dispatch(upsertEvaByField(selectedEva.uuid, "description", value));
                 }}
+                fieldProps={{ name: "evaDescription", ariaLabel: "EVA Description" }}
               />
             </div>
           </div>

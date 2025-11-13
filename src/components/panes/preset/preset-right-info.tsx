@@ -10,8 +10,7 @@ import {
   upsertPresetByField,
   upsertPresetsFromDb,
 } from "store/preset";
-import { WysiwygTextArea } from "components/interface/form/wysiwyg";
-import { Button } from "components/interface/form/globalFields";
+import { Button, TextArea } from "components/interface/form/globalFields";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faMessage } from "@fortawesome/free-solid-svg-icons";
 import { getAccurateNow } from "utils/formatting";
@@ -82,14 +81,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
           </div>
           <div className={paneStyles.descriptionContainer}>
-            <WysiwygTextArea
+            <TextArea
               key={selectedPreset?.uuid}
               value={selectedPreset?.description}
               editing={editMode}
-              onChange={(value) => {
+              onSubmit={(value: string) => {
                 dispatch(upsertPresetByField(selectedPresetUuid, "description", value));
               }}
-              ariaLabel="description"
+              fieldProps={{
+                name: "presetDescription",
+                ariaLabel: "Preset Description",
+              }}
             />
           </div>
         </div>
