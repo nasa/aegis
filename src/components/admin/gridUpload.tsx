@@ -6,7 +6,7 @@ import { useNavigate, useParams } from "react-router";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
 import { v4 as uuidv4 } from "uuid";
-import { getMissions } from "http-client/mission";
+import { getMissions, upsertMissions } from "http-client/mission";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 
 type RouteParams = {
@@ -90,6 +90,7 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
         missionId: mission.id,
         spacing: 0,
         name: parsedData.name,
+        fileName: `${parsedData.name}_${Date.now()}.json`,
         isActiveGrid: false,
       },
       coordinates: gridCoords,
@@ -139,6 +140,14 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
       }))
     );
     await upsertGrids(grids, intMissionId, false);
+    if (selectedUuid === null) {
+      await upsertMissions([
+        {
+          ...mission,
+          activeGridUuid: null,
+        },
+      ]);
+    }
   };
 
   const deleteGrid = async (gridUuid: string) => {

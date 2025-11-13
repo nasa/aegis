@@ -402,11 +402,11 @@ async function getGridsInformation(
 }
 
 /**
- * get grid information from the database
+ * Get grid information from database, and grid coordinates from static files.
  * @param gridUUID optional. UUID of the grid to retrieve
  * @returns array of grids
  */
-async function getGrids(
+export async function getGrids(
   missionId: number,
   getFullGrids: boolean,
   gridUUID?: string
@@ -416,7 +416,7 @@ async function getGrids(
 
   for (const info of gridInfo) {
     const gridCoords: MissionGridPoint[][] = getFullGrids
-      ? await getGridFromFile(info.missionId, info.uuid)
+      ? await getGridFromFile(info.missionId, info.uuid, info.fileName)
       : null;
     grids.push({ gridInformation: info, coordinates: gridCoords });
   }
@@ -424,14 +424,15 @@ async function getGrids(
   return grids;
 }
 
-export async function getGridFromFile(
+async function getGridFromFile(
   missionId: number,
-  gridUuid: string
+  gridUuid: string,
+  fileName?: string
 ): Promise<MissionGridPoint[][]> {
-  const fileName = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/grid_${gridUuid}.json`;
+  const filePath = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/${fileName}`;
 
   // Call the readJsonFile function to read the file and parse it
-  const grid = (await readJsonFile(fileName)) as MissionGridPoint[][];
+  const grid = (await readJsonFile(filePath)) as MissionGridPoint[][];
   return grid;
 }
 
@@ -544,6 +545,7 @@ async function upsertGrids(grids: MissionGrid[], upsertFullGrid: boolean): Promi
   const gridsInfo: MissionGridInformation[] = await upsertGridsInformation(
     grids.map((g) => g.gridInformation)
   );
+
   for (let i = 0; i < grids.length; i++) {
     if (upsertFullGrid) {
       await saveGridFile(gridsInfo[i].missionId, grids[i]);
@@ -563,17 +565,12 @@ async function saveGridFile(missionId: number, grid: MissionGrid): Promise<void>
   }
 
   // Write the JSON string to a file
-  fs.writeFile(
-    `${directory}/grid_${grid.gridInformation.uuid}.json`,
-    jsonContent,
-    "utf8",
-    (err) => {
-      if (err) {
-        console.error("Error writing file", err);
-        return;
-      }
+  fs.writeFile(`${directory}/${grid.gridInformation.fileName}`, jsonContent, "utf8", (err) => {
+    if (err) {
+      console.error("Error writing file", err);
+      return;
     }
-  );
+  });
 }
 
 /**
@@ -598,7 +595,7 @@ async function deleteGrids(missionId: number, gridUuids: string[]): Promise<stri
         // Persist the mission reference
       }
       em.remove(entity);
-      deleteGridFile(missionId, gridUuid);
+      deleteGridFile(missionId, entity.fileName);
       deletedUuids.push(gridUuid);
     }
   }
@@ -606,8 +603,8 @@ async function deleteGrids(missionId: number, gridUuids: string[]): Promise<stri
   return deletedUuids;
 }
 
-function deleteGridFile(missionId: number, gridUuid: string): void {
-  const fileName = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/grid_${gridUuid}.json`;
+function deleteGridFile(missionId: number, gridFileName: string): void {
+  const fileName = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/${gridFileName}`;
 
   fs.unlink(fileName, (err) => {
     if (err) {
@@ -632,6 +629,7 @@ function convertGridsTypeDbToLocal(dbGrids: Grid_db[]): MissionGridInformation[]
       numCols: dbGrid.numCols,
       spacing: dbGrid.spacing,
       name: dbGrid.name,
+      fileName: dbGrid.fileName,
       isActiveGrid: dbGrid.isActiveGrid,
     };
 
@@ -655,6 +653,7 @@ function convertGridsTypeStoreToDb(storeGrids: MissionGridInformation[]): Entity
       numCols: storeGrid.numCols,
       spacing: storeGrid.spacing,
       name: storeGrid.name,
+      fileName: storeGrid.fileName,
       isActiveGrid: storeGrid.isActiveGrid,
     };
     dbGrids.push(convertedRecord);
