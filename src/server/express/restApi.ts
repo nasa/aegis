@@ -50,10 +50,8 @@ import { getUser } from "packages/getUser";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 
 import readableActionRoutes from "./routes/readable/action";
-import readableStationRoutes from "./routes/readable/station";
 import readableEvaRoutes from "./routes/readable/eva";
 import readableMissionRoutes from "./routes/readable/mission";
-import readableTraverseRoutes from "./routes/readable/traverse";
 
 const app: Application = express();
 
@@ -133,10 +131,8 @@ app.use("/api/v1/folder", folderRoutes);
 
 // readable endpoints
 app.use("/api/v1/readable/action", readableActionRoutes);
-app.use("/api/v1/readable/station", readableStationRoutes);
 app.use("/api/v1/readable/eva", readableEvaRoutes);
 app.use("/api/v1/readable/mission", readableMissionRoutes);
-app.use("/api/v1/readable/traverse", readableTraverseRoutes);
 
 // endpoints that require emssToken auth only
 app.use("/api/v1/emss/rexControl", rexControl);
