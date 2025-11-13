@@ -12,7 +12,7 @@ import { asError } from "@emss/utils";
 import { globalValues } from "../../global";
 
 import { getAll } from "../all";
-import { getGridFromFile } from "../grid";
+import { getGrids } from "../grid";
 
 const router = express.Router();
 
@@ -166,10 +166,9 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       let gridCoordinates = null;
       if (allData.mission.activeGridUuid) {
         try {
-          gridCoordinates = await getGridFromFile(
-            queryObj.missionId,
-            allData.mission.activeGridUuid
-          );
+          gridCoordinates = (
+            await getGrids(queryObj.missionId, true, allData.mission.activeGridUuid)
+          )[0]?.coordinates;
         } catch (e) {
           // something went wrong with fetching grids. Report an error but continue without grid data
           apiRouteLogger({

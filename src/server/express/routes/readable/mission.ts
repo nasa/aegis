@@ -8,7 +8,7 @@ import { hasPerms, emssTokenIsValid } from "utils/permissions";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
-import { getGridFromFile } from "../grid";
+import { getGrids } from "../grid";
 import { getMission } from "../mission";
 
 const router = express.Router();
@@ -73,9 +73,10 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
     const exportMissions: ExportMission[] = await Promise.all(
       records.map(async (mission) => {
-        const gridCoordinates: MissionGridPoint[][] = mission.activeGridUuid
-          ? await getGridFromFile(queryObj.missionId, mission.activeGridUuid)
-          : null;
+        const gridCoordinates: MissionGridPoint[][] =
+          mission.activeGridUuid && !mission.usingLGRSCoordinates
+            ? (await getGrids(queryObj.missionId, true, mission.activeGridUuid))[0]?.coordinates
+            : null;
         return makeExportMission({
           mission: mission,
           missionGrid: gridCoordinates,

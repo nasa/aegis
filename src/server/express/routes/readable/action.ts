@@ -11,7 +11,7 @@ import { asError } from "@emss/utils";
 import { globalValues } from "../../global";
 
 import { getAll } from "../all";
-import { getGridFromFile } from "../grid";
+import { getGrids } from "../grid";
 
 const router = express.Router();
 
@@ -265,9 +265,11 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         }
       }
 
-      const gridCoordinates: MissionGridPoint[][] = allData.mission.activeGridUuid
-        ? await getGridFromFile(queryObj.missionId, allData.mission.activeGridUuid)
-        : null;
+      const gridCoordinates: MissionGridPoint[][] =
+        allData.mission.activeGridUuid && !allData.mission.usingLGRSCoordinates
+          ? (await getGrids(queryObj.missionId, true, allData.mission.activeGridUuid))[0]
+              ?.coordinates
+          : null;
 
       const exportActions: ExportAction[] = makeExportActions({
         actions: actions,
