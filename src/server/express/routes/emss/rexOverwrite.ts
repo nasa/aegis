@@ -16,6 +16,10 @@ import { v4 as uuidv4 } from "uuid";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
+import fs from "node:fs";
+import path from "node:path";
+import { SCHEMA_DIR } from "utils/validateSchemaServer";
+
 const router = express.Router();
 
 // body of the POST request should be a RexOverwrite object
@@ -98,6 +102,33 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     res
       .status(500)
       .json({ status: "error", message: `Error processing the POST request: ${errorMessage}` });
+  }
+});
+
+router.get("/schema", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "sublayerImportable.json"), "utf8");
+    const schema = JSON.parse(schemaFile);
+    res.status(200).json({
+      status: "success",
+      message: "importableSublayer schema retrieved",
+      data: schema,
+    });
+  } catch (e) {
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "sublayer/schema",
+      appUsername: req.session?.appUser?.username,
+      message: `Error retrieving schema: ${e}`,
+      error: asError(e),
+    });
+    res.status(500).json({
+      status: "error",
+      message: `Error retrieving schema: ${e}`,
+      data: null,
+    });
   }
 });
 
