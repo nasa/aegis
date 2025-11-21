@@ -478,9 +478,10 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
             <label htmlFor="desc">Sublayer Description</label>
           </div>
           <div className={styles.editDiv}>
-            <input
+            <textarea
               id="desc"
-              type="text"
+              rows={6}
+              cols={40}
               onChange={(e) => {
                 setSublayer({ ...sublayer, description: e.target.value });
               }}
@@ -495,6 +496,8 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           <div className={styles.editDiv}>
             <textarea
               id="legend"
+              rows={6}
+              cols={40}
               onBlur={(e) => {
                 if (e.target.value === "") {
                   setSublayer({ ...sublayer, legend: null });
