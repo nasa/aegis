@@ -8,6 +8,7 @@ import Header from "components/interface/header";
 import { v4 as uuidv4 } from "uuid";
 import { getMissions, upsertMissions } from "http-client/mission";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
+import prettyBytes from "pretty-bytes";
 
 type RouteParams = {
   id: string;
@@ -236,7 +237,7 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
                           <br />
                           Filetype: {selectedFile.type}
                           <br />
-                          Size in bytes: {selectedFile.size}
+                          File size: {prettyBytes(selectedFile.size)}
                           <br />
                           Last modified date:{" "}
                           {

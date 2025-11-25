@@ -1,6 +1,6 @@
 // Testing file: file.tsx - using jest
 import { describe } from "@jest/globals";
-import { deleteFile, listFiles, renameFile, unzip } from "server/file/file";
+import { deleteFile, listFiles, renameFile, unzip, moveFile } from "server/file/file";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -112,6 +112,39 @@ describe("File Functions", () => {
         unzip("testZipDoesNotExist.zip", "jestTest", "testZipContentsDoesNotExist")
       ).rejects.toThrow();
       expect(fs.existsSync(path.join(staticTestDir, "/testZipContentsDoesNotExist/"))).toBe(false);
+    });
+  });
+
+  describe("Move File", () => {
+    test("Move File: Success", async () => {
+      const testZipFile = path.join(__dirname, `./factories/testZip.zip`);
+
+      const src = path.join(staticTestDir, "../testUnzip.zip");
+      const dst = path.join(staticTestDir, "testUnzipContents", "testUnzip.zip");
+
+      fs.copyFileSync(testZipFile, src);
+
+      expect(fs.existsSync(dst)).toBe(false);
+      await moveFile("testUnzip.zip", "jestTest", "testUnzipContents");
+      expect(fs.existsSync(dst)).toBe(true);
+      expect(fs.existsSync(src)).toBe(false);
+
+      const deletedFile = await deleteFile("jestTest/testUnzipContents/testUnzip.zip");
+      expect(deletedFile).toBe(true);
+    });
+
+    test("Unzip File: Failure zip file doesn't exist", async () => {
+      await expect(
+        moveFile("testZipDoesNotExist.zip", "jestTest", "testZipContentsDoesNotExist")
+      ).rejects.toThrow();
+
+      const dst = path.join(
+        staticTestDir,
+        "testZipContentsDoesNotExist",
+        "testZipDoesNotExist.zip"
+      );
+
+      expect(fs.existsSync(dst)).toBe(false);
     });
   });
 });

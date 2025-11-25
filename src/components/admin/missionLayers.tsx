@@ -155,6 +155,7 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
             path={`missionFiles/${mission.id}/Layers`}
             setFileList={setFileList}
             isUsed={checkLayerUsesFolder}
+            zipOnly={true}
           />
         ) : (
           <div>A new mission must be saved first before you can upload files</div>
