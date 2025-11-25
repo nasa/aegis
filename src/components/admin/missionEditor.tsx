@@ -300,6 +300,7 @@ const MissionEditor: FunctionComponent<{
                           <FileManager
                             missionId={mission.id}
                             path={`missionFiles/${mission.id}/Data`}
+                            zipOnly={false}
                           />
                         ) : (
                           <div>A new mission must be saved first before you can upload files</div>

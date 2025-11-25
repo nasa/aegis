@@ -6,7 +6,7 @@ import path from "node:path";
 import express from "express";
 import multer from "multer";
 
-import { deleteFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
+import { deleteFile, moveFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
 import { hasPerms } from "utils/permissions";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -60,14 +60,6 @@ const upload = multer({
       });
     },
   }),
-  fileFilter: (req, file, cb) => {
-    // only accept zip files
-    if (path.extname(file.originalname) === ".zip" && file.mimetype.includes("zip")) {
-      cb(null, true);
-    } else {
-      cb(new Error("Invalid file type. Only .zip files are allowed"));
-    }
-  },
   limits: {
     fileSize: Infinity,
   },
@@ -78,9 +70,16 @@ router.post("/", upload.single("uploadFile"), async (req: Request, res: Response
   const queryObj = parseQuery(req.query);
   try {
     if (req.file) {
+      let statusMessage = "File received";
       // File processing logic
-      await unzip(filename, req.body.path, req.body.subfolder); // unzip the file
-      res.status(200).json("File extracted");
+      if (path.extname(filename) === ".zip") {
+        await unzip(filename, req.body.path, req.body.subfolder); // unzip the file if necessary
+        statusMessage = "File received and extracted";
+      } else {
+        // move to subfolder
+        await moveFile(filename, req.body.path, req.body.subfolder);
+      }
+      res.status(201).json(statusMessage);
     } else {
       apiRouteLogger({
         logLevel: "notice",

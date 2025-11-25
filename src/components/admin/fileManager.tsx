@@ -19,11 +19,14 @@ const FileManager: FunctionComponent<{
   path: string; //path off of STATIC_DIR
   setFileList?: Dispatch<SetStateAction<GISfile[]>>; //optional to pass back updated file listing
   isUsed?: (folderName: string) => boolean; //optional check to display message if this folder is in use by the config
+  /** only allow uploading zip files. if false, any file type upload is allowed */
+  zipOnly: boolean;
 }> = (props: {
   missionId: number;
   path: string;
   setFileList: Dispatch<SetStateAction<GISfile[]>>;
   isUsed?: (folderName: string) => boolean;
+  zipOnly: boolean;
 }) => {
   const { path, setFileList, isUsed } = { ...props };
   const [dirListing, setDirListing] = useState<fileState[]>([]);
@@ -109,7 +112,7 @@ const FileManager: FunctionComponent<{
   }
 
   //delete a file
-  async function deleteFileToAPI(filename: string): Promise<void> {
+  async function deleteFileToAPI(e: React.MouseEvent, filename: string): Promise<void> {
     const confirmDelete = confirm("Are you sure you want to delete " + filename);
     if (confirmDelete) {
       const res = await deleteFile(`${path}/${filename}`);
@@ -119,6 +122,7 @@ const FileManager: FunctionComponent<{
       }
       await getDirListing();
     }
+    e.preventDefault();
     return;
   }
 
@@ -172,7 +176,7 @@ const FileManager: FunctionComponent<{
     <div>
       <div className={adminStyles.layerContainer}>
         <div className={adminStyles.divWithBorder}>
-          <UploadFile path={path} cb={getDirListing} />
+          <UploadFile path={path} cb={getDirListing} zipOnly={props.zipOnly} />
         </div>
         <div className={adminStyles.divWithBorder}>
           <DownloadFromBox
@@ -259,8 +263,8 @@ const FileManager: FunctionComponent<{
                         </button>
                         &nbsp; &nbsp;
                         <button
-                          onClick={() => {
-                            deleteFileToAPI(file.name);
+                          onClick={(e) => {
+                            deleteFileToAPI(e, file.name);
                           }}
                           className={adminStyles.deleteButton}
                         >
