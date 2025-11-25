@@ -11,17 +11,20 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import DashboardPETClock from "./headerPetClock";
 import ReactDOMServer from "react-dom/server";
 import { longdateFromDateString } from "utils/formatting";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 const DashboardHeader: FunctionComponent = () => {
   const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
-  const runningRex = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
-    deepEqual
-  );
-  const runningEvaName = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === runningRex?.evaUuid)?.name,
+  const runningRexName = useAppSelector(
+    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.name,
     refEqual
   );
+  const runningAsPlannedEvaName = useAppSelector((state) => {
+    const runningRex = state.rex.rexesFromDb.find((rex) => rex.isRunning);
+    if (!runningRex) return undefined;
+    const runningEva = state.eva.evas.find((eva) => eva.uuid === runningRex.evaUuid);
+    return getAsPlannedEvaFromRefUuid(state, runningEva.refUuid)?.name;
+  }, refEqual);
   const socketStatus = useAppSelector((state) => state.interface.socketStatus, deepEqual);
 
   const [isMouseInHeader, setIsMouseInHeader] = useState(false);
@@ -41,16 +44,16 @@ const DashboardHeader: FunctionComponent = () => {
           <div className={styles.headerLabel}>Mission</div>
           <div className={styles.headerText}>{missionName}</div>
         </div>
-        {runningEvaName && (
+        {runningAsPlannedEvaName && (
           <div className={styles.item}>
             <div className={styles.headerLabel}>EVA</div>
-            <div className={styles.headerText}>{runningEvaName}</div>
+            <div className={styles.headerText}>{runningAsPlannedEvaName}</div>
           </div>
         )}
-        {runningRex && (
+        {runningRexName && (
           <div className={styles.item}>
             <div className={styles.headerLabel}>Execution</div>
-            <div className={styles.headerText}>{runningRex.name}</div>
+            <div className={styles.headerText}>{runningRexName}</div>
           </div>
         )}
       </div>
@@ -113,7 +116,7 @@ const DashboardHeader: FunctionComponent = () => {
             </div>
           </div>
         </div>
-        {runningRex && (
+        {runningRexName && (
           <div className={styles.item}>
             <DashboardPETClock />
           </div>

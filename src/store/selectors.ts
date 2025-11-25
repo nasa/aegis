@@ -68,6 +68,7 @@ export const selectEvaActions =
 
 /**
  * Gets all stations that are not in a REX EVA or ingress/egress locations and returns them sorted by name.
+ * This includes stations that are not in any EVA, and any unsaved draft stations.
  * Since sequence stations and ingress/egress stations are not duplicated until the EVA is saved,
  *     only filter out using the fromDB copies in the store.
  */
@@ -182,10 +183,12 @@ export const getSequenceUuidByRefUuidAndRexUuid = (
   return arrayOfUuidsFromSequence?.find((uuid) => combinedUuids.includes(uuid));
 };
 
+/** Returns the as planned eva given an eva refUuid */
 export const getAsPlannedEvaFromRefUuid = (state: RootState, refUuid: string): Eva | undefined => {
+  if (!refUuid || !state) return undefined;
   // get all rex eva uuids
   const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
-  // the as-planned eva is the one that is not in any rex
+  // the as-planned eva is the one with a matching refUuid, but is not in any rex
   const asPlannedEva = state.eva.evas.find(
     (eva) => !allRexEvasUuids.includes(eva.uuid) && eva.refUuid === refUuid
   );

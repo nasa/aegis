@@ -70,7 +70,7 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci --omit=dev
 # - tini - init system for running node as PID 1
 #   <https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md#handling-kernel-signals>
 RUN apk add --no-cache \
-  rsync=3.4.1-r0 \
+  rsync=3.4.1-r1 \
   tini=0.19.0-r3
 
 ENTRYPOINT ["/sbin/tini", "--"]

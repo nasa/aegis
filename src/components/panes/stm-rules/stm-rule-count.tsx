@@ -59,7 +59,7 @@ const RulesEngineSummary: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
       {numberOfSequenceActions > 0 ? (
         <>
           {numberOfSequenceActions} Actions at {Object.keys(satisfiedSequenceActions).length}{" "}
-          Traverses and Stations
+          Traverses and/or Stations
         </>
       ) : (
         <></>

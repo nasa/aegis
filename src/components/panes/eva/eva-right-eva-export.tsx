@@ -7,6 +7,7 @@ import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { FeatureCollection, LineString, Feature } from "geojson";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkMakeExportRexString } from "store/thunk/thunkRex";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 interface GeoJsonPoint {
   name: string;
@@ -25,6 +26,10 @@ const Export_Panel: FunctionComponent = () => {
     (state) => state.rex.rexes.find((rex) => rex.uuid === state.rex.selectedRexUuid)?.name,
     refEqual
   );
+  const selectedAsPlannedEvaName = useAppSelector((state) => {
+    const asPlannedEva = getAsPlannedEvaFromRefUuid(state, selectedEva.refUuid);
+    return asPlannedEva ? asPlannedEva.name : null;
+  }, refEqual);
 
   // traverse coordinates as nested [lng, lat] arrays
   const fullTraverseCoordinates: number[][] = useAppSelector((state) => {
@@ -138,12 +143,12 @@ const Export_Panel: FunctionComponent = () => {
                           coordinates: fullTraverseCoordinates,
                         },
                         properties: {
-                          name: `Traverse for EVA: ${selectedEva.name} `,
+                          name: `Traverse for EVA: ${selectedAsPlannedEvaName} `,
                         },
                       },
                     ],
                   } as unknown as FeatureCollection<LineString>;
-                  downloadGeoJson(traversesGeoJson, `${selectedEva.name}-traverse.geojson`);
+                  downloadGeoJson(traversesGeoJson, `${selectedAsPlannedEvaName}-traverse.geojson`);
                 }}
               />
               <Button
@@ -169,7 +174,7 @@ const Export_Panel: FunctionComponent = () => {
                     type: "FeatureCollection",
                     features: stationFeatures,
                   };
-                  downloadGeoJson(stationsGeoJson, `${selectedEva.name}-stations.geojson`);
+                  downloadGeoJson(stationsGeoJson, `${selectedAsPlannedEvaName}-stations.geojson`);
                 }}
               />
               <Button
@@ -199,7 +204,7 @@ const Export_Panel: FunctionComponent = () => {
                   };
                   downloadGeoJson(
                     stationActionsGeoJson,
-                    `${selectedEva.name}-station-actions.geojson`
+                    `${selectedAsPlannedEvaName}-station-actions.geojson`
                   );
                 }}
               />
