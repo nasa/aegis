@@ -70,6 +70,7 @@ import {
 } from "store/interface";
 import cloneDeep from "lodash/cloneDeep";
 import { thunkSetOnlyShowRunningRexEva } from "./thunkEva";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 /**
  * Handles the storeUpsert socket event
@@ -137,7 +138,8 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     const changedEvas = storeUpsert.data as Eva[];
     for (const changedEva of changedEvas) {
       if (getState().eva.evasEditing.includes(changedEva.uuid)) {
-        upsertMessages.push(getConflictMessage("EVA", changedEva.name, "upsert"));
+        const asPlannedEva = getAsPlannedEvaFromRefUuid(getState(), changedEva.refUuid);
+        upsertMessages.push(getConflictMessage("EVA", asPlannedEva.name, "upsert"));
         dispatch(setEvaEditMode({ evaUuid: changedEva.uuid, editMode: false }));
       }
       // if the eva being upserted is the selected eva, then nullify the selectedSequenceItemUuid

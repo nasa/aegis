@@ -447,13 +447,15 @@ describe("Thunk EVA Tests", () => {
       const numStationsInEva = eva.sequence.filter((s) => s.type === "station").length;
       const numStations = store.getState().station.stations.length;
 
-      await store.dispatch(
+      const res = await store.dispatch(
         thunkDuplicateEva({ evaUuid: eva.uuid, includeStations: true, isRexEva: true })
       );
       // eva should have been duplicated and saved to db
       expect(store.getState().eva.evas.length).toEqual(numEvas + 1);
       expect(store.getState().eva.evasFromDb.length).toEqual(numEvas + 1);
       expect(httpClient_eva.upsertEvas).toHaveBeenCalledTimes(2);
+      expect(res.payload).toBeTruthy();
+      if (res.payload) expect(res.payload.name).toBeNull();
       // traverses should be duplicated and saved to db
       expect(store.getState().traverse.traverses.length).toEqual(numTraverses + numTraversesInEva);
       expect(store.getState().traverse.traversesFromDb.length).toEqual(

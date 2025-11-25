@@ -25,7 +25,7 @@ import Export_Panel from "./eva-right-eva-export";
 import REX_Positions_panel from "../rex/rex-right-rex-posTypes";
 import REX_Info_panel from "../rex/rex-right-rex-info";
 
-import { setEvaEditMode, setSelectedEvaRightNavItem } from "store/eva";
+import { setEvaEditMode, setSelectedEvaRightNavItem, upsertEvaByField } from "store/eva";
 import { getAlertColor, isModified } from "utils/component-helpers";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
@@ -33,7 +33,6 @@ import {
   thunkCancelEva,
   thunkGetStationOrTraverse,
   thunkSaveEva,
-  thunkUpdateEvaName,
 } from "store/thunk/thunkEva";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
@@ -131,6 +130,12 @@ const EvaRightEva: FunctionComponent = () => {
       };
     }
   }, deepEqual);
+  const selectedAsPlannedEvaName = useAppSelector((state) => {
+    if (!state.rex.selectedRexUuid) return "";
+    const rexFromDb = state.rex.rexesFromDb.find((rex) => rex.uuid === state.rex.selectedRexUuid);
+    const rexEva = state.eva.evas.find((eva) => eva.uuid === rexFromDb?.evaUuid);
+    return getAsPlannedEvaFromRefUuid(state, rexEva.refUuid)?.name;
+  }, refEqual);
   const calculatedFields = useAppSelector((state) => {
     const eva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
     return getCalculatedFieldsByEva({
@@ -422,8 +427,9 @@ const EvaRightEva: FunctionComponent = () => {
         <div className={paneStyles.rightTopTitle}>
           <div className={evaStyles.rightTopTitleText}>
             <InLineEditInput
-              value={partialSelectedEva.name}
-              editing={evasEditing.includes(partialSelectedEva.uuid)}
+              // if rex is selected, show the as-planned eva name and disable editing
+              value={partialSelectedRex ? selectedAsPlannedEvaName : partialSelectedEva.name}
+              editing={partialSelectedRex ? false : evasEditing.includes(partialSelectedEva.uuid)}
               fieldProps={{
                 name: "name",
                 ariaLabel: "EVA Title",
@@ -441,7 +447,7 @@ const EvaRightEva: FunctionComponent = () => {
               styleValue={{ padding: 0, height: "auto", color: "var(--eva)" }}
               styleContainer={{ paddingLeft: 0 }}
               onSubmit={(val) => {
-                dispatch(thunkUpdateEvaName({ evaUuid: partialSelectedEva.uuid, newName: val }));
+                dispatch(upsertEvaByField(partialSelectedEva.uuid, "name", val));
               }}
               key={`${partialSelectedEva.uuid}-name`}
               toFocus={partialSelectedEva.createdAt === partialSelectedEva.updatedAt}

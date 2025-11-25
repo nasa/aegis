@@ -18,7 +18,7 @@ export class Eva_db implements Eva_db_type {
   @ManyToOne(() => Mission_db, { unique: false, primary: false })
   mission!: Mission_db;
 
-  @Property({ type: MikroTypes.text })
+  @Property({ type: MikroTypes.text, nullable: true })
   name!: string;
   @Property({ type: MikroTypes.string })
   status!: StationStatus;

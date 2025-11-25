@@ -4,6 +4,7 @@ import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppS
 import { useAppDispatch } from "utils/useAppDispatch";
 import { stmViewSetHoveredTopItem } from "store/interface";
 import sortBy from "lodash/sortBy";
+import { selectAsPlannedStations } from "store/selectors";
 
 export const IndicatorGridRow: FunctionComponent<{
   level3Uuid: string;
@@ -11,13 +12,17 @@ export const IndicatorGridRow: FunctionComponent<{
   actionUuid?: string;
 }> = ({ level3Uuid, actionType, actionUuid }) => {
   const sortedEvaUuids = useAppSelector((state) => {
-    const allSortedEvas = sortBy(state.eva.evas, [(eva) => eva.name.toLowerCase()]);
-    return allSortedEvas
+    const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
+    const sortedAsPlannedEvas = sortBy(
+      state.eva.evas.filter((eva) => !allRexEvasUuids.includes(eva.uuid)),
+      [(eva) => eva.name?.toLowerCase()]
+    );
+    return sortedAsPlannedEvas
       .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
   const allStationsNotInASelectedEvas = useAppSelector((state) => {
-    const stations = sortBy(state.station.stations, [(station) => station.name.toLowerCase()]);
+    const sortedAsPlannedStations = selectAsPlannedStations(state);
     const selectedEvaUuids = state.interface.stmViewSelectedEvas;
     for (const evaUuid of selectedEvaUuids) {
       const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
@@ -26,14 +31,14 @@ export const IndicatorGridRow: FunctionComponent<{
           .filter((sequenceItem) => sequenceItem.type === "station")
           .map((sequenceItem) => sequenceItem.uuid);
         for (const stationUuid of stationUuids) {
-          const station = stations.find((station) => station.uuid === stationUuid);
+          const station = sortedAsPlannedStations.find((station) => station.uuid === stationUuid);
           if (station) {
-            stations.splice(stations.indexOf(station), 1);
+            sortedAsPlannedStations.splice(sortedAsPlannedStations.indexOf(station), 1);
           }
         }
       }
     }
-    return stations;
+    return sortedAsPlannedStations;
   }, deepEqual);
 
   return (

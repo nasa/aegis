@@ -24,6 +24,7 @@ import { calcPathDurationMins, getDistanceBetweenTwoCoordinates } from "utils/ma
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { updateMapDirective } from "store/map";
 import { generateBlankPosEntry } from "store/storeUtils/rex";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 export const MapPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -60,7 +61,8 @@ export const MapPositionMenu: FunctionComponent = () => {
   const evaAndRexName = useAppSelector((state) => {
     const selectedRex = state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid);
     const selectedEva = state.eva.evas.find((e) => e.uuid === selectedRex?.evaUuid);
-    return `${selectedEva?.name} - ${selectedRex?.name}`;
+    const asPlannedEva = getAsPlannedEvaFromRefUuid(state, selectedEva.refUuid);
+    return `${asPlannedEva?.name} - ${selectedRex?.name}`;
   }, refEqual);
 
   const selectedRexIsExecuting = useAppSelector((state) => {

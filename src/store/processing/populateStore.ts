@@ -8,6 +8,7 @@ import {
   auditPresetsAgainstLayers,
   auditFolders,
   auditRichTextToText,
+  auditRexEvaNames,
 } from "./audits";
 
 export const populateStore = async (params: {
@@ -72,6 +73,7 @@ export const populateStore = async (params: {
     await auditFolders({ wholeStoreState });
     await auditActions({ wholeStoreState });
     await auditRichTextToText({ wholeStoreState });
+    await auditRexEvaNames({ wholeStoreState });
   }
 
   // Set the default preset

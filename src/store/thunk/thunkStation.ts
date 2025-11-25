@@ -376,6 +376,7 @@ export const thunkDeleteStations = appCreateAsyncThunk<{
   if (!stationUuids || stationUuids.length === 0) return;
 
   // validate before doing anything
+  // validation is skipped for rex evas so we do not need to worry about finding the as-planned eva name
   if (!skipValidation) {
     for (const eva of getState().eva.evas) {
       // check if this station is in the eva sequence

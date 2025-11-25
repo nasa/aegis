@@ -185,7 +185,7 @@ export const thunkSaveEva = appCreateAsyncThunk<{
   // finally delete anything that needs to be deleted that we held off on earlier
   // do this last to avoid race conditions as components try to re-render with the new data
 
-  // delete stations
+  // delete stations - this only occurs when dealing with a rex eva
   if (stationUuidsToDelete.length > 0) {
     const deleteRes = await dispatch(
       thunkDeleteStations({ stationUuids: stationUuidsToDelete, skipValidation: true })
@@ -465,6 +465,9 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
       eva.name,
       getState().eva.evas.map((item) => item.name)
     );
+  } else {
+    // EVAs for REXs have no name
+    newEva.name = null;
   }
   // Upsert eva and persist to the db. Do this first so it's in the DB when
   //  emits go out for the new traverses they can access the eva traverse rate
@@ -790,22 +793,6 @@ export const thunkChangeEvaDropdown = appCreateAsyncThunk<{
     // if we were selected on a rex tab, then switch to the eva info panel
     if (getState().eva.selectedEvaRightNavItem.toLowerCase().startsWith("rex")) {
       dispatch(setSelectedEvaRightNavItem("info_panel"));
-    }
-  }
-});
-
-export const thunkUpdateEvaName = appCreateAsyncThunk<{
-  evaUuid: string;
-  newName: string;
-}>("evaUpdateName", async ({ evaUuid, newName }, { dispatch, getState }) => {
-  dispatch(upsertEvaByField(evaUuid, "name", newName));
-
-  // update all other EVAs that share this same refUuid
-  const refUuid = getState().eva.evas.find((e) => e.uuid === evaUuid)?.refUuid;
-  const evasWithSameRefUuid = getState().eva.evas.filter((e) => e.refUuid === refUuid);
-  for (const eva of evasWithSameRefUuid) {
-    if (eva.uuid !== evaUuid) {
-      dispatch(upsertEvaByField(eva.uuid, "name", newName));
     }
   }
 });
