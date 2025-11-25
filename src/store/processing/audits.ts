@@ -213,6 +213,8 @@ export const auditActions = async ({
         newActions.splice(indexInActions, 1);
       }
     }
+    wholeStoreState.action.actions = newActions;
+
     // delete from db
     const deleteResponse = await httpClient_action.deleteActions(actionUuidsToDelete);
     if (deleteResponse.status !== "success") {
@@ -410,7 +412,7 @@ export const auditRichTextToText = async ({
 
   //convert action template descriptions
   const newMission = cloneDeep(wholeStoreState.mission.mission);
-  for (const template of newMission.actionTemplates) {
+  for (const template of newMission.actionTemplates ?? []) {
     const newDescription = convertSlateToPlaintext(template.description);
     if (newDescription) {
       template.description = newDescription;
