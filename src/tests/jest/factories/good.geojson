@@ -1,0 +1,24 @@
+{
+  "type": "FeatureCollection",
+  "name": "Apollo14",
+  "features": [
+  { "type": "Feature", "properties": { "Id": 0, "Name": "LM", "POINT_X": -17.472002815300002, "POINT_Y": -3.6459129321499999 }, "geometry": { "type": "Point", "coordinates": [ -17.472002815261778, -3.645912932149606 ] } },
+  { "type": "Feature", "properties": { "Id": 1, "Name": "Station H", "POINT_X": -17.473321068499999, "POINT_Y": -3.6435001206500002 }, "geometry": { "type": "Point", "coordinates": [ -17.473321068541257, -3.643500120650891 ] } },
+  { "type": "Feature", "properties": { "Id": 2, "Name": "FSR", "POINT_X": -17.475009333100001, "POINT_Y": -3.6444005284399998 }, "geometry": { "type": "Point", "coordinates": [ -17.475009333146772, -3.644400528440499 ] } },
+  { "type": "Feature", "properties": { "Id": 3, "Name": "Comp. Sample", "POINT_X": -17.4762098769, "POINT_Y": -3.6442204468799999 }, "geometry": { "type": "Point", "coordinates": [ -17.47620987686625, -3.644220446882577 ] } },
+  { "type": "Feature", "properties": { "Id": 4, "Name": "Station A", "POINT_X": -17.466905663, "POINT_Y": -3.6430048963699999 }, "geometry": { "type": "Point", "coordinates": [ -17.466905663040297, -3.643004896366606 ] } },
+  { "type": "Feature", "properties": { "Id": 5, "Name": "Station B", "POINT_X": -17.460302672600001, "POINT_Y": -3.6413016249600001 }, "geometry": { "type": "Point", "coordinates": [ -17.460302672583168, -3.641301624964596 ] } },
+  { "type": "Feature", "properties": { "Id": 6, "Name": "Station B1", "POINT_X": -17.451306098100002, "POINT_Y": -3.6408064006799998 }, "geometry": { "type": "Point", "coordinates": [ -17.451306098085322, -3.640806400680311 ] } },
+  { "type": "Feature", "properties": { "Id": 7, "Name": "Station B2", "POINT_X": -17.446406379, "POINT_Y": -3.6402061288200001 }, "geometry": { "type": "Point", "coordinates": [ -17.446406379030208, -3.640206128820572 ] } },
+  { "type": "Feature", "properties": { "Id": 8, "Name": "Station Dg", "POINT_X": -17.438805436599999, "POINT_Y": -3.6370021777699999 }, "geometry": { "type": "Point", "coordinates": [ -17.438805436606259, -3.637002177769216 ] } },
+  { "type": "Feature", "properties": { "Id": 9, "Name": "Station C2", "POINT_X": -17.4357027394, "POINT_Y": -3.6345010850400001 }, "geometry": { "type": "Point", "coordinates": [ -17.435702739412218, -3.63450108503843 ] } },
+  { "type": "Feature", "properties": { "Id": 10, "Name": "Station B3", "POINT_X": -17.434501043200001, "POINT_Y": -3.6342029660200001 }, "geometry": { "type": "Point", "coordinates": [ -17.434501043170769, -3.634202966022009 ] } },
+  { "type": "Feature", "properties": { "Id": 11, "Name": "Station C1", "POINT_X": -17.430101494599999, "POINT_Y": -3.6312020509199998 }, "geometry": { "type": "Point", "coordinates": [ -17.430101494640045, -3.631202050924488 ] } },
+  { "type": "Feature", "properties": { "Id": 12, "Name": "Station C'", "POINT_X": -17.4281055907, "POINT_Y": -3.63180232278 }, "geometry": { "type": "Point", "coordinates": [ -17.428105590706412, -3.631802322784227 ] } },
+  { "type": "Feature", "properties": { "Id": 13, "Name": "Station E", "POINT_X": -17.449305035599998, "POINT_Y": -3.6432046743400002 }, "geometry": { "type": "Point", "coordinates": [ -17.449305035565406, -3.643204674344925 ] } },
+  { "type": "Feature", "properties": { "Id": 14, "Name": "Station F", "POINT_X": -17.458602215, "POINT_Y": -3.6467101682099998 }, "geometry": { "type": "Point", "coordinates": [ -17.458602214955505, -3.646710168213323 ] } },
+  { "type": "Feature", "properties": { "Id": 15, "Name": "Station G1", "POINT_X": -17.463608388499999, "POINT_Y": -3.6474136117999998 }, "geometry": { "type": "Point", "coordinates": [ -17.463608388473251, -3.647413611798955 ] } },
+  { "type": "Feature", "properties": { "Id": 16, "Name": "Station G", "POINT_X": -17.4673014673, "POINT_Y": -3.6459012080900002 }, "geometry": { "type": "Point", "coordinates": [ -17.467301467297816, -3.645901208089847 ] } }
+  ]
+  }
+  
