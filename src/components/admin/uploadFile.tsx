@@ -1,7 +1,8 @@
 import isNull from "lodash/isNull";
 import { uploadFile } from "http-client/file";
 import prettyBytes from "pretty-bytes";
-import { ChangeEventHandler, FunctionComponent, useState } from "react";
+import { ChangeEventHandler, FunctionComponent, useEffect, useState } from "react";
+import { validateGeoJSON } from "utils/validateSchema";
 
 interface UploadProps {
   path: string; //path off of STATIC_DIR
@@ -33,6 +34,7 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
   const [status, setStatus] = useState<UploadStatus>(UploadStatus.Pending);
   const [abort, setAbort] = useState<AbortController>(new AbortController());
   const [progressMsg, setProgressMsg] = useState("");
+  const [geoJSONMessage, setGeoJSONMessage] = useState("unknown");
 
   //handle change when a new file is selected for upload
   const fileChangeHandler: ChangeEventHandler<HTMLInputElement> = (event) => {
@@ -55,8 +57,62 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
       setStatus(UploadStatus.Pending);
       setFileExtension("");
     }
-    setProgressMsg(""); //clear message
+    // clear messages
+    setProgressMsg("");
+    setGeoJSONMessage("unknown");
   };
+
+  // when the selected file changes, validate GeoJSON if a .geojson file has been selected
+  useEffect(() => {
+    if (props.zipOnly) {
+      // no reason to continue if the user should not be uploading geojson files
+      return;
+    }
+
+    if (isNull(selectedFile)) {
+      // no reason to continue if no file is selected
+      return;
+    }
+
+    if (fileExtension !== ".geojson") {
+      // no reason to continue if a file without the geojson extension is selected
+      return;
+    }
+
+    const reader = new FileReader();
+
+    // something went horribly wrong reading the file
+    reader.onerror = () => {
+      setGeoJSONMessage("invalid. Could not read file");
+    };
+
+    // the file was read successfully
+    reader.onload = (e) => {
+      // casting to a string to fix the type of e.target.result, which could be an ArrayBuffer to account for binary data. if someone tries uploading a binary file with an erroneous .geojson extension, we'll just get validation errors later, so this casting is no big deal
+      const fileData = `${e.target.result}`;
+
+      if (fileData.length === 0) {
+        setGeoJSONMessage("invalid. File appears empty");
+        return;
+      }
+
+      const [valid, errs] = validateGeoJSON(fileData);
+
+      if (errs.length > 0) {
+        setGeoJSONMessage("invalid. See browser console for errors");
+        for (const err of errs) {
+          console.error("GEOJSON ERROR", err);
+        }
+      } else if (!valid) {
+        setGeoJSONMessage("invalid for unknown reason");
+      } else if (valid) {
+        setGeoJSONMessage("valid");
+      }
+    };
+
+    // non-blocking call that reads the file in the browser. .onload and .onerror callbacks will update geojson-related component state
+    reader.readAsText(selectedFile, "utf-8");
+  }, [props.zipOnly, selectedFile, fileExtension]);
 
   //sends file to be uploaded and sets progress message
   async function uploadFileToAPI() {
@@ -150,6 +206,12 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
                 : "Not Available" //some browsers don't have this data (Firefox, Safari)
             }
             <br />
+            {fileExtension === ".geojson" && !props.zipOnly && (
+              <>
+                GeoJSON: {geoJSONMessage}
+                <br />
+              </>
+            )}
           </p>
         ) : (
           <p />
