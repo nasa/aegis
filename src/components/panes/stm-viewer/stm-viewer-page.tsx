@@ -27,6 +27,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSelectedStationUuid } from "store/station";
 import { actionTypes } from "store/storeUtils/store";
 import sortBy from "lodash/sortBy";
+import { selectAsPlannedStations } from "store/selectors";
 
 const StmViewerPage: FunctionComponent = () => {
   const stmViewExpandTopTiers = useAppSelector(
@@ -165,8 +166,12 @@ export default StmViewerPage;
 
 const StationGroupTitles: FunctionComponent = () => {
   const sortedEvaUuids = useAppSelector((state) => {
-    const allSortedEvas = sortBy(state.eva.evas, [(eva) => eva.name.toLowerCase()]);
-    return allSortedEvas
+    const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
+    const sortedAsPlannedEvas = sortBy(
+      state.eva.evas.filter((eva) => !allRexEvasUuids.includes(eva.uuid)),
+      [(eva) => eva.name?.toLowerCase()]
+    );
+    return sortedAsPlannedEvas
       .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
@@ -241,13 +246,17 @@ const StationGroupTitle: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid })
 
 const StationNameGroups: FunctionComponent = () => {
   const sortedEvaUuids = useAppSelector((state) => {
-    const allSortedEvas = sortBy(state.eva.evas, [(eva) => eva.name.toLowerCase()]);
-    return allSortedEvas
+    const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
+    const sortedAsPlannedEvas = sortBy(
+      state.eva.evas.filter((eva) => !allRexEvasUuids.includes(eva.uuid)),
+      [(eva) => eva.name?.toLowerCase()]
+    );
+    return sortedAsPlannedEvas
       .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
   const allStationsNotInASelectedEvas = useAppSelector((state) => {
-    const stations = sortBy(state.station.stations, [(station) => station.name.toLowerCase()]);
+    const sortedAsPlannedStations = selectAsPlannedStations(state);
     const selectedEvaUuids = state.interface.stmViewSelectedEvas;
     for (const evaUuid of selectedEvaUuids) {
       const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
@@ -256,14 +265,14 @@ const StationNameGroups: FunctionComponent = () => {
           .filter((sequenceItem) => sequenceItem.type === "station")
           .map((sequenceItem) => sequenceItem.uuid);
         for (const stationUuid of stationUuids) {
-          const station = stations.find((station) => station.uuid === stationUuid);
+          const station = sortedAsPlannedStations.find((station) => station.uuid === stationUuid);
           if (station) {
-            stations.splice(stations.indexOf(station), 1);
+            sortedAsPlannedStations.splice(sortedAsPlannedStations.indexOf(station), 1);
           }
         }
       }
     }
-    return stations;
+    return sortedAsPlannedStations;
   }, deepEqual);
 
   return (
@@ -347,15 +356,15 @@ const StationName: FunctionComponent<{ station: Station }> = ({ station }) => {
 const EvaSelector: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedEvas = useAppSelector((state) => state.interface.stmViewSelectedEvas, deepEqual);
-  const evasWithStations = useAppSelector((state) => {
-    const evas = sortBy(state.eva.evas, [(eva) => eva.name.toLowerCase()]);
-    // remove evas that have no stations in the sequence
-    for (const eva of evas) {
-      if (eva.sequence.filter((sequenceItem) => sequenceItem.type === "station").length === 0) {
-        evas.splice(evas.indexOf(eva), 1);
-      }
-    }
-    return evas;
+  const asPlannedEvaWithStations = useAppSelector((state) => {
+    const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
+    const asPlannedEvasWithStations = state.eva.evas.filter(
+      (eva) =>
+        !allRexEvasUuids.includes(eva.uuid) && // not in a rex
+        eva.sequence.filter((sequenceItem) => sequenceItem.type === "station").length > 0 // has a station
+    );
+    const sortedEvas = sortBy(asPlannedEvasWithStations, [(eva) => eva.name.toLowerCase()]);
+    return sortedEvas;
   }, deepEqual);
 
   return (
@@ -365,12 +374,12 @@ const EvaSelector: FunctionComponent = () => {
       data-tooltip-html="Contains all EVAs that have assigned stations"
     >
       <MultiSelectDropdown
-        items={evasWithStations.map((eva) => ({ label: eva.name, value: eva.uuid }))}
+        items={asPlannedEvaWithStations.map((eva) => ({ label: eva.name, value: eva.uuid }))}
         selectedItemsValues={selectedEvas}
         toggleItem={(uuid) => {
           dispatch(stmViewToggleEva(uuid));
         }}
-        titleLabel="Select EVAs"
+        titleLabel="Select As-Planned EVAs"
         containerStyle={{ zIndex: 10 }}
         containerClassName={styles.multiselectDropdownContainer}
         headerClassName={styles.multiselectDropdownHeader}

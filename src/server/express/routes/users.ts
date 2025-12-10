@@ -8,8 +8,8 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { App_User_db } from "server/database/models/_allModels";
 import { convertUsersTypeDbToStore, convertUsersTypeStoreToDb } from "store/storeUtils/user";
-import { getEM } from "utils/mikro";
 import { upsertDatabaseRetry } from "utils/database";
+import { globalValues } from "../global";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -84,6 +84,20 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!users || users.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "users",
+        appUsername: req.session?.appUser?.username,
+        uuids: users?.map((u) => u.id?.toString()),
+        message: `No users provided in request body`,
+      });
+      res.status(400).json({ status: "failure", message: `No users provided in request body` });
+      return;
+    }
     const upsertResponse: AppUser[] = await upsertDatabaseRetry(() => upsertUsers(users));
 
     // Check response
@@ -190,7 +204,7 @@ export default router;
  * @param userId
  */
 async function getUsers(userId: number = null): Promise<AppUser[]> {
-  const model = getEM();
+  const model = globalValues.orm.em;
   let users: App_User_db[];
   if (!userId) {
     users = await model.find(App_User_db, {});
@@ -207,7 +221,7 @@ async function getUsers(userId: number = null): Promise<AppUser[]> {
  * @param users
  */
 export async function upsertUsers(users: AppUser[]): Promise<AppUser[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const usersToUpsert: AppUser[] = cloneDeep(users);
@@ -256,7 +270,7 @@ export async function upsertUsers(users: AppUser[]): Promise<AppUser[]> {
  * @returns the uuids of the deleted users
  */
 async function deleteUsers(userIds: number[]): Promise<number[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const userId of userIds) {
     const entity = await em.findOne(App_User_db, { id: userId });

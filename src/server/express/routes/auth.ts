@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import express from "express";
 
 import { App_User_db } from "server/database/models/_allModels";
-import { getEM } from "utils/mikro";
+import { globalValues } from "../global";
 
 import { upsertUsers } from "./users";
 import { apiRouteLogger } from "utils/logging/serverLogger";
@@ -114,8 +114,8 @@ router.get("/adminRecovery", async (req: Request, res: Response): Promise<void> 
 export default router;
 
 async function apiLogin(username: string, password: string): Promise<WrappedResponse<AppUser>> {
-  const model = getEM();
-  const user = await model.findOne(App_User_db, { username });
+  const em = globalValues.orm.em;
+  const user = await em.findOne(App_User_db, { username });
   if (!user) {
     return { status: "failure", message: "No such user." };
   } else {
@@ -139,8 +139,10 @@ async function apiLogin(username: string, password: string): Promise<WrappedResp
 }
 
 async function recoverWithRecoveryKey(recoveryKey: string): Promise<boolean> {
+  const em = globalValues.orm.em;
+
   if (recoveryKey === process.env.ADMIN_RECOVERY_KEY) {
-    const adminUserDB = await getEM().findOne(App_User_db, { isSuperAdmin: true });
+    const adminUserDB = await em.findOne(App_User_db, { isSuperAdmin: true });
     const adminUser: AppUser = {
       ...adminUserDB,
       password: "admin",

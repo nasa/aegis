@@ -3,7 +3,7 @@ import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import { getEM } from "utils/mikro";
+import { globalValues } from "../../global";
 import { Eva_db, Rex_db } from "server/database/models/_allModels";
 import { emssTokenIsValid } from "utils/permissions";
 import { apiRouteLogger } from "utils/logging/serverLogger";
@@ -54,7 +54,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const em = getEM();
+    const em = globalValues.orm.em;
 
     const refEvaSubQuery = em
       .createQueryBuilder(Eva_db)

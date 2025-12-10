@@ -1,5 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { getORM, getEM, closeORM } from "utils/mikro";
+import { MikroORM } from "@mikro-orm/postgresql";
+import config from "server/database/mikro-orm.config";
+import { globalValues } from "server/express/global";
 import { App_User_db, Mission_db, Poi_db } from "server/database/models/_allModels";
 import UserFactory from "../factories/UserFactory";
 import PoiFactory from "../factories/PoiFactory";
@@ -22,8 +24,10 @@ let testMissions: Mission_db[];
 let testPois: Poi_db[];
 
 beforeAll(async () => {
-  await getORM();
-  const em = getEM();
+  // Initialize MikroORM and set it in globalValues
+  globalValues.orm = await MikroORM.init(config);
+
+  const em = globalValues.orm.em.fork();
   testMissions = await new MissionFactory(em).create(3);
   testUser = await new UserFactory(em).createOne({
     username: "JestPoi",
@@ -134,6 +138,20 @@ describe("Poi API Endpoint", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty POIs array", async () => {
+      const requestBody: POIUpsertRequest = {
+        socketId: "someSocketId",
+        missionId: testMissions[0].id,
+        pois: [],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/poi")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(400);
+    });
+
     test("Create new Poi", async () => {
       const requestBody: POIUpsertRequest = {
         socketId: "someSocketId",
@@ -151,7 +169,7 @@ describe("Poi API Endpoint", () => {
       newPoi = { ...upsertedPoi };
 
       //check if it was added to the db
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       const poiReference = await em.findOne(Poi_db, upsertedPoi.uuid);
       expect(poiReference).not.toBeNull();
     });
@@ -264,7 +282,7 @@ describe("Auth with emss-token header", () => {
 
 afterAll(async () => {
   //Cleanup our Database
-  const em = getEM();
+  const em = globalValues.orm.em.fork();
   for (let i = 0; i < testPois.length; i++) {
     await em.nativeDelete(Poi_db, { uuid: testPois[i].uuid });
   }
@@ -274,7 +292,8 @@ afterAll(async () => {
   await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
-  await closeORM();
+  await globalValues.orm.close();
+  globalValues.orm = null;
 
   jest.restoreAllMocks();
 });

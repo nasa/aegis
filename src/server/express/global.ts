@@ -5,7 +5,7 @@ export const globalValues: GlobalValues = {
     maestroVisitors: [],
     lastEditEvents: {},
   },
-  ormCache: null,
+  orm: null,
   socketInterval: null, // ensures only 1 interval is running
   appVersion: null,
   isEmssApiEnabled: true,

@@ -2,12 +2,11 @@ import { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { faCalculator, faLocationDot, faMessage, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { Button, InLineEditInput } from "components/interface/form/globalFields";
+import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { setSelectedPOIRightNavItem, upsertPoiByField } from "store/poi";
-import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import round from "lodash/round";
 import { validators } from "components/interface/form/formValidators";
 import { thunkUpdatePoiLatLngField } from "store/thunk/thunkPoi";
@@ -112,11 +111,15 @@ const Info_Panel: FunctionComponent<{
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <WysiwygTextArea
+              <TextArea
                 value={selectedPoi.description}
                 editing={editMode}
-                onChange={(value) => {
+                onSubmit={(value: string) => {
                   dispatch(upsertPoiByField(selectedPoi.uuid, "description", value));
+                }}
+                fieldProps={{
+                  name: "poiDescription",
+                  ariaLabel: "POI Description",
                 }}
                 key={selectedPoi.uuid}
               />

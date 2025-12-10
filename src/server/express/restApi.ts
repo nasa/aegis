@@ -3,6 +3,7 @@ import cookieSession from "cookie-session";
 import cors from "cors";
 import { globalValues } from "./global";
 import path from "path";
+import { RequestContext } from "@mikro-orm/postgresql";
 
 import authRoutes from "./routes/auth";
 import actionRoutes from "./routes/action";
@@ -27,10 +28,8 @@ import usersRoutes from "./routes/users";
 import timeRoutes from "./routes/time";
 import folderRoutes from "./routes/folder";
 
-import rexPet from "./routes/emss/rexPet";
 import rexControl from "./routes/emss/rexControl";
 import rexByEvaRef from "./routes/emss/getRexesByEvaRef";
-import rexStatus from "./routes/emss/rexStatus";
 import getMissions from "./routes/emss/getMissions";
 import rexOverwrite from "./routes/emss/rexOverwrite";
 import enableEmssApi from "./routes/emss/enableEmssApi";
@@ -51,10 +50,8 @@ import { getUser } from "packages/getUser";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 
 import readableActionRoutes from "./routes/readable/action";
-import readableStationRoutes from "./routes/readable/station";
 import readableEvaRoutes from "./routes/readable/eva";
 import readableMissionRoutes from "./routes/readable/mission";
-import readableTraverseRoutes from "./routes/readable/traverse";
 
 const app: Application = express();
 
@@ -71,6 +68,17 @@ app.use(
 // static asset passthrough for dev. This path is one level above src (relative from build output folder)
 app.use("/static", express.static(path.join(__dirname, `../../../${process.env.STATIC_DIR}`)));
 
+// socket stuff
+app.use("/api/v1/socket/serverSocketStatus", serverSocketStatus);
+app.use("/api/v1/socket/lastEditEvent", socketLastEditEventRoutes);
+
+// Mikro-ORM RequestContext should be last middleware before routes
+// <https://mikro-orm.io/docs/identity-map#request-context>
+// use Mikro-ORM RequestContext for express and socketio handlers
+app.use((_req, _res, next) => {
+  RequestContext.create(globalValues.orm.em, next);
+});
+
 // get user info from launchpad
 app.get("/api/v1/user/current", (req, res) => {
   const user = getUser(req);
@@ -85,10 +93,6 @@ app.get("/api/v1/user/current", (req, res) => {
 app.get("/api/v1/health", (req, res) => {
   res.send({ status: "ok" });
 });
-
-// socket stuff
-app.use("/api/v1/socket/serverSocketStatus", serverSocketStatus);
-app.use("/api/v1/socket/lastEditEvent", socketLastEditEventRoutes);
 
 // get app version
 app.get("/api/v1/version", (req, res) => {
@@ -127,16 +131,12 @@ app.use("/api/v1/folder", folderRoutes);
 
 // readable endpoints
 app.use("/api/v1/readable/action", readableActionRoutes);
-app.use("/api/v1/readable/station", readableStationRoutes);
 app.use("/api/v1/readable/eva", readableEvaRoutes);
 app.use("/api/v1/readable/mission", readableMissionRoutes);
-app.use("/api/v1/readable/traverse", readableTraverseRoutes);
 
 // endpoints that require emssToken auth only
-app.use("/api/v1/emss/rexPet", rexPet);
 app.use("/api/v1/emss/rexControl", rexControl);
 app.use("/api/v1/emss/getRexesByEvaRef", rexByEvaRef);
-app.use("/api/v1/emss/rexStatus", rexStatus);
 app.use("/api/v1/emss/getMissions", getMissions);
 app.use("/api/v1/emss/enableEmssApi", enableEmssApi);
 app.use("/api/v1/emss/rexOverwrite", rexOverwrite);

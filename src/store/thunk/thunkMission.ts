@@ -324,7 +324,6 @@ export const thunkCreateTemplateFromAction = appCreateAsyncThunk<{ actionUuid: s
       type: action.type,
       duration: action.duration,
       stmAction: action.stmAction,
-      stmUuidRefs: action.stmUuidRefs,
       stmPriorities: action.stmPriorities,
       equipmentItemsUsage: action.equipmentItemsUsage,
       geographicUnitsUsage: action.geographicUnitsUsage,

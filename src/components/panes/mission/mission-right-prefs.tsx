@@ -13,10 +13,9 @@ import {
   faMountain,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button, InLineEditInput } from "components/interface/form/globalFields";
+import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import { upsertMissionByField } from "store/mission";
-import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { toDecimal } from "utils/formatting";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkVerifyNoStationsBeingEdited } from "store/thunk/thunkStation";
@@ -145,14 +144,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <WysiwygTextArea
+              <TextArea
                 key={mission.id.toString()}
-                value={mission.description}
+                value={mission.description || ""}
                 editing={editMode}
-                onChange={(value) => {
+                onSubmit={(value: string) => {
                   dispatch(upsertMissionByField("description", value));
                 }}
-                ariaLabel="missionDescription"
+                fieldProps={{
+                  name: "missionDescription",
+                  ariaLabel: "Mission Description",
+                }}
               />
             </div>
           </div>

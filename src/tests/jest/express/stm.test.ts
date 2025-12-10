@@ -1,5 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { getORM, getEM, closeORM } from "utils/mikro";
+import { MikroORM } from "@mikro-orm/postgresql";
+import config from "server/database/mikro-orm.config";
+import { globalValues } from "server/express/global";
 import {
   App_User_db,
   Mission_db,
@@ -25,8 +27,10 @@ let testMissions: Mission_db[];
 let stmLevel1s: STM_Level1_db[];
 
 beforeAll(async () => {
-  await getORM();
-  const em = getEM();
+  // Initialize MikroORM and set it in globalValues
+  globalValues.orm = await MikroORM.init(config);
+
+  const em = globalValues.orm.em.fork();
   testMissions = await new MissionFactory(em).create(3);
   testUser = await new UserFactory(em).createOne({
     username: "JestSTM",
@@ -284,6 +288,21 @@ describe("STM API Endpoint", () => {
       expect(res.statusCode).toBe(401);
     });
 
+    test("Empty stmObjects array", async () => {
+      const requestBody: STMUpsertRequest = {
+        missionId: testMissions[0].id,
+        stmObjects: [],
+        stmType: "Level1",
+      };
+      const res = await supertest(app)
+        .post("/api/v1/stm")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.status).toBe("failure");
+    });
+
     describe("Level1", () => {
       test("Create new level1", async () => {
         newLevel1.missionId = testMissions[0].id;
@@ -305,7 +324,7 @@ describe("STM API Endpoint", () => {
         newLevel1 = { ...upsertedSTM };
 
         //check if it was added to the db
-        const em = getEM();
+        const em = globalValues.orm.em.fork();
         const stmReference = await em.findOne(STM_Level1_db, upsertedSTM.uuid);
         expect(stmReference).not.toBeNull();
       });
@@ -349,7 +368,7 @@ describe("STM API Endpoint", () => {
         newLevel2 = { ...upsertedSTM };
 
         //check if it was added to the db
-        const em = getEM();
+        const em = globalValues.orm.em.fork();
         const stmReference = await em.findOne(STM_Level2_db, upsertedSTM.uuid);
         expect(stmReference).not.toBeNull();
       });
@@ -393,7 +412,7 @@ describe("STM API Endpoint", () => {
         newLevel3 = { ...upsertedSTM };
 
         //check if it was added to the db
-        const em = getEM();
+        const em = globalValues.orm.em.fork();
         const stmReference = await em.findOne(STM_Level3_db, upsertedSTM.uuid);
         expect(stmReference).not.toBeNull();
       });
@@ -497,7 +516,7 @@ describe("STM API Endpoint", () => {
 
 afterAll(async () => {
   //Cleanup our Database
-  const em = getEM();
+  const em = globalValues.orm.em.fork();
   for (const level1 of stmLevel1s) {
     for (const level2 of level1.level2s) {
       for (const level3 of level2.level3s) {
@@ -513,7 +532,8 @@ afterAll(async () => {
   await em.nativeDelete(App_User_db, { id: testUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
-  await closeORM();
+  await globalValues.orm.close();
+  globalValues.orm = null;
 
   jest.restoreAllMocks();
 });

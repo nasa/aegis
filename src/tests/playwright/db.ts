@@ -1,5 +1,4 @@
-import dotenv from "dotenv";
-dotenv.config({ override: true, quiet: true });
+import "utils/loadEnv";
 
 import { Client } from "pg";
 

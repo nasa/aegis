@@ -1,5 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { getORM, getEM, closeORM } from "utils/mikro";
+import { MikroORM } from "@mikro-orm/postgresql";
+import config from "server/database/mikro-orm.config";
+import { globalValues } from "server/express/global";
 import {
   Mission_db,
   App_User_db,
@@ -121,9 +123,14 @@ let originalFullStore: OneMissionToRuleThemAll;
 
 describe("Mission Duplication Tests", () => {
   beforeAll(async () => {
-    // Initialize the ORM
-    await getORM();
-    const em = getEM();
+    // Initialize MikroORM and set it in globalValues
+    // Enable allowGlobalContext for this test specifically to allow using the global EM instance.
+    // This is required because this test calls getAll(), which internally calls route functions
+    // like getActions(), getEVAs(), etc. These route functions use globalValues.orm.em directly
+    // (without forking) because in production they are called within Express request handlers
+    // where the request context is already established.
+    globalValues.orm = await MikroORM.init({ ...config, allowGlobalContext: true });
+    const em = globalValues.orm.em.fork();
 
     // Get mission with ID 22 from the database instead of creating a new one.
     // 22 is our boilerplate test mission that only superusers can access
@@ -180,7 +187,7 @@ describe("Mission Duplication Tests", () => {
 
   describe("Mission Table Duplication", () => {
     test("Should duplicate a mission record", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Create a duplicate mission and capture the UUID mappings by passing our UUID maps
       duplicatedMissionId = await createMissionCopy(
@@ -218,7 +225,7 @@ describe("Mission Duplication Tests", () => {
 
   describe("Station Duplication", () => {
     test("Should duplicate all stations with proper relationships", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // 1. Get all stations from the original mission
       const originalStations = sourceData.stations;
@@ -265,7 +272,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should update action order UUIDs in stations", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Get stations with action order UUIDs
       const stationsWithActions = sourceData.stations.filter(
@@ -319,7 +326,7 @@ describe("Mission Duplication Tests", () => {
 
   describe("POI Duplication", () => {
     test("Should duplicate all POIs with proper relationships", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no POIs to test
       if (sourceData.pois.length === 0) {
@@ -366,7 +373,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should maintain relationships between POIs and stations", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no POIs to test
       if (sourceData.pois.length === 0) {
@@ -427,7 +434,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should update action order UUIDs in POIs", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Get POIs with action order UUIDs
       const poisWithActions = sourceData.pois.filter(
@@ -475,7 +482,7 @@ describe("Mission Duplication Tests", () => {
 
   describe("Action Duplication", () => {
     test("Should duplicate all actions with proper relationships", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no actions to test
       if (sourceData.actions.length === 0) {
@@ -525,7 +532,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should maintain parent-child relationships between actions", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Find actions that have parent-child relationships
       const actionsWithParents = sourceData.actions.filter(
@@ -567,7 +574,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should maintain action-station relationships", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Find actions that have station relationships
       const actionsWithStations = sourceData.actions.filter(
@@ -609,7 +616,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should maintain action-POI relationships", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Find actions that have POI relationships
       const actionsWithPois = sourceData.actions.filter((action: Action_db) => action.poi?.uuid);
@@ -649,7 +656,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should maintain action-traverse relationships", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Find actions that have traverse relationships
       const actionsWithTraverses = sourceData.actions.filter(
@@ -693,7 +700,7 @@ describe("Mission Duplication Tests", () => {
 
   describe("Traverse Duplication", () => {
     test("Should duplicate all traverses with proper properties", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no traverses to test
       if (sourceData.traverses.length === 0) {
@@ -747,7 +754,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should update action order UUIDs in traverses", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Get traverses with action order UUIDs
       const traversesWithActions = sourceData.traverses.filter(
@@ -801,7 +808,7 @@ describe("Mission Duplication Tests", () => {
 
   describe("Layer and Sublayer Duplication", () => {
     test("Should duplicate all layers with proper properties", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no layers to test
       if (sourceData.layers.length === 0) {
@@ -838,7 +845,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should duplicate all sublayers with proper properties", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no sublayers to test
       if (sourceData.sublayers.length === 0) {
@@ -886,7 +893,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should maintain sublayer-layer relationships", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no sublayers to test
       if (sourceData.sublayers.length === 0) {
@@ -927,7 +934,7 @@ describe("Mission Duplication Tests", () => {
 
   describe("EVA Duplication", () => {
     test("Should duplicate all EVAs with proper properties", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no EVAs to test
       if (sourceData.evas.length === 0) {
@@ -973,7 +980,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should update station and traverse references in EVA sequences", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no EVAs to test
       if (sourceData.evas.length === 0) {
@@ -1029,7 +1036,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should update egress and ingress location references in EVAs", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no EVAs to test
       if (sourceData.evas.length === 0) {
@@ -1072,7 +1079,7 @@ describe("Mission Duplication Tests", () => {
 
   describe("STM Entity Duplication", () => {
     test("Should duplicate STM Level 1 entities", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no STM Level 1s to test
       if (!sourceData.stmLevel1s || sourceData.stmLevel1s.length === 0) {
@@ -1113,7 +1120,7 @@ describe("Mission Duplication Tests", () => {
 
     // Add this new test case for STM Level 2
     test("Should duplicate STM Level 2 entities with proper properties", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no STM Level 2s to test
       if (!sourceData.stmLevel2s || sourceData.stmLevel2s.length === 0) {
@@ -1169,7 +1176,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should duplicate STM Level 3 entities with proper properties", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no STM Level 3s to test
       if (!sourceData.stmLevel3s || sourceData.stmLevel3s.length === 0) {
@@ -1229,7 +1236,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should maintain STM hierarchical relationships", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no STM entities to test
       if (
@@ -1330,7 +1337,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should duplicate STM rules with updated STM references", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no STM rules to test
       if (!sourceData.stmRules || sourceData.stmRules.length === 0) {
@@ -1389,7 +1396,7 @@ describe("Mission Duplication Tests", () => {
 
   describe("Preset Duplication", () => {
     test("Should duplicate all presets with proper properties", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no presets to test
       if (sourceData.presets.length === 0) {
@@ -1442,7 +1449,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should update layer and sublayer references in presets", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no presets with map sublayer controls
       const presetsWithLayerRefs = sourceData.presets.filter(
@@ -1494,7 +1501,7 @@ describe("Mission Duplication Tests", () => {
 
   describe("REX Duplication", () => {
     test("Should duplicate all REX entities with proper properties", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no REXes to test
       if (sourceData.rexes.length === 0) {
@@ -1545,7 +1552,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should update entity references in REX entries", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Get REXes that have station entries
       const rexesWithStationEntries = sourceData.rexes.filter(
@@ -1630,7 +1637,7 @@ describe("Mission Duplication Tests", () => {
 
   describe("Grid Duplication", () => {
     test("Should duplicate all grids with proper properties", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no grids to test
       // This check might still be relevant if the grid creation failed for some reason
@@ -1674,7 +1681,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should update active grid reference in mission", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip if the original mission doesn't have an active grid
       // This check might still be relevant if the grid creation/update failed
@@ -1701,7 +1708,7 @@ describe("Mission Duplication Tests", () => {
 
   describe("Folder Duplication", () => {
     test("Should duplicate all folders with proper properties", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip the test if there are no folders to test
       if (sourceData.folders.length === 0) {
@@ -1744,7 +1751,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     test("Should update entity references in folder items", async () => {
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
 
       // Skip if there are no folders to test
       if (sourceData.folders.length === 0) {
@@ -1847,7 +1854,7 @@ describe("Mission Duplication Tests", () => {
 
   afterAll(async () => {
     // Clean up the database in the correct order respecting relationships
-    const em = getEM();
+    const em = globalValues.orm.em.fork();
 
     // Use the deleteMissions function which handles cleaning up all related entities
     // in the correct order based on foreign key relationships
@@ -1859,6 +1866,7 @@ describe("Mission Duplication Tests", () => {
     await em.nativeDelete(App_User_db, { id: testUser.id });
 
     // Close the ORM connection
-    await closeORM();
+    await globalValues.orm.close();
+    globalValues.orm = null;
   });
 });

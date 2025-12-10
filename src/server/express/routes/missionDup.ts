@@ -3,10 +3,10 @@ import type { Request, Response } from "express";
 import express from "express";
 
 import { fetchMissionEntities, createMissionCopy } from "utils/dup/core";
-import { getEM } from "utils/mikro";
 import { upsertDatabaseRetry } from "utils/database";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { globalValues } from "../global";
 
 const router = express.Router();
 
@@ -96,7 +96,7 @@ const duplicateMission = async (missionId: number | undefined): Promise<number> 
   if (!missionId) {
     throw new Error("Mission ID is required");
   }
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   try {

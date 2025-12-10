@@ -5,7 +5,7 @@ import express from "express";
 
 import { Eva_db, Mission_db, Rex_db } from "server/database/models/_allModels";
 import { apiRouteLogger } from "utils/logging/serverLogger";
-import { getEM } from "utils/mikro";
+import { globalValues } from "../../global";
 import { emssTokenIsValid } from "utils/permissions";
 
 export type MissionsWithEvas = {
@@ -21,7 +21,7 @@ export type MissionsWithEvas = {
 
 const router = express.Router();
 
-// Used by Maestro to get all action system version 2 missions and their EVAs
+// Used by Maestro to get all missions and their EVAs
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
 
@@ -41,7 +41,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const em = getEM();
+    const em = globalValues.orm.em;
 
     const rexEvasSubquery = em.createQueryBuilder(Rex_db).select("evaUuid");
     const evaQuery = em
@@ -83,7 +83,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       }
     });
 
-    // Grab any v2 missions that do not have evas
+    // Grab any missions that do not have evas
     const allMissionsQuery = em
       .createQueryBuilder(Mission_db)
       .select(["id", "name", "actionSystemVersion"])

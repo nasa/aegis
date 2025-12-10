@@ -1,3 +1,5 @@
+import get from "lodash/get";
+import isNull from "lodash/isNull";
 import { FunctionComponent, useState, useEffect } from "react";
 import styles from "./admin.module.css";
 import { upsertSublayers } from "http-client/sublayer";
@@ -6,6 +8,7 @@ import { generateBlankSublayer } from "store/storeUtils/sublayer";
 import { getManifestJsonTimeBounds } from "utils/mapping/timeLayers";
 import { validateImportableSublayer } from "utils/validateSchema";
 import { getAccurateNow } from "utils/formatting";
+import { AnySchemaObject, ErrorObject } from "ajv";
 
 interface SublayerProps {
   sublayer: Sublayer;
@@ -23,6 +26,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     props.sublayer.legend ? JSON.stringify(props.sublayer.legend) : ""
   );
   const [isExternal, setIsExternal] = useState<boolean>(props.sublayer.path?.startsWith("http"));
+  const [propertiesErrs, setPropertiesErrs] = useState<ErrorObject[]>([]);
 
   // update fields when swapping between sublayers
   useEffect(() => {
@@ -186,13 +190,32 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
       },
     });
     if (res.status !== 200) return;
-    const partialSublayerJson: unknown = await res.json();
+
+    let partialSublayerJson: unknown;
+    try {
+      partialSublayerJson = await res.json();
+    } catch (e) {
+      // mimic an AJV validation error for consistency's sake.
+      setPropertiesErrs([
+        {
+          keyword: "missing",
+          message: "cannot parse - invalid JSON",
+          instancePath: "properties.json",
+          schemaPath: null,
+          params: null,
+        },
+      ]);
+      return;
+    }
+
     const validationErrors = await validateImportableSublayer(partialSublayerJson);
     // check if the sublayer is valid
     if (validationErrors.length !== 0) {
       console.error("Could not import properties.json. Invalid schema:", validationErrors);
+      setPropertiesErrs(validationErrors);
       return;
     }
+
     //set values
     setSublayer((state) => {
       return { ...state, ...(partialSublayerJson as SublayerImportable) };
@@ -210,6 +233,9 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
   }
 
   async function preloadDataFromFiles(folderName: string) {
+    // clear errors from the last properties.json loaded, if there were any
+    setPropertiesErrs([]);
+
     if (isExternal) {
       await loadTileMapResourceFromFile(folderName);
       await loadLegendFromFile(folderName);
@@ -249,6 +275,57 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     });
     setBoundingBox(tempBlankSublayer.boundingBox?.toString());
     setLegend(tempBlankSublayer.legend ? JSON.stringify(tempBlankSublayer.legend) : "");
+  }
+
+  /**
+   * AJV JSON errors are zero indexed and formatted with slashes. Rewrite them in a more JSON-like format
+   * @param instancePath string
+   * @returns string
+   */
+  function humanReadableJSONErrorPath(instancePath: string): string {
+    let res = "";
+
+    const parts = instancePath.split("/");
+
+    parts
+      // we'll probably have an empty string at the start of the list because every path starts with a /
+      .filter((part) => part !== "")
+      .forEach((part, index) => {
+        const maybePosition = parseInt(part);
+        if (!isNaN(maybePosition)) {
+          // we have an array index
+          res += `[${maybePosition}]`;
+          return;
+        }
+
+        // we have a key
+
+        if (index === 0) {
+          // the first key doesn't need to be prefixed with a "."...
+          res = part;
+          return;
+        }
+
+        // ...but latter keys do need the "." prefixed
+        res += `.${part}`;
+      });
+
+    return res;
+  }
+
+  /**
+   * Grab useful info from the AJV schema to show a user
+   * @param parentSchema AnySchemaObject from AJV
+   * @returns string
+   */
+  function humanReadableJSONErrorParent(parentSchema: AnySchemaObject): string {
+    const enumValues = get(parentSchema, "enum", null);
+
+    if (!isNull(enumValues)) {
+      return `Options: ${enumValues.join(", ")}`;
+    }
+
+    return "";
   }
 
   return (
@@ -446,6 +523,22 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
             {`${sublayer.path}${sublayer.type === "vector" ? "" : "/" + sublayer.tilePattern}`}
           </div>
         </div>
+        {propertiesErrs.length > 0 && (
+          <div className={styles.editDiv}>
+            <strong>Errors found in properties.json:</strong> <span>(Arrays are zero-indexed)</span>
+            <br />
+            <ul>
+              {propertiesErrs.map((err, index) => (
+                <li key={`PROPERTIES_JSON__ERRORS__${index}`}>
+                  <span className={styles.propertiesErrs}>
+                    {humanReadableJSONErrorPath(err.instancePath)}: {err.message}.{" "}
+                    {humanReadableJSONErrorParent(err.parentSchema)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {sublayer.isTimeBased && (
           <div>
             <div className={styles.editDiv}>
@@ -478,9 +571,10 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
             <label htmlFor="desc">Sublayer Description</label>
           </div>
           <div className={styles.editDiv}>
-            <input
+            <textarea
               id="desc"
-              type="text"
+              rows={6}
+              cols={40}
               onChange={(e) => {
                 setSublayer({ ...sublayer, description: e.target.value });
               }}
@@ -495,6 +589,8 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
           <div className={styles.editDiv}>
             <textarea
               id="legend"
+              rows={6}
+              cols={40}
               onBlur={(e) => {
                 if (e.target.value === "") {
                   setSublayer({ ...sublayer, legend: null });

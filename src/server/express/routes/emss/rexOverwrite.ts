@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import { getEM } from "utils/mikro";
+import { globalValues } from "../../global";
 import {
   Action_db,
   Eva_db,
@@ -15,6 +15,10 @@ import { upsertDatabaseRetry } from "utils/database";
 import { v4 as uuidv4 } from "uuid";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+
+import fs from "node:fs";
+import path from "node:path";
+import { SCHEMA_DIR } from "utils/validateSchemaServer";
 
 const router = express.Router();
 
@@ -101,9 +105,36 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+router.get("/schema", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "sublayerImportable.json"), "utf8");
+    const schema = JSON.parse(schemaFile);
+    res.status(200).json({
+      status: "success",
+      message: "importableSublayer schema retrieved",
+      data: schema,
+    });
+  } catch (e) {
+    apiRouteLogger({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "sublayer/schema",
+      appUsername: req.session?.appUser?.username,
+      message: `Error retrieving schema: ${e}`,
+      error: asError(e),
+    });
+    res.status(500).json({
+      status: "error",
+      message: `Error retrieving schema: ${e}`,
+      data: null,
+    });
+  }
+});
+
 // update the rex record. More than one rex may be updated if we need to stop a previously running rex
 async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // start a transaction
 
   let rexEntity = null;

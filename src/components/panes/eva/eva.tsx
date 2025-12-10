@@ -35,7 +35,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
     const allRexEvas = state.rex.rexes.map((rex) => rex.evaUuid);
     return sortBy(
       state.eva.evas.filter((eva) => !allRexEvas.includes(eva.uuid)),
-      [(eva) => eva.name.toLowerCase()]
+      [(eva) => eva.name?.toLowerCase()]
     ).map((eva) => eva.uuid);
   }, deepEqual);
 

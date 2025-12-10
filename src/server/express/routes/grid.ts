@@ -12,8 +12,8 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { Grid_db, Mission_db } from "server/database/models/_allModels";
 import { findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -209,6 +209,22 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!grids || grids.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "grid",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: grids?.map((g) => g.gridInformation.uuid),
+        message: "No grids provided in request body",
+      });
+      res.status(400).json({ status: "error", message: "No grids provided in request body" });
+      return;
+    }
+
     const upsertResponse: MissionGrid[] = await upsertDatabaseRetry(() =>
       upsertGrids(grids, upsertFullGrid)
     );
@@ -350,7 +366,7 @@ async function getGridsInformation(
   missionId: number,
   gridUUID?: string
 ): Promise<MissionGridInformation[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   //find grids by uuid
   let dbGrids: Loaded<Grid_db, "missions">[];
@@ -386,11 +402,11 @@ async function getGridsInformation(
 }
 
 /**
- * get grid information from the database
+ * Get grid information from database, and grid coordinates from static files.
  * @param gridUUID optional. UUID of the grid to retrieve
  * @returns array of grids
  */
-async function getGrids(
+export async function getGrids(
   missionId: number,
   getFullGrids: boolean,
   gridUUID?: string
@@ -400,7 +416,7 @@ async function getGrids(
 
   for (const info of gridInfo) {
     const gridCoords: MissionGridPoint[][] = getFullGrids
-      ? await getGridFromFile(info.missionId, info.uuid)
+      ? await getGridFromFile(info.missionId, info.uuid, info.fileName)
       : null;
     grids.push({ gridInformation: info, coordinates: gridCoords });
   }
@@ -408,14 +424,15 @@ async function getGrids(
   return grids;
 }
 
-export async function getGridFromFile(
+async function getGridFromFile(
   missionId: number,
-  gridUuid: string
+  gridUuid: string,
+  fileName?: string
 ): Promise<MissionGridPoint[][]> {
-  const fileName = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/grid_${gridUuid}.json`;
+  const filePath = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/${fileName}`;
 
   // Call the readJsonFile function to read the file and parse it
-  const grid = (await readJsonFile(fileName)) as MissionGridPoint[][];
+  const grid = (await readJsonFile(filePath)) as MissionGridPoint[][];
   return grid;
 }
 
@@ -471,7 +488,7 @@ async function getClosestPoints(
 async function upsertGridsInformation(
   grids: MissionGridInformation[]
 ): Promise<MissionGridInformation[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const gridsToUpsert = cloneDeep(grids); // Create a copy to manipulate
@@ -528,6 +545,7 @@ async function upsertGrids(grids: MissionGrid[], upsertFullGrid: boolean): Promi
   const gridsInfo: MissionGridInformation[] = await upsertGridsInformation(
     grids.map((g) => g.gridInformation)
   );
+
   for (let i = 0; i < grids.length; i++) {
     if (upsertFullGrid) {
       await saveGridFile(gridsInfo[i].missionId, grids[i]);
@@ -547,17 +565,12 @@ async function saveGridFile(missionId: number, grid: MissionGrid): Promise<void>
   }
 
   // Write the JSON string to a file
-  fs.writeFile(
-    `${directory}/grid_${grid.gridInformation.uuid}.json`,
-    jsonContent,
-    "utf8",
-    (err) => {
-      if (err) {
-        console.error("Error writing file", err);
-        return;
-      }
+  fs.writeFile(`${directory}/${grid.gridInformation.fileName}`, jsonContent, "utf8", (err) => {
+    if (err) {
+      console.error("Error writing file", err);
+      return;
     }
-  );
+  });
 }
 
 /**
@@ -567,7 +580,7 @@ async function saveGridFile(missionId: number, grid: MissionGrid): Promise<void>
  * @returns the uuids of the deleted grid
  */
 async function deleteGrids(missionId: number, gridUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const gridUuid of gridUuids) {
     const entity = await em.findOne(Grid_db, { uuid: gridUuid }, { populate: ["mission"] });
@@ -582,7 +595,7 @@ async function deleteGrids(missionId: number, gridUuids: string[]): Promise<stri
         // Persist the mission reference
       }
       em.remove(entity);
-      deleteGridFile(missionId, gridUuid);
+      deleteGridFile(missionId, entity.fileName);
       deletedUuids.push(gridUuid);
     }
   }
@@ -590,8 +603,8 @@ async function deleteGrids(missionId: number, gridUuids: string[]): Promise<stri
   return deletedUuids;
 }
 
-function deleteGridFile(missionId: number, gridUuid: string): void {
-  const fileName = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/grid_${gridUuid}.json`;
+function deleteGridFile(missionId: number, gridFileName: string): void {
+  const fileName = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/${gridFileName}`;
 
   fs.unlink(fileName, (err) => {
     if (err) {
@@ -616,6 +629,7 @@ function convertGridsTypeDbToLocal(dbGrids: Grid_db[]): MissionGridInformation[]
       numCols: dbGrid.numCols,
       spacing: dbGrid.spacing,
       name: dbGrid.name,
+      fileName: dbGrid.fileName,
       isActiveGrid: dbGrid.isActiveGrid,
     };
 
@@ -639,6 +653,7 @@ function convertGridsTypeStoreToDb(storeGrids: MissionGridInformation[]): Entity
       numCols: storeGrid.numCols,
       spacing: storeGrid.spacing,
       name: storeGrid.name,
+      fileName: storeGrid.fileName,
       isActiveGrid: storeGrid.isActiveGrid,
     };
     dbGrids.push(convertedRecord);

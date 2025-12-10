@@ -11,6 +11,7 @@ import {
   Button,
   InLineEditInput,
   PathColorPickerMenu,
+  TextArea,
 } from "components/interface/form/globalFields";
 import { FunctionComponent } from "react";
 import { setSelectedTraverseRightNavItem, upsertTraverseByField } from "store/traverse";
@@ -20,7 +21,6 @@ import traverseStyles from "./traverse.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkResetTraverse } from "store/thunk/thunkTraverse";
 import { formatNumberWithCommas, isNotNumber, toDecimal } from "utils/formatting";
-import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { makeTraverseRateString } from "utils/component-helpers";
@@ -130,13 +130,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <WysiwygTextArea
+              <TextArea
                 key={selectedTraverse.uuid}
                 value={selectedTraverse.description}
                 editing={editMode}
-                onChange={(value: string) => {
+                onSubmit={(value: string) => {
                   dispatch(upsertTraverseByField(selectedTraverse.uuid, "description", value));
                 }}
+                fieldProps={{ name: "traverseDescription", ariaLabel: "Traverse Description" }}
               />
             </div>
           </div>

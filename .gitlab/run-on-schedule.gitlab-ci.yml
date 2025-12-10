@@ -1,6 +1,3 @@
-.include:
-  - local: .gitlab/includes/db-import.yml
-
 .db-export-template:
   needs: []
   # I don't think we want to do this, because I don't think we want GitLab to consider this a

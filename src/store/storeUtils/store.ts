@@ -55,13 +55,13 @@ export function mergeEquipmentItems(
   return totalEquipItems;
 }
 
-export const getStmUuidRefs = (stmPriorities: StmPriorities): string[] => {
-  const stmUuidRefs: string[] = [];
-  if (isEmpty(stmPriorities)) return stmUuidRefs;
-  for (const [key, __] of Object.entries(stmPriorities)) {
-    stmUuidRefs.push(key);
+export const getStmUuids = (stmPriorities: StmPriorities): string[] => {
+  const stmUuids: string[] = [];
+  if (isEmpty(stmPriorities)) return stmUuids;
+  for (const [uuid, __] of Object.entries(stmPriorities)) {
+    stmUuids.push(uuid);
   }
-  return stmUuidRefs;
+  return stmUuids;
 };
 
 export const actionTypes: ActionType[] = [

@@ -1,5 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { getORM, getEM, closeORM } from "utils/mikro";
+import { MikroORM } from "@mikro-orm/postgresql";
+import config from "server/database/mikro-orm.config";
+import { globalValues } from "server/express/global";
 import {
   Mission_db,
   Rex_db,
@@ -38,8 +40,10 @@ const emssToken = process.env.EMSS_TOKEN;
 let validRexOverwrite: RexOverwrite;
 
 beforeAll(async () => {
-  await getORM();
-  const em = getEM();
+  // Initialize MikroORM and set it in globalValues
+  globalValues.orm = await MikroORM.init(config);
+
+  const em = globalValues.orm.em.fork();
 
   testMission = await new MissionFactory(em)
     .each((mission) => {
@@ -453,7 +457,7 @@ describe("REX Status API Endpoint", () => {
       expect(callArgs.data).toHaveLength(2);
 
       // Check updated rex
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       const updatedRex = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
       expect(updatedRex).toBeDefined();
       expect(updatedRex.posEntries.length).toBe(3); // pos entries for each source should be created
@@ -463,7 +467,7 @@ describe("REX Status API Endpoint", () => {
 });
 
 afterAll(async () => {
-  const em = getEM();
+  const em = globalValues.orm.em.fork();
   for (const rex of testRexes) {
     await em.nativeDelete(Rex_db, { uuid: rex.uuid });
   }
@@ -473,6 +477,7 @@ afterAll(async () => {
   await em.nativeDelete(Eva_db, { uuid: testEva.uuid });
   await em.nativeDelete(Mission_db, { id: testMission.id });
 
-  await closeORM();
+  await globalValues.orm.close();
+  globalValues.orm = null;
   jest.restoreAllMocks();
 });

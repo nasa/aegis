@@ -8,7 +8,7 @@ type Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, Socket
   >;
 
 type GlobalValues = {
-  ormCache: MikroORM;
+  orm: MikroORM;
   socketio: Server<
     ClientToServerEvents,
     ServerToClientEvents,

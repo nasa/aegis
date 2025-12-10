@@ -7,8 +7,8 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeDbToStore, convertRexesTypeStoreToDb } from "store/storeUtils/rex";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
@@ -43,7 +43,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  if (!rexes) {
+  if (!rexes || rexes.length === 0) {
     apiRouteLogger({
       logLevel: "notice",
       httpMethod: "POST",
@@ -52,11 +52,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       appUsername: req.session?.appUser?.username,
       missionId,
       uuids: rexes?.map((r) => r.uuid),
-      message: `No rexes provided to upsert`,
+      message: `No rexes provided in request body`,
     });
     res.status(400).json({
       status: "failure",
-      message: `No rexes provided to upsert`,
+      message: `No rexes provided in request body`,
     });
     return;
   }
@@ -221,7 +221,7 @@ export default router;
  * @returns rexes
  */
 export async function getRexes(missionId: number): Promise<Rex[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const rexes = await em.find(Rex_db, { mission: missionId });
 
   return convertRexesTypeDbToStore(rexes);
@@ -233,7 +233,7 @@ export async function getRexes(missionId: number): Promise<Rex[]> {
  * @returns the upserted rexes
  */
 async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // start a transaction
 
   const rexesToUpsert: Rex[] = cloneDeep(rexes);
@@ -261,7 +261,7 @@ async function upsertRexes(rexes: Rex[]): Promise<Rex[]> {
  * @returns the uuids of the deleted rexes
  */
 async function deleteRexes(uuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const uuid of uuids) {
     const entity = await em.findOne(Rex_db, uuid);

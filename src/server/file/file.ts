@@ -56,6 +56,31 @@ export async function unzip(
   }
 }
 
+/** Move a single file to a new location, creating the destination directory if necessary
+ * @param filename POSIX string representation of a file within the STATIC_DIR
+ * @param destDir child directory of STATIC_DIR
+ * @param subfolder optional subfolder within the destDir to move the file to. Ex. a UUID folder for layers
+ * @returns returns true if successful. False otherwise. Logs messages to console
+ */
+export async function moveFile(
+  filename: string,
+  destDir: string,
+  subfolder?: string
+): Promise<void> {
+  let destination = `${destRoot}/${destDir}`;
+  if (subfolder) destination = `${destination}/${subfolder}`;
+
+  if (!fs.existsSync(destination)) {
+    await mkdir(destination, { recursive: true });
+  }
+
+  const srcPath = `${destRoot}/${filename}`;
+  const destPath = `${destination}/${filename}`;
+
+  console.log(`${new Date()} Moving: ${srcPath} to ${destPath}`);
+  await rename(srcPath, destPath);
+}
+
 /**
  * Recursive delete of a file or folder
  * @param path path to file or folder from the root STATIC_DIR folder.

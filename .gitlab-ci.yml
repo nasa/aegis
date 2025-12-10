@@ -22,3 +22,13 @@ include:
   - local: .gitlab/run-on-commits.gitlab-ci.yml
     rules:
       - if: $CI_PIPELINE_SOURCE != "schedule"
+
+  # Other jobs that we need for both types of pipelines
+  - local: .gitlab/includes/db-import.yml
+    rules:
+    - if: $SCHEDULE_TYPE != "audit" # exclude from audit scheduled pipelines
+  - project: "emss/gitlab-templates"
+    ref: 2.6.0
+    file:
+      # EMSS shared dev server helpers (carbon, iron, oxygen, etc)
+      - "/jobs/emss-shared-dev.gitlab-ci.yml"

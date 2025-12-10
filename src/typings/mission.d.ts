@@ -176,6 +176,7 @@ type MissionGridInformation = {
   numCols: number;
   spacing: number;
   name: string;
+  fileName: string;
   isActiveGrid: boolean;
 };
 

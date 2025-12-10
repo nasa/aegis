@@ -8,8 +8,8 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { STM_Rule_db } from "server/database/models/_allModels";
 import { convertStmRulesTypeDbToStore, convertStmRulesTypeStoreToDb } from "store/storeUtils/stm";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
@@ -107,12 +107,38 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!missionId || isNaN(missionId)) {
-    res.status(500).json({ status: "error", message: "Invalid mission ID" });
-    return;
-  }
 
   try {
+    // validate
+    if (!stmRules || stmRules.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "stmRules",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: stmRules?.map((r) => r.uuid),
+        message: "No stm rules provided in request body",
+      });
+      res.status(400).json({ status: "failure", message: "No stm rules provided in request body" });
+      return;
+    }
+    if (!missionId || isNaN(missionId)) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "stmRules",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: stmRules?.map((r) => r.uuid),
+        message: "Invalid mission ID",
+      });
+      res.status(400).json({ status: "error", message: "Invalid mission ID" });
+      return;
+    }
+
     const upsertResponse: STMRule[] = await upsertStmRules(missionId, stmRules);
 
     // Check response
@@ -244,7 +270,7 @@ export default router;
  * @returns array of stm rules returns empty array if no records found
  */
 export async function getStmRules(missionId: number): Promise<STMRule[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   const stmRules: Loaded<STM_Rule_db, never>[] = await em.find(
     STM_Rule_db,
@@ -265,7 +291,7 @@ export async function getStmRules(missionId: number): Promise<STMRule[]> {
  * @returns the created stm rule
  */
 async function upsertStmRules(missionId: number, stmRules: STMRule[]): Promise<STMRule[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const stmRulesToUpsert = cloneDeep(stmRules); // Create a copy to manipulate
@@ -301,7 +327,7 @@ async function upsertStmRules(missionId: number, stmRules: STMRule[]): Promise<S
  * @returns the deleted stm rules
  */
 async function deleteStmRules(stmRuleUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const stmRuleUuid of stmRuleUuids) {
     const entity = await em.findOne(STM_Rule_db, { uuid: stmRuleUuid });

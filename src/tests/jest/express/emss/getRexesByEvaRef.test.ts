@@ -1,5 +1,7 @@
 import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
-import { getORM, getEM, closeORM } from "utils/mikro";
+import { MikroORM } from "@mikro-orm/postgresql";
+import config from "server/database/mikro-orm.config";
+import { globalValues } from "server/express/global";
 import { Mission_db, Eva_db, Rex_db } from "server/database/models/_allModels";
 import MissionFactory from "../../factories/MissionFactory";
 import EvaFactory from "../../factories/EVAFactory";
@@ -13,8 +15,10 @@ let testRexes: Rex_db[];
 const emssToken = process.env.EMSS_TOKEN;
 
 beforeAll(async () => {
-  await getORM();
-  const em = getEM();
+  // Initialize MikroORM and set it in globalValues
+  globalValues.orm = await MikroORM.init(config);
+
+  const em = globalValues.orm.em.fork();
 
   testMissions = await new MissionFactory(em).create(1);
 
@@ -94,7 +98,7 @@ describe("GET REX BY EVA REF Endpoint", () => {
 
     test("Does not retrieve rex if it has a maestroEventId", async () => {
       // First, update one rex to have a maestroEventId
-      const em = getEM();
+      const em = globalValues.orm.em.fork();
       const rexToUpdate = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
       rexToUpdate.maestroEventId = "some-event-uuid";
       await em.flush();
@@ -113,7 +117,7 @@ describe("GET REX BY EVA REF Endpoint", () => {
 });
 
 afterAll(async () => {
-  const em = getEM();
+  const em = globalValues.orm.em.fork();
   for (const rex of testRexes) {
     await em.nativeDelete(Rex_db, { uuid: rex.uuid });
   }
@@ -123,6 +127,7 @@ afterAll(async () => {
   for (const mission of testMissions) {
     await em.nativeDelete(Mission_db, { id: mission.id });
   }
-  await closeORM();
+  await globalValues.orm.close();
+  globalValues.orm = null;
   jest.restoreAllMocks();
 });

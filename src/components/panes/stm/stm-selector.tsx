@@ -23,10 +23,10 @@ const STMSelector: FunctionComponent<{
   const [expanded, setExpanded] = useState<string[]>([]); //array of values at the parent levels that are expanded
   const [stmTreeNodes, setStmTreeNodes] = useState<Node[]>([]);
 
-  const stmUuidRefs = [];
+  const stmUuids = [];
   if (stmPriorities) {
     for (const [key, __] of Object.entries(stmPriorities)) {
-      stmUuidRefs.push(key);
+      stmUuids.push(key);
     }
   }
 
@@ -152,7 +152,7 @@ const STMSelector: FunctionComponent<{
         />
       ) : (
         <div>
-          <STM_Coverage stmUuidRefs={[stmUuidRefs]} horizontal={true} />
+          <STM_Coverage stmUuidsByActionUuid={[stmUuids]} horizontal={true} />
         </div>
       )}
     </>

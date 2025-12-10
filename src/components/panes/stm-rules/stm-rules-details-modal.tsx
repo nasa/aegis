@@ -28,10 +28,10 @@ import {
   thunkSaveStmRule,
 } from "store/thunk/thunkStmRules";
 import { stmRulesToggleRex } from "store/interface";
-import cloneDeep from "lodash/cloneDeep";
 import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
 import Action from "components/panes/actions-action";
 import { EmojiRenderer } from "components/interface/emojis";
+import { getAsPlannedEvaFromRefUuid, selectAsPlannedStations } from "store/selectors";
 
 const STMRuleDetailsModal: FunctionComponent<{
   isModalOpen: boolean;
@@ -180,7 +180,7 @@ const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
     (state) => state.interface.stmRulesSelectedRexes,
     shallowEqual
   );
-  const selectedEvaUuids = useAppSelector((state) => {
+  const selectedRexEvaUuids = useAppSelector((state) => {
     const selectedEvaUuids = [];
     for (const rexUuid of state.interface.stmRulesSelectedRexes) {
       const rex = state.rex.rexes.find((rex) => rex.uuid === rexUuid);
@@ -191,34 +191,28 @@ const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
     return selectedEvaUuids;
   }, shallowEqual);
 
-  const otherEvaUuids = useAppSelector((state) => {
+  // get all as-planned evas that are not in the selected rex evas
+  const otherAsPlannedEvaUuids = useAppSelector((state) => {
+    const allRexEvaUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
     return state.eva.evas
       .filter((eva) => {
-        return !selectedEvaUuids.includes(eva.uuid);
+        return !selectedRexEvaUuids.includes(eva.uuid) && !allRexEvaUuids.includes(eva.uuid);
       })
       .map((eva) => eva.uuid);
   }, shallowEqual);
 
-  // get all stations that are not in the selected evas
-  const otherStations = useAppSelector((state) => {
-    const selectedStationUuids = selectedEvaUuids.flatMap((evaUuid) => {
-      const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
-      return eva?.sequence
-        .filter((sequenceItem) => sequenceItem.type === "station")
-        .map((item) => item.uuid);
-    });
-    const stationUuidsNotInSelectedEvas = state.station.stations
-      .filter((station) => !selectedStationUuids.includes(station.uuid))
-      .map((station) => station.uuid);
-    // remove stations that have no actions (these are probably flag stations)
-    const filteredStationUuids = stationUuidsNotInSelectedEvas.filter((stationUuid) =>
-      state.action.actions.some((action) => action.stationUuid === stationUuid)
+  // get all as-planned stations that are not in the selected rex evas
+  const otherAsPlannedStations = useAppSelector((state) => {
+    const allAsPlannedStations = selectAsPlannedStations(state);
+    // remove stations that have no actions
+    const stationsNotInSelectedRexEvas = allAsPlannedStations.filter(
+      (station) => station.actionOrderUuids && station.actionOrderUuids.length > 0
     );
-    return state.station.stations.filter((station) => filteredStationUuids.includes(station.uuid));
+    return stationsNotInSelectedRexEvas;
   }, deepEqual);
 
   const otherTraverseUuids = useAppSelector((state) => {
-    const selectedTraverseUuids = selectedEvaUuids.flatMap((evaUuid) => {
+    const selectedTraverseUuids = selectedRexEvaUuids.flatMap((evaUuid) => {
       const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
       return eva?.sequence
         .filter((sequenceItem) => sequenceItem.type === "traverse")
@@ -240,10 +234,10 @@ const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
         ))}
       </div>
       <div className={styles.stmRuleEvasTitle}>
-        Actions that satisfy this rule in stations outside the selected Executions
+        Actions that satisfy this rule in as-planned stations outside the selected Executions
       </div>
       <div className={styles.stmRuleEvasEvasContainer}>
-        {otherStations.map((station) => (
+        {otherAsPlannedStations.map((station) => (
           <STMRuleStation
             key={station.uuid}
             rexUuid={null}
@@ -253,10 +247,10 @@ const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
         ))}
       </div>
       <div className={styles.stmRuleEvasTitle}>
-        Traverses that satisfy this rule in stations outside the selected Executions
+        Actions that satisfy this rule in as-planned EVA traverses outside the selected Executions
       </div>
       <div className={styles.stmRuleEvasEvasContainer}>
-        {otherEvaUuids.map((evaUuid) => (
+        {otherAsPlannedEvaUuids.map((evaUuid) => (
           <STMRuleEva
             key={evaUuid}
             evaUuid={evaUuid}
@@ -274,8 +268,10 @@ const STMRuleRex: FunctionComponent<{ rexUuid: string; rule: STMRule }> = ({ rex
     (state) => state.rex.rexes.find((rex) => rex.uuid === rexUuid),
     shallowEqual
   );
-  const eva = useAppSelector((state) => {
-    return state.eva.evas.find((eva) => eva.uuid === rex?.evaUuid);
+  const asPlannedEvaName = useAppSelector((state) => {
+    const eva = state.eva.evas.find((eva) => eva.uuid === rex?.evaUuid);
+    const asPlannedEva = getAsPlannedEvaFromRefUuid(state, eva?.refUuid);
+    return asPlannedEva?.name;
   }, shallowEqual);
 
   return (
@@ -296,7 +292,7 @@ const STMRuleRex: FunctionComponent<{ rexUuid: string; rule: STMRule }> = ({ rex
           style={{ color: "var(--eva)" }}
         />
         <div className={styles.rexEvaHeaderName} style={{ color: "var(--eva)" }}>
-          {eva?.name}
+          {asPlannedEvaName}
         </div>
       </div>
       <STMRuleRexSequence rexUuid={rexUuid} rule={rule} />
@@ -611,15 +607,20 @@ const STMRuleDetailsButtons: FunctionComponent<{
 export const RexSelector: FunctionComponent<{ startOpen?: boolean }> = ({ startOpen = false }) => {
   const dispatch = useAppDispatch();
   const selectedRexes = useAppSelector((state) => state.interface.stmRulesSelectedRexes, deepEqual);
-  const rexes = useAppSelector(
-    (state) => cloneDeep(state.rex.rexes).sort((a, b) => a.name.localeCompare(b.name)),
-    deepEqual
-  );
+  const rexesForDropdown = useAppSelector((state) => {
+    const items = state.rex.rexes.map((rex) => {
+      const rexEva = state.eva.evas.find((eva) => eva.uuid === rex.evaUuid);
+      const asPlannedEvaName = getAsPlannedEvaFromRefUuid(state, rexEva.refUuid);
+      const rexWithEvaName = `${asPlannedEvaName.name} - ${rex.name}`;
+      return { uuid: rex.uuid, name: rexWithEvaName };
+    });
+    return items.sort((a, b) => a.name.localeCompare(b.name));
+  }, deepEqual);
 
   return (
     <div className={styles.evaSelector}>
       <MultiSelectDropdown
-        items={rexes.map((rex) => ({ label: rex.name, value: rex.uuid }))}
+        items={rexesForDropdown.map((item) => ({ label: item.name, value: item.uuid }))}
         selectedItemsValues={selectedRexes}
         toggleItem={(uuid) => {
           dispatch(stmRulesToggleRex(uuid));

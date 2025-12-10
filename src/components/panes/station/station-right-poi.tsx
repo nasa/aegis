@@ -7,9 +7,8 @@ import { upsertStationByField } from "store/station";
 import poiStyles from "../poi/poi.module.css";
 import stationStyles from "./station.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
-import { Checkbox } from "components/interface/form/globalFields";
+import { Checkbox, TextArea } from "components/interface/form/globalFields";
 import { setMapItemHoverType, setMapItemHoverUuid } from "store/hover";
-import { WysiwygTextArea } from "components/interface/form/wysiwyg";
 import { faCircle, faMessage } from "@fortawesome/free-solid-svg-icons";
 import { setSectionSelected } from "store/interface";
 import { setSelectedPoiUuid } from "store/poi";
@@ -69,11 +68,15 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
                             </div>
                             <div className={paneStyles.descriptionContainer}>
-                              <WysiwygTextArea
+                              <TextArea
                                 key={poi.uuid}
                                 value={poi.description}
                                 editing={false}
-                                onChange={() => {}}
+                                onSubmit={() => {}}
+                                fieldProps={{
+                                  name: "poiDescription",
+                                  ariaLabel: "POI Description",
+                                }}
                               />
                             </div>
                           </div>

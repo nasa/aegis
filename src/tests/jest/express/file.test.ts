@@ -1,6 +1,8 @@
 import supertest from "supertest";
 import app from "server/express/restApi";
-import { getORM, getEM, closeORM } from "utils/mikro";
+import { MikroORM } from "@mikro-orm/postgresql";
+import config from "server/database/mikro-orm.config";
+import { globalValues } from "server/express/global";
 import UserFactory from "../factories/UserFactory";
 import { App_User_db } from "server/database/models/app_user.model";
 import MissionFactory from "tests/jest/factories/MissionFactory";
@@ -15,8 +17,10 @@ let aegisSessionCookie: string;
 let aegisSessionSigCookie: string;
 
 beforeAll(async () => {
-  await getORM();
-  const em = getEM();
+  // Initialize MikroORM and set it in globalValues
+  globalValues.orm = await MikroORM.init(config);
+
+  const em = globalValues.orm.em.fork();
   testMissions = await new MissionFactory(em).create(3);
   testUser = await new UserFactory(em).createOne({
     username: "JestFileTestNoAdmin",
@@ -221,7 +225,7 @@ describe("Admin user with Edit permissions", () => {
 
 afterAll(async () => {
   //Cleanup our Database
-  const em = getEM();
+  const em = globalValues.orm.em.fork();
   await em.nativeDelete(App_User_db, { id: testAdmin.id });
   await em.nativeDelete(App_User_db, { id: testUser.id });
   for (let i = 0; i < testMissions.length; i++) {
@@ -229,6 +233,7 @@ afterAll(async () => {
   }
 
   // Closing the DB connection allows Jest to exit successfully.
-  await closeORM();
+  await globalValues.orm.close();
+  globalValues.orm = null;
   jest.restoreAllMocks();
 });

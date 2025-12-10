@@ -5,10 +5,10 @@ import sortBy from "lodash/sortBy";
 
 import { Mission_db, Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
-import { getEM } from "utils/mikro";
 import { emssTokenIsValid } from "utils/permissions";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { globalValues } from "../global";
 
 const router = express.Router();
 
@@ -69,7 +69,7 @@ export default router;
 async function getHomepageMissionItems(
   missionIdList: number | number[] = null
 ): Promise<MissionHomepageItem[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   let missions: Mission_db[];
   let rexes: Rex_db[];
   if (!missionIdList) {

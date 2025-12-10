@@ -8,8 +8,8 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { Poi_db } from "server/database/models/_allModels";
 import { convertPoisTypeDbToStore, convertPoisTypeStoreToDb } from "store/storeUtils/poi";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
@@ -113,6 +113,21 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!pois || pois.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "poi",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        message: "No POIs provided in request body",
+      });
+      res.status(400).json({ status: "failure", message: "No POIs provided in request body" });
+      return;
+    }
+
     // Add owner id to the POIs
     const poisToUpsert = pois.map((p) => {
       if (!p.ownerId) {
@@ -251,7 +266,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 export default router;
 
 export async function getPois(missionId: number): Promise<POI[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const dbPois = await em.find(
     Poi_db,
     { mission: missionId },
@@ -268,7 +283,7 @@ export async function getPois(missionId: number): Promise<POI[]> {
  * @returns a copy of the POI objects that was upserted
  */
 async function upsertPois(pois: POI[]): Promise<POI[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   const poisToUpsert = cloneDeep(pois); // Create a copy to manipulate
@@ -299,7 +314,7 @@ async function upsertPois(pois: POI[]): Promise<POI[]> {
  * @returns the uuids of the deleted POIs
  */
 async function deletePois(poiUuids: string[]): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const poiUuid of poiUuids) {
     const entity = await em.findOne(Poi_db, { uuid: poiUuid });

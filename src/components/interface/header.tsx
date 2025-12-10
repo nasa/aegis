@@ -8,6 +8,7 @@ import { FunctionComponent, useState } from "react";
 import PetInterval from "../page/petInterval";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkJumpToRunningRex } from "store/thunk/thunkRex";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 const Header: FunctionComponent = () => {
   const navigate = useNavigate();
@@ -26,10 +27,11 @@ const Header: FunctionComponent = () => {
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
     deepEqual
   );
-  const runningEvaName = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === runningRex?.evaUuid)?.name,
-    refEqual
-  );
+  const runningAsPlannedEvaName = useAppSelector((state) => {
+    const runningEva = state.eva.evas.find((eva) => eva.uuid === runningRex?.evaUuid);
+    if (!runningEva) return "";
+    return getAsPlannedEvaFromRefUuid(state, runningEva.refUuid)?.name;
+  }, refEqual);
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
@@ -69,7 +71,7 @@ const Header: FunctionComponent = () => {
                 className={headerStyles.rexIcon}
               />
               <div className={headerStyles.rexLabel}>
-                {runningEvaName} - {runningRex?.name}
+                {runningAsPlannedEvaName} - {runningRex?.name}
               </div>
               <div className={headerStyles.rexPetTime}>{rexPetTime}</div>
               <div className={headerStyles.rexLabel}>PET</div>

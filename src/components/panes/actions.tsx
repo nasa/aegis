@@ -5,6 +5,7 @@ import { Button, Dropdown } from "components/interface/form/globalFields";
 import Action from "./actions-action";
 import isNull from "lodash/isNull";
 import clone from "lodash/clone";
+import isNil from "lodash/isNil";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
 import { STM_Coverage } from "./stm/stm-coverage";
@@ -13,7 +14,7 @@ import { thunkCreateAction, thunkGetHighlightedActions } from "store/thunk/thunk
 import CalculatedDwell from "./calculated-dwell";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { Assoc_POIs } from "./actions-assocpois";
-import { getStmUuidRefs } from "store/storeUtils/store";
+import { getStmUuids } from "store/storeUtils/store";
 import { letterOrdinal } from "utils/formatting";
 
 const Actions: FunctionComponent<{
@@ -195,14 +196,15 @@ export const ActionsTopSection: FunctionComponent<{
   actionsCalculatedFields: ActionsCalculatedFields;
   rexUuid: string;
 }> = ({ actionOrderUuids, showDwell, highlightActions, actionsCalculatedFields, rexUuid }) => {
-  // make an array of uuids by action, of the STMs that are referenced by the action in the action STMPriorities object
-  const stmUuidRefs = useAppSelector(
+  // make a 2D array of all stm uuids for each action
+  // of the STMs that are referenced by the action in the action STMPriorities object
+  const stmUuidsByAction = useAppSelector(
     (state) =>
       state.action.actions
         .filter((action) => actionOrderUuids?.includes(action.uuid))
         .map((action) => {
           if (action.enabled === false) return null;
-          return getStmUuidRefs(action.stmPriorities);
+          return getStmUuids(action.stmPriorities);
         }),
     deepEqual
   );
@@ -211,46 +213,45 @@ export const ActionsTopSection: FunctionComponent<{
     refEqual
   );
 
-  const completedStmUuidRefs = useAppSelector((state) => {
+  const completedStmUuidsByAction = useAppSelector((state) => {
     if (!rexUuid) return null;
     const rex = state.rex.rexes.find((r) => r.uuid === rexUuid);
-    const stmUuidRefs: string[][] = [];
+    const stmUuidsByActionUuid: string[][] = [];
     for (const actionUuid in rex.actionEntries) {
       // check if this action is part of the current list (actionOrderUuids). this is to cover
-      //    the case in which actions were statused, and then deleted.
+      //    the case in which actions have a status, and then were deleted.
       if (
         rex.actionEntries[actionUuid]?.rexStatus === "complete" &&
         actionOrderUuids?.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
         if (action.enabled === false) return null;
-        stmUuidRefs.push(getStmUuidRefs(action.stmPriorities));
+        stmUuidsByActionUuid.push(getStmUuids(action.stmPriorities));
       }
     }
-    return stmUuidRefs;
+    return stmUuidsByActionUuid;
   }, deepEqual);
 
-  const inProgressStmUuidRefs = useAppSelector((state) => {
+  const inProgressStmUuidsByAction = useAppSelector((state) => {
     if (!rexUuid) return null;
     const rex = state.rex.rexes.find((r) => r.uuid === rexUuid);
-    const stmUuidRefs: string[][] = [];
+    const stmUuidsByActionUuid: string[][] = [];
     for (const actionUuid in rex.actionEntries) {
       // check if this action is part of the current list (actionOrderUuids). this is to cover
-      //    the case in which actions were statused, and then deleted.
+      //    the case in which actions have a status, and then were deleted.
       if (
         rex.actionEntries[actionUuid]?.rexStatus === "in-progress" &&
         actionOrderUuids?.includes(actionUuid)
       ) {
         const action = state.action.actions.find((a) => a.uuid === actionUuid);
         if (action.enabled === false) return null;
-        stmUuidRefs.push(getStmUuidRefs(action.stmPriorities));
+        stmUuidsByActionUuid.push(getStmUuids(action.stmPriorities));
       }
     }
-    return stmUuidRefs;
+    return stmUuidsByActionUuid;
   }, deepEqual);
 
-  // there's a difference between null and 0. Only calculate rex mass if it's 0. Null means it hasn't been executed yet.
-
+  // there's a difference between null/undefined and 0. Only calculate rex mass if it's 0. Null/undefined means it hasn't been filled in.
   const rexMass = useAppSelector((state) => {
     if (!rexUuid || !actionOrderUuids) return null;
     const rex = state.rex.rexes.find((r) => r.uuid === rexUuid);
@@ -259,8 +260,13 @@ export const ActionsTopSection: FunctionComponent<{
     for (const actionUuid of actionOrderUuids) {
       const action = state.action.actions.find((a) => a.uuid === actionUuid);
       if (!action || !action.enabled) continue;
-      if (!rex.actionEntries || !rex.actionEntries[actionUuid]) continue;
-      if (isNull(rex.actionEntries[actionUuid].mass)) continue; // this action has a non-null mass actual entry
+      if (
+        !rex.actionEntries ||
+        !rex.actionEntries[actionUuid] ||
+        isNil(rex.actionEntries[actionUuid].mass) // checks for null or undefined
+      )
+        continue;
+      // this action has a non-null mass actual entry
       if (!isNull(mass)) {
         mass += rex.actionEntries[actionUuid].mass;
       } else {
@@ -288,11 +294,11 @@ export const ActionsTopSection: FunctionComponent<{
         {actionSystemVersion === 1 && (
           <div className={actionsStyles.stmCoverage}>
             <STM_Coverage
-              stmUuidRefs={stmUuidRefs}
+              stmUuidsByActionUuid={stmUuidsByAction}
               horizontal={true}
               onLevel3Hover={highlightActions}
-              stmUuidRefsCompleted={completedStmUuidRefs}
-              stmUuidRefsInProgress={inProgressStmUuidRefs}
+              completedStmUuidsByAction={completedStmUuidsByAction}
+              inProgressStmUuidsByAction={inProgressStmUuidsByAction}
             />
           </div>
         )}

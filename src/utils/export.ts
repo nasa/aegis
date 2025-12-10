@@ -1,7 +1,4 @@
-import { stripHtml } from "string-strip-html";
-import { convertNodeToHTML, convertStringToNodes } from "components/interface/form/wysiwyg";
 import { decodeEmoji } from "./formatting";
-import reduce from "lodash/reduce";
 import { getGridCoordinatesFromPoint } from "./mapping/geoMath";
 import {
   getCalculatedFieldsByEva,
@@ -9,44 +6,6 @@ import {
   getCalculatedFieldsByStation,
   getCalculatedFieldsByTraverse,
 } from "store/processing/calculatedFields";
-
-const decodeWsywig = (string: string): string => {
-  if (!string) return string;
-
-  // convert wysiwyg to html and strip the html tags
-  let newString = stripHtml(
-    reduce(
-      convertStringToNodes(string),
-      (htmlString, descendant) => htmlString + convertNodeToHTML(descendant),
-      ""
-    )
-  ).result;
-  // remove extra line breaks
-  newString = newString.replace(/(\r\n|\n|\r)/gm, "");
-  // replace tabs
-  newString = newString.replace(/\t/g, " ");
-  // replace multiple spaces with single space
-  newString = newString.replace(/ +(?= )/g, "");
-  return newString;
-};
-
-export const getStmNames = (params: {
-  stmUuidRefs: string[];
-  level3s: STMLevel3[];
-  level2s: STMLevel2[];
-  level1s: STMLevel1[];
-}): string[] => {
-  const { stmUuidRefs, level3s, level2s, level1s } = params;
-  if (!stmUuidRefs || stmUuidRefs.length === 0) return [];
-  return stmUuidRefs?.map((stmUuidRef) => {
-    const stmLevel3 = level3s.find((s) => s.uuid === stmUuidRef);
-    const stmLevel2 = level2s.find((s) => s.uuid === stmLevel3?.level2Uuid);
-    const stmLevel1 = level1s.find((s) => s.uuid === stmLevel2?.level1Uuid);
-    if (stmLevel3)
-      return `${stmLevel1.numbering}${stmLevel2.numbering}${stmLevel3.numbering} ${stmLevel3.name}`;
-    return "";
-  });
-};
 
 export const makeEquipmentReadable = (params: {
   equipmentItems: EquipmentItemUsage[];
@@ -103,18 +62,11 @@ export const makeExportActions = (params: {
     const exportAction: ExportAction = {
       ...action,
       _itemType: "Action",
-      descriptionReadable: decodeWsywig(action.description),
       parentPoiName: allData.pois.find((p) => p.uuid === action.poiUuid)?.name,
       parentStationName: actionStation?.name,
       parentTraverseName: actionTraverse?.name,
       stationRefUuid: actionStation?.refUuid,
       traverseRefUuid: actionTraverse?.refUuid,
-      stmUuidRefsReadable: getStmNames({
-        stmUuidRefs: action.stmUuidRefs,
-        level1s: allData.level1s,
-        level2s: allData.level2s,
-        level3s: allData.level3s,
-      }),
       iconEmojiDecoded: decodeEmoji(action.icon),
       equipmentItemsUsageReadable: makeEquipmentReadable({
         equipmentItems: action.equipmentItemsUsage,
@@ -171,7 +123,6 @@ export const makeExportPois = (params: {
       ...poi,
       _itemType: "POI",
       actionsReadable,
-      descriptionReadable: decodeWsywig(poi.description),
       calculatedFields: poiCalculatedFields,
       elevationRelative: poi.elevation - allData.mission.landerElevationMeters,
       iconEmojiDecoded: decodeEmoji(poi.icon),
@@ -227,7 +178,6 @@ export const makeExportStations = (params: {
     const ExportStation: ExportStation = {
       ...station,
       _itemType: "Station",
-      descriptionReadable: decodeWsywig(station.description),
       actionsReadable,
       calculatedFields: {
         ...stationCalculatedFields,
@@ -243,7 +193,7 @@ export const makeExportStations = (params: {
         if (poi) {
           return {
             name: poi.name,
-            description: decodeWsywig(poi.description),
+            description: poi.description,
           };
         }
       }),
@@ -305,7 +255,6 @@ export const makeExportTraverses = (params: {
     return {
       ...traverse,
       _itemType: "Traverse",
-      descriptionReadable: decodeWsywig(traverse.description),
       calculatedFields: traverseCalculatedFields,
       actionsReadable: actionsReadable,
       actionOrderRefUuids: traverse.actionOrderUuids?.map(
@@ -342,7 +291,6 @@ export const makeExportEvas = (params: {
     const exportEva: ExportEva = {
       ...eva,
       _itemType: "EVA",
-      descriptionReadable: decodeWsywig(eva.description),
       sequenceReadable: eva.sequence.map((sequenceItem) => {
         if (sequenceItem.type === "station" && exportStations) {
           return makeExportStations({
@@ -403,7 +351,6 @@ export const makeExportRexes = (params: { rexes: Rex[] }): ExportRex[] => {
     const exportRex: ExportRex = {
       ...rex,
       _itemType: "Rex",
-      descriptionReadable: decodeWsywig(rex.description),
     };
     return exportRex;
   });

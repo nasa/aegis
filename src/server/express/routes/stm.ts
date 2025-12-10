@@ -14,8 +14,8 @@ import {
   convertStms3TypeDbToStore,
   convertStms3TypeStoreToDb,
 } from "store/storeUtils/stm";
-import { getEM } from "utils/mikro";
 import { hasPerms } from "utils/permissions";
+import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -162,6 +162,24 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // validate
+    if (!stmObjects || stmObjects.length === 0) {
+      apiRouteLogger({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "stm",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: stmObjects?.map((o) => o.uuid),
+        message: `No STM objects provided in request body`,
+      });
+      res.status(400).json({
+        status: "failure",
+        message: `No STM objects provided in request body`,
+      });
+      return;
+    }
     if (!["Level1", "Level2", "Level3"].includes(stmType)) {
       apiRouteLogger({
         logLevel: "notice",
@@ -331,7 +349,7 @@ export default router;
  * @returns array of stm level1s. returns empty array if no records found
  */
 export async function getLevel1s(missionId: number, level1Uuid?: string): Promise<STMLevel1[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   let level1s: Loaded<STM_Level1_db, never>[];
   if (level1Uuid) {
@@ -367,7 +385,7 @@ export async function getLevel2s(
   level1Uuid?: string,
   level2Uuid?: string
 ): Promise<STMLevel2[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   //build the "where" options in Mikro ORM syntax
   const level1WhereClause: { uuid?: string; mission: { id: number } } = {
@@ -405,7 +423,7 @@ export async function getLevel3s(
   level2Uuid?: string,
   level3Uuid?: string
 ): Promise<STMLevel3[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   //build the "where" options in Mikro ORM syntax
   const level1WhereClause: { uuid?: string; mission: { id: number } } = {
@@ -449,7 +467,7 @@ async function upsertSTMs(
   stmObjects: STMLevel1[] | STMLevel2[] | STMLevel3[],
   stmType: "Level1" | "Level2" | "Level3"
 ): Promise<STMLevel1[] | STMLevel2[] | STMLevel3[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
   try {
@@ -513,7 +531,7 @@ async function deleteSTMs(
   stmUuids: string[],
   stmType: "Level1" | "Level2" | "Level3"
 ): Promise<string[]> {
-  const em = getEM();
+  const em = globalValues.orm.em;
   const deletedUuids = [];
   let tableEntity: EntityName<STM_Level1_db | STM_Level2_db | STM_Level3_db>;
 
@@ -539,7 +557,7 @@ async function deleteSTMs(
  * Deletes entire STM tree for a given mission
  */
 async function deleteSTMTree(missionId: number): Promise<string> {
-  const em = getEM();
+  const em = globalValues.orm.em;
 
   // loop through hierarchy and delete. There's probably a better way to do this but I burned hours so this is it for now
   const level1s = await getLevel1s(missionId);

@@ -19,6 +19,8 @@ export class Grid_db implements Grid_db_type {
   spacing!: number;
   @Property({ type: MikroTypes.text, nullable: true })
   name!: string;
+  @Property({ type: MikroTypes.text, nullable: true })
+  fileName!: string;
   @Property({ type: MikroTypes.boolean, nullable: true })
   isActiveGrid!: boolean;
 

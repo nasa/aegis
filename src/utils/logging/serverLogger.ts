@@ -1,3 +1,4 @@
+import "utils/loadEnv";
 import { createServerLogger } from "@emss/logger";
 import { assertEnvVarsExist } from "@emss/utils";
 

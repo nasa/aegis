@@ -158,6 +158,10 @@
   line-height: 1rem;
 }
 
+.propertiesErrs {
+  color: red;
+}
+
 .deleteButton {
   background-color: #dc3545;
 }

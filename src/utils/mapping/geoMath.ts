@@ -38,7 +38,7 @@ export function getGridCoordinatesFromPoint(
   point: AEGISPoint,
   radius: number,
   usingLGRSCoordinates: boolean,
-  globalGrid: MissionGridPoint[][]
+  globalGrid?: MissionGridPoint[][]
 ): string {
   if (!point) return null;
 
