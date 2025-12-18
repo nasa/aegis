@@ -1,3 +1,4 @@
+type paper = typeof import("paper");
 /**
  * References to the paper groups that we need later
  */

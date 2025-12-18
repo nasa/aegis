@@ -146,9 +146,17 @@ export function longdateFromDateString(dateString: string): string {
 export function isoStringFromAnyDateString(dateString: string): string {
   const tempDate = new Date(dateString); // works with ISO and UTC date strings
   if (isNaN(tempDate.valueOf())) {
-    throw new Error("The date string couldn't be converted into a Date");
+    throw new Error(
+      `isoStringFromAnyDateString() - The date string couldn't be converted into a Date: ${dateString}`
+    );
   }
-  return tempDate.toISOString(); // guaranteed to have an ISO string. safe to string parse it
+  const isoString = tempDate.toISOString();
+  if (!isoString) {
+    throw new Error(
+      `isoStringFromAnyDateString() - The date string couldn't be converted into an ISO string: ${tempDate}`
+    );
+  }
+  return isoString;
 }
 
 /** Get a formatted pseudo-julian date */

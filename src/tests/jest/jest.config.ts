@@ -1,4 +1,6 @@
-const config = {
+import type { Config } from "jest";
+
+const config: Config = {
   preset: "ts-jest/presets/js-with-ts",
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "node"],
   moduleDirectories: ["node_modules", "src"],
