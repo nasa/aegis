@@ -12,8 +12,8 @@ interface HoverState {
 interface MissionState {
   mission: Mission;
   missionFromDb: Mission;
-  layers: Layer[];
-  sublayers: Sublayer[];
+  layers: Layer[] | null;
+  sublayers: Sublayer[] | null;
   selectedRightNavItem: string;
   missionSectionsEditing: string[];
 }

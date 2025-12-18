@@ -2,8 +2,8 @@
  * Basic concept of a point
  */
 type AEGISPoint = {
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   alt?: number;
 };
 

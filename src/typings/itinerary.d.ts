@@ -229,7 +229,7 @@ type Action = {
   duration: number | null; // in minutes
   equipmentItemsUsage: EquipmentItemUsage[] | null; // Equipment needed to perform this action.
   geographicUnitsUsage: string[] | null; // uuids of geographic units used in this action
-  mass: number; // grams
+  mass: number | null; // grams
   status: ActionStatus | null;
   enabled: boolean;
   crewAssigned: Crew[];

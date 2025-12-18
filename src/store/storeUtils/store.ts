@@ -63,19 +63,3 @@ export const getStmUuids = (stmPriorities: StmPriorities): string[] => {
   }
   return stmUuids;
 };
-
-export const actionTypes: ActionType[] = [
-  "measurement",
-  "observation",
-  "photo",
-  "other",
-  "sample",
-  "chip",
-  "double drive tube",
-  "drive tube",
-  "float",
-  "rake",
-  "scoop",
-  "sealed scoop",
-  "trench",
-];

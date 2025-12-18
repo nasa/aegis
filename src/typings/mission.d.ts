@@ -2,7 +2,7 @@
  * The mission object
  */
 interface Mission {
-  id: number;
+  id: number | null;
   name: string;
   description: string | null;
   missionBanner: string | null;
@@ -66,7 +66,7 @@ type ActionTemplate = Omit<
   | "elevation"
   | "enabled"
 > & {
-  templateName: string;
+  templateName: string | null;
 };
 
 /**

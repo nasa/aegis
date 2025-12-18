@@ -25,7 +25,7 @@ import {
   getActionDefinitionName,
 } from "../../utils/component-helpers";
 import { RexStatusMenu } from "./rex/rex-status-menu";
-import { actionTypes } from "store/storeUtils/store";
+import { actionTypes } from "store/storeUtils/action";
 import { thunkUpsertActionDefinitionSelection } from "store/thunk/thunkAction";
 
 const RightAction: FunctionComponent<{
