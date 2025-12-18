@@ -2,7 +2,7 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import UserFactory from "../factories/UserFactory";
+import AppUserFactory from "../factories/AppUserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import { App_User_db, Mission_db, Eva_db } from "server/database/models/_allModels";
 import EvaFactory from "../factories/EVAFactory";
@@ -19,7 +19,7 @@ jest.mock("server/express/sockets", () => {
   };
 });
 
-let testUser: App_User_db;
+let testAppUser: App_User_db;
 let testMissions: Mission_db[];
 let testEvas: Eva_db[];
 
@@ -29,7 +29,7 @@ beforeAll(async () => {
 
   const em = globalValues.orm.em.fork();
   testMissions = await new MissionFactory(em).create(3);
-  testUser = await new UserFactory(em).createOne({
+  testAppUser = await new AppUserFactory(em).createOne({
     username: "Jest Eva",
     permissionList: [
       {
@@ -51,7 +51,7 @@ beforeAll(async () => {
   testEvas = await new EvaFactory(em)
     .each((eva) => {
       eva.mission = testMissions[0];
-      eva.ownerId = testUser.id;
+      eva.ownerId = testAppUser.id;
     })
     .create(2);
 });
@@ -64,7 +64,7 @@ describe("EVA API Endpoint", () => {
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
-      .send({ username: testUser.username, password: "superSecretPassword" });
+      .send({ username: testAppUser.username, password: "superSecretPassword" });
     expect(res.statusCode).toBe(200); //check response from login
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
@@ -116,7 +116,7 @@ describe("EVA API Endpoint", () => {
       const requestBody: EvaUpsertRequest = {
         socketId: "someSocketId",
         missionId: testMissions[0].id,
-        evas: [{ ...newEVA, ownerId: testUser.id, missionId: testMissions[0].id }],
+        evas: [{ ...newEVA, ownerId: testAppUser.id, missionId: testMissions[0].id }],
       };
       const res = await supertest(app)
         .post("/api/v1/eva")
@@ -240,7 +240,7 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(App_User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testAppUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await globalValues.orm.close();

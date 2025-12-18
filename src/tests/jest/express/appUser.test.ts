@@ -3,12 +3,12 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import { App_User_db } from "server/database/models/_allModels";
-import UserFactory from "../factories/UserFactory";
+import AppUserFactory from "../factories/AppUserFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
-import { generateBlankUser } from "store/storeUtils/user";
+import { generateBlankAppUser } from "store/storeUtils/appUser";
 
-let testUser: App_User_db;
+let testAppUser: App_User_db;
 let testSuperAdmin: App_User_db;
 
 beforeAll(async () => {
@@ -16,32 +16,32 @@ beforeAll(async () => {
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testUser = await new UserFactory(em).createOne({
-    username: "Jest regular user",
+  testAppUser = await new AppUserFactory(em).createOne({
+    username: "Jest regular appUser",
   });
-  testSuperAdmin = await new UserFactory(em).createOne({
+  testSuperAdmin = await new AppUserFactory(em).createOne({
     username: "Jest super admin",
     isSuperAdmin: true,
   });
 });
 
-describe("User API Endpoint", () => {
+describe("AppUser API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newUser: AppUser = generateBlankUser({
+  let newUser: AppUser = generateBlankAppUser({
     username: "JestUserForUserTest",
     password: "password",
   });
 
   test("Returns auth failure", async () => {
-    const res = await supertest(app).get("/api/v1/users");
+    const res = await supertest(app).get("/api/v1/appUsers");
     expect(res.statusCode).toBe(401);
   });
 
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
-      .send({ username: testUser.username, password: "superSecretPassword" });
+      .send({ username: testAppUser.username, password: "superSecretPassword" });
     expect(res.statusCode).toBe(200); //check response from login
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
@@ -51,16 +51,16 @@ describe("User API Endpoint", () => {
   describe("Not super admin", () => {
     test("No GET permissions", async () => {
       const res = await supertest(app)
-        .get("/api/v1/users")
+        .get("/api/v1/appUsers")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ userId: testUser.id });
+        .query({ userId: testAppUser.id });
 
       expect(res.statusCode).toBe(401);
     });
 
     test("No POST permissions", async () => {
       const res = await supertest(app)
-        .post("/api/v1/users")
+        .post("/api/v1/appUsers")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send({ users: [] });
 
@@ -69,7 +69,7 @@ describe("User API Endpoint", () => {
 
     test("No DELETE permissions", async () => {
       const res = await supertest(app)
-        .delete("/api/v1/users")
+        .delete("/api/v1/appUsers")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send({ userIds: [] });
 
@@ -95,9 +95,9 @@ describe("User API Endpoint", () => {
     describe("GET request", () => {
       test("Returns user", async () => {
         const res = await supertest(app)
-          .get("/api/v1/users")
+          .get("/api/v1/appUsers")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .query({ userId: testUser.id });
+          .query({ userId: testAppUser.id });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -106,7 +106,7 @@ describe("User API Endpoint", () => {
 
       test("No user returned - doesnt exist", async () => {
         const res = await supertest(app)
-          .get("/api/v1/users")
+          .get("/api/v1/appUsers")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
           .query({ userId: "99999" });
 
@@ -122,7 +122,7 @@ describe("User API Endpoint", () => {
           users: [],
         };
         const res = await supertest(app)
-          .post("/api/v1/users")
+          .post("/api/v1/appUsers")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
           .send(requestBody);
 
@@ -134,7 +134,7 @@ describe("User API Endpoint", () => {
           users: [newUser],
         };
         const res = await supertest(app)
-          .post("/api/v1/users")
+          .post("/api/v1/appUsers")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
           .send(requestBody);
 
@@ -154,7 +154,7 @@ describe("User API Endpoint", () => {
           users: [newUser],
         };
         const res = await supertest(app)
-          .post("/api/v1/users")
+          .post("/api/v1/appUsers")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
           .send(requestBody);
 
@@ -170,7 +170,7 @@ describe("User API Endpoint", () => {
           userIds: [newUser.id],
         };
         const res = await supertest(app)
-          .delete("/api/v1/users")
+          .delete("/api/v1/appUsers")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
           .send(requestBody);
 
@@ -184,7 +184,7 @@ describe("User API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = globalValues.orm.em.fork();
-  await em.nativeDelete(App_User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testAppUser.id });
   await em.nativeDelete(App_User_db, { id: testSuperAdmin.id });
 
   // Closing the DB connection allows Jest to exit successfully.

@@ -5,7 +5,7 @@ import { globalValues } from "server/express/global";
 import { Mission_db, Preset_db, App_User_db } from "server/database/models/_allModels";
 import MissionFactory from "../factories/MissionFactory";
 import PresetFactory from "../factories/PresetFactory";
-import UserFactory from "../factories/UserFactory";
+import AppUserFactory from "../factories/AppUserFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankPreset } from "store/storeUtils/preset";
@@ -19,7 +19,7 @@ jest.mock("server/express/sockets", () => {
   };
 });
 
-let testUser: App_User_db;
+let testAppUser: App_User_db;
 let testMissions: Mission_db[];
 let testPresets: Preset_db[];
 
@@ -29,7 +29,7 @@ beforeAll(async () => {
 
   const em = globalValues.orm.em.fork();
   testMissions = await new MissionFactory(em).create(3);
-  testUser = await new UserFactory(em).createOne({
+  testAppUser = await new AppUserFactory(em).createOne({
     username: "JestPreset",
     permissionList: [
       {
@@ -63,7 +63,7 @@ describe("Preset API Endpoint", () => {
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
-      .send({ username: testUser.username, password: "superSecretPassword" });
+      .send({ username: testAppUser.username, password: "superSecretPassword" });
     expect(res.statusCode).toBe(200); //check response from login
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
@@ -118,7 +118,7 @@ describe("Preset API Endpoint", () => {
       const requestBody: PresetUpsertRequest = {
         socketId: "someSocketId",
         missionId: testMissions[0].id,
-        presets: [{ ...newPreset, missionId: testMissions[0].id, ownerId: testUser.id }],
+        presets: [{ ...newPreset, missionId: testMissions[0].id, ownerId: testAppUser.id }],
       };
       const res = await supertest(app)
         .post("/api/v1/preset")
@@ -239,7 +239,7 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(App_User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testAppUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await globalValues.orm.close();

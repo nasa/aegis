@@ -2,7 +2,7 @@ import { describe, expect, afterAll, beforeAll, test } from "@jest/globals";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import UserFactory from "../factories/UserFactory";
+import AppUserFactory from "../factories/AppUserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import LayerFactory from "../factories/LayerFactory";
 import SublayerFactory from "../factories/SublayerFactory";
@@ -13,7 +13,7 @@ import app from "server/express/restApi";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
 
 let testMissions: Mission_db[];
-let testUser: App_User_db;
+let testAppUser: App_User_db;
 let testLayer: Layer_db;
 let testSublayers: Sublayer_db[];
 
@@ -23,7 +23,7 @@ beforeAll(async () => {
 
   const em = globalValues.orm.em.fork();
   testMissions = await new MissionFactory(em).create(3);
-  testUser = await new UserFactory(em).createOne({
+  testAppUser = await new AppUserFactory(em).createOne({
     username: "JestSublayer",
     permissionList: [
       {
@@ -66,7 +66,7 @@ describe("Layer API Endpoint ", () => {
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
-      .send({ username: testUser.username, password: "superSecretPassword" });
+      .send({ username: testAppUser.username, password: "superSecretPassword" });
     expect(res.statusCode).toBe(200); //check response from login
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
@@ -252,7 +252,7 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(App_User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testAppUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await globalValues.orm.close();

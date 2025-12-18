@@ -3,13 +3,13 @@ import { useNavigate } from "react-router";
 import { isLoggedIn } from "http-client/login";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
-import { deleteUsers, getUsers, upsertUsers } from "../../http-client/user";
+import { deleteAppUsers, getAppUsers, upsertAppUsers } from "../../http-client/appUser";
 import { faEdit, faTrashCan, faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { getMissions } from "../../http-client/mission";
 import React from "react";
-import { generateBlankUser } from "store/storeUtils/user";
+import { generateBlankAppUser } from "store/storeUtils/appUser";
 import { getAccurateNow } from "utils/formatting";
 
 const User: React.FunctionComponent = () => {
@@ -31,7 +31,7 @@ const User: React.FunctionComponent = () => {
       if (response.status === "success" && response.data.isSuperAdmin) {
         setIsSuperAdmin(true);
         // Get a list of users from the database
-        const users: AppUser[] = (await getUsers()).data;
+        const users: AppUser[] = (await getAppUsers()).data;
         setUserList(users.sort((a, b) => a.id - b.id));
         const missions: Mission[] = (await getMissions()).data;
         setMissionList(missions);
@@ -73,7 +73,7 @@ const User: React.FunctionComponent = () => {
   };
 
   const handleDelete = async (user: AppUser) => {
-    const deleteRes = await deleteUsers([user.id]);
+    const deleteRes = await deleteAppUsers([user.id]);
     if (deleteRes.status === "success") {
       setUserList(userList.filter((u) => u.id !== user.id));
     } else {
@@ -86,7 +86,7 @@ const User: React.FunctionComponent = () => {
     setCreateMode(false);
     setUser(undefined);
     setInfoMessage("");
-    await getUsers().then((users) => {
+    await getAppUsers().then((users) => {
       setUserList(users.data.sort((a, b) => a.id - b.id));
     });
   };
@@ -106,7 +106,7 @@ const User: React.FunctionComponent = () => {
         return p.permissions.view || p.permissions.edit;
       });
     }
-    const updatedUser = await upsertUsers([
+    const updatedUser = await upsertAppUsers([
       {
         ...user,
         permissionList: permList,
@@ -136,7 +136,7 @@ const User: React.FunctionComponent = () => {
         missionId: mission.id,
       };
     });
-    const blankUser: AppUser = generateBlankUser({ permissionList });
+    const blankUser: AppUser = generateBlankAppUser({ permissionList });
 
     // create a blank user
     setUser({

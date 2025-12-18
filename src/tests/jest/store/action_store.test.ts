@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import UserFactory from "../factories/UserFactory";
+import AppUserFactory from "../factories/AppUserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import { createCustomTestStore } from "../factories/makeTestStore";
 import { Mission_db, App_User_db } from "server/database/models/_allModels";
@@ -19,7 +19,7 @@ beforeAll(async () => {
 
   const em = globalValues.orm.em.fork();
   testMission = await new MissionFactory(em).createOne();
-  testAdmin = await new UserFactory(em).createOne({
+  testAdmin = await new AppUserFactory(em).createOne({
     permissionList: [
       {
         missionId: testMission.id,

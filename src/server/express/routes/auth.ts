@@ -6,7 +6,7 @@ import express from "express";
 import { App_User_db } from "server/database/models/_allModels";
 import { globalValues } from "../global";
 
-import { upsertUsers } from "./users";
+import { upsertAppUsers } from "./appUsers";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -153,7 +153,7 @@ async function recoverWithRecoveryKey(recoveryKey: string): Promise<boolean> {
       updatedAt: String(new Date()),
     };
     //Add default values back into admin user
-    await upsertUsers([adminUser]);
+    await upsertAppUsers([adminUser]);
     return true;
   }
   return false;
