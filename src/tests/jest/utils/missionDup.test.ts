@@ -23,14 +23,14 @@ import {
 } from "server/database/models/_allModels";
 import { fetchMissionEntities, createMissionCopy } from "utils/dup/core";
 import { initializeUuidMaps } from "utils/dup/helpers";
-import UserFactory from "../factories/UserFactory";
+import AppUserFactory from "../factories/AppUserFactory";
 import { deleteMissions } from "server/express/routes/mission";
 import { v4 as uuidv4 } from "uuid"; // Import uuidv4
 import { getAll } from "../../../server/express/routes/all";
 import isEqual from "lodash/isEqual";
 
 // These global variables will store our test data
-let testUser: App_User_db;
+let testAppUser: App_User_db;
 let testMission: Mission_db;
 let duplicatedMissionId: number;
 let uuidMaps: EntityMaps;
@@ -162,7 +162,7 @@ describe("Mission Duplication Tests", () => {
     await em.flush();
 
     // Create a test user with permissions for mission 22
-    testUser = await new UserFactory(em).createOne({
+    testAppUser = await new AppUserFactory(em).createOne({
       username: "JestMissionUtils",
       permissionList: [
         {
@@ -1863,7 +1863,7 @@ describe("Mission Duplication Tests", () => {
     }
 
     // Only delete the test user, not the original mission
-    await em.nativeDelete(App_User_db, { id: testUser.id });
+    await em.nativeDelete(App_User_db, { id: testAppUser.id });
 
     // Close the ORM connection
     await globalValues.orm.close();

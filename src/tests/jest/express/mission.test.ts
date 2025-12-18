@@ -4,7 +4,7 @@ import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import { Mission_db, App_User_db } from "server/database/models/_allModels";
 import MissionFactory from "../factories/MissionFactory";
-import UserFactory from "../factories/UserFactory";
+import AppUserFactory from "../factories/AppUserFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankMission, convertMissionsTypeDbToStore } from "store/storeUtils/mission";
@@ -29,7 +29,7 @@ beforeAll(async () => {
 
   const em = globalValues.orm.em.fork();
   testMissions = await new MissionFactory(em).create(3);
-  testAdmin = await new UserFactory(em).createOne({
+  testAdmin = await new AppUserFactory(em).createOne({
     username: "Jest testAdminForMission",
     isAdmin: true,
     permissionList: [
@@ -56,7 +56,7 @@ beforeAll(async () => {
       },
     ],
   });
-  testSuperAdmin = await new UserFactory(em).createOne({
+  testSuperAdmin = await new AppUserFactory(em).createOne({
     username: "Jest testSuperAdminForMission",
     isSuperAdmin: true,
   });

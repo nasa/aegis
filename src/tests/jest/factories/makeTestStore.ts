@@ -31,7 +31,7 @@ import {
   generateBlankStmLvl3,
 } from "store/storeUtils/stm";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
-import { generateBlankUser } from "store/storeUtils/user";
+import { generateBlankAppUser } from "store/storeUtils/appUser";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
 import cloneDeep from "lodash/cloneDeep";
 import { v4 as uuidv4 } from "uuid";
@@ -189,7 +189,10 @@ export const createFullTestStore = (): StoreType => {
     },
     user: {
       ...userInitialState,
-      appUser: generateBlankUser({ username: "Jest testUser", password: "superSecretPassword" }),
+      appUser: generateBlankAppUser({
+        username: "Jest testAppUser",
+        password: "superSecretPassword",
+      }),
     },
     map: { ...mapInitialState },
     eva: {

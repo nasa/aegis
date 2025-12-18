@@ -1,17 +1,17 @@
-export async function getUsers(userId: number = null): Promise<WrappedResponse<AppUser[]>> {
+export async function getAppUsers(userId: number = null): Promise<WrappedResponse<AppUser[]>> {
   let res: Response;
   if (userId) {
-    res = await fetch(`/api/v1/users?userId=${userId}`);
+    res = await fetch(`/api/v1/appUsers?userId=${userId}`);
   } else {
-    res = await fetch(`/api/v1/users`);
+    res = await fetch(`/api/v1/appUsers`);
   }
   const response: WrappedResponse<AppUser[]> = await res.json();
   return response;
 }
 
-export async function upsertUsers(users: AppUser[]): Promise<WrappedResponse<AppUser[]>> {
+export async function upsertAppUsers(users: AppUser[]): Promise<WrappedResponse<AppUser[]>> {
   const requestBody: UserUpsertRequest = { users };
-  const res = await fetch(`/api/v1/users`, {
+  const res = await fetch(`/api/v1/appUsers`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -27,9 +27,9 @@ export async function upsertUsers(users: AppUser[]): Promise<WrappedResponse<App
   return response;
 }
 
-export async function deleteUsers(userIds: number[]): Promise<WrappedResponse<null>> {
+export async function deleteAppUsers(userIds: number[]): Promise<WrappedResponse<null>> {
   const requestBody: UserDeleteRequest = { userIds };
-  const res = await fetch(`/api/v1/users`, {
+  const res = await fetch(`/api/v1/appUsers`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

@@ -3,7 +3,7 @@ import app from "server/express/restApi";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import UserFactory from "../factories/UserFactory";
+import AppUserFactory from "../factories/AppUserFactory";
 import { App_User_db } from "server/database/models/app_user.model";
 
 let testAdmin: App_User_db;
@@ -16,7 +16,7 @@ beforeAll(async () => {
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testAdmin = await new UserFactory(em).createOne({
+  testAdmin = await new AppUserFactory(em).createOne({
     username: "JesttestAdminForLogin",
     isAdmin: true,
   });

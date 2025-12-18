@@ -5,10 +5,10 @@ import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank user
- * @param partialUser any fields that are to be overriden from default
+ * @param partialUser any fields that are to be overridden from default
  * @returns the generated user
  */
-export const generateBlankUser = (partialUser?: Partial<AppUser>): AppUser => {
+export const generateBlankAppUser = (partialUser?: Partial<AppUser>): AppUser => {
   const defaultNewUser: AppUser = {
     id: null,
     username: "",
@@ -27,11 +27,16 @@ export const generateBlankUser = (partialUser?: Partial<AppUser>): AppUser => {
  * @param dbUsers an array of users in mikro db format
  * @returns an a converted array of users or a single user
  */
-export function convertUsersTypeDbToStore(dbUsers: App_User_db[]): AppUser[] {
+export function convertAppUsersTypeDbToStore(dbUsers: App_User_db[]): AppUser[] {
   const users: AppUser[] = [];
   for (const dbUser of dbUsers) {
     const convertedUser: AppUser = {
-      ...dbUser,
+      id: dbUser.id,
+      username: dbUser.username,
+      password: dbUser.password,
+      isAdmin: dbUser.isAdmin,
+      isSuperAdmin: dbUser.isSuperAdmin,
+      permissionList: dbUser.permissionList,
       updatedAt: dbUser.updatedAt.toISOString(),
       createdAt: dbUser.createdAt.toISOString(),
     };
@@ -45,11 +50,16 @@ export function convertUsersTypeDbToStore(dbUsers: App_User_db[]): AppUser[] {
  * @param storeUsers
  * @returns
  */
-export function convertUsersTypeStoreToDb(storeUsers: AppUser[]): EntityData<App_User_db>[] {
+export function convertAppUsersTypeStoreToDb(storeUsers: AppUser[]): EntityData<App_User_db>[] {
   const dbUsers: EntityData<App_User_db>[] = [];
   for (const storeUser of storeUsers) {
     const convertedRecord: EntityData<App_User_db> = {
-      ...storeUser,
+      id: storeUser.id,
+      username: storeUser.username,
+      password: storeUser.password,
+      isAdmin: storeUser.isAdmin,
+      isSuperAdmin: storeUser.isSuperAdmin,
+      permissionList: storeUser.permissionList,
       updatedAt: new Date(storeUser.updatedAt),
       createdAt: new Date(storeUser.createdAt),
     };
