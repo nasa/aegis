@@ -67,7 +67,7 @@ test("create edit cancel delete rex", async ({ page }) => {
       resolve();
     });
   });
-  page.getByLabel("evaList-item").filter({ hasText: "Playwright Test Eva For Rex" }).click();
+  await page.getByLabel("evaList-item").filter({ hasText: "Playwright Test Eva For Rex" }).click();
   await page.getByLabel("editEva", { exact: true }).click();
   await page.getByLabel("deleteEva", { exact: true }).click();
   await dialogPromiseDeleteEva; // Wait for the dialog to be accepted
