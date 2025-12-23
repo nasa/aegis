@@ -220,7 +220,7 @@ type Action = {
   /**
    * The duration of the action, in minutes.
    */
-  icon: string;
+  icon: string | null;
   /**
    * The coordinates or series of coordinates of the Action.
    */
