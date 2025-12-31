@@ -89,44 +89,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     }
   }
 
-  // legend
-  async function loadLegendFromFile(rootPath: string) {
-    //read in the legend
-    const res = await fetch(`${rootPath}/legend.json`, {
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache", // legacy support
-        Expires: "0", // legacy support
-      },
-    });
-    if (res.status !== 200) return;
-    const layerLegend = await res.json();
-    //set values
-    setSublayer((state) => {
-      return { ...state, legend: layerLegend };
-    });
-    setLegend(layerLegend ? JSON.stringify(layerLegend) : null);
-  }
-
-  // description
-  async function loadDescriptionFromFile(rootPath: string) {
-    //read in the legend
-    const res = await fetch(`${rootPath}/description.json`, {
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache", // legacy support
-        Expires: "0", // legacy support
-      },
-    });
-    if (res.status !== 200) return;
-    const descriptionJson: { layerDescription: string } = await res.json();
-    const layerDescription = descriptionJson.layerDescription;
-    //set values
-    setSublayer((state) => {
-      return { ...state, description: layerDescription };
-    });
-  }
-
   // boundingBox, minNativeZoom, maxNativeZoom
   async function loadTileMapResourceFromFile(rootPath: string) {
     let minZoom = null;
@@ -238,15 +200,11 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
 
     if (isExternal) {
       await loadTileMapResourceFromFile(folderName);
-      await loadLegendFromFile(folderName);
-      await loadDescriptionFromFile(folderName);
       await loadManifestFromFile(folderName);
       await loadSublayerPropertiesFromFile(folderName);
     } else {
       const rootPath = `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}`;
       await loadTileMapResourceFromFile(rootPath);
-      await loadLegendFromFile(rootPath);
-      await loadDescriptionFromFile(rootPath);
       await loadManifestFromFile(rootPath);
       await loadSublayerPropertiesFromFile(rootPath);
     }
@@ -1013,10 +971,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
             </div>
           </>
         )}
-        <br />
-        Description is pulled from description.json
-        <br />
-        Legend is pulled from legend.json
         <br />
         Bounding Box, and Min/Max Native Zoom are pulled from tilemapresource.xml
         <br />
