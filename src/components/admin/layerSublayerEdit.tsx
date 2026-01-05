@@ -8,6 +8,7 @@ import { generateBlankSublayer } from "store/storeUtils/sublayer";
 import { getManifestJsonTimeBounds } from "utils/mapping/timeLayers";
 import { validateImportableSublayer } from "utils/validateSchema";
 import { getAccurateNow } from "utils/formatting";
+import { listFiles } from "http-client/file";
 import { AnySchemaObject, ErrorObject } from "ajv";
 
 interface SublayerProps {
@@ -26,6 +27,9 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     props.sublayer.legend ? JSON.stringify(props.sublayer.legend) : ""
   );
   const [isExternal, setIsExternal] = useState<boolean>(props.sublayer.path?.startsWith("http"));
+  const [refreshDirectoryListing, setRefreshDirectoryListing] = useState(true);
+  // geoJSON file names
+  const [dataDirGeoJSONs, setDataDirGeoJSONs] = useState<string[]>([]);
   const [propertiesErrs, setPropertiesErrs] = useState<ErrorObject[]>([]);
 
   // update fields when swapping between sublayers
@@ -35,6 +39,42 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     setLegend(props.sublayer.legend ? JSON.stringify(props.sublayer.legend) : "");
     setIsExternal(props.sublayer.path?.startsWith("http"));
   }, [props.sublayer]);
+
+  // call API to get a list of geojson files in mission_id/Data
+  useEffect(() => {
+    if (!refreshDirectoryListing) {
+      return;
+    }
+
+    (async function () {
+      const path = `missionFiles/${props.missionId}/Data`;
+      const fileList: GISfile[] | void = await listFiles(path).catch(console.error);
+
+      if (!fileList) {
+        setDataDirGeoJSONs([]);
+        return;
+      }
+
+      // filter for the GeoJSON files we care about
+      const fileStates: string[] = fileList
+        // only files
+        .filter((file) => !file.isDir)
+        // only geojson
+        .filter((file) => {
+          const lastDot = file.name.lastIndexOf(".");
+          if (lastDot === -1) {
+            return false;
+          }
+
+          return file.name.slice(lastDot) === ".geojson";
+        })
+        .map((file) => file.name);
+
+      setDataDirGeoJSONs(fileStates);
+    })();
+
+    setRefreshDirectoryListing(false);
+  }, [props.missionId, refreshDirectoryListing]);
 
   //save the current editing sublayer to db
   async function saveSublayer() {
@@ -461,16 +501,26 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
                     <label htmlFor="filePath">Internal Filename</label>
                   </div>
                   <div className={styles.editDiv}>
-                    <input
+                    <select
                       id="filePath"
-                      type="text"
                       onChange={(e) => {
                         setSublayer({ ...sublayer, path: e.target.value });
                       }}
-                      value={sublayer.path || ""}
-                    />
+                      value={sublayer.path || "selectafile"}
+                    >
+                      <option disabled value="selectafile">
+                        Select a file
+                      </option>
+                      {dataDirGeoJSONs.map((filename, i) => {
+                        return (
+                          <option key={`GEOJSON__${i}__${filename}`} value={filename}>
+                            {filename}
+                          </option>
+                        );
+                      })}
+                    </select>
                     <br />
-                    Make sure this file is uploaded to mission/data
+                    Vector file options are pulled from /Data
                   </div>
                 </div>
               )}
