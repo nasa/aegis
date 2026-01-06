@@ -45,7 +45,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   /**
    * The response from thunkGetElevation is a PayloadAction.
    *  get the value by using .payload which will be either the return value
-   *  or false if the thunk was un-fullfilled.
+   *  or false if the thunk was unfulfilled.
    */
   let newElevationProfile = null;
   if (elevationResponse && elevationResponse.payload !== false) {
@@ -85,10 +85,10 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
     /**
      * The response from thunkGetElevation is a PayloadAction.
      *  get the value by using .payload which will be either the return value
-     *  or false if the thunk was un-fullfilled.
+     *  or false if the thunk was unfulfilled.
      */
     let newElevationProfile = null;
-    if (elevationResponse && elevationResponse.payload !== false) {
+    if (elevationResponse.meta.requestStatus === "fulfilled") {
       //good response from the thunk, cast as our number type
       newElevationProfile = elevationResponse.payload as number[][];
     }

@@ -26,7 +26,9 @@ import * as httpClient_traverse from "http-client/traverse";
 import * as httpClient_mission from "http-client/mission";
 import * as httpClient_preset from "http-client/preset";
 
-const mockThunkGetElevation = jest.fn();
+const mockThunkGetElevation = jest.fn().mockReturnValue({
+  meta: { requestStatus: "rejected" },
+});
 jest.mock("store/thunk/thunkElevation", () => ({
   thunkGetElevation: () => mockThunkGetElevation,
 }));

@@ -63,7 +63,7 @@ export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   );
 
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-  if (!elevation || elevation.payload === false) {
+  if (elevation.meta.requestStatus === "rejected") {
     //no elevation data, update just station location
     dispatch(upsertStationByField(station.uuid, "location", location, false));
   } else {
@@ -165,7 +165,7 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
       uuid: stationUuid,
     })
   );
-  if (elevationResponse && elevationResponse.payload !== false) {
+  if (elevationResponse.meta.requestStatus === "fulfilled") {
     newElevationProfile = elevationResponse.payload as number[][];
   }
 
@@ -214,7 +214,7 @@ export const thunkResetWalkback = appCreateAsyncThunk<{
       uuid: stationUuid,
     })
   );
-  if (elevationResponse && elevationResponse.payload !== false) {
+  if (elevationResponse.meta.requestStatus === "fulfilled") {
     newElevationProfile = elevationResponse.payload as number[][];
   }
 

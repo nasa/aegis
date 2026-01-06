@@ -37,7 +37,7 @@ describe("Thunk Elevation Tests", () => {
   it("thunkGetElevation for single point", async () => {
     const dummyUuid = uuidv4();
     const point: AEGISPoint = { lat: 1, lng: 1 };
-    store.dispatch(upsertMissionByField("demFilePath", "somefake/path/here.TIF"));
+    store.dispatch(upsertMissionByField("demFilePath", "fake/path/here.TIF"));
     await store.dispatch(
       thunkGetElevation({ path: [point], pathSegmentDistances: [0], uuid: dummyUuid })
     );
@@ -50,7 +50,7 @@ describe("Thunk Elevation Tests", () => {
       { lat: 1, lng: 1 },
       { lat: 2, lng: 2 },
     ];
-    store.dispatch(upsertMissionByField("demFilePath", "somefake/path/here.TIF"));
+    store.dispatch(upsertMissionByField("demFilePath", "fake/path/here.TIF"));
     await store.dispatch(
       thunkGetElevation({ path: path, pathSegmentDistances: [0], uuid: dummyUuid })
     );

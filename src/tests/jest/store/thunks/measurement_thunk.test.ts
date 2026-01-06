@@ -8,7 +8,9 @@ import {
 } from "store/thunk/thunkMeasurement";
 import { generateBlankMission } from "store/storeUtils/mission";
 
-const mockThunkGetElevation = jest.fn();
+const mockThunkGetElevation = jest.fn().mockReturnValue({
+  meta: { requestStatus: "rejected" },
+});
 jest.mock("store/thunk/thunkElevation", () => ({
   thunkGetElevation: () => mockThunkGetElevation,
 }));

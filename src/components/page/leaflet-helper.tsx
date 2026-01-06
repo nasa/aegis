@@ -1361,7 +1361,7 @@ export const handleMapDirective = ({
                 })
               );
 
-              //redraw the line incase we had to snap endpoints
+              //redraw the line in case we had to snap endpoints
               updatePolylineOnMap({
                 map,
                 uuid: mapDirective.uuid,
@@ -1386,7 +1386,7 @@ export const handleMapDirective = ({
                   stationUuid: mapDirective.uuid,
                 })
               );
-              //redraw the line incase we had to snap endpoints
+              //redraw the line in case we had to snap endpoints
               updatePolylineOnMap({
                 map,
                 uuid: mapDirective.uuid,
