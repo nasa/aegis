@@ -47,7 +47,9 @@ const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {
   return true;
 });
 
-const mockThunkGetElevation = jest.fn();
+const mockThunkGetElevation = jest.fn().mockReturnValue({
+  meta: { requestStatus: "rejected" },
+});
 jest.mock("store/thunk/thunkElevation", () => ({
   thunkGetElevation: () => mockThunkGetElevation,
 }));

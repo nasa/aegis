@@ -531,7 +531,7 @@ const MapBody: FunctionComponent<{
   ]);
 
   /**
-   * Whenever presets changes, update the local copy of the selected preset just in-case that got changed too
+   * Whenever presets changes, update the local copy of the selected preset just in case that got changed too
    */
   useEffect(() => {
     if (!selectedPreset) return;

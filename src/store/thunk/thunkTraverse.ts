@@ -191,7 +191,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
      *  or false if the thunk was un-fulfilled.
      */
     let newElevationProfile = null;
-    if (elevationResponse && elevationResponse.payload !== false) {
+    if (elevationResponse.meta.requestStatus === "fulfilled") {
       //good response from the thunk, cast as our number type
       newElevationProfile = elevationResponse.payload as number[][];
     }
@@ -399,7 +399,7 @@ export const thunkSaveTraverse = appCreateAsyncThunk<{ traverseUuid: string }>(
     // if the traverse has been modified, update it in the db
     const traverseWithUpdatedName = {
       ...newTraverse,
-      name: `${stationNameBefore} to ${stationNameAfter}`, // update the name just incase
+      name: `${stationNameBefore} to ${stationNameAfter}`, // update the name just in case
     };
     if (!isEqual(traverseWithUpdatedName, oldTraverse)) {
       const updatedTraverse = {

@@ -220,11 +220,9 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
     })
   );
 
-  if (!thunkElevationRes || thunkElevationRes.payload === false) {
-    //gracefully reject?
-  } else {
-    const elevation = thunkElevationRes.payload as number;
+  if (thunkElevationRes.meta.requestStatus !== "rejected") {
     //upsert lander location and elevation
+    const elevation = thunkElevationRes.payload as number;
     dispatch(upsertMissionByField("landerElevationMeters", elevation));
   }
 

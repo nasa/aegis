@@ -34,7 +34,9 @@ jest.mock("store/thunk/thunkAction", () => ({
   thunkDuplicateActions: () => mockThunkDuplicateActions,
 }));
 
-const mockThunkGetElevation = jest.fn();
+const mockThunkGetElevation = jest.fn().mockReturnValue({
+  meta: { requestStatus: "rejected" },
+});
 jest.mock("store/thunk/thunkElevation", () => ({
   thunkGetElevation: () => mockThunkGetElevation,
 }));

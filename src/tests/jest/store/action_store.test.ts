@@ -1,36 +1,8 @@
 import reducer, { initialState, deleteActionsFromDbByUuid } from "store/action";
-import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
-import { MikroORM } from "@mikro-orm/postgresql";
-import config from "server/database/mikro-orm.config";
-import { globalValues } from "server/express/global";
-import AppUserFactory from "../factories/AppUserFactory";
-import MissionFactory from "../factories/MissionFactory";
+import { describe, expect, it } from "@jest/globals";
 import { createCustomTestStore } from "../factories/makeTestStore";
-import { Mission_db, App_User_db } from "server/database/models/_allModels";
 import { initialState as actionInitialState } from "store/action";
 import { generateBlankAction } from "store/storeUtils/action";
-
-let testMission: Mission_db;
-let testAdmin: App_User_db;
-
-beforeAll(async () => {
-  // Initialize MikroORM and set it in globalValues
-  globalValues.orm = await MikroORM.init(config);
-
-  const em = globalValues.orm.em.fork();
-  testMission = await new MissionFactory(em).createOne();
-  testAdmin = await new AppUserFactory(em).createOne({
-    permissionList: [
-      {
-        missionId: testMission.id,
-        permissions: {
-          edit: true,
-          view: true,
-        },
-      },
-    ],
-  });
-});
 
 describe("Action Store Tests", () => {
   it("should return the initial state on first run", () => {
@@ -148,14 +120,4 @@ describe("Action Store Tests with mock store", () => {
     expect(store.getState().action.actionsFromDb[0].name).toEqual("Jest Action-1");
     expect(store.getState().action.actionsFromDb[1].name).toEqual("Jest Action-3");
   });
-});
-
-afterAll(async () => {
-  //Cleanup our Database
-  const em = globalValues.orm.em.fork();
-  await em.nativeDelete(Mission_db, { id: testMission.id });
-  await em.nativeDelete(App_User_db, { id: testAdmin.id });
-  // Closing the DB connection allows Jest to exit successfully.
-  await globalValues.orm.close();
-  globalValues.orm = null;
 });
