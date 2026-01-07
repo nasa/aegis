@@ -10,7 +10,6 @@ export const setupSocketIO = (): void => {
   // initialize the global object that will store the visitor tracking data and last edit events
   const visitorsData: VisitorData[] = globalValues.serverSocketStatus.visitorsData;
   const maestroVisitors: MaestroVisitor[] = globalValues.serverSocketStatus.maestroVisitors;
-  let socketInterval: NodeJS.Timeout = null;
   const io = globalValues.socketio;
 
   // Listen for connection events
@@ -88,8 +87,8 @@ export const setupSocketIO = (): void => {
       });
 
       // send server status to all clients in every room every 10 seconds
-      if (!socketInterval) {
-        socketInterval = setInterval(() => {
+      if (!globalValues.socketInterval) {
+        globalValues.socketInterval = setInterval(() => {
           // get unique missionIds to find all the rooms
           const missionIds = uniq(visitorsData.map((item) => item.missionId));
           for (const missionId of missionIds) {
