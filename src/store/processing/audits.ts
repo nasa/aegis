@@ -412,7 +412,8 @@ export const auditRichTextToText = async ({
 
   //convert action template descriptions
   const newMission = cloneDeep(wholeStoreState.mission.mission);
-  for (const template of newMission.actionTemplates ?? []) {
+  for (const templateUuid in newMission.actionTemplates ?? {}) {
+    const template = newMission.actionTemplates[templateUuid];
     const newDescription = convertSlateToPlaintext(template.description);
     if (newDescription) {
       template.description = newDescription;

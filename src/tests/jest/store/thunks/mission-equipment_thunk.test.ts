@@ -8,6 +8,7 @@ import { StoreType } from "store";
 import { upsertActionByField } from "store/action";
 import { upsertMissionByField } from "store/mission";
 import { generateBlankActionTemplate } from "store/storeUtils/mission";
+import { v4 as uuidv4 } from "uuid";
 
 const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
 
@@ -28,85 +29,89 @@ afterAll(() => {
 
 describe("Thunk Mission Equipment Tests", () => {
   test("thunkCreateEquipment", async () => {
-    const equipCount = store.getState().mission.mission.equipmentItems?.length || 0;
+    const equipCount = Object.keys(store.getState().mission.mission.equipmentItems || {}).length;
 
     await store.dispatch(thunkCreateEquipment());
-    expect(store.getState().mission.mission.equipmentItems.length).toEqual(equipCount + 1);
+    expect(Object.keys(store.getState().mission.mission.equipmentItems).length).toEqual(
+      equipCount + 1
+    );
 
     await store.dispatch(thunkCreateEquipment());
-    expect(store.getState().mission.mission.equipmentItems.length).toEqual(equipCount + 2);
+    expect(Object.keys(store.getState().mission.mission.equipmentItems).length).toEqual(
+      equipCount + 2
+    );
   });
 
   test("thunkUpdateEquipment()", async () => {
     await store.dispatch(thunkCreateEquipment());
-    const equipCount = store.getState().mission.mission.equipmentItems.length;
-    const equipItem = store.getState().mission.mission.equipmentItems[0];
+    const equipCount = Object.keys(store.getState().mission.mission.equipmentItems).length;
+    const equipmentItems = store.getState().mission.mission.equipmentItems;
+    const equipItemUuid = Object.keys(equipmentItems)[0];
     await store.dispatch(
       thunkUpdateEquipment({
-        uuid: equipItem.uuid,
+        uuid: equipItemUuid,
         fieldName: "name",
         value: "Test Equip Item Modified",
       })
     );
-    expect(store.getState().mission.mission.equipmentItems.length).toBe(equipCount);
-    expect(
-      store.getState().mission.mission.equipmentItems.find((e) => e.uuid === equipItem.uuid).name
-    ).toBe("Test Equip Item Modified");
+    expect(Object.keys(store.getState().mission.mission.equipmentItems).length).toBe(equipCount);
+    expect(store.getState().mission.mission.equipmentItems[equipItemUuid].name).toBe(
+      "Test Equip Item Modified"
+    );
   });
 
   test("thunkDeleteEquipment() on action", async () => {
     await store.dispatch(thunkCreateEquipment());
-    const equipCount = store.getState().mission.mission.equipmentItems.length;
+    const equipCount = Object.keys(store.getState().mission.mission.equipmentItems).length;
 
     // assign an equip item to an action
-    const equipUuidForAction = store.getState().mission.mission.equipmentItems[0].uuid;
+    const equipUuidForAction = Object.keys(store.getState().mission.mission.equipmentItems)[0];
     const action = store.getState().action.actions[0];
     store.dispatch(
-      upsertActionByField(action.uuid, "equipmentItemsUsage", [
-        {
-          uuid: equipUuidForAction,
+      upsertActionByField(action.uuid, "equipmentItemsUsage", {
+        [equipUuidForAction]: {
           quantityUsed: 1,
         },
-      ])
+      })
     );
 
     // should fail to to delete.
     await store.dispatch(thunkDeleteEquipment({ equipmentItemUuid: equipUuidForAction }));
     expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(store.getState().mission.mission.equipmentItems.length).toBe(equipCount);
+    expect(Object.keys(store.getState().mission.mission.equipmentItems).length).toBe(equipCount);
 
     // remove from action and try to delete again. should succeed
-    store.dispatch(upsertActionByField(action.uuid, "equipmentItemsUsage", []));
+    store.dispatch(upsertActionByField(action.uuid, "equipmentItemsUsage", {}));
     await store.dispatch(thunkDeleteEquipment({ equipmentItemUuid: equipUuidForAction }));
-    expect(store.getState().mission.mission.equipmentItems.length).toBe(equipCount - 1);
-    expect(
-      store.getState().mission.mission.equipmentItems.find((e) => e.uuid === equipUuidForAction)
-    ).toBeUndefined();
+    expect(Object.keys(store.getState().mission.mission.equipmentItems).length).toBe(
+      equipCount - 1
+    );
+    expect(store.getState().mission.mission.equipmentItems[equipUuidForAction]).toBeUndefined();
   });
 
   test("thunkDeleteEquipment() on action template", async () => {
     await store.dispatch(thunkCreateEquipment());
-    const equipCount = store.getState().mission.mission.equipmentItems.length;
+    const equipCount = Object.keys(store.getState().mission.mission.equipmentItems).length;
 
     // assign an equip item to a template
-    const equipUuidForTemplate = store.getState().mission.mission.equipmentItems[0].uuid;
+    const equipUuidForTemplate = Object.keys(store.getState().mission.mission.equipmentItems)[0];
     const actionTemplate = generateBlankActionTemplate({
       templateName: "Jest Action Template",
-      equipmentItemsUsage: [{ uuid: equipUuidForTemplate, quantityUsed: 1 }],
+      equipmentItemsUsage: { [equipUuidForTemplate]: { quantityUsed: 1 } },
     });
-    store.dispatch(upsertMissionByField("actionTemplates", [actionTemplate]));
+    store.dispatch(upsertMissionByField("actionTemplates", { [uuidv4()]: actionTemplate }));
 
     // try to delete
     await store.dispatch(thunkDeleteEquipment({ equipmentItemUuid: equipUuidForTemplate }));
     expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(store.getState().mission.mission.equipmentItems.length).toBe(equipCount);
+    expect(Object.keys(store.getState().mission.mission.equipmentItems).length).toBe(equipCount);
 
     // remove from action template and try to delete again. should succeed
-    store.dispatch(upsertMissionByField("actionTemplates", []));
+    store.dispatch(upsertMissionByField("actionTemplates", {}));
     await store.dispatch(thunkDeleteEquipment({ equipmentItemUuid: equipUuidForTemplate }));
-    expect(store.getState().mission.mission.equipmentItems.length).toBe(equipCount - 1);
-    expect(
-      store.getState().mission.mission.equipmentItems.find((e) => e.uuid === equipUuidForTemplate)
-    ).toBeUndefined();
+    expect(Object.keys(store.getState().mission.mission.equipmentItems).length).toBe(
+      equipCount - 1
+    );
+    expect(store.getState().mission.mission.equipmentItems[equipUuidForTemplate]).toBeUndefined();
   });
 });

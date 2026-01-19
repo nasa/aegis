@@ -17,10 +17,16 @@ import {
 
 const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+  const sortedEquipmentItems: [string, EquipmentItem][] = useAppSelector((state) => {
+    if (!state.mission.mission.equipmentItems) return [];
+    return Object.entries(state.mission.mission.equipmentItems).sort(([, a], [, b]) =>
+      a.name.localeCompare(b.name)
+    );
+  }, deepEqual);
+
   const [newEquipmentUuid, setNewEquipmentUuid] = useState(undefined);
 
-  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
+  // Un-marks newest list item as "new" after a short timeout (for auto focusing)
   useEffect(() => {
     if (newEquipmentUuid !== undefined) {
       setTimeout(() => {
@@ -56,18 +62,19 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   </div>
                 </li>
 
-                {mission?.equipmentItems?.map((item, index) => (
+                {sortedEquipmentItems.map(([uuid, equipItem], index) => (
                   <li
-                    key={item.uuid}
+                    key={uuid}
                     className={styles.propertyListItem}
                     aria-label={"equipmentList-item"}
                   >
                     <EquipmentItem
-                      key={item.uuid}
-                      item={item}
+                      key={uuid}
+                      uuid={uuid}
+                      item={equipItem}
                       editMode={editMode}
                       evenRow={index % 2 === 0}
-                      toFocus={newEquipmentUuid === item.uuid}
+                      toFocus={newEquipmentUuid === uuid}
                     />
                   </li>
                 ))}
@@ -95,11 +102,12 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
 export default Equipment_Panel;
 
 const EquipmentItem: FunctionComponent<{
+  uuid: string;
   item: EquipmentItem;
   editMode: boolean;
   evenRow: boolean;
   toFocus: boolean;
-}> = ({ item, editMode, evenRow, toFocus }) => {
+}> = ({ uuid, item, editMode, evenRow, toFocus }) => {
   const dispatch = useAppDispatch();
 
   let backgroundColor: string = "var(--grey2)";
@@ -122,13 +130,13 @@ const EquipmentItem: FunctionComponent<{
             onSubmit={(val: string) => {
               dispatch(
                 thunkUpdateEquipment({
-                  uuid: item.uuid,
+                  uuid: uuid,
                   fieldName: "name",
                   value: val,
                 })
               );
             }}
-            key={`${item.uuid}-name`}
+            key={`${uuid}-name`}
             toFocus={toFocus}
           />
         </div>
@@ -153,13 +161,13 @@ const EquipmentItem: FunctionComponent<{
             onSubmit={(val: string) => {
               dispatch(
                 thunkUpdateEquipment({
-                  uuid: item.uuid,
+                  uuid: uuid,
                   fieldName: "quantity",
                   value: toDecimal(val),
                 })
               );
             }}
-            key={`${item.uuid}-quantity`}
+            key={`${uuid}-quantity`}
           />
         </div>
         <div className={styles.propertyRowSingleuse}>
@@ -171,7 +179,7 @@ const EquipmentItem: FunctionComponent<{
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   dispatch(
                     thunkUpdateEquipment({
-                      uuid: item.uuid,
+                      uuid: uuid,
                       fieldName: "singleUse",
                       value: e.target.checked,
                     })
@@ -192,7 +200,7 @@ const EquipmentItem: FunctionComponent<{
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                dispatch(thunkDeleteEquipment({ equipmentItemUuid: item.uuid }));
+                dispatch(thunkDeleteEquipment({ equipmentItemUuid: uuid }));
               }}
               aria-label="deleteButton"
             />

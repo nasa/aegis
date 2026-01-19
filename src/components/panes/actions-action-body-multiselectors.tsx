@@ -5,80 +5,72 @@ import { FunctionComponent, useCallback } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
-import { RootState } from "store";
+import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import { collapseActions, expandActions } from "store/interface";
 
 export const EquipmentSelector: FunctionComponent<{
-  equipmentItemsUsage: EquipmentItemUsage[];
+  equipmentItemsUsage: EquipmentItemUsages;
   editMode: boolean;
-  onChange: (value: EquipmentItemUsage[]) => void;
+  onChange: (value: EquipmentItemUsages) => void;
   uniqueId: string;
 }> = ({ equipmentItemsUsage, editMode, onChange, uniqueId }) => {
-  const equipmentItems = useAppSelector(
-    (state) => state.mission.mission.equipmentItems,
-    shallowEqual
-  );
+  const sortedEquipmentItems: [string, EquipmentItem][] = useAppSelector((state) => {
+    if (!state.mission.mission.equipmentItems) return [];
+    return Object.entries(state.mission.mission.equipmentItems).sort(([, a], [, b]) =>
+      a.name.localeCompare(b.name)
+    );
+  }, deepEqual);
 
   // create sorted list of equipment item display objects. Used to show the list when not in edit mode
-  const equipmentItemDisplayList = equipmentItemsUsage?.map((equipmentItemUsage) => {
-    const equipmentItem = equipmentItems?.find(
-      (equipmentItem) => equipmentItem.uuid === equipmentItemUsage.uuid
-    );
-    return {
-      name: equipmentItem?.name ? equipmentItem.name : "",
-      quantityUsed: equipmentItemUsage?.quantityUsed,
-    } as EquipmentItemDisplay;
-  });
-
-  // sort by name
-  equipmentItemDisplayList?.sort((a, b) => {
-    return a.name.localeCompare(b.name);
-  });
+  const equipmentItemUsageDisplayList = sortedEquipmentItems.flatMap(
+    ([uuid, equipmentItem]): EquipmentItemDisplay | [] => {
+      if (equipmentItemsUsage?.[uuid]) {
+        return {
+          name: equipmentItem?.name ? equipmentItem.name : "",
+          quantityUsed: equipmentItemsUsage?.[uuid]?.quantityUsed || 0,
+        } as EquipmentItemDisplay;
+      } else {
+        return [];
+      }
+    }
+  );
 
   const addEquipmentItem = (equipmentItemUuid: string, quantity: number) => {
-    const newEquipmentItemUsage: EquipmentItemUsage = {
-      uuid: equipmentItemUuid,
-      quantityUsed: quantity,
+    const newEquipmentItemsUsage: EquipmentItemUsages = {
+      ...equipmentItemsUsage,
+      [equipmentItemUuid]: { quantityUsed: quantity },
     };
-
-    let newEquipmentItemsUsage: EquipmentItemUsage[] = [];
-    if (equipmentItemsUsage) {
-      // remove any existing equipment item usage with the same uuid
-      newEquipmentItemsUsage = equipmentItemsUsage.filter(
-        (equipmentItemUsage) => equipmentItemUsage.uuid !== equipmentItemUuid
-      );
-
-      newEquipmentItemsUsage = [...newEquipmentItemsUsage, newEquipmentItemUsage];
-    } else {
-      newEquipmentItemsUsage = [newEquipmentItemUsage];
-    }
     onChange(newEquipmentItemsUsage);
   };
 
   const removeEquipmentItem = useCallback(
     (equipmentItemUuid: string) => {
-      const newEquipmentItemsUsage = equipmentItemsUsage.filter(
-        (equipmentItemUsage) => equipmentItemUsage.uuid !== equipmentItemUuid
-      );
-      onChange(newEquipmentItemsUsage);
+      const updatedEquipmentItemsUsage = { ...equipmentItemsUsage };
+      delete updatedEquipmentItemsUsage?.[equipmentItemUuid];
+      onChange(updatedEquipmentItemsUsage);
     },
     [equipmentItemsUsage, onChange]
   );
 
   if (editMode) {
     // split equipment items into two columns
-    const equipmentItemsColumn1 = equipmentItems?.slice(0, Math.ceil(equipmentItems.length / 2));
-    const equipmentItemsColumn2 = equipmentItems?.slice(Math.ceil(equipmentItems.length / 2));
+    const equipmentItemsColumn1 = sortedEquipmentItems.slice(
+      0,
+      Math.ceil(sortedEquipmentItems.length / 2)
+    );
+    const equipmentItemsColumn2 = sortedEquipmentItems.slice(
+      Math.ceil(sortedEquipmentItems.length / 2)
+    );
 
     return (
       <div className={actionStyles.propertyListDoubleColumn}>
         <div className={actionStyles.propertyListColumn}>
           {equipmentItemsColumn1 &&
-            equipmentItemsColumn1.map((equipmentItem) => {
+            equipmentItemsColumn1.map(([uuid, equipmentItem]) => {
               return EquipmentCheckbox({
                 equipmentItemsUsage,
                 editMode,
+                equipmentItemUuid: uuid,
                 equipmentItem,
                 addEquipmentItem,
                 removeEquipmentItem,
@@ -88,10 +80,11 @@ export const EquipmentSelector: FunctionComponent<{
         </div>
         <div className={paneStyles.propertyListColumn}>
           {equipmentItemsColumn2 &&
-            equipmentItemsColumn2.map((equipmentItem) => {
+            equipmentItemsColumn2.map(([uuid, equipmentItem]) => {
               return EquipmentCheckbox({
                 equipmentItemsUsage,
                 editMode,
+                equipmentItemUuid: uuid,
                 equipmentItem,
                 addEquipmentItem,
                 removeEquipmentItem,
@@ -104,7 +97,7 @@ export const EquipmentSelector: FunctionComponent<{
   } else {
     return (
       <div className={actionStyles.propertyList}>
-        {equipmentItemDisplayList?.map((equipmentItemDisplay, index) => {
+        {equipmentItemUsageDisplayList?.map((equipmentItemDisplay, index) => {
           return (
             <div
               key={`${equipmentItemDisplay.name}${index}`}
@@ -123,8 +116,9 @@ export const EquipmentSelector: FunctionComponent<{
 };
 
 const EquipmentCheckbox: FunctionComponent<{
-  equipmentItemsUsage: EquipmentItemUsage[];
+  equipmentItemsUsage: EquipmentItemUsages;
   editMode: boolean;
+  equipmentItemUuid: string;
   equipmentItem: EquipmentItem;
   addEquipmentItem: (equipmentItemUuid: string, quantity: number) => void;
   removeEquipmentItem: (equipmentItemUuid: string) => void;
@@ -132,29 +126,25 @@ const EquipmentCheckbox: FunctionComponent<{
 }> = ({
   equipmentItemsUsage,
   editMode,
+  equipmentItemUuid,
   equipmentItem,
   addEquipmentItem,
   removeEquipmentItem,
   uniqueId,
 }) => {
-  // return true if equipmentItem.uuid is in action's equipmentItemsUsage
-  let checked = false;
-  if (equipmentItemsUsage) {
-    checked = equipmentItemsUsage.some(
-      (equipmentItemUsage) => equipmentItemUsage.uuid === equipmentItem.uuid
-    );
-  }
+  // return true if equipmentItemUuid is in action's equipmentItemsUsage
+  const checked = equipmentItemsUsage?.[equipmentItemUuid] !== undefined;
 
   return (
-    <div key={equipmentItem.uuid} className={actionStyles.propertyItem}>
+    <div key={equipmentItemUuid} className={actionStyles.propertyItem}>
       <Checkbox
         checked={checked}
         editable={editMode}
         onChange={(e) => {
           if (e.target.checked) {
-            addEquipmentItem(equipmentItem.uuid, 1);
+            addEquipmentItem(equipmentItemUuid, 1);
           } else {
-            removeEquipmentItem(equipmentItem.uuid);
+            removeEquipmentItem(equipmentItemUuid);
           }
         }}
         label={equipmentItem?.name}
@@ -171,23 +161,23 @@ export const GeographicUnitSelector: FunctionComponent<{
   onChange: (value: string[]) => void;
   uniqueId: string;
 }> = ({ geographicUnitsUsage, editMode, onChange, uniqueId }) => {
-  const geographicUnits = useAppSelector(
-    (state: RootState) => state.mission.mission.geographicUnits,
-    shallowEqual
-  );
+  const sortedGeographicUnits: [string, GeographicUnit][] = useAppSelector((state) => {
+    if (!state.mission.mission.geographicUnits) return [];
+    return Object.entries(state.mission.mission.geographicUnits).sort(([, a], [, b]) =>
+      a.name.localeCompare(b.name)
+    );
+  }, deepEqual);
 
   // create sorted list of geographic units. Used to show the list when not in edit mode
-  const geographicUnitDisplayList = geographicUnitsUsage?.map((geographicUnitUuid) => {
-    const geographicUnit = geographicUnits?.find(
-      (geographicUnit) => geographicUnit.uuid === geographicUnitUuid
-    );
-    return geographicUnit?.name;
-  });
-
-  // sort by name
-  geographicUnitDisplayList?.sort((a, b) => {
-    return a.localeCompare(b);
-  });
+  const geographicUnitDisplayList = sortedGeographicUnits.flatMap(
+    ([uuid, geographicUnit]): string | [] => {
+      if (geographicUnitsUsage?.includes(uuid)) {
+        return geographicUnit?.name ? geographicUnit.name : "";
+      } else {
+        return [];
+      }
+    }
+  );
 
   const addGeographicUnit = (geographicUnitUuid: string) => {
     let newGeographicUnitsUsage: string[] = [];
@@ -202,7 +192,7 @@ export const GeographicUnitSelector: FunctionComponent<{
     onChange(newGeographicUnitsUsage);
   };
 
-  const removenewGeographicUnit = useCallback(
+  const removeGeographicUnit = useCallback(
     (geographicUnitUuid: string) => {
       const newGeographicUnitsUsage = geographicUnitsUsage.filter(
         (geographicUnitUsage) => geographicUnitUsage !== geographicUnitUuid
@@ -213,34 +203,41 @@ export const GeographicUnitSelector: FunctionComponent<{
   );
 
   if (editMode) {
-    // split equipment items into two columns
-    const geographicUnitsColumn1 = geographicUnits?.slice(0, Math.ceil(geographicUnits.length / 2));
-    const geographicUnitsColumn2 = geographicUnits?.slice(Math.ceil(geographicUnits.length / 2));
+    // split geographic units into two columns
+    const geographicUnitsColumn1 = sortedGeographicUnits.slice(
+      0,
+      Math.ceil(sortedGeographicUnits.length / 2)
+    );
+    const geographicUnitsColumn2 = sortedGeographicUnits.slice(
+      Math.ceil(sortedGeographicUnits.length / 2)
+    );
 
     return (
       <div className={actionStyles.propertyListDoubleColumn}>
         <div className={actionStyles.propertyListColumn}>
           {geographicUnitsColumn1 &&
-            geographicUnitsColumn1.map((geographicUnit) => {
+            geographicUnitsColumn1.map(([uuid, geographicUnit]) => {
               return GeographicUnitCheckbox({
                 geographicUnitsUsage,
                 editMode,
+                geographicUnitUuid: uuid,
                 geographicUnit,
-                addgeographicUnit: addGeographicUnit,
-                removegeographicUnit: removenewGeographicUnit,
+                addGeographicUnit: addGeographicUnit,
+                removeGeographicUnit: removeGeographicUnit,
                 uniqueId,
               });
             })}
         </div>
         <div className={paneStyles.propertyListColumn}>
           {geographicUnitsColumn2 &&
-            geographicUnitsColumn2.map((geographicUnit) => {
+            geographicUnitsColumn2.map(([uuid, geographicUnit]) => {
               return GeographicUnitCheckbox({
                 geographicUnitsUsage,
                 editMode,
+                geographicUnitUuid: uuid,
                 geographicUnit,
-                addgeographicUnit: addGeographicUnit,
-                removegeographicUnit: removenewGeographicUnit,
+                addGeographicUnit: addGeographicUnit,
+                removeGeographicUnit: removeGeographicUnit,
                 uniqueId,
               });
             })}
@@ -268,36 +265,38 @@ export const GeographicUnitSelector: FunctionComponent<{
 const GeographicUnitCheckbox: FunctionComponent<{
   geographicUnitsUsage: string[];
   editMode: boolean;
+  geographicUnitUuid: string;
   geographicUnit: GeographicUnit;
-  addgeographicUnit: (geographicUnitUuid: string, quantity: number) => void;
-  removegeographicUnit: (geographicUnitUuid: string) => void;
+  addGeographicUnit: (geographicUnitUuid: string) => void;
+  removeGeographicUnit: (geographicUnitUuid: string) => void;
   uniqueId: string;
 }> = ({
   geographicUnitsUsage,
   editMode,
+  geographicUnitUuid,
   geographicUnit,
-  addgeographicUnit,
-  removegeographicUnit,
+  addGeographicUnit,
+  removeGeographicUnit,
   uniqueId,
 }) => {
   // return true if geographicUnit.uuid is in action.geographicUnits
   let checked = false;
   if (geographicUnitsUsage) {
     checked = geographicUnitsUsage.some(
-      (geographicUnitUsage) => geographicUnitUsage === geographicUnit.uuid
+      (geographicUnitUsage) => geographicUnitUsage === geographicUnitUuid
     );
   }
 
   return (
-    <div key={geographicUnit.uuid} className={actionStyles.propertyItem}>
+    <div key={geographicUnitUuid} className={actionStyles.propertyItem}>
       <Checkbox
         checked={checked}
         editable={editMode}
         onChange={(e) => {
           if (e.target.checked) {
-            addgeographicUnit(geographicUnit.uuid, 1);
+            addGeographicUnit(geographicUnitUuid);
           } else {
-            removegeographicUnit(geographicUnit.uuid);
+            removeGeographicUnit(geographicUnitUuid);
           }
         }}
         label={geographicUnit.name}

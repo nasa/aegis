@@ -8,21 +8,21 @@ import {
 } from "store/processing/calculatedFields";
 
 export const makeEquipmentReadable = (params: {
-  equipmentItems: EquipmentItemUsage[];
+  equipmentItems: EquipmentItemUsages;
   mission: Mission;
 }): EquipmentItemUsageReadable[] => {
   const { equipmentItems, mission } = params;
-  if (!equipmentItems || equipmentItems.length === 0) return [];
-  const equipmentItemsUsageReadable: EquipmentItemUsageReadable[] = equipmentItems?.map(
-    (equipmentItem) => {
-      const equipmentItemUsageReadable: EquipmentItemUsageReadable = {
-        name: mission.equipmentItems.find((e) => e.uuid === equipmentItem.uuid)?.name,
-        singleUse: mission.equipmentItems.find((e) => e.uuid === equipmentItem.uuid)?.singleUse,
-        quantityUsed: equipmentItem.quantityUsed,
-      };
-      return equipmentItemUsageReadable;
-    }
-  );
+  if (!equipmentItems || Object.keys(equipmentItems).length === 0) return [];
+  const equipmentItemsUsageReadable: EquipmentItemUsageReadable[] = Object.entries(
+    equipmentItems
+  ).map(([uuid, equipmentItemUsage]) => {
+    const equipmentItemUsageReadable: EquipmentItemUsageReadable = {
+      name: mission.equipmentItems?.[uuid]?.name,
+      singleUse: mission.equipmentItems?.[uuid]?.singleUse,
+      quantityUsed: equipmentItemUsage.quantityUsed,
+    };
+    return equipmentItemUsageReadable;
+  });
   return equipmentItemsUsageReadable;
 };
 
@@ -72,10 +72,11 @@ export const makeExportActions = (params: {
         equipmentItems: action.equipmentItemsUsage,
         mission: allData.mission,
       }),
-      geographicalUnitsReadable: action.geographicUnitsUsage?.map((geographicUnitUsageUuid) => {
-        return allData.mission.geographicUnits.find((g) => g.uuid === geographicUnitUsageUuid)
-          ?.name;
-      }),
+      geographicalUnitsReadable: action.geographicUnitsUsage
+        ? [...action.geographicUnitsUsage].map((geographicUnitUsageUuid) => {
+            return allData.mission.geographicUnits?.[geographicUnitUsageUuid]?.name;
+          })
+        : null,
       //Verb of noun in adjective
       actionDefinitionReadable: makeReadableActionDefinition({
         action,
@@ -383,15 +384,15 @@ export const makeReadableActionDefinition = (params: {
   const { action, actionDefinitions } = params;
   if (!action?.actionDefinition) return null;
 
-  const verb = actionDefinitions.verbs.find(
-    (verb) => verb.uuid === action.actionDefinition.verbUuid
-  );
-  const noun = actionDefinitions.nouns.find(
-    (noun) => noun.uuid === action.actionDefinition.nounUuid
-  );
-  const adjective = actionDefinitions.adjectives.find(
-    (adjective) => adjective.uuid === action.actionDefinition.adjectiveUuid
-  );
+  const verbUuid = action.actionDefinition.verbUuid;
+  const nounUuid = action.actionDefinition.nounUuid;
+  const adjectiveUuid = action.actionDefinition.adjectiveUuid;
+
+  const verb = verbUuid ? { uuid: verbUuid, ...actionDefinitions.verbs[verbUuid] } : null;
+  const noun = nounUuid ? { uuid: nounUuid, ...actionDefinitions.nouns[nounUuid] } : null;
+  const adjective = adjectiveUuid
+    ? { uuid: adjectiveUuid, ...actionDefinitions.adjectives[adjectiveUuid] }
+    : null;
 
   const readableActionDefinition: ActionDefinitionReadable = {
     displayString: `${verb?.name} of ${noun?.name} in ${adjective?.name}`,

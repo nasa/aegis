@@ -45,10 +45,13 @@ afterAll(() => {
 describe("Thunk Action Tests", () => {
   test("thunkCreateAction()", async () => {
     //populate the action state in the store
+    const blankActionTemplate = generateBlankActionTemplate({
+      templateName: "Jest Action Template",
+    });
     const mission = generateBlankMission({
       name: "Jest Test Mission",
       landerLocation: { lat: 3, lng: 3 },
-      actionTemplates: [generateBlankActionTemplate({ templateName: "Jest Action Template" })],
+      actionTemplates: { [uuidv4()]: blankActionTemplate },
       actionDefinitions: generateDefaultActionDefinitions(),
     });
     const store = createCustomTestStore({

@@ -145,17 +145,6 @@ export const getRexStatusDisplayProperties = (
   }
 };
 
-export const getActionDefinitionName = ({
-  actionDefinitionItems,
-  uuid,
-}: {
-  actionDefinitionItems: ActionDefinitionItem[];
-  uuid: string;
-}): string | undefined => {
-  const actionDef = actionDefinitionItems.find((actionDefItem) => actionDefItem.uuid === uuid);
-  return actionDef?.name;
-};
-
 export const getStmActionName = ({
   actionDefinition,
   missionActionDefs,
@@ -163,14 +152,9 @@ export const getStmActionName = ({
   actionDefinition: ActionDefinition;
   missionActionDefs: ActionDefinitions;
 }): string => {
-  const allDefs = [
-    ...missionActionDefs.verbs,
-    ...missionActionDefs.nouns,
-    ...missionActionDefs.adjectives,
-  ];
-  const verbDef = allDefs.find((def) => def.uuid === actionDefinition?.verbUuid);
-  const nounDef = allDefs.find((def) => def.uuid === actionDefinition?.nounUuid);
-  const adjectiveDef = allDefs.find((def) => def.uuid === actionDefinition?.adjectiveUuid);
+  const verbDef = missionActionDefs.verbs[actionDefinition?.verbUuid];
+  const nounDef = missionActionDefs.nouns[actionDefinition?.nounUuid];
+  const adjectiveDef = missionActionDefs.adjectives[actionDefinition?.adjectiveUuid];
   const verbName = verbDef?.name;
   const nounName = nounDef?.name;
   const adjectiveName = adjectiveDef?.name;

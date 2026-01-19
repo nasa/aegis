@@ -206,7 +206,7 @@ type StationCalculatedFields = CalculatedFields &
     walkbackDurationMinutes: number;
     walkbackDistanceMeters: number;
     walkbackAscentDescent: TotalAscentDescentObj;
-    equipmentItems: EquipmentItemUsage[];
+    equipmentItems: EquipmentItemUsages;
   };
 
 type TraverseCalculatedFields = CalculatedFields &
@@ -236,7 +236,7 @@ type EvaCalculatedFields = CalculatedFields &
     totalTraverseDistanceMeters: number;
     totalTraverseAscentDescent: TotalAscentDescentObj;
     totalEvaTime: number;
-    equipmentItems: EquipmentItemUsage[];
+    equipmentItems: EquipmentItemUsages;
     sequenceItemsCalculatedData: EvaSequenceItemCalculatedData[];
   };
 

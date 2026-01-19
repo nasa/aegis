@@ -21,7 +21,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { setMissionSectionEditing, setSelectedMissionRightNavItem } from "store/mission";
 import { thunkMissionCancel, thunkMissionSave } from "store/thunk/thunkMission";
 import Equipment_Panel from "./mission-right-equipment";
-import GeographiUnits_Panel from "./mission-right-geographicUnits";
+import GeographicUnits_Panel from "./mission-right-geographicUnits";
 import { isModified } from "utils/component-helpers";
 import ActionTemplates_Panel from "./mission-right-actionTemplates";
 import { RightTabs } from "components/interface/side-controls";
@@ -87,7 +87,7 @@ const MissionPrefsRight: FunctionComponent = () => {
       },
       geographicUnit_panel: {
         title: "Mission Geography",
-        panel: GeographiUnits_Panel,
+        panel: GeographicUnits_Panel,
         selectedColor: "white",
         icon: faAtlas,
       },

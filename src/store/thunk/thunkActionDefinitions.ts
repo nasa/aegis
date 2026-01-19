@@ -2,6 +2,7 @@ import appCreateAsyncThunk from "./thunkUtil";
 import { v4 as uuidv4 } from "uuid";
 import { upsertMissionByField } from "store/mission";
 import capitalize from "lodash/capitalize";
+import cloneDeep from "lodash/cloneDeep";
 
 type ActionDefPrintableListItem = {
   parentType: "Action in Station" | "Rule in STM Item" | "Action Template";
@@ -13,8 +14,8 @@ export const thunkCreateActionDefItem = appCreateAsyncThunk<
   string,
   null
 >("createActionDefinitionItem", async ({ type }, { dispatch, getState }) => {
-  const blankItem: ActionDefinitionItem = {
-    uuid: uuidv4(),
+  const newUuid = uuidv4();
+  const blankItem = {
     name: `(${capitalize(type.slice(0, -1))} Name)`,
     abbr: "abbr",
   };
@@ -22,12 +23,15 @@ export const thunkCreateActionDefItem = appCreateAsyncThunk<
   const actionDefinitions = getState().mission.mission.actionDefinitions;
   const newActionDefinitions = {
     ...actionDefinitions,
-    [type]: [...actionDefinitions[type], blankItem],
+    [type]: {
+      ...actionDefinitions[type],
+      [newUuid]: blankItem,
+    },
   };
 
   dispatch(upsertMissionByField("actionDefinitions", newActionDefinitions));
 
-  return blankItem.uuid;
+  return newUuid;
 });
 
 export const thunkUpdateActionDefItem = appCreateAsyncThunk<
@@ -38,14 +42,12 @@ export const thunkUpdateActionDefItem = appCreateAsyncThunk<
   "updateActionDefinitionItem",
   async ({ type, uuid, fieldName, value }, { dispatch, getState }) => {
     const actionDefinitions = getState().mission.mission.actionDefinitions;
-    const newActionDefinitionItemList = {
-      ...actionDefinitions,
-      [type]: actionDefinitions[type].map((item) =>
-        item.uuid === uuid ? { ...item, [fieldName]: value } : item
-      ),
-    };
-
-    dispatch(upsertMissionByField("actionDefinitions", newActionDefinitionItemList));
+    const currentItem = actionDefinitions[type][uuid];
+    if (currentItem) {
+      const newActionDefinitionItemList = cloneDeep(actionDefinitions);
+      newActionDefinitionItemList[type][uuid][fieldName] = value;
+      dispatch(upsertMissionByField("actionDefinitions", newActionDefinitionItemList));
+    }
   }
 );
 
@@ -67,12 +69,15 @@ export const thunkDeleteActionDefItem = appCreateAsyncThunk<
       rule.nounUuids.includes(uuid) ||
       rule.adjectiveUuids.includes(uuid)
   );
-  const templatesUsingActionDef = getState().mission.mission.actionTemplates.filter(
-    (template) =>
-      template.actionDefinition?.verbUuid === uuid ||
-      template.actionDefinition?.nounUuid === uuid ||
-      template.actionDefinition?.adjectiveUuid === uuid
-  );
+  const actionTemplates = getState().mission.mission.actionTemplates;
+  const templatesUsingActionDef = actionTemplates
+    ? Object.values(actionTemplates).filter(
+        (template) =>
+          template.actionDefinition?.verbUuid === uuid ||
+          template.actionDefinition?.nounUuid === uuid ||
+          template.actionDefinition?.adjectiveUuid === uuid
+      )
+    : [];
   const printableList: ActionDefPrintableListItem[] = [];
   if (actionsUsingActionDef?.length > 0) {
     const actionsList: ActionDefPrintableListItem[] = actionsUsingActionDef.map((action) => {
@@ -119,10 +124,8 @@ export const thunkDeleteActionDefItem = appCreateAsyncThunk<
   }
 
   const actionDefinitions = getState().mission.mission.actionDefinitions;
-  const newActionDefinitionItemList = {
-    ...actionDefinitions,
-    [type]: actionDefinitions[type].filter((item) => item.uuid !== uuid),
-  };
+  const newActionDefinitionItemList = cloneDeep(actionDefinitions);
+  delete newActionDefinitionItemList[type][uuid];
 
   dispatch(upsertMissionByField("actionDefinitions", newActionDefinitionItemList));
 });
