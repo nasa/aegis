@@ -639,7 +639,7 @@ const MapBody: FunctionComponent<{
           const circleDefinitions = mission.circleDefinitions;
 
           // draw circle around station for each mapCircleControl.
-          circleDefinitions?.forEach((circleDefinition) => {
+          Object.entries(circleDefinitions).forEach(([uuid, circleDefinition]) => {
             /*
              * Map does NOT think in terms of planets for coordinates,
              * and currently acts as if coordinates correspond to earth.
@@ -656,10 +656,10 @@ const MapBody: FunctionComponent<{
 
             const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
 
-            if (station.mapCircleControls[circleDefinition.uuid]?.visible) {
+            if (station.mapCircleControls[uuid]?.visible) {
               // Turf Coords are in (lng, lat) format
 
-              const circleStyle = station.mapCircleControls[circleDefinition.uuid]?.style;
+              const circleStyle = station.mapCircleControls[uuid]?.style;
 
               const dashLen = circleStyle?.dashLen || 10;
 
@@ -702,7 +702,7 @@ const MapBody: FunctionComponent<{
 
               stationCircles.forEach((circleLayer) => {
                 circleLayer.mapItemType = "stationCircle";
-                circleLayer.uuid = `${station.uuid}-${circleDefinition.uuid}`; // Add unique identifier
+                circleLayer.uuid = `${station.uuid}-${uuid}`; // Add unique identifier
                 stationCirclesFeatureGroup.current.addLayer(circleLayer);
               });
             }
@@ -887,7 +887,7 @@ const MapBody: FunctionComponent<{
       }
     });
 
-    circleDefinitions.forEach((circleDefinition) => {
+    Object.entries(circleDefinitions).forEach(([uuid, circleDefinition]) => {
       /*
        * Map does NOT think in terms of planets for coordinates,
        * and currently acts as if coordinates correspond to earth.
@@ -904,8 +904,8 @@ const MapBody: FunctionComponent<{
 
       const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
 
-      if (selectedPreset.mapCircleControls[circleDefinition.uuid]?.visible) {
-        const circleStyle = selectedPreset.mapCircleControls[circleDefinition.uuid]?.style;
+      if (selectedPreset.mapCircleControls[uuid]?.visible) {
+        const circleStyle = selectedPreset.mapCircleControls[uuid]?.style;
 
         const landerCircle: AEGISGeoJSONCircle[] = [];
 
@@ -948,7 +948,7 @@ const MapBody: FunctionComponent<{
 
         landerCircle.forEach((circleLayer) => {
           circleLayer.mapItemType = "landerCircle";
-          circleLayer.uuid = `lander-${circleDefinition.uuid}`; // Add unique identifier
+          circleLayer.uuid = `lander-${uuid}`; // Add unique identifier
           map.current.addLayer(circleLayer);
         });
       }

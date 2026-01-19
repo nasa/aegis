@@ -37,19 +37,19 @@ interface MapSublayerStyle {
 type MapSublayerStyleKeys = keyof MapSublayerStyle;
 
 interface MapSublayerControls {
-  [key: string]: MapSublayerControl; //uuid of sublayers
+  [uuid: string]: MapSublayerControl; //uuid of sublayers
 }
 
 interface MapCircleControls {
-  [key: string]: MapCircleControl; //uuid
+  [uuid: string]: MapCircleControl; //uuid
 }
 
 interface LayersUIStates {
-  [key: string]: LayerUIStates; //uuid of Layer, or station
+  [uuid: string]: LayerUIStates; //uuid of Layer, or station
 }
 
 interface LayerUIStates {
-  [key: string]: LayerUIState; //flat uuid of layers and sublayers headers
+  [uuid: string]: LayerUIState; //flat uuid of layers and sublayers headers
 }
 
 interface LayerUIState {
@@ -60,11 +60,11 @@ interface LayerUIState {
 }
 
 interface CirclesUIStates {
-  [key: string]: CircleUIStates; //uuid of Preset or Station
+  [uuid: string]: CircleUIStates; //uuid of Preset or Station
 }
 
 interface CircleUIStates {
-  [key: string]: CircleUIState; //flat uuid of layers and sublayers headers
+  [uuid: string]: CircleUIState; //flat uuid of layers and sublayers headers
 }
 
 interface CircleUIState {

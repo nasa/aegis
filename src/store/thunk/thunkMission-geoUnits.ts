@@ -2,6 +2,7 @@ import cloneDeep from "lodash/cloneDeep";
 import appCreateAsyncThunk from "./thunkUtil";
 import { upsertMission, upsertMissionByField } from "store/mission";
 import { v4 as uuidv4 } from "uuid";
+import { makeReadableActionDefinition } from "utils/export";
 
 type PrintableListItem = {
   parentType: "Station" | "POI" | "Template";
@@ -11,13 +12,14 @@ type PrintableListItem = {
 
 export const thunkUpdateGeoUnit = appCreateAsyncThunk<{
   uuid: string;
-  fieldName: keyof GeographicUnit;
-  value: GeographicUnit[keyof GeographicUnit];
+  fieldName: "name" | "abbr";
+  value: string;
 }>("updateGeoUnit", async ({ uuid, fieldName, value }, { dispatch, getState }) => {
-  const newGeographicUnits = cloneDeep(getState().mission.mission.geographicUnits);
-  const itemIndex = newGeographicUnits?.findIndex((item) => item.uuid === uuid);
-  if (itemIndex >= 0) {
-    newGeographicUnits[itemIndex][fieldName] = value;
+  const geographicUnits = getState().mission.mission.geographicUnits;
+  const currentItem = geographicUnits?.[uuid];
+  if (currentItem) {
+    const newGeographicUnits = cloneDeep(geographicUnits);
+    newGeographicUnits[uuid][fieldName] = value;
     dispatch(upsertMissionByField("geographicUnits", newGeographicUnits));
   }
 });
@@ -25,13 +27,16 @@ export const thunkUpdateGeoUnit = appCreateAsyncThunk<{
 export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: string }>(
   "deleteGeoUnit",
   async ({ geographicUnitUuid }, { dispatch, getState }) => {
-    // find all of the actions using this equipment item
+    // find all of the actions and actionTemplates using this geographic unit
     const actionsUsingGeographicUnit = getState().action.actions.filter((action) =>
       action.geographicUnitsUsage?.some((uuid) => uuid === geographicUnitUuid)
     );
-    const templatesUsingGeographicUnit = getState().mission.mission.actionTemplates?.filter(
-      (template) => template.geographicUnitsUsage?.some((uuid) => uuid === geographicUnitUuid)
-    );
+    const actionTemplates = getState().mission.mission.actionTemplates;
+    const templatesUsingGeographicUnit = actionTemplates
+      ? Object.values(actionTemplates).filter((template) =>
+          template.geographicUnitsUsage?.some((uuid) => uuid === geographicUnitUuid)
+        )
+      : [];
 
     const printableList: PrintableListItem[] = [];
     if (actionsUsingGeographicUnit.length > 0) {
@@ -49,10 +54,19 @@ export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: stri
           parentName = parentStation?.name || "";
         }
 
+        let actionName = action.name;
+        if (action.stmAction) {
+          const readableActionDef = makeReadableActionDefinition({
+            action,
+            actionDefinitions: getState().mission.mission.actionDefinitions,
+          });
+          actionName = readableActionDef.displayString;
+        }
+
         return {
           parentType,
           parentName,
-          actionName: action.name,
+          actionName,
         };
       });
       printableList.push(...actionsList);
@@ -78,9 +92,10 @@ export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: stri
       return;
     }
 
-    const newGeographicUnits = getState().mission.mission.geographicUnits?.filter(
-      (item) => item.uuid !== geographicUnitUuid
-    );
+    // Nothing is using this geoUnit. Delete it
+    const geographicUnits = getState().mission.mission.geographicUnits;
+    const newGeographicUnits = cloneDeep(geographicUnits);
+    delete newGeographicUnits[geographicUnitUuid];
     dispatch(upsertMission({ ...getState().mission.mission, geographicUnits: newGeographicUnits }));
   }
 );
@@ -89,13 +104,15 @@ export const thunkCreateGeoUnit = appCreateAsyncThunk<void, string>(
   "createGeoUnit",
   async (_, { dispatch, getState }) => {
     const newGeoUuid = uuidv4();
-    const blankItem: GeographicUnit = {
-      uuid: newGeoUuid,
+    const blankItem = {
       name: "(Geographic Unit Name)",
     };
 
-    const geographicUnits = getState().mission.mission.geographicUnits || [];
-    const newGeographicUnits = [...geographicUnits, blankItem];
+    const geographicUnits = getState().mission.mission.geographicUnits || {};
+    const newGeographicUnits = {
+      ...geographicUnits,
+      [newGeoUuid]: blankItem,
+    };
     dispatch(upsertMissionByField("geographicUnits", newGeographicUnits));
 
     return newGeoUuid;

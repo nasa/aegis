@@ -57,7 +57,7 @@ export class Action_db implements Action_db_type {
   @Property({ type: MikroTypes.float, nullable: true })
   duration: number;
   @Property({ type: MikroTypes.json, nullable: true })
-  equipmentItemsUsage: EquipmentItemUsage[];
+  equipmentItemsUsage: EquipmentItemUsages;
   @Property({ type: MikroTypes.json, nullable: true })
   geographicUnitsUsage: string[];
   @Property({ type: MikroTypes.float, nullable: true })

@@ -67,13 +67,31 @@ export async function missionEquipmentTest(page: Page): Promise<string> {
   await waitForSaveButton(page, false);
 
   await page.getByLabel("addNewEquipmentButton", { exact: true }).click();
-  await page.getByLabel("Equipment item name", { exact: true }).last().fill(eq1.name);
-  await page.getByLabel("Equipment item quantity", { exact: true }).last().fill(eq1.quantity);
-  await page.getByLabel("checkbox", { exact: true }).last().setChecked(eq1.singleUse);
+  // The newly added name input should have focus
+  const focusedInput1 = page.locator('input[aria-label="Equipment item name"]:focus');
+  await expect(focusedInput1).toBeFocused();
+  await focusedInput1.fill(eq1.name);
+  // Find the row by the unique name we just filled
+  const row1 = page.locator(
+    `li[aria-label="equipmentList-item"]:has(input[aria-label="Equipment item name"][value="${eq1.name}"])`
+  );
+  const quantityInput1 = row1.getByLabel("Equipment item quantity");
+  await quantityInput1.fill(eq1.quantity);
+  const checkbox1 = row1.getByLabel("checkbox", { exact: true });
+  await checkbox1.setChecked(eq1.singleUse);
+
   await page.getByLabel("addNewEquipmentButton", { exact: true }).click();
-  await page.getByLabel("Equipment item name", { exact: true }).last().fill(eq2.name);
-  await page.getByLabel("Equipment item quantity", { exact: true }).last().fill(eq2.quantity);
-  await page.getByLabel("checkbox", { exact: true }).last().setChecked(eq2.singleUse);
+  const focusedInput2 = page.locator('input[aria-label="Equipment item name"]:focus');
+  await expect(focusedInput2).toBeFocused();
+  await focusedInput2.fill(eq2.name);
+  // Find the row by the unique name we just filled
+  const row2 = page.locator(
+    `li[aria-label="equipmentList-item"]:has(input[aria-label="Equipment item name"][value="${eq2.name}"])`
+  );
+  const quantityInput2 = row2.getByLabel("Equipment item quantity");
+  await quantityInput2.fill(eq2.quantity);
+  const checkbox2 = row2.getByLabel("checkbox", { exact: true });
+  await checkbox2.setChecked(eq2.singleUse);
   await waitForSaveButton(page, true);
   await page.getByLabel("saveButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();

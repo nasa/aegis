@@ -13,22 +13,16 @@ import {
   thunkDeleteActionDefItem,
   thunkUpdateActionDefItem,
 } from "store/thunk/thunkActionDefinitions";
-import sortBy from "lodash/sortBy";
 import capitalize from "lodash/capitalize";
 
 const ActionDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const actionDefinitions = useAppSelector((state) => {
-    const actionDefinitions = state.mission.mission.actionDefinitions;
-    const sortedVerbs = sortBy(actionDefinitions.verbs, [(verb) => verb.name.toLowerCase()]);
-    const sortedNouns = sortBy(actionDefinitions.nouns, [(noun) => noun.name.toLowerCase()]);
-    const sortedAdjectives = sortBy(actionDefinitions.adjectives, [
-      (adjective) => adjective.name.toLowerCase(),
-    ]);
-    return { verbs: sortedVerbs, nouns: sortedNouns, adjectives: sortedAdjectives };
-  }, deepEqual);
+  const actionDefinitions = useAppSelector(
+    (state) => state.mission.mission.actionDefinitions,
+    deepEqual
+  );
   const [newActionDefUuid, setNewActionDefUuid] = useState(undefined);
 
-  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
+  // Un-marks newest list item as "new" after a short timeout (for auto focusing)
   useEffect(() => {
     if (newActionDefUuid !== undefined) {
       setTimeout(() => {
@@ -79,11 +73,15 @@ export default ActionDefinitions_Panel;
 
 const ActionDefinitions: FunctionComponent<{
   type: ActionDefinitionType;
-  actionDefinitionItems: ActionDefinitionItem[];
+  actionDefinitionItems: ActionDefinitionItems;
   editMode: boolean;
   newActionDefUuid: string;
   setNewActionDefUuid: (actionDef: string) => void;
 }> = ({ type, actionDefinitionItems, editMode, newActionDefUuid, setNewActionDefUuid }) => {
+  // Makes a 2nd sorted array of the key value object map
+  const actionDefinitionItemsSorted = Object.entries(actionDefinitionItems).sort(([, a], [, b]) =>
+    a.name.localeCompare(b.name)
+  );
   const dispatch = useAppDispatch();
   let buttonWidth = "135px";
   if (type === "nouns") {
@@ -109,19 +107,19 @@ const ActionDefinitions: FunctionComponent<{
             </div>
           </li>
 
-          {actionDefinitionItems &&
-            actionDefinitionItems.map((actionDefinitionItem, index) => (
+          {actionDefinitionItemsSorted &&
+            actionDefinitionItemsSorted.map((actionDefinitionKeyValue, index) => (
               <li
-                key={actionDefinitionItem.uuid}
+                key={actionDefinitionKeyValue[0]}
                 className={styles.propertyListItem}
                 aria-label="actionDefs-item"
               >
                 <ActionDefinitionItem
                   type={type}
-                  actionDefinitionItem={actionDefinitionItem}
+                  actionDefinitionKeyValue={actionDefinitionKeyValue}
                   editMode={editMode}
                   evenRow={index % 2 === 0}
-                  toFocus={newActionDefUuid === actionDefinitionItem.uuid}
+                  toFocus={newActionDefUuid === actionDefinitionKeyValue[0]}
                 />
               </li>
             ))}
@@ -145,11 +143,11 @@ const ActionDefinitions: FunctionComponent<{
 
 const ActionDefinitionItem: FunctionComponent<{
   type: ActionDefinitionType;
-  actionDefinitionItem: ActionDefinitionItem;
+  actionDefinitionKeyValue: [string, { name: string; abbr: string }];
   editMode: boolean;
   evenRow: boolean;
   toFocus: boolean;
-}> = ({ type, actionDefinitionItem, editMode, evenRow, toFocus }) => {
+}> = ({ type, actionDefinitionKeyValue, editMode, evenRow, toFocus }) => {
   const dispatch = useAppDispatch();
 
   let backgroundColor: string = "var(--grey2)";
@@ -169,12 +167,12 @@ const ActionDefinitionItem: FunctionComponent<{
               style: { width: "100%" },
               validators: [validators.maxLength(255), validators.required],
             }}
-            value={actionDefinitionItem.name}
+            value={actionDefinitionKeyValue[1].name}
             onSubmit={(val: string) => {
               dispatch(
                 thunkUpdateActionDefItem({
                   type,
-                  uuid: actionDefinitionItem.uuid,
+                  uuid: actionDefinitionKeyValue[0],
                   fieldName: "name",
                   value: val,
                 })
@@ -192,18 +190,18 @@ const ActionDefinitionItem: FunctionComponent<{
               style: { width: "90px" },
               validators: [validators.maxLength(10), validators.required],
             }}
-            value={actionDefinitionItem.abbr}
+            value={actionDefinitionKeyValue[1].abbr}
             onSubmit={(val: string) => {
               dispatch(
                 thunkUpdateActionDefItem({
                   type,
-                  uuid: actionDefinitionItem.uuid,
+                  uuid: actionDefinitionKeyValue[0],
                   fieldName: "abbr",
                   value: val,
                 })
               );
             }}
-            key={`${actionDefinitionItem.uuid}-abbr`}
+            key={`${actionDefinitionKeyValue[0]}-abbr`}
             toFocus={toFocus}
           />
         </div>
@@ -220,7 +218,7 @@ const ActionDefinitionItem: FunctionComponent<{
                   dispatch(
                     thunkDeleteActionDefItem({
                       type,
-                      uuid: actionDefinitionItem.uuid,
+                      uuid: actionDefinitionKeyValue[0],
                     })
                   );
                 }}

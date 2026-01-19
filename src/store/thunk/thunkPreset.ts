@@ -168,14 +168,16 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
 
     // build circle controls
     const blankMapCircleControls: MapCircleControls = {};
-    getState().mission.mission.circleDefinitions?.forEach((landerRadius) => {
-      blankMapCircleControls[landerRadius.uuid] = {
-        name: landerRadius.name,
-        uuid: landerRadius.uuid,
-        visible: false,
-        style: defaultSublayerStyle,
-      };
-    });
+    if (getState().mission.mission.circleDefinitions) {
+      Object.entries(getState().mission.mission.circleDefinitions).forEach(([uuid, circleDef]) => {
+        blankMapCircleControls[uuid] = {
+          name: circleDef.name,
+          uuid: uuid,
+          visible: false,
+          style: defaultSublayerStyle,
+        };
+      });
+    }
 
     const blankPreset = generateBlankPreset({
       name: randomName,
@@ -223,12 +225,14 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
     const presetCircleUIStates: CircleUIStates = {};
 
     if (getState().mission.mission.circleDefinitions) {
-      for (const circleDefinition of getState().mission.mission.circleDefinitions) {
-        presetCircleUIStates[circleDefinition.uuid] = {
-          name: circleDefinition.name,
-          slidersSelected: false,
-        };
-      }
+      Object.entries(getState().mission.mission.circleDefinitions).forEach(
+        ([uuid, circleDefinition]) => {
+          presetCircleUIStates[uuid] = {
+            name: circleDefinition.name,
+            slidersSelected: false,
+          };
+        }
+      );
     }
 
     dispatch(

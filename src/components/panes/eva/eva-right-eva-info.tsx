@@ -199,9 +199,9 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
   //split, sort, and pull names for each equipment item
   //get names
   const consumablesDisplay: EquipmentItemDisplay[] = [];
-  evaCalculatedFields?.equipmentItems?.forEach((equipItem) => {
+  Object.entries(evaCalculatedFields?.equipmentItems)?.forEach(([uuid, equipItem]) => {
     //find item in mission
-    const missionEquipItem = missionEquipItems?.find((item) => item.uuid === equipItem.uuid);
+    const missionEquipItem = missionEquipItems[uuid];
     if (missionEquipItem.singleUse) {
       consumablesDisplay.push({
         name: missionEquipItem.name,

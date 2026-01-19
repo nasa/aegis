@@ -20,9 +20,9 @@ interface ExportAction extends Action {
 
 interface ActionDefinitionReadable {
   displayString: string;
-  verb: ActionDefinitionItem;
-  noun: ActionDefinitionItem;
-  adjective: ActionDefinitionItem;
+  verb: { uuid: string; name: string; abbr: string };
+  noun: { uuid: string; name: string; abbr: string };
+  adjective: { uuid: string; name: string; abbr: string };
 }
 
 interface StmPriorityReadable {

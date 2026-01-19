@@ -25,80 +25,83 @@ describe("Thunk Action Definition Item Tests", () => {
   test("thunkCreateActionDefItem", async () => {
     const actionDefType: ActionDefinitionType = "verbs"; // or "nouns", "adjectives"
 
-    const actionDefCount = store.getState().mission.mission.actionDefinitions[actionDefType].length;
+    const actionDefCount = Object.keys(
+      store.getState().mission.mission.actionDefinitions[actionDefType]
+    ).length;
 
     await store.dispatch(thunkCreateActionDefItem({ type: actionDefType }));
-    expect(store.getState().mission.mission.actionDefinitions[actionDefType].length).toEqual(
-      actionDefCount + 1
-    );
+    expect(
+      Object.keys(store.getState().mission.mission.actionDefinitions[actionDefType]).length
+    ).toEqual(actionDefCount + 1);
 
     await store.dispatch(thunkCreateActionDefItem({ type: actionDefType }));
-    expect(store.getState().mission.mission.actionDefinitions[actionDefType].length).toEqual(
-      actionDefCount + 2
-    );
+    expect(
+      Object.keys(store.getState().mission.mission.actionDefinitions[actionDefType]).length
+    ).toEqual(actionDefCount + 2);
   });
 
   test("thunkUpdateActionDefItem", async () => {
     const actionDefType: ActionDefinitionType = "verbs"; // or other types
     await store.dispatch(thunkCreateActionDefItem({ type: actionDefType }));
-    const actionDefCount = store.getState().mission.mission.actionDefinitions[actionDefType].length;
-    const actionDefItem = store.getState().mission.mission.actionDefinitions[actionDefType][0];
-
+    const actionDefCount = Object.keys(
+      store.getState().mission.mission.actionDefinitions[actionDefType]
+    ).length;
+    const actionDefUuid = Object.keys(
+      store.getState().mission.mission.actionDefinitions[actionDefType]
+    )[0];
     await store.dispatch(
       thunkUpdateActionDefItem({
         type: actionDefType,
-        uuid: actionDefItem.uuid,
+        uuid: actionDefUuid,
         fieldName: "name",
         value: "Updated Action Definition",
       })
     );
 
-    expect(store.getState().mission.mission.actionDefinitions[actionDefType].length).toBe(
-      actionDefCount
-    );
     expect(
-      store
-        .getState()
-        .mission.mission.actionDefinitions[
-          actionDefType
-        ].find((item) => item.uuid === actionDefItem.uuid).name
+      Object.keys(store.getState().mission.mission.actionDefinitions[actionDefType]).length
+    ).toBe(actionDefCount);
+    expect(
+      store.getState().mission.mission.actionDefinitions[actionDefType][actionDefUuid].name
     ).toBe("Updated Action Definition");
   });
 
   test("thunkDeleteActionDefItem - deletion blocked if in use", async () => {
     const actionDefType: ActionDefinitionType = "verbs"; // or other types
-    const actionDefItem = store.getState().mission.mission.actionDefinitions[actionDefType][0];
-    const actionDefinitionsCount =
-      store.getState().mission.mission.actionDefinitions[actionDefType].length;
+    const actionDefUuid = Object.keys(
+      store.getState().mission.mission.actionDefinitions[actionDefType]
+    )[0];
+    const actionDefinitionsCount = Object.keys(
+      store.getState().mission.mission.actionDefinitions[actionDefType]
+    ).length;
 
     // Generate an action using this definition item
     const newAction = generateBlankAction({
       stmAction: true,
-      actionDefinition: { verbUuid: actionDefItem.uuid, nounUuid: null, adjectiveUuid: null },
+      actionDefinition: { verbUuid: actionDefUuid, nounUuid: null, adjectiveUuid: null },
     });
     await store.dispatch(upsertActions([newAction]));
 
-    await store.dispatch(
-      thunkDeleteActionDefItem({ type: actionDefType, uuid: actionDefItem.uuid })
-    );
+    await store.dispatch(thunkDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
     expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(store.getState().mission.mission.actionDefinitions[actionDefType].length).toBe(
-      actionDefinitionsCount
-    ); // Deletion should be blocked
+    expect(
+      Object.keys(store.getState().mission.mission.actionDefinitions[actionDefType]).length
+    ).toBe(actionDefinitionsCount); // Deletion should be blocked
   });
 
   test("thunkDeleteActionDefItem - successfully deletes if not in use", async () => {
     const actionDefType: ActionDefinitionType = "verbs"; // or other types
-    const actionDefItem = store.getState().mission.mission.actionDefinitions[actionDefType][0];
-    const actionDefinitionsCount =
-      store.getState().mission.mission.actionDefinitions[actionDefType].length;
+    const actionDefUuid = Object.keys(
+      store.getState().mission.mission.actionDefinitions[actionDefType]
+    )[0];
+    const actionDefinitionsCount = Object.keys(
+      store.getState().mission.mission.actionDefinitions[actionDefType]
+    ).length;
 
-    await store.dispatch(
-      thunkDeleteActionDefItem({ type: actionDefType, uuid: actionDefItem.uuid })
-    );
+    await store.dispatch(thunkDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
     expect(alertSpy).not.toHaveBeenCalled();
-    expect(store.getState().mission.mission.actionDefinitions[actionDefType].length).toBe(
-      actionDefinitionsCount - 1
-    );
+    expect(
+      Object.keys(store.getState().mission.mission.actionDefinitions[actionDefType]).length
+    ).toBe(actionDefinitionsCount - 1);
   });
 });

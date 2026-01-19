@@ -52,7 +52,9 @@ export const createFullTestStore = (): StoreType => {
   const mission = generateBlankMission({
     name: "Jest Test Mission",
     landerLocation: { lat: 3, lng: 3 },
-    actionTemplates: [generateBlankActionTemplate({ templateName: "Jest Action Template" })],
+    actionTemplates: {
+      [uuidv4()]: generateBlankActionTemplate({ templateName: "Jest Action Template" }),
+    },
     actionDefinitions: generateDefaultActionDefinitions(),
   });
   const actions: Action[] = [];

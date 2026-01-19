@@ -53,14 +53,16 @@ afterAll(() => {
 describe("Thunk Mission Tests", () => {
   it("thunkMissionSave", async () => {
     const missionCopy = cloneDeep(store.getState().mission.mission);
+    const newCircleDefUuid = uuidv4();
     const newCircleDefinition = {
-      uuid: uuidv4(),
-      name: "Jest Test Circle Definition",
-      radius: 10,
+      [newCircleDefUuid]: {
+        name: "Jest Test Circle Definition",
+        radius: 10,
+      },
     };
     const newName = "Jest Mission Test Save";
     store.dispatch(
-      upsertMission({ ...missionCopy, name: newName, circleDefinitions: [newCircleDefinition] })
+      upsertMission({ ...missionCopy, name: newName, circleDefinitions: newCircleDefinition })
     );
     const oldPreset = store.getState().preset.presets[0];
 
@@ -70,7 +72,7 @@ describe("Thunk Mission Tests", () => {
 
     // all presets should update with a new layer for this circleDefinitions
     expect(
-      store.getState().preset.presetCirclesUIStates[oldPreset.uuid][newCircleDefinition.uuid].name
+      store.getState().preset.presetCirclesUIStates[oldPreset.uuid][newCircleDefUuid].name
     ).toEqual("Jest Test Circle Definition");
     expect(httpClient_preset.upsertPresets).toHaveBeenCalledTimes(
       store.getState().preset.presets.length
@@ -114,37 +116,34 @@ describe("Thunk Mission Tests", () => {
   });
 
   it("thunkCreateActionTemplate", async () => {
-    const numActionTemplates = store.getState().mission.mission.actionTemplates?.length || 0;
+    const actionTemplates = store.getState().mission.mission.actionTemplates;
+    const numActionTemplates = Object.entries(actionTemplates).length || 0;
     await store.dispatch(thunkCreateActionTemplate());
-    expect(store.getState().mission.mission.actionTemplates.length).toEqual(numActionTemplates + 1);
+    const neeNumActionTemplates = Object.entries(
+      store.getState().mission.mission.actionTemplates
+    ).length;
+    expect(neeNumActionTemplates).toEqual(numActionTemplates + 1);
   });
 
   it("thunkUpdateActionTemplate", async () => {
-    const actionTemplate = store.getState().mission.mission.actionTemplates[0];
+    const actionTemplateKeys = Object.keys(store.getState().mission.mission.actionTemplates);
     const updatedName = "Jest Test Action Template Modified";
     await store.dispatch(
       thunkUpdateActionTemplate({
-        uuid: actionTemplate.uuid,
+        uuid: actionTemplateKeys[0],
         fieldName: "name",
         value: updatedName,
       })
     );
-    const updatedActionTemplate = store
-      .getState()
-      .mission.mission.actionTemplates.find((a) => a.uuid === actionTemplate.uuid);
+    const updatedActionTemplate =
+      store.getState().mission.mission.actionTemplates[actionTemplateKeys[0]];
     expect(updatedActionTemplate.name).toEqual(updatedName);
   });
 
   it("thunkDeleteActionTemplate", async () => {
-    const actionTemplateToDelete = store.getState().mission.mission.actionTemplates[0];
-    await store.dispatch(
-      thunkDeleteActionTemplate({ actionTemplateUuid: actionTemplateToDelete.uuid })
-    );
-    expect(
-      store
-        .getState()
-        .mission.mission.actionTemplates.find((a) => a.uuid === actionTemplateToDelete.uuid)
-    ).toBeUndefined();
+    const actionTemplateKeys = Object.keys(store.getState().mission.mission.actionTemplates);
+    await store.dispatch(thunkDeleteActionTemplate({ actionTemplateUuid: actionTemplateKeys[0] }));
+    expect(store.getState().mission.mission.actionTemplates[actionTemplateKeys[0]]).toBeUndefined();
   });
 
   it("thunkMakeExportString", async () => {

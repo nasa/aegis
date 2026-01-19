@@ -17,8 +17,8 @@ interface Mission {
   traverseRate: number | null;
   defaultEvaDuration: number | null;
   walkbackRate: number | null;
-  equipmentItems: EquipmentItem[] | null;
-  geographicUnits: GeographicUnit[] | null;
+  equipmentItems: EquipmentItems | null;
+  geographicUnits: GeographicUnits | null;
   activeGridUuid: string | null;
   _metadata?: string; // Meant for JsonExport file export only
   demFilePath: string;
@@ -36,8 +36,8 @@ interface Mission {
   projResUnitsPerPixel: number | null;
   createdAt?: string;
   updatedAt?: string;
-  circleDefinitions: CircleDefinition[] | null;
-  actionTemplates: ActionTemplate[] | null;
+  circleDefinitions: CircleDefinitions | null;
+  actionTemplates: ActionTemplates | null;
   stmLevel1Enabled?: boolean;
   stmLevel1Name?: string;
   stmLevel2Name?: string;
@@ -52,9 +52,14 @@ type Mission_db_type = Omit<Mission, "createdAt" | "updatedAt"> & {
 
 type ActionDefinitionType = "verbs" | "nouns" | "adjectives";
 
+type ActionTemplates = {
+  [uuid: string]: ActionTemplate;
+};
+
 // Explicitly omit all of the fields from Action that should not be an actionTemplate
 type ActionTemplate = Omit<
   Action,
+  | "uuid"
   | "missionId"
   | "refUuid"
   | "poiUuid"
@@ -103,12 +108,14 @@ type SetPOIExpandedSectionsFn = (poiExpandedSections: POIExpandedSections) => vo
 /**
  * Equipment item
  */
-interface EquipmentItem {
-  uuid: string;
+type EquipmentItems = {
+  [uuid: string]: EquipmentItem;
+};
+type EquipmentItem = {
   name: string;
   quantity: number;
   singleUse: boolean;
-}
+};
 
 type EquipmentItemDisplay = {
   name: string;
@@ -118,24 +125,30 @@ type EquipmentItemDisplay = {
 /**
  * Equipment needed to perform an action.
  */
-type EquipmentItemUsage = {
-  uuid: string;
-  quantityUsed: number;
+type EquipmentItemUsages = {
+  [uuid: string]: {
+    quantityUsed: number;
+  };
 };
 
 /**
  * Geographic unit
  */
-interface GeographicUnit {
-  uuid: string;
+type GeographicUnits = {
+  [uuid: string]: GeographicUnit;
+};
+type GeographicUnit = {
   name: string;
   abbr?: string;
-}
+};
+
 /*
  * Vector circles around lander or stations
  */
+type CircleDefinitions = {
+  [uuid: string]: CircleDefinition;
+};
 type CircleDefinition = {
-  uuid: string;
   name: string;
   radius: number;
 };

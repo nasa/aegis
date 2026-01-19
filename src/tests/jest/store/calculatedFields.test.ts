@@ -295,7 +295,7 @@ describe("Calculated fields", () => {
         totalMetersDescended: 0,
       },
       totalEvaTime: 10,
-      equipmentItems: [],
+      equipmentItems: {},
       sequenceItemsCalculatedData: [
         {
           uuid: station1.uuid,

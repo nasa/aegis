@@ -20,10 +20,7 @@ import capitalize from "lodash/capitalize";
 import { collapseActions, expandActions } from "store/interface";
 import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
-import {
-  getRexStatusDisplayProperties,
-  getActionDefinitionName,
-} from "../../utils/component-helpers";
+import { getRexStatusDisplayProperties } from "../../utils/component-helpers";
 import { RexStatusMenu } from "./rex/rex-status-menu";
 import { actionTypes } from "store/storeUtils/action";
 import { thunkUpsertActionDefinitionSelection } from "store/thunk/thunkAction";
@@ -376,7 +373,7 @@ export const ActionDefType: FunctionComponent<{
     deepEqual
   );
 
-  const selectedName = getActionDefinitionName({ actionDefinitionItems, uuid: selectedUuid });
+  const selectedName = actionDefinitionItems[selectedUuid]?.name;
 
   return (
     <>
@@ -401,7 +398,7 @@ export const ActionDefType: FunctionComponent<{
 
 const ActionDefDropdown: FunctionComponent<{
   actionUuid: string;
-  actionDefinitionItems: ActionDefinitionItem[];
+  actionDefinitionItems: ActionDefinitionItems;
   type: ActionDefinitionType;
   selectedUuid: string;
 }> = ({ actionUuid, actionDefinitionItems, type, selectedUuid }) => {
@@ -418,8 +415,8 @@ const ActionDefDropdown: FunctionComponent<{
       containerStyle={{ width: "70px" }}
     >
       <option value="">{capitalize(type)}</option>
-      {actionDefinitionItems.map((actionDef) => (
-        <option key={actionDef.uuid} value={actionDef.uuid}>
+      {Object.entries(actionDefinitionItems).map(([uuid, actionDef]) => (
+        <option key={uuid} value={uuid}>
           {actionDef.name}
         </option>
       ))}

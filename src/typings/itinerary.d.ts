@@ -227,7 +227,7 @@ type Action = {
   location: AEGISPoint | null;
   elevation: number | null;
   duration: number | null; // in minutes
-  equipmentItemsUsage: EquipmentItemUsage[] | null; // Equipment needed to perform this action.
+  equipmentItemsUsage: EquipmentItemUsages | null; // Equipment needed to perform this action.
   geographicUnitsUsage: string[] | null; // uuids of geographic units used in this action
   mass: number | null; // grams
   status: ActionStatus | null;
@@ -290,18 +290,13 @@ type ActionType =
   | "chip";
 
 // Action V2 types
-
-type ActionDefinitionItem = {
-  uuid: string;
-  name: string;
-  abbr: string;
-};
+type ActionDefinitionItems = { [uuid: string]: { name: string; abbr: string } };
 
 // used in the Mission structure
 type ActionDefinitions = {
-  verbs: ActionDefinitionItem[];
-  nouns: ActionDefinitionItem[];
-  adjectives: ActionDefinitionItem[];
+  verbs: ActionDefinitionItems;
+  nouns: ActionDefinitionItems;
+  adjectives: ActionDefinitionItems;
 };
 
 // used in the Action structure

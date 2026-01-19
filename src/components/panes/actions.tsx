@@ -37,10 +37,12 @@ const Actions: FunctionComponent<{
 }) => {
   const dispatch = useAppDispatch();
 
-  const actionTemplates = useAppSelector(
-    (state) => state.mission.mission.actionTemplates,
-    shallowEqual
-  );
+  const sortedActionTemplates: [string, ActionTemplate][] = useAppSelector((state) => {
+    if (!state.mission.mission.actionTemplates) return [];
+    return Object.entries(state.mission.mission.actionTemplates).sort(([, a], [, b]) =>
+      a.templateName.localeCompare(b.templateName)
+    );
+  }, deepEqual);
 
   const parentStationPoiUuids = useAppSelector(
     (state) =>
@@ -87,7 +89,7 @@ const Actions: FunctionComponent<{
     [actionOrderUuids, setActionOrderUuids]
   );
 
-  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
+  // Un-marks newest list item as "new" after a short timeout (for auto focusing)
   useEffect(() => {
     if (newActionUuid !== undefined) {
       setTimeout(() => {
@@ -147,7 +149,7 @@ const Actions: FunctionComponent<{
               style={{ width: "100px" }}
               onClick={async () => {
                 const actionTemplate = selectedTemplateUuid
-                  ? actionTemplates.find((t) => t.uuid === selectedTemplateUuid)
+                  ? sortedActionTemplates.find((sat) => sat[0] === selectedTemplateUuid)?.[1]
                   : null;
                 setNewActionUuid(
                   (
@@ -171,9 +173,9 @@ const Actions: FunctionComponent<{
               selectStyle={{ height: "2em", fontSize: "0.8em" }}
               containerStyle={{ maxWidth: "200px" }}
             >
-              {actionTemplates?.map((template) => {
+              {sortedActionTemplates?.map(([uuid, template]) => {
                 return (
-                  <option key={template.uuid} value={template.uuid}>
+                  <option key={uuid} value={uuid}>
                     {template.templateName}
                   </option>
                 );

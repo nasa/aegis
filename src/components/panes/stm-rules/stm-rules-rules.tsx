@@ -78,25 +78,27 @@ export const STMRuleSet: FunctionComponent<{
   type: ActionDefinitionType;
 }> = ({ isEditing, stmRule, type }) => {
   const dispatch = useAppDispatch();
-  const actionDefinitions = useAppSelector(
+  const missionActionDefinitions = useAppSelector(
     (state) => state.mission.mission.actionDefinitions,
     deepEqual
   );
 
-  const actionDefinitionItems: ActionDefinitionItem[] = [];
+  const actionDefinitionItemsToDisplay: { uuid: string; name: string; abbr: string }[] = [];
   const ruleItemUuidsKeyString = `${type.slice(0, -1)}Uuids` as
     | "verbUuids"
     | "nounUuids"
     | "adjectiveUuids";
   const ruleAnyKeyString = `${type.slice(0, -1)}Any` as "verbAny" | "nounAny" | "adjectiveAny";
   for (const ruleItemUuid of stmRule[ruleItemUuidsKeyString] as string[]) {
-    const actionDef = actionDefinitions[type].find((def) => def.uuid === ruleItemUuid);
-    const actionDefinitionItem: ActionDefinitionItem = {
-      uuid: actionDef.uuid,
-      name: actionDef.name,
-      abbr: actionDef.abbr,
-    };
-    actionDefinitionItems.push(actionDefinitionItem);
+    const actionDef = missionActionDefinitions[type][ruleItemUuid];
+    if (actionDef) {
+      const actionDefinitionItem = {
+        uuid: ruleItemUuid,
+        name: actionDef.name,
+        abbr: actionDef.abbr,
+      };
+      actionDefinitionItemsToDisplay.push(actionDefinitionItem);
+    }
   }
 
   const ruleSetTypeClass = styles[`stmRuleSet${capitalize(type.slice(0, -1))}`];
@@ -108,9 +110,9 @@ export const STMRuleSet: FunctionComponent<{
           {!stmRule[ruleAnyKeyString] && (
             <div className={styles.stmRuleSetMultiselectOutsideContainer}>
               <MultiSelectDropdown
-                items={actionDefinitions[type].map((display) => ({
+                items={Object.entries(missionActionDefinitions[type]).map(([uuid, display]) => ({
                   label: display.name,
-                  value: display.uuid,
+                  value: uuid,
                 }))}
                 selectedItemsValues={stmRule[ruleItemUuidsKeyString]}
                 toggleItem={(uuid) => {
@@ -163,9 +165,9 @@ export const STMRuleSet: FunctionComponent<{
         <div className={`${styles.stmRuleSet} ${ruleSetTypeClass}`}>
           {!stmRule[ruleAnyKeyString] ? (
             <>
-              {actionDefinitionItems.length > 0 ? (
+              {actionDefinitionItemsToDisplay.length > 0 ? (
                 <>
-                  {actionDefinitionItems.map((display) => (
+                  {actionDefinitionItemsToDisplay.map((display) => (
                     <div key={display.uuid}>{display.name}</div>
                   ))}
                 </>

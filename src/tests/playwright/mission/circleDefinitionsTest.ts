@@ -37,13 +37,32 @@ export async function circleDefinitionsTest(page: Page): Promise<string> {
   await page.getByLabel("Edit", { exact: true }).click();
   await page.mouse.move(0, -100);
   await waitForSaveButton(page, false);
+
+  // Add first circle definition - track the focused input
   await page.getByLabel("addNewRadiusButton", { exact: true }).click();
-  await expect(await page.getByLabel("Circle Definition Range").last()).toHaveValue("0");
-  await page.getByLabel("Circle Definition Name").last().fill("--TEST RADIUS ONE--");
-  await page.getByLabel("Circle Definition Range").last().fill("1");
+  // The newly added name input should have focus
+  const focusedInput1 = page.locator('input[name="circleDefName"]:focus');
+  await expect(focusedInput1).toBeFocused();
+  await focusedInput1.fill("--TEST RADIUS ONE--");
+  // Find the row by the unique name we just filled
+  const row1 = page.locator(
+    'li[aria-label="circle-definition-item"]:has(input[name="circleDefName"][value="--TEST RADIUS ONE--"])'
+  );
+  const rangeInput1 = row1.getByLabel("Circle Definition Range");
+  await rangeInput1.fill("1");
+
+  // Add second circle definition - track the focused input
   await page.getByLabel("addNewRadiusButton", { exact: true }).click();
-  await page.getByLabel("Circle Definition Name").last().fill("--TEST RADIUS TWO--");
-  await page.getByLabel("Circle Definition Range").last().fill("100");
+  const focusedInput2 = page.locator('input[name="circleDefName"]:focus');
+  await expect(focusedInput2).toBeFocused();
+  await focusedInput2.fill("--TEST RADIUS TWO--");
+  // Find the row by the unique name we just filled
+  const row2 = page.locator(
+    'li[aria-label="circle-definition-item"]:has(input[name="circleDefName"][value="--TEST RADIUS TWO--"])'
+  );
+  const rangeInput2 = row2.getByLabel("Circle Definition Range");
+  await rangeInput2.fill("100");
+
   await waitForSaveButton(page, true);
   await page.getByLabel("saveButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();
@@ -62,7 +81,7 @@ export async function circleDefinitionsTest(page: Page): Promise<string> {
     if (name === "--TEST RADIUS ONE--" && range === 1) {
       test1Index = i;
     }
-    if (name === "--TEST RADIUS TWO--" && range == 100) {
+    if (name === "--TEST RADIUS TWO--" && range === 100) {
       test2Index = i;
     }
     if (range < prevRange) {
@@ -71,6 +90,7 @@ export async function circleDefinitionsTest(page: Page): Promise<string> {
     }
     prevRange = range;
   }
+  console.log("test1Index:", test1Index, "test2Index:", test2Index, "orderBroken:", orderBroken);
   expect(test1Index !== -1 && test2Index !== -1 && !orderBroken).toEqual(true);
 
   //edit and check saved circle definitions.
@@ -92,7 +112,7 @@ export async function circleDefinitionsTest(page: Page): Promise<string> {
     if (name === "--TEST RADIUS ONE B--" && range === 250) {
       test1Index = i;
     }
-    if (name === "--TEST RADIUS TWO--" && range == 100) {
+    if (name === "--TEST RADIUS TWO--" && range === 100) {
       test2Index = i;
     }
     if (range < prevRange) {
@@ -139,7 +159,7 @@ export async function circleDefinitionsTest(page: Page): Promise<string> {
   for (let i = 0; i < startingNumCircleDefinitions + 1; i++) {
     const name = await page.getByLabel("Circle Definition Name").nth(i).textContent();
     const range = Number(await page.getByLabel("Circle Definition Range").nth(i).textContent());
-    if (name === "--TEST RADIUS TWO--" && range == 100) {
+    if (name === "--TEST RADIUS TWO--" && range === 100) {
       test2Index = i;
     }
     if (range < prevRange) {
