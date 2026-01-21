@@ -187,7 +187,7 @@ npm run migration:fresh
 ## Helpful Docker CLI Commands
 
 ```bash
-# List all containers
+# List all containers.
 docker container list
 
 # Viewing container logs in follow mode
