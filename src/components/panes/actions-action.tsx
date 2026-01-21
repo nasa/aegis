@@ -6,6 +6,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Dropdown, InLineEditInput } from "components/interface/form/globalFields";
+import { ActionDefDropdown } from "components/interface/actionDefDropdown";
 import { FunctionComponent } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
@@ -368,6 +369,7 @@ export const ActionDefType: FunctionComponent<{
   selectedUuid: string;
   editMode: boolean;
 }> = ({ actionUuid, type, selectedUuid, editMode }) => {
+  const dispatch = useAppDispatch();
   const actionDefinitionItems = useAppSelector(
     (state) => state.mission.mission.actionDefinitions[type],
     deepEqual
@@ -387,39 +389,13 @@ export const ActionDefType: FunctionComponent<{
       ) : (
         <ActionDefDropdown
           actionDefinitionItems={actionDefinitionItems}
-          actionUuid={actionUuid}
           type={type}
           selectedUuid={selectedUuid}
+          onSelect={(uuid) =>
+            dispatch(thunkUpsertActionDefinitionSelection({ actionUuid, type, typeUuid: uuid }))
+          }
         />
       )}
     </>
-  );
-};
-
-const ActionDefDropdown: FunctionComponent<{
-  actionUuid: string;
-  actionDefinitionItems: ActionDefinitionItems;
-  type: ActionDefinitionType;
-  selectedUuid: string;
-}> = ({ actionUuid, actionDefinitionItems, type, selectedUuid }) => {
-  const dispatch = useAppDispatch();
-
-  return (
-    <Dropdown
-      selected={selectedUuid}
-      onChange={(val) => {
-        dispatch(thunkUpsertActionDefinitionSelection({ actionUuid, type, typeUuid: val }));
-      }}
-      toolTip={`${type}`}
-      arrowStyle={{ color: "var(--grey5)" }}
-      containerStyle={{ width: "70px" }}
-    >
-      <option value="">{capitalize(type)}</option>
-      {Object.entries(actionDefinitionItems).map(([uuid, actionDef]) => (
-        <option key={uuid} value={uuid}>
-          {actionDef.name}
-        </option>
-      ))}
-    </Dropdown>
   );
 };

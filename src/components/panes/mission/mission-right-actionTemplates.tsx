@@ -1,4 +1,5 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useState, useEffect } from "react";
+import { ActionDefDropdown } from "components/interface/actionDefDropdown";
 import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";
 import actionsStyles from "../actions.module.css";
@@ -18,12 +19,7 @@ import {
   faPlusCircle,
   faWeightHanging,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  Button,
-  Dropdown,
-  InLineEditInput,
-  TextArea,
-} from "components/interface/form/globalFields";
+import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
   EquipmentSelector,
@@ -588,7 +584,12 @@ const ActionDefType: FunctionComponent<{
   type: ActionDefinitionType;
   selectedUuid: string;
   editMode: boolean;
-}> = ({ actionTemplateUuid, actionTemplate, type, selectedUuid, editMode }) => {
+}> = ({ actionTemplateUuid, type, selectedUuid, editMode }) => {
+  const dispatch = useAppDispatch();
+  const actionTemplates = useAppSelector(
+    (state) => state.mission.mission.actionTemplates,
+    deepEqual
+  );
   const actionDefinitions = useAppSelector(
     (state) => state.mission.mission.actionDefinitions[type],
     deepEqual
@@ -607,52 +608,25 @@ const ActionDefType: FunctionComponent<{
         </span>
       ) : (
         <ActionDefDropdown
-          actionTemplateUuid={actionTemplateUuid}
           actionDefinitionItems={actionDefinitions}
-          actionTemplate={actionTemplate}
           type={type}
           selectedUuid={selectedUuid}
+          onSelect={(uuid) => {
+            const actionTemplate = actionTemplates[actionTemplateUuid];
+            const newActionDefinition = {
+              ...actionTemplate.actionDefinition,
+              [`${type.slice(0, -1)}Uuid`]: uuid,
+            };
+            dispatch(
+              thunkUpdateActionTemplate({
+                uuid: actionTemplateUuid,
+                fieldName: "actionDefinition",
+                value: newActionDefinition,
+              })
+            );
+          }}
         />
       )}
     </>
-  );
-};
-
-const ActionDefDropdown: FunctionComponent<{
-  actionTemplateUuid: string;
-  actionTemplate: ActionTemplate;
-  actionDefinitionItems: ActionDefinitionItems;
-  type: ActionDefinitionType;
-  selectedUuid: string;
-}> = ({ actionTemplateUuid, actionTemplate, actionDefinitionItems, type, selectedUuid }) => {
-  const dispatch = useAppDispatch();
-
-  return (
-    <Dropdown
-      selected={selectedUuid}
-      onChange={(val) => {
-        const newActionDefinition = {
-          ...actionTemplate.actionDefinition,
-          [`${type.slice(0, -1)}Uuid`]: val,
-        };
-        dispatch(
-          thunkUpdateActionTemplate({
-            uuid: actionTemplateUuid,
-            fieldName: "actionDefinition",
-            value: newActionDefinition,
-          })
-        );
-      }}
-      toolTip={`${type}`}
-      arrowStyle={{ color: "var(--grey5)" }}
-      containerStyle={{ width: "70px" }}
-    >
-      <option value="">{capitalize(type)}</option>
-      {Object.entries(actionDefinitionItems || {}).map(([uuid, actionDef]) => (
-        <option key={uuid} value={uuid} selected={uuid === selectedUuid}>
-          {actionDef.name}
-        </option>
-      ))}
-    </Dropdown>
   );
 };
