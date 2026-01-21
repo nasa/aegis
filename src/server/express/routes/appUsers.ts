@@ -7,7 +7,10 @@ import express from "express";
 import cloneDeep from "lodash/cloneDeep";
 
 import { App_User_db } from "server/database/models/_allModels";
-import { convertUsersTypeDbToStore, convertUsersTypeStoreToDb } from "store/storeUtils/user";
+import {
+  convertAppUsersTypeDbToStore,
+  convertAppUsersTypeStoreToDb,
+} from "store/storeUtils/appUser";
 import { upsertDatabaseRetry } from "utils/database";
 import { globalValues } from "../global";
 import { apiRouteLogger } from "utils/logging/serverLogger";
@@ -33,7 +36,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       logLevel: "warn",
       httpMethod: "GET",
       responseStatus: 401,
-      routeName: "users",
+      routeName: "appUsers",
       appUsername: req.session?.appUser?.username,
       uuids: queryObj.userId ? [queryObj.userId.toString()] : [],
       message: "Unauthorized",
@@ -43,7 +46,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const users: AppUser[] = await getUsers(queryObj.userId);
+    const users: AppUser[] = await getAppUsers(queryObj.userId);
 
     res.status(200).json({
       status: "success",
@@ -55,7 +58,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
-      routeName: "users",
+      routeName: "appUsers",
       appUsername: req.session?.appUser?.username,
       uuids: queryObj.userId ? [queryObj.userId.toString()] : [],
       message: `Error processing the GET request ${e}`,
@@ -74,7 +77,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       logLevel: "warn",
       httpMethod: "POST",
       responseStatus: 401,
-      routeName: "users",
+      routeName: "appUsers",
       appUsername: req.session?.appUser?.username,
       uuids: users?.map((u) => u.id?.toString()),
       message: "Unauthorized",
@@ -90,7 +93,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
-        routeName: "users",
+        routeName: "appUsers",
         appUsername: req.session?.appUser?.username,
         uuids: users?.map((u) => u.id?.toString()),
         message: `No users provided in request body`,
@@ -98,7 +101,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ status: "failure", message: `No users provided in request body` });
       return;
     }
-    const upsertResponse: AppUser[] = await upsertDatabaseRetry(() => upsertUsers(users));
+    const upsertResponse: AppUser[] = await upsertDatabaseRetry(() => upsertAppUsers(users));
 
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
@@ -106,7 +109,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
-        routeName: "users",
+        routeName: "appUsers",
         appUsername: req.session?.appUser?.username,
         uuids: users?.map((u) => u.id?.toString()),
         message: "Failed to update app user after multiple tries due to optimistic locking",
@@ -132,7 +135,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
-      routeName: "users",
+      routeName: "appUsers",
       appUsername: req.session?.appUser?.username,
       uuids: users?.map((u) => u.id?.toString()),
       message: `Error processing the POST request ${e}`,
@@ -151,7 +154,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       logLevel: "warn",
       httpMethod: "DELETE",
       responseStatus: 401,
-      routeName: "users",
+      routeName: "appUsers",
       appUsername: req.session?.appUser?.username,
       uuids: userIds?.map((id) => id.toString()),
       message: "Unauthorized",
@@ -161,7 +164,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const deletedUuids = await deleteUsers(userIds);
+    const deletedUuids = await deleteAppUsers(userIds);
 
     if (deletedUuids.length > 0) {
       res.status(200).json({
@@ -173,7 +176,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         logLevel: "error",
         httpMethod: "DELETE",
         responseStatus: 500,
-        routeName: "users",
+        routeName: "appUsers",
         appUsername: req.session?.appUser?.username,
         uuids: userIds?.map((id) => id.toString()),
         message: "Error in query",
@@ -186,7 +189,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,
-      routeName: "users",
+      routeName: "appUsers",
       appUsername: req.session?.appUser?.username,
       uuids: userIds?.map((id) => id.toString()),
       message: `Error processing the DELETE request ${e}`,
@@ -203,7 +206,7 @@ export default router;
  * @returns array of users
  * @param userId
  */
-async function getUsers(userId: number = null): Promise<AppUser[]> {
+async function getAppUsers(userId: number = null): Promise<AppUser[]> {
   const model = globalValues.orm.em;
   let users: App_User_db[];
   if (!userId) {
@@ -212,7 +215,7 @@ async function getUsers(userId: number = null): Promise<AppUser[]> {
     users = await model.find(App_User_db, { id: userId });
   }
 
-  return convertUsersTypeDbToStore(users);
+  return convertAppUsersTypeDbToStore(users);
 }
 
 /**
@@ -220,7 +223,7 @@ async function getUsers(userId: number = null): Promise<AppUser[]> {
  * @returns a copy of the user objects that were upserted
  * @param users
  */
-export async function upsertUsers(users: AppUser[]): Promise<AppUser[]> {
+export async function upsertAppUsers(users: AppUser[]): Promise<AppUser[]> {
   const em = globalValues.orm.em;
   await em.begin(); // Start a transaction
 
@@ -229,7 +232,9 @@ export async function upsertUsers(users: AppUser[]): Promise<AppUser[]> {
 
   try {
     for (const userToUpsert of usersToUpsert) {
-      const convertedUser: EntityData<App_User_db> = convertUsersTypeStoreToDb([userToUpsert])[0];
+      const convertedUser: EntityData<App_User_db> = convertAppUsersTypeStoreToDb([
+        userToUpsert,
+      ])[0];
 
       if (convertedUser.id) {
         // Upserting
@@ -261,7 +266,7 @@ export async function upsertUsers(users: AppUser[]): Promise<AppUser[]> {
     throw e; // Re-throw the error to be handled by the caller
   }
 
-  return convertUsersTypeDbToStore(usersUpsertedToDb);
+  return convertAppUsersTypeDbToStore(usersUpsertedToDb);
 }
 
 /**
@@ -269,7 +274,7 @@ export async function upsertUsers(users: AppUser[]): Promise<AppUser[]> {
  * @param userIds user IDs to delete
  * @returns the uuids of the deleted users
  */
-async function deleteUsers(userIds: number[]): Promise<number[]> {
+async function deleteAppUsers(userIds: number[]): Promise<number[]> {
   const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const userId of userIds) {

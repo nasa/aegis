@@ -15,10 +15,15 @@ import {
 
 const CircleDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+  const sortedCircleDefinitions: [string, CircleDefinition][] = useAppSelector((state) => {
+    if (!state.mission.mission.circleDefinitions) return [];
+    return Object.entries(state.mission.mission.circleDefinitions).sort(
+      ([, a], [, b]) => a.radius - b.radius
+    );
+  }, deepEqual);
   const [newCircleDefUuid, setNewCircleDefUuid] = useState(undefined);
 
-  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
+  // Un-marks newest list item as "new" after a short timeout (for auto focusing)
   useEffect(() => {
     if (newCircleDefUuid !== undefined) {
       setTimeout(() => {
@@ -56,18 +61,19 @@ const CircleDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
                   </div>
                 </li>
 
-                {mission?.circleDefinitions?.map((item, index) => (
+                {sortedCircleDefinitions.map(([uuid, circleDef], index) => (
                   <li
-                    key={item.uuid}
+                    key={uuid}
                     className={styles.propertyListItem}
                     aria-label="circle-definition-item"
                   >
                     <RadiusItem
-                      key={item.uuid}
-                      circleDef={item}
+                      key={uuid}
+                      uuid={uuid}
+                      circleDef={circleDef}
                       editMode={editMode}
                       evenRow={index % 2 === 0}
-                      toFocus={newCircleDefUuid === item.uuid}
+                      toFocus={newCircleDefUuid === uuid}
                     />
                   </li>
                 ))}
@@ -95,11 +101,12 @@ const CircleDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
 export default CircleDefinitions_Panel;
 
 const RadiusItem: FunctionComponent<{
+  uuid: string;
   circleDef: CircleDefinition;
   editMode: boolean;
   evenRow: boolean;
   toFocus: boolean;
-}> = ({ circleDef, editMode, evenRow, toFocus }) => {
+}> = ({ uuid, circleDef, editMode, evenRow, toFocus }) => {
   const dispatch = useAppDispatch();
 
   let backgroundColor: string = "var(--grey2)";
@@ -123,13 +130,13 @@ const RadiusItem: FunctionComponent<{
             onSubmit={(val: string) => {
               dispatch(
                 thunkUpdateCircleDefinition({
-                  uuid: circleDef.uuid,
+                  uuid,
                   fieldName: "name",
                   value: val,
                 })
               );
             }}
-            key={`${circleDef.uuid}-name`}
+            key={`${uuid}-name`}
             toFocus={toFocus}
           />
         </div>
@@ -154,13 +161,13 @@ const RadiusItem: FunctionComponent<{
             onSubmit={(val: string) => {
               dispatch(
                 thunkUpdateCircleDefinition({
-                  uuid: circleDef.uuid,
+                  uuid: uuid,
                   fieldName: "radius",
                   value: Number(val),
                 })
               );
             }}
-            key={`${circleDef.uuid}-radius`}
+            key={`${uuid}-radius`}
           />
         </div>
 
@@ -170,7 +177,7 @@ const RadiusItem: FunctionComponent<{
             e.preventDefault();
             e.stopPropagation();
             if (editMode) {
-              dispatch(thunkDeleteCircleDefinition({ circleDefUuid: circleDef.uuid }));
+              dispatch(thunkDeleteCircleDefinition({ circleDefUuid: uuid }));
             }
           }}
         >

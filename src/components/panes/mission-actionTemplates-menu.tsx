@@ -6,8 +6,8 @@ import actionStyles from "./actions-action.module.css";
 import { thunkDuplicateActionTemplate, thunkDeleteActionTemplate } from "store/thunk/thunkMission";
 
 export const ActionTemplateMenu: FunctionComponent<{
-  actionTemplate: ActionTemplate;
-}> = ({ actionTemplate }) => {
+  uuid: string;
+}> = ({ uuid }) => {
   const dispatch = useAppDispatch();
   const dialogRef = useRef(null);
   const menuRef = useRef(null);
@@ -31,7 +31,7 @@ export const ActionTemplateMenu: FunctionComponent<{
           <div
             className={actionStyles.menuItem}
             onClick={() => {
-              dispatch(thunkDuplicateActionTemplate({ actionTemplateUuid: actionTemplate.uuid }));
+              dispatch(thunkDuplicateActionTemplate({ actionTemplateUuid: uuid }));
               dialogRef.current?.close();
             }}
             aria-label="Duplicate"
@@ -45,7 +45,7 @@ export const ActionTemplateMenu: FunctionComponent<{
             className={actionStyles.menuItem}
             onClick={(e) => {
               if (window.confirm("Are you sure you want to delete this Action Template?")) {
-                dispatch(thunkDeleteActionTemplate({ actionTemplateUuid: actionTemplate.uuid }));
+                dispatch(thunkDeleteActionTemplate({ actionTemplateUuid: uuid }));
                 e.stopPropagation();
               }
               dialogRef.current?.close();

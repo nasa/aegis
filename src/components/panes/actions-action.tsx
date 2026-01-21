@@ -6,6 +6,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Dropdown, InLineEditInput } from "components/interface/form/globalFields";
+import { ActionDefDropdown } from "components/interface/actionDefDropdown";
 import { FunctionComponent } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
@@ -20,12 +21,9 @@ import capitalize from "lodash/capitalize";
 import { collapseActions, expandActions } from "store/interface";
 import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
-import {
-  getRexStatusDisplayProperties,
-  getActionDefinitionName,
-} from "../../utils/component-helpers";
+import { getRexStatusDisplayProperties } from "../../utils/component-helpers";
 import { RexStatusMenu } from "./rex/rex-status-menu";
-import { actionTypes } from "store/storeUtils/store";
+import { actionTypes } from "store/storeUtils/action";
 import { thunkUpsertActionDefinitionSelection } from "store/thunk/thunkAction";
 
 const RightAction: FunctionComponent<{
@@ -371,12 +369,13 @@ export const ActionDefType: FunctionComponent<{
   selectedUuid: string;
   editMode: boolean;
 }> = ({ actionUuid, type, selectedUuid, editMode }) => {
+  const dispatch = useAppDispatch();
   const actionDefinitionItems = useAppSelector(
     (state) => state.mission.mission.actionDefinitions[type],
     deepEqual
   );
 
-  const selectedName = getActionDefinitionName({ actionDefinitionItems, uuid: selectedUuid });
+  const selectedName = actionDefinitionItems[selectedUuid]?.name;
 
   return (
     <>
@@ -390,39 +389,13 @@ export const ActionDefType: FunctionComponent<{
       ) : (
         <ActionDefDropdown
           actionDefinitionItems={actionDefinitionItems}
-          actionUuid={actionUuid}
           type={type}
           selectedUuid={selectedUuid}
+          onSelect={(uuid) =>
+            dispatch(thunkUpsertActionDefinitionSelection({ actionUuid, type, typeUuid: uuid }))
+          }
         />
       )}
     </>
-  );
-};
-
-const ActionDefDropdown: FunctionComponent<{
-  actionUuid: string;
-  actionDefinitionItems: ActionDefinitionItem[];
-  type: ActionDefinitionType;
-  selectedUuid: string;
-}> = ({ actionUuid, actionDefinitionItems, type, selectedUuid }) => {
-  const dispatch = useAppDispatch();
-
-  return (
-    <Dropdown
-      selected={selectedUuid}
-      onChange={(val) => {
-        dispatch(thunkUpsertActionDefinitionSelection({ actionUuid, type, typeUuid: val }));
-      }}
-      toolTip={`${type}`}
-      arrowStyle={{ color: "var(--grey5)" }}
-      containerStyle={{ width: "70px" }}
-    >
-      <option value="">{capitalize(type)}</option>
-      {actionDefinitionItems.map((actionDef) => (
-        <option key={actionDef.uuid} value={actionDef.uuid}>
-          {actionDef.name}
-        </option>
-      ))}
-    </Dropdown>
   );
 };

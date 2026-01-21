@@ -19,7 +19,9 @@ import * as httpClient_poi from "http-client/poi";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankPoi } from "store/storeUtils/poi";
 
-const mockThunkGetElevation = jest.fn();
+const mockThunkGetElevation = jest.fn().mockReturnValue({
+  meta: { requestStatus: "rejected" },
+});
 jest.mock("store/thunk/thunkElevation", () => ({
   thunkGetElevation: () => mockThunkGetElevation,
 }));

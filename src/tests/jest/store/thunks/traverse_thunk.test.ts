@@ -27,7 +27,9 @@ import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankAction } from "store/storeUtils/action";
 
-const mockThunkGetElevation = jest.fn();
+const mockThunkGetElevation = jest.fn().mockReturnValue({
+  meta: { requestStatus: "rejected" },
+});
 jest.mock("store/thunk/thunkElevation", () => ({
   thunkGetElevation: () => mockThunkGetElevation,
 }));

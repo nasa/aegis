@@ -4,20 +4,23 @@ import { v4 as uuidv4 } from "uuid";
 
 describe("Export tests", () => {
   test("makeEquipmentReadable", () => {
-    const equipmentItem: EquipmentItem = {
-      uuid: uuidv4(),
+    const equipmentItemUuid = uuidv4();
+    const equipmentItem = {
       name: "test equipment",
       quantity: 99,
       singleUse: false,
     };
     const mission = generateBlankMission({
       name: "Jest Mission-1",
-      equipmentItems: [equipmentItem],
+      equipmentItems: { [equipmentItemUuid]: equipmentItem },
     });
-    const equipmentItemUsage: EquipmentItemUsage = { uuid: equipmentItem.uuid, quantityUsed: 5 };
-    const equipmentItemUsageNotFound: EquipmentItemUsage = { uuid: uuidv4(), quantityUsed: 3 };
+    const equipmentItemUsageNotFoundUuid = uuidv4();
+    const equipmentItemsUsage: EquipmentItemUsages = {
+      [equipmentItemUuid]: { quantityUsed: 5 },
+      [equipmentItemUsageNotFoundUuid]: { quantityUsed: 3 },
+    };
     const readable = makeEquipmentReadable({
-      equipmentItems: [equipmentItemUsage, equipmentItemUsageNotFound],
+      equipmentItems: equipmentItemsUsage,
       mission: mission,
     });
     expect(readable[0]).toEqual({ name: "test equipment", singleUse: false, quantityUsed: 5 });

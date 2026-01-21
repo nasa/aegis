@@ -79,7 +79,7 @@ const Main = (): JSX.Element => {
     window.sessionStorage.setItem("socketId", "null");
   }, [intMissionId]);
 
-  // in it's own useEffect incase grid changes while user is on the page
+  // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
     const loadGridAsync = async () => {
       const newGrid: MissionGrid = await loadAndReturnGrid(

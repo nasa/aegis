@@ -145,16 +145,21 @@ const Info_Panel: FunctionComponent<{
 
   //get names
   const consumablesDisplay: EquipmentItemDisplay[] = [];
-  calculatedFields?.equipmentItems?.forEach((equipItem) => {
+  Object.entries(calculatedFields?.equipmentItems).forEach(([uuid, equipItemUsage]) => {
     //find item in mission
-    const missionEquipItem = missionEquipItems?.find((item) => item.uuid === equipItem.uuid);
+    const missionEquipItem = missionEquipItems[uuid];
     if (missionEquipItem?.singleUse) {
       consumablesDisplay.push({
         name: missionEquipItem.name,
-        quantityUsed: equipItem.quantityUsed,
+        quantityUsed: equipItemUsage.quantityUsed,
       });
     }
   });
+  //sort by name
+  consumablesDisplay.sort((a, b) => {
+    return a.name.localeCompare(b.name);
+  });
+
   const consumablesCol1 = consumablesDisplay.slice(0, Math.ceil(consumablesDisplay.length / 2));
   const consumablesCol2 = consumablesDisplay.slice(Math.ceil(consumablesDisplay.length / 2));
 

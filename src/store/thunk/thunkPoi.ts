@@ -57,7 +57,7 @@ export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
     })
   );
   const poi = getState().poi.pois.find((s) => s.uuid === poiUuid);
-  if (!elevationRes || elevationRes.payload === false) {
+  if (elevationRes.meta.requestStatus === "rejected") {
     //elevation failed - upsert without it
     dispatch(upsertPoiByField(poi.uuid, "location", location, false));
   } else {

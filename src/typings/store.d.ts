@@ -12,8 +12,8 @@ interface HoverState {
 interface MissionState {
   mission: Mission;
   missionFromDb: Mission;
-  layers: Layer[];
-  sublayers: Sublayer[];
+  layers: Layer[] | null;
+  sublayers: Sublayer[] | null;
   selectedRightNavItem: string;
   missionSectionsEditing: string[];
 }
@@ -206,7 +206,7 @@ type StationCalculatedFields = CalculatedFields &
     walkbackDurationMinutes: number;
     walkbackDistanceMeters: number;
     walkbackAscentDescent: TotalAscentDescentObj;
-    equipmentItems: EquipmentItemUsage[];
+    equipmentItems: EquipmentItemUsages;
   };
 
 type TraverseCalculatedFields = CalculatedFields &
@@ -236,7 +236,7 @@ type EvaCalculatedFields = CalculatedFields &
     totalTraverseDistanceMeters: number;
     totalTraverseAscentDescent: TotalAscentDescentObj;
     totalEvaTime: number;
-    equipmentItems: EquipmentItemUsage[];
+    equipmentItems: EquipmentItemUsages;
     sequenceItemsCalculatedData: EvaSequenceItemCalculatedData[];
   };
 

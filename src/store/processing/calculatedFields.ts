@@ -75,7 +75,7 @@ export const getCalculatedFieldsByStation = (params: {
 
   let totalMass = 0;
   let actionCount = 0;
-  let totalEquipmentItems: EquipmentItemUsage[] = [];
+  let totalEquipmentItems: EquipmentItemUsages = {};
   stationActions.forEach((action) => {
     totalDuration += action.duration;
     if (action.crewAssigned?.includes("EV1")) {
@@ -87,7 +87,6 @@ export const getCalculatedFieldsByStation = (params: {
     if (!action.crewAssigned || action.crewAssigned.length === 0) {
       totalUnassignedDuration += action.duration;
     }
-
     totalDwellTime = totalEv1Duration > totalEv2Duration ? totalEv1Duration : totalEv2Duration;
 
     totalEquipmentItems = mergeEquipmentItems(action.equipmentItemsUsage, totalEquipmentItems);
@@ -208,7 +207,7 @@ export const getCalculatedFieldsByTraverse = (params: {
 
   let totalMass = 0;
   let actionCount = 0;
-  let totalEquipmentItems: EquipmentItemUsage[] = [];
+  let totalEquipmentItems: EquipmentItemUsages = {};
   traverseActions.forEach((action) => {
     actionTotalDuration += action.duration;
     if (action.crewAssigned?.includes("EV1")) {
@@ -411,7 +410,7 @@ export const getCalculatedFieldsByEva = (params: {
       totalMetersDescended: 0,
     },
     totalEvaTime: 0,
-    equipmentItems: [],
+    equipmentItems: {},
     sequenceItemsCalculatedData: [],
     totalMass: 0,
   };

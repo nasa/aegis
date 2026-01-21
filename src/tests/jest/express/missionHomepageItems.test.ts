@@ -3,7 +3,7 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import { App_User_db, Mission_db, Rex_db } from "server/database/models/_allModels";
-import UserFactory from "../factories/UserFactory";
+import AppUserFactory from "../factories/AppUserFactory";
 import MissionFactory from "../factories/MissionFactory";
 import RexFactory from "../factories/RexFactory";
 import supertest from "supertest";
@@ -18,8 +18,8 @@ jest.mock("server/express/sockets", () => {
   };
 });
 
-let testUserNoPerms: App_User_db;
-let testUser: App_User_db;
+let testAppUserNoPerms: App_User_db;
+let testAppUser: App_User_db;
 let testSuperAdmin: App_User_db;
 let testMissions: Mission_db[];
 let testRexes: Rex_db[];
@@ -30,10 +30,10 @@ beforeAll(async () => {
 
   const em = globalValues.orm.em.fork();
   testMissions = await new MissionFactory(em).create(3);
-  testUserNoPerms = await new UserFactory(em).createOne({
+  testAppUserNoPerms = await new AppUserFactory(em).createOne({
     username: "Jest testNoPerms",
   });
-  testUser = await new UserFactory(em).createOne({
+  testAppUser = await new AppUserFactory(em).createOne({
     username: "Jest homePageItems",
     permissionList: [
       {
@@ -52,7 +52,7 @@ beforeAll(async () => {
       },
     ],
   });
-  testSuperAdmin = await new UserFactory(em).createOne({
+  testSuperAdmin = await new AppUserFactory(em).createOne({
     username: "Jest testSuperAdminForHomePageItems",
     isSuperAdmin: true,
   });
@@ -76,7 +76,7 @@ describe("REX API Endpoint", () => {
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
-      .send({ username: testUser.username, password: "superSecretPassword" });
+      .send({ username: testAppUser.username, password: "superSecretPassword" });
     expect(res.statusCode).toBe(200); //check response from login
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
@@ -123,7 +123,7 @@ describe("REX API Endpoint", () => {
 
       const res = await supertest(app)
         .post("/api/v1/auth/login")
-        .send({ username: testUserNoPerms.username, password: "superSecretPassword" });
+        .send({ username: testAppUserNoPerms.username, password: "superSecretPassword" });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toEqual("success");
@@ -153,9 +153,9 @@ afterAll(async () => {
   for (let i = 0; i < testMissions.length; i++) {
     await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
-  await em.nativeDelete(App_User_db, { id: testUser.id });
+  await em.nativeDelete(App_User_db, { id: testAppUser.id });
   await em.nativeDelete(App_User_db, { id: testSuperAdmin.id });
-  await em.nativeDelete(App_User_db, { id: testUserNoPerms.id });
+  await em.nativeDelete(App_User_db, { id: testAppUserNoPerms.id });
 
   // Closing the DB connection allows Jest to exit successfully.
   await globalValues.orm.close();

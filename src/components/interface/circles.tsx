@@ -60,13 +60,14 @@ const Circles: FunctionComponent<{
       </div>
       <div className={styles.circlesGroup}>
         {circleDefinitions &&
-          circleDefinitions.map((circleDefinition: CircleDefinition) => {
+          Object.entries(circleDefinitions).map(([uuid, circleDefinition]) => {
             return (
-              mapCircleControls[circleDefinition.uuid] &&
-              circleUIStates[circleDefinition.uuid] && (
+              mapCircleControls[uuid] &&
+              circleUIStates[uuid] && (
                 <CircleLayer
                   editMode={editMode}
-                  key={circleDefinition.uuid}
+                  key={uuid}
+                  uuid={uuid}
                   circleDefinition={circleDefinition}
                   mapCircleControls={mapCircleControls}
                   toggleVisibleFunction={toggleVisibleFunction}
@@ -86,6 +87,7 @@ export default Circles;
 
 const CircleLayer: FunctionComponent<{
   editMode: boolean;
+  uuid: string;
   circleDefinition: CircleDefinition;
   mapCircleControls: MapCircleControls;
   toggleVisibleFunction: ({ circleUuid }: { circleUuid: string }) => void;
@@ -100,6 +102,7 @@ const CircleLayer: FunctionComponent<{
   styleSetter: ({ uuid, layerStyle }: { uuid: string; layerStyle: MapSublayerStyle }) => void;
 }> = ({
   editMode,
+  uuid,
   circleDefinition,
   mapCircleControls,
   toggleVisibleFunction,
@@ -113,9 +116,7 @@ const CircleLayer: FunctionComponent<{
     <div className={styles.sublayerItemContainer}>
       <div
         className={`${styles.sublayer} ${
-          mapCircleControls[circleDefinition.uuid].visible || editMode
-            ? null
-            : styles.sublayerDisabled
+          mapCircleControls[uuid].visible || editMode ? null : styles.sublayerDisabled
         }`}
       >
         {editMode ? (
@@ -123,10 +124,10 @@ const CircleLayer: FunctionComponent<{
             className={styles.visibility}
             onClick={() => {
               if (!editMode) return;
-              toggleVisibleFunction({ circleUuid: circleDefinition.uuid });
+              toggleVisibleFunction({ circleUuid: uuid });
             }}
           >
-            {mapCircleControls[circleDefinition.uuid].visible ? (
+            {mapCircleControls[uuid].visible ? (
               <div className={styles.visible}>
                 <FontAwesomeIcon icon={faEye} size="xs" />
               </div>
@@ -149,8 +150,8 @@ const CircleLayer: FunctionComponent<{
                 if (!editMode) return;
 
                 circleUIStateSetterFunction({
-                  circleDefUuid: circleDefinition.uuid,
-                  slidersSelected: !circleUIStates[circleDefinition.uuid].slidersSelected,
+                  circleDefUuid: uuid,
+                  slidersSelected: !circleUIStates[uuid].slidersSelected,
                 });
               }}
             >
@@ -159,12 +160,12 @@ const CircleLayer: FunctionComponent<{
           )}
         </div>
       </div>
-      {circleUIStates[circleDefinition.uuid].slidersSelected && (
+      {circleUIStates[uuid].slidersSelected && (
         <div>
           <Settings_subpanel
             styleSetter={styleSetter}
             type={"circle"}
-            uuid={circleDefinition.uuid}
+            uuid={uuid}
             mapCircleControls={mapCircleControls}
           />
         </div>

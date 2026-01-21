@@ -25,7 +25,7 @@ import {
 } from "store/interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSelectedStationUuid } from "store/station";
-import { actionTypes } from "store/storeUtils/store";
+import { actionTypes } from "store/storeUtils/action";
 import sortBy from "lodash/sortBy";
 import { selectAsPlannedStations } from "store/selectors";
 

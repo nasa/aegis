@@ -30,25 +30,23 @@ export function upsertToArrayByUuid<T extends MustContainIsModified>(array: T[],
 
 /**
  * Add items if they don't exist. If they do, increments quantity
- * @param equipItemUsage items to add in
- * @param totalEquipItems the array to add the items into
- * @returns
+ * @param equipItemUsage items to add in (object map)
+ * @param totalEquipItems the object map to add the items into
+ * @returns merged equipment items object map
  */
 export function mergeEquipmentItems(
-  equipItemUsage: EquipmentItemUsage[],
-  totalEquipItems: EquipmentItemUsage[]
-): EquipmentItemUsage[] {
+  equipItemUsage: EquipmentItemUsages,
+  totalEquipItems: EquipmentItemUsages
+): EquipmentItemUsages {
   if (!equipItemUsage) return totalEquipItems;
 
-  for (const itemUsage of equipItemUsage) {
-    const indexFound = totalEquipItems.findIndex((i) => i.uuid === itemUsage.uuid);
-    if (indexFound >= 0) {
-      totalEquipItems[indexFound].quantityUsed += itemUsage.quantityUsed;
+  for (const [uuid, equipmentUsage] of Object.entries(equipItemUsage)) {
+    if (totalEquipItems[uuid]) {
+      totalEquipItems[uuid].quantityUsed += equipmentUsage.quantityUsed;
     } else {
-      totalEquipItems.push({
-        uuid: itemUsage.uuid,
-        quantityUsed: itemUsage.quantityUsed,
-      });
+      totalEquipItems[uuid] = {
+        quantityUsed: equipmentUsage.quantityUsed,
+      };
     }
   }
 
@@ -63,19 +61,3 @@ export const getStmUuids = (stmPriorities: StmPriorities): string[] => {
   }
   return stmUuids;
 };
-
-export const actionTypes: ActionType[] = [
-  "measurement",
-  "observation",
-  "photo",
-  "other",
-  "sample",
-  "chip",
-  "double drive tube",
-  "drive tube",
-  "float",
-  "rake",
-  "scoop",
-  "sealed scoop",
-  "trench",
-];

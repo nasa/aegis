@@ -63,7 +63,7 @@ export const thunkUpdateStationLocation = appCreateAsyncThunk<{
   );
 
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-  if (!elevation || elevation.payload === false) {
+  if (elevation.meta.requestStatus === "rejected") {
     //no elevation data, update just station location
     dispatch(upsertStationByField(station.uuid, "location", location, false));
   } else {
@@ -165,7 +165,7 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
       uuid: stationUuid,
     })
   );
-  if (elevationResponse && elevationResponse.payload !== false) {
+  if (elevationResponse.meta.requestStatus === "fulfilled") {
     newElevationProfile = elevationResponse.payload as number[][];
   }
 
@@ -214,7 +214,7 @@ export const thunkResetWalkback = appCreateAsyncThunk<{
       uuid: stationUuid,
     })
   );
-  if (elevationResponse && elevationResponse.payload !== false) {
+  if (elevationResponse.meta.requestStatus === "fulfilled") {
     newElevationProfile = elevationResponse.payload as number[][];
   }
 
@@ -474,14 +474,17 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
 
     // build circle controls
     const blankMapCircleControls: MapCircleControls = {};
-    getState().mission.mission?.circleDefinitions?.forEach((landerRadius) => {
-      blankMapCircleControls[landerRadius.uuid] = {
-        name: landerRadius.name,
-        uuid: landerRadius.uuid,
-        visible: false,
-        style: defaultSublayerStyle,
-      };
-    });
+    const missionCircleDefinitions = getState().mission.mission?.circleDefinitions;
+    if (missionCircleDefinitions) {
+      Object.entries(missionCircleDefinitions)?.forEach(([uuid, landerRadius]) => {
+        blankMapCircleControls[uuid] = {
+          name: landerRadius.name,
+          uuid: uuid,
+          visible: false,
+          style: defaultSublayerStyle,
+        };
+      });
+    }
 
     const blankStation = generateBlankStation({
       missionId: getState().mission.mission?.id,
@@ -493,16 +496,15 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
     dispatch(thunkSetRightPanelIsOpenIfAuto(true));
     dispatch(setStationEditMode({ stationUuid: blankStation.uuid, editMode: true }));
 
-    // create preset circles ui states entry
+    // create station circles ui states entry
     const circleUIStates: CircleUIStates = {};
-
-    if (getState().mission.mission.circleDefinitions) {
-      for (const circleDefinition of getState().mission.mission.circleDefinitions) {
-        circleUIStates[circleDefinition.uuid] = {
+    if (missionCircleDefinitions) {
+      Object.entries(missionCircleDefinitions)?.forEach(([uuid, circleDefinition]) => {
+        circleUIStates[uuid] = {
           name: circleDefinition.name,
           slidersSelected: false,
         };
-      }
+      });
     }
 
     dispatch(

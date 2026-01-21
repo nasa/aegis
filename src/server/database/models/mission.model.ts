@@ -24,9 +24,9 @@ export class Mission_db implements Mission_db_type {
   @Property({ type: MikroTypes.float, nullable: true, default: 2 })
   walkbackRate: number;
   @Property({ type: MikroTypes.json, nullable: true })
-  equipmentItems: EquipmentItem[];
+  equipmentItems: EquipmentItems;
   @Property({ type: MikroTypes.json, nullable: true })
-  geographicUnits: GeographicUnit[];
+  geographicUnits: GeographicUnits;
   @Property({ type: MikroTypes.string, nullable: true })
   activeGridUuid: string;
   @Property({ type: MikroTypes.float, nullable: true })
@@ -60,9 +60,9 @@ export class Mission_db implements Mission_db_type {
   @Property({ type: MikroTypes.float, nullable: true })
   projResUnitsPerPixel: number;
   @Property({ type: MikroTypes.json, nullable: true })
-  circleDefinitions: CircleDefinition[];
+  circleDefinitions: CircleDefinitions;
   @Property({ type: MikroTypes.json, nullable: true })
-  actionTemplates: ActionTemplate[];
+  actionTemplates: ActionTemplates;
   @Property({ type: MikroTypes.boolean, default: true })
   stmLevel1Enabled: boolean;
   @Property({ type: MikroTypes.text, nullable: true, default: "Goal" })

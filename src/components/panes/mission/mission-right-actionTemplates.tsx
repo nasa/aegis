@@ -1,4 +1,5 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useState, useEffect } from "react";
+import { ActionDefDropdown } from "components/interface/actionDefDropdown";
 import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";
 import actionsStyles from "../actions.module.css";
@@ -18,12 +19,7 @@ import {
   faPlusCircle,
   faWeightHanging,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  Button,
-  Dropdown,
-  InLineEditInput,
-  TextArea,
-} from "components/interface/form/globalFields";
+import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
   EquipmentSelector,
@@ -41,7 +37,12 @@ import capitalize from "lodash/capitalize";
 
 const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+  const sortedActionTemplates: [string, ActionTemplate][] = useAppSelector((state) => {
+    if (!state.mission.mission.actionTemplates) return [];
+    return Object.entries(state.mission.mission.actionTemplates).sort(([, a], [, b]) =>
+      a.templateName.localeCompare(b.templateName)
+    );
+  }, deepEqual);
   const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
   const actionSystemVersion = useAppSelector(
     (state) => state.mission.mission.actionSystemVersion,
@@ -51,7 +52,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
   const [newTemplateUuid, setNewTemplateUuid] = useState(undefined);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
+  // Un-marks newest list item as "new" after a short timeout (for auto-focusing)
   useEffect(() => {
     if (newTemplateUuid !== undefined) {
       setTimeout(() => {
@@ -66,18 +67,16 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
         <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
           Action Templates
         </div>
-        <ExpandCollapseActionsButtons
-          actionUuids={mission?.actionTemplates?.map((action) => action.uuid)}
-        />
+        <ExpandCollapseActionsButtons actionUuids={sortedActionTemplates.map((sat) => sat[0])} />
       </div>
       <div className={paneStyles.rightBodyBody}>
         <div
           className={`${actionsStyles.actionListContainer} ${missionStyles.templateActionListContainer}`}
         >
           <ul className={actionsStyles.actionlist}>
-            {mission?.actionTemplates?.map((actionTemplate) => (
+            {sortedActionTemplates?.map(([uuid, actionTemplate]) => (
               <li
-                key={actionTemplate.uuid}
+                key={uuid}
                 className={actionsStyles.actionlistitem}
                 aria-label="templateList-item"
               >
@@ -89,16 +88,16 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                     <div
                       className={actionStyles.actionHeadingCaret}
                       onClick={() => {
-                        if (actionsExpanded.includes(actionTemplate.uuid)) {
-                          dispatch(collapseActions([actionTemplate.uuid]));
+                        if (actionsExpanded.includes(uuid)) {
+                          dispatch(collapseActions([uuid]));
                         } else {
-                          dispatch(expandActions([actionTemplate.uuid]));
+                          dispatch(expandActions([uuid]));
                         }
                       }}
                       aria-label="Expand Button"
                       style={{ marginTop: "2px" }}
                     >
-                      {actionsExpanded.includes(actionTemplate.uuid) ? (
+                      {actionsExpanded.includes(uuid) ? (
                         <FontAwesomeIcon
                           icon={faCaretDown}
                           size="sm"
@@ -119,10 +118,10 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                         className={actionStyles.actionHeadingTitle}
                         style={{ color: "white", width: "100%", fontSize: "0.85rem" }}
                         onClick={() => {
-                          if (actionsExpanded.includes(actionTemplate.uuid)) {
-                            dispatch(collapseActions([actionTemplate.uuid]));
+                          if (actionsExpanded.includes(uuid)) {
+                            dispatch(collapseActions([uuid]));
                           } else {
-                            dispatch(expandActions([actionTemplate.uuid]));
+                            dispatch(expandActions([uuid]));
                           }
                         }}
                       >
@@ -164,24 +163,24 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                             onSubmit={(value: string) => {
                               dispatch(
                                 thunkUpdateActionTemplate({
-                                  uuid: actionTemplate.uuid,
+                                  uuid: uuid,
                                   fieldName: "templateName",
                                   value: value,
                                 })
                               );
                             }}
-                            key={`${actionTemplate.uuid}-templateName`}
-                            toFocus={actionTemplate.uuid === newTemplateUuid}
+                            key={`${uuid}-templateName`}
+                            toFocus={uuid === newTemplateUuid}
                           />
                         </div>
                       </>
                     )}
                     <div className={actionStyles.actionsHeadingTitle}></div>
                     <div className={actionStyles.actionHeadingRight}>
-                      {editMode && <ActionTemplateMenu actionTemplate={actionTemplate} />}
+                      {editMode && <ActionTemplateMenu uuid={uuid} />}
                     </div>
                   </div>
-                  {actionsExpanded.includes(actionTemplate.uuid) && (
+                  {actionsExpanded.includes(uuid) && (
                     <>
                       <div className={actionStyles.actionIndent}>
                         <div className={paneStyles.panelSection}>
@@ -204,19 +203,20 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                     onSubmit={(value: string) => {
                                       dispatch(
                                         thunkUpdateActionTemplate({
-                                          uuid: actionTemplate.uuid,
+                                          uuid: uuid,
                                           fieldName: "name",
                                           value: value,
                                         })
                                       );
                                     }}
-                                    key={`${actionTemplate.uuid}-name`}
+                                    key={`${uuid}-name`}
                                   />
                                 </div>
                               ) : (
                                 <>
                                   <div className={actionStyles.actionV2Header}>
                                     <ActionDefType
+                                      actionTemplateUuid={uuid}
                                       actionTemplate={actionTemplate}
                                       type={"verbs"}
                                       selectedUuid={actionTemplate.actionDefinition?.verbUuid}
@@ -224,6 +224,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                     />
                                     <div className={actionStyles.actionDefType}>of</div>
                                     <ActionDefType
+                                      actionTemplateUuid={uuid}
                                       actionTemplate={actionTemplate}
                                       type={"nouns"}
                                       selectedUuid={actionTemplate.actionDefinition?.nounUuid}
@@ -231,6 +232,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                     />
                                     <div className={actionStyles.actionDefType}>in</div>
                                     <ActionDefType
+                                      actionTemplateUuid={uuid}
                                       actionTemplate={actionTemplate}
                                       type={"adjectives"}
                                       selectedUuid={actionTemplate.actionDefinition?.adjectiveUuid}
@@ -262,7 +264,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                       if (editMode)
                                         dispatch(
                                           thunkUpdateActionTemplate({
-                                            uuid: actionTemplate.uuid,
+                                            uuid: uuid,
                                             fieldName: "stmAction",
                                             value: true,
                                           })
@@ -278,7 +280,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                       if (editMode)
                                         dispatch(
                                           thunkUpdateActionTemplate({
-                                            uuid: actionTemplate.uuid,
+                                            uuid: uuid,
                                             fieldName: "stmAction",
                                             value: false,
                                           })
@@ -302,13 +304,13 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                           </div>
                           <div className={paneStyles.descriptionContainer}>
                             <TextArea
-                              key={actionTemplate.uuid}
+                              key={uuid}
                               value={actionTemplate.description}
                               editing={editMode}
                               onSubmit={(value: string) => {
                                 dispatch(
                                   thunkUpdateActionTemplate({
-                                    uuid: actionTemplate.uuid,
+                                    uuid: uuid,
                                     fieldName: "description",
                                     value: value,
                                   })
@@ -361,13 +363,13 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         onSubmit={(value: string) => {
                                           dispatch(
                                             thunkUpdateActionTemplate({
-                                              uuid: actionTemplate.uuid,
+                                              uuid: uuid,
                                               fieldName: "duration",
                                               value: toDecimal(value),
                                             })
                                           );
                                         }}
-                                        key={`${actionTemplate.uuid}-duration`}
+                                        key={`${uuid}-duration`}
                                       />
                                     </div>
                                   </div>
@@ -413,13 +415,13 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                         onSubmit={(value: string) => {
                                           dispatch(
                                             thunkUpdateActionTemplate({
-                                              uuid: actionTemplate.uuid,
+                                              uuid: uuid,
                                               fieldName: "mass",
                                               value: toDecimal(value),
                                             })
                                           );
                                         }}
-                                        key={`${actionTemplate.uuid}-mass`}
+                                        key={`${uuid}-mass`}
                                       />
                                     </div>
                                   </div>
@@ -444,13 +446,13 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                               onChange={(e) => {
                                 dispatch(
                                   thunkUpdateActionTemplate({
-                                    uuid: actionTemplate.uuid,
+                                    uuid: uuid,
                                     fieldName: "equipmentItemsUsage",
                                     value: e,
                                   })
                                 );
                               }}
-                              uniqueId={actionTemplate.uuid}
+                              uniqueId={uuid}
                             />{" "}
                           </div>
                         </div>
@@ -471,13 +473,13 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                 onChange={(e) => {
                                   dispatch(
                                     thunkUpdateActionTemplate({
-                                      uuid: actionTemplate.uuid,
+                                      uuid: uuid,
                                       fieldName: "geographicUnitsUsage",
                                       value: e,
                                     })
                                   );
                                 }}
-                                uniqueId={actionTemplate.uuid}
+                                uniqueId={uuid}
                               />{" "}
                             </div>
                           </div>
@@ -523,7 +525,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                                           const iconValue = e.unified || e.id;
                                           dispatch(
                                             thunkUpdateActionTemplate({
-                                              uuid: actionTemplate.uuid,
+                                              uuid: uuid,
                                               fieldName: "icon",
                                               value: iconValue,
                                             })
@@ -577,17 +579,23 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
 export default ActionTemplates_Panel;
 
 const ActionDefType: FunctionComponent<{
+  actionTemplateUuid: string;
   actionTemplate: ActionTemplate;
   type: ActionDefinitionType;
   selectedUuid: string;
   editMode: boolean;
-}> = ({ actionTemplate, type, selectedUuid, editMode }) => {
+}> = ({ actionTemplateUuid, type, selectedUuid, editMode }) => {
+  const dispatch = useAppDispatch();
+  const actionTemplates = useAppSelector(
+    (state) => state.mission.mission.actionTemplates,
+    deepEqual
+  );
   const actionDefinitions = useAppSelector(
     (state) => state.mission.mission.actionDefinitions[type],
     deepEqual
   );
 
-  const selectedActionDef = actionDefinitions.find((actionDef) => actionDef.uuid === selectedUuid);
+  const selectedActionDef = actionDefinitions?.[selectedUuid];
 
   return (
     <>
@@ -600,54 +608,25 @@ const ActionDefType: FunctionComponent<{
         </span>
       ) : (
         <ActionDefDropdown
-          actionDefinitions={actionDefinitions}
-          actionTemplate={actionTemplate}
+          actionDefinitionItems={actionDefinitions}
           type={type}
           selectedUuid={selectedUuid}
+          onSelect={(uuid) => {
+            const actionTemplate = actionTemplates[actionTemplateUuid];
+            const newActionDefinition = {
+              ...actionTemplate.actionDefinition,
+              [`${type.slice(0, -1)}Uuid`]: uuid,
+            };
+            dispatch(
+              thunkUpdateActionTemplate({
+                uuid: actionTemplateUuid,
+                fieldName: "actionDefinition",
+                value: newActionDefinition,
+              })
+            );
+          }}
         />
       )}
     </>
-  );
-};
-
-const ActionDefDropdown: FunctionComponent<{
-  actionTemplate: ActionTemplate;
-  actionDefinitions: ActionDefinitionItem[];
-  type: ActionDefinitionType;
-  selectedUuid: string;
-}> = ({ actionTemplate, actionDefinitions, type, selectedUuid }) => {
-  const dispatch = useAppDispatch();
-
-  return (
-    <Dropdown
-      selected={selectedUuid}
-      onChange={(val) => {
-        const newActionDefinition = {
-          ...actionTemplate.actionDefinition,
-          [`${type.slice(0, -1)}Uuid`]: val,
-        };
-        dispatch(
-          thunkUpdateActionTemplate({
-            uuid: actionTemplate.uuid,
-            fieldName: "actionDefinition",
-            value: newActionDefinition,
-          })
-        );
-      }}
-      toolTip={`${type}`}
-      arrowStyle={{ color: "var(--grey5)" }}
-      containerStyle={{ width: "70px" }}
-    >
-      <option value="">{capitalize(type)}</option>
-      {actionDefinitions.map((actionDef) => (
-        <option
-          key={actionDef.uuid}
-          value={actionDef.uuid}
-          selected={actionDef.uuid === selectedUuid}
-        >
-          {actionDef.name}
-        </option>
-      ))}
-    </Dropdown>
   );
 };

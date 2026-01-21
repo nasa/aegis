@@ -14,12 +14,17 @@ import {
   thunkUpdateGeoUnit,
 } from "store/thunk/thunkMission-geoUnits";
 
-const GeographiUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+const GeographicUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+  const sortedGeographicUnits: [string, GeographicUnit][] = useAppSelector((state) => {
+    if (!state.mission.mission.geographicUnits) return [];
+    return Object.entries(state.mission.mission.geographicUnits).sort(([, a], [, b]) =>
+      a.name.localeCompare(b.name)
+    );
+  }, deepEqual);
   const [newGeoUuid, setNewGeoUuid] = useState(undefined);
 
-  // Unmarks newest list item as "new" after a short timeout (for autofocusing)
+  // Un-marks newest list item as "new" after a short timeout (for auto focusing)
   useEffect(() => {
     if (newGeoUuid !== undefined) {
       setTimeout(() => {
@@ -54,18 +59,15 @@ const GeographiUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
                   </div>
                 </li>
 
-                {mission?.geographicUnits?.map((item, index) => (
-                  <li
-                    key={item.uuid}
-                    className={styles.propertyListItem}
-                    aria-label="geoUnitList-item"
-                  >
+                {sortedGeographicUnits.map(([uuid, geoUnit], index) => (
+                  <li key={uuid} className={styles.propertyListItem} aria-label="geoUnitList-item">
                     <GeographicUnit
-                      key={item.uuid}
-                      item={item}
+                      key={uuid}
+                      uuid={uuid}
+                      item={geoUnit}
                       editMode={editMode}
                       evenRow={index % 2 === 0}
-                      toFocus={newGeoUuid === item.uuid}
+                      toFocus={newGeoUuid === uuid}
                     />
                   </li>
                 ))}
@@ -90,14 +92,15 @@ const GeographiUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
   );
 };
 
-export default GeographiUnits_Panel;
+export default GeographicUnits_Panel;
 
 const GeographicUnit: FunctionComponent<{
+  uuid: string;
   item: GeographicUnit;
   editMode: boolean;
   evenRow: boolean;
   toFocus: boolean;
-}> = ({ item, editMode, evenRow, toFocus }) => {
+}> = ({ uuid, item, editMode, evenRow, toFocus }) => {
   const dispatch = useAppDispatch();
 
   let backgroundColor: string = "var(--grey2)";
@@ -118,9 +121,9 @@ const GeographicUnit: FunctionComponent<{
             }}
             value={item.name}
             onSubmit={(val: string) => {
-              dispatch(thunkUpdateGeoUnit({ uuid: item.uuid, fieldName: "name", value: val }));
+              dispatch(thunkUpdateGeoUnit({ uuid: uuid, fieldName: "name", value: val }));
             }}
-            key={`${item.uuid}-name`}
+            key={`${uuid}-name`}
             toFocus={toFocus}
           />
         </div>
@@ -135,9 +138,9 @@ const GeographicUnit: FunctionComponent<{
             }}
             value={item.abbr}
             onSubmit={(val: string) => {
-              dispatch(thunkUpdateGeoUnit({ uuid: item.uuid, fieldName: "abbr", value: val }));
+              dispatch(thunkUpdateGeoUnit({ uuid: uuid, fieldName: "abbr", value: val }));
             }}
-            key={`${item.uuid}-abbr`}
+            key={`${uuid}-abbr`}
             toFocus={toFocus}
           />
         </div>
@@ -151,7 +154,7 @@ const GeographicUnit: FunctionComponent<{
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  dispatch(thunkDeleteGeoUnit({ geographicUnitUuid: item.uuid }));
+                  dispatch(thunkDeleteGeoUnit({ geographicUnitUuid: uuid }));
                 }}
                 aria-label="deleteButton"
               />

@@ -99,7 +99,7 @@ export const ActionMenu: FunctionComponent<{
               <div className={actionStyles.menuItemIcon}>
                 <FontAwesomeIcon icon={faGears} size="sm" />
               </div>
-              <div className={actionStyles.menuItemText}>Use as Template</div>
+              <div className={actionStyles.menuItemText}>Save as Template</div>
             </div>
           )}
           <div

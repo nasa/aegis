@@ -144,7 +144,7 @@ const Main = (): JSX.Element => {
     document.title = `${missionName} - AEGIS`;
   }, [missionName]);
 
-  // in it's own useEffect in-case grid changes while user is on the page
+  // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
     const loadGridAsync = async () => {
       const newGrid: MissionGrid = await loadAndReturnGrid(intMissionId, activeGridUuid);

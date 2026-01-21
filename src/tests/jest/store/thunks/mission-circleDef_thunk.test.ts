@@ -13,47 +13,54 @@ beforeAll(() => {
 });
 describe("Thunk Mission Circle Definitions Tests", () => {
   test("thunkCreateCircleDefinition", async () => {
-    const geoUnitCount = store.getState().mission.mission.circleDefinitions?.length || 0;
+    const geoUnitCount = Object.keys(
+      store.getState().mission.mission.circleDefinitions || {}
+    ).length;
 
     await store.dispatch(thunkCreateCircleDefinition());
-    expect(store.getState().mission.mission.circleDefinitions.length).toEqual(geoUnitCount + 1);
+    expect(Object.keys(store.getState().mission.mission.circleDefinitions).length).toEqual(
+      geoUnitCount + 1
+    );
 
     await store.dispatch(thunkCreateCircleDefinition());
-    expect(store.getState().mission.mission.circleDefinitions.length).toEqual(geoUnitCount + 2);
+    expect(Object.keys(store.getState().mission.mission.circleDefinitions).length).toEqual(
+      geoUnitCount + 2
+    );
   });
 
   test("thunkUpdateCircleDefinition()", async () => {
     await store.dispatch(thunkCreateCircleDefinition());
-    const circleDefinitionCount = store.getState().mission.mission.circleDefinitions.length;
-    const circleDefinition = store.getState().mission.mission.circleDefinitions[0];
+    const circleDefinitionCount = Object.keys(
+      store.getState().mission.mission.circleDefinitions
+    ).length;
+    const circleDefinitionUuid = Object.keys(store.getState().mission.mission.circleDefinitions)[0];
     await store.dispatch(
       thunkUpdateCircleDefinition({
-        uuid: circleDefinition.uuid,
+        uuid: circleDefinitionUuid,
         fieldName: "name",
         value: "Test Circle Definition Modified",
       })
     );
-    expect(store.getState().mission.mission.circleDefinitions.length).toBe(circleDefinitionCount);
-    expect(
-      store
-        .getState()
-        .mission.mission.circleDefinitions.find((e) => e.uuid === circleDefinition.uuid).name
-    ).toBe("Test Circle Definition Modified");
+    expect(Object.keys(store.getState().mission.mission.circleDefinitions).length).toBe(
+      circleDefinitionCount
+    );
+    expect(store.getState().mission.mission.circleDefinitions[circleDefinitionUuid].name).toBe(
+      "Test Circle Definition Modified"
+    );
   });
 
   test("thunkDeleteCircleDefinition()", async () => {
     await store.dispatch(thunkCreateCircleDefinition());
-    const circleDefinitionCount = store.getState().mission.mission.circleDefinitions.length;
-    const circleDefinition = store.getState().mission.mission.circleDefinitions[0];
-
-    await store.dispatch(thunkDeleteCircleDefinition({ circleDefUuid: circleDefinition.uuid }));
-    expect(store.getState().mission.mission.circleDefinitions.length).toBe(
+    const circleDefinitionCount = Object.keys(
+      store.getState().mission.mission.circleDefinitions
+    ).length;
+    const circleDefinitionUuid = Object.keys(store.getState().mission.mission.circleDefinitions)[0];
+    await store.dispatch(thunkDeleteCircleDefinition({ circleDefUuid: circleDefinitionUuid }));
+    expect(Object.keys(store.getState().mission.mission.circleDefinitions).length).toBe(
       circleDefinitionCount - 1
     );
-    expect(
-      store
-        .getState()
-        .mission.mission.circleDefinitions.find((r) => r.uuid === circleDefinition.uuid)
-    ).toBe(undefined);
+    expect(store.getState().mission.mission.circleDefinitions[circleDefinitionUuid]).toBe(
+      undefined
+    );
   });
 });

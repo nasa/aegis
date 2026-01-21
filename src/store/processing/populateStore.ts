@@ -170,12 +170,14 @@ const generatePresetsCirclesUIStates = async (params: {
     //build preset ui states for the layer and sublayers
     const presetCircleUIStates: CircleUIStates = {};
 
-    wholeStoreState.mission.mission?.circleDefinitions?.forEach((circleDef) => {
-      presetCircleUIStates[circleDef.uuid] = {
-        name: circleDef.name,
-        slidersSelected: false,
-      };
-    });
+    Object.entries(wholeStoreState.mission.mission?.circleDefinitions)?.forEach(
+      ([uuid, circleDef]) => {
+        presetCircleUIStates[uuid] = {
+          name: circleDef.name,
+          slidersSelected: false,
+        };
+      }
+    );
 
     wholeStoreState.preset.presetCirclesUIStates[presetUuid] = presetCircleUIStates;
   });
@@ -191,12 +193,14 @@ const generateStationsCirclesUIStates = async (params: {
     //build station ui states for the circles
     const stationCircleUIStates: CircleUIStates = {};
 
-    wholeStoreState.mission.mission?.circleDefinitions?.forEach((circleDef) => {
-      stationCircleUIStates[circleDef.uuid] = {
-        name: circleDef.name,
-        slidersSelected: false,
-      };
-    });
+    Object.entries(wholeStoreState.mission.mission?.circleDefinitions)?.forEach(
+      ([uuid, circleDef]) => {
+        stationCircleUIStates[uuid] = {
+          name: circleDef.name,
+          slidersSelected: false,
+        };
+      }
+    );
 
     wholeStoreState.station.stationCirclesUIStates[stationUuid] = stationCircleUIStates;
   });

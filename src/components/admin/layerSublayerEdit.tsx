@@ -8,6 +8,7 @@ import { generateBlankSublayer } from "store/storeUtils/sublayer";
 import { getManifestJsonTimeBounds } from "utils/mapping/timeLayers";
 import { validateImportableSublayer } from "utils/validateSchema";
 import { getAccurateNow } from "utils/formatting";
+import { listFiles } from "http-client/file";
 import { AnySchemaObject, ErrorObject } from "ajv";
 
 interface SublayerProps {
@@ -26,6 +27,9 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     props.sublayer.legend ? JSON.stringify(props.sublayer.legend) : ""
   );
   const [isExternal, setIsExternal] = useState<boolean>(props.sublayer.path?.startsWith("http"));
+  const [refreshDirectoryListing, setRefreshDirectoryListing] = useState(true);
+  // geoJSON file names
+  const [dataDirGeoJSONs, setDataDirGeoJSONs] = useState<string[]>([]);
   const [propertiesErrs, setPropertiesErrs] = useState<ErrorObject[]>([]);
 
   // update fields when swapping between sublayers
@@ -35,6 +39,42 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     setLegend(props.sublayer.legend ? JSON.stringify(props.sublayer.legend) : "");
     setIsExternal(props.sublayer.path?.startsWith("http"));
   }, [props.sublayer]);
+
+  // call API to get a list of geojson files in mission_id/Data
+  useEffect(() => {
+    if (!refreshDirectoryListing) {
+      return;
+    }
+
+    (async function () {
+      const path = `missionFiles/${props.missionId}/Data`;
+      const fileList: GISfile[] | void = await listFiles(path).catch(console.error);
+
+      if (!fileList) {
+        setDataDirGeoJSONs([]);
+        return;
+      }
+
+      // filter for the GeoJSON files we care about
+      const fileStates: string[] = fileList
+        // only files
+        .filter((file) => !file.isDir)
+        // only geojson
+        .filter((file) => {
+          const lastDot = file.name.lastIndexOf(".");
+          if (lastDot === -1) {
+            return false;
+          }
+
+          return file.name.slice(lastDot) === ".geojson";
+        })
+        .map((file) => file.name);
+
+      setDataDirGeoJSONs(fileStates);
+    })();
+
+    setRefreshDirectoryListing(false);
+  }, [props.missionId, refreshDirectoryListing]);
 
   //save the current editing sublayer to db
   async function saveSublayer() {
@@ -87,44 +127,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
         return { ...state, timeLayerManifest: null };
       });
     }
-  }
-
-  // legend
-  async function loadLegendFromFile(rootPath: string) {
-    //read in the legend
-    const res = await fetch(`${rootPath}/legend.json`, {
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache", // legacy support
-        Expires: "0", // legacy support
-      },
-    });
-    if (res.status !== 200) return;
-    const layerLegend = await res.json();
-    //set values
-    setSublayer((state) => {
-      return { ...state, legend: layerLegend };
-    });
-    setLegend(layerLegend ? JSON.stringify(layerLegend) : null);
-  }
-
-  // description
-  async function loadDescriptionFromFile(rootPath: string) {
-    //read in the legend
-    const res = await fetch(`${rootPath}/description.json`, {
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache", // legacy support
-        Expires: "0", // legacy support
-      },
-    });
-    if (res.status !== 200) return;
-    const descriptionJson: { layerDescription: string } = await res.json();
-    const layerDescription = descriptionJson.layerDescription;
-    //set values
-    setSublayer((state) => {
-      return { ...state, description: layerDescription };
-    });
   }
 
   // boundingBox, minNativeZoom, maxNativeZoom
@@ -238,15 +240,11 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
 
     if (isExternal) {
       await loadTileMapResourceFromFile(folderName);
-      await loadLegendFromFile(folderName);
-      await loadDescriptionFromFile(folderName);
       await loadManifestFromFile(folderName);
       await loadSublayerPropertiesFromFile(folderName);
     } else {
       const rootPath = `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}`;
       await loadTileMapResourceFromFile(rootPath);
-      await loadLegendFromFile(rootPath);
-      await loadDescriptionFromFile(rootPath);
       await loadManifestFromFile(rootPath);
       await loadSublayerPropertiesFromFile(rootPath);
     }
@@ -503,16 +501,26 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
                     <label htmlFor="filePath">Internal Filename</label>
                   </div>
                   <div className={styles.editDiv}>
-                    <input
+                    <select
                       id="filePath"
-                      type="text"
                       onChange={(e) => {
                         setSublayer({ ...sublayer, path: e.target.value });
                       }}
-                      value={sublayer.path || ""}
-                    />
+                      value={sublayer.path || "selectafile"}
+                    >
+                      <option disabled value="selectafile">
+                        Select a file
+                      </option>
+                      {dataDirGeoJSONs.map((filename, i) => {
+                        return (
+                          <option key={`GEOJSON__${i}__${filename}`} value={filename}>
+                            {filename}
+                          </option>
+                        );
+                      })}
+                    </select>
                     <br />
-                    Make sure this file is uploaded to mission/data
+                    Vector file options are pulled from /Data
                   </div>
                 </div>
               )}
@@ -612,112 +620,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
         </div>
         {sublayer.type === "tile" && (
           <>
-            Default Style (is overridden by presets)
-            <div id="styleGenericDiv">
-              <div id="opacityDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="opacity">Opacity (%)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="opacity"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        style: { ...sublayer.style, opacity: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.style.opacity || ""}
-                  />
-                </div>
-              </div>
-              <div id="contrastDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="contrast">Contrast (%)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="contrast"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        style: { ...sublayer.style, contrast: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.style.contrast || ""}
-                  />
-                </div>
-              </div>
-              <div id="brightnessDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="brightness">Brightness (%)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="brightness"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        style: { ...sublayer.style, brightness: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.style.brightness || ""}
-                  />
-                </div>
-              </div>
-              <div id="saturationDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="saturation">Saturation (%)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="saturation"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        style: { ...sublayer.style, saturation: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.style.saturation || ""}
-                  />
-                </div>
-              </div>
-              <div id="blendModeDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="blendmode">Blend Mode</label>
-                </div>
-                <select
-                  id="blendmode"
-                  onChange={(e) => {
-                    setSublayer({
-                      ...sublayer,
-                      style: { ...sublayer.style, blendMode: e.target.value },
-                    });
-                  }}
-                  value={sublayer.style.blendMode || "normal"}
-                >
-                  <option value="normal">Normal</option>
-                  <option value="color">Color</option>
-                  <option value="color-burn">Color Burn</option>
-                  <option value="color-dodge">Color Dodge</option>
-                  <option value="darken">Darken</option>
-                  <option value="difference">Difference</option>
-                  <option value="exclusion">Exclusion</option>
-                  <option value="hard-light">Hard Light</option>
-                  <option value="hue">Hue</option>
-                  <option value="lighten">Lighten</option>
-                  <option value="luminosity">Luminosity</option>
-                  <option value="multiply">Multiply</option>
-                  <option value="overlay">Overlay</option>
-                  <option value="saturation">Saturation</option>
-                </select>
-              </div>
-            </div>
-            Other
             <div id="boundingDiv">
               <div className={styles.editDiv}>
                 <label htmlFor="boundingbox">Bounding Box (minx, miny, maxx, maxy)</label>
@@ -809,163 +711,8 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
             </div>
           </>
         )}
-        {sublayer.type === "vector" && (
-          <>
-            Default Style (is overridden by presets)
-            <div id="styleGenericDiv">
-              <div id="opacityDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="opacity">Stroke Opacity (%)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="opacity"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        style: { ...sublayer.style, opacity: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.style.opacity || ""}
-                  />
-                </div>
-              </div>
-              <div id="strokeColorDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="strokecolor">Stroke Color (#hex)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="strokecolor"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        style: { ...sublayer.style, color: e.target.value },
-                      });
-                    }}
-                    value={sublayer.style.color || ""}
-                  />
-                </div>
-              </div>
-              <div id="strokeWeightDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="strokeweight">Stroke Weight (px)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="strokeweight"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        style: { ...sublayer.style, weight: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.style.weight || ""}
-                  />
-                </div>
-              </div>
-              <div id="fillOpacityDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="fillOpacity">Fill Opacity (%)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="fillOpacity"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        style: { ...sublayer.style, fillOpacity: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.style.fillOpacity || ""}
-                  />
-                </div>
-              </div>
-            </div>
-          </>
-        )}
         {sublayer.type === "vector-tile" && (
           <>
-            Default Style (is overridden by presets)
-            <div id="styleGenericDiv">
-              <div id="opacityDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="opacity">Stroke Opacity (%)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="opacity"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        style: { ...sublayer.style, opacity: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.style.opacity || ""}
-                  />
-                </div>
-              </div>
-              <div id="strokeColorDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="strokecolor">Stroke Color (#hex)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="strokecolor"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        style: { ...sublayer.style, color: e.target.value },
-                      });
-                    }}
-                    value={sublayer.style.color || ""}
-                  />
-                </div>
-              </div>
-              <div id="strokeWeightDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="strokeweight">Stroke Weight (px)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="strokeweight"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        style: { ...sublayer.style, weight: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.style.weight || ""}
-                  />
-                </div>
-              </div>
-              <div id="fillOpacityDiv">
-                <div className={styles.editDiv}>
-                  <label htmlFor="fillOpacity">Fill Opacity (%)</label>
-                </div>
-                <div className={styles.editDiv}>
-                  <input
-                    id="fillOpacity"
-                    type="text"
-                    onChange={(e) => {
-                      setSublayer({
-                        ...sublayer,
-                        style: { ...sublayer.style, fillOpacity: +e.target.value },
-                      });
-                    }}
-                    value={sublayer.style.fillOpacity || ""}
-                  />
-                </div>
-              </div>
-            </div>
-            Other
             <div id="minNativeDiv">
               <div className={styles.editDiv}>
                 <label htmlFor="minNative">Minimum Native Zoom</label>
@@ -1013,10 +760,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
             </div>
           </>
         )}
-        <br />
-        Description is pulled from description.json
-        <br />
-        Legend is pulled from legend.json
         <br />
         Bounding Box, and Min/Max Native Zoom are pulled from tilemapresource.xml
         <br />

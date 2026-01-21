@@ -45,4 +45,90 @@ import serverLogger from "utils/logging/serverLogger";
   server.listen(4001, () => {
     serverLogger.info({ logId: "api-restart" });
   });
+
+  const gracefulShutdown = async () => {
+    console.info("Gracefully shutting down server...");
+
+    let hasErrors = false;
+
+    // Set shutdown timeout to prevent hanging
+    const shutdownTimeout = setTimeout(() => {
+      console.error("Shutdown timeout - forcing exit");
+      process.exit(1);
+    }, 30000); // 30 seconds
+    shutdownTimeout.unref(); // Don't keep process alive just for this
+
+    // Stop socket status interval
+    if (globalValues.socketInterval) {
+      clearInterval(globalValues.socketInterval);
+      globalValues.socketInterval = null;
+      console.info("Global socket status interval stopped");
+    }
+
+    // Close Socket.IO connections
+    if (globalValues.socketio) {
+      try {
+        await new Promise<void>((resolve) => {
+          globalValues.socketio.close(() => {
+            console.info("Socket.IO server closed");
+            resolve();
+          });
+        });
+      } catch (err) {
+        console.error("Error closing Socket.IO:", err);
+        hasErrors = true;
+      }
+    }
+
+    // Close HTTP server (if Socket.IO didn't already close it)
+    if (server.listening) {
+      console.info("Closing HTTP server...");
+      try {
+        await new Promise<void>((resolve, reject) => {
+          server.close((err) => {
+            if (err) {
+              reject(err);
+            } else {
+              console.info("HTTP server closed");
+              resolve();
+            }
+          });
+        });
+      } catch (err) {
+        console.error("Error closing HTTP server:", err);
+        hasErrors = true;
+      }
+    } else {
+      console.info("HTTP server already closed (by Socket.IO)");
+    }
+
+    // Close database connections
+    try {
+      if (globalValues.orm) {
+        await globalValues.orm.close();
+        console.info("Database connections closed");
+      }
+    } catch (err) {
+      console.error("Error closing database connection:", err);
+      hasErrors = true;
+    }
+
+    clearTimeout(shutdownTimeout);
+    console.info("Shutdown complete");
+    process.exit(hasErrors ? 1 : 0);
+  };
+
+  // Handle process events
+  if (typeof process !== "undefined") {
+    process.on("message", (msg) => {
+      if (msg === "shutdown") {
+        gracefulShutdown().catch(console.error);
+      }
+    });
+
+    // Handle termination signals
+    process.on("SIGINT", gracefulShutdown);
+    process.on("SIGTERM", gracefulShutdown);
+    process.on("SIGUSR2", gracefulShutdown);
+  }
 })();

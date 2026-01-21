@@ -53,7 +53,7 @@ export const thunkCreateAction = appCreateAsyncThunk<
     if (actionTemplate) {
       // strip out the fields we don't want to copy into the new action
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { templateName, uuid, createdAt, updatedAt, ...rest } = actionTemplate;
+      const { templateName, createdAt, updatedAt, ...rest } = actionTemplate;
       blankAction = { ...blankAction, ...rest };
     }
 
@@ -273,8 +273,8 @@ export const thunkUpdateActionLocation = appCreateAsyncThunk<{
   );
 
   const action = getState().action.actions.find((s) => s.uuid === actionUuid);
-  if (!elevation || elevation.payload === false || elevation.payload === undefined) {
-    //gracefully reject?
+  if (elevation.meta.requestStatus === "rejected") {
+    // elevation failed, upsert without it
     dispatch(upsertActions([{ ...action, location, elevation: null }]));
   } else {
     //upsert location and elevation
