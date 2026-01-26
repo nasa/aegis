@@ -1,6 +1,6 @@
 import { Migration } from "@mikro-orm/migrations";
 
-export class Migration20251218000000 extends Migration {
+export class Migration20260116000000 extends Migration {
   override async up(): Promise<void> {
     // Change mission table equipmentItems, geographicUnits, circleDefinitions, and actionTemplates
     // into object maps that are keyed by uuid
