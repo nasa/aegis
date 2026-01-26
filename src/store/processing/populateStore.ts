@@ -170,7 +170,7 @@ const generatePresetsCirclesUIStates = async (params: {
     //build preset ui states for the layer and sublayers
     const presetCircleUIStates: CircleUIStates = {};
 
-    Object.entries(wholeStoreState.mission.mission?.circleDefinitions)?.forEach(
+    Object.entries(wholeStoreState.mission.mission?.circleDefinitions || {})?.forEach(
       ([uuid, circleDef]) => {
         presetCircleUIStates[uuid] = {
           name: circleDef.name,
@@ -193,7 +193,7 @@ const generateStationsCirclesUIStates = async (params: {
     //build station ui states for the circles
     const stationCircleUIStates: CircleUIStates = {};
 
-    Object.entries(wholeStoreState.mission.mission?.circleDefinitions)?.forEach(
+    Object.entries(wholeStoreState.mission.mission?.circleDefinitions || {})?.forEach(
       ([uuid, circleDef]) => {
         stationCircleUIStates[uuid] = {
           name: circleDef.name,

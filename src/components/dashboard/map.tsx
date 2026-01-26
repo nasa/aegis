@@ -639,7 +639,7 @@ const MapBody: FunctionComponent<{
           const circleDefinitions = mission.circleDefinitions;
 
           // draw circle around station for each mapCircleControl.
-          Object.entries(circleDefinitions).forEach(([uuid, circleDefinition]) => {
+          Object.entries(circleDefinitions || {}).forEach(([uuid, circleDefinition]) => {
             /*
              * Map does NOT think in terms of planets for coordinates,
              * and currently acts as if coordinates correspond to earth.
@@ -887,7 +887,7 @@ const MapBody: FunctionComponent<{
       }
     });
 
-    Object.entries(circleDefinitions).forEach(([uuid, circleDefinition]) => {
+    Object.entries(circleDefinitions || {}).forEach(([uuid, circleDefinition]) => {
       /*
        * Map does NOT think in terms of planets for coordinates,
        * and currently acts as if coordinates correspond to earth.
