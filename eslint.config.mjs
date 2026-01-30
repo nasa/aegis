@@ -155,7 +155,7 @@ export default [
 
       "no-import-assign": "error",
       "no-unreachable": "error",
-      "react/jsx-no-target-blank": "off",
+      "react/jsx-no-target-blank": "error", // prevent security vulnerability: require rel="noopener noreferrer" with target="_blank"
       "linebreak-style": ["error", "unix"], // enforce unix (lf) linebreaks
 
       // Add recommended CSS Modules rules

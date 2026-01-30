@@ -265,7 +265,11 @@ const Left: FunctionComponent = () => {
             className={styles.verticalCenter}
             style={{ cursor: "pointer" }}
             onClick={() => {
-              window.open("https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS", "_blank");
+              window.open(
+                "https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS",
+                "_blank",
+                "noopener,noreferrer"
+              );
             }}
           >
             <span className={styles.wordMark}>AEGIS</span>
@@ -277,7 +281,8 @@ const Left: FunctionComponent = () => {
               onClick={() => {
                 window.open(
                   "https://wiki.jsc.nasa.gov/fod/index.php/EVA_Mission_Systems_Software",
-                  "_blank"
+                  "_blank",
+                  "noopener,noreferrer"
                 );
               }}
             >
@@ -306,7 +311,11 @@ const Left: FunctionComponent = () => {
           <div className={styles.aboutSectionTitle}>Email for Help</div>
           <ul>
             <li className={styles.link}>
-              <a href={"mailto:JSC-DL-EMSS-AEGIS@mail.nasa.gov"} target={"_blank"}>
+              <a
+                href={"mailto:JSC-DL-EMSS-AEGIS@mail.nasa.gov"}
+                target={"_blank"}
+                rel="noopener noreferrer"
+              >
                 <FontAwesomeIcon className={styles.emailIconDistro} icon={faEnvelope} size={"xs"} />
                 Team Distro List
               </a>
@@ -317,7 +326,11 @@ const Left: FunctionComponent = () => {
           </div>
           <ul>
             <li className={styles.link}>
-              <a href={"https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS"} target={"_blank"}>
+              <a
+                href={"https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS"}
+                target={"_blank"}
+                rel="noopener noreferrer"
+              >
                 About AEGIS
               </a>
             </li>
@@ -325,6 +338,7 @@ const Left: FunctionComponent = () => {
               <a
                 href={"https://wiki.jsc.nasa.gov/fod/index.php/EVA_Mission_Systems_Software"}
                 target={"_blank"}
+                rel="noopener noreferrer"
               >
                 About the EMSS effort
               </a>
@@ -433,7 +447,7 @@ const Left: FunctionComponent = () => {
 const Inset: FunctionComponent = () => {
   return (
     <div className={styles.insetContainer}>
-      <a href="https://svs.gsfc.nasa.gov/5074" target="_blank" rel="noopener">
+      <a href="https://svs.gsfc.nasa.gov/5074" target="_blank" rel="noopener noreferrer">
         Image: Mons Mouton
         <br />
         NASA Scientific Visualization Studio

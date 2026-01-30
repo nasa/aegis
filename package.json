@@ -12,6 +12,7 @@
     "lint:js:fix": "eslint . --fix --color",
     "lint:css": "stylelint \"src/**/*.css\"",
     "lint:css:fix": "stylelint \"src/**/*.css\" --fix",
+    "postinstall": "rimraf node_modules/paper/dist/paperjs/docs && rimraf node_modules/paper/dist/docs",
     "tsc": "tsc --pretty",
     "test": "jest --config ./src/tests/jest/jest.config.ts --maxWorkers 50%",
     "test:all": "npm run lint && npm run tsc && npm run build && npm run test && npm run test:playwright",
@@ -54,6 +55,7 @@
     "@mikro-orm/seeder": "6.4.16",
     "bcryptjs": "3.0.2",
     "dotenv": "17.2.1",
+    "rimraf": "6.1.2",
     "ts-node": "10.9.2"
   },
   "devDependencies": {
@@ -158,7 +160,6 @@
     "react-router": "7.7.1",
     "react-select": "5.10.2",
     "react-tooltip": "5.29.1",
-    "rimraf": "6.0.1",
     "slate-react": "0.117.4",
     "socket.io": "4.8.1",
     "socket.io-client": "4.8.1",
