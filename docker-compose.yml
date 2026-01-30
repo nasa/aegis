@@ -93,6 +93,7 @@ services:
     container_name: "${LOG_DATA_APP_ID}--oauth2"
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.11.0
     restart: always
+    <<: *send_container_logs_to_syslog
     command:
       - --http-address
       - 0.0.0.0:4180
@@ -134,5 +135,6 @@ services:
     container_name: "${LOG_DATA_APP_ID}--redis"
     image: redis:7.2.5-alpine3.19
     restart: always
+    <<: *send_container_logs_to_syslog
     volumes:
       - ${REDIS_CACHE_DIR}:/data
