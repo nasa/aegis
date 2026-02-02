@@ -847,7 +847,8 @@ const Info_Panel: FunctionComponent<{
                     <div className={paneStyles.displayFieldValue}>
                       <LastEdited
                         updatedAt={selectedStation?.updatedAt}
-                        infoString={`station uuid: ${selectedStation?.uuid}`}
+                        createdAt={selectedStation?.createdAt}
+                        infoString={`Station UUID: ${selectedStation?.uuid}`}
                       />
                     </div>
                   </div>
