@@ -11,6 +11,7 @@ import { faEnvelope, faPersonWalkingArrowRight, faTv } from "@fortawesome/free-s
 import { Tooltip } from "react-tooltip";
 import { setAppUser } from "store/user";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
+import clientLogger from "utils/logging/clientLogger";
 
 const Login = () => {
   const dispatch = useAppDispatch();
@@ -244,6 +245,12 @@ const Left: FunctionComponent = () => {
             missionPerms: null,
           })
         );
+        // log user to the emss logging system
+        clientLogger.info({
+          logId: "aegis-login",
+          appUsername: response.data.username,
+          missionId: null,
+        });
       } else {
         dispatch(
           setAppUser({

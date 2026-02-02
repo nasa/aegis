@@ -20,6 +20,7 @@ import { populateStore } from "store/processing/populateStore";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 import { loadAndReturnGrid } from "utils/mapping/grid";
 import { setGridCornerPoint } from "store/map";
+import clientLogger from "utils/logging/clientLogger";
 
 type RouteParams = {
   id: string;
@@ -113,6 +114,12 @@ const Main = (): JSX.Element => {
         }
         dispatch(setAppUser({ isLoggedIn: true, user: response.data, missionPerms: missionPerms }));
         setPermissions(missionPerms);
+        // log user to the emss logging system
+        clientLogger.info({
+          logId: "aegis-login",
+          appUsername: response.data.username,
+          missionId: intMissionId,
+        });
         console.log("Logged in to AEGIS with user:", response.data.username);
       } else {
         navigate("/");
