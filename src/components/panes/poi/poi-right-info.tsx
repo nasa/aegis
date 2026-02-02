@@ -365,7 +365,8 @@ const Info_Panel: FunctionComponent<{
                     <div className={paneStyles.displayFieldValue}>
                       <LastEdited
                         updatedAt={selectedPoi?.updatedAt}
-                        infoString={`poi uuid: ${selectedPoi?.uuid}`}
+                        createdAt={selectedPoi?.createdAt}
+                        infoString={`POI UUID: ${selectedPoi?.uuid}`}
                       />
                     </div>
                   </div>

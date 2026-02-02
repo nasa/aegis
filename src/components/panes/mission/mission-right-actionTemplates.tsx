@@ -546,7 +546,11 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                         </div>
                         <div className={paneStyles.lastEditedContainer}>
                           <div className={paneStyles.displayFieldValue}>
-                            <LastEdited updatedAt={actionTemplate?.updatedAt} />
+                            <LastEdited
+                              updatedAt={actionTemplate?.updatedAt}
+                              createdAt={actionTemplate?.createdAt}
+                              infoString={`Action Template UUID: ${uuid}`}
+                            />
                           </div>
                         </div>
                       </div>

@@ -474,7 +474,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldValue}>
-                      <LastEdited updatedAt={mission?.updatedAt} />
+                      <LastEdited updatedAt={mission?.updatedAt} createdAt={mission?.createdAt} />
                     </div>
                   </div>
                 </div>
