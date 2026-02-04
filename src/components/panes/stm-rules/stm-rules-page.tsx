@@ -7,13 +7,13 @@ import {
   stmViewSetHoveredTopItem,
   stmViewSetHoveredLeftItem,
   stmViewToggleExpandTopTiers,
-} from "store/interface";
+} from "store/stm";
 import { Button } from "components/interface/form/globalFields";
 import { faArrowsLeftRightToLine } from "@fortawesome/free-solid-svg-icons";
 
 const StmViewerPage: FunctionComponent = () => {
   const stmViewExpandTopTiers = useAppSelector(
-    (state) => state.interface.stmViewExpandTopTiers,
+    (state) => state.stm.stmViewExpandTopTiers,
     refEqual
   );
   const mission = useAppSelector((state) => state.mission.mission, deepEqual);

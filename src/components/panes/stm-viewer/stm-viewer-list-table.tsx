@@ -5,7 +5,7 @@ import { RootState } from "store";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IndicatorGridRow } from "./stm-viewer-indicators";
-import { stmViewCollapseItem, stmViewExpandItem, stmViewSetHoveredLeftItem } from "store/interface";
+import { stmViewCollapseItem, stmViewExpandItem, stmViewSetHoveredLeftItem } from "store/stm";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { titleCase } from "utils/formatting";
 import uniq from "lodash/uniq";
@@ -37,7 +37,7 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
     return level3s.length;
   }, refEqual);
   const stmViewExpandTopTiers = useAppSelector(
-    (state: RootState) => state.interface.stmViewExpandTopTiers,
+    (state: RootState) => state.stm.stmViewExpandTopTiers,
     refEqual
   );
   const stmLevel1Enabled = useAppSelector(
@@ -103,7 +103,7 @@ const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) =
     shallowEqual
   );
   const stmViewExpandTopTiers = useAppSelector(
-    (state: RootState) => state.interface.stmViewExpandTopTiers,
+    (state: RootState) => state.stm.stmViewExpandTopTiers,
     refEqual
   );
 
@@ -183,7 +183,7 @@ const STMLevel3: FunctionComponent<{
     refEqual
   );
   const thisInvestigationExpanded = useAppSelector((state: RootState) => {
-    return state.interface.stmViewExpandedItems.some(
+    return state.stm.stmViewExpandedItems.some(
       (item) => item.uuid === level3.uuid && item.type === "level3"
     );
   }, refEqual);
@@ -194,12 +194,12 @@ const STMLevel3: FunctionComponent<{
         action.stmPriorities &&
         Object.keys(action.stmPriorities).includes(level3.uuid) &&
         action.stationUuid &&
-        state.interface.stmViewSelectedActionTypes.includes(action.type)
+        state.stm.stmViewSelectedActionTypes.includes(action.type)
     ).length;
   }, refEqual);
   const stmViewHoveredLeftItem = useAppSelector(
     (state: RootState) =>
-      state.interface.stmViewShowCrosshairs ? state.interface.stmViewHoveredLeftItem : null,
+      state.stm.stmViewShowCrosshairs ? state.stm.stmViewHoveredLeftItem : null,
     refEqual
   );
 
@@ -268,7 +268,7 @@ const Level3ActionTypes: FunctionComponent<{ level3Uuid: string }> = ({ level3Uu
       actionsWithThisLevel3.map((action) => action.type)
     );
     // filter out actionTypes that are not contained in stmViewSelectedActionTypes
-    const stmViewSelectedActionTypes = state.interface.stmViewSelectedActionTypes;
+    const stmViewSelectedActionTypes = state.stm.stmViewSelectedActionTypes;
     const newUniqueActionTypes: ActionType[] = [];
     for (let i = 0; i < uniqueActionTypes.length; i++) {
       if (stmViewSelectedActionTypes.includes(uniqueActionTypes[i])) {
@@ -308,14 +308,14 @@ const Level3ActionType: FunctionComponent<{
   }, deepEqual);
   const thisActionTypeExpanded = useAppSelector(
     (state: RootState) =>
-      state.interface.stmViewExpandedItems.some(
+      state.stm.stmViewExpandedItems.some(
         (item) => item.uuid === level3Uuid && item.type === actionType
       ),
     refEqual
   );
   const stmViewHoveredLeftItem = useAppSelector(
     (state: RootState) =>
-      state.interface.stmViewShowCrosshairs ? state.interface.stmViewHoveredLeftItem : null,
+      state.stm.stmViewShowCrosshairs ? state.stm.stmViewHoveredLeftItem : null,
     refEqual
   );
   return (
@@ -373,7 +373,7 @@ const Level3Action: FunctionComponent<{
   const dispatch = useAppDispatch();
   const stmViewHoveredLeftItem = useAppSelector(
     (state: RootState) =>
-      state.interface.stmViewShowCrosshairs ? state.interface.stmViewHoveredLeftItem : null,
+      state.stm.stmViewShowCrosshairs ? state.stm.stmViewHoveredLeftItem : null,
     refEqual
   );
   const actionTooltipTitle = useAppSelector((state: RootState) => {

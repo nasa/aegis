@@ -99,15 +99,6 @@ interface InterfaceState {
   elevationPendingItemUuids: string[];
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
-  actionsExpanded: string[];
-  stmViewExpandedItems: STMViewExpandedItem[];
-  stmViewSelectedEvas: string[];
-  stmViewSelectedActionTypes: ActionType[];
-  stmViewExpandTopTiers: boolean;
-  stmViewShowCrosshairs: boolean;
-  stmViewHoveredTopItem: string;
-  stmViewHoveredLeftItem: string;
-  stmRulesSelectedRexes: string[];
   folders: Folder[];
   foldersInterface: FolderInterface[];
   appVersion: AppVersion;
@@ -121,6 +112,14 @@ interface STMState {
   rules: STMRule[];
   rulesFromDb: STMRule[];
   ruleEditingUuid: string;
+  stmViewExpandedItems: STMViewExpandedItem[];
+  stmViewSelectedEvas: string[];
+  stmViewSelectedActionTypes: ActionType[];
+  stmViewExpandTopTiers: boolean;
+  stmViewShowCrosshairs: boolean;
+  stmViewHoveredTopItem: string;
+  stmViewHoveredLeftItem: string;
+  stmRulesSelectedRexes: string[];
 }
 
 interface StationState {
@@ -135,6 +134,7 @@ interface StationState {
 interface ActionState {
   actions: Action[];
   actionsFromDb: Action[];
+  actionsExpanded: string[];
 }
 
 interface RexState {

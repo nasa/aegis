@@ -27,7 +27,7 @@ import {
   GeographicUnitSelector,
 } from "../actions-action-body-multiselectors";
 import { thunkCreateActionTemplate, thunkUpdateActionTemplate } from "store/thunk/thunkMission";
-import { collapseActions, expandActions } from "store/interface";
+import { collapseActions, expandActions } from "store/action";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { toDecimal } from "utils/formatting";
@@ -43,7 +43,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
       a.templateName.localeCompare(b.templateName)
     );
   }, deepEqual);
-  const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
+  const actionsExpanded = useAppSelector((state) => state.action.actionsExpanded, shallowEqual);
   const actionSystemVersion = useAppSelector(
     (state) => state.mission.mission.actionSystemVersion,
     refEqual

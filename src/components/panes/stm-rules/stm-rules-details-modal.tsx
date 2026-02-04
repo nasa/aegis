@@ -27,7 +27,7 @@ import {
   thunkDeleteStmRuleByUuid,
   thunkSaveStmRule,
 } from "store/thunk/thunkStmRules";
-import { stmRulesToggleRex } from "store/interface";
+import { stmRulesToggleRex } from "store/stm";
 import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
 import Action from "components/panes/actions-action";
 import { EmojiRenderer } from "components/interface/emojis";
@@ -176,13 +176,10 @@ const STMRuleTitle: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
 };
 
 const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
-  const selectedRexUuids = useAppSelector(
-    (state) => state.interface.stmRulesSelectedRexes,
-    shallowEqual
-  );
+  const selectedRexUuids = useAppSelector((state) => state.stm.stmRulesSelectedRexes, shallowEqual);
   const selectedRexEvaUuids = useAppSelector((state) => {
     const selectedEvaUuids = [];
-    for (const rexUuid of state.interface.stmRulesSelectedRexes) {
+    for (const rexUuid of state.stm.stmRulesSelectedRexes) {
       const rex = state.rex.rexes.find((rex) => rex.uuid === rexUuid);
       if (rex) {
         selectedEvaUuids.push(rex.evaUuid);
@@ -606,7 +603,7 @@ const STMRuleDetailsButtons: FunctionComponent<{
 
 export const RexSelector: FunctionComponent<{ startOpen?: boolean }> = ({ startOpen = false }) => {
   const dispatch = useAppDispatch();
-  const selectedRexes = useAppSelector((state) => state.interface.stmRulesSelectedRexes, deepEqual);
+  const selectedRexes = useAppSelector((state) => state.stm.stmRulesSelectedRexes, deepEqual);
   const rexesForDropdown = useAppSelector((state) => {
     const items = state.rex.rexes.map((rex) => {
       const rexEva = state.eva.evas.find((eva) => eva.uuid === rex.evaUuid);
