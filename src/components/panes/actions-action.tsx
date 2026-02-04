@@ -18,7 +18,7 @@ import { EmojiRenderer } from "components/interface/emojis";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { validators } from "components/interface/form/formValidators";
 import capitalize from "lodash/capitalize";
-import { collapseActions, expandActions } from "store/interface";
+import { collapseActions, expandActions } from "store/action";
 import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
 import { getRexStatusDisplayProperties } from "../../utils/component-helpers";
@@ -53,7 +53,7 @@ const RightAction: FunctionComponent<{
     (state) => state.action.actions.find((a) => a.uuid === actionUuid),
     deepEqual
   );
-  const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
+  const actionsExpanded = useAppSelector((state) => state.action.actionsExpanded, shallowEqual);
   const isRexRunning = useAppSelector(
     (state) => state.rex.rexes.find((rex) => rex.uuid === rexUuid)?.isRunning,
     refEqual

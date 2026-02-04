@@ -20,9 +20,9 @@ import {
   stmViewToggleEva,
   stmViewToggleExpandTopTiers,
   stmViewToggleSelectedActionType,
-  setSectionSelected,
   stmViewToggleCrosshairs,
-} from "store/interface";
+} from "store/stm";
+import { setSectionSelected } from "store/interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSelectedStationUuid } from "store/station";
 import { actionTypes } from "store/storeUtils/action";
@@ -31,11 +31,11 @@ import { selectAsPlannedStations } from "store/selectors";
 
 const StmViewerPage: FunctionComponent = () => {
   const stmViewExpandTopTiers = useAppSelector(
-    (state) => state.interface.stmViewExpandTopTiers,
+    (state) => state.stm.stmViewExpandTopTiers,
     refEqual
   );
   const stmViewShowCrosshairs = useAppSelector(
-    (state) => state.interface.stmViewShowCrosshairs,
+    (state) => state.stm.stmViewShowCrosshairs,
     refEqual
   );
   const stmLevel1Enabled = useAppSelector(
@@ -172,7 +172,7 @@ const StationGroupTitles: FunctionComponent = () => {
       [(eva) => eva.name?.toLowerCase()]
     );
     return sortedAsPlannedEvas
-      .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
+      .filter((eva) => state.stm.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
   return (
@@ -252,12 +252,12 @@ const StationNameGroups: FunctionComponent = () => {
       [(eva) => eva.name?.toLowerCase()]
     );
     return sortedAsPlannedEvas
-      .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
+      .filter((eva) => state.stm.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
   const allStationsNotInASelectedEvas = useAppSelector((state) => {
     const sortedAsPlannedStations = selectAsPlannedStations(state);
-    const selectedEvaUuids = state.interface.stmViewSelectedEvas;
+    const selectedEvaUuids = state.stm.stmViewSelectedEvas;
     for (const evaUuid of selectedEvaUuids) {
       const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
       if (eva) {
@@ -327,8 +327,7 @@ const StationNames: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid }) => {
 const StationName: FunctionComponent<{ station: Station }> = ({ station }) => {
   const dispatch = useAppDispatch();
   const stmViewHoveredTopItem = useAppSelector(
-    (state) =>
-      state.interface.stmViewShowCrosshairs ? state.interface.stmViewHoveredTopItem : null,
+    (state) => (state.stm.stmViewShowCrosshairs ? state.stm.stmViewHoveredTopItem : null),
     refEqual
   );
   return (
@@ -355,7 +354,7 @@ const StationName: FunctionComponent<{ station: Station }> = ({ station }) => {
 
 const EvaSelector: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const selectedEvas = useAppSelector((state) => state.interface.stmViewSelectedEvas, deepEqual);
+  const selectedEvas = useAppSelector((state) => state.stm.stmViewSelectedEvas, deepEqual);
   const asPlannedEvaWithStations = useAppSelector((state) => {
     const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
     const asPlannedEvasWithStations = state.eva.evas.filter(
@@ -391,7 +390,7 @@ const EvaSelector: FunctionComponent = () => {
 const ActionTypesSelector: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedActionTypes = useAppSelector(
-    (state) => state.interface.stmViewSelectedActionTypes,
+    (state) => state.stm.stmViewSelectedActionTypes,
     shallowEqual
   );
 

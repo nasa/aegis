@@ -35,7 +35,7 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
     return level3s.length;
   }, refEqual);
   const stmViewExpandTopTiers = useAppSelector(
-    (state: RootState) => state.interface.stmViewExpandTopTiers,
+    (state: RootState) => state.stm.stmViewExpandTopTiers,
     refEqual
   );
   const stmLevel1Enabled = useAppSelector(
@@ -94,7 +94,7 @@ const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) =
     shallowEqual
   );
   const stmViewExpandTopTiers = useAppSelector(
-    (state: RootState) => state.interface.stmViewExpandTopTiers,
+    (state: RootState) => state.stm.stmViewExpandTopTiers,
     refEqual
   );
 

@@ -2,7 +2,7 @@ import { Fragment, FunctionComponent } from "react";
 import styles from "./stm-viewer-indicators.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { stmViewSetHoveredTopItem } from "store/interface";
+import { stmViewSetHoveredTopItem } from "store/stm";
 import sortBy from "lodash/sortBy";
 import { selectAsPlannedStations } from "store/selectors";
 
@@ -18,12 +18,12 @@ export const IndicatorGridRow: FunctionComponent<{
       [(eva) => eva.name?.toLowerCase()]
     );
     return sortedAsPlannedEvas
-      .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
+      .filter((eva) => state.stm.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
   const allStationsNotInASelectedEvas = useAppSelector((state) => {
     const sortedAsPlannedStations = selectAsPlannedStations(state);
-    const selectedEvaUuids = state.interface.stmViewSelectedEvas;
+    const selectedEvaUuids = state.stm.stmViewSelectedEvas;
     for (const evaUuid of selectedEvaUuids) {
       const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
       if (eva) {
@@ -127,8 +127,7 @@ const IndicatorGridCell: FunctionComponent<{
 }> = ({ level3Uuid, stationUuid, actionType = null, actionUuid = null }) => {
   const dispatch = useAppDispatch();
   const stmViewHoveredTopItem = useAppSelector(
-    (state) =>
-      state.interface.stmViewShowCrosshairs ? state.interface.stmViewHoveredTopItem : null,
+    (state) => (state.stm.stmViewShowCrosshairs ? state.stm.stmViewHoveredTopItem : null),
     refEqual
   );
   const indicator: IndicatorStyle = useAppSelector((state) => {
@@ -143,7 +142,7 @@ const IndicatorGridCell: FunctionComponent<{
     );
 
     // filter against stmViewSelectedActionTypes
-    const selectedActionTypes = state.interface.stmViewSelectedActionTypes;
+    const selectedActionTypes = state.stm.stmViewSelectedActionTypes;
     actionsWithThisLevel3 = actionsWithThisLevel3.filter((action) =>
       selectedActionTypes.includes(action.type)
     );

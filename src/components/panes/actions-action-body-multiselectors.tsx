@@ -6,7 +6,7 @@ import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
-import { collapseActions, expandActions } from "store/interface";
+import { collapseActions, expandActions } from "store/action";
 
 export const EquipmentSelector: FunctionComponent<{
   equipmentItemsUsage: EquipmentItemUsages;
