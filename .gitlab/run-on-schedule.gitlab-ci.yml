@@ -17,7 +17,7 @@
     - cd /opt/aegis
     - sudo docker compose exec database pg_dump -U postgres aegis > "${PROJECT_DIR}/aegis.sql"
   artifacts:
-    name: "$CI_JOB_STARTED_AT$-aegis.sql"
+    name: "${CI_JOB_STARTED_AT}-aegis.sql"
     paths:
       - aegis.sql
     # hold on to this artifact longer than default (1 day). The latest for any branch never expires
@@ -31,7 +31,7 @@ z:db-export:prod:
   tags: ["emss-aegis-prod"]
   resource_group: prod # prevents concurrent executions of this job when there are multiple pipelines
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_PROD}
 
 npm-audit:
   stage: stageless
@@ -39,7 +39,7 @@ npm-audit:
     - if: $SCHEDULE_TYPE == "audit"
       when: always
   tags: ["openshift"]
-  image: $CI_REGISTRY/emss/docker-images/node-ci:npm-audit
+  image: ${CI_REGISTRY}/emss/docker-images/node-ci:npm-audit # custom image, not on Docker Hub
   allow_failure: true
   script:
     # Run this without --json to make a pretty-print for the job log, plus will pass/fail the job

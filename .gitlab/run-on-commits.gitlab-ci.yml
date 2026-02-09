@@ -1,10 +1,10 @@
 variables:
-  CURRENT_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:22.18.0-alpine"
-  # "Future" might be older if waiting on a newer version to come out
-  FUTURE_NODE_VERSION_IMAGE: "$CI_REGISTRY/emss/docker-images/node:24.4.1-alpine"
+  # Images are pulled via GitLab dependency proxy (caches from Docker Hub)
+  # Kaniko uses the dependency proxy as a registry mirror for rate limiting and caching
+  KANIKO_REGISTRY_MIRROR: "${CI_SERVER_HOST}/emss/dependency_proxy/containers"
 
-  # Default image unless otherwise specified
-image: "$CURRENT_NODE_VERSION_IMAGE"
+# Default node image unless otherwise specified
+image: "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:24.11.1-alpine3.21"
 
 include:
   # A11y tests. Disabled for now.
@@ -50,7 +50,7 @@ dependency-check:
 
 npm-audit:
   stage: stageless
-  image: $CI_REGISTRY/emss/docker-images/node-ci:npm-audit
+  image: ${CI_REGISTRY}/emss/docker-images/node-ci:npm-audit # custom image, not on Docker Hub
   when: manual
   needs: []
   tags: ["openshift"]
@@ -77,7 +77,7 @@ node-sbom:
   stage: stageless
   tags: ["docker", "linux"] # Can't be openshift due to it not pulling latest tag
   needs: ["install_dependencies"]
-  image: $CI_REGISTRY/emss/docker-images/node-ci:sbom
+  image: ${CI_REGISTRY}/emss/docker-images/node-ci:sbom # custom image, not on Docker Hub
   script:
     - /make-sbom.sh
   artifacts:
@@ -104,8 +104,8 @@ node-sbom:
     POSTGRES_PASSWORD: test-only-password
     POSTGRES_DB: aegis
   services:
-    # image should match database used in docker-compose.yml
-    - name: $CI_REGISTRY/emss/docker-images/postgres:postgis-14-alpine
+    # DOCKER_IMAGE_DATABASE comes from make-test-dotenv job artifact
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/${DOCKER_IMAGE_DATABASE}
       alias: postgres-test-container
   tags: ["docker", "linux"]
   before_script:
@@ -119,7 +119,7 @@ test:
   script:
     # Load production database dump
     - apk update && apk add --no-cache postgresql-client # Install psql client using apk for Alpine
-    - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
+    - PGPASSWORD=${DB_PASS} psql -h ${DB_HOST} -U postgres -d ${DB_NAME} < aegis.sql
     - npm run migration:up
     # Create schemas so the references resolve
     - npm run schema:create
@@ -142,12 +142,12 @@ test:
 # test against next version of node that AEGIS may use, but allow to fail
 test-node-next:
   extends: .test_template
-  image: "$FUTURE_NODE_VERSION_IMAGE"
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:25.2.1-alpine
   allow_failure: true
   script:
     # Load production database dump
     - apk update && apk add --no-cache postgresql-client # Install psql client using apk for Alpine
-    - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
+    - PGPASSWORD=${DB_PASS} psql -h ${DB_HOST} -U postgres -d ${DB_NAME} < aegis.sql
     - npm run migration:up
     # Create schemas so the references resolve
     - npm run schema:create
@@ -173,10 +173,10 @@ playwright_test:
     - make-test-dotenv
     - z:db-export:prod
   script:
-    - echo "Running shard $SHARD_INDEX of $NUM_SHARDS"
+    - echo "Running shard ${SHARD_INDEX} of ${NUM_SHARDS}"
     - mkdir -p playwright-report
     - apt-get update && apt-get install -y postgresql-client # Fast install, fine not in the image
-    - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
+    - PGPASSWORD=${DB_PASS} psql -h ${DB_HOST} -U postgres -d ${DB_NAME} < aegis.sql
     - npx playwright install-deps # Install Playwright dependencies
     - npm run migration:up
     - npm run test:playwright:ci # Run Playwright tests
@@ -189,7 +189,6 @@ playwright_test:
   retry: 2
 
 .make-dotenv-template:
-  image: "$CURRENT_NODE_VERSION_IMAGE"
   stage: stageless
   needs: []
   tags: ["docker", "linux"]
@@ -235,12 +234,16 @@ playwright_test:
       fi
 
     # Export the variable so it can be read inside the make-dotenv package
-    - export IMAGE_VERSION
     # Save image version into an artifact to be read later in other job scripts
+    - export IMAGE_VERSION
     - echo "IMAGE_VERSION=${IMAGE_VERSION}" >> pipelineVariables.env
 
+    # Run make-dotenv to generate the .env file
     - make-dotenv "${MAKEDOTENV_ENV}"
 
+    # After we have the .env file, extract DOCKER_IMAGE_DATABASE from .env and export it without quotes
+    - source .env
+    - echo "DOCKER_IMAGE_DATABASE=${DOCKER_IMAGE_DATABASE//\"/}" >> pipelineVariables.env
   artifacts:
     reports:
       dotenv: pipelineVariables.env
@@ -263,6 +266,7 @@ make-test-dotenv:
 # Vite is not used in production, so we don't need to build it
 #
 
+# This build template uses a hard coded pattern path to find the Dockerfile for each service
 .kaniko-build-template:
   extends: .emss-kaniko-build
   stage: stageless
@@ -275,12 +279,8 @@ docker:build:nginx:
   variables:
     SERVICE_NAME: nginx
     MULTISTAGE_TARGET: prod
-    NGINX_BASE_IMAGE: eegitlabregistry.fit.nasa.gov/emss/docker-images/nginx:1.23.0-alpine
-    NODE_BASE_IMAGE: $CURRENT_NODE_VERSION_IMAGE
-    GIT_COMMIT: $CI_COMMIT_SHORT_SHA
+    GIT_COMMIT: ${CI_COMMIT_SHORT_SHA}
     MAP_ENV_VARS_TO_BUILD_ARGS: |
-      NGINX_BASE_IMAGE
-      NODE_BASE_IMAGE
       GIT_COMMIT
 
 docker:build:gdal:
@@ -288,19 +288,14 @@ docker:build:gdal:
   variables:
     SERVICE_NAME: gdal
     MULTISTAGE_TARGET: base
-    GDAL_BASE_IMAGE: eegitlabregistry.fit.nasa.gov/emss/docker-images/deploy:gdal
-    MAP_ENV_VARS_TO_BUILD_ARGS: |
-      GDAL_BASE_IMAGE
 
 docker:build:apiv1:
   extends: .kaniko-build-template
   variables:
     SERVICE_NAME: apiv1
     MULTISTAGE_TARGET: prod
-    APIV1_BASE_IMAGE: $CURRENT_NODE_VERSION_IMAGE
-    GIT_COMMIT: $CI_COMMIT_SHORT_SHA
+    GIT_COMMIT: ${CI_COMMIT_SHORT_SHA}
     MAP_ENV_VARS_TO_BUILD_ARGS: |
-      APIV1_BASE_IMAGE
       GIT_COMMIT
 
 #
@@ -325,7 +320,7 @@ docker:retag:
       apiv1
 
 deploy:artifactize-committed-files:
-  image: "$CI_REGISTRY/emss/docker-images:envsubst-bash-in-envsubst"
+  image: "${CI_REGISTRY}/emss/docker-images:envsubst-bash-in-envsubst" # custom image, not on Docker Hub
   stage: stageless
   needs: []
   tags: ["openshift"]
@@ -402,9 +397,9 @@ deploy:int:
   resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
   environment:
     name: integration
-    url: $URL
+    url: ${URL}
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT} #CI/CD Variable
     URL: https://aegis-int.fit.nasa.gov
   only:
     - int
@@ -419,9 +414,9 @@ deploy:prod:
   resource_group: prod # prevents concurrent executions on this environment when there are multiple pipelines
   environment:
     name: production
-    url: $URL
+    url: ${URL}
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_PROD} #CI/CD Variable
     URL: https://aegis.fit.nasa.gov
   when: manual
   only:
