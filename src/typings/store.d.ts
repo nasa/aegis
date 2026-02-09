@@ -214,6 +214,7 @@ type TraverseCalculatedFields = CalculatedFields &
     durationMinutes: number;
     distanceMeters: number;
     ascentDescent: TotalAscentDescentObj;
+    bearings: number[];
   };
 
 type EvaReportSequenceItem = EvaSequenceItem & {
