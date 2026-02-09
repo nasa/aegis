@@ -229,6 +229,7 @@ describe("Calculated fields", () => {
       totalEv2Time: 0,
       totalMass: 0,
       totalUnassignedTime: 0,
+      bearings: [],
     });
     const t2CalcFields = allCalculatedFields.find((c) => c.uuid === traverse2.uuid);
     expect(t2CalcFields.durationMinutes).toEqual(30);
