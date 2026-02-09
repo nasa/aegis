@@ -59,9 +59,9 @@ z:db-import:int:
   resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
   environment:
     name: integration
-    url: $URL
+    url: ${URL}
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT} #CI/CD Variable
     URL: https://aegis-int.fit.nasa.gov
 
 #
@@ -94,11 +94,10 @@ z:db-restore:int-from-gold:
   resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
   environment:
     name: integration
-    url: $URL
+    url: ${URL}
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT} #CI/CD Variable
     URL: https://aegis-int.fit.nasa.gov
-
 # z:db-restore:prod-from-gold:
 #   extends: .db-import-template
 #   # Overrides the `needs` from the template and get .sql artifact from a different job
@@ -107,8 +106,8 @@ z:db-restore:int-from-gold:
 #   resource_group: prod # prevents concurrent executions on this environment when there are multiple pipelines
 #   environment:
 #     name: production
-#     url: $URL
+#     url: ${URL}
 #   variables:
-#     DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
+#     DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_PROD} #CI/CD Variable
 #     URL: https://aegis.fit.nasa.gov
 

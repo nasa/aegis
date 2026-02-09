@@ -31,14 +31,14 @@ z:db-export:prod:
   tags: ["emss-aegis-prod"]
   resource_group: prod # prevents concurrent executions on this environment when there are multiple pipelines
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_PROD} #CI/CD Variable
 
 z:db-export:int:
   extends: .db-export-template
   tags: ["emss-aegis-int"]
   resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT} #CI/CD Variable
 
 z:db-export:carbon:
   extends:
@@ -97,7 +97,7 @@ z:db-export:oxygen:
     - sudo journalctl --unit=rsyslog -n 200 --no-pager
 
     # Put the full logs into artifacts. Full logs may hit the job log length
-    # limit, and generally make the job log unreadably long
+    # limit, and generally make the job log un-readably long
     - sudo docker compose logs nginx > "${LOG_ARTIFACTS}/nginx"
     - sudo docker compose logs database > "${LOG_ARTIFACTS}/database"
     - sudo docker compose logs gdal > "${LOG_ARTIFACTS}/gdal"
@@ -139,14 +139,13 @@ z:logs:int:
   extends: .container-logs-template
   tags: ["emss-aegis-int"]
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT} #CI/CD Variable
 
 z:logs:prod:
   extends: .container-logs-template
   tags: ["emss-aegis-prod"]
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD #CI/CD Variable
-
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_PROD} #CI/CD Variable
 
 #
 # Add jobs to restart all containers on a given environment.
@@ -197,11 +196,11 @@ z:restart-containers:int:
   tags: ["emss-aegis-int"]
   resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT}
 
 z:restart-containers:prod:
   extends: .restart-containers-template
   tags: ["emss-aegis-prod"]
   resource_group: prod # prevents concurrent executions on this environment when there are multiple pipelines
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_PROD
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_PROD}

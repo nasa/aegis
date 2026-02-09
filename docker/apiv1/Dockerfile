@@ -1,14 +1,6 @@
-# Get the base image, which is supplied by the pipeline. If the *_BASE_IMAGE value is not defined
-#   (which is true when building locally) then use the value to the right of the = operator
-# Base image optionally from arg
-# ref: https://eegitlab.fit.nasa.gov/emss/docs/-/blob/main/docker.md#base-images-as-arg
-# hadolint global ignore=DL3006
-ARG APIV1_BASE_IMAGE=node:22.18.0-alpine
-
-# # # # # # # #
-# BASE image  #
-# # # # # # # #
-FROM $APIV1_BASE_IMAGE AS base
+# When building via kaniko in CI, the dependency proxy will cache image from Docker Hub.
+# For local builds, Docker pulls directly from Docker Hub
+FROM node:24.11.1-alpine3.21 AS base
 
 # Set the working directory. It will create if doesn't exist
 WORKDIR /app
@@ -26,6 +18,7 @@ COPY package*.json .
 # # # # # # # #
 # BUILD image #
 # # # # # # # #
+
 # Use a different stage for building so we can reduce the size of the final prod image
 FROM base AS build
 
@@ -46,6 +39,7 @@ RUN npm run api:build
 # # # # # # # #
 # PROD image  #
 # # # # # # # #
+
 # Our final build image. This should be as small as possible
 FROM base AS prod
 

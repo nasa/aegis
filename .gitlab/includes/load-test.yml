@@ -35,7 +35,7 @@ setup-load-test:int:
     - deploy:int # ensure the database is deployed before running this job
   tags: ["emss-aegis-int"]
   variables:
-    DEPLOY_SUDO_PASS: $DEPLOY_SUDO_PASS_INT #CI/CD Variable
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT} #CI/CD Variable
   resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
   only:
     - int
@@ -79,13 +79,12 @@ setup-load-test:oxygen:
 .run-load-test-template:
   when: manual
   stage: stageless
-  image: "$CURRENT_NODE_VERSION_IMAGE"
   timeout: 10 minutes
   parallel: 16
   tags:
     - openshift-test
   variables:
-    GIT_COMMIT: $CI_COMMIT_SHORT_SHA
+    GIT_COMMIT: ${CI_COMMIT_SHORT_SHA}
   script:
     # Load environment variables from the .env artifact so we can read
     # the LOADTEST_PASSWORD variable at runtime
