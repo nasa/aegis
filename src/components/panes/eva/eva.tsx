@@ -20,6 +20,10 @@ const EvaPlannerLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
+  const isSelectedEvaUuidARex = useAppSelector(
+    (state) => state.rex.rexes.some((rex) => rex.evaUuid === state.eva.selectedEvaUuid) || false,
+    refEqual
+  );
   const showRunningRexOnly = useAppSelector((state) => state.eva.showRunningRexOnly, refEqual);
 
   const isRexRunning = useAppSelector(
@@ -163,7 +167,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                     }}
                     label="Duplicate"
                     icon={faClone}
-                    enabled={!!selectedEvaUuid}
+                    enabled={!!selectedEvaUuid && !isSelectedEvaUuidARex}
                     style={{ width: "95px" }}
                     toolTip="Duplicate this EVA and its Traverses"
                   />

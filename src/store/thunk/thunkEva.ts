@@ -461,10 +461,19 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
     newEva.updatedAt = newDateString;
     newEva.createdAt = newDateString;
     newEva.refUuid = uuidv4();
-    newEva.name = makeUniqueStringCopy(
-      eva.name,
-      getState().eva.evas.map((item) => item.name)
-    );
+    if (eva.name) {
+      newEva.name = makeUniqueStringCopy(
+        eva.name,
+        getState().eva.evas.map((item) => item.name)
+      );
+    } else {
+      // an EVA may not have a name if the user has selected a rex's EVA (these have no names) and then clicks the duplicate button
+      // generate a new name in this case
+      newEva.name = generateUniqueName({
+        dictName: "colors",
+        existingNames: getState().eva.evas.map((item) => item.name),
+      });
+    }
   } else {
     // EVAs for REXs have no name
     newEva.name = null;
