@@ -376,7 +376,6 @@ export const ActionDefType: FunctionComponent<{
   );
 
   const selectedName = actionDefinitionItems[selectedUuid]?.name;
-
   return (
     <>
       {!editMode ? (

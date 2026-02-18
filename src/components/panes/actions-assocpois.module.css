@@ -50,7 +50,10 @@
 
 .stationPoiActionItemsDisabled {
   background-color: var(--grey2);
-  color: var(--grey3);
+}
+
+.stationPoiActionItemsDisabled > * {
+  opacity: 0.5;
 }
 
 .actionListHeader {
