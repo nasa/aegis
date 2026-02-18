@@ -88,45 +88,55 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
     alert(`${res.status} - ${res.message}`);
   }
 
-  // timeLayerManifest
+  /**
+   * Find and parse the timeLayerManifest if it exists in manifest.json
+   * @param folderName string
+   */
   async function loadManifestFromFile(folderName: string) {
-    if (sublayer.isTimeBased) {
-      //read in the manifest
-      const res = await fetch(`${folderName}/manifest.json`, {
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache", // legacy support
-          Expires: "0", // legacy support
-        },
-      });
-      if (res.ok) {
-        const manifestJson = await res.json();
-        const timeLayerJson: TimeLayerJson[] = manifestJson.time_layers;
-        const timeLayerManifest: TimeLayerInfo[] = [];
-        timeLayerJson.forEach((timeLayer, index) => {
-          const layerBounds: [string, string] = getManifestJsonTimeBounds(timeLayerJson, index);
-          timeLayerManifest.push({
-            datetime: timeLayer.datetime,
-            dirName: timeLayer.dirName,
-            lowerBound: layerBounds[0],
-            upperBound: layerBounds[1],
-          });
-        });
+    // try to read the manifest
+    const res = await fetch(`${folderName}/manifest.json`, {
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache", // legacy support
+        Expires: "0", // legacy support
+      },
+    });
 
-        //set values
-        setSublayer((state) => {
-          return { ...state, timeLayerManifest: timeLayerManifest };
-        });
-      } else {
-        setSublayer((state) => {
-          return { ...state, timeLayerManifest: null };
-        });
-      }
-    } else {
+    if (!res.ok) {
+      // there must not be a manifest.json file
       setSublayer((state) => {
-        return { ...state, timeLayerManifest: null };
+        return { ...state, timeLayerManifest: null, isTimeBased: false };
       });
+      return;
     }
+
+    let manifestJson: { time_layers?: TimeLayerJson[] } = {};
+    try {
+      manifestJson = await res.json();
+    } catch (e) {
+      console.error("Something went wrong reading manifest.json", e);
+      setSublayer((state) => {
+        return { ...state, timeLayerManifest: null, isTimeBased: false };
+      });
+      return;
+    }
+
+    const timeLayerJson: TimeLayerJson[] = manifestJson.time_layers;
+    const timeLayerManifest: TimeLayerInfo[] = [];
+    timeLayerJson.forEach((timeLayer, index) => {
+      const layerBounds: [string, string] = getManifestJsonTimeBounds(timeLayerJson, index);
+      timeLayerManifest.push({
+        datetime: timeLayer.datetime,
+        dirName: timeLayer.dirName,
+        lowerBound: layerBounds[0],
+        upperBound: layerBounds[1],
+      });
+    });
+
+    // set sublayer values
+    setSublayer((state) => {
+      return { ...state, timeLayerManifest: timeLayerManifest, isTimeBased: true };
+    });
   }
 
   // boundingBox, minNativeZoom, maxNativeZoom
@@ -389,23 +399,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
             </select>
           </div>
         </div>
-        {sublayer.type === "tile" && (
-          <div id="isTimeDiv">
-            <div className={styles.editDiv}>
-              <label htmlFor="name">Time Based</label>
-            </div>
-            <div className={styles.editDiv}>
-              <input
-                id="isTimeBased"
-                type="checkbox"
-                onChange={(e) => {
-                  setSublayer({ ...sublayer, isTimeBased: e.target.checked || false });
-                }}
-                checked={sublayer.isTimeBased || false}
-              />
-            </div>
-          </div>
-        )}
         <div id="pathDiv" style={{ paddingBottom: "1rem" }}>
           {sublayer.type === "tile" || sublayer.type === "vector-tile" ? (
             <div id="urlDiv">
@@ -763,7 +756,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
         <br />
         Bounding Box, and Min/Max Native Zoom are pulled from tilemapresource.xml
         <br />
-        Time layer information is pulled from manifest.json ("Time Based" must be checked)
+        Time layer information is pulled from manifest.json
         <br />
         {isExternal ? (
           <button
