@@ -177,7 +177,7 @@ const PoiEditorRight: FunctionComponent = () => {
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingRight: "10px" }}
               onSubmit={(val: string) => {
-                dispatch(upsertPoiByField(selectedPoi.uuid, "name", val));
+                dispatch(upsertPoiByField(selectedPoi.uuid, "name", val || ""));
               }}
               key={`${selectedPoi.uuid}-name`}
               toFocus={selectedPoi.createdAt === selectedPoi.updatedAt}

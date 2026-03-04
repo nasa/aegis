@@ -251,7 +251,7 @@ const RightAction: FunctionComponent<{
                         validators: [validators.required, validators.maxLength(255)],
                       }}
                       onSubmit={(value: string) => {
-                        dispatch(upsertActionByField(action.uuid, "name", value));
+                        dispatch(upsertActionByField(action.uuid, "name", value || ""));
                       }}
                       key={`${action.uuid}-name`}
                       toFocus={toFocus}

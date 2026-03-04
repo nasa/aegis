@@ -187,7 +187,7 @@ const RightActionBody: FunctionComponent<{
             value={action.description || ""}
             editing={editMode}
             onSubmit={(value: string) => {
-              dispatch(upsertActionByField(action.uuid, "description", value));
+              dispatch(upsertActionByField(action.uuid, "description", value || ""));
             }}
             fieldProps={{ name: "description", ariaLabel: "Action Description" }}
             key={action.uuid}

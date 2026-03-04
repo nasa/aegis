@@ -107,7 +107,7 @@ const PresetEditorRight: FunctionComponent = () => {
               styleContainer={{ paddingLeft: 0 }}
               styleValue={{ padding: 0, height: "auto" }}
               onSubmit={(val) => {
-                dispatch(upsertPresetByField(selectedPreset.uuid, "name", val));
+                dispatch(upsertPresetByField(selectedPreset.uuid, "name", val || ""));
               }}
               key={`${selectedPreset.uuid}-name`}
             />

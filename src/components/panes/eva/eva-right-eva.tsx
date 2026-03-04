@@ -447,7 +447,7 @@ const EvaRightEva: FunctionComponent = () => {
               styleValue={{ padding: 0, height: "auto", color: "var(--eva)" }}
               styleContainer={{ paddingLeft: 0 }}
               onSubmit={(val) => {
-                dispatch(upsertEvaByField(partialSelectedEva.uuid, "name", val));
+                dispatch(upsertEvaByField(partialSelectedEva.uuid, "name", val || ""));
               }}
               key={`${partialSelectedEva.uuid}-name`}
               toFocus={partialSelectedEva.createdAt === partialSelectedEva.updatedAt}
@@ -474,7 +474,7 @@ const EvaRightEva: FunctionComponent = () => {
                   styleValue={{ padding: 0, height: "auto", color: "var(--rex)" }}
                   styleContainer={{ paddingLeft: 0 }}
                   onSubmit={(val) => {
-                    dispatch(upsertRexByField(partialSelectedRex?.uuid, "name", val));
+                    dispatch(upsertRexByField(partialSelectedRex?.uuid, "name", val || ""));
                   }}
                   key={`${partialSelectedRex?.uuid}-name`}
                   toFocus={partialSelectedRex?.createdAt === partialSelectedRex?.updatedAt}

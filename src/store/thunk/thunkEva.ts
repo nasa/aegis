@@ -476,7 +476,7 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
     }
   } else {
     // EVAs for REXs have no name
-    newEva.name = null;
+    newEva.name = "";
   }
   // Upsert eva and persist to the db. Do this first so it's in the DB when
   //  emits go out for the new traverses they can access the eva traverse rate
