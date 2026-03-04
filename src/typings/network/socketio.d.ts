@@ -2,12 +2,13 @@ declare type LaunchpadUser = import("@emss/oauth2-proxy-common").EmssUser;
 
 /** Socket.io Server instantiation types */
 interface ServerToClientEvents {
-  storeUpsert: (payload: StoreUpsert) => void;
-  storeDelete: (payload: StoreDelete) => void;
   statusFromServer: (payload: StatusFromServer) => void;
   version: (version: AppVersion) => void; // server version sent to client
+  storeUpsert: (payload: StoreUpsert) => void;
+  storeDelete: (payload: StoreDelete) => void;
   storeUpsertForMaestro: (payload: StoreUpsertForMaestro) => void;
   storeDeleteForMaestro: (payload: StoreDeleteForMaestro) => void;
+  inspectorUpdate: (payload: ServerSocketStatus) => void;
 }
 
 interface ClientToServerEvents {
@@ -15,6 +16,7 @@ interface ClientToServerEvents {
   storeDelete: (payload: StoreDelete) => void;
   visitorJoin: (visitorData: VisitorData) => void;
   maestroJoin: (maestroVisitor: MaestroVisitor) => void;
+  inspectorJoin: () => void;
 }
 
 type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting" | "failed";

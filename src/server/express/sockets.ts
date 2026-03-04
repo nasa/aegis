@@ -43,6 +43,9 @@ export const setupSocketIO = (): void => {
           // emit new status to all clients in this room including this client
           const statusFromServer = getStatusFromServer(visitorData.missionId);
           io.to(visitorData.missionId.toString()).emit("statusFromServer", statusFromServer);
+
+          // update the inspector room
+          io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
         } catch (error) {
           console.error("SocketIO - visitorJoin: ", error);
         }
@@ -57,6 +60,16 @@ export const setupSocketIO = (): void => {
           return item.socketId === maestroVisitor.socketId;
         });
         maestroVisitors.push(maestroVisitor);
+
+        // update the inspector room
+        io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
+      });
+
+      socket.on("inspectorJoin", () => {
+        socket.join("inspector"); // join an inspector room
+
+        // using io.to will emit to all clients in the inspector room, including this client
+        io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
       });
 
       socket.on("disconnect", () => {
@@ -81,6 +94,9 @@ export const setupSocketIO = (): void => {
               .to(visitorBeingRemoved.missionId.toString())
               .emit("statusFromServer", statusFromServer);
           }
+
+          // update the inspector room
+          io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
         } catch (error) {
           console.error("SocketIO - disconnect: ", error);
         }
@@ -133,6 +149,10 @@ export const emitStoreUpsert = (payload: StoreUpsert): void => {
   if (io) {
     payload = addLastEditEvent(payload);
     io.to(payload.missionId.toString()).emit("storeUpsert", payload);
+
+    // update the inspector room
+    io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
+
     // check if we need to emit to maestro room
     if (globalValues.serverSocketStatus.maestroVisitors?.length === 0) return; // no maestro connected
     if (["eva", "station", "traverse", "action", "mission", "rex"].includes(payload.type)) {
@@ -152,6 +172,10 @@ export const emitStoreDelete = (payload: StoreDelete): void => {
   if (io) {
     payload = addLastEditEvent(payload);
     io.to(payload.missionId.toString()).emit("storeDelete", payload);
+
+    // update the inspector room
+    io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
+
     // check if we need to emit to maestro room
     if (globalValues.serverSocketStatus.maestroVisitors?.length === 0) return; // no maestro connected
     if (["eva", "station", "traverse", "action", "mission", "rex"].includes(payload.type)) {

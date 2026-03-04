@@ -42,7 +42,6 @@ export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: str
     if (actionsUsingEquipmentItem.length > 0) {
       // compile a list of the actions using this equipment item including their parent poi or station names
       const actionsList: PrintableListItem[] = actionsUsingEquipmentItem.map((action) => {
-        console.log(action);
         const parentType = action.poiUuid ? "POI" : "Station";
         let parentName = "";
         if (parentType === "POI") {
