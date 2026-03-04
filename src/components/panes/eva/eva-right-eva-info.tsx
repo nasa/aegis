@@ -320,7 +320,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 value={selectedEva.description || ""}
                 editing={editMode}
                 onSubmit={(value: string) => {
-                  dispatch(upsertEvaByField(selectedEva.uuid, "description", value));
+                  dispatch(upsertEvaByField(selectedEva.uuid, "description", value || ""));
                 }}
                 fieldProps={{ name: "evaDescription", ariaLabel: "EVA Description" }}
               />

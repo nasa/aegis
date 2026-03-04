@@ -135,7 +135,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 value={selectedTraverse.description}
                 editing={editMode}
                 onSubmit={(value: string) => {
-                  dispatch(upsertTraverseByField(selectedTraverse.uuid, "description", value));
+                  dispatch(
+                    upsertTraverseByField(selectedTraverse.uuid, "description", value || "")
+                  );
                 }}
                 fieldProps={{ name: "traverseDescription", ariaLabel: "Traverse Description" }}
               />

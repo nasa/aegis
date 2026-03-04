@@ -457,7 +457,7 @@ describe("Thunk EVA Tests", () => {
       expect(store.getState().eva.evasFromDb.length).toEqual(numEvas + 1);
       expect(httpClient_eva.upsertEvas).toHaveBeenCalledTimes(2);
       expect(res.payload).toBeTruthy();
-      if (res.payload) expect(res.payload.name).toBeNull();
+      if (res.payload) expect(res.payload.name).toBe("");
       // traverses should be duplicated and saved to db
       expect(store.getState().traverse.traverses.length).toEqual(numTraverses + numTraversesInEva);
       expect(store.getState().traverse.traversesFromDb.length).toEqual(

@@ -115,7 +115,7 @@ const Info_Panel: FunctionComponent<{
                 value={selectedPoi.description}
                 editing={editMode}
                 onSubmit={(value: string) => {
-                  dispatch(upsertPoiByField(selectedPoi.uuid, "description", value));
+                  dispatch(upsertPoiByField(selectedPoi.uuid, "description", value || ""));
                 }}
                 fieldProps={{
                   name: "poiDescription",

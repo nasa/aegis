@@ -260,7 +260,7 @@ const StationEditorRight: FunctionComponent = () => {
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingLeft: 0 }}
               onSubmit={(val) => {
-                dispatch(upsertStationByField(selectedStation.uuid, "name", val));
+                dispatch(upsertStationByField(selectedStation.uuid, "name", val || ""));
               }}
               key={`${selectedStation.uuid}-name`}
               toFocus={selectedStation.createdAt === selectedStation.updatedAt}

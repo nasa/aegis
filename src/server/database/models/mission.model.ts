@@ -7,7 +7,7 @@ export class Mission_db implements Mission_db_type {
 
   @Property({ type: MikroTypes.text })
   name!: string;
-  @Property({ type: MikroTypes.text, nullable: true })
+  @Property({ type: MikroTypes.text })
   description!: string;
   @Property({ type: MikroTypes.text, nullable: true })
   missionBanner: string;

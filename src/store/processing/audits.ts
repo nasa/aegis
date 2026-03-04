@@ -331,14 +331,14 @@ export const auditRichTextToText = async ({
   wholeStoreState: WholeStoreState;
 }): Promise<void> => {
   const convertSlateToPlaintext = (description: string): string => {
-    if (!description) return null;
+    if (!description) return "";
     // Convert a string to a slate JSON object.
     let jsonSlateNodes;
     try {
       jsonSlateNodes = JSON.parse(description);
     } catch (e) {
       // If it's not in JSON form then it must be already a plain string
-      return null;
+      return "";
     }
 
     // convert to html
@@ -462,34 +462,5 @@ export const auditRichTextToText = async ({
   if (!isEqual(newStations, wholeStoreState.station.stations)) {
     httpClient_station.upsertStations(newStations);
     wholeStoreState.station.stations = newStations;
-  }
-};
-
-// Go through all the EVAs that belong to a REX and null out their name field
-// This audit can be removed once all missions have been visited
-export const auditRexEvaNames = async ({
-  wholeStoreState,
-}: {
-  wholeStoreState: WholeStoreState;
-}): Promise<void> => {
-  const newEvas = cloneDeep(wholeStoreState.eva.evas);
-
-  const evasToSaveToDb: Eva[] = [];
-  for (const rex of wholeStoreState.rex.rexes) {
-    // get eva for this rex and check if it needs to be set to null
-    const eva = newEvas.find((eva) => eva.uuid === rex.evaUuid);
-    if (eva && eva.name !== null) {
-      eva.name = null;
-      evasToSaveToDb.push({ ...eva, name: null });
-    }
-  }
-
-  // save changes to store and db
-  if (evasToSaveToDb.length > 0) {
-    wholeStoreState.eva.evas = newEvas;
-    const upsertResponse = await httpClient_eva.upsertEvas(evasToSaveToDb);
-    if (upsertResponse.status !== "success") {
-      console.error("Error saving REX EVA names for audit to DB:", upsertResponse.message);
-    }
   }
 };

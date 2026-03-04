@@ -36,7 +36,7 @@ export class Traverse_db implements Traverse_db_type {
   pathSegmentElevations: number[][];
   @Property({ type: MikroTypes.float, nullable: true })
   duration: number;
-  @Property({ type: MikroTypes.text, nullable: true })
+  @Property({ type: MikroTypes.text })
   description: string;
   @Property({ type: MikroTypes.string, nullable: true })
   status: TraverseStatus;
