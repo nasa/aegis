@@ -15,7 +15,7 @@ type Layer_db_type = Omit<Layer, "missionId" | "createdAt" | "updatedAt"> & {
 
 type SublayerType = "vector" | "tile" | "vector-tile";
 
-//add a custom description field to MMGIS sublayers
+//add a custom description field to sublayers
 interface Sublayer {
   uuid: string;
   missionId: number;
@@ -31,14 +31,13 @@ interface Sublayer {
   minNativeZoom: number;
   maxNativeZoom: number;
   maxZoom: number;
-  style: MapSublayerStyle;
   isTimeBased: boolean;
   timeLayerManifest: TimeLayerInfo[];
   createdAt: string;
   updatedAt: string;
 }
 
-// properties that are allowable to be overriden with properties.json in admin
+// properties that are allowable to be overridden with properties.json in admin
 type SublayerImportable = Partial<
   Pick<
     Sublayer,
@@ -52,7 +51,6 @@ type SublayerImportable = Partial<
     | "minNativeZoom"
     | "maxNativeZoom"
     | "maxZoom"
-    | "style"
   >
 >;
 

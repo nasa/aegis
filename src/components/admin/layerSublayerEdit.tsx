@@ -277,7 +277,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
       minNativeZoom: tempBlankSublayer.minNativeZoom,
       maxNativeZoom: tempBlankSublayer.maxNativeZoom,
       maxZoom: tempBlankSublayer.maxZoom,
-      style: tempBlankSublayer.style,
       isTimeBased: tempBlankSublayer.isTimeBased,
       timeLayerManifest: tempBlankSublayer.timeLayerManifest,
     });
