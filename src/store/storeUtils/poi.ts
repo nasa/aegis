@@ -7,7 +7,7 @@ import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank poi
- * @param partialPoi any fields that are to be overriden from default
+ * @param partialPoi any fields that are to be overridden from default
  * @returns the generated poi
  */
 export const generateBlankPoi = (partialPoi?: Partial<POI>): POI => {
@@ -41,7 +41,7 @@ export function convertPoisTypeDbToStore(dbPois: Poi_db[]): POI[] {
   for (const dbPoi of dbPois) {
     const convertedPoi: POI = {
       uuid: dbPoi.uuid,
-      missionId: dbPoi.mission.id,
+      missionId: dbPoi.missionId,
       ownerId: dbPoi.ownerId,
       actionOrderUuids: dbPoi.actionOrderUuids,
       name: dbPoi.name,
@@ -72,7 +72,7 @@ export function convertPoisTypeStoreToDb(storePois: POI[]): EntityData<Poi_db>[]
     const convertedRecord: EntityData<Poi_db> = {
       uuid: storePoi.uuid,
       ownerId: storePoi.ownerId,
-      mission: storePoi.missionId,
+      missionId: storePoi.missionId,
       actionOrderUuids: storePoi.actionOrderUuids,
       name: storePoi.name,
       description: storePoi.description,

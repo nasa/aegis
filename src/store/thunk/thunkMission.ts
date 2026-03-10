@@ -1,19 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import * as httpClient_mission from "http-client/mission";
-import cloneDeep from "lodash/cloneDeep";
-import {
-  upsertMission,
-  setMissionFromDb,
-  setMissionSectionEditing,
-  upsertMissionByField,
-} from "store/mission";
 import { thunkGetElevation } from "./thunkElevation";
 import { thunkFullUpdateWalkback, thunkSaveStation } from "./thunkStation";
-import { setPresetCircleUIStates, upsertPresetByField } from "store/preset";
-import { thunkSavePreset } from "./thunkPreset";
 import { getAccurateNow } from "utils/formatting";
-import { makeUniqueStringCopy } from "utils/names/duplicate";
-import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
 import {
   makeExportMission,
@@ -25,166 +13,22 @@ import {
   makeExportTraverses,
 } from "utils/export";
 import * as jsonKeysSort from "json-keys-sort";
-import { generateBlankActionTemplate } from "store/storeUtils/mission";
-import { setStationCircleUIStates, upsertStationByField } from "store/station";
 import { globalGrid } from "utils/mapping/grid";
-import isEqual from "lodash/isEqual";
 import { thunkFullUpdateTraverse } from "./thunkTraverse";
-import { defaultSublayerStyle } from "store/storeUtils/sublayer";
-
-export const thunkMissionSave = appCreateAsyncThunk<void>(
-  "missionSave",
-  async (_, { dispatch, getState }) => {
-    const newMission = getState().mission.mission;
-    const oldMission = getState().mission.missionFromDb;
-
-    //save mission to db
-    const upsertResponse = await httpClient_mission.upsertMissions([
-      {
-        ...newMission,
-        updatedAt: getAccurateNow().toISOString(),
-      },
-    ]);
-
-    if (upsertResponse.status === "success") {
-      // update the db copy in the store
-      const mission = upsertResponse.data[0];
-      dispatch(upsertMission(mission, true));
-      dispatch(setMissionFromDb(mission));
-    } else {
-      throw new Error("Error saving mission: " + upsertResponse.message);
-    }
-
-    //sync up presets circle layers
-    if (!isEqual(newMission.circleDefinitions, oldMission.circleDefinitions)) {
-      const savePresetPromises = getState().preset.presets.map((preset) => {
-        const oldPresetCircleUIStates: CircleUIStates =
-          getState().preset.presetCirclesUIStates[preset.uuid];
-
-        const newPresetCircleUIStates: CircleUIStates = { ...oldPresetCircleUIStates };
-        const newMapCircleControls: MapCircleControls = {};
-
-        Object.entries(newMission.circleDefinitions).forEach(([circleUuid, circleDefinition]) => {
-          //update ui states
-          if (oldPresetCircleUIStates[circleUuid]) {
-            newPresetCircleUIStates[circleUuid] = oldPresetCircleUIStates[circleUuid];
-          } else {
-            newPresetCircleUIStates[circleUuid] = {
-              name: circleDefinition.name,
-              slidersSelected: false,
-            };
-          }
-          //remove any UI states circle definitions that were deleted
-          for (const uuid of Object.keys(newPresetCircleUIStates)) {
-            const isSublayer = getState().mission.sublayers?.some(
-              (sublayer) => sublayer.uuid === uuid
-            );
-            const isHeaderLayer = getState().mission.layers?.some((layer) => layer.uuid === uuid);
-            const isCircle = !!newMission.circleDefinitions[uuid];
-
-            if (!isSublayer && !isHeaderLayer && !isCircle) delete newPresetCircleUIStates[uuid];
-          }
-
-          //update preset map circle controls
-          if (preset.mapCircleControls[circleUuid]) {
-            newMapCircleControls[circleUuid] = preset.mapCircleControls[circleUuid];
-          } else {
-            newMapCircleControls[circleUuid] = {
-              name: circleDefinition.name,
-              uuid: circleUuid,
-              visible: false,
-              style: defaultSublayerStyle,
-            };
-          }
-        });
-
-        dispatch(
-          setPresetCircleUIStates({
-            presetUuid: preset.uuid,
-            circleUIStates: newPresetCircleUIStates,
-          })
-        );
-        dispatch(upsertPresetByField(preset.uuid, "mapCircleControls", newMapCircleControls));
-        return dispatch(thunkSavePreset({ presetUuid: preset.uuid }));
-      });
-      // wait for all station saves to be completed
-      await Promise.all(savePresetPromises);
-
-      //sync up stations circle controls
-      const saveStationPromises = getState().station.stations.map((station) => {
-        const oldStationCircleUIStates = getState().station.stationCirclesUIStates[station.uuid];
-
-        const newStationCircleUIStates: CircleUIStates = { ...oldStationCircleUIStates };
-        const newMapCircleControls: MapCircleControls = {};
-
-        Object.entries(newMission.circleDefinitions).forEach(([circleUuid, circleDefinition]) => {
-          //update ui states
-          if (oldStationCircleUIStates[circleUuid]) {
-            newStationCircleUIStates[circleUuid] = oldStationCircleUIStates[circleUuid];
-          } else {
-            newStationCircleUIStates[circleUuid] = {
-              name: circleDefinition.name,
-              slidersSelected: false,
-            };
-          }
-          //remove any UI states circle definitions that were deleted
-          for (const uuid of Object.keys(newStationCircleUIStates)) {
-            const isCircle = !!newMission.circleDefinitions[uuid];
-            if (!isCircle) delete newStationCircleUIStates[uuid];
-          }
-
-          //update station map circle controls
-          if (station.mapCircleControls[circleUuid]) {
-            newMapCircleControls[circleUuid] = station.mapCircleControls[circleUuid];
-          } else {
-            newMapCircleControls[circleUuid] = {
-              name: circleDefinition.name,
-              uuid: circleUuid,
-              visible: false,
-              style: defaultSublayerStyle,
-            };
-          }
-        });
-
-        dispatch(
-          setStationCircleUIStates({
-            stationUuid: station.uuid,
-            circleUIStates: newStationCircleUIStates,
-          })
-        );
-        dispatch(upsertStationByField(station.uuid, "mapCircleControls", newMapCircleControls));
-        return dispatch(thunkSaveStation({ stationUuid: station.uuid }));
-      });
-      // wait for all station saves to be completed
-      await Promise.all(saveStationPromises);
-    }
-
-    dispatch(setMissionSectionEditing({ section: "prefs", editMode: false }));
-  }
-);
-
-export const thunkMissionCancel = appCreateAsyncThunk<void>(
-  "missionCancel",
-  async (_, { dispatch, getState }) => {
-    const oldMission = getState().mission.mission;
-    const missionFromDb = getState().mission.missionFromDb;
-
-    // check if the lander location was modified. If so, we need to reset all stations and evas
-    if (!isEqual(oldMission.landerLocation, missionFromDb.landerLocation)) {
-      await dispatch(thunkUpdateLanderLocation({ location: missionFromDb.landerLocation }));
-    }
-
-    // reset mission to the copy from db
-    dispatch(upsertMission(missionFromDb, true));
-    dispatch(setMissionSectionEditing({ section: "prefs", editMode: false }));
-  }
-);
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 
 export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
 }>("updateLanderLocation", async ({ location }, { dispatch, getState }) => {
-  dispatch(upsertMissionByField("landerLocation", location));
+  const missionDocHandle = getAutomergeDocHandles().mission;
 
+  // update lander location
+  missionDocHandle.change((m: Mission) => {
+    m.landerLocation = location;
+    m.updatedAt = getAccurateNow().getTime();
+  });
+
+  // get elevation of location
   const thunkElevationRes = await dispatch(
     thunkGetElevation({
       path: [location],
@@ -196,7 +40,11 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
   if (thunkElevationRes.meta.requestStatus !== "rejected") {
     //upsert lander location and elevation
     const elevation = thunkElevationRes.payload as number;
-    dispatch(upsertMissionByField("landerElevationMeters", elevation));
+    //update lander location and elevation
+    missionDocHandle.change((m: Mission) => {
+      m.landerElevationMeters = elevation;
+      m.updatedAt = getAccurateNow().getTime();
+    });
   }
 
   // Loop through all stations and update their walkback traverses to snap to the new lander location
@@ -214,7 +62,6 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
       throw new Error("Error updating lander location in thunkUpdateLanderLocation");
     }
 
-    dispatch(upsertStationByField(station.uuid, "walkbackPath", newPathRes.payload));
     // Return the dispatch promise but don't await it here
     return dispatch(thunkSaveStation({ stationUuid: station.uuid }));
   });
@@ -255,37 +102,13 @@ export const thunkUpdateLanderLocation = appCreateAsyncThunk<{
   await Promise.all(traverseUpdateIngressPromises);
 });
 
-export const thunkCreateActionTemplate = appCreateAsyncThunk<void, string>(
-  "createActionTemplate",
-  async (_, { dispatch, getState }) => {
-    const missionActionTemplates = getState().mission.mission.actionTemplates;
-    const existingNames = Object.entries(missionActionTemplates).map(([_, at]) => at.templateName);
-    const randomName = generateUniqueName({
-      dictName: "animals",
-      existingNames,
-    });
-
-    const blankActionTemplate: ActionTemplate = generateBlankActionTemplate({
-      templateName: randomName,
-    });
-
-    //upsert action template
-    const actionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || {};
-    const newUuid = uuidv4();
-    actionTemplates[newUuid] = blankActionTemplate;
-    dispatch(upsertMissionByField("actionTemplates", actionTemplates));
-
-    return newUuid;
-  }
-);
-
 export const thunkCreateTemplateFromAction = appCreateAsyncThunk<{ actionUuid: string }, string>(
   "createTemplateFromAction",
-  async ({ actionUuid }, { dispatch, getState }) => {
+  async ({ actionUuid }, { getState }) => {
     const action = getState().action.actions.find((a) => a.uuid === actionUuid);
+    if (!action) return "";
 
-    const actionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || {};
-
+    const newActionTemplateUuid = uuidv4();
     const newActionTemplate: ActionTemplate = {
       templateName: `Template of ${action.name}`,
       name: action.name,
@@ -303,60 +126,30 @@ export const thunkCreateTemplateFromAction = appCreateAsyncThunk<{ actionUuid: s
       crewAssigned: action.crewAssigned,
       mass: action.mass,
       priority: action.priority,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: getAccurateNow().getTime(),
+      updatedAt: getAccurateNow().getTime(),
     };
 
     //upsert action template
-    const newUuid = uuidv4();
-    actionTemplates[newUuid] = newActionTemplate;
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    missionDocHandle.change((m: Mission) => {
+      if (newActionTemplate.stmAction) {
+        // update template name to noun/verb/adj name
+        const nounName =
+          m.actionDefinitions?.nouns?.[newActionTemplate.actionDefinition?.nounUuid || ""]?.name;
+        const verbName =
+          m.actionDefinitions?.verbs?.[newActionTemplate.actionDefinition?.verbUuid || ""]?.name;
+        const adjName =
+          m.actionDefinitions?.adjectives?.[newActionTemplate.actionDefinition?.adjectiveUuid || ""]
+            ?.name;
 
-    dispatch(upsertMissionByField("actionTemplates", actionTemplates));
-    dispatch(thunkMissionSave());
-    return newUuid;
-  }
-);
-
-export const thunkUpdateActionTemplate = appCreateAsyncThunk<{
-  uuid: string;
-  fieldName: keyof ActionTemplate;
-  value: ActionTemplate[keyof ActionTemplate];
-}>("updateActionTemplate", async ({ uuid, fieldName, value }, { dispatch, getState }) => {
-  const newActionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || {};
-  if (newActionTemplates[uuid]) {
-    newActionTemplates[uuid].updatedAt = getAccurateNow().toISOString();
-    (newActionTemplates[uuid] as Record<string, unknown>)[fieldName] = value;
-    dispatch(upsertMissionByField("actionTemplates", newActionTemplates));
-  }
-});
-
-export const thunkDeleteActionTemplate = appCreateAsyncThunk<{ actionTemplateUuid: string }>(
-  "deleteActionTemplate",
-  async ({ actionTemplateUuid }, { dispatch, getState }) => {
-    const newActionTemplates = cloneDeep(getState().mission.mission.actionTemplates);
-    delete newActionTemplates[actionTemplateUuid];
-    dispatch(upsertMissionByField("actionTemplates", newActionTemplates));
-  }
-);
-
-export const thunkDuplicateActionTemplate = appCreateAsyncThunk<{ actionTemplateUuid: string }>(
-  "duplicateActionTemplate",
-  async ({ actionTemplateUuid }, { dispatch, getState }) => {
-    const actionTemplates = cloneDeep(getState().mission.mission.actionTemplates) || {};
-    const modelTemplate = actionTemplates[actionTemplateUuid];
-    if (!modelTemplate) return;
-
-    const duplicatedActionTemplate: ActionTemplate = cloneDeep(modelTemplate);
-    duplicatedActionTemplate.createdAt = getAccurateNow().toISOString();
-    duplicatedActionTemplate.updatedAt = getAccurateNow().toISOString();
-    duplicatedActionTemplate.templateName = makeUniqueStringCopy(
-      modelTemplate.templateName,
-      Object.entries(actionTemplates).map(([_, at]) => at.templateName)
-    );
-
-    //upsert action template
-    actionTemplates[uuidv4()] = duplicatedActionTemplate;
-    dispatch(upsertMissionByField("actionTemplates", actionTemplates));
+        newActionTemplate.templateName =
+          `Template of ${verbName || "Verb"} of ${nounName || "Noun"} in ${adjName || "Adj"} `.trim();
+      }
+      m.actionTemplates[newActionTemplateUuid] = newActionTemplate;
+      m.updatedAt = getAccurateNow().getTime();
+    });
+    return newActionTemplateUuid;
   }
 );
 
@@ -386,8 +179,10 @@ export const thunkMakeExportString = appCreateAsyncThunk<
     },
     { getState }
   ) => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
     const allData: AllDataForExport = {
-      mission: getState().mission.mission,
+      mission: mission || ({} as Mission),
       pois: getState().poi.pois,
       stations: getState().station.stations,
       actions: getState().action.actions,
@@ -404,12 +199,13 @@ export const thunkMakeExportString = appCreateAsyncThunk<
      * Mission
      */
     if (selectMission) {
-      const mission = makeExportMission({
-        mission: getState().mission.mission,
+      const exportMission = makeExportMission({
+        mission: mission,
         missionGrid: globalGrid?.coordinates,
       });
-      selectedExportedData = { ...selectedExportedData, mission };
+      selectedExportedData = { ...selectedExportedData, exportMission };
     }
+
     /**
      * Actions
      */

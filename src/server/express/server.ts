@@ -2,6 +2,10 @@ import "utils/loadEnv";
 import { createServer, Server as NetServer } from "http";
 import { Server as SocketServer } from "socket.io";
 import type { DefaultEventsMap } from "socket.io";
+import { WebSocketServer } from "isomorphic-ws"; // included in automerge repo network websocket
+import { isValidAutomergeUrl, Repo } from "@automerge/automerge-repo/slim";
+import type { DocHandle, StorageAdapterInterface } from "@automerge/automerge-repo/slim";
+import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket";
 import app from "./restApi";
 
 import { setupSocketIO } from "./sockets";
@@ -10,6 +14,15 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 
 import serverLogger from "utils/logging/serverLogger";
+import pg from "pg";
+import { getAutomergeDocListing } from "./routes/docListing";
+import { addDbBackupListener } from "./routes/mission";
+import { PostgresStorageAdapter } from "server/automerge/automerge-repo-storage-postgres";
+import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
+import { initializeBase64Wasm } from "@automerge/automerge/slim";
+
+// this is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
+initializeBase64Wasm(automergeWasmBase64);
 
 // Wrap in async IIFE to handle top-level await
 (async () => {
@@ -30,6 +43,10 @@ import serverLogger from "utils/logging/serverLogger";
     transports: ["websocket"],
     path: "/api/v1/socketio",
     addTrailingSlash: false,
+    // Reduce ping interval and timeout from Socket.IO defaults
+    // to detect dead connections within ~10s
+    pingInterval: 5000,
+    pingTimeout: 5000,
   });
   // these values are defined in esbuild.mjs and populated at build time
   globalValues.appVersion = {
@@ -46,6 +63,66 @@ import serverLogger from "utils/logging/serverLogger";
     serverLogger.info({ logId: "api-restart" });
   });
 
+  // setup autoMerge sync server
+  const wss = new WebSocketServer({ noServer: true });
+
+  // upgrade an already established client/server connection to a
+  //    different protocol (over the same transport protocol).
+  server.on("upgrade", (request, socket, head) => {
+    if (request.url === "/api/v1/socketAutomerge/") {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit("connection", ws, request);
+      });
+    }
+  });
+
+  // hook up the network (socket server) and storage to a new automerge repo
+  const networkAdapter = new NodeWSServerAdapter(wss);
+  const dbConfig: pg.Pool = new pg.Pool({
+    user: "postgres",
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASS,
+    port: 5432,
+  });
+  const storageAdapter: StorageAdapterInterface = new PostgresStorageAdapter(
+    "automerge_native_db",
+    dbConfig
+  );
+  // store the automerge repo in global so we can access it later on the server
+  globalValues.automergeRepo = new Repo({
+    network: [networkAdapter],
+    storage: storageAdapter,
+    /** @ts-expect-error @type {(import("@automerge/automerge-repo").PeerId)}  */
+    peerId: `storage-server`,
+    sharePolicy: async () => false,
+  });
+
+  // clg peers as they come and go
+  globalValues.automergeRepo.networkSubsystem.on("peer", (peerPayload) => {
+    console.log("automerge peer connected: " + peerPayload.peerId);
+  });
+  globalValues.automergeRepo.networkSubsystem.on("peer-disconnected", (peerPayload) => {
+    console.log("automerge peer disconnected: " + peerPayload.peerId);
+  });
+
+  // attach db backup listeners to all existing automerge docs
+  getAutomergeDocListing().then(async (docListings) => {
+    // process sequentially to avoid overwhelming the system
+    for (const docInfo of docListings) {
+      if (!isValidAutomergeUrl(docInfo.automergeUrl)) continue;
+      // get docHandle for each document/mission and add listeners
+      const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
+        docInfo.automergeUrl
+      );
+      // wait till handler is ready in-case it has to get the doc for the first time
+      await missionDocHandle.whenReady();
+      const mission: Mission = missionDocHandle.doc();
+      console.log(`attaching db backup listeners for ${mission.id}`);
+      addDbBackupListener(missionDocHandle);
+    }
+  });
+
   const gracefulShutdown = async () => {
     console.info("Gracefully shutting down server...");
 
@@ -57,6 +134,17 @@ import serverLogger from "utils/logging/serverLogger";
       process.exit(1);
     }, 30000); // 30 seconds
     shutdownTimeout.unref(); // Don't keep process alive just for this
+
+    // Shutdown automerge repo
+    if (globalValues.automergeRepo) {
+      try {
+        await globalValues.automergeRepo.shutdown();
+        console.info("Automerge repo shut down");
+      } catch (err) {
+        console.error("Error shutting down automerge repo:", err);
+        hasErrors = true;
+      }
+    }
 
     // Stop socket status interval
     if (globalValues.socketInterval) {

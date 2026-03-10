@@ -267,11 +267,7 @@ export default router;
 
 export async function getPois(missionId: number): Promise<POI[]> {
   const em = globalValues.orm.em;
-  const dbPois = await em.find(
-    Poi_db,
-    { mission: missionId },
-    { orderBy: { name: QueryOrder.ASC } }
-  );
+  const dbPois = await em.find(Poi_db, { missionId }, { orderBy: { name: QueryOrder.ASC } });
 
   /** transform the Mikro Poi types into POI types used in the Store */
   return convertPoisTypeDbToStore(dbPois);

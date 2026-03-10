@@ -28,6 +28,7 @@ import { setSelectedStationUuid } from "store/station";
 import { actionTypes } from "store/storeUtils/action";
 import sortBy from "lodash/sortBy";
 import { selectAsPlannedStations } from "store/selectors";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const StmViewerPage: FunctionComponent = () => {
   const stmViewExpandTopTiers = useAppSelector(
@@ -38,17 +39,22 @@ const StmViewerPage: FunctionComponent = () => {
     (state) => state.stm.stmViewShowCrosshairs,
     refEqual
   );
-  const stmLevel1Enabled = useAppSelector(
-    (state) => state.mission.mission.stmLevel1Enabled,
-    refEqual
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      stmLevel1Enabled: doc.stmLevel1Enabled,
+      stmLevel1Name: doc.stmLevel1Name,
+      stmLevel2Name: doc.stmLevel2Name,
+      stmLevel3Name: doc.stmLevel3Name,
+    }),
+    deepEqual
   );
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+
   const dispatch = useAppDispatch();
 
-  const expandedClass = stmLevel1Enabled
+  const expandedClass = partialMission.stmLevel1Enabled
     ? styles.panelTopLeftExpanded
     : styles.panelTopLeftExpanded2Tier;
-  const collapsedClass = stmLevel1Enabled
+  const collapsedClass = partialMission.stmLevel1Enabled
     ? styles.panelTopLeftCollapsed
     : styles.panelTopLeftCollapsed2Tier;
 
@@ -112,34 +118,34 @@ const StmViewerPage: FunctionComponent = () => {
             {stmViewExpandTopTiers ? (
               <div
                 className={
-                  mission.stmLevel1Enabled
+                  partialMission.stmLevel1Enabled
                     ? styles.listTableTitlesExpanded
                     : styles.listTableTier1DisabledTitlesExpanded
                 }
               >
-                {mission.stmLevel1Enabled && (
-                  <div className={styles.listTableTitle}>{`${mission.stmLevel1Name}s`}</div>
+                {partialMission.stmLevel1Enabled && (
+                  <div className={styles.listTableTitle}>{`${partialMission.stmLevel1Name}s`}</div>
                 )}
-                <div className={styles.listTableTitle}>{mission.stmLevel2Name}s</div>
-                <div className={styles.listTableTitle}>{mission.stmLevel3Name}s</div>
+                <div className={styles.listTableTitle}>{partialMission.stmLevel2Name}s</div>
+                <div className={styles.listTableTitle}>{partialMission.stmLevel3Name}s</div>
               </div>
             ) : (
               <div
                 className={
-                  mission.stmLevel1Enabled
+                  partialMission.stmLevel1Enabled
                     ? styles.listTableTitlesCollapsed
                     : styles.listTableTier1DisabledTitlesCollapsed
                 }
               >
-                {mission.stmLevel1Enabled && (
+                {partialMission.stmLevel1Enabled && (
                   <div className={styles.listTableTitle}>
-                    {mission.stmLevel1Name.substring(0, 1)}.
+                    {partialMission.stmLevel1Name.substring(0, 1)}.
                   </div>
                 )}
                 <div className={styles.listTableTitle}>
-                  {mission.stmLevel2Name.substring(0, 1)}.
+                  {partialMission.stmLevel2Name.substring(0, 1)}.
                 </div>
-                <div className={styles.listTableTitle}>{mission.stmLevel3Name}s</div>
+                <div className={styles.listTableTitle}>{partialMission.stmLevel3Name}s</div>
               </div>
             )}
           </div>

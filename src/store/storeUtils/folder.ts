@@ -7,7 +7,7 @@ import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank folder
- * @param partialFolder any fields that are to be overriden from default
+ * @param partialFolder any fields that are to be overridden from default
  * @returns the generated folder
  */
 export const generateBlankFolder = (partialFolder?: Partial<Folder>): Folder => {
@@ -31,7 +31,7 @@ export const generateBlankFolder = (partialFolder?: Partial<Folder>): Folder => 
 export function convertFolderDbToStore(dbFolder: Folder_db): Folder {
   return {
     uuid: dbFolder.uuid,
-    missionId: dbFolder.mission.id,
+    missionId: dbFolder.missionId,
     name: dbFolder.name,
     type: dbFolder.type,
     items: dbFolder.items,
@@ -48,7 +48,7 @@ export function convertFolderDbToStore(dbFolder: Folder_db): Folder {
 export function convertFolderStoreToDb(storeFolder: Folder): EntityData<Folder_db> {
   return {
     uuid: storeFolder.uuid,
-    mission: storeFolder.missionId,
+    missionId: storeFolder.missionId,
     name: storeFolder.name,
     type: storeFolder.type,
     items: storeFolder.items,

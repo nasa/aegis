@@ -218,12 +218,12 @@ export async function getActions(filter: ActionFilterOptions): Promise<Action[]>
     uuid?: string;
     poi?: { uuid: string };
     station?: { uuid: string };
-    mission?: { id: number };
+    missionId?: number;
   } = {};
   if (filter?.actionUuid) whereClause.uuid = filter.actionUuid;
   if (filter?.poiUuid) whereClause.poi = { uuid: filter.poiUuid };
   if (filter?.stationUuid) whereClause.station = { uuid: filter.stationUuid };
-  if (filter?.missionId) whereClause.mission = { id: filter.missionId };
+  if (filter?.missionId) whereClause.missionId = filter.missionId;
 
   const dbActions: Loaded<Action_db>[] = await em.find(
     Action_db,

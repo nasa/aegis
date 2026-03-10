@@ -90,8 +90,8 @@ setup-load-test:oxygen:
     # the LOADTEST_PASSWORD variable at runtime
     - source .env
 
-    - npm run api:build
-    - node ./.local/express/dist/startLoadTest.js https://${SERVER_SUBDOMAIN}.fit.nasa.gov/
+    - npm run test:loadtest:build
+    - npm run test:loadtest https://${SERVER_SUBDOMAIN}.fit.nasa.gov/
 
 run-load-test:int:
   extends: .run-load-test-template

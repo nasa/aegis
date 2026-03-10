@@ -14,7 +14,7 @@ export const validateImportableSublayer = async (
 ): Promise<ErrorObject[]> => {
   const schemaRes = await fetch(`/api/v1/sublayer/schema`);
   if (schemaRes.status !== 200) {
-    throw new Error(`Error retrieving schema: ${schemaRes.status}`);
+    throw new Error(`Error retrieving sublayer schema: ${schemaRes.status}`);
   }
   const schema = (await schemaRes.json()).data;
   const validate = ajv.compile(schema);
@@ -47,3 +47,36 @@ export function validateGeoJSON(data: string): [boolean, (DefinedError | SyntaxE
 
   return [false, validate.errors as DefinedError[]];
 }
+
+/**
+ * validate the mission object against the mission schema
+ */
+export const validateMission = async (
+  missionToValidate: unknown,
+  loadTestOptions?: {
+    // used for load testing ONLY
+    serverURL?: string;
+    cookies?: string;
+  }
+): Promise<ErrorObject[]> => {
+  const path = loadTestOptions?.serverURL
+    ? `${loadTestOptions?.serverURL}/api/v1/mission/schema`
+    : `/api/v1/mission/schema`;
+
+  const headers: HeadersInit = {};
+  if (loadTestOptions?.cookies) {
+    headers["Cookie"] = loadTestOptions?.cookies;
+  }
+
+  const schemaRes = await fetch(`${path}`, { headers });
+  if (schemaRes.status !== 200) {
+    throw new Error(`Error retrieving mission schema: ${schemaRes.status}`);
+  }
+  const schema = (await schemaRes.json()).data;
+  const validate = ajv.compile(schema);
+  const valid = validate(missionToValidate);
+  if (!valid) {
+    return validate.errors || [];
+  }
+  return [];
+};

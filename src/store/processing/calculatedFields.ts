@@ -313,11 +313,21 @@ export const getCalculatedTimeOfSequenceItem = (params: {
   sequenceItemUuid: string;
   evas: Eva[];
   stations: Station[];
-  mission: Mission;
   actions: Action[];
   traverses: Traverse[];
+  missionWalkbackRate: number;
+  missionTraverseRate: number;
 }): string => {
-  const { evaUuid, sequenceItemUuid, evas, stations, mission, actions, traverses } = params;
+  const {
+    evaUuid,
+    sequenceItemUuid,
+    evas,
+    stations,
+    actions,
+    traverses,
+    missionWalkbackRate,
+    missionTraverseRate,
+  } = params;
   const eva = evas.find((storeEva) => storeEva.uuid === evaUuid);
 
   if (!eva || !sequenceItemUuid || !eva.datetime) return;
@@ -340,7 +350,7 @@ export const getCalculatedTimeOfSequenceItem = (params: {
       }
       thisStationCalculatedTime = getCalculatedFieldsByStation({
         station,
-        missionWalkbackRate: mission.walkbackRate,
+        missionWalkbackRate,
         stationActions,
       }).totalDwellTime;
     } else if (seqItem.type === "traverse") {
@@ -354,7 +364,7 @@ export const getCalculatedTimeOfSequenceItem = (params: {
       }
       thisTraverseCalculatedTime = getCalculatedFieldsByTraverse({
         traverse,
-        missionTraverseRate: mission.traverseRate,
+        missionTraverseRate,
         evaTraverseRate: traverseEva?.traverseRate,
         traverseActions,
       }).durationMinutes;

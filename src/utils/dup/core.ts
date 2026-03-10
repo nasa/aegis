@@ -1,7 +1,6 @@
 import type { EntityManager } from "@mikro-orm/postgresql";
 
 import {
-  Mission_db,
   Station_db,
   Poi_db,
   Action_db,
@@ -17,6 +16,7 @@ import {
   Grid_db,
   STM_Rule_db,
   Folder_db,
+  Doc_Listing_db,
 } from "server/database/models/_allModels";
 import { getAccurateNow } from "utils/formatting";
 
@@ -42,20 +42,31 @@ import {
   updateTraverseActionOrder,
 } from "./entityProcessors";
 import { initializeUuidMaps, copyMissionAssets } from "./helpers";
+import { createAutomergeMission } from "server/express/routes/missionAutomerge";
+import type { DocHandle, AutomergeUrl } from "@automerge/automerge-repo/slim";
+import { globalValues } from "server/express/global";
 
 // Create a new mission based on the original
-export const createNewMission = (
-  em: EntityManager,
-  originalMission: Mission_db,
+const createMissionFromSource = async (
+  originalMission: Mission,
   nameSuffix: string
-): Mission_db => {
-  return em.create(Mission_db, {
+): Promise<DocHandle<Mission>> => {
+  const newMission: Mission = {
     ...originalMission,
-    id: undefined, // Let the database assign a new ID
+    id: null, // Let the database assign a new ID
     name: `${originalMission.name} - ${nameSuffix}`,
-    createdAt: getAccurateNow().toISOString(),
-    updatedAt: getAccurateNow().toISOString(),
-  });
+    createdAt: getAccurateNow().getTime(),
+    updatedAt: getAccurateNow().getTime(),
+  };
+
+  // create an mission automerge document
+  const docListing: AutomergeDocListing = await createAutomergeMission(newMission);
+  // retrieve the mission object
+  const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
+    docListing.automergeUrl as AutomergeUrl
+  );
+  await missionDocHandle.whenReady();
+  return missionDocHandle;
 };
 
 // Fetch STM entities with proper population
@@ -64,11 +75,7 @@ export const fetchStmEntities = async (
   missionId: number
 ): Promise<StmEntitiesResult> => {
   // Fetch STM Level 1 with populated Level 2 collection
-  const stmLevel1s = await em.find(
-    STM_Level1_db,
-    { mission: missionId },
-    { populate: ["level2s"] }
-  );
+  const stmLevel1s = await em.find(STM_Level1_db, { missionId }, { populate: ["level2s"] });
 
   // Query Level 2 with populated Level 3 collection
   const stmLevel2s = [];
@@ -85,7 +92,7 @@ export const fetchStmEntities = async (
   }
 
   // Query STM Rules
-  const stmRules = await em.find(STM_Rule_db, { mission: missionId });
+  const stmRules = await em.find(STM_Rule_db, { missionId });
 
   return { stmLevel1s, stmLevel2s, stmLevel3s, stmRules };
 };
@@ -99,29 +106,33 @@ export const createMissionCopy = async (
 ): Promise<number> => {
   try {
     // 1. Create new mission
-    const newMission = createNewMission(em, sourceData.mission, options.nameSuffix);
+    const newMissionDocHandle: DocHandle<Mission> = await createMissionFromSource(
+      sourceData.mission,
+      options.nameSuffix
+    );
+    const newMissionId = newMissionDocHandle.doc().id;
 
     // 2. Initialize UUID maps
     const uuidMaps = outputUuidMaps || initializeUuidMaps();
 
     // 3. Process entities in the correct order
-    processStations(em, sourceData.stations, newMission, uuidMaps);
-    processPois(em, sourceData.pois, newMission, uuidMaps);
-    processTraverses(em, sourceData.traverses, newMission, uuidMaps);
+    processStations(em, sourceData.stations, newMissionId, uuidMaps);
+    processPois(em, sourceData.pois, newMissionId, uuidMaps);
+    processTraverses(em, sourceData.traverses, newMissionId, uuidMaps);
 
     // Actions after base entities are created
-    processActions(em, sourceData.actions, newMission, uuidMaps);
+    processActions(em, sourceData.actions, newMissionId, uuidMaps);
 
     // Continue with other entities
-    processLayers(em, sourceData.layers, newMission, uuidMaps);
+    processLayers(em, sourceData.layers, newMissionId, uuidMaps);
 
     // Process sublayers
-    await processSublayers(em, sourceData.sublayers, newMission, uuidMaps);
+    await processSublayers(em, sourceData.sublayers, newMissionId, uuidMaps);
 
     // Process remaining entities
-    processEvas(em, sourceData.evas, newMission, uuidMaps);
-    processPresets(em, sourceData.presets, newMission, uuidMaps);
-    processRexes(em, sourceData.rexes, newMission, uuidMaps);
+    processEvas(em, sourceData.evas, newMissionId, uuidMaps);
+    processPresets(em, sourceData.presets, newMissionId, uuidMaps);
+    processRexes(em, sourceData.rexes, newMissionId, uuidMaps);
 
     // STM entities
     const stmLevel1s = sourceData.stmLevel1s || [];
@@ -129,12 +140,12 @@ export const createMissionCopy = async (
     const stmLevel3s = sourceData.stmLevel3s || [];
     const stmRules = sourceData.stmRules || [];
 
-    await processStmEntities(em, stmLevel1s, stmLevel2s, stmLevel3s, newMission, uuidMaps);
-    await processStmRules(em, stmRules, newMission, uuidMaps);
+    await processStmEntities(em, stmLevel1s, stmLevel2s, stmLevel3s, newMissionId, uuidMaps);
+    await processStmRules(em, stmRules, newMissionId, uuidMaps);
 
     // Grids and folders
-    const newActiveGridUuid = processGrids(em, sourceData.grids, newMission, uuidMaps);
-    processFolders(em, sourceData.folders, newMission, uuidMaps);
+    const newActiveGridUuid = processGrids(em, sourceData.grids, newMissionId, uuidMaps);
+    processFolders(em, sourceData.folders, newMissionId, uuidMaps);
 
     // 4. Update relationships between entities
     await connectPoisToStations(em, sourceData.pois, uuidMaps);
@@ -148,23 +159,20 @@ export const createMissionCopy = async (
 
     // 5. Set active grid UUID if available
     if (newActiveGridUuid) {
-      newMission.activeGridUuid = newActiveGridUuid;
+      newMissionDocHandle.change((doc) => {
+        doc.activeGridUuid = newActiveGridUuid;
+      });
     }
 
-    // 6. Persist and flush all changes
-    em.persist(newMission);
+    // 6. Flush all changes
     await em.flush();
-
-    if (!newMission.id) {
-      throw new Error("Failed to get ID for the newly created mission after flush");
-    }
 
     // 7. Copy mission assets if needed and if an original ID exists
     if (options.copyAssets && sourceData.mission.id) {
-      await copyMissionAssets(sourceData.mission.id, newMission.id);
+      await copyMissionAssets(sourceData.mission.id, newMissionId);
     }
 
-    return newMission.id;
+    return newMissionId;
   } catch (error) {
     throw new Error(`Failed to create mission copy: ${error}`);
   }
@@ -175,36 +183,42 @@ export const fetchMissionEntities = async (
   em: EntityManager,
   missionId: number
 ): Promise<MissionSourceData> => {
-  const mission = await em.findOne(Mission_db, { id: missionId });
-  if (!mission) {
-    throw new Error(`Mission with ID ${missionId} not found`);
+  const automergeDocListing = await em.findOne(Doc_Listing_db, { missionId });
+  if (!automergeDocListing) {
+    throw new Error(`Automerge document listing for mission ID ${missionId} not found`);
   }
+
+  const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
+    automergeDocListing.automergeUrl as AutomergeUrl
+  );
+  await missionDocHandle.whenReady();
+  const mission = missionDocHandle.doc();
 
   // Fetch STM entities
   const { stmLevel1s, stmLevel2s, stmLevel3s, stmRules } = await fetchStmEntities(em, missionId);
 
   // Fetch POIs with populated station collection to avoid initialization errors
-  const pois = await em.find(Poi_db, { mission: missionId }, { populate: ["station"] });
+  const pois = await em.find(Poi_db, { missionId }, { populate: ["station"] });
 
   // Fetch stations with populated poi collection
-  const stations = await em.find(Station_db, { mission: missionId }, { populate: ["poi"] });
+  const stations = await em.find(Station_db, { missionId }, { populate: ["poi"] });
 
   return {
     mission,
     stations,
     pois,
-    actions: await em.find(Action_db, { mission: missionId }),
-    evas: await em.find(Eva_db, { mission: missionId }),
-    layers: await em.find(Layer_db, { mission: missionId }),
-    sublayers: await em.find(Sublayer_db, { mission: missionId }),
-    traverses: await em.find(Traverse_db, { mission: missionId }),
-    presets: await em.find(Preset_db, { mission: missionId }),
-    rexes: await em.find(Rex_db, { mission: missionId }),
+    actions: await em.find(Action_db, { missionId }),
+    evas: await em.find(Eva_db, { missionId }),
+    layers: await em.find(Layer_db, { missionId }),
+    sublayers: await em.find(Sublayer_db, { missionId }),
+    traverses: await em.find(Traverse_db, { missionId }),
+    presets: await em.find(Preset_db, { missionId }),
+    rexes: await em.find(Rex_db, { missionId }),
     stmLevel1s,
     stmLevel2s,
     stmLevel3s,
     stmRules,
-    grids: await em.find(Grid_db, { mission: missionId }),
-    folders: await em.find(Folder_db, { mission: missionId }),
+    grids: await em.find(Grid_db, { missionId }),
+    folders: await em.find(Folder_db, { missionId }),
   };
 };

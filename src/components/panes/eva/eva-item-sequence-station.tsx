@@ -22,6 +22,7 @@ import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import { selectAsPlannedStations } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const SequenceItemStation: FunctionComponent<{
   evaUuid: string;
@@ -29,6 +30,7 @@ const SequenceItemStation: FunctionComponent<{
   isRexRunning: boolean; // if the eva that this station belongs to is in a running rex
 }> = ({ evaUuid, stationUuid }) => {
   const dispatch = useAppDispatch();
+  const missionWalkbackRate = useMissionDocSelector((doc) => doc.walkbackRate, refEqual);
 
   const isRexEva = useAppSelector((state) => {
     const rexEvaUuids = state.rex.rexes.map((rex) => rex.evaUuid);
@@ -107,7 +109,7 @@ const SequenceItemStation: FunctionComponent<{
     );
     return getCalculatedFieldsByStation({
       station,
-      missionWalkbackRate: state.mission.mission.walkbackRate,
+      missionWalkbackRate,
       stationActions,
     });
   }, deepEqual);

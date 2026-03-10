@@ -29,6 +29,8 @@ import {
   Grid_db,
   STM_Rule_db,
   Folder_db,
+  Doc_Listing_db,
+  Automerge_Native_db,
 } from "./models/_allModels";
 import path from "path";
 
@@ -43,7 +45,7 @@ export default defineConfig({
     snapshot: false,
   },
   seeder: {
-    path: path.join(__dirname, ".//seeds"), // path to the folder with seed files
+    path: path.join(__dirname, "./seeds"), // path to the folder with seed files
   },
   entitiesTs: [
     App_User_db,
@@ -63,6 +65,8 @@ export default defineConfig({
     Grid_db,
     STM_Rule_db,
     Folder_db,
+    Doc_Listing_db,
+    Automerge_Native_db,
   ],
   entities: [
     App_User_db,
@@ -82,6 +86,8 @@ export default defineConfig({
     Grid_db,
     STM_Rule_db,
     Folder_db,
+    Doc_Listing_db,
+    Automerge_Native_db,
   ],
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
   extensions: [Migrator, SeedManager],

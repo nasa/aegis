@@ -25,10 +25,13 @@ import { validators, regExValidators } from "components/interface/form/formValid
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { makeTraverseRateString } from "utils/component-helpers";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
+import { useMissionDocSelector } from "utils/useDocSelector";
 import CalculatedDwell from "../calculated-dwell";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
+  const missionTraverseRate = useMissionDocSelector((doc) => doc.traverseRate, refEqual);
+
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
@@ -37,10 +40,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     (state) =>
       state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
     deepEqual
-  );
-  const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission?.traverseRate,
-    refEqual
   );
   const selectedEvaTraverseRate = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid)?.traverseRate,
@@ -64,7 +63,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     );
     return getCalculatedFieldsByTraverse({
       traverse: selectedTraverse,
-      missionTraverseRate: state.mission.mission.traverseRate,
+      missionTraverseRate,
       evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
     });
@@ -132,7 +131,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             <div className={paneStyles.descriptionContainer}>
               <TextArea
                 key={selectedTraverse.uuid}
-                value={selectedTraverse.description}
+                value={selectedTraverse.description || ""}
                 editing={editMode}
                 onSubmit={(value: string) => {
                   dispatch(

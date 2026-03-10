@@ -155,7 +155,12 @@ export const presetSlice = createSlice({
         state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
       }
     },
-
+    setAllPresetCirclesUIStates: (
+      state,
+      action: { payload: { circlesUIStates: CirclesUIStates } }
+    ) => {
+      state.presetCirclesUIStates = action.payload.circlesUIStates;
+    },
     setPresetCircleUIStates: (
       state,
       action: {
@@ -281,6 +286,7 @@ export const {
   setPresetSublayerStyle,
   setPresetCircleStyle,
   setPresetPreviewTime,
+  setAllPresetCirclesUIStates,
   setPresetCircleUIStates,
   setPresetCircleUIState,
   deletePresetCirclesUIStates,

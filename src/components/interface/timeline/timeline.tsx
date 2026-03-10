@@ -30,12 +30,25 @@ import {
   getCalculatedFieldsByTraverse,
 } from "store/processing/calculatedFields";
 import { processEvaDataFromStore } from "./common-timeline";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 /**
  * Renders the navigation timeline presented at the bottom of the window
  */
 const NavTimeline: FunctionComponent = () => {
   const dispatch = useAppDispatch();
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      walkbackRate: doc.walkbackRate,
+      traverseRate: doc.traverseRate,
+      landerLocation: doc.landerLocation,
+      planetRadius: doc.planetRadius,
+      landerElevationMeters: doc.landerElevationMeters,
+      actionSystemVersion: doc.actionSystemVersion,
+    }),
+    deepEqual
+  );
+
   const selectedRex = useAppSelector(
     (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid),
     deepEqual
@@ -53,7 +66,6 @@ const NavTimeline: FunctionComponent = () => {
     refEqual
   );
   const selectedPosEntryUuid = useAppSelector((state) => state.rex.selectedPosEntryUuid, refEqual);
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
   const evaActions = useAppSelector(selectEvaActions(), deepEqual);
   const evaStations = useAppSelector(selectEvaStations(), deepEqual);
   const evaTraverses = useAppSelector(selectEvaTraverses(), deepEqual);
@@ -77,7 +89,7 @@ const NavTimeline: FunctionComponent = () => {
       allStationCalculatedFields.push(
         getCalculatedFieldsByStation({
           station,
-          missionWalkbackRate: state.mission.mission.walkbackRate,
+          missionWalkbackRate: partialMission.walkbackRate,
           stationActions,
         })
       );
@@ -103,7 +115,7 @@ const NavTimeline: FunctionComponent = () => {
       allTraverseCalculatedFields.push(
         getCalculatedFieldsByTraverse({
           traverse,
-          missionTraverseRate: state.mission.mission.traverseRate,
+          missionTraverseRate: partialMission.traverseRate,
           evaTraverseRate: traverseEva?.traverseRate,
           traverseActions,
         })
@@ -118,10 +130,6 @@ const NavTimeline: FunctionComponent = () => {
   );
   const showElevation = useAppSelector((state) => state.interface.timelineShowElevation, refEqual);
   const rightPanelIsOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
-    refEqual
-  );
 
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
   const paperDataRef: MutableRefObject<PaperData> = useRef(null);
@@ -170,19 +178,19 @@ const NavTimeline: FunctionComponent = () => {
   const processEvaDataFromStoreCallback = useCallback(() => {
     processEvaDataFromStore({
       storeRef,
-      mission,
+      mission: partialMission as Mission,
       selectedEva,
       evaStations,
       evaTraverses,
-      missionTraverseRate: mission?.traverseRate,
-      missionWalkbackRate: mission?.walkbackRate,
+      missionTraverseRate: partialMission?.traverseRate,
+      missionWalkbackRate: partialMission?.walkbackRate,
       stationCalculatedFieldsInSelectedEva,
       traverseCalculatedFieldsInSelectedEva,
       selectedRex,
     });
   }, [
     storeRef,
-    mission,
+    partialMission,
     selectedEva,
     evaStations,
     evaTraverses,
@@ -195,18 +203,18 @@ const NavTimeline: FunctionComponent = () => {
    * Populate posRef
    */
   const processPosEntriesFromStore = useCallback(() => {
-    if (!mission || !selectedRex) return;
+    if (!partialMission || !selectedRex) return;
     const posForPaper: PosEntry_PaperJS[] = [];
     for (const posEntry of selectedRex.posEntries || []) {
       const distFromLander = getDistanceBetweenTwoCoordinates(
-        mission.landerLocation,
+        partialMission.landerLocation,
         posEntry.location,
-        mission.planetRadius
+        partialMission.planetRadius
       );
       posForPaper.push({ ...posEntry, distanceFromLanderMeters: distFromLander });
     }
     posRef.current = posForPaper;
-  }, [mission, selectedRex]);
+  }, [partialMission, selectedRex]);
 
   /**
    * Main function to draw the timeline. All the paper drawing happens here
@@ -319,14 +327,14 @@ const NavTimeline: FunctionComponent = () => {
         flattenedGraphData,
         event.point,
         setHoverValues,
-        mission?.landerElevationMeters
+        partialMission?.landerElevationMeters
       );
     };
     paper.view.onMouseMove = throttle(onMouseMove, 15, {
       leading: true,
       trailing: false,
     });
-  }, [dispatch, mission?.landerElevationMeters]);
+  }, [dispatch, partialMission?.landerElevationMeters]);
   useEffect(() => {
     paper.view.onResize = function () {
       drawTimeline();
@@ -417,7 +425,7 @@ const NavTimeline: FunctionComponent = () => {
           <canvas ref={canvas} data-paper-resize />
         </div>
       </div>
-      {actionSystemVersion === 1 && (
+      {partialMission.actionSystemVersion === 1 && (
         <div className={styles.timelineRight}>
           <STM_Coverage
             stmUuidsByActionUuid={coveredSTMs}

@@ -44,7 +44,6 @@ type LayerDeleteRequest = {
 };
 
 type MissionUpsertRequest = {
-  socketId: string;
   missions: Mission[];
 };
 
@@ -163,4 +162,12 @@ type FolderDeleteRequest = {
   missionId: number;
   socketId?: string;
   folderUuids: string[];
+};
+
+type AutomergeUpsertRequest = {
+  automergeDocListings?: AutomergeDocListing[];
+};
+
+type AutomergeDeleteRequest = {
+  missionIds: number[];
 };

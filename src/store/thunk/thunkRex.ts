@@ -16,6 +16,7 @@ import * as jsonKeysSort from "json-keys-sort";
 import * as httpClient_Rex from "http-client/rex";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 import { thunkDeleteEva, thunkDuplicateEva } from "./thunkEva";
 import {
   setEvaDropdownUIState,
@@ -34,6 +35,9 @@ export const thunkCreateRex = appCreateAsyncThunk<
   string | null,
   false
 >("rexCreate", async ({ asPlannedEvaUuid }, { dispatch, getState }) => {
+  const missionDocHandle = getAutomergeDocHandles().mission;
+  const mission = missionDocHandle.doc();
+
   if (!asPlannedEvaUuid) throw new Error("Error creating Rex. No EVA uuid provided");
 
   // duplicate the EVA (this will save to the db)
@@ -54,7 +58,7 @@ export const thunkCreateRex = appCreateAsyncThunk<
     .map((r) => r.name);
   const randomName = makeUniqueStringCopy("REX", rexNames, false);
   const blankRex = generateBlankRex({
-    missionId: getState().mission.mission.id,
+    missionId: mission.id,
     name: randomName,
     evaUuid: duplicatedEva.uuid,
   });

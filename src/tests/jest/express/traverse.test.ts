@@ -2,9 +2,8 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import { Mission_db, Traverse_db, App_User_db } from "server/database/models/_allModels";
+import { Traverse_db, App_User_db } from "server/database/models/_allModels";
 import AppUserFactory from "../factories/AppUserFactory";
-import MissionFactory from "../factories/MissionFactory";
 import TraverseFactory from "tests/jest/factories/TraverseFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
@@ -20,27 +19,26 @@ jest.mock("server/express/sockets", () => {
 });
 
 let testAppUser: App_User_db;
-let testMissions: Mission_db[];
 let testTraverses: Traverse_db[];
+const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testMissions = await new MissionFactory(em).create(3);
   testAppUser = await new AppUserFactory(em).createOne({
     username: "JestTraverse",
     permissionList: [
       {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         permissions: {
           edit: true,
           view: true,
         },
       },
       {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         permissions: {
           edit: false,
           view: true,
@@ -50,7 +48,7 @@ beforeAll(async () => {
   });
   testTraverses = await new TraverseFactory(em)
     .each((traverse) => {
-      traverse.mission = testMissions[0];
+      traverse.missionId = testMissionIds[0];
     })
     .create(2);
 });
@@ -74,7 +72,7 @@ describe("EVA API Endpoint", () => {
   describe("POST request", () => {
     test("No permissions", async () => {
       const requestBody: TraverseUpsertRequest = {
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         socketId: "someSocketId",
         traverses: [newTraverse],
       };
@@ -88,7 +86,7 @@ describe("EVA API Endpoint", () => {
 
     test("No permissions - View only", async () => {
       const requestBody: TraverseUpsertRequest = {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         socketId: "someSocketId",
         traverses: [newTraverse],
       };
@@ -102,7 +100,7 @@ describe("EVA API Endpoint", () => {
 
     test("Empty traverses array", async () => {
       const requestBody: TraverseUpsertRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         socketId: "someSocketId",
         traverses: [],
       };
@@ -116,9 +114,9 @@ describe("EVA API Endpoint", () => {
 
     test("Create new Traverse", async () => {
       const requestBody: TraverseUpsertRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         socketId: "someSocketId",
-        traverses: [{ ...newTraverse, missionId: testMissions[0].id }],
+        traverses: [{ ...newTraverse, missionId: testMissionIds[0] }],
       };
       const res = await supertest(app)
         .post("/api/v1/traverse")
@@ -138,7 +136,7 @@ describe("EVA API Endpoint", () => {
     test("Update a Traverse", async () => {
       newTraverse.name = "Jest Test New Traverse Modified";
       const requestBody: TraverseUpsertRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         socketId: "someSocketId",
         traverses: [newTraverse],
       };
@@ -156,7 +154,7 @@ describe("EVA API Endpoint", () => {
   describe("DELETE request", () => {
     test("No permissions", async () => {
       const requestBody: TraverseDeleteRequest = {
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         socketId: "someSocketId",
         traverseUuids: [],
       };
@@ -170,7 +168,7 @@ describe("EVA API Endpoint", () => {
 
     test("Delete a Traverse", async () => {
       const requestBody: TraverseDeleteRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         socketId: "someSocketId",
         traverseUuids: [newTraverse.uuid],
       };
@@ -190,9 +188,9 @@ describe("EVA API Endpoint", () => {
 
     test("POST request succeeds with emss-token", async () => {
       const requestBody: TraverseUpsertRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         socketId: "someSocketId",
-        traverses: [{ ...newTraverse, missionId: testMissions[0].id }],
+        traverses: [{ ...newTraverse, missionId: testMissionIds[0] }],
       };
       const res = await supertest(app)
         .post("/api/v1/traverse")
@@ -203,7 +201,7 @@ describe("EVA API Endpoint", () => {
 
     test("DELETE request succeeds with emss-token", async () => {
       const requestBody: TraverseDeleteRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         socketId: "someSocketId",
         traverseUuids: [newTraverse.uuid],
       };
@@ -221,9 +219,6 @@ afterAll(async () => {
   const em = globalValues.orm.em.fork();
   for (let i = 0; i < testTraverses.length; i++) {
     await em.nativeDelete(Traverse_db, { uuid: testTraverses[i].uuid });
-  }
-  for (let i = 0; i < testMissions.length; i++) {
-    await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
 

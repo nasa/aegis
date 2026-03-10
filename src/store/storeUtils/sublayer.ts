@@ -59,7 +59,7 @@ export function convertSublayersTypeDbToStore(dbSublayers: Sublayer_db[]): Subla
   for (const dbSublayer of dbSublayers) {
     const convertedSublayer: Sublayer = {
       uuid: dbSublayer.uuid,
-      missionId: dbSublayer.mission.id,
+      missionId: dbSublayer.missionId,
       layerUuid: dbSublayer.layer.uuid,
       name: dbSublayer.name,
       description: dbSublayer.description,
@@ -94,7 +94,7 @@ export function convertSublayersTypeStoreToDb(
   for (const storeSublayer of storeSublayers) {
     const convertedRecord: EntityData<Sublayer_db> = {
       uuid: storeSublayer.uuid,
-      mission: storeSublayer.missionId,
+      missionId: storeSublayer.missionId,
       layer: storeSublayer.layerUuid,
       name: storeSublayer.name,
       description: storeSublayer.description,

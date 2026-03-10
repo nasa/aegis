@@ -155,7 +155,7 @@ const Export_Panel: FunctionComponent = () => {
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
               <SubpanelHeading icon={faFileExport}>Export EVA Data</SubpanelHeading>
             </div>
-            <div className={paneStyles.panelSectionBody}>
+            <div>
               <Button
                 icon={faFileExport}
                 label="Export Full Traverse as GeoJSON"
@@ -246,7 +246,7 @@ const Export_Panel: FunctionComponent = () => {
                   Export this Real-time Execution (REX)
                 </SubpanelHeading>
               </div>
-              <div className={paneStyles.panelSectionBody}>
+              <div>
                 <Button
                   icon={faFileExport}
                   label="Export REX as JSON"

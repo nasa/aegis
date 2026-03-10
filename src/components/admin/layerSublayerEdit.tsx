@@ -6,7 +6,7 @@ import { upsertSublayers } from "http-client/sublayer";
 import { validators } from "components/interface/form/formValidators";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
 import { getManifestJsonTimeBounds } from "utils/mapping/timeLayers";
-import { validateImportableSublayer } from "utils/validateSchema";
+import { validateImportableSublayer } from "utils/validateSchemaClient";
 import { getAccurateNow } from "utils/formatting";
 import { listFiles } from "http-client/file";
 import { AnySchemaObject, ErrorObject } from "ajv";

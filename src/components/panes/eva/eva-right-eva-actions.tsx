@@ -9,9 +9,15 @@ import { thunkGetHighlightedActions } from "store/thunk/thunkAction";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 import { EmojiRenderer } from "components/interface/emojis";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Actions_Panel: FunctionComponent = () => {
   const dispatch = useAppDispatch();
+  const partialMission = useMissionDocSelector(
+    (doc) => ({ walkbackRate: doc.walkbackRate, traverseRate: doc.traverseRate }),
+    deepEqual
+  );
+
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
@@ -35,8 +41,8 @@ const Actions_Panel: FunctionComponent = () => {
     const evaCalculatedFields = getCalculatedFieldsByEva({
       eva,
       evaStations: state.station.stations,
-      missionWalkbackRate: state.mission.mission.walkbackRate,
-      missionTraverseRate: state.mission.mission.traverseRate,
+      missionWalkbackRate: partialMission.walkbackRate,
+      missionTraverseRate: partialMission.traverseRate,
       evaActions: state.action.actions,
       evaTraverses: state.traverse.traverses,
     });

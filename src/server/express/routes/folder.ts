@@ -224,11 +224,7 @@ export async function getFolders(missionId: number, folderUuid?: string): Promis
       { orderBy: [{ name: QueryOrder.ASC }] }
     );
   } else {
-    dbFolders = await em.find(
-      Folder_db,
-      { mission: { id: missionId } },
-      { orderBy: [{ name: QueryOrder.ASC }] }
-    );
+    dbFolders = await em.find(Folder_db, { missionId }, { orderBy: [{ name: QueryOrder.ASC }] });
   }
 
   //convert to store format

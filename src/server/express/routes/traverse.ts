@@ -230,7 +230,7 @@ export async function getTraverses(missionId: number, traverseUuid?: string): Pr
   } else {
     dbTraverses = await em.find(
       Traverse_db,
-      { mission: { id: missionId } },
+      { missionId },
       { orderBy: [{ name: QueryOrder.ASC }] }
     );
   }

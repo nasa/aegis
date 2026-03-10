@@ -5,13 +5,11 @@ import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import AppUserFactory from "../factories/AppUserFactory";
 import { App_User_db } from "server/database/models/app_user.model";
-import MissionFactory from "tests/jest/factories/MissionFactory";
-import { Mission_db } from "server/database/models/_allModels";
 import * as fileFunctions from "server/file/file";
 
 let testAppUser: App_User_db;
 let testAdmin: App_User_db;
-let testMissions: Mission_db[];
+const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
 
 let aegisSessionCookie: string;
 let aegisSessionSigCookie: string;
@@ -21,13 +19,12 @@ beforeAll(async () => {
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testMissions = await new MissionFactory(em).create(3);
   testAppUser = await new AppUserFactory(em).createOne({
     username: "JestFileTestNoAdmin",
     isAdmin: false,
     permissionList: [
       {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         permissions: {
           edit: true,
           view: true,
@@ -40,14 +37,14 @@ beforeAll(async () => {
     isAdmin: true,
     permissionList: [
       {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         permissions: {
           edit: true,
           view: true,
         },
       },
       {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         permissions: {
           edit: false,
           view: true,
@@ -99,7 +96,7 @@ describe("User with no Admin permissions", () => {
     const res = await supertest(app)
       .delete("/api/v1/file/delete")
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissions[0].id });
+      .query({ missionId: testMissionIds[0] });
     expect(res.statusCode).toBe(401);
   });
 
@@ -107,7 +104,7 @@ describe("User with no Admin permissions", () => {
     const res = await supertest(app)
       .get("/api/v1/file/list")
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissions[0].id });
+      .query({ missionId: testMissionIds[0] });
     expect(res.statusCode).toBe(401);
   });
 
@@ -115,7 +112,7 @@ describe("User with no Admin permissions", () => {
     const res = await supertest(app)
       .get("/api/v1/file/rename")
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissions[0].id });
+      .query({ missionId: testMissionIds[0] });
     expect(res.statusCode).toBe(401);
   });
 
@@ -123,7 +120,7 @@ describe("User with no Admin permissions", () => {
     const res = await supertest(app)
       .get("/api/v1/file/upload")
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissions[0].id });
+      .query({ missionId: testMissionIds[0] });
     expect(res.statusCode).toBe(401);
   });
 });
@@ -145,7 +142,7 @@ describe("Admin user with only View permissions", () => {
     const res = await supertest(app)
       .delete("/api/v1/file/delete")
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissions[1].id });
+      .query({ missionId: testMissionIds[1] });
     expect(res.statusCode).toBe(401);
   });
 
@@ -153,7 +150,7 @@ describe("Admin user with only View permissions", () => {
     const res = await supertest(app)
       .get("/api/v1/file/rename")
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissions[1].id });
+      .query({ missionId: testMissionIds[1] });
     expect(res.statusCode).toBe(401);
   });
 
@@ -161,7 +158,7 @@ describe("Admin user with only View permissions", () => {
     const res = await supertest(app)
       .get("/api/v1/file/upload")
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissions[1].id });
+      .query({ missionId: testMissionIds[1] });
     expect(res.statusCode).toBe(401);
   });
 });
@@ -186,7 +183,7 @@ describe("Admin user with Edit permissions", () => {
     const res = await supertest(app)
       .delete("/api/v1/file/delete")
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissions[0].id, path: "jestTest/testAPIDelete.txt" });
+      .query({ missionId: testMissionIds[0], path: "jestTest/testAPIDelete.txt" });
     expect(res.statusCode).toBe(200);
     expect(mockDelete).toHaveBeenCalledWith("jestTest/testAPIDelete.txt");
   });
@@ -199,7 +196,7 @@ describe("Admin user with Edit permissions", () => {
     const res = await supertest(app)
       .get("/api/v1/file/list")
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissions[0].id, path: "jestTest" });
+      .query({ missionId: testMissionIds[0], path: "jestTest" });
     expect(res.statusCode).toBe(200);
     expect(mockList).toHaveBeenCalledWith("jestTest");
   });
@@ -213,7 +210,7 @@ describe("Admin user with Edit permissions", () => {
       .get("/api/v1/file/rename")
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
       .query({
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         path: "jestTest",
         oldname: "test.txt",
         newname: "testRenamed.txt",
@@ -228,9 +225,6 @@ afterAll(async () => {
   const em = globalValues.orm.em.fork();
   await em.nativeDelete(App_User_db, { id: testAdmin.id });
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
-  for (let i = 0; i < testMissions.length; i++) {
-    await em.nativeDelete(Mission_db, { id: testMissions[i].id });
-  }
 
   // Closing the DB connection allows Jest to exit successfully.
   await globalValues.orm.close();

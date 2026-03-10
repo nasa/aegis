@@ -3,10 +3,11 @@ import type { Request, Response } from "express";
 
 import express from "express";
 
-import { Eva_db, Mission_db, Rex_db } from "server/database/models/_allModels";
+import { Eva_db, Rex_db } from "server/database/models/_allModels";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { globalValues } from "../../global";
 import { emssTokenIsValid } from "utils/permissions";
+import { getAutomergeMissions } from "../missionAutomerge";
 
 export type MissionsWithEvas = {
   [missionId: number]: {
@@ -43,64 +44,66 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const em = globalValues.orm.em;
 
+    // Get all automerge mission documents first
+    const allMissions = await getAutomergeMissions();
+    const activeMissions = allMissions.filter((mission) => !mission.isArchived);
+
+    // Create a mission lookup map by ID for quicker access
+    // Only include the active missions
+    const missionMap = new Map<number, { name: string; actionSystemVersion: number }>();
+    activeMissions.forEach((mission) => {
+      missionMap.set(mission.id, {
+        name: mission.name,
+        actionSystemVersion: mission.actionSystemVersion,
+      });
+    });
+
+    // Get EVAs that don't have REXes
     const rexEvasSubquery = em.createQueryBuilder(Rex_db).select("evaUuid");
     const evaQuery = em
       .createQueryBuilder(Eva_db, "eva")
-      .select([
-        "eva.uuid",
-        "eva.refUuid",
-        "eva.name as evaName",
-        "mission.id as missionId",
-        "mission.name as missionName",
-        "mission.action_system_version as missionActionSystemVersion",
-      ])
-      .leftJoin("eva.mission", "mission")
-      .where("mission.is_archived = ?", [false])
-      .andWhere(`eva.uuid NOT IN (${rexEvasSubquery.getKnexQuery()})`);
+      .select(["eva.uuid", "eva.refUuid", "eva.name as evaName", "eva.missionId"])
+      .where(`eva.uuid NOT IN (${rexEvasSubquery.getKnexQuery()})`);
     const dbResult = await evaQuery.execute();
 
     // Transform the result to be grouped by mission
     const missions: MissionsWithEvas = {};
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     dbResult.forEach((row: any) => {
-      if (!missions[row.missionId]) {
-        missions[row.missionId] = {
-          missionName: row.missionName,
-          missionActionSystemVersion: row.missionActionSystemVersion,
-          evas: [
-            {
-              refUuid: row.refUuid,
-              evaName: row.evaName,
-            },
-          ],
-        };
-      } else {
-        // add the eva to this mission
-        missions[row.missionId].evas.push({
-          refUuid: row.refUuid,
-          evaName: row.evaName,
-        });
+      const partialMissionData = missionMap.get(row.missionId);
+      if (partialMissionData) {
+        if (!missions[row.missionId]) {
+          // mission hasn't been added yet, add it.
+          missions[row.missionId] = {
+            missionName: partialMissionData.name,
+            missionActionSystemVersion: partialMissionData.actionSystemVersion,
+            evas: [
+              {
+                refUuid: row.refUuid,
+                evaName: row.evaName,
+              },
+            ],
+          };
+        } else {
+          // add the eva to this mission
+          missions[row.missionId].evas.push({
+            refUuid: row.refUuid,
+            evaName: row.evaName,
+          });
+        }
       }
     });
 
-    // Grab any missions that do not have evas
-    const allMissionsQuery = em
-      .createQueryBuilder(Mission_db)
-      .select(["id", "name", "actionSystemVersion"])
-      .where({ isArchived: false });
-    const allMissions = await allMissionsQuery.execute();
-    if (allMissions.length > 0) {
-      allMissions.forEach((mission: { id: number; name: string; actionSystemVersion: number }) => {
-        // add mission to the missions object if it wasn't already there
-        if (!missions[mission.id]) {
-          missions[mission.id] = {
-            missionName: mission.name,
-            missionActionSystemVersion: mission.actionSystemVersion,
-            evas: [],
-          };
-        }
-      });
-    }
+    // Lastly, backfill in any active missions that don't have EVAs with a blank array
+    activeMissions.forEach((mission: { id: number; name: string; actionSystemVersion: number }) => {
+      if (!missions[mission.id]) {
+        missions[mission.id] = {
+          missionName: mission.name,
+          missionActionSystemVersion: mission.actionSystemVersion,
+          evas: [],
+        };
+      }
+    });
 
     res.status(200).json({
       status: "success",

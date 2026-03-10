@@ -1,36 +1,43 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, memo, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import { regExValidators, validators } from "components/interface/form/formValidators";
-import styles from "./mission.module.css";
-import { Button, InLineEditInput } from "components/interface/form/globalFields";
+import missionStyles from "./mission.module.css";
+import { Button } from "components/interface/form/globalFields";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { deepEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkSyncPresetsWithMission } from "store/thunk/thunkPreset";
+import { thunkSyncStationsWithMission } from "store/thunk/thunkStation";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
 import {
-  thunkCreateCircleDefinition,
-  thunkDeleteCircleDefinition,
-  thunkUpdateCircleDefinition,
-} from "store/thunk/thunkMission-circleDefs";
+  crudCreateCircleDefinition,
+  crudDeleteCircleDefinition,
+  crudUpdateCircleDefinitionByField,
+} from "client/crud/crud-mission-circleDefinition";
+import { LoadingOverlay } from "components/interface/_global-elements";
 
 const CircleDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const sortedCircleDefinitions: [string, CircleDefinition][] = useAppSelector((state) => {
-    if (!state.mission.mission.circleDefinitions) return [];
-    return Object.entries(state.mission.mission.circleDefinitions).sort(
-      ([, a], [, b]) => a.radius - b.radius
-    );
-  }, deepEqual);
-  const [newCircleDefUuid, setNewCircleDefUuid] = useState(undefined);
 
-  // Un-marks newest list item as "new" after a short timeout (for auto focusing)
-  useEffect(() => {
-    if (newCircleDefUuid !== undefined) {
-      setTimeout(() => {
-        setNewCircleDefUuid(undefined);
-      }, 300);
-    }
-  }, [newCircleDefUuid]);
+  const missionCircleDefs: CircleDefinitions = useMissionDocSelector(
+    (doc) => doc.circleDefinitions,
+    deepEqual
+  );
+
+  const sortedCircleDefinitions: [string, CircleDefinition][] = missionCircleDefs
+    ? Object.entries(missionCircleDefs).sort(([, a], [, b]) => a.radius - b.radius)
+    : [];
+
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const syncPresetsAndStations = async () => {
+    setIsSyncing(true);
+    await dispatch(thunkSyncPresetsWithMission());
+    await dispatch(thunkSyncStationsWithMission());
+    setIsSyncing(false);
+  };
 
   return (
     <div className={paneStyles.rightBody}>
@@ -46,17 +53,17 @@ const CircleDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
                 each Station.
               </div>
             </div>
-            <div className={paneStyles.panelSectionBody}>
-              <ul className={styles.propertyList}>
-                <li className={styles.propertyListItem}>
-                  <div className={paneStyles.descriptionContainer}>
+            <div>
+              <ul className={missionStyles.propertyList}>
+                <li className={missionStyles.propertyListItem}>
+                  <div>
                     <div
-                      className={styles.propertyRowHeader}
+                      className={missionStyles.propertyRowHeader}
                       style={{ backgroundColor: "var(--grey2)" }}
                     >
-                      <div className={styles.propertyRowName}>Name</div>
-                      <div className={styles.propertyRowSingleuse}>{"Radius (m)"}</div>
-                      <div className={styles.propertyRowTrashContainer}></div>
+                      <div className={missionStyles.propertyRowName}>Name</div>
+                      <div className={missionStyles.propertyRowRadius}>{"Radius (m)"}</div>
+                      <div className={missionStyles.propertyRowTrashContainer}></div>
                     </div>
                   </div>
                 </li>
@@ -64,16 +71,16 @@ const CircleDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
                 {sortedCircleDefinitions.map(([uuid, circleDef], index) => (
                   <li
                     key={uuid}
-                    className={styles.propertyListItem}
+                    className={missionStyles.propertyListItem}
                     aria-label="circle-definition-item"
                   >
-                    <RadiusItem
+                    <MemoizedRadiusItem
                       key={uuid}
                       uuid={uuid}
                       circleDef={circleDef}
                       editMode={editMode}
                       evenRow={index % 2 === 0}
-                      toFocus={newCircleDefUuid === uuid}
+                      syncPresetsAndStations={syncPresetsAndStations}
                     />
                   </li>
                 ))}
@@ -85,7 +92,8 @@ const CircleDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
                   label="Add New Circle Definition"
                   style={{ width: "185px", marginLeft: "18px", marginTop: "8px" }}
                   onClick={async () => {
-                    setNewCircleDefUuid((await dispatch(thunkCreateCircleDefinition())).payload);
+                    crudCreateCircleDefinition();
+                    await syncPresetsAndStations();
                   }}
                   ariaLabel="addNewRadiusButton"
                 />
@@ -94,6 +102,7 @@ const CircleDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
           </div>
         </div>
       </div>
+      {isSyncing && <LoadingOverlay message="Syncing Presets and Stations..." />}
     </div>
   );
 };
@@ -105,84 +114,65 @@ const RadiusItem: FunctionComponent<{
   circleDef: CircleDefinition;
   editMode: boolean;
   evenRow: boolean;
-  toFocus: boolean;
-}> = ({ uuid, circleDef, editMode, evenRow, toFocus }) => {
-  const dispatch = useAppDispatch();
-
+  syncPresetsAndStations: () => Promise<void>;
+}> = ({ uuid, circleDef, editMode, evenRow, syncPresetsAndStations }) => {
   let backgroundColor: string = "var(--grey2)";
-  if (!editMode) {
-    backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
-  }
+  backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
 
   return (
-    <div className={paneStyles.descriptionContainer}>
-      <div className={styles.propertyRow} style={{ backgroundColor }}>
-        <div className={styles.propertyRowName}>
-          <InLineEditInput
-            editing={editMode}
+    <div>
+      <div className={missionStyles.propertyRow} style={{ backgroundColor }}>
+        <div className={missionStyles.propertyRowName}>
+          <ValidatedInputField
+            value={circleDef.name}
+            editMode={editMode}
             fieldProps={{
               name: "circleDefName",
               ariaLabel: "Circle Definition Name",
-              style: { width: "100%" },
               validators: [validators.maxLength(255), validators.required],
             }}
-            value={circleDef.name}
-            onSubmit={(val: string) => {
-              dispatch(
-                thunkUpdateCircleDefinition({
-                  uuid,
-                  fieldName: "name",
-                  value: val,
-                })
-              );
+            onSubmit={async (val: string) => {
+              crudUpdateCircleDefinitionByField(uuid, "name", val);
             }}
             key={`${uuid}-name`}
-            toFocus={toFocus}
+            focusContents={circleDef.name === "(Circle Definition Name)"}
           />
         </div>
-        <div className={styles.propertyRowQuantity}>
-          <InLineEditInput
-            editing={editMode}
+        <div>
+          <ValidatedInputField
+            editMode={editMode}
             fieldProps={{
               name: "circleDefRange",
               ariaLabel: "Circle Definition Range",
-              style: { width: "60px" },
               validators: [
                 validators.maxLength(7),
                 validators.minValue(1),
                 validators.mustBeInteger,
                 validators.required,
               ],
-              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
-              },
+            }}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
             }}
             value={circleDef.radius?.toString()}
-            onSubmit={(val: string) => {
-              dispatch(
-                thunkUpdateCircleDefinition({
-                  uuid: uuid,
-                  fieldName: "radius",
-                  value: Number(val),
-                })
-              );
+            onSubmit={async (val: string) => {
+              crudUpdateCircleDefinitionByField(uuid, "radius", Number(val));
             }}
             key={`${uuid}-radius`}
           />
         </div>
 
         <div
-          className={styles.propertyRowTrashContainer}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
+          className={missionStyles.propertyRowTrashContainer}
+          onClick={async () => {
             if (editMode) {
-              dispatch(thunkDeleteCircleDefinition({ circleDefUuid: uuid }));
+              crudDeleteCircleDefinition(uuid);
+              syncPresetsAndStations();
             }
           }}
         >
           {editMode && (
-            <div className={styles.propertyRowTrash}>
+            <div className={missionStyles.propertyRowTrash}>
               <FontAwesomeIcon icon={faTrashAlt} size="sm" aria-label="deleteButton" />
             </div>
           )}
@@ -191,3 +181,12 @@ const RadiusItem: FunctionComponent<{
     </div>
   );
 };
+
+/**
+ * Memoized version of the RadiusItem component to prevent unnecessary re-renders
+ * when the props haven't changed.
+ * This is especially useful when the component is part of a list.
+ * The memoization is based on the props passed to the component.
+ * The component will only re-render if the props change.
+ */
+const MemoizedRadiusItem = memo(RadiusItem);

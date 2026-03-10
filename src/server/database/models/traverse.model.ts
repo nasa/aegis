@@ -1,14 +1,7 @@
-import {
-  Collection,
-  Entity,
-  ManyToOne,
-  OneToMany,
-  PrimaryKey,
-  Property,
-} from "@mikro-orm/postgresql";
+import { Collection, Entity, OneToMany, PrimaryKey, Property } from "@mikro-orm/postgresql";
 import { types as MikroTypes } from "@mikro-orm/postgresql";
 
-import { Mission_db, Action_db } from "./_allModels";
+import { Action_db } from "./_allModels";
 
 @Entity()
 export class Traverse_db implements Traverse_db_type {
@@ -21,8 +14,8 @@ export class Traverse_db implements Traverse_db_type {
   })
   refUuid: string; // assigned on creation and is preserved when duplication for a rex
 
-  @ManyToOne(() => Mission_db, { unique: false, primary: false })
-  mission!: Mission_db;
+  @Property({ type: MikroTypes.integer })
+  missionId!: number;
   @OneToMany(() => Action_db, (i) => i.traverse) //one traverse has many actions
   action = new Collection<Action_db>(this);
 

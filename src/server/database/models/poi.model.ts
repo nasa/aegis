@@ -1,22 +1,15 @@
-import {
-  Collection,
-  Entity,
-  ManyToMany,
-  ManyToOne,
-  PrimaryKey,
-  Property,
-} from "@mikro-orm/postgresql";
+import { Collection, Entity, ManyToMany, PrimaryKey, Property } from "@mikro-orm/postgresql";
 import { types as MikroTypes } from "@mikro-orm/postgresql";
 
-import { Mission_db, Station_db } from "./_allModels";
+import { Station_db } from "./_allModels";
 
 @Entity()
 export class Poi_db implements Poi_db_type {
   @PrimaryKey({ type: MikroTypes.string, unique: true })
   uuid!: string;
 
-  @ManyToOne(() => Mission_db, { unique: false, primary: false })
-  mission!: Mission_db;
+  @Property({ type: MikroTypes.integer })
+  missionId!: number;
   @ManyToMany(() => Station_db, (station) => station.poi) //a poi can belong to many stations
   station = new Collection<Station_db>(this);
 

@@ -6,11 +6,14 @@ import { setStationEditMode, upsertStationByField } from "store/station";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
+  const missionWalkbackRate = useMissionDocSelector((doc) => doc.walkbackRate, refEqual);
+
   const selectedStation = useAppSelector(
     (state) =>
       state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
@@ -29,7 +32,7 @@ const Actions_Panel: FunctionComponent<{
     );
     const calculatedFields = getCalculatedFieldsByStation({
       station: selectedStation,
-      missionWalkbackRate: state.mission.mission.walkbackRate,
+      missionWalkbackRate,
       stationActions,
     });
     const newActionsCalculatedFields: ActionsCalculatedFields = {

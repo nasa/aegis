@@ -2,14 +2,13 @@ import {
   Collection,
   Entity,
   ManyToMany,
-  ManyToOne,
   OneToMany,
   PrimaryKey,
   Property,
 } from "@mikro-orm/postgresql";
 import { types as MikroTypes } from "@mikro-orm/postgresql";
 
-import { Action_db, Mission_db, Poi_db } from "./_allModels";
+import { Action_db, Poi_db } from "./_allModels";
 
 @Entity()
 export class Station_db implements Station_db_type {
@@ -22,8 +21,8 @@ export class Station_db implements Station_db_type {
   })
   refUuid: string; // assigned on creation and is preserved when duplication for a rex
 
-  @ManyToOne(() => Mission_db, { unique: false, primary: false })
-  mission!: Mission_db;
+  @Property({ type: MikroTypes.integer })
+  missionId!: number;
   @OneToMany(() => Action_db, (i) => i.station) //one station has many actions
   action = new Collection<Action_db>(this);
   @ManyToMany(() => Poi_db, "station", { owner: true }) //many stations can have many pois

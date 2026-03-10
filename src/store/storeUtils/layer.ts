@@ -7,7 +7,7 @@ import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank layer
- * @param partialLayer any fields that are to be overriden from default
+ * @param partialLayer any fields that are to be overridden from default
  * @returns the generated layer
  */
 export const generateBlankLayer = (partialLayer?: Partial<Layer>): Layer => {
@@ -31,7 +31,7 @@ export function convertLayersTypeDbToStore(dbLayers: Layer_db[]): Layer[] {
   for (const dbLayer of dbLayers) {
     const convertedLayer: Layer = {
       uuid: dbLayer.uuid,
-      missionId: dbLayer.mission.id,
+      missionId: dbLayer.missionId,
       name: dbLayer.name,
       createdAt: dbLayer.createdAt.toISOString(),
       updatedAt: dbLayer.updatedAt.toISOString(),
@@ -51,7 +51,7 @@ export function convertLayersTypeStoreToDb(storeLayers: Layer[]): EntityData<Lay
   for (const storeLayer of storeLayers) {
     const convertedRecord: EntityData<Layer_db> = {
       uuid: storeLayer.uuid,
-      mission: storeLayer.missionId,
+      missionId: storeLayer.missionId,
       name: storeLayer.name,
       createdAt: new Date(storeLayer.createdAt),
       updatedAt: new Date(storeLayer.updatedAt),

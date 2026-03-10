@@ -1,28 +1,34 @@
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
-import { AppDispatch } from "store";
+import { AppDispatch } from "./useAppDispatch";
 import {
   setLastEditEvent,
   setLastStatusFromServer,
   setSocketConnectionStatus,
-} from "store/interface";
+} from "store/connection";
 import { clientFetchWithTimeout } from "./fetch-with-timeout";
 import isEqual from "lodash/isEqual";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
+import { clearAllEditing } from "store/crossActions";
 
-export const createSocket = (serverURL: string): Socket => {
+export const createSocket = (
+  serverURL: string,
+  loadTestOptions?: { rejectUnauthorized?: boolean } // used for load testing ONLY
+): Socket => {
   return io(serverURL, {
     transports: ["websocket"],
     upgrade: true,
     path: "/api/v1/socketio",
     reconnectionAttempts: serverURL === "aegis.fit.nasa.gov" ? Infinity : 10,
+    // Allow disabling for self-signed certs when running load testing locally
+    rejectUnauthorized: loadTestOptions?.rejectUnauthorized ?? true,
   });
 };
 
 export const attachSocketListeners = (
   socket: Socket,
   dispatch: AppDispatch,
-  interfaceStoreRef: React.MutableRefObject<InterfaceState>,
+  connectionStoreRef: React.MutableRefObject<ConnectionState>,
   userRef: React.MutableRefObject<UserState>,
   missionId: number
 ): void => {
@@ -43,7 +49,7 @@ export const attachSocketListeners = (
       socketId: socket.id,
       missionId,
       permission: permissionType,
-      appVersion: interfaceStoreRef.current.appVersion,
+      appVersion: connectionStoreRef.current.appVersion,
       launchpadUser: userRef.current.launchpadUser,
       appUser: userRef.current.appUser,
       connectedAt: Date.now(),
@@ -52,18 +58,19 @@ export const attachSocketListeners = (
 
     dispatch(setSocketConnectionStatus("connected"));
   });
+  // This event may take ~20 seconds to fire after a server crash due to the ping interval
   socket.on("disconnect", () => {
     dispatch(setSocketConnectionStatus("disconnected"));
+    dispatch(clearAllEditing());
   });
   socket.io.on("reconnect_attempt", () => {
     dispatch(setSocketConnectionStatus("reconnecting"));
   });
   socket.io.on("reconnect", () => {
     // after this "reconnect" event, the "connect" event will fire
-    dispatch(setSocketConnectionStatus("connected"));
-
     // hit the API to get the latest edit event and compare it to the one in the store
     // if they are different, then alert the user and refresh the page
+    // this is for data not managed by auto-merge
     const fetchLastEventAsync = async () => {
       const wrappedLastEditResponse = await clientFetchWithTimeout(
         `${window.location.origin}/api/v1/socket/lastEditEvent?missionId=${missionId}`,
@@ -75,14 +82,14 @@ export const attachSocketListeners = (
         const lastEditResponse =
           (await wrappedLastEditResponse.json()) as WrappedResponse<EditEvent>;
         if (
-          interfaceStoreRef.current.socketStatus.lastEditEvent &&
+          connectionStoreRef.current.socketStatus.lastEditEvent &&
           lastEditResponse &&
           lastEditResponse.data &&
-          isEqual(lastEditResponse, interfaceStoreRef.current.socketStatus.lastEditEvent) === false
+          isEqual(lastEditResponse, connectionStoreRef.current.socketStatus.lastEditEvent) === false
         ) {
           alert(
-            `The mission you are editing has been updated by another user while you were disconnected.\n
-              Please refresh your browser to get the latest version.`
+            `Mission data has been updated by another user while you were disconnected.\n
+              Please refresh your browser to get the latest data.`
           );
         }
       } else {
@@ -94,27 +101,33 @@ export const attachSocketListeners = (
 
   // For non-production environments. In production we will attempt reconnects infinitely
   socket.io.on("reconnect_failed", () => {
-    console.error("Socket reconnection failed after maximum attempts.");
+    console.error(
+      "[Socket.IO] Socket reconnection failed after maximum attempts (path: /api/v1/socketio)."
+    );
     dispatch(setSocketConnectionStatus("failed"));
   });
 
   // Incoming AEGIS version number
   socket.on("version", (appVersion: AppVersion) => {
     if (
-      interfaceStoreRef.current.appVersion.version !== appVersion.version ||
-      interfaceStoreRef.current.appVersion.gitCommit !== appVersion.gitCommit
+      connectionStoreRef.current.appVersion.version !== appVersion.version ||
+      connectionStoreRef.current.appVersion.gitCommit !== appVersion.gitCommit
     ) {
-      if (interfaceStoreRef.current.appVersion?.version) {
+      if (connectionStoreRef.current.appVersion?.version) {
         alert(
-          `A new version of AEGIS is available. Please refresh your browser to get the latest version. \nCurrent version: ${interfaceStoreRef.current.appVersion.version}/${interfaceStoreRef.current.appVersion.gitCommit}\nNew version: ${appVersion.version}/${appVersion.gitCommit} `
+          `A new version of AEGIS is available. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.appVersion.version}/${connectionStoreRef.current.appVersion.gitCommit}\nNew version: ${appVersion.version}/${appVersion.gitCommit} `
         );
+
+        // Redirect to version check page with version info and return URL
+        const currentUrl = window.location.pathname + window.location.search;
+        window.location.href = `/versionCheck?returnUrl=${encodeURIComponent(currentUrl)}`;
       }
     }
   });
 
   // Incoming client counts
   socket.on("statusFromServer", (statusFromServer: StatusFromServer) => {
-    if (!isEqual(statusFromServer, interfaceStoreRef.current.socketStatus.lastStatusFromServer)) {
+    if (!isEqual(statusFromServer, connectionStoreRef.current.socketStatus.lastStatusFromServer)) {
       dispatch(setLastStatusFromServer(statusFromServer));
     }
     // calculate the time offset between the client's clock and the server's clock

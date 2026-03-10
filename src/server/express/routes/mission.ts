@@ -2,7 +2,6 @@ import type { EntityData, RequiredEntityData } from "@mikro-orm/postgresql";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
-import { ForeignKeyConstraintViolationException } from "@mikro-orm/postgresql";
 import express from "express";
 import cloneDeep from "lodash/cloneDeep";
 
@@ -25,16 +24,17 @@ import {
   Grid_db,
   Folder_db,
 } from "server/database/models/_allModels";
-import {
-  convertMissionsTypeDbToStore,
-  convertMissionsTypeStoreToDb,
-} from "store/storeUtils/mission";
+import { convertMissionsTypeDbToStore } from "store/storeUtils/mission";
 import { globalValues } from "../global";
 
-import { emitStoreUpsert } from "../sockets";
-import { upsertDatabaseRetry } from "utils/database";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import type { DocHandle, DocHandleChangePayload } from "@automerge/automerge-repo";
+import throttle from "lodash/throttle";
+import path from "path";
+import fs from "fs";
+import { missionValidator, SCHEMA_DIR } from "utils/validateSchemaServer";
+import serverLogger, { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { diff } from "deep-diff";
 
 const router = express.Router();
 
@@ -60,6 +60,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       appUser: req.session.appUser,
       emssToken,
     });
+    console.log(viewPermission);
   } else {
     //no mission was specified. check if they are allowed to view at least one mission
     viewPermission =
@@ -84,17 +85,21 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
     let records: Mission[];
     if (queryObj.missionId) {
-      records = await getMission(queryObj.missionId);
+      records = await getBackupDbMissions([queryObj.missionId]);
     } else {
       //super admin and emss token can see all missions
       if (req.session?.appUser?.isSuperAdmin || emssTokenIsValid(emssToken)) {
-        records = await getMission();
+        records = await getBackupDbMissions();
       } else {
         //return all missions that they have permission for
-        const viewableMissions: number[] = req.session.appUser.permissionList.map((p) => {
-          if (p.permissions.view) return p.missionId;
+        if (!req.session.appUser.permissionList) {
+          res.status(401).json({ status: "failure", message: "Unauthorized" });
+          return;
+        }
+        const viewableMissions: number[] = req.session.appUser.permissionList.flatMap((p) => {
+          return p.permissions.view ? [p.missionId] : [];
         });
-        records = await getMission(viewableMissions);
+        records = await getBackupDbMissions(viewableMissions);
       }
     }
     res.status(200).json({ status: "success", message: "mission retrieved", data: records });
@@ -113,183 +118,22 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// post
-router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const { socketId, missions } = req.body as MissionUpsertRequest;
-  const emssToken = req.headers["emss-token"] as string;
-
-  // Must have edit permission for the mission IDs
-  for (const mission of missions) {
-    const canEditThisMission = hasPerms({
-      missionId: mission.id,
-      permission: "edit",
-      appUser: req.session.appUser,
-      emssToken,
-    });
-    if (!canEditThisMission) {
-      apiRouteLogger({
-        logLevel: "warn",
-        httpMethod: "POST",
-        responseStatus: 401,
-        routeName: "mission",
-        appUsername: req.session?.appUser?.username,
-        missionId: mission.id,
-        message: "Unauthorized",
-      });
-      res.status(401).json({ status: "failure", message: "Unauthorized" });
-      return;
-    }
-  }
-
+router.get("/schema", async (req: Request, res: Response): Promise<void> => {
   try {
-    // validate
-    if (!missions || missions.length === 0) {
-      apiRouteLogger({
-        logLevel: "notice",
-        httpMethod: "POST",
-        responseStatus: 400,
-        routeName: "mission",
-        appUsername: req.session?.appUser?.username,
-        message: "No missions provided in request body",
-      });
-      res.status(400).json({ status: "error", message: "No missions provided in request body" });
-      return;
-    }
-
-    const upsertResponse: Mission[] = await upsertDatabaseRetry(() => upsertMissions(missions));
-    // Check response
-    if (!upsertResponse || upsertResponse.length === 0) {
-      apiRouteLogger({
-        logLevel: "error",
-        httpMethod: "POST",
-        responseStatus: 500,
-        routeName: "mission",
-        appUsername: req.session?.appUser?.username,
-        uuids: missions?.map((m) => m.id.toString()),
-        message: "Failed to update mission after multiple tries due to optimistic locking",
-        error: new Error("Failed to update mission after multiple tries due to optimistic locking"),
-      });
-      res.status(500).json({
-        status: "error",
-        message: "Failed to update mission after multiple tries due to optimistic locking",
-        data: null,
-      });
-      return;
-    }
-
-    // For each mission upserted, emit and log.
-    // This is done in a loop since sockets are filtered to only process
-    //  messages that match the missionId field.
-    for (const upsertedMission of upsertResponse) {
-      // emit the upserted item to all clients via socket.io
-      emitStoreUpsert({
-        missionId: upsertedMission.id,
-        socketId,
-        type: "mission",
-        data: [upsertedMission],
-      } as StoreUpsert);
-      res.status(200).json({
-        status: "success",
-        message: `Mission upserted with IDs ${upsertResponse.map((m) => m.id)}`,
-        data: upsertResponse,
-      });
-    }
-  } catch (e) {
-    apiRouteLogger({
-      logLevel: "error",
-      httpMethod: "POST",
-      responseStatus: 500,
-      routeName: "mission",
-      appUsername: req.session?.appUser?.username,
-      uuids: missions?.map((m) => m.id.toString()),
-      message: `Error processing the POST request ${e}`,
-      error: asError(e),
+    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "mission.json"), "utf8");
+    const schema = JSON.parse(schemaFile);
+    res.status(200).json({
+      status: "success",
+      message: "mission schema retrieved",
+      data: schema,
     });
-    res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
-  }
-});
-
-// delete
-router.delete("/", async (req: Request, res: Response): Promise<void> => {
-  const { missionIds } = req.body as MissionDeleteRequest;
-
-  //must have edit permission the mission ids
-  //  or if no mission id (create mission) must be an admin to the back end or user 1
-  for (const missionIdToDelete of missionIds) {
-    if (!missionIdToDelete || isNaN(missionIdToDelete)) {
-      apiRouteLogger({
-        logLevel: "notice",
-        httpMethod: "DELETE",
-        responseStatus: 400,
-        routeName: "mission",
-        appUsername: req.session?.appUser?.username,
-        missionId: missionIdToDelete,
-        message: "Invalid mission ID",
-      });
-      res.status(400).json({ status: "error", message: "Invalid mission ID" });
-      return;
-    }
-
-    if (!req.session?.appUser?.isSuperAdmin) {
-      apiRouteLogger({
-        logLevel: "warn",
-        httpMethod: "DELETE",
-        responseStatus: 401,
-        routeName: "mission",
-        appUsername: req.session?.appUser?.username,
-        missionId: missionIdToDelete,
-        message: "Unauthorized",
-      });
-      res.status(401).json({ status: "failure", message: "Unauthorized" });
-      return;
-    }
-  }
-
-  try {
-    const deletedMissionIds: number[] = await deleteMissions(missionIds);
-    if (deletedMissionIds.length > 0) {
-      res.status(200).json({ status: "success", message: "Mission Deleted" });
-    } else {
-      apiRouteLogger({
-        logLevel: "notice",
-        httpMethod: "DELETE",
-        responseStatus: 404,
-        routeName: "mission",
-        appUsername: req.session?.appUser?.username,
-        uuids: missionIds.map((id) => id.toString()),
-        message: "No record found. Nothing deleted",
-      });
-      res.status(404).json({ status: "failure", message: "No record found. Nothing deleted" });
-    }
   } catch (e) {
-    if (e instanceof ForeignKeyConstraintViolationException) {
-      apiRouteLogger({
-        logLevel: "error",
-        httpMethod: "DELETE",
-        responseStatus: 500,
-        routeName: "mission",
-        appUsername: req.session?.appUser?.username,
-        uuids: missionIds.map((id) => id.toString()),
-        message: "Cannot delete mission. This mission is referenced elsewhere",
-        error: asError(e),
-      });
-      res.status(500).json({
-        status: "error",
-        message: "Cannot delete mission. This mission is referenced elsewhere",
-      });
-    } else {
-      apiRouteLogger({
-        logLevel: "error",
-        httpMethod: "DELETE",
-        responseStatus: 500,
-        routeName: "mission",
-        appUsername: req.session?.appUser?.username,
-        uuids: missionIds.map((id) => id.toString()),
-        message: "Error processing the DELETE request",
-        error: asError(e),
-      });
-      res.status(500).json({ status: "error", message: "Error processing the DELETE request" });
-    }
+    console.error(e);
+    res.status(500).json({
+      status: "error",
+      message: `Error retrieving schema: ${e}`,
+      data: null,
+    });
   }
 });
 
@@ -300,8 +144,11 @@ export default router;
  * @returns a mission
  * @param missionIdList
  */
-export async function getMission(missionIdList: number | number[] = null): Promise<Mission[]> {
-  const em = globalValues.orm.em;
+export async function getBackupDbMissions(
+  missionIdList: number[] | null = null
+): Promise<Mission[]> {
+  // must manually fork because sometimes this call is outside normal http request context (what we do in routes)
+  const em = globalValues.orm.em.fork();
   let missions: Mission_db[];
   if (!missionIdList) {
     missions = await em.find(Mission_db, {});
@@ -317,8 +164,9 @@ export async function getMission(missionIdList: number | number[] = null): Promi
  * @param missions the mission objects to upsert
  * @returns a copy of the mission objects that was upserted
  */
-async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
-  const em = globalValues.orm.em;
+export async function upsertBackupDbMissions(missions: Mission[]): Promise<Mission[]> {
+  // must manually fork because sometimes this call is outside normal http request context (what we do in routes)
+  const em = globalValues.orm.em.fork();
   await em.begin(); // Start a transaction
 
   const missionsCopy: Mission[] = cloneDeep(missions);
@@ -326,7 +174,7 @@ async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
 
   try {
     for (const missionCopy of missionsCopy) {
-      const upsertRecord: EntityData<Mission_db> = convertMissionsTypeStoreToDb([missionCopy])[0];
+      const upsertRecord: EntityData<Mission_db> = missionCopy;
 
       let dbReference: Mission_db;
       if (missionCopy.id) {
@@ -353,11 +201,14 @@ async function upsertMissions(missions: Mission[]): Promise<Mission[]> {
 }
 
 /**
- * Deletes missions
+ * Deletes missions from the backup database table
+ * Deletes all related entities in other tables as well
  * @param missionIds mission IDs to delete
  * @returns the ids of the deleted missions
  */
-export async function deleteMissions(missionIds: number[]): Promise<number[]> {
+export async function deleteBackupDbMissionAndRelatedEntities(
+  missionIds: number[]
+): Promise<number[]> {
   const em = globalValues.orm.em;
   const deletedMissionIds = [];
 
@@ -371,10 +222,10 @@ export async function deleteMissions(missionIds: number[]): Promise<number[]> {
     // Step 1: Fetch all related entities
     try {
       // Delete STM Rules first (they reference STM Level 3)
-      await em.nativeDelete(STM_Rule_db, { mission: missionId });
+      await em.nativeDelete(STM_Rule_db, { missionId });
 
       // Find all Level 1s for this mission - they link to the mission directly
-      const stmLevel1s = await em.find(STM_Level1_db, { mission: missionId });
+      const stmLevel1s = await em.find(STM_Level1_db, { missionId });
 
       // For each Level 1, we need to:
       // 1. Find its Level 2s
@@ -396,38 +247,38 @@ export async function deleteMissions(missionIds: number[]): Promise<number[]> {
       }
 
       // Now delete all Level 1s for this mission
-      await em.nativeDelete(STM_Level1_db, { mission: missionId });
+      await em.nativeDelete(STM_Level1_db, { missionId });
 
       // Delete actions
-      await em.nativeDelete(Action_db, { mission: missionId });
+      await em.nativeDelete(Action_db, { missionId });
 
       // Delete REXes
-      await em.nativeDelete(Rex_db, { mission: missionId });
+      await em.nativeDelete(Rex_db, { missionId });
 
       // Delete EVAs
-      await em.nativeDelete(Eva_db, { mission: missionId });
+      await em.nativeDelete(Eva_db, { missionId });
 
       // Delete traverses
-      await em.nativeDelete(Traverse_db, { mission: missionId });
+      await em.nativeDelete(Traverse_db, { missionId });
 
       // Delete sublayers (they reference layers)
-      await em.nativeDelete(Sublayer_db, { mission: missionId });
+      await em.nativeDelete(Sublayer_db, { missionId });
 
       // Delete layers
-      await em.nativeDelete(Layer_db, { mission: missionId });
+      await em.nativeDelete(Layer_db, { missionId });
 
       // Delete Presets
-      await em.nativeDelete(Preset_db, { mission: missionId });
+      await em.nativeDelete(Preset_db, { missionId });
 
       // Delete Grids
-      await em.nativeDelete(Grid_db, { mission: missionId });
+      await em.nativeDelete(Grid_db, { missionId });
 
       // Delete Folders
-      await em.nativeDelete(Folder_db, { mission: missionId });
+      await em.nativeDelete(Folder_db, { missionId });
 
       // Delete POIs and stations
-      await em.nativeDelete(Poi_db, { mission: missionId });
-      await em.nativeDelete(Station_db, { mission: missionId });
+      await em.nativeDelete(Poi_db, { missionId });
+      await em.nativeDelete(Station_db, { missionId });
 
       // Finally delete the mission itself
       await em.nativeDelete(Mission_db, { id: missionId });
@@ -443,3 +294,89 @@ export async function deleteMissions(missionIds: number[]): Promise<number[]> {
   await em.flush();
   return deletedMissionIds;
 }
+
+/**
+ * adds a listener to a docHandle that will backup the automerge payload to the database.
+ * @param docHandle the docHandle to add the listener to
+ */
+export const addDbBackupListener = (docHandle: DocHandle<Mission>): void => {
+  docHandle.on("change", throttledDbBackup);
+};
+
+// throttled backup the automerge payload to the database.
+const throttledDbBackup = throttle(
+  (payload: DocHandleChangePayload<Mission>) => {
+    const missionToSave = payload.doc;
+    // console.log(diff(payload.patchInfo.before, payload.patchInfo.after));
+    // validate contents before saving to the DB
+    const isValid = missionValidator(missionToSave);
+    if (!isValid && missionValidator.errors?.length > 0) {
+      // log the validation errors
+      serverLogger.error(
+        new Error(`Mission ${missionToSave.id} failed validation. Not saving backup to DB.`),
+        {
+          logId: "Automerge",
+          logValue: `DB Backup Validation Schema Errors: ${JSON.stringify(missionValidator.errors)}`,
+          missionId: missionToSave.id,
+        }
+      );
+      // log a full snapshot of the bad data
+      serverLogger.error(
+        new Error(`Mission ${missionToSave.id} received invalid data from automerge`),
+        {
+          logId: "Automerge",
+          logValue: JSON.stringify(missionToSave),
+          missionId: missionToSave.id,
+        }
+      );
+      // log the last diff that got throttled. Is not representative of a diff between valid and invalid data,
+      serverLogger.error(
+        new Error(`Mission ${missionToSave.id} last throttled diff from automerge`),
+        {
+          logId: "Automerge",
+          logValue: JSON.stringify(diff(payload.patchInfo.before, payload.patchInfo.after)),
+          missionId: missionToSave.id,
+        }
+      );
+
+      // automatically overwrite the current automerge doc with the
+      // last known good version of the mission from our backup db
+      restoreLastKnownGoodFromBackupDb(missionToSave.id, payload.handle);
+    } else {
+      // data is valid. save to the DB
+      console.log("pushing change to db backup");
+      upsertBackupDbMissions([missionToSave]);
+    }
+  },
+  3000, // throttle saving to DB by 3 seconds. DB is just backup so it's okay to be slower
+  { leading: false, trailing: true }
+);
+
+const restoreLastKnownGoodFromBackupDb = async (
+  missionId: number,
+  docHandle: DocHandle<Mission>
+) => {
+  try {
+    const lastKnownGoodMission = (await getBackupDbMissions([missionId]))[0];
+    // overwrite the automerge doc with the last known good mission
+    docHandle.change((doc) => {
+      // First, delete all existing properties in case there are any extra properties
+      for (const key in doc) {
+        delete doc[key as keyof Mission];
+      }
+      // Then assign the new properties
+      Object.assign(doc, lastKnownGoodMission);
+    });
+    serverLogger.warn({
+      logId: "Automerge",
+      logValue: `Restored last known good mission from backup DB`,
+      missionId,
+    });
+  } catch (e) {
+    serverLogger.error(new Error(`Failed to restore last known good mission from backup DB`), {
+      logId: "Automerge",
+      logValue: e.toString(),
+      missionId,
+    });
+  }
+};

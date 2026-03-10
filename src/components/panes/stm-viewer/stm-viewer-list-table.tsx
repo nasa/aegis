@@ -10,6 +10,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { titleCase } from "utils/formatting";
 import uniq from "lodash/uniq";
 import sortBy from "lodash/sortBy";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const STMListTable: FunctionComponent = () => {
   const level1s = useAppSelector(
@@ -40,10 +41,7 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
     (state: RootState) => state.stm.stmViewExpandTopTiers,
     refEqual
   );
-  const stmLevel1Enabled = useAppSelector(
-    (state: RootState) => state.mission.mission.stmLevel1Enabled,
-    deepEqual
-  );
+  const stmLevel1Enabled = useMissionDocSelector((doc) => doc.stmLevel1Enabled, deepEqual);
 
   const numLines = numLevel3s;
   const maxHeightEm = 1.2 * numLines;

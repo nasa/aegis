@@ -3,8 +3,7 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import AppUserFactory from "../factories/AppUserFactory";
-import MissionFactory from "../factories/MissionFactory";
-import { App_User_db, Mission_db, Eva_db } from "server/database/models/_allModels";
+import { App_User_db, Eva_db } from "server/database/models/_allModels";
 import EvaFactory from "../factories/EVAFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
@@ -20,27 +19,26 @@ jest.mock("server/express/sockets", () => {
 });
 
 let testAppUser: App_User_db;
-let testMissions: Mission_db[];
 let testEvas: Eva_db[];
+const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testMissions = await new MissionFactory(em).create(3);
   testAppUser = await new AppUserFactory(em).createOne({
     username: "Jest Eva",
     permissionList: [
       {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         permissions: {
           edit: true,
           view: true,
         },
       },
       {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         permissions: {
           edit: false,
           view: true,
@@ -50,7 +48,7 @@ beforeAll(async () => {
   });
   testEvas = await new EvaFactory(em)
     .each((eva) => {
-      eva.mission = testMissions[0];
+      eva.missionId = testMissionIds[0];
       eva.ownerId = testAppUser.id;
     })
     .create(2);
@@ -76,7 +74,7 @@ describe("EVA API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: EvaUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         evas: [newEVA],
       };
       const res = await supertest(app)
@@ -89,7 +87,7 @@ describe("EVA API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: EvaUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         evas: [newEVA],
       };
       const res = await supertest(app)
@@ -102,7 +100,7 @@ describe("EVA API Endpoint", () => {
     test("Empty EVA array", async () => {
       const requestBody: EvaUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         evas: [],
       };
       const res = await supertest(app)
@@ -115,8 +113,8 @@ describe("EVA API Endpoint", () => {
     test("Create new EVA", async () => {
       const requestBody: EvaUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
-        evas: [{ ...newEVA, ownerId: testAppUser.id, missionId: testMissions[0].id }],
+        missionId: testMissionIds[0],
+        evas: [{ ...newEVA, ownerId: testAppUser.id, missionId: testMissionIds[0] }],
       };
       const res = await supertest(app)
         .post("/api/v1/eva")
@@ -139,7 +137,7 @@ describe("EVA API Endpoint", () => {
       newEVA.name = "Jest Test New EVA Modified";
       const requestBody: EvaUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         evas: [newEVA],
       };
       const res = await supertest(app)
@@ -159,7 +157,7 @@ describe("EVA API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: EvaDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         evaUuids: [newEVA.uuid],
       };
       const res = await supertest(app)
@@ -172,7 +170,7 @@ describe("EVA API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: EvaDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         evaUuids: [newEVA.uuid],
       };
       const res = await supertest(app)
@@ -185,7 +183,7 @@ describe("EVA API Endpoint", () => {
     test("Delete a EVA", async () => {
       const requestBody: EvaDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         evaUuids: [newEVA.uuid],
       };
       const res = await supertest(app)
@@ -207,8 +205,8 @@ describe("Auth with emss-token header", () => {
   test("POST request succeeds with emss-token", async () => {
     const requestBody: EvaUpsertRequest = {
       socketId: "someSocketId",
-      missionId: testMissions[0].id,
-      evas: [{ ...newEva, missionId: testMissions[0].id }],
+      missionId: testMissionIds[0],
+      evas: [{ ...newEva, missionId: testMissionIds[0] }],
     };
     const res = await supertest(app)
       .post("/api/v1/eva")
@@ -220,7 +218,7 @@ describe("Auth with emss-token header", () => {
   test("DELETE request succeeds with emss-token", async () => {
     const requestBody: EvaDeleteRequest = {
       socketId: "someSocketId",
-      missionId: testMissions[0].id,
+      missionId: testMissionIds[0],
       evaUuids: [newEva.uuid],
     };
     const res = await supertest(app)
@@ -236,9 +234,6 @@ afterAll(async () => {
   const em = globalValues.orm.em.fork();
   for (let i = 0; i < testEvas.length; i++) {
     await em.nativeDelete(Eva_db, { uuid: testEvas[i].uuid });
-  }
-  for (let i = 0; i < testMissions.length; i++) {
-    await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
 

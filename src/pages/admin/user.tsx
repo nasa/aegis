@@ -7,13 +7,16 @@ import { deleteAppUsers, getAppUsers, upsertAppUsers } from "../../http-client/a
 import { faEdit, faTrashCan, faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { getMissions } from "../../http-client/mission";
 import React from "react";
 import { generateBlankAppUser } from "store/storeUtils/appUser";
 import { getAccurateNow } from "utils/formatting";
+import { getAutomergeDocListing } from "http-client/docListing";
+import { useRepo } from "@automerge/automerge-repo-react-hooks";
+import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
 
 const User: React.FunctionComponent = () => {
   const navigate = useNavigate();
+  const automergeRepo = useRepo();
   const [userList, setUserList] = useState<AppUser[]>([]);
   const [user, setUser] = useState<AppUser>();
   const [editMode, setEditMode] = useState<boolean>(false);
@@ -21,7 +24,8 @@ const User: React.FunctionComponent = () => {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [createMode, setCreateMode] = useState<boolean>(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
-  const [missionList, setMissionList] = useState<Mission[]>([]);
+  const [automergeDocList, setAutomergeDocList] = useState<AutomergeDocListing[]>([]);
+  const [missionList, setMissionList] = useState<{ id: number; name: string }[]>([]);
 
   //on load check login and mission id
   useEffect(() => {
@@ -33,8 +37,22 @@ const User: React.FunctionComponent = () => {
         // Get a list of users from the database
         const users: AppUser[] = (await getAppUsers()).data;
         setUserList(users.sort((a, b) => a.id - b.id));
-        const missions: Mission[] = (await getMissions()).data;
-        setMissionList(missions);
+
+        // get a list of all automerge mission records
+        const automergeDocListings: AutomergeDocListing[] = (await getAutomergeDocListing()).data;
+        setAutomergeDocList(automergeDocListings);
+
+        const missionNamesAndIds = [];
+        // get their names
+        for (const record of automergeDocListings) {
+          const missionDocHandle: DocHandle<Mission> = await automergeRepo.find(
+            record.automergeUrl as AutomergeUrl
+          );
+          const mission = missionDocHandle.doc();
+          missionNamesAndIds.push({ id: record.missionId, name: mission.name });
+          missionDocHandle.delete();
+        }
+        setMissionList(missionNamesAndIds);
       } else {
         navigate("/");
       }
@@ -42,27 +60,27 @@ const User: React.FunctionComponent = () => {
     adminCheck().catch(() => {
       // Something went wrong. Eventually would like a logger here.
     });
-  }, [navigate]);
+  }, [automergeRepo, navigate]);
 
   const handleEdit = (user: AppUser) => {
     let permissionList: Permission[];
 
     // if superadmin, give all permissions
     if (user.isSuperAdmin) {
-      permissionList = missionList.map((mission) => {
+      permissionList = automergeDocList.map((amRecord) => {
         return {
           permissions: { edit: true, view: true },
-          missionId: mission.id,
+          missionId: amRecord.missionId,
         };
       });
     } else {
-      permissionList = missionList.map((mission) => {
-        if (user.permissionList?.find((p) => p.missionId === mission.id)) {
-          return user.permissionList.find((p) => p.missionId === mission.id);
+      permissionList = automergeDocList.map((amRecord) => {
+        if (user.permissionList?.find((p) => p.missionId === amRecord.missionId)) {
+          return user.permissionList.find((p) => p.missionId === amRecord.missionId);
         } else {
           return {
             permissions: { edit: false, view: false },
-            missionId: mission.id,
+            missionId: amRecord.missionId,
           };
         }
       });
@@ -130,10 +148,10 @@ const User: React.FunctionComponent = () => {
   const handleCreate = () => {
     setCreateMode(!createMode);
 
-    const permissionList = missionList.map((mission) => {
+    const permissionList = automergeDocList.map((amRecord) => {
       return {
         permissions: { edit: false, view: false },
-        missionId: mission.id,
+        missionId: amRecord.missionId,
       };
     });
     const blankUser: AppUser = generateBlankAppUser({ permissionList });

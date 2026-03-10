@@ -6,7 +6,7 @@ import {
   thunkRemoveMeasurement,
   thunkUpdateMeasurementPath,
 } from "store/thunk/thunkMeasurement";
-import { generateBlankMission } from "store/storeUtils/mission";
+import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 const mockThunkGetElevation = jest.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
@@ -14,6 +14,15 @@ const mockThunkGetElevation = jest.fn().mockReturnValue({
 jest.mock("store/thunk/thunkElevation", () => ({
   thunkGetElevation: () => mockThunkGetElevation,
 }));
+
+beforeAll(() => {
+  /**
+   * Init the mission automerge doc. In the app this is handled in the component.
+   * Pass in null because this function is being mocked in jest.setup.ts so we don't
+   * have to pass in a real value.
+   */
+  setMissionAutomergeDocHandle(null);
+});
 
 beforeEach(async () => {
   jest.clearAllMocks(); // clear call count
@@ -25,7 +34,6 @@ afterAll(() => {
 
 describe("Thunk Measurement Tests", () => {
   test("thunkUpdateMeasurementPath()", async () => {
-    const blankMission: Mission = generateBlankMission({ name: "Jest Mission-1" });
     const newPath = [
       { lat: 1, lng: 2 },
       { lat: 1.2, lng: 2.2 },
@@ -43,7 +51,6 @@ describe("Thunk Measurement Tests", () => {
       measure: { ...measureInitialState, measurements: [measurement] },
       mission: {
         ...missionInitialState,
-        mission: { ...blankMission },
       },
     });
 
@@ -55,12 +62,10 @@ describe("Thunk Measurement Tests", () => {
     expect(storeState.measure.measurements[0].pathSegmentDistances.length).toEqual(1);
   });
   test("thunkAddNewMeasurement()", async () => {
-    const blankMission: Mission = generateBlankMission({ name: "Jest Mission-1" });
     const store = createCustomTestStore({
       measure: { ...measureInitialState, measurements: [] },
       mission: {
         ...missionInitialState,
-        mission: { ...blankMission },
       },
     });
     const initialMeasurements = store.getState().measure.measurements;
@@ -69,7 +74,6 @@ describe("Thunk Measurement Tests", () => {
     expect(newMeasurements.length).toEqual(initialMeasurements.length + 1);
   });
   test("thunkRemoveMeasurement()", async () => {
-    const blankMission: Mission = generateBlankMission({ name: "Jest Mission-1" });
     const measurement: Measurement = {
       path: [{ lat: 1, lng: 2 }],
       pathSegmentDistances: [0],
@@ -83,7 +87,6 @@ describe("Thunk Measurement Tests", () => {
       measure: { ...measureInitialState, measurements: [measurement] },
       mission: {
         ...missionInitialState,
-        mission: { ...blankMission },
       },
     });
     const initialMeasurements = store.getState().measure.measurements;

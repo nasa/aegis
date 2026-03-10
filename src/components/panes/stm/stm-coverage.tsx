@@ -4,6 +4,7 @@ import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import uniqBy from "lodash/uniqBy";
 import uniq from "lodash/uniq";
 import ReactDOMServer from "react-dom/server";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 export const STM_Coverage: FunctionComponent<{
   stmUuidsByActionUuid: string[][]; //2d array of stm uuids by action uuid
@@ -21,7 +22,15 @@ export const STM_Coverage: FunctionComponent<{
   const allSTMLevel1 = useAppSelector((state) => state.stm.level1s, deepEqual);
   const allSTMLevel2 = useAppSelector((state) => state.stm.level2s, deepEqual);
   const allSTMLevel3 = useAppSelector((state) => state.stm.level3s, deepEqual);
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      stmLevel1Name: doc.stmLevel1Name,
+      stmLevel2Name: doc.stmLevel2Name,
+      stmLevel3Name: doc.stmLevel3Name,
+      stmLevel1Enabled: doc.stmLevel1Enabled,
+    }),
+    deepEqual
+  );
 
   //get all STM level3s
   const stms3s: STMLevel3[] = [];
@@ -81,7 +90,7 @@ export const STM_Coverage: FunctionComponent<{
       const level1 = allSTMLevel1.find((eachObj) => eachObj.uuid === stmUuid);
       toolTip = (
         <div key={"tooltip_" + stmUuid}>
-          <b>{`${mission?.stmLevel1Name} ` + level1.numbering}</b> - {level1.name}
+          <b>{`${partialMission?.stmLevel1Name} ` + level1.numbering}</b> - {level1.name}
         </div>
       );
     } else if (stmType === "level2") {
@@ -90,10 +99,10 @@ export const STM_Coverage: FunctionComponent<{
       if (full) {
         toolTip = (
           <div key={"tooltip_" + level2.uuid}>
-            <b>{`${mission?.stmLevel2Name} ` + level1.numbering}</b> - {level1.name}
+            <b>{`${partialMission?.stmLevel2Name} ` + level1.numbering}</b> - {level1.name}
             <br />
             <b>
-              {`${mission?.stmLevel2Name} ` + level1.numbering}
+              {`${partialMission?.stmLevel2Name} ` + level1.numbering}
               {level2.numbering}
             </b>
             - {level2.name}
@@ -102,7 +111,7 @@ export const STM_Coverage: FunctionComponent<{
       } else {
         toolTip = (
           <div key={"tooltip_" + stmUuid}>
-            <b>{`${mission?.stmLevel2Name} ` + level1.numbering + level2.numbering}</b> -{" "}
+            <b>{`${partialMission?.stmLevel2Name} ` + level1.numbering + level2.numbering}</b> -{" "}
             {level2.name}
           </div>
         );
@@ -114,11 +123,11 @@ export const STM_Coverage: FunctionComponent<{
       if (full) {
         toolTip = (
           <div key={"tooltip_" + level2.uuid}>
-            {mission?.stmLevel1Enabled && (
+            {partialMission?.stmLevel1Enabled && (
               <>
                 <div>
                   <b>
-                    {mission?.stmLevel1Name} {level1.numbering}
+                    {partialMission?.stmLevel1Name} {level1.numbering}
                   </b>{" "}
                   - {level1.name}
                 </div>
@@ -126,13 +135,13 @@ export const STM_Coverage: FunctionComponent<{
               </>
             )}
             <b>
-              {mission?.stmLevel2Name} {mission?.stmLevel1Enabled && level1.numbering}
+              {partialMission?.stmLevel2Name} {partialMission?.stmLevel1Enabled && level1.numbering}
               {level2.numbering}{" "}
             </b>
             - {level2.name}
             <br />
             <b>
-              {mission?.stmLevel3Name} {mission?.stmLevel1Enabled && level1.numbering}
+              {partialMission?.stmLevel3Name} {partialMission?.stmLevel1Enabled && level1.numbering}
               {level2.numbering}-{level3.numbering}
             </b>
             - {level3.name}
@@ -142,8 +151,8 @@ export const STM_Coverage: FunctionComponent<{
         toolTip = (
           <div key={"tooltip_" + stmUuid}>
             <b>
-              {mission?.stmLevel3Name +
-                (mission?.stmLevel1Enabled && level1.numbering) +
+              {partialMission?.stmLevel3Name +
+                (partialMission?.stmLevel1Enabled && level1.numbering) +
                 level2.numbering +
                 "-" +
                 level3.numbering}
@@ -181,7 +190,7 @@ export const STM_Coverage: FunctionComponent<{
                   horizontal ? stmStyles.flexRow : stmStyles.flexColumn
                 }`}
               >
-                {mission?.stmLevel1Enabled && (
+                {partialMission?.stmLevel1Enabled && (
                   <div
                     className={`${
                       horizontal

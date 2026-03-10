@@ -201,9 +201,20 @@ docker restart <container name>
 
 The pipeline is setup to allow you to run a load test on the various EMSS dev servers, and the `int` servers. Speaking generally, the load test will start up a bunch of worker threads that will connect to the dev environment only via web-sockets. Each worker will maintain a state of the redux store and appropriately dispatch changes as they are received via sockets. At the end of the test, all of the workers will report back with a hash of the final redux store state for comparison with all other clients. If any client missed messages, was corrupted, or has a mis-matched store for any reason, the job will fail.
 
-### To start a load test:
+Self signed certs are allowed in order to run the load test in the local environment. This is configured using the environment variable `NODE_TLS_REJECT_UNAUTHORIZED` in the load test, and also in the socket configuration via the `rejectUnauthorized` property. This should never be allowed on production.
+
+### To start a load test in the pipeline:
 
 1.  Deploy the application to the dev environment
 2.  Run the `setup-load-test` job
-3.  Start the `run-load-test` job. The load test will run for about 3-ish minutes. Once the test is going, navigate to the dev environment in your browser and start performing actions that cause socket emits.
+3.  Start the `run-load-test` job. The load test will run for about 3-ish minutes. Once the test is going, navigate to the dev environment in your browser and start performing actions that cause socket emits. Note that you should see the AEGIS visitor count increase as load test workers connect.
 4.  Once the duration has timed out, return back to the job in the pipeline to view the pass/fail results.
+
+### To start a load test locally:
+
+1. Build and run the full docker setup via `npm run docker:preview:rebuild` and `npm run docker:preview`
+2. Add the `loadtest` username and password (from your `.env` file) manually to the DB through the AEGIS user interface.
+3. Make sure you have an updated local build of the load test by running `npm run test:loadtest:build`
+4. Start the load test in the terminal `npm run test:loadtest https://aegis-local.fit.nasa.gov`
+5. The load test will run for about 3-ish minutes. Once the test is going, navigate to `https://aegis-local.fit.nasa.gov` in your browser and start performing actions that cause socket emits. Note that you should see the AEGIS visitor count increase as load test workers connect.
+6. Once the duration has timed out, review the results in the terminal

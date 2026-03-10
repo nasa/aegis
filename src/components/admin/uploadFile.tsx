@@ -2,7 +2,7 @@ import isNull from "lodash/isNull";
 import { uploadFile } from "http-client/file";
 import prettyBytes from "pretty-bytes";
 import { ChangeEventHandler, FunctionComponent, useEffect, useState } from "react";
-import { validateGeoJSON } from "utils/validateSchema";
+import { validateGeoJSON } from "utils/validateSchemaClient";
 
 interface UploadProps {
   path: string; //path off of STATIC_DIR

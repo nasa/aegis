@@ -21,11 +21,7 @@ export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<
     type: storeUpsert.type as StoreTypeForMaestro,
     data: null,
   };
-  if (storeUpsert.type === "mission") {
-    // nothing needs translated here, just send the mission as is
-    maestroPayload.data = storeUpsert.data as Mission[];
-    io.to("maestro").emit("storeUpsertForMaestro", maestroPayload);
-  } else if (storeUpsert.type === "action") {
+  if (storeUpsert.type === "action") {
     const allData = await getAll(storeUpsert.missionId);
     const actionData = storeUpsert.data as Action[];
     // check action is in an eva
@@ -164,9 +160,7 @@ export const emitMaestroStoreDelete = async (storeDelete: StoreDelete): Promise<
     type: storeDelete.type as StoreTypeForMaestro,
     refUuids: null,
   };
-  if (storeDelete.type === "mission") {
-    // nothing needs translated here, just send the mission as is
-  } else if (storeDelete.type === "action") {
+  if (storeDelete.type === "action") {
     const actionRefUuids = await getActionRefUuids(storeDelete.uuids);
     maestroPayload.refUuids = actionRefUuids;
   } else if (storeDelete.type === "station") {

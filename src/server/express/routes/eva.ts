@@ -225,11 +225,7 @@ export async function getEVAs(missionId: number, evaUuid?: string): Promise<Eva[
   if (evaUuid) {
     dbEvas = await em.find(Eva_db, { uuid: evaUuid }, { orderBy: [{ name: QueryOrder.ASC }] });
   } else {
-    dbEvas = await em.find(
-      Eva_db,
-      { mission: { id: missionId } },
-      { orderBy: [{ name: QueryOrder.ASC }] }
-    );
+    dbEvas = await em.find(Eva_db, { missionId }, { orderBy: [{ name: QueryOrder.ASC }] });
   }
 
   //convert foreign keys

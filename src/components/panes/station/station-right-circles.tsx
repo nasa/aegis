@@ -10,9 +10,12 @@ import {
   setStationCircleUIState,
   toggleStationCircleVisible,
 } from "store/station";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Station_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
+  const circleDefinitions = useMissionDocSelector((doc) => doc.circleDefinitions, deepEqual);
+
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual
@@ -25,11 +28,6 @@ const Station_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
   );
   const circleUIStates = useAppSelector(
     (state) => state.station.stationCirclesUIStates[selectedStationUuid],
-    shallowEqual
-  );
-
-  const circleDefinitions = useAppSelector(
-    (state) => state.mission.mission?.circleDefinitions,
     shallowEqual
   );
 

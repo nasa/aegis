@@ -15,14 +15,14 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { FunctionComponent, useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { longdateFromDateString, toDecimal } from "utils/formatting";
+import { longDateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import STMSelector from "./stm/stm-selector";
 import { validators, regExValidators } from "components/interface/form/formValidators";
@@ -39,6 +39,7 @@ import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkAddCollectionId, thunkAddRexActionMass } from "store/thunk/thunkRex";
 import { globalGrid } from "utils/mapping/grid";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const RightActionBody: FunctionComponent<{
   editMode: boolean;
@@ -50,6 +51,14 @@ const RightActionBody: FunctionComponent<{
   allowRexEdit: boolean;
 }> = ({ editMode, action, parentType, parentLocation, parentElevation, rexUuid, allowRexEdit }) => {
   const dispatch = useAppDispatch();
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      usingLGRSCoordinates: doc.usingLGRSCoordinates,
+      planetRadius: doc.planetRadius,
+      actionSystemVersion: doc.actionSystemVersion,
+    }),
+    deepEqual
+  );
 
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === action.uuid ? state.map.mapDirective : null;
@@ -58,11 +67,6 @@ const RightActionBody: FunctionComponent<{
 
   const elevationPendingIndex = useAppSelector(
     (state) => state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === action.uuid),
-    refEqual
-  );
-
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
     refEqual
   );
 
@@ -84,18 +88,15 @@ const RightActionBody: FunctionComponent<{
     return rex?.maestroControlled || false;
   }, deepEqual);
 
-  const planetRadius = useAppSelector((state) => state.mission.mission.planetRadius, refEqual);
-
-  const missionUsingLGRSCoordinates = useAppSelector(
-    (state) => state.mission.mission.usingLGRSCoordinates,
-    refEqual
-  );
-
   const actionGridCoordinates = useAppSelector((state) => {
-    if (action.location && missionUsingLGRSCoordinates) {
+    if (action.location && partialMission.usingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(action.location.lat, action.location.lng);
     } else if (action.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
-      return findGlobalGridCoordsFromPoint(globalGrid.coordinates, action.location, planetRadius);
+      return findGlobalGridCoordsFromPoint(
+        globalGrid.coordinates,
+        action.location,
+        partialMission.planetRadius
+      );
     } else {
       return "Not set";
     }
@@ -141,7 +142,7 @@ const RightActionBody: FunctionComponent<{
       className={actionStyles.actionIndent}
       style={{ backgroundColor: action.enabled ? "" : "var(--grey1)" }}
     >
-      {actionSystemVersion === 2 && (
+      {partialMission.actionSystemVersion === 2 && (
         <div className={paneStyles.panelSection}>
           <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
             <SubpanelHeading icon={faPersonDigging}>Action Type</SubpanelHeading>
@@ -190,7 +191,7 @@ const RightActionBody: FunctionComponent<{
               dispatch(upsertActionByField(action.uuid, "description", value || ""));
             }}
             fieldProps={{ name: "description", ariaLabel: "Action Description" }}
-            key={action.uuid}
+            key={`${action.uuid}-description`}
           />
         </div>
         {parentType !== "poi" && (
@@ -260,7 +261,7 @@ const RightActionBody: FunctionComponent<{
         </div>
       </div>
 
-      {actionSystemVersion === 1 && (
+      {partialMission.actionSystemVersion === 1 && (
         <div className={paneStyles.panelSection}>
           <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
             <SubpanelHeading icon={faListOl}>Task Priority</SubpanelHeading>
@@ -506,7 +507,7 @@ const RightActionBody: FunctionComponent<{
           />
         </div>
       </div>
-      {actionSystemVersion === 1 && (
+      {partialMission.actionSystemVersion === 1 && (
         <>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
@@ -525,7 +526,7 @@ const RightActionBody: FunctionComponent<{
           </div>
         </>
       )}
-      {actionSystemVersion === 1 && (
+      {partialMission.actionSystemVersion === 1 && (
         <>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
@@ -732,7 +733,7 @@ const RightActionBody: FunctionComponent<{
                           {getDistanceBetweenTwoCoordinates(
                             action.location,
                             parentLocation,
-                            planetRadius
+                            partialMission.planetRadius
                           ).toFixed(0)}
                         </>
                       )}
@@ -804,7 +805,7 @@ const RightActionBody: FunctionComponent<{
                 </span>
                 <span style={{ color: "var(--grey5)" }}>{actionParentPoi?.name} </span>
                 <div style={{ marginLeft: "2px" }}>
-                  at {longdateFromDateString(action.parentCopyDate) + "Z"}
+                  at {longDateFromDateString(new Date(action.parentCopyDate).toISOString())}
                 </div>
               </div>
             </div>
@@ -817,7 +818,7 @@ const RightActionBody: FunctionComponent<{
       </div>
       <div className={paneStyles.lastEditedContainer}>
         <div className={paneStyles.displayFieldValue}>
-          <LastEdited
+          <LastEditedNumeric
             updatedAt={action?.updatedAt}
             createdAt={action?.createdAt}
             infoString={`Action UUID: ${action?.uuid}`}

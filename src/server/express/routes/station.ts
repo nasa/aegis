@@ -243,7 +243,7 @@ export async function getStations(missionId: number, stationUUID?: string): Prom
   } else {
     dbStations = await em.find(
       Station_db,
-      { mission: { id: missionId } },
+      { missionId },
       {
         orderBy: [{ name: QueryOrder.ASC }],
         populate: ["poi"],

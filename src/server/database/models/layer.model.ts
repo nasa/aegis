@@ -1,20 +1,12 @@
-import {
-  Entity,
-  ManyToOne,
-  PrimaryKey,
-  Property,
-  types as MikroTypes,
-} from "@mikro-orm/postgresql";
-
-import { Mission_db } from "./_allModels";
+import { Entity, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/postgresql";
 
 @Entity()
 export class Layer_db implements Layer_db_type {
   @PrimaryKey({ type: MikroTypes.uuid })
   uuid: string;
 
-  @ManyToOne(() => Mission_db, { unique: false, primary: false })
-  mission!: Mission_db;
+  @Property({ type: MikroTypes.integer })
+  missionId!: number;
 
   @Property({ type: MikroTypes.text, nullable: true })
   name!: string;

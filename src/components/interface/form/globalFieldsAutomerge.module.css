@@ -1,0 +1,295 @@
+.dialogContainer {
+  padding: 3px;
+  border: 1px solid transparent;
+  flex-grow: 1;
+}
+
+.dialogContainerEditable {
+  cursor: pointer;
+  padding: 3px;
+  border: 1px solid transparent;
+  transition: 0.12s ease;
+  flex-grow: 1;
+}
+
+.dialogContainerEditable:hover {
+  background-color: rgb(255 255 255 / 10%);
+  border-color: rgb(255 255 255 / 40%);
+  border-radius: var(--panelRadius);
+}
+
+.editField {
+  padding: 4px;
+  height: 2em;
+  background-color: var(--grey1);
+  color: #ffffff;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-top-left-radius: var(--panelRadius);
+  border-top-right-radius: var(--panelRadius);
+  cursor: text;
+  outline: none;
+}
+
+.textAreaField {
+  padding: 4px;
+  background-color: var(--grey1);
+  color: #ffffff;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-top-left-radius: var(--panelRadius);
+  border-top-right-radius: var(--panelRadius);
+  cursor: text;
+  outline: none;
+  height: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.editPencilWrapper {
+  justify-content: space-around;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 2px;
+  cursor: pointer;
+  margin-left: 4px;
+  height: 18px;
+}
+
+.dialog {
+  position: relative;
+  padding: 0;
+  cursor: default;
+}
+
+.dialogWrapper {
+  position: fixed;
+  z-index: 100;
+  background-color: var(--grey2);
+  color: var(--grey5);
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: var(--panelRadius);
+  display: flex;
+  flex-direction: column;
+  font-weight: normal;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
+}
+
+.dialogFooter {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: flex-end;
+  column-gap: 8px;
+  padding: 10px;
+}
+
+.dialogFooterVertical {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  row-gap: 8px;
+  padding: 10px;
+}
+
+.errorMessage {
+  flex-grow: 1;
+  align-self: flex-start;
+  color: #ff6060;
+  font-weight: 500;
+  font-size: 0.8em;
+}
+
+.toggleButton {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  color: #ffffff;
+  padding-left: 8px;
+  padding-right: 8px;
+  cursor: pointer;
+  user-select: none;
+  column-gap: 2px;
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 35px;
+  height: 20px;
+  border-radius: 12px;
+  transition: background-color 0.3s ease;
+  margin-left: 3px;
+  border: solid 1px var(--grey2);
+}
+
+.toggleSwitchOff {
+  background-color: var(--grey1);
+}
+
+.toggleSwitchOn {
+  background-color: #439947;
+}
+
+.toggleSlider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: white;
+  transition: transform 0.3s ease;
+}
+
+.toggleSwitchOn .toggleSlider {
+  transform: translateX(15px);
+}
+
+.toggleButtonLabel {
+  align-self: center;
+  margin-top: 2px;
+}
+
+.toggleButtonDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.buttonControls {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  justify-content: flex-end;
+  column-gap: 8px;
+}
+
+.doneButton {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+
+  height: 2em;
+  background-color: var(--grey3);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius);
+  padding-left: 8px;
+  padding-right: 8px;
+  cursor: pointer;
+  user-select: none;
+
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.saveButton {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+
+  height: 2em;
+  background-color: #439947;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius);
+  padding-left: 8px;
+  padding-right: 8px;
+  cursor: pointer;
+  user-select: none;
+
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.saveButtonDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+
+  height: 2em;
+  background-color: var(--grey3);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius);
+  padding-left: 8px;
+  padding-right: 8px;
+  cursor: pointer;
+  user-select: none;
+
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.labelContainer {
+  display: flex;
+  flex-direction: row;
+}
+
+.latLngDialogContainer {
+  margin-right: 5px;
+}
+
+.inputFieldValue {
+  font-size: 0.8rem;
+  font-weight: 400;
+  align-self: center;
+  color: white;
+  overflow: auto;
+}
+
+.textAreaValue {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: white;
+  overflow: auto;
+  max-height: 300px;
+  width: 100%;
+  white-space: pre-wrap; /* for line breaks */
+}
+
+.latLngInputRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  column-gap: 4px;
+}
+
+.latLngEditFieldFirstRow {
+  padding: 4px;
+  height: 2em;
+  background-color: var(--grey1);
+  color: #ffffff;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-top-right-radius: var(--panelRadius);
+  cursor: text;
+  outline: none;
+}
+
+.latLngEditFieldSecondRow {
+  padding: 4px;
+  height: 2em;
+  background-color: var(--grey1);
+  color: #ffffff;
+  border: 1px solid rgb(255 255 255 / 18%);
+  cursor: text;
+  outline: none;
+}
+
+.latLngLabel {
+  width: 35px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--grey4);
+  padding-left: 4px;
+}

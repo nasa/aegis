@@ -39,6 +39,7 @@ import { generateBlankTraverse } from "store/storeUtils/traverse";
 import cloneDeep from "lodash/cloneDeep";
 import { generateBlankStation } from "store/storeUtils/station";
 import { upsertStations } from "store/station";
+import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 const confirmSpy = jest.spyOn(window, "confirm").mockImplementation(() => {
   return true;
@@ -66,6 +67,15 @@ jest.mock("store/thunk/thunkTraverse", () => {
 });
 
 let store: StoreType;
+
+beforeAll(() => {
+  /**
+   * Init the mission automerge doc. In the app this is handled in the component.
+   * Pass in null because this function is being mocked in jest.setup.ts so we don't
+   * have to pass in a real value.
+   */
+  setMissionAutomergeDocHandle(null);
+});
 
 beforeEach(async () => {
   jest.clearAllMocks(); // clear call count

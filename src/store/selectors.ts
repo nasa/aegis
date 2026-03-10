@@ -195,3 +195,13 @@ export const getAsPlannedEvaFromRefUuid = (state: RootState, refUuid: string): E
   if (!asPlannedEva) return undefined;
   return asPlannedEva;
 };
+
+/**
+ * Only returns true if all connections (browser internet, and socket) are connected
+ */
+export const isConnected = (state: RootState): boolean => {
+  return (
+    state.connection.browserConnectionStatus === "connected" &&
+    state.connection.socketStatus.connectionStatus === "connected"
+  );
+};

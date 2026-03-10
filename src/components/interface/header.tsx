@@ -9,18 +9,22 @@ import PetInterval from "../page/petInterval";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkJumpToRunningRex } from "store/thunk/thunkRex";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Header: FunctionComponent = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
-  const banner = useAppSelector((state) => state.mission.mission?.missionBanner, refEqual);
+  const partialMission = useMissionDocSelector(
+    (doc) => ({ name: doc.name, missionBanner: doc.missionBanner }),
+    deepEqual
+  );
+
   const setSocketConnectionStatus = useAppSelector(
-    (state) => state.interface.socketStatus.connectionStatus,
+    (state) => state.connection.socketStatus.connectionStatus,
     refEqual
   );
   const visitorCounts = useAppSelector(
-    (state) => state.interface.socketStatus.lastStatusFromServer.visitorCounts,
+    (state) => state.connection.socketStatus.lastStatusFromServer.visitorCounts,
     shallowEqual
   );
   const runningRex = useAppSelector(
@@ -54,11 +58,13 @@ const Header: FunctionComponent = () => {
             </div>
           </div>
         </div>
-        <div className={headerStyles.item}>
-          <div className={headerStyles.missionName} aria-label="missionNameHeader">
-            {missionName}
+        {partialMission?.name && ( // mission doesn't exist when viewing backend admin page
+          <div className={headerStyles.item}>
+            <div className={headerStyles.missionName} aria-label="missionNameHeader">
+              {partialMission.name}
+            </div>
           </div>
-        </div>
+        )}
         {runningRex && (
           <div className={headerStyles.item}>
             <div
@@ -79,11 +85,11 @@ const Header: FunctionComponent = () => {
           </div>
         )}
       </div>
-      {banner && (
+      {partialMission?.missionBanner && (
         <div className={headerStyles.center}>
           <div className={headerStyles.item}>
             <div className={headerStyles.missionBannerText} aria-label="missionBannerText">
-              {banner}
+              {partialMission.missionBanner}
             </div>
           </div>
         </div>

@@ -83,7 +83,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           <div className={paneStyles.descriptionContainer}>
             <TextArea
               key={selectedPreset?.uuid}
-              value={selectedPreset?.description}
+              value={selectedPreset?.description || ""}
               editing={editMode}
               onSubmit={(value: string) => {
                 dispatch(upsertPresetByField(selectedPresetUuid, "description", value));

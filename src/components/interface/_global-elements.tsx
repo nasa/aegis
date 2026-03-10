@@ -4,7 +4,7 @@ import { IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FunctionComponent, ReactNode } from "react";
 import styles from "./_global-elements.module.css";
-import { longdateFromDateString } from "utils/formatting";
+import { longDateFromDateNumeric, longDateFromDateString } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { faInfoCircle } from "@fortawesome/free-solid-svg-icons";
 
@@ -46,6 +46,30 @@ export const ModifiedIndicator: FunctionComponent<{
   }
 };
 
+export const LastEditedNumeric: FunctionComponent<{
+  updatedAt: number;
+  createdAt: number;
+  infoString?: string;
+}> = ({ updatedAt, createdAt, infoString }) => {
+  const returnDivContent = (updatedAt: number) => {
+    if (!updatedAt) return <>N/A</>;
+    const timeAgo = dayjs(updatedAt).fromNow();
+    return <>{timeAgo}</>;
+  };
+
+  return (
+    <div
+      className={styles.updatedAt}
+      data-tooltip-id="aegis-tooltip"
+      data-tooltip-html={`Updated At: ${longDateFromDateNumeric(updatedAt)} Z
+      <br />Created At: ${longDateFromDateNumeric(createdAt)} Z
+      ${infoString ? `<br />${infoString}` : ""}`}
+    >
+      {<>{returnDivContent(updatedAt)}</>}
+    </div>
+  );
+};
+
 export const LastEdited: FunctionComponent<{
   updatedAt: string;
   createdAt: string;
@@ -61,8 +85,8 @@ export const LastEdited: FunctionComponent<{
     <div
       className={styles.updatedAt}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={`Updated At: ${longdateFromDateString(updatedAt)} Z
-      <br />Created At: ${longdateFromDateString(createdAt)} Z
+      data-tooltip-html={`Updated At: ${longDateFromDateString(updatedAt)} Z
+      <br />Created At: ${longDateFromDateString(createdAt)} Z
       ${infoString ? `<br />${infoString}` : ""}`}
     >
       {<>{returnDivContent(updatedAt)}</>}

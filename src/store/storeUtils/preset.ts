@@ -7,7 +7,7 @@ import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank preset
- * @param partialPreset any fields that are to be overriden from default
+ * @param partialPreset any fields that are to be overridden from default
  * @returns the generated preset
  */
 export const generateBlankPreset = (partialPreset?: Partial<Preset>): Preset => {
@@ -43,7 +43,7 @@ export function convertPresetsTypeDbToStore(dbPresets: Preset_db[]): Preset[] {
   for (const dbPreset of dbPresets) {
     const convertedPreset: Preset = {
       uuid: dbPreset.uuid,
-      missionId: dbPreset.mission.id,
+      missionId: dbPreset.missionId,
       ownerId: dbPreset.ownerId,
       name: dbPreset.name,
       description: dbPreset.description,
@@ -76,7 +76,7 @@ export function convertPresetsTypeStoreToDb(storePresets: Preset[]): EntityData<
     const convertedRecord: EntityData<Preset_db> = {
       uuid: storePreset.uuid,
       ownerId: storePreset.ownerId,
-      mission: storePreset.missionId,
+      missionId: storePreset.missionId,
       name: storePreset.name,
       description: storePreset.description,
       missionDefault: storePreset.missionDefault,

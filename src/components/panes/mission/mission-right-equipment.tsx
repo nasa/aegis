@@ -1,39 +1,31 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, memo, useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import styles from "./mission.module.css";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import missionStyles from "./mission.module.css";
+import { deepEqual } from "utils/useAppSelector";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faList, faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
-import { Button, Checkbox, InLineEditInput } from "components/interface/form/globalFields";
+import { Button, Checkbox } from "components/interface/form/globalFields";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { toDecimal } from "utils/formatting";
+import { thunkDeleteEquipment } from "store/thunk/thunkMission-equipment";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
 import {
-  thunkCreateEquipment,
-  thunkDeleteEquipment,
-  thunkUpdateEquipment,
-} from "store/thunk/thunkMission-equipment";
+  crudCreateEquipmentItem,
+  crudUpdateEquipmentItemByField,
+} from "client/crud/crud-mission-equipment";
 
 const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useAppDispatch();
-  const sortedEquipmentItems: [string, EquipmentItem][] = useAppSelector((state) => {
-    if (!state.mission.mission.equipmentItems) return [];
-    return Object.entries(state.mission.mission.equipmentItems).sort(([, a], [, b]) =>
-      a.name.localeCompare(b.name)
-    );
-  }, deepEqual);
+  const missionEquipItems: EquipmentItems = useMissionDocSelector(
+    (doc) => doc.equipmentItems,
+    deepEqual
+  );
 
-  const [newEquipmentUuid, setNewEquipmentUuid] = useState(undefined);
-
-  // Un-marks newest list item as "new" after a short timeout (for auto focusing)
-  useEffect(() => {
-    if (newEquipmentUuid !== undefined) {
-      setTimeout(() => {
-        setNewEquipmentUuid(undefined);
-      }, 300);
-    }
-  }, [newEquipmentUuid]);
+  const sortedEquipmentItems: [string, EquipmentItem][] = missionEquipItems
+    ? Object.entries(missionEquipItems).sort(([, a], [, b]) => a.name.localeCompare(b.name))
+    : [];
 
   return (
     <div className={paneStyles.rightBody}>
@@ -46,18 +38,18 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
               <SubpanelHeading icon={faList}>Equipment Inventory</SubpanelHeading>
             </div>
-            <div className={paneStyles.panelSectionBody}>
-              <ul className={styles.propertyList}>
-                <li className={styles.propertyListItem}>
-                  <div className={paneStyles.descriptionContainer}>
+            <div>
+              <ul className={missionStyles.propertyList}>
+                <li className={missionStyles.propertyListItem}>
+                  <div>
                     <div
-                      className={styles.propertyRowHeader}
+                      className={missionStyles.propertyRowHeader}
                       style={{ backgroundColor: "var(--grey2)" }}
                     >
-                      <div className={styles.propertyRowName}>Name</div>
-                      <div className={styles.propertyRowQuantity}>Quantity</div>
-                      <div className={styles.propertyRowSingleuse}>Single Use</div>
-                      <div className={styles.propertyRowTrash}></div>
+                      <div className={missionStyles.propertyRowName}>Name</div>
+                      <div className={missionStyles.propertyRowQuantity}>Quantity</div>
+                      <div className={missionStyles.propertyRowSingleUse}>Single Use</div>
+                      <div className={missionStyles.propertyRowTrash}></div>
                     </div>
                   </div>
                 </li>
@@ -65,16 +57,15 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 {sortedEquipmentItems.map(([uuid, equipItem], index) => (
                   <li
                     key={uuid}
-                    className={styles.propertyListItem}
-                    aria-label={"equipmentList-item"}
+                    className={missionStyles.propertyListItem}
+                    aria-label="equipmentList-item"
                   >
-                    <EquipmentItem
+                    <MemoizedEquipmentItem
                       key={uuid}
                       uuid={uuid}
-                      item={equipItem}
+                      equipItem={equipItem}
                       editMode={editMode}
                       evenRow={index % 2 === 0}
-                      toFocus={newEquipmentUuid === uuid}
                     />
                   </li>
                 ))}
@@ -86,7 +77,7 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   label="Add Equipment Type"
                   style={{ width: "155px", marginLeft: "18px", marginTop: "8px" }}
                   onClick={async () => {
-                    setNewEquipmentUuid((await dispatch(thunkCreateEquipment())).payload);
+                    crudCreateEquipmentItem();
                   }}
                   ariaLabel="addNewEquipmentButton"
                 />
@@ -103,110 +94,100 @@ export default Equipment_Panel;
 
 const EquipmentItem: FunctionComponent<{
   uuid: string;
-  item: EquipmentItem;
+  equipItem: EquipmentItem;
   editMode: boolean;
   evenRow: boolean;
-  toFocus: boolean;
-}> = ({ uuid, item, editMode, evenRow, toFocus }) => {
+}> = ({ uuid, equipItem, editMode, evenRow }) => {
   const dispatch = useAppDispatch();
+  const divRef = useRef<HTMLDivElement>(null);
 
   let backgroundColor: string = "var(--grey2)";
-  if (!editMode) {
-    backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
-  }
+  backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
+
   return (
-    <div className={paneStyles.descriptionContainer}>
-      <div className={styles.propertyRow} style={{ backgroundColor }}>
-        <div className={styles.propertyRowName}>
-          <InLineEditInput
-            editing={editMode}
+    <div ref={divRef}>
+      <div className={missionStyles.propertyRow} style={{ backgroundColor }}>
+        <div className={missionStyles.propertyRowName}>
+          <ValidatedInputField
+            editMode={editMode}
             fieldProps={{
               name: "equipmentItemName",
               ariaLabel: "Equipment item name",
-              style: { width: "100%" },
               validators: [validators.maxLength(255), validators.required],
             }}
-            value={item.name}
+            value={equipItem.name}
             onSubmit={(val: string) => {
-              dispatch(
-                thunkUpdateEquipment({
-                  uuid: uuid,
-                  fieldName: "name",
-                  value: val,
-                })
-              );
+              crudUpdateEquipmentItemByField(uuid, "name", val);
             }}
             key={`${uuid}-name`}
-            toFocus={toFocus}
+            focusContents={equipItem.name === "(Equipment Name)"}
           />
         </div>
-        <div className={styles.propertyRowQuantity}>
-          <InLineEditInput
-            editing={editMode}
+        <div className={missionStyles.propertyRowQuantity}>
+          <ValidatedInputField
+            editMode={editMode}
             fieldProps={{
               name: "equipmentItemQuantity",
               ariaLabel: "Equipment item quantity",
-              style: { width: "45px" },
               validators: [
                 validators.maxLength(3),
                 validators.minValue(1),
                 validators.mustBeInteger,
                 validators.required,
               ],
-              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
-              },
             }}
-            value={item.quantity?.toString()}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
+            }}
+            value={equipItem.quantity?.toString()}
             onSubmit={(val: string) => {
-              dispatch(
-                thunkUpdateEquipment({
-                  uuid: uuid,
-                  fieldName: "quantity",
-                  value: toDecimal(val),
-                })
-              );
+              crudUpdateEquipmentItemByField(uuid, "quantity", toDecimal(val));
             }}
             key={`${uuid}-quantity`}
           />
         </div>
-        <div className={styles.propertyRowSingleuse}>
-          <div className={styles.propertyRowSingleuseCheckbox}>
+        <div className={missionStyles.propertyRowSingleUse}>
+          <div className={missionStyles.propertyRowSingleUseCheckbox}>
             {editMode ? (
               <Checkbox
-                checked={item.singleUse}
+                checked={equipItem.singleUse}
                 editable={editMode}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  dispatch(
-                    thunkUpdateEquipment({
-                      uuid: uuid,
-                      fieldName: "singleUse",
-                      value: e.target.checked,
-                    })
-                  );
+                  crudUpdateEquipmentItemByField(uuid, "singleUse", e.target.checked);
                 }}
-                toolTip={`Single-use item`}
+                toolTip={`Single Use Item`}
               />
             ) : (
-              <div aria-label="checkboxText">{item.singleUse ? "Yes" : ""}</div>
+              <div aria-label="checkboxText">{equipItem.singleUse ? "Yes" : ""}</div>
             )}
           </div>
         </div>
-        <div className={styles.propertyRowTrash}>
-          {editMode && (
-            <FontAwesomeIcon
-              icon={faTrashAlt}
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                dispatch(thunkDeleteEquipment({ equipmentItemUuid: uuid }));
-              }}
-              aria-label="deleteButton"
-            />
-          )}
+        <div className={missionStyles.propertyRowTrashContainer}>
+          <div className={missionStyles.propertyRowTrash}>
+            {editMode && (
+              <FontAwesomeIcon
+                icon={faTrashAlt}
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  dispatch(thunkDeleteEquipment({ equipmentItemUuid: uuid }));
+                }}
+                aria-label="deleteButton"
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
+/**
+ * Memoized version of the EquipmentItem component to prevent unnecessary re-renders
+ * when the props haven't changed.
+ * This is especially useful when the component is part of a list.
+ * The memoization is based on the props passed to the component.
+ * The component will only re-render if the props change.
+ */
+const MemoizedEquipmentItem = memo(EquipmentItem);

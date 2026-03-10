@@ -7,7 +7,6 @@ import { getActions } from "./action";
 import { getEVAs } from "./eva";
 import { getFolders } from "./folder";
 import { getLayers } from "./layer";
-import { getMission } from "./mission";
 import { getSublayers } from "./sublayer";
 import { getPois } from "./poi";
 import { getPresets } from "./preset";
@@ -99,7 +98,6 @@ export default router;
 export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll> {
   // All queries start simultaneously and use different connections from the pool
   const [
-    mission,
     actions,
     evas,
     layers,
@@ -115,7 +113,8 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
     traverses,
     folders,
   ] = await Promise.all([
-    getMission(missionId).then((result) => result?.[0] || null),
+    // mission is populated from automerge. Do not pull from DB here
+    // populate everything else from DB
     getActions({ missionId }),
     getEVAs(missionId),
     getLayers(missionId),
@@ -132,7 +131,7 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
     getFolders(missionId),
   ]);
   const allData: OneMissionToRuleThemAll = {
-    mission,
+    mission: null,
     actions,
     evas,
     layers,

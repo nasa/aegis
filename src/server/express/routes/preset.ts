@@ -188,7 +188,7 @@ export default router;
 
 export async function getPresets(missionId: number): Promise<Preset[]> {
   const model = globalValues.orm.em;
-  const dbPresets = await model.find(Preset_db, { mission: missionId });
+  const dbPresets = await model.find(Preset_db, { missionId });
 
   /** transform the Mikro Preset_db types into Preset types used in the Store.
    */

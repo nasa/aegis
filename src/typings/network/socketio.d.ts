@@ -71,7 +71,7 @@ interface AppVersion {
 
 interface EditEvent {
   socketId: string;
-  type: StoreType;
+  type: SocketStoreType;
   datestamp: string;
 }
 
@@ -79,34 +79,23 @@ interface EditEvents {
   [missionId: number]: EditEvent;
 }
 
-type StoreType =
+type SocketStoreType =
   | "preset"
   | "poi"
   | "station"
   | "eva"
   | "action"
   | "traverse"
-  | "mission"
   | "rex"
   | "stmRule"
   | "folder";
 
-type StoreData =
-  | POI
-  | Preset
-  | Station
-  | Eva
-  | Action
-  | Traverse
-  | Mission
-  | Rex
-  | STMRule
-  | Folder;
+type StoreData = POI | Preset | Station | Eva | Action | Traverse | Rex | STMRule | Folder;
 
 interface StoreUpsert {
   socketId: string;
   missionId: number;
-  type: StoreType;
+  type: SocketStoreType;
   data: StoreData[];
   lastEditEvent: EditEvent;
 }
@@ -114,20 +103,14 @@ interface StoreUpsert {
 interface StoreDelete {
   socketId: string;
   missionId: number;
-  type: StoreType;
+  type: SocketStoreType;
   uuids: string[];
   lastEditEvent: EditEvent;
 }
 
-type StoreTypeForMaestro = "station" | "eva" | "action" | "traverse" | "mission" | "rex";
+type StoreTypeForMaestro = "station" | "eva" | "action" | "traverse" | "rex";
 
-type StoreDataForMaestro =
-  | ExportStation
-  | ExportEva
-  | ExportAction
-  | ExportTraverse
-  | Mission // currently the exported version of mission contains nothing Maestro needs, so keep regular mission type
-  | ExportRex;
+type StoreDataForMaestro = ExportStation | ExportEva | ExportAction | ExportTraverse | ExportRex;
 
 interface StoreUpsertForMaestro {
   socketId: string;

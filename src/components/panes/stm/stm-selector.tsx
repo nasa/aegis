@@ -8,6 +8,7 @@ import "react-checkbox-tree/lib/react-checkbox-tree.css";
 import { STM_Coverage } from "./stm-coverage";
 import { upsertActionByField } from "store/action";
 import { useAppDispatch } from "utils/useAppDispatch";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const STMSelector: FunctionComponent<{
   editMode: boolean;
@@ -15,7 +16,16 @@ const STMSelector: FunctionComponent<{
   actionUuid: string;
 }> = ({ editMode, stmPriorities, actionUuid }) => {
   const dispatch = useAppDispatch();
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      stmLevel1Name: doc.stmLevel1Name,
+      stmLevel2Name: doc.stmLevel2Name,
+      stmLevel3Name: doc.stmLevel3Name,
+      stmLevel1Enabled: doc.stmLevel1Enabled,
+    }),
+    deepEqual
+  );
+
   const allSTMLevel1: STMLevel1[] = useAppSelector((state) => state.stm.level1s, deepEqual);
   const allSTMLevel2: STMLevel2[] = useAppSelector((state) => state.stm.level2s, deepEqual);
   const allSTMLevel3: STMLevel3[] = useAppSelector((state) => state.stm.level3s, deepEqual);
@@ -57,7 +67,7 @@ const STMSelector: FunctionComponent<{
           label: (
             <>
               <span className={stmStyles.stmHeading}>
-                {mission?.stmLevel1Name} {level1.numbering}
+                {partialMission?.stmLevel1Name} {level1.numbering}
               </span>{" "}
               -{" "}
               <span data-tooltip-id="aegis-tooltip" data-tooltip-html={level1.name}>
@@ -80,7 +90,8 @@ const STMSelector: FunctionComponent<{
             label: (
               <>
                 <span className={stmStyles.stmHeading}>
-                  {mission?.stmLevel2Name} {mission?.stmLevel1Enabled && level1.numbering}
+                  {partialMission?.stmLevel2Name}{" "}
+                  {partialMission?.stmLevel1Enabled && level1.numbering}
                   {level2.numbering}
                 </span>{" "}
                 -{" "}
@@ -109,6 +120,7 @@ const STMSelector: FunctionComponent<{
                   level3={level3}
                   priority={priority}
                   changeSTMPriority={changeSTMPriority}
+                  mission={partialMission}
                 />
               ),
               className: `${stmStyles.stmText}`,
@@ -127,13 +139,13 @@ const STMSelector: FunctionComponent<{
         {
           value: "root",
           label: <span className={stmStyles.stmHeading}>All STM Items</span>,
-          children: mission?.stmLevel1Enabled ? stmTree : stmTree[0].children, // hide level 1 if not enabled
+          children: partialMission?.stmLevel1Enabled ? stmTree : stmTree[0].children, // hide level 1 if not enabled
           className: `${stmStyles.stmText}`,
         } as Node,
       ]);
       setExpanded(newExpandedList);
     }
-  }, [allSTMLevel3, allSTMLevel2, allSTMLevel1, stmPriorities, changeSTMPriority, mission]);
+  }, [allSTMLevel3, allSTMLevel2, allSTMLevel1, stmPriorities, changeSTMPriority, partialMission]);
 
   return (
     <>
@@ -167,14 +179,14 @@ const STMLabelLevel3: FunctionComponent<{
   level3: STMLevel3;
   priority: number;
   changeSTMPriority: Function;
-}> = ({ level1, level2, level3, priority, changeSTMPriority }) => {
+  mission: { stmLevel3Name: string; stmLevel1Enabled: boolean };
+}> = ({ level1, level2, level3, priority, changeSTMPriority, mission }) => {
   const changePriority = useCallback(
     (priority: number) => {
       changeSTMPriority(level3.uuid, priority);
     },
     [changeSTMPriority, level3.uuid]
   );
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
 
   const priorityClass = (buttonPriority: number) => {
     switch (buttonPriority) {

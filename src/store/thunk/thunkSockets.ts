@@ -46,7 +46,6 @@ import {
   upsertTraverses,
   upsertTraversesFromDb,
 } from "store/traverse";
-import { setMission, setMissionFromDb, setMissionSectionEditing } from "store/mission";
 import {
   deleteRexesByUuid,
   deleteRexesFromDbByUuid,
@@ -175,18 +174,6 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     }
     dispatch(upsertTraverses(storeUpsert.data as Traverse[], true));
     dispatch(upsertTraversesFromDb(storeUpsert.data as Traverse[]));
-  } else if (storeUpsert.type === "mission") {
-    const changedMissions = storeUpsert.data as Mission[];
-    for (const changedMission of changedMissions) {
-      if (getState().mission.mission.id === changedMission.id) {
-        if (getState().mission.missionSectionsEditing.length > 0) {
-          upsertMessages.push("The mission that you are editing has been changed by another user.");
-          dispatch(setMissionSectionEditing({ section: "prefs", editMode: false }));
-        }
-        dispatch(setMission(storeUpsert.data[0] as Mission));
-        dispatch(setMissionFromDb(storeUpsert.data[0] as Mission));
-      }
-    }
   } else if (storeUpsert.type === "rex") {
     const changedRexes = storeUpsert.data as Rex[];
     for (const changedRex of changedRexes) {

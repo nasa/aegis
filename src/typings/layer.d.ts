@@ -7,8 +7,7 @@ interface Layer {
   updatedAt: string;
 }
 
-type Layer_db_type = Omit<Layer, "missionId" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
+type Layer_db_type = Omit<Layer, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -58,8 +57,7 @@ interface SublayerToDraw extends Sublayer {
   chosenTimeLayer: TimeLayerInfo;
 }
 
-type Sublayer_db_type = Omit<Sublayer, "missionId" | "layerUuid" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
+type Sublayer_db_type = Omit<Sublayer, "layerUuid" | "createdAt" | "updatedAt"> & {
   layer: Layer_db_type;
   createdAt: Date;
   updatedAt: Date;

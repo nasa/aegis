@@ -15,7 +15,7 @@ export const hasPerms = ({
 }: {
   missionId: number;
   permission: keyof Permission["permissions"];
-  appUser: AppUser;
+  appUser: AppUser | undefined;
   emssToken?: string;
 }): boolean => {
   // check the EMSS token. This overrides and grants them access to everything

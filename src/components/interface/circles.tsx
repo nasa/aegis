@@ -2,11 +2,12 @@ import { FunctionComponent } from "react";
 import styles from "./circles.module.css";
 import { faEye, faEyeSlash, faSliders } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useAppSelector, shallowEqual } from "utils/useAppSelector";
+import { deepEqual } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSectionSelected } from "store/interface";
 import { setSelectedMissionRightNavItem } from "store/mission";
 import Settings_subpanel from "./settings-and-slider";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Circles: FunctionComponent<{
   editMode: boolean;
@@ -32,11 +33,7 @@ const Circles: FunctionComponent<{
   circleUIStates = circleUIStates || {};
   circleUIStateSetterFunction = circleUIStateSetterFunction || (() => {});
   const dispatch = useAppDispatch();
-
-  const circleDefinitions = useAppSelector(
-    (state) => state.mission.mission?.circleDefinitions,
-    shallowEqual
-  );
+  const circleDefinitions = useMissionDocSelector((doc) => doc.circleDefinitions, deepEqual);
 
   const handleNavToMissionSection = () => {
     dispatch(setSectionSelected("mission"));
@@ -60,24 +57,26 @@ const Circles: FunctionComponent<{
       </div>
       <div className={styles.circlesGroup}>
         {circleDefinitions &&
-          Object.entries(circleDefinitions).map(([uuid, circleDefinition]) => {
-            return (
-              mapCircleControls[uuid] &&
-              circleUIStates[uuid] && (
-                <CircleLayer
-                  editMode={editMode}
-                  key={uuid}
-                  uuid={uuid}
-                  circleDefinition={circleDefinition}
-                  mapCircleControls={mapCircleControls}
-                  toggleVisibleFunction={toggleVisibleFunction}
-                  circleUIStates={circleUIStates}
-                  circleUIStateSetterFunction={circleUIStateSetterFunction}
-                  styleSetter={styleSetter}
-                />
-              )
-            );
-          })}
+          Object.entries(circleDefinitions)
+            .sort(([, a], [, b]) => a.radius - b.radius)
+            .map(([uuid, circleDefinition]) => {
+              return (
+                mapCircleControls[uuid] &&
+                circleUIStates[uuid] && (
+                  <CircleLayer
+                    editMode={editMode}
+                    key={uuid}
+                    uuid={uuid}
+                    circleDefinition={circleDefinition}
+                    mapCircleControls={mapCircleControls}
+                    toggleVisibleFunction={toggleVisibleFunction}
+                    circleUIStates={circleUIStates}
+                    circleUIStateSetterFunction={circleUIStateSetterFunction}
+                    styleSetter={styleSetter}
+                  />
+                )
+              );
+            })}
       </div>
     </>
   );

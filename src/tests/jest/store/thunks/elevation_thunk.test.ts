@@ -9,10 +9,17 @@ let store: StoreType;
 jest.mock("http-client/elevation");
 import * as httpClient_elevation from "http-client/elevation";
 import { thunkGetElevation } from "store/thunk/thunkElevation";
-import { upsertMissionByField } from "store/mission";
+import { getAutomergeDocHandles, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 beforeAll(() => {
   store = createFullTestStore();
+
+  /**
+   * Init the mission automerge doc. In the app this is handled in the component.
+   * Pass in null because this function is being mocked in jest.setup.ts so we don't
+   * have to pass in a real value.
+   */
+  setMissionAutomergeDocHandle(null);
 });
 
 beforeEach(async () => {
@@ -35,9 +42,12 @@ describe("Thunk Elevation Tests", () => {
     expect(thunkRes.payload).toBeFalsy();
   });
   it("thunkGetElevation for single point", async () => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    missionDocHandle.change((mission) => {
+      mission.demFilePath = "somefake/path/here.TIF";
+    });
     const dummyUuid = uuidv4();
     const point: AEGISPoint = { lat: 1, lng: 1 };
-    store.dispatch(upsertMissionByField("demFilePath", "fake/path/here.TIF"));
     await store.dispatch(
       thunkGetElevation({ path: [point], pathSegmentDistances: [0], uuid: dummyUuid })
     );
@@ -45,12 +55,15 @@ describe("Thunk Elevation Tests", () => {
     expect(store.getState().interface.elevationPendingItemUuids.includes(dummyUuid)).toBeFalsy();
   });
   it("thunkGetElevation for path", async () => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    missionDocHandle.change((mission) => {
+      mission.demFilePath = "somefake/path/here.TIF";
+    });
     const dummyUuid = uuidv4();
     const path: AEGISPoint[] = [
       { lat: 1, lng: 1 },
       { lat: 2, lng: 2 },
     ];
-    store.dispatch(upsertMissionByField("demFilePath", "fake/path/here.TIF"));
     await store.dispatch(
       thunkGetElevation({ path: path, pathSegmentDistances: [0], uuid: dummyUuid })
     );

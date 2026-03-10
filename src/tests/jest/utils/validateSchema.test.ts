@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { validateGeoJSON } from "utils/validateSchema";
+import { validateGeoJSON } from "utils/validateSchemaClient";
 import notGeoJSONFile from "../tsconfig.jest.json";
 
 const testDir = `${process.cwd()}/src/tests/jest`;

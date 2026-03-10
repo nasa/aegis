@@ -18,6 +18,7 @@ import * as httpClient_action from "http-client/action";
 import * as httpClient_poi from "http-client/poi";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankPoi } from "store/storeUtils/poi";
+import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 const mockThunkGetElevation = jest.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
@@ -33,6 +34,15 @@ jest.mock("store/thunk/thunkAction", () => ({
   thunkSaveActions: () => mockThunkSaveActions,
   thunkDuplicateActions: () => mockThunkDuplicateActions,
 }));
+
+beforeAll(() => {
+  /**
+   * Init the mission automerge doc. In the app this is handled in the component.
+   * Pass in null because this function is being mocked in jest.setup.ts so we don't
+   * have to pass in a real value.
+   */
+  setMissionAutomergeDocHandle(null);
+});
 
 beforeEach(async () => {
   jest.clearAllMocks(); // clear call count
@@ -105,7 +115,7 @@ describe("Thunk POI Tests", () => {
     const poiActionModified = {
       ...poiAction,
       description: "modified description",
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date().getTime() + 1,
     };
     const store = createCustomTestStore({
       poi: { ...poiInitialState, pois: [poi], poisFromDb: [poi], poisEditing: [poi.uuid] },
@@ -138,7 +148,7 @@ describe("Thunk POI Tests", () => {
     const newPoiActionModified = {
       ...newPoiAction,
       description: "modified description",
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date().getTime() + 1,
     };
     const store = createCustomTestStore({
       poi: {

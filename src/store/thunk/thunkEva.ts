@@ -47,6 +47,7 @@ import { thunkDeleteRex } from "./thunkRex";
 import { setSelectedPosEntryUuid, setSelectedRexUuid } from "store/rex";
 import { setRightPanelIsOpen } from "store/interface";
 import concat from "lodash/concat";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 
 /** Get an Station or Traverse object from a UUID
  * This would typically be used when needing to get the full object from an EVA sequence
@@ -392,16 +393,19 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
 export const thunkCreateEva = appCreateAsyncThunk<void>(
   "evaCreate",
   async (_, { dispatch, getState }) => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
     const randomName = generateUniqueName({
       dictName: "colors",
       existingNames: getState().eva.evas.map((item) => item.name),
     });
 
     const blankEva: Eva = generateBlankEVA({
-      missionId: getState().mission.mission?.id,
+      missionId: mission.id,
       name: randomName,
-      traverseRate: getState().mission.mission.traverseRate,
-      duration: getState().mission.mission.defaultEvaDuration,
+      traverseRate: mission.traverseRate,
+      duration: mission.defaultEvaDuration,
     });
 
     // create an empty traverse
@@ -705,7 +709,7 @@ export const thunkReorderStationInEva = appCreateAsyncThunk<{
   evaSequence: EvaSequenceItem[];
   stationIndex: number;
   evaUuid: string;
-}>("evaMoveStationUp", async ({ direction, evaSequence, stationIndex, evaUuid }, { dispatch }) => {
+}>("evaReorderStation", async ({ direction, evaSequence, stationIndex, evaUuid }, { dispatch }) => {
   const newEvaSequence = cloneDeep(evaSequence);
   const traverseUuidsToUpdate: string[] = [];
   let stationIndexToSwap: number;

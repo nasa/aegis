@@ -32,15 +32,6 @@
   flex: 1;
 }
 
-.icon {
-  width: 20px;
-  margin-left: 1px;
-  margin-right: 1px;
-  cursor: pointer;
-  height: 100%;
-  color: white;
-}
-
 .lander {
   color: var(--grey5);
   display: flex;
@@ -56,58 +47,47 @@
 .propertyRowHeader {
   display: flex;
   flex-direction: row;
-  border-radius: var(--radius);
-  font-size: 1em;
+  font-size: 0.9rem;
   border-bottom: 1px solid #ffffff;
 }
 
 .propertyRowName {
   width: 100%;
-  border-radius: var(--radius);
-  font-size: 0.9em;
-  padding: 3px 2px 3px 5px;
-  cursor: pointer;
 }
 
 .propertyRowLongAbbr {
   flex: 0 0 105px;
-  font-size: 0.9em;
-  padding: 3px 2px 3px 5px;
-  cursor: pointer;
 }
 
 .propertyRowAbbr {
-  flex: 0 0 55px;
-  font-size: 0.9em;
-  padding: 3px 2px 3px 5px;
-  cursor: pointer;
+  flex: 0 0 auto;
 }
 
 .propertyRowQuantity {
   flex: 0 0 30px;
-  font-size: 0.9em;
-  padding: 3px 2px 3px 5px;
-  cursor: pointer;
 }
 
-.propertyRowSingleuse {
-  flex: 0 0 80px;
-  padding: 3px 2px 3px 5px;
-  font-size: 0.9em;
+.propertyRowRadius {
+  flex: 0 0 auto;
+}
 
+.propertyRowSingleUse {
+  flex: 0 0 80px;
   display: flex;
   flex-direction: row;
   justify-content: space-around;
 }
 
-.propertyRowSingleuseCheckbox {
+.propertyRowSingleUseCheckbox {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
+  font-size: 0.8rem;
 }
 
 .propertyRowTrash {
   cursor: pointer;
+  flex: 0 0 20px;
 }
 
 .propertyRowTrashContainer {
@@ -120,24 +100,12 @@
 
 .propertyList {
   list-style-type: none;
-  margin-top: 4px;
-  margin-bottom: 4px;
-  padding: 0;
+  padding: 5px;
+  margin: 0;
 }
 
 .propertyListItem {
   text-align: left;
-}
-
-.reorderIcon {
-  display: flex;
-
-  transform: scaleX(0.8);
-  cursor: pointer;
-}
-
-.reorderIcon:hover:active {
-  cursor: grabbing;
 }
 
 .templateTitle {
@@ -148,24 +116,6 @@
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-}
-
-.templateActionTitle {
-  font-size: 0.9rem;
-  font-weight: 400;
-  display: flex;
-}
-
-.templateActionType {
-  font-size: 0.9rem;
-  font-weight: 400;
-  margin-top: 4px;
-  text-transform: capitalize;
-  cursor: pointer;
-}
-
-.templateActionTypeDropdown {
-  padding-top: 5px;
 }
 
 .templateActionListContainer {
