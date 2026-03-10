@@ -34,21 +34,15 @@ interface Mission {
   projOriginY: number | null;
   projResZoomLevel: number | null;
   projResUnitsPerPixel: number | null;
-  createdAt?: string;
-  updatedAt?: string;
   circleDefinitions: CircleDefinitions | null;
   actionTemplates: ActionTemplates | null;
   stmLevel1Enabled?: boolean;
   stmLevel1Name?: string;
   stmLevel2Name?: string;
   stmLevel3Name?: string;
+  createdAt: number;
+  updatedAt: number;
 }
-
-// No alteration needed to convert this store type to the database type
-type Mission_db_type = Omit<Mission, "createdAt" | "updatedAt"> & {
-  createdAt?: Date;
-  updatedAt?: Date;
-};
 
 type ActionDefinitionType = "verbs" | "nouns" | "adjectives";
 
@@ -192,8 +186,6 @@ type MissionGridInformation = {
   fileName: string;
   isActiveGrid: boolean;
 };
-
-type Grid_db_type = Omit<MissionGridInformation, "missionId">;
 
 type MissionGridPoint = {
   id: number;

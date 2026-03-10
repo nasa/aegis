@@ -1,19 +1,21 @@
 import { faClone, faEllipsisV, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FunctionComponent, useRef } from "react";
-import { useAppDispatch } from "utils/useAppDispatch";
-import actionStyles from "./actions-action.module.css";
-import { thunkDuplicateActionTemplate, thunkDeleteActionTemplate } from "store/thunk/thunkMission";
+import actionStyles from "../actions-action.module.css";
+import {
+  crudDeleteActionTemplate,
+  crudDuplicateActionTemplate,
+} from "client/crud/crud-mission-actionTemplate";
 
 export const ActionTemplateMenu: FunctionComponent<{
   uuid: string;
 }> = ({ uuid }) => {
-  const dispatch = useAppDispatch();
-  const dialogRef = useRef(null);
-  const menuRef = useRef(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const handleMenuOpen = (e: React.MouseEvent) => {
     const x = e.clientX - 130; // width of the menu
+    if (!menuRef.current) return;
     menuRef.current.style.left = `${x}px`;
     menuRef.current.style.top = `${e.clientY}px`;
   };
@@ -31,7 +33,7 @@ export const ActionTemplateMenu: FunctionComponent<{
           <div
             className={actionStyles.menuItem}
             onClick={() => {
-              dispatch(thunkDuplicateActionTemplate({ actionTemplateUuid: uuid }));
+              crudDuplicateActionTemplate(uuid);
               dialogRef.current?.close();
             }}
             aria-label="Duplicate"
@@ -45,7 +47,7 @@ export const ActionTemplateMenu: FunctionComponent<{
             className={actionStyles.menuItem}
             onClick={(e) => {
               if (window.confirm("Are you sure you want to delete this Action Template?")) {
-                dispatch(thunkDeleteActionTemplate({ actionTemplateUuid: uuid }));
+                crudDeleteActionTemplate(uuid);
                 e.stopPropagation();
               }
               dialogRef.current?.close();
@@ -69,7 +71,7 @@ export const ActionTemplateMenu: FunctionComponent<{
           dialogRef.current?.showModal();
           e.stopPropagation();
         }}
-        style={{ marginTop: "3px", width: "15px", color: "var(--grey5)", outline: "none" }}
+        style={{ marginTop: "7px", width: "15px", color: "var(--grey5)", outline: "none" }}
         tabIndex={0}
       />
     </>

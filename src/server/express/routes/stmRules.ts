@@ -274,7 +274,7 @@ export async function getStmRules(missionId: number): Promise<STMRule[]> {
 
   const stmRules: Loaded<STM_Rule_db, never>[] = await em.find(
     STM_Rule_db,
-    { mission: { id: missionId } },
+    { missionId },
     { orderBy: { createdAt: QueryOrder.ASC } }
   );
 

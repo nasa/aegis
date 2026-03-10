@@ -5,7 +5,6 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 
 import {
-  Mission_db,
   Station_db,
   Poi_db,
   Action_db,
@@ -25,6 +24,7 @@ import {
 import { globalValues } from "../global";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { getAutomergeMissions } from "./missionAutomerge";
 
 const router = express.Router();
 
@@ -102,11 +102,8 @@ export default router;
 const dumpMissionData = async (missionId: number): Promise<MissionDump> => {
   const em = globalValues.orm.em;
 
-  // Fetch mission and all related entities
-  const mission = await em.findOne(Mission_db, { id: missionId });
-  if (!mission) {
-    throw new Error(`Mission with ID ${missionId} not found`);
-  }
+  // Fetch mission
+  const mission = (await getAutomergeMissions([missionId]))[0];
 
   // Fetch all related entities
   const data = await fetchAllMissionEntities(em, missionId);
@@ -157,17 +154,17 @@ const fetchAllMissionEntities = async (em: EntityManager, missionId: number) => 
  */
 const fetchMissionEntities = async (em: EntityManager, missionId: number) => {
   return {
-    stations: await em.find(Station_db, { mission: missionId }),
-    pois: await em.find(Poi_db, { mission: missionId }),
-    actions: await em.find(Action_db, { mission: missionId }),
-    evas: await em.find(Eva_db, { mission: missionId }),
-    layers: await em.find(Layer_db, { mission: missionId }),
-    sublayers: await em.find(Sublayer_db, { mission: missionId }),
-    traverses: await em.find(Traverse_db, { mission: missionId }),
-    presets: await em.find(Preset_db, { mission: missionId }),
-    rexes: await em.find(Rex_db, { mission: missionId }),
-    grids: await em.find(Grid_db, { mission: missionId }),
-    folders: await em.find(Folder_db, { mission: missionId }),
+    stations: await em.find(Station_db, { missionId }),
+    pois: await em.find(Poi_db, { missionId }),
+    actions: await em.find(Action_db, { missionId }),
+    evas: await em.find(Eva_db, { missionId }),
+    layers: await em.find(Layer_db, { missionId }),
+    sublayers: await em.find(Sublayer_db, { missionId }),
+    traverses: await em.find(Traverse_db, { missionId }),
+    presets: await em.find(Preset_db, { missionId }),
+    rexes: await em.find(Rex_db, { missionId }),
+    grids: await em.find(Grid_db, { missionId }),
+    folders: await em.find(Folder_db, { missionId }),
   };
 };
 
@@ -176,11 +173,7 @@ const fetchMissionEntities = async (em: EntityManager, missionId: number) => {
  */
 const fetchStmEntities = async (em: EntityManager, missionId: number) => {
   // Fetch STM Level 1 with populated Level 2 collection
-  const stmLevel1s = await em.find(
-    STM_Level1_db,
-    { mission: missionId },
-    { populate: ["level2s"] }
-  );
+  const stmLevel1s = await em.find(STM_Level1_db, { missionId }, { populate: ["level2s"] });
 
   // Query Level 2 with populated Level 3 collection
   const stmLevel2s = [];
@@ -197,7 +190,7 @@ const fetchStmEntities = async (em: EntityManager, missionId: number) => {
   }
 
   // Query STM Rules
-  const stmRules = await em.find(STM_Rule_db, { mission: missionId });
+  const stmRules = await em.find(STM_Rule_db, { missionId });
 
   return { stmLevel1s, stmLevel2s, stmLevel3s, stmRules };
 };

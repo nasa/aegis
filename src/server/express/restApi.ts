@@ -49,6 +49,9 @@ import serverLogger from "utils/logging/serverLogger";
 import { getUser } from "packages/getUser";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 
+import docListingRoute from "./routes/docListing";
+import missionAutomergeRoutes from "./routes/missionAutomerge";
+
 import readableActionRoutes from "./routes/readable/action";
 import readableEvaRoutes from "./routes/readable/eva";
 import readableMissionRoutes from "./routes/readable/mission";
@@ -107,6 +110,7 @@ app.use("/api/v1/eva", evaRoutes);
 app.use("/api/v1/grid", gridRoutes);
 app.use("/api/v1/layer", layerRoutes);
 app.use("/api/v1/mission", missionRoutes);
+app.use("/api/v1/missionAutomerge", missionAutomergeRoutes);
 app.use("/api/v1/missionHomepageItems", missionHomepageItemsRoutes);
 app.use("/api/v1/missionDup", missionDup);
 app.use("/api/v1/missionDump", missionDump);
@@ -128,6 +132,7 @@ app.use("/api/v1/file/rename", fileRenameRoute);
 app.use("/api/v1/file/delete", fileDeleteRoute);
 app.use("/api/v1/log/from-client", logFromClient);
 app.use("/api/v1/folder", folderRoutes);
+app.use("/api/v1/docListing", docListingRoute);
 
 // readable endpoints
 app.use("/api/v1/readable/action", readableActionRoutes);

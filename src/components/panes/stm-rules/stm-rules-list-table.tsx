@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import styles from "./stm-rules-list-table.module.css";
-import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { refEqual, shallowEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import { RootState } from "store";
 import STMRules from "./stm-rules-rules";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -8,6 +8,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { faSquarePlus } from "@fortawesome/free-solid-svg-icons";
 import { thunkCreateStmRule } from "store/thunk/thunkStmRules";
 import sortBy from "lodash/sortBy";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const STMRulesTable: FunctionComponent = () => {
   const level1s = useAppSelector(
@@ -38,10 +39,7 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
     (state: RootState) => state.stm.stmViewExpandTopTiers,
     refEqual
   );
-  const stmLevel1Enabled = useAppSelector(
-    (state: RootState) => state.mission.mission.stmLevel1Enabled,
-    deepEqual
-  );
+  const stmLevel1Enabled = useMissionDocSelector((doc) => doc.stmLevel1Enabled, deepEqual);
 
   const numLines = numLevel3s;
   const maxHeightEm = 1.2 * numLines;
@@ -72,19 +70,22 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
           )}
 
           <div>
-            <STMLevel2s level1Uuid={level1.uuid} />
+            <STMLevel2s level1Uuid={level1.uuid} stmLevel1Enabled={stmLevel1Enabled} />
           </div>
         </div>
       ) : (
         <div>
-          <STMLevel2s level1Uuid={level1.uuid} />
+          <STMLevel2s level1Uuid={level1.uuid} stmLevel1Enabled={stmLevel1Enabled} />
         </div>
       )}
     </div>
   );
 };
 
-const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) => {
+const STMLevel2s: FunctionComponent<{ level1Uuid: string; stmLevel1Enabled: boolean }> = ({
+  level1Uuid,
+  stmLevel1Enabled,
+}) => {
   const level2s = useAppSelector(
     (state: RootState) =>
       sortBy(
@@ -120,7 +121,7 @@ const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) =
               <div className={styles.gridCellLevel2Name}>{level2.name}</div>
             )}
             <div className={styles.level3sContainer}>
-              <STMLevel3s level2Uuid={level2.uuid} />
+              <STMLevel3s level2Uuid={level2.uuid} stmLevel1Enabled={stmLevel1Enabled} />
             </div>
           </div>
         );
@@ -131,7 +132,8 @@ const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) =
 
 export const STMLevel3s: FunctionComponent<{
   level2Uuid: string;
-}> = ({ level2Uuid }) => {
+  stmLevel1Enabled: boolean;
+}> = ({ level2Uuid, stmLevel1Enabled }) => {
   const level3s = useAppSelector(
     (state: RootState) =>
       sortBy(
@@ -144,7 +146,7 @@ export const STMLevel3s: FunctionComponent<{
   return (
     <>
       {level3s.map((level3) => (
-        <STMLevel3 key={level3.uuid} level3={level3} />
+        <STMLevel3 key={level3.uuid} level3={level3} stmLevel1Enabled={stmLevel1Enabled} />
       ))}
     </>
   );
@@ -152,7 +154,8 @@ export const STMLevel3s: FunctionComponent<{
 
 const STMLevel3: FunctionComponent<{
   level3: STMLevel3;
-}> = ({ level3 }) => {
+  stmLevel1Enabled: boolean;
+}> = ({ level3, stmLevel1Enabled }) => {
   const dispatch = useAppDispatch();
   const level1Numbering = useAppSelector((state: RootState) => {
     const level2 = state.stm.level2s.find((level2) => level2.uuid === level3.level2Uuid);
@@ -163,10 +166,7 @@ const STMLevel3: FunctionComponent<{
       state.stm.level2s.find((level2) => level2.uuid === level3.level2Uuid)?.numbering || "",
     refEqual
   );
-  const stmLevel1Enabled = useAppSelector(
-    (state: RootState) => state.mission.mission.stmLevel1Enabled,
-    refEqual
-  );
+
   const numLines = 4;
   const minHeightEm = 1.2 * numLines;
   return (

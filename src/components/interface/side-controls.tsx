@@ -3,7 +3,7 @@ import isNil from "lodash/isNil";
 import flatten from "lodash/flatten";
 import styles from "./side-controls.module.css";
 import { FunctionComponent, useEffect } from "react";
-import { useAppSelector, refEqual, deepEqual, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -33,6 +33,7 @@ import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import FontFaceObserver from "fontfaceobserver";
 import { setSelectedStationUuid } from "store/station";
 import { selectAsPlannedStations } from "store/selectors";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 export const LeftControlPanel: FunctionComponent = () => {
@@ -42,10 +43,8 @@ export const LeftControlPanel: FunctionComponent = () => {
     (state) => state.interface.sectionSelectedLabel,
     refEqual
   );
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
-    refEqual
-  );
+
+  const actionSystemVersion = useMissionDocSelector((doc) => doc.actionSystemVersion, refEqual);
 
   const paneTypes = getPaneTypes(actionSystemVersion);
 
@@ -77,7 +76,7 @@ export const LeftControlPanel: FunctionComponent = () => {
             />
           )}
           <div className={styles.drawerLeftSvg}>
-            <img src="/images/drawerNub.svg" alt="Open/Close Timline" />
+            <img src="/images/drawerNub.svg" alt="Open/Close Timeline" />
           </div>
         </div>
       </div>
@@ -132,7 +131,7 @@ export const BottomControlPanel: FunctionComponent = () => {
             <FontAwesomeIcon className={styles.drawerBottomIcon} color="white" icon={faChevronUp} />
           )}
           <div className={styles.drawerBottomSvg}>
-            <img src="/images/drawerNub.svg" alt="Open/Close Timline" />
+            <img src="/images/drawerNub.svg" alt="Open/Close Timeline" />
           </div>
         </div>
       </div>
@@ -154,10 +153,9 @@ export const RightControlPanel: FunctionComponent = () => {
     refEqual
   );
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
-    refEqual
-  );
+
+  // get the mission automerge document so we can get actionSystemVersion
+  const actionSystemVersion = useMissionDocSelector((doc) => doc.actionSystemVersion, refEqual);
 
   const paneTypes = getPaneTypes(actionSystemVersion);
 
@@ -191,7 +189,7 @@ export const RightControlPanel: FunctionComponent = () => {
             />
           )}
           <div className={styles.drawerRightSvg}>
-            <img src="/images/drawerNub.svg" alt="Open/Close Timline" />
+            <img src="/images/drawerNub.svg" alt="Open/Close Timeline" />
           </div>
         </div>
       </div>
@@ -262,8 +260,6 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
 }) => {
   const dispatch = useAppDispatch();
   const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
-  const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, deepEqual);
   const pois = useAppSelector(
     (state) =>
       state.poi.pois.map((p) => {
@@ -385,10 +381,7 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
       }),
     deepEqual
   );
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
-    shallowEqual
-  );
+  const actionSystemVersion = useMissionDocSelector((doc) => doc.actionSystemVersion, refEqual);
 
   const paneTypes = getPaneTypes(actionSystemVersion);
 
@@ -402,7 +395,6 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
           let itemModified = false;
           switch (interfaceSection) {
             case "mission":
-              itemModified = mission?.updatedAt !== missionFromDb?.updatedAt;
               break;
             case "preset":
               itemModified = isModified(presets, presetsFromDb);
@@ -470,7 +462,7 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
                       break;
                     case "station":
                       // scenario: executed station is selected in eva section. tab to station section.
-                      //  need to update right station panel to be blank becuase executed station is not in station section
+                      //  need to update right station panel to be blank because executed station is not in station section
                       if (!asPlannedStationUuids.includes(selectedStationUuid)) {
                         dispatch(setSelectedStationUuid(null));
                         dispatch(thunkSetRightPanelIsOpenIfAuto(false));
@@ -485,7 +477,7 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
                           !!selectedEvaUuid || !!selectedEvaSequenceItemUuid
                         )
                       );
-                      // scenario: as-planned station is selected in station section. tab to eva section where a executed-station was previouly selected
+                      // scenario: as-planned station is selected in station section. tab to eva section where a executed-station was previously selected
                       //  need to update right station panel to show sequence item station
                       if (
                         selectedEvaSequenceItemUuid &&
@@ -545,7 +537,7 @@ export const RightTabs: FunctionComponent<{
             key={panelType}
             className={
               selectedRightNavItem === panelType
-                ? paneStyles.rightIconContainerSelectedPreset
+                ? paneStyles.rightIconContainerSelectedTab
                 : paneStyles.rightIconContainer
             }
             aria-label={panelType}

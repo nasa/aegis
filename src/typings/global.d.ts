@@ -7,18 +7,16 @@ type Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, Socket
     SocketData
   >;
 
+type Repo = import("@automerge/automerge-repo").Repo;
+type DefaultEventsMap = import("socket.io").DefaultEventsMap;
 type GlobalValues = {
   orm: MikroORM;
-  socketio: Server<
-    ClientToServerEvents,
-    ServerToClientEvents,
-    import("socket.io/dist/typed-events").DefaultEventsMap,
-    {}
-  >;
+  socketio: Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, {}>;
   serverSocketStatus: ServerSocketStatus;
   socketInterval: NodeJS.Timeout;
   appVersion: AppVersion;
   isEmssApiEnabled: boolean;
+  automergeRepo: Repo;
 };
 
 // these are defined in esbuild.mjs and vite.config.mts

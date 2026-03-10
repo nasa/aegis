@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { getMissions, deleteMissions, upsertMissions } from "http-client/mission";
+import { createMission, deleteMissions } from "http-client/mission";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
-import { deleteFile } from "http-client/file";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { isLoggedIn } from "http-client/login";
@@ -11,23 +10,36 @@ import { Tooltip } from "react-tooltip";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { initialState as wholeStoreInitialState } from "store/index";
 import { setAllSliceStores } from "store/crossActions";
+import { getAutomergeDocListing } from "http-client/docListing";
+import { useRepo } from "@automerge/automerge-repo-react-hooks";
+import type { AutomergeUrl, Repo } from "@automerge/automerge-repo";
 
 const Missions: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const automergeRepo = useRepo();
   const [missions, setMissions] = useState<Mission[]>([]);
-  const [user, setUser] = useState<AppUser>(null);
+  const [automergeDocListings, setAutomergeDocListings] = useState<AutomergeDocListing[]>([]);
+  const [user, setUser] = useState<AppUser | null>(null);
 
-  const loadMissionsFromDB = useCallback(async () => {
-    const missionList = (await getMissions()).data;
-    const newMissionList: Mission[] = [];
+  const loadMissions = useCallback(async () => {
+    // get missions from automerge db table
+    const docListings = (await getAutomergeDocListing()).data;
+    if (docListings) setAutomergeDocListings(docListings);
 
-    for (const thisMission of missionList) {
-      newMissionList.push(thisMission);
-    }
+    // get missions from automerge
+    const missionPromises = docListings.map(async (listing) => {
+      const missionDocHandle: DocHandle<Mission> = await automergeRepo.find(
+        listing.automergeUrl as AutomergeUrl
+      );
+      await missionDocHandle.whenReady();
+      return missionDocHandle.doc();
+    });
+    const allMissions = await Promise.all(missionPromises);
+    if (!allMissions) return;
 
     //Sort by name
-    newMissionList.sort((a, b) => {
+    allMissions.sort((a, b) => {
       if (a.name.toLowerCase() < b.name.toLowerCase()) {
         return -1;
       } else if (a.name.toLowerCase() > b.name.toLowerCase()) {
@@ -36,9 +48,8 @@ const Missions: React.FunctionComponent = () => {
         return 0;
       }
     });
-
-    setMissions(newMissionList);
-  }, []);
+    setMissions(allMissions);
+  }, [automergeRepo]);
 
   const handleBack = () => {
     navigate("/admin");
@@ -46,31 +57,31 @@ const Missions: React.FunctionComponent = () => {
 
   //on load check login and mission id
   useEffect(() => {
-    async function adminCheck() {
+    async function isLoggedInAsync() {
       const response = await isLoggedIn();
-      if (response.status === "success" && (response.data.isAdmin || response.data.isSuperAdmin)) {
+      if (
+        response.status === "success" &&
+        (response.data?.isAdmin || response.data?.isSuperAdmin)
+      ) {
         setUser(response.data);
-        await loadMissionsFromDB();
+        await loadMissions();
       } else {
         navigate("/");
       }
     }
-
-    adminCheck().catch(() => {
-      // Something went wrong. Eventually would like a logger here.
-    });
-  }, [navigate, loadMissionsFromDB]);
+    isLoggedInAsync();
+  }, [navigate, loadMissions]);
 
   // clear the redux store
   useEffect(() => {
-    const populateStoreAsync = async () => {
+    const clearStoreAsync = async () => {
       /**
        * dispatch a single action to de-populate the stores across all slices using the wholeStoreState
        */
       dispatch(setAllSliceStores(wholeStoreInitialState));
     };
-    populateStoreAsync();
-    //eslint-disable-next-line
+    clearStoreAsync();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -85,11 +96,23 @@ const Missions: React.FunctionComponent = () => {
             <FontAwesomeIcon icon={faArrowAltCircleLeft} size="xl" onClick={handleBack} />
           </div>
           <h2>Missions</h2>
-          <MissionList missions={missions} user={user} loadMissionsFromDB={loadMissionsFromDB} />
+          <MissionList
+            missions={missions}
+            automergeDocListings={automergeDocListings}
+            user={user}
+            loadMissions={loadMissions}
+            automergeRepo={automergeRepo}
+          />
           <button
             type="button"
-            onClick={() => {
-              navigate("/admin/mission/0");
+            onClick={async () => {
+              const res = await createMission();
+              if (res.status != "success") {
+                alert(`Error creating automerge record: ${res.message}`);
+                return;
+              } else if (res.data) {
+                navigate(`/admin/mission/${res.data.missionId}/${res.data.automergeUrl}`);
+              }
             }}
             disabled={user?.id !== 1}
           >
@@ -102,49 +125,71 @@ const Missions: React.FunctionComponent = () => {
 };
 
 //component to display the bulleted list of missions
-const MissionList = (props: {
+const MissionList = ({
+  missions,
+  automergeDocListings,
+  user,
+  loadMissions,
+  automergeRepo,
+}: {
   missions: Mission[];
-  user: AppUser;
-  loadMissionsFromDB: Function;
+  automergeDocListings: AutomergeDocListing[];
+  user: AppUser | null;
+  loadMissions: Function;
+  automergeRepo: Repo;
 }) => {
   const navigate = useNavigate();
-  const permissionList = props.user?.permissionList;
+  const permissionList = user?.permissionList;
 
-  async function delMission(id: number) {
+  async function delMissionAndAutomerge(missionId: number | null) {
+    if (!missionId) return;
     if (
       confirm(
-        `Are you sure you want to delete mission ${id} and all of its GIS data?\nThis cannot be undone!`
+        `Are you sure you want to delete mission ${missionId} and all of its GIS data? This will also delete the automerge doc listing.\nThis cannot be undone!`
       )
     ) {
-      const res: WrappedResponse<number[]> = await deleteMissions([id]);
-      const fileDelete = await deleteFile(`missionFiles/${id.toString()}`);
-      alert(
-        `Delete ${res.status} - ${res.message} for missionID ${id}. File delete ${
-          fileDelete ? "successful" : "failed"
-        }`
-      );
-      props.loadMissionsFromDB();
+      try {
+        const res: WrappedResponse<number[]> = await deleteMissions([missionId]);
+        alert(`Delete ${res.status} - ${res.message} for missionID ${missionId}.`);
+        loadMissions();
+      } catch (e) {
+        alert("Error in deleting mission: " + e);
+      }
     }
   }
 
   async function archiveMission({ id, archive }: { id: number; archive: boolean }) {
-    const mission = props.missions.find((m) => m.id === id);
+    const mission = missions.find((m) => m.id === id);
     if (mission) {
-      mission.isArchived = archive;
-      await upsertMissions([mission]);
-      props.loadMissionsFromDB();
+      // get automerge URL
+      const automergeUrl = automergeDocListings.find(
+        (listing) => listing.missionId === id
+      )?.automergeUrl;
+      if (!automergeUrl) {
+        alert("No automerge URL found for mission " + id);
+        return;
+      }
+      const missionDocHandle = await automergeRepo.find<Mission>(automergeUrl as AutomergeUrl);
+      if (missionDocHandle) {
+        missionDocHandle.change((mission: Mission) => {
+          mission.isArchived = archive;
+          mission.updatedAt = new Date().getTime();
+        });
+      }
+      loadMissions();
     }
   }
 
   const listedMissions = (missionType: Mission[]) => {
     return missionType.map((mission: Mission) => {
       if (
-        props.user.isSuperAdmin ||
-        permissionList.some((p) => p.missionId === mission.id && p.permissions.edit === true)
+        user?.isSuperAdmin ||
+        permissionList?.some((p) => p.missionId === mission.id && p.permissions.edit === true)
       ) {
+        const automergeUrlForMission =
+          automergeDocListings.find((ar) => ar.missionId === mission.id)?.automergeUrl || "";
         return (
           <li key={mission.id} style={{ marginBottom: "8px" }}>
-            {" "}
             <>
               {mission.name}
               <span className={styles.missionSubtext}>(id: {mission.id})</span>
@@ -152,7 +197,7 @@ const MissionList = (props: {
               <button
                 type="button"
                 onClick={() => {
-                  navigate(`/admin/mission/${mission.id}`);
+                  navigate(`/admin/mission/${mission.id}/${automergeUrlForMission}`);
                 }}
               >
                 Edit Mission
@@ -222,12 +267,27 @@ const MissionList = (props: {
                   className={styles.deleteButton}
                   type="button"
                   onClick={() => {
-                    delMission(mission.id);
+                    delMissionAndAutomerge(mission.id);
                   }}
                 >
                   Delete Mission
                 </button>
               )}
+              <div>
+                Automerge:&nbsp;&nbsp;
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigate(`/admin/automerge/${automergeUrlForMission}`);
+                    }}
+                  >
+                    Manage
+                  </button>
+                  &nbsp;
+                  {automergeUrlForMission}
+                </>
+              </div>
             </>
           </li>
         );
@@ -243,14 +303,12 @@ const MissionList = (props: {
     });
   };
 
-  const visibleMissions = props.missions?.filter(
+  const visibleMissions = missions?.filter(
     (mission: Mission) => mission.isArchived == undefined || mission.isArchived == false
   );
-  const archivedMissions = props.missions?.filter(
-    (missions: Mission) => missions.isArchived == true
-  );
+  const archivedMissions = missions?.filter((missions: Mission) => missions.isArchived == true);
 
-  if (props.missions.length > 0) {
+  if (missions.length > 0) {
     return (
       <div>
         <ul>{listedMissions(visibleMissions)}</ul>

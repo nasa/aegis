@@ -7,9 +7,16 @@ import {
   auditActions,
   auditPresetsAgainstLayers,
   auditFolders,
-  auditRichTextToText,
 } from "./audits";
+import { getAutomergeDocListing } from "http-client/docListing";
+import type { DocHandle, Repo, AutomergeUrl } from "@automerge/automerge-repo";
+import { isValidAutomergeUrl } from "@automerge/automerge-repo";
+import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
+import { validateMission } from "utils/validateSchemaClient";
 
+// Populate the entire store state except User and Interface
+// All api calls used in this function must past in the load test options
+//   in order to work in a headless environment
 export const populateStore = async (params: {
   missionId: number;
   runAudit: boolean;
@@ -18,24 +25,23 @@ export const populateStore = async (params: {
     serverURL?: string;
     cookies?: string;
   };
+  automergeRepo: Repo;
 }): Promise<WholeStoreState> => {
-  const { missionId, runAudit, loadTestOptions: externalOptions } = params;
-  //get all data for a mission from a single endpoint
+  const { missionId, runAudit, loadTestOptions, automergeRepo } = params;
+  // Get all data for a mission from a single endpoint
   const allDataRes: WrappedResponse<OneMissionToRuleThemAll> = await getAll(
     missionId,
-    externalOptions
+    loadTestOptions
   );
   if (allDataRes.status !== "success" || !allDataRes.data) {
     return;
-  } //gracefully handle an error if no data is returned?
+  } // Gracefully handle an error if no data is returned?
 
   const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
   wholeStoreState.action.actions = allDataRes.data.actions;
   wholeStoreState.action.actionsFromDb = allDataRes.data.actions;
   wholeStoreState.eva.evas = allDataRes.data.evas;
   wholeStoreState.eva.evasFromDb = allDataRes.data.evas;
-  wholeStoreState.mission.mission = allDataRes.data.mission;
-  wholeStoreState.mission.missionFromDb = allDataRes.data.mission;
   wholeStoreState.mission.layers = allDataRes.data.layers;
   wholeStoreState.mission.sublayers = allDataRes.data.sublayers;
   wholeStoreState.poi.pois = allDataRes.data.pois;
@@ -58,20 +64,32 @@ export const populateStore = async (params: {
   // Generate folders interface states for the store (using cookies if available)
   generateFoldersInterfaceStates({ wholeStoreState });
 
-  // These values are from the vite.config.mts file and are set at build time
-  // However when running a load test where this file is spun up on the server, these are set in the esbuild.mjs file
-  wholeStoreState.interface.appVersion = {
-    version: __APP_VERSION__,
-    gitCommit: __GIT_COMMIT__,
-  };
+  // Get automerge URL and mission doc handle
+  const amDocListing = (await getAutomergeDocListing(missionId, loadTestOptions)).data[0];
+  if (!isValidAutomergeUrl(amDocListing?.automergeUrl)) {
+    throw new Error("Invalid Automerge URL");
+  }
+  wholeStoreState.mission.automergeUrl = amDocListing?.automergeUrl; // put url in the store
+  const missionDocHandle: DocHandle<Mission> = await automergeRepo.find(
+    amDocListing.automergeUrl as AutomergeUrl
+  );
+  if (!missionDocHandle) {
+    throw new Error("Mission doc handle not found in repo");
+  }
+  await missionDocHandle.whenReady();
+  setMissionAutomergeDocHandle(missionDocHandle); // Save doc handle to global for future access
+
+  // Get circle definitions from the mission automerge doc
+  const automergeMission = missionDocHandle.doc();
+  const missionCircleDefinitions = automergeMission.circleDefinitions;
 
   // Run audits on the data returned, modifying the data as needed. Each audit function will save needed changes to the DB
+  // Require the automerge doc handle is ready since these audits need access to and update mission
   if (runAudit) {
     await auditPresetsAgainstLayers({ wholeStoreState });
-    await auditActionDefinitions({ wholeStoreState });
+    await auditActionDefinitions({ missionDocHandle });
     await auditFolders({ wholeStoreState });
     await auditActions({ wholeStoreState });
-    await auditRichTextToText({ wholeStoreState });
   }
 
   // Set the default preset
@@ -86,16 +104,26 @@ export const populateStore = async (params: {
   generatePresetsLayersUIStates({ wholeStoreState });
 
   // Generate preset circles UI states for the store (not in the DB)
-  generatePresetsCirclesUIStates({ wholeStoreState });
+  generatePresetsCirclesUIStates({ wholeStoreState, missionCircleDefinitions });
 
   // Generate station circles UI states for the store (not in the DB)
-  generateStationsCirclesUIStates({ wholeStoreState });
+  generateStationsCirclesUIStates({ wholeStoreState, missionCircleDefinitions });
 
   // Generate eva dropdown selected state for the store (not in the DB)
   generateEvaDropdownUIStates({ wholeStoreState });
 
-  //If a rex is running, then switch the interface to show the rex pane and EVA actions right panel
+  // If a rex is running, then switch the interface to show the rex pane and EVA actions right panel
   setRunningRexView({ wholeStoreState });
+
+  // Run a schema validator check on the mission data
+  // Consider expanding this to all object types
+  const updatedMission = missionDocHandle.doc();
+  const validationErrors = await validateMission(updatedMission, loadTestOptions);
+  if (validationErrors.length !== 0) {
+    throw new Error(
+      `Something went wrong in the audit function. Invalid mission schema: ${JSON.stringify(validationErrors)}`
+    );
+  }
 
   return wholeStoreState;
 };
@@ -160,22 +188,21 @@ const generatePresetsLayersUIStates = async (params: {
 
 const generatePresetsCirclesUIStates = async (params: {
   wholeStoreState: WholeStoreState;
+  missionCircleDefinitions: CircleDefinitions;
 }): Promise<void> => {
-  const { wholeStoreState } = params;
+  const { wholeStoreState, missionCircleDefinitions } = params;
   // Generate preset UI states
   const presetUuids = wholeStoreState.preset.presets.map((p) => p.uuid);
   presetUuids.forEach((presetUuid) => {
     //build preset ui states for the layer and sublayers
     const presetCircleUIStates: CircleUIStates = {};
-
-    Object.entries(wholeStoreState.mission.mission?.circleDefinitions || {})?.forEach(
-      ([uuid, circleDef]) => {
+    if (missionCircleDefinitions) {
+      Object.entries(missionCircleDefinitions || {})?.forEach(([uuid]) => {
         presetCircleUIStates[uuid] = {
-          name: circleDef.name,
           slidersSelected: false,
         };
-      }
-    );
+      });
+    }
 
     wholeStoreState.preset.presetCirclesUIStates[presetUuid] = presetCircleUIStates;
   });
@@ -183,22 +210,22 @@ const generatePresetsCirclesUIStates = async (params: {
 
 const generateStationsCirclesUIStates = async (params: {
   wholeStoreState: WholeStoreState;
+  missionCircleDefinitions: CircleDefinitions;
 }): Promise<void> => {
-  const { wholeStoreState } = params;
+  const { wholeStoreState, missionCircleDefinitions } = params;
   // Generate station UI states
   const stationUuids = wholeStoreState.station.stations.map((s) => s.uuid);
   stationUuids.forEach((stationUuid) => {
     //build station ui states for the circles
     const stationCircleUIStates: CircleUIStates = {};
 
-    Object.entries(wholeStoreState.mission.mission?.circleDefinitions || {})?.forEach(
-      ([uuid, circleDef]) => {
+    if (missionCircleDefinitions) {
+      Object.entries(missionCircleDefinitions || {})?.forEach(([uuid]) => {
         stationCircleUIStates[uuid] = {
-          name: circleDef.name,
           slidersSelected: false,
         };
-      }
-    );
+      });
+    }
 
     wholeStoreState.station.stationCirclesUIStates[stationUuid] = stationCircleUIStates;
   });

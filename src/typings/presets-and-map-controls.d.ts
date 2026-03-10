@@ -6,7 +6,6 @@ interface MapSublayerControl {
 }
 
 interface MapCircleControl {
-  name: string;
   uuid: string;
   visible: boolean;
   style: MapSublayerStyle;
@@ -19,13 +18,13 @@ interface MapGridControl {
 }
 
 interface MapSublayerStyle {
-  opacity: number; //Percent
-  contrast: number; //Percent
-  brightness: number; //Percent
-  saturation: number; //Percent
+  opacity: number; // Percent
+  contrast: number; // Percent
+  brightness: number; // Percent
+  saturation: number; // Percent
   blendMode: string;
-  color: string; //stroke color
-  weight: number; //stroke weight
+  color: string; // stroke color
+  weight: number; // stroke weight
   fillColor: string;
   fillOpacity: number;
   isDashed: boolean;
@@ -37,19 +36,19 @@ interface MapSublayerStyle {
 type MapSublayerStyleKeys = keyof MapSublayerStyle;
 
 interface MapSublayerControls {
-  [uuid: string]: MapSublayerControl; //uuid of sublayers
+  [uuid: string]: MapSublayerControl; // uuid of sublayers
 }
 
 interface MapCircleControls {
-  [uuid: string]: MapCircleControl; //uuid
+  [uuid: string]: MapCircleControl; // uuid
 }
 
 interface LayersUIStates {
-  [uuid: string]: LayerUIStates; //uuid of Layer, or station
+  [uuid: string]: LayerUIStates; // uuid of Layer, or station
 }
 
 interface LayerUIStates {
-  [uuid: string]: LayerUIState; //flat uuid of layers and sublayers headers
+  [uuid: string]: LayerUIState; // flat uuid of layers and sublayers headers
 }
 
 interface LayerUIState {
@@ -60,15 +59,14 @@ interface LayerUIState {
 }
 
 interface CirclesUIStates {
-  [uuid: string]: CircleUIStates; //uuid of Preset or Station
+  [uuid: string]: CircleUIStates; // uuid of Preset or Station
 }
 
 interface CircleUIStates {
-  [uuid: string]: CircleUIState; //flat uuid of layers and sublayers headers
+  [uuid: string]: CircleUIState; // flat uuid of layers and sublayers headers
 }
 
 interface CircleUIState {
-  name: string;
   slidersSelected: boolean;
 }
 
@@ -79,7 +77,7 @@ type Preset = {
   name: string;
   description: string;
   missionDefault: boolean;
-  mapSublayerControls: MapSublayerControls; //flattened list of layers/sublayers
+  mapSublayerControls: MapSublayerControls; // flattened list of layers/sublayers
   mapCircleControls: MapCircleControls;
   mapGridControl: MapGridControl;
   layerOrder: PresetLayerOrder[];
@@ -97,8 +95,7 @@ type PresetLayerOrder = {
   sublayerUuids: string[];
 };
 
-type Preset_db_type = Omit<Preset, "missionId" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
+type Preset_db_type = Omit<Preset, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };

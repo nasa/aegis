@@ -20,6 +20,7 @@ import {
 } from "./thunkAction";
 import { v4 as uuidv4 } from "uuid";
 import { deleteActionsByUuid, upsertActions } from "store/action";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 
 /**
  * Only updates traverse path and distances
@@ -29,12 +30,13 @@ export const thunkUpdateTraversePath = appCreateAsyncThunk<{
   path: AEGISPoint[];
   traverseUuid: string;
 }>("updateTraversePath", async ({ path, traverseUuid }, { dispatch, getState }) => {
+  const missionDocHandle = getAutomergeDocHandles().mission;
+  const mission = missionDocHandle.doc();
+
   //calculate path distances
   const pathSegmentDistances: number[] = [];
   for (let i = 1; i < path.length; i++) {
-    pathSegmentDistances.push(
-      getTotalDistance([path[i - 1], path[i]], getState().mission.mission.planetRadius)
-    );
+    pathSegmentDistances.push(getTotalDistance([path[i - 1], path[i]], mission.planetRadius));
   }
   //save traverse
   const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
@@ -80,6 +82,8 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     { dispatch, getState }
   ) => {
     const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
 
     const eva = getState().eva.evas.find((eva) => {
       return eva.sequence.find((sequenceItem) => {
@@ -96,10 +100,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
       if (traverse.path && traverse.path.length > 0) {
         newPath = cloneDeep(traverse.path);
       } else {
-        newPath = [
-          getState().mission.mission.landerLocation,
-          getState().mission.mission.landerLocation,
-        ];
+        newPath = [mission.landerLocation, mission.landerLocation];
       }
     }
 
@@ -118,7 +119,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
         // if this is the first item in the sequence, use the egressLocation as the before location
         if (index === 0) {
           if (eva.egressLocationUuid === "lander") {
-            locationBefore = getState().mission.mission.landerLocation;
+            locationBefore = mission.landerLocation;
             nameBefore = "Lander";
           } else {
             const stationUuidBefore = eva.egressLocationUuid;
@@ -140,7 +141,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
         // if this is the last item in the sequence, use ingressLocation as the after location
         if (index === selectedEvaSequence.length - 1) {
           if (eva.ingressLocationUuid === "lander") {
-            locationAfter = getState().mission.mission.landerLocation;
+            locationAfter = mission.landerLocation;
             nameAfter = "Lander";
           } else {
             const stationUuidAfter = eva.ingressLocationUuid;
@@ -172,7 +173,7 @@ export const thunkFullUpdateTraverse = appCreateAsyncThunk<
     const pathSegmentDistances: number[] = [];
     for (let i = 1; i < newPath.length; i++) {
       pathSegmentDistances.push(
-        getTotalDistance([newPath[i - 1], newPath[i]], getState().mission.mission.planetRadius)
+        getTotalDistance([newPath[i - 1], newPath[i]], mission.planetRadius)
       );
     }
 
@@ -232,6 +233,8 @@ export const thunkResetTraverse = appCreateAsyncThunk<{
   const selectedEva = getState().eva.evas.find(
     (eva) => eva.uuid === getState().eva.selectedEvaUuid
   );
+  const missionDocHandle = getAutomergeDocHandles().mission;
+  const mission = missionDocHandle.doc();
 
   let fromStationLoc: AEGISPoint;
   let toStationLoc: AEGISPoint;
@@ -242,7 +245,7 @@ export const thunkResetTraverse = appCreateAsyncThunk<{
   if (sequenceIndex === 0) {
     //first traverse in sequence. get egress location.
     if (selectedEva.egressLocationUuid === "lander") {
-      fromStationLoc = getState().mission.mission.landerLocation;
+      fromStationLoc = mission.landerLocation;
     } else {
       fromStationLoc = getState().station.stations.find(
         (s) => s.uuid === selectedEva.egressLocationUuid
@@ -256,7 +259,7 @@ export const thunkResetTraverse = appCreateAsyncThunk<{
   if (sequenceIndex === selectedEva.sequence.length - 1) {
     //last traverse in sequence. get ingress location
     if (selectedEva.ingressLocationUuid === "lander") {
-      toStationLoc = getState().mission.mission.landerLocation;
+      toStationLoc = mission.landerLocation;
     } else {
       toStationLoc = getState().station.stations.find(
         (s) => s.uuid === selectedEva.ingressLocationUuid

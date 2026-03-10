@@ -13,19 +13,14 @@ import actionStyles from "./actions-action.module.css";
 import { upsertActions } from "store/action";
 import { thunkDeleteActionFromStore, thunkDuplicateActions } from "store/thunk/thunkAction";
 import { thunkCreateTemplateFromAction } from "store/thunk/thunkMission";
-import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { refEqual, useAppSelector } from "utils/useAppSelector";
 
 export const ActionMenu: FunctionComponent<{
   action: Action;
 }> = ({ action }) => {
   const dispatch = useAppDispatch();
-  const dialogRef = useRef(null);
-  const menuRef = useRef(null);
-
-  const missionSectionsEditing = useAppSelector(
-    (state) => state.mission.missionSectionsEditing,
-    shallowEqual
-  );
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const missionEditPerms = useAppSelector(
     (state) =>
@@ -36,8 +31,10 @@ export const ActionMenu: FunctionComponent<{
 
   const handleMenuOpen = (e: React.MouseEvent) => {
     const x = e.clientX - 130; // width of the menu
-    menuRef.current.style.left = `${x}px`;
-    menuRef.current.style.top = `${e.clientY}px`;
+    if (menuRef.current) {
+      menuRef.current.style.left = `${x}px`;
+      menuRef.current.style.top = `${e.clientY}px`;
+    }
   };
 
   return (
@@ -84,14 +81,8 @@ export const ActionMenu: FunctionComponent<{
               className={actionStyles.menuItem}
               onClick={async (e) => {
                 e.stopPropagation();
-                if (!missionSectionsEditing.includes("prefs")) {
-                  await dispatch(thunkCreateTemplateFromAction({ actionUuid: action.uuid }));
-                  window.alert(`Action Template successfully created from action.`);
-                } else {
-                  window.alert(
-                    `Cannot create action template - Please ensure mission configuration is not in edit mode.`
-                  );
-                }
+                await dispatch(thunkCreateTemplateFromAction({ actionUuid: action.uuid }));
+                window.alert(`Action Template successfully created from action.`);
 
                 dialogRef.current?.close();
               }}

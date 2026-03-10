@@ -10,12 +10,11 @@ interface HoverState {
 }
 
 interface MissionState {
-  mission: Mission;
-  missionFromDb: Mission;
   layers: Layer[] | null;
   sublayers: Sublayer[] | null;
   selectedRightNavItem: string;
   missionSectionsEditing: string[];
+  automergeUrl: string;
 }
 
 interface UserState {
@@ -101,8 +100,12 @@ interface InterfaceState {
   timelineShowElevation: boolean;
   folders: Folder[];
   foldersInterface: FolderInterface[];
-  appVersion: AppVersion;
+}
+
+interface ConnectionState {
   socketStatus: ClientSocketStatus;
+  browserConnectionStatus: ConnectionStatus;
+  appVersion: AppVersion;
 }
 
 interface STMState {
@@ -170,6 +173,7 @@ interface WholeStoreState {
   poi: PoiState;
   preset: PresetState;
   interface: InterfaceState;
+  connection: ConnectionState;
   stm: STMState;
   station: StationState;
   action: ActionState;
@@ -243,8 +247,8 @@ type EvaCalculatedFields = CalculatedFields &
 
 interface MustContainIsModified {
   uuid: string;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: string | number;
+  updatedAt?: string | number;
 }
 
 type LoadingStatus = "loading" | "loaded" | "unloaded" | "error";

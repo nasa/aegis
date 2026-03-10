@@ -355,13 +355,13 @@ export async function getLevel1s(missionId: number, level1Uuid?: string): Promis
   if (level1Uuid) {
     level1s = await em.find(
       STM_Level1_db,
-      { uuid: level1Uuid, mission: { id: missionId } },
+      { uuid: level1Uuid, missionId },
       { orderBy: { numbering: QueryOrder.ASC } }
     );
   } else {
     level1s = await em.find(
       STM_Level1_db,
-      { mission: { id: missionId } },
+      { missionId },
       { orderBy: { numbering: QueryOrder.ASC } }
     );
   }
@@ -388,9 +388,7 @@ export async function getLevel2s(
   const em = globalValues.orm.em;
 
   //build the "where" options in Mikro ORM syntax
-  const level1WhereClause: { uuid?: string; mission: { id: number } } = {
-    mission: { id: missionId },
-  };
+  const level1WhereClause: { uuid?: string; missionId: number } = { missionId };
   if (level1Uuid) level1WhereClause.uuid = level1Uuid;
 
   const level2WhereClause: { uuid?: string; level1: {} } = { level1: level1WhereClause };
@@ -426,9 +424,7 @@ export async function getLevel3s(
   const em = globalValues.orm.em;
 
   //build the "where" options in Mikro ORM syntax
-  const level1WhereClause: { uuid?: string; mission: { id: number } } = {
-    mission: { id: missionId },
-  };
+  const level1WhereClause: { uuid?: string; missionId: number } = { missionId };
   if (level1Uuid) level1WhereClause.uuid = level1Uuid;
 
   const level2WhereClause: { uuid?: string; level1: {} } = { level1: level1WhereClause };

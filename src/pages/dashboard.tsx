@@ -15,10 +15,12 @@ import { setAllSliceStores } from "store/crossActions";
 import { populateStore } from "store/processing/populateStore";
 import MapBody from "components/dashboard/map";
 import DashTimeline from "components/dashboard/timeline/dashTimeline";
-import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import MiniMap from "components/dashboard/miniMap";
 import { setGridCornerPoint } from "store/map";
 import { loadAndReturnGrid } from "utils/mapping/grid";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { useRepo } from "@automerge/automerge-repo-react-hooks";
 
 type RouteParams = {
   id: string;
@@ -28,6 +30,11 @@ const Main = (): JSX.Element => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [eyeballMenuCookie] = useCookies(["AEGIS_Map_View_Settings"]);
+  const automergeRepo = useRepo();
+  const partialMission = useMissionDocSelector(
+    (doc) => ({ name: doc.name, activeGridUuid: doc.activeGridUuid }),
+    deepEqual
+  );
 
   const runningRexFromDb = useAppSelector(
     (state) => state.rex.rexesFromDb.find((r) => r.isRunning),
@@ -37,8 +44,6 @@ const Main = (): JSX.Element => {
     const defaultPresetUuid = state.preset.presetsFromDb.find((p) => p.missionDefault)?.uuid;
     return state.preset.presetsFromDb.find((p) => p.uuid === defaultPresetUuid);
   }, deepEqual);
-  const activeGridUuid = useAppSelector((state) => state.mission.mission?.activeGridUuid, refEqual);
-  const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
 
   // props that are passed between the big map and mini map
   const [hasPermissions, setHasPermissions] = useState(false);
@@ -97,7 +102,11 @@ const Main = (): JSX.Element => {
 
   useEffect(() => {
     const populateStoreAsync = async () => {
-      const wholeStoreState = await populateStore({ missionId: intMissionId, runAudit: false });
+      const wholeStoreState = await populateStore({
+        missionId: intMissionId,
+        runAudit: false,
+        automergeRepo,
+      });
       /**
        * dispatch a single action to populate the stores across all slices using the wholeStoreState
        */
@@ -138,16 +147,20 @@ const Main = (): JSX.Element => {
   }, [navigate, intMissionId, dispatch]);
 
   useEffect(() => {
-    if (!missionName) {
-      return;
-    }
-    document.title = `${missionName} - AEGIS`;
-  }, [missionName]);
+    if (!partialMission?.name) return;
+
+    document.title = `${partialMission.name} - AEGIS`;
+  }, [partialMission?.name]);
 
   // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
+    if (!partialMission?.activeGridUuid) return;
+
     const loadGridAsync = async () => {
-      const newGrid: MissionGrid = await loadAndReturnGrid(intMissionId, activeGridUuid);
+      const newGrid: MissionGrid = await loadAndReturnGrid(
+        intMissionId,
+        partialMission.activeGridUuid
+      );
       if (newGrid?.coordinates && newGrid.coordinates.length > 0) {
         dispatch(setGridCornerPoint(newGrid.coordinates[0][0]));
       } else {
@@ -156,7 +169,7 @@ const Main = (): JSX.Element => {
     };
 
     loadGridAsync();
-  }, [dispatch, intMissionId, activeGridUuid]);
+  }, [dispatch, intMissionId, partialMission?.activeGridUuid]);
 
   return (
     <>

@@ -4,13 +4,11 @@ import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import {
   App_User_db,
-  Mission_db,
   STM_Level1_db,
   STM_Level2_db,
   STM_Level3_db,
 } from "server/database/models/_allModels";
 import AppUserFactory from "../factories/AppUserFactory";
-import MissionFactory from "../factories/MissionFactory";
 import STMLevel1Factory from "../factories/STMLevel1Factory";
 import STMLevel3Factory from "../factories/STMLevel3Factory";
 import STMLevel2Factory from "../factories/STMLevel2Factory";
@@ -23,27 +21,26 @@ import {
 } from "store/storeUtils/stm";
 
 let testAppUser: App_User_db;
-let testMissions: Mission_db[];
 let stmLevel1s: STM_Level1_db[];
+const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testMissions = await new MissionFactory(em).create(3);
   testAppUser = await new AppUserFactory(em).createOne({
     username: "JestSTM",
     permissionList: [
       {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         permissions: {
           edit: true,
           view: true,
         },
       },
       {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         permissions: {
           edit: false,
           view: true,
@@ -55,7 +52,7 @@ beforeAll(async () => {
   //create 2 level1s. each level1 has 2 child level2s and each child level2 has 2 child level3s
   stmLevel1s = await new STMLevel1Factory(em)
     .each(async (level1) => {
-      level1.mission = testMissions[0];
+      level1.missionId = testMissionIds[0];
       level1.level2s.set(
         await new STMLevel2Factory(em)
           .each(async (level2) => {
@@ -98,7 +95,7 @@ describe("STM API Endpoint", () => {
       const res = await supertest(app)
         .get("/api/v1/stm")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id, stmType: "l1" });
+        .query({ missionId: testMissionIds[2], stmType: "l1" });
 
       expect(res.statusCode).toBe(401);
     });
@@ -107,7 +104,7 @@ describe("STM API Endpoint", () => {
       const res = await supertest(app)
         .get("/api/v1/stm")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id });
+        .query({ missionId: testMissionIds[0] });
 
       expect(res.statusCode).toBe(400);
       expect(res.body.status).toBe("error");
@@ -118,7 +115,7 @@ describe("STM API Endpoint", () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .query({ missionId: testMissions[0].id, stmType: "l1", l1: stmLevel1s[0].uuid });
+          .query({ missionId: testMissionIds[0], stmType: "l1", l1: stmLevel1s[0].uuid });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -129,7 +126,7 @@ describe("STM API Endpoint", () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .query({ missionId: testMissions[0].id, stmType: "l1" });
+          .query({ missionId: testMissionIds[0], stmType: "l1" });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -140,7 +137,7 @@ describe("STM API Endpoint", () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .query({ missionId: testMissions[1].id, stmType: "l1" });
+          .query({ missionId: testMissionIds[1], stmType: "l1" });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -154,7 +151,7 @@ describe("STM API Endpoint", () => {
           .get("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
           .query({
-            missionId: testMissions[0].id,
+            missionId: testMissionIds[0],
             stmType: "l2",
             l2: stmLevel1s[0].level2s[0].uuid,
           });
@@ -168,7 +165,7 @@ describe("STM API Endpoint", () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .query({ missionId: testMissions[0].id, stmType: "l2" });
+          .query({ missionId: testMissionIds[0], stmType: "l2" });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -179,7 +176,7 @@ describe("STM API Endpoint", () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .query({ missionId: testMissions[0].id, stmType: "l2", l1: stmLevel1s[0].uuid });
+          .query({ missionId: testMissionIds[0], stmType: "l2", l1: stmLevel1s[0].uuid });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -191,7 +188,7 @@ describe("STM API Endpoint", () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .query({ missionId: testMissions[1].id, stmType: "l2" });
+          .query({ missionId: testMissionIds[1], stmType: "l2" });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -205,7 +202,7 @@ describe("STM API Endpoint", () => {
           .get("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
           .query({
-            missionId: testMissions[0].id,
+            missionId: testMissionIds[0],
             stmType: "l3",
             l3: stmLevel1s[0].level2s[0].level3s[0].uuid,
           });
@@ -219,7 +216,7 @@ describe("STM API Endpoint", () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .query({ missionId: testMissions[0].id, stmType: "l3" });
+          .query({ missionId: testMissionIds[0], stmType: "l3" });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -231,7 +228,7 @@ describe("STM API Endpoint", () => {
           .get("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
           .query({
-            missionId: testMissions[0].id,
+            missionId: testMissionIds[0],
             stmType: "l3",
             l2: stmLevel1s[0].level2s[0].uuid,
           });
@@ -246,7 +243,7 @@ describe("STM API Endpoint", () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
           .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .query({ missionId: testMissions[1].id, stmType: "l3" });
+          .query({ missionId: testMissionIds[1], stmType: "l3" });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -262,7 +259,7 @@ describe("STM API Endpoint", () => {
   describe("POST requests", () => {
     test("No permissions", async () => {
       const requestBody: STMUpsertRequest = {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         stmObjects: [newLevel1],
         stmType: "Level1",
       };
@@ -276,7 +273,7 @@ describe("STM API Endpoint", () => {
 
     test("No permissions - View only", async () => {
       const requestBody: STMUpsertRequest = {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         stmObjects: [newLevel1],
         stmType: "Level1",
       };
@@ -290,7 +287,7 @@ describe("STM API Endpoint", () => {
 
     test("Empty stmObjects array", async () => {
       const requestBody: STMUpsertRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         stmObjects: [],
         stmType: "Level1",
       };
@@ -305,9 +302,9 @@ describe("STM API Endpoint", () => {
 
     describe("Level1", () => {
       test("Create new level1", async () => {
-        newLevel1.missionId = testMissions[0].id;
+        newLevel1.missionId = testMissionIds[0];
         const requestBody: STMUpsertRequest = {
-          missionId: testMissions[0].id,
+          missionId: testMissionIds[0],
           stmObjects: [newLevel1],
           stmType: "Level1",
         };
@@ -332,7 +329,7 @@ describe("STM API Endpoint", () => {
       test("Update a level1", async () => {
         newLevel1.name = "Jest Test New Level1 Modified";
         const requestBody: STMUpsertRequest = {
-          missionId: testMissions[0].id,
+          missionId: testMissionIds[0],
           stmObjects: [newLevel1],
           stmType: "Level1",
         };
@@ -351,7 +348,7 @@ describe("STM API Endpoint", () => {
       test("Create new level2", async () => {
         newLevel2.level1Uuid = newLevel1.uuid;
         const requestBody: STMUpsertRequest = {
-          missionId: testMissions[0].id,
+          missionId: testMissionIds[0],
           stmObjects: [newLevel2],
           stmType: "Level2",
         };
@@ -376,7 +373,7 @@ describe("STM API Endpoint", () => {
       test("Update a level2", async () => {
         newLevel2.name = "Jest Test New Level2 Modified";
         const requestBody: STMUpsertRequest = {
-          missionId: testMissions[0].id,
+          missionId: testMissionIds[0],
           stmObjects: [newLevel2],
           stmType: "Level2",
         };
@@ -395,7 +392,7 @@ describe("STM API Endpoint", () => {
       test("Create new level3", async () => {
         newLevel3.level2Uuid = newLevel2.uuid;
         const requestBody: STMUpsertRequest = {
-          missionId: testMissions[0].id,
+          missionId: testMissionIds[0],
           stmObjects: [newLevel3],
           stmType: "Level3",
         };
@@ -420,7 +417,7 @@ describe("STM API Endpoint", () => {
       test("Update a level3", async () => {
         newLevel3.name = "Jest Test New Level3 Modified";
         const requestBody: STMUpsertRequest = {
-          missionId: testMissions[0].id,
+          missionId: testMissionIds[0],
           stmObjects: [newLevel3],
           stmType: "Level3",
         };
@@ -440,7 +437,7 @@ describe("STM API Endpoint", () => {
     test("No permissions", async () => {
       const exampleUuids = ["test-uuid"];
       const requestBody: STMDeleteRequest = {
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         stmType: "Level1",
         uuids: exampleUuids,
       };
@@ -455,7 +452,7 @@ describe("STM API Endpoint", () => {
     test("No permissions - View only", async () => {
       const exampleUuids = ["test-uuid"];
       const requestBody: STMDeleteRequest = {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         stmType: "Level1",
         uuids: exampleUuids,
       };
@@ -469,7 +466,7 @@ describe("STM API Endpoint", () => {
 
     test("Delete a level3", async () => {
       const requestBody: STMDeleteRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         stmType: "Level3",
         uuids: [newLevel3.uuid],
       };
@@ -484,7 +481,7 @@ describe("STM API Endpoint", () => {
 
     test("Delete a level2", async () => {
       const requestBody: STMDeleteRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         stmType: "Level2",
         uuids: [newLevel2.uuid],
       };
@@ -499,7 +496,7 @@ describe("STM API Endpoint", () => {
 
     test("Delete a level1", async () => {
       const requestBody: STMDeleteRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         stmType: "Level1",
         uuids: [newLevel1.uuid],
       };
@@ -525,9 +522,6 @@ afterAll(async () => {
       await em.nativeDelete(STM_Level2_db, { uuid: level2.uuid });
     }
     await em.nativeDelete(STM_Level1_db, { uuid: level1.uuid });
-  }
-  for (let i = 0; i < testMissions.length; i++) {
-    await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
 

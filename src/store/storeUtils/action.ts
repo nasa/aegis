@@ -38,8 +38,8 @@ export const generateBlankAction = (partialAction?: Partial<Action>): Action => 
     status: "Candidate",
     enabled: true,
     crewAssigned: [],
-    createdAt: getAccurateNow().toISOString(),
-    updatedAt: null,
+    createdAt: getAccurateNow().getTime(),
+    updatedAt: getAccurateNow().getTime(),
   };
   return { ...defaultNewAction, ...partialAction };
 };
@@ -56,12 +56,12 @@ export function convertActionsTypeDbToStore(dbActions: Action_db[]): Action[] {
       uuid: dbAction.uuid,
       refUuid: dbAction.refUuid,
       name: dbAction.name,
-      missionId: dbAction.mission.id,
+      missionId: dbAction.missionId,
       poiUuid: dbAction.poi?.uuid,
       stationUuid: dbAction.station?.uuid,
       traverseUuid: dbAction.traverse?.uuid,
       parentActionUuid: dbAction.parentAction?.uuid,
-      parentCopyDate: dbAction.parentCopyDate?.toISOString(),
+      parentCopyDate: dbAction.parentCopyDate,
       priority: dbAction.priority,
       stmPriorities: dbAction.stmPriorities,
       type: dbAction.type,
@@ -79,8 +79,8 @@ export function convertActionsTypeDbToStore(dbActions: Action_db[]): Action[] {
       status: dbAction.status,
       enabled: dbAction.enabled,
       crewAssigned: dbAction.crewAssigned,
-      createdAt: dbAction.createdAt?.toISOString(),
-      updatedAt: dbAction.updatedAt?.toISOString(),
+      createdAt: dbAction.createdAt,
+      updatedAt: dbAction.updatedAt,
     };
     actions.push(convertedAction);
   }
@@ -99,12 +99,14 @@ export function convertActionsTypeStoreToDb(storeActions: Action[]): EntityData<
       uuid: storeAction.uuid,
       refUuid: storeAction.refUuid,
       name: storeAction.name,
-      mission: storeAction.missionId,
+      missionId: storeAction.missionId,
       poi: storeAction.poiUuid,
       station: storeAction.stationUuid,
       traverse: storeAction.traverseUuid,
       parentAction: storeAction.parentActionUuid,
-      parentCopyDate: storeAction.parentCopyDate ? new Date(storeAction.parentCopyDate) : null,
+      parentCopyDate: storeAction.parentCopyDate
+        ? new Date(storeAction.parentCopyDate).getTime()
+        : null,
       priority: storeAction.priority,
       stmPriorities: storeAction.stmPriorities,
       type: storeAction.type,
@@ -122,8 +124,8 @@ export function convertActionsTypeStoreToDb(storeActions: Action[]): EntityData<
       status: storeAction.status,
       enabled: storeAction.enabled,
       crewAssigned: storeAction.crewAssigned,
-      updatedAt: new Date(storeAction.updatedAt),
-      createdAt: new Date(storeAction.createdAt),
+      updatedAt: new Date(storeAction.updatedAt).getTime(),
+      createdAt: new Date(storeAction.createdAt).getTime(),
     };
     dbActions.push(convertedRecord);
   }

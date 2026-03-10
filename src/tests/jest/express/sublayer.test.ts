@@ -3,38 +3,36 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import AppUserFactory from "../factories/AppUserFactory";
-import MissionFactory from "../factories/MissionFactory";
 import LayerFactory from "../factories/LayerFactory";
 import SublayerFactory from "../factories/SublayerFactory";
-import { Mission_db, Layer_db, App_User_db, Sublayer_db } from "server/database/models/_allModels";
+import { Layer_db, App_User_db, Sublayer_db } from "server/database/models/_allModels";
 import { v4 as uuidv4 } from "uuid";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
 
-let testMissions: Mission_db[];
 let testAppUser: App_User_db;
 let testLayer: Layer_db;
 let testSublayers: Sublayer_db[];
+const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testMissions = await new MissionFactory(em).create(3);
   testAppUser = await new AppUserFactory(em).createOne({
     username: "JestSublayer",
     permissionList: [
       {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         permissions: {
           edit: true,
           view: true,
         },
       },
       {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         permissions: {
           edit: false,
           view: true,
@@ -43,11 +41,11 @@ beforeAll(async () => {
     ],
   });
   testLayer = await new LayerFactory(em).createOne({
-    mission: testMissions[0],
+    missionId: testMissionIds[0],
   });
   testSublayers = await new SublayerFactory(em)
     .each((sublayer) => {
-      sublayer.mission = testMissions[0];
+      sublayer.missionId = testMissionIds[0];
       sublayer.layer = testLayer;
     })
     .create(2);
@@ -78,16 +76,16 @@ describe("Layer API Endpoint ", () => {
       const res = await supertest(app)
         .get("/api/v1/sublayer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
+        .query({ missionId: testMissionIds[2] });
 
       expect(res.statusCode).toBe(401);
     });
 
-    test("Returns empty non-existant sublayer uuid for mission", async () => {
+    test("Returns empty non-existent sublayer uuid for mission", async () => {
       const res = await supertest(app)
         .get("/api/v1/sublayer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id, uuid: uuidv4() });
+        .query({ missionId: testMissionIds[0], uuid: uuidv4() });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
@@ -98,7 +96,7 @@ describe("Layer API Endpoint ", () => {
       const res = await supertest(app)
         .get("/api/v1/sublayer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id, uuid: testSublayers[0].uuid });
+        .query({ missionId: testMissionIds[0], uuid: testSublayers[0].uuid });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
@@ -109,7 +107,7 @@ describe("Layer API Endpoint ", () => {
       const res = await supertest(app)
         .get("/api/v1/sublayer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id });
+        .query({ missionId: testMissionIds[0] });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
@@ -121,7 +119,7 @@ describe("Layer API Endpoint ", () => {
   describe("POST request", () => {
     test("No permissions", async () => {
       const requestBody: SublayerUpsertRequest = {
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         sublayers: [{ ...newSublayer, layerUuid: testLayer.uuid }],
       };
       const res = await supertest(app)
@@ -134,7 +132,7 @@ describe("Layer API Endpoint ", () => {
 
     test("No permissions - View only", async () => {
       const requestBody: SublayerUpsertRequest = {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         sublayers: [{ ...newSublayer, layerUuid: testLayer.uuid }],
       };
       const res = await supertest(app)
@@ -147,7 +145,7 @@ describe("Layer API Endpoint ", () => {
 
     test("Empty sublayers array", async () => {
       const requestBody: SublayerUpsertRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         sublayers: [],
       };
       const res = await supertest(app)
@@ -160,8 +158,8 @@ describe("Layer API Endpoint ", () => {
 
     test("Create new sublayer", async () => {
       const requestBody: SublayerUpsertRequest = {
-        missionId: testMissions[0].id,
-        sublayers: [{ ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissions[0].id }],
+        missionId: testMissionIds[0],
+        sublayers: [{ ...newSublayer, layerUuid: testLayer.uuid, missionId: testMissionIds[0] }],
       };
       const res = await supertest(app)
         .post("/api/v1/sublayer")
@@ -180,9 +178,9 @@ describe("Layer API Endpoint ", () => {
 
     test("Update a sublayer", async () => {
       newSublayer.name = "Jest Test Sublayer Modified";
-      newSublayer.missionId = testMissions[0].id;
+      newSublayer.missionId = testMissionIds[0];
       const requestBody: SublayerUpsertRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         sublayers: [newSublayer],
       };
 
@@ -200,7 +198,7 @@ describe("Layer API Endpoint ", () => {
   describe("DELETE request", () => {
     test("No permissions", async () => {
       const requestBody: SublayerDeleteRequest = {
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         sublayerUuids: [newSublayer.uuid],
       };
       const res = await supertest(app)
@@ -213,7 +211,7 @@ describe("Layer API Endpoint ", () => {
 
     test("No permissions - View only", async () => {
       const requestBody: SublayerDeleteRequest = {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         sublayerUuids: [newSublayer.uuid],
       };
       const res = await supertest(app)
@@ -225,9 +223,9 @@ describe("Layer API Endpoint ", () => {
     });
 
     test("Delete a sublayer", async () => {
-      newSublayer.missionId = testMissions[0].id;
+      newSublayer.missionId = testMissionIds[0];
       const requestBody: SublayerDeleteRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         sublayerUuids: [newSublayer.uuid],
       };
 
@@ -249,9 +247,6 @@ afterAll(async () => {
     await em.nativeDelete(Sublayer_db, { uuid: testSublayers[i].uuid });
   }
   await em.nativeDelete(Layer_db, { uuid: testLayer.uuid });
-  for (let i = 0; i < testMissions.length; i++) {
-    await em.nativeDelete(Mission_db, { id: testMissions[i].id });
-  }
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.

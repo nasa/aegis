@@ -7,12 +7,10 @@ import { setPoiEditMode, upsertPois } from "store/poi";
 import { setStationEditMode, upsertStations } from "store/station";
 import { setEvaEditMode, upsertEvas } from "store/eva";
 import { setTraversesEditMode, upsertTraverses } from "store/traverse";
-import { setMissionSectionEditing } from "store/mission";
 import { upsertRexes } from "store/rex";
 import { upsertActions } from "store/action";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankPoi } from "store/storeUtils/poi";
 import { generateBlankPreset } from "store/storeUtils/preset";
 import { generateBlankRex } from "store/storeUtils/rex";
@@ -256,37 +254,6 @@ describe("Thunk Socket Tests", () => {
         store.getState().traverse.traversesFromDb.some((x) => x.name === data.name)
       ).toBeTruthy();
       expect(store.getState().traverse.traversesEditing.includes(data.uuid)).toBeFalsy();
-      expect((messages as Array<string>).length).toEqual(1);
-    });
-
-    it("mission", async () => {
-      const data = generateBlankMission({ name: "Jest Mission-1" });
-      const storeUpsert: StoreUpsert = {
-        socketId: null,
-        missionId: null,
-        type: "mission",
-        data: [cloneDeep(data)],
-        lastEditEvent: null,
-      };
-
-      let messages: string[] | false;
-
-      //test updating existing the data
-      data.name = "Jest Test Modified Name";
-      storeUpsert.data = [cloneDeep(data)];
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().mission.mission.name).toEqual(data.name);
-      expect(store.getState().mission.missionFromDb.name).toEqual(data.name);
-      expect(messages).toEqual([]);
-
-      //test data in edit mode
-      data.name = "Jest Test In Edit Mode";
-      storeUpsert.data = [cloneDeep(data)];
-      store.dispatch(setMissionSectionEditing({ section: "prefs", editMode: true }));
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().mission.mission.name).toEqual(data.name);
-      expect(store.getState().mission.missionFromDb.name).toEqual(data.name);
-      expect(store.getState().mission.missionSectionsEditing.includes("prefs")).toBeFalsy();
       expect((messages as Array<string>).length).toEqual(1);
     });
 

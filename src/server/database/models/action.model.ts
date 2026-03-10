@@ -1,7 +1,7 @@
 import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/postgresql";
 import { types as MikroTypes } from "@mikro-orm/postgresql";
 
-import { Poi_db, Station_db, Mission_db, Traverse_db } from "./_allModels";
+import { Poi_db, Station_db, Traverse_db } from "./_allModels";
 
 @Entity()
 export class Action_db implements Action_db_type {
@@ -14,8 +14,8 @@ export class Action_db implements Action_db_type {
   })
   refUuid: string; // assigned on creation and is preserved when duplication for a rex
 
-  @ManyToOne(() => Mission_db, { unique: false, primary: false })
-  mission!: Mission_db;
+  @Property({ type: MikroTypes.integer })
+  missionId!: number;
   //an action can belong to either a POI, station, or traverse
   @ManyToOne(() => Poi_db, { unique: false, primary: false, nullable: true })
   poi: Poi_db;
@@ -26,8 +26,8 @@ export class Action_db implements Action_db_type {
 
   @ManyToOne(() => Action_db, { unique: false, primary: false, nullable: true })
   parentAction: Action_db;
-  @Property({ type: MikroTypes.datetime, length: 3, nullable: true })
-  parentCopyDate: Date;
+  @Property({ type: MikroTypes.double, nullable: true })
+  parentCopyDate: number;
 
   @Property({ type: MikroTypes.text })
   name!: string;
@@ -69,10 +69,10 @@ export class Action_db implements Action_db_type {
   @Property({ type: MikroTypes.json, nullable: true })
   crewAssigned: Crew[];
 
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  createdAt: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  updatedAt: Date;
+  @Property({ type: MikroTypes.double })
+  createdAt: number;
+  @Property({ type: MikroTypes.double })
+  updatedAt: number;
 
   @Property({ type: MikroTypes.integer, version: true })
   version!: number; //used for optimistic locking

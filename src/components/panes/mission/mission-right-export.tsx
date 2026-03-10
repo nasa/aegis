@@ -1,16 +1,17 @@
 import { FunctionComponent, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
+import missionStyles from "./mission.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faFileExport } from "@fortawesome/free-solid-svg-icons";
 import { Button, Checkbox } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkMakeExportString } from "store/thunk/thunkMission";
-import { deepEqual, useAppSelector } from "utils/useAppSelector";
-import styles from "./mission.module.css";
+import { refEqual } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Export_panel: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const missionStore = useAppSelector((state) => state.mission, deepEqual);
+  const missionName = useMissionDocSelector((doc) => doc.name, refEqual);
 
   const [selectEvas, setSelectEvas] = useState(true);
   const [selectMission, setSelectMission] = useState(false);
@@ -36,7 +37,7 @@ const Export_panel: FunctionComponent = () => {
     const element = document.createElement("a");
     const file = new Blob([output.payload as string], { type: "text/json" });
     element.href = URL.createObjectURL(file);
-    let filename = `${missionStore.mission?.name}_`;
+    let filename = `${missionName}_`;
     if (selectEvas) filename += "evas_";
     if (selectMission) filename += "mission_";
     if (selectPois) filename += "pois_";
@@ -59,7 +60,7 @@ const Export_panel: FunctionComponent = () => {
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
               <SubpanelHeading icon={faFileExport}>Export AEGIS Data</SubpanelHeading>
             </div>
-            <div className={paneStyles.panelSectionBody}>
+            <div>
               <div className={paneStyles.panelSectionRow}>
                 <div className={paneStyles.panelSection2Column}>
                   <div className={paneStyles.panelColumnTable}>
@@ -69,49 +70,49 @@ const Export_panel: FunctionComponent = () => {
                           label="All EVAs (including stations with associated actions and traverses)"
                           checked={selectEvas}
                           onChange={() => setSelectEvas(!selectEvas)}
-                          labelClassName={styles.exportCheckboxLabel}
+                          labelClassName={missionStyles.exportCheckboxLabel}
                           uniqueId="export-all-evas"
                         />
                         <Checkbox
                           label="All POIs (including associated actions)"
                           checked={selectPois}
                           onChange={() => setSelectPois(!selectPois)}
-                          labelClassName={styles.exportCheckboxLabel}
+                          labelClassName={missionStyles.exportCheckboxLabel}
                           uniqueId="export-pois"
                         />
                         <Checkbox
                           label="All Stations (including associated actions)"
                           checked={selectStations}
                           onChange={() => setSelectStations(!selectStations)}
-                          labelClassName={styles.exportCheckboxLabel}
+                          labelClassName={missionStyles.exportCheckboxLabel}
                           uniqueId="export-stations"
                         />
                         <Checkbox
                           label="All Actions (including associated STMs)"
                           checked={selectActions}
                           onChange={() => setSelectActions(!selectActions)}
-                          labelClassName={styles.exportCheckboxLabel}
+                          labelClassName={missionStyles.exportCheckboxLabel}
                           uniqueId="export-actions"
                         />
                         <Checkbox
                           label="All Traverses"
                           checked={selectTraverses}
                           onChange={() => setSelectTraverses(!selectTraverses)}
-                          labelClassName={styles.exportCheckboxLabel}
+                          labelClassName={missionStyles.exportCheckboxLabel}
                           uniqueId="export-traverses"
                         />
                         <Checkbox
                           label="Mission Details"
                           checked={selectMission}
                           onChange={() => setSelectMission(!selectMission)}
-                          labelClassName={styles.exportCheckboxLabel}
+                          labelClassName={missionStyles.exportCheckboxLabel}
                           uniqueId="export-mission"
                         />
                         <Checkbox
                           label="All Real-time Execution Items (REXes)"
                           checked={selectRexes}
                           onChange={() => setSelectRexes(!selectRexes)}
-                          labelClassName={styles.exportCheckboxLabel}
+                          labelClassName={missionStyles.exportCheckboxLabel}
                           uniqueId="export-rexes"
                         />
                       </div>

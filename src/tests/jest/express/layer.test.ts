@@ -3,35 +3,33 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import AppUserFactory from "../factories/AppUserFactory";
-import MissionFactory from "../factories/MissionFactory";
 import LayerFactory from "../factories/LayerFactory";
-import { Mission_db, Layer_db, App_User_db } from "server/database/models/_allModels";
+import { Layer_db, App_User_db } from "server/database/models/_allModels";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankLayer } from "store/storeUtils/layer";
 
-let testMissions: Mission_db[];
 let testAppUser: App_User_db;
 let testLayers: Layer_db[];
+const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testMissions = await new MissionFactory(em).create(3);
   testAppUser = await new AppUserFactory(em).createOne({
     username: "Jestlayer",
     permissionList: [
       {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         permissions: {
           edit: true,
           view: true,
         },
       },
       {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         permissions: {
           edit: false,
           view: true,
@@ -42,7 +40,7 @@ beforeAll(async () => {
 
   testLayers = await new LayerFactory(em)
     .each((layer) => {
-      layer.mission = testMissions[0];
+      layer.missionId = testMissionIds[0];
     })
     .create(2);
 });
@@ -66,7 +64,7 @@ describe("Layer API Endpoint ", () => {
   describe("POST request", () => {
     test("No permissions", async () => {
       const requestBody: LayerUpsertRequest = {
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         layers: [newLayer],
       };
       const res = await supertest(app)
@@ -79,7 +77,7 @@ describe("Layer API Endpoint ", () => {
 
     test("No permissions - View only", async () => {
       const requestBody: LayerUpsertRequest = {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         layers: [newLayer],
       };
       const res = await supertest(app)
@@ -92,7 +90,7 @@ describe("Layer API Endpoint ", () => {
 
     test("Empty layers array", async () => {
       const requestBody: LayerUpsertRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         layers: [],
       };
       const res = await supertest(app)
@@ -106,10 +104,10 @@ describe("Layer API Endpoint ", () => {
     test("Create new layer", async () => {
       const newLayerData = {
         ...newLayer,
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
       };
       const requestBody: LayerUpsertRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         layers: [newLayerData],
       };
       const res = await supertest(app)
@@ -131,9 +129,9 @@ describe("Layer API Endpoint ", () => {
 
     test("Update a layer", async () => {
       newLayer.name = "Jest Test Layer Modified";
-      newLayer.missionId = testMissions[0].id;
+      newLayer.missionId = testMissionIds[0];
       const requestBody: LayerUpsertRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         layers: [newLayer],
       };
 
@@ -153,7 +151,7 @@ describe("Layer API Endpoint ", () => {
   describe("DELETE request", () => {
     test("No permissions", async () => {
       const requestBody: LayerDeleteRequest = {
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         layerUuids: [newLayer.uuid],
       };
       const res = await supertest(app)
@@ -166,7 +164,7 @@ describe("Layer API Endpoint ", () => {
 
     test("No permissions - View only", async () => {
       const requestBody: LayerDeleteRequest = {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         layerUuids: [newLayer.uuid],
       };
       const res = await supertest(app)
@@ -179,10 +177,10 @@ describe("Layer API Endpoint ", () => {
 
     test("Delete a layer", async () => {
       const requestBody: LayerDeleteRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         layerUuids: [newLayer.uuid],
       };
-      newLayer.missionId = testMissions[0].id;
+      newLayer.missionId = testMissionIds[0];
 
       const res = await supertest(app)
         .delete("/api/v1/layer")
@@ -201,7 +199,7 @@ describe("Layer API Endpoint ", () => {
       const res = await supertest(app)
         .get("/api/v1/layer")
         .set("emss-token", process.env.EMSS_TOKEN)
-        .query({ missionId: testMissions[0].id });
+        .query({ missionId: testMissionIds[0] });
 
       expect(res.statusCode).toBe(200);
       // ...additional assertions...
@@ -210,10 +208,10 @@ describe("Layer API Endpoint ", () => {
     test("POST request with emss-token succeeds", async () => {
       const newLayerData = {
         ...newLayer,
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
       };
       const requestBody: LayerUpsertRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         layers: [newLayerData],
       };
       const res = await supertest(app)
@@ -227,10 +225,10 @@ describe("Layer API Endpoint ", () => {
 
     test("DELETE request with emss-token succeeds", async () => {
       const requestBody: LayerDeleteRequest = {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         layerUuids: [newLayer.uuid],
       };
-      newLayer.missionId = testMissions[0].id;
+      newLayer.missionId = testMissionIds[0];
 
       const res = await supertest(app)
         .delete("/api/v1/layer")
@@ -248,9 +246,6 @@ afterAll(async () => {
   const em = globalValues.orm.em.fork();
   for (let i = 0; i < testLayers.length; i++) {
     await em.nativeDelete(Layer_db, { uuid: testLayers[i].uuid });
-  }
-  for (let i = 0; i < testMissions.length; i++) {
-    await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
 

@@ -11,7 +11,7 @@ import {
   hhmmssmmmFromSeconds,
   isoStringFromAnyDateString,
   padZeros,
-  shortdateFromDateString,
+  shortDateFromDateString,
   titleCase,
   toDecimal,
 } from "utils/formatting";
@@ -66,8 +66,8 @@ describe("Utilities Functions", () => {
     expect(hhmmssFromDateString("")).toBe("");
     expect(hhmmssFromSeconds(0)).toBe("+00:00:00");
     expect(hhmmssFromSeconds(-5)).toBe("-00:00:05");
-    expect(shortdateFromDateString("2021-01-01T00:00:00.000Z")).toBe("2021-01-01");
-    expect(shortdateFromDateString("")).toBe("");
+    expect(shortDateFromDateString("2021-01-01T00:00:00.000Z")).toBe("2021-01-01");
+    expect(shortDateFromDateString("")).toBe("");
     expect(isoStringFromAnyDateString("2021-01-01T00:00:00.000Z")).toBe("2021-01-01T00:00:00.000Z");
     expect(() => isoStringFromAnyDateString("XX")).toThrow(
       "The date string couldn't be converted into a Date"

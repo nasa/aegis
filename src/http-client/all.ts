@@ -1,5 +1,5 @@
 export async function getAll(
-  missionId: number = null,
+  missionId: number | null = null,
   loadTestOptions?: {
     // used for load testing ONLY
     serverURL?: string;

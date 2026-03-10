@@ -1,11 +1,9 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useCallback } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
-
-import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
-import round from "lodash/round";
-import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import { useAppSelector, shallowEqual, deepEqual } from "utils/useAppSelector";
+import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import {
   faFileInvoice,
   faInfoCircle,
@@ -13,42 +11,60 @@ import {
   faMountain,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
+import { Button } from "components/interface/form/globalFields";
+import {
+  ValidatedInputField,
+  ValidatedLatLngField,
+  ValidatedTextArea,
+} from "components/interface/form/globalFieldsAutomerge";
 import { regExValidators, validators } from "components/interface/form/formValidators";
-import { upsertMissionByField } from "store/mission";
 import { toDecimal } from "utils/formatting";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkVerifyNoStationsBeingEdited } from "store/thunk/thunkStation";
 import { globalGrid } from "utils/mapping/grid";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { useDocument } from "@automerge/automerge-repo-react-hooks";
+import type { AutomergeUrl } from "@automerge/automerge-repo";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
-  const [projBoundsMinX, projBoundsMaxX] = useAppSelector((state) => {
-    return [state.mission.mission.projBoundsMinX, state.mission.mission.projBoundsMaxX];
-  }, deepEqual);
-  const [projBoundsMinY, projBoundsMaxY] = useAppSelector((state) => {
-    return [state.mission.mission.projBoundsMinY, state.mission.mission.projBoundsMaxY];
-  }, deepEqual);
+  // Access the automerge mission document via the useDocument hook instead of the
+  // useMissionDocSelector (to read) and updateMissionByField (to write). This is because for this
+  // component, in particular, we access most/all of the properties of mission and it is simpler
+  const automergeUrl = useAppSelector((state) => state.mission.automergeUrl, shallowEqual);
+  const [automergeMission, changeMissionDoc] = useDocument<Mission>(automergeUrl as AutomergeUrl);
+
+  // Wrapper to also update the updatedAt field when any change is made
+  const changeAutomergeMission = useCallback(
+    (updateFn: (m: Mission) => void) => {
+      changeMissionDoc((m: Mission) => {
+        updateFn(m);
+        m.updatedAt = new Date().getTime();
+      });
+    },
+    [changeMissionDoc]
+  );
+
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === "lander" ? state.map.mapDirective : null;
   }, shallowEqual);
 
-  const missionUsingLGRSCoordinates = useAppSelector(
-    (state) => state.mission.mission.usingLGRSCoordinates,
-    refEqual
-  );
-
   const landerGridCoordinates = useAppSelector((state) => {
-    if (mission.landerLocation && missionUsingLGRSCoordinates) {
-      return getLGRSCoordsFromLatLng(mission.landerLocation.lat, mission.landerLocation.lng);
-    } else if (mission.landerLocation && globalGrid?.coordinates && state.map.gridCornerPoint) {
+    if (automergeMission.landerLocation && automergeMission.usingLGRSCoordinates) {
+      return getLGRSCoordsFromLatLng(
+        automergeMission.landerLocation.lat,
+        automergeMission.landerLocation.lng
+      );
+    } else if (
+      automergeMission.landerLocation &&
+      globalGrid?.coordinates &&
+      state.map.gridCornerPoint
+    ) {
       return findGlobalGridCoordsFromPoint(
         globalGrid.coordinates,
-        mission.landerLocation,
-        state.mission.mission.planetRadius
+        automergeMission.landerLocation,
+        automergeMission.planetRadius
       );
     } else {
       return "Not set";
@@ -68,24 +84,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   };
 
   const verifyNoStationsBeingEdited = async (): Promise<boolean> => {
-    return (await dispatch(thunkVerifyNoStationsBeingEdited())).payload;
-  };
-
-  const handleCreate = async () => {
-    dispatchMissionMapAction("createMarker");
-  };
-  const handleCancelCreate = () => {
-    dispatchMissionMapAction("cancelCreateMarker");
-  };
-
-  const handleEdit = async () => {
-    if (await verifyNoStationsBeingEdited()) {
-      dispatchMissionMapAction("editMarker");
-    }
-  };
-
-  const handleCancelEdit = () => {
-    dispatchMissionMapAction("cancelEditMarker");
+    return (await dispatch(thunkVerifyNoStationsBeingEdited())).payload as boolean;
   };
 
   return (
@@ -93,388 +92,358 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
         Mission Preferences
       </div>
-      <div className={paneStyles.rightBodyBody}>
-        <div className={paneStyles.panelContainer}>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faInfoCircle}>Mission Name</SubpanelHeading>
+      {automergeMission && (
+        <div className={paneStyles.rightBodyBody}>
+          <div className={paneStyles.panelContainer}>
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+                <SubpanelHeading icon={faInfoCircle}>Mission Name</SubpanelHeading>
+              </div>
+              <div className={paneStyles.fieldContainerAutomerge}>
+                {automergeMission && (
+                  <ValidatedInputField
+                    value={automergeMission.name}
+                    fieldProps={{
+                      name: "name",
+                      ariaLabel: "Mission Name",
+                      validators: [validators.required, validators.maxLength(50)],
+                    }}
+                    onSubmit={(value) => {
+                      changeAutomergeMission((m) => {
+                        m.name = value;
+                      });
+                    }}
+                    key={`${automergeMission.id}-name`}
+                    editMode={editMode}
+                  />
+                )}
+              </div>
             </div>
-            <div className={paneStyles.descriptionContainer}>
-              <InLineEditInput
-                value={mission.name}
-                editing={editMode}
-                fieldProps={{
-                  name: "name",
-                  ariaLabel: "Mission Name",
-                  style: { width: "100%" },
-                  validators: [validators.required, validators.maxLength(50)],
-                }}
-                styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
-                onSubmit={(value) => {
-                  dispatch(upsertMissionByField("name", value));
-                }}
-                key={`${mission.id}-name`}
-              />
-            </div>
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faInfoCircle}>Top Banner</SubpanelHeading>
-            </div>
-            <div className={paneStyles.descriptionContainer}>
-              <InLineEditInput
-                value={mission.missionBanner}
-                editing={editMode}
-                fieldProps={{
-                  name: "missionBanner",
-                  ariaLabel: "Mission Banner",
-                  style: { width: "100%" },
-                  validators: [validators.maxLength(255)],
-                }}
-                styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
-                onSubmit={(value) => {
-                  dispatch(upsertMissionByField("missionBanner", value || ""));
-                }}
-                key={`${mission.id}-banner`}
-              />
-            </div>
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>
-              <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
-            </div>
-            <div className={paneStyles.descriptionContainer}>
-              <TextArea
-                key={mission.id.toString()}
-                value={mission.description || ""}
-                editing={editMode}
-                onSubmit={(value: string) => {
-                  dispatch(upsertMissionByField("description", value));
-                }}
-                fieldProps={{
-                  name: "missionDescription",
-                  ariaLabel: "Mission Description",
-                }}
-              />
-            </div>
-          </div>
-
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>
-              <div className={missionStyles.lander}>
-                <img
-                  src="/images/lander.svg"
-                  alt="Lander Icon"
-                  style={{ width: "15px", marginRight: "3px" }}
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+                <SubpanelHeading icon={faInfoCircle}>Top Banner</SubpanelHeading>
+              </div>
+              <div className={paneStyles.fieldContainerAutomerge}>
+                <ValidatedInputField
+                  value={automergeMission.missionBanner}
+                  fieldProps={{
+                    name: "missionBanner",
+                    ariaLabel: "Mission Banner",
+                    validators: [validators.maxLength(255)],
+                  }}
+                  onSubmit={(value) => {
+                    changeAutomergeMission((m) => {
+                      m.missionBanner = value || "";
+                    });
+                  }}
+                  key={`${automergeMission.id}-banner`}
+                  editMode={editMode}
                 />
-                <div>Lander Location</div>
+              </div>
+            </div>
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+                <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
+              </div>
+              <div className={paneStyles.fieldContainerAutomerge}>
+                <ValidatedTextArea
+                  value={automergeMission.description || ""}
+                  fieldProps={{
+                    name: "description",
+                    ariaLabel: "Mission Description",
+                  }}
+                  onSubmit={(value) => {
+                    changeAutomergeMission((m) => {
+                      m.description = value || "";
+                    });
+                  }}
+                  key={`${automergeMission.id}-description`}
+                  editMode={editMode}
+                />
               </div>
             </div>
 
-            {editMode ? (
-              <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
-                <>
-                  {editMode && mapAction === null && (
-                    <>
-                      {!mission.landerLocation ? (
-                        <Button
-                          onClick={() => {
-                            handleCreate();
-                          }}
-                          label="Create Location"
-                          style={{ width: "110px" }}
-                        />
-                      ) : (
-                        <Button
-                          onClick={() => {
-                            handleEdit();
-                          }}
-                          label="Edit on Map"
-                          style={{ width: "90px" }}
-                        />
-                      )}
-                    </>
-                  )}
-                  {editMode && mapAction === "createMarker" && (
-                    <Button
-                      onClick={() => {
-                        handleCancelCreate();
-                      }}
-                      icon={faXmark}
-                      label="Cancel"
-                      style={{ width: "70px" }}
-                    />
-                  )}
-                  {editMode && mapAction === "editMarker" && (
-                    <>
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSectionTitle}>
+                <div className={missionStyles.lander}>
+                  <img
+                    src="/images/lander.svg"
+                    alt="Lander Icon"
+                    style={{ width: "15px", marginRight: "3px" }}
+                  />
+                  <div>Lander Location</div>
+                </div>
+              </div>
+
+              {editMode ? (
+                <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+                  <>
+                    {editMode && mapAction === null && (
+                      <>
+                        {!automergeMission.landerLocation ? (
+                          <Button
+                            onClick={() => {
+                              dispatchMissionMapAction("createMarker");
+                            }}
+                            label="Create Location"
+                            style={{ width: "110px" }}
+                          />
+                        ) : (
+                          <Button
+                            onClick={async () => {
+                              if (await verifyNoStationsBeingEdited()) {
+                                dispatchMissionMapAction("editMarker");
+                              }
+                            }}
+                            label="Edit on Map"
+                            style={{ width: "90px" }}
+                          />
+                        )}
+                      </>
+                    )}
+                    {editMode && mapAction === "createMarker" && (
                       <Button
                         onClick={() => {
-                          handleCancelEdit();
+                          dispatchMissionMapAction("cancelCreateMarker");
                         }}
                         icon={faXmark}
                         label="Cancel"
                         style={{ width: "70px" }}
                       />
-                    </>
-                  )}
-                </>
-              </div>
-            ) : (
-              <div className={paneStyles.sectionButtonRowEmpty} />
-            )}
+                    )}
+                    {editMode && mapAction === "editMarker" && (
+                      <>
+                        <Button
+                          onClick={() => {
+                            dispatchMissionMapAction("cancelEditMarker");
+                          }}
+                          icon={faXmark}
+                          label="Cancel"
+                          style={{ width: "70px" }}
+                        />
+                      </>
+                    )}
+                  </>
+                </div>
+              ) : (
+                <div className={paneStyles.sectionButtonRowEmpty} />
+              )}
 
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelSection2Column}>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Lat:</div>
+              <div className={paneStyles.panelSectionRow}>
+                <div className={paneStyles.panelSection2Column}>
+                  <div className={paneStyles.panelColumnTable}>
+                    <ValidatedLatLngField
+                      value={automergeMission.landerLocation}
+                      editMode={editMode}
+                      fieldPropsLat={{
+                        name: "lat",
+                        ariaLabel: "LatitudePref",
+                        validators: [
+                          validators.mustBeNumber,
+                          validators.required,
+                          validators.withinBoundary(
+                            automergeMission.projBoundsMinY,
+                            automergeMission.projBoundsMaxY
+                          ),
+                        ],
+                      }}
+                      fieldPropsLng={{
+                        name: "Lng",
+                        ariaLabel: "LongitudePref",
+                        validators: [
+                          validators.mustBeNumber,
+                          validators.required,
+                          validators.withinBoundary(
+                            automergeMission.projBoundsMinX,
+                            automergeMission.projBoundsMaxX
+                          ),
+                        ],
+                      }}
+                      onSubmit={(val: AEGISPoint) => {
+                        changeAutomergeMission((m) => {
+                          m.landerLocation = val;
+                        });
+                      }}
+                      key={`${automergeMission.id}-latlng`}
+                    />
+                  </div>
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldLabel}>Absolute Elevation (m):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {!automergeMission.landerElevationMeters ? (
+                            <>Not set</>
+                          ) : (
+                            automergeMission.landerElevationMeters.toFixed(0)
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {!mission.landerLocation ? (
-                          <>Not set</>
-                        ) : (
-                          <InLineEditInput
-                            value={
-                              editMode
-                                ? mission.landerLocation.lat.toString()
-                                : round(mission.landerLocation.lat, 6).toString()
-                            }
-                            editing={editMode}
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldLabel}>Grid Coords:</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>{landerGridCoordinates}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "6px" }}>
+                <SubpanelHeading icon={faFileInvoice}>Mission Defaults</SubpanelHeading>
+              </div>
+              <div className={paneStyles.panelSectionRow}>
+                <div className={paneStyles.panelSection2Column}>
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.inputFieldLabel}>EVA Duration (mins):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.fieldContainerAutomergeInline}>
+                          <ValidatedInputField
+                            value={automergeMission.defaultEvaDuration?.toString() || ""}
+                            editMode={editMode}
                             fieldProps={{
-                              name: "lat",
-                              ariaLabel: "LatitudePref",
-                              style: { width: "150px" },
+                              name: "defaultEvaDuration",
+                              ariaLabel: "Default EVA Duration",
                               validators: [
                                 validators.mustBeNumber,
-                                validators.required,
-                                validators.withinBoundary(projBoundsMinY, projBoundsMaxY),
+                                validators.maxLength(4),
+                                validators.mustBeInteger,
                               ],
                             }}
-                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
-                            onSubmit={(val: string) => {
-                              dispatch(
-                                upsertMissionByField("landerLocation", {
-                                  ...mission.landerLocation,
-                                  lat: toDecimal(val),
-                                })
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
                               );
                             }}
-                            key={`${mission.id}-lat`}
+                            onSubmit={(val: string) => {
+                              changeAutomergeMission((m) => {
+                                m.defaultEvaDuration = toDecimal(val);
+                              });
+                            }}
+                            key={`${automergeMission.id}-defaultEvaDuration`}
                           />
-                        )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Lng:</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {!mission.landerLocation ? (
-                          <>Not set</>
-                        ) : (
-                          <InLineEditInput
-                            value={
-                              editMode
-                                ? mission.landerLocation.lng.toString()
-                                : round(mission.landerLocation.lng, 6).toString()
-                            }
-                            editing={editMode}
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.inputFieldLabel}>Traverse Rate (km/h):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.fieldContainerAutomergeInline}>
+                          <ValidatedInputField
+                            value={automergeMission.traverseRate?.toString() || ""}
+                            editMode={editMode}
                             fieldProps={{
-                              name: "Lng",
-                              ariaLabel: "LongitudePref",
-                              style: { width: "150px" },
-                              validators: [
-                                validators.mustBeNumber,
-                                validators.required,
-                                validators.withinBoundary(projBoundsMinX, projBoundsMaxX),
-                              ],
+                              name: "defaultTraverseRate",
+                              ariaLabel: "Average traverse rate",
+                              validators: [validators.mustBeNumber, validators.maxLength(8)],
                             }}
-                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
-                            onSubmit={(val: string) => {
-                              dispatch(
-                                upsertMissionByField("landerLocation", {
-                                  ...mission.landerLocation,
-                                  lng: toDecimal(val),
-                                })
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
                               );
                             }}
-                            key={`${mission.id}-lng`}
+                            onSubmit={(val: string) => {
+                              changeAutomergeMission((m) => {
+                                m.traverseRate = toDecimal(val);
+                              });
+                            }}
+                            key={`${automergeMission.id}-defaultTraverseRate`}
                           />
-                        )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.inputFieldLabel}>Walkback Rate (km/h):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.fieldContainerAutomergeInline}>
+                          <ValidatedInputField
+                            value={automergeMission.walkbackRate?.toString() || ""}
+                            editMode={editMode}
+                            fieldProps={{
+                              name: "defaultWalkbackRate",
+                              ariaLabel: "Default walkback rate",
+                              validators: [validators.mustBeNumber, validators.maxLength(8)],
+                            }}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(
+                                regExValidators.regExNumber,
+                                ""
+                              );
+                            }}
+                            onSubmit={(val: string) => {
+                              changeAutomergeMission((m) => {
+                                m.walkbackRate = toDecimal(val);
+                              });
+                            }}
+                            key={`${automergeMission.id}-defaultWalkbackRate`}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+                <SubpanelHeading icon={faMountain}>DEM Information</SubpanelHeading>
+              </div>
+              <div className={paneStyles.panelSectionRow}>
+                <div className={paneStyles.panelSection2Column}>
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldLabel}>Filename:</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {automergeMission.demFilePath}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldLabel}>Resolution (m):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {automergeMission.demResolution}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Absolute Elevation (m):</div>
+                      <div className={paneStyles.displayFieldLabel}>Last Edited:</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {!mission.landerElevationMeters ? (
-                          <>Not set</>
-                        ) : (
-                          mission.landerElevationMeters.toFixed(0)
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Grid Coords:</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>{landerGridCoordinates}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "6px" }}>
-              <SubpanelHeading icon={faFileInvoice}>Mission Defaults</SubpanelHeading>
-            </div>
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelSection2Column}>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldLabel}>EVA Duration (mins):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
-                          editing={editMode}
-                          fieldProps={{
-                            name: "defaultEvaDuration",
-                            ariaLabel: "Default EVA Duration",
-                            style: { width: "45px" },
-                            validators: [
-                              validators.mustBeNumber,
-                              validators.maxLength(4),
-                              validators.mustBeInteger,
-                            ],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
-                          }}
-                          value={mission.defaultEvaDuration?.toString()}
-                          onSubmit={(val: string) => {
-                            dispatch(upsertMissionByField("defaultEvaDuration", toDecimal(val)));
-                          }}
-                          key={`${mission.id}-defaultEvaDuration`}
+                        <LastEditedNumeric
+                          updatedAt={automergeMission?.updatedAt}
+                          createdAt={automergeMission?.createdAt}
                         />
                       </div>
-                    </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldLabel}>Traverse Rate (km/h):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
-                          editing={editMode}
-                          fieldProps={{
-                            name: "defaultTraverseRate",
-                            ariaLabel: "Average traverse rate",
-                            style: { width: "45px" },
-                            validators: [validators.mustBeNumber],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
-                          }}
-                          value={mission.traverseRate?.toString()}
-                          onSubmit={(val: string) => {
-                            dispatch(upsertMissionByField("traverseRate", toDecimal(val)));
-                          }}
-                          key={`${mission.id}-defaultTraverseRate`}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldLabel}>Walkback Rate (km/h):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
-                          editing={editMode}
-                          fieldProps={{
-                            name: "defaultWalkbackRate",
-                            ariaLabel: "Default walkback rate",
-                            style: { width: "45px" },
-                            validators: [validators.mustBeNumber],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
-                          }}
-                          value={mission.walkbackRate?.toString()}
-                          onSubmit={(val: string) => {
-                            dispatch(upsertMissionByField("walkbackRate", toDecimal(val)));
-                          }}
-                          key={`${mission.id}-defaultWalkbackRate`}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faMountain}>DEM Information</SubpanelHeading>
-            </div>
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelSection2Column}>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Filename:</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>{mission.demFilePath}</div>
-                    </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Resolution (m):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>{mission.demResolution}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSection2Column}>
-              <div className={paneStyles.panelColumnTable}>
-                <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCell}>
-                    <div className={paneStyles.displayFieldLabel}>Last Edited:</div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableCell}>
-                    <div className={paneStyles.displayFieldValue}>
-                      <LastEdited updatedAt={mission?.updatedAt} createdAt={mission?.createdAt} />
                     </div>
                   </div>
                 </div>
@@ -482,7 +451,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

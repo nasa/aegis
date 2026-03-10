@@ -11,13 +11,13 @@ import {
   useEffect,
 } from "react";
 import { EmojiRenderer } from "components/interface/emojis";
+import formStyles from "./globalFields.module.css";
 import { Field, FieldRenderProps, Form } from "react-final-form";
 import React from "react";
 import { composeValidators } from "components/interface/form/formValidators";
 import Select from "react-select";
 import { FFTextProps, FFCheckboxProps, FFSelectProps, FFTextAreaProps } from "typings/form";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
-import formStyles from "./globalFields.module.css";
 import CircularSlider from "@fseehawer/react-circular-slider";
 import CompactColor from "@uiw/react-color-compact";
 import { faSquare } from "@fortawesome/free-regular-svg-icons";
@@ -120,7 +120,7 @@ export const TextboxButton: FunctionComponent<{
 
 export const Dropdown: FunctionComponent<{
   children: ReactNode;
-  selected: string;
+  selected: string | undefined;
   containerStyle?: CSSProperties;
   selectStyle?: CSSProperties;
   selectClassName?: string;
@@ -327,29 +327,51 @@ export const MultiSelectDropdown: FunctionComponent<{
  * New validators can be added and exported from ./formValidators
  */
 export const InLineEditInput: FunctionComponent<{
-  value: string;
+  value: string | null | undefined;
   editing: boolean;
   fieldProps: FFTextProps;
   styleValue?: CSSProperties;
   styleContainer?: CSSProperties;
   onSubmit?: (value: string) => void;
   toFocus?: boolean;
-}> = ({ value, editing, styleValue, styleContainer, onSubmit, fieldProps, toFocus }) => {
+  debounceSubmit?: boolean; // Set to false for Automerge collaborative editing, true for Redux (default)
+}> = ({
+  value,
+  editing,
+  styleValue,
+  styleContainer,
+  onSubmit,
+  fieldProps,
+  toFocus,
+  debounceSubmit = true,
+}) => {
+  const valueToShow = value || "";
+  // This debounce needs to be disabled for Automerge. It's only being used in the admin section.
+  // Once the admin is overhauled this can be reviewed again
   const debouncedSubmitRef = useRef(
-    debounce((formValue) => {
-      if (onSubmit) onSubmit(formValue);
-    }, 50)
+    debounceSubmit
+      ? debounce((formValue) => {
+          if (onSubmit) onSubmit(formValue);
+        }, 50)
+      : null
   );
 
   return (
     <div style={styleContainer}>
-      {debouncedSubmitRef.current && editing && (
+      {editing && (
         <Form
           //only called if all validation passes
           onSubmit={(formValues) => {
-            debouncedSubmitRef.current(formValues[fieldProps.name]);
+            const newValue = formValues[fieldProps.name];
+            if (debounceSubmit && debouncedSubmitRef.current) {
+              // Debounced update for Redux
+              debouncedSubmitRef.current(newValue);
+            } else {
+              // Immediate update for Automerge collaborative editing
+              if (onSubmit) onSubmit(newValue);
+            }
           }}
-          initialValues={{ [fieldProps.name]: value }}
+          initialValues={{ [fieldProps.name]: valueToShow }}
           render={({ handleSubmit, form }) => {
             return (
               <form onSubmit={handleSubmit}>
@@ -358,6 +380,7 @@ export const InLineEditInput: FunctionComponent<{
                   className={formStyles.inLineEditInput + " " + fieldProps.className}
                   classNameError={formStyles.inLineEditInputError}
                   onChange={() => {
+                    // Trigger form submission which validates and calls onSubmit if valid
                     form.submit();
                   }}
                   toFocus={toFocus}
@@ -375,7 +398,7 @@ export const InLineEditInput: FunctionComponent<{
           data-tooltip-html={fieldProps.ariaLabel}
           aria-label={fieldProps.ariaLabel}
         >
-          {value}
+          {valueToShow}
         </div>
       )}
     </div>
@@ -389,20 +412,40 @@ export const TextArea: FunctionComponent<{
   styleValue?: CSSProperties;
   styleContainer?: CSSProperties;
   onSubmit?: (value: string) => void;
-}> = ({ value, editing, styleValue, styleContainer, onSubmit, fieldProps }) => {
+  debounceSubmit?: boolean; // Set to false for Automerge collaborative editing, true for Redux (default)
+}> = ({
+  value,
+  editing,
+  styleValue,
+  styleContainer,
+  onSubmit,
+  fieldProps,
+  debounceSubmit = true,
+}) => {
+  // This debounce needs to be disabled for Automerge. It's only being used in the admin section.
+  // Once the admin is overhauled this can be reviewed again
   const debouncedSubmitRef = useRef(
-    debounce((formValue) => {
-      if (onSubmit) onSubmit(formValue);
-    }, 50)
+    debounceSubmit
+      ? debounce((formValue) => {
+          if (onSubmit) onSubmit(formValue);
+        }, 50)
+      : null
   );
 
   return (
     <div style={styleContainer}>
-      {debouncedSubmitRef.current && editing && (
+      {editing && (
         <Form
           //only called if all validation passes
           onSubmit={(formValues) => {
-            debouncedSubmitRef.current(formValues[fieldProps.name]);
+            const newValue = formValues[fieldProps.name];
+            if (debounceSubmit && debouncedSubmitRef.current) {
+              // Debounced update for Redux
+              debouncedSubmitRef.current(newValue);
+            } else {
+              // Immediate update for Automerge collaborative editing
+              if (onSubmit) onSubmit(newValue);
+            }
           }}
           initialValues={{ [fieldProps.name]: value }}
           render={({ handleSubmit, form }) => {
@@ -412,6 +455,7 @@ export const TextArea: FunctionComponent<{
                   className={formStyles.textArea}
                   classNameError={formStyles.textAreaError}
                   onChange={() => {
+                    // Trigger form submission which validates and calls onSubmit if valid
                     form.submit();
                   }}
                   {...fieldProps}
@@ -714,7 +758,7 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
 };
 
 /**
- * Should not be called directly. Use the WysiwygTextArea or TextArea component instead
+ * Should not be called directly. Use the TextArea component instead
  * @param param0
  * @returns
  */
@@ -808,7 +852,7 @@ export const FFCheckbox: FunctionComponent<FFCheckboxProps> = ({
           <div className={className} style={style}>
             <input
               {...input}
-              className={meta.error && meta.touched ? "error" : null}
+              className={meta.error && meta.touched ? "error" : undefined}
               type="checkbox"
               style={style}
             />

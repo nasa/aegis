@@ -18,6 +18,7 @@ import { PetTimeLine, EVAMaxTimeline } from "./timelineMarker";
 import TimeLabels from "./timeLabels";
 import useWindowSize from "use-window-size-v2";
 import Activities from "./activities";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const DashTimeline: FunctionComponent = () => {
   const runningRexFromDb = useAppSelector(
@@ -28,7 +29,19 @@ const DashTimeline: FunctionComponent = () => {
     (state) => state.eva.evasFromDb.find((eva) => eva.uuid === runningRexFromDb?.evaUuid),
     deepEqual
   );
-  const missionFromDb = useAppSelector((state) => state.mission.missionFromDb, deepEqual);
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      walkbackRate: doc.walkbackRate,
+      traverseRate: doc.traverseRate,
+      demResolution: doc.demResolution,
+      landerElevationMeters: doc.landerElevationMeters,
+      landerLocation: doc.landerLocation,
+      planetRadius: doc.planetRadius,
+      defaultEvaDuration: doc.defaultEvaDuration,
+    }),
+    deepEqual
+  );
+
   const evaStations = useAppSelector(selectEvaStations(runningEvaFromDb?.uuid), deepEqual);
   const evaTraverses = useAppSelector(selectEvaTraverses(runningEvaFromDb?.uuid), deepEqual);
 
@@ -45,7 +58,7 @@ const DashTimeline: FunctionComponent = () => {
       allStationCalculatedFields.push(
         getCalculatedFieldsByStation({
           station,
-          missionWalkbackRate: state.mission.mission.walkbackRate,
+          missionWalkbackRate: partialMission.walkbackRate,
           stationActions,
         })
       );
@@ -70,7 +83,7 @@ const DashTimeline: FunctionComponent = () => {
       allTraverseCalculatedFields.push(
         getCalculatedFieldsByTraverse({
           traverse,
-          missionTraverseRate: state.mission.mission.traverseRate,
+          missionTraverseRate: partialMission.traverseRate,
           evaTraverseRate: traverseEva?.traverseRate,
           traverseActions,
         })
@@ -122,26 +135,26 @@ const DashTimeline: FunctionComponent = () => {
     height,
     evaStations,
     evaTraverses,
-    missionFromDb,
+    partialMission,
   ]);
 
   // update the storeRef object with the calculated data when anything changes
   useLayoutEffect(() => {
     processEvaDataFromStore({
       storeRef,
-      mission: missionFromDb,
+      mission: partialMission as unknown as Mission,
       selectedEva: runningEvaFromDb,
       evaStations,
       evaTraverses,
-      missionTraverseRate: missionFromDb?.traverseRate,
-      missionWalkbackRate: missionFromDb?.walkbackRate,
+      missionTraverseRate: partialMission?.traverseRate,
+      missionWalkbackRate: partialMission?.walkbackRate,
       stationCalculatedFieldsInSelectedEva: stationCalculatedFieldsInRunningEva,
       traverseCalculatedFieldsInSelectedEva: traverseCalculatedFieldsInRunningEva,
       selectedRex: runningRexFromDb,
     });
   }, [
     storeRef,
-    missionFromDb,
+    partialMission,
     runningEvaFromDb,
     evaStations,
     evaTraverses,

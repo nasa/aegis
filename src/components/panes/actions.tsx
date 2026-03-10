@@ -16,6 +16,7 @@ import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppS
 import { Assoc_POIs } from "./actions-assocpois";
 import { getStmUuids } from "store/storeUtils/store";
 import { letterOrdinal } from "utils/formatting";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Actions: FunctionComponent<{
   editMode: boolean;
@@ -36,13 +37,13 @@ const Actions: FunctionComponent<{
   rexUuid,
 }) => {
   const dispatch = useAppDispatch();
+  const actionTemplates = useMissionDocSelector((doc) => doc.actionTemplates, deepEqual);
 
-  const sortedActionTemplates: [string, ActionTemplate][] = useAppSelector((state) => {
-    if (!state.mission.mission.actionTemplates) return [];
-    return Object.entries(state.mission.mission.actionTemplates).sort(([, a], [, b]) =>
-      a.templateName.localeCompare(b.templateName)
-    );
-  }, deepEqual);
+  const sortedActionTemplates = !actionTemplates
+    ? []
+    : Object.entries(actionTemplates).sort(([, a], [, b]) =>
+        a.templateName.localeCompare(b.templateName)
+      );
 
   const parentStationPoiUuids = useAppSelector(
     (state) =>
@@ -198,6 +199,8 @@ export const ActionsTopSection: FunctionComponent<{
   actionsCalculatedFields: ActionsCalculatedFields;
   rexUuid: string;
 }> = ({ actionOrderUuids, showDwell, highlightActions, actionsCalculatedFields, rexUuid }) => {
+  const actionSystemVersion = useMissionDocSelector((doc) => doc.actionSystemVersion, refEqual);
+
   // make a 2D array of all stm uuids for each action
   // of the STMs that are referenced by the action in the action STMPriorities object
   const stmUuidsByAction = useAppSelector(
@@ -209,10 +212,6 @@ export const ActionsTopSection: FunctionComponent<{
           return getStmUuids(action.stmPriorities);
         }),
     deepEqual
-  );
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
-    refEqual
   );
 
   const completedStmUuidsByAction = useAppSelector((state) => {
@@ -392,10 +391,8 @@ export const ActionsListHeadings: FunctionComponent<{
   editPerms: boolean;
   isRex: boolean;
 }> = ({ editMode, showCrewHeading, editPerms, isRex }) => {
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
-    refEqual
-  );
+  const actionSystemVersion = useMissionDocSelector((doc) => doc.actionSystemVersion, refEqual);
+
   return (
     <div
       className={actionsStyles.actionListHeader}

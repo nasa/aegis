@@ -38,8 +38,7 @@ type STMLevel1 = {
   updatedAt?: string;
 };
 
-type STMLevel1_db_type = Omit<STMLevel1, "missionId" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
+type STMLevel1_db_type = Omit<STMLevel1, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -71,8 +70,7 @@ type STMRule = {
   updatedAt?: string;
 };
 
-type STMRule_db_type = Omit<STMRule, "missionId" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
+type STMRule_db_type = Omit<STMRule, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };

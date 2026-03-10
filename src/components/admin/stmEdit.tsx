@@ -1,4 +1,4 @@
-import { Dispatch, FunctionComponent, SetStateAction, useEffect, useState } from "react";
+import { FunctionComponent, useCallback, useEffect, useState } from "react";
 import stmStyles from "./stmEdit.module.css";
 import adminStyles from "./admin.module.css";
 import { deleteSTMs, upsertSTMs } from "http-client/stm";
@@ -8,19 +8,21 @@ import {
   generateBlankStmLvl2,
   generateBlankStmLvl3,
 } from "store/storeUtils/stm";
-import { Checkbox } from "components/interface/form/globalFields";
-import { upsertMissions } from "http-client/mission";
+import { Checkbox, InLineEditInput } from "components/interface/form/globalFields";
+import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { getAccurateNow } from "utils/formatting";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { deepEqual } from "utils/useAppSelector";
+import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
 
 const STMEdit: FunctionComponent<{
   reloadSTMfromDB: (missionId: number) => void;
   missionId: number;
+  automergeUrl: AutomergeUrl;
   allLevel1s: STMLevel1[];
   allLevel2s: STMLevel2[];
   allLevel3s: STMLevel3[];
-  mission: Mission;
-  setMission: Dispatch<SetStateAction<Mission>>;
-}> = ({ reloadSTMfromDB, missionId, allLevel1s, allLevel2s, allLevel3s, mission, setMission }) => {
+}> = ({ reloadSTMfromDB, missionId, automergeUrl, allLevel1s, allLevel2s, allLevel3s }) => {
   //track states of selected STM items in the drop downs
   const [selectedLevel1Uuid, setSelectedLevel1Uuid] = useState(null);
   const [selectedLevel2Uuid, setSelectedLevel2Uuid] = useState(null);
@@ -84,7 +86,7 @@ const STMEdit: FunctionComponent<{
       </div>
       <div className={adminStyles.sectionDiv}>
         <div className={adminStyles.sectionDivHeading}>STM Level Names</div>
-        <LevelNames mission={mission} setMission={setMission} />
+        <LevelNames automergeUrl={automergeUrl} />
       </div>
       <div className={adminStyles.sectionDiv}>
         <div className={adminStyles.sectionDivHeading}>Import/Export STM</div>
@@ -99,7 +101,7 @@ const STMEdit: FunctionComponent<{
 
 const destructiveImportSTM = async (stmJson: string, missionId: number) => {
   const stm = JSON.parse(stmJson);
-  // delete all esiting STM items for this mission from the db via the API
+  // delete all existing STM items for this mission from the db via the API
   deleteSTMs(missionId, "ALL");
 
   // add all STM items from the imported JSON to the store
@@ -145,68 +147,108 @@ const destructiveImportSTM = async (stmJson: string, missionId: number) => {
 };
 
 const LevelNames: FunctionComponent<{
-  mission: Mission;
-  setMission: Dispatch<SetStateAction<Mission>>;
-}> = ({ mission, setMission }) => {
-  const saveMission = async () => {
-    const res = await upsertMissions([mission]);
-    if (res.status === "success") {
-      setMission(res.data[0]);
-    }
-    alert(`${res.status} - ${res.message}`);
-  };
+  automergeUrl: AutomergeUrl;
+}> = ({ automergeUrl }) => {
+  const missionDocHandle = useDocHandle<Mission>(automergeUrl);
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      id: doc.id,
+      stmLevel1Enabled: doc.stmLevel1Enabled,
+      stmLevel1Name: doc.stmLevel1Name,
+      stmLevel2Name: doc.stmLevel2Name,
+      stmLevel3Name: doc.stmLevel3Name,
+    }),
+    deepEqual
+  );
+
+  // wrapper to also update the updatedAt field when any change is made
+  const changeAutomergeMission = useCallback(
+    (updateFn: (m: Mission) => void) => {
+      missionDocHandle.change((m: Mission) => {
+        updateFn(m);
+        m.updatedAt = new Date().getTime();
+      });
+    },
+    [missionDocHandle]
+  );
 
   return (
-    <div className={stmStyles.levelNames}>
-      <div className={stmStyles.levelNameInput}>
-        <div>Level 1 Name</div>
-        <input
-          id="level1Name"
-          type="text"
-          value={mission.stmLevel1Name}
-          onChange={(e) => {
-            setMission({ ...mission, stmLevel1Name: e.target.value });
-          }}
-        />
-        <Checkbox
-          checked={mission.stmLevel1Enabled}
-          onChange={(e) => {
-            setMission({ ...mission, stmLevel1Enabled: e.target.checked });
-          }}
-          label="Enable Level 1"
-        />
-      </div>
-      <div className={stmStyles.levelNameInput}>
-        <div>Level 2 Name</div>
-        <input
-          id="level2name"
-          type="text"
-          value={mission.stmLevel2Name}
-          onChange={(e) => {
-            setMission({ ...mission, stmLevel2Name: e.target.value });
-          }}
-        />
-      </div>
-      <div className={stmStyles.levelNameInput}>
-        <div>Level 3 Name</div>
-        <input
-          id="level3name"
-          type="text"
-          value={mission.stmLevel3Name}
-          onChange={(e) => {
-            setMission({ ...mission, stmLevel3Name: e.target.value });
-          }}
-        />
-      </div>
-      <button
-        style={{ width: "150px", marginTop: "5px" }}
-        onClick={() => {
-          saveMission();
-        }}
-      >
-        Save Level names
-      </button>
-    </div>
+    <>
+      {partialMission && (
+        <div className={stmStyles.levelNames}>
+          <div className={stmStyles.levelNameInput}>
+            <InLineEditInput
+              value={partialMission.stmLevel1Name}
+              editing={true}
+              fieldProps={{
+                name: "level1Name",
+                ariaLabel: "Level 1 Name",
+                style: { width: "100%" },
+                validators: [],
+                label: { label: "Level 1 Name", className: adminStyles.editLabel },
+              }}
+              onSubmit={(value) => {
+                changeAutomergeMission((m: Mission) => {
+                  m.stmLevel1Name = value;
+                });
+              }}
+              key={`${partialMission.id}-stmLevel1Name`}
+              debounceSubmit={false}
+            />
+            <Checkbox
+              checked={partialMission.stmLevel1Enabled}
+              label={"Enable Level 1"}
+              onChange={(value) => {
+                changeAutomergeMission((m: Mission) => {
+                  m.stmLevel1Enabled = value.target.checked;
+                });
+              }}
+              uniqueId={`${partialMission.id}-stmLevel1Enabled`}
+            />
+          </div>
+          <div className={stmStyles.levelNameInput}>
+            <InLineEditInput
+              value={partialMission.stmLevel2Name}
+              editing={true}
+              fieldProps={{
+                name: "level2name",
+                ariaLabel: "Level 2 Name",
+                style: { width: "100%" },
+                validators: [],
+                label: { label: "Level 2 Name", className: adminStyles.editLabel },
+              }}
+              onSubmit={(value) => {
+                changeAutomergeMission((m: Mission) => {
+                  m.stmLevel2Name = value;
+                });
+              }}
+              key={`${partialMission.id}-stmLevel2Name`}
+              debounceSubmit={false}
+            />
+          </div>
+          <div className={stmStyles.levelNameInput}>
+            <InLineEditInput
+              value={partialMission.stmLevel3Name}
+              editing={true}
+              fieldProps={{
+                name: "level3name",
+                ariaLabel: "Level 3 Name",
+                style: { width: "100%" },
+                validators: [],
+                label: { label: "Level 3 Name", className: adminStyles.editLabel },
+              }}
+              onSubmit={(value) => {
+                changeAutomergeMission((m: Mission) => {
+                  m.stmLevel3Name = value;
+                });
+              }}
+              key={`${partialMission.id}-stmLevel3Name`}
+              debounceSubmit={false}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

@@ -16,40 +16,46 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import GridSquareIcon from "assets/draw-square-regular-full.svg?react";
+import { getAutomergeDocListing } from "http-client/docListing";
+import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
+import { isValidAutomergeUrl } from "@automerge/automerge-repo";
+import { useRepo } from "@automerge/automerge-repo-react-hooks";
 
-const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission: Mission }) => {
+const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
+  const automergeRepo = useRepo();
+
   const [allLayers, setAllLayers] = useState<Layer[]>(null);
   const [allSublayers, setAllSublayers] = useState<Sublayer[]>(null);
   const [editSublayerParentUUID, setEditSublayerParentUUID] = useState("0");
   const [editComponent, setEditComponent] = useState<JSX.Element>(null);
   const [fileList, setFileList] = useState<GISfile[]>(null);
-
-  const mission = props.mission;
+  const [automergeMission, setAutomergeMission] = useState<Mission>(null);
+  const [automergeUrl, setAutomergeUrl] = useState<AutomergeUrl>();
 
   const reloadLayers = useCallback(() => {
-    if (!mission?.id) return;
+    if (!missionId) return;
     const getLayersAsync = async () => {
       //load layers
-      const resLayers = await getLayers(mission.id);
+      const resLayers = await getLayers(missionId);
       if (resLayers.data) {
         setAllLayers(resLayers.data);
         if (resLayers.data.length > 0) setEditSublayerParentUUID(resLayers.data[0].uuid);
       }
 
       //load sublayers
-      const resSublayer = await getSublayers(mission.id);
+      const resSublayer = await getSublayers(missionId);
       if (resSublayer.data) {
         setAllSublayers(resSublayer.data);
       }
     };
     getLayersAsync();
-  }, [mission]);
+  }, [missionId]);
 
   //adds a new blank sublayer object to the parent layer and sets it for edit
   function addNewSublayer() {
     const newSublayer = generateBlankSublayer({
       layerUuid: editSublayerParentUUID,
-      missionId: mission.id,
+      missionId: missionId,
     });
     setEditComponent(
       <SublayerEdit
@@ -57,13 +63,13 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
         allSublayers={allSublayers}
         refreshLayerList={reloadLayers}
         fileList={fileList}
-        missionId={mission.id}
+        missionId={missionId}
       />
     );
   }
 
   function addNewLayer() {
-    const newLayer = generateBlankLayer({ missionId: mission.id });
+    const newLayer = generateBlankLayer({ missionId });
     setEditComponent(<LayerEdit layer={newLayer} refreshLayerList={reloadLayers} />);
   }
 
@@ -79,13 +85,32 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
     [allSublayers]
   );
 
+  // get the automerge URL from the automerge records db
+  const getAutomerge = useCallback(async () => {
+    if (!missionId) return;
+    const res = await getAutomergeDocListing(missionId);
+    if (isValidAutomergeUrl(res.data[0].automergeUrl)) {
+      setAutomergeUrl(res.data[0].automergeUrl);
+    }
+  }, [missionId]);
+
+  // load the mission from automerge once we've got the URL
+  useEffect(() => {
+    if (!automergeUrl || !automergeRepo) return;
+    (async () => {
+      const missionDocHandle: DocHandle<Mission> = await automergeRepo.find(automergeUrl);
+      setAutomergeMission(missionDocHandle.doc());
+    })();
+  }, [automergeRepo, automergeUrl]);
+
   useEffect(() => {
     reloadLayers();
-  }, [mission, reloadLayers]);
+    getAutomerge();
+  }, [missionId, reloadLayers, getAutomerge]);
 
   return (
     <div>
-      <h2>Layers for Mission: {mission?.name}</h2>
+      <h2>Layers for Mission: {automergeMission?.name}</h2>
       <div className={adminStyles.layerContainer}>
         <div>
           <div id="layerList_div" className={adminStyles.sectionDiv}>
@@ -93,7 +118,7 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
             <LayerList
               layers={allLayers}
               sublayers={allSublayers}
-              missionId={mission?.id}
+              missionId={missionId}
               refreshLayerList={reloadLayers}
               setEditComponent={setEditComponent}
               fileList={fileList}
@@ -149,10 +174,10 @@ const MissionLayers: FunctionComponent<{ mission: Mission }> = (props: { mission
         <div className={adminStyles.sectionDivHeading}>
           Manage files in the /Layers folder for this mission
         </div>
-        {mission?.id ? (
+        {missionId ? (
           <FileManager
-            missionId={mission.id}
-            path={`missionFiles/${mission.id}/Layers`}
+            missionId={missionId}
+            path={`missionFiles/${missionId}/Layers`}
             setFileList={setFileList}
             isUsed={checkLayerUsesFolder}
             zipOnly={true}
@@ -307,4 +332,4 @@ const LayerList = (props: {
   }
 };
 
-export default MissionLayers;
+export default Layers;

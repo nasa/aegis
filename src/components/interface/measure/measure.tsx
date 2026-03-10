@@ -21,6 +21,7 @@ import throttle from "lodash/throttle";
 import isNil from "lodash/isNil";
 import { clearMapItemHover } from "store/hover";
 import { thunkClearAllMapSelections } from "store/thunk/crossThunk";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Measure: FunctionComponent = () => {
   const selectedMeasurement = useAppSelector(
@@ -36,10 +37,7 @@ const Measure: FunctionComponent = () => {
       : null;
   }, deepEqual);
 
-  const missionUsingLGRSCoordinates = useAppSelector(
-    (state) => state.mission.mission?.usingLGRSCoordinates,
-    refEqual
-  );
+  const usingLGRSCoordinates = useMissionDocSelector((doc) => doc.usingLGRSCoordinates, refEqual);
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
@@ -114,7 +112,7 @@ const Measure: FunctionComponent = () => {
       measurePaperGroupsRef,
       selectedMeasurement?.pathSegmentDistances,
       selectedMeasurement?.pathSegmentBearings,
-      missionUsingLGRSCoordinates
+      usingLGRSCoordinates
     );
     //eslint-disable-next-line
   }, [selectedMeasurement, setHoverValues]);

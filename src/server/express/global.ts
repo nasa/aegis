@@ -9,4 +9,5 @@ export const globalValues: GlobalValues = {
   socketInterval: null, // ensures only 1 interval is running
   appVersion: null,
   isEmssApiEnabled: true,
+  automergeRepo: null,
 };

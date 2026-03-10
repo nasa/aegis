@@ -57,7 +57,7 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
               <SubpanelHeading icon={faList}>Position Types</SubpanelHeading>
             </div>
-            <div className={paneStyles.panelSectionBody}>
+            <div>
               <div className={paneStyles.panelTextIndented}>
                 Items to track the position of such as crew members, equipment, or cart.
               </div>
@@ -118,7 +118,7 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             <div className={paneStyles.panelTextIndented}>
               List of sources making position estimates such as Crew, Task, SER.
             </div>
-            <div className={paneStyles.panelSectionBody}>
+            <div>
               <ul className={rexStyles.propertyList}>
                 <li className={rexStyles.propertyListHeaderItem}>
                   <div className={paneStyles.descriptionContainer}>

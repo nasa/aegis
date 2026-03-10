@@ -1,20 +1,23 @@
 import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 import { StoreType } from "store";
 import { upsertActionByField } from "store/action";
-import { upsertMissionByField } from "store/mission";
-import {
-  thunkCreateGeoUnit,
-  thunkDeleteGeoUnit,
-  thunkUpdateGeoUnit,
-} from "store/thunk/thunkMission-geoUnits";
-import { generateBlankActionTemplate } from "store/storeUtils/mission";
+import { thunkDeleteGeoUnit } from "store/thunk/thunkMission-geoUnits";
+import { generateBlankActionTemplate, generateBlankGeographicUnit } from "store/storeUtils/mission";
 import { v4 as uuidv4 } from "uuid";
+import { getAutomergeDocHandles, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 let store: StoreType;
 const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
 
 beforeAll(() => {
   store = createFullTestStore();
+
+  /**
+   * Init the mission automerge doc. In the app this is handled in the component.
+   * Pass in null because this function is being mocked in jest.setup.ts so we don't
+   * have to pass in a real value.
+   */
+  setMissionAutomergeDocHandle(null);
 });
 
 beforeEach(() => {
@@ -28,43 +31,19 @@ afterAll(() => {
 });
 
 describe("Thunk Mission Geo Unit Tests", () => {
-  test("thunkCreateGeoUnit", async () => {
-    const geoUnitCount = Object.keys(store.getState().mission.mission.geographicUnits || {}).length;
-
-    await store.dispatch(thunkCreateGeoUnit());
-    expect(Object.keys(store.getState().mission.mission.geographicUnits).length).toEqual(
-      geoUnitCount + 1
-    );
-
-    await store.dispatch(thunkCreateGeoUnit());
-    expect(Object.keys(store.getState().mission.mission.geographicUnits).length).toEqual(
-      geoUnitCount + 2
-    );
-  });
-
-  test("thunkUpdateGeoUnit()", async () => {
-    await store.dispatch(thunkCreateGeoUnit());
-    const geoUnitCount = Object.keys(store.getState().mission.mission.geographicUnits).length;
-    const geoUnitUuid = Object.keys(store.getState().mission.mission.geographicUnits)[0];
-    await store.dispatch(
-      thunkUpdateGeoUnit({
-        uuid: geoUnitUuid,
-        fieldName: "name",
-        value: "Test GeoUnit Modified",
-      })
-    );
-    expect(Object.keys(store.getState().mission.mission.geographicUnits).length).toBe(geoUnitCount);
-    expect(store.getState().mission.mission.geographicUnits[geoUnitUuid].name).toBe(
-      "Test GeoUnit Modified"
-    );
-  });
-
   test("thunkDeleteGeoUnit() on action", async () => {
-    await store.dispatch(thunkCreateGeoUnit());
-    const geoUnitCount = Object.keys(store.getState().mission.mission.geographicUnits).length;
+    const missionDocHandle = getAutomergeDocHandles().mission;
+
+    const newGeoUnit = generateBlankGeographicUnit({ name: "Jest Equipment Item" });
+    const newGeoUnitUuid = uuidv4();
+    missionDocHandle.change((mission) => {
+      mission.geographicUnits[newGeoUnitUuid] = newGeoUnit;
+    });
+
+    const geoUnitCount = Object.keys(missionDocHandle.doc().geographicUnits).length;
 
     // assign a geo unit to an action
-    const geoUnitUuidForAction = Object.keys(store.getState().mission.mission.geographicUnits)[0];
+    const geoUnitUuidForAction = Object.keys(missionDocHandle.doc().geographicUnits)[0];
     const action = store.getState().action.actions[0];
     store.dispatch(
       upsertActionByField(action.uuid, "geographicUnitsUsage", [geoUnitUuidForAction])
@@ -73,45 +52,47 @@ describe("Thunk Mission Geo Unit Tests", () => {
     // should fail to to delete.
     await store.dispatch(thunkDeleteGeoUnit({ geographicUnitUuid: geoUnitUuidForAction }));
     expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(Object.keys(store.getState().mission.mission.geographicUnits).length).toBe(geoUnitCount);
+    expect(Object.keys(missionDocHandle.doc().geographicUnits).length).toBe(geoUnitCount);
 
     // remove from action and try to delete again. should succeed
     store.dispatch(upsertActionByField(action.uuid, "geographicUnitsUsage", []));
     await store.dispatch(thunkDeleteGeoUnit({ geographicUnitUuid: geoUnitUuidForAction }));
-    expect(Object.keys(store.getState().mission.mission.geographicUnits).length).toBe(
-      geoUnitCount - 1
-    );
-    expect(store.getState().mission.mission.geographicUnits[geoUnitUuidForAction]).toBeUndefined();
+    expect(Object.keys(missionDocHandle.doc().geographicUnits).length).toBe(geoUnitCount - 1);
+    expect(missionDocHandle.doc().geographicUnits[geoUnitUuidForAction]).toBeUndefined();
   });
 
   test("thunkDeleteGeoUnit() on action template", async () => {
-    await store.dispatch(thunkCreateGeoUnit());
-    const geoUnitCount = Object.keys(store.getState().mission.mission.geographicUnits).length;
+    const missionDocHandle = getAutomergeDocHandles().mission;
+
+    const newGeoUnit = generateBlankGeographicUnit({ name: "Jest Equipment Item" });
+    const newGeoUnitUuid = uuidv4();
+    missionDocHandle.change((mission) => {
+      mission.geographicUnits[newGeoUnitUuid] = newGeoUnit;
+    });
+    const geoUnitCount = Object.keys(missionDocHandle.doc().geographicUnits).length;
 
     // assign a geo unit to a template
-    const geoUnitUuidForTemplate = Object.keys(store.getState().mission.mission.geographicUnits)[0];
+    const geoUnitUuidForTemplate = Object.keys(missionDocHandle.doc().geographicUnits)[0];
     const actionTemplate = generateBlankActionTemplate({
       templateName: "Jest Action Template",
       geographicUnitsUsage: [geoUnitUuidForTemplate],
     });
     const actionTemplateUuid = uuidv4();
-    store.dispatch(
-      upsertMissionByField("actionTemplates", { [actionTemplateUuid]: actionTemplate })
-    );
+    missionDocHandle.change((mission) => {
+      mission.actionTemplates = { [actionTemplateUuid]: actionTemplate };
+    });
 
     // try to delete
     await store.dispatch(thunkDeleteGeoUnit({ geographicUnitUuid: geoUnitUuidForTemplate }));
     expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(Object.keys(store.getState().mission.mission.geographicUnits).length).toBe(geoUnitCount);
+    expect(Object.keys(missionDocHandle.doc().geographicUnits).length).toBe(geoUnitCount);
 
     // remove from action template and try to delete again. should succeed
-    store.dispatch(upsertMissionByField("actionTemplates", {}));
+    missionDocHandle.change((mission) => {
+      mission.actionTemplates = {};
+    });
     await store.dispatch(thunkDeleteGeoUnit({ geographicUnitUuid: geoUnitUuidForTemplate }));
-    expect(
-      store.getState().mission.mission.geographicUnits[geoUnitUuidForTemplate]
-    ).toBeUndefined();
-    expect(Object.keys(store.getState().mission.mission.geographicUnits).length).toBe(
-      geoUnitCount - 1
-    );
+    expect(missionDocHandle.doc().geographicUnits[geoUnitUuidForTemplate]).toBeUndefined();
+    expect(Object.keys(missionDocHandle.doc().geographicUnits).length).toBe(geoUnitCount - 1);
   });
 });

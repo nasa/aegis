@@ -12,19 +12,6 @@ export const initialState: InterfaceState = {
   elevationPendingItemUuids: [],
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
-  appVersion: null,
-  socketStatus: {
-    connectionStatus: "disconnected",
-    lastEditEvent: null,
-    lastStatusFromServer: {
-      visitorCounts: {
-        editors: 0,
-        viewers: 0,
-      },
-      timestamp: 0,
-      serverVersion: null,
-    },
-  },
   folders: [],
   foldersInterface: [],
 };
@@ -138,19 +125,6 @@ export const interfaceSlice = createSlice({
         folder.editingNameValue = action.payload.editingNameValue;
       }
     },
-    setLastStatusFromServer: (state, action: { payload: StatusFromServer }) => {
-      state.socketStatus.lastStatusFromServer = action.payload;
-      // due to a store race condition, sometimes the connectionStatus is not "connected". Update it
-      if (state.socketStatus.connectionStatus !== "connected") {
-        state.socketStatus.connectionStatus = "connected";
-      }
-    },
-    setSocketConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
-      state.socketStatus.connectionStatus = action.payload;
-    },
-    setLastEditEvent: (state, action: { payload: EditEvent }) => {
-      state.socketStatus.lastEditEvent = action.payload;
-    },
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
@@ -181,8 +155,5 @@ export const {
   folderToggleVisible,
   setFolderInterfaceEditing,
   setFolderInterfaceNameValue,
-  setLastStatusFromServer,
-  setSocketConnectionStatus,
-  setLastEditEvent,
   obliterateState,
 } = interfaceSlice.actions;

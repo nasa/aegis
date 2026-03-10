@@ -281,11 +281,7 @@ export async function getLayers(missionId: number, layerUUID?: string): Promise<
     );
   } else {
     //find by mission id
-    layers_db = await em.find(
-      Layer_db,
-      { mission: { id: missionId } },
-      { orderBy: [{ name: QueryOrder.ASC }] }
-    );
+    layers_db = await em.find(Layer_db, { missionId }, { orderBy: [{ name: QueryOrder.ASC }] });
   }
 
   if (layers_db) {

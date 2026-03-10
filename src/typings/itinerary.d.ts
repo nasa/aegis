@@ -26,8 +26,7 @@ interface Eva {
   updatedAt?: string;
 }
 
-type Eva_db_type = Omit<Eva, "missionId" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
+type Eva_db_type = Omit<Eva, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -56,8 +55,7 @@ interface Traverse {
   updatedAt?: string;
 }
 
-type Traverse_db_type = Omit<Traverse, "missionId" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
+type Traverse_db_type = Omit<Traverse, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -98,8 +96,7 @@ interface Station {
   updatedAt?: string;
 }
 
-type Station_db_type = Omit<Station, "missionId" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
+type Station_db_type = Omit<Station, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -163,8 +160,7 @@ interface POI {
   updatedAt?: string;
 }
 
-type Poi_db_type = Omit<POI, "missionId" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
+type Poi_db_type = Omit<POI, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -192,7 +188,7 @@ type Action = {
   traverseUuid?: string | null;
 
   parentActionUuid?: string | null; // the poi action uuid it was copied from
-  parentCopyDate?: string | null;
+  parentCopyDate?: number | null;
 
   priority: number | null; // 1-10
   /**
@@ -210,7 +206,7 @@ type Action = {
   /**
    * Task description for the crew.
    */
-  descriptionTask: string;
+  descriptionTask: string | null;
 
   // Action system v2 types
   stmAction: boolean;
@@ -233,21 +229,18 @@ type Action = {
   status: ActionStatus | null;
   enabled: boolean;
   crewAssigned: Crew[];
-  createdAt?: string;
-  updatedAt?: string | undefined;
+  createdAt: number;
+  updatedAt: number;
 };
 
 type Action_db_type = Omit<
   Action,
-  "missionId" | "poiUuid" | "stationUuid" | "createdAt" | "updatedAt" | "parentCopyDate"
+  "poiUuid" | "stationUuid" | "parentActionUuid" | "traverseUuid"
 > & {
-  mission: Mission_db_type;
   poi: Poi_db_type;
   station: Station_db_type;
+  traverse: Traverse_db_type;
   parentAction: Action_db_type;
-  parentCopyDate?: Date;
-  createdAt?: Date;
-  updatedAt?: Date;
 };
 
 type ActionStatus = "Archived" | "Candidate" | "In Review" | "Approved";
@@ -290,7 +283,8 @@ type ActionType =
   | "chip";
 
 // Action V2 types
-type ActionDefinitionItems = { [uuid: string]: { name: string; abbr: string } };
+type ActionDefinitionItem = { name: string; abbr: string };
+type ActionDefinitionItems = { [uuid: string]: ActionDefinitionItem };
 
 // used in the Mission structure
 type ActionDefinitions = {
@@ -301,9 +295,9 @@ type ActionDefinitions = {
 
 // used in the Action structure
 type ActionDefinition = {
-  verbUuid: string;
-  nounUuid: string;
-  adjectiveUuid: string;
+  verbUuid?: string;
+  nounUuid?: string;
+  adjectiveUuid?: string;
 };
 
 type TotalAscentDescentObj = {

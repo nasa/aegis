@@ -6,11 +6,14 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import { setTraversesEditMode, upsertTraverseByField } from "store/traverse";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
+  const missionTraverseRate = useMissionDocSelector((doc) => doc.traverseRate, refEqual);
+
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
@@ -36,7 +39,7 @@ const Actions_Panel: FunctionComponent<{
     );
     const calculatedFields = getCalculatedFieldsByTraverse({
       traverse: selectedTraverse,
-      missionTraverseRate: state.mission.mission.traverseRate,
+      missionTraverseRate,
       evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
     });

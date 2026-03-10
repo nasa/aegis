@@ -1,4 +1,4 @@
-import type { EntityData, Loaded } from "@mikro-orm/postgresql";
+import type { Loaded } from "@mikro-orm/postgresql";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
@@ -10,13 +10,15 @@ import express from "express";
 import parseInt from "lodash/parseInt";
 import cloneDeep from "lodash/cloneDeep";
 
-import { Grid_db, Mission_db } from "server/database/models/_allModels";
+import { Grid_db } from "server/database/models/_allModels";
 import { findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
 import { hasPerms } from "utils/permissions";
 import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { getAutomergeDocListing } from "./docListing";
+import { AutomergeUrl } from "@automerge/automerge-repo";
 
 const router = express.Router();
 
@@ -372,33 +374,14 @@ async function getGridsInformation(
   let dbGrids: Loaded<Grid_db, "missions">[];
 
   if (gridUUID) {
-    dbGrids = await em.find(
-      Grid_db,
-      { uuid: gridUUID },
-      {
-        orderBy: [{ name: QueryOrder.ASC }],
-        populate: ["mission"],
-      }
-    );
+    dbGrids = await em.find(Grid_db, { uuid: gridUUID }, { orderBy: [{ name: QueryOrder.ASC }] });
   } else if (missionId) {
-    dbGrids = await em.find(
-      Grid_db,
-      { mission: { id: missionId } },
-      {
-        orderBy: [{ name: QueryOrder.ASC }],
-        populate: ["mission"],
-      }
-    );
+    dbGrids = await em.find(Grid_db, { missionId }, { orderBy: [{ name: QueryOrder.ASC }] });
   } else {
-    dbGrids = await em.find(
-      Grid_db,
-      {},
-      { orderBy: [{ name: QueryOrder.ASC }], populate: ["mission"] }
-    );
+    dbGrids = await em.find(Grid_db, {}, { orderBy: [{ name: QueryOrder.ASC }] });
   }
 
-  const converted = convertGridsTypeDbToLocal(dbGrids);
-  return converted;
+  return dbGrids;
 }
 
 /**
@@ -492,47 +475,36 @@ async function upsertGridsInformation(
   await em.begin(); // Start a transaction
 
   const gridsToUpsert = cloneDeep(grids); // Create a copy to manipulate
-  const gridsUpsertedToDb = [];
+  const gridsUpsertedToDb: Grid_db[] = [];
 
   try {
     for (const gridToUpsert of gridsToUpsert) {
-      const convertedGrid: EntityData<Grid_db> = convertGridsTypeStoreToDb([gridToUpsert])[0];
-
-      // Upsert grid
-      const gridRefFromDb: Grid_db = await em.upsert(Grid_db, convertedGrid);
-      try {
-        await em.populate(gridRefFromDb, ["mission"]); // Need to populate mission in order to remove them
-      } catch (error) {
-        console.error("Error populating mission:", error);
-      }
-
-      // Remove all missions
-      gridRefFromDb.mission = undefined;
-      // Add back missions
-      if (gridToUpsert.missionId) {
-        const missionReference = em.getReference(Mission_db, gridToUpsert.missionId);
-        gridRefFromDb.mission = missionReference;
-        if (gridRefFromDb.isActiveGrid) {
-          missionReference.activeGridUuid = gridRefFromDb.uuid;
-        }
-
-        // Persist the mission reference
-        em.persist(missionReference);
-      }
-
+      const gridRefFromDb: Grid_db = await em.upsert(Grid_db, gridToUpsert);
       em.persist(gridRefFromDb);
       gridsUpsertedToDb.push(gridRefFromDb);
     }
-
     await em.commit(); // Flush and commit the transaction
+
+    // if everything went well, also update mission automerge doc
+    for (const gridToUpsert of gridsToUpsert) {
+      if (gridToUpsert.missionId) {
+        const automergeUrl = (await getAutomergeDocListing([gridToUpsert.missionId]))[0];
+        const missionDocHandle = await globalValues.automergeRepo.find(
+          automergeUrl.automergeUrl as AutomergeUrl
+        );
+        await missionDocHandle.whenReady();
+        missionDocHandle.change((m: Mission) => {
+          // update isActiveGrid for mission
+          m.activeGridUuid = gridToUpsert.isActiveGrid ? gridToUpsert.uuid : null;
+        });
+      }
+    }
   } catch (e) {
     await em.rollback(); // Rollback the transaction
     throw e; // Re-throw the error to be handled by the caller
   }
 
-  // Convert foreign keys
-  const converted = convertGridsTypeDbToLocal(gridsUpsertedToDb);
-  return converted;
+  return gridsUpsertedToDb;
 }
 
 /**
@@ -574,8 +546,7 @@ async function saveGridFile(missionId: number, grid: MissionGrid): Promise<void>
 }
 
 /**
- * Deletes grids and the entity relationships to any Missions.
- * This operation does not touch actions. Actions should be removed by calling the Actions API directly.
+ * Deletes grids
  * @param gridUuids grid uuids to delete
  * @returns the uuids of the deleted grid
  */
@@ -583,19 +554,28 @@ async function deleteGrids(missionId: number, gridUuids: string[]): Promise<stri
   const em = globalValues.orm.em;
   const deletedUuids = [];
   for (const gridUuid of gridUuids) {
-    const entity = await em.findOne(Grid_db, { uuid: gridUuid }, { populate: ["mission"] });
-    if (entity) {
-      if (entity.mission) {
-        const missionReference = entity.mission;
-        if (missionReference.activeGridUuid === gridUuid) {
-          missionReference.activeGridUuid = null;
-          em.persist(missionReference);
+    const gridRecord = await em.findOne(Grid_db, { uuid: gridUuid });
+    if (gridRecord) {
+      if (gridRecord.missionId) {
+        // update the mission document if it was using this grid as active grid
+        const missionAutomergeUrl = await getAutomergeDocListing([gridRecord.missionId]);
+        if (missionAutomergeUrl.length > 0) {
+          const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
+            missionAutomergeUrl[0].automergeUrl as AutomergeUrl
+          );
+          await missionDocHandle.whenReady();
+          if (missionDocHandle.doc().activeGridUuid === gridUuid) {
+            missionDocHandle.change((m: Mission) => {
+              if (m.activeGridUuid === gridUuid) {
+                m.activeGridUuid = null;
+              }
+            });
+          }
         }
-
-        // Persist the mission reference
       }
-      em.remove(entity);
-      deleteGridFile(missionId, entity.fileName);
+
+      em.remove(gridRecord);
+      deleteGridFile(missionId, gridRecord.fileName);
       deletedUuids.push(gridUuid);
     }
   }
@@ -612,51 +592,4 @@ function deleteGridFile(missionId: number, gridFileName: string): void {
       return;
     }
   });
-}
-
-/**
- * Converts db grid fks to their uuid/id arrays
- * @param dbGrids an array of grids in mikro db format
- * @returns an a converted array of grids or a single grid
- */
-function convertGridsTypeDbToLocal(dbGrids: Grid_db[]): MissionGridInformation[] {
-  const grids: MissionGridInformation[] = [];
-  for (const dbGrid of dbGrids) {
-    const convertedGrid: MissionGridInformation = {
-      uuid: dbGrid.uuid,
-      missionId: dbGrid.mission ? dbGrid.mission.id : null,
-      numRows: dbGrid.numRows,
-      numCols: dbGrid.numCols,
-      spacing: dbGrid.spacing,
-      name: dbGrid.name,
-      fileName: dbGrid.fileName,
-      isActiveGrid: dbGrid.isActiveGrid,
-    };
-
-    grids.push(convertedGrid);
-  }
-  return grids;
-}
-
-/**
- * Converts grids that come from the store into the db type
- * @param storeGrids
- * @returns
- */
-function convertGridsTypeStoreToDb(storeGrids: MissionGridInformation[]): EntityData<Grid_db>[] {
-  const dbGrids: EntityData<Grid_db>[] = [];
-  for (const storeGrid of storeGrids) {
-    //mission references are not converted here, they are converted in the upsert function
-    const convertedRecord: EntityData<Grid_db> = {
-      uuid: storeGrid.uuid,
-      numRows: storeGrid.numRows,
-      numCols: storeGrid.numCols,
-      spacing: storeGrid.spacing,
-      name: storeGrid.name,
-      fileName: storeGrid.fileName,
-      isActiveGrid: storeGrid.isActiveGrid,
-    };
-    dbGrids.push(convertedRecord);
-  }
-  return dbGrids;
 }

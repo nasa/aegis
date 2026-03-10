@@ -9,7 +9,7 @@ import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 import { getGrids } from "../grid";
-import { getMission } from "../mission";
+import { getAutomergeMissions } from "../missionAutomerge";
 
 const router = express.Router();
 
@@ -57,17 +57,17 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
     let records: Mission[];
     if (queryObj.missionId) {
-      records = await getMission(queryObj.missionId);
+      records = await getAutomergeMissions([queryObj.missionId]);
     } else {
       //super admin and emss token can see all missions
       if (req.session?.appUser?.isSuperAdmin || emssTokenIsValid(emssToken)) {
-        records = await getMission();
+        records = await getAutomergeMissions();
       } else {
         //return all missions that they have permission for
         const viewableMissions: number[] = req.session.appUser.permissionList.map((p) => {
           if (p.permissions.view) return p.missionId;
         });
-        records = await getMission(viewableMissions);
+        records = await getAutomergeMissions(viewableMissions);
       }
     }
 

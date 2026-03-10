@@ -10,8 +10,7 @@ interface Folder {
   updatedAt: string;
 }
 
-type Folder_db_type = Omit<Folder, "missionId" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
+type Folder_db_type = Omit<Folder, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };

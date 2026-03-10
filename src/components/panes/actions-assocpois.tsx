@@ -13,6 +13,7 @@ import { hmmFromMinutes } from "utils/formatting";
 import { EmojiRenderer } from "components/interface/emojis";
 import { ActionsListHeadings } from "./actions";
 import { ActionDefType } from "./actions-action";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 export const Assoc_POIs: FunctionComponent<{
   stationPoiUuids: string[];
@@ -98,9 +99,12 @@ const Assoc_POI: FunctionComponent<{
     (state) => state.poi.pois.find((poi) => poi.uuid === poiUuid),
     deepEqual
   );
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
-    refEqual
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      actionSystemVersion: doc.actionSystemVersion,
+      actionDefinitions: doc.actionDefinitions,
+    }),
+    deepEqual
   );
 
   // sort the actions by the order in the POI
@@ -128,7 +132,7 @@ const Assoc_POI: FunctionComponent<{
       {poiActions.length > 0 ? (
         <div
           style={{
-            marginLeft: `${actionSystemVersion === 1 ? "5px" : "2px"}`,
+            marginLeft: `${partialMission.actionSystemVersion === 1 ? "5px" : "2px"}`,
             marginRight: "18px",
           }}
         >
@@ -155,6 +159,8 @@ const Assoc_POI: FunctionComponent<{
               copiedToStation={inStation}
               editMode={editMode}
               stationUuid={selectedStationUuid}
+              actionSystemVersion={partialMission.actionSystemVersion}
+              actionDefinitions={partialMission.actionDefinitions}
             />
           );
         })}
@@ -168,12 +174,18 @@ const Assoc_POIAction: FunctionComponent<{
   copiedToStation: boolean;
   editMode: boolean;
   stationUuid: string;
-}> = ({ action, copiedToStation, editMode, stationUuid }) => {
+  actionSystemVersion: number;
+  actionDefinitions: ActionDefinitions;
+}> = ({
+  action,
+  copiedToStation,
+  editMode,
+  stationUuid,
+  actionSystemVersion,
+  actionDefinitions,
+}) => {
   const dispatch = useAppDispatch();
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
-    refEqual
-  );
+
   return (
     <div className={assocPoisStyles.stationPoiActionItemsWrapper} key={action.uuid}>
       <div
@@ -218,6 +230,7 @@ const Assoc_POIAction: FunctionComponent<{
                     type={"verbs"}
                     selectedUuid={action.actionDefinition?.verbUuid}
                     editMode={false}
+                    actionDefinitionItems={actionDefinitions.verbs}
                   />
                   <div className={actionStyles.actionDefType}>of</div>
                   <ActionDefType
@@ -225,6 +238,7 @@ const Assoc_POIAction: FunctionComponent<{
                     type={"nouns"}
                     selectedUuid={action.actionDefinition?.nounUuid}
                     editMode={false}
+                    actionDefinitionItems={actionDefinitions.nouns}
                   />
                   <div className={actionStyles.actionDefType}>in</div>
                   <ActionDefType
@@ -232,6 +246,7 @@ const Assoc_POIAction: FunctionComponent<{
                     type={"adjectives"}
                     selectedUuid={action.actionDefinition?.adjectiveUuid}
                     editMode={false}
+                    actionDefinitionItems={actionDefinitions.adjectives}
                   />
                 </div>
               </div>

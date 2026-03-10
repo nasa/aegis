@@ -25,7 +25,7 @@ import { antPath } from "leaflet-ant-path";
 import orderBy from "lodash/orderBy";
 import throttle from "lodash/throttle";
 import sortBy from "lodash/sortBy";
-import { AppDispatch } from "store";
+import { AppDispatch } from "utils/useAppDispatch";
 import { setMeasureInitialCoords, updateMapDirective } from "store/map";
 import { revertWalkbackPath } from "store/station";
 import { thunkUpdateMeasurementPath } from "store/thunk/thunkMeasurement";

@@ -1,61 +1,21 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { v4 as uuidv4 } from "uuid";
-import { upsertMissionByField } from "store/mission";
-import capitalize from "lodash/capitalize";
-import cloneDeep from "lodash/cloneDeep";
+import { getAccurateNow } from "utils/formatting";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 
 type ActionDefPrintableListItem = {
   parentType: "Action in Station" | "Rule in STM Item" | "Action Template";
   parentName: string;
 };
 
-export const thunkCreateActionDefItem = appCreateAsyncThunk<
-  { type: ActionDefinitionType },
-  string,
-  null
->("createActionDefinitionItem", async ({ type }, { dispatch, getState }) => {
-  const newUuid = uuidv4();
-  const blankItem = {
-    name: `(${capitalize(type.slice(0, -1))} Name)`,
-    abbr: "abbr",
-  };
-
-  const actionDefinitions = getState().mission.mission.actionDefinitions;
-  const newActionDefinitions = {
-    ...actionDefinitions,
-    [type]: {
-      ...actionDefinitions[type],
-      [newUuid]: blankItem,
-    },
-  };
-
-  dispatch(upsertMissionByField("actionDefinitions", newActionDefinitions));
-
-  return newUuid;
-});
-
-export const thunkUpdateActionDefItem = appCreateAsyncThunk<
-  { type: ActionDefinitionType; uuid: string; fieldName: "name" | "abbr"; value: string },
-  void,
-  null
->(
-  "updateActionDefinitionItem",
-  async ({ type, uuid, fieldName, value }, { dispatch, getState }) => {
-    const actionDefinitions = getState().mission.mission.actionDefinitions;
-    const currentItem = actionDefinitions[type][uuid];
-    if (currentItem) {
-      const newActionDefinitionItemList = cloneDeep(actionDefinitions);
-      newActionDefinitionItemList[type][uuid][fieldName] = value;
-      dispatch(upsertMissionByField("actionDefinitions", newActionDefinitionItemList));
-    }
-  }
-);
-
 export const thunkDeleteActionDefItem = appCreateAsyncThunk<
   { type: ActionDefinitionType; uuid: string },
   void,
   null
->("deleteActionDefinitionItem", async ({ type, uuid }, { dispatch, getState }) => {
+>("deleteActionDefinitionItem", async ({ type, uuid }, { getState }) => {
+  const missionDocHandle = getAutomergeDocHandles().mission;
+  const mission = missionDocHandle.doc();
+
+  // find all of the actions using this definition
   const actionsUsingActionDef = getState().action.actions.filter(
     (action) =>
       action.stmAction &&
@@ -69,7 +29,7 @@ export const thunkDeleteActionDefItem = appCreateAsyncThunk<
       rule.nounUuids.includes(uuid) ||
       rule.adjectiveUuids.includes(uuid)
   );
-  const actionTemplates = getState().mission.mission.actionTemplates;
+  const actionTemplates = mission.actionTemplates;
   const templatesUsingActionDef = actionTemplates
     ? Object.values(actionTemplates).filter(
         (template) =>
@@ -123,9 +83,11 @@ export const thunkDeleteActionDefItem = appCreateAsyncThunk<
     return;
   }
 
-  const actionDefinitions = getState().mission.mission.actionDefinitions;
-  const newActionDefinitionItemList = cloneDeep(actionDefinitions);
-  delete newActionDefinitionItemList[type][uuid];
-
-  dispatch(upsertMissionByField("actionDefinitions", newActionDefinitionItemList));
+  //this item is not being used. All good to delete it
+  missionDocHandle.change((m: Mission) => {
+    if (m.actionDefinitions[type] && m.actionDefinitions[type][uuid]) {
+      delete m.actionDefinitions[type][uuid];
+      m.updatedAt = getAccurateNow().getTime();
+    }
+  });
 });

@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useParams, useSearchParams } from "react-router";
@@ -7,7 +6,6 @@ import { setAppUser } from "store/user";
 import { Tooltip } from "react-tooltip";
 import { isLoggedIn } from "http-client/login";
 import { useNavigate } from "react-router";
-
 import Header from "components/interface/header";
 import { LeftControlPanel, NavGutter } from "components/interface/side-controls";
 import { RightControlPanel } from "components/interface/side-controls";
@@ -21,21 +19,26 @@ import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 import { loadAndReturnGrid } from "utils/mapping/grid";
 import { setGridCornerPoint } from "store/map";
 import clientLogger from "utils/logging/clientLogger";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { useRepo } from "@automerge/automerge-repo-react-hooks";
+import { useEffect } from "react";
 
 type RouteParams = {
   id: string;
 };
 
-const Main = (): JSX.Element => {
+const Main: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const missionStore = useAppSelector((state) => state.mission, deepEqual);
+  const automergeRepo = useRepo();
   const interfaceStateLabel = useAppSelector(
     (state) => state.interface.sectionSelectedLabel,
     refEqual
   );
-
-  const [permissions, setPermissions] = useState<Permission>(null);
+  const permissions = useAppSelector((state) => state.user.missionPerms, deepEqual);
+  const hasMissionLayers = useAppSelector((state) => {
+    return state.mission.layers?.length > 0;
+  }, refEqual);
 
   const [searchParams] = useSearchParams();
   const evaRefUuid = searchParams.get("evaRefUuid");
@@ -45,22 +48,65 @@ const Main = (): JSX.Element => {
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      actionSystemVersion: doc.actionSystemVersion,
+      isArchived: doc.isArchived,
+      name: doc.name,
+      activeGridUuid: doc.activeGridUuid,
+    }),
+    deepEqual
+  );
 
-  const paneTypes = getPaneTypes(missionStore.mission?.actionSystemVersion);
-
+  const paneTypes = getPaneTypes(partialMission?.actionSystemVersion);
   const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
 
   useEffect(() => {
-    // wait for permissions to be set before populating store
-    if (!permissions) return;
-    const populateStoreAsync = async () => {
+    let missionPerms: Permission = null;
+    // let unsubscribeObserver: Unsubscribe;
+    (async () => {
+      // get permissions
+      const response = await isLoggedIn();
+      if (response.status !== "success") {
+        navigate("/"); // kick user out back to homepage
+      }
+      if (response.data.isSuperAdmin) {
+        missionPerms = { missionId: intMissionId, permissions: { view: true, edit: true } };
+      } else {
+        missionPerms = response.data.permissionList?.find(
+          (permission) => permission.missionId === intMissionId
+        );
+        if (!missionPerms || (!missionPerms.permissions.view && !missionPerms.permissions.edit))
+          navigate("/");
+      }
+
+      // populate the user store
+      dispatch(setAppUser({ isLoggedIn: true, user: response.data, missionPerms: missionPerms }));
+      console.log("AEGIS Username:", response.data.username);
+      // log user to the emss logging system
+      clientLogger.info({
+        logId: "aegis-login",
+        appUsername: response.data.username,
+        missionId: intMissionId,
+      });
+
+      // get the rest of the store data
       let wholeStoreState: WholeStoreState;
-      if (permissions.permissions?.edit) {
-        wholeStoreState = await populateStore({ missionId: intMissionId, runAudit: true });
+      if (missionPerms.permissions?.edit) {
+        wholeStoreState = await populateStore({
+          missionId: intMissionId,
+          runAudit: true,
+          automergeRepo,
+        });
       } else {
         // user does not have edit permissions, so do not run audit (which causes DB changes)
-        wholeStoreState = await populateStore({ missionId: intMissionId, runAudit: false });
+        wholeStoreState = await populateStore({
+          missionId: intMissionId,
+          runAudit: false,
+          automergeRepo,
+        });
       }
+
       /**
        * dispatch a single action to populate the stores across all slices using the wholeStoreState
        */
@@ -70,12 +116,11 @@ const Main = (): JSX.Element => {
       if (evaRefUuid && actionRefUuid) {
         dispatch(thunkSelectEvaAction({ evaRefUuid, actionRefUuid, rexUuid }));
       }
-    };
-    populateStoreAsync();
-    //eslint-disable-next-line
-  }, [permissions, evaRefUuid, actionRefUuid]);
+    })();
+  }, [automergeRepo, dispatch, intMissionId, navigate, evaRefUuid, actionRefUuid, rexUuid]);
 
   useEffect(() => {
+    // update session storage information. This is for sockets
     window.sessionStorage.setItem("missionId", intMissionId.toString());
     window.sessionStorage.setItem("socketId", "null");
   }, [intMissionId]);
@@ -85,7 +130,7 @@ const Main = (): JSX.Element => {
     const loadGridAsync = async () => {
       const newGrid: MissionGrid = await loadAndReturnGrid(
         intMissionId,
-        missionStore.mission?.activeGridUuid
+        partialMission?.activeGridUuid
       );
       if (newGrid?.coordinates && newGrid.coordinates.length > 0) {
         dispatch(setGridCornerPoint(newGrid.coordinates[0][0]));
@@ -95,53 +140,22 @@ const Main = (): JSX.Element => {
     };
 
     loadGridAsync();
-  }, [dispatch, intMissionId, missionStore.mission?.activeGridUuid]);
+  }, [dispatch, intMissionId, partialMission?.activeGridUuid]);
 
   useEffect(() => {
-    if (!intMissionId) return;
-    const isLoggedInAsync = async () => {
-      const response = await isLoggedIn();
-      if (response.status === "success") {
-        let missionPerms: Permission = null;
-        if (response.data.isSuperAdmin) {
-          missionPerms = { missionId: intMissionId, permissions: { view: true, edit: true } };
-        } else {
-          missionPerms = response.data.permissionList?.find(
-            (permission) => permission.missionId === intMissionId
-          );
-          if (!missionPerms || (!missionPerms.permissions.view && !missionPerms.permissions.edit))
-            navigate("/");
-        }
-        dispatch(setAppUser({ isLoggedIn: true, user: response.data, missionPerms: missionPerms }));
-        setPermissions(missionPerms);
-        // log user to the emss logging system
-        clientLogger.info({
-          logId: "aegis-login",
-          appUsername: response.data.username,
-          missionId: intMissionId,
-        });
-        console.log("Logged in to AEGIS with user:", response.data.username);
-      } else {
-        navigate("/");
-      }
-    };
-    isLoggedInAsync();
-  }, [navigate, intMissionId, dispatch]);
-
-  useEffect(() => {
-    if (!missionStore?.mission?.name) {
+    if (!partialMission?.name) {
       return;
     }
-    document.title = `${missionStore.mission.name} - AEGIS`;
-  }, [missionStore?.mission?.name]);
+    document.title = `${partialMission.name} - AEGIS`;
+  }, [partialMission?.name]);
 
   return (
     <>
       {permissions && (
         <>
-          {missionStore.mission && missionStore.layers ? (
+          {partialMission ? (
             <>
-              {missionStore.mission.isArchived ? (
+              {partialMission.isArchived ? (
                 <div className={styles.archivedBody}>
                   This mission has been archived. Please contact the EMSS team if you need to access
                   it.
@@ -179,9 +193,7 @@ const Main = (): JSX.Element => {
                             <NavGutter selectedNavItem={interfaceStateLabel} />
                             <LeftControlPanel />
                           </div>
-                          <div className={styles.mapBody}>
-                            {missionStore.mission && missionStore.layers && <MapBody />}
-                          </div>
+                          <div className={styles.mapBody}>{hasMissionLayers && <MapBody />}</div>
                         </div>
                         <BottomControlPanel />
                       </div>

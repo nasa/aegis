@@ -39,8 +39,6 @@ export const thunkCancelMarkerMapDirective = appCreateAsyncThunk<{ uuid: string 
 export const thunkUpdateMapDirective = appCreateAsyncThunk<MapDirective, void, false>(
   "updateMapDirective",
   async (mapDirective, { dispatch }) => {
-    //TODO: turn mapDirective into a queue so that cancel actions can happen while other actions are underway
-    // await dispatch(thunkCancelAnyActiveMapAction());
     setTimeout(() => {
       dispatch(updateMapDirective(mapDirective));
     }, 200);

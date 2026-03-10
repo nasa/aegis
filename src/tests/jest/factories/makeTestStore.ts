@@ -13,14 +13,10 @@ import { initialState as hoverInitialState } from "store/hover";
 import { initialState as stmInitialState } from "store/stm";
 import { initialState as userInitialState } from "store/user";
 import { initialState as interfaceInitialState } from "store/interface";
+import { initialState as connectionInitialState } from "store/connection";
 import { initialState as measureInitialState } from "store/measure";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import {
-  generateBlankActionTemplate,
-  generateBlankMission,
-  generateDefaultActionDefinitions,
-} from "store/storeUtils/mission";
 import { generateBlankPoi } from "store/storeUtils/poi";
 import { generateBlankPreset } from "store/storeUtils/preset";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
@@ -49,14 +45,6 @@ export const createCustomTestStore = (partialPreloadedState: Partial<RootState>)
  * @returns
  */
 export const createFullTestStore = (): StoreType => {
-  const mission = generateBlankMission({
-    name: "Jest Test Mission",
-    landerLocation: { lat: 3, lng: 3 },
-    actionTemplates: {
-      [uuidv4()]: generateBlankActionTemplate({ templateName: "Jest Action Template" }),
-    },
-    actionDefinitions: generateDefaultActionDefinitions(),
-  });
   const actions: Action[] = [];
 
   const pois: POI[] = [];
@@ -185,8 +173,6 @@ export const createFullTestStore = (): StoreType => {
     hover: { ...hoverInitialState },
     mission: {
       ...missionInitialState,
-      mission: mission,
-      missionFromDb: mission,
       sublayers: [sublayer],
     },
     user: {
@@ -205,6 +191,7 @@ export const createFullTestStore = (): StoreType => {
     },
     poi: { ...poiInitialState, pois: pois, poisFromDb: pois },
     interface: { ...interfaceInitialState },
+    connection: { ...connectionInitialState },
     stm: {
       ...stmInitialState,
       level1s: [stmLevel1_1],

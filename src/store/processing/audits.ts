@@ -1,19 +1,14 @@
 import * as httpClient_preset from "http-client/preset";
 import * as httpClient_action from "http-client/action";
-import * as httpClient_eva from "http-client/eva";
-import * as httpClient_mission from "http-client/mission";
 import * as httpClient_folder from "http-client/folder";
-import * as httpClient_poi from "http-client/poi";
-import * as httpClient_station from "http-client/station";
-import * as httpClient_traverse from "http-client/traverse";
 
-import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
-import reduce from "lodash/reduce";
+import isEqual from "lodash/isEqual";
+import { getAccurateNow } from "utils/formatting";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
-import { convertNodeToHTML } from "components/interface/form/wysiwyg";
+import type { DocHandle } from "@automerge/automerge-repo";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
@@ -225,31 +220,19 @@ export const auditActions = async ({
 
 // This audit cannot be removed until new action v2 missions are created with default action definitions. Currently they are not.
 export const auditActionDefinitions = async ({
-  wholeStoreState,
+  missionDocHandle,
 }: {
-  wholeStoreState: WholeStoreState;
+  missionDocHandle: DocHandle<Mission>;
 }): Promise<void> => {
+  const mission = missionDocHandle.doc();
+
   // If action system v2 is enabled and the action definitions are blank, create a default set
-
-  if (
-    wholeStoreState.mission.mission.actionSystemVersion === 2 &&
-    !wholeStoreState.mission.mission.actionDefinitions
-  ) {
-    const newMission = {
-      ...wholeStoreState.mission.mission,
-      actionDefinitions: generateDefaultActionDefinitions(),
-    };
-
-    // update the store with the new action definitions
-    wholeStoreState.mission.mission = newMission;
-    wholeStoreState.mission.missionFromDb = newMission;
-
-    // upsert the changes to the mission table in the db
-    //save mission to db
-    const upsertResponse = await httpClient_mission.upsertMissions([newMission]);
-    if (upsertResponse.status !== "success") {
-      // handle the error
-    }
+  if (mission.actionSystemVersion === 2 && !mission.actionDefinitions) {
+    // save the changes to the mission automerge doc
+    missionDocHandle.change((m: Mission) => {
+      m.actionDefinitions = generateDefaultActionDefinitions();
+      m.updatedAt = getAccurateNow().getTime();
+    });
   }
 };
 
@@ -318,149 +301,5 @@ export const auditFolders = async ({
     if (upsertResponse.status !== "success") {
       console.error("Error saving folders to DB:", upsertResponse.message);
     }
-  }
-};
-
-/**
- * Strip out all slate and rich text formatting from the description fields
- *   and convert them into plaintext
- */
-export const auditRichTextToText = async ({
-  wholeStoreState,
-}: {
-  wholeStoreState: WholeStoreState;
-}): Promise<void> => {
-  const convertSlateToPlaintext = (description: string): string => {
-    if (!description) return "";
-    // Convert a string to a slate JSON object.
-    let jsonSlateNodes;
-    try {
-      jsonSlateNodes = JSON.parse(description);
-    } catch (e) {
-      // If it's not in JSON form then it must be already a plain string
-      return "";
-    }
-
-    // convert to html
-    const html = reduce(
-      jsonSlateNodes,
-      (htmlString, decendant) => htmlString + convertNodeToHTML(decendant),
-      ""
-    );
-
-    //Fixing a character encoding issue where % characters get double decoded
-    const strippedHtml = html.replace(/%(?![0-9A-Fa-f]{2})/g, "%25");
-
-    // convert to plaintext
-    let plainText = decodeURIComponent(strippedHtml); // replace url encoded sequences
-
-    // another decode to catch HTML encoded characters
-    const plainTextElement = document.createElement("textarea");
-    plainTextElement.innerHTML = plainText;
-    plainText = plainTextElement.value;
-
-    plainText = plainText.replace(/<br \/>/gm, "\n"); // replace all <br /> with newlines
-    plainText = plainText.replace(/<\/p>/gm, "\n"); // replace all </p> with newlines
-    plainText = plainText.replace(/<\/li>/gm, "\n"); // replace all </li> with newlines
-    plainText = plainText.replace(/<[^>]*>?/gm, ""); // strip out rest of html tags
-
-    return plainText;
-  };
-
-  //convert action descriptions
-  const newActions = cloneDeep(wholeStoreState.action.actions);
-  for (const action of newActions) {
-    const newDescription = convertSlateToPlaintext(action.description);
-    const newDescriptionTask = convertSlateToPlaintext(action.descriptionTask);
-    if (newDescriptionTask) {
-      action.descriptionTask = newDescriptionTask;
-    }
-    if (newDescription) {
-      action.description = newDescription;
-    }
-  }
-  if (!isEqual(newActions, wholeStoreState.action.actions)) {
-    httpClient_action.upsertActions(newActions);
-    wholeStoreState.action.actions = newActions;
-  }
-
-  //convert traverse descriptions
-  const newTraverses = cloneDeep(wholeStoreState.traverse.traverses);
-  for (const traverse of newTraverses) {
-    const newDescription = convertSlateToPlaintext(traverse.description);
-    if (newDescription) {
-      traverse.description = newDescription;
-    }
-  }
-  if (!isEqual(newTraverses, wholeStoreState.traverse.traverses)) {
-    httpClient_traverse.upsertTraverses(newTraverses);
-    wholeStoreState.traverse.traverses = newTraverses;
-  }
-
-  //convert EVA descriptions
-  const newEVAs = cloneDeep(wholeStoreState.eva.evas);
-  for (const eva of newEVAs) {
-    const newDescription = convertSlateToPlaintext(eva.description);
-    if (newDescription) {
-      eva.description = newDescription;
-    }
-  }
-  if (!isEqual(newEVAs, wholeStoreState.eva.evas)) {
-    httpClient_eva.upsertEvas(newEVAs);
-    wholeStoreState.eva.evas = newEVAs;
-  }
-
-  //convert action template descriptions
-  const newMission = cloneDeep(wholeStoreState.mission.mission);
-  for (const templateUuid in newMission.actionTemplates ?? {}) {
-    const template = newMission.actionTemplates[templateUuid];
-    const newDescription = convertSlateToPlaintext(template.description);
-    if (newDescription) {
-      template.description = newDescription;
-    }
-  }
-  newMission.description = convertSlateToPlaintext(newMission.description);
-  if (!isEqual(newMission, wholeStoreState.mission.mission)) {
-    httpClient_mission.upsertMissions([newMission]);
-    wholeStoreState.mission.mission = newMission;
-  }
-
-  //convert POI descriptions
-  const newPOIs = cloneDeep(wholeStoreState.poi.pois);
-  for (const poi of newPOIs) {
-    const newDescription = convertSlateToPlaintext(poi.description);
-    if (newDescription) {
-      poi.description = newDescription;
-    }
-  }
-  if (!isEqual(newPOIs, wholeStoreState.poi.pois)) {
-    httpClient_poi.upsertPOIs(newPOIs);
-    wholeStoreState.poi.pois = newPOIs;
-  }
-
-  //convert Preset descriptions
-  const newPresets = cloneDeep(wholeStoreState.preset.presets);
-  for (const preset of newPresets) {
-    const newDescription = convertSlateToPlaintext(preset.description);
-    if (newDescription) {
-      preset.description = newDescription;
-    }
-  }
-  if (!isEqual(newPresets, wholeStoreState.preset.presets)) {
-    httpClient_preset.upsertPresets(newPresets);
-    wholeStoreState.preset.presets = newPresets;
-  }
-
-  //convert Station descriptions
-  const newStations = cloneDeep(wholeStoreState.station.stations);
-  for (const station of newStations) {
-    const newDescription = convertSlateToPlaintext(station.description);
-    if (newDescription) {
-      station.description = newDescription;
-    }
-  }
-  if (!isEqual(newStations, wholeStoreState.station.stations)) {
-    httpClient_station.upsertStations(newStations);
-    wholeStoreState.station.stations = newStations;
   }
 };

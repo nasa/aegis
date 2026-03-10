@@ -32,6 +32,7 @@ import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
 import Action from "components/panes/actions-action";
 import { EmojiRenderer } from "components/interface/emojis";
 import { getAsPlannedEvaFromRefUuid, selectAsPlannedStations } from "store/selectors";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const STMRuleDetailsModal: FunctionComponent<{
   isModalOpen: boolean;
@@ -69,10 +70,14 @@ const STMRuleDetails: FunctionComponent<{
   rule: STMRule;
   setIsModalOpen: Function;
 }> = ({ rule, setIsModalOpen }) => {
-  const level3Name = useAppSelector(
-    (state: RootState) => state.mission.mission.stmLevel3Name,
-    refEqual
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      stmLevel3Name: doc.stmLevel3Name,
+      stmLevel1Enabled: doc.stmLevel1Enabled,
+    }),
+    deepEqual
   );
+
   const level3STMItem = useAppSelector(
     (state) => state.stm.level3s.find((item) => item.uuid === rule.stmUuid),
     shallowEqual
@@ -86,10 +91,6 @@ const STMRuleDetails: FunctionComponent<{
     const level2 = state.stm.level2s.find((level2) => level2.uuid === level3STMItem.level2Uuid);
     return state.stm.level1s.find((level1) => level1.uuid === level2?.level1Uuid)?.numbering || "";
   }, refEqual);
-  const stmLevel1Enabled = useAppSelector(
-    (state: RootState) => state.mission.mission.stmLevel1Enabled,
-    refEqual
-  );
 
   return (
     <div
@@ -99,11 +100,11 @@ const STMRuleDetails: FunctionComponent<{
       }}
     >
       <div className={styles.detailsLeft}>
-        <div className={styles.detailsHeader}>{level3Name}</div>
+        <div className={styles.detailsHeader}>{partialMission.stmLevel3Name}</div>
         <div className={styles.detailsContent}>
           <div className={styles.stmName}>
             <div className={styles.stmNameOrdinal}>
-              {`${stmLevel1Enabled ? level1Numbering : ""}${level2Numbering.toLocaleUpperCase()}${level3STMItem.numbering}`}
+              {`${partialMission.stmLevel1Enabled ? level1Numbering : ""}${level2Numbering.toLocaleUpperCase()}${level3STMItem.numbering}`}
             </div>
             <div className={styles.stmNameNameText}>{level3STMItem?.name}</div>
           </div>

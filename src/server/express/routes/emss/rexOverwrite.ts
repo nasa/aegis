@@ -3,7 +3,6 @@ import { globalValues } from "../../global";
 import {
   Action_db,
   Eva_db,
-  Mission_db,
   Rex_db,
   Station_db,
   Traverse_db,
@@ -19,6 +18,7 @@ import { asError } from "@emss/utils";
 import fs from "node:fs";
 import path from "node:path";
 import { SCHEMA_DIR } from "utils/validateSchemaServer";
+import { getAutomergeMissions } from "../missionAutomerge";
 
 const router = express.Router();
 
@@ -259,7 +259,7 @@ async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
     if (rexOverwrite.isRunning && !rexEntity.isRunning) {
       // Check if we need to stop other running rex records
       allRunningRexesBeforeUpdate = await em.find(Rex_db, {
-        mission: rexEntity.mission,
+        missionId: rexEntity.missionId,
         isRunning: true,
         uuid: { $ne: rexOverwrite.uuid },
       });
@@ -279,8 +279,9 @@ async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
         let egressLocation: AEGISPoint | null = null;
         const rexEva = await em.findOne(Eva_db, { uuid: rexEntity.evaUuid });
         if (rexEva?.egressLocationUuid === "lander") {
-          const missionRecord = await em.findOne(Mission_db, { id: rexEntity.mission.id });
-          if (missionRecord?.landerLocation) egressLocation = missionRecord.landerLocation;
+          // get lander location from the mission automerge document
+          const mission = (await getAutomergeMissions([rexEva.missionId]))[0];
+          if (mission?.landerLocation) egressLocation = mission.landerLocation;
         } else {
           const stationRecord = await em.findOne(Station_db, { uuid: rexEva?.egressLocationUuid });
           if (stationRecord?.location) egressLocation = stationRecord.location;

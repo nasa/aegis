@@ -12,6 +12,7 @@ import {
 import cloneDeep from "lodash/cloneDeep";
 import * as httpClient_Rex from "http-client/rex";
 import { updateMapDirective } from "store/map";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 
 /*
  * Create initial crew positions for a running rex if they do not already exist
@@ -19,13 +20,16 @@ import { updateMapDirective } from "store/map";
 export const thunkCreateInitialPosEntries = appCreateAsyncThunk<void>(
   "createInitialPosEntries",
   async (__, { dispatch, getState }) => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
     const runningRex = getState().rex.rexes.find((r) => r.isRunning);
     if (!runningRex) return null;
 
     const runningRexEva = getState().eva.evas.find((eva) => eva.uuid === runningRex.evaUuid);
     const posEntryLocation: AEGISPoint =
       runningRexEva?.egressLocationUuid === "lander"
-        ? getState().mission.mission.landerLocation
+        ? mission.landerLocation
         : getState().station.stations.find(
             (station) => station.uuid === runningRexEva?.egressLocationUuid
           )?.location;

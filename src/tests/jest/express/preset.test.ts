@@ -2,8 +2,7 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import { Mission_db, Preset_db, App_User_db } from "server/database/models/_allModels";
-import MissionFactory from "../factories/MissionFactory";
+import { Preset_db, App_User_db } from "server/database/models/_allModels";
 import PresetFactory from "../factories/PresetFactory";
 import AppUserFactory from "../factories/AppUserFactory";
 import supertest from "supertest";
@@ -20,27 +19,26 @@ jest.mock("server/express/sockets", () => {
 });
 
 let testAppUser: App_User_db;
-let testMissions: Mission_db[];
 let testPresets: Preset_db[];
+const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testMissions = await new MissionFactory(em).create(3);
   testAppUser = await new AppUserFactory(em).createOne({
     username: "JestPreset",
     permissionList: [
       {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         permissions: {
           edit: true,
           view: true,
         },
       },
       {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         permissions: {
           edit: false,
           view: true,
@@ -50,7 +48,7 @@ beforeAll(async () => {
   });
   testPresets = await new PresetFactory(em)
     .each((preset) => {
-      preset.mission = testMissions[0];
+      preset.missionId = testMissionIds[0];
     })
     .create(2);
 });
@@ -75,7 +73,7 @@ describe("Preset API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: PresetUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         presets: [newPreset],
       };
       const res = await supertest(app)
@@ -89,7 +87,7 @@ describe("Preset API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: PresetUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         presets: [newPreset],
       };
       const res = await supertest(app)
@@ -103,7 +101,7 @@ describe("Preset API Endpoint", () => {
     test("Empty presets array", async () => {
       const requestBody: PresetUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         presets: [],
       };
       const res = await supertest(app)
@@ -117,8 +115,8 @@ describe("Preset API Endpoint", () => {
     test("Create new preset", async () => {
       const requestBody: PresetUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
-        presets: [{ ...newPreset, missionId: testMissions[0].id, ownerId: testAppUser.id }],
+        missionId: testMissionIds[0],
+        presets: [{ ...newPreset, missionId: testMissionIds[0], ownerId: testAppUser.id }],
       };
       const res = await supertest(app)
         .post("/api/v1/preset")
@@ -139,7 +137,7 @@ describe("Preset API Endpoint", () => {
       newPreset.name = "Preset Jest Test Modified";
       const requestBody: PresetUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         presets: [newPreset],
       };
       const res = await supertest(app)
@@ -157,7 +155,7 @@ describe("Preset API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: PresetDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         presetUuids: [newPreset.uuid],
       };
       const res = await supertest(app)
@@ -171,7 +169,7 @@ describe("Preset API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: PresetDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         presetUuids: [newPreset.uuid],
       };
       const res = await supertest(app)
@@ -185,7 +183,7 @@ describe("Preset API Endpoint", () => {
     test("Delete a preset", async () => {
       const requestBody: PresetDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         presetUuids: [newPreset.uuid],
       };
       const res = await supertest(app)
@@ -206,8 +204,8 @@ describe("Auth with emss-token header", () => {
   test("POST request succeeds with emss-token", async () => {
     const requestBody: PresetUpsertRequest = {
       socketId: "someSocketId",
-      missionId: testMissions[0].id,
-      presets: [{ ...newPreset, missionId: testMissions[0].id }],
+      missionId: testMissionIds[0],
+      presets: [{ ...newPreset, missionId: testMissionIds[0] }],
     };
     const res = await supertest(app)
       .post("/api/v1/preset")
@@ -219,7 +217,7 @@ describe("Auth with emss-token header", () => {
   test("DELETE request succeeds with emss-token", async () => {
     const requestBody: PresetDeleteRequest = {
       socketId: "someSocketId",
-      missionId: testMissions[0].id,
+      missionId: testMissionIds[0],
       presetUuids: [newPreset.uuid],
     };
     const res = await supertest(app)
@@ -235,9 +233,6 @@ afterAll(async () => {
   const em = globalValues.orm.em.fork();
   for (let i = 0; i < testPresets.length; i++) {
     await em.nativeDelete(Preset_db, { uuid: testPresets[i].uuid });
-  }
-  for (let i = 0; i < testMissions.length; i++) {
-    await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
 

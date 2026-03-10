@@ -1,37 +1,27 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, memo, useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import styles from "./mission.module.css";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import missionStyles from "./mission.module.css";
+import { deepEqual } from "utils/useAppSelector";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faList, faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
-import { Button, InLineEditInput } from "components/interface/form/globalFields";
+import { Button } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppDispatch } from "utils/useAppDispatch";
-import {
-  thunkCreateGeoUnit,
-  thunkDeleteGeoUnit,
-  thunkUpdateGeoUnit,
-} from "store/thunk/thunkMission-geoUnits";
+import { thunkDeleteGeoUnit } from "store/thunk/thunkMission-geoUnits";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
+import { crudCreateGeoUnit, crudUpdateGeoUnitByField } from "client/crud/crud-mission-geoUnit";
 
 const GeographicUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useAppDispatch();
-  const sortedGeographicUnits: [string, GeographicUnit][] = useAppSelector((state) => {
-    if (!state.mission.mission.geographicUnits) return [];
-    return Object.entries(state.mission.mission.geographicUnits).sort(([, a], [, b]) =>
-      a.name.localeCompare(b.name)
-    );
-  }, deepEqual);
-  const [newGeoUuid, setNewGeoUuid] = useState(undefined);
+  const geographicUnits: GeographicUnits = useMissionDocSelector(
+    (doc) => doc.geographicUnits,
+    deepEqual
+  );
 
-  // Un-marks newest list item as "new" after a short timeout (for auto focusing)
-  useEffect(() => {
-    if (newGeoUuid !== undefined) {
-      setTimeout(() => {
-        setNewGeoUuid(undefined);
-      }, 300);
-    }
-  }, [newGeoUuid]);
+  const sortedGeographicUnits: [string, GeographicUnit][] = geographicUnits
+    ? Object.entries(geographicUnits).sort(([, a], [, b]) => a.name.localeCompare(b.name))
+    : [];
 
   return (
     <div className={paneStyles.rightBody}>
@@ -44,30 +34,33 @@ const GeographicUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
               <SubpanelHeading icon={faList}>Geographic Units</SubpanelHeading>
             </div>
-            <div className={paneStyles.panelSectionBody}>
-              <ul className={styles.propertyList}>
-                <li className={styles.propertyListItem}>
-                  <div className={paneStyles.descriptionContainer}>
+            <div>
+              <ul className={missionStyles.propertyList}>
+                <li className={missionStyles.propertyListItem}>
+                  <div>
                     <div
-                      className={styles.propertyRowHeader}
+                      className={missionStyles.propertyRowHeader}
                       style={{ backgroundColor: "var(--grey2)" }}
                     >
-                      <div className={styles.propertyRowName}>Name</div>
-                      <div className={styles.propertyRowAbbr}>Abbr</div>
-                      <div className={styles.propertyRowTrashContainer}></div>
+                      <div className={missionStyles.propertyRowName}>Name</div>
+                      <div className={missionStyles.propertyRowAbbr}>Abbr</div>
+                      <div className={missionStyles.propertyRowTrashContainer}></div>
                     </div>
                   </div>
                 </li>
 
                 {sortedGeographicUnits.map(([uuid, geoUnit], index) => (
-                  <li key={uuid} className={styles.propertyListItem} aria-label="geoUnitList-item">
-                    <GeographicUnit
+                  <li
+                    key={uuid}
+                    className={missionStyles.propertyListItem}
+                    aria-label="geoUnitList-item"
+                  >
+                    <MemoizedGeographicUnit
                       key={uuid}
                       uuid={uuid}
-                      item={geoUnit}
+                      geoUnit={geoUnit}
                       editMode={editMode}
                       evenRow={index % 2 === 0}
-                      toFocus={newGeoUuid === uuid}
                     />
                   </li>
                 ))}
@@ -79,7 +72,7 @@ const GeographicUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                   label="Add Geographic Unit"
                   style={{ width: "155px", marginLeft: "18px", marginTop: "8px" }}
                   onClick={async () => {
-                    setNewGeoUuid((await dispatch(thunkCreateGeoUnit())).payload);
+                    crudCreateGeoUnit();
                   }}
                   ariaLabel="addGeoUnitButton"
                 />
@@ -96,57 +89,53 @@ export default GeographicUnits_Panel;
 
 const GeographicUnit: FunctionComponent<{
   uuid: string;
-  item: GeographicUnit;
+  geoUnit: GeographicUnit;
   editMode: boolean;
   evenRow: boolean;
-  toFocus: boolean;
-}> = ({ uuid, item, editMode, evenRow, toFocus }) => {
+}> = ({ uuid, geoUnit, editMode, evenRow }) => {
   const dispatch = useAppDispatch();
+  const divRef = useRef<HTMLDivElement>(null);
 
   let backgroundColor: string = "var(--grey2)";
-  if (!editMode) {
-    backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
-  }
+  backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
+
   return (
-    <div className={paneStyles.descriptionContainer}>
-      <div className={styles.propertyRow} style={{ backgroundColor }}>
-        <div className={styles.propertyRowName}>
-          <InLineEditInput
-            editing={editMode}
+    <div ref={divRef}>
+      <div className={missionStyles.propertyRow} style={{ backgroundColor }}>
+        <div className={missionStyles.propertyRowName}>
+          <ValidatedInputField
+            editMode={editMode}
             fieldProps={{
               name: "geographicUnitItemName",
               ariaLabel: "Geographic unit name",
-              style: { width: "100%" },
               validators: [validators.maxLength(255), validators.required],
             }}
-            value={item.name}
+            value={geoUnit.name}
             onSubmit={(val: string) => {
-              dispatch(thunkUpdateGeoUnit({ uuid: uuid, fieldName: "name", value: val }));
+              crudUpdateGeoUnitByField(uuid, "name", val);
             }}
             key={`${uuid}-name`}
-            toFocus={toFocus}
+            focusContents={geoUnit.name === "(Geographic Unit Name)"}
           />
         </div>
-        <div className={styles.propertyRowAbbr}>
-          <InLineEditInput
-            editing={editMode}
+        <div className={missionStyles.propertyRowAbbr}>
+          <ValidatedInputField
+            editMode={editMode}
             fieldProps={{
               name: "geographicUnitItemAbbr",
               ariaLabel: "Geographic unit abbreviation",
-              style: { width: "50px" },
               validators: [validators.maxLength(5), validators.required],
             }}
-            value={item.abbr}
+            value={geoUnit.abbr ?? ""}
             onSubmit={(val: string) => {
-              dispatch(thunkUpdateGeoUnit({ uuid: uuid, fieldName: "abbr", value: val }));
+              crudUpdateGeoUnitByField(uuid, "abbr", val);
             }}
             key={`${uuid}-abbr`}
-            toFocus={toFocus}
           />
         </div>
 
-        <div className={styles.propertyRowTrashContainer}>
-          <div className={styles.propertyRowTrash}>
+        <div className={missionStyles.propertyRowTrashContainer}>
+          <div className={missionStyles.propertyRowTrash}>
             {editMode && (
               <FontAwesomeIcon
                 icon={faTrashAlt}
@@ -165,3 +154,12 @@ const GeographicUnit: FunctionComponent<{
     </div>
   );
 };
+
+/**
+ * Memoized version of the GeographicUnit component to prevent unnecessary re-renders
+ * when the props haven't changed.
+ * This is especially useful when the component is part of a list.
+ * The memoization is based on the props passed to the component.
+ * The component will only re-render if the props change.
+ */
+const MemoizedGeographicUnit = memo(GeographicUnit);

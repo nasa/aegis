@@ -1,17 +1,19 @@
 import { populateStore } from "store/processing/populateStore";
 import { useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
-import { deepEqual, useAppSelector } from "utils/useAppSelector";
+import { refEqual } from "utils/useAppSelector";
 import styles from "components/admin/admin.module.css";
 import { Checkbox } from "components/interface/form/globalFields";
 import { isLoggedIn } from "http-client/login";
-import { dumpMission, getMissions } from "http-client/mission";
+import { dumpMission } from "http-client/mission";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkMakeExportString } from "store/thunk/thunkMission";
 import { setAllSliceStores } from "store/crossActions";
 import Header from "components/interface/header";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { useRepo } from "@automerge/automerge-repo-react-hooks";
 
 type RouteParams = {
   id: string;
@@ -20,12 +22,14 @@ type RouteParams = {
 const ExportPage: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const automergeRepo = useRepo();
 
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
 
-  const missionStore = useAppSelector((state) => state.mission, deepEqual);
+  const missionName = useMissionDocSelector((doc) => doc.name, refEqual);
+
   const [selectedOutput, setSelectedOutput] = useState("");
   const [selectEvas, setSelectEvas] = useState(true);
   const [selectMission, setSelectMission] = useState(false);
@@ -37,36 +41,33 @@ const ExportPage: React.FunctionComponent = () => {
 
   //on load check login and mission id
   useEffect(() => {
-    const isLoggedInAsync = async () => {
+    (async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
         const user = response.data;
         if (!(user.isAdmin || user.isSuperAdmin)) {
-          navigate("/admin"); //Redirect to homepage
+          navigate("/"); //Redirect to homepage
         }
       } else {
-        navigate("/admin");
+        navigate("/");
       }
-
-      const missions = (await getMissions()).data;
-      if (!missions.find((m) => m.id === intMissionId)) navigate("/admin");
-    };
-    isLoggedInAsync();
-  }, [navigate, intMissionId]);
+    })();
+  }, [navigate]);
 
   useEffect(() => {
-    const populateStoreAsync = async () => {
-      const wholeStoreState = await populateStore({ missionId: intMissionId, runAudit: false });
+    (async () => {
+      const wholeStoreState = await populateStore({
+        missionId: intMissionId,
+        runAudit: false,
+        automergeRepo,
+      });
       /**
        * dispatch a single action to populate the stores across all slices using the wholeStoreState
        */
       dispatch(setAllSliceStores(wholeStoreState));
-    };
-    populateStoreAsync();
-    //eslint-disable-next-line
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  if (!intMissionId) return <div>No missionId provided</div>;
 
   return (
     <>
@@ -85,7 +86,7 @@ const ExportPage: React.FunctionComponent = () => {
             />
           </div>
           <h1>Export</h1>
-          <div style={{ marginBottom: "5px" }}>Mission: {missionStore.mission?.name}</div>
+          <div style={{ marginBottom: "5px" }}>Mission: {missionName}</div>
           <div style={{ userSelect: "none" }}>
             <div>Select parts of mission data to export:</div>
             <Checkbox
@@ -171,7 +172,7 @@ const ExportPage: React.FunctionComponent = () => {
                   const element = document.createElement("a");
                   const file = new Blob([output.payload as string], { type: "text/json" });
                   element.href = URL.createObjectURL(file);
-                  let filename = `${missionStore.mission?.name}_`;
+                  let filename = `${missionName}_`;
                   if (selectEvas) filename += "evas_";
                   if (selectMission) filename += "mission_";
                   if (selectPois) filename += "pois_";

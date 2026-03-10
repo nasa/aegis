@@ -1,4 +1,3 @@
-import type { EntityData } from "@mikro-orm/postgresql";
 import type { Mission_db } from "server/database/models/_allModels";
 
 import { v4 as uuidv4 } from "uuid";
@@ -20,7 +19,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     actionSystemVersion: 1,
     actionDefinitions: null,
     missionBanner: "",
-    landerLocation: null,
+    landerLocation: { lat: null, lng: null },
     landerElevationMeters: 0,
     traverseRate: 2,
     defaultEvaDuration: 240,
@@ -49,8 +48,8 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     stmLevel1Name: "Goal",
     stmLevel2Name: "Objective",
     stmLevel3Name: "Investigation",
-    updatedAt: getAccurateNow().toISOString(),
-    createdAt: getAccurateNow().toISOString(),
+    updatedAt: getAccurateNow().getTime(),
+    createdAt: getAccurateNow().getTime(),
   };
   return { ...defaultNewMission, ...partialMission };
 };
@@ -80,46 +79,22 @@ export const generateBlankActionTemplate = (
     crewAssigned: [],
     mass: null,
     priority: null,
-    createdAt: getAccurateNow().toISOString(),
-    updatedAt: getAccurateNow().toISOString(),
+    createdAt: getAccurateNow().getTime(),
+    updatedAt: getAccurateNow().getTime(),
   };
   return { ...defaultNewActionTemplate, ...partialActionTemplate };
 };
 
 /**
- * Converts db mission fks to their uuid/id arrays
+ * Converts db mission to store mission type
  * @param dbMissions an array of missions in mikro db format
  * @returns an a converted array of missions or a single mission
  */
 export function convertMissionsTypeDbToStore(dbMissions: Mission_db[]): Mission[] {
-  const missions: Mission[] = [];
-  for (const dbMission of dbMissions) {
-    const convertedMission: Mission = {
-      ...dbMission,
-      updatedAt: dbMission.updatedAt.toISOString(),
-      createdAt: dbMission.createdAt.toISOString(),
-    };
-    missions.push(convertedMission);
-  }
-  return missions;
-}
-
-/**
- * Converts missions that come from the store into the db type
- * @param storeMissions
- * @returns
- */
-export function convertMissionsTypeStoreToDb(storeMissions: Mission[]): EntityData<Mission_db>[] {
-  const dbMissions: EntityData<Mission_db>[] = [];
-  for (const storeMission of storeMissions) {
-    const convertedRecord: EntityData<Mission_db> = {
-      ...storeMission,
-      updatedAt: new Date(storeMission.updatedAt),
-      createdAt: new Date(storeMission.createdAt),
-    };
-    dbMissions.push(convertedRecord);
-  }
-  return dbMissions;
+  // remove version field from mikro orm using destructuring
+  return dbMissions.map(({ version: _version, ...mission }) => ({
+    ...mission,
+  }));
 }
 
 export const generateDefaultActionDefinitions = (
@@ -190,4 +165,25 @@ export const generateDefaultActionDefinitions = (
   };
 
   return { ...newActionDefinitions, ...partialActionDefinitions };
+};
+
+export const generateBlankEquipmentItem = (
+  partialEquipmentItem?: Partial<EquipmentItem>
+): EquipmentItem => {
+  const defaultNewEquipmentItem: EquipmentItem = {
+    name: "(Equipment Name)",
+    quantity: 1,
+    singleUse: false,
+  };
+  return { ...defaultNewEquipmentItem, ...partialEquipmentItem };
+};
+
+export const generateBlankGeographicUnit = (
+  partialGeographicUnit?: Partial<GeographicUnit>
+): GeographicUnit => {
+  const defaultNewGeographicUnit: GeographicUnit = {
+    name: "(Geographic Unit Name)",
+    abbr: "GU",
+  };
+  return { ...defaultNewGeographicUnit, ...partialGeographicUnit };
 };

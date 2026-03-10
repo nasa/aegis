@@ -1,7 +1,6 @@
-import cloneDeep from "lodash/cloneDeep";
 import appCreateAsyncThunk from "./thunkUtil";
-import { upsertMission, upsertMissionByField } from "store/mission";
-import { v4 as uuidv4 } from "uuid";
+import { getAccurateNow } from "utils/formatting";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 import { makeReadableActionDefinition } from "utils/export";
 
 type PrintableListItem = {
@@ -10,28 +9,19 @@ type PrintableListItem = {
   actionName: string;
 };
 
-export const thunkUpdateGeoUnit = appCreateAsyncThunk<{
-  uuid: string;
-  fieldName: "name" | "abbr";
-  value: string;
-}>("updateGeoUnit", async ({ uuid, fieldName, value }, { dispatch, getState }) => {
-  const geographicUnits = getState().mission.mission.geographicUnits;
-  const currentItem = geographicUnits?.[uuid];
-  if (currentItem) {
-    const newGeographicUnits = cloneDeep(geographicUnits);
-    newGeographicUnits[uuid][fieldName] = value;
-    dispatch(upsertMissionByField("geographicUnits", newGeographicUnits));
-  }
-});
-
+// Keep this as a thunk because we need access to the rest of redux state
+// to determine if this geo unit is used and can be deleted.
 export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: string }>(
   "deleteGeoUnit",
-  async ({ geographicUnitUuid }, { dispatch, getState }) => {
+  async ({ geographicUnitUuid }, { getState }) => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
     // find all of the actions and actionTemplates using this geographic unit
     const actionsUsingGeographicUnit = getState().action.actions.filter((action) =>
       action.geographicUnitsUsage?.some((uuid) => uuid === geographicUnitUuid)
     );
-    const actionTemplates = getState().mission.mission.actionTemplates;
+    const actionTemplates = mission.actionTemplates;
     const templatesUsingGeographicUnit = actionTemplates
       ? Object.values(actionTemplates).filter((template) =>
           template.geographicUnitsUsage?.some((uuid) => uuid === geographicUnitUuid)
@@ -58,7 +48,7 @@ export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: stri
         if (action.stmAction) {
           const readableActionDef = makeReadableActionDefinition({
             action,
-            actionDefinitions: getState().mission.mission.actionDefinitions,
+            actionDefinitions: mission.actionDefinitions,
           });
           actionName = readableActionDef.displayString;
         }
@@ -71,12 +61,12 @@ export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: stri
       });
       printableList.push(...actionsList);
     }
-    if (templatesUsingGeographicUnit?.length > 0) {
+    if (templatesUsingGeographicUnit?.length && templatesUsingGeographicUnit.length > 0) {
       const templateList: PrintableListItem[] = templatesUsingGeographicUnit.map((template) => {
         return {
           parentType: "Template",
           parentName: "Action",
-          actionName: template.templateName,
+          actionName: template.templateName || "",
         };
       });
       printableList.push(...templateList);
@@ -92,29 +82,12 @@ export const thunkDeleteGeoUnit = appCreateAsyncThunk<{ geographicUnitUuid: stri
       return;
     }
 
-    // Nothing is using this geoUnit. Delete it
-    const geographicUnits = getState().mission.mission.geographicUnits;
-    const newGeographicUnits = cloneDeep(geographicUnits);
-    delete newGeographicUnits[geographicUnitUuid];
-    dispatch(upsertMission({ ...getState().mission.mission, geographicUnits: newGeographicUnits }));
-  }
-);
-
-export const thunkCreateGeoUnit = appCreateAsyncThunk<void, string>(
-  "createGeoUnit",
-  async (_, { dispatch, getState }) => {
-    const newGeoUuid = uuidv4();
-    const blankItem = {
-      name: "(Geographic Unit Name)",
-    };
-
-    const geographicUnits = getState().mission.mission.geographicUnits || {};
-    const newGeographicUnits = {
-      ...geographicUnits,
-      [newGeoUuid]: blankItem,
-    };
-    dispatch(upsertMissionByField("geographicUnits", newGeographicUnits));
-
-    return newGeoUuid;
+    //this item is not being used. All good to delete it
+    missionDocHandle.change((m: Mission) => {
+      if (m.geographicUnits[geographicUnitUuid]) {
+        delete m.geographicUnits[geographicUnitUuid];
+        m.updatedAt = getAccurateNow().getTime();
+      }
+    });
   }
 );

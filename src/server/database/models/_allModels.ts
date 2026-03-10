@@ -17,6 +17,8 @@ import { Traverse_db } from "./traverse.model";
 import { Grid_db } from "./grid.model";
 import { STM_Rule_db } from "./stm_rules.model";
 import { Folder_db } from "./folder.model";
+import { Doc_Listing_db } from "./doc_listing.model";
+import { Automerge_Native_db } from "./automerge_native.model";
 
 export {
   App_User_db,
@@ -36,4 +38,6 @@ export {
   Grid_db,
   STM_Rule_db,
   Folder_db,
+  Doc_Listing_db,
+  Automerge_Native_db,
 };

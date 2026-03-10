@@ -46,9 +46,15 @@ import { upsertRexByField } from "store/rex";
 import { thunkCancelRex, thunkDeleteRex, thunkSaveRex } from "store/thunk/thunkRex";
 import { LoadingOverlay } from "components/interface/_global-elements";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useAppDispatch();
+  const partialMission = useMissionDocSelector(
+    (doc) => ({ walkbackRate: doc.walkbackRate, traverseRate: doc.traverseRate }),
+    deepEqual
+  );
+
   const selectedRightNavItem = useAppSelector(
     (state) => state.eva.selectedEvaRightNavItem,
     refEqual
@@ -141,8 +147,8 @@ const EvaRightEva: FunctionComponent = () => {
     return getCalculatedFieldsByEva({
       eva,
       evaStations: state.station.stations,
-      missionWalkbackRate: state.mission.mission.walkbackRate,
-      missionTraverseRate: state.mission.mission.traverseRate,
+      missionWalkbackRate: partialMission.walkbackRate,
+      missionTraverseRate: partialMission.traverseRate,
       evaActions: state.action.actions,
       evaTraverses: state.traverse.traverses,
     });
@@ -168,7 +174,7 @@ const EvaRightEva: FunctionComponent = () => {
       traverseCalculatedFields.push(
         getCalculatedFieldsByTraverse({
           traverse,
-          missionTraverseRate: state.mission.mission.traverseRate,
+          missionTraverseRate: partialMission.traverseRate,
           evaTraverseRate: traverseEva?.traverseRate,
           traverseActions,
         })
@@ -195,7 +201,7 @@ const EvaRightEva: FunctionComponent = () => {
       stationCalculatedFields.push(
         getCalculatedFieldsByStation({
           station,
-          missionWalkbackRate: state.mission.mission.walkbackRate,
+          missionWalkbackRate: partialMission.walkbackRate,
           stationActions,
         })
       );

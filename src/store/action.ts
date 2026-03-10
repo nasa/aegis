@@ -20,7 +20,7 @@ export const actionSlice = createSlice({
           return { payload: actions };
         } else {
           const updatedActions = actions.map((a) => {
-            return { ...a, updatedAt: getAccurateNow().toISOString() };
+            return { ...a, updatedAt: getAccurateNow().getTime() };
           });
           return { payload: updatedActions };
         }
@@ -49,7 +49,7 @@ export const actionSlice = createSlice({
               actionUuid,
               fieldName,
               value,
-              updatedAt: getAccurateNow().toISOString(),
+              updatedAt: getAccurateNow().getTime(),
             },
           };
         }
@@ -61,7 +61,7 @@ export const actionSlice = createSlice({
             actionUuid: string;
             fieldName: keyof Action;
             value: Action[keyof Action];
-            updatedAt: string;
+            updatedAt: number;
           };
         }
       ) => {

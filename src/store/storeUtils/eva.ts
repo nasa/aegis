@@ -47,7 +47,7 @@ export function convertEVAsTypeDbToStore(dbEVAs: Eva_db[]): Eva[] {
     const convertedEVA: Eva = {
       uuid: dbEva.uuid,
       refUuid: dbEva.refUuid,
-      missionId: dbEva.mission.id,
+      missionId: dbEva.missionId,
       name: dbEva.name,
       status: dbEva.status,
       sequence: dbEva.sequence,
@@ -82,7 +82,7 @@ export function convertEVAsTypeStoreToDb(storeEVAs: Eva[]): EntityData<Eva_db>[]
     const convertedRecord: EntityData<Eva_db> = {
       uuid: storeEva.uuid,
       refUuid: storeEva.refUuid,
-      mission: storeEva.missionId,
+      missionId: storeEva.missionId,
       name: storeEva.name,
       status: storeEva.status,
       sequence: storeEva.sequence,

@@ -36,6 +36,9 @@ export async function getElevationSinglePoint(
   point: AEGISPoint,
   radius: number
 ): Promise<WrappedResponse<number>> {
+  if (!point.lat || !point.lng) {
+    return { status: "error", message: "Invalid point" };
+  }
   const fakePoint = { lat: point.lat + 0.001, lng: point.lng };
   const dist = getDistanceBetweenTwoCoordinates(point, fakePoint, radius);
   const postData: ElevationProfilePostData = {
@@ -56,7 +59,6 @@ export async function getElevationSinglePoint(
   });
 
   const response: WrappedResponse<number[][]> = await res.json();
-  const data = response.data ? response.data[0][0] : null;
-  const convertedResponse = { ...response, data };
+  const convertedResponse = { ...response, data: response.data ? response.data[0][0] : undefined };
   return convertedResponse;
 }

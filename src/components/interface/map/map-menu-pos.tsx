@@ -25,6 +25,7 @@ import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { updateMapDirective } from "store/map";
 import { generateBlankPosEntry } from "store/storeUtils/rex";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 export const MapPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -470,18 +471,28 @@ export const PositionRow: FunctionComponent<{
   isEditing: boolean;
 }> = ({ posEntry, showKabob, numbering, isEditing }) => {
   const dispatch = useAppDispatch();
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      landerLocation: doc.landerLocation,
+      planetRadius: doc.planetRadius,
+      traverseRate: doc.traverseRate,
+    }),
+    deepEqual
+  );
 
-  const distanceToLander = useAppSelector((state) => {
-    const landerLocation = state.mission.mission.landerLocation;
-    const radius = state.mission.mission.planetRadius;
-    if (!landerLocation || !radius) return null;
-    return +getDistanceBetweenTwoCoordinates(posEntry.location, landerLocation, radius);
-  }, refEqual);
+  let distanceToLander = null;
+  if (partialMission.landerLocation && partialMission.planetRadius) {
+    distanceToLander = +getDistanceBetweenTwoCoordinates(
+      posEntry.location,
+      partialMission.landerLocation,
+      partialMission.planetRadius
+    );
+  }
 
   const duration = useAppSelector((state) => {
     if (distanceToLander === null) return null;
     const eva = state.eva.evas.find((e) => e.uuid === state.eva.selectedEvaUuid);
-    const traverseRate = eva?.traverseRate ? eva.traverseRate : state.mission.mission.traverseRate;
+    const traverseRate = eva?.traverseRate ? eva.traverseRate : partialMission.traverseRate;
     return Math.ceil(calcPathDurationMins([distanceToLander], traverseRate));
   }, refEqual);
 

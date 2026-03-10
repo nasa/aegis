@@ -62,6 +62,7 @@ export const thunkObliterateEntireStore = appCreateAsyncThunk<void>(
   "cross/obliterateEntireStore",
   async (__, { dispatch }) => {
     // Dispatch actions to reset each slice to its initial state
+    // This does not reset ALL slices (ex: user and connection)
     dispatch(actionObliterateState());
     dispatch(evaObliterateState());
     dispatch(hoverObliterateState());
@@ -74,7 +75,6 @@ export const thunkObliterateEntireStore = appCreateAsyncThunk<void>(
     dispatch(stationObliterateState());
     dispatch(stmObliterateState());
     dispatch(traverseObliterateState());
-    //dispatch(userObliterateState()); // do not remove user state.
     dispatch(measurementObliterateState());
   }
 );
