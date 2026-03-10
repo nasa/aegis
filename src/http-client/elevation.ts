@@ -26,6 +26,16 @@ export async function getElevationProfile(
     body: JSON.stringify(postData),
   });
 
+  if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
+    return { status: "error", message: errorMessage };
+  }
   const response: WrappedResponse<number[][]> = await res.json();
   return response;
 }
@@ -58,6 +68,16 @@ export async function getElevationSinglePoint(
     body: JSON.stringify(postData),
   });
 
+  if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
+    return { status: "error", message: errorMessage };
+  }
   const response: WrappedResponse<number[][]> = await res.json();
   const convertedResponse = { ...response, data: response.data ? response.data[0][0] : undefined };
   return convertedResponse;

@@ -11,12 +11,20 @@ export async function upsertStations(stations: Station[]): Promise<WrappedRespon
     },
     body: JSON.stringify(requestBody),
   });
-  const response: WrappedResponse<Station[]> = await res.json();
   if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
     alert(
-      `Error saving stations to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+      `Error saving stations to database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
+    return { status: "error", message: errorMessage };
   }
+  const response: WrappedResponse<Station[]> = await res.json();
   return response;
 }
 
@@ -33,11 +41,19 @@ export async function deleteStations(stationUuids: string[]): Promise<WrappedRes
     },
     body: JSON.stringify(requestBody),
   });
-  const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
     alert(
-      `Error deleting stations from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+      `Error deleting stations from database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
+    return { status: "error", message: errorMessage };
   }
+  const response: WrappedResponse<null> = await res.json();
   return response;
 }

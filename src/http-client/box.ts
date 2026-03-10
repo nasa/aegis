@@ -4,6 +4,16 @@ export async function boxGetFolderItems(
 ): Promise<WrappedResponse<BoxItemsResponse>> {
   const res = await fetch(`/api/v1/file/boxGetFolderItems?missionId=${missionId}&itemId=${itemId}`);
 
+  if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
+    return { status: "error", message: errorMessage };
+  }
   const response: WrappedResponse<BoxItemsResponse> = await res.json();
   return response;
 }
@@ -17,6 +27,16 @@ export async function boxDownloadFile(
     `/api/v1/file/boxDownloadFile?missionId=${missionId}&itemId=${itemId}&path=${path}`
   );
 
+  if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
+    return { status: "error", message: errorMessage };
+  }
   const response: WrappedResponse<void> = await res.json();
   return response;
 }
