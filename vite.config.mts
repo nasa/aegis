@@ -73,6 +73,7 @@ export const config: UserConfig = {
             "react-drag-listview",
             "react-final-form",
             "@reduxjs/toolkit",
+            "@fortawesome/react-fontawesome", // needs to be here to prevent circular chunking issues
           ],
           leaflet: [
             "leaflet",
@@ -88,7 +89,6 @@ export const config: UserConfig = {
             "@fortawesome/fontawesome-svg-core",
             "@fortawesome/free-regular-svg-icons",
             "@fortawesome/free-solid-svg-icons",
-            "@fortawesome/react-fontawesome",
           ],
           paper: ["paper"],
           automerge: [
