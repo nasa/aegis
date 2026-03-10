@@ -18,6 +18,7 @@ import { getTraverses } from "./traverse";
 import { hasPerms } from "utils/permissions";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { getAutomergeMissions } from "./missionAutomerge";
 
 const router = express.Router();
 
@@ -98,6 +99,7 @@ export default router;
 export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll> {
   // All queries start simultaneously and use different connections from the pool
   const [
+    mission,
     actions,
     evas,
     layers,
@@ -113,8 +115,7 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
     traverses,
     folders,
   ] = await Promise.all([
-    // mission is populated from automerge. Do not pull from DB here
-    // populate everything else from DB
+    getAutomergeMissions([missionId]),
     getActions({ missionId }),
     getEVAs(missionId),
     getLayers(missionId),
@@ -131,7 +132,7 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
     getFolders(missionId),
   ]);
   const allData: OneMissionToRuleThemAll = {
-    mission: null,
+    mission: mission[0],
     actions,
     evas,
     layers,
