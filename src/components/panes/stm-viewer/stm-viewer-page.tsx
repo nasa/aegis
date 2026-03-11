@@ -20,35 +20,41 @@ import {
   stmViewToggleEva,
   stmViewToggleExpandTopTiers,
   stmViewToggleSelectedActionType,
-  setSectionSelected,
   stmViewToggleCrosshairs,
-} from "store/interface";
+} from "store/stm";
+import { setSectionSelected } from "store/interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSelectedStationUuid } from "store/station";
 import { actionTypes } from "store/storeUtils/action";
 import sortBy from "lodash/sortBy";
 import { selectAsPlannedStations } from "store/selectors";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const StmViewerPage: FunctionComponent = () => {
   const stmViewExpandTopTiers = useAppSelector(
-    (state) => state.interface.stmViewExpandTopTiers,
+    (state) => state.stm.stmViewExpandTopTiers,
     refEqual
   );
   const stmViewShowCrosshairs = useAppSelector(
-    (state) => state.interface.stmViewShowCrosshairs,
+    (state) => state.stm.stmViewShowCrosshairs,
     refEqual
   );
-  const stmLevel1Enabled = useAppSelector(
-    (state) => state.mission.mission.stmLevel1Enabled,
-    refEqual
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      stmLevel1Enabled: doc.stmLevel1Enabled,
+      stmLevel1Name: doc.stmLevel1Name,
+      stmLevel2Name: doc.stmLevel2Name,
+      stmLevel3Name: doc.stmLevel3Name,
+    }),
+    deepEqual
   );
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+
   const dispatch = useAppDispatch();
 
-  const expandedClass = stmLevel1Enabled
+  const expandedClass = partialMission.stmLevel1Enabled
     ? styles.panelTopLeftExpanded
     : styles.panelTopLeftExpanded2Tier;
-  const collapsedClass = stmLevel1Enabled
+  const collapsedClass = partialMission.stmLevel1Enabled
     ? styles.panelTopLeftCollapsed
     : styles.panelTopLeftCollapsed2Tier;
 
@@ -112,34 +118,34 @@ const StmViewerPage: FunctionComponent = () => {
             {stmViewExpandTopTiers ? (
               <div
                 className={
-                  mission.stmLevel1Enabled
+                  partialMission.stmLevel1Enabled
                     ? styles.listTableTitlesExpanded
                     : styles.listTableTier1DisabledTitlesExpanded
                 }
               >
-                {mission.stmLevel1Enabled && (
-                  <div className={styles.listTableTitle}>{`${mission.stmLevel1Name}s`}</div>
+                {partialMission.stmLevel1Enabled && (
+                  <div className={styles.listTableTitle}>{`${partialMission.stmLevel1Name}s`}</div>
                 )}
-                <div className={styles.listTableTitle}>{mission.stmLevel2Name}s</div>
-                <div className={styles.listTableTitle}>{mission.stmLevel3Name}s</div>
+                <div className={styles.listTableTitle}>{partialMission.stmLevel2Name}s</div>
+                <div className={styles.listTableTitle}>{partialMission.stmLevel3Name}s</div>
               </div>
             ) : (
               <div
                 className={
-                  mission.stmLevel1Enabled
+                  partialMission.stmLevel1Enabled
                     ? styles.listTableTitlesCollapsed
                     : styles.listTableTier1DisabledTitlesCollapsed
                 }
               >
-                {mission.stmLevel1Enabled && (
+                {partialMission.stmLevel1Enabled && (
                   <div className={styles.listTableTitle}>
-                    {mission.stmLevel1Name.substring(0, 1)}.
+                    {partialMission.stmLevel1Name.substring(0, 1)}.
                   </div>
                 )}
                 <div className={styles.listTableTitle}>
-                  {mission.stmLevel2Name.substring(0, 1)}.
+                  {partialMission.stmLevel2Name.substring(0, 1)}.
                 </div>
-                <div className={styles.listTableTitle}>{mission.stmLevel3Name}s</div>
+                <div className={styles.listTableTitle}>{partialMission.stmLevel3Name}s</div>
               </div>
             )}
           </div>
@@ -172,7 +178,7 @@ const StationGroupTitles: FunctionComponent = () => {
       [(eva) => eva.name?.toLowerCase()]
     );
     return sortedAsPlannedEvas
-      .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
+      .filter((eva) => state.stm.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
   return (
@@ -252,12 +258,12 @@ const StationNameGroups: FunctionComponent = () => {
       [(eva) => eva.name?.toLowerCase()]
     );
     return sortedAsPlannedEvas
-      .filter((eva) => state.interface.stmViewSelectedEvas.includes(eva.uuid))
+      .filter((eva) => state.stm.stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
   const allStationsNotInASelectedEvas = useAppSelector((state) => {
     const sortedAsPlannedStations = selectAsPlannedStations(state);
-    const selectedEvaUuids = state.interface.stmViewSelectedEvas;
+    const selectedEvaUuids = state.stm.stmViewSelectedEvas;
     for (const evaUuid of selectedEvaUuids) {
       const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
       if (eva) {
@@ -327,8 +333,7 @@ const StationNames: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid }) => {
 const StationName: FunctionComponent<{ station: Station }> = ({ station }) => {
   const dispatch = useAppDispatch();
   const stmViewHoveredTopItem = useAppSelector(
-    (state) =>
-      state.interface.stmViewShowCrosshairs ? state.interface.stmViewHoveredTopItem : null,
+    (state) => (state.stm.stmViewShowCrosshairs ? state.stm.stmViewHoveredTopItem : null),
     refEqual
   );
   return (
@@ -355,7 +360,7 @@ const StationName: FunctionComponent<{ station: Station }> = ({ station }) => {
 
 const EvaSelector: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const selectedEvas = useAppSelector((state) => state.interface.stmViewSelectedEvas, deepEqual);
+  const selectedEvas = useAppSelector((state) => state.stm.stmViewSelectedEvas, deepEqual);
   const asPlannedEvaWithStations = useAppSelector((state) => {
     const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
     const asPlannedEvasWithStations = state.eva.evas.filter(
@@ -391,7 +396,7 @@ const EvaSelector: FunctionComponent = () => {
 const ActionTypesSelector: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedActionTypes = useAppSelector(
-    (state) => state.interface.stmViewSelectedActionTypes,
+    (state) => state.stm.stmViewSelectedActionTypes,
     shallowEqual
   );
 

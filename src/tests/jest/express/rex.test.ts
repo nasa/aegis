@@ -2,9 +2,8 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import { App_User_db, Mission_db, Rex_db } from "server/database/models/_allModels";
+import { App_User_db, Rex_db } from "server/database/models/_allModels";
 import AppUserFactory from "../factories/AppUserFactory";
-import MissionFactory from "../factories/MissionFactory";
 import RexFactory from "../factories/RexFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
@@ -20,27 +19,26 @@ jest.mock("server/express/sockets", () => {
 });
 
 let testAppUser: App_User_db;
-let testMissions: Mission_db[];
 let testRexes: Rex_db[];
+const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testMissions = await new MissionFactory(em).create(3);
   testAppUser = await new AppUserFactory(em).createOne({
     username: "JestRex",
     permissionList: [
       {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         permissions: {
           edit: true,
           view: true,
         },
       },
       {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         permissions: {
           edit: false,
           view: true,
@@ -50,7 +48,7 @@ beforeAll(async () => {
   });
   testRexes = await new RexFactory(em)
     .each((rex) => {
-      rex.mission = testMissions[0];
+      rex.missionId = testMissionIds[0];
     })
     .create(2);
 });
@@ -75,8 +73,8 @@ describe("REX API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: RexUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[2].id,
-        rexes: [{ ...newRex, missionId: testMissions[2].id }],
+        missionId: testMissionIds[2],
+        rexes: [{ ...newRex, missionId: testMissionIds[2] }],
       };
       const res = await supertest(app)
         .post("/api/v1/rex")
@@ -89,8 +87,8 @@ describe("REX API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: RexUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[1].id,
-        rexes: [{ ...newRex, missionId: testMissions[1].id }],
+        missionId: testMissionIds[1],
+        rexes: [{ ...newRex, missionId: testMissionIds[1] }],
       };
       const res = await supertest(app)
         .post("/api/v1/rex")
@@ -103,7 +101,7 @@ describe("REX API Endpoint", () => {
     test("Empty rexes array", async () => {
       const requestBody: RexUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         rexes: [],
       };
       const res = await supertest(app)
@@ -117,8 +115,8 @@ describe("REX API Endpoint", () => {
     test("Create new Rex", async () => {
       const requestBody: RexUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
-        rexes: [{ ...newRex, missionId: testMissions[0].id, ownerId: testAppUser.id }],
+        missionId: testMissionIds[0],
+        rexes: [{ ...newRex, missionId: testMissionIds[0], ownerId: testAppUser.id }],
       };
       const res = await supertest(app)
         .post("/api/v1/rex")
@@ -139,7 +137,7 @@ describe("REX API Endpoint", () => {
       newRex.name = "Jest Test New Rex Modified";
       const requestBody: RexUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         rexes: [newRex],
       };
       const res = await supertest(app)
@@ -156,7 +154,7 @@ describe("REX API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: RexDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         uuids: [newRex.uuid],
       };
       const res = await supertest(app)
@@ -170,7 +168,7 @@ describe("REX API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: RexDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         uuids: [newRex.uuid],
       };
       const res = await supertest(app)
@@ -184,7 +182,7 @@ describe("REX API Endpoint", () => {
     test("Delete a Rex", async () => {
       const requestBody: RexDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         uuids: [newRex.uuid],
       };
       const res = await supertest(app)
@@ -205,8 +203,8 @@ describe("Auth with emss-token header", () => {
   test("POST request succeeds with emss-token", async () => {
     const requestBody: RexUpsertRequest = {
       socketId: "someSocketId",
-      missionId: testMissions[0].id,
-      rexes: [{ ...newRex, missionId: testMissions[0].id }],
+      missionId: testMissionIds[0],
+      rexes: [{ ...newRex, missionId: testMissionIds[0] }],
     };
     const res = await supertest(app)
       .post("/api/v1/rex")
@@ -220,7 +218,7 @@ describe("Auth with emss-token header", () => {
   test("DELETE request succeeds with emss-token", async () => {
     const requestBody: RexDeleteRequest = {
       socketId: "someSocketId",
-      missionId: testMissions[0].id,
+      missionId: testMissionIds[0],
       uuids: [newRex.uuid],
     };
     const res = await supertest(app)
@@ -237,9 +235,6 @@ afterAll(async () => {
   const em = globalValues.orm.em.fork();
   for (let i = 0; i < testRexes.length; i++) {
     await em.nativeDelete(Rex_db, { uuid: testRexes[i].uuid });
-  }
-  for (let i = 0; i < testMissions.length; i++) {
-    await em.nativeDelete(Mission_db, { id: testMissions[i].id });
   }
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
 

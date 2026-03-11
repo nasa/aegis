@@ -39,6 +39,7 @@ import { RightTabs } from "components/interface/side-controls";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import Station_Circles_Panel from "./station-right-circles";
 import { getAsPlannedEvaFromRefUuid, selectAsPlannedStations } from "store/selectors";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -86,6 +87,7 @@ const StationEditorRight: FunctionComponent = () => {
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
+  const missionWalkbackRate = useMissionDocSelector((doc) => doc.walkbackRate, refEqual);
   const calculatedFieldsReportItems = useAppSelector((state) => {
     const station = state.station.stations.find((station) => station.uuid === selectedStationUuid);
     const stationActions = state.action.actions.filter(
@@ -93,7 +95,7 @@ const StationEditorRight: FunctionComponent = () => {
     );
     return getCalculatedFieldsByStation({
       station,
-      missionWalkbackRate: state.mission.mission.walkbackRate,
+      missionWalkbackRate,
       stationActions,
     })?.reportItems;
   }, deepEqual);
@@ -260,7 +262,7 @@ const StationEditorRight: FunctionComponent = () => {
               styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingLeft: 0 }}
               onSubmit={(val) => {
-                dispatch(upsertStationByField(selectedStation.uuid, "name", val));
+                dispatch(upsertStationByField(selectedStation.uuid, "name", val || ""));
               }}
               key={`${selectedStation.uuid}-name`}
               toFocus={selectedStation.createdAt === selectedStation.updatedAt}

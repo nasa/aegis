@@ -7,7 +7,6 @@ import { getActions } from "./action";
 import { getEVAs } from "./eva";
 import { getFolders } from "./folder";
 import { getLayers } from "./layer";
-import { getMission } from "./mission";
 import { getSublayers } from "./sublayer";
 import { getPois } from "./poi";
 import { getPresets } from "./preset";
@@ -19,6 +18,7 @@ import { getTraverses } from "./traverse";
 import { hasPerms } from "utils/permissions";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { getAutomergeMissions } from "./missionAutomerge";
 
 const router = express.Router();
 
@@ -115,7 +115,7 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
     traverses,
     folders,
   ] = await Promise.all([
-    getMission(missionId).then((result) => result?.[0] || null),
+    getAutomergeMissions([missionId]),
     getActions({ missionId }),
     getEVAs(missionId),
     getLayers(missionId),
@@ -132,7 +132,7 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
     getFolders(missionId),
   ]);
   const allData: OneMissionToRuleThemAll = {
-    mission,
+    mission: mission[0],
     actions,
     evas,
     layers,

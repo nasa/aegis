@@ -14,11 +14,8 @@ import { stationSlice } from "store/station";
 import { obliterateState as actionObliterateState } from "store/action";
 import { obliterateState as evaObliterateState } from "store/eva";
 import { obliterateState as hoverObliterateState } from "store/hover";
-import {
-  expandActions,
-  obliterateState as interfaceObliterateState,
-  setSectionSelected,
-} from "store/interface";
+import { obliterateState as interfaceObliterateState, setSectionSelected } from "store/interface";
+import { expandActions } from "store/action";
 import { obliterateState as mapObliterateState } from "store/map";
 import { obliterateState as missionObliterateState } from "store/mission";
 import { obliterateState as poiObliterateState } from "store/poi";
@@ -65,6 +62,7 @@ export const thunkObliterateEntireStore = appCreateAsyncThunk<void>(
   "cross/obliterateEntireStore",
   async (__, { dispatch }) => {
     // Dispatch actions to reset each slice to its initial state
+    // This does not reset ALL slices (ex: user and connection)
     dispatch(actionObliterateState());
     dispatch(evaObliterateState());
     dispatch(hoverObliterateState());
@@ -77,7 +75,6 @@ export const thunkObliterateEntireStore = appCreateAsyncThunk<void>(
     dispatch(stationObliterateState());
     dispatch(stmObliterateState());
     dispatch(traverseObliterateState());
-    //dispatch(userObliterateState()); // do not remove user state.
     dispatch(measurementObliterateState());
   }
 );

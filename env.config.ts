@@ -48,23 +48,12 @@ export const config: DotenvConfig<typeof environments> = {
   /**
    * Container image info
    */
-  BASE_IMAGE_NAME: {
-    local: "emss-labs-local",
-    default: process.env.CI_REGISTRY_IMAGE || "missing-env-var-BASE_IMAGE_NAME",
-  },
+  // Image version is used to make each image name unique to each commit's pipeline
   IMAGE_VERSION: { default: process.env.IMAGE_VERSION || "dev" },
-  DOCKER_IMAGE_NGINX: {
-    local: "NOT_USED_LOCALLY",
-    default: `eegitlabregistry.fit.nasa.gov/emss/aegis/nginx:${process.env.IMAGE_VERSION}`,
+  REGISTRY_IMAGE: {
+    default: "eegitlabregistry.fit.nasa.gov/emss/aegis",
   },
-  DOCKER_IMAGE_APIV1: {
-    local: "NOT_USED_LOCALLY",
-    default: `eegitlabregistry.fit.nasa.gov/emss/aegis/apiv1:${process.env.IMAGE_VERSION}`,
-  },
-  DOCKER_IMAGE_GDAL: {
-    local: "NOT_USED_LOCALLY",
-    default: `eegitlabregistry.fit.nasa.gov/emss/aegis/gdal:${process.env.IMAGE_VERSION}`,
-  },
+  DOCKER_IMAGE_DATABASE: { default: "postgis/postgis:14-3.2-alpine" },
 
   /**
    * Box information
@@ -132,7 +121,7 @@ export const config: DotenvConfig<typeof environments> = {
   },
 
   // Ultimately need to alter this based on what server we're on (prod/int/dev). Currently this override
-  // happens in the pipeline depoy script. `INSERT_SUBDOMAIN` that gets replaced
+  // happens in the pipeline deploy script. `INSERT_SUBDOMAIN` that gets replaced
   // with the appropriate subdomain during deploy.
   OAUTH2_PROXY_REDIRECT_URL: {
     // prod: "https://aegis.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",

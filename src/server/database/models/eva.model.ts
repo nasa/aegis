@@ -1,7 +1,5 @@
-import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/postgresql";
+import { Entity, PrimaryKey, Property } from "@mikro-orm/postgresql";
 import { types as MikroTypes } from "@mikro-orm/postgresql";
-
-import { Mission_db } from "./_allModels";
 
 @Entity()
 export class Eva_db implements Eva_db_type {
@@ -15,16 +13,16 @@ export class Eva_db implements Eva_db_type {
   })
   refUuid: string;
 
-  @ManyToOne(() => Mission_db, { unique: false, primary: false })
-  mission!: Mission_db;
+  @Property({ type: MikroTypes.integer })
+  missionId!: number;
 
-  @Property({ type: MikroTypes.text, nullable: true })
+  @Property({ type: MikroTypes.text })
   name!: string;
   @Property({ type: MikroTypes.string })
   status!: StationStatus;
   @Property({ type: MikroTypes.json, nullable: true })
   sequence!: EvaSequenceItem[];
-  @Property({ type: MikroTypes.text, nullable: true })
+  @Property({ type: MikroTypes.text })
   description!: string;
   @Property({ type: MikroTypes.float, nullable: true })
   duration!: number;

@@ -18,13 +18,14 @@ import { EmojiRenderer } from "components/interface/emojis";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { validators } from "components/interface/form/formValidators";
 import capitalize from "lodash/capitalize";
-import { collapseActions, expandActions } from "store/interface";
+import { collapseActions, expandActions } from "store/action";
 import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
 import { getRexStatusDisplayProperties } from "../../utils/component-helpers";
 import { RexStatusMenu } from "./rex/rex-status-menu";
 import { actionTypes } from "store/storeUtils/action";
 import { thunkUpsertActionDefinitionSelection } from "store/thunk/thunkAction";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;
@@ -48,12 +49,19 @@ const RightAction: FunctionComponent<{
   allowEdit = true,
 }) => {
   const dispatch = useAppDispatch();
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      actionSystemVersion: doc.actionSystemVersion,
+      actionDefinitions: doc.actionDefinitions,
+    }),
+    deepEqual
+  );
 
   const action = useAppSelector(
     (state) => state.action.actions.find((a) => a.uuid === actionUuid),
     deepEqual
   );
-  const actionsExpanded = useAppSelector((state) => state.interface.actionsExpanded, shallowEqual);
+  const actionsExpanded = useAppSelector((state) => state.action.actionsExpanded, shallowEqual);
   const isRexRunning = useAppSelector(
     (state) => state.rex.rexes.find((rex) => rex.uuid === rexUuid)?.isRunning,
     refEqual
@@ -79,11 +87,6 @@ const RightAction: FunctionComponent<{
   );
 
   const editPerms = allowEdit && editPermsStore && isRexRunning;
-
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
-    refEqual
-  );
 
   const toggleCrewAssigned = (crewMember: Crew) => {
     const currentCrew = action.crewAssigned || [];
@@ -204,7 +207,7 @@ const RightAction: FunctionComponent<{
                 )}
               </div>
 
-              {actionSystemVersion === 1 && (
+              {partialMission.actionSystemVersion === 1 && (
                 <>
                   {!editMode ? (
                     <div
@@ -239,7 +242,7 @@ const RightAction: FunctionComponent<{
               >
                 <EmojiRenderer iconValue={action.icon ? action.icon : "2800"} customSizeEm={1.5} />
               </div>
-              {actionSystemVersion === 1 || !action.stmAction ? (
+              {partialMission.actionSystemVersion === 1 || !action.stmAction ? (
                 <div className={actionStyles.actionHeadingTitle}>
                   <div className={actionStyles.verticalCenter}>
                     <InLineEditInput
@@ -251,7 +254,7 @@ const RightAction: FunctionComponent<{
                         validators: [validators.required, validators.maxLength(255)],
                       }}
                       onSubmit={(value: string) => {
-                        dispatch(upsertActionByField(action.uuid, "name", value));
+                        dispatch(upsertActionByField(action.uuid, "name", value || ""));
                       }}
                       key={`${action.uuid}-name`}
                       toFocus={toFocus}
@@ -266,6 +269,7 @@ const RightAction: FunctionComponent<{
                       type={"verbs"}
                       selectedUuid={action.actionDefinition?.verbUuid}
                       editMode={editMode}
+                      actionDefinitionItems={partialMission.actionDefinitions?.verbs}
                     />
                     <div className={actionStyles.actionDefType}>of</div>
                     <ActionDefType
@@ -273,6 +277,7 @@ const RightAction: FunctionComponent<{
                       type={"nouns"}
                       selectedUuid={action.actionDefinition?.nounUuid}
                       editMode={editMode}
+                      actionDefinitionItems={partialMission.actionDefinitions?.nouns}
                     />
                     <div className={actionStyles.actionDefType}>in</div>
                     <ActionDefType
@@ -280,6 +285,7 @@ const RightAction: FunctionComponent<{
                       type={"adjectives"}
                       selectedUuid={action.actionDefinition?.adjectiveUuid}
                       editMode={editMode}
+                      actionDefinitionItems={partialMission.actionDefinitions?.adjectives}
                     />
                   </div>
                 </>
@@ -368,15 +374,10 @@ export const ActionDefType: FunctionComponent<{
   type: ActionDefinitionType;
   selectedUuid: string;
   editMode: boolean;
-}> = ({ actionUuid, type, selectedUuid, editMode }) => {
-  const dispatch = useAppDispatch();
-  const actionDefinitionItems = useAppSelector(
-    (state) => state.mission.mission.actionDefinitions[type],
-    deepEqual
-  );
-
+  actionDefinitionItems: ActionDefinitionItems;
+}> = ({ actionUuid, type, selectedUuid, editMode, actionDefinitionItems }) => {
   const selectedName = actionDefinitionItems[selectedUuid]?.name;
-
+  const dispatch = useAppDispatch();
   return (
     <>
       {!editMode ? (

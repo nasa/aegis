@@ -7,11 +7,13 @@ import svgr from "vite-plugin-svgr";
 import path from "path";
 import _ from "lodash";
 import packageJSON from "./package.json";
+import wasm from "vite-plugin-wasm";
+import topLevelAwait from "vite-plugin-top-level-await";
 
 export const config: UserConfig = {
   root: "./src",
   envDir: "../",
-  plugins: [react(), svgr()],
+  plugins: [react(), svgr(), wasm(), topLevelAwait()],
   resolve: {
     //alias paths so that the import statements are shorter and start from the src folder
     alias: {
@@ -26,6 +28,7 @@ export const config: UserConfig = {
       packages: path.resolve(__dirname, "./src/packages"),
       assets: path.resolve(__dirname, "./src/assets"),
       public: path.resolve(__dirname, "./src/public"),
+      client: path.resolve(__dirname, "./src/client"),
     },
   },
   //server configurations for running vite as a server (only happens in local dev). On docker/production, nginx serves the front end
@@ -70,6 +73,7 @@ export const config: UserConfig = {
             "react-drag-listview",
             "react-final-form",
             "@reduxjs/toolkit",
+            "@fortawesome/react-fontawesome", // needs to be here to prevent circular chunking issues
           ],
           leaflet: [
             "leaflet",
@@ -85,9 +89,14 @@ export const config: UserConfig = {
             "@fortawesome/fontawesome-svg-core",
             "@fortawesome/free-regular-svg-icons",
             "@fortawesome/free-solid-svg-icons",
-            "@fortawesome/react-fontawesome",
           ],
           paper: ["paper"],
+          automerge: [
+            "@automerge/automerge",
+            "@automerge/automerge-repo",
+            "@automerge/automerge-repo-network-websocket",
+            "@automerge/automerge-repo-react-hooks",
+          ],
         },
       },
       external: ["path", "os", "crypto"],

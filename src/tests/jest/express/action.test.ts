@@ -2,16 +2,9 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import {
-  App_User_db,
-  Action_db,
-  Mission_db,
-  Station_db,
-  Poi_db,
-} from "server/database/models/_allModels";
+import { App_User_db, Action_db, Station_db, Poi_db } from "server/database/models/_allModels";
 import AppUserFactory from "../factories/AppUserFactory";
 import ActionFactory from "../factories/ActionFactory";
-import MissionFactory from "../factories/MissionFactory";
 import StationFactory from "../factories/StationFactory";
 import PoiFactory from "../factories/PoiFactory";
 import supertest from "supertest";
@@ -28,29 +21,28 @@ jest.mock("server/express/sockets", () => {
 });
 
 let testAppUser: App_User_db;
-let testMissions: Mission_db[];
 const testActions: Action_db[] = [];
 let testStation: Station_db;
 let testPoi: Poi_db;
+const testMissionIds: number[] = [1000, 1001, 1002]; // test mission IDs, not real missions
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testMissions = await new MissionFactory(em).create(3);
   testAppUser = await new AppUserFactory(em).createOne({
     username: "Jest Action",
     permissionList: [
       {
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         permissions: {
           edit: true,
           view: true,
         },
       },
       {
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         permissions: {
           edit: false,
           view: true,
@@ -60,20 +52,20 @@ beforeAll(async () => {
   });
 
   testStation = await new StationFactory(em).createOne({
-    mission: testMissions[0],
+    missionId: testMissionIds[0],
   });
   testPoi = await new PoiFactory(em).createOne({
-    mission: testMissions[0],
+    missionId: testMissionIds[0],
   });
   testActions.push(
     await new ActionFactory(em).createOne({
-      mission: testMissions[0],
+      missionId: testMissionIds[0],
       station: testStation,
     })
   );
   testActions.push(
     await new ActionFactory(em).createOne({
-      mission: testMissions[0],
+      missionId: testMissionIds[0],
       poi: testPoi,
     })
   );
@@ -99,7 +91,7 @@ describe("Action API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: ActionUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         actions: [newAction],
       };
       const res = await supertest(app)
@@ -112,7 +104,7 @@ describe("Action API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: ActionUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         actions: [newAction],
       };
       const res = await supertest(app)
@@ -125,7 +117,7 @@ describe("Action API Endpoint", () => {
     test("Empty actions array", async () => {
       const requestBody: ActionUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         actions: [],
       };
       const res = await supertest(app)
@@ -138,8 +130,8 @@ describe("Action API Endpoint", () => {
     test("Create new action", async () => {
       const requestBody: ActionUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
-        actions: [{ ...newAction, missionId: testMissions[0].id }],
+        missionId: testMissionIds[0],
+        actions: [{ ...newAction, missionId: testMissionIds[0] }],
       };
       const res = await supertest(app)
         .post("/api/v1/action")
@@ -162,7 +154,7 @@ describe("Action API Endpoint", () => {
       newAction.name = "Jest Test New Action Modified";
       const requestBody: ActionUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         actions: [newAction],
       };
       const res = await supertest(app)
@@ -182,7 +174,7 @@ describe("Action API Endpoint", () => {
     test("No permissions", async () => {
       const requestBody: ActionDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[2].id,
+        missionId: testMissionIds[2],
         actionUuids: [newAction.uuid],
       };
       const res = await supertest(app)
@@ -195,7 +187,7 @@ describe("Action API Endpoint", () => {
     test("No permissions - View only", async () => {
       const requestBody: ActionDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[1].id,
+        missionId: testMissionIds[1],
         actionUuids: [newAction.uuid],
       };
       const res = await supertest(app)
@@ -208,7 +200,7 @@ describe("Action API Endpoint", () => {
     test("Delete a action", async () => {
       const requestBody: ActionDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         actionUuids: [newAction.uuid],
       };
       const res = await supertest(app)
@@ -229,7 +221,7 @@ describe("Action API Endpoint", () => {
     test("POST request succeeds with emss-token", async () => {
       const requestBody: ActionUpsertRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         actions: [newAction],
       };
       const res = await supertest(app)
@@ -242,7 +234,7 @@ describe("Action API Endpoint", () => {
     test("DELETE request succeeds with emss-token", async () => {
       const requestBody: ActionDeleteRequest = {
         socketId: "someSocketId",
-        missionId: testMissions[0].id,
+        missionId: testMissionIds[0],
         actionUuids: [newAction.uuid],
       };
       const res = await supertest(app)
@@ -262,9 +254,6 @@ afterAll(async () => {
   }
   await em.nativeDelete(Station_db, { uuid: testStation.uuid });
   await em.nativeDelete(Poi_db, { uuid: testPoi.uuid });
-  for (let i = 0; i < testMissions.length; i++) {
-    await em.nativeDelete(Mission_db, { id: testMissions[i].id });
-  }
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
 
   // Closing the DB connection allows Jest to exit successfully.

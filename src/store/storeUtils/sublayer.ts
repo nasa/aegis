@@ -41,7 +41,6 @@ export const generateBlankSublayer = (partialSublayer?: Partial<Sublayer>): Subl
     minNativeZoom: 0,
     maxNativeZoom: 0,
     maxZoom: 30,
-    style: defaultSublayerStyle,
     isTimeBased: false,
     timeLayerManifest: null,
     createdAt: getAccurateNow().toISOString(),
@@ -60,7 +59,7 @@ export function convertSublayersTypeDbToStore(dbSublayers: Sublayer_db[]): Subla
   for (const dbSublayer of dbSublayers) {
     const convertedSublayer: Sublayer = {
       uuid: dbSublayer.uuid,
-      missionId: dbSublayer.mission.id,
+      missionId: dbSublayer.missionId,
       layerUuid: dbSublayer.layer.uuid,
       name: dbSublayer.name,
       description: dbSublayer.description,
@@ -73,7 +72,6 @@ export function convertSublayersTypeDbToStore(dbSublayers: Sublayer_db[]): Subla
       minNativeZoom: dbSublayer.minNativeZoom,
       maxNativeZoom: dbSublayer.maxNativeZoom,
       maxZoom: dbSublayer.maxZoom,
-      style: dbSublayer.style,
       isTimeBased: dbSublayer.isTimeBased,
       timeLayerManifest: dbSublayer.timeLayerManifest,
       createdAt: dbSublayer.createdAt.toISOString(),
@@ -96,7 +94,7 @@ export function convertSublayersTypeStoreToDb(
   for (const storeSublayer of storeSublayers) {
     const convertedRecord: EntityData<Sublayer_db> = {
       uuid: storeSublayer.uuid,
-      mission: storeSublayer.missionId,
+      missionId: storeSublayer.missionId,
       layer: storeSublayer.layerUuid,
       name: storeSublayer.name,
       description: storeSublayer.description,
@@ -109,7 +107,6 @@ export function convertSublayersTypeStoreToDb(
       minNativeZoom: storeSublayer.minNativeZoom,
       maxNativeZoom: storeSublayer.maxNativeZoom,
       maxZoom: storeSublayer.maxZoom,
-      style: storeSublayer.style,
       isTimeBased: storeSublayer.isTimeBased,
       timeLayerManifest: storeSublayer.timeLayerManifest,
       createdAt: new Date(storeSublayer.createdAt),

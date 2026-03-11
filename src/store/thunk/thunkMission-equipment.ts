@@ -1,7 +1,6 @@
-import cloneDeep from "lodash/cloneDeep";
 import appCreateAsyncThunk from "./thunkUtil";
-import { upsertMission, upsertMissionByField } from "store/mission";
-import { v4 as uuidv4 } from "uuid";
+import { getAccurateNow } from "utils/formatting";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 import { makeReadableActionDefinition } from "utils/export";
 
 type PrintableListItem = {
@@ -10,28 +9,19 @@ type PrintableListItem = {
   actionName: string;
 };
 
-export const thunkUpdateEquipment = appCreateAsyncThunk<{
-  uuid: string;
-  fieldName: "name" | "quantity" | "singleUse";
-  value: string | number | boolean;
-}>("updateEquipment", async ({ uuid, fieldName, value }, { dispatch, getState }) => {
-  const equipmentItems = getState().mission.mission.equipmentItems;
-  const currentItem = equipmentItems?.[uuid];
-  if (currentItem) {
-    const newEquipmentItems = cloneDeep(equipmentItems);
-    (newEquipmentItems[uuid] as { [key in typeof fieldName]: typeof value })[fieldName] = value;
-    dispatch(upsertMissionByField("equipmentItems", newEquipmentItems));
-  }
-});
-
+// Keep this as a thunk because we need access to the rest of redux state
+// to determine if this equipment item is used and can be deleted.
 export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: string }>(
   "deleteEquipment",
-  async ({ equipmentItemUuid }, { dispatch, getState }) => {
+  async ({ equipmentItemUuid }, { getState }) => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
     // find all of the things that could be using this equipment item
     const actionsUsingEquipmentItem = getState().action.actions.filter(
       (action) => action.equipmentItemsUsage?.[equipmentItemUuid] !== undefined
     );
-    const actionTemplates = getState().mission.mission.actionTemplates;
+    const actionTemplates = mission.actionTemplates;
     const templatesUsingEquipmentItem = actionTemplates
       ? Object.values(actionTemplates).filter(
           (template) => template.equipmentItemsUsage?.[equipmentItemUuid] !== undefined
@@ -42,7 +32,6 @@ export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: str
     if (actionsUsingEquipmentItem.length > 0) {
       // compile a list of the actions using this equipment item including their parent poi or station names
       const actionsList: PrintableListItem[] = actionsUsingEquipmentItem.map((action) => {
-        console.log(action);
         const parentType = action.poiUuid ? "POI" : "Station";
         let parentName = "";
         if (parentType === "POI") {
@@ -58,7 +47,7 @@ export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: str
         if (action.stmAction) {
           const readableActionDef = makeReadableActionDefinition({
             action,
-            actionDefinitions: getState().mission.mission.actionDefinitions,
+            actionDefinitions: mission.actionDefinitions,
           });
           actionName = readableActionDef.displayString;
         }
@@ -71,12 +60,12 @@ export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: str
       });
       printableList.push(...actionsList);
     }
-    if (templatesUsingEquipmentItem?.length > 0) {
+    if (templatesUsingEquipmentItem && templatesUsingEquipmentItem.length > 0) {
       const templateList: PrintableListItem[] = templatesUsingEquipmentItem.map((template) => {
         return {
           parentType: "Template",
           parentName: "Action",
-          actionName: template.templateName,
+          actionName: template.templateName || "(Unnamed Template)",
         };
       });
       printableList.push(...templateList);
@@ -93,31 +82,11 @@ export const thunkDeleteEquipment = appCreateAsyncThunk<{ equipmentItemUuid: str
     }
 
     //this item is not being used. All good to delete it
-    const equipmentItems = getState().mission.mission.equipmentItems;
-    const newEquipmentItems = cloneDeep(equipmentItems);
-    delete newEquipmentItems[equipmentItemUuid];
-    dispatch(upsertMission({ ...getState().mission.mission, equipmentItems: newEquipmentItems }));
-  }
-);
-
-export const thunkCreateEquipment = appCreateAsyncThunk<void, string>(
-  "createEquipment",
-  async (_, { dispatch, getState }) => {
-    const equipmentUuid = uuidv4();
-
-    const blankEquipmentItem: EquipmentItem = {
-      name: "(Equipment Name)",
-      quantity: 1,
-      singleUse: false,
-    };
-
-    const equipmentItems = getState().mission.mission.equipmentItems || {};
-    const newEquipmentItems = {
-      ...equipmentItems,
-      [equipmentUuid]: blankEquipmentItem,
-    };
-    dispatch(upsertMissionByField("equipmentItems", newEquipmentItems));
-
-    return equipmentUuid;
+    missionDocHandle.change((m: Mission) => {
+      if (m.equipmentItems[equipmentItemUuid]) {
+        delete m.equipmentItems[equipmentItemUuid];
+        m.updatedAt = getAccurateNow().getTime();
+      }
+    });
   }
 );

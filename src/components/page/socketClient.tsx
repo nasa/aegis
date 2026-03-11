@@ -8,37 +8,37 @@ import { cleanupSocketListeners, createSocket, attachSocketListeners } from "uti
 const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.user, deepEqual);
-  const interfaceStore = useAppSelector((state) => state.interface, deepEqual);
+  const connectionStore = useAppSelector((state) => state.connection, deepEqual);
 
   // all stores are stored in refs so that the socket event handlers can access the latest values
   const userRef = useRef(user);
-  const interfaceStoreRef = useRef(interfaceStore);
+  const connectionStoreRef = useRef(connectionStore);
 
   //socket connection
   const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
 
   //Handle socketio events
   useEffect(() => {
-    if (!missionId || !user?.missionPerms || !interfaceStore?.appVersion) return;
+    if (!missionId || !user?.missionPerms || !connectionStore?.appVersion) return;
     // Create a socket connection to the server.
     // On handshake, the server will generate an socket id for the client
     if (!socket.current || (socket.current && !socket.current.connected)) {
       socket.current = createSocket(window.location.origin);
     }
 
-    attachSocketListeners(socket.current, dispatch, interfaceStoreRef, userRef, missionId);
+    attachSocketListeners(socket.current, dispatch, connectionStoreRef, userRef, missionId);
 
     // Clean up the socket connection on unmount
     return () => {
       cleanupSocketListeners(socket.current);
     };
-  }, [dispatch, socket, missionId, user, interfaceStore.appVersion]);
+  }, [dispatch, socket, missionId, user, connectionStore.appVersion]);
 
   // Keep refs up to date from store
   useEffect(() => {
     userRef.current = user;
-    interfaceStoreRef.current = interfaceStore;
-  }, [user, interfaceStore]);
+    connectionStoreRef.current = connectionStore;
+  }, [user, connectionStore]);
 
   return <></>;
 };

@@ -26,6 +26,16 @@ export async function getElevationProfile(
     body: JSON.stringify(postData),
   });
 
+  if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
+    return { status: "error", message: errorMessage };
+  }
   const response: WrappedResponse<number[][]> = await res.json();
   return response;
 }
@@ -36,6 +46,9 @@ export async function getElevationSinglePoint(
   point: AEGISPoint,
   radius: number
 ): Promise<WrappedResponse<number>> {
+  if (!point.lat || !point.lng) {
+    return { status: "error", message: "Invalid point" };
+  }
   const fakePoint = { lat: point.lat + 0.001, lng: point.lng };
   const dist = getDistanceBetweenTwoCoordinates(point, fakePoint, radius);
   const postData: ElevationProfilePostData = {
@@ -55,8 +68,17 @@ export async function getElevationSinglePoint(
     body: JSON.stringify(postData),
   });
 
+  if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
+    return { status: "error", message: errorMessage };
+  }
   const response: WrappedResponse<number[][]> = await res.json();
-  const data = response.data ? response.data[0][0] : null;
-  const convertedResponse = { ...response, data };
+  const convertedResponse = { ...response, data: response.data ? response.data[0][0] : undefined };
   return convertedResponse;
 }

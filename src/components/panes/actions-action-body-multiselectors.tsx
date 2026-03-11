@@ -5,21 +5,26 @@ import { FunctionComponent, useCallback } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
-import { collapseActions, expandActions } from "store/interface";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
+import { collapseActions, expandActions } from "store/action";
+import type { AutomergeUrl } from "@automerge/automerge-repo";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
 
 export const EquipmentSelector: FunctionComponent<{
-  equipmentItemsUsage: EquipmentItemUsages;
+  equipmentItemsUsage: EquipmentItemUsages | null;
   editMode: boolean;
-  onChange: (value: EquipmentItemUsages) => void;
+  onChange?: (value: EquipmentItemUsages) => void; // onChange to execute when NOT using automerge
+  actionTemplateUuid?: string; // for automerge. used if this component is being rendered in a mission actionTemplate
   uniqueId: string;
-}> = ({ equipmentItemsUsage, editMode, onChange, uniqueId }) => {
-  const sortedEquipmentItems: [string, EquipmentItem][] = useAppSelector((state) => {
-    if (!state.mission.mission.equipmentItems) return [];
-    return Object.entries(state.mission.mission.equipmentItems).sort(([, a], [, b]) =>
-      a.name.localeCompare(b.name)
-    );
-  }, deepEqual);
+}> = ({ equipmentItemsUsage, editMode, onChange, actionTemplateUuid, uniqueId }) => {
+  const automergeUrl = useAppSelector((state) => state.mission.automergeUrl, refEqual);
+  const missionDocHandle = useDocHandle<Mission>(automergeUrl as AutomergeUrl);
+  const equipmentItems = useMissionDocSelector((doc) => doc.equipmentItems, deepEqual);
+
+  const sortedEquipmentItems: [string, EquipmentItem][] = !equipmentItems
+    ? []
+    : Object.entries(equipmentItems).sort(([, a], [, b]) => a.name.localeCompare(b.name));
 
   // create sorted list of equipment item display objects. Used to show the list when not in edit mode
   const equipmentItemUsageDisplayList = sortedEquipmentItems.flatMap(
@@ -36,29 +41,55 @@ export const EquipmentSelector: FunctionComponent<{
   );
 
   const addEquipmentItem = (equipmentItemUuid: string, quantity: number) => {
-    const newEquipmentItemsUsage: EquipmentItemUsages = {
-      ...equipmentItemsUsage,
-      [equipmentItemUuid]: { quantityUsed: quantity },
-    };
-    onChange(newEquipmentItemsUsage);
+    if (actionTemplateUuid) {
+      // Direct mutation approach for Automerge
+      missionDocHandle.change((m: Mission) => {
+        const template = m.actionTemplates[actionTemplateUuid];
+        if (!template) return;
+        if (!template.equipmentItemsUsage) template.equipmentItemsUsage = {};
+        // if it already exists, do nothing, otherwise add it
+        if (template.equipmentItemsUsage[equipmentItemUuid]) return;
+        // Add new item
+        template.equipmentItemsUsage[equipmentItemUuid] = { quantityUsed: quantity };
+      });
+    } else if (onChange) {
+      // Fallback for non-Automerge usage
+      const newEquipmentItemsUsage: EquipmentItemUsages = {
+        ...equipmentItemsUsage,
+        [equipmentItemUuid]: { quantityUsed: quantity },
+      };
+      onChange(newEquipmentItemsUsage);
+    }
   };
 
   const removeEquipmentItem = useCallback(
     (equipmentItemUuid: string) => {
-      const updatedEquipmentItemsUsage = { ...equipmentItemsUsage };
-      delete updatedEquipmentItemsUsage?.[equipmentItemUuid];
-      onChange(updatedEquipmentItemsUsage);
+      if (actionTemplateUuid) {
+        // Direct mutation approach for Automerge
+        missionDocHandle.change((m: Mission) => {
+          const template = m.actionTemplates[actionTemplateUuid];
+          if (!template) return;
+          if (template.equipmentItemsUsage[equipmentItemUuid]) {
+            delete template.equipmentItemsUsage[equipmentItemUuid];
+          }
+        });
+      } else if (onChange && equipmentItemsUsage) {
+        // Fallback for non-Automerge usage
+        const updatedEquipmentItemsUsage = { ...equipmentItemsUsage };
+        delete updatedEquipmentItemsUsage?.[equipmentItemUuid];
+        onChange(updatedEquipmentItemsUsage);
+      }
     },
-    [equipmentItemsUsage, onChange]
+    [actionTemplateUuid, missionDocHandle, onChange, equipmentItemsUsage]
   );
 
   if (editMode) {
     // split equipment items into two columns
-    const equipmentItemsColumn1 = sortedEquipmentItems.slice(
+    const equipmentItemsColumn1 = sortedEquipmentItems?.slice(
       0,
       Math.ceil(sortedEquipmentItems.length / 2)
     );
-    const equipmentItemsColumn2 = sortedEquipmentItems.slice(
+    const equipmentItemsColumn2 = sortedEquipmentItems?.slice(
       Math.ceil(sortedEquipmentItems.length / 2)
     );
 
@@ -116,7 +147,7 @@ export const EquipmentSelector: FunctionComponent<{
 };
 
 const EquipmentCheckbox: FunctionComponent<{
-  equipmentItemsUsage: EquipmentItemUsages;
+  equipmentItemsUsage: EquipmentItemUsages | null;
   editMode: boolean;
   equipmentItemUuid: string;
   equipmentItem: EquipmentItem;
@@ -132,7 +163,7 @@ const EquipmentCheckbox: FunctionComponent<{
   removeEquipmentItem,
   uniqueId,
 }) => {
-  // return true if equipmentItemUuid is in action's equipmentItemsUsage
+  // return true if equipmentItem.uuid is in action's equipmentItemsUsage
   const checked = equipmentItemsUsage?.[equipmentItemUuid] !== undefined;
 
   return (
@@ -149,24 +180,26 @@ const EquipmentCheckbox: FunctionComponent<{
         }}
         label={equipmentItem?.name}
         labelStyle={{ justifyContent: "space-around", display: "flex", flexDirection: "column" }}
-        uniqueId={`${equipmentItem?.name}-${uniqueId}`}
+        uniqueId={`${equipmentItemUuid}-${uniqueId}`}
       />
     </div>
   );
 };
 
 export const GeographicUnitSelector: FunctionComponent<{
-  geographicUnitsUsage: string[];
+  geographicUnitsUsage: string[] | null;
   editMode: boolean;
-  onChange: (value: string[]) => void;
+  onChange?: (value: string[]) => void; // onChange to execute when not using automerge
+  actionTemplateUuid?: string; // for automerge. used if this component is being rendered in a mission actionTemplate
   uniqueId: string;
-}> = ({ geographicUnitsUsage, editMode, onChange, uniqueId }) => {
-  const sortedGeographicUnits: [string, GeographicUnit][] = useAppSelector((state) => {
-    if (!state.mission.mission.geographicUnits) return [];
-    return Object.entries(state.mission.mission.geographicUnits).sort(([, a], [, b]) =>
-      a.name.localeCompare(b.name)
-    );
-  }, deepEqual);
+}> = ({ geographicUnitsUsage, editMode, onChange, actionTemplateUuid, uniqueId }) => {
+  const automergeUrl = useAppSelector((state) => state.mission.automergeUrl, refEqual);
+  const missionDocHandle = useDocHandle<Mission>(automergeUrl as AutomergeUrl);
+  const geographicUnits = useMissionDocSelector((doc) => doc.geographicUnits, deepEqual);
+
+  const sortedGeographicUnits: [string, GeographicUnit][] = !geographicUnits
+    ? []
+    : Object.entries(geographicUnits).sort(([, a], [, b]) => a.name.localeCompare(b.name));
 
   // create sorted list of geographic units. Used to show the list when not in edit mode
   const geographicUnitDisplayList = sortedGeographicUnits.flatMap(
@@ -180,35 +213,71 @@ export const GeographicUnitSelector: FunctionComponent<{
   );
 
   const addGeographicUnit = (geographicUnitUuid: string) => {
-    let newGeographicUnitsUsage: string[] = [];
-    if (geographicUnitsUsage) {
-      // remove any existing geographic unit with the same uuid
-      newGeographicUnitsUsage = geographicUnitsUsage.filter((uuid) => uuid !== geographicUnitUuid);
+    if (actionTemplateUuid) {
+      // Direct mutation approach for Automerge
+      missionDocHandle.change((m: Mission) => {
+        const template = m.actionTemplates[actionTemplateUuid];
+        if (!template) return;
+        if (geographicUnitsUsage) {
+          // if it already exists, do nothing, otherwise add it
+          const exists = geographicUnitsUsage.some(
+            (geoUnitUuid) => geoUnitUuid === geographicUnitUuid
+          );
+          if (exists) return;
+          template.geographicUnitsUsage.push(geographicUnitUuid); // Add new uuid
+        } else {
+          template.geographicUnitsUsage = [geographicUnitUuid];
+        }
+      });
+    } else if (onChange) {
+      // Fallback for non-Automerge usage
+      let newGeographicUnitsUsage: string[] = [];
+      if (geographicUnitsUsage) {
+        // remove any existing geographic unit with the same uuid
+        newGeographicUnitsUsage = geographicUnitsUsage.filter(
+          (uuid) => uuid !== geographicUnitUuid
+        );
 
-      newGeographicUnitsUsage = [...newGeographicUnitsUsage, geographicUnitUuid];
-    } else {
-      newGeographicUnitsUsage = [geographicUnitUuid];
+        newGeographicUnitsUsage = [...newGeographicUnitsUsage, geographicUnitUuid];
+      } else {
+        newGeographicUnitsUsage = [geographicUnitUuid];
+      }
+      onChange(newGeographicUnitsUsage);
     }
-    onChange(newGeographicUnitsUsage);
   };
 
-  const removeGeographicUnit = useCallback(
+  const removeNewGeographicUnit = useCallback(
     (geographicUnitUuid: string) => {
-      const newGeographicUnitsUsage = geographicUnitsUsage.filter(
-        (geographicUnitUsage) => geographicUnitUsage !== geographicUnitUuid
-      );
-      onChange(newGeographicUnitsUsage);
+      if (actionTemplateUuid) {
+        // Direct mutation approach for Automerge
+        missionDocHandle.change((m: Mission) => {
+          const template = m.actionTemplates[actionTemplateUuid];
+          if (!template) return;
+          const indexToRemove = template.geographicUnitsUsage.findIndex(
+            (uuid) => uuid === geographicUnitUuid
+          );
+          if (indexToRemove >= 0) {
+            template.geographicUnitsUsage.splice(indexToRemove, 1);
+          }
+        });
+      } else if (onChange && geographicUnitsUsage) {
+        // Fallback for non-Automerge usage
+        const newGeographicUnitsUsage = geographicUnitsUsage.filter(
+          (geographicUnitUsage) => geographicUnitUsage !== geographicUnitUuid
+        );
+        onChange(newGeographicUnitsUsage);
+      }
     },
-    [geographicUnitsUsage, onChange]
+    [actionTemplateUuid, missionDocHandle, onChange, geographicUnitsUsage]
   );
 
   if (editMode) {
-    // split geographic units into two columns
-    const geographicUnitsColumn1 = sortedGeographicUnits.slice(
+    // split equipment items into two columns
+    const geographicUnitsColumn1 = sortedGeographicUnits?.slice(
       0,
       Math.ceil(sortedGeographicUnits.length / 2)
     );
-    const geographicUnitsColumn2 = sortedGeographicUnits.slice(
+    const geographicUnitsColumn2 = sortedGeographicUnits?.slice(
       Math.ceil(sortedGeographicUnits.length / 2)
     );
 
@@ -223,7 +292,7 @@ export const GeographicUnitSelector: FunctionComponent<{
                 geographicUnitUuid: uuid,
                 geographicUnit,
                 addGeographicUnit: addGeographicUnit,
-                removeGeographicUnit: removeGeographicUnit,
+                removeGeographicUnit: removeNewGeographicUnit,
                 uniqueId,
               });
             })}
@@ -237,7 +306,7 @@ export const GeographicUnitSelector: FunctionComponent<{
                 geographicUnitUuid: uuid,
                 geographicUnit,
                 addGeographicUnit: addGeographicUnit,
-                removeGeographicUnit: removeGeographicUnit,
+                removeGeographicUnit: removeNewGeographicUnit,
                 uniqueId,
               });
             })}
@@ -263,7 +332,7 @@ export const GeographicUnitSelector: FunctionComponent<{
 };
 
 const GeographicUnitCheckbox: FunctionComponent<{
-  geographicUnitsUsage: string[];
+  geographicUnitsUsage: string[] | null;
   editMode: boolean;
   geographicUnitUuid: string;
   geographicUnit: GeographicUnit;
@@ -301,7 +370,7 @@ const GeographicUnitCheckbox: FunctionComponent<{
         }}
         label={geographicUnit.name}
         labelStyle={{ justifyContent: "space-around", display: "flex", flexDirection: "column" }}
-        uniqueId={`${geographicUnit.name}-${uniqueId}`}
+        uniqueId={`${geographicUnitUuid}-${uniqueId}`}
       />
     </div>
   );

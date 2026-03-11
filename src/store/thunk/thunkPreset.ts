@@ -15,6 +15,7 @@ import {
   deletePresetLayersUIStates,
   deletePresetCirclesUIStates,
   selectPreset,
+  setAllPresetCirclesUIStates,
 } from "store/preset";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import * as httpClient_preset from "http-client/preset";
@@ -25,6 +26,7 @@ import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankPreset } from "store/storeUtils/preset";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
   presetUuid: string;
@@ -149,29 +151,31 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
         sublayerUuid: sublayer.uuid,
         visible: false,
         style: {
-          opacity: sublayer.style.opacity ?? defaultSublayerStyle.opacity,
-          contrast: sublayer.style.contrast ?? defaultSublayerStyle.contrast,
-          brightness: sublayer.style.brightness ?? defaultSublayerStyle.brightness,
-          saturation: sublayer.style.saturation ?? defaultSublayerStyle.saturation,
-          blendMode: sublayer.style.blendMode ?? defaultSublayerStyle.blendMode,
-          color: sublayer.style.color ?? defaultSublayerStyle.color,
-          weight: sublayer.style.weight ?? defaultSublayerStyle.weight,
-          fillColor: sublayer.style.fillColor ?? defaultSublayerStyle.fillColor,
-          fillOpacity: sublayer.style.fillOpacity ?? defaultSublayerStyle.fillOpacity,
-          isDashed: sublayer.style.isDashed ?? defaultSublayerStyle.isDashed,
-          dashLen: sublayer.style.dashLen ?? defaultSublayerStyle.dashLen,
-          altColor: sublayer.style.altColor ?? defaultSublayerStyle.altColor,
-          altOpacity: sublayer.style.altOpacity ?? defaultSublayerStyle.altOpacity,
+          opacity: defaultSublayerStyle.opacity,
+          contrast: defaultSublayerStyle.contrast,
+          brightness: defaultSublayerStyle.brightness,
+          saturation: defaultSublayerStyle.saturation,
+          blendMode: defaultSublayerStyle.blendMode,
+          color: defaultSublayerStyle.color,
+          weight: defaultSublayerStyle.weight,
+          fillColor: defaultSublayerStyle.fillColor,
+          fillOpacity: defaultSublayerStyle.fillOpacity,
+          isDashed: defaultSublayerStyle.isDashed,
+          dashLen: defaultSublayerStyle.dashLen,
+          altColor: defaultSublayerStyle.altColor,
+          altOpacity: defaultSublayerStyle.altOpacity,
         },
       };
     }
 
     // build circle controls
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
     const blankMapCircleControls: MapCircleControls = {};
-    if (getState().mission.mission.circleDefinitions) {
-      Object.entries(getState().mission.mission.circleDefinitions).forEach(([uuid, circleDef]) => {
+    if (mission.circleDefinitions) {
+      Object.entries(mission.circleDefinitions).forEach(([uuid]) => {
         blankMapCircleControls[uuid] = {
-          name: circleDef.name,
           uuid: uuid,
           visible: false,
           style: defaultSublayerStyle,
@@ -181,7 +185,7 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
 
     const blankPreset = generateBlankPreset({
       name: randomName,
-      missionId: getState().mission.mission?.id,
+      missionId: mission.id,
       layerOrder: defaultOrder,
       mapSublayerControls: blankMapSublayerControls,
       mapCircleControls: blankMapCircleControls,
@@ -224,15 +228,12 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
     // create preset circles ui states entry
     const presetCircleUIStates: CircleUIStates = {};
 
-    if (getState().mission.mission.circleDefinitions) {
-      Object.entries(getState().mission.mission.circleDefinitions).forEach(
-        ([uuid, circleDefinition]) => {
-          presetCircleUIStates[uuid] = {
-            name: circleDefinition.name,
-            slidersSelected: false,
-          };
-        }
-      );
+    if (mission.circleDefinitions) {
+      Object.entries(mission.circleDefinitions).forEach(([uuid]) => {
+        presetCircleUIStates[uuid] = {
+          slidersSelected: false,
+        };
+      });
     }
 
     dispatch(
@@ -291,5 +292,73 @@ export const thunkDuplicatePreset = appCreateAsyncThunk<{ presetUuid: string }>(
         circleUIStates: newPresetCircleUIState,
       })
     );
+  }
+);
+
+// when mission is changed, update values in presets
+export const thunkSyncPresetsWithMission = appCreateAsyncThunk<void>(
+  "presetSyncWithMission",
+  async (_, { dispatch, getState }) => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
+    //sync up presets circle layers
+    const newPresets: Preset[] = [];
+    const newCirclesUIStates: CirclesUIStates = {};
+    getState().preset.presets.forEach((preset) => {
+      const oldPresetCircleUIStates: CircleUIStates =
+        getState().preset.presetCirclesUIStates[preset.uuid];
+      // start with copies of the old data
+      const newPreset: Preset = cloneDeep(preset);
+      const newPresetCircleUIStates: CircleUIStates = cloneDeep(oldPresetCircleUIStates) || {};
+      const newMapCircleControls: MapCircleControls = cloneDeep(preset.mapCircleControls) || {};
+
+      // loop through all circles and update
+      Object.entries(mission.circleDefinitions || {})?.forEach(([uuid]) => {
+        // update preset circle UI states
+        if (!newPresetCircleUIStates[uuid]) {
+          newPresetCircleUIStates[uuid] = {
+            slidersSelected: false,
+          };
+        }
+
+        // update preset map circle controls
+        if (!newMapCircleControls[uuid]) {
+          newMapCircleControls[uuid] = {
+            uuid,
+            visible: false,
+            style: defaultSublayerStyle,
+          };
+        }
+      });
+
+      // remove any circle UI states that were from deleted circles
+      for (const uuid of Object.keys(newPresetCircleUIStates)) {
+        const existsInMission = mission.circleDefinitions[uuid];
+        if (!existsInMission) delete newPresetCircleUIStates[uuid];
+      }
+      // remove any map circle controls that were from deleted circles
+      for (const uuid of Object.keys(newMapCircleControls)) {
+        const existsInMission = mission.circleDefinitions[uuid];
+        if (!existsInMission) delete newMapCircleControls[uuid];
+      }
+
+      // push the new circle ui state and the new preset with updated map circle controls
+      newCirclesUIStates[preset.uuid] = newPresetCircleUIStates;
+      newPreset.mapCircleControls = newMapCircleControls;
+      newPresets.push(newPreset);
+    });
+
+    // perform 1 dispatch at the end of all the preset circle UI states
+    dispatch(setAllPresetCirclesUIStates({ circlesUIStates: newCirclesUIStates }));
+
+    // do 1 call to update all the presets
+    const upsertResponse = await httpClient_preset.upsertPresets(newPresets);
+    if (upsertResponse.status === "success") {
+      dispatch(upsertPresets(upsertResponse.data, true));
+      dispatch(upsertPresetsFromDb(upsertResponse.data));
+    } else {
+      throw new Error("Error syncing presets with mission: " + upsertResponse.message);
+    }
   }
 );

@@ -21,6 +21,7 @@ import * as httpClient_poi from "http-client/poi";
 import * as httpClient_traverse from "http-client/traverse";
 import { generateBlankAction } from "store/storeUtils/action";
 import { upsertTraverseByField, upsertTraversesFromDb } from "store/traverse";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 
 export const thunkCreateAction = appCreateAsyncThunk<
   {
@@ -36,6 +37,9 @@ export const thunkCreateAction = appCreateAsyncThunk<
     { actionParentUuid, actionOrderUuids, setActionOrderUuids, actionTemplate },
     { dispatch, getState }
   ) => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
     const actionUuid = uuidv4();
     const randomName = generateUniqueName({
       dictName: "starTrek",
@@ -44,10 +48,10 @@ export const thunkCreateAction = appCreateAsyncThunk<
 
     let blankAction = generateBlankAction({
       ...actionParentUuid,
-      missionId: getState().mission.mission.id,
+      missionId: mission.id,
       uuid: actionUuid,
       name: randomName,
-      stmAction: getState().mission.mission.actionSystemVersion === 2,
+      stmAction: mission.actionSystemVersion === 2,
     });
 
     if (actionTemplate) {
@@ -118,7 +122,7 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
       // preservingRefUuids only occurs when duplicating an EVA for a REX.
       if (!preserveRefUuid) {
         newAction.refUuid = uuidv4();
-        const newDateString = getAccurateNow().toISOString();
+        const newDateString = getAccurateNow().getTime();
         newAction.createdAt = newDateString;
         newAction.updatedAt = newDateString;
         // set name
@@ -143,7 +147,7 @@ export const thunkDuplicateActions = appCreateAsyncThunk<{
       //set parent info
       if (promotingFromPoi) {
         newAction.parentActionUuid = actions[i].uuid;
-        newAction.parentCopyDate = getAccurateNow().toISOString();
+        newAction.parentCopyDate = getAccurateNow().getTime();
       } else {
         newAction.parentActionUuid = actions[i].parentActionUuid;
         newAction.parentCopyDate = actions[i].parentCopyDate;
@@ -227,7 +231,7 @@ export const thunkSaveActions = appCreateAsyncThunk<{
     if (isModified([action], [actionsFromDb.find((a) => a.uuid === action.uuid)])) {
       changedActions.push({
         ...action,
-        updatedAt: getAccurateNow().toISOString(),
+        updatedAt: getAccurateNow().getTime(),
       });
     }
   }

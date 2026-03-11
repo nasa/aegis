@@ -120,9 +120,9 @@ const mustBeUnique =
   };
 
 const withinBoundary =
-  (minBoundary: number, maxBoundary: number) =>
+  (minBoundary: number | undefined, maxBoundary: number | undefined) =>
   (value: Stringy): string | undefined => {
-    if (!value) return undefined;
+    if (!value || !minBoundary || !maxBoundary) return undefined;
     if (minBoundary && maxBoundary) {
       return minBoundary <= Number(value) && Number(value) <= maxBoundary
         ? undefined

@@ -17,7 +17,7 @@ beforeAll(async () => {
 
   const em = globalValues.orm.em.fork();
   testAdmin = await new AppUserFactory(em).createOne({
-    username: "JesttestAdminForLogin",
+    username: "JestTestAdminForLogin",
     isAdmin: true,
   });
 });

@@ -21,11 +21,7 @@ import * as httpClient_action from "http-client/action";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankPoi } from "store/storeUtils/poi";
 import { generateBlankStation } from "store/storeUtils/station";
-import {
-  generateBlankActionTemplate,
-  generateBlankMission,
-  generateDefaultActionDefinitions,
-} from "store/storeUtils/mission";
+import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 const mockThunkGetElevation = jest.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
@@ -33,6 +29,15 @@ const mockThunkGetElevation = jest.fn().mockReturnValue({
 jest.mock("store/thunk/thunkElevation", () => ({
   thunkGetElevation: () => mockThunkGetElevation,
 }));
+
+beforeAll(() => {
+  /**
+   * Init the mission automerge doc. In the app this is handled in the component.
+   * Pass in null because this function is being mocked in jest.setup.ts so we don't
+   * have to pass in a real value.
+   */
+  setMissionAutomergeDocHandle(null);
+});
 
 beforeEach(async () => {
   jest.clearAllMocks(); // clear call count
@@ -44,21 +49,9 @@ afterAll(() => {
 
 describe("Thunk Action Tests", () => {
   test("thunkCreateAction()", async () => {
-    //populate the action state in the store
-    const blankActionTemplate = generateBlankActionTemplate({
-      templateName: "Jest Action Template",
-    });
-    const mission = generateBlankMission({
-      name: "Jest Test Mission",
-      landerLocation: { lat: 3, lng: 3 },
-      actionTemplates: { [uuidv4()]: blankActionTemplate },
-      actionDefinitions: generateDefaultActionDefinitions(),
-    });
     const store = createCustomTestStore({
       mission: {
         ...missionInitialState,
-        mission: mission,
-        missionFromDb: mission,
       },
       action: actionInitialState,
     });
@@ -174,7 +167,7 @@ describe("Thunk Action Tests", () => {
       ...stationAction,
       name: "Jest Action-1 Modified",
       description: "modified description",
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date().getTime(),
     };
     const unsavedStationAction: Action = generateBlankAction({
       name: "Jest Action-1",

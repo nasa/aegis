@@ -1,22 +1,32 @@
 import { FunctionComponent } from "react";
 import styles from "./stm-rules-page.module.css";
 import STMRulesTable from "./stm-rules-list-table";
-import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
+import { refEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
   stmViewSetHoveredTopItem,
   stmViewSetHoveredLeftItem,
   stmViewToggleExpandTopTiers,
-} from "store/interface";
+} from "store/stm";
 import { Button } from "components/interface/form/globalFields";
 import { faArrowsLeftRightToLine } from "@fortawesome/free-solid-svg-icons";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const StmViewerPage: FunctionComponent = () => {
   const stmViewExpandTopTiers = useAppSelector(
-    (state) => state.interface.stmViewExpandTopTiers,
+    (state) => state.stm.stmViewExpandTopTiers,
     refEqual
   );
-  const mission = useAppSelector((state) => state.mission.mission, deepEqual);
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      stmLevel1Name: doc.stmLevel1Name,
+      stmLevel2Name: doc.stmLevel2Name,
+      stmLevel3Name: doc.stmLevel3Name,
+      stmLevel1Enabled: doc.stmLevel1Enabled,
+    }),
+    deepEqual
+  );
+
   const dispatch = useAppDispatch();
   return (
     <div className={styles.body}>
@@ -48,16 +58,16 @@ const StmViewerPage: FunctionComponent = () => {
             {stmViewExpandTopTiers ? (
               <div
                 className={
-                  mission.stmLevel1Enabled
+                  partialMission.stmLevel1Enabled
                     ? styles.listTableTitlesExpanded
                     : styles.listTableTier1DisabledTitlesExpanded
                 }
               >
-                {mission.stmLevel1Enabled && (
-                  <div className={styles.listTableTitle}>{`${mission.stmLevel1Name}s`}</div>
+                {partialMission.stmLevel1Enabled && (
+                  <div className={styles.listTableTitle}>{`${partialMission.stmLevel1Name}s`}</div>
                 )}
-                <div className={styles.listTableTitle}>{mission.stmLevel2Name}s</div>
-                <div className={styles.listTableTitle}>{mission.stmLevel3Name}s</div>
+                <div className={styles.listTableTitle}>{partialMission.stmLevel2Name}s</div>
+                <div className={styles.listTableTitle}>{partialMission.stmLevel3Name}s</div>
                 <div className={styles.listTableRuleTitleContainer}>
                   <div className={styles.listTableTitle} style={{ flex: "1 1 auto" }}>
                     Satisfaction Rules
@@ -70,20 +80,20 @@ const StmViewerPage: FunctionComponent = () => {
             ) : (
               <div
                 className={
-                  mission.stmLevel1Enabled
+                  partialMission.stmLevel1Enabled
                     ? styles.listTableTitlesCollapsed
                     : styles.listTableTier1DisabledTitlesCollapsed
                 }
               >
-                {mission.stmLevel1Enabled && (
+                {partialMission.stmLevel1Enabled && (
                   <div className={styles.listTableTitle}>
-                    {mission.stmLevel1Name.substring(0, 1)}.
+                    {partialMission.stmLevel1Name.substring(0, 1)}.
                   </div>
                 )}
                 <div className={styles.listTableTitle}>
-                  {mission.stmLevel2Name.substring(0, 1)}.
+                  {partialMission.stmLevel2Name.substring(0, 1)}.
                 </div>
-                <div className={styles.listTableTitle}>{mission.stmLevel3Name}s</div>
+                <div className={styles.listTableTitle}>{partialMission.stmLevel3Name}s</div>
                 <div className={styles.listTableRuleTitleContainer}>
                   <div className={styles.listTableTitle} style={{ flex: "1 1 auto" }}>
                     Satisfaction Rules

@@ -1,19 +1,11 @@
-import {
-  Entity,
-  PrimaryKey,
-  Property,
-  ManyToOne,
-  types as MikroTypes,
-} from "@mikro-orm/postgresql";
-
-import { Mission_db } from "./_allModels";
+import { Entity, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/postgresql";
 
 @Entity()
 export class STM_Rule_db implements STMRule_db_type {
   @PrimaryKey({ type: MikroTypes.string })
   uuid!: string;
-  @ManyToOne(() => Mission_db) //many STM_Rules have one mission
-  mission!: Mission_db;
+  @Property({ type: MikroTypes.integer })
+  missionId!: number;
 
   @Property({ type: MikroTypes.string })
   stmUuid!: string;

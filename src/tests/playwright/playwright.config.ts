@@ -6,6 +6,7 @@ const storageStatePath = path.resolve(__dirname, "../../../.local/playwright/aut
 export default defineConfig({
   // Look for test files in the "tests" directory, relative to this configuration file.
   testDir: "./",
+  testIgnore: "**/automergeCRDT.spec.ts", // do not run this test. It is for local dev only
 
   // Set the timeout for each test.
   timeout: 120000,

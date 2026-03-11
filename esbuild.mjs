@@ -5,7 +5,7 @@ import * as esbuild from "esbuild";
 import packageJSON from "./package.json" with { type: "json" };
 
 // Remove the previous build directory
-rmSync("./.local/express/dist", { recursive: true, force: true });
+rmSync("./.local/express/dist/api", { recursive: true, force: true });
 
 // Create a plugin to handle rebuild events
 const watchPlugin = {
@@ -22,12 +22,10 @@ const watchPlugin = {
   },
 };
 
-// Run esbuild with the specified options
+// Run esbuild with the specified options for the API server
 const context = await esbuild.context({
   entryPoints: {
     api: "src/server/express/server.ts",
-    startLoadTest: "src/tests/loadTest/startLoadTest.ts", // load test jobs are run in ci
-    loadTest: "src/tests/loadTest/loadTest.ts", // load test jobs that are run in ci
   },
   bundle: true,
   sourcemap: true,
@@ -52,7 +50,7 @@ const context = await esbuild.context({
     "libsql",
     "tedious",
   ],
-  outdir: "./.local/express/dist",
+  outdir: "./.local/express/dist/api",
   tsconfig: "./tsconfig.json",
   plugins: [watchPlugin],
   // build time variables

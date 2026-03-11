@@ -7,6 +7,7 @@ import { updateMapDirective } from "store/map";
 import { thunkClearAllMapSelections } from "./crossThunk";
 import { getAccurateNow } from "utils/formatting";
 import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 
 export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   {
@@ -16,14 +17,15 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   void,
   false
 >("updateMeasurementPath", async ({ path, measurementUuid }, { dispatch, getState }) => {
+  const missionDocHandle = getAutomergeDocHandles().mission;
+  const mission = missionDocHandle.doc();
+
   const measurement = getState().measure.measurements.find((t) => t.uuid === measurementUuid);
 
   //calculate new path distances
   const pathSegmentDistances: number[] = [];
   for (let i = 1; i < path.length; i++) {
-    pathSegmentDistances.push(
-      getTotalDistance([path[i - 1], path[i]], getState().mission.mission.planetRadius)
-    );
+    pathSegmentDistances.push(getTotalDistance([path[i - 1], path[i]], mission.planetRadius));
   }
 
   //get elevation of path
@@ -68,7 +70,9 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
 export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
   "addNewMeasurement",
   async (__, { dispatch, getState }) => {
-    const mission = getState().mission.mission;
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
     const measurementUuid = uuidv4();
     const path: AEGISPoint[] = getState().map.measureInitialCoords;
     const distance = getTotalDistance(path, mission.planetRadius);

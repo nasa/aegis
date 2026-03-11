@@ -222,7 +222,7 @@ export default router;
  */
 export async function getRexes(missionId: number): Promise<Rex[]> {
   const em = globalValues.orm.em;
-  const rexes = await em.find(Rex_db, { mission: missionId });
+  const rexes = await em.find(Rex_db, { missionId });
 
   return convertRexesTypeDbToStore(rexes);
 }

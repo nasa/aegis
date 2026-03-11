@@ -177,7 +177,6 @@
   flex: 1;
   width: 1px;
   height: 100%;
-  padding: 0 0 -3px 0;
   background-color: var(--grey5);
 }
 .actionsContainer {

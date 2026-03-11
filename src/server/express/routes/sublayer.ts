@@ -317,7 +317,7 @@ export async function getSublayers(missionId: number, sublayerUUID?: string): Pr
     //find by mission id
     sublayers_db = await em.find(
       Sublayer_db,
-      { mission: { id: missionId } },
+      { missionId },
       { orderBy: [{ layer: { uuid: QueryOrder.ASC }, name: QueryOrder.ASC }] }
     );
   }

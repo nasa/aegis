@@ -1,6 +1,5 @@
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
-import type BoxClient from "box-node-sdk/lib/box-client";
 
 import fs from "node:fs";
 
@@ -111,7 +110,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 export default router;
 
 async function downloadFileFromBox(
-  client: BoxClient,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
   itemId: string,
   downloadFilePath: string
 ): Promise<void> {

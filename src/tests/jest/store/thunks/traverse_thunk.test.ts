@@ -22,10 +22,10 @@ jest.mock("http-client/action");
 import * as httpClient_traverse from "http-client/traverse";
 import * as httpClient_action from "http-client/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankAction } from "store/storeUtils/action";
+import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 const mockThunkGetElevation = jest.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
@@ -33,6 +33,15 @@ const mockThunkGetElevation = jest.fn().mockReturnValue({
 jest.mock("store/thunk/thunkElevation", () => ({
   thunkGetElevation: () => mockThunkGetElevation,
 }));
+
+beforeAll(() => {
+  /**
+   * Init the mission automerge doc. In the app this is handled in the component.
+   * Pass in null because this function is being mocked in jest.setup.ts so we don't
+   * have to pass in a real value.
+   */
+  setMissionAutomergeDocHandle(null);
+});
 
 beforeEach(async () => {
   jest.clearAllMocks(); // clear call count
@@ -45,7 +54,6 @@ afterAll(() => {
 describe("Thunk Traverse Tests", () => {
   test("thunkUpdateTraversePath()", async () => {
     const traverse: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
-    const blankMission: Mission = generateBlankMission({ name: "Jest Mission-1" });
 
     const newPath = [
       { lat: 1, lng: 2 },
@@ -55,7 +63,6 @@ describe("Thunk Traverse Tests", () => {
       traverse: { ...traverseInitialState, traverses: [traverse] },
       mission: {
         ...missionInitialState,
-        mission: { ...blankMission },
       },
     });
 
@@ -70,10 +77,6 @@ describe("Thunk Traverse Tests", () => {
     const traverseIngress: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
     const traverse: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
     const traverseNoEva: Traverse = generateBlankTraverse({ name: "Jest Traverse-1" });
-    const mission: Mission = generateBlankMission({
-      name: "Jest Mission-1",
-      landerLocation: { lat: 3, lng: 3 },
-    });
     const station1: Station = generateBlankStation({
       name: "Jest Station-1",
       location: { lat: 1, lng: 1.1 },
@@ -104,7 +107,6 @@ describe("Thunk Traverse Tests", () => {
       },
       mission: {
         ...missionInitialState,
-        mission,
       },
       eva: {
         ...evaInitialState,
@@ -148,8 +150,8 @@ describe("Thunk Traverse Tests", () => {
     resultTraverse = storeState.traverse.traverses.find((t) => t.uuid === traverseNoEva.uuid);
     expect(resultTraverse.name).toEqual("Jest Traverse-1");
     expect(resultTraverse.path).toEqual([
-      storeState.mission.mission.landerLocation,
-      storeState.mission.mission.landerLocation,
+      { lat: 3, lng: 3 },
+      { lat: 3, lng: 3 },
     ]);
     expect(storeState.traverse.traversesFromDb.length).toEqual(1);
     expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(1);
@@ -172,10 +174,6 @@ describe("Thunk Traverse Tests", () => {
       name: "Jest Station-3",
       location: { lat: 3, lng: 2.1 },
     });
-    const mission = generateBlankMission({
-      name: "Jest Mission-1",
-      landerLocation: { lat: 3, lng: 3 },
-    });
     const eva = generateBlankEVA({ name: "Jest Eva-1" });
     eva.egressLocationUuid = station3.uuid;
     eva.sequence = [
@@ -195,7 +193,6 @@ describe("Thunk Traverse Tests", () => {
       },
       mission: {
         ...missionInitialState,
-        mission,
       },
       station: { ...stationInitialState, stations: [station1, station2, station3] },
     });
@@ -210,7 +207,7 @@ describe("Thunk Traverse Tests", () => {
     );
     await store.dispatch(thunkResetTraverse({ traverseUuid: traverse3.uuid }));
     expect(store.getState().traverse.traverses.find((t) => t.uuid === traverse3.uuid).path).toEqual(
-      [station2.location, store.getState().mission.mission.landerLocation]
+      [station2.location, { lat: 3, lng: 3 }]
     );
   });
 
@@ -230,11 +227,6 @@ describe("Thunk Traverse Tests", () => {
     const station3: Station = generateBlankStation({
       name: "Jest Station-3",
       location: { lat: 3, lng: 2.1 },
-    });
-
-    const mission = generateBlankMission({
-      name: "Jest Mission-1",
-      landerLocation: { lat: 3, lng: 3 },
     });
     const eva1 = generateBlankEVA({ name: "Jest Eva-1" });
     eva1.sequence = [
@@ -258,7 +250,6 @@ describe("Thunk Traverse Tests", () => {
       },
       mission: {
         ...missionInitialState,
-        mission,
       },
       station: { ...stationInitialState, stations: [station1, station2, station3] },
     });
@@ -269,10 +260,10 @@ describe("Thunk Traverse Tests", () => {
     const t2 = store.getState().traverse.traverses.find((t) => t.uuid === traverse2.uuid);
     const t3 = store.getState().traverse.traverses.find((t) => t.uuid === traverse3.uuid);
     const t4 = store.getState().traverse.traverses.find((t) => t.uuid === traverse4.uuid);
-    expect(t1.path).toEqual([store.getState().mission.mission.landerLocation, station1.location]);
+    expect(t1.path).toEqual([{ lat: 3, lng: 3 }, station1.location]);
     expect(t2.path).toEqual([station1.location, station2.location]);
     expect(t3.path).toEqual([station2.location, station3.location]);
-    expect(t4.path).toEqual([station3.location, store.getState().mission.mission.landerLocation]);
+    expect(t4.path).toEqual([station3.location, { lat: 3, lng: 3 }]);
     expect(t1.name).toEqual("Lander to Jest Station-1");
     expect(t2.name).toEqual("Jest Station-1 to Jest Station-2");
     expect(t3.name).toEqual("Jest Station-2 to Jest Station-3");
@@ -285,12 +276,12 @@ describe("Thunk Traverse Tests", () => {
     const traverseAction = generateBlankAction({
       name: "Jest Traverse Action",
       traverseUuid: traverse.uuid,
-      updatedAt: new Date("1/1/2000").toISOString(),
+      updatedAt: new Date("1/1/2000").getTime(),
     });
     const traverseActionModified = {
       ...traverseAction,
       name: "Jest Traverse Action Modified",
-      updatedAt: new Date("1/2/2000").toISOString(),
+      updatedAt: new Date("1/2/2000").getTime(),
     };
     const station = generateBlankStation({
       name: "Jest Station-1",
@@ -365,7 +356,7 @@ describe("Thunk Traverse Tests", () => {
     );
     // should have saved to db
     expect(store.getState().traverse.traversesFromDb.length).toEqual(2);
-    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(2); // call happens +2 becuase actions causes another upsert to traverse
+    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(2); // call happens +2 because actions causes another upsert to traverse
     // actions should be duplicated and saved to db
     expect(store.getState().action.actions.length).toEqual(2);
     expect(store.getState().action.actionsFromDb.length).toEqual(2);
@@ -384,7 +375,7 @@ describe("Thunk Traverse Tests", () => {
     ).toEqual(2);
     // should have saved to db
     expect(store.getState().traverse.traversesFromDb.length).toEqual(3);
-    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(4); // call happens +2 becuase actions causes another upsert to traverse
+    expect(httpClient_traverse.upsertTraverses).toHaveBeenCalledTimes(4); // call happens +2 because actions causes another upsert to traverse
     // actions should be duplicated and saved to db
     expect(store.getState().action.actions.length).toEqual(3);
     expect(store.getState().action.actionsFromDb.length).toEqual(3);

@@ -47,6 +47,7 @@ import { thunkDeleteRex } from "./thunkRex";
 import { setSelectedPosEntryUuid, setSelectedRexUuid } from "store/rex";
 import { setRightPanelIsOpen } from "store/interface";
 import concat from "lodash/concat";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 
 /** Get an Station or Traverse object from a UUID
  * This would typically be used when needing to get the full object from an EVA sequence
@@ -392,16 +393,19 @@ export const thunkDeleteEva = appCreateAsyncThunk<{
 export const thunkCreateEva = appCreateAsyncThunk<void>(
   "evaCreate",
   async (_, { dispatch, getState }) => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
     const randomName = generateUniqueName({
       dictName: "colors",
       existingNames: getState().eva.evas.map((item) => item.name),
     });
 
     const blankEva: Eva = generateBlankEVA({
-      missionId: getState().mission.mission?.id,
+      missionId: mission.id,
       name: randomName,
-      traverseRate: getState().mission.mission.traverseRate,
-      duration: getState().mission.mission.defaultEvaDuration,
+      traverseRate: mission.traverseRate,
+      duration: mission.defaultEvaDuration,
     });
 
     // create an empty traverse
@@ -461,13 +465,22 @@ export const thunkDuplicateEva = appCreateAsyncThunk<
     newEva.updatedAt = newDateString;
     newEva.createdAt = newDateString;
     newEva.refUuid = uuidv4();
-    newEva.name = makeUniqueStringCopy(
-      eva.name,
-      getState().eva.evas.map((item) => item.name)
-    );
+    if (eva.name) {
+      newEva.name = makeUniqueStringCopy(
+        eva.name,
+        getState().eva.evas.map((item) => item.name)
+      );
+    } else {
+      // an EVA may not have a name if the user has selected a rex's EVA (these have no names) and then clicks the duplicate button
+      // generate a new name in this case
+      newEva.name = generateUniqueName({
+        dictName: "colors",
+        existingNames: getState().eva.evas.map((item) => item.name),
+      });
+    }
   } else {
     // EVAs for REXs have no name
-    newEva.name = null;
+    newEva.name = "";
   }
   // Upsert eva and persist to the db. Do this first so it's in the DB when
   //  emits go out for the new traverses they can access the eva traverse rate
@@ -696,7 +709,7 @@ export const thunkReorderStationInEva = appCreateAsyncThunk<{
   evaSequence: EvaSequenceItem[];
   stationIndex: number;
   evaUuid: string;
-}>("evaMoveStationUp", async ({ direction, evaSequence, stationIndex, evaUuid }, { dispatch }) => {
+}>("evaReorderStation", async ({ direction, evaSequence, stationIndex, evaUuid }, { dispatch }) => {
   const newEvaSequence = cloneDeep(evaSequence);
   const traverseUuidsToUpdate: string[] = [];
   let stationIndexToSwap: number;

@@ -10,12 +10,16 @@ import {
 import * as httpClient_folder from "http-client/folder";
 import Cookies from "js-cookie";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 
 export const thunkCreateFolder = appCreateAsyncThunk<{ type: FolderType }>(
   "thunkCreateFolder",
   async ({ type }, { dispatch, getState }) => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
     const blankFolder = generateBlankFolder({
-      missionId: getState().mission.mission?.id,
+      missionId: mission.id,
       type,
       name: makeUniqueStringCopy(
         "New Folder",

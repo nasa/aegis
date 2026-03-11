@@ -9,9 +9,12 @@ import Circles from "../../interface/circles";
 import { useAppDispatch } from "utils/useAppDispatch";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "../../interface/circles.module.css";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
+  const circleDefinitions = useMissionDocSelector((doc) => doc.circleDefinitions, deepEqual);
+
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const mapCircleControls = useAppSelector(
     (state) =>
@@ -22,12 +25,6 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
     (state) => state.preset.presetCirclesUIStates[selectedPresetUuid],
     shallowEqual
   );
-
-  const circleDefinitions = useAppSelector(
-    (state) => state.mission.mission?.circleDefinitions,
-    shallowEqual
-  );
-
   const circleUIStateSetterFunction = ({
     circleDefUuid,
     slidersSelected,

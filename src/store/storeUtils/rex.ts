@@ -117,7 +117,7 @@ export function convertRexesTypeDbToStore(dbRexes: Rex_db[]): Rex[] {
     const convertedRex: Rex = {
       uuid: dbRex.uuid,
       ownerId: dbRex.ownerId,
-      missionId: dbRex.mission.id,
+      missionId: dbRex.missionId,
       name: dbRex.name,
       description: dbRex.description,
       petStartStopTimestamp: dbRex.petStartStopTimestamp,
@@ -153,7 +153,7 @@ export function convertRexesTypeStoreToDb(storeRexes: Rex[]): EntityData<Rex_db>
   const dbRexes: EntityData<Rex_db>[] = [];
   for (const storeRex of storeRexes) {
     const convertedRecord: EntityData<Rex_db> = {
-      mission: storeRex.missionId,
+      missionId: storeRex.missionId,
       uuid: storeRex.uuid,
       ownerId: storeRex.ownerId,
       name: storeRex.name,

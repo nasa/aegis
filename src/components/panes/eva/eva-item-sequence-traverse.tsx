@@ -11,6 +11,7 @@ import { getRexStatusDisplayProperties } from "../../../utils/component-helpers"
 import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const SequenceItemTraverse: FunctionComponent<{
   evaUuid: string;
@@ -18,6 +19,7 @@ const SequenceItemTraverse: FunctionComponent<{
   isRexRunning: boolean;
 }> = ({ evaUuid, traverseUuid }) => {
   const dispatch = useAppDispatch();
+  const missionTraverseRate = useMissionDocSelector((doc) => doc.traverseRate, refEqual);
 
   const isRexEva = useAppSelector((state) => {
     const rexEvaUuids = state.rex.rexes.map((rex) => rex.evaUuid);
@@ -50,7 +52,7 @@ const SequenceItemTraverse: FunctionComponent<{
     );
     return getCalculatedFieldsByTraverse({
       traverse,
-      missionTraverseRate: state.mission.mission.traverseRate,
+      missionTraverseRate,
       evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
     });

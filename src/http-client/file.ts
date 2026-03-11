@@ -78,6 +78,9 @@ export async function listFiles(path: string): Promise<GISfile[]> {
   const res: Response = await fetch(
     `/api/v1/file/list?missionId=${missionId}&path=${encodeURIComponent(path)}`
   );
+  if (res.status !== 200) {
+    return [];
+  }
   const jsondata = await res.json();
   return jsondata.data;
 }

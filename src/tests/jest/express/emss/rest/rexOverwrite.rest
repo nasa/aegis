@@ -48,7 +48,6 @@ emss-token: {{$dotenv EMSS_TOKEN}}
   "actionEntriesByRefUuid": {
     "6e2ee00b-0bd4-44fb-a238-329c5e7714b3": {
       "rexStatus": "complete",
-      "mass": 1,
       "markerId": "marker-123"
     }
   },

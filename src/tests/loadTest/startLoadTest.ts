@@ -17,7 +17,7 @@ const startWorkers = async ({ serverURL }: { serverURL: string }) => {
 
   for (let i = 0; i < NUM_CLIENTS; i++) {
     // start thread
-    const worker = new Worker(`./.local/express/dist/loadTest.js`, {
+    const worker = new Worker(`./.local/express/dist/loadTest/loadTest.js`, {
       workerData: { serverURL, duration: CONNECTION_DURATION },
     });
 

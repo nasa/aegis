@@ -7,6 +7,7 @@ import { setAllSliceStores } from "store/crossActions";
 export const initialState: ActionState = {
   actions: [],
   actionsFromDb: [],
+  actionsExpanded: [],
 };
 
 export const actionSlice = createSlice({
@@ -19,7 +20,7 @@ export const actionSlice = createSlice({
           return { payload: actions };
         } else {
           const updatedActions = actions.map((a) => {
-            return { ...a, updatedAt: getAccurateNow().toISOString() };
+            return { ...a, updatedAt: getAccurateNow().getTime() };
           });
           return { payload: updatedActions };
         }
@@ -48,7 +49,7 @@ export const actionSlice = createSlice({
               actionUuid,
               fieldName,
               value,
-              updatedAt: getAccurateNow().toISOString(),
+              updatedAt: getAccurateNow().getTime(),
             },
           };
         }
@@ -60,7 +61,7 @@ export const actionSlice = createSlice({
             actionUuid: string;
             fieldName: keyof Action;
             value: Action[keyof Action];
-            updatedAt: string;
+            updatedAt: number;
           };
         }
       ) => {
@@ -77,6 +78,20 @@ export const actionSlice = createSlice({
     },
     deleteActionsFromDbByUuid: (state, action: { payload: string[] }) => {
       state.actionsFromDb = state.actionsFromDb.filter((a) => !action.payload.includes(a.uuid));
+    },
+    collapseActions: (state, action: { payload: string[] }) => {
+      action.payload.forEach((uuid) => {
+        state.actionsExpanded = state.actionsExpanded.filter(
+          (existingUuid) => existingUuid !== uuid
+        );
+      });
+    },
+    expandActions: (state, action: { payload: string[] }) => {
+      action.payload.forEach((uuid) => {
+        if (!state.actionsExpanded.includes(uuid)) {
+          state.actionsExpanded.push(uuid);
+        }
+      });
     },
     obliterateState: (state) => {
       //eslint-disable-next-line
@@ -97,6 +112,8 @@ export const {
   upsertActionByField,
   deleteActionsByUuid,
   deleteActionsFromDbByUuid,
+  collapseActions,
+  expandActions,
   obliterateState,
 } = actionSlice.actions;
 

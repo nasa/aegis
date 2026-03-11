@@ -25,10 +25,13 @@ import { validators, regExValidators } from "components/interface/form/formValid
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { makeTraverseRateString } from "utils/component-helpers";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
+import { useMissionDocSelector } from "utils/useDocSelector";
 import CalculatedDwell from "../calculated-dwell";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
+  const missionTraverseRate = useMissionDocSelector((doc) => doc.traverseRate, refEqual);
+
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
@@ -37,10 +40,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     (state) =>
       state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
     deepEqual
-  );
-  const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission?.traverseRate,
-    refEqual
   );
   const selectedEvaTraverseRate = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid)?.traverseRate,
@@ -64,7 +63,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     );
     return getCalculatedFieldsByTraverse({
       traverse: selectedTraverse,
-      missionTraverseRate: state.mission.mission.traverseRate,
+      missionTraverseRate,
       evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
     });
@@ -132,10 +131,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             <div className={paneStyles.descriptionContainer}>
               <TextArea
                 key={selectedTraverse.uuid}
-                value={selectedTraverse.description}
+                value={selectedTraverse.description || ""}
                 editing={editMode}
                 onSubmit={(value: string) => {
-                  dispatch(upsertTraverseByField(selectedTraverse.uuid, "description", value));
+                  dispatch(
+                    upsertTraverseByField(selectedTraverse.uuid, "description", value || "")
+                  );
                 }}
                 fieldProps={{ name: "traverseDescription", ariaLabel: "Traverse Description" }}
               />
@@ -401,6 +402,28 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 </div>
               </div>
             </div>
+            <div className={paneStyles.panelSectionRow}>
+              <div className={paneStyles.panelSection2Column}>
+                <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>&nbsp;</div>
+                  <div className={paneStyles.panelColumnTableRow}>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldLabel}>Segment Bearings:</div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.displayFieldValue}>
+                        {calculatedFields.bearings.map((bearing, index) => (
+                          <span
+                            key={index}
+                            style={{ marginRight: "6px" }}
+                          >{`${Math.round(bearing)}° `}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className={paneStyles.panelSection}>
@@ -496,7 +519,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     <div className={paneStyles.displayFieldValue}>
                       <LastEdited
                         updatedAt={selectedTraverse?.updatedAt}
-                        infoString={`traverse uuid: ${selectedTraverse?.uuid}`}
+                        createdAt={selectedTraverse?.createdAt}
+                        infoString={`Traverse UUID: ${selectedTraverse?.uuid}`}
                       />
                     </div>
                   </div>

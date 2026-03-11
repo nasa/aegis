@@ -5,6 +5,16 @@ export async function getAppUsers(userId: number = null): Promise<WrappedRespons
   } else {
     res = await fetch(`/api/v1/appUsers`);
   }
+  if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
+    return { status: "error", message: errorMessage };
+  }
   const response: WrappedResponse<AppUser[]> = await res.json();
   return response;
 }
@@ -18,12 +28,20 @@ export async function upsertAppUsers(users: AppUser[]): Promise<WrappedResponse<
     },
     body: JSON.stringify(requestBody),
   });
-  const response: WrappedResponse<AppUser[]> = await res.json();
   if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
     alert(
-      `Error saving users to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+      `Error saving users to database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
+    return { status: "error", message: errorMessage };
   }
+  const response: WrappedResponse<AppUser[]> = await res.json();
   return response;
 }
 
@@ -36,11 +54,19 @@ export async function deleteAppUsers(userIds: number[]): Promise<WrappedResponse
     },
     body: JSON.stringify(requestBody),
   });
-  const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
     alert(
-      `Error deleting users from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+      `Error deleting users from database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
+    return { status: "error", message: errorMessage };
   }
+  const response: WrappedResponse<null> = await res.json();
   return response;
 }

@@ -14,11 +14,19 @@ import {
 } from "store/thunk/thunkPreset";
 import { setPresetEditMode, upsertPresets, upsertPresetByField } from "store/preset";
 import { generateBlankPreset } from "store/storeUtils/preset";
+import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 let store: StoreType;
 
 beforeAll(() => {
   store = createFullTestStore();
+
+  /**
+   * Init the mission automerge doc. In the app this is handled in the component.
+   * Pass in null because this function is being mocked in jest.setup.ts so we don't
+   * have to pass in a real value.
+   */
+  setMissionAutomergeDocHandle(null);
 });
 
 beforeEach(async () => {

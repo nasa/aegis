@@ -28,6 +28,7 @@ import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankPoi } from "store/storeUtils/poi";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { upsertStations, upsertStationsFromDb } from "store/station";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 
 export const thunkUpdatePoiLatLngField = appCreateAsyncThunk<{
   poiUuid: string;
@@ -203,13 +204,16 @@ export const thunkDeletePoi = appCreateAsyncThunk<{
 export const thunkCreatePoi = appCreateAsyncThunk<void>(
   "poiCreate",
   async (_, { dispatch, getState }) => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
     const randomName = generateUniqueName({
       dictName: "animals",
       existingNames: getState().poi.pois.map((item: POI) => item.name),
     });
 
     const blankPoi = generateBlankPoi({
-      missionId: getState().mission.mission?.id,
+      missionId: mission.id,
       name: randomName,
     });
     dispatch(upsertPois([blankPoi]));

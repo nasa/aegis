@@ -6,12 +6,14 @@ import { useNavigate, useParams } from "react-router";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
 import { v4 as uuidv4 } from "uuid";
-import { getMissions, upsertMissions } from "http-client/mission";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import prettyBytes from "pretty-bytes";
+import type { AutomergeUrl } from "@automerge/automerge-repo";
+import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
 
 type RouteParams = {
   id: string;
+  automergeUrl: string;
 };
 
 interface GridGeoJson {
@@ -42,7 +44,6 @@ interface GridPointProps {
 
 const AdminMissionGrid: FunctionComponent<{}> = () => {
   const navigate = useNavigate();
-  const [mission, setMission] = useState<Mission>(null);
   const [grids, setGrids] = useState<MissionGrid[]>(null);
   const [isSubmitValid, setIsSubmitValid] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -50,14 +51,12 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
+  // We don't know what mission this is for so use the automergeUrl from the route params
+  const missionDocHandle = useDocHandle<Mission>(params.automergeUrl as AutomergeUrl);
 
   const readAndUploadGrid = async (selectedFile: Blob) => {
     const grid: MissionGrid = await parseFullGrid(selectedFile);
-    const res = await upsertGrids([grid], mission.id, true);
-
-    if (res.status === "success") {
-      console.log(res.data);
-    }
+    const res = await upsertGrids([grid], intMissionId, true);
     alert(`${res.status} - ${res.message}`);
     loadGrid();
   };
@@ -88,7 +87,7 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
         uuid: uuidv4(),
         numRows: parsedData.row_total,
         numCols: parsedData.column_total,
-        missionId: mission.id,
+        missionId: intMissionId,
         spacing: 0,
         name: parsedData.name,
         fileName: `${parsedData.name}_${Date.now()}.json`,
@@ -142,12 +141,10 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
     );
     await upsertGrids(grids, intMissionId, false);
     if (selectedUuid === null) {
-      await upsertMissions([
-        {
-          ...mission,
-          activeGridUuid: null,
-        },
-      ]);
+      missionDocHandle.change((m: Mission) => {
+        m.activeGridUuid = null;
+        m.updatedAt = new Date().getTime();
+      });
     }
   };
 
@@ -175,17 +172,6 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
   }, [grids, intMissionId]);
 
   useEffect(() => {
-    const loadMission = async () => {
-      const response = await getMissions(intMissionId);
-      if (response.data) {
-        setMission(response.data[0]);
-      }
-    };
-
-    loadMission();
-  }, [intMissionId]);
-
-  useEffect(() => {
     loadGrid();
   }, [intMissionId, loadGrid]);
 
@@ -210,7 +196,7 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
       <div>
         <div className={styles.sectionDiv}>
           <div className={styles.sectionDivHeading}>Manage grid for this mission</div>
-          {mission?.id ? (
+          {intMissionId ? (
             <div>
               <div className={styles.layerContainer}>
                 <div className={styles.divWithBorder}>

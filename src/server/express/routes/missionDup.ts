@@ -9,7 +9,6 @@ import { asError } from "@emss/utils";
 import { globalValues } from "../global";
 
 const router = express.Router();
-
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId } = req.body;
 
@@ -92,7 +91,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 export default router;
 
-const duplicateMission = async (missionId: number | undefined): Promise<number> => {
+const duplicateMission = async (missionId: number): Promise<number> => {
   if (!missionId) {
     throw new Error("Mission ID is required");
   }

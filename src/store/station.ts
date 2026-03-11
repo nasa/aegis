@@ -151,6 +151,12 @@ export const stationSlice = createSlice({
         state.stations[stationIndex].updatedAt = getAccurateNow().toISOString();
       }
     },
+    setAllStationCirclesUIStates: (
+      state,
+      action: { payload: { circlesUIStates: CirclesUIStates } }
+    ) => {
+      state.stationCirclesUIStates = action.payload.circlesUIStates;
+    },
     setStationCircleUIStates: (
       state,
       action: {
@@ -208,6 +214,7 @@ export const {
   revertWalkbackPath,
   toggleStationCircleVisible,
   setStationCircleStyle,
+  setAllStationCirclesUIStates,
   setStationCircleUIStates,
   setStationCircleUIState,
   resetAllStationCirclesUIStates,

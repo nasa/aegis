@@ -10,11 +10,13 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import DashboardPETClock from "./headerPetClock";
 import ReactDOMServer from "react-dom/server";
-import { longdateFromDateString } from "utils/formatting";
+import { longDateFromDateString } from "utils/formatting";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const DashboardHeader: FunctionComponent = () => {
-  const missionName = useAppSelector((state) => state.mission.mission?.name, refEqual);
+  const missionName = useMissionDocSelector((doc) => doc.name, refEqual);
+
   const runningRexName = useAppSelector(
     (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.name,
     refEqual
@@ -25,7 +27,7 @@ const DashboardHeader: FunctionComponent = () => {
     const runningEva = state.eva.evas.find((eva) => eva.uuid === runningRex.evaUuid);
     return getAsPlannedEvaFromRefUuid(state, runningEva.refUuid)?.name;
   }, refEqual);
-  const socketStatus = useAppSelector((state) => state.interface.socketStatus, deepEqual);
+  const socketStatus = useAppSelector((state) => state.connection.socketStatus, deepEqual);
 
   const [isMouseInHeader, setIsMouseInHeader] = useState(false);
 
@@ -82,12 +84,12 @@ const DashboardHeader: FunctionComponent = () => {
                 Connected to server
                 <br />
                 Last Server Status:{" "}
-                {longdateFromDateString(
+                {longDateFromDateString(
                   new Date(socketStatus.lastStatusFromServer.timestamp).toISOString()
                 ) || "None"}
                 <br />
                 Last Edit Event:{" "}
-                {longdateFromDateString(socketStatus.lastEditEvent?.datestamp) || "None"}
+                {longDateFromDateString(socketStatus.lastEditEvent?.datestamp) || "None"}
                 <br />
                 Editors: {socketStatus.lastStatusFromServer.visitorCounts.editors}
                 <br />

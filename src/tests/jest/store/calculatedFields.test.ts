@@ -94,8 +94,6 @@ describe("Calculated fields", () => {
     wholeStoreState.action.actions = [stationAction1, stationAction2, stationAction3];
     wholeStoreState.action.actionsFromDb = [stationAction1, stationAction2, stationAction3];
 
-    wholeStoreState.mission.mission = { ...blankMission, traverseRate: 2 };
-
     const allCalculatedFields: StationCalculatedFields[] = [];
     for (const station of wholeStoreState.station.stations) {
       const stationActions = wholeStoreState.action.actions.filter(
@@ -104,7 +102,7 @@ describe("Calculated fields", () => {
       allCalculatedFields.push(
         getCalculatedFieldsByStation({
           station,
-          missionWalkbackRate: wholeStoreState.mission.mission.walkbackRate,
+          missionWalkbackRate: blankMission.walkbackRate,
           stationActions,
         })
       );
@@ -193,7 +191,6 @@ describe("Calculated fields", () => {
       { uuid: station3.uuid, type: "station" },
     ];
 
-    wholeStoreState.mission.mission = mission;
     wholeStoreState.traverse.traverses = [traverse1, traverse2, traverse3];
     wholeStoreState.station.stations = [station1, station2, station3];
     wholeStoreState.eva.evas = [eva1, eva2];
@@ -209,7 +206,7 @@ describe("Calculated fields", () => {
       allCalculatedFields.push(
         getCalculatedFieldsByTraverse({
           traverse,
-          missionTraverseRate: wholeStoreState.mission.mission.traverseRate,
+          missionTraverseRate: mission.traverseRate,
           evaTraverseRate: traverseEva.traverseRate,
           traverseActions,
         })
@@ -229,6 +226,7 @@ describe("Calculated fields", () => {
       totalEv2Time: 0,
       totalMass: 0,
       totalUnassignedTime: 0,
+      bearings: [],
     });
     const t2CalcFields = allCalculatedFields.find((c) => c.uuid === traverse2.uuid);
     expect(t2CalcFields.durationMinutes).toEqual(30);
@@ -258,7 +256,6 @@ describe("Calculated fields", () => {
       { uuid: traverse.uuid, type: "traverse" },
       { uuid: station2.uuid, type: "station" },
     ];
-    wholeStoreState.mission.mission = mission;
     wholeStoreState.traverse.traverses = [traverse];
     wholeStoreState.station.stations = [station1, station2];
     wholeStoreState.eva.evas = [eva];
@@ -269,8 +266,8 @@ describe("Calculated fields", () => {
         getCalculatedFieldsByEva({
           eva,
           evaStations: wholeStoreState.station.stations,
-          missionWalkbackRate: wholeStoreState.mission.mission.walkbackRate,
-          missionTraverseRate: wholeStoreState.mission.mission.traverseRate,
+          missionWalkbackRate: mission.walkbackRate,
+          missionTraverseRate: mission.traverseRate,
           evaActions: wholeStoreState.action.actions,
           evaTraverses: wholeStoreState.traverse.traverses,
         })

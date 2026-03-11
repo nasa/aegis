@@ -9,7 +9,7 @@ import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank stm lvl 1
- * @param partialStm any fields that are to be overriden from default
+ * @param partialStm any fields that are to be overridden from default
  * @returns the generated stm lvl 1
  */
 export const generateBlankStmLvl1 = (partialStm?: Partial<STMLevel1>): STMLevel1 => {
@@ -36,7 +36,7 @@ export function convertStms1TypeDbToStore(dbStms: STM_Level1_db[]): STMLevel1[] 
       uuid: dbStm.uuid,
       numbering: dbStm.numbering,
       name: dbStm.name,
-      missionId: dbStm.mission.id,
+      missionId: dbStm.missionId,
       createdAt: dbStm.createdAt.toISOString(),
       updatedAt: dbStm.updatedAt.toISOString(),
     };
@@ -57,7 +57,7 @@ export function convertStms1TypeStoreToDb(storeStms: STMLevel1[]): EntityData<ST
       uuid: storeStm.uuid,
       numbering: storeStm.numbering,
       name: storeStm.name,
-      mission: storeStm.missionId,
+      missionId: storeStm.missionId,
       createdAt: new Date(storeStm.createdAt),
       updatedAt: new Date(storeStm.updatedAt),
     };
@@ -68,7 +68,7 @@ export function convertStms1TypeStoreToDb(storeStms: STMLevel1[]): EntityData<ST
 
 /**
  * Generate a blank stm lvl 2
- * @param partialStm any fields that are to be overriden from default
+ * @param partialStm any fields that are to be overridden from default
  * @returns the generated stm lvl 2
  */
 export const generateBlankStmLvl2 = (partialStm?: Partial<STMLevel2>): STMLevel2 => {
@@ -127,7 +127,7 @@ export function convertStms2TypeStoreToDb(storeStms: STMLevel2[]): EntityData<ST
 
 /**
  * Generate a blank stm lvl 3
- * @param partialStm any fields that are to be overriden from default
+ * @param partialStm any fields that are to be overridden from default
  * @returns the generated stm lvl 3
  */
 export const generateBlankStmLvl3 = (partialStm?: Partial<STMLevel3>): STMLevel3 => {
@@ -214,7 +214,7 @@ export function convertStmRulesTypeDbToStore(dbStmRules: STM_Rule_db[]): STMRule
   for (const dbStm of dbStmRules) {
     const convertedStm: STMRule = {
       uuid: dbStm.uuid,
-      missionId: dbStm.mission.id,
+      missionId: dbStm.missionId,
       stmUuid: dbStm.stmUuid,
       count: dbStm.count,
       verbUuids: dbStm.verbUuids,
@@ -241,7 +241,7 @@ export function convertStmRulesTypeStoreToDb(storeStmRules: STMRule[]): EntityDa
   for (const storeStm of storeStmRules) {
     const convertedRecord: EntityData<STM_Rule_db> = {
       uuid: storeStm.uuid,
-      mission: storeStm.missionId,
+      missionId: storeStm.missionId,
       stmUuid: storeStm.stmUuid,
       count: storeStm.count,
       verbUuids: storeStm.verbUuids,

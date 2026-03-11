@@ -1,7 +1,6 @@
 import type { EntityManager } from "@mikro-orm/postgresql";
 
 import {
-  Mission_db,
   Station_db,
   Poi_db,
   Action_db,
@@ -26,7 +25,7 @@ import { createUuidMapping } from "./helpers";
 export const processStations = (
   em: EntityManager,
   stations: Station_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): void => {
   for (const station of stations) {
@@ -37,7 +36,7 @@ export const processStations = (
     const stationData = {
       ...station,
       uuid: newUuid,
-      mission: newMission,
+      missionId,
       createdAt: getAccurateNow().toISOString(),
       updatedAt: getAccurateNow().toISOString(),
     };
@@ -54,7 +53,7 @@ export const processStations = (
 export const processPois = (
   em: EntityManager,
   pois: Poi_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): void => {
   for (const poi of pois) {
@@ -65,7 +64,7 @@ export const processPois = (
     const poiData = {
       ...poi,
       uuid: newUuid,
-      mission: newMission,
+      missionId,
       createdAt: getAccurateNow().toISOString(),
       updatedAt: getAccurateNow().toISOString(),
     };
@@ -105,7 +104,7 @@ export const updatePoiActionOrder = async (
 export const processTraverses = (
   em: EntityManager,
   traverses: Traverse_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): void => {
   for (const traverse of traverses) {
@@ -116,7 +115,7 @@ export const processTraverses = (
     const traverseData = {
       ...traverse,
       uuid: newUuid,
-      mission: newMission,
+      missionId,
       createdAt: getAccurateNow().toISOString(),
       updatedAt: getAccurateNow().toISOString(),
     };
@@ -187,7 +186,7 @@ export const updateStationActionOrder = async (
 export const processActions = (
   em: EntityManager,
   actions: Action_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): void => {
   for (const action of actions) {
@@ -199,14 +198,14 @@ export const processActions = (
     const newAction = em.create(Action_db, {
       ...action,
       uuid: newUuid,
-      mission: newMission,
+      missionId,
       // Remove relationship fields - we'll update these in updateActionRelationships
       poi: null,
       station: null,
       traverse: null,
       parentAction: null, // Handle parent action relationship
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: getAccurateNow().getTime(),
+      updatedAt: getAccurateNow().getTime(),
     });
     em.persist(newAction);
   }
@@ -344,7 +343,7 @@ export const updateActionRelationships = async (
 export const processLayers = (
   em: EntityManager,
   layers: Layer_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): void => {
   for (const layer of layers) {
@@ -355,7 +354,7 @@ export const processLayers = (
     const newLayer = em.create(Layer_db, {
       ...layer,
       uuid: newUuid,
-      mission: newMission,
+      missionId,
       createdAt: getAccurateNow().toISOString(),
       updatedAt: getAccurateNow().toISOString(),
     });
@@ -368,12 +367,12 @@ export const processLayers = (
 export const processSublayers = async (
   em: EntityManager,
   sublayers: Sublayer_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): Promise<void> => {
   // Step 1: First, find all the new layers we've created
   const layerUuidToEntity = new Map<string, Layer_db>();
-  const allNewLayers = await em.find(Layer_db, { mission: newMission });
+  const allNewLayers = await em.find(Layer_db, { missionId });
 
   for (const layer of allNewLayers) {
     // Find the original layer UUID by looking through our maps
@@ -410,7 +409,7 @@ export const processSublayers = async (
     const newSublayer = em.create(Sublayer_db, {
       ...sublayer,
       uuid: newUuid,
-      mission: newMission,
+      missionId,
       layer: layerEntity, // Set the layer reference immediately
       createdAt: getAccurateNow().toISOString(),
       updatedAt: getAccurateNow().toISOString(),
@@ -450,7 +449,7 @@ export const updateSublayerToLayerRelationships = async (
 export const processEvas = (
   em: EntityManager,
   evas: Eva_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): void => {
   for (const eva of evas) {
@@ -497,7 +496,7 @@ export const processEvas = (
     const newEva = em.create(Eva_db, {
       ...eva,
       uuid: newUuid,
-      mission: newMission,
+      missionId,
       sequence: newSequence,
       egressLocationUuid: newEgressLocationUuid,
       ingressLocationUuid: newIngressLocationUuid,
@@ -513,7 +512,7 @@ export const processEvas = (
 export const processPresets = (
   em: EntityManager,
   presets: Preset_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): void => {
   for (const preset of presets) {
@@ -583,7 +582,7 @@ export const processPresets = (
     const newPreset = em.create(Preset_db, {
       ...preset,
       uuid: newUuid,
-      mission: newMission,
+      missionId,
       mapSublayerControls: newMapSublayerControls,
       layerOrder: newLayerOrder,
       createdAt: getAccurateNow().toISOString(),
@@ -598,7 +597,7 @@ export const processPresets = (
 export const processRexes = (
   em: EntityManager,
   rexes: Rex_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): void => {
   for (const rex of rexes) {
@@ -609,7 +608,7 @@ export const processRexes = (
     const rexData = {
       ...rex,
       uuid: newUuid,
-      mission: newMission,
+      missionId,
       createdAt: getAccurateNow().toISOString(),
       updatedAt: getAccurateNow().toISOString(),
     };
@@ -669,7 +668,7 @@ export const processStmEntities = async (
   stmLevel1s: STM_Level1_db[],
   stmLevel2s: STM_Level2_db[],
   stmLevel3s: STM_Level3_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): Promise<void> => {
   // Create a map to track original to new STM objects for establishing relationships
@@ -687,7 +686,7 @@ export const processStmEntities = async (
     const newStm1 = em.create(STM_Level1_db, {
       ...stm1Data,
       uuid: newUuid,
-      mission: newMission,
+      missionId,
       createdAt: getAccurateNow().toISOString(),
       updatedAt: getAccurateNow().toISOString(),
       // level2s collection will be managed by MikroORM via the level2.level1 relationship
@@ -764,7 +763,7 @@ export const processStmEntities = async (
 export const processStmRules = async (
   em: EntityManager,
   stmRules: STM_Rule_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): Promise<void> => {
   if (!stmRules || stmRules.length === 0) {
@@ -773,7 +772,7 @@ export const processStmRules = async (
 
   // First, get all available STM Level 3 UUIDs in the new mission
   const allNewStmLevel3s = await em.find(STM_Level3_db, {
-    level2: { level1: { mission: newMission } },
+    level2: { level1: { missionId } },
   });
 
   const allNewStmUuids = new Set(allNewStmLevel3s.map((stm) => stm.uuid));
@@ -815,7 +814,7 @@ export const processStmRules = async (
       const newRule = em.create(STM_Rule_db, {
         ...rule,
         uuid: newUuid,
-        mission: newMission,
+        missionId,
         stmUuid: newStmUuid,
         createdAt: getAccurateNow().toISOString(),
         updatedAt: getAccurateNow().toISOString(),
@@ -832,7 +831,7 @@ export const processStmRules = async (
 export const processGrids = (
   em: EntityManager,
   grids: Grid_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): string | undefined => {
   let newActiveGridUuid: string | undefined = undefined;
@@ -849,7 +848,7 @@ export const processGrids = (
     const newGrid = em.create(Grid_db, {
       ...grid,
       uuid: newUuid,
-      mission: newMission,
+      missionId,
     });
     em.persist(newGrid);
   }
@@ -861,7 +860,7 @@ export const processGrids = (
 export const processFolders = (
   em: EntityManager,
   folders: Folder_db[],
-  newMission: Mission_db,
+  missionId: number,
   uuidMaps: EntityMaps
 ): void => {
   for (const folder of folders) {
@@ -902,7 +901,7 @@ export const processFolders = (
     const newFolder = em.create(Folder_db, {
       ...folder,
       uuid: newUuid,
-      mission: newMission,
+      missionId,
       items: newItems,
       createdAt: getAccurateNow().toISOString(),
       updatedAt: getAccurateNow().toISOString(),

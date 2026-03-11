@@ -7,7 +7,7 @@ import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank station
- * @param partialStation any fields that are to be overriden from default
+ * @param partialStation any fields that are to be overridden from default
  * @returns the generated station
  */
 export const generateBlankStation = (partialStation?: Partial<Station>): Station => {
@@ -49,7 +49,7 @@ export function convertStationsTypeDbToStore(dbStations: Station_db[]): Station[
       uuid: dbStation.uuid,
       refUuid: dbStation.refUuid,
       ownerId: dbStation.ownerId,
-      missionId: dbStation.mission.id,
+      missionId: dbStation.missionId,
       actionOrderUuids: dbStation.actionOrderUuids,
       name: dbStation.name,
       status: dbStation.status,
@@ -92,7 +92,7 @@ export function convertStationsTypeStoreToDb(storeStations: Station[]): EntityDa
       uuid: storeStation.uuid,
       refUuid: storeStation.refUuid,
       ownerId: storeStation.ownerId,
-      mission: storeStation.missionId,
+      missionId: storeStation.missionId,
       actionOrderUuids: storeStation.actionOrderUuids,
       name: storeStation.name,
       status: storeStation.status,

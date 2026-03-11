@@ -4,13 +4,14 @@ import express from "express";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { globalValues } from "../../global";
 
-import { Eva_db, Mission_db, Rex_db, Station_db } from "../../../database/models/_allModels";
+import { Eva_db, Rex_db, Station_db } from "../../../database/models/_allModels";
 import { emitStoreUpsert } from "../../sockets";
 import { hasPerms } from "utils/permissions";
 import { upsertDatabaseRetry } from "utils/database";
 import { v4 as uuidv4 } from "uuid";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { getAutomergeMissions } from "../missionAutomerge";
 
 const router = express.Router();
 
@@ -292,7 +293,7 @@ export async function updateRexControl({
     if (startStopExecution === "start") {
       // Check if we need to stop other running rex records
       allRunningRexesBeforeUpdate = await em.find(Rex_db, {
-        mission: rexEntity.mission,
+        missionId: rexEntity.missionId,
         isRunning: true,
         uuid: { $ne: rexUuid },
       });
@@ -312,8 +313,9 @@ export async function updateRexControl({
         let egressLocation: AEGISPoint | null = null;
         const rexEva = await em.findOne(Eva_db, { uuid: rexEntity.evaUuid });
         if (rexEva?.egressLocationUuid === "lander") {
-          const missionRecord = await em.findOne(Mission_db, { id: rexEntity.mission.id });
-          if (missionRecord?.landerLocation) egressLocation = missionRecord.landerLocation;
+          // get lander location from the mission automerge document
+          const mission = (await getAutomergeMissions([rexEva.missionId]))[0];
+          if (mission?.landerLocation) egressLocation = mission.landerLocation;
         } else {
           const stationRecord = await em.findOne(Station_db, { uuid: rexEva?.egressLocationUuid });
           if (stationRecord?.location) egressLocation = stationRecord.location;

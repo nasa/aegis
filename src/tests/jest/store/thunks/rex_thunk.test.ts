@@ -23,15 +23,19 @@ import * as httpClient_rex from "http-client/rex";
 import * as httpClient_eva from "http-client/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankMission } from "store/storeUtils/mission";
-
-//I don't understand what is even calling this that is causing me to mock it
-jest.mock("string-strip-html", () => ({
-  stripHtml: () => jest.fn(),
-}));
+import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {
   return true;
+});
+
+beforeAll(() => {
+  /**
+   * Init the mission automerge doc. In the app this is handled in the component.
+   * Pass in null because this function is being mocked in jest.setup.ts so we don't
+   * have to pass in a real value.
+   */
+  setMissionAutomergeDocHandle(null);
 });
 
 beforeEach(async () => {
@@ -45,12 +49,9 @@ afterAll(() => {
 
 describe("Thunk Rex Tests", () => {
   test("thunkCreateRex", async () => {
-    const mission = generateBlankMission({
-      name: "Jest Test Mission",
-    });
     const eva = generateBlankEVA();
     const store = createCustomTestStore({
-      mission: { ...missionInitialState, mission },
+      mission: { ...missionInitialState },
       rex: { ...rexInitialState },
       eva: { ...evaInitialState, evas: [eva] },
       station: { ...stationInitialState },

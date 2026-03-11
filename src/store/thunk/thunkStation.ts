@@ -10,6 +10,7 @@ import {
   resetAllStationCirclesUIStates,
   upsertStationByField,
   selectStation,
+  setAllStationCirclesUIStates,
 } from "store/station";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mapping/geoMath";
 import { thunkGetElevation } from "./thunkElevation";
@@ -33,6 +34,7 @@ import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankStation } from "store/storeUtils/station";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
+import { getAutomergeDocHandles } from "client/automergeDocHandles";
 
 export const thunkUpdateStationLatLngField = appCreateAsyncThunk<{
   stationUuid: string;
@@ -90,11 +92,12 @@ export const thunkUpdateWalkbackPath = appCreateAsyncThunk<{
   stationUuid: string;
 }>("updateWalkbackPath", async ({ path, stationUuid }, { dispatch, getState }) => {
   //calculate path distances
+  const missionDocHandle = getAutomergeDocHandles().mission;
+  const mission = missionDocHandle.doc();
+
   const pathSegmentDistances: number[] = [];
   for (let i = 1; i < path.length; i++) {
-    pathSegmentDistances.push(
-      getTotalDistance([path[i - 1], path[i]], getState().mission.mission.planetRadius)
-    );
+    pathSegmentDistances.push(getTotalDistance([path[i - 1], path[i]], mission.planetRadius));
   }
   //save walkback
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
@@ -126,19 +129,19 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
   AEGISPoint[],
   false
 >("fullUpdateWalkback", async ({ path, stationUuid }, { dispatch, getState }) => {
+  const missionDocHandle = getAutomergeDocHandles().mission;
+  const mission = missionDocHandle.doc();
+
   //calculate path distances
   let newPath: AEGISPoint[];
   if (!path || path.length === 0) {
-    newPath = [
-      getState().mission.mission.landerLocation,
-      getState().mission.mission.landerLocation,
-    ];
+    newPath = [mission.landerLocation, mission.landerLocation];
   } else {
     newPath = cloneDeep(path);
   }
 
   const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-  const landerLocation = getState().mission.mission.landerLocation;
+  const landerLocation = mission.landerLocation;
   //set starting station
   if (station && !isEqual(newPath.at(0), station.location)) {
     newPath[0] = station.location;
@@ -151,9 +154,7 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
   //calculate new path distances
   const pathSegmentDistances: number[] = [];
   for (let i = 1; i < newPath.length; i++) {
-    pathSegmentDistances.push(
-      getTotalDistance([newPath[i - 1], newPath[i]], getState().mission.mission.planetRadius)
-    );
+    pathSegmentDistances.push(getTotalDistance([newPath[i - 1], newPath[i]], mission.planetRadius));
   }
 
   //get elevation traverse
@@ -191,18 +192,17 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
 export const thunkResetWalkback = appCreateAsyncThunk<{
   stationUuid: string;
 }>("resetWalkback", async ({ stationUuid }, { dispatch, getState }) => {
+  const missionDocHandle = getAutomergeDocHandles().mission;
+  const mission = missionDocHandle.doc();
+
   const station = getState().station.stations.find((station) => station.uuid === stationUuid);
-  const landerLocation = getState().mission.mission.landerLocation;
+  const landerLocation = mission.landerLocation;
 
   const newPath = [station.location, landerLocation];
 
   //get new distances
   const newPathSegmentDistances = [
-    getDistanceBetweenTwoCoordinates(
-      newPath[0],
-      newPath[1],
-      getState().mission.mission.planetRadius
-    ),
+    getDistanceBetweenTwoCoordinates(newPath[0], newPath[1], mission.planetRadius),
   ];
 
   //get elevation
@@ -467,6 +467,9 @@ export const thunkDeleteStations = appCreateAsyncThunk<{
 export const thunkCreateStation = appCreateAsyncThunk<void>(
   "stationCreate",
   async (_, { dispatch, getState }) => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
     const randomName = generateUniqueName({
       dictName: "lotr",
       existingNames: getState().station.stations.map((item) => item.name),
@@ -474,11 +477,10 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
 
     // build circle controls
     const blankMapCircleControls: MapCircleControls = {};
-    const missionCircleDefinitions = getState().mission.mission?.circleDefinitions;
+    const missionCircleDefinitions = mission.circleDefinitions;
     if (missionCircleDefinitions) {
-      Object.entries(missionCircleDefinitions)?.forEach(([uuid, landerRadius]) => {
+      Object.entries(missionCircleDefinitions)?.forEach(([uuid]) => {
         blankMapCircleControls[uuid] = {
-          name: landerRadius.name,
           uuid: uuid,
           visible: false,
           style: defaultSublayerStyle,
@@ -487,7 +489,7 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
     }
 
     const blankStation = generateBlankStation({
-      missionId: getState().mission.mission?.id,
+      missionId: mission.id,
       name: randomName,
       mapCircleControls: blankMapCircleControls,
     });
@@ -498,10 +500,9 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
 
     // create station circles ui states entry
     const circleUIStates: CircleUIStates = {};
-    if (missionCircleDefinitions) {
-      Object.entries(missionCircleDefinitions)?.forEach(([uuid, circleDefinition]) => {
+    if (mission.circleDefinitions) {
+      Object.entries(mission.circleDefinitions)?.forEach(([uuid]) => {
         circleUIStates[uuid] = {
-          name: circleDefinition.name,
           slidersSelected: false,
         };
       });
@@ -627,6 +628,73 @@ export const thunkVerifyNoStationsBeingEdited = appCreateAsyncThunk<void, boolea
       return false;
     } else {
       return true;
+    }
+  }
+);
+
+// when mission is changed, update circle values in stations
+export const thunkSyncStationsWithMission = appCreateAsyncThunk<void>(
+  "stationSyncWithMission",
+  async (_, { dispatch, getState }) => {
+    const missionDocHandle = getAutomergeDocHandles().mission;
+    const mission = missionDocHandle.doc();
+
+    const newStations: Station[] = [];
+    const newCirclesUIStates: CirclesUIStates = {};
+    getState().station.stations.forEach((station) => {
+      const oldStationCircleUIStates = getState().station.stationCirclesUIStates[station.uuid];
+      // start with copies of the old data
+      const newStation: Station = cloneDeep(station);
+      const newStationCircleUIStates: CircleUIStates = cloneDeep(oldStationCircleUIStates) || {};
+      const newMapCircleControls: MapCircleControls = cloneDeep(station.mapCircleControls) || {};
+
+      Object.entries(mission.circleDefinitions || {})?.forEach(([uuid]) => {
+        // update circle UI states
+        if (!newStationCircleUIStates[uuid]) {
+          // this is a new circle. Add it
+          newStationCircleUIStates[uuid] = {
+            slidersSelected: false,
+          };
+        }
+
+        // update station map circle controls
+        if (!newMapCircleControls[uuid]) {
+          // new circle, add it.
+          newMapCircleControls[uuid] = {
+            uuid,
+            visible: false,
+            style: defaultSublayerStyle,
+          };
+        }
+      });
+
+      // remove any UI states circle definitions that were deleted
+      for (const uuid of Object.keys(newStationCircleUIStates)) {
+        const existsInMission = mission.circleDefinitions?.[uuid];
+        if (!existsInMission) delete newStationCircleUIStates[uuid];
+      }
+      // remove any station map circle controls that were deleted
+      for (const uuid of Object.keys(newMapCircleControls)) {
+        const existsInMission = mission.circleDefinitions?.[uuid];
+        if (!existsInMission) delete newMapCircleControls[uuid];
+      }
+
+      newCirclesUIStates[station.uuid] = newStationCircleUIStates;
+      newStation.mapCircleControls = newMapCircleControls;
+      newStations.push(newStation);
+    });
+
+    // perform 1 dispatch at the end of all the station circle UI states
+    dispatch(setAllStationCirclesUIStates({ circlesUIStates: newCirclesUIStates }));
+
+    // do 1 call to update all the new stations
+    // upsert the changed Station to the DB via internal API call
+    const stationUpsertResponse = await httpClient_station.upsertStations(newStations);
+    if (stationUpsertResponse.status === "success") {
+      dispatch(upsertStations(stationUpsertResponse.data, true));
+      dispatch(upsertStationsFromDb(stationUpsertResponse.data));
+    } else {
+      throw new Error("Error syncing stations with mission: " + stationUpsertResponse.message);
     }
   }
 );

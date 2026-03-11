@@ -17,7 +17,6 @@ import {
   useCallback,
   useMemo,
 } from "react";
-import pick from "lodash/pick";
 import reverse from "lodash/reverse";
 import uniqBy from "lodash/uniqBy";
 import orderBy from "lodash/orderBy";
@@ -56,6 +55,7 @@ import { EARTH_RADIUS } from "utils/consts";
 import { globalGrid } from "utils/mapping/grid";
 import { selectAsPlannedStations } from "store/selectors";
 import isEqual from "lodash/isEqual";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const MapBody: FunctionComponent<{
   setShowScaleBar: Dispatch<SetStateAction<boolean>>;
@@ -87,36 +87,30 @@ const MapBody: FunctionComponent<{
   const gridLabelFeatureGroup = useRef<L.FeatureGroup>(null);
   const posEntryFeatureGroup = useRef<L.FeatureGroup>(null);
   const highlightFeatureGroup = useRef<L.FeatureGroup>(null);
-
-  /**
-   * All states are FromDb thereby requiring all changes to be saved before they
-   *   show up on the dashboard
-   */
-  const mission: MissionSelectProperties = useAppSelector(
-    (state) =>
-      pick(state.mission.missionFromDb, [
-        "id",
-        "landerLocation",
-        "initialZoom",
-        "planetRadius",
-        "activeGridUuid",
-        "projBoundsMaxX",
-        "projBoundsMaxY",
-        "projBoundsMinX",
-        "projBoundsMinY",
-        "projEpsg",
-        "projProj4String",
-        "projResZoomLevel",
-        "projResUnitsPerPixel",
-        "projIsCustom",
-        "projOriginX",
-        "projOriginY",
-        "circleDefinitions",
-        "usingLGRSCoordinates",
-        "actionDefinitions",
-      ]),
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      id: doc.id,
+      activeGridUuid: doc.activeGridUuid,
+      landerLocation: doc.landerLocation,
+      projIsCustom: doc.projIsCustom,
+      projResUnitsPerPixel: doc.projResUnitsPerPixel,
+      projEpsg: doc.projEpsg,
+      projProj4String: doc.projProj4String,
+      projResZoomLevel: doc.projResZoomLevel,
+      projOriginX: doc.projOriginX,
+      projOriginY: doc.projOriginY,
+      projBoundsMinX: doc.projBoundsMinX,
+      projBoundsMinY: doc.projBoundsMinY,
+      projBoundsMaxX: doc.projBoundsMaxX,
+      projBoundsMaxY: doc.projBoundsMaxY,
+      initialZoom: doc.initialZoom,
+      planetRadius: doc.planetRadius,
+      circleDefinitions: doc.circleDefinitions,
+      actionDefinitions: doc.actionDefinitions,
+    }),
     deepEqual
   );
+
   const missionLayers = useAppSelector((state) => state.mission.layers, deepEqual);
   const missionSublayers = useAppSelector((state) => state.mission.sublayers, deepEqual);
 
@@ -192,7 +186,7 @@ const MapBody: FunctionComponent<{
   const egressLocation = useAppSelector(
     (state) => {
       if (isEqual(runningEvaFromDb?.egressLocationUuid, "lander")) {
-        return state.mission.mission.landerLocation;
+        return partialMission.landerLocation;
       } else {
         const foundStation = state.station.stations.find(
           (station) => station.uuid === runningEvaFromDb?.egressLocationUuid
@@ -311,7 +305,7 @@ const MapBody: FunctionComponent<{
    * Map instantiation
    */
   useLayoutEffect(() => {
-    if (!mapRef.current || !map || !mission) return;
+    if (!mapRef.current || !map || !partialMission) return;
 
     const isWin10Async = async () => {
       const isWin10 = await isWindows10();
@@ -320,28 +314,32 @@ const MapBody: FunctionComponent<{
     isWin10Async();
 
     // instantiate the prog4leaflet crs using the values in the mission config
-    if (mission.projIsCustom === true) {
-      const baseRes = mission.projResUnitsPerPixel * Math.pow(2, mission.projResZoomLevel);
+    if (partialMission.projIsCustom === true) {
+      const baseRes =
+        partialMission.projResUnitsPerPixel * Math.pow(2, partialMission.projResZoomLevel);
 
       const resolutions = [];
       for (let i = 0; i < 32; i++) {
         resolutions.push(baseRes / Math.pow(2, i));
       }
 
-      crs.current = new L.Proj.CRS(mission.projEpsg, mission.projProj4String, {
-        origin: [mission.projOriginX, mission.projOriginY],
+      crs.current = new L.Proj.CRS(partialMission.projEpsg, partialMission.projProj4String, {
+        origin: [partialMission.projOriginX, partialMission.projOriginY],
         resolutions,
         bounds: L.bounds(
-          [mission.projBoundsMinX, mission.projBoundsMinY],
-          [mission.projBoundsMaxX, mission.projBoundsMaxY]
+          [partialMission.projBoundsMinX, partialMission.projBoundsMinY],
+          [partialMission.projBoundsMaxX, partialMission.projBoundsMaxY]
         ),
       });
     }
 
     // Instantiate the map
     if (!map.current) {
-      const center = [mission.landerLocation.lat, mission.landerLocation.lng] as L.LatLngExpression;
-      const zoom = mission.initialZoom || 13;
+      const center = [
+        partialMission.landerLocation.lat,
+        partialMission.landerLocation.lng,
+      ] as L.LatLngExpression;
+      const zoom = partialMission.initialZoom || 13;
 
       map.current = L.map(mapRef.current, {
         center: center,
@@ -392,7 +390,7 @@ const MapBody: FunctionComponent<{
     if (!highlightFeatureGroup.current) {
       highlightFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
-  }, [mapRef, map, mission, updateBigMapBounds]);
+  }, [mapRef, map, partialMission, updateBigMapBounds]);
 
   /**
    * Resize the map when the container dimensions change (via flexbox or window resize)
@@ -425,11 +423,11 @@ const MapBody: FunctionComponent<{
    * Draw the scale bar on the map
    */
   const drawScaleBar = useCallback(() => {
-    return scaleBarDiv(map, mission.planetRadius, styles.scaleValue);
+    return scaleBarDiv(map, partialMission.planetRadius, styles.scaleValue);
 
     // Include mapZoom but we arn't using it. Just need a way to re-trigger this effect when mapZoom changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, mission.planetRadius, mapZoom]);
+  }, [map, partialMission.planetRadius, mapZoom]);
 
   /**
    * Pan/zoom map view in follow mode
@@ -469,7 +467,7 @@ const MapBody: FunctionComponent<{
     if (runningRexFromDb.xgressEntries?.["egress"]?.rexStatus === "in-progress") {
       let egressCoordinates: AEGISPoint;
       if (runningEvaFromDb?.egressLocationUuid === "lander") {
-        egressCoordinates = mission.landerLocation;
+        egressCoordinates = partialMission.landerLocation;
       } else {
         egressCoordinates = stationsFromDb.find(
           (station) => station.uuid === runningEvaFromDb?.egressLocationUuid
@@ -480,7 +478,7 @@ const MapBody: FunctionComponent<{
     if (runningRexFromDb.xgressEntries?.["ingress"]?.rexStatus === "in-progress") {
       let ingressCoordinates: AEGISPoint;
       if (runningEvaFromDb?.ingressLocationUuid === "lander") {
-        ingressCoordinates = mission.landerLocation;
+        ingressCoordinates = partialMission.landerLocation;
       } else {
         ingressCoordinates = stationsFromDb.find(
           (station) => station.uuid === runningEvaFromDb?.ingressLocationUuid
@@ -513,12 +511,12 @@ const MapBody: FunctionComponent<{
     // set the map view to the bounds of all objects
     if (maxLat && minLat && maxLng && minLng) {
       const bounds = L.latLngBounds(L.latLng(minLat, minLng), L.latLng(maxLat, maxLng));
-      const maxZoom = mission.planetRadius === EARTH_RADIUS ? 19 : 17; // if on earth, 20 is max zoom, otherwise 18 (moon)
+      const maxZoom = partialMission.planetRadius === EARTH_RADIUS ? 19 : 17; // if on earth, 20 is max zoom, otherwise 18 (moon)
       map.current.fitBounds(bounds, { maxZoom, padding: [100, 100] });
     }
   }, [
     followModeOptions,
-    mission,
+    partialMission,
     actionsFromDb,
     stationsInProgress,
     traversesInProgress,
@@ -543,7 +541,7 @@ const MapBody: FunctionComponent<{
    * Map layers display management
    */
   useEffect(() => {
-    if (!mission.id || !map.current || !selectedPreset || !missionLayers) return;
+    if (!partialMission.id || !map.current || !selectedPreset || !missionLayers) return;
 
     const layersToAddInOrder = getLayersToAddInOrder({
       selectedPreset,
@@ -557,11 +555,11 @@ const MapBody: FunctionComponent<{
       map,
       mapSublayerControls: selectedPreset.mapSublayerControls,
       layersToAddInOrder,
-      missionId: mission.id,
+      missionId: partialMission.id,
       mapTime: null,
       setGridLabels,
     });
-  }, [mission, map, missionLayers, missionSublayers, selectedPreset, mapDateTime]);
+  }, [partialMission, map, missionLayers, missionSublayers, selectedPreset, mapDateTime]);
 
   /**
    * Update which grid labels are visible based on map zoom level
@@ -571,10 +569,10 @@ const MapBody: FunctionComponent<{
       map,
       gridLabelFeatureGroup,
       gridLabels,
-      planetRadius: mission.planetRadius,
+      planetRadius: partialMission.planetRadius,
     });
     // include map bounds in the dependency array so the grid labels will re-draw when map moves
-  }, [gridLabels, mission.planetRadius, mapBounds]);
+  }, [gridLabels, partialMission.planetRadius, mapBounds]);
 
   /**
    * Determine stations to show and draw them on map when stations or selections change
@@ -636,7 +634,7 @@ const MapBody: FunctionComponent<{
         });
 
         if (mapDisplayStations.showCircles) {
-          const circleDefinitions = mission.circleDefinitions;
+          const circleDefinitions = partialMission.circleDefinitions;
 
           // draw circle around station for each mapCircleControl.
           Object.entries(circleDefinitions || {}).forEach(([uuid, circleDefinition]) => {
@@ -652,7 +650,7 @@ const MapBody: FunctionComponent<{
              * This is seemingly no longer needed, but keep this in mind in case.
              */
             const earthRadiusInMeters = EARTH_RADIUS;
-            const radiusAdjustment = earthRadiusInMeters / mission.planetRadius;
+            const radiusAdjustment = earthRadiusInMeters / partialMission.planetRadius;
 
             const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
 
@@ -720,8 +718,8 @@ const MapBody: FunctionComponent<{
     isWin10,
     asPlannedStationUuids,
     selectedEva,
-    mission.circleDefinitions,
-    mission.planetRadius,
+    partialMission.circleDefinitions,
+    partialMission.planetRadius,
   ]);
 
   /**
@@ -779,7 +777,7 @@ const MapBody: FunctionComponent<{
         if (action.stmAction) {
           actionName = getStmActionName({
             actionDefinition: action.actionDefinition,
-            missionActionDefs: mission.actionDefinitions,
+            missionActionDefs: partialMission.actionDefinitions,
           });
         }
         drawOrUpdateMarkerOnMap({
@@ -808,7 +806,7 @@ const MapBody: FunctionComponent<{
     mapDisplayActions,
     isWin10,
     traversesInProgress,
-    mission.actionDefinitions,
+    partialMission.actionDefinitions,
   ]);
 
   /**
@@ -871,15 +869,15 @@ const MapBody: FunctionComponent<{
   useEffect(() => {
     if (
       !map ||
-      !mission?.landerLocation ||
-      !mission?.circleDefinitions ||
+      !partialMission?.landerLocation ||
+      !partialMission?.circleDefinitions ||
       !selectedPreset?.mapCircleControls ||
-      !mission?.planetRadius
+      !partialMission?.planetRadius
     )
       return;
 
-    const circleDefinitions = mission.circleDefinitions;
-    const landerLocation = mission.landerLocation;
+    const circleDefinitions = partialMission.circleDefinitions;
+    const landerLocation = partialMission.landerLocation;
 
     map.current.eachLayer((layer: AEGISGeoJSONCircle) => {
       if (layer.mapItemType === "landerCircle") {
@@ -900,7 +898,7 @@ const MapBody: FunctionComponent<{
        * This is seemingly no longer needed, but keep this in mind in case.
        */
       const earthRadiusInMeters = EARTH_RADIUS;
-      const radiusAdjustment = earthRadiusInMeters / mission.planetRadius;
+      const radiusAdjustment = earthRadiusInMeters / partialMission.planetRadius;
 
       const drawDistance = (circleDefinition.radius * radiusAdjustment) / 1000;
 
@@ -954,9 +952,9 @@ const MapBody: FunctionComponent<{
       }
     });
   }, [
-    mission?.landerLocation,
-    mission?.circleDefinitions,
-    mission?.planetRadius,
+    partialMission?.landerLocation,
+    partialMission?.circleDefinitions,
+    partialMission?.planetRadius,
     map,
     selectedPreset?.mapCircleControls,
   ]);
@@ -977,21 +975,33 @@ const MapBody: FunctionComponent<{
       );
 
       setGridBounds([
-        findClosestPointInGlobalGrid(globalGrid.coordinates, gridStart, mission.planetRadius),
-        findClosestPointInGlobalGrid(globalGrid.coordinates, gridEnd, mission.planetRadius),
+        findClosestPointInGlobalGrid(
+          globalGrid.coordinates,
+          gridStart,
+          partialMission.planetRadius
+        ),
+        findClosestPointInGlobalGrid(globalGrid.coordinates, gridEnd, partialMission.planetRadius),
       ]);
       setMapGridControls(selectedPreset.mapGridControl);
     } else {
       setGridBounds(null);
       setMapGridControls(null);
     }
-  }, [gridCorner, map, mapBounds, mapZoom, mission.id, mission.planetRadius, selectedPreset]);
+  }, [
+    gridCorner,
+    map,
+    mapBounds,
+    mapZoom,
+    partialMission.id,
+    partialMission.planetRadius,
+    selectedPreset,
+  ]);
 
   /**
    * Draw grid
    */
   useEffect(() => {
-    if (!map || !mission?.planetRadius || !mapBounds || !globalGrid?.coordinates) return;
+    if (!map || !partialMission?.planetRadius || !mapBounds || !globalGrid?.coordinates) return;
 
     map.current.eachLayer((layer: AEGISGeoJSONGrid | AEGISGeoJSONGridPoint) => {
       if (layer?.mapItemType === "Grid System" || layer?.mapItemType === "Grid Point") {
@@ -1095,12 +1105,12 @@ const MapBody: FunctionComponent<{
       }
     }
   }, [
-    mission?.planetRadius,
+    partialMission?.planetRadius,
     map,
     mapZoom,
     mapBounds,
-    mission.id,
-    mission.activeGridUuid,
+    partialMission.id,
+    partialMission.activeGridUuid,
     gridBounds,
     mapGridControls,
   ]);
@@ -1109,11 +1119,11 @@ const MapBody: FunctionComponent<{
    * Draw lander
    */
   useEffect(() => {
-    if (!map.current || !mission.landerLocation) return;
+    if (!map.current || !partialMission.landerLocation) return;
 
     drawLanderOnMap({
       map,
-      location: mission.landerLocation,
+      location: partialMission.landerLocation,
       sizePx: 39, // bigger than default 30px
       tooltipOptions: {
         className: styles.tooltip,
@@ -1121,7 +1131,7 @@ const MapBody: FunctionComponent<{
         opacity: 0.65,
       },
     });
-  }, [map, mission, isWin10]);
+  }, [map, partialMission, isWin10]);
 
   /**
    * Drawings to update when stations in progress changes

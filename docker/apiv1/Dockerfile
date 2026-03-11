@@ -1,14 +1,6 @@
-# Get the base image, which is supplied by the pipeline. If the *_BASE_IMAGE value is not defined
-#   (which is true when building locally) then use the value to the right of the = operator
-# Base image optionally from arg
-# ref: https://eegitlab.fit.nasa.gov/emss/docs/-/blob/main/docker.md#base-images-as-arg
-# hadolint global ignore=DL3006
-ARG APIV1_BASE_IMAGE=node:22.18.0-alpine
-
-# # # # # # # #
-# BASE image  #
-# # # # # # # #
-FROM $APIV1_BASE_IMAGE AS base
+# When building via kaniko in CI, the dependency proxy will cache image from Docker Hub.
+# For local builds, Docker pulls directly from Docker Hub
+FROM node:24.11.1-alpine3.23 AS base
 
 # Set the working directory. It will create if doesn't exist
 WORKDIR /app
@@ -26,6 +18,7 @@ COPY package*.json .
 # # # # # # # #
 # BUILD image #
 # # # # # # # #
+
 # Use a different stage for building so we can reduce the size of the final prod image
 FROM base AS build
 
@@ -46,12 +39,14 @@ RUN npm run api:build
 # # # # # # # #
 # PROD image  #
 # # # # # # # #
+
 # Our final build image. This should be as small as possible
 FROM base AS prod
 
 # Copy over only stuff we need to keep the image small
 # esbuild bundle from the build stage
-COPY --from=build /app/.local/express/dist/api.js /app/.local/express/dist/api.js
+COPY --from=build /app/.local/express/dist/api/api.js /app/.local/express/dist/api/api.js
+COPY --from=build /app/.local/automerge/dist/migration.js /app/.local/automerge/dist/migration.js
 # tsconfig, mikro config, and db migrations/models required for ts-node / mikro
 COPY --from=build /app/src/server/database /app/src/server/database
 COPY --from=build /app/tsconfig.json /app
@@ -76,4 +71,5 @@ RUN apk add --no-cache \
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # This image is intended to be run with docker-compose.
-CMD ["/bin/sh", "-c", "npm run migration:up && npm run api"]
+# Ensure mikro is migrated *before* the automerge migration
+CMD ["/bin/sh", "-c", "npm run migration:up && npm run automerge:migration && npm run api"]

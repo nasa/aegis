@@ -10,12 +10,11 @@ interface HoverState {
 }
 
 interface MissionState {
-  mission: Mission;
-  missionFromDb: Mission;
   layers: Layer[] | null;
   sublayers: Sublayer[] | null;
   selectedRightNavItem: string;
   missionSectionsEditing: string[];
+  automergeUrl: string;
 }
 
 interface UserState {
@@ -99,19 +98,14 @@ interface InterfaceState {
   elevationPendingItemUuids: string[];
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
-  actionsExpanded: string[];
-  stmViewExpandedItems: STMViewExpandedItem[];
-  stmViewSelectedEvas: string[];
-  stmViewSelectedActionTypes: ActionType[];
-  stmViewExpandTopTiers: boolean;
-  stmViewShowCrosshairs: boolean;
-  stmViewHoveredTopItem: string;
-  stmViewHoveredLeftItem: string;
-  stmRulesSelectedRexes: string[];
   folders: Folder[];
   foldersInterface: FolderInterface[];
-  appVersion: AppVersion;
+}
+
+interface ConnectionState {
   socketStatus: ClientSocketStatus;
+  browserConnectionStatus: ConnectionStatus;
+  appVersion: AppVersion;
 }
 
 interface STMState {
@@ -121,6 +115,14 @@ interface STMState {
   rules: STMRule[];
   rulesFromDb: STMRule[];
   ruleEditingUuid: string;
+  stmViewExpandedItems: STMViewExpandedItem[];
+  stmViewSelectedEvas: string[];
+  stmViewSelectedActionTypes: ActionType[];
+  stmViewExpandTopTiers: boolean;
+  stmViewShowCrosshairs: boolean;
+  stmViewHoveredTopItem: string;
+  stmViewHoveredLeftItem: string;
+  stmRulesSelectedRexes: string[];
 }
 
 interface StationState {
@@ -135,6 +137,7 @@ interface StationState {
 interface ActionState {
   actions: Action[];
   actionsFromDb: Action[];
+  actionsExpanded: string[];
 }
 
 interface RexState {
@@ -170,6 +173,7 @@ interface WholeStoreState {
   poi: PoiState;
   preset: PresetState;
   interface: InterfaceState;
+  connection: ConnectionState;
   stm: STMState;
   station: StationState;
   action: ActionState;
@@ -214,6 +218,7 @@ type TraverseCalculatedFields = CalculatedFields &
     durationMinutes: number;
     distanceMeters: number;
     ascentDescent: TotalAscentDescentObj;
+    bearings: number[];
   };
 
 type EvaReportSequenceItem = EvaSequenceItem & {
@@ -242,8 +247,8 @@ type EvaCalculatedFields = CalculatedFields &
 
 interface MustContainIsModified {
   uuid: string;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: string | number;
+  updatedAt?: string | number;
 }
 
 type LoadingStatus = "loading" | "loaded" | "unloaded" | "error";

@@ -27,7 +27,7 @@ x-wrapper: &send_container_logs_to_syslog
 services:
   nginx:
     container_name: "${LOG_DATA_APP_ID}--nginx"
-    image: ${DOCKER_IMAGE_NGINX}
+    image: ${REGISTRY_IMAGE}/nginx:${IMAGE_VERSION}
     restart: always
     depends_on:
       - apiv1
@@ -44,7 +44,7 @@ services:
 
   apiv1:
     container_name: "${LOG_DATA_APP_ID}--apiv1"
-    image: ${DOCKER_IMAGE_APIV1}
+    image: ${REGISTRY_IMAGE}/apiv1:${IMAGE_VERSION}
     depends_on:
       database:
         condition: service_healthy
@@ -61,8 +61,7 @@ services:
 
   database:
     container_name: "${LOG_DATA_APP_ID}--database"
-    image: postgis/postgis:14-3.2-alpine
-    # image: postgres:14.12-alpine # pending EMSS/docker-images MR !36
+    image: ${DOCKER_IMAGE_DATABASE}
     restart: always
     <<: *send_container_logs_to_syslog
     environment:
@@ -83,7 +82,7 @@ services:
 
   gdal:
     container_name: "${LOG_DATA_APP_ID}--gdal"
-    image: ${DOCKER_IMAGE_GDAL}
+    image: ${REGISTRY_IMAGE}/gdal:${IMAGE_VERSION}
     restart: always
     <<: *send_container_logs_to_syslog
     volumes:
@@ -93,6 +92,7 @@ services:
     container_name: "${LOG_DATA_APP_ID}--oauth2"
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.11.0
     restart: always
+    <<: *send_container_logs_to_syslog
     command:
       - --http-address
       - 0.0.0.0:4180
@@ -134,5 +134,6 @@ services:
     container_name: "${LOG_DATA_APP_ID}--redis"
     image: redis:7.2.5-alpine3.19
     restart: always
+    <<: *send_container_logs_to_syslog
     volumes:
       - ${REDIS_CACHE_DIR}:/data

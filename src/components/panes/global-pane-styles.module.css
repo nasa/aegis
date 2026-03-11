@@ -135,7 +135,7 @@
   cursor: pointer;
 }
 
-.rightIconContainerSelectedPreset {
+.rightIconContainerSelectedTab {
   background: var(--grey1);
   border-top: 3px solid var(--grey4);
   border-radius: 4px 4px 0 0;
@@ -272,6 +272,7 @@
   font-weight: 400;
   color: var(--grey4);
   user-select: none;
+  padding-bottom: 5px;
 }
 
 .panelSection2Column {
@@ -443,6 +444,15 @@
 
 .descriptionContainer {
   padding-left: 13px;
+}
+
+.fieldContainerAutomerge {
+  padding-left: 13px;
+  display: flex;
+}
+
+.fieldContainerAutomergeInline {
+  display: flex;
 }
 
 .crewSelectorContainer {

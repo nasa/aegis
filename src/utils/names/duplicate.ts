@@ -1,68 +1,44 @@
 /**
- * Find the highest copy number for a station name and increment it
- *
- * @param duplicateItem
- * @param duplicateItems
- * @param useCopyPrefix
- */
-function copyStringFromObj(
-  duplicateItem: { name: string },
-  duplicateItems: { name: string }[],
-  useCopyPrefix: boolean = true
-): string {
-  /**
-   * Find the highest copy number for a item name, eg POI, Station, etc
-   * @param duplicateItemName
-   */
-  const findHighestDuplicateNumber = (duplicateItemName: string) => {
-    const duplicateItemNameRegex = / \(((?:copy )??\d+)\)$/;
-    const duplicateItemNameCopy = duplicateItemName.split(duplicateItemNameRegex); // e.g. ["Station Name", " (copy 1)" "Modifer"]
-    const duplicateItemNameCopyNumber = duplicateItemNameCopy[1]
-      ? duplicateItemNameCopy[1].replace(/^\D+/g, "")
-      : 0;
-    return duplicateItemNameCopy[1] ? parseInt(duplicateItemNameCopyNumber as string) : 0;
-  };
-
-  const duplicateItemName = duplicateItem.name;
-  const duplicateItemNameRegex = / \(((?:copy )??\d+)\)$/;
-  if (
-    !duplicateItemNameRegex.test(duplicateItemName) &&
-    !duplicateItems.some((s) => s.name === duplicateItemName)
-  ) {
-    return duplicateItemName;
-  } else {
-    const duplicateItemNameCopy = duplicateItemName.split(duplicateItemNameRegex); // e.g. ["Station Name", " (copy 1)" "Modifer"]
-    let highestStationDuplicateNumber = 0;
-    for (const duplicateItem of duplicateItems) {
-      if (!duplicateItem.name.startsWith(duplicateItemNameCopy[0])) {
-        continue;
-      }
-      const duplicateItemDuplicateNumber = findHighestDuplicateNumber(duplicateItem.name);
-      if (duplicateItemDuplicateNumber > highestStationDuplicateNumber) {
-        highestStationDuplicateNumber = duplicateItemDuplicateNumber;
-      }
-    }
-    const duplicateItemNameCopyNumberIncremented = highestStationDuplicateNumber + 1;
-    const prefix = useCopyPrefix ? "copy " : "";
-    return duplicateItemNameCopy[0] + " (" + prefix + duplicateItemNameCopyNumberIncremented + ")";
-  }
-}
-
-/**
  * A helper method to duplicate a unique name with a string and array of strings
  *
- * @param duplicateItemName
- * @param duplicateItems
+ * @param nameToCopy
+ * @param existingNames
  * @param useCopyPrefix
  */
 export function makeUniqueStringCopy(
-  duplicateItemName: string,
-  duplicateItems: string[],
+  nameToCopy: string,
+  existingNames: string[],
   useCopyPrefix: boolean = true
 ): string {
-  return copyStringFromObj(
-    { name: duplicateItemName },
-    duplicateItems.map((s) => ({ name: s })),
-    useCopyPrefix
-  );
+  const copyRegex = / \(((?:copy )??\d+)\)$/;
+
+  // Find the highest copy number for a item name, eg POI, Station, etc
+  const findHighestDuplicateNumber = (name: string) => {
+    const words = name.split(copyRegex); // e.g. ["Station Name", " (copy 1)" "Modifier"]
+    const number = words[1] ? words[1].replace(/^\D+/g, "") : 0;
+    return words[1] ? parseInt(number as string) : 0;
+  };
+
+  if (!copyRegex.test(nameToCopy) && !existingNames.includes(nameToCopy)) {
+    // This name isn't being used anywhere else. Just return it.
+    return nameToCopy;
+  } else {
+    const nameToCopyWords = nameToCopy.split(copyRegex); // e.g. ["Station Name", " (copy 1)" "Modifier"]
+
+    // get the highest duplicate number
+    let highestDuplicateNumber = 0;
+    for (const existingName of existingNames) {
+      if (!existingName || !existingName.startsWith(nameToCopyWords[0])) {
+        continue;
+      }
+      const duplicateNumber = findHighestDuplicateNumber(existingName);
+      if (duplicateNumber > highestDuplicateNumber) {
+        highestDuplicateNumber = duplicateNumber;
+      }
+    }
+
+    // return the new name with incremented number
+    const prefix = useCopyPrefix ? "copy " : "";
+    return `${nameToCopyWords[0]} (${prefix}${highestDuplicateNumber + 1})`;
+  }
 }

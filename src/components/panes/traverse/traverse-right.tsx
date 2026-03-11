@@ -21,6 +21,7 @@ import { getAlertColor, isModified } from "utils/component-helpers";
 import { RightTabs } from "components/interface/side-controls";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import isNull from "lodash/isNull";
+import { useMissionDocSelector } from "utils/useDocSelector";
 import { thunkCancelTraverse, thunkSaveTraverse } from "store/thunk/thunkTraverse";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
@@ -75,6 +76,8 @@ const TraverseEditorRight: FunctionComponent = () => {
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
+  const missionTraverseRate = useMissionDocSelector((doc) => doc.traverseRate, refEqual);
+
   const calculatedFields = useAppSelector((state) => {
     const traverse = state.traverse.traverses.find(
       (traverse) => traverse.uuid === selectedEvaSequenceItemUuid
@@ -87,7 +90,7 @@ const TraverseEditorRight: FunctionComponent = () => {
     );
     return getCalculatedFieldsByTraverse({
       traverse,
-      missionTraverseRate: state.mission.mission.traverseRate,
+      missionTraverseRate,
       evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
     });

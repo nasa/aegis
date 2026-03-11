@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { isLoggedIn } from "http-client/login";
 import adminStyles from "components/admin/admin.module.css";
@@ -6,19 +6,17 @@ import React from "react";
 import Header from "components/interface/header";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
-import {
-  faCaretDown,
-  faCaretRight,
-  faPen,
-  faEye,
-  faArrowRotateRight,
-  faPlug,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCaretDown, faCaretRight, faPen, faEye, faPlug } from "@fortawesome/free-solid-svg-icons";
 import uniq from "lodash/uniq";
+import type { Socket } from "socket.io-client";
+import { createSocket } from "utils/socketStuff";
 
 const ServerSocketStatus: React.FunctionComponent = () => {
   const navigate = useNavigate();
+  const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
   const [serverSocketStatus, setServerSocketStatus] = useState<ServerSocketStatus>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("connecting");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
 
   //on load check login
   useEffect(() => {
@@ -27,13 +25,36 @@ const ServerSocketStatus: React.FunctionComponent = () => {
       if (response.status === "success") {
         const user = response.data;
         if (!user.isSuperAdmin) {
-          navigate("/"); //Redirect to homepage
+          navigate("/"); // Redirect to homepage
         }
       } else {
         navigate("/");
       }
-      const res = await fetch(`/api/v1/socket/serverSocketStatus`);
-      setServerSocketStatus(await res.json());
+
+      // connect to the inspector socket room
+      if (!socket.current || (socket.current && !socket.current.connected)) {
+        socket.current = createSocket(window.location.origin);
+      }
+
+      socket.current.on("connect", () => {
+        socket.current.emit("inspectorJoin");
+        setConnectionStatus("connected");
+      });
+
+      socket.current.on("disconnect", () => {
+        setConnectionStatus("disconnected");
+      });
+
+      socket.current.on("inspectorUpdate", (data: ServerSocketStatus) => {
+        setServerSocketStatus(data);
+        setLastUpdatedAt(new Date().toISOString());
+      });
+
+      return () => {
+        socket.current.off("connect");
+        socket.current.off("inspectorUpdate");
+        socket.current.disconnect();
+      };
     })();
   }, [navigate]);
 
@@ -51,19 +72,9 @@ const ServerSocketStatus: React.FunctionComponent = () => {
           <div className={adminStyles.missionBack}>
             <FontAwesomeIcon icon={faArrowAltCircleLeft} size="xl" onClick={handleBack} />
           </div>
-          <div className={adminStyles.refreshTitle}>
-            <h2>Visitor Connections</h2>
-            <FontAwesomeIcon
-              icon={faArrowRotateRight}
-              onClick={() => {
-                (async () => {
-                  const res = await fetch(`/api/v1/socket/serverSocketStatus`);
-                  setServerSocketStatus(await res.json());
-                })();
-              }}
-              style={{ cursor: "pointer" }}
-            />
-          </div>
+          <h2>Visitor Connections</h2>
+          <div>Connection Status: {connectionStatus}</div>
+          <div>Last Updated At: {lastUpdatedAt}</div>
           {!serverSocketStatus?.visitorsData?.length ? (
             <p>No visitors connected.</p>
           ) : (
@@ -71,6 +82,17 @@ const ServerSocketStatus: React.FunctionComponent = () => {
               <p>{serverSocketStatus.visitorsData.length} visitors connected</p>
               <PrintUserLists visitorData={serverSocketStatus?.visitorsData} />
             </div>
+          )}
+
+          <h2>Last Edit Events</h2>
+          {!serverSocketStatus?.lastEditEvents ||
+          Object.keys(serverSocketStatus.lastEditEvents).length === 0 ? (
+            <p>No edit events recorded.</p>
+          ) : (
+            <PrintEditEvents
+              lastEditEvents={serverSocketStatus.lastEditEvents}
+              visitorsData={serverSocketStatus.visitorsData}
+            />
           )}
         </div>
       </div>
@@ -232,6 +254,33 @@ const PrintUsers: FunctionComponent<{
         </ul>
       )}
     </div>
+  );
+};
+
+const PrintEditEvents: FunctionComponent<{
+  lastEditEvents: EditEvents;
+  visitorsData: VisitorData[];
+}> = ({ lastEditEvents, visitorsData }) => {
+  const entries = Object.entries(lastEditEvents)
+    .map(([missionId, event]) => ({ missionId: Number(missionId), event }))
+    .sort((a, b) => a.missionId - b.missionId);
+
+  return (
+    <ul>
+      {entries.map(({ missionId, event }) => {
+        const visitor = visitorsData?.find((v) => v.socketId === event.socketId);
+        const user = visitor?.launchpadUser;
+        const displayName = user
+          ? user.display_name || `${user.surname}, ${user.givenname}`
+          : event.socketId;
+        return (
+          <li key={missionId}>
+            MissionId {missionId}: [{event.type}] {new Date(event.datestamp).toUTCString()} —{" "}
+            {displayName}
+          </li>
+        );
+      })}
+    </ul>
   );
 };
 

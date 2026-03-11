@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { actionTypes } from "store/storeUtils/action";
 import { setAllSliceStores } from "./crossActions";
 
 export const initialState: InterfaceState = {
@@ -13,28 +12,6 @@ export const initialState: InterfaceState = {
   elevationPendingItemUuids: [],
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
-  actionsExpanded: [],
-  stmViewExpandedItems: [],
-  stmViewSelectedEvas: [],
-  stmViewSelectedActionTypes: [...actionTypes],
-  stmViewExpandTopTiers: true,
-  stmViewShowCrosshairs: true,
-  stmViewHoveredTopItem: null,
-  stmViewHoveredLeftItem: null,
-  stmRulesSelectedRexes: [],
-  appVersion: null,
-  socketStatus: {
-    connectionStatus: "disconnected",
-    lastEditEvent: null,
-    lastStatusFromServer: {
-      visitorCounts: {
-        editors: 0,
-        viewers: 0,
-      },
-      timestamp: 0,
-      serverVersion: null,
-    },
-  },
   folders: [],
   foldersInterface: [],
 };
@@ -76,73 +53,6 @@ export const interfaceSlice = createSlice({
     },
     setShowElevation: (state, action: { payload: boolean }) => {
       state.timelineShowElevation = action.payload;
-    },
-    collapseActions: (state, action: { payload: string[] }) => {
-      action.payload.forEach((uuid) => {
-        state.actionsExpanded = state.actionsExpanded.filter(
-          (existingUuid) => existingUuid !== uuid
-        );
-      });
-    },
-    expandActions: (state, action: { payload: string[] }) => {
-      action.payload.forEach((uuid) => {
-        if (!state.actionsExpanded.includes(uuid)) {
-          state.actionsExpanded.push(uuid);
-        }
-      });
-    },
-    stmViewExpandItem: (state, action: { payload: STMViewExpandedItem }) => {
-      state.stmViewExpandedItems.push(action.payload);
-    },
-    stmViewCollapseItem: (state, action: { payload: STMViewExpandedItem }) => {
-      const newExpandedItems: STMViewExpandedItem[] = [];
-      for (const expandedItem of state.stmViewExpandedItems) {
-        if (expandedItem.uuid == action.payload.uuid && expandedItem.type === action.payload.type) {
-          continue;
-        } else {
-          newExpandedItems.push(expandedItem);
-        }
-      }
-      state.stmViewExpandedItems = newExpandedItems;
-    },
-    stmViewSetExpandedItems: (state, action: { payload: STMViewExpandedItem[] }) => {
-      state.stmViewExpandedItems = action.payload;
-    },
-    stmViewToggleEva: (state, action: { payload: string }) => {
-      const index = state.stmViewSelectedEvas.indexOf(action.payload);
-      if (index > -1) {
-        state.stmViewSelectedEvas.splice(index, 1);
-      } else {
-        state.stmViewSelectedEvas.push(action.payload);
-      }
-    },
-    stmViewToggleSelectedActionType: (state, action: { payload: ActionType }) => {
-      const index = state.stmViewSelectedActionTypes.indexOf(action.payload);
-      if (index > -1) {
-        state.stmViewSelectedActionTypes.splice(index, 1);
-      } else {
-        state.stmViewSelectedActionTypes.push(action.payload);
-      }
-    },
-    stmViewToggleExpandTopTiers: (state) => {
-      state.stmViewExpandTopTiers = !state.stmViewExpandTopTiers;
-    },
-    stmViewSetHoveredTopItem: (state, action: { payload: string }) => {
-      state.stmViewHoveredTopItem = action.payload;
-    },
-    stmViewSetHoveredLeftItem: (state, action: { payload: string }) => {
-      state.stmViewHoveredLeftItem = action.payload;
-    },
-    stmViewToggleCrosshairs: (state) => {
-      state.stmViewShowCrosshairs = !state.stmViewShowCrosshairs;
-    },
-    stmRulesToggleRex: (state, action: { payload: string }) => {
-      const index = state.stmRulesSelectedRexes.indexOf(action.payload);
-      if (index > -1) {
-        state.stmRulesSelectedRexes.splice(index, 1);
-      } else {
-        state.stmRulesSelectedRexes.push(action.payload);
-      }
     },
     setFolders: (state, action: { payload: Folder[] }) => {
       state.folders = action.payload;
@@ -215,19 +125,6 @@ export const interfaceSlice = createSlice({
         folder.editingNameValue = action.payload.editingNameValue;
       }
     },
-    setLastStatusFromServer: (state, action: { payload: StatusFromServer }) => {
-      state.socketStatus.lastStatusFromServer = action.payload;
-      // due to a store race condition, sometimes the connectionStatus is not "connected". Update it
-      if (state.socketStatus.connectionStatus !== "connected") {
-        state.socketStatus.connectionStatus = "connected";
-      }
-    },
-    setSocketConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
-      state.socketStatus.connectionStatus = action.payload;
-    },
-    setLastEditEvent: (state, action: { payload: EditEvent }) => {
-      state.socketStatus.lastEditEvent = action.payload;
-    },
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
@@ -253,25 +150,10 @@ export const {
   removeElevationPending,
   setShowDistanceFromLander,
   setShowElevation,
-  collapseActions,
-  expandActions,
-  stmViewExpandItem,
-  stmViewCollapseItem,
-  stmViewSetExpandedItems,
-  stmViewToggleEva,
-  stmViewToggleSelectedActionType,
-  stmViewToggleExpandTopTiers,
-  stmViewToggleCrosshairs,
-  stmViewSetHoveredTopItem,
-  stmViewSetHoveredLeftItem,
-  stmRulesToggleRex,
   setFolders,
   folderToggleOpenClose,
   folderToggleVisible,
   setFolderInterfaceEditing,
   setFolderInterfaceNameValue,
-  setLastStatusFromServer,
-  setSocketConnectionStatus,
-  setLastEditEvent,
   obliterateState,
 } = interfaceSlice.actions;

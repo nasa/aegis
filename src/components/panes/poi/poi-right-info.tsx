@@ -15,17 +15,25 @@ import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 import { globalGrid } from "utils/mapping/grid";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const [projBoundsMinX, projBoundsMaxX] = useAppSelector((state) => {
-    return [state.mission.mission.projBoundsMinX, state.mission.mission.projBoundsMaxX];
-  }, deepEqual);
-  const [projBoundsMinY, projBoundsMaxY] = useAppSelector((state) => {
-    return [state.mission.mission.projBoundsMinY, state.mission.mission.projBoundsMaxY];
-  }, deepEqual);
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      usingLGRSCoordinates: doc.usingLGRSCoordinates,
+      planetRadius: doc.planetRadius,
+      projBoundsMinY: doc.projBoundsMinY,
+      projBoundsMaxY: doc.projBoundsMaxY,
+      projBoundsMinX: doc.projBoundsMinX,
+      projBoundsMaxX: doc.projBoundsMaxX,
+      landerElevationMeters: doc.landerElevationMeters,
+    }),
+    deepEqual
+  );
+
   const selectedPoi = useAppSelector(
     (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
     deepEqual
@@ -34,10 +42,6 @@ const Info_Panel: FunctionComponent<{
     (state) =>
       state.station.stations.filter((station) => station.poiUuids.includes(selectedPoi.uuid))
         .length,
-    refEqual
-  );
-  const landerElevation = useAppSelector(
-    (state) => state.mission.mission.landerElevationMeters,
     refEqual
   );
 
@@ -55,19 +59,14 @@ const Info_Panel: FunctionComponent<{
     return state.map.mapDirective?.uuid === selectedPoi.uuid ? state.map.mapDirective : null;
   }, shallowEqual);
 
-  const missionUsingLGRSCoordinates = useAppSelector(
-    (state) => state.mission.mission.usingLGRSCoordinates,
-    refEqual
-  );
-
   const poiGridCoordinates = useAppSelector((state) => {
-    if (selectedPoi.location && missionUsingLGRSCoordinates) {
+    if (selectedPoi.location && partialMission.usingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(selectedPoi.location.lat, selectedPoi.location.lng);
     } else if (selectedPoi.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
         globalGrid.coordinates,
         selectedPoi.location,
-        state.mission.mission.planetRadius
+        partialMission.planetRadius
       );
     } else {
       return "Not set";
@@ -112,10 +111,10 @@ const Info_Panel: FunctionComponent<{
             </div>
             <div className={paneStyles.descriptionContainer}>
               <TextArea
-                value={selectedPoi.description}
+                value={selectedPoi.description || ""}
                 editing={editMode}
                 onSubmit={(value: string) => {
-                  dispatch(upsertPoiByField(selectedPoi.uuid, "description", value));
+                  dispatch(upsertPoiByField(selectedPoi.uuid, "description", value || ""));
                 }}
                 fieldProps={{
                   name: "poiDescription",
@@ -269,7 +268,10 @@ const Info_Panel: FunctionComponent<{
                               validators: [
                                 validators.mustBeNumber,
                                 validators.required,
-                                validators.withinBoundary(projBoundsMinY, projBoundsMaxY),
+                                validators.withinBoundary(
+                                  partialMission.projBoundsMinY,
+                                  partialMission.projBoundsMaxY
+                                ),
                               ],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
@@ -307,7 +309,10 @@ const Info_Panel: FunctionComponent<{
                               validators: [
                                 validators.mustBeNumber,
                                 validators.required,
-                                validators.withinBoundary(projBoundsMinX, projBoundsMaxX),
+                                validators.withinBoundary(
+                                  partialMission.projBoundsMinX,
+                                  partialMission.projBoundsMaxX
+                                ),
                               ],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
@@ -337,7 +342,7 @@ const Info_Panel: FunctionComponent<{
                         {!selectedPoi.elevation ? (
                           <>Not set</>
                         ) : (
-                          (selectedPoi.elevation - landerElevation).toFixed(0)
+                          (selectedPoi.elevation - partialMission.landerElevationMeters).toFixed(0)
                         )}
                       </div>
                     </div>
@@ -365,7 +370,8 @@ const Info_Panel: FunctionComponent<{
                     <div className={paneStyles.displayFieldValue}>
                       <LastEdited
                         updatedAt={selectedPoi?.updatedAt}
-                        infoString={`poi uuid: ${selectedPoi?.uuid}`}
+                        createdAt={selectedPoi?.createdAt}
+                        infoString={`POI UUID: ${selectedPoi?.uuid}`}
                       />
                     </div>
                   </div>

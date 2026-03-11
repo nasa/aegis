@@ -1,6 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
 import { isLoggedIn, login, logout } from "http-client/login";
-import { getMissions } from "http-client/mission";
 import fetchMock from "jest-fetch-mock";
 
 //mock up the fetch calls and test front-end functionality only
@@ -56,27 +55,6 @@ describe("Login", () => {
     fetchMock.mockResponseOnce(JSON.stringify(mockResponse));
     logout().then((res) => {
       expect(res).toEqual(mockResponse);
-    });
-  });
-});
-
-describe("Mission", () => {
-  test("Mission: Returns All Missions", async () => {
-    const multipleMissions = [
-      { name: "Test mission 1", id: 123 },
-      { name: "Test mission 2", id: 234 },
-    ];
-    fetchMock.mockResponseOnce(JSON.stringify(multipleMissions));
-    getMissions().then((res) => {
-      expect(res).toEqual(multipleMissions);
-    });
-  });
-
-  test("Mission: Returns Single Mission", async () => {
-    const testMission = [{ name: "Test mission", id: 123 }];
-    fetchMock.mockResponseOnce(JSON.stringify(testMission));
-    getMissions(123).then((res) => {
-      expect(res).toEqual(testMission);
     });
   });
 });

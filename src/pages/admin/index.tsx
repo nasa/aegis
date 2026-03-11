@@ -8,19 +8,19 @@ const Index: React.FunctionComponent = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<AppUser>(null);
   const navigateMission = async () => {
-    await navigate("/admin/missions");
+    navigate("/admin/missions");
   };
 
   const navigateUser = async () => {
-    await navigate("/admin/user");
+    navigate("/admin/user");
   };
 
   const navigateVisitors = async () => {
-    await navigate("/admin/serverSocketStatus");
+    navigate("/admin/serverSocketStatus");
   };
 
   const navigateEmss = async () => {
-    await navigate("/admin/emss");
+    navigate("/admin/emss");
   };
 
   //on load check login

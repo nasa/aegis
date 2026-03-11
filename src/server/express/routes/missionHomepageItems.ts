@@ -3,12 +3,13 @@ import type { Request, Response } from "express";
 import express from "express";
 import sortBy from "lodash/sortBy";
 
-import { Mission_db, Rex_db } from "server/database/models/_allModels";
+import { Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { emssTokenIsValid } from "utils/permissions";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../global";
+import { getAutomergeMissions } from "./missionAutomerge";
 
 const router = express.Router();
 
@@ -67,24 +68,30 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 export default router;
 
 async function getHomepageMissionItems(
-  missionIdList: number | number[] = null
+  missionIdList: number[] = null
 ): Promise<MissionHomepageItem[]> {
   const em = globalValues.orm.em;
-  let missions: Mission_db[];
+
+  // Get missions from automerge documents in parallel
+  const allMissions = await getAutomergeMissions(missionIdList);
+  // Only include active/non-archived missions
+  const missions = allMissions.filter((mission) => !mission.isArchived);
+
+  // Get rexes from database
   let rexes: Rex_db[];
   if (!missionIdList) {
-    missions = await em.find(Mission_db, { isArchived: false });
-    rexes = await em.find(Rex_db, {});
+    rexes = await em.find(Rex_db, {}); // all rexes
   } else {
-    missions = await em.find(Mission_db, { id: missionIdList, isArchived: false });
-    rexes = await em.find(Rex_db, { mission: missionIdList });
+    rexes = await em.find(Rex_db, { missionId: { $in: missionIdList } }); // rexes for specified missions
   }
 
   const missionHomepageItems: MissionHomepageItem[] = [];
 
   for (const mission of missions) {
-    const rexDb = rexes.find((rex) => rex.mission.id === mission.id && rex.isRunning);
-    const rex: Rex = rexDb ? convertRexesTypeDbToStore([rexDb])[0] : null;
+    const runningRexForMission = rexes.find((rex) => rex.missionId === mission.id && rex.isRunning);
+    const rex: Rex = runningRexForMission
+      ? convertRexesTypeDbToStore([runningRexForMission])[0]
+      : null;
 
     const missionHomepageItem: MissionHomepageItem = {
       id: mission.id,

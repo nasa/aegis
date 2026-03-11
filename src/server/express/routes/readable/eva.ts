@@ -77,7 +77,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       const evaQuery = em
         .createQueryBuilder(Eva_db)
         .select(["uuid", "refUuid", "createdAt", "updatedAt"])
-        .where({ mission: { id: queryObj.missionId } });
+        .where({ missionId: queryObj.missionId });
 
       if (queryObj.rexUuid) {
         // get a specific eva from a rex

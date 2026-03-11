@@ -6,15 +6,15 @@ import {
   types as MikroTypes,
 } from "@mikro-orm/postgresql";
 
-import { Layer_db, Mission_db } from "./_allModels";
+import { Layer_db } from "./_allModels";
 
 @Entity()
 export class Sublayer_db implements Sublayer_db_type {
   @PrimaryKey({ type: MikroTypes.uuid })
   uuid: string;
 
-  @ManyToOne(() => Mission_db, { unique: false, primary: false })
-  mission!: Mission_db;
+  @Property({ type: MikroTypes.integer })
+  missionId!: number;
   @ManyToOne(() => Layer_db, { unique: false, primary: false })
   layer!: Layer_db;
 
@@ -40,8 +40,6 @@ export class Sublayer_db implements Sublayer_db_type {
   maxNativeZoom: number;
   @Property({ type: MikroTypes.float, nullable: true })
   maxZoom: number;
-  @Property({ type: MikroTypes.json, nullable: true })
-  style: MapSublayerStyle;
   @Property({ type: MikroTypes.boolean, nullable: true })
   isTimeBased: boolean;
   @Property({ type: MikroTypes.json, nullable: true })

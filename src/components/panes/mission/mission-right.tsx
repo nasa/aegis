@@ -1,10 +1,7 @@
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent } from "react";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import {
   faAtlas,
-  faBan,
-  faEdit,
-  faFloppyDisk,
   faToolbox,
   faSliders,
   faBullseye,
@@ -14,20 +11,19 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 import Prefs_panel from "./mission-right-prefs";
-import Layers_panel from "./mission-right-circles";
+import Circles_panel from "./mission-right-circles";
 import paneStyles from "../global-pane-styles.module.css";
-import { Button } from "components/interface/form/globalFields";
+import { ToggleButton } from "components/interface/form/globalFieldsAutomerge";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { setMissionSectionEditing, setSelectedMissionRightNavItem } from "store/mission";
-import { thunkMissionCancel, thunkMissionSave } from "store/thunk/thunkMission";
 import Equipment_Panel from "./mission-right-equipment";
 import GeographicUnits_Panel from "./mission-right-geographicUnits";
-import { isModified } from "utils/component-helpers";
 import ActionTemplates_Panel from "./mission-right-actionTemplates";
 import { RightTabs } from "components/interface/side-controls";
 import Export_Panel from "./mission-right-export";
 import ActionDefinitions_Panel from "./mission-right-actionDefinitions";
-import { LoadingOverlay } from "components/interface/_global-elements";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { isConnected } from "store/selectors";
 
 const MissionPrefsRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -35,19 +31,8 @@ const MissionPrefsRight: FunctionComponent = () => {
     (state) => state.mission.selectedRightNavItem,
     refEqual
   );
-
-  const actionSystemVersion = useAppSelector(
-    (state) => state.mission.mission.actionSystemVersion,
-    refEqual
-  );
-
-  const missionUpdatedAt = useAppSelector((state) => state.mission.mission.updatedAt, refEqual);
-  const missionFromDbUpdatedAt = useAppSelector(
-    (state) => state.mission.missionFromDb.updatedAt,
-    refEqual
-  );
   const missionSectionsEditing = useAppSelector(
-    (state) => state.mission.missionSectionsEditing,
+    (state) => state.mission.missionSectionsEditing?.includes("prefs"),
     shallowEqual
   );
   const editPerms = useAppSelector(
@@ -57,12 +42,10 @@ const MissionPrefsRight: FunctionComponent = () => {
     refEqual
   );
 
-  const modified = isModified(
-    [{ updatedAt: missionUpdatedAt, uuid: null }],
-    [{ updatedAt: missionFromDbUpdatedAt, uuid: null }]
-  );
-  // used for the loading overlay when saving a Mission
-  const [isLoading, setIsLoading] = useState(false);
+  const isOnline = useAppSelector(isConnected, refEqual);
+
+  // get the mission automerge document so we can get actionSystemVersion
+  const actionSystemVersion = useMissionDocSelector((doc) => doc.actionSystemVersion, refEqual);
 
   let panelTypes: PanelTypes;
   if (actionSystemVersion === 1) {
@@ -75,7 +58,7 @@ const MissionPrefsRight: FunctionComponent = () => {
       },
       circle_panel: {
         title: "Proximity Circle Definitions",
-        panel: Layers_panel,
+        panel: Circles_panel,
         selectedColor: "white",
         icon: faBullseye,
       },
@@ -114,7 +97,7 @@ const MissionPrefsRight: FunctionComponent = () => {
       },
       circle_panel: {
         title: "Proximity Circle Definitions",
-        panel: Layers_panel,
+        panel: Circles_panel,
         selectedColor: "white",
         icon: faBullseye,
       },
@@ -160,73 +143,30 @@ const MissionPrefsRight: FunctionComponent = () => {
           dispatchFunction={setSelectedMissionRightNavItem}
         />
         <div className={paneStyles.saveCancelContainer}>
-          {!missionSectionsEditing.includes("prefs") && editPerms && (
-            <Button
-              icon={faEdit}
+          {editPerms && (
+            <ToggleButton
+              toggled={missionSectionsEditing}
+              isDisabled={!isOnline}
               onClick={() => {
-                dispatch(setMissionSectionEditing({ section: "prefs", editMode: true }));
+                if (!isOnline) return;
+                dispatch(
+                  setMissionSectionEditing({
+                    section: "prefs",
+                    editMode: !missionSectionsEditing,
+                  })
+                );
               }}
+              toolTip={
+                isOnline
+                  ? `Turn ${missionSectionsEditing ? "Off" : "On"} Edit Mode`
+                  : "Offline: Editing Disabled"
+              }
               label="Edit"
-              toolTip="Edit Preset"
-              style={{ width: "60px", fontSize: "0.9em" }}
-              labelStyle={{ marginTop: "2px" }}
             />
-          )}
-
-          {missionSectionsEditing.includes("prefs") && (
-            <>
-              <Button
-                onClick={async () => {
-                  if (modified) {
-                    setIsLoading(true); // Show loading overlay
-                    try {
-                      await dispatch(thunkMissionSave());
-                    } finally {
-                      setIsLoading(false); // Hide loading overlay
-                    }
-                  }
-                }}
-                icon={faFloppyDisk}
-                toolTip={`Save Mission${modified ? "" : " (nothing to save)"}`}
-                enabled={modified}
-                ariaLabel="saveButton"
-                style={{
-                  width: "30px",
-                  backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
-                  color: modified ? "white" : "var(--grey4)",
-                  fontSize: "0.9em",
-                  paddingLeft: "9px",
-                }}
-              />
-              <Button
-                onClick={async () => {
-                  try {
-                    setIsLoading(true);
-                    await dispatch(thunkMissionCancel());
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-                icon={faBan}
-                toolTip="Cancel Edit"
-                ariaLabel="cancelButton"
-                style={{ width: "30px", fontSize: "0.9em", paddingLeft: "8px" }}
-              />
-            </>
           )}
         </div>
       </div>
-
-      <ActiveComponent
-        className={paneStyles.rightActiveWindow}
-        editMode={missionSectionsEditing.includes("prefs")}
-      />
-
-      {isLoading && (
-        <div>
-          <LoadingOverlay message="Please Wait..." />
-        </div>
-      )}
+      <ActiveComponent className={paneStyles.rightActiveWindow} editMode={missionSectionsEditing} />
     </>
   );
 };

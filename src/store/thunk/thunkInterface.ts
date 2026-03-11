@@ -1,9 +1,6 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import {
-  setBottomPanelIsOpen,
-  setRightPanelIsOpen,
-  stmViewSetExpandedItems,
-} from "store/interface";
+import { setBottomPanelIsOpen, setRightPanelIsOpen } from "store/interface";
+import { stmViewSetExpandedItems } from "store/stm";
 
 export const thunkSetRightPanelIsOpenIfAuto = appCreateAsyncThunk<boolean>(
   "setRightPanelIsOpenIfAuto",
@@ -22,11 +19,9 @@ export const thunkSetBottomPanelIsOpenIfAuto = appCreateAsyncThunk<boolean>(
 export const thunkExpandAllLevel3s = appCreateAsyncThunk<void>(
   "expandAllLevel3s",
   async (_, { getState, dispatch }) => {
-    const newExpandedItems: STMViewExpandedItem[] = [...getState().interface.stmViewExpandedItems];
+    const newExpandedItems: STMViewExpandedItem[] = [...getState().stm.stmViewExpandedItems];
     for (const level3 of getState().stm.level3s) {
-      if (
-        getState().interface.stmViewExpandedItems.includes({ type: "level3", uuid: level3.uuid })
-      ) {
+      if (getState().stm.stmViewExpandedItems.includes({ type: "level3", uuid: level3.uuid })) {
         continue;
       } else {
         newExpandedItems.push({ type: "level3", uuid: level3.uuid });
@@ -40,7 +35,7 @@ export const thunkCollapseAllLevel3s = appCreateAsyncThunk<void>(
   "collapseAllLevel3s",
   async (_, { getState, dispatch }) => {
     const newExpandedItems: STMViewExpandedItem[] = [];
-    for (const expandedItem of getState().interface.stmViewExpandedItems) {
+    for (const expandedItem of getState().stm.stmViewExpandedItems) {
       if (expandedItem.type === "level3") {
         continue;
       } else {

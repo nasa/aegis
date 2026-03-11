@@ -1,6 +1,6 @@
 import { FunctionComponent, useState } from "react";
 import styles from "./stm-rules-rules.module.css";
-import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { shallowEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { Checkbox, MultiSelectDropdown } from "components/interface/form/globalFields";
 import { setRuleEditingUuid, upsertSTMRuleByField } from "store/stm";
@@ -8,6 +8,7 @@ import STMRuleDetailsModal from "./stm-rules-details-modal";
 import RulesEngineSummary from "./stm-rule-count";
 import cloneDeep from "lodash/cloneDeep";
 import capitalize from "lodash/capitalize";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const STMRules: FunctionComponent<{ stmUuid: string }> = ({ stmUuid }) => {
   const rules = useAppSelector(
@@ -78,10 +79,7 @@ export const STMRuleSet: FunctionComponent<{
   type: ActionDefinitionType;
 }> = ({ isEditing, stmRule, type }) => {
   const dispatch = useAppDispatch();
-  const missionActionDefinitions = useAppSelector(
-    (state) => state.mission.mission.actionDefinitions,
-    deepEqual
-  );
+  const actionDefinitions = useMissionDocSelector((doc) => doc.actionDefinitions, deepEqual);
 
   const actionDefinitionItemsToDisplay: { uuid: string; name: string; abbr: string }[] = [];
   const ruleItemUuidsKeyString = `${type.slice(0, -1)}Uuids` as
@@ -90,7 +88,7 @@ export const STMRuleSet: FunctionComponent<{
     | "adjectiveUuids";
   const ruleAnyKeyString = `${type.slice(0, -1)}Any` as "verbAny" | "nounAny" | "adjectiveAny";
   for (const ruleItemUuid of stmRule[ruleItemUuidsKeyString] as string[]) {
-    const actionDef = missionActionDefinitions[type][ruleItemUuid];
+    const actionDef = actionDefinitions[type][ruleItemUuid];
     if (actionDef) {
       const actionDefinitionItem = {
         uuid: ruleItemUuid,
@@ -110,7 +108,7 @@ export const STMRuleSet: FunctionComponent<{
           {!stmRule[ruleAnyKeyString] && (
             <div className={styles.stmRuleSetMultiselectOutsideContainer}>
               <MultiSelectDropdown
-                items={Object.entries(missionActionDefinitions[type]).map(([uuid, display]) => ({
+                items={Object.entries(actionDefinitions[type]).map(([uuid, display]) => ({
                   label: display.name,
                   value: uuid,
                 }))}

@@ -10,7 +10,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { upsertEvaByField } from "store/eva";
-import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import { makeTraverseRateString } from "utils/component-helpers";
@@ -38,6 +38,7 @@ import { faClock } from "@fortawesome/free-regular-svg-icons";
 import { thunkChangeIngressEgress } from "store/thunk/thunkEva";
 import { getAsPlannedEvaFromRefUuid, selectAsPlannedStations } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 type XgressData = {
   uuid: string; // uuid of the xgress station or "lander"
@@ -47,6 +48,15 @@ type XgressData = {
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      walkbackRate: doc.walkbackRate,
+      traverseRate: doc.traverseRate,
+      equipmentItems: doc.equipmentItems,
+    }),
+    deepEqual
+  );
+
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
   const selectedEva = useAppSelector(
     (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
@@ -74,25 +84,17 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     }
   }, refEqual);
 
-  const missionTraverseRate = useAppSelector(
-    (state) => state.mission.mission?.traverseRate,
-    refEqual
-  );
   const evaCalculatedFields = useAppSelector((state) => {
     const eva = state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid);
     return getCalculatedFieldsByEva({
       eva,
       evaStations: state.station.stations,
-      missionWalkbackRate: state.mission.mission.walkbackRate,
-      missionTraverseRate: state.mission.mission.traverseRate,
+      missionWalkbackRate: partialMission.walkbackRate,
+      missionTraverseRate: partialMission.traverseRate,
       evaActions: state.action.actions,
       evaTraverses: state.traverse.traverses,
     });
   }, deepEqual);
-  const missionEquipItems = useAppSelector(
-    (state) => state.mission.mission.equipmentItems,
-    shallowEqual
-  );
   const stationListForXgressDropdown = useAppSelector(
     (state) =>
       selectAsPlannedStations(state)
@@ -201,7 +203,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
   const consumablesDisplay: EquipmentItemDisplay[] = [];
   Object.entries(evaCalculatedFields?.equipmentItems)?.forEach(([uuid, equipItem]) => {
     //find item in mission
-    const missionEquipItem = missionEquipItems[uuid];
+    const missionEquipItem = partialMission.equipmentItems[uuid];
     if (missionEquipItem.singleUse) {
       consumablesDisplay.push({
         name: missionEquipItem.name,
@@ -320,7 +322,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                 value={selectedEva.description || ""}
                 editing={editMode}
                 onSubmit={(value: string) => {
-                  dispatch(upsertEvaByField(selectedEva.uuid, "description", value));
+                  dispatch(upsertEvaByField(selectedEva.uuid, "description", value || ""));
                 }}
                 fieldProps={{ name: "evaDescription", ariaLabel: "EVA Description" }}
               />
@@ -695,7 +697,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         {makeTraverseRateString(
                           selectedEva.traverseRate,
                           null,
-                          missionTraverseRate
+                          partialMission.traverseRate
                         )}
                       </div>
                     </div>
@@ -901,7 +903,8 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     <div className={paneStyles.displayFieldValue}>
                       <LastEdited
                         updatedAt={selectedEva?.updatedAt}
-                        infoString={`eva uuid: ${selectedEva?.uuid}`}
+                        createdAt={selectedEva?.createdAt}
+                        infoString={`EVA UUID: ${selectedEva?.uuid}`}
                       />
                     </div>
                   </div>

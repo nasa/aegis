@@ -7,15 +7,14 @@ interface Layer {
   updatedAt: string;
 }
 
-type Layer_db_type = Omit<Layer, "missionId" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
+type Layer_db_type = Omit<Layer, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
 
 type SublayerType = "vector" | "tile" | "vector-tile";
 
-//add a custom description field to MMGIS sublayers
+//add a custom description field to sublayers
 interface Sublayer {
   uuid: string;
   missionId: number;
@@ -31,14 +30,13 @@ interface Sublayer {
   minNativeZoom: number;
   maxNativeZoom: number;
   maxZoom: number;
-  style: MapSublayerStyle;
   isTimeBased: boolean;
   timeLayerManifest: TimeLayerInfo[];
   createdAt: string;
   updatedAt: string;
 }
 
-// properties that are allowable to be overriden with properties.json in admin
+// properties that are allowable to be overridden with properties.json in admin
 type SublayerImportable = Partial<
   Pick<
     Sublayer,
@@ -52,7 +50,6 @@ type SublayerImportable = Partial<
     | "minNativeZoom"
     | "maxNativeZoom"
     | "maxZoom"
-    | "style"
   >
 >;
 
@@ -60,8 +57,7 @@ interface SublayerToDraw extends Sublayer {
   chosenTimeLayer: TimeLayerInfo;
 }
 
-type Sublayer_db_type = Omit<Sublayer, "missionId" | "layerUuid" | "createdAt" | "updatedAt"> & {
-  mission: Mission_db_type;
+type Sublayer_db_type = Omit<Sublayer, "layerUuid" | "createdAt" | "updatedAt"> & {
   layer: Layer_db_type;
   createdAt: Date;
   updatedAt: Date;

@@ -15,6 +15,16 @@ export async function getGrids(
   } else {
     res = await fetch(`/api/v1/grid&getFullGrids=${getFullGrids}`);
   }
+  if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
+    return { status: "error", message: errorMessage };
+  }
   const response: WrappedResponse<MissionGrid[]> = await res.json();
   return response;
 }
@@ -32,12 +42,20 @@ export async function upsertGrids(
     },
     body: JSON.stringify(requestBody),
   });
-  const response: WrappedResponse<MissionGrid[]> = await res.json();
   if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
     alert(
-      `Error saving grids to database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+      `Error saving grids to database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
+    return { status: "error", message: errorMessage };
   }
+  const response: WrappedResponse<MissionGrid[]> = await res.json();
   return response;
 }
 
@@ -53,11 +71,19 @@ export async function deleteGrids(
     },
     body: JSON.stringify(requestBody),
   });
-  const response: WrappedResponse<null> = await res.json();
   if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
     alert(
-      `Error deleting grids from database. Please let the AEGIS team know via the support Teams chat. Status ${response.status} ${response.message}`
+      `Error deleting grids from database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
+    return { status: "error", message: errorMessage };
   }
+  const response: WrappedResponse<null> = await res.json();
   return response;
 }

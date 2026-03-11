@@ -7,7 +7,7 @@ import { getAccurateNow } from "utils/formatting";
 
 /**
  * Generate a blank traverse
- * @param partialTraverse any fields that are to be overriden from default
+ * @param partialTraverse any fields that are to be overridden from default
  * @returns the generated traverse
  */
 export const generateBlankTraverse = (partialTraverse?: Partial<Traverse>): Traverse => {
@@ -41,7 +41,7 @@ export function convertTraversesTypeDbToStore(dbTraverses: Traverse_db[]): Trave
     const convertedTraverse: Traverse = {
       uuid: dbTraverse.uuid,
       refUuid: dbTraverse.refUuid,
-      missionId: dbTraverse.mission.id,
+      missionId: dbTraverse.missionId,
       name: dbTraverse.name,
       path: dbTraverse.path,
       pathSegmentDistances: dbTraverse.pathSegmentDistances,
@@ -73,7 +73,7 @@ export function convertTraversesTypeStoreToDb(
     const convertedRecord: EntityData<Traverse_db> = {
       uuid: storeTraverse.uuid,
       refUuid: storeTraverse.refUuid,
-      mission: storeTraverse.missionId,
+      missionId: storeTraverse.missionId,
       name: storeTraverse.name,
       path: storeTraverse.path,
       pathSegmentDistances: storeTraverse.pathSegmentDistances,

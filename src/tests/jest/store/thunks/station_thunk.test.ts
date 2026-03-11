@@ -14,8 +14,8 @@ import * as httpClient_station from "http-client/station";
 import * as httpClient_action from "http-client/action";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankStation } from "store/storeUtils/station";
+import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 const mockThunkCancelMarkerMapDirective = jest.fn();
 jest.mock("store/thunk/thunkMap", () => {
@@ -46,6 +46,15 @@ jest.mock("store/thunk/thunkTraverse", () => ({
   thunkUpdateTraversesAroundStation: () => mockThunkUpdateTraversesAroundStation,
 }));
 
+beforeAll(() => {
+  /**
+   * Init the mission automerge doc. In the app this is handled in the component.
+   * Pass in null because this function is being mocked in jest.setup.ts so we don't
+   * have to pass in a real value.
+   */
+  setMissionAutomergeDocHandle(null);
+});
+
 beforeEach(async () => {
   jest.clearAllMocks(); // clear call count
 });
@@ -61,15 +70,10 @@ describe("Thunk Station Tests", () => {
   test("thunkUpdateStationLocation()", async () => {
     //populate the station state in the store
     const newStation: Station = generateBlankStation({ name: "Jest Station-1" });
-    const blankMission: Mission = generateBlankMission({
-      name: "Jest Mission-1",
-      landerLocation: { lat: 1.2, lng: 2.1 },
-    });
     const store = createCustomTestStore({
       station: { ...stationInitialState, stations: [newStation] },
       mission: {
         ...missionInitialState,
-        mission: { ...blankMission },
       },
     });
 
@@ -90,10 +94,9 @@ describe("Thunk Station Tests", () => {
   test("thunkUpdateWalkbackPath()", async () => {
     //populate the station state in the store
     const newStation: Station = generateBlankStation({ name: "Jest Station-1" });
-    const blankMission: Mission = generateBlankMission({ name: "Jest Mission-1" });
     const store = createCustomTestStore({
       station: { ...stationInitialState, stations: [newStation] },
-      mission: { ...missionInitialState, mission: { ...blankMission } },
+      mission: { ...missionInitialState },
     });
     expect(store.getState().station.stations[0].walkbackPath).toBeNull();
 
@@ -125,10 +128,6 @@ describe("Thunk Station Tests", () => {
       name: "Jest Station-1",
       location: { lat: 1.3, lng: 2.3 },
     });
-    const blankMission: Mission = generateBlankMission({
-      name: "Jest Mission-1",
-      landerLocation: { lat: 1.2, lng: 2.1 },
-    });
     const store = createCustomTestStore({
       station: {
         ...stationInitialState,
@@ -136,7 +135,6 @@ describe("Thunk Station Tests", () => {
       },
       mission: {
         ...missionInitialState,
-        mission: blankMission,
       },
     });
     expect(store.getState().station.stations[0].walkbackPath).toBeNull();
@@ -150,7 +148,7 @@ describe("Thunk Station Tests", () => {
     let expectedPath: AEGISPoint[] = [
       { lat: 1.3, lng: 2.3 },
       { lat: 1, lng: 2.3 },
-      { lat: 1.2, lng: 2.1 },
+      { lat: 3, lng: 3 }, // lander location
     ];
     let response = await store.dispatch(
       thunkStation.thunkFullUpdateWalkback({ path: newPath, stationUuid: newStation.uuid })
@@ -164,7 +162,7 @@ describe("Thunk Station Tests", () => {
     //empty path
     expectedPath = [
       { lat: 1.3, lng: 2.3 },
-      { lat: 1.2, lng: 2.1 },
+      { lat: 3, lng: 3 }, // lander location
     ];
     response = await store.dispatch(
       thunkStation.thunkFullUpdateWalkback({ path: [], stationUuid: newStation.uuid })
@@ -187,10 +185,6 @@ describe("Thunk Station Tests", () => {
         { lat: 1, lng: 2.6 },
       ],
     });
-    const blankMission: Mission = generateBlankMission({
-      name: "Jest Mission-1",
-      landerLocation: { lat: 1.2, lng: 2.1 },
-    });
     const store = createCustomTestStore({
       station: {
         ...stationInitialState,
@@ -198,14 +192,13 @@ describe("Thunk Station Tests", () => {
       },
       mission: {
         ...missionInitialState,
-        mission: blankMission,
       },
     });
     expect(store.getState().station.stations[0].walkbackPath.length).toEqual(3);
 
     const expectedPath: AEGISPoint[] = [
       { lat: 1.3, lng: 2.3 },
-      { lat: 1.2, lng: 2.1 },
+      { lat: 3, lng: 3 }, // lander location
     ];
     await store.dispatch(thunkStation.thunkResetWalkback({ stationUuid: newStation.uuid }));
     expect(store.getState().station.stations[0].walkbackPath).toEqual(expectedPath);
@@ -275,7 +268,7 @@ describe("Thunk Station Tests", () => {
     const stationActionModified: Action = {
       ...stationAction,
       description: "modified description",
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date().getTime() + 1,
     };
     const store = createCustomTestStore({
       station: {
@@ -326,7 +319,7 @@ describe("Thunk Station Tests", () => {
     const stationActionModified = {
       ...stationAction,
       description: "modified description",
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date().getTime() + 1,
     };
     const newStationAction: Action = generateBlankAction({
       name: "Jest Action-1",

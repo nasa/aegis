@@ -1,6 +1,7 @@
 import { calcPathDurationMins, calculateAscentAndDescent } from "utils/mapping/geoMath";
 import { mergeEquipmentItems } from "store/storeUtils/store";
 import { isNotNumber } from "utils/formatting";
+import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
 
 export const getCalculatedFieldsByPoi = (params: {
   poiUuid: string;
@@ -249,6 +250,13 @@ export const getCalculatedFieldsByTraverse = (params: {
   // total ascended and descended
   const ascentDescent = calculateAscentAndDescent(traverse.pathSegmentElevations);
 
+  // get traverse segment bearings
+  const pathSegmentBearings: number[] = [];
+  for (let i = 1; i < traverse.path.length; i++) {
+    const bearing = getBearingFromLatLngPoints(traverse.path[i - 1], traverse.path[i]);
+    pathSegmentBearings.push(bearing);
+  }
+
   // check if calculated duration is greater than predicted durationLower
   if (!isNotNumber(traverse?.duration)) {
     if (traverse?.duration > (Math.ceil(traverseDurationMins) + actionTotalDuration) * 1.25) {
@@ -294,6 +302,7 @@ export const getCalculatedFieldsByTraverse = (params: {
     durationMinutes: traverseDurationMins,
     distanceMeters,
     ascentDescent,
+    bearings: pathSegmentBearings,
   };
 
   return newCalculatedFields;
@@ -304,11 +313,21 @@ export const getCalculatedTimeOfSequenceItem = (params: {
   sequenceItemUuid: string;
   evas: Eva[];
   stations: Station[];
-  mission: Mission;
   actions: Action[];
   traverses: Traverse[];
+  missionWalkbackRate: number;
+  missionTraverseRate: number;
 }): string => {
-  const { evaUuid, sequenceItemUuid, evas, stations, mission, actions, traverses } = params;
+  const {
+    evaUuid,
+    sequenceItemUuid,
+    evas,
+    stations,
+    actions,
+    traverses,
+    missionWalkbackRate,
+    missionTraverseRate,
+  } = params;
   const eva = evas.find((storeEva) => storeEva.uuid === evaUuid);
 
   if (!eva || !sequenceItemUuid || !eva.datetime) return;
@@ -331,7 +350,7 @@ export const getCalculatedTimeOfSequenceItem = (params: {
       }
       thisStationCalculatedTime = getCalculatedFieldsByStation({
         station,
-        missionWalkbackRate: mission.walkbackRate,
+        missionWalkbackRate,
         stationActions,
       }).totalDwellTime;
     } else if (seqItem.type === "traverse") {
@@ -345,7 +364,7 @@ export const getCalculatedTimeOfSequenceItem = (params: {
       }
       thisTraverseCalculatedTime = getCalculatedFieldsByTraverse({
         traverse,
-        missionTraverseRate: mission.traverseRate,
+        missionTraverseRate,
         evaTraverseRate: traverseEva?.traverseRate,
         traverseActions,
       }).durationMinutes;

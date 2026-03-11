@@ -1,13 +1,13 @@
 import { Entity, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/postgresql";
 
 @Entity()
-export class Mission_db implements Mission_db_type {
+export class Mission_db {
   @PrimaryKey({ type: MikroTypes.integer })
   id!: number;
 
   @Property({ type: MikroTypes.text })
   name!: string;
-  @Property({ type: MikroTypes.text, nullable: true })
+  @Property({ type: MikroTypes.text })
   description!: string;
   @Property({ type: MikroTypes.text, nullable: true })
   missionBanner: string;
@@ -78,10 +78,10 @@ export class Mission_db implements Mission_db_type {
   @Property({ type: MikroTypes.boolean, default: false })
   usingLGRSCoordinates: boolean;
 
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  updatedAt!: Date;
+  @Property({ type: MikroTypes.double })
+  createdAt: number;
+  @Property({ type: MikroTypes.double })
+  updatedAt: number;
 
   @Property({ type: MikroTypes.integer, version: true })
   version!: number; //used for optimistic locking

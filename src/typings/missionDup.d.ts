@@ -1,4 +1,3 @@
-type Mission_db = import("server/database/models/_allModels").Mission_db;
 type Station_db = import("server/database/models/_allModels").Station_db;
 type Poi_db = import("server/database/models/_allModels").Poi_db;
 type Action_db = import("server/database/models/_allModels").Action_db;
@@ -41,7 +40,7 @@ type MissionDump = {
 };
 
 type MissionSourceData = {
-  mission: Mission_db;
+  mission: Mission;
   stations: Station_db[];
   pois: Poi_db[];
   actions: Action_db[];

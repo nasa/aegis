@@ -31,29 +31,32 @@ import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import { globalGrid } from "utils/mapping/grid";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const [projBoundsMinX, projBoundsMaxX] = useAppSelector((state) => {
-    return [state.mission.mission.projBoundsMinX, state.mission.mission.projBoundsMaxX];
-  }, deepEqual);
-  const [projBoundsMinY, projBoundsMaxY] = useAppSelector((state) => {
-    return [state.mission.mission.projBoundsMinY, state.mission.mission.projBoundsMaxY];
-  }, deepEqual);
+  const partialMission = useMissionDocSelector(
+    (doc) => ({
+      walkbackRate: doc.walkbackRate,
+      usingLGRSCoordinates: doc.usingLGRSCoordinates,
+      planetRadius: doc.planetRadius,
+      equipmentItems: doc.equipmentItems,
+      landerLocation: doc.landerLocation,
+      projBoundsMinY: doc.projBoundsMinY,
+      projBoundsMaxY: doc.projBoundsMaxY,
+      projBoundsMinX: doc.projBoundsMinX,
+      projBoundsMaxX: doc.projBoundsMaxX,
+      landerElevationMeters: doc.landerElevationMeters,
+    }),
+    deepEqual
+  );
+
   const selectedStation = useAppSelector(
     (state) =>
       state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
     deepEqual
-  );
-  const landerLocation = useAppSelector(
-    (state) => state.mission.mission.landerLocation,
-    shallowEqual
-  );
-  const landerElevation = useAppSelector(
-    (state) => state.mission.mission.landerElevationMeters,
-    refEqual
   );
   const thisMapDirective = useAppSelector((state) => {
     return state.map.mapDirective?.uuid === selectedStation.uuid ? state.map.mapDirective : null;
@@ -99,34 +102,20 @@ const Info_Panel: FunctionComponent<{
     );
     return getCalculatedFieldsByStation({
       station: selectedStation,
-      missionWalkbackRate: state.mission.mission.walkbackRate,
+      missionWalkbackRate: partialMission.walkbackRate,
       stationActions,
     });
   }, deepEqual);
-  const missionEquipItems = useAppSelector(
-    (state) => state.mission.mission.equipmentItems,
-    shallowEqual
-  );
-
-  const missionWalkbackRate = useAppSelector(
-    (state) => state.mission.mission.walkbackRate,
-    refEqual
-  );
-
-  const missionUsingLGRSCoordinates = useAppSelector(
-    (state) => state.mission.mission.usingLGRSCoordinates,
-    refEqual
-  );
 
   const stationGridCoordinates = useAppSelector((state) => {
-    if (selectedStation.location && missionUsingLGRSCoordinates) {
+    if (selectedStation.location && partialMission.usingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(selectedStation.location.lat, selectedStation.location.lng);
     }
     if (selectedStation.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
         globalGrid.coordinates,
         selectedStation.location,
-        state.mission.mission.planetRadius
+        partialMission.planetRadius
       );
     } else {
       return "Not set";
@@ -147,7 +136,7 @@ const Info_Panel: FunctionComponent<{
   const consumablesDisplay: EquipmentItemDisplay[] = [];
   Object.entries(calculatedFields?.equipmentItems).forEach(([uuid, equipItemUsage]) => {
     //find item in mission
-    const missionEquipItem = missionEquipItems[uuid];
+    const missionEquipItem = partialMission.equipmentItems[uuid];
     if (missionEquipItem?.singleUse) {
       consumablesDisplay.push({
         name: missionEquipItem.name,
@@ -235,11 +224,11 @@ const Info_Panel: FunctionComponent<{
   useEffect(() => {
     if (!selectedStation.walkbackPath) {
       // if there is no walkback, set the walkback to the default
-      if (selectedStation.location && landerLocation) {
+      if (selectedStation.location && partialMission.landerLocation) {
         handleResetWalkback();
       }
     }
-  }, [selectedStation, dispatch, handleResetWalkback, landerLocation]);
+  }, [selectedStation, dispatch, handleResetWalkback, partialMission.landerLocation]);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -253,10 +242,10 @@ const Info_Panel: FunctionComponent<{
             <div className={paneStyles.descriptionContainer}>
               <TextArea
                 key={selectedStation.uuid}
-                value={selectedStation.description}
+                value={selectedStation.description || ""}
                 editing={editMode}
                 onSubmit={(value: string) => {
-                  dispatch(upsertStationByField(selectedStation.uuid, "description", value));
+                  dispatch(upsertStationByField(selectedStation.uuid, "description", value || ""));
                 }}
                 fieldProps={{ name: "stationDescription", ariaLabel: "Station Description" }}
               />
@@ -428,13 +417,13 @@ const Info_Panel: FunctionComponent<{
                     ) : (
                       <></>
                     )}
-                    {landerLocation?.lat && landerLocation?.lng ? (
+                    {partialMission.landerLocation?.lat && partialMission.landerLocation?.lng ? (
                       saveButtonState !== "pending" && (
                         <Button
                           onClick={async () => {
                             await dispatch(
                               thunkUpdateStationLocation({
-                                location: landerLocation,
+                                location: partialMission.landerLocation,
                                 stationUuid: selectedStation.uuid,
                               })
                             );
@@ -496,7 +485,10 @@ const Info_Panel: FunctionComponent<{
                               validators: [
                                 validators.mustBeNumber,
                                 validators.required,
-                                validators.withinBoundary(projBoundsMinY, projBoundsMaxY),
+                                validators.withinBoundary(
+                                  partialMission.projBoundsMinY,
+                                  partialMission.projBoundsMaxY
+                                ),
                               ],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
@@ -534,7 +526,10 @@ const Info_Panel: FunctionComponent<{
                               validators: [
                                 validators.mustBeNumber,
                                 validators.required,
-                                validators.withinBoundary(projBoundsMinX, projBoundsMaxX),
+                                validators.withinBoundary(
+                                  partialMission.projBoundsMinX,
+                                  partialMission.projBoundsMaxX
+                                ),
                               ],
                             }}
                             styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
@@ -564,7 +559,9 @@ const Info_Panel: FunctionComponent<{
                         {!selectedStation.elevation ? (
                           <>Not set</>
                         ) : (
-                          (selectedStation.elevation - landerElevation).toFixed(0)
+                          (
+                            selectedStation.elevation - partialMission.landerElevationMeters
+                          ).toFixed(0)
                         )}
                       </div>
                     </div>
@@ -596,7 +593,7 @@ const Info_Panel: FunctionComponent<{
                     <div className={paneStyles.panelText}>Station Location not set</div>
                   </div>
                 )}
-                {!landerLocation && (
+                {!partialMission.landerLocation && (
                   <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
                     <div className={paneStyles.panelText}>Mission lander location not set</div>
                   </div>
@@ -604,7 +601,7 @@ const Info_Panel: FunctionComponent<{
 
                 {editMode &&
                   selectedStation.location &&
-                  landerLocation &&
+                  partialMission.landerLocation &&
                   mapAction === null &&
                   (saveButtonState === "pending" ? (
                     <span className={stationStyles.statusLoading} />
@@ -775,7 +772,7 @@ const Info_Panel: FunctionComponent<{
                         {makeTraverseRateString(
                           selectedStation.walkbackTraverseRate,
                           null,
-                          missionWalkbackRate
+                          partialMission.walkbackRate
                         )}
                       </div>
                     </div>
@@ -847,7 +844,8 @@ const Info_Panel: FunctionComponent<{
                     <div className={paneStyles.displayFieldValue}>
                       <LastEdited
                         updatedAt={selectedStation?.updatedAt}
-                        infoString={`station uuid: ${selectedStation?.uuid}`}
+                        createdAt={selectedStation?.createdAt}
+                        infoString={`Station UUID: ${selectedStation?.uuid}`}
                       />
                     </div>
                   </div>
