@@ -1,4 +1,5 @@
-import { CSSProperties, FunctionComponent, useRef } from "react";
+import type { CSSProperties, FunctionComponent } from "react";
+import { useRef } from "react";
 
 import rexStyles from "./rex.module.css";
 import evaStyles from "../eva/eva.module.css";

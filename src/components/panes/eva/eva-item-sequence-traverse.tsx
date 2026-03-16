@@ -1,5 +1,6 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
-import { FunctionComponent, useCallback } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";

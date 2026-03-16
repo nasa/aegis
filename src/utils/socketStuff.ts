@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
-import { AppDispatch } from "./useAppDispatch";
+import type { AppDispatch } from "./useAppDispatch";
 import {
   setLastEditEvent,
   setLastStatusFromServer,

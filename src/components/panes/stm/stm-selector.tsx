@@ -1,5 +1,7 @@
-import CheckboxTree, { Node } from "react-checkbox-tree";
-import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import type { Node } from "react-checkbox-tree";
+import CheckboxTree from "react-checkbox-tree";
+import type { FunctionComponent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import stmStyles from "./stm-selector.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";

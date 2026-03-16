@@ -1,4 +1,5 @@
-import jsonLogic, { RulesLogic } from "json-logic-js";
+import type { RulesLogic } from "json-logic-js";
+import jsonLogic from "json-logic-js";
 
 const getActionDefRuleLogic = ({
   rule,

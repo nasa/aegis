@@ -1,6 +1,7 @@
 import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { FunctionComponent, useRef } from "react";
+import type { FunctionComponent } from "react";
+import { useRef } from "react";
 import capitalize from "lodash/capitalize";
 import styles from "./actionDefDropdown.module.css";
 

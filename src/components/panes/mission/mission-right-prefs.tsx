@@ -1,4 +1,5 @@
-import { FunctionComponent, useCallback } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";

@@ -1,7 +1,8 @@
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { deleteGrids, getGrids, upsertGrids } from "http-client/grid";
-import { ChangeEventHandler, FunctionComponent, useCallback, useEffect, useState } from "react";
+import type { ChangeEventHandler, FunctionComponent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";

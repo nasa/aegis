@@ -1,4 +1,5 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "./preset-right-layers.module.css";
 import {

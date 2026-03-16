@@ -1,5 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { FunctionComponent, useEffect, useRef } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import styles from "./stm-rules-details.modal.module.css";
 import ruleStyles from "./stm-rules-rules.module.css";
@@ -17,7 +18,7 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
-import { RootState } from "store";
+import type { RootState } from "store";
 import { STMRuleSet } from "./stm-rules-rules";
 import { setRuleEditingUuid, upsertSTMRuleByField } from "store/stm";
 import { Button, MultiSelectDropdown } from "components/interface/form/globalFields";

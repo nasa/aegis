@@ -1,6 +1,7 @@
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useNavigate } from "react-router";
-import { FormEventHandler, FunctionComponent, useEffect, useState } from "react";
+import type { FormEventHandler, FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 import styles from "pages/index.module.css";
 import { login, isLoggedIn, logout } from "http-client/login";
 import { getMissionHomepageItems } from "http-client/mission";

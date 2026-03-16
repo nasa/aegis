@@ -8,7 +8,7 @@ import {
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "components/interface/form/globalFields";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { setSelectedTraverseRightNavItem, setTraversesEditMode } from "store/traverse";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";

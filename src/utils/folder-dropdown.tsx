@@ -1,5 +1,5 @@
 import sortBy from "lodash/sortBy";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 interface FolderDropdownItem {
   uuid: string;

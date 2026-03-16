@@ -37,6 +37,7 @@
     "strictPropertyInitialization": false, // requires strictNullChecks=true
     "noEmit": true,
     "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "incremental": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,

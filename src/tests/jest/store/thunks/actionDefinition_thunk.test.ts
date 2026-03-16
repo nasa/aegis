@@ -1,6 +1,6 @@
 import { thunkDeleteActionDefItem } from "store/thunk/thunkActionDefinitions"; // Adjust this import path if necessary
 import { createFullTestStore } from "tests/jest/factories/makeTestStore";
-import { StoreType } from "store";
+import type { StoreType } from "store";
 import { generateBlankAction } from "../../../../store/storeUtils/action"; // Importing the method to generate actions
 import { upsertActions } from "store/action";
 import { getAutomergeDocHandles, setMissionAutomergeDocHandle } from "client/automergeDocHandles";

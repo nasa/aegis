@@ -1,6 +1,7 @@
 import type { RootState } from "store";
-import { createAsyncThunk, AsyncThunkPayloadCreator, AsyncThunk } from "@reduxjs/toolkit";
-import { AppDispatch } from "utils/useAppDispatch";
+import type { AsyncThunkPayloadCreator, AsyncThunk } from "@reduxjs/toolkit";
+import type { AppDispatch } from "utils/useAppDispatch";
+import { createAsyncThunk } from "@reduxjs/toolkit";
 
 type AppThunkConfig<RejectValue> = {
   state: RootState;

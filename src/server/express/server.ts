@@ -1,5 +1,6 @@
 import "utils/loadEnv";
-import { createServer, Server as NetServer } from "http";
+import type { Server as NetServer } from "http";
+import { createServer } from "http";
 import { Server as SocketServer } from "socket.io";
 import type { DefaultEventsMap } from "socket.io";
 import { WebSocketServer } from "isomorphic-ws"; // included in automerge repo network websocket

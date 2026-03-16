@@ -1,4 +1,5 @@
-import { Fragment, FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
+import { Fragment } from "react";
 import styles from "./stm-viewer-indicators.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";

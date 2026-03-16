@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import adminStyles from "./admin.module.css";
 import { Checkbox, InLineEditInput } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";

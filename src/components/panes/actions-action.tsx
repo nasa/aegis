@@ -7,7 +7,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Dropdown, InLineEditInput } from "components/interface/form/globalFields";
 import { ActionDefDropdown } from "components/interface/actionDefDropdown";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import actionStyles from "./actions-action.module.css";

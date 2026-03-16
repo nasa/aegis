@@ -6,7 +6,8 @@ import store from "./store";
 import { Provider } from "react-redux";
 import { setBrowserConnectionStatus } from "store/connection";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { NetworkAdapterInterface, Repo } from "@automerge/automerge-repo";
+import type { NetworkAdapterInterface } from "@automerge/automerge-repo";
+import { Repo } from "@automerge/automerge-repo";
 import { RepoContext } from "@automerge/automerge-repo-react-hooks";
 import { BrowserWebSocketClientAdapter } from "@automerge/automerge-repo-network-websocket";
 

@@ -1,5 +1,6 @@
 import sortBy from "lodash/sortBy";
-import { IconDefinition, faSquare, faSquareCheck } from "@fortawesome/free-regular-svg-icons";
+import type { IconDefinition } from "@fortawesome/free-regular-svg-icons";
+import { faSquare, faSquareCheck } from "@fortawesome/free-regular-svg-icons";
 import rexStyles from "components/panes/rex/rex.module.css";
 
 export const getAlertColor = (

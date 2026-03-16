@@ -1,4 +1,5 @@
-import { expect, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect } from "@playwright/test";
 
 async function waitForSaveButton(page: Page, isActive: boolean) {
   const dataTooltipContent = isActive ? "Save Mission" : "Save Mission (nothing to save)";

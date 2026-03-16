@@ -1,9 +1,9 @@
 import L from "leaflet";
 import "leaflet-polylinedecorator";
-import * as geojson from "geojson";
-import DraggableLines from "leaflet-draggable-lines";
+import type * as geojson from "geojson";
+import type DraggableLines from "leaflet-draggable-lines";
 import VectorTileLayer from "leaflet-vector-tile-layer";
-import { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import ReactDOMServer from "react-dom/server";
 import {
   getDateAndTimeFromISOString,
@@ -19,13 +19,14 @@ import {
   getDistanceBetweenTwoCoordinates,
 } from "utils/mapping/geoMath";
 import styles from "./leaflet-helper.module.css";
-import { HighlightableLayerOptions, HighlightablePolyline } from "leaflet-highlightable-layers";
+import type { HighlightableLayerOptions } from "leaflet-highlightable-layers";
+import { HighlightablePolyline } from "leaflet-highlightable-layers";
 import Color from "color";
 import { antPath } from "leaflet-ant-path";
 import orderBy from "lodash/orderBy";
 import throttle from "lodash/throttle";
 import sortBy from "lodash/sortBy";
-import { AppDispatch } from "utils/useAppDispatch";
+import type { AppDispatch } from "utils/useAppDispatch";
 import { setMeasureInitialCoords, updateMapDirective } from "store/map";
 import { revertWalkbackPath } from "store/station";
 import { thunkUpdateMeasurementPath } from "store/thunk/thunkMeasurement";

@@ -1,4 +1,5 @@
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";

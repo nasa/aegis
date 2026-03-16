@@ -8,15 +8,8 @@ import DraggableLines from "leaflet-draggable-lines";
 
 import styles from "components/interface/map/map-body.module.css";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
-import {
-  MutableRefObject,
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-  FunctionComponent,
-  useLayoutEffect,
-} from "react";
+import type { MutableRefObject, FunctionComponent } from "react";
+import { useEffect, useRef, useState, useCallback, useLayoutEffect } from "react";
 import isEqual from "lodash/isEqual";
 import reverse from "lodash/reverse";
 import uniqBy from "lodash/uniqBy";
@@ -72,7 +65,7 @@ import {
   layerTimeDiv,
 } from "components/page/leaflet-helper";
 import { thunkMarkerOnClick, thunkPolylineOnClick } from "store/thunk/thunkMap";
-import { Feature } from "geojson";
+import type { Feature } from "geojson";
 import { setSelectedPresetUuid } from "store/preset";
 import { getCalculatedTimeOfSequenceItem } from "store/processing/calculatedFields";
 import { addTimeToDateTime } from "utils/mapping/timeLayers";

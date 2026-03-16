@@ -1,4 +1,5 @@
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 import assocPoisStyles from "./actions-assocpois.module.css";
 import actionStyles from "./actions-action.module.css";
 import paneStyles from "./global-pane-styles.module.css";

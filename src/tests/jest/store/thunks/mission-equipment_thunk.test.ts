@@ -1,6 +1,6 @@
 import { thunkDeleteEquipment } from "store/thunk/thunkMission-equipment";
 import { createFullTestStore } from "tests/jest/factories/makeTestStore";
-import { StoreType } from "store";
+import type { StoreType } from "store";
 import { upsertActionByField } from "store/action";
 import { generateBlankActionTemplate, generateBlankEquipmentItem } from "store/storeUtils/mission";
 import { v4 as uuidv4 } from "uuid";

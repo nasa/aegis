@@ -1,6 +1,7 @@
 import paneStyles from "components/panes/global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
-import { FunctionComponent, useEffect, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import {
   faCircleInfo,

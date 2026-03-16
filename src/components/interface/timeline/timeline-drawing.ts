@@ -1,10 +1,10 @@
-import { MutableRefObject } from "react";
+import type { MutableRefObject } from "react";
 import { clearMapItemHover, setLeftPanelHoverUuid, setSequenceHover } from "store/hover";
 import { padZeros, secondsFromhhmmss } from "utils/formatting";
 import paper from "paper";
 import last from "lodash/last";
 import orderBy from "lodash/orderBy";
-import { Dispatch } from "@reduxjs/toolkit";
+import type { Dispatch } from "@reduxjs/toolkit";
 import { getHoverValue } from "utils/paper";
 
 /**

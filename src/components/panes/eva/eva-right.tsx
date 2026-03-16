@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { refEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import StationEditorRight from "../station/station-right";
 import EvaRightEva from "./eva-right-eva";

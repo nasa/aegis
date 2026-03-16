@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { StoreType, sliceReducers as reducer, RootState, initialState } from "../../../store";
+import type { StoreType, RootState } from "../../../store";
+import { sliceReducers as reducer, initialState } from "../../../store";
 import { initialState as actionInitialState } from "store/action";
 import { initialState as evaInitialState } from "store/eva";
 import { initialState as traverseInitialState } from "store/traverse";

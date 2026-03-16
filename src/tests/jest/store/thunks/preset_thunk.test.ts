@@ -1,4 +1,4 @@
-import { StoreType } from "store";
+import type { StoreType } from "store";
 import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 
 // mock all calls to the db so no transactions are actually made

@@ -1,4 +1,5 @@
-import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import { Button, Dropdown } from "components/interface/form/globalFields";

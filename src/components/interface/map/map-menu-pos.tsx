@@ -1,4 +1,5 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 import posMenuStyles from "./map-menu-pos.module.css";
 import {
   faBan,

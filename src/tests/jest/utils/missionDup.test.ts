@@ -2,6 +2,7 @@ import { describe, expect, test, afterAll, beforeAll } from "@jest/globals";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
+import type { STM_Level3_db } from "server/database/models/_allModels";
 import {
   App_User_db,
   Station_db,
@@ -15,7 +16,6 @@ import {
   Rex_db,
   STM_Level1_db,
   STM_Level2_db,
-  STM_Level3_db,
   STM_Rule_db,
   Grid_db,
   Folder_db,

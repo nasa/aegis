@@ -1,4 +1,4 @@
-import { StoreType } from "store";
+import type { StoreType } from "store";
 import { thunkMakeExportString, thunkUpdateLanderLocation } from "store/thunk/thunkMission";
 import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 

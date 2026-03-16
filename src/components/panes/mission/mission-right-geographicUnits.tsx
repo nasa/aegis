@@ -1,4 +1,5 @@
-import { FunctionComponent, memo, useRef } from "react";
+import type { FunctionComponent } from "react";
+import { memo, useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";
 import { deepEqual } from "utils/useAppSelector";

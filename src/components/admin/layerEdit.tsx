@@ -1,4 +1,5 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 import styles from "./admin.module.css";
 import { upsertLayers } from "http-client/layer";
 import { getAccurateNow } from "utils/formatting";

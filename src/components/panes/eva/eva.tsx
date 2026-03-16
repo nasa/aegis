@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import EvaItem from "./eva-item";

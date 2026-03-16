@@ -1,4 +1,5 @@
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 import styles from "./headerPetClock.module.css";
 import PetInterval from "components/page/petInterval";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";

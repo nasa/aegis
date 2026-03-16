@@ -1,11 +1,5 @@
-import {
-  FunctionComponent,
-  MutableRefObject,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import type { FunctionComponent, MutableRefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   getCalculatedFieldsByStation,
   getCalculatedFieldsByTraverse,

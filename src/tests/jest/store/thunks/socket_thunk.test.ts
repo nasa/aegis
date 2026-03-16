@@ -1,4 +1,4 @@
-import { StoreType } from "store";
+import type { StoreType } from "store";
 import { createFullTestStore } from "tests/jest/factories/makeTestStore";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import cloneDeep from "lodash/cloneDeep";

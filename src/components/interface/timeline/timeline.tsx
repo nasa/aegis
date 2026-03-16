@@ -1,13 +1,6 @@
 import paper from "paper";
-import {
-  FunctionComponent,
-  MutableRefObject,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import type { FunctionComponent, MutableRefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 
 import styles from "./timeline.module.css";

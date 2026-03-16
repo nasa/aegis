@@ -1,4 +1,4 @@
-import { combineReducers, configureStore, Unsubscribe } from "@reduxjs/toolkit";
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
 
 import { hoverSlice, initialState as hoverInitialState } from "./hover";
 import { missionSlice, initialState as missionInitialState } from "./mission";
@@ -16,7 +16,7 @@ import { userSlice, initialState as userInitialState } from "./user";
 import { rexSlice, initialState as rexInitialState } from "./rex";
 import { measureSlice, initialState as measureInitialState } from "./measure";
 import { isRejected } from "@reduxjs/toolkit";
-import type { Middleware } from "@reduxjs/toolkit";
+import type { Middleware, Unsubscribe } from "@reduxjs/toolkit";
 
 export const initialState: WholeStoreState = {
   hover: hoverInitialState,
