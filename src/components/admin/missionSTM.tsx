@@ -1,11 +1,5 @@
-import {
-  Dispatch,
-  FunctionComponent,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import type { Dispatch, FunctionComponent, SetStateAction } from "react";
+import { useCallback, useEffect, useState } from "react";
 import adminStyles from "./admin.module.css";
 import {
   getSTMLevel1s,

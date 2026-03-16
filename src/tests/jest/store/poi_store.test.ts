@@ -1,6 +1,6 @@
 import { upsertPois } from "store/poi";
 import { createCustomTestStore } from "../factories/makeTestStore";
-import { StoreType } from "store";
+import type { StoreType } from "store";
 import { initialState as poiInitialState } from "store/poi";
 import { generateBlankPoi } from "store/storeUtils/poi";
 

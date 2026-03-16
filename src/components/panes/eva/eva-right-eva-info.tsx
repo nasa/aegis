@@ -6,7 +6,8 @@ import {
   PathColorPickerMenu,
   TextArea,
 } from "components/interface/form/globalFields";
-import { FunctionComponent, useEffect, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { upsertEvaByField } from "store/eva";

@@ -1,5 +1,5 @@
 import { createFullTestStore } from "tests/jest/factories/makeTestStore";
-import { StoreType } from "store";
+import type { StoreType } from "store";
 import { upsertActionByField } from "store/action";
 import { thunkDeleteGeoUnit } from "store/thunk/thunkMission-geoUnits";
 import { generateBlankActionTemplate, generateBlankGeographicUnit } from "store/storeUtils/mission";

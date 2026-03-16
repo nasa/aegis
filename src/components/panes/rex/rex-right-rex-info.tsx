@@ -1,4 +1,5 @@
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import rexStyles from "./rex.module.css";
 import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";

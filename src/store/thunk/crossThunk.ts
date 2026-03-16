@@ -1,5 +1,5 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { RootState } from "store";
+import type { RootState } from "store";
 import { actionSlice } from "store/action";
 import {
   evaSlice,

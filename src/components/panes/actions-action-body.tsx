@@ -17,7 +17,8 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { upsertActionByField } from "store/action";

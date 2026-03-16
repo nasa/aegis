@@ -4,7 +4,8 @@ import { useNavigate } from "react-router";
 
 import { faBars, faEye, faPen, faPersonWalkingArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 import PetInterval from "../page/petInterval";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkJumpToRunningRex } from "store/thunk/thunkRex";

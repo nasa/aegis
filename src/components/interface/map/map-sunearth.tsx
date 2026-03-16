@@ -1,4 +1,5 @@
-import { FunctionComponent, useEffect, useRef } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useRef } from "react";
 import styles from "./map-sunearth.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEarthAmerica, faMoon, faSun } from "@fortawesome/free-solid-svg-icons";

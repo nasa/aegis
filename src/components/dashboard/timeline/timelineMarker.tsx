@@ -1,4 +1,5 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { secondsFromhhmmss } from "utils/formatting";
 import PetInterval from "components/page/petInterval";

@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 
 import styles from "./timeline.module.css";

@@ -1,10 +1,11 @@
-import { FunctionComponent, useCallback } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faFileExport } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "components/interface/form/globalFields";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
-import { FeatureCollection, LineString, Feature } from "geojson";
+import type { FeatureCollection, LineString, Feature } from "geojson";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkMakeExportRexString } from "store/thunk/thunkRex";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";

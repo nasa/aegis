@@ -1,4 +1,5 @@
-import { FunctionComponent, useLayoutEffect, useRef } from "react";
+import type { FunctionComponent } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import { EmojiRenderer } from "components/interface/emojis";
 import styles from "./activities.module.css";

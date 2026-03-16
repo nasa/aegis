@@ -1,7 +1,8 @@
 import styles from "./header.module.css";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useNavigate } from "react-router";
-import { FunctionComponent, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
 import {
   faArrowDownUpAcrossLine,
   faArrowRightArrowLeft,

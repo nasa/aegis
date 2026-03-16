@@ -1,6 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faCaretRight, faCaretDown, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { Dispatch, FunctionComponent, SetStateAction, useEffect, useState } from "react";
+import type { Dispatch, FunctionComponent, SetStateAction } from "react";
+import { useEffect, useState } from "react";
 import styles from "./map-menu-view.module.css";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 

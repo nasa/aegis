@@ -1,9 +1,5 @@
-import {
-  FetchFn,
-  FetchJsonWithAuth,
-  createFetchWithAuthFunctions,
-  webAuthPopup,
-} from "@emss/oauth2-proxy-frontend";
+import type { FetchFn, FetchJsonWithAuth } from "@emss/oauth2-proxy-frontend";
+import { createFetchWithAuthFunctions, webAuthPopup } from "@emss/oauth2-proxy-frontend";
 
 export let fetchWithAuth: FetchFn = async () => {
   throw new Error("fetchWithAuth() must be initialized first");

@@ -1,4 +1,4 @@
-import { RootState } from "store";
+import type { RootState } from "store";
 import { Worker } from "worker_threads";
 import { detailedDiff } from "deep-object-diff";
 

@@ -1,4 +1,5 @@
-import { FunctionComponent, memo, useRef, useState } from "react";
+import type { FunctionComponent } from "react";
+import { memo, useRef, useState } from "react";
 import { ActionDefDropdown } from "components/interface/actionDefDropdown";
 import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";

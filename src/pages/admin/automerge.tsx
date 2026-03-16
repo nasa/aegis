@@ -6,9 +6,10 @@ import Header from "components/interface/header";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { useDocHandle, useDocument } from "@automerge/automerge-repo-react-hooks";
-import { AutomergeUrl, ChangeFn, DocHandleChangePayload } from "@automerge/automerge-repo";
+import type { AutomergeUrl, ChangeFn, DocHandleChangePayload } from "@automerge/automerge-repo";
 import { applyChange, diff } from "deep-diff";
-import Ajv, { ErrorObject } from "ajv";
+import type { ErrorObject } from "ajv";
+import Ajv from "ajv";
 import { getMissionBackup } from "http-client/mission";
 
 type RouteParams = {

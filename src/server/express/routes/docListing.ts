@@ -1,5 +1,6 @@
-import express, { Request, Response } from "express";
-import { Query } from "express-serve-static-core";
+import type { Request, Response } from "express";
+import express from "express";
+import type { Query } from "express-serve-static-core";
 import { hasPerms } from "utils/permissions";
 import { Doc_Listing_db } from "server/database/models/_allModels";
 import { globalValues } from "../global";

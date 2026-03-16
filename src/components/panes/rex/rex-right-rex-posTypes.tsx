@@ -1,4 +1,5 @@
-import { FunctionComponent, useRef } from "react";
+import type { FunctionComponent } from "react";
+import { useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import rexStyles from "./rex.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";

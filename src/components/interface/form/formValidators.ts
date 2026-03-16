@@ -1,4 +1,4 @@
-import { FieldValidator } from "final-form";
+import type { FieldValidator } from "final-form";
 
 export type Stringy = string | string[] | number;
 

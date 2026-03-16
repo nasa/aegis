@@ -21,7 +21,16 @@ const compat = new FlatCompat({
 });
 
 export default [
-  { ignores: ["**/public/**/*", "out/**/*", "**/coverage", "**/.local"] },
+  {
+    ignores: [
+      "**/public/**/*",
+      "out/**/*",
+      "**/coverage",
+      "**/.local",
+      "playwright-report/**",
+      "test-results/**",
+    ],
+  },
   ...fixupConfigRules(compat.extends("prettier", "plugin:react-hooks/recommended")),
 
   // Configuration specifically for package.json files
@@ -145,6 +154,11 @@ export default [
       "no-useless-computed-key": "error",
       "prefer-const": "error",
       "@typescript-eslint/explicit-module-boundary-types": "error",
+      "@typescript-eslint/consistent-type-imports": [
+        "error",
+        { prefer: "type-imports", fixStyle: "separate-type-imports" },
+      ],
+      "@typescript-eslint/no-import-type-side-effects": "error",
 
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -164,6 +178,14 @@ export default [
       // User's specific CSS Modules rules (these will override recommended if there are conflicts)
       // "css-modules/no-undef-class": ["error", { camelCase: true }],
       // "css-modules/no-unused-class": ["error", { camelCase: true }],
+    },
+  },
+
+  // disable the consistent-type-imports rule in .d.ts files where we use inline import syntax to reference external types
+  {
+    files: ["**/*.d.ts"],
+    rules: {
+      "@typescript-eslint/consistent-type-imports": "off",
     },
   },
 ];

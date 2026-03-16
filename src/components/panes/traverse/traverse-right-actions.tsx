@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import Actions from "../actions";

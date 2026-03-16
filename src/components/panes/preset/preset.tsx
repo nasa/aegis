@@ -1,7 +1,7 @@
 import presetStyles from "./preset.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faFolderPlus, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { Button } from "components/interface/form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";

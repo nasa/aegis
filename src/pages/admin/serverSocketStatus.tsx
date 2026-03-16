@@ -1,4 +1,5 @@
-import { FunctionComponent, useEffect, useRef, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { isLoggedIn } from "http-client/login";
 import adminStyles from "components/admin/admin.module.css";

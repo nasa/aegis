@@ -1,5 +1,6 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
-import { FunctionComponent, useCallback, useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo } from "react";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import {
   setSelectedEvaUuid,

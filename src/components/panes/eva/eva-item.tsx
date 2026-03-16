@@ -1,6 +1,7 @@
 import { LoadingOverlay, ModifiedIndicator } from "components/interface/_global-elements";
 import { Button, Dropdown } from "components/interface/form/globalFields";
-import { FunctionComponent, useCallback, useMemo, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useAppSelector, refEqual, deepEqual, shallowEqual } from "utils/useAppSelector";
 import {
   upsertExpandedEvaUuids,

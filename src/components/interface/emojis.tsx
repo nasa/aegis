@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
 

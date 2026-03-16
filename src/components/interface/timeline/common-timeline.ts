@@ -1,5 +1,5 @@
 import isNumber from "lodash/isNumber";
-import { MutableRefObject } from "react";
+import type { MutableRefObject } from "react";
 import { isNotNumber } from "utils/formatting";
 import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 

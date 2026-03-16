@@ -1,4 +1,5 @@
-import express, { Application } from "express";
+import type { Application } from "express";
+import express from "express";
 import cookieSession from "cookie-session";
 import cors from "cors";
 import { globalValues } from "./global";

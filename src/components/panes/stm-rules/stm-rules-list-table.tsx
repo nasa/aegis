@@ -1,7 +1,7 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import styles from "./stm-rules-list-table.module.css";
 import { refEqual, shallowEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
-import { RootState } from "store";
+import type { RootState } from "store";
 import STMRules from "./stm-rules-rules";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppDispatch } from "utils/useAppDispatch";

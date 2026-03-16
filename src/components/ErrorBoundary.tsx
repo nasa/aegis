@@ -1,4 +1,5 @@
-import { Component, ErrorInfo, ReactNode } from "react";
+import type { ErrorInfo, ReactNode } from "react";
+import { Component } from "react";
 import clientLogger from "utils/logging/clientLogger";
 import { Button } from "./interface/form/globalFields";
 

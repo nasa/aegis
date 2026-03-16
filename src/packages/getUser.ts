@@ -1,6 +1,6 @@
 import { getUserFromJWT } from "@emss/oauth2-proxy-backend";
 import type { EMSSRole } from "@emss/oauth2-proxy-common";
-import { Request } from "express";
+import type { Request } from "express";
 
 const getMockUser = (): LaunchpadUser => {
   return {

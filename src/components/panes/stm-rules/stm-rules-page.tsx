@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import styles from "./stm-rules-page.module.css";
 import STMRulesTable from "./stm-rules-list-table";
 import { refEqual, deepEqual, useAppSelector } from "utils/useAppSelector";

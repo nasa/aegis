@@ -18,7 +18,7 @@ import { upsertDatabaseRetry } from "utils/database";
 import { apiRouteLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeDocListing } from "./docListing";
-import { AutomergeUrl } from "@automerge/automerge-repo";
+import type { AutomergeUrl } from "@automerge/automerge-repo";
 
 const router = express.Router();
 

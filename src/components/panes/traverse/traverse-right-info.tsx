@@ -13,7 +13,7 @@ import {
   PathColorPickerMenu,
   TextArea,
 } from "components/interface/form/globalFields";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { setSelectedTraverseRightNavItem, upsertTraverseByField } from "store/traverse";
 import { refEqual, shallowEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";

@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import gridStyles from "./preset-right-grid.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";

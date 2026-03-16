@@ -1,7 +1,7 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import styles from "./stm-viewer-list-table.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
-import { RootState } from "store";
+import type { RootState } from "store";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IndicatorGridRow } from "./stm-viewer-indicators";

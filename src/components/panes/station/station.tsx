@@ -1,7 +1,7 @@
 import stationStyles from "./station.module.css";
 import paneStyles from "../global-pane-styles.module.css";
 import { faClone, faFolderPlus, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { Button } from "components/interface/form/globalFields";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import StationItem from "./station-item";

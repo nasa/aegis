@@ -2,6 +2,7 @@
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "types": ["jest", "node", "react", "react-dom"]
+    "types": ["jest", "node", "react", "react-dom"],
+    "verbatimModuleSyntax": false
   }
 }

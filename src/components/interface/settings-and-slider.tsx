@@ -1,4 +1,5 @@
-import { FunctionComponent, useCallback } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback } from "react";
 import styles from "./settings-and-slider.module.css";
 import { Checkbox, Dropdown } from "components/interface/form/globalFields";
 

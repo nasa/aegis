@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import styles from "./report.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";

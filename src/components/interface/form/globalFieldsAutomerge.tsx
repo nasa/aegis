@@ -8,7 +8,7 @@ import { Field, Form, FormSpy } from "react-final-form";
 import type { FormApi } from "final-form";
 import React from "react";
 import { composeValidators } from "components/interface/form/formValidators";
-import { FFTextPropsAutomerge, FFTextAreaPropsAutomerge } from "typings/formAutomerge";
+import type { FFTextPropsAutomerge, FFTextAreaPropsAutomerge } from "typings/formAutomerge";
 import round from "lodash/round";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { isConnected } from "store/selectors";

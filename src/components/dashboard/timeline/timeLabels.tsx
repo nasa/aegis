@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { hhmmFromMinutes, secondsFromhhmmss } from "utils/formatting";
 import styles from "./timeLabels.module.css";
 

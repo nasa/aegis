@@ -1,5 +1,5 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import styles from "./preset.module.css";

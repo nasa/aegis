@@ -1,7 +1,9 @@
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
-import { FunctionComponent, useEffect, useMemo, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
   faCircleInfo,
   faBan,
@@ -11,7 +13,6 @@ import {
   faPersonDigging,
   faTriangleExclamation,
   faCheck,
-  IconDefinition,
   faFileExport,
   faCrosshairs,
   faPersonWalkingArrowRight,

@@ -1,4 +1,4 @@
-import { FunctionComponent, ChangeEvent } from "react";
+import type { FunctionComponent, ChangeEvent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import presetStyles from "./preset.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";

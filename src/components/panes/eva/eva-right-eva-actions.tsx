@@ -1,4 +1,5 @@
-import { FunctionComponent, useCallback, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useState } from "react";
 import actionsStyles from "../actions.module.css";
 import evaStyles from "./eva.module.css";
 import paneStyles from "../global-pane-styles.module.css";

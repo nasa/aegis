@@ -1,12 +1,5 @@
-import {
-  MutableRefObject,
-  FunctionComponent,
-  useRef,
-  useLayoutEffect,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import type { MutableRefObject, FunctionComponent } from "react";
+import { useRef, useLayoutEffect, useCallback, useEffect, useState } from "react";
 import styles from "./measure.module.css";
 import MeasureHoverValues from "./measure-hover";
 import MeasureTabs from "./measure-tabs";

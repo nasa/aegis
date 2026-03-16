@@ -6,17 +6,8 @@ import "proj4leaflet";
 import styles from "components/dashboard/map.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  FunctionComponent,
-  useLayoutEffect,
-  Dispatch,
-  SetStateAction,
-  useCallback,
-  useMemo,
-} from "react";
+import type { FunctionComponent, Dispatch, SetStateAction } from "react";
+import { useEffect, useRef, useState, useLayoutEffect, useCallback, useMemo } from "react";
 import reverse from "lodash/reverse";
 import uniqBy from "lodash/uniqBy";
 import orderBy from "lodash/orderBy";
@@ -48,7 +39,7 @@ import {
   convertLeafletLatLngToAegisPoint,
   findClosestPointInGlobalGrid,
 } from "utils/mapping/geoMath";
-import { Feature } from "geojson";
+import type { Feature } from "geojson";
 import PresetMenu from "../interface/map/map-menu-preset";
 import { addTimeToDateTime } from "utils/mapping/timeLayers";
 import { EARTH_RADIUS } from "utils/consts";
