@@ -136,12 +136,10 @@ const DashTimeline: FunctionComponent = () => {
   useLayoutEffect(() => {
     processEvaDataFromStore({
       storeRef,
-      mission: partialMission as unknown as Mission,
+      partialMission,
       selectedEva: runningEvaFromDb,
       evaStations,
       evaTraverses,
-      missionTraverseRate: partialMission?.traverseRate,
-      missionWalkbackRate: partialMission?.walkbackRate,
       stationCalculatedFieldsInSelectedEva: stationCalculatedFieldsInRunningEva,
       traverseCalculatedFieldsInSelectedEva: traverseCalculatedFieldsInRunningEva,
       selectedRex: runningRexFromDb,
