@@ -22,7 +22,7 @@
     "noImplicitAny": true,
     "noUnusedLocals": true,
     "noUnusedParameters": false,
-    "types": ["node", "jest"],
+    "types": ["node", "vitest/globals"],
 
     "skipLibCheck": false /* Skip type checking all .d.ts files. */,
 

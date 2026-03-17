@@ -1,18 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:js-app", ":maintainLockFilesWeekly"],
-  "npm": {"minimumReleaseAge": "7 days"},
-  "major": {"dependencyDashboardApproval": true},
+  "npm": { "minimumReleaseAge": "7 days" },
+  "major": { "dependencyDashboardApproval": true },
   "labels": ["Renovate"],
   "packageRules": [
     {
       "groupName": "React",
-      "matchPackageNames": [
-        "react",
-        "react-dom",
-        "@types/react",
-        "@types/react-dom"
-      ],
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
       "labels": ["Renovate"]
     },
     {
@@ -21,9 +16,9 @@
       "matchPackageNames": ["/eslint/"]
     },
     {
-      "groupName": "Jest",
+      "groupName": "Vitest",
       "labels": ["Renovate"],
-      "matchPackageNames": ["/jest/"]
+      "matchPackageNames": ["/vitest/"]
     },
     {
       "groupName": "Mikro",

@@ -39,7 +39,7 @@ project-check:
     SCAN_FOR_DOCS: "no"
     ALLOWED_FILES: >
       src/packages
-      src/tests/jest/factories/testZip.zip
+      src/tests/vitest/fixtures/static/testZip.zip
 
 dependency-check:
   stage: stageless
@@ -114,7 +114,7 @@ node-sbom:
     - sed -i '/DB_HOST/d' .env
     - sed -i '/DB_NAME/d' .env
 
-test-jest-lint-tsc:
+test-vitest-lint-tsc:
   extends: .test_template
   script:
     # Load production database dump
@@ -126,7 +126,7 @@ test-jest-lint-tsc:
     # Run all the other things
     - npm run lint
     - npm run tsc
-    - npm run test:jest:coverage
+    - npm run test:coverage
   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
   artifacts:
     reports:
@@ -343,7 +343,7 @@ docker:retag:
     - make-dotenv
     - job: test-automerge-migrate
       artifacts: false
-    - job: test-jest-lint-tsc
+    - job: test-vitest-lint-tsc
       artifacts: false
     - job: docker:build:nginx
       artifacts: false

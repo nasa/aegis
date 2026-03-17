@@ -1,7 +1,7 @@
-import dotenv from "dotenv"; //needed to allow jest to init Mikro in globalTeardown
+import dotenv from "dotenv"; //needed to allow vitest to init Mikro in globalTeardown
 dotenv.config({ override: true, quiet: true });
 
-// The following 3 lines are needed to make the MikroORM 6.0.x import for the PostgreSqlDriver work in jest.
+// The following 3 lines are needed to make the MikroORM 6.0.x import for the PostgreSqlDriver work in vitest.
 import { TextEncoder, TextDecoder } from "util";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 global.TextEncoder = TextEncoder as any;

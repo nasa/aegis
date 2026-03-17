@@ -1,6 +1,6 @@
-// wrap all functions in a jest.fn so they read as a mock and can be referenced in assertions
+// wrap all functions in a vi.fn so they read as a mock and can be referenced in assertions
 
-export const getMissions = jest.fn(async (): Promise<WrappedResponse<Mission[]>> => {
+export const getMissions = vi.fn(async (): Promise<WrappedResponse<Mission[]>> => {
   const res: WrappedResponse<Mission[]> = {
     status: "success",
     message: "Missions retrieved",
@@ -9,7 +9,7 @@ export const getMissions = jest.fn(async (): Promise<WrappedResponse<Mission[]>>
   return res;
 });
 
-export const getMissionHomepageItems = jest.fn(
+export const getMissionHomepageItems = vi.fn(
   async (): Promise<WrappedResponse<MissionHomepageItem[]>> => {
     const response: WrappedResponse<MissionHomepageItem[]> = {
       status: "success",
@@ -20,7 +20,7 @@ export const getMissionHomepageItems = jest.fn(
   }
 );
 
-export const upsertMissions = jest.fn(
+export const upsertMissions = vi.fn(
   async (Missions: Mission[]): Promise<WrappedResponse<Mission[]>> => {
     //just return the Mission that was passed in
     const res: WrappedResponse<Mission[]> = {
@@ -32,7 +32,7 @@ export const upsertMissions = jest.fn(
   }
 );
 
-export const deleteMissions = jest.fn(async (): Promise<WrappedResponse<null>> => {
+export const deleteMissions = vi.fn(async (): Promise<WrappedResponse<null>> => {
   const res: WrappedResponse<null> = {
     status: "success",
     message: "Mission Deleted",
