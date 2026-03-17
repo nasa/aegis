@@ -142,7 +142,7 @@ test-vitest-lint-tsc:
 # test against next version of node that AEGIS may use, but allow to fail
 test-node-next:
   extends: .test_template
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:25.2.1-alpine
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:25.8.1-alpine
   allow_failure: true
   script:
     # Load production database dump
@@ -166,7 +166,7 @@ test-playwright:
     NUM_SHARDS: 4
   extends: .test_template
   stage: stageless
-  image: mcr.microsoft.com/playwright:v1.54.2-jammy
+  image: mcr.microsoft.com/playwright:v1.58.2-jammy
   needs:
     - install_dependencies
     - make-test-dotenv
