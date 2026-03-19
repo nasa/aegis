@@ -1,5 +1,5 @@
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FontAwesomeIcon, type CSSVariables } from "@fortawesome/react-fontawesome";
 import { faCheckSquare, faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
 import type { FunctionComponent, CSSProperties, ChangeEvent, ReactNode } from "react";
 import { useState, useRef, useEffect } from "react";
@@ -29,7 +29,7 @@ export const Button: FunctionComponent<{
   labelStyle?: CSSProperties;
   size?: "xs" | "lg";
   enabled?: boolean;
-  iconStyle?: CSSProperties;
+  iconStyle?: CSSProperties & CSSVariables;
 }> = ({
   onClick,
   label,

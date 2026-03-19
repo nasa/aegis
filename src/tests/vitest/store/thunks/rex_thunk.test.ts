@@ -25,11 +25,6 @@ import { generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
-//I don't understand what is even calling this that is causing me to mock it
-vi.mock("string-strip-html", () => ({
-  stripHtml: () => vi.fn(),
-}));
-
 const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {
   return true;
 });

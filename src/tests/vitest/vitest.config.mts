@@ -48,10 +48,5 @@ export default defineConfig({
     },
     globalSetup: [path.resolve(__dirname, "./vitest.globalSetup.ts")],
     testTimeout: 10000,
-    server: {
-      deps: {
-        inline: ["string-strip-html"],
-      },
-    },
   },
 });

@@ -171,6 +171,7 @@ export default [
       "no-unreachable": "error",
       "react/jsx-no-target-blank": "error", // prevent security vulnerability: require rel="noopener noreferrer" with target="_blank"
       "linebreak-style": ["error", "unix"], // enforce unix (lf) linebreaks
+      "react-hooks/set-state-in-effect": "off",
 
       // Add recommended CSS Modules rules
       // ...cssModules.configs.recommended.rules,

@@ -209,7 +209,7 @@ export async function createAutomergeMission(
     docListing as RequiredEntityData<DocListing_db_type>
   );
   // Have to both persist and flush in order to get the new mission id back
-  await em.persistAndFlush(dbReference);
+  await em.persist(dbReference).flush();
 
   // This mission in automerge didn't have an ID yet.
   // Assign it the one from our newly inserted record

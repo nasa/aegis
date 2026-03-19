@@ -267,7 +267,7 @@ describe("REX Control API Endpoint", () => {
       rexRecord.maestroControlled = false;
       rexRecord.isRunning = false;
       rexRecord.maestroEventId = "";
-      em.persistAndFlush(rexRecord);
+      await em.persist(rexRecord).flush();
 
       const res = await supertest(app)
         .post("/api/v1/emss/rexControl")
@@ -337,7 +337,7 @@ describe("REX Control API Endpoint", () => {
       // First, manually set testRexes[0] to running
       const rexRecord = await em.findOne(Rex_db, { uuid: testRexes[0].uuid });
       rexRecord.isRunning = true;
-      await em.persistAndFlush(rexRecord);
+      await em.persist(rexRecord).flush();
 
       // Now start testRexes[1] - this should stop testRexes[0]
       const startRequestBody = {
@@ -371,7 +371,7 @@ describe("REX Control API Endpoint", () => {
       rexRecord.maestroControlled = false;
       rexRecord.isRunning = false;
       rexRecord.maestroActivityPropertiesByRefUuid = null;
-      await em.persistAndFlush(rexRecord);
+      await em.persist(rexRecord).flush();
 
       const activityProperties: MaestroActivityPropertiesByRefUuid = {
         "activity-refUuid-test": {

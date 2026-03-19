@@ -17,11 +17,6 @@ import * as httpClient_rex from "http-client/rex";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
 
-//I don't understand what is even calling this that is causing me to mock it
-vi.mock("string-strip-html", () => ({
-  stripHtml: () => vi.fn(),
-}));
-
 const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {
   return true;
 });
