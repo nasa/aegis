@@ -103,6 +103,7 @@ const DashTimeline: FunctionComponent = () => {
   const [pixelsPerSecondY, setPixelsPerSecondY] = useState(0);
   const [timelineDurationMins, setTimelineDurationMins] = useState(0);
   const [rexPetTime, setRexPetTime] = useState("");
+  const [sequenceItems, setSequenceItems] = useState<EvaCalculated_PaperJS["sequenceItems"]>([]);
 
   const { width, height } = useWindowSize();
 
@@ -144,6 +145,7 @@ const DashTimeline: FunctionComponent = () => {
       traverseCalculatedFieldsInSelectedEva: traverseCalculatedFieldsInRunningEva,
       selectedRex: runningRexFromDb,
     });
+    setSequenceItems(storeRef.current.sequenceItems);
   }, [
     storeRef,
     partialMission,
@@ -178,7 +180,7 @@ const DashTimeline: FunctionComponent = () => {
           rexPetTime={rexPetTime}
         />
         <Activities
-          sequenceItems={storeRef.current.sequenceItems}
+          sequenceItems={sequenceItems}
           pixelsPerSecondY={pixelsPerSecondY}
           rex={runningRexFromDb}
         />

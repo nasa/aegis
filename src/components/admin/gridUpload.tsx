@@ -2,7 +2,7 @@ import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { deleteGrids, getGrids, upsertGrids } from "http-client/grid";
 import type { ChangeEventHandler, FunctionComponent } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import styles from "components/admin/admin.module.css";
 import Header from "components/interface/header";
@@ -43,6 +43,54 @@ interface GridPointProps {
   row: number;
 }
 
+const readJsonFile = (file: Blob): Promise<unknown> =>
+  new Promise((resolve, reject) => {
+    const fileReader = new FileReader();
+    fileReader.onload = (event) => {
+      if (event.target) {
+        resolve(JSON.parse(event.target.result as string));
+      }
+    };
+    fileReader.onerror = (error) => reject(error);
+    fileReader.readAsText(file);
+  });
+
+const parseFullGrid = async (selectedFile: Blob, intMissionId: number): Promise<MissionGrid> => {
+  const parsedData: GridGeoJson = (await readJsonFile(selectedFile)) as GridGeoJson;
+
+  const gridCoords: MissionGridPoint[][] = Array(parsedData.row_total)
+    .fill(null)
+    .map(() => Array(parsedData.column_total).fill(null));
+
+  parsedData.features.forEach((point: ReadGridPoint) => {
+    const coords = point.geometry.coordinates;
+    const props = point.properties;
+    if (props.row > parsedData.row_total || props.column > parsedData.column_total) {
+      return null;
+    }
+    gridCoords[parsedData.row_total - props.row - 1][props.column] = {
+      id: props.id,
+      coordinates: { lat: coords[1], lng: coords[0] },
+      name: props?.L_coord + " " + props?.R_coord,
+      index: { row: parsedData.row_total - props.row - 1, col: props.column },
+    } as MissionGridPoint;
+  });
+
+  return {
+    gridInformation: {
+      uuid: uuidv4(),
+      numRows: parsedData.row_total,
+      numCols: parsedData.column_total,
+      missionId: intMissionId,
+      spacing: 0,
+      name: parsedData.name,
+      fileName: `${parsedData.name}_${Date.now()}.json`,
+      isActiveGrid: false,
+    },
+    coordinates: gridCoords,
+  } as MissionGrid;
+};
+
 const AdminMissionGrid: FunctionComponent<{}> = () => {
   const navigate = useNavigate();
   const [grids, setGrids] = useState<MissionGrid[]>(null);
@@ -56,68 +104,14 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
   const missionDocHandle = useDocHandle<Mission>(params.automergeUrl as AutomergeUrl);
 
   const readAndUploadGrid = async (selectedFile: Blob) => {
-    const grid: MissionGrid = await parseFullGrid(selectedFile);
+    const grid: MissionGrid = await parseFullGrid(selectedFile, intMissionId);
     const res = await upsertGrids([grid], intMissionId, true);
     alert(`${res.status} - ${res.message}`);
-    loadGrid();
-  };
-
-  const parseFullGrid = async (selectedFile: Blob) => {
-    const parsedData: GridGeoJson = (await readJsonFile(selectedFile)) as GridGeoJson;
-
-    const gridCoords: MissionGridPoint[][] = Array(parsedData.row_total)
-      .fill(null)
-      .map(() => Array(parsedData.column_total).fill(null));
-
-    parsedData.features.forEach((point: ReadGridPoint) => {
-      const coords = point.geometry.coordinates;
-      const props = point.properties;
-      if (props.row > parsedData.row_total || props.column > parsedData.column_total) {
-        return null;
-      }
-      gridCoords[parsedData.row_total - props.row - 1][props.column] = {
-        id: props.id,
-        coordinates: { lat: coords[1], lng: coords[0] },
-        name: props?.L_coord + " " + props?.R_coord,
-        index: { row: parsedData.row_total - props.row - 1, col: props.column },
-      } as MissionGridPoint;
-    });
-
-    return {
-      gridInformation: {
-        uuid: uuidv4(),
-        numRows: parsedData.row_total,
-        numCols: parsedData.column_total,
-        missionId: intMissionId,
-        spacing: 0,
-        name: parsedData.name,
-        fileName: `${parsedData.name}_${Date.now()}.json`,
-        isActiveGrid: false,
-      },
-      coordinates: gridCoords,
-    } as MissionGrid;
-  };
-
-  const readJsonFile = (file: Blob) =>
-    new Promise((resolve, reject) => {
-      const fileReader = new FileReader();
-
-      fileReader.onload = (event) => {
-        if (event.target) {
-          resolve(JSON.parse(event.target.result as string));
-        }
-      };
-
-      fileReader.onerror = (error) => reject(error);
-      fileReader.readAsText(file);
-    });
-
-  const loadGrid = useCallback(async () => {
-    const response = await getGrids(intMissionId);
-    if (response.data) {
-      setGrids(response.data);
+    const reloadResponse = await getGrids(intMissionId);
+    if (reloadResponse.data) {
+      setGrids(reloadResponse.data);
     }
-  }, [intMissionId]);
+  };
 
   const fileChangeHandler: ChangeEventHandler<HTMLInputElement> = (event) => {
     if (event.target.files.length > 0) {
@@ -173,8 +167,14 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
   }, [grids, intMissionId]);
 
   useEffect(() => {
+    const loadGrid = async () => {
+      const response = await getGrids(intMissionId);
+      if (response.data) {
+        setGrids(response.data);
+      }
+    };
     loadGrid();
-  }, [intMissionId, loadGrid]);
+  }, [intMissionId]);
 
   return (
     <div className={styles.pageStyle}>

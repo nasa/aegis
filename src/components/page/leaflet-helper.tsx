@@ -968,19 +968,17 @@ export const drawLayersOnMap = ({
       const isExternal = sublayer.path?.startsWith("http");
       if (sublayer.type === "tile") {
         // if layer isn't already on the map, add it
-        const filter = makeTileLayerColorFilter(mapSublayerControls[sublayer.uuid]);
+        const colorFilter = makeTileLayerColorFilter(mapSublayerControls[sublayer.uuid]);
         if (!isLayerOnMapByName(map, sublayer.name)) {
           const tilePath = isExternal
             ? `${sublayer.path}/${sublayer.tilePattern}`
             : `${layerBaseURL}/${missionId}/Layers/${sublayer.path}/${sublayer.tilePattern}`;
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const tileLayer = (L.tileLayer as any).colorFilter(tilePath, {
+          const tileLayer = L.tileLayer(tilePath, {
             //manually add id and type fields for tracking later on
             id: sublayer.name,
             uuid: sublayer.uuid,
             type: "tile",
-
             tileSize: 256,
             bounds: [
               [sublayer.boundingBox[1], sublayer.boundingBox[0]],
@@ -993,7 +991,7 @@ export const drawLayersOnMap = ({
             maxNativeZoom: sublayer.maxNativeZoom,
             opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
             zIndex: index,
-            filter,
+            colorFilter,
             // custom class name that we use to control mix-blend-mode
             className: `leaflet-layer leaflet-blend-${
               mapSublayerControls[sublayer.uuid].style?.blendMode
@@ -1004,11 +1002,11 @@ export const drawLayersOnMap = ({
           map.current.addLayer(tileLayer);
           tileLayer.bringToFront();
         } else {
-          // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
+          // if layer is already on the map, bring it to the front. This has the effect of controlling z-order of layers
           const layer: L.TileLayer = getLayerByName(map, sublayer.name);
           // set all the options for the layer that are in the mapSublayerControls
           layer.setOpacity(mapSublayerControls[sublayer.uuid].style?.opacity);
-          layer.updateFilter(filter);
+          layer.updateColorFilter(colorFilter);
 
           layer.bringToFront();
         }

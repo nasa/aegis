@@ -69,8 +69,8 @@ app.use(
     maxAge: 24 * 60 * 60 * 1000 * 365, // 1 year
   })
 );
-// static asset passthrough for dev. This path is one level above src (relative from build output folder)
-app.use("/static", express.static(path.join(__dirname, `../../../${process.env.STATIC_DIR}`)));
+// static asset passthrough for dev. This path is relative to the esbuild output dir (.local/express/dist/api)
+app.use("/static", express.static(path.join(__dirname, `../../../../${process.env.STATIC_DIR}`)));
 
 // socket stuff
 app.use("/api/v1/socket/serverSocketStatus", serverSocketStatus);

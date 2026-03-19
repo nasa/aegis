@@ -16,6 +16,13 @@ import { clearMapItemHover } from "store/hover";
 import { thunkClearAllMapSelections } from "store/thunk/crossThunk";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
+const initHoverValues: MeasureHoverValues = {
+  totalDistanceMeters: null,
+  distanceFromStartMeters: null,
+  elevationMeters: null,
+  slopeDegrees: null,
+};
+
 const Measure: FunctionComponent = () => {
   const selectedMeasurement = useAppSelector(
     (state) =>
@@ -34,12 +41,6 @@ const Measure: FunctionComponent = () => {
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
-  const initHoverValues: MeasureHoverValues = {
-    totalDistanceMeters: null,
-    distanceFromStartMeters: null,
-    elevationMeters: null,
-    slopeDegrees: null,
-  };
   const [hoverValues, setHoverValues] = useState<MeasureHoverValues>(initHoverValues);
 
   const dispatch = useAppDispatch();
@@ -107,8 +108,7 @@ const Measure: FunctionComponent = () => {
       selectedMeasurement?.pathSegmentBearings,
       usingLGRSCoordinates
     );
-    //eslint-disable-next-line
-  }, [selectedMeasurement, setHoverValues]);
+  }, [selectedMeasurement, setHoverValues, usingLGRSCoordinates]);
 
   // Draw the timeline when the measure uuid changes
   useEffect(() => {

@@ -471,7 +471,9 @@ const Home: React.FunctionComponent = () => {
     dispatch(thunkObliterateEntireStore());
   }, [dispatch]);
 
-  document.title = "AEGIS";
+  useEffect(() => {
+    document.title = "AEGIS";
+  }, []);
 
   return (
     <>

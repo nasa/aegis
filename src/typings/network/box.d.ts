@@ -13,7 +13,6 @@ type BoxItemEntry = {
 };
 
 type BoxItemsResponse = {
-  total_count: number;
   entries: BoxItemEntry[];
   limit: number;
   offset: number;

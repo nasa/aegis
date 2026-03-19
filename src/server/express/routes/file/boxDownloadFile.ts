@@ -3,7 +3,7 @@ import type { Query } from "express-serve-static-core";
 
 import fs from "node:fs";
 
-import BoxSDK from "box-node-sdk";
+import { BoxClient, BoxCcgAuth, CcgConfig } from "box-node-sdk";
 import express from "express";
 
 import { unzip } from "server/file/file";
@@ -50,21 +50,21 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     const downloadFilePath = process.env.STATIC_DIR; //all zip files are uploaded into the root STATIC_DIR location
 
     // setup access to the Box.com SDK
-    const sdkConfig = {
-      boxAppSettings: {
-        clientID: process.env.BOX_CLIENT_ID,
+    const auth = new BoxCcgAuth({
+      config: new CcgConfig({
+        clientId: process.env.BOX_CLIENT_ID,
         clientSecret: process.env.BOX_CLIENT_SECRET,
-      },
-      enterpriseID: process.env.BOX_ENTERPRISE_ID,
-    };
-    const sdk = BoxSDK.getPreconfiguredInstance(sdkConfig);
-    const client = sdk.getCCGClientForUser(process.env.BOX_USER_ID);
+        enterpriseId: process.env.BOX_ENTERPRISE_ID,
+        userId: process.env.BOX_USER_ID,
+      }),
+    });
+    const client = new BoxClient({ auth });
 
     // download the itemId from Box and store it at path. This file is a zip file.
     // await client.files.get(itemId, { downloadToFile: downloadFilePath });
 
     // get the metadata for the file on Box
-    const metadata = await client.files.get(queryObj.itemId);
+    const metadata = await client.files.getFileById(queryObj.itemId);
 
     // download the file from Box
     await downloadFileFromBox(client, queryObj.itemId, downloadFilePath + "/" + metadata.name);
@@ -110,13 +110,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 export default router;
 
 async function downloadFileFromBox(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  client: any,
+  client: BoxClient,
   itemId: string,
   downloadFilePath: string
 ): Promise<void> {
   try {
-    const stream = await client.files.getReadStream(itemId);
+    const stream = await client.downloads.downloadFile(itemId);
+    if (!stream) {
+      throw new Error(`Failed to get download stream for file ${itemId}`);
+    }
 
     return new Promise((resolve, reject) => {
       const output = fs.createWriteStream(downloadFilePath);

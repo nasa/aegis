@@ -188,7 +188,7 @@ export async function upsertBackupDbMissions(missions: Mission[]): Promise<Missi
       }
 
       //have to both persist and flush in order to get the new mission id back
-      await em.persistAndFlush(dbReference);
+      await em.persist(dbReference).flush();
       missionsUpsertedToDb.push(dbReference);
     }
     await em.commit();

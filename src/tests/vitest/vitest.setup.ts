@@ -9,11 +9,6 @@ import {
 } from "store/storeUtils/mission";
 import { v4 as uuidv4 } from "uuid";
 
-// Mock modules that vitest can't parse
-vi.mock("string-strip-html", () => ({
-  stripHtml: () => vi.fn(),
-}));
-
 vi.mock("box-node-sdk", () => ({
   getPreconfiguredInstance: () => vi.fn(),
 }));
