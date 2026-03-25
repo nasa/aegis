@@ -25,6 +25,13 @@ beforeAll(async () => {
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
+
+  // Because new missions are inserted into the backup mission_db with a manual ID,
+  // the sequence needs to be reset to avoid conflicts when creating test missions.
+  await em
+    .getConnection()
+    .execute(`SELECT setval(pg_get_serial_sequence('mission_db', 'id'), MAX(id)) FROM mission_db`);
+
   testMissions = await new MissionFactory(em).create(3);
   testAdmin = await new AppUserFactory(em).createOne({
     username: "Vitest testAdminForMission",

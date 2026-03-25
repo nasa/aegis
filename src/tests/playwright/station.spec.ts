@@ -13,7 +13,7 @@ async function waitForSaveButton(page: Page, isActive: boolean) {
   );
 }
 
-test("create edit cancel delete station", async ({ page }) => {
+test("CRUD station", async ({ page }) => {
   await page.goto("http://localhost:4000/mission/22");
   await page.waitForLoadState("networkidle");
 

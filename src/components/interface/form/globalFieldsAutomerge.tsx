@@ -21,7 +21,8 @@ export const ToggleButton: FunctionComponent<{
   toolTip?: string;
   style?: CSSProperties;
   labelStyle?: CSSProperties;
-}> = ({ toggled, onClick, isDisabled, label, toolTip, style, labelStyle }) => {
+  toggleAriaLabel?: string;
+}> = ({ toggled, onClick, isDisabled, label, toolTip, style, labelStyle, toggleAriaLabel }) => {
   return (
     <div
       className={`${formStyles.toggleButton}`}
@@ -32,7 +33,7 @@ export const ToggleButton: FunctionComponent<{
         onClick();
       }}
       style={style}
-      aria-label={"toggle"}
+      aria-label={toggleAriaLabel || "toggle"}
     >
       <div style={labelStyle} className={formStyles.toggleButtonLabel}>
         {label}

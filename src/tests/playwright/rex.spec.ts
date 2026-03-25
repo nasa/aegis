@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("create edit cancel delete rex", async ({ page }) => {
+test("CRUD rex", async ({ page }) => {
   await page.goto("http://localhost:4000/mission/22");
   await page.waitForLoadState("networkidle");
 

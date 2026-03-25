@@ -162,6 +162,7 @@ const MissionPrefsRight: FunctionComponent = () => {
                   : "Offline: Editing Disabled"
               }
               label="Edit"
+              toggleAriaLabel="missionEditToggle"
             />
           )}
         </div>

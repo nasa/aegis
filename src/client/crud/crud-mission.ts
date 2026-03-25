@@ -47,6 +47,12 @@ export function crudUpdateMissionByField<
   missionDocHandle.change((m: Mission) => {
     if (mapValue !== undefined) {
       // This is map field with a nested key/value we need to update
+
+      // Init to {} if this object structure is null or undefined
+      if (m[fieldName] == null) {
+        (m[fieldName] as NonNullable<Mission[K]>) = {} as NonNullable<Mission[K]>;
+      }
+
       const map = m[fieldName] as NonNullable<Mission[K]>;
       map[valueOrMapKey as MapKey] = mapValue;
     } else {

@@ -23,7 +23,7 @@ import { clearAllEditing } from "store/crossActions";
 setupFetchFns();
 const user = await getCurrentUser();
 let repoClientID = `client-${Math.random().toString(36).slice(2, 5)}`;
-if (user instanceof Error) {
+if (!user || user instanceof Error) {
   console.error("Unable to get current user", user);
 } else {
   console.log(`Launchpad User: ${user.display_name || "unknown user"}`);

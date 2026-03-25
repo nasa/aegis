@@ -133,6 +133,7 @@ export const config: DotenvConfig<typeof environments> = {
   // Mock up the user when running in non-docker local dev or else JWT errors will occur
   MOCK_USER: {
     local: "true",
+    test: "true",
     default: "false",
   },
 
