@@ -13,7 +13,10 @@ export const getCurrentUser = async (): Promise<LaunchpadUser | Error> => {
     const json = await fetchJsonWithAuth<{ user: LaunchpadUser }>("/api/v1/user/current");
     if (json instanceof Error) {
       console.error("Unable to get current user", json);
-      return;
+      return json;
+    }
+    if (!json.user) {
+      return new Error("No user found in /api/v1/user/current response");
     }
     currentUser = json.user;
 

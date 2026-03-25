@@ -65,12 +65,16 @@ export default defineConfig({
       dependencies: ["auth"], // make sure to run the auth project first.
     },
   ],
-  // Run your local dev server before starting the tests.
+  // Run dev server before starting the tests.
+  // In CI, run a modified dev command that has already built the API server
   webServer: {
-    command: "npm run dev",
+    command: process.env.CI ? "npm run dev:ci" : "npm run dev",
     url: "http://localhost:4000",
     reuseExistingServer: !process.env.CI,
     timeout: 180 * 1000,
+    cwd: path.resolve(__dirname, "../../.."),
+    stdout: "pipe", // forward stdout so we have better debugging
+    stderr: "pipe",
   },
 
   globalSetup: require.resolve("./playwright.globalSetup.ts"),

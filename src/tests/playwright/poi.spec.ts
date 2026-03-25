@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("create edit cancel delete poi", async ({ page }) => {
+test("CRUD poi", async ({ page }) => {
   await page.goto("http://localhost:4000/mission/22");
   await page.waitForLoadState("networkidle");
 
