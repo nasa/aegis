@@ -92,7 +92,7 @@ node-sbom:
   stage: stageless
   needs:
     - install_dependencies
-    - make-test-dotenv
+    - make-dotenv:test
     - z:db-export:prod
   variables:
     # define variables used by Node app
@@ -168,7 +168,7 @@ test-playwright:
   image: mcr.microsoft.com/playwright:v1.58.2-jammy
   needs:
     - install_dependencies
-    - make-test-dotenv
+    - make-dotenv:test
     - z:db-export:prod
   script:
     - echo "Running shard ${SHARD_INDEX} of ${NUM_SHARDS}"
@@ -293,12 +293,17 @@ test-automerge-migrate:
       - .env
     expire_in: 1 day
 
-make-dotenv:
+make-dotenv:fit:
   extends: .make-dotenv-template
   variables:
     MAKEDOTENV_ENV: "fit"
 
-make-test-dotenv:
+make-dotenv:prod:
+  extends: .make-dotenv-template
+  variables:
+    MAKEDOTENV_ENV: "prod"
+
+make-dotenv:test:
   extends: .make-dotenv-template
   variables:
     MAKEDOTENV_ENV: "test"
@@ -314,7 +319,7 @@ make-test-dotenv:
   stage: stageless
   tags: ["docker", "linux"]
   needs:
-    - make-dotenv
+    - make-dotenv:fit
 
 docker:build:nginx:
   extends: .kaniko-build-template
@@ -346,7 +351,7 @@ docker:build:apiv1:
 docker:retag:
   extends: .emss-container-retag
   needs:
-    - make-dotenv
+    - make-dotenv:fit
     - job: test-automerge-migrate
       artifacts: false
     - job: test-vitest-lint-tsc
@@ -379,7 +384,7 @@ deploy:artifactize-committed-files:
 .deploy-template:
   extends: .emss-fitdock-deploy # use job template from gitlab-templates repo
   needs:
-    - make-dotenv
+    - make-dotenv:fit
     - docker:retag
     - deploy:artifactize-committed-files
   stage: stageless
@@ -442,13 +447,16 @@ deploy:int:
   environment:
     name: integration
     url: ${URL}
+  needs:
+    - make-dotenv:prod
+    - docker:retag
+    - deploy:artifactize-committed-files
   variables:
     DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT} #CI/CD Variable
     URL: https://aegis-int.fit.nasa.gov
   only:
     - int
   before_script:
-    # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/aegis-int/g" .env
     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/int/g" .env
 
@@ -459,6 +467,10 @@ deploy:prod:
   environment:
     name: production
     url: ${URL}
+  needs:
+    - make-dotenv:prod
+    - docker:retag
+    - deploy:artifactize-committed-files
   variables:
     DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_PROD} #CI/CD Variable
     URL: https://aegis.fit.nasa.gov
@@ -466,6 +478,5 @@ deploy:prod:
   only:
     - prod
   before_script:
-    # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/aegis/g" .env
     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/prod/g" .env
