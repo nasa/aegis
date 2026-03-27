@@ -13,6 +13,7 @@ import topLevelAwait from "vite-plugin-top-level-await";
 export const config: UserConfig = {
   root: "./src",
   envDir: "../",
+  cacheDir: "../node_modules/.vite",
   plugins: [react(), svgr(), wasm(), topLevelAwait()],
   resolve: {
     //alias paths so that the import statements are shorter and start from the src folder

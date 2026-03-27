@@ -6,7 +6,7 @@ import {
   generateBlankActionTemplate,
   generateBlankMission,
   generateDefaultActionDefinitions,
-} from "store/storeUtils/mission";
+} from "../../store/storeUtils/mission";
 import { v4 as uuidv4 } from "uuid";
 
 vi.mock("box-node-sdk", () => ({

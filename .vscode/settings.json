@@ -1,5 +1,8 @@
 {
   "git.ignoreLimitWarning": true,
+  // Tell the VS Code Vitest extension where the config lives after the move
+  // from the project root to src/tests/vitest/.
+  "vitest.rootConfig": "src/tests/vitest/vitest.config.mts",
   "editor.formatOnSave": true,
   "editor.tabSize": 2,
   "[typescriptreact]": {

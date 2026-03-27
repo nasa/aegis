@@ -243,7 +243,8 @@ const PrintUsers: FunctionComponent<{
                         </span>
                         <br />
                         App User: {record.appUser.username || "N/A"} <br />
-                        Version: {record.appVersion.version} - {record.appVersion.gitCommit} <br />
+                        Version: {record.clientAppVersion.version} -{" "}
+                        {record.clientAppVersion.gitCommit} <br />
                         Connected At: {new Date(record.connectedAt).toUTCString()}
                       </div>
                     </div>

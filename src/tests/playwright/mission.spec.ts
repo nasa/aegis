@@ -1,4 +1,4 @@
-import { test } from "@playwright/test";
+import { test } from "./testSetup";
 import { actionTemplatesTest } from "./mission/actionTemplateTest";
 import { missionConfigTest } from "./mission/missionConfigurationTest";
 import { circleDefinitionsTest } from "./mission/circleDefinitionsTest";

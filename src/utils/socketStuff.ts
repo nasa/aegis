@@ -4,6 +4,7 @@ import type { AppDispatch } from "./useAppDispatch";
 import {
   setLastEditEvent,
   setLastStatusFromServer,
+  setServerVersion,
   setSocketConnectionStatus,
 } from "store/connection";
 import { clientFetchWithTimeout } from "./fetch-with-timeout";
@@ -50,7 +51,7 @@ export const attachSocketListeners = (
       socketId: socket.id,
       missionId,
       permission: permissionType,
-      appVersion: connectionStoreRef.current.appVersion,
+      clientAppVersion: connectionStoreRef.current.clientAppVersion,
       launchpadUser: userRef.current.launchpadUser,
       appUser: userRef.current.appUser,
       connectedAt: Date.now(),
@@ -110,21 +111,23 @@ export const attachSocketListeners = (
   });
 
   // Incoming AEGIS version number
-  socket.on("version", (appVersion: AppVersion) => {
+  socket.on("version", (serverAppVersion: AppVersion) => {
     if (
-      connectionStoreRef.current.appVersion.version !== appVersion.version ||
-      connectionStoreRef.current.appVersion.gitCommit !== appVersion.gitCommit
+      connectionStoreRef.current.clientAppVersion.version !== serverAppVersion.version ||
+      connectionStoreRef.current.clientAppVersion.gitCommit !== serverAppVersion.gitCommit
     ) {
-      if (connectionStoreRef.current.appVersion?.version) {
+      if (connectionStoreRef.current.clientAppVersion?.version) {
         alert(
-          `A new version of AEGIS is available. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.appVersion.version}/${connectionStoreRef.current.appVersion.gitCommit}\nNew version: ${appVersion.version}/${appVersion.gitCommit} `
+          `A new version of AEGIS is available. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.clientAppVersion.version}/${connectionStoreRef.current.clientAppVersion.gitCommit}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit} `
         );
 
         // Redirect to version check page with version info and return URL
         const currentUrl = window.location.pathname + window.location.search;
         window.location.href = `/versionCheck?returnUrl=${encodeURIComponent(currentUrl)}`;
+        return;
       }
     }
+    dispatch(setServerVersion(serverAppVersion));
   });
 
   // Incoming client counts

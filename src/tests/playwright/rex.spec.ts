@@ -1,8 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./testSetup";
 
 test("CRUD rex", async ({ page }) => {
   await page.goto("http://localhost:4000/mission/22");
   await page.waitForLoadState("networkidle");
+  await page.getByLabel("loading-overlay").waitFor({ state: "hidden", timeout: 30000 });
 
   // Go to eva section
   await page.getByLabel("evas Section", { exact: true }).click();
@@ -11,6 +12,7 @@ test("CRUD rex", async ({ page }) => {
   // Add eva
   const startingNumEvas = await page.getByLabel("evaList-item", { exact: true }).count();
   await page.getByLabel("addEva", { exact: true }).click();
+  await page.mouse.move(0, 0); // Dismiss any lingering tooltips
   await expect(page.getByLabel("evaList-item", { exact: true })).toHaveCount(startingNumEvas + 1);
 
   // Edit eva name and save
@@ -20,6 +22,8 @@ test("CRUD rex", async ({ page }) => {
     page.getByLabel("evaList-item").filter({ hasText: "Playwright Test Eva For Rex" })
   ).toHaveCount(1);
   await page.getByLabel("saveEva", { exact: true }).click();
+  await page.mouse.move(0, 0); // Dismiss any lingering tooltips
+  await page.getByLabel("loading-overlay").waitFor({ state: "hidden", timeout: 10000 });
   await expect(page.getByLabel("EVA Title", { exact: true })).toContainText(
     "Playwright Test Eva For Rex"
   );
@@ -30,14 +34,18 @@ test("CRUD rex", async ({ page }) => {
     .filter({ hasText: "Playwright Test Eva For Rex" }) // this filter checks for content in all descendants
     .getByLabel("Add REX", { exact: true })
     .click();
+  await page.getByLabel("loading-overlay").waitFor({ state: "hidden", timeout: 10000 });
   await page.getByLabel("REX Title", { exact: true }).waitFor({ timeout: 5000 });
   await expect(page.getByLabel("REX Title", { exact: true })).toContainText("REX");
 
   // Edit the rex name and save
   await page.getByLabel("editEva", { exact: true }).click();
+  await page.mouse.move(0, 0); // Dismiss any lingering tooltips
   await page.getByLabel("REX Title", { exact: true }).click();
   await page.getByLabel("REX Title", { exact: true }).fill("Playwright Test REX");
   await page.getByLabel("saveEva", { exact: true }).click();
+  await page.mouse.move(0, 0); // Dismiss any lingering tooltips
+  await page.getByLabel("loading-overlay").waitFor({ state: "hidden", timeout: 10000 });
   await expect(
     page.getByLabel("evaList-item").filter({ hasText: "Playwright Test REX" })
   ).toHaveCount(1);
@@ -50,15 +58,13 @@ test("CRUD rex", async ({ page }) => {
     });
   });
   await page.getByLabel("editEva", { exact: true }).click();
+  await page.mouse.move(0, 0); // Dismiss any lingering tooltips that may intercept the click
   await page.getByLabel("deleteEva", { exact: true }).click();
   await dialogPromiseDeleteRex; // Wait for the dialog to be accepted
+  await page.getByLabel("loading-overlay").waitFor({ state: "hidden", timeout: 10000 });
   await expect(
     page.getByLabel("evaList-item").filter({ hasText: "Playwright Test REX" })
   ).toHaveCount(0);
-  await page.waitForSelector('text="Deleting EVA Execution..."', {
-    state: "hidden",
-    timeout: 5000,
-  }); // wait for the deleting overlay to disappear
 
   // delete eva
   const dialogPromiseDeleteEva = new Promise<void>((resolve) => {
@@ -69,8 +75,10 @@ test("CRUD rex", async ({ page }) => {
   });
   await page.getByLabel("evaList-item").filter({ hasText: "Playwright Test Eva For Rex" }).click();
   await page.getByLabel("editEva", { exact: true }).click();
+  await page.mouse.move(0, 0); // Dismiss any lingering tooltips that may intercept the click
   await page.getByLabel("deleteEva", { exact: true }).click();
   await dialogPromiseDeleteEva; // Wait for the dialog to be accepted
+  await page.getByLabel("loading-overlay").waitFor({ state: "hidden", timeout: 10000 });
   await expect(
     page.getByLabel("evaList-item").filter({ hasText: "Playwright Test Eva For Rex" })
   ).toHaveCount(0);

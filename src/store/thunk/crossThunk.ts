@@ -59,11 +59,11 @@ export const thunkDeletePoiAndActionsFromStore = appCreateAsyncThunk<{ poiUuid: 
   }
 );
 
-export const thunkObliterateEntireStore = appCreateAsyncThunk<void>(
-  "cross/obliterateEntireStore",
+// Dispatch actions to reset each slice to its initial state
+// This does not reset ALL slices (ex: user and connection)
+export const thunkObliterateMissionSpecificData = appCreateAsyncThunk<void>(
+  "cross/obliterateMissionSpecificData",
   async (__, { dispatch }) => {
-    // Dispatch actions to reset each slice to its initial state
-    // This does not reset ALL slices (ex: user and connection)
     dispatch(actionObliterateState());
     dispatch(evaObliterateState());
     dispatch(hoverObliterateState());
