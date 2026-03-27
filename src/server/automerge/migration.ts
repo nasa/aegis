@@ -14,6 +14,7 @@ import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { getBackupDbMissions, upsertBackupDbMissions } from "server/express/routes/mission";
 import { Doc_Listing_db } from "server/database/models/_allModels";
 import { globalValues } from "server/express/global";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 
 // This is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
 initializeBase64Wasm(automergeWasmBase64);
@@ -38,7 +39,10 @@ const getORM = async () => {
 
 // DB must be ready first
 getORM().then(async () => {
-  console.log("Starting automerge migration script...");
+  serverLogger.info({
+    logId: "automerge-migration",
+    logValue: "Starting automerge migration script...",
+  });
   const allMissions: Mission[] = await getBackupDbMissions();
   let allDocListings: AutomergeDocListing[] = await getAutomergeDocListing();
   const allDocHandles: DocHandle<Mission>[] = [];
@@ -47,7 +51,10 @@ getORM().then(async () => {
   // This only needs to be run once per environment and //TODO should be removed in a subsequent MR
   // Loop through every mission and see if we already have an automerge doc listing for it
   const docListingsToAdd: AutomergeDocListing[] = [];
-  console.log("\nChecking for missions with no automerge document...");
+  serverLogger.info({
+    logId: "automerge-migration",
+    logValue: "Checking for missions with no automerge document...",
+  });
   for (const mission of allMissions) {
     const hasListing = allDocListings.map((d) => d.missionId).includes(mission.id);
     if (!hasListing) {
@@ -57,7 +64,10 @@ getORM().then(async () => {
         automergeUrl: missionDocHandle.url,
       };
       docListingsToAdd.push(newDocListing);
-      console.log(`New automerge doc created for: ${mission.id} - ${mission.name}`);
+      serverLogger.info({
+        logId: "automerge-migration",
+        logValue: `New automerge doc created for: ${mission.id} - ${mission.name}`,
+      });
     }
   }
   if (docListingsToAdd.length > 0) {
@@ -70,21 +80,33 @@ getORM().then(async () => {
         em.persist(dbRes);
       }
       await em.flush();
-      console.log(`Added ${docListingsToAdd.length} new automerge doc listing(s) to the database`);
+      serverLogger.info({
+        logId: "automerge-migration",
+        logValue: `Added ${docListingsToAdd.length} new automerge doc listing(s) to the database`,
+      });
       // re-query full list of doc listings after adding new ones
       allDocListings = await getAutomergeDocListing();
     } catch (e) {
-      console.log("Error adding new automerge doc listings: " + e);
+      serverLogger.error(
+        { logId: "automerge-migration", logValue: "Error adding new automerge doc listings" },
+        e instanceof Error ? e : new Error(String(e))
+      );
       process.exitCode = 1; // error
       process.exit();
     }
   } else {
-    console.log("No new automerge documents created");
+    serverLogger.info({
+      logId: "automerge-migration",
+      logValue: "No new automerge documents created",
+    });
   }
-  console.log("Check complete.");
+  serverLogger.info({ logId: "automerge-migration", logValue: "Check complete." });
 
   // Get docHandles for all the doc listings in the database so we can use them below on the migrations and validation
-  console.log("\nGetting doc handles for all automerge documents...");
+  serverLogger.info({
+    logId: "automerge-migration",
+    logValue: "Getting doc handles for all automerge documents...",
+  });
   for (const docInfo of allDocListings) {
     if (!isValidAutomergeUrl(docInfo.automergeUrl)) return;
     // Get docHandle for each document/mission and add listeners
@@ -93,9 +115,10 @@ getORM().then(async () => {
     await missionDocHandle.whenReady();
     allDocHandles.push(missionDocHandle);
   }
-  console.log(
-    `Found ${allDocListings.length} automerge listing(s) and ${allDocHandles.length} doc handles`
-  );
+  serverLogger.info({
+    logId: "automerge-migration",
+    logValue: `Found ${allDocListings.length} automerge listing(s) and ${allDocHandles.length} doc handles`,
+  });
 
   /**
    * MIGRATION FUNCTIONS - ADD NEW ONES HERE
@@ -117,57 +140,72 @@ getORM().then(async () => {
   //   });
   // };
 
-  console.log("\nStarting migrations...");
+  serverLogger.info({ logId: "automerge-migration", logValue: "Starting migrations..." });
   // Add migration functions to the list and run all the migrations on every doc
   // const migrationFunctions = [automergeMigration20250203];
   const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [];
   // Run all the migrations in the list above
   for (const func of migrationFunctions) {
-    console.log(`Running migration ${func.name}`);
+    serverLogger.info({ logId: "automerge-migration", logValue: `Running migration ${func.name}` });
     for (const docHandle of allDocHandles) {
       await func(docHandle);
     }
   }
-  console.log("Migrations complete.");
+  serverLogger.info({ logId: "automerge-migration", logValue: "Migrations complete." });
 
   // Migrations are done.
   // Validate schema against all automerge docs
-  console.log("\nRunning validator");
+  serverLogger.info({ logId: "automerge-migration", logValue: "Running validator" });
   for (const docHandle of allDocHandles) {
     const mission: Mission = docHandle.doc();
     const isValid = missionValidator(mission);
     if (!isValid && missionValidator.errors?.length > 0) {
-      console.log(
-        `${(mission as Mission).id} - ${(mission as Mission).name} is invalid. Validation errors:`
+      serverLogger.error(
+        { logId: "automerge-migration", logValue: JSON.stringify(missionValidator.errors) },
+        new Error(`${(mission as Mission).id} - ${(mission as Mission).name} is invalid`)
       );
-      console.log(missionValidator.errors);
       process.exitCode = 1; // error
       process.exit();
     } else {
-      console.log(`${(mission as Mission).id} - ${(mission as Mission).name} is valid`);
+      serverLogger.info({
+        logId: "automerge-migration",
+        logValue: `${(mission as Mission).id} - ${(mission as Mission).name} is valid`,
+      });
     }
   }
-  console.log("Validation complete.");
+  serverLogger.info({ logId: "automerge-migration", logValue: "Validation complete." });
   // Wait 1 second for automerge to save to the storage adapter
   //  TODO kind hacky and this should smartly check when save is done.
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   // Save a copy of each automerge doc back to the backup missions table
-  console.log("\nSaving updated automerge docs to the backup db table");
+  serverLogger.info({
+    logId: "automerge-migration",
+    logValue: "Saving updated automerge docs to the backup db table",
+  });
   for (const docHandle of allDocHandles) {
     const mission: Mission = docHandle.doc();
     try {
       await upsertBackupDbMissions([mission]);
     } catch (e) {
-      console.log(`Error saving mission ${mission.id} to the backup db table: ${e}`);
+      serverLogger.error(
+        {
+          logId: "automerge-migration",
+          logValue: `Error saving mission ${mission.id} to the backup db table`,
+        },
+        e instanceof Error ? e : new Error(String(e))
+      );
       process.exitCode = 1; // error
       process.exit();
     }
-    console.log(`${mission.id} - ${mission.name} backed up to the db`);
+    serverLogger.info({
+      logId: "automerge-migration",
+      logValue: `${mission.id} - ${mission.name} backed up to the db`,
+    });
   }
-  console.log("Backups complete.");
+  serverLogger.info({ logId: "automerge-migration", logValue: "Backups complete." });
 
-  console.log("\nAll processes complete. Exiting.");
+  serverLogger.info({ logId: "automerge-migration", logValue: "All processes complete. Exiting." });
   process.exitCode = 0; // success
   process.exit();
 });

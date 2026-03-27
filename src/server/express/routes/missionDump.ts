@@ -22,7 +22,7 @@ import {
   Folder_db,
 } from "server/database/models/_allModels";
 import { globalValues } from "../global";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "./missionAutomerge";
 
@@ -41,8 +41,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
 
   if (!req.session?.appUser?.isSuperAdmin) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "missionDump",
@@ -55,7 +55,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   if (!queryObj.missionId) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -78,7 +78,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: missionData,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

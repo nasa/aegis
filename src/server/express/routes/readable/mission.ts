@@ -5,7 +5,7 @@ import express from "express";
 
 import { makeExportMission } from "utils/export";
 import { hasPerms, emssTokenIsValid } from "utils/permissions";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 import { getGrids } from "../grid";
@@ -41,8 +41,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       emssTokenIsValid(emssToken);
   }
   if (!viewPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "readable/mission",
@@ -90,7 +90,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: exportMissions,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

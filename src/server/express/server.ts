@@ -14,7 +14,7 @@ import { globalValues } from "./global";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 
-import serverLogger from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import pg from "pg";
 import { getAutomergeDocListing } from "./routes/docListing";
 import { addDbBackupListener } from "./routes/mission";
@@ -34,7 +34,7 @@ initializeBase64Wasm(automergeWasmBase64);
   const server: NetServer = createServer();
 
   // socket.io socket handler
-  console.log("*Starting Socket.IO");
+  serverLogger.info({ logId: "server", logValue: "Starting Socket.IO" });
   globalValues.socketio = new SocketServer<
     ClientToServerEvents,
     ServerToClientEvents,
@@ -101,10 +101,16 @@ initializeBase64Wasm(automergeWasmBase64);
 
   // clg peers as they come and go
   globalValues.automergeRepo.networkSubsystem.on("peer", (peerPayload) => {
-    console.log("automerge peer connected: " + peerPayload.peerId);
+    serverLogger.info({
+      logId: "server",
+      logValue: "automerge peer connected: " + peerPayload.peerId,
+    });
   });
   globalValues.automergeRepo.networkSubsystem.on("peer-disconnected", (peerPayload) => {
-    console.log("automerge peer disconnected: " + peerPayload.peerId);
+    serverLogger.info({
+      logId: "server",
+      logValue: "automerge peer disconnected: " + peerPayload.peerId,
+    });
   });
 
   // attach db backup listeners to all existing automerge docs
@@ -119,19 +125,28 @@ initializeBase64Wasm(automergeWasmBase64);
       // wait till handler is ready in-case it has to get the doc for the first time
       await missionDocHandle.whenReady();
       const mission: Mission = missionDocHandle.doc();
-      console.log(`attaching db backup listeners for ${mission.id}`);
+      serverLogger.info({
+        logId: "server",
+        logValue: `attaching db backup listeners for ${mission.id}`,
+      });
       addDbBackupListener(missionDocHandle);
     }
   });
 
   const gracefulShutdown = async () => {
-    console.info("Gracefully shutting down server...");
+    serverLogger.info({ logId: "server", logValue: "Gracefully shutting down server..." });
 
     let hasErrors = false;
 
     // Set shutdown timeout to prevent hanging
     const shutdownTimeout = setTimeout(() => {
-      console.error("Shutdown timeout - forcing exit");
+      serverLogger.critical(
+        {
+          logId: "server",
+          logValue: "Shutdown timeout exceeded 30s",
+        },
+        new Error("Shutdown timeout - forcing exit")
+      );
       process.exit(1);
     }, 30000); // 30 seconds
     shutdownTimeout.unref(); // Don't keep process alive just for this
@@ -140,9 +155,12 @@ initializeBase64Wasm(automergeWasmBase64);
     if (globalValues.automergeRepo) {
       try {
         await globalValues.automergeRepo.shutdown();
-        console.info("Automerge repo shut down");
+        serverLogger.info({ logId: "server", logValue: "Automerge repo shut down" });
       } catch (err) {
-        console.error("Error shutting down automerge repo:", err);
+        serverLogger.error(
+          { logId: "server", logValue: "Error shutting down automerge repo" },
+          err instanceof Error ? err : new Error(String(err))
+        );
         hasErrors = true;
       }
     }
@@ -151,7 +169,7 @@ initializeBase64Wasm(automergeWasmBase64);
     if (globalValues.socketInterval) {
       clearInterval(globalValues.socketInterval);
       globalValues.socketInterval = null;
-      console.info("Global socket status interval stopped");
+      serverLogger.info({ logId: "server", logValue: "Global socket status interval stopped" });
     }
 
     // Close Socket.IO connections
@@ -159,51 +177,60 @@ initializeBase64Wasm(automergeWasmBase64);
       try {
         await new Promise<void>((resolve) => {
           globalValues.socketio.close(() => {
-            console.info("Socket.IO server closed");
+            serverLogger.info({ logId: "server", logValue: "Socket.IO server closed" });
             resolve();
           });
         });
       } catch (err) {
-        console.error("Error closing Socket.IO:", err);
+        serverLogger.error(
+          { logId: "server", logValue: "Error closing Socket.IO" },
+          err instanceof Error ? err : new Error(String(err))
+        );
         hasErrors = true;
       }
     }
 
     // Close HTTP server (if Socket.IO didn't already close it)
     if (server.listening) {
-      console.info("Closing HTTP server...");
+      serverLogger.info({ logId: "server", logValue: "Closing HTTP server..." });
       try {
         await new Promise<void>((resolve, reject) => {
           server.close((err) => {
             if (err) {
               reject(err);
             } else {
-              console.info("HTTP server closed");
+              serverLogger.info({ logId: "server", logValue: "HTTP server closed" });
               resolve();
             }
           });
         });
       } catch (err) {
-        console.error("Error closing HTTP server:", err);
+        serverLogger.error(
+          { logId: "server", logValue: "Error closing HTTP server" },
+          err instanceof Error ? err : new Error(String(err))
+        );
         hasErrors = true;
       }
     } else {
-      console.info("HTTP server already closed (by Socket.IO)");
+      serverLogger.info({ logId: "server", logValue: "HTTP server already closed (by Socket.IO)" });
     }
 
     // Close database connections
     try {
       if (globalValues.orm) {
         await globalValues.orm.close();
-        console.info("Database connections closed");
+        serverLogger.info({ logId: "server", logValue: "Database connections closed" });
       }
     } catch (err) {
-      console.error("Error closing database connection:", err);
+      serverLogger.error(
+        { logId: "server", logValue: "Error closing database connection" },
+        err instanceof Error ? err : new Error(String(err))
+      );
       hasErrors = true;
     }
 
     clearTimeout(shutdownTimeout);
-    console.info("Shutdown complete");
+    serverLogger.info({ logId: "server", logValue: "Shutdown complete" });
     process.exit(hasErrors ? 1 : 0);
   };
 
@@ -211,7 +238,12 @@ initializeBase64Wasm(automergeWasmBase64);
   if (typeof process !== "undefined") {
     process.on("message", (msg) => {
       if (msg === "shutdown") {
-        gracefulShutdown().catch(console.error);
+        gracefulShutdown().catch((err) =>
+          serverLogger.error(
+            { logId: "server", logValue: "Error during shutdown" },
+            err instanceof Error ? err : new Error(String(err))
+          )
+        );
       }
     });
 

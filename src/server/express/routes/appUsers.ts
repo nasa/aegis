@@ -13,7 +13,7 @@ import {
 } from "store/storeUtils/appUser";
 import { upsertDatabaseRetry } from "utils/database";
 import { globalValues } from "../global";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();
@@ -32,8 +32,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   //only super admin can view/edit users
   if (!req.session.appUser?.isSuperAdmin) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "appUsers",
@@ -54,7 +54,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: users,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -73,8 +73,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { users } = req.body as UserUpsertRequest;
   //only super admin can view/edit users
   if (!req.session.appUser?.isSuperAdmin) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "appUsers",
@@ -89,7 +89,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     // validate
     if (!users || users.length === 0) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -105,7 +105,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -131,7 +131,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: upsertResponse,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -150,8 +150,8 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { userIds } = req.body as UserDeleteRequest;
   //only super admin can view/edit users
   if (!req.session.appUser?.isSuperAdmin) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "appUsers",
@@ -172,7 +172,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "user deleted",
       });
     } else {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "DELETE",
         responseStatus: 500,
@@ -185,7 +185,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       res.status(500).json({ status: "error", message: "Error in query" });
     }
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,

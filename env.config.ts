@@ -197,8 +197,8 @@ export const config: DotenvConfig<typeof environments> = {
   /**
    * Logging
    */
-  // Used by @emss/logger package to determine if application logs should be
-  // send to the logging server.
+  // Used by @emss/logger package to determine if server or client (client logs are
+  // routed through the server) logs should be sent to the logging server.
   LOG_ENABLE_APP_LOGGING: { local: "false", test: "false", default: "true" },
 
   // Unique ID for each app, for logging server search/filtering. This should
@@ -262,5 +262,24 @@ export const config: DotenvConfig<typeof environments> = {
 
     // For FIT, send to host machine's Rsyslog
     default: "udp://127.0.0.1:514",
+  },
+  /**
+   * Console Logger
+   * Controls the local console log level for the ConsoleLogger utility.
+   * Levels (most severe first):
+   *    "off" | "emergency" | "alert" | "critical" | "error" | "warning" | "notice" | "info" | "debug"
+   * Example: if level is "warning", only warning and more severe levels are handled
+   *
+   * The VITE_PUBLIC_REMOTE_LOG_LEVEL is a gate in front of the emss/logger remote logger. The remote logger
+   * controls it's own "should log" with LOG_ENABLE_APP_LOGGING. If/when the logger package updates to use
+   * levels instead of a boolean, this env var can go away.
+   */
+  VITE_PUBLIC_CONSOLE_LOG_LEVEL: {
+    local: "debug",
+    default: "off",
+  },
+  VITE_PUBLIC_REMOTE_LOG_LEVEL: {
+    local: "off",
+    default: "info",
   },
 };

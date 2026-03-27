@@ -15,7 +15,7 @@ import { findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
 import { hasPerms } from "utils/permissions";
 import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeDocListing } from "./docListing";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
@@ -47,8 +47,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!viewPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "grid",
@@ -61,7 +61,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -87,7 +87,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: grids,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -114,8 +114,8 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
     emssToken,
   });
   if (!viewPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "grid/closestPoint",
@@ -128,7 +128,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
     return;
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -142,7 +142,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
     return;
   }
   if (!queryObj.gridUuid || !queryObj.pointList || !queryObj.radius) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -169,7 +169,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
       data: index,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -196,8 +196,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!editPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "grid",
@@ -213,7 +213,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     // validate
     if (!grids || grids.length === 0) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -233,7 +233,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -258,7 +258,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: upsertResponse,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -285,8 +285,8 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!editPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "grid",
@@ -308,7 +308,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "Grid Deleted",
       });
     } else {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "DELETE",
         responseStatus: 404,
@@ -325,7 +325,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     }
   } catch (e) {
     if (e instanceof ForeignKeyConstraintViolationException) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "DELETE",
         responseStatus: 500,
@@ -341,7 +341,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "Cannot delete grid. This grid is referenced elsewhere",
       });
     } else {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "DELETE",
         responseStatus: 500,
@@ -539,7 +539,10 @@ async function saveGridFile(missionId: number, grid: MissionGrid): Promise<void>
   // Write the JSON string to a file
   fs.writeFile(`${directory}/${grid.gridInformation.fileName}`, jsonContent, "utf8", (err) => {
     if (err) {
-      console.error("Error writing file", err);
+      serverLogger.error(
+        { logId: "grid", logValue: "Error writing file" },
+        err instanceof Error ? err : new Error(String(err))
+      );
       return;
     }
   });
@@ -588,7 +591,7 @@ function deleteGridFile(missionId: number, gridFileName: string): void {
 
   fs.unlink(fileName, (err) => {
     if (err) {
-      console.error(`Error deleting file ${fileName}:`, err);
+      serverLogger.error({ logId: "grid", logValue: `Error deleting file ${fileName}` }, err);
       return;
     }
   });

@@ -5,7 +5,7 @@ import express from "express";
 
 import { listFiles } from "server/file/file"; // Assuming this function is compatible with Express
 import { hasPerms } from "utils/permissions";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();
@@ -26,8 +26,8 @@ router.get("/", async (req: Request, res: Response) => {
     appUser: req.session.appUser,
   });
   if (!viewPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "file/list",
@@ -43,7 +43,7 @@ router.get("/", async (req: Request, res: Response) => {
     const listing: GISfile[] = await listFiles(decodeURIComponent(queryObj.path as string));
     res.status(200).json({ data: listing });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

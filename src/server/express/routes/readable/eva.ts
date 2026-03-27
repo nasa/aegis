@@ -7,7 +7,7 @@ import { Eva_db } from "server/database/models/eva.model";
 import { Rex_db } from "server/database/models/rex.model";
 import { makeExportEvas } from "utils/export";
 import { hasPerms } from "utils/permissions";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../../global";
 
@@ -41,8 +41,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!viewPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "readable/eva",
@@ -55,7 +55,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
   //check for required mission id is valid
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -110,7 +110,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         data: partialEvas,
       });
     } catch (e) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "GET",
         responseStatus: 500,
@@ -171,7 +171,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
           )[0]?.coordinates;
         } catch (e) {
           // something went wrong with fetching grids. Report an error but continue without grid data
-          apiRouteLogger({
+          serverLogger.apiRoute({
             logLevel: "error",
             httpMethod: "GET",
             responseStatus: null,
@@ -197,7 +197,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       });
       return;
     } catch (e) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "GET",
         responseStatus: 500,

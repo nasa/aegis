@@ -9,7 +9,7 @@ import { emitStoreUpsert } from "../../sockets";
 import { hasPerms } from "utils/permissions";
 import { upsertDatabaseRetry } from "utils/database";
 import { v4 as uuidv4 } from "uuid";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "../missionAutomerge";
 
@@ -45,8 +45,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     emssToken: emssToken,
   });
   if (!editPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "emss/rexControl",
@@ -60,7 +60,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   // validate inputs
   if (!rexUuid) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -83,7 +83,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     maestroEventUrl === undefined &&
     maestroActivityProperties === undefined
   ) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -102,7 +102,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
   // Validate startStopExecution if provided
   if (startStopExecution !== undefined && !["start", "stop"].includes(startStopExecution)) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -124,7 +124,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:")
         throw new Error("Invalid protocol. Must be http or https");
     } catch (e) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -149,7 +149,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         const hexColorRegex = /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{4}|[A-Fa-f0-9]{6})$/;
         const isValidColor = hexColorRegex.test(activityProperty.color);
         if (!isValidColor) {
-          apiRouteLogger({
+          serverLogger.apiRoute({
             logLevel: "notice",
             httpMethod: "POST",
             responseStatus: 400,
@@ -167,7 +167,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       }
       // validate number
       if (activityProperty.number && activityProperty.number.length > 3) {
-        apiRouteLogger({
+        serverLogger.apiRoute({
           logLevel: "notice",
           httpMethod: "POST",
           responseStatus: 400,
@@ -198,7 +198,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     );
 
     if (!updatedRexes || updatedRexes.length === 0) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -233,7 +233,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check if it's a specific business logic error
     if (errorMessage.includes("not found")) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 404,
@@ -250,7 +250,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     // Generic server error
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,

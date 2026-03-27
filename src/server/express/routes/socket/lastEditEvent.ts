@@ -6,7 +6,7 @@ import express from "express";
 import { hasPerms } from "utils/permissions";
 
 import { globalValues } from "../../global";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();
@@ -29,8 +29,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       appUser: req.session.appUser,
     });
     if (!viewPermission) {
-      apiRouteLogger({
-        logLevel: "warn",
+      serverLogger.apiRoute({
+        logLevel: "warning",
         httpMethod: "GET",
         responseStatus: 401,
         routeName: "socket/lastEditEvent",
@@ -42,7 +42,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
     if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "GET",
         responseStatus: 400,
@@ -63,7 +63,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: lastEditEvent,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

@@ -26,6 +26,7 @@ import { obliterateState as stmObliterateState } from "store/stm";
 import { obliterateState as traverseObliterateState } from "store/traverse";
 import { obliterateState as measurementObliterateState } from "store/measure";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 export const thunkSelectEVASequenceItem = appCreateAsyncThunk<{
   sequenceItemUuid: string;
@@ -102,18 +103,27 @@ export const thunkSelectEvaAction = appCreateAsyncThunk<{
     // Validate UUIDs format (basic validation)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(evaRefUuid) || !uuidRegex.test(actionRefUuid)) {
-      console.warn("Deep link error: Invalid UUID format provided for EVA or action");
+      clientLogger.warning({
+        logId: "deepLink",
+        logValue: "Invalid UUID format provided for EVA or action",
+      });
       return;
     }
     if (rexUuid && !uuidRegex.test(rexUuid)) {
-      console.warn("Deep link error: Invalid UUID format provided for REX");
+      clientLogger.warning({
+        logId: "deepLink",
+        logValue: "Invalid UUID format provided for REX",
+      });
       return;
     }
 
     // Validate EVA exists in store
     const evaExists = getState().eva.evas.some((eva) => eva.refUuid === evaRefUuid);
     if (!evaExists) {
-      console.warn(`Deep link error: EVA with refUUID ${evaRefUuid} not found in store`);
+      clientLogger.warning({
+        logId: "deepLink",
+        logValue: `EVA with refUUID ${evaRefUuid} not found in store`,
+      });
       return;
     }
     // Validate action exists in store
@@ -121,14 +131,20 @@ export const thunkSelectEvaAction = appCreateAsyncThunk<{
       (action) => action.refUuid === actionRefUuid
     );
     if (!actionExists) {
-      console.warn(`Deep link error: Action with refUUID ${actionRefUuid} not found in store`);
+      clientLogger.warning({
+        logId: "deepLink",
+        logValue: `Action with refUUID ${actionRefUuid} not found in store`,
+      });
       return;
     }
     // Validate REX exists in store if provided
     if (rexUuid) {
       const rexExists = getState().rex.rexes.some((rex) => rex.uuid === rexUuid);
       if (!rexExists) {
-        console.warn(`Deep link error: REX with UUID ${rexUuid} not found in store`);
+        clientLogger.warning({
+          logId: "deepLink",
+          logValue: `REX with UUID ${rexUuid} not found in store`,
+        });
         return;
       }
     }

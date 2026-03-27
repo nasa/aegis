@@ -1,5 +1,6 @@
 import { getAutomergeDocHandles } from "client/automergeDocHandles";
 import { getAccurateNow } from "utils/formatting";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 /**
  * A utility functions to update/delete properties in the mission document
@@ -40,7 +41,10 @@ export function crudUpdateMissionByField<
   const automergeDocHandles = getAutomergeDocHandles();
   const missionDocHandle = automergeDocHandles.mission;
   if (!missionDocHandle) {
-    console.error("Mission doc handle is not set");
+    clientLogger.error(
+      { logId: "crud-mission", logValue: "Mission doc handle is not set" },
+      new Error("Mission doc handle is not set")
+    );
     return;
   }
 

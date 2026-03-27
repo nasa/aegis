@@ -1,3 +1,4 @@
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { v4 as uuidv4 } from "uuid";
 import { copyDirectoryContents } from "server/file/file";
 
@@ -35,12 +36,18 @@ export const copyMissionAssets = async (
   toMissionId: number
 ): Promise<void> => {
   try {
-    console.log(`Copying assets from mission ${fromMissionId} to mission ${toMissionId}`);
+    serverLogger.info({
+      logId: "duplicate",
+      logValue: `Copying assets from mission ${fromMissionId} to mission ${toMissionId}`,
+    });
 
     // Recursively copy directories and files
     await copyDirectoryContents(fromMissionId, toMissionId);
 
-    console.log(`Successfully copied mission assets from ${fromMissionId} to ${toMissionId}`);
+    serverLogger.info({
+      logId: "duplicate",
+      logValue: `Successfully copied mission assets from ${fromMissionId} to ${toMissionId}`,
+    });
   } catch (error) {
     throw new Error(`Failed to copy mission assets: ${error}`);
   }
