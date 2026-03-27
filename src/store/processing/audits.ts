@@ -9,6 +9,7 @@ import { getAccurateNow } from "utils/formatting";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import type { DocHandle } from "@automerge/automerge-repo";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
@@ -194,13 +195,17 @@ export const auditActions = async ({
     if (action.traverseUuid && allActionUuidsOnParents.includes(action.uuid)) continue;
     // action has no parent, remove it
     actionUuidsToDelete.push(action.uuid);
-    console.log(
-      `Audit Actions: Found orphaned action: ${action.uuid} - poiUuid: ${action.poiUuid} stationUuid: ${action.stationUuid} traverseUuid: ${action.traverseUuid}`
-    );
+    clientLogger.debug({
+      logId: "audit",
+      logValue: `Found orphaned action: ${action.uuid} - poiUuid: ${action.poiUuid} stationUuid: ${action.stationUuid} traverseUuid: ${action.traverseUuid}`,
+    });
   }
   // delete from database and store
   if (actionUuidsToDelete.length > 0) {
-    console.log("Audit Actions: Deleting orphaned actions:", actionUuidsToDelete);
+    clientLogger.debug({
+      logId: "audit",
+      logValue: `Deleting orphaned actions: ${actionUuidsToDelete.join(", ")}`,
+    });
     // delete from store
     for (const actionUuid of actionUuidsToDelete) {
       const indexInActions = newActions.findIndex((a) => a.uuid === actionUuid);
@@ -299,7 +304,10 @@ export const auditFolders = async ({
   if (foldersToSaveToDb.length > 0) {
     const upsertResponse = await httpClient_folder.upsertFolders(foldersToSaveToDb);
     if (upsertResponse.status !== "success") {
-      console.error("Error saving folders to DB:", upsertResponse.message);
+      clientLogger.error(
+        { logId: "audit", logValue: "Error saving folders to DB" },
+        new Error(upsertResponse.message)
+      );
     }
   }
 };

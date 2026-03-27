@@ -16,7 +16,7 @@ import { getLevel1s, getLevel2s, getLevel3s } from "./stm";
 import { getStmRules } from "./stmRules";
 import { getTraverses } from "./traverse";
 import { hasPerms } from "utils/permissions";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "./missionAutomerge";
 
@@ -42,8 +42,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!viewPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "all",
@@ -55,7 +55,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -75,7 +75,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: record,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

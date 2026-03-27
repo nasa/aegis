@@ -5,7 +5,7 @@ import { BoxClient, BoxCcgAuth, CcgConfig } from "box-node-sdk";
 import express from "express";
 
 import { hasPerms } from "utils/permissions";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();
@@ -29,8 +29,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     appUser: req.session.appUser,
   });
   if (!editPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "file/boxGetFolderItems",
@@ -73,7 +73,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
     res.status(200).json({ data: { ...folderItems, entries: entriesWithSize } });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

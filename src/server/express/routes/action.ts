@@ -10,7 +10,7 @@ import { emitStoreDelete, emitStoreUpsert } from "server/express/sockets";
 import { convertActionsTypeDbToStore, convertActionsTypeStoreToDb } from "store/storeUtils/action";
 import { hasPerms } from "utils/permissions";
 import { upsertDatabaseRetry } from "utils/database";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../global";
 
@@ -28,8 +28,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!editPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "action",
@@ -44,7 +44,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     // validate
     if (!actions || actions.length === 0) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -61,7 +61,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -94,7 +94,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
     return;
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -122,8 +122,8 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!editPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "action",
@@ -151,7 +151,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "Action Deleted",
       });
     } else {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "DELETE",
         responseStatus: 400,
@@ -167,9 +167,12 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       });
     }
   } catch (e) {
-    console.error(e);
+    serverLogger.error(
+      { logId: "action", logValue: "Error deleting action" },
+      e instanceof Error ? e : new Error(String(e))
+    );
     if (e instanceof ForeignKeyConstraintViolationException) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "DELETE",
         responseStatus: 500,
@@ -185,7 +188,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "Cannot delete action. This action is referenced elsewhere",
       });
     } else {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "DELETE",
         responseStatus: 500,

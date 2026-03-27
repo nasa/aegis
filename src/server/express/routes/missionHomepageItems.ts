@@ -6,7 +6,7 @@ import sortBy from "lodash/sortBy";
 import { Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { emssTokenIsValid } from "utils/permissions";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../global";
 import { getAutomergeMissions } from "./missionAutomerge";
@@ -21,8 +21,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
     emssTokenIsValid(emssToken);
   if (!viewPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "missionHomepageItems",
@@ -52,7 +52,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: records,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

@@ -8,7 +8,7 @@ import multer from "multer";
 
 import { deleteFile, moveFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
 import { hasPerms } from "utils/permissions";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 // Express router to replace nextConnect
@@ -32,8 +32,8 @@ router.use(async (req: Request, res: Response, next): Promise<void> => {
     appUser: req.session.appUser,
   });
   if (!editPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "file/upload",
@@ -55,7 +55,7 @@ const upload = multer({
       cb(null, file.originalname);
       filename = file.originalname;
       req.on("aborted", () => {
-        console.log(`${new Date()} - Client aborted upload`);
+        serverLogger.info({ logId: "file", logValue: `Client aborted upload` });
         deleteFile(filename);
       });
     },
@@ -81,7 +81,7 @@ router.post("/", upload.single("uploadFile"), async (req: Request, res: Response
       }
       res.status(201).json(statusMessage);
     } else {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -93,7 +93,7 @@ router.post("/", upload.single("uploadFile"), async (req: Request, res: Response
       res.status(400).json("No file provided in request body");
     }
   } catch (error) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,

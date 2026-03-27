@@ -76,7 +76,7 @@
     "@dnd-kit/core": "6.3.1",
     "@emoji-mart/data": "1.2.1",
     "@emoji-mart/react": "1.1.1",
-    "@emss/logger": "0.9.4",
+    "@emss/logger": "0.10.0",
     "@emss/make-dotenv": "0.4.4",
     "@emss/oauth2-proxy-backend": "0.7.3",
     "@emss/oauth2-proxy-frontend": "0.3.3",

@@ -12,7 +12,7 @@ import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();
@@ -29,8 +29,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!editPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "folder",
@@ -46,7 +46,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     // validate
     if (!folders || folders.length === 0) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -63,7 +63,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -96,7 +96,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: upsertResponse,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -123,8 +123,8 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!editPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "folder",
@@ -153,7 +153,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "Folders Deleted",
       });
     } else {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "DELETE",
         responseStatus: 404,
@@ -169,9 +169,12 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       });
     }
   } catch (e) {
-    console.error(e);
+    serverLogger.error(
+      { logId: "folder", logValue: "Error deleting folder" },
+      e instanceof Error ? e : new Error(String(e))
+    );
     if (e instanceof ForeignKeyConstraintViolationException) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "DELETE",
         responseStatus: 500,
@@ -187,7 +190,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "Cannot delete folder. This Folder is referenced elsewhere",
       });
     } else {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "DELETE",
         responseStatus: 500,

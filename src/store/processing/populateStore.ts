@@ -13,6 +13,7 @@ import type { DocHandle, Repo, AutomergeUrl } from "@automerge/automerge-repo";
 import { isValidAutomergeUrl } from "@automerge/automerge-repo";
 import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { validateMission } from "utils/validateSchemaClient";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 // Populate the entire store state except User and Interface
 // All api calls used in this function must past in the load test options
@@ -249,7 +250,10 @@ const generateFoldersInterfaceStates = (params: { wholeStoreState: WholeStoreSta
       } as FolderInterface;
     });
   } catch (error) {
-    console.error("Error parsing folder interfaces from cookie:", error);
+    clientLogger.error(
+      { logId: "populateStore", logValue: "Error parsing folder interfaces from cookie" },
+      error instanceof Error ? error : new Error(String(error))
+    );
     // Create default folder interfaces if there's an error with the cookie
     wholeStoreState.interface.foldersInterface = wholeStoreState.interface.folders.map(
       (folder) =>

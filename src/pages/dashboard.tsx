@@ -21,6 +21,7 @@ import { setGridCornerPoint } from "store/map";
 import { loadAndReturnGrid } from "utils/mapping/grid";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 type RouteParams = {
   id: string;
@@ -142,6 +143,13 @@ const Main = (): JSX.Element => {
       } else {
         navigate("/");
       }
+      // log user info
+      clientLogger.info({
+        logId: "appLogin",
+        appUsername: response.data.username,
+        missionId: intMissionId,
+        page: "dashboard",
+      });
     };
     isLoggedInAsync();
   }, [navigate, intMissionId, dispatch]);

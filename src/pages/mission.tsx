@@ -18,7 +18,7 @@ import { populateStore } from "store/processing/populateStore";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 import { loadAndReturnGrid } from "utils/mapping/grid";
 import { setGridCornerPoint } from "store/map";
-import clientLogger from "utils/logging/clientLogger";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import { useEffect } from "react";
@@ -82,12 +82,12 @@ const Main: React.FunctionComponent = () => {
 
       // populate the user store
       dispatch(setAppUser({ isLoggedIn: true, user: response.data, missionPerms: missionPerms }));
-      console.log("AEGIS Username:", response.data.username);
-      // log user to the emss logging system
+      // log user info
       clientLogger.info({
-        logId: "aegis-login",
+        logId: "appLogin",
         appUsername: response.data.username,
         missionId: intMissionId,
+        page: "mission",
       });
 
       // get the rest of the store data

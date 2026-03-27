@@ -19,17 +19,27 @@ import { CookiesProvider } from "react-cookie";
 import { setupFetchFns } from "packages/fetchFns";
 import { getCurrentUser } from "packages/getCurrentUser";
 import { clearAllEditing } from "store/crossActions";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 setupFetchFns();
 const user = await getCurrentUser();
 let repoClientID = `client-${Math.random().toString(36).slice(2, 5)}`;
 if (!user || user instanceof Error) {
-  console.error("Unable to get current user", user);
+  clientLogger.error(
+    { logId: "launchpadLogin", logValue: `Unable to get current user, ${user}` },
+    new Error(`Unable to get current user: ${user}`)
+  );
 } else {
-  console.log(`Launchpad User: ${user.display_name || "unknown user"}`);
+  clientLogger.info({
+    logId: "launchpadLogin",
+    launchpadDisplayName: `${user.display_name || "unknown user"}`,
+  });
   repoClientID = `${user.auid}-${Math.random().toString(36).slice(2, 5)}`;
 }
-console.log(`Automerge ClientID: ${repoClientID}`);
+clientLogger.info({
+  logId: "automergeId",
+  automergeId: `${repoClientID}`,
+});
 
 const repo = new Repo({
   network: [

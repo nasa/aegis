@@ -10,6 +10,7 @@ import { clientFetchWithTimeout } from "./fetch-with-timeout";
 import isEqual from "lodash/isEqual";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import { clearAllEditing } from "store/crossActions";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 export const createSocket = (
   serverURL: string,
@@ -101,8 +102,9 @@ export const attachSocketListeners = (
 
   // For non-production environments. In production we will attempt reconnects infinitely
   socket.io.on("reconnect_failed", () => {
-    console.error(
-      "[Socket.IO] Socket reconnection failed after maximum attempts (path: /api/v1/socketio)."
+    clientLogger.error(
+      { logId: "socket", logValue: "Socket.IO reconnect_failed (path: /api/v1/socketio)" },
+      new Error("Socket reconnection failed after maximum attempts")
     );
     dispatch(setSocketConnectionStatus("failed"));
   });

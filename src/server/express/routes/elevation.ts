@@ -4,7 +4,7 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 
 import { hasPerms } from "utils/permissions";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();
@@ -29,8 +29,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!viewPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "elevation",
@@ -42,7 +42,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -96,7 +96,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         segment.map((elevation) => parseFloat(String(elevation)))
       );
     } catch (e) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -120,7 +120,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         message: "Success POSTing the job to docker.",
       });
     } else {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -136,7 +136,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       });
     }
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,

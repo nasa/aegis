@@ -7,7 +7,7 @@ import { App_User_db } from "server/database/models/_allModels";
 import { globalValues } from "../global";
 
 import { upsertAppUsers } from "./appUsers";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();
@@ -24,7 +24,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
     }
     res.status(200).json(loginResult);
   } catch (error) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -43,7 +43,7 @@ router.get("/logout", async (req: Request, res: Response): Promise<void> => {
     req.session = null;
     res.status(200).json({ status: "success", message: "Logged out", data: true });
   } catch (error) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -69,7 +69,7 @@ router.get("/isLoggedIn", async (req: Request, res: Response): Promise<void> => 
       res.status(200).json({ status: "failure", message: "Not Logged in", data: { user: null } });
     }
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -98,7 +98,7 @@ router.get("/adminRecovery", async (req: Request, res: Response): Promise<void> 
       throw new Error("Method not allowed");
     }
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

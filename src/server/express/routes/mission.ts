@@ -32,7 +32,7 @@ import throttle from "lodash/throttle";
 import path from "path";
 import fs from "fs";
 import { missionValidator, SCHEMA_DIR } from "utils/validateSchemaServer";
-import serverLogger, { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { diff } from "deep-diff";
 
@@ -60,7 +60,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       appUser: req.session.appUser,
       emssToken,
     });
-    console.log(viewPermission);
+    serverLogger.debug({ logId: "mission", logValue: JSON.stringify(viewPermission) });
   } else {
     //no mission was specified. check if they are allowed to view at least one mission
     viewPermission =
@@ -69,8 +69,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       emssTokenIsValid(emssToken);
   }
   if (!viewPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "mission",
@@ -104,7 +104,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     }
     res.status(200).json({ status: "success", message: "mission retrieved", data: records });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -128,7 +128,10 @@ router.get("/schema", async (req: Request, res: Response): Promise<void> => {
       data: schema,
     });
   } catch (e) {
-    console.error(e);
+    serverLogger.error(
+      { logId: "mission", logValue: "Error retrieving schema" },
+      e instanceof Error ? e : new Error(String(e))
+    );
     res.status(500).json({
       status: "error",
       message: `Error retrieving schema: ${e}`,
@@ -285,7 +288,10 @@ export async function deleteBackupDbMissionAndRelatedEntities(
 
       deletedMissionIds.push(missionId);
     } catch (error) {
-      console.error(`Error deleting mission ${missionId}:`, error);
+      serverLogger.error(
+        { logId: "mission", logValue: `Error deleting mission ${missionId}` },
+        error instanceof Error ? error : new Error(String(error))
+      );
       throw error;
     }
   }
@@ -313,30 +319,30 @@ const throttledDbBackup = throttle(
     if (!isValid && missionValidator.errors?.length > 0) {
       // log the validation errors
       serverLogger.error(
-        new Error(`Mission ${missionToSave.id} failed validation. Not saving backup to DB.`),
         {
           logId: "Automerge",
           logValue: `DB Backup Validation Schema Errors: ${JSON.stringify(missionValidator.errors)}`,
           missionId: missionToSave.id,
-        }
+        },
+        new Error(`Mission ${missionToSave.id} failed validation. Not saving backup to DB.`)
       );
       // log a full snapshot of the bad data
       serverLogger.error(
-        new Error(`Mission ${missionToSave.id} received invalid data from automerge`),
         {
           logId: "Automerge",
           logValue: JSON.stringify(missionToSave),
           missionId: missionToSave.id,
-        }
+        },
+        new Error(`Mission ${missionToSave.id} received invalid data from automerge`)
       );
       // log the last diff that got throttled. Is not representative of a diff between valid and invalid data,
       serverLogger.error(
-        new Error(`Mission ${missionToSave.id} last throttled diff from automerge`),
         {
           logId: "Automerge",
           logValue: JSON.stringify(diff(payload.patchInfo.before, payload.patchInfo.after)),
           missionId: missionToSave.id,
-        }
+        },
+        new Error(`Mission ${missionToSave.id} last throttled diff from automerge`)
       );
 
       // automatically overwrite the current automerge doc with the
@@ -344,7 +350,7 @@ const throttledDbBackup = throttle(
       restoreLastKnownGoodFromBackupDb(missionToSave.id, payload.handle);
     } else {
       // data is valid. save to the DB
-      console.log("pushing change to db backup");
+      serverLogger.debug({ logId: "mission", logValue: "pushing change to db backup" });
       upsertBackupDbMissions([missionToSave]);
     }
   },
@@ -367,16 +373,15 @@ const restoreLastKnownGoodFromBackupDb = async (
       // Then assign the new properties
       Object.assign(doc, lastKnownGoodMission);
     });
-    serverLogger.warn({
+    serverLogger.warning({
       logId: "Automerge",
       logValue: `Restored last known good mission from backup DB`,
       missionId,
     });
   } catch (e) {
-    serverLogger.error(new Error(`Failed to restore last known good mission from backup DB`), {
-      logId: "Automerge",
-      logValue: e.toString(),
-      missionId,
-    });
+    serverLogger.error(
+      { logId: "Automerge", logValue: e.toString(), missionId },
+      new Error(`Failed to restore last known good mission from backup DB`)
+    );
   }
 };

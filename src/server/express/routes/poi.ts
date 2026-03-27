@@ -13,7 +13,7 @@ import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();
@@ -39,8 +39,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!viewPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "poi",
@@ -52,7 +52,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -72,7 +72,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: pois,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -98,8 +98,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!editPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "poi",
@@ -115,7 +115,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     // validate
     if (!pois || pois.length === 0) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -141,7 +141,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -174,7 +174,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: upsertResponse,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -201,8 +201,8 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!editPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "poi",
@@ -232,7 +232,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "POI deleted",
       });
     } else {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "DELETE",
         responseStatus: 404,
@@ -248,7 +248,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       });
     }
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,

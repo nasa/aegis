@@ -129,6 +129,13 @@ export default [
                 "Use utils/useAppDispatch() instead of useDispatch(). This will allow usage of the full store types",
             },
           ],
+          patterns: [
+            {
+              group: ["**/consoleLogger", "**/consoleLogger.ts", "utils/logging/consoleLogger"],
+              message:
+                "Import from 'utils/logging/clientLogger' or 'utils/logging/serverLogger' instead. Alias as: { ConsoleLogger as clientLogger } or { ConsoleLogger as serverLogger }.",
+            },
+          ],
         },
       ],
 
@@ -187,6 +194,18 @@ export default [
     files: ["**/*.d.ts"],
     rules: {
       "@typescript-eslint/consistent-type-imports": "off",
+    },
+  },
+
+  // Allow clientLogger.ts, serverLogger.ts, and tests to import directly from consoleLogger
+  {
+    files: [
+      "src/utils/logging/clientLogger.ts",
+      "src/utils/logging/serverLogger.ts",
+      "src/tests/**/consoleLogger.test.ts",
+    ],
+    rules: {
+      "no-restricted-imports": "off",
     },
   },
 ];

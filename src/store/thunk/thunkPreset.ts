@@ -23,6 +23,7 @@ import cloneDeep from "lodash/cloneDeep";
 import sortBy from "lodash/sortBy";
 import { getAccurateNow } from "utils/formatting";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 import { generateBlankPreset } from "store/storeUtils/preset";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
@@ -104,7 +105,10 @@ export const thunkDeletePreset = appCreateAsyncThunk<{
       dispatch(deletePresetsByUuid([presetUuid]));
       dispatch(deletePresetsFromDbByUuid([presetUuid]));
     } else {
-      console.error("Error deleting preset: " + deleteResponse.message);
+      clientLogger.error(
+        { logId: "thunk-preset", logValue: "Error deleting preset" },
+        new Error(deleteResponse.message)
+      );
     }
   } else {
     // if the selected preset is not in presetsFromDb then delete it from the store

@@ -4,7 +4,7 @@ import type { Query } from "express-serve-static-core";
 import { hasPerms } from "utils/permissions";
 import { Doc_Listing_db } from "server/database/models/_allModels";
 import { globalValues } from "../global";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 /**
@@ -38,8 +38,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view;
   }
   if (!viewPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "automerge",
@@ -73,7 +73,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: records,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,

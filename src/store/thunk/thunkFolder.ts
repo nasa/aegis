@@ -11,6 +11,7 @@ import * as httpClient_folder from "http-client/folder";
 import Cookies from "js-cookie";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { getAutomergeDocHandles } from "client/automergeDocHandles";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 export const thunkCreateFolder = appCreateAsyncThunk<{ type: FolderType }>(
   "thunkCreateFolder",
@@ -129,7 +130,10 @@ export const thunkDeleteFolder = appCreateAsyncThunk<{ folderUuid: string }>(
         Cookies.set(cookieKey, JSON.stringify(parsedStates), { path: "/" });
       }
     } catch (error) {
-      console.error("Error removing folder state from cookie:", error);
+      clientLogger.error(
+        { logId: "thunk-folder", logValue: "Error removing folder state from cookie" },
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
 
     // delete folder from db
@@ -168,7 +172,10 @@ export const thunkToggleFolderOpen = appCreateAsyncThunk<{ folderUuid: string }>
         { path: "/" }
       );
     } catch (error) {
-      console.error("Error saving folder state to cookie:", error);
+      clientLogger.error(
+        { logId: "thunk-folder", logValue: "Error saving folder state to cookie" },
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
 
     // Now dispatch the action to update the Redux store
@@ -202,7 +209,10 @@ export const thunkToggleFolderVisible = appCreateAsyncThunk<{ folderUuid: string
         { path: "/" }
       );
     } catch (error) {
-      console.error("Error saving folder state to cookie:", error);
+      clientLogger.error(
+        { logId: "thunk-folder", logValue: "Error saving folder state to cookie" },
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
 
     // Now dispatch the action to update the Redux store

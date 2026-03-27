@@ -1,10 +1,17 @@
 import { createClientLogger } from "@emss/logger";
+import ConsoleLogger from "./consoleLogger";
 
 /**
  * **Do not use on server.**
- *
- * Used for client-side logging only.
  */
-const clientLogger = createClientLogger("/api/v1/log/from-client");
 
-export default clientLogger;
+export { ConsoleLogger };
+
+ConsoleLogger.setConsoleLogLevel(
+  (import.meta.env.VITE_PUBLIC_CONSOLE_LOG_LEVEL as LogLevel) || "off"
+);
+ConsoleLogger.setRemoteLogLevel(
+  (import.meta.env.VITE_PUBLIC_REMOTE_LOG_LEVEL as LogLevel) || "off"
+);
+
+ConsoleLogger.setRemoteLogger(createClientLogger("/api/v1/log/from-client"));

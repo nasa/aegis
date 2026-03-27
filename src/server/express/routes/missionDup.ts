@@ -4,7 +4,7 @@ import express from "express";
 
 import { fetchMissionEntities, createMissionCopy } from "utils/dup/core";
 import { upsertDatabaseRetry } from "utils/database";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../global";
 
@@ -13,8 +13,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId } = req.body;
 
   if (!req.session?.appUser?.isSuperAdmin) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "missionDup",
@@ -27,7 +27,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   if (missionId === undefined || missionId === null) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -49,7 +49,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
     // Check response
     if (newMissionId === null || newMissionId === undefined) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -75,7 +75,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: newMissionId,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
