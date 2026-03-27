@@ -28,6 +28,7 @@ export async function ensureEditModeOn(page: Page): Promise<void> {
 export async function goToV2MissionSection(page: Page): Promise<void> {
   await page.goto("http://localhost:4000/mission/22");
   await page.waitForLoadState("networkidle");
+  await page.getByLabel("loading-overlay").waitFor({ state: "hidden", timeout: 30000 });
   await page.getByLabel("mission Section", { exact: true }).click();
   await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
     "Mission Configuration"
@@ -43,6 +44,7 @@ export async function goToV2MissionSection(page: Page): Promise<void> {
 export async function goToV1MissionSection(page: Page): Promise<void> {
   await page.goto("http://localhost:4000/mission/47");
   await page.waitForLoadState("networkidle");
+  await page.getByLabel("loading-overlay").waitFor({ state: "hidden", timeout: 30000 });
   await page.getByLabel("mission Section", { exact: true }).click();
   await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
     "Mission Configuration"

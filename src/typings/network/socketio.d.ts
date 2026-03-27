@@ -40,7 +40,7 @@ interface VisitorData {
   socketId: string; // identifier for managing the list on server global
   missionId: number;
   permission: "editor" | "viewer";
-  appVersion: AppVersion;
+  clientAppVersion: AppVersion;
   appUser: AppUser;
   launchpadUser: LaunchpadUser;
   connectedAt: number; // timestamp when the visitor joined

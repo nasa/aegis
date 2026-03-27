@@ -20,7 +20,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
 
   //Handle socketio events
   useEffect(() => {
-    if (!missionId || !user?.missionPerms || !connectionStore?.appVersion) return;
+    if (!missionId || !user?.missionPerms || !connectionStore?.clientAppVersion) return;
     // Create a socket connection to the server.
     // On handshake, the server will generate an socket id for the client
     if (!socket.current || (socket.current && !socket.current.connected)) {
@@ -33,7 +33,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
     return () => {
       cleanupSocketListeners(socket.current);
     };
-  }, [dispatch, socket, missionId, user, connectionStore.appVersion]);
+  }, [dispatch, socket, missionId, user, connectionStore.clientAppVersion]);
 
   // Keep refs up to date from store
   useEffect(() => {

@@ -23,11 +23,11 @@ export const setupSocketIO = (): void => {
       socket.on("visitorJoin", (visitorData: VisitorData) => {
         try {
           // check app version and git commit
-          if (!isEqual(visitorData.appVersion, globalValues.appVersion)) {
+          if (!isEqual(visitorData.clientAppVersion, globalValues.appVersion)) {
             serverLogger.warning({
               logId: "socket",
               logValue: `SocketIO - visitorJoin: appVersion mismatch between client and server
-          client: ${JSON.stringify(visitorData.appVersion)}
+          client: ${JSON.stringify(visitorData.clientAppVersion)}
           server: ${JSON.stringify(globalValues.appVersion)}`,
             });
           }
