@@ -15,8 +15,8 @@ export async function teardown(): Promise<void> {
   const em = orm.em.fork();
 
   const sql = `delete from "folder_db" where name like '%Vitest%';
-  delete from "layer_db" where name like '%Vitest%';
   delete from "sublayer_db" where name like '%Vitest%';
+  delete from "layer_db" where name like '%Vitest%';
   delete from "preset_db" where name like '%Vitest%';
   delete from "action_db" where name like '%Vitest%';
   delete from "poi_db" where name like '%Vitest%';
