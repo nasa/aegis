@@ -87,7 +87,8 @@ export const attachSocketListeners = (
           connectionStoreRef.current.socketStatus.lastEditEvent &&
           lastEditResponse &&
           lastEditResponse.data &&
-          isEqual(lastEditResponse, connectionStoreRef.current.socketStatus.lastEditEvent) === false
+          isEqual(lastEditResponse.data, connectionStoreRef.current.socketStatus.lastEditEvent) ===
+            false
         ) {
           alert(
             `Mission data has been updated by another user while you were disconnected.\n
