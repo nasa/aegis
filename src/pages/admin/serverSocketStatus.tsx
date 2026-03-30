@@ -1,4 +1,5 @@
-import { FunctionComponent, useEffect, useRef, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { isLoggedIn } from "http-client/login";
 import adminStyles from "components/admin/admin.module.css";
@@ -242,7 +243,8 @@ const PrintUsers: FunctionComponent<{
                         </span>
                         <br />
                         App User: {record.appUser.username || "N/A"} <br />
-                        Version: {record.appVersion.version} - {record.appVersion.gitCommit} <br />
+                        Version: {record.clientAppVersion.version} -{" "}
+                        {record.clientAppVersion.gitCommit} <br />
                         Connected At: {new Date(record.connectedAt).toUTCString()}
                       </div>
                     </div>

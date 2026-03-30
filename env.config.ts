@@ -1,6 +1,6 @@
-import { DotenvConfig } from "@emss/make-dotenv/src/types";
+import type { DotenvConfig } from "@emss/make-dotenv/src/types";
 
-export const environments = ["local", "fit", "test"] as const;
+export const environments = ["local", "fit", "test", "prod"] as const;
 
 export const config: DotenvConfig<typeof environments> = {
   /**
@@ -65,7 +65,6 @@ export const config: DotenvConfig<typeof environments> = {
    * Launchpad
    * Only our prod URLs are added to launchpad prod. All environments (dev/int/prod) are added to launchpad sandbox.
    * Ultimately we want to use sandbox launchpad for everything except prod (including local dev)
-   * Currently we don't have a solution to make a prod version of a .env so right now use sandbox for everything
    */
   OAUTH2_PROXY_COOKIE_SECRET: {
     local: {
@@ -76,34 +75,34 @@ export const config: DotenvConfig<typeof environments> = {
     default: { type: "required-from-secret" },
   },
   OAUTH2_PROXY_OIDC_ISSUER_URL: {
-    // prod: "https://authfs.launchpad.nasa.gov/adfs", confirm correct
+    prod: "https://authfs.launchpad.nasa.gov/adfs",
     default: "https://authfs.launchpad-sbx.nasa.gov/adfs",
   },
   OAUTH2_PROXY_LOGIN_URL: {
-    // prod: "https://authfs.launchpad.nasa.gov/adfs/oauth2/authorize/", confirm correct
+    prod: "https://authfs.launchpad.nasa.gov/adfs/oauth2/authorize/",
     default: "https://authfs.launchpad-sbx.nasa.gov/adfs/oauth2/authorize/",
   },
   OAUTH2_PROXY_REDEEM_URL: {
-    // prod: "https://authfs.launchpad.nasa.gov/adfs/oauth2/token/", confirm correct
+    prod: "https://authfs.launchpad.nasa.gov/adfs/oauth2/token/",
     default: "https://authfs.launchpad-sbx.nasa.gov/adfs/oauth2/token/",
   },
   OAUTH2_PROXY_OIDC_JWKS_URL: {
-    // prod: "https://authfs.launchpad.nasa.gov/adfs/discovery/keys", confirm correct
+    prod: "https://authfs.launchpad.nasa.gov/adfs/discovery/keys",
     default: "https://authfs.launchpad-sbx.nasa.gov/adfs/discovery/keys",
   },
   OAUTH2_PROXY_WHITELIST_DOMAIN: {
-    // prod: "authfs.launchpad.nasa.gov", confirm correct
+    prod: "authfs.launchpad.nasa.gov",
     default: "authfs.launchpad-sbx.nasa.gov",
   },
   OAUTH2_PROXY_CLIENT_ID: {
-    // prod: { type: "alternate-varname-from-secret-file", value: "LAUNCHPAD_PRODUCTION_CLIENT_ID" },
+    prod: { type: "alternate-varname-from-secret-file", value: "LAUNCHPAD_PRODUCTION_CLIENT_ID" },
     default: { type: "alternate-varname-from-secret-file", value: "LAUNCHPAD_SANDBOX_CLIENT_ID" },
   },
   OAUTH2_PROXY_CLIENT_SECRET: {
-    // prod: {
-    //   type: "alternate-varname-from-secret-file",
-    //   value: "LAUNCHPAD_PRODUCTION_CLIENT_SECRET",
-    // },
+    prod: {
+      type: "alternate-varname-from-secret-file",
+      value: "LAUNCHPAD_PRODUCTION_CLIENT_SECRET",
+    },
     default: {
       type: "alternate-varname-from-secret-file",
       value: "LAUNCHPAD_SANDBOX_CLIENT_SECRET",
@@ -124,8 +123,6 @@ export const config: DotenvConfig<typeof environments> = {
   // happens in the pipeline deploy script. `INSERT_SUBDOMAIN` that gets replaced
   // with the appropriate subdomain during deploy.
   OAUTH2_PROXY_REDIRECT_URL: {
-    // prod: "https://aegis.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
-    // int: "https://aegis-int.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
     local: "https://aegis-local.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
     default: "https://INSERT_SUBDOMAIN.fit.nasa.gov/api/v1/auth/nasalp/adfs/oidc/login",
   },
@@ -133,6 +130,7 @@ export const config: DotenvConfig<typeof environments> = {
   // Mock up the user when running in non-docker local dev or else JWT errors will occur
   MOCK_USER: {
     local: "true",
+    test: "true",
     default: "false",
   },
 
@@ -199,8 +197,8 @@ export const config: DotenvConfig<typeof environments> = {
   /**
    * Logging
    */
-  // Used by @emss/logger package to determine if application logs should be
-  // send to the logging server.
+  // Used by @emss/logger package to determine if server or client (client logs are
+  // routed through the server) logs should be sent to the logging server.
   LOG_ENABLE_APP_LOGGING: { local: "false", test: "false", default: "true" },
 
   // Unique ID for each app, for logging server search/filtering. This should
@@ -264,5 +262,24 @@ export const config: DotenvConfig<typeof environments> = {
 
     // For FIT, send to host machine's Rsyslog
     default: "udp://127.0.0.1:514",
+  },
+  /**
+   * Console Logger
+   * Controls the local console log level for the ConsoleLogger utility.
+   * Levels (most severe first):
+   *    "off" | "emergency" | "alert" | "critical" | "error" | "warning" | "notice" | "info" | "debug"
+   * Example: if level is "warning", only warning and more severe levels are handled
+   *
+   * The VITE_PUBLIC_REMOTE_LOG_LEVEL is a gate in front of the emss/logger remote logger. The remote logger
+   * controls it's own "should log" with LOG_ENABLE_APP_LOGGING. If/when the logger package updates to use
+   * levels instead of a boolean, this env var can go away.
+   */
+  VITE_PUBLIC_CONSOLE_LOG_LEVEL: {
+    local: "debug",
+    default: "off",
+  },
+  VITE_PUBLIC_REMOTE_LOG_LEVEL: {
+    local: "off",
+    default: "info",
   },
 };

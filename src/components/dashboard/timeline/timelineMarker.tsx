@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import type { FunctionComponent } from "react";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { secondsFromhhmmss } from "utils/formatting";
 import PetInterval from "components/page/petInterval";
@@ -14,17 +14,8 @@ export const PetTimeLine: FunctionComponent<{
     shallowEqual
   );
 
-  const [styleFilter, setStyleFilter] = useState("opacity(1)");
-
-  useEffect(() => {
-    if (!runningRex) return;
-
-    if (secondsFromhhmmss(rexPetTime) % 2 === 0) {
-      setStyleFilter("opacity(1)");
-    } else {
-      setStyleFilter("opacity(0.5)");
-    }
-  }, [runningRex, rexPetTime]);
+  const styleFilter =
+    !runningRex || secondsFromhhmmss(rexPetTime) % 2 === 0 ? "opacity(1)" : "opacity(0.5)";
 
   const petTimeSeconds = secondsFromhhmmss(rexPetTime);
 

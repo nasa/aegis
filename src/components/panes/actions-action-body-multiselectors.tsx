@@ -1,7 +1,8 @@
 import { faArrowsDownToLine, faArrowsUpToLine } from "@fortawesome/free-solid-svg-icons";
 
 import { Button, Checkbox } from "components/interface/form/globalFields";
-import { FunctionComponent, useCallback } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";

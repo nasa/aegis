@@ -1,6 +1,7 @@
 import { faEllipsisV, faTrashAlt, faEdit } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { FunctionComponent, useRef } from "react";
+import type { FunctionComponent } from "react";
+import { useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCancelPosEntryInEdit, thunkDeletePosEntryByUuid } from "store/thunk/thunkRexPosEntry";
 import styles from "./map-menu-pos.module.css";

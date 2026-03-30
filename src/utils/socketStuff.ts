@@ -1,15 +1,17 @@
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
-import { AppDispatch } from "./useAppDispatch";
+import type { AppDispatch } from "./useAppDispatch";
 import {
   setLastEditEvent,
   setLastStatusFromServer,
+  setServerVersion,
   setSocketConnectionStatus,
 } from "store/connection";
 import { clientFetchWithTimeout } from "./fetch-with-timeout";
 import isEqual from "lodash/isEqual";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import { clearAllEditing } from "store/crossActions";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 export const createSocket = (
   serverURL: string,
@@ -49,7 +51,7 @@ export const attachSocketListeners = (
       socketId: socket.id,
       missionId,
       permission: permissionType,
-      appVersion: connectionStoreRef.current.appVersion,
+      clientAppVersion: connectionStoreRef.current.clientAppVersion,
       launchpadUser: userRef.current.launchpadUser,
       appUser: userRef.current.appUser,
       connectedAt: Date.now(),
@@ -85,7 +87,8 @@ export const attachSocketListeners = (
           connectionStoreRef.current.socketStatus.lastEditEvent &&
           lastEditResponse &&
           lastEditResponse.data &&
-          isEqual(lastEditResponse, connectionStoreRef.current.socketStatus.lastEditEvent) === false
+          isEqual(lastEditResponse.data, connectionStoreRef.current.socketStatus.lastEditEvent) ===
+            false
         ) {
           alert(
             `Mission data has been updated by another user while you were disconnected.\n
@@ -101,28 +104,31 @@ export const attachSocketListeners = (
 
   // For non-production environments. In production we will attempt reconnects infinitely
   socket.io.on("reconnect_failed", () => {
-    console.error(
-      "[Socket.IO] Socket reconnection failed after maximum attempts (path: /api/v1/socketio)."
+    clientLogger.error(
+      { logId: "socket", logValue: "Socket.IO reconnect_failed (path: /api/v1/socketio)" },
+      new Error("Socket reconnection failed after maximum attempts")
     );
     dispatch(setSocketConnectionStatus("failed"));
   });
 
   // Incoming AEGIS version number
-  socket.on("version", (appVersion: AppVersion) => {
+  socket.on("version", (serverAppVersion: AppVersion) => {
     if (
-      connectionStoreRef.current.appVersion.version !== appVersion.version ||
-      connectionStoreRef.current.appVersion.gitCommit !== appVersion.gitCommit
+      connectionStoreRef.current.clientAppVersion.version !== serverAppVersion.version ||
+      connectionStoreRef.current.clientAppVersion.gitCommit !== serverAppVersion.gitCommit
     ) {
-      if (connectionStoreRef.current.appVersion?.version) {
+      if (connectionStoreRef.current.clientAppVersion?.version) {
         alert(
-          `A new version of AEGIS is available. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.appVersion.version}/${connectionStoreRef.current.appVersion.gitCommit}\nNew version: ${appVersion.version}/${appVersion.gitCommit} `
+          `A new version of AEGIS is available. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.clientAppVersion.version}/${connectionStoreRef.current.clientAppVersion.gitCommit}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit} `
         );
 
         // Redirect to version check page with version info and return URL
         const currentUrl = window.location.pathname + window.location.search;
         window.location.href = `/versionCheck?returnUrl=${encodeURIComponent(currentUrl)}`;
+        return;
       }
     }
+    dispatch(setServerVersion(serverAppVersion));
   });
 
   // Incoming client counts

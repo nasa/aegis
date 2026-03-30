@@ -39,7 +39,7 @@ project-check:
     SCAN_FOR_DOCS: "no"
     ALLOWED_FILES: >
       src/packages
-      src/tests/jest/factories/testZip.zip
+      src/tests/vitest/fixtures/static/testZip.zip
 
 dependency-check:
   stage: stageless
@@ -92,7 +92,7 @@ node-sbom:
   stage: stageless
   needs:
     - install_dependencies
-    - make-test-dotenv
+    - make-dotenv:test
     - z:db-export:prod
   variables:
     # define variables used by Node app
@@ -114,7 +114,7 @@ node-sbom:
     - sed -i '/DB_HOST/d' .env
     - sed -i '/DB_NAME/d' .env
 
-test-jest-lint-tsc:
+test-vitest-lint-tsc:
   extends: .test_template
   script:
     # Load production database dump
@@ -126,7 +126,7 @@ test-jest-lint-tsc:
     # Run all the other things
     - npm run lint
     - npm run tsc
-    - npm run test:jest:coverage
+    - npm run test:coverage
   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
   artifacts:
     reports:
@@ -142,7 +142,7 @@ test-jest-lint-tsc:
 # test against next version of node that AEGIS may use, but allow to fail
 test-node-next:
   extends: .test_template
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:25.2.1-alpine
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:25.8.1-alpine
   allow_failure: true
   script:
     # Load production database dump
@@ -155,7 +155,6 @@ test-node-next:
     - npm run test:all
 
 test-playwright:
-  allow_failure: true # temporary until automerge is in production and this can be fixed
   parallel:
     matrix:
       - SHARD_INDEX: 1
@@ -166,27 +165,34 @@ test-playwright:
     NUM_SHARDS: 4
   extends: .test_template
   stage: stageless
-  image: mcr.microsoft.com/playwright:v1.54.2-jammy
+  image: mcr.microsoft.com/playwright:v1.58.2-jammy
   needs:
     - install_dependencies
-    - make-test-dotenv
+    - make-dotenv:test
     - z:db-export:prod
   script:
     - echo "Running shard ${SHARD_INDEX} of ${NUM_SHARDS}"
     - mkdir -p playwright-report
-    - apt-get update && apt-get install -y postgresql-client # Fast install, fine not in the image
+    - apt-get update && apt-get install -y postgresql-client # Fast install, fine that it's not in the image
     - PGPASSWORD=${DB_PASS} psql -h ${DB_HOST} -U postgres -d ${DB_NAME} < aegis.sql
 
     - npx playwright install-deps # Install Playwright dependencies
+    - npm run api:build # Build api in advance so it also builds the automerge:migration
     - npm run migration:up
-    - npm run test:playwright:ci # Run Playwright tests
-  timeout: 10 minutes
+    - npm run automerge:migration
+
+    # node_modules artifact was built on Alpine (musl); this image is Ubuntu (glibc).
+    # npm skips libc-mismatched optional deps, so install the glibc rollup binary explicitly.
+    - npm install --no-save @rollup/rollup-linux-x64-gnu
+
+    # Run Playwright tests
+    - npm run test:playwright:ci
+  timeout: 15 minutes
   artifacts:
     when: always
     paths:
       - playwright-report/ # Store Playwright test reports
     expire_in: 1 day
-  retry: 2
 
 # Test the automerge migrations against a prod database
 # This job will run "npm run test:automerge:migration" which will generate the schema, build and run the migration
@@ -287,12 +293,17 @@ test-automerge-migrate:
       - .env
     expire_in: 1 day
 
-make-dotenv:
+make-dotenv:fit:
   extends: .make-dotenv-template
   variables:
     MAKEDOTENV_ENV: "fit"
 
-make-test-dotenv:
+make-dotenv:prod:
+  extends: .make-dotenv-template
+  variables:
+    MAKEDOTENV_ENV: "prod"
+
+make-dotenv:test:
   extends: .make-dotenv-template
   variables:
     MAKEDOTENV_ENV: "test"
@@ -308,7 +319,7 @@ make-test-dotenv:
   stage: stageless
   tags: ["docker", "linux"]
   needs:
-    - make-dotenv
+    - make-dotenv:fit
 
 docker:build:nginx:
   extends: .kaniko-build-template
@@ -340,10 +351,10 @@ docker:build:apiv1:
 docker:retag:
   extends: .emss-container-retag
   needs:
-    - make-dotenv
+    - make-dotenv:fit
     - job: test-automerge-migrate
       artifacts: false
-    - job: test-jest-lint-tsc
+    - job: test-vitest-lint-tsc
       artifacts: false
     - job: docker:build:nginx
       artifacts: false
@@ -373,7 +384,7 @@ deploy:artifactize-committed-files:
 .deploy-template:
   extends: .emss-fitdock-deploy # use job template from gitlab-templates repo
   needs:
-    - make-dotenv
+    - make-dotenv:fit
     - docker:retag
     - deploy:artifactize-committed-files
   stage: stageless
@@ -436,13 +447,16 @@ deploy:int:
   environment:
     name: integration
     url: ${URL}
+  needs:
+    - make-dotenv:prod
+    - docker:retag
+    - deploy:artifactize-committed-files
   variables:
     DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT} #CI/CD Variable
     URL: https://aegis-int.fit.nasa.gov
   only:
     - int
   before_script:
-    # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/aegis-int/g" .env
     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/int/g" .env
 
@@ -453,6 +467,10 @@ deploy:prod:
   environment:
     name: production
     url: ${URL}
+  needs:
+    - make-dotenv:prod
+    - docker:retag
+    - deploy:artifactize-committed-files
   variables:
     DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_PROD} #CI/CD Variable
     URL: https://aegis.fit.nasa.gov
@@ -460,6 +478,5 @@ deploy:prod:
   only:
     - prod
   before_script:
-    # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/aegis/g" .env
     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/prod/g" .env

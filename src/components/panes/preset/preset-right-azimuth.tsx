@@ -1,6 +1,7 @@
 import throttle from "lodash/throttle";
 import paneStyles from "../global-pane-styles.module.css";
-import { FunctionComponent, useCallback, useRef, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useRef, useState } from "react";
 import { faEarthAmerica, faSun, faMoon } from "@fortawesome/free-solid-svg-icons";
 import { upsertPresets } from "store/preset";
 import { useAppDispatch } from "utils/useAppDispatch";

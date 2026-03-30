@@ -1,14 +1,16 @@
 import "utils/loadEnv";
 import { attachSocketListeners, cleanupSocketListeners, createSocket } from "utils/socketStuff";
-import reduxStore, { RootState } from "store/index";
+import type { RootState } from "store/index";
+import reduxStore from "store/index";
 import { populateStore } from "store/processing/populateStore";
 import { setAllSliceStores } from "store/crossActions";
 import { workerData, parentPort } from "worker_threads";
 import { createHash } from "crypto";
 import { setAppUser } from "store/user";
 import { BrowserWebSocketClientAdapter } from "@automerge/automerge-repo-network-websocket";
-import { NetworkAdapterInterface, Repo } from "@automerge/automerge-repo";
-import { setAppVersion } from "store/connection";
+import type { NetworkAdapterInterface } from "@automerge/automerge-repo";
+import { Repo } from "@automerge/automerge-repo";
+import { setClientAppVersion } from "store/connection";
 
 /**
  * Worker thread for simulating a client connection to the server.
@@ -97,7 +99,7 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
     dispatch(setAllSliceStores(wholeStoreState));
     // these values are defined in esbuild.loadtest.mjs and are set at build time
     dispatch(
-      setAppVersion({
+      setClientAppVersion({
         version: __APP_VERSION__,
         gitCommit: __GIT_COMMIT__,
       })

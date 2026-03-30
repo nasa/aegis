@@ -1,4 +1,5 @@
-import { Dispatch, FunctionComponent, useCallback, useEffect, useState } from "react";
+import type { Dispatch, FunctionComponent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import adminStyles from "./admin.module.css";
 import LayerEdit from "components/admin/layerEdit";
 import SublayerEdit from "components/admin/layerSublayerEdit";

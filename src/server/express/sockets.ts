@@ -1,3 +1,4 @@
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import uniq from "lodash/uniq";
 import remove from "lodash/remove";
 import find from "lodash/find";
@@ -22,12 +23,13 @@ export const setupSocketIO = (): void => {
       socket.on("visitorJoin", (visitorData: VisitorData) => {
         try {
           // check app version and git commit
-          if (!isEqual(visitorData.appVersion, globalValues.appVersion)) {
-            console.log(
-              `SocketIO - visitorJoin: appVersion mismatch between client and server
-          client: ${JSON.stringify(visitorData.appVersion)}
-          server: ${JSON.stringify(globalValues.appVersion)}`
-            );
+          if (!isEqual(visitorData.clientAppVersion, globalValues.appVersion)) {
+            serverLogger.warning({
+              logId: "socket",
+              logValue: `SocketIO - visitorJoin: appVersion mismatch between client and server
+          client: ${JSON.stringify(visitorData.clientAppVersion)}
+          server: ${JSON.stringify(globalValues.appVersion)}`,
+            });
           }
 
           // join the room for this mission
@@ -47,7 +49,10 @@ export const setupSocketIO = (): void => {
           // update the inspector room
           io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
         } catch (error) {
-          console.error("SocketIO - visitorJoin: ", error);
+          serverLogger.error(
+            { logId: "socket", logValue: "SocketIO - visitorJoin" },
+            error instanceof Error ? error : new Error(String(error))
+          );
         }
       });
 
@@ -98,7 +103,10 @@ export const setupSocketIO = (): void => {
           // update the inspector room
           io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
         } catch (error) {
-          console.error("SocketIO - disconnect: ", error);
+          serverLogger.error(
+            { logId: "socket", logValue: "SocketIO - disconnect" },
+            error instanceof Error ? error : new Error(String(error))
+          );
         }
       });
 
@@ -159,7 +167,10 @@ export const emitStoreUpsert = (payload: StoreUpsert): void => {
       emitMaestroStoreUpsert(payload);
     }
   } else {
-    console.error("Socket.io not initialized. Unable to emit upsert.");
+    serverLogger.error(
+      { logId: "socket", logValue: "Unable to emit upsert" },
+      new Error("Socket.io not initialized")
+    );
   }
 };
 
@@ -182,7 +193,10 @@ export const emitStoreDelete = (payload: StoreDelete): void => {
       emitMaestroStoreDelete(payload);
     }
   } else {
-    console.error("Socket.io not initialized. Unable to emit delete.");
+    serverLogger.error(
+      { logId: "socket", logValue: "Unable to emit delete" },
+      new Error("Socket.io not initialized")
+    );
   }
 };
 

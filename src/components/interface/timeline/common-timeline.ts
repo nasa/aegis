@@ -1,5 +1,5 @@
 import isNumber from "lodash/isNumber";
-import { MutableRefObject } from "react";
+import type { MutableRefObject } from "react";
 import { isNotNumber } from "utils/formatting";
 import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 
@@ -9,23 +9,28 @@ import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/mappi
  */
 export const processEvaDataFromStore = ({
   storeRef,
-  mission,
+  partialMission,
   selectedEva,
   evaStations,
   evaTraverses,
-  missionTraverseRate,
-  missionWalkbackRate,
   stationCalculatedFieldsInSelectedEva,
   traverseCalculatedFieldsInSelectedEva,
   selectedRex,
 }: {
   storeRef: MutableRefObject<EvaCalculated_PaperJS>;
-  mission: Mission;
+  partialMission: Pick<
+    Mission,
+    | "walkbackRate"
+    | "traverseRate"
+    | "demResolution"
+    | "landerElevationMeters"
+    | "landerLocation"
+    | "planetRadius"
+    | "defaultEvaDuration"
+  >;
   selectedEva: Eva;
   evaStations: Station[];
   evaTraverses: Traverse[];
-  missionTraverseRate: number;
-  missionWalkbackRate: number;
   stationCalculatedFieldsInSelectedEva: StationCalculatedFields[];
   traverseCalculatedFieldsInSelectedEva: TraverseCalculatedFields[];
   selectedRex: Rex;
@@ -34,7 +39,9 @@ export const processEvaDataFromStore = ({
     sequenceItems: [],
     selectedEvaSequenceItemUuid: null,
     maxDistFromLanderMeters: 0,
-    evaLengthMins: selectedEva?.duration ? +selectedEva?.duration : +mission?.defaultEvaDuration,
+    evaLengthMins: selectedEva?.duration
+      ? +selectedEva?.duration
+      : +partialMission?.defaultEvaDuration,
     evaLengthCalculatedMins: 0,
     maxElevationMeters: null,
     minElevationMeters: null,
@@ -44,9 +51,9 @@ export const processEvaDataFromStore = ({
     ingressDurationMins: null,
   };
 
-  if (!selectedEva?.sequence || !mission) return;
-  storeRef.current.elevationResolutionMeters = mission.demResolution;
-  storeRef.current.landerElevationMeters = mission.landerElevationMeters;
+  if (!selectedEva?.sequence || !partialMission) return;
+  storeRef.current.elevationResolutionMeters = partialMission.demResolution;
+  storeRef.current.landerElevationMeters = partialMission.landerElevationMeters;
 
   //add fake sequence items for egress and ingress
   const egressSequenceItem: EvaSequenceItem = {
@@ -80,7 +87,7 @@ export const processEvaDataFromStore = ({
         EVASequenceItemForTimeline.totalDurationMins = selectedEva.egressDuration;
         storeRef.current.egressDurationMins = selectedEva.egressDuration;
         storeRef.current.evaLengthCalculatedMins += selectedEva.egressDuration; //add to sum for total length calculated
-        EVASequenceItemForTimeline.stationElevation = mission.landerElevationMeters;
+        EVASequenceItemForTimeline.stationElevation = partialMission.landerElevationMeters;
         EVASequenceItemForTimeline.stationDistFromLanderMeters = 0;
         EVASequenceItemForTimeline.stationWalkback = null;
         // get egress location from eva. If station, set the icon to the station icon, otherwise set it to null
@@ -95,7 +102,7 @@ export const processEvaDataFromStore = ({
         EVASequenceItemForTimeline.totalDurationMins = selectedEva.ingressDuration;
         storeRef.current.ingressDurationMins = selectedEva.ingressDuration;
         storeRef.current.evaLengthCalculatedMins += selectedEva.ingressDuration; //add to sum for total length calculated
-        EVASequenceItemForTimeline.stationElevation = mission.landerElevationMeters;
+        EVASequenceItemForTimeline.stationElevation = partialMission.landerElevationMeters;
         EVASequenceItemForTimeline.stationDistFromLanderMeters = 0;
         EVASequenceItemForTimeline.stationWalkback = null;
         // get ingress location from eva. If station, set the icon to the station icon, otherwise set it to null
@@ -117,7 +124,7 @@ export const processEvaDataFromStore = ({
         //get traverse rate for this sequence item in meters per second (eva rate falling back to mission rate)
         const traverseRate = isNumber(selectedEva.traverseRate)
           ? selectedEva.traverseRate
-          : missionTraverseRate;
+          : partialMission.traverseRate;
         EVASequenceItemForTimeline.traverseRateMSec = traverseRate * (1000 / 3600); //convert to m/sec
 
         // get calculatedFieldValues for this station
@@ -134,12 +141,12 @@ export const processEvaDataFromStore = ({
         EVASequenceItemForTimeline.totalDurationMins = durationMinutes;
         storeRef.current.evaLengthCalculatedMins += durationMinutes; //add to sum for total length calculated
 
-        if (mission.landerLocation) {
+        if (partialMission.landerLocation) {
           //calculate distance to lander
           const landerDistance = getDistanceBetweenTwoCoordinates(
             station.location,
-            mission.landerLocation,
-            mission.planetRadius
+            partialMission.landerLocation,
+            partialMission.planetRadius
           );
 
           if (landerDistance > storeRef.current.maxDistFromLanderMeters)
@@ -182,7 +189,7 @@ export const processEvaDataFromStore = ({
             const newWalkbackPath: AEGISPoint[] = addPointsAtMeters(
               station.walkbackPath,
               divisor,
-              mission.planetRadius
+              partialMission.planetRadius
             );
             walkback.subdividedPath = newWalkbackPath;
 
@@ -191,8 +198,8 @@ export const processEvaDataFromStore = ({
               //calculate distance from lander. Track max distance
               const landerDistance = getDistanceBetweenTwoCoordinates(
                 newWalkbackPath[i],
-                mission.landerLocation,
-                mission.planetRadius
+                partialMission.landerLocation,
+                partialMission.planetRadius
               );
 
               if (landerDistance > storeRef.current.maxDistFromLanderMeters)
@@ -204,12 +211,12 @@ export const processEvaDataFromStore = ({
                 const distanceSegment = getDistanceBetweenTwoCoordinates(
                   newWalkbackPath[i],
                   newWalkbackPath[i + 1],
-                  mission.planetRadius
+                  partialMission.planetRadius
                 );
                 walkback.subdividedDistMeters.push(distanceSegment);
                 const walkbackTraverseRate = isNumber(station.walkbackTraverseRate)
                   ? station.walkbackTraverseRate
-                  : missionWalkbackRate;
+                  : partialMission.walkbackRate;
 
                 const duration = isNaN(walkbackTraverseRate)
                   ? 0
@@ -240,7 +247,8 @@ export const processEvaDataFromStore = ({
 
       //set the traverse rate for the sequence item in meters per second
       //(traverse field value, falling back to eva rate, falling back to mission rate)
-      const traverseRate = traverse.traverseRate || selectedEva.traverseRate || missionTraverseRate;
+      const traverseRate =
+        traverse.traverseRate || selectedEva.traverseRate || partialMission.traverseRate;
       EVASequenceItemForTimeline.traverseRateMSec = traverseRate * (1000 / 3600);
 
       //find max/min of elevation
@@ -272,7 +280,7 @@ export const processEvaDataFromStore = ({
       const newTraverse: AEGISPoint[] = addPointsAtMeters(
         traverse.path,
         divisor,
-        mission.planetRadius
+        partialMission.planetRadius
       );
       EVASequenceItemForTimeline.traverse.subdividedPath = newTraverse;
 
@@ -281,12 +289,12 @@ export const processEvaDataFromStore = ({
       //loop through new subdivided traverse
       let calculatedDuration = 0;
       for (let i = 0; i < newTraverse.length; i++) {
-        if (mission.landerLocation) {
+        if (partialMission.landerLocation) {
           //calculate distance from lander. Track max distance
           const landerDistance = getDistanceBetweenTwoCoordinates(
             newTraverse[i],
-            mission.landerLocation,
-            mission.planetRadius
+            partialMission.landerLocation,
+            partialMission.planetRadius
           );
           if (landerDistance > storeRef.current.maxDistFromLanderMeters)
             storeRef.current.maxDistFromLanderMeters = landerDistance;
@@ -298,7 +306,7 @@ export const processEvaDataFromStore = ({
           const distanceSegment = getDistanceBetweenTwoCoordinates(
             newTraverse[i],
             newTraverse[i + 1],
-            mission.planetRadius
+            partialMission.planetRadius
           );
           EVASequenceItemForTimeline.traverse.subdividedDistMeters.push(distanceSegment);
           if (!durationIsManual) {
@@ -333,8 +341,8 @@ export const processEvaDataFromStore = ({
     if (!posEntry.location) continue; //new crew pos don't have location yet
     const newDistance = +getDistanceBetweenTwoCoordinates(
       posEntry.location,
-      mission.landerLocation,
-      mission.planetRadius
+      partialMission.landerLocation,
+      partialMission.planetRadius
     ).toFixed(2);
     if (newDistance > storeRef.current.maxDistFromLanderMeters)
       storeRef.current.maxDistFromLanderMeters = newDistance;

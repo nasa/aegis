@@ -1,4 +1,4 @@
-import { MutableRefObject } from "react";
+import type { MutableRefObject } from "react";
 import paper from "paper";
 
 /**
@@ -422,7 +422,7 @@ function calcElevation(
     (xLocMaxRounded - xLocStartRounded) / paperVars.pixelsPerSecondX / 60;
   //back-calculate an adjusted traverse rate, and utlimately determine the width to move the x pixel for each elevation
   const traverseRateMSecRounded = totalDist / (totalDurationMinsRounded * 60);
-  const elevationResolution = storeRef.current.elevationResolutionMeters || 10; //10 default
+  const elevationResolution = storeRef.current.elevationResolutionMeters;
   const widthRounded = (elevationResolution / traverseRateMSecRounded) * paperVars.pixelsPerSecondX;
 
   const graphData_elevation: GraphDataItem[] = [];

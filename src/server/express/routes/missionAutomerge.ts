@@ -1,9 +1,10 @@
-import express, { Request, Response } from "express";
+import type { Request, Response } from "express";
+import express from "express";
 import { hasPerms } from "utils/permissions";
 import { getAutomergeDocListing } from "./docListing";
 import { globalValues } from "../global";
 import type { DocHandle, AutomergeUrl, DocumentId } from "@automerge/automerge-repo/slim";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
@@ -36,8 +37,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!createPermissions) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "missionAutomerge",
@@ -68,7 +69,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: createResponse,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -90,7 +91,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   // Must have edit permission the mission ids
   for (const missionIdToDelete of missionIds) {
     if (!missionIdToDelete || isNaN(missionIdToDelete)) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "DELETE",
         responseStatus: 400,
@@ -110,8 +111,8 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       emssToken,
     });
     if (!canEditThisMission) {
-      apiRouteLogger({
-        logLevel: "warn",
+      serverLogger.apiRoute({
+        logLevel: "warning",
         httpMethod: "DELETE",
         responseStatus: 401,
         routeName: "missionAutomerge",
@@ -133,7 +134,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         message: "Mission deleted from automerge, the document listing, and the backup database",
       });
     } else {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "DELETE",
         responseStatus: 404,
@@ -149,7 +150,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       });
     }
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,
@@ -208,7 +209,7 @@ export async function createAutomergeMission(
     docListing as RequiredEntityData<DocListing_db_type>
   );
   // Have to both persist and flush in order to get the new mission id back
-  await em.persistAndFlush(dbReference);
+  await em.persist(dbReference).flush();
 
   // This mission in automerge didn't have an ID yet.
   // Assign it the one from our newly inserted record

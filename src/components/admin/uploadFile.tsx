@@ -1,7 +1,8 @@
 import isNull from "lodash/isNull";
 import { uploadFile } from "http-client/file";
 import prettyBytes from "pretty-bytes";
-import { ChangeEventHandler, FunctionComponent, useEffect, useState } from "react";
+import type { ChangeEventHandler, FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 import { validateGeoJSON } from "utils/validateSchemaClient";
 
 interface UploadProps {

@@ -1,6 +1,7 @@
 import get from "lodash/get";
 import isNull from "lodash/isNull";
-import { FunctionComponent, useState, useEffect } from "react";
+import type { FunctionComponent } from "react";
+import { useState, useEffect } from "react";
 import styles from "./admin.module.css";
 import { upsertSublayers } from "http-client/sublayer";
 import { validators } from "components/interface/form/formValidators";
@@ -9,7 +10,7 @@ import { getManifestJsonTimeBounds } from "utils/mapping/timeLayers";
 import { validateImportableSublayer } from "utils/validateSchemaClient";
 import { getAccurateNow } from "utils/formatting";
 import { listFiles } from "http-client/file";
-import { AnySchemaObject, ErrorObject } from "ajv";
+import type { AnySchemaObject, ErrorObject } from "ajv";
 
 interface SublayerProps {
   sublayer: Sublayer;

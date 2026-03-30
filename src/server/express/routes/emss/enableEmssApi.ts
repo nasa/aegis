@@ -1,14 +1,15 @@
 import { asError } from "@emss/utils";
-import express, { Request, Response } from "express";
+import type { Request, Response } from "express";
+import express from "express";
 import { globalValues } from "server/express/global";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 const router = express.Router();
 
 // only super admin can get and set this value
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   if (!req.session?.appUser?.isSuperAdmin) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "emss/enableEmssApi",
@@ -27,7 +28,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: isEmssApiEnabled,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -42,8 +43,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   if (!req.session?.appUser?.isSuperAdmin) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "emss/enableEmssApi",
@@ -57,7 +58,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const { enable } = req.body;
     if (typeof enable !== "boolean") {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -75,7 +76,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: globalValues.isEmssApiEnabled,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,

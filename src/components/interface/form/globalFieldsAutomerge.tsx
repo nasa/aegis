@@ -8,7 +8,7 @@ import { Field, Form, FormSpy } from "react-final-form";
 import type { FormApi } from "final-form";
 import React from "react";
 import { composeValidators } from "components/interface/form/formValidators";
-import { FFTextPropsAutomerge, FFTextAreaPropsAutomerge } from "typings/formAutomerge";
+import type { FFTextPropsAutomerge, FFTextAreaPropsAutomerge } from "typings/formAutomerge";
 import round from "lodash/round";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { isConnected } from "store/selectors";
@@ -21,7 +21,8 @@ export const ToggleButton: FunctionComponent<{
   toolTip?: string;
   style?: CSSProperties;
   labelStyle?: CSSProperties;
-}> = ({ toggled, onClick, isDisabled, label, toolTip, style, labelStyle }) => {
+  toggleAriaLabel?: string;
+}> = ({ toggled, onClick, isDisabled, label, toolTip, style, labelStyle, toggleAriaLabel }) => {
   return (
     <div
       className={`${formStyles.toggleButton}`}
@@ -32,7 +33,7 @@ export const ToggleButton: FunctionComponent<{
         onClick();
       }}
       style={style}
-      aria-label={"toggle"}
+      aria-label={toggleAriaLabel || "toggle"}
     >
       <div style={labelStyle} className={formStyles.toggleButtonLabel}>
         {label}

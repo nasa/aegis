@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import express from "express";
 
 import { globalValues } from "server/express/global";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 /**
@@ -19,8 +19,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
     // only super admin can see socket info
     if (!req.session?.appUser?.isSuperAdmin) {
-      apiRouteLogger({
-        logLevel: "warn",
+      serverLogger.apiRoute({
+        logLevel: "warning",
         httpMethod: "GET",
         responseStatus: 401,
         routeName: "socket/serverSocketStatus",
@@ -33,7 +33,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(200).json(globalValues.serverSocketStatus || null);
     return;
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

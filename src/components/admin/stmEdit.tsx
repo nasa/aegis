@@ -1,4 +1,6 @@
-import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback } from "react";
+import { useEffect, useState } from "react";
 import stmStyles from "./stmEdit.module.css";
 import adminStyles from "./admin.module.css";
 import { deleteSTMs, upsertSTMs } from "http-client/stm";

@@ -1,5 +1,6 @@
-import { Component, ErrorInfo, ReactNode } from "react";
-import clientLogger from "utils/logging/clientLogger";
+import type { ErrorInfo, ReactNode } from "react";
+import { Component } from "react";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 import { Button } from "./interface/form/globalFields";
 
 interface Props {
@@ -39,10 +40,10 @@ class ErrorBoundary extends Component<Props, State> {
   // This method is called during the "commit" phase after an error has been thrown and the component tree has been updated
   public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // log to logging service
-    clientLogger.error(error, {
-      logId: "react-error-boundary",
-      componentStack: errorInfo.componentStack,
-    });
+    clientLogger.error(
+      { logId: "react-error-boundary", componentStack: errorInfo.componentStack },
+      error
+    );
   }
 
   public render(): ReactNode {

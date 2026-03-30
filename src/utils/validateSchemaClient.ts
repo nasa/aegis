@@ -1,4 +1,5 @@
-import Ajv, { DefinedError, ErrorObject } from "ajv";
+import type { DefinedError, ErrorObject } from "ajv";
+import Ajv from "ajv";
 import geojsonSchema from "./geojson-schema.json";
 
 // instantiate with options

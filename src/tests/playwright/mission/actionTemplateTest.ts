@@ -1,353 +1,205 @@
-import { Page, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect } from "@playwright/test";
+import {
+  goToV2MissionSection,
+  toggleEditMode,
+  editValidatedField,
+  displayField,
+} from "./missionTestHelpers";
 
-type TestingTemplate = {
-  tName: string;
-  type: string;
-  aName: string;
-  descr: string;
-  min: string;
-  max: string;
-  pri: string;
-  mass: string;
-  emoji: string;
-};
-// Const strings to make testing easier
-const t1: TestingTemplate = {
-  tName: "--TEST ACTION TEMPLATE ONE--",
-  type: "sample",
-  aName: "Action 1",
-  descr: "You shouldn't see this :)",
-  min: "1",
-  max: "4",
-  pri: "10",
-  mass: "100",
-  emoji: "😎",
-};
+const t1 = "--TEST ACTION TEMPLATE ONE--";
+const t1Dup = "--TEST ACTION TEMPLATE ONE-- (copy";
+const t2 = "--TEST ACTION TEMPLATE TWO--";
+const t2Edited = "--TEST ACTION TEMPLATE TWO EDITED--";
 
-const t1Alt: TestingTemplate = {
-  tName: "--TEST ACTION TEMPLATE ONE ALT--",
-  type: "sample",
-  aName: "Action 1",
-  descr: "You shouldn't see this :)",
-  min: "1",
-  max: "4",
-  pri: "10",
-  mass: "100",
-  emoji: "😎",
-};
+/**
+ * Find the index of a template by exact name.
+ */
+async function findTemplateIndexExactName(page: Page, name: string): Promise<number> {
+  const count = await displayField(page, "Template Name").count();
+  for (let i = 0; i < count; i++) {
+    const text = await displayField(page, "Template Name", i).textContent();
+    if (text === name) return i;
+  }
+  return -1;
+}
 
-const t1Dup: TestingTemplate = {
-  tName: "--TEST ACTION TEMPLATE ONE-- (copy",
-  type: "sample",
-  aName: "Action 1",
-  descr: "You shouldn't see this :)",
-  min: "1",
-  max: "4",
-  pri: "10",
-  mass: "100",
-  emoji: "😎",
-};
+/**
+ * Find the index of a template that includes the given text in its name.
+ */
+async function findTemplateIndexIncludesString(page: Page, text: string): Promise<number> {
+  const count = await displayField(page, "Template Name").count();
+  for (let i = 0; i < count; i++) {
+    const name = await displayField(page, "Template Name", i).textContent();
+    if (name.includes(text)) return i;
+  }
+  return -1;
+}
 
-const t2: TestingTemplate = {
-  tName: "--TEST ACTION TEMPLATE TWO--",
-  type: "photo",
-  aName: "Action 2",
-  descr: "You shouldn't see this :) (pt 2)",
-  min: "2",
-  max: "5",
-  pri: "20",
-  mass: "300",
-  emoji: "😎",
-};
+async function createAndRenameTemplate(page: Page, t: string) {
+  // Get current template names before adding
+  const countBefore = await page.getByLabel("templateList-item", { exact: true }).count();
+  const namesBefore: string[] = [];
+  for (let i = 0; i < countBefore; i++) {
+    namesBefore.push(await displayField(page, "Template Name", i).textContent());
+  }
 
-const t2Alt: TestingTemplate = {
-  tName: "--TEST ACTION TEMPLATE TWO ALT--",
-  type: "photo",
-  aName: "Action 2",
-  descr: "You shouldn't see this :) (pt 2)",
-  min: "2",
-  max: "5",
-  pri: "20",
-  mass: "300",
-  emoji: "😎",
-};
-
-async function createAndPopulateTemplate(page: Page, t: TestingTemplate) {
   await page.getByLabel("addNewTemplateButton", { exact: true }).click();
-  await page.getByLabel("Template Name", { exact: true }).last().fill(t.tName);
-  await page.getByLabel("Expand Button", { exact: true }).last().click();
-  await page.getByLabel("Expand Button", { exact: true }).last().click();
-}
+  await page.waitForTimeout(500);
 
-async function editTemplate(page: Page, newT: TestingTemplate, tInd: number) {
-  await page.getByLabel("Template Name", { exact: true }).nth(tInd).fill(newT.tName);
-}
+  // Find the new template (the name that wasn't there before)
+  const countAfter = await page.getByLabel("templateList-item", { exact: true }).count();
+  expect(countAfter).toEqual(countBefore + 1);
 
-async function checkTemplateData(page: Page, t: TestingTemplate, tInd: number) {
-  await expect(page.getByLabel("Template Name", { exact: true }).nth(tInd)).toContainText(t.tName);
-}
-
-async function waitForSaveButton(page: Page, isActive: boolean) {
-  const dataTooltipContent = isActive ? "Save Mission" : "Save Mission (nothing to save)";
-  await page.getByLabel("saveButton").waitFor({ timeout: 1000 });
-  await expect(page.getByLabel("saveButton")).toHaveAttribute(
-    "data-tooltip-html",
-    dataTooltipContent,
-    {
-      timeout: 1000,
+  let newIndex = -1;
+  for (let i = 0; i < countAfter; i++) {
+    const name = await displayField(page, "Template Name", i).textContent();
+    if (!namesBefore.includes(name)) {
+      newIndex = i;
+      break;
     }
-  );
+  }
+  expect(newIndex).not.toEqual(-1);
+
+  // Edit the template name via the ValidatedInputField dialog
+  await editValidatedField(page, "Template Name", t, newIndex);
 }
 
 export async function actionTemplatesTest(page: Page): Promise<string> {
-  await page.goto("http://localhost:4000/mission/22");
-  // go to mission section
-  await page.waitForLoadState("networkidle");
-  await page.getByLabel("mission Section", { exact: true }).click();
-  await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
-    "Mission Configuration"
-  );
-  await expect(page.getByLabel("rightBodyTitle", { exact: true })).toContainText(
-    "Mission Preferences"
-  );
+  await goToV2MissionSection(page);
 
-  // go to action templates
+  // Go to action templates
   await page.getByLabel("actionTemplate_panel", { exact: true }).click();
   await expect(page.getByLabel("rightBodyTitle", { exact: true })).toContainText(
     "Action Templates"
   );
 
-  // add two new Action Templates and save
+  // Count starting templates
   const startingNumTemplates = await page.getByLabel("templateList-item", { exact: true }).count();
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await waitForSaveButton(page, false);
 
-  await createAndPopulateTemplate(page, t1);
-  await createAndPopulateTemplate(page, t2);
+  // Turn on edit mode
+  await toggleEditMode(page);
+
+  // Add two new Action Templates
+  await createAndRenameTemplate(page, t1);
+  await createAndRenameTemplate(page, t2);
 
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
     startingNumTemplates + 2
   );
 
-  await waitForSaveButton(page, true);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
-  await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
-    startingNumTemplates + 2
-  );
+  // Check new templates exist
+  await expect(displayField(page, "Template Name").filter({ hasText: t1 }).last()).toBeAttached();
+  await expect(displayField(page, "Template Name").filter({ hasText: t2 }).last()).toBeAttached();
 
-  // Check new templates are in
-  await expect(
-    page.getByLabel("Template Name").filter({ hasText: t1.tName }).last()
-  ).toBeAttached();
-  await expect(
-    page.getByLabel("Template Name").filter({ hasText: t2.tName }).last()
-  ).toBeAttached();
+  let t1Index = await findTemplateIndexExactName(page, t1);
+  let t2Index = await findTemplateIndexExactName(page, t2);
 
-  let t1Ind = -1;
-  let t2Ind = -1;
+  // Edit t2 name
+  await editValidatedField(page, "Template Name", t2Edited, t2Index);
 
-  for (let i = 0; i < startingNumTemplates + 2; i++) {
-    const name = await page.getByLabel("Template Name").nth(i).textContent();
-    if (name === t1.tName) {
-      t1Ind = i;
-    }
-    if (name === t2.tName) {
-      t2Ind = i;
-    }
-  }
+  // Find updated indices
+  t1Index = await findTemplateIndexExactName(page, t1);
+  t2Index = await findTemplateIndexExactName(page, t2Edited);
 
-  // Edit t2, then save
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await page.getByLabel("saveButton", { exact: false }).click();
-  await editTemplate(page, t2Alt, t2Ind);
-  await waitForSaveButton(page, true);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
-
-  t1Ind = -1;
-  t2Ind = -1;
-
-  for (let i = 0; i < startingNumTemplates + 2; i++) {
-    const name = await page.getByLabel("Template Name").nth(i).textContent();
-    if (name === t1.tName) {
-      t1Ind = i;
-    }
-    if (name === t2Alt.tName) {
-      t2Ind = i;
-    }
-  }
-
-  await checkTemplateData(page, t1, t1Ind);
-  await checkTemplateData(page, t2Alt, t2Ind);
+  await expect(displayField(page, "Template Name", t1Index)).toContainText(t1);
+  await expect(displayField(page, "Template Name", t2Index)).toContainText(t2Edited);
 
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
     startingNumTemplates + 2
   );
 
   // Duplicate t1
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await waitForSaveButton(page, false);
-  await page.getByLabel("Template Menu", { exact: true }).nth(t1Ind).click();
-  await page.getByLabel("Duplicate", { exact: true }).nth(t1Ind).click();
-  await waitForSaveButton(page, true);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
-
-  t1Ind = -1;
-  t2Ind = -1;
-  let t1DupInd = -1;
-
-  for (let i = 0; i < startingNumTemplates + 3; i++) {
-    const name = await page.getByLabel("Template Name").nth(i).textContent();
-    if (name === t1.tName) {
-      t1Ind = i;
-    }
-    if (name.includes(t1Dup.tName)) {
-      t1DupInd = i;
-    }
-    if (name === t2Alt.tName) {
-      t2Ind = i;
-    }
-  }
-
-  await checkTemplateData(page, t1, t1Ind);
-  await checkTemplateData(page, t1Dup, t1DupInd);
-  await checkTemplateData(page, t2Alt, t2Ind);
+  await page.getByLabel("Template Menu", { exact: true }).nth(t1Index).click();
+  await page.locator("dialog[open]").getByLabel("Duplicate", { exact: true }).click();
+  await page.waitForTimeout(500);
 
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
     startingNumTemplates + 3
   );
 
-  // Edit t1, delete t2, cancel
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await waitForSaveButton(page, false);
-  await editTemplate(page, t1Alt, t1Ind);
-  const dialogPromiseToCancel = new Promise<void>((resolve) => {
-    page.once("dialog", async (dialog) => {
-      await dialog.accept();
-      resolve();
-    });
-  });
-  await page.getByLabel("Template Menu", { exact: true }).nth(t1Ind).click();
-  await page.getByLabel("Delete", { exact: true }).nth(t1Ind).click();
-  await dialogPromiseToCancel;
-  await waitForSaveButton(page, true);
-  await page.getByLabel("cancelButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
+  t1Index = await findTemplateIndexExactName(page, t1);
+  t2Index = await findTemplateIndexExactName(page, t2Edited);
+  let t1DupInd = await findTemplateIndexIncludesString(page, t1Dup);
 
-  t1Ind = -1;
-  t2Ind = -1;
-  t1DupInd = -1;
+  await expect(displayField(page, "Template Name", t1Index)).toContainText(t1);
+  await expect(displayField(page, "Template Name", t1DupInd)).toContainText(t1Dup);
+  await expect(displayField(page, "Template Name", t2Index)).toContainText(t2Edited);
 
-  for (let i = 0; i < startingNumTemplates + 3; i++) {
-    const name = await page.getByLabel("Template Name").nth(i).textContent();
-    if (name === t1.tName) {
-      t1Ind = i;
-    }
-    if (name.includes(t1Dup.tName)) {
-      t1DupInd = i;
-    }
-    if (name === t2Alt.tName) {
-      t2Ind = i;
-    }
-  }
-
-  await checkTemplateData(page, t1, t1Ind);
-  await checkTemplateData(page, t1Dup, t1DupInd);
-  await checkTemplateData(page, t2Alt, t2Ind);
+  // Test cancel on field edit (dialog cancel)
+  const originalName = await displayField(page, "Template Name", t1Index).textContent();
+  await displayField(page, "Template Name", t1Index).click();
+  const dialog = page.locator("dialog[open]");
+  await dialog.waitFor({ timeout: 3000 });
+  await dialog.locator("input").fill("--SHOULD NOT SAVE--");
+  await dialog.getByText("Cancel").click();
+  await dialog.waitFor({ state: "hidden", timeout: 3000 });
+  await expect(displayField(page, "Template Name", t1Index)).toContainText(originalName);
 
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
     startingNumTemplates + 3
   );
 
-  // Delete t2
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await waitForSaveButton(page, false);
+  // Delete t1 (confirm dialog)
+  t1Index = await findTemplateIndexExactName(page, t1);
   const dialogPromiseToSave = new Promise<void>((resolve) => {
     page.once("dialog", async (dialog) => {
       await dialog.accept();
       resolve();
     });
   });
-  await page.getByLabel("Template Menu", { exact: true }).nth(t1Ind).click();
-  await page.getByLabel("Delete", { exact: true }).nth(t1Ind).click();
+  await page.getByLabel("Template Menu", { exact: true }).nth(t1Index).click();
+  await page.locator("dialog[open]").getByLabel("Delete", { exact: true }).click();
   await dialogPromiseToSave;
-  await waitForSaveButton(page, true);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
-
-  t2Ind = -1;
-  t1DupInd = -1;
-
-  for (let i = 0; i < startingNumTemplates + 2; i++) {
-    const name = await page.getByLabel("Template Name").nth(i).textContent();
-    if (name.includes(t1Dup.tName)) {
-      t1DupInd = i;
-    }
-    if (name === t2Alt.tName) {
-      t2Ind = i;
-    }
-  }
-
-  await checkTemplateData(page, t1Dup, t1DupInd);
-  await checkTemplateData(page, t2Alt, t2Ind);
+  await page.waitForTimeout(500);
 
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
     startingNumTemplates + 2
   );
 
-  // Test expand all and collapse all in viewing and edit mode
+  t2Index = await findTemplateIndexExactName(page, t2Edited);
+  t1DupInd = await findTemplateIndexIncludesString(page, t1Dup);
+
+  await expect(displayField(page, "Template Name", t1DupInd)).toContainText(t1Dup);
+  await expect(displayField(page, "Template Name", t2Index)).toContainText(t2Edited);
+
+  // Test expand all and collapse all
   await page.getByLabel("Expand All Button", { exact: true }).click();
-  await expect(page.getByLabel("Duration in minutes", { exact: true })).toHaveCount(
-    startingNumTemplates + 2
-  );
+  await expect(displayField(page, "Duration in minutes")).toHaveCount(startingNumTemplates + 2);
   await page.getByLabel("Collapse All Button", { exact: true }).click();
-  await expect(page.getByLabel("Duration in minutes", { exact: true })).toHaveCount(0);
+  await expect(displayField(page, "Duration in minutes")).toHaveCount(0);
 
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.getByLabel("Expand All Button", { exact: true }).click();
-  await expect(page.getByLabel("Duration in minutes", { exact: true })).toHaveCount(
-    startingNumTemplates + 2
-  );
-  await page.getByLabel("Collapse All Button", { exact: true }).click();
-  await expect(page.getByLabel("Duration in minutes", { exact: true })).toHaveCount(0);
-
-  await page.getByLabel("cancelButton", { exact: true }).click();
-
-  // Tear down rest of action templates
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await waitForSaveButton(page, false);
-  await page.getByLabel("Template Menu", { exact: true }).nth(t2Ind).click();
+  // Tear down remaining test action templates
+  t2Index = await findTemplateIndexExactName(page, t2Edited);
   const dialogPromiseTeardownOne = new Promise<void>((resolve) => {
     page.once("dialog", async (dialog) => {
       await dialog.accept();
       resolve();
     });
   });
-  await page.getByLabel("Delete", { exact: true }).nth(t2Ind).click();
+  await page.getByLabel("Template Menu", { exact: true }).nth(t2Index).click();
+  await page.locator("dialog[open]").getByLabel("Delete", { exact: true }).click();
   await dialogPromiseTeardownOne;
-  await page.getByLabel("Template Menu", { exact: true }).nth(t1DupInd).click();
+  await page.waitForTimeout(500);
+
+  t1DupInd = await findTemplateIndexIncludesString(page, t1Dup);
   const dialogPromiseTeardownTwo = new Promise<void>((resolve) => {
     page.once("dialog", async (dialog) => {
       await dialog.accept();
       resolve();
     });
   });
-  await page.getByLabel("Delete", { exact: true }).nth(t1DupInd).click();
+  await page.getByLabel("Template Menu", { exact: true }).nth(t1DupInd).click();
+  await page.locator("dialog[open]").getByLabel("Delete", { exact: true }).click();
   await dialogPromiseTeardownTwo;
-  await waitForSaveButton(page, true);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
+  await page.waitForTimeout(500);
+
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
     startingNumTemplates
   );
+
+  // Turn off edit mode
+  await toggleEditMode(page);
 
   return "success";
 }

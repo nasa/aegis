@@ -1,4 +1,5 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 import adminStyles from "components/admin/admin.module.css";
 import { boxGetFolderItems, boxDownloadFile } from "http-client/box";
 import prettyBytes from "pretty-bytes";

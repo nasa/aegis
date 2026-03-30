@@ -6,7 +6,7 @@ import express from "express";
 import { Action_db, Eva_db, Rex_db } from "server/database/models/_allModels";
 import { makeExportActions } from "utils/export";
 import { hasPerms } from "utils/permissions";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../../global";
 
@@ -38,8 +38,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     emssToken,
   });
   if (!viewPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "readable/action",
@@ -53,7 +53,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   //check for required mission id is valid
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -66,7 +66,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   if (queryObj.datesOnly && !queryObj.actionRefUuid) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -82,7 +82,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   if (!queryObj.datesOnly && !queryObj.actionRefUuid && !queryObj.evaRefUuid) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -98,7 +98,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   if (queryObj.evaRefUuid && (queryObj.actionRefUuid || queryObj.datesOnly)) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -176,7 +176,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         data: partialActions,
       });
     } catch (e) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "GET",
         responseStatus: 500,
@@ -283,7 +283,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         data: exportActions,
       });
     } catch (e) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "GET",
         responseStatus: 500,

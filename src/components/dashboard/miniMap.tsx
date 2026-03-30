@@ -6,14 +6,8 @@ import "proj4leaflet";
 import styles from "components/dashboard/miniMap.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  FunctionComponent,
-  useLayoutEffect,
-  useCallback,
-} from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useRef, useState, useLayoutEffect, useCallback } from "react";
 import orderBy from "lodash/orderBy";
 import { isWindows10 } from "utils/browser";
 import {

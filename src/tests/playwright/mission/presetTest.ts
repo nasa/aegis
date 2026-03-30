@@ -1,9 +1,11 @@
-import { expect, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect } from "@playwright/test";
 
 export async function presetTest(page: Page): Promise<string> {
   await page.goto("http://localhost:4000/mission/22");
   //go to preset section
   await page.waitForLoadState("networkidle");
+  await page.getByLabel("loading-overlay").waitFor({ state: "hidden", timeout: 30000 });
   await page.getByLabel("preset Section", { exact: true }).click();
   await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
     "Map Display Presets"

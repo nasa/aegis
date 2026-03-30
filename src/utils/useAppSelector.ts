@@ -6,6 +6,7 @@ import {
   useSelector,
 } from "react-redux";
 import type { RootState } from "store";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 export type EqualityFn = <T>(a: T, b: T) => boolean;
 
@@ -48,12 +49,12 @@ const devRefEqual: EqualityFn = (a, b) => {
     b !== undefined &&
     (!isPrimitive(a) || !isPrimitive(b))
   ) {
-    console.error(
+    clientLogger.error(
+      { logId: "redux-selector", logValue: "refEqual used with non-primitive values" },
       new Error(
         `Redux selector using refEqual() with non-primitive values.
 				shallowEqual() or deepEqual() probably desired`
-      ),
-      { a, b }
+      )
     );
   }
   return productionRefEqual(a, b);
@@ -69,12 +70,12 @@ const devShallowEqual: EqualityFn = (a, b) => {
     b !== undefined &&
     (isPrimitive(a) || isPrimitive(b))
   ) {
-    console.error(
+    clientLogger.error(
+      { logId: "redux-selector", logValue: "shallowEqual used with primitive values" },
       new Error(
         `Redux selector using shallowEqual() with primitive values.
 				refEqual() probably desired`
-      ),
-      { a, b }
+      )
     );
   }
   return productionShallowEqual(a, b);
@@ -90,12 +91,12 @@ const devDeepEqual: EqualityFn = (a, b) => {
     b !== undefined &&
     (isPrimitive(a) || isPrimitive(b))
   ) {
-    console.error(
+    clientLogger.error(
+      { logId: "redux-selector", logValue: "deepEqual used with primitive values" },
       new Error(
         `Redux selector using deepEqual() with primitive values.
 				refEqual() probably desired`
-      ),
-      { a, b }
+      )
     );
   }
 
@@ -121,7 +122,10 @@ const selectorEqualityNotify = (equalityFn: EqualityFn): EqualityFn => {
     // Essentially, these are places where we should be using deepEqual instead of the current equalityFn
     const deepEqual = productionDeepEqual(prev, next);
     if (prevAndNextEqual !== deepEqual) {
-      console.error("equalityFn not match DeepEqual", { prev, next, equalityFn });
+      clientLogger.error(
+        { logId: "redux-selector", logValue: "equalityFn not match DeepEqual" },
+        new Error("equalityFn not match DeepEqual")
+      );
     }
 
     // console.log(

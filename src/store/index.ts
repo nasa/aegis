@@ -1,4 +1,4 @@
-import { combineReducers, configureStore, Unsubscribe } from "@reduxjs/toolkit";
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
 
 import { hoverSlice, initialState as hoverInitialState } from "./hover";
 import { missionSlice, initialState as missionInitialState } from "./mission";
@@ -16,7 +16,8 @@ import { userSlice, initialState as userInitialState } from "./user";
 import { rexSlice, initialState as rexInitialState } from "./rex";
 import { measureSlice, initialState as measureInitialState } from "./measure";
 import { isRejected } from "@reduxjs/toolkit";
-import type { Middleware } from "@reduxjs/toolkit";
+import type { Middleware, Unsubscribe } from "@reduxjs/toolkit";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 export const initialState: WholeStoreState = {
   hover: hoverInitialState,
@@ -60,7 +61,10 @@ export type StoreType = ReturnType<typeof configureStore<RootState>>;
 // Add middleware to log rejected thunks to the browser console
 const rejectedActionLogger: Middleware<{}, RootState> = () => (next) => (action) => {
   if (isRejected(action)) {
-    console.error("Rejected async thunk. Action = ", { action });
+    clientLogger.error(
+      { logId: "redux", logValue: `Rejected action: ${action.type}` },
+      new Error("Rejected async thunk")
+    );
   }
   return next(action);
 };

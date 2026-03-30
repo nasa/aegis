@@ -18,10 +18,11 @@ import { populateStore } from "store/processing/populateStore";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 import { loadAndReturnGrid } from "utils/mapping/grid";
 import { setGridCornerPoint } from "store/map";
-import clientLogger from "utils/logging/clientLogger";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { LoadingOverlay } from "components/interface/_global-elements";
 
 type RouteParams = {
   id: string;
@@ -35,11 +36,17 @@ const Main: React.FunctionComponent = () => {
     (state) => state.interface.sectionSelectedLabel,
     refEqual
   );
-  const permissions = useAppSelector((state) => state.user.missionPerms, deepEqual);
   const hasMissionLayers = useAppSelector((state) => {
     return state.mission.layers?.length > 0;
   }, refEqual);
+  const isVersionChecked = useAppSelector(
+    // if this value exists then it has already been checked via sockets
+    (state) => !!state.connection.socketStatus.lastStatusFromServer.serverVersion,
+    deepEqual
+  );
 
+  const [missionPerms, setMissionPerms] = useState(null);
+  const [storeIsPopulated, setStoreIsPopulated] = useState(false);
   const [searchParams] = useSearchParams();
   const evaRefUuid = searchParams.get("evaRefUuid");
   const actionRefUuid = searchParams.get("actionRefUuid");
@@ -62,13 +69,14 @@ const Main: React.FunctionComponent = () => {
   const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
 
   useEffect(() => {
-    let missionPerms: Permission = null;
-    // let unsubscribeObserver: Unsubscribe;
+    if (!intMissionId) return;
     (async () => {
-      // get permissions
+      // Get permissions
+      let missionPerms: Permission = null;
       const response = await isLoggedIn();
       if (response.status !== "success") {
-        navigate("/"); // kick user out back to homepage
+        navigate("/"); // Kick user out back to homepage
+        return;
       }
       if (response.data.isSuperAdmin) {
         missionPerms = { missionId: intMissionId, permissions: { view: true, edit: true } };
@@ -76,21 +84,33 @@ const Main: React.FunctionComponent = () => {
         missionPerms = response.data.permissionList?.find(
           (permission) => permission.missionId === intMissionId
         );
-        if (!missionPerms || (!missionPerms.permissions.view && !missionPerms.permissions.edit))
+        if (!missionPerms || (!missionPerms.permissions.view && !missionPerms.permissions.edit)) {
           navigate("/");
+          return;
+        }
       }
 
-      // populate the user store
+      // Populate the user store
       dispatch(setAppUser({ isLoggedIn: true, user: response.data, missionPerms: missionPerms }));
-      console.log("AEGIS Username:", response.data.username);
-      // log user to the emss logging system
+      // log user info
       clientLogger.info({
-        logId: "aegis-login",
+        logId: "appLogin",
         appUsername: response.data.username,
         missionId: intMissionId,
+        page: "mission",
       });
 
-      // get the rest of the store data
+      setMissionPerms(missionPerms);
+    })();
+  }, [dispatch, intMissionId, navigate]);
+
+  // Populate the store only after permission check is done AND serverVersion is available.
+  // This is to ensure we have the latest app before any audits are made or data is retrieved
+  useEffect(() => {
+    if (!missionPerms || !isVersionChecked || !automergeRepo) return;
+
+    (async () => {
+      // Get the rest of the store data
       let wholeStoreState: WholeStoreState;
       if (missionPerms.permissions?.edit) {
         wholeStoreState = await populateStore({
@@ -99,7 +119,7 @@ const Main: React.FunctionComponent = () => {
           automergeRepo,
         });
       } else {
-        // user does not have edit permissions, so do not run audit (which causes DB changes)
+        // User does not have edit permissions, so do not run audit (which causes DB changes)
         wholeStoreState = await populateStore({
           missionId: intMissionId,
           runAudit: false,
@@ -107,17 +127,27 @@ const Main: React.FunctionComponent = () => {
         });
       }
 
-      /**
-       * dispatch a single action to populate the stores across all slices using the wholeStoreState
-       */
+      // Dispatch a single action to populate the stores across all slices using the wholeStoreState
       dispatch(setAllSliceStores(wholeStoreState));
 
-      // if evaRefUuid, actionRefUuid are present in the URL, set the selected action using thunk
+      // If evaRefUuid, actionRefUuid are present in the URL, set the selected action using thunk
       if (evaRefUuid && actionRefUuid) {
         dispatch(thunkSelectEvaAction({ evaRefUuid, actionRefUuid, rexUuid }));
       }
+
+      setStoreIsPopulated(true);
     })();
-  }, [automergeRepo, dispatch, intMissionId, navigate, evaRefUuid, actionRefUuid, rexUuid]);
+  }, [
+    isVersionChecked,
+    automergeRepo,
+    missionPerms,
+    storeIsPopulated,
+    dispatch,
+    intMissionId,
+    evaRefUuid,
+    actionRefUuid,
+    rexUuid,
+  ]);
 
   useEffect(() => {
     // update session storage information. This is for sockets
@@ -127,6 +157,8 @@ const Main: React.FunctionComponent = () => {
 
   // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
+    if (!partialMission?.activeGridUuid) return;
+
     const loadGridAsync = async () => {
       const newGrid: MissionGrid = await loadAndReturnGrid(
         intMissionId,
@@ -143,73 +175,67 @@ const Main: React.FunctionComponent = () => {
   }, [dispatch, intMissionId, partialMission?.activeGridUuid]);
 
   useEffect(() => {
-    if (!partialMission?.name) {
-      return;
-    }
+    if (!partialMission?.name) return;
+
     document.title = `${partialMission.name} - AEGIS`;
   }, [partialMission?.name]);
 
   return (
     <>
-      {permissions && (
+      {missionPerms && partialMission && storeIsPopulated ? (
         <>
-          {partialMission ? (
-            <>
-              {partialMission.isArchived ? (
-                <div className={styles.archivedBody}>
-                  This mission has been archived. Please contact the EMSS team if you need to access
-                  it.
-                  <div style={{ marginTop: "3rem" }}>
-                    <img src="/images/EMSS.svg" alt="EMSS Logo" className={styles.emssLogo} />
+          {partialMission.isArchived ? (
+            <div className={styles.archivedBody}>
+              This mission has been archived. Please contact the EMSS team if you need to access it.
+              <div style={{ marginTop: "3rem" }}>
+                <img src="/images/EMSS.svg" alt="EMSS Logo" className={styles.emssLogo} />
+              </div>
+            </div>
+          ) : (
+            <div className={styles.page}>
+              <Tooltip
+                id="aegis-tooltip"
+                className={styles.tooltip}
+                clickable={true}
+                delayShow={1000}
+                delayHide={500}
+              />
+              <div className={styles.header}>
+                <Header />
+              </div>
+              {paneType?.fullScreen ? (
+                <div className={styles.body}>
+                  <div className={styles.leftControl}>
+                    <NavGutter selectedNavItem={interfaceStateLabel} />
+                  </div>
+
+                  <div className={styles.bodyRight}>
+                    <paneType.rightPane />
                   </div>
                 </div>
               ) : (
-                <div className={styles.page}>
-                  <Tooltip
-                    id="aegis-tooltip"
-                    className={styles.tooltip}
-                    clickable={true}
-                    delayShow={1000}
-                    delayHide={500}
-                  />
-                  <div className={styles.header}>
-                    <Header />
-                  </div>
-                  {paneType?.fullScreen ? (
-                    <div className={styles.body}>
+                <div className={styles.body}>
+                  <div className={styles.bodyLeft}>
+                    <div className={styles.leftUpper}>
                       <div className={styles.leftControl}>
                         <NavGutter selectedNavItem={interfaceStateLabel} />
+                        <LeftControlPanel />
                       </div>
-
-                      <div className={styles.bodyRight}>
-                        <paneType.rightPane />
-                      </div>
+                      <div className={styles.mapBody}>{hasMissionLayers && <MapBody />}</div>
                     </div>
-                  ) : (
-                    <div className={styles.body}>
-                      <div className={styles.bodyLeft}>
-                        <div className={styles.leftUpper}>
-                          <div className={styles.leftControl}>
-                            <NavGutter selectedNavItem={interfaceStateLabel} />
-                            <LeftControlPanel />
-                          </div>
-                          <div className={styles.mapBody}>{hasMissionLayers && <MapBody />}</div>
-                        </div>
-                        <BottomControlPanel />
-                      </div>
-                      <RightControlPanel />
-                    </div>
-                  )}
-
-                  <SocketClient missionId={intMissionId} />
+                    <BottomControlPanel />
+                  </div>
+                  <RightControlPanel />
                 </div>
               )}
-            </>
-          ) : (
-            <div>Loading...</div>
+            </div>
           )}
         </>
+      ) : (
+        <LoadingOverlay message="Loading mission data..." />
       )}
+
+      <SocketClient missionId={intMissionId} />
     </>
   );
 };

@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 
 import timelineStyles from "../timeline/timeline.module.css";
 import measureStyles from "./measure.module.css";

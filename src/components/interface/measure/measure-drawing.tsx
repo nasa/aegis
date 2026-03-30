@@ -1,7 +1,7 @@
-import { MutableRefObject } from "react";
+import type { MutableRefObject } from "react";
 import paper from "paper";
 import { drawMeterMarker } from "../timeline/timeline-drawing";
-import { Dispatch } from "@reduxjs/toolkit";
+import type { Dispatch } from "@reduxjs/toolkit";
 import { clearMapItemHover, setMeasurementHover } from "store/hover";
 import { getHoverValue } from "utils/paper";
 

@@ -1,13 +1,6 @@
 import paper from "paper";
-import {
-  FunctionComponent,
-  MutableRefObject,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import type { FunctionComponent, MutableRefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 
 import styles from "./timeline.module.css";
@@ -41,6 +34,8 @@ const NavTimeline: FunctionComponent = () => {
     (doc) => ({
       walkbackRate: doc.walkbackRate,
       traverseRate: doc.traverseRate,
+      demResolution: doc.demResolution,
+      defaultEvaDuration: doc.defaultEvaDuration,
       landerLocation: doc.landerLocation,
       planetRadius: doc.planetRadius,
       landerElevationMeters: doc.landerElevationMeters,
@@ -178,12 +173,10 @@ const NavTimeline: FunctionComponent = () => {
   const processEvaDataFromStoreCallback = useCallback(() => {
     processEvaDataFromStore({
       storeRef,
-      mission: partialMission as Mission,
+      partialMission,
       selectedEva,
       evaStations,
       evaTraverses,
-      missionTraverseRate: partialMission?.traverseRate,
-      missionWalkbackRate: partialMission?.walkbackRate,
       stationCalculatedFieldsInSelectedEva,
       traverseCalculatedFieldsInSelectedEva,
       selectedRex,

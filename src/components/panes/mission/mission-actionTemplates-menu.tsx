@@ -1,6 +1,7 @@
 import { faClone, faEllipsisV, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { FunctionComponent, useRef } from "react";
+import type { FunctionComponent } from "react";
+import { useRef } from "react";
 import actionStyles from "../actions-action.module.css";
 import {
   crudDeleteActionTemplate,

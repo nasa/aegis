@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import stmStyles from "./stm-coverage.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import uniqBy from "lodash/uniqBy";

@@ -14,7 +14,7 @@ export const initialState: ConnectionState = {
     },
   },
   browserConnectionStatus: "connected", // start connected because if the user has loaded the app, they have a browser connection.
-  appVersion: null,
+  clientAppVersion: null,
 };
 
 export const connectionSlice = createSlice({
@@ -37,8 +37,11 @@ export const connectionSlice = createSlice({
     setBrowserConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
       state.browserConnectionStatus = action.payload;
     },
-    setAppVersion: (state, action: { payload: AppVersion }) => {
-      state.appVersion = action.payload;
+    setClientAppVersion: (state, action: { payload: AppVersion }) => {
+      state.clientAppVersion = action.payload;
+    },
+    setServerVersion: (state, action: { payload: AppVersion }) => {
+      state.socketStatus.lastStatusFromServer.serverVersion = action.payload;
     },
   },
 });
@@ -48,5 +51,6 @@ export const {
   setSocketConnectionStatus,
   setLastEditEvent,
   setBrowserConnectionStatus,
-  setAppVersion,
+  setClientAppVersion,
+  setServerVersion,
 } = connectionSlice.actions;

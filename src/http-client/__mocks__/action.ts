@@ -1,6 +1,6 @@
-// wrap all functions in a jest.fn so they read as a mock and can be referenced in assertions
+// wrap all functions in a vi.fn so they read as a mock and can be referenced in assertions
 
-export const getActions = jest.fn(async (): Promise<WrappedResponse<Action[]>> => {
+export const getActions = vi.fn(async (): Promise<WrappedResponse<Action[]>> => {
   const res: WrappedResponse<Action[]> = {
     status: "success",
     message: "actions retrieved",
@@ -9,7 +9,7 @@ export const getActions = jest.fn(async (): Promise<WrappedResponse<Action[]>> =
   return res;
 });
 
-export const upsertActions = jest.fn(
+export const upsertActions = vi.fn(
   async (actions: Action[]): Promise<WrappedResponse<Action[]>> => {
     //just return the action that was passed in
     const res: WrappedResponse<Action[]> = {
@@ -21,7 +21,7 @@ export const upsertActions = jest.fn(
   }
 );
 
-export const deleteActions = jest.fn(async (): Promise<WrappedResponse<null>> => {
+export const deleteActions = vi.fn(async (): Promise<WrappedResponse<null>> => {
   const res: WrappedResponse<null> = {
     status: "success",
     message: "Action Deleted",

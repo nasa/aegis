@@ -1,4 +1,5 @@
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosProgressEvent } from "axios";
+import type { AxiosRequestConfig, AxiosResponse, AxiosProgressEvent } from "axios";
+import axios from "axios";
 
 export async function uploadFile(
   formData: FormData,

@@ -1,12 +1,5 @@
-import {
-  FunctionComponent,
-  useState,
-  ReactNode,
-  useRef,
-  Children,
-  KeyboardEvent,
-  MouseEvent,
-} from "react";
+import type { FunctionComponent, ReactNode, KeyboardEvent, MouseEvent } from "react";
+import { useState, useRef, Children } from "react";
 import styles from "./folders.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -20,16 +13,15 @@ import {
   faEyeSlash,
   faBan,
 } from "@fortawesome/free-solid-svg-icons";
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import {
   DndContext,
-  DragEndEvent,
   useSensors,
   useSensor,
   PointerSensor,
   useDraggable,
   useDroppable,
   DragOverlay,
-  DragStartEvent,
   pointerWithin,
 } from "@dnd-kit/core";
 import {

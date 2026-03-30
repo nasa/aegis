@@ -1,4 +1,11 @@
-import { Page, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect } from "@playwright/test";
+import {
+  goToV2MissionSection,
+  toggleEditMode,
+  editValidatedField,
+  displayField,
+} from "./missionTestHelpers";
 
 type MissionEquipment = {
   name: string;
@@ -6,261 +13,171 @@ type MissionEquipment = {
   singleUse: boolean;
 };
 
-const eq1: MissionEquipment = {
+const equip1: MissionEquipment = {
   name: "--TEST EQUIPMENT 1--",
   quantity: "5",
   singleUse: true,
 };
 
-const eq1Alt: MissionEquipment = {
-  name: "--TEST EQUIPMENT 1 ALT--",
+const equip1Edited: MissionEquipment = {
+  name: "--TEST EQUIPMENT 1 EDITED--",
   quantity: "20",
   singleUse: true,
 };
 
-const eq2: MissionEquipment = {
+const equip2: MissionEquipment = {
   name: "--TEST EQUIPMENT 2--",
   quantity: "5",
   singleUse: true,
 };
 
-const eq2Alt: MissionEquipment = {
-  name: eq2.name,
-  quantity: eq2.quantity,
+const equip2Edited: MissionEquipment = {
+  name: equip2.name,
+  quantity: equip2.quantity,
   singleUse: false,
 };
 
-async function waitForSaveButton(page: Page, isActive: boolean) {
-  const dataTooltipContent = isActive ? "Save Mission" : "Save Mission (nothing to save)";
-  await page.getByLabel("saveButton").waitFor({ timeout: 1000 });
-  await expect(page.getByLabel("saveButton")).toHaveAttribute(
-    "data-tooltip-html",
-    dataTooltipContent,
-    {
-      timeout: 1000,
-    }
-  );
+/**
+ * Find the index of an equipment item by name.
+ */
+async function findEquipmentIndexExactName(page: Page, name: string): Promise<number> {
+  const count = await displayField(page, "Equipment item name").count();
+  for (let i = 0; i < count; i++) {
+    const text = await displayField(page, "Equipment item name", i).textContent();
+    if (text === name) return i;
+  }
+  return -1;
 }
 
 export async function missionEquipmentTest(page: Page): Promise<string> {
-  await page.goto("http://localhost:4000/mission/22");
-  //go to mission section
-  await page.waitForLoadState("networkidle");
-  await page.getByLabel("mission Section", { exact: true }).click();
-  await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
-    "Mission Configuration"
-  );
-  await expect(page.getByLabel("rightBodyTitle", { exact: true })).toContainText(
-    "Mission Preferences"
-  );
+  await goToV2MissionSection(page);
 
-  //go to equipment list
+  // Go to equipment list
   await page.getByLabel("equipment_panel", { exact: true }).click();
   await expect(page.getByLabel("rightBodyTitle", { exact: true })).toContainText(
     "Mission Equipment"
   );
 
-  // Create two pieces of Mission Equipment and index them
+  // Count starting items
   const startingNumEquipment = await page.getByLabel("equipmentList-item", { exact: true }).count();
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await waitForSaveButton(page, false);
 
+  // Turn on edit mode
+  await toggleEditMode(page);
+
+  // Create first equipment item
   await page.getByLabel("addNewEquipmentButton", { exact: true }).click();
-  // The newly added name input should have focus
-  const focusedInput1 = page.locator('input[aria-label="Equipment item name"]:focus');
-  await expect(focusedInput1).toBeFocused();
-  await focusedInput1.fill(eq1.name);
-  // Find the row by the unique name we just filled
-  const row1 = page.locator(
-    `li[aria-label="equipmentList-item"]:has(input[aria-label="Equipment item name"][value="${eq1.name}"])`
+  await expect(page.getByLabel("equipmentList-item", { exact: true })).toHaveCount(
+    startingNumEquipment + 1
   );
-  const quantityInput1 = row1.getByLabel("Equipment item quantity");
-  await quantityInput1.fill(eq1.quantity);
-  const checkbox1 = row1.getByLabel("checkbox", { exact: true });
-  await checkbox1.setChecked(eq1.singleUse);
+  // Find the new default-named item and edit it
+  let defaultIndex = await findEquipmentIndexExactName(page, "(Equipment Name)");
+  await editValidatedField(page, "Equipment item name", equip1.name, defaultIndex);
+  let eq1Index = await findEquipmentIndexExactName(page, equip1.name);
+  await editValidatedField(page, "Equipment item quantity", equip1.quantity, eq1Index);
+  // Set single use checkbox
+  if (equip1.singleUse) {
+    await page.getByLabel("checkbox", { exact: true }).nth(eq1Index).setChecked(true);
+  }
 
+  // Create second equipment item
   await page.getByLabel("addNewEquipmentButton", { exact: true }).click();
-  const focusedInput2 = page.locator('input[aria-label="Equipment item name"]:focus');
-  await expect(focusedInput2).toBeFocused();
-  await focusedInput2.fill(eq2.name);
-  // Find the row by the unique name we just filled
-  const row2 = page.locator(
-    `li[aria-label="equipmentList-item"]:has(input[aria-label="Equipment item name"][value="${eq2.name}"])`
+  await expect(page.getByLabel("equipmentList-item", { exact: true })).toHaveCount(
+    startingNumEquipment + 2
   );
-  const quantityInput2 = row2.getByLabel("Equipment item quantity");
-  await quantityInput2.fill(eq2.quantity);
-  const checkbox2 = row2.getByLabel("checkbox", { exact: true });
-  await checkbox2.setChecked(eq2.singleUse);
-  await waitForSaveButton(page, true);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
-
-  let test1Index = -1;
-  let test2Index = -1;
-  for (let i = 0; i < startingNumEquipment + 2; i++) {
-    const name = await page.getByLabel("Equipment item name").nth(i).textContent();
-    if (name === eq1.name) {
-      test1Index = i;
-    }
-    if (name === eq2.name) {
-      test2Index = i;
-    }
+  defaultIndex = await findEquipmentIndexExactName(page, "(Equipment Name)");
+  await editValidatedField(page, "Equipment item name", equip2.name, defaultIndex);
+  let eq2Index = await findEquipmentIndexExactName(page, equip2.name);
+  await editValidatedField(page, "Equipment item quantity", equip2.quantity, eq2Index);
+  if (equip2.singleUse) {
+    await page.getByLabel("checkbox", { exact: true }).nth(eq2Index).setChecked(true);
   }
-  expect(test1Index !== -1 && test2Index !== -1).toEqual(true);
+
+  // Verify items are saved (re-find indices since items are sorted alphabetically)
+  eq1Index = await findEquipmentIndexExactName(page, equip1.name);
+  eq2Index = await findEquipmentIndexExactName(page, equip2.name);
+  expect(eq1Index !== -1 && eq2Index !== -1).toEqual(true);
 
   await expect(page.getByLabel("equipmentList-item", { exact: true })).toHaveCount(
     startingNumEquipment + 2
   );
 
-  await expect(
-    page.getByLabel("Equipment item quantity", { exact: true }).nth(test1Index)
-  ).toHaveText(eq1.quantity);
-  await expect(page.getByLabel("checkboxText", { exact: true }).nth(test1Index)).toContainText(
-    eq1.singleUse ? "Yes" : ""
+  await expect(displayField(page, "Equipment item quantity", eq1Index)).toContainText(
+    equip1.quantity
   );
-  await expect(
-    page.getByLabel("Equipment item quantity", { exact: true }).nth(test2Index)
-  ).toHaveText(eq2.quantity);
-  await expect(page.getByLabel("checkboxText", { exact: true }).nth(test2Index)).toContainText(
-    eq2.singleUse ? "Yes" : ""
+  await expect(page.getByLabel("checkbox", { exact: true }).nth(eq1Index)).toBeChecked({
+    checked: equip1.singleUse,
+  });
+  await expect(displayField(page, "Equipment item quantity", eq2Index)).toContainText(
+    equip2.quantity
+  );
+  await expect(page.getByLabel("checkbox", { exact: true }).nth(eq2Index)).toBeChecked({
+    checked: equip2.singleUse,
+  });
+
+  // Test cancel on field edit (dialog cancel)
+  eq1Index = await findEquipmentIndexExactName(page, equip1.name);
+  await displayField(page, "Equipment item name", eq1Index).click();
+  const dialog = page.locator("dialog[open]");
+  await dialog.waitFor({ timeout: 3000 });
+  await dialog.locator("input").fill("--SHOULD NOT SAVE--");
+  await dialog.getByText("Cancel").click();
+  await dialog.waitFor({ state: "hidden", timeout: 3000 });
+  await expect(displayField(page, "Equipment item name", eq1Index)).toContainText(equip1.name);
+
+  // Edit eq1 name and quantity
+  eq1Index = await findEquipmentIndexExactName(page, equip1.name);
+  await editValidatedField(page, "Equipment item name", equip1Edited.name, eq1Index);
+  const eq1AltIndex = await findEquipmentIndexExactName(page, equip1Edited.name);
+  await editValidatedField(page, "Equipment item quantity", equip1Edited.quantity, eq1AltIndex);
+
+  // Verify edited values
+  const updatedEq1Index = await findEquipmentIndexExactName(page, equip1Edited.name);
+  expect(updatedEq1Index !== -1).toEqual(true);
+  await expect(displayField(page, "Equipment item quantity", updatedEq1Index)).toContainText(
+    equip1Edited.quantity
   );
 
-  // Edit mission equipment and cancel
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await waitForSaveButton(page, false);
-
-  await page.getByLabel("Equipment item name", { exact: true }).nth(test1Index).fill(eq1Alt.name);
+  // Toggle single use on eq2 (to check checkbox works)
+  eq2Index = await findEquipmentIndexExactName(page, equip2.name);
   await page
-    .getByLabel("Equipment item quantity", { exact: true })
-    .nth(test1Index)
-    .fill(eq1Alt.quantity);
-  await page.getByLabel("checkbox", { exact: true }).nth(test1Index).setChecked(eq1Alt.singleUse);
-  await page.getByLabel("Equipment item name", { exact: true }).nth(test2Index).fill(eq2Alt.name);
-  await page
-    .getByLabel("Equipment item quantity", { exact: true })
-    .nth(test2Index)
-    .fill(eq2Alt.quantity);
-  await page.getByLabel("checkbox", { exact: true }).nth(test2Index).setChecked(eq2Alt.singleUse);
-  await waitForSaveButton(page, true);
-  await page.getByLabel("cancelButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
+    .getByLabel("checkbox", { exact: true })
+    .nth(eq2Index)
+    .setChecked(equip2Edited.singleUse);
 
-  await expect(page.getByLabel("equipmentList-item", { exact: true })).toHaveCount(
-    startingNumEquipment + 2
+  // Verify checkbox state persisted
+  // Turn edit mode off and check
+  await toggleEditMode(page);
+
+  eq2Index = await findEquipmentIndexExactName(page, equip2.name);
+  await expect(page.getByLabel("checkboxText", { exact: true }).nth(eq2Index)).toContainText(
+    equip2Edited.singleUse ? "Yes" : ""
   );
 
-  await expect(
-    page.getByLabel("Equipment item quantity", { exact: true }).nth(test1Index)
-  ).toHaveText(eq1.quantity);
-  await expect(page.getByLabel("checkboxText", { exact: true }).nth(test1Index)).toContainText(
-    eq1.singleUse ? "Yes" : ""
-  );
-  await expect(
-    page.getByLabel("Equipment item quantity", { exact: true }).nth(test2Index)
-  ).toHaveText(eq2.quantity);
-  await expect(page.getByLabel("checkboxText", { exact: true }).nth(test2Index)).toContainText(
-    eq2.singleUse ? "Yes" : ""
-  );
+  // Turn edit mode back on for cleanup
+  await toggleEditMode(page);
 
-  // Delete some mission equipment and cancel
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await waitForSaveButton(page, false);
-
-  await page.getByLabel("deleteButton", { exact: true }).nth(test1Index).click();
-  await waitForSaveButton(page, true);
-  await page.getByLabel("cancelButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
-
-  await expect(page.getByLabel("equipmentList-item", { exact: true })).toHaveCount(
-    startingNumEquipment + 2
-  );
-  await expect(page.getByLabel("Equipment item name", { exact: true }).nth(test1Index)).toHaveText(
-    eq1.name
-  );
-  await expect(
-    page.getByLabel("Equipment item quantity", { exact: true }).nth(test1Index)
-  ).toHaveText(eq1.quantity);
-  await expect(page.getByLabel("checkboxText", { exact: true }).nth(test1Index)).toContainText(
-    eq1.singleUse ? "Yes" : ""
-  );
-
-  // Make sure clicking single use box counts as edit
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await waitForSaveButton(page, false);
-  await page.getByLabel("checkbox", { exact: true }).nth(test2Index).setChecked(eq2Alt.singleUse);
-  await waitForSaveButton(page, true);
-  await page.getByLabel("cancelButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
-  await expect(page.getByLabel("checkboxText", { exact: true }).nth(test2Index)).toContainText(
-    eq2.singleUse ? "Yes" : ""
-  );
-
-  // Test edit with eq1
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await waitForSaveButton(page, false);
-  await page.getByLabel("Equipment item name", { exact: true }).nth(test1Index).fill(eq1Alt.name);
-  await page
-    .getByLabel("Equipment item quantity", { exact: true })
-    .nth(test1Index)
-    .fill(eq1Alt.quantity);
-  await page.getByLabel("checkbox", { exact: true }).nth(test1Index).setChecked(eq1Alt.singleUse);
-  await waitForSaveButton(page, true);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
-  await expect(page.getByLabel("checkboxText", { exact: true }).nth(test2Index)).toContainText(
-    eq2.singleUse ? "Yes" : ""
-  );
-
-  test1Index = -1;
-  test2Index = -1;
-  for (let i = 0; i < startingNumEquipment + 2; i++) {
-    const name = await page.getByLabel("Equipment item name").nth(i).textContent();
-    if (name === eq1Alt.name) {
-      test1Index = i;
-    }
-    if (name === eq2Alt.name) {
-      test2Index = i;
-    }
+  // Delete both test equipment items
+  // Delete eq2 first (it may have a higher index)
+  eq2Index = await findEquipmentIndexExactName(page, equip2.name);
+  const eq1AltIdx = await findEquipmentIndexExactName(page, equip1Edited.name);
+  // Delete the one with the higher index first to avoid index shifting
+  if (eq2Index > eq1AltIdx) {
+    await page.getByLabel("deleteButton", { exact: true }).nth(eq2Index).click();
+    await page.waitForTimeout(500);
+    await page.getByLabel("deleteButton", { exact: true }).nth(eq1AltIdx).click();
+  } else {
+    await page.getByLabel("deleteButton", { exact: true }).nth(eq1AltIdx).click();
+    await page.waitForTimeout(500);
+    await page.getByLabel("deleteButton", { exact: true }).nth(eq2Index).click();
   }
-  expect(test1Index !== -1 && test2Index !== -1).toEqual(true);
-
-  await expect(page.getByLabel("equipmentList-item", { exact: true })).toHaveCount(
-    startingNumEquipment + 2
-  );
-
-  await expect(
-    page.getByLabel("Equipment item quantity", { exact: true }).nth(test1Index)
-  ).toHaveText(eq1Alt.quantity);
-  await expect(page.getByLabel("checkboxText", { exact: true }).nth(test1Index)).toContainText(
-    eq1Alt.singleUse ? "Yes" : ""
-  );
-
-  await expect(
-    page.getByLabel("Equipment item quantity", { exact: true }).nth(test2Index)
-  ).toHaveText(eq2Alt.quantity);
-  await expect(page.getByLabel("checkboxText", { exact: true }).nth(test2Index)).toContainText(
-    eq2Alt.singleUse ? "Yes" : ""
-  );
-
-  // Test delete while tearing down equipment
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.mouse.move(0, -100);
-  await waitForSaveButton(page, false);
-
-  await page.getByLabel("deleteButton", { exact: true }).nth(test2Index).click();
-  await page.getByLabel("deleteButton", { exact: true }).nth(test1Index).click();
-  await waitForSaveButton(page, true);
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
+  await page.waitForTimeout(500);
 
   await expect(page.getByLabel("equipmentList-item", { exact: true })).toHaveCount(
     startingNumEquipment
   );
+
+  // Turn off edit mode
+  await toggleEditMode(page);
 
   return "success";
 }

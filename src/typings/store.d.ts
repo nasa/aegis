@@ -105,7 +105,7 @@ interface InterfaceState {
 interface ConnectionState {
   socketStatus: ClientSocketStatus;
   browserConnectionStatus: ConnectionStatus;
-  appVersion: AppVersion;
+  clientAppVersion: AppVersion;
 }
 
 interface STMState {

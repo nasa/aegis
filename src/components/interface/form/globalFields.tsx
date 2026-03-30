@@ -1,22 +1,16 @@
-import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { FontAwesomeIcon, type CSSVariables } from "@fortawesome/react-fontawesome";
 import { faCheckSquare, faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
-import {
-  FunctionComponent,
-  useState,
-  CSSProperties,
-  ChangeEvent,
-  ReactNode,
-  useRef,
-  useEffect,
-} from "react";
+import type { FunctionComponent, CSSProperties, ChangeEvent, ReactNode } from "react";
+import { useState, useRef, useEffect } from "react";
 import { EmojiRenderer } from "components/interface/emojis";
+import type { FieldRenderProps } from "react-final-form";
 import formStyles from "./globalFields.module.css";
-import { Field, FieldRenderProps, Form } from "react-final-form";
+import { Field, Form } from "react-final-form";
 import React from "react";
 import { composeValidators } from "components/interface/form/formValidators";
 import Select from "react-select";
-import { FFTextProps, FFCheckboxProps, FFSelectProps, FFTextAreaProps } from "typings/form";
+import type { FFTextProps, FFCheckboxProps, FFSelectProps, FFTextAreaProps } from "typings/form";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import CircularSlider from "@fseehawer/react-circular-slider";
 import CompactColor from "@uiw/react-color-compact";
@@ -35,7 +29,7 @@ export const Button: FunctionComponent<{
   labelStyle?: CSSProperties;
   size?: "xs" | "lg";
   enabled?: boolean;
-  iconStyle?: CSSProperties;
+  iconStyle?: CSSProperties & CSSVariables;
 }> = ({
   onClick,
   label,

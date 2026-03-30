@@ -5,7 +5,7 @@ import express from "express";
 
 import { deleteFile } from "server/file/file"; // Assuming this function is compatible with Express
 import { hasPerms } from "utils/permissions";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();
@@ -26,8 +26,8 @@ router.delete("/", async (req: Request, res: Response) => {
     appUser: req.session.appUser,
   });
   if (!editPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "file/delete",
@@ -46,7 +46,7 @@ router.delete("/", async (req: Request, res: Response) => {
     }
     res.status(200).json("Success");
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,

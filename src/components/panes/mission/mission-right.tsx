@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import {
   faAtlas,
@@ -162,6 +162,7 @@ const MissionPrefsRight: FunctionComponent = () => {
                   : "Offline: Editing Disabled"
               }
               label="Edit"
+              toggleAriaLabel="missionEditToggle"
             />
           )}
         </div>

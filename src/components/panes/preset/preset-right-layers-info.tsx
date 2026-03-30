@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import styles from "./preset-right-layers-info.module.css";
 import { getDateAndTimeFromISOString } from "utils/formatting";
 

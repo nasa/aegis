@@ -4,6 +4,7 @@ import { getAccurateNow } from "utils/formatting";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 export const crudCreateActionTemplate = (): void => {
   const missionDocHandle = getAutomergeDocHandles()?.mission;
@@ -82,7 +83,10 @@ export function crudUpdateActionTemplateByField<
 export const crudDuplicateActionTemplate = (actionTemplateUuid: string): void => {
   const missionDocHandle = getAutomergeDocHandles()?.mission;
   if (!missionDocHandle) {
-    console.error("Mission doc handle is not set");
+    clientLogger.error(
+      { logId: "crud-actionTemplate", logValue: "Mission doc handle is not set" },
+      new Error("Mission doc handle is not set")
+    );
     return;
   }
   missionDocHandle.change((m: Mission) => {
@@ -116,7 +120,10 @@ export const crudUpdateActionTemplateActionDefinition = (
 ): void => {
   const missionDocHandle = getAutomergeDocHandles()?.mission;
   if (!missionDocHandle) {
-    console.error("Mission doc handle is not set");
+    clientLogger.error(
+      { logId: "crud-actionTemplate", logValue: "Mission doc handle is not set" },
+      new Error("Mission doc handle is not set")
+    );
     return;
   }
   missionDocHandle.change((m: Mission) => {

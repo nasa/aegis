@@ -1,9 +1,9 @@
 import L from "leaflet";
 import "leaflet-polylinedecorator";
-import * as geojson from "geojson";
-import DraggableLines from "leaflet-draggable-lines";
+import type * as geojson from "geojson";
+import type DraggableLines from "leaflet-draggable-lines";
 import VectorTileLayer from "leaflet-vector-tile-layer";
-import { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import ReactDOMServer from "react-dom/server";
 import {
   getDateAndTimeFromISOString,
@@ -19,13 +19,14 @@ import {
   getDistanceBetweenTwoCoordinates,
 } from "utils/mapping/geoMath";
 import styles from "./leaflet-helper.module.css";
-import { HighlightableLayerOptions, HighlightablePolyline } from "leaflet-highlightable-layers";
+import type { HighlightableLayerOptions } from "leaflet-highlightable-layers";
+import { HighlightablePolyline } from "leaflet-highlightable-layers";
 import Color from "color";
 import { antPath } from "leaflet-ant-path";
 import orderBy from "lodash/orderBy";
 import throttle from "lodash/throttle";
 import sortBy from "lodash/sortBy";
-import { AppDispatch } from "utils/useAppDispatch";
+import type { AppDispatch } from "utils/useAppDispatch";
 import { setMeasureInitialCoords, updateMapDirective } from "store/map";
 import { revertWalkbackPath } from "store/station";
 import { thunkUpdateMeasurementPath } from "store/thunk/thunkMeasurement";
@@ -967,19 +968,17 @@ export const drawLayersOnMap = ({
       const isExternal = sublayer.path?.startsWith("http");
       if (sublayer.type === "tile") {
         // if layer isn't already on the map, add it
-        const filter = makeTileLayerColorFilter(mapSublayerControls[sublayer.uuid]);
+        const colorFilter = makeTileLayerColorFilter(mapSublayerControls[sublayer.uuid]);
         if (!isLayerOnMapByName(map, sublayer.name)) {
           const tilePath = isExternal
             ? `${sublayer.path}/${sublayer.tilePattern}`
             : `${layerBaseURL}/${missionId}/Layers/${sublayer.path}/${sublayer.tilePattern}`;
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const tileLayer = (L.tileLayer as any).colorFilter(tilePath, {
+          const tileLayer = L.tileLayer(tilePath, {
             //manually add id and type fields for tracking later on
             id: sublayer.name,
             uuid: sublayer.uuid,
             type: "tile",
-
             tileSize: 256,
             bounds: [
               [sublayer.boundingBox[1], sublayer.boundingBox[0]],
@@ -992,7 +991,7 @@ export const drawLayersOnMap = ({
             maxNativeZoom: sublayer.maxNativeZoom,
             opacity: mapSublayerControls[sublayer.uuid].style?.opacity,
             zIndex: index,
-            filter,
+            colorFilter,
             // custom class name that we use to control mix-blend-mode
             className: `leaflet-layer leaflet-blend-${
               mapSublayerControls[sublayer.uuid].style?.blendMode
@@ -1003,11 +1002,11 @@ export const drawLayersOnMap = ({
           map.current.addLayer(tileLayer);
           tileLayer.bringToFront();
         } else {
-          // if layer is already on the map, bring it to the front. This has the effect of controlling zorder of layers
+          // if layer is already on the map, bring it to the front. This has the effect of controlling z-order of layers
           const layer: L.TileLayer = getLayerByName(map, sublayer.name);
           // set all the options for the layer that are in the mapSublayerControls
           layer.setOpacity(mapSublayerControls[sublayer.uuid].style?.opacity);
-          layer.updateFilter(filter);
+          layer.updateColorFilter(colorFilter);
 
           layer.bringToFront();
         }

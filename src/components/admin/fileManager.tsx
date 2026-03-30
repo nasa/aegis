@@ -1,11 +1,5 @@
-import {
-  Dispatch,
-  FunctionComponent,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import type { Dispatch, FunctionComponent, SetStateAction } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { listFiles, deleteFile, renameFile } from "http-client/file";
 import { isLoggedIn } from "http-client/login";
 import UploadFile from "./uploadFile";

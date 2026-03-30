@@ -10,7 +10,7 @@ stages:
   when: manual
   stage: stageless
   needs:
-    - make-dotenv
+    - make-dotenv:fit
   script:
     # init sudo ability
     - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
@@ -98,7 +98,7 @@ run-load-test:int:
   needs:
     - setup-load-test:int
     - install_dependencies
-    - make-dotenv
+    - make-dotenv:fit
   variables:
     SERVER_SUBDOMAIN: aegis-int
   resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
@@ -110,7 +110,7 @@ run-load-test:carbon:
   needs:
     - setup-load-test:carbon
     - install_dependencies
-    - make-dotenv
+    - make-dotenv:fit
   variables:
     SERVER_SUBDOMAIN: carbon-emss-dev
 
@@ -119,7 +119,7 @@ run-load-test:gold:
   needs:
     - setup-load-test:gold
     - install_dependencies
-    - make-dotenv
+    - make-dotenv:fit
   variables:
     SERVER_SUBDOMAIN: gold-emss-dev
 
@@ -128,7 +128,7 @@ run-load-test:iron:
   needs:
     - setup-load-test:iron
     - install_dependencies
-    - make-dotenv
+    - make-dotenv:fit
   variables:
     SERVER_SUBDOMAIN: iron-emss-dev
 
@@ -137,7 +137,7 @@ run-load-test:neon:
   needs:
     - setup-load-test:neon
     - install_dependencies
-    - make-dotenv
+    - make-dotenv:fit
   variables:
     SERVER_SUBDOMAIN: neon-emss-dev
 
@@ -146,6 +146,6 @@ run-load-test:oxygen:
   needs:
     - setup-load-test:oxygen
     - install_dependencies
-    - make-dotenv
+    - make-dotenv:fit
   variables:
     SERVER_SUBDOMAIN: oxygen-emss-dev

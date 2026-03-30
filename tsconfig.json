@@ -22,7 +22,7 @@
     "noImplicitAny": true,
     "noUnusedLocals": true,
     "noUnusedParameters": false,
-    "types": ["node", "jest"],
+    "types": ["node", "vitest/globals"],
 
     "skipLibCheck": false /* Skip type checking all .d.ts files. */,
 
@@ -37,6 +37,7 @@
     "strictPropertyInitialization": false, // requires strictNullChecks=true
     "noEmit": true,
     "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "incremental": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,

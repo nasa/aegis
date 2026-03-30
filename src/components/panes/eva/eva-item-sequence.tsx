@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { Button } from "components/interface/form/globalFields";
 import evaStyles from "./eva.module.css";

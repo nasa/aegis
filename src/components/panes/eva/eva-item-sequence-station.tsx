@@ -1,6 +1,7 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Dropdown } from "components/interface/form/globalFields";
-import { FunctionComponent, useCallback } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
@@ -186,12 +187,12 @@ const SequenceItemStation: FunctionComponent<{
     );
   };
 
-  const displayStationDwellTime = useCallback(() => {
+  const displayedStationDwellTime = useMemo(() => {
     const durationMinutes = isNotNumber(thisStation?.duration)
       ? (thisStationCalculatedFields?.totalDwellTime ?? null)
-      : thisStation.duration;
+      : thisStation?.duration;
     return isNotNumber(durationMinutes) ? "N/A" : hmmFromMinutes(durationMinutes);
-  }, [thisStation?.duration, thisStationCalculatedFields?.totalDwellTime]);
+  }, [thisStation, thisStationCalculatedFields]);
 
   const handleSequenceItemClick = useCallback(
     (sequenceItemUuid: string) => {
@@ -261,7 +262,7 @@ const SequenceItemStation: FunctionComponent<{
                 data-tooltip-html={"Total dwell time (h:mm)"}
                 data-tooltip-place="right"
               >
-                {displayStationDwellTime()}
+                {displayedStationDwellTime}
               </div>
             </div>
           </div>

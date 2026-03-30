@@ -1,3 +1,4 @@
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import StreamZip from "node-stream-zip";
 import * as fs from "fs";
 import { readdir, mkdir, rm, rename, stat } from "node:fs/promises";
@@ -34,7 +35,10 @@ export async function unzip(
     }
 
     //unzip the file. contents will overwrite if they already exist in location
-    console.log(`${new Date()} Unzipping with overwrite: ${destRoot}/${filename}`);
+    serverLogger.info({
+      logId: "file",
+      logValue: `Unzipping with overwrite: ${destRoot}/${filename}`,
+    });
     const zip = new StreamZip.async({ file: `${destRoot}/${filename}` });
     const numFiles = await zip.extract(null, unzipDirectory);
     await zip.close();
@@ -42,7 +46,10 @@ export async function unzip(
     //delete the original file
     await deleteFile(filename);
 
-    console.log(`${new Date()} File unzip success. Extracted ${numFiles} files. Deleted .zip`);
+    serverLogger.info({
+      logId: "file",
+      logValue: `File unzip success. Extracted ${numFiles} files. Deleted .zip`,
+    });
   } catch (e) {
     //cleanup
     if (subfolder) {
@@ -77,7 +84,7 @@ export async function moveFile(
   const srcPath = `${destRoot}/${filename}`;
   const destPath = `${destination}/${filename}`;
 
-  console.log(`${new Date()} Moving: ${srcPath} to ${destPath}`);
+  serverLogger.info({ logId: "file", logValue: `Moving: ${srcPath} to ${destPath}` });
   await rename(srcPath, destPath);
 }
 
@@ -90,13 +97,13 @@ export async function deleteFile(path: string): Promise<boolean> {
   try {
     if (fs.existsSync(`${destRoot}/${path}`)) {
       await rm(`${destRoot}/${path}`, { recursive: true }); //delete file or folder
-      console.log(`${new Date()} File/directory deleted ${destRoot}/${path}`);
+      serverLogger.info({ logId: "file", logValue: `File/directory deleted ${destRoot}/${path}` });
       return true;
     } else {
       throw new Error(`File/directory does not exist ${destRoot}/${path}`);
     }
   } catch (e) {
-    console.warn(`${new Date()} Error in deleteFile: ${e}`);
+    serverLogger.warning({ logId: "file", logValue: `Error in deleteFile: ${e}` });
     return false;
   }
 }
@@ -133,7 +140,7 @@ export async function listFiles(path: string): Promise<GISfile[]> {
       throw new Error(`Path does not exist: ${destRoot}/${path}`);
     }
   } catch (e) {
-    console.warn(`${new Date()} Error in listfiles: ${e}`);
+    serverLogger.warning({ logId: "file", logValue: `Error in listfiles: ${e}` });
     return null;
   }
 }
@@ -190,10 +197,13 @@ async function countFiles(directory: string): Promise<number> {
 export async function renameFile(path: string, oldName: string, newName: string): Promise<boolean> {
   try {
     await rename(`${destRoot}/${path}/${oldName}`, `${destRoot}/${path}/${newName}`);
-    console.log(`${new Date()} Path renamed in ${destRoot}/${path} from ${oldName} to ${newName}`);
+    serverLogger.info({
+      logId: "file",
+      logValue: `Path renamed in ${destRoot}/${path} from ${oldName} to ${newName}`,
+    });
     return true;
   } catch (e) {
-    console.warn(`${new Date()} Error in renameFile: ${e}`);
+    serverLogger.warning({ logId: "file", logValue: `Error in renameFile: ${e}` });
     return false;
   }
 }
@@ -226,36 +236,43 @@ export async function copyDirectoryContents(
         await executeCommand("robocopy", [fullSourcePath, fullTargetPath, "/E", "/NFL", "/NDL"], {
           acceptableExitCodes: [0, 1, 2, 3, 4, 5, 6, 7],
         });
-        console.log(
-          `${new Date()} Directory recursively copied using robocopy from ${sourcePath} to ${targetPath}`
-        );
+        serverLogger.info({
+          logId: "file",
+          logValue: `Directory recursively copied using robocopy from ${sourcePath} to ${targetPath}`,
+        });
         return;
       } catch (error) {
         // Fallback to xcopy if robocopy fails or is not available
         // /E ensures recursive copying (includes empty subdirectories)
         await executeCommand("xcopy", [fullSourcePath, fullTargetPath, "/E", "/I", "/H", "/Y"]);
-        console.log(
-          `${new Date()} Directory recursively copied using xcopy from ${sourcePath} to ${targetPath}`
-        );
+        serverLogger.info({
+          logId: "file",
+          logValue: `Directory recursively copied using xcopy from ${sourcePath} to ${targetPath}`,
+        });
         return;
       }
     } else if (platform === "darwin" || platform === "linux") {
       // Use rsync on Linux/macOS
       // -a (archive) ensures recursive copying with permissions preservation
       await executeCommand("rsync", ["-a", `${fullSourcePath}/`, fullTargetPath]);
-      console.log(
-        `${new Date()} Directory recursively copied using rsync from ${sourcePath} to ${targetPath}`
-      );
+      serverLogger.info({
+        logId: "file",
+        logValue: `Directory recursively copied using rsync from ${sourcePath} to ${targetPath}`,
+      });
       return;
     } else {
       // log an error if the platform is not supported
-      console.error(
-        `${new Date()} Unsupported platform for directory copy: ${platform}. Please copy manually.`
+      serverLogger.error(
+        { logId: "file", logValue: `Unsupported platform: ${platform}` },
+        new Error(`Unsupported platform for directory copy: ${platform}. Please copy manually.`)
       );
       return;
     }
   } catch (error) {
-    console.error(`${new Date()} System copy command failed: ${error}`);
+    serverLogger.error(
+      { logId: "file", logValue: "System copy command failed" },
+      error instanceof Error ? error : new Error(String(error))
+    );
   }
 }
 

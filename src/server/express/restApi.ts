@@ -1,4 +1,5 @@
-import express, { Application } from "express";
+import type { Application } from "express";
+import express from "express";
 import cookieSession from "cookie-session";
 import cors from "cors";
 import { globalValues } from "./global";
@@ -45,7 +46,7 @@ import fileRenameRoute from "./routes/file/rename";
 import fileDeleteRoute from "./routes/file/delete";
 
 import logFromClient from "./routes/logFromClient";
-import serverLogger from "utils/logging/serverLogger";
+import rawServerLogger from "utils/logging/serverLogger";
 import { getUser } from "packages/getUser";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 
@@ -68,8 +69,8 @@ app.use(
     maxAge: 24 * 60 * 60 * 1000 * 365, // 1 year
   })
 );
-// static asset passthrough for dev. This path is one level above src (relative from build output folder)
-app.use("/static", express.static(path.join(__dirname, `../../../${process.env.STATIC_DIR}`)));
+// static asset passthrough for dev. This path is relative to the esbuild output dir (.local/express/dist/api)
+app.use("/static", express.static(path.join(__dirname, `../../../../${process.env.STATIC_DIR}`)));
 
 // socket stuff
 app.use("/api/v1/socket/serverSocketStatus", serverSocketStatus);
@@ -89,7 +90,7 @@ app.get("/api/v1/user/current", (req, res) => {
     return handleUnableToDecodeJWT(user, res);
   }
   res.json({ user });
-  serverLogger.logUserLogin(user);
+  rawServerLogger.logUserLogin(user);
 });
 
 // Serve a successful response. For use with wait-on

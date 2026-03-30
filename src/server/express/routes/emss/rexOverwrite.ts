@@ -1,4 +1,5 @@
-import express, { Request, Response } from "express";
+import type { Request, Response } from "express";
+import express from "express";
 import { globalValues } from "../../global";
 import {
   Action_db,
@@ -12,7 +13,7 @@ import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { validateRexOverwrite } from "../../../../utils/rexOverwriteValidator";
 import { upsertDatabaseRetry } from "utils/database";
 import { v4 as uuidv4 } from "uuid";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 import fs from "node:fs";
@@ -29,8 +30,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   // Check if user has EMSS permissions
   const editPermission = emssToken && emssToken === process.env.EMSS_TOKEN;
   if (!editPermission) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "emss/rexOverwrite",
@@ -44,7 +45,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   // validate inputs
   const validateMsgs = validateRexOverwrite(req.body);
   if (validateMsgs) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -60,7 +61,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     const updatedRexes: Rex[] = await upsertDatabaseRetry(() => overwriteRex(req.body));
 
     if (!updatedRexes || updatedRexes.length === 0) {
-      apiRouteLogger({
+      serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -90,7 +91,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : String(e);
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -115,7 +116,7 @@ router.get("/schema", async (req: Request, res: Response): Promise<void> => {
       data: schema,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

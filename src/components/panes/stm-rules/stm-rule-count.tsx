@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import styles from "./stm-rules-rules.module.css";

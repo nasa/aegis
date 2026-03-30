@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button } from "components/interface/form/globalFields";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 const VersionCheck: React.FunctionComponent = () => {
   const [searchParams] = useSearchParams();
@@ -26,7 +27,10 @@ const VersionCheck: React.FunctionComponent = () => {
         return decoded;
       }
     } catch (error) {
-      console.warn("Invalid returnUrl parameter:", url);
+      clientLogger.warning({
+        logId: "versionCheck",
+        logValue: `Invalid returnUrl parameter: ${url}`,
+      });
     }
 
     return "/";
@@ -41,7 +45,10 @@ const VersionCheck: React.FunctionComponent = () => {
         const version: AppVersion = await res.json();
         setServerVersion(version);
       } catch (error) {
-        console.error("Failed to fetch server version:", error);
+        clientLogger.error(
+          { logId: "versionCheck", logValue: "Failed to fetch server version" },
+          error instanceof Error ? error : new Error(String(error))
+        );
       } finally {
         setIsLoading(false);
       }

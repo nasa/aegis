@@ -1,5 +1,5 @@
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import type { EntityManager } from "@mikro-orm/postgresql";
-
 import {
   Station_db,
   Poi_db,
@@ -249,7 +249,10 @@ export const connectPoisToStations = async (
           }
         }
       } catch (error) {
-        console.warn(`Error processing collection for POI ${poi.uuid}: ${error}`);
+        serverLogger.warning({
+          logId: "duplicate-entity",
+          logValue: `Error processing collection for POI ${poi.uuid}: ${error}`,
+        });
       }
     }
     // Handle array of stations (from restore JSON)
@@ -269,9 +272,10 @@ export const connectPoisToStations = async (
     }
     // Station collection not properly initialized
     else if (poi.station) {
-      console.warn(
-        `POI ${poi.uuid} has station reference but it's not properly initialized or accessible`
-      );
+      serverLogger.warning({
+        logId: "duplicate-entity",
+        logValue: `POI ${poi.uuid} has station reference but it's not properly initialized or accessible`,
+      });
     }
   }
 };
@@ -395,13 +399,17 @@ export const processSublayers = async (
     if (sublayer.layer?.uuid) {
       layerEntity = layerUuidToEntity.get(sublayer.layer.uuid);
       if (!layerEntity) {
-        console.warn(
-          `Could not find layer with UUID ${sublayer.layer.uuid} for sublayer ${sublayer.uuid}`
-        );
+        serverLogger.warning({
+          logId: "dup-entity",
+          logValue: `Could not find layer with UUID ${sublayer.layer.uuid} for sublayer ${sublayer.uuid}`,
+        });
         continue; // Skip this sublayer if we can't find its layer
       }
     } else {
-      console.warn(`Sublayer ${sublayer.uuid} has no layer reference, skipping`);
+      serverLogger.warning({
+        logId: "dup-entity",
+        logValue: `Sublayer ${sublayer.uuid} has no layer reference, skipping`,
+      });
       continue; // Skip sublayers without layer references
     }
 
@@ -535,9 +543,10 @@ export const processPresets = (
             sublayerUuid: newSublayerUuid, // Ensure the property inside the object is also updated
           };
         } else {
-          console.warn(
-            `Sublayer ${key} not found in UUID map for preset ${preset.uuid}, skipping control`
-          );
+          serverLogger.warning({
+            logId: "dup-entity",
+            logValue: `Sublayer ${key} not found in UUID map for preset ${preset.uuid}, skipping control`,
+          });
         }
       }
     }
@@ -551,9 +560,10 @@ export const processPresets = (
 
           const newLayerUuid = uuidMaps.layers.get(item.layerUuid);
           if (!newLayerUuid) {
-            console.warn(
-              `Layer ${item.layerUuid} not found in UUID map for preset ${preset.uuid}, skipping layer order item`
-            );
+            serverLogger.warning({
+              logId: "dup-entity",
+              logValue: `Layer ${item.layerUuid} not found in UUID map for preset ${preset.uuid}, skipping layer order item`,
+            });
             return null; // Skip if the layer UUID is not found
           }
 
@@ -563,9 +573,10 @@ export const processPresets = (
               ?.map((sublayerUuid) => {
                 const mapped = uuidMaps.sublayers.get(sublayerUuid);
                 if (!mapped) {
-                  console.warn(
-                    `Sublayer ${sublayerUuid} not found in UUID map for preset ${preset.uuid} (layerOrder), skipping sublayer`
-                  );
+                  serverLogger.warning({
+                    logId: "dup-entity",
+                    logValue: `Sublayer ${sublayerUuid} not found in UUID map for preset ${preset.uuid} (layerOrder), skipping sublayer`,
+                  });
                 }
                 return mapped;
               })
@@ -719,7 +730,10 @@ export const processStmEntities = async (
       if (newLevel1) {
         newStm2.level1 = newLevel1; // Set the proper reference
       } else {
-        console.warn(`Could not find level1 with UUID ${stm2.level1.uuid} for level2 ${stm2.uuid}`);
+        serverLogger.warning({
+          logId: "dup-entity",
+          logValue: `Could not find level1 with UUID ${stm2.level1.uuid} for level2 ${stm2.uuid}`,
+        });
       }
     }
 
@@ -748,7 +762,10 @@ export const processStmEntities = async (
       if (newLevel2) {
         newStm3.level2 = newLevel2; // Set the proper reference
       } else {
-        console.warn(`Could not find level2 with UUID ${stm3.level2.uuid} for level3 ${stm3.uuid}`);
+        serverLogger.warning({
+          logId: "dup-entity",
+          logValue: `Could not find level2 with UUID ${stm3.level2.uuid} for level3 ${stm3.uuid}`,
+        });
       }
     }
 
@@ -779,7 +796,7 @@ export const processStmRules = async (
 
   for (const rule of stmRules) {
     if (!rule || !rule.uuid) {
-      console.warn("Found rule without UUID, skipping");
+      serverLogger.warning({ logId: "dup-entity", logValue: "Found rule without UUID, skipping" });
       continue;
     }
 
@@ -787,7 +804,10 @@ export const processStmRules = async (
 
     // Skip rules without STM UUID reference
     if (!rule.stmUuid) {
-      console.warn(`Rule ${rule.uuid} has no stmUuid reference, skipping`);
+      serverLogger.warning({
+        logId: "dup-entity",
+        logValue: `Rule ${rule.uuid} has no stmUuid reference, skipping`,
+      });
       continue;
     }
 
@@ -795,17 +815,19 @@ export const processStmRules = async (
     const newStmUuid = uuidMaps.stmLevel3s.get(rule.stmUuid);
 
     if (!newStmUuid) {
-      console.warn(
-        `Could not find mapped STM Level 3 UUID for rule ${rule.uuid} (${rule.stmUuid}). Skipping this rule.`
-      );
+      serverLogger.warning({
+        logId: "dup-entity",
+        logValue: `Could not find mapped STM Level 3 UUID for rule ${rule.uuid} (${rule.stmUuid}). Skipping this rule.`,
+      });
       continue;
     }
 
     // Double-check that the STM UUID exists in the new mission
     if (!allNewStmUuids.has(newStmUuid)) {
-      console.warn(
-        `Mapped STM UUID ${newStmUuid} does not exist in the new mission. Skipping this rule.`
-      );
+      serverLogger.warning({
+        logId: "dup-entity",
+        logValue: `Mapped STM UUID ${newStmUuid} does not exist in the new mission. Skipping this rule.`,
+      });
       continue;
     }
 
@@ -822,7 +844,10 @@ export const processStmRules = async (
 
       em.persist(newRule);
     } catch (error) {
-      console.error(`Error creating STM rule ${rule.uuid}: ${error}`);
+      serverLogger.error(
+        { logId: "dup-entity", logValue: `Error creating STM rule ${rule.uuid}` },
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
   }
 };
@@ -891,7 +916,10 @@ export const processFolders = (
               mappedUuid = uuidMaps.layers.get(itemUuid);
               break;
             default:
-              console.warn(`Unknown folder type: ${folder.type}`);
+              serverLogger.warning({
+                logId: "dup-entity",
+                logValue: `Unknown folder type: ${folder.type}`,
+              });
           }
           return mappedUuid;
         })

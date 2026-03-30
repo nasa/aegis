@@ -1,4 +1,5 @@
-import { FunctionComponent, memo, useState } from "react";
+import type { FunctionComponent } from "react";
+import { memo, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import { regExValidators, validators } from "components/interface/form/formValidators";

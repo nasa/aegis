@@ -1,17 +1,19 @@
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useNavigate } from "react-router";
-import { FormEventHandler, FunctionComponent, useEffect, useState } from "react";
+import type { FormEventHandler, FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 import styles from "pages/index.module.css";
 import { login, isLoggedIn, logout } from "http-client/login";
 import { getMissionHomepageItems } from "http-client/mission";
-import { thunkObliterateEntireStore } from "store/thunk/crossThunk";
+import { thunkObliterateMissionSpecificData } from "store/thunk/crossThunk";
 import PetInterval from "components/page/petInterval";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faPersonWalkingArrowRight, faTv } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip } from "react-tooltip";
 import { setAppUser } from "store/user";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
-import clientLogger from "utils/logging/clientLogger";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import isEqual from "lodash/isEqual";
 
 const Login = () => {
   const dispatch = useAppDispatch();
@@ -245,11 +247,12 @@ const Left: FunctionComponent = () => {
             missionPerms: null,
           })
         );
-        // log user to the emss logging system
+        // log user info
         clientLogger.info({
-          logId: "aegis-login",
+          logId: "appLogin",
           appUsername: response.data.username,
           missionId: null,
+          page: "home",
         });
       } else {
         dispatch(
@@ -466,11 +469,37 @@ const Inset: FunctionComponent = () => {
 const Home: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
 
+  // clear mission specific data from store
   useEffect(() => {
-    dispatch(thunkObliterateEntireStore());
+    dispatch(thunkObliterateMissionSpecificData());
   }, [dispatch]);
 
-  document.title = "AEGIS";
+  // check the app version
+  const clientAppVersion = useAppSelector((state) => state.connection.clientAppVersion, deepEqual);
+  useEffect(() => {
+    const checkVersion = async () => {
+      const res = await fetch("/api/v1/version");
+      if (res.status !== 200) {
+        console.warn(`Unable to check app version: ${res.status} ${res.statusText}`);
+        return;
+      } else {
+        const serverAppVersion: AppVersion = await res.json();
+        if (!isEqual(clientAppVersion, serverAppVersion)) {
+          alert(
+            `A new version of AEGIS is available. You will be redirected to a version check page. \nCurrent version: ${clientAppVersion.version}/${clientAppVersion.gitCommit}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit} `
+          );
+          // Redirect to version check page with version info and return URL
+          const currentUrl = window.location.pathname + window.location.search;
+          window.location.href = `/versionCheck?returnUrl=${encodeURIComponent(currentUrl)}`;
+        }
+      }
+    };
+    checkVersion();
+  }, [clientAppVersion]);
+
+  useEffect(() => {
+    document.title = "AEGIS";
+  }, []);
 
   return (
     <>

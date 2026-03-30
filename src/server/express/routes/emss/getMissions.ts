@@ -4,7 +4,7 @@ import type { Request, Response } from "express";
 import express from "express";
 
 import { Eva_db, Rex_db } from "server/database/models/_allModels";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { globalValues } from "../../global";
 import { emssTokenIsValid } from "utils/permissions";
 import { getAutomergeMissions } from "../missionAutomerge";
@@ -30,8 +30,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const viewPermissions = emssTokenIsValid(emssToken);
 
   if (!viewPermissions) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "emss/getMissions",
@@ -111,7 +111,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: missions,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

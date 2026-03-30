@@ -1,11 +1,5 @@
-import {
-  FunctionComponent,
-  MutableRefObject,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import type { FunctionComponent, MutableRefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   getCalculatedFieldsByStation,
   getCalculatedFieldsByTraverse,
@@ -109,6 +103,7 @@ const DashTimeline: FunctionComponent = () => {
   const [pixelsPerSecondY, setPixelsPerSecondY] = useState(0);
   const [timelineDurationMins, setTimelineDurationMins] = useState(0);
   const [rexPetTime, setRexPetTime] = useState("");
+  const [sequenceItems, setSequenceItems] = useState<EvaCalculated_PaperJS["sequenceItems"]>([]);
 
   const { width, height } = useWindowSize();
 
@@ -142,16 +137,15 @@ const DashTimeline: FunctionComponent = () => {
   useLayoutEffect(() => {
     processEvaDataFromStore({
       storeRef,
-      mission: partialMission as unknown as Mission,
+      partialMission,
       selectedEva: runningEvaFromDb,
       evaStations,
       evaTraverses,
-      missionTraverseRate: partialMission?.traverseRate,
-      missionWalkbackRate: partialMission?.walkbackRate,
       stationCalculatedFieldsInSelectedEva: stationCalculatedFieldsInRunningEva,
       traverseCalculatedFieldsInSelectedEva: traverseCalculatedFieldsInRunningEva,
       selectedRex: runningRexFromDb,
     });
+    setSequenceItems(storeRef.current.sequenceItems);
   }, [
     storeRef,
     partialMission,
@@ -186,7 +180,7 @@ const DashTimeline: FunctionComponent = () => {
           rexPetTime={rexPetTime}
         />
         <Activities
-          sequenceItems={storeRef.current.sequenceItems}
+          sequenceItems={sequenceItems}
           pixelsPerSecondY={pixelsPerSecondY}
           rex={runningRexFromDb}
         />

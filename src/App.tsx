@@ -18,7 +18,8 @@ import Emss from "pages/admin/emss";
 import ManageAutomergeDoc from "pages/admin/automerge";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { setLaunchpadUser } from "store/user";
-import { setAppVersion } from "store/connection";
+import { setClientAppVersion } from "store/connection";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElement => {
   const dispatch = useAppDispatch();
@@ -28,12 +29,15 @@ const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElemen
 
   // These values are from the vite.config.mts file and are set at build time
   dispatch(
-    setAppVersion({
+    setClientAppVersion({
       version: __APP_VERSION__,
       gitCommit: __GIT_COMMIT__,
     })
   );
-  console.log(`AEGIS Version: ${__APP_VERSION__}, Git Commit: ${__GIT_COMMIT__}`);
+  clientLogger.info({
+    logId: "appVersion",
+    version: `AEGIS Client Version: ${__APP_VERSION__}, Git Commit: ${__GIT_COMMIT__}`,
+  });
 
   return (
     <>

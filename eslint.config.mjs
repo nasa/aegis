@@ -21,7 +21,16 @@ const compat = new FlatCompat({
 });
 
 export default [
-  { ignores: ["**/public/**/*", "out/**/*", "**/coverage", "**/.local"] },
+  {
+    ignores: [
+      "**/public/**/*",
+      "out/**/*",
+      "**/coverage",
+      "**/.local",
+      "playwright-report/**",
+      "test-results/**",
+    ],
+  },
   ...fixupConfigRules(compat.extends("prettier", "plugin:react-hooks/recommended")),
 
   // Configuration specifically for package.json files
@@ -120,6 +129,13 @@ export default [
                 "Use utils/useAppDispatch() instead of useDispatch(). This will allow usage of the full store types",
             },
           ],
+          patterns: [
+            {
+              group: ["**/consoleLogger", "**/consoleLogger.ts", "utils/logging/consoleLogger"],
+              message:
+                "Import from 'utils/logging/clientLogger' or 'utils/logging/serverLogger' instead. Alias as: { ConsoleLogger as clientLogger } or { ConsoleLogger as serverLogger }.",
+            },
+          ],
         },
       ],
 
@@ -145,6 +161,11 @@ export default [
       "no-useless-computed-key": "error",
       "prefer-const": "error",
       "@typescript-eslint/explicit-module-boundary-types": "error",
+      "@typescript-eslint/consistent-type-imports": [
+        "error",
+        { prefer: "type-imports", fixStyle: "separate-type-imports" },
+      ],
+      "@typescript-eslint/no-import-type-side-effects": "error",
 
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -157,6 +178,7 @@ export default [
       "no-unreachable": "error",
       "react/jsx-no-target-blank": "error", // prevent security vulnerability: require rel="noopener noreferrer" with target="_blank"
       "linebreak-style": ["error", "unix"], // enforce unix (lf) linebreaks
+      "react-hooks/set-state-in-effect": "off",
 
       // Add recommended CSS Modules rules
       // ...cssModules.configs.recommended.rules,
@@ -164,6 +186,26 @@ export default [
       // User's specific CSS Modules rules (these will override recommended if there are conflicts)
       // "css-modules/no-undef-class": ["error", { camelCase: true }],
       // "css-modules/no-unused-class": ["error", { camelCase: true }],
+    },
+  },
+
+  // disable the consistent-type-imports rule in .d.ts files where we use inline import syntax to reference external types
+  {
+    files: ["**/*.d.ts"],
+    rules: {
+      "@typescript-eslint/consistent-type-imports": "off",
+    },
+  },
+
+  // Allow clientLogger.ts, serverLogger.ts, and tests to import directly from consoleLogger
+  {
+    files: [
+      "src/utils/logging/clientLogger.ts",
+      "src/utils/logging/serverLogger.ts",
+      "src/tests/**/consoleLogger.test.ts",
+    ],
+    rules: {
+      "no-restricted-imports": "off",
     },
   },
 ];

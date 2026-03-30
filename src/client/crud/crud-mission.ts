@@ -1,5 +1,6 @@
 import { getAutomergeDocHandles } from "client/automergeDocHandles";
 import { getAccurateNow } from "utils/formatting";
+import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
 
 /**
  * A utility functions to update/delete properties in the mission document
@@ -40,13 +41,22 @@ export function crudUpdateMissionByField<
   const automergeDocHandles = getAutomergeDocHandles();
   const missionDocHandle = automergeDocHandles.mission;
   if (!missionDocHandle) {
-    console.error("Mission doc handle is not set");
+    clientLogger.error(
+      { logId: "crud-mission", logValue: "Mission doc handle is not set" },
+      new Error("Mission doc handle is not set")
+    );
     return;
   }
 
   missionDocHandle.change((m: Mission) => {
     if (mapValue !== undefined) {
       // This is map field with a nested key/value we need to update
+
+      // Init to {} if this object structure is null or undefined
+      if (m[fieldName] == null) {
+        (m[fieldName] as NonNullable<Mission[K]>) = {} as NonNullable<Mission[K]>;
+      }
+
       const map = m[fieldName] as NonNullable<Mission[K]>;
       map[valueOrMapKey as MapKey] = mapValue;
     } else {

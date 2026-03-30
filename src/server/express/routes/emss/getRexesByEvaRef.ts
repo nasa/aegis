@@ -6,7 +6,7 @@ import express from "express";
 import { globalValues } from "../../global";
 import { Eva_db, Rex_db } from "server/database/models/_allModels";
 import { emssTokenIsValid } from "utils/permissions";
-import { apiRouteLogger } from "utils/logging/serverLogger";
+import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();
@@ -28,8 +28,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const viewPermissions = emssTokenIsValid(emssToken);
 
   if (!viewPermissions) {
-    apiRouteLogger({
-      logLevel: "warn",
+    serverLogger.apiRoute({
+      logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "emss/getRexesByEvaRef",
@@ -42,7 +42,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   // validate inputs
   if (!queryObj.evaRefUuid) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -85,7 +85,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       data: refRexes,
     });
   } catch (e) {
-    apiRouteLogger({
+    serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
