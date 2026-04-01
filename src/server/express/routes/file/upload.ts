@@ -8,7 +8,7 @@ import multer from "multer";
 
 import { deleteFile, moveFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
 import { hasPerms } from "utils/permissions";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 // Express router to replace nextConnect

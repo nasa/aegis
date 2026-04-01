@@ -5,7 +5,7 @@ import express from "express";
 
 import { renameFile } from "server/file/file"; // Assuming this function is compatible with Express
 import { hasPerms } from "utils/permissions"; // Assuming you have a session middleware compatible with Express
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();

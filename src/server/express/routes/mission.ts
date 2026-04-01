@@ -32,7 +32,7 @@ import throttle from "lodash/throttle";
 import path from "path";
 import fs from "fs";
 import { missionValidator, SCHEMA_DIR } from "utils/validateSchemaServer";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { diff } from "deep-diff";
 

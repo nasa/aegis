@@ -14,7 +14,7 @@ import { globalValues } from "./global";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import pg from "pg";
 import { getAutomergeDocListing } from "./routes/docListing";
 import { addDbBackupListener } from "./routes/mission";

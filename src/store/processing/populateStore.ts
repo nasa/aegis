@@ -13,7 +13,7 @@ import type { DocHandle, Repo, AutomergeUrl } from "@automerge/automerge-repo";
 import { isValidAutomergeUrl } from "@automerge/automerge-repo";
 import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { validateMission } from "utils/validateSchemaClient";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 
 // Populate the entire store state except User and Interface
 // All api calls used in this function must past in the load test options

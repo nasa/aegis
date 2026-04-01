@@ -22,7 +22,7 @@ import {
   Folder_db,
 } from "server/database/models/_allModels";
 import { globalValues } from "../global";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "./missionAutomerge";
 

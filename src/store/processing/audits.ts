@@ -9,7 +9,7 @@ import { getAccurateNow } from "utils/formatting";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import type { DocHandle } from "@automerge/automerge-repo";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,

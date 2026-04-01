@@ -1,6 +1,6 @@
 import { getAutomergeDocHandles } from "client/automergeDocHandles";
 import { getAccurateNow } from "utils/formatting";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 
 /**
  * A utility functions to update/delete properties in the mission document

@@ -15,7 +15,7 @@ import { findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
 import { hasPerms } from "utils/permissions";
 import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeDocListing } from "./docListing";
 import type { AutomergeUrl } from "@automerge/automerge-repo";

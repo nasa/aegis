@@ -5,7 +5,7 @@ import express from "express";
 
 import { makeExportMission } from "utils/export";
 import { hasPerms, emssTokenIsValid } from "utils/permissions";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 import { getGrids } from "../grid";
