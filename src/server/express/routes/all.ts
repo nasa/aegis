@@ -16,7 +16,7 @@ import { getLevel1s, getLevel2s, getLevel3s } from "./stm";
 import { getStmRules } from "./stmRules";
 import { getTraverses } from "./traverse";
 import { hasPerms } from "utils/permissions";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "./missionAutomerge";
 

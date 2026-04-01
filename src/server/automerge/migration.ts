@@ -14,7 +14,7 @@ import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { getBackupDbMissions, upsertBackupDbMissions } from "server/express/routes/mission";
 import { Doc_Listing_db } from "server/database/models/_allModels";
 import { globalValues } from "server/express/global";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 
 // This is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
 initializeBase64Wasm(automergeWasmBase64);

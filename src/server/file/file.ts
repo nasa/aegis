@@ -1,4 +1,4 @@
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import StreamZip from "node-stream-zip";
 import * as fs from "fs";
 import { readdir, mkdir, rm, rename, stat } from "node:fs/promises";

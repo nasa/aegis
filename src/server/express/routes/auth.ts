@@ -7,7 +7,7 @@ import { App_User_db } from "server/database/models/_allModels";
 import { globalValues } from "../global";
 
 import { upsertAppUsers } from "./appUsers";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();

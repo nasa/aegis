@@ -7,7 +7,7 @@ import { Eva_db } from "server/database/models/eva.model";
 import { Rex_db } from "server/database/models/rex.model";
 import { makeExportEvas } from "utils/export";
 import { hasPerms } from "utils/permissions";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../../global";
 

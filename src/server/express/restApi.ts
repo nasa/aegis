@@ -46,7 +46,7 @@ import fileRenameRoute from "./routes/file/rename";
 import fileDeleteRoute from "./routes/file/delete";
 
 import logFromClient from "./routes/logFromClient";
-import rawServerLogger from "utils/logging/serverLogger";
+import { rawServerLogger } from "utils/logging/serverLogger";
 import { getUser } from "packages/getUser";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 

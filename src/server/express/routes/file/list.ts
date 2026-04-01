@@ -5,7 +5,7 @@ import express from "express";
 
 import { listFiles } from "server/file/file"; // Assuming this function is compatible with Express
 import { hasPerms } from "utils/permissions";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();

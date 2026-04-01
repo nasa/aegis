@@ -17,7 +17,7 @@ import { rexSlice, initialState as rexInitialState } from "./rex";
 import { measureSlice, initialState as measureInitialState } from "./measure";
 import { isRejected } from "@reduxjs/toolkit";
 import type { Middleware, Unsubscribe } from "@reduxjs/toolkit";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 
 export const initialState: WholeStoreState = {
   hover: hoverInitialState,

@@ -4,7 +4,7 @@ import express from "express";
 
 import { fetchMissionEntities, createMissionCopy } from "utils/dup/core";
 import { upsertDatabaseRetry } from "utils/database";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../global";
 

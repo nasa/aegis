@@ -19,7 +19,7 @@ import { CookiesProvider } from "react-cookie";
 import { setupFetchFns } from "packages/fetchFns";
 import { getCurrentUser } from "packages/getCurrentUser";
 import { clearAllEditing } from "store/crossActions";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 
 setupFetchFns();
 const user = await getCurrentUser();

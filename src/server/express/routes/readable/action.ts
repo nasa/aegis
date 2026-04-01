@@ -6,7 +6,7 @@ import express from "express";
 import { Action_db, Eva_db, Rex_db } from "server/database/models/_allModels";
 import { makeExportActions } from "utils/export";
 import { hasPerms } from "utils/permissions";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../../global";
 

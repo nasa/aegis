@@ -13,7 +13,7 @@ import {
 } from "store/storeUtils/appUser";
 import { upsertDatabaseRetry } from "utils/database";
 import { globalValues } from "../global";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();

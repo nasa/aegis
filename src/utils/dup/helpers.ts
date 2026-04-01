@@ -1,4 +1,4 @@
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { v4 as uuidv4 } from "uuid";
 import { copyDirectoryContents } from "server/file/file";
 

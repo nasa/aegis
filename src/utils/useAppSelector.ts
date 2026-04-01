@@ -6,7 +6,7 @@ import {
   useSelector,
 } from "react-redux";
 import type { RootState } from "store";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 
 export type EqualityFn = <T>(a: T, b: T) => boolean;
 

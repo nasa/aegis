@@ -26,7 +26,7 @@ import { obliterateState as stmObliterateState } from "store/stm";
 import { obliterateState as traverseObliterateState } from "store/traverse";
 import { obliterateState as measurementObliterateState } from "store/measure";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 
 export const thunkSelectEVASequenceItem = appCreateAsyncThunk<{
   sequenceItemUuid: string;

@@ -1,4 +1,4 @@
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import type { EntityManager } from "@mikro-orm/postgresql";
 import {
   Station_db,
