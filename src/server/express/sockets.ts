@@ -29,6 +29,9 @@ export const setupSocketIO = (): void => {
               logValue: `SocketIO - visitorJoin: appVersion mismatch between client and server
           client: ${JSON.stringify(visitorData.clientAppVersion)}
           server: ${JSON.stringify(globalValues.appVersion)}`,
+              launchpadUser: visitorData.launchpadUser?.auid,
+              appUser: visitorData.appUser?.username,
+              missionId: visitorData.missionId,
             });
           }
 
@@ -50,7 +53,13 @@ export const setupSocketIO = (): void => {
           io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
         } catch (error) {
           serverLogger.error(
-            { logId: "socket", logValue: "SocketIO - visitorJoin" },
+            {
+              logId: "socket",
+              logValue: "SocketIO - visitorJoin",
+              launchpadUser: visitorData.launchpadUser?.auid,
+              appUser: visitorData.appUser?.username,
+              missionId: visitorData.missionId,
+            },
             error instanceof Error ? error : new Error(String(error))
           );
         }
@@ -168,7 +177,13 @@ export const emitStoreUpsert = (payload: StoreUpsert): void => {
     }
   } else {
     serverLogger.error(
-      { logId: "socket", logValue: "Unable to emit upsert" },
+      {
+        logId: "socket",
+        logValue: "Unable to emit upsert",
+        emitType: payload.type,
+        emitTypeUuid: payload.data?.map((sd: StoreData) => sd.uuid),
+        missionId: payload.missionId,
+      },
       new Error("Socket.io not initialized")
     );
   }
@@ -194,7 +209,13 @@ export const emitStoreDelete = (payload: StoreDelete): void => {
     }
   } else {
     serverLogger.error(
-      { logId: "socket", logValue: "Unable to emit delete" },
+      {
+        logId: "socket",
+        logValue: "Unable to emit delete",
+        emitType: payload.type,
+        emitTypeUuid: payload.uuids,
+        missionId: payload.missionId,
+      },
       new Error("Socket.io not initialized")
     );
   }
