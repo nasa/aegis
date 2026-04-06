@@ -40,7 +40,7 @@ const DownloadFromBox: FunctionComponent<{
             <span key={item.id}>
               {index !== 0 && " > "}
               <span
-                style={{ textDecoration: "underline", cursor: "pointer", color: "blue" }}
+                style={{ textDecoration: "underline", cursor: "pointer", color: "#60a5fa" }}
                 onClick={() => {
                   //if clicking on the last item in the history, do nothing
                   if (index === folderHistory.length - 1) return;
@@ -66,7 +66,7 @@ const DownloadFromBox: FunctionComponent<{
             <ul>
               <li key="0">
                 <div
-                  style={{ textDecoration: "underline", cursor: "pointer", color: "blue" }}
+                  style={{ textDecoration: "underline", cursor: "pointer", color: "#60a5fa" }}
                   onClick={() => {
                     if (folderHistory.length === 1) return; //already at root
                     updateFolderItems(folderHistory[folderHistory.length - 2].id);
@@ -82,7 +82,7 @@ const DownloadFromBox: FunctionComponent<{
                 <li key={item.id}>
                   {item.type === "folder" ? (
                     <div
-                      style={{ textDecoration: "underline", cursor: "pointer", color: "blue" }}
+                      style={{ textDecoration: "underline", cursor: "pointer", color: "#60a5fa" }}
                       onClick={() => {
                         setFolderHistory([...folderHistory, item]);
                         updateFolderItems(item.id);
@@ -102,7 +102,7 @@ const DownloadFromBox: FunctionComponent<{
                               style={{
                                 textDecoration: "underline",
                                 cursor: "pointer",
-                                color: "blue",
+                                color: "#60a5fa",
                               }}
                               onClick={async () => {
                                 setDownloadingItem(item.id);

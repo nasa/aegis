@@ -1,29 +1,38 @@
+import type { FunctionComponent } from "react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { isLoggedIn } from "http-client/login";
-import styles from "components/admin/admin.module.css";
-import Header from "components/interface/header";
+import adminCommon from "./adminCommon.module.css";
+import styles from "./index.module.css";
+
+interface NavCardProps {
+  to: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+}
+
+const NavCard: FunctionComponent<NavCardProps> = ({ to, title, description, enabled }) => {
+  if (!enabled) {
+    return (
+      <div className={styles.disabledCard}>
+        <h3 className={styles.navCardTitle}>{title}</h3>
+        <p className={styles.navCardDescription}>{description}</p>
+      </div>
+    );
+  }
+  return (
+    <Link to={to} className={styles.navCard}>
+      <h3 className={styles.navCardTitle}>{title}</h3>
+      <p className={styles.navCardDescription}>{description}</p>
+    </Link>
+  );
+};
 
 const Index: React.FunctionComponent = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<AppUser>(null);
-  const navigateMission = async () => {
-    navigate("/admin/missions");
-  };
 
-  const navigateUser = async () => {
-    navigate("/admin/user");
-  };
-
-  const navigateVisitors = async () => {
-    navigate("/admin/serverSocketStatus");
-  };
-
-  const navigateEmss = async () => {
-    navigate("/admin/emss");
-  };
-
-  //on load check login
   useEffect(() => {
     async function adminCheck() {
       const response = await isLoggedIn();
@@ -32,7 +41,7 @@ const Index: React.FunctionComponent = () => {
         if (user.isAdmin || user.isSuperAdmin) {
           setUser(user);
         } else {
-          navigate("/"); //Redirect to homepage
+          navigate("/");
         }
       } else {
         navigate("/");
@@ -43,79 +52,76 @@ const Index: React.FunctionComponent = () => {
     });
   }, [navigate]);
 
-  const tileLoop = [
-    {
-      title: "Missions",
-      description: "Modify existing missions or add new ones",
-      button: "Add/Edit Missions",
-      onClick: navigateMission,
-      enabled: true,
-    },
-    {
-      title: "Users",
-      description: "Register new users, or edit the old ones (super admin only)",
-      button: "Register or Edit Users",
-      onClick: navigateUser,
-      enabled: user?.isSuperAdmin,
-    },
-    {
-      title: "Visitors",
-      description: "View data on current visitors via sockets",
-      button: "View",
-      onClick: navigateVisitors,
-      enabled: user?.isSuperAdmin,
-    },
-    {
-      title: "EMSS",
-      description: "View data on current EMSS connections",
-      button: "View",
-      onClick: navigateEmss,
-      enabled: user?.isSuperAdmin,
-    },
-  ];
+  if (!(user?.isAdmin || user?.isSuperAdmin)) {
+    return null;
+  }
 
   return (
-    <>
-      {user?.isAdmin || user?.isSuperAdmin ? (
-        <>
-          <div>
-            <div className={styles.pageStyle}>
-              <div className={styles.header}>
-                <Header />
-              </div>
-              <div className={styles.bodyContent}>
-                <div className={styles.actionTileContainer}>
-                  {tileLoop.map((tile) => (
-                    <div
-                      key={tile.title}
-                      className={tile.enabled ? styles.actionTile : styles.disabledTile}
-                    >
-                      <div className={styles.content}>
-                        <h2 className={styles.title}>{tile.title}</h2>
-                        <div className={styles.description}>
-                          <p>{tile.description}</p>
-                        </div>
-                        <button
-                          className={tile.enabled ? styles.button : styles.disabledButton}
-                          onClick={tile.onClick}
-                          disabled={!tile.enabled}
-                        >
-                          {tile.button}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+    <main className={adminCommon.page}>
+      <div className={adminCommon.container}>
+        <header className={styles.pageHeader}>
+          <div className={styles.headerLeft}>
+            <img src="/images/EMSS.svg" alt="EMSS Emblem" className={styles.emblem} />
+            <div>
+              <h1 className={styles.wordMark}>AEGIS</h1>
+              <p className={adminCommon.introText}>
+                Manage missions, users, monitor system status, and configure application settings.
+              </p>
             </div>
           </div>
-        </>
-      ) : (
-        <>
-          <span>Access Denied</span>
-        </>
-      )}
-    </>
+          <div className={styles.headerRight}>
+            <div className={styles.logoEmss} title="EMSS" />
+            <img src="/images/logo_NASA.svg" alt="NASA" className={styles.meatball} />
+          </div>
+        </header>
+
+        {/* Mission Management */}
+        <section className={adminCommon.section} aria-labelledby="mission-management-heading">
+          <h2 id="mission-management-heading" className={adminCommon.sectionHeading}>
+            Mission Management
+          </h2>
+          <div className={adminCommon.details}>
+            <nav className={styles.navGrid} aria-label="Mission management navigation">
+              <NavCard
+                to="/admin/missions"
+                title="Missions"
+                description="Create, edit, duplicate, and manage mission configurations and GIS data."
+                enabled={true}
+              />
+            </nav>
+          </div>
+        </section>
+
+        {/* User & System Management */}
+        <section className={adminCommon.section} aria-labelledby="system-management-heading">
+          <h2 id="system-management-heading" className={adminCommon.sectionHeading}>
+            User &amp; System Management
+          </h2>
+          <div className={adminCommon.details}>
+            <nav className={styles.navGrid} aria-label="System management navigation">
+              <NavCard
+                to="/admin/user"
+                title="Users"
+                description="Register new users, manage permissions, and configure access controls."
+                enabled={!!user?.isSuperAdmin}
+              />
+              <NavCard
+                to="/admin/serverSocketStatus"
+                title="Visitor Activity"
+                description="Real-time monitoring of all connected visitors organized by mission."
+                enabled={!!user?.isSuperAdmin}
+              />
+              <NavCard
+                to="/admin/emss"
+                title="EMSS / Maestro"
+                description="Manage EMSS API integration, clear REX properties, and monitor Maestro connections."
+                enabled={!!user?.isSuperAdmin}
+              />
+            </nav>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 };
 
