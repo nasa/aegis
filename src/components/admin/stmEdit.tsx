@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { useEffect, useState } from "react";
 import stmStyles from "./stmEdit.module.css";
 import adminStyles from "./admin.module.css";
+import adminCommon from "pages/admin/adminCommon.module.css";
 import { deleteSTMs, upsertSTMs } from "http-client/stm";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -16,6 +17,8 @@ import { getAccurateNow } from "utils/formatting";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { deepEqual } from "utils/useAppSelector";
 import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const STMEdit: FunctionComponent<{
   reloadSTMfromDB: (missionId: number) => void;
@@ -92,8 +95,8 @@ const STMEdit: FunctionComponent<{
       </div>
       <div className={adminStyles.sectionDiv}>
         <div className={adminStyles.sectionDivHeading}>Import/Export STM</div>
+        <ExportSTM allLevel1s={allLevel1s} allLevel2s={allLevel2s} allLevel3s={allLevel3s} />
         <div className={stmStyles.importExport}>
-          <ExportSTM allLevel1s={allLevel1s} allLevel2s={allLevel2s} allLevel3s={allLevel3s} />
           <ImportSTM missionId={missionId} reloadSTMfromDB={reloadSTMfromDB} />
         </div>
       </div>
@@ -306,7 +309,7 @@ const ExportSTM: FunctionComponent<{
   return (
     <>
       <div className={stmStyles.exportContainer}>
-        <button onClick={exportSTM} className={stmStyles.exportButton}>
+        <button onClick={exportSTM} className={adminCommon.button}>
           Export STM to JSON
         </button>
       </div>
@@ -326,6 +329,7 @@ const ImportSTM: FunctionComponent<{
         id="importStm"
         placeholder="paste STM json to import here"
         onChange={(e) => setStmJson(e.target.value)}
+        style={{ width: "500px" }}
       />
       <button
         onClick={() => {
@@ -338,6 +342,7 @@ const ImportSTM: FunctionComponent<{
             reloadSTMfromDB(missionId);
           }
         }}
+        className={adminCommon.button}
       >
         Import STM
       </button>
@@ -479,11 +484,12 @@ const NewLevel1Fields: FunctionComponent<{
       &nbsp;
       <button
         type="button"
+        className={adminCommon.buttonPrimary}
         onClick={() => {
           addNewLevel1();
         }}
       >
-        Add New Level1
+        <FontAwesomeIcon icon={faPlus} /> Add New Level1
       </button>
     </>
   );
@@ -537,11 +543,12 @@ const NewLevel2Fields: FunctionComponent<{
         &nbsp;
         <button
           type="button"
+          className={adminCommon.buttonPrimary}
           onClick={() => {
             addNewLevel2();
           }}
         >
-          Add New Level2 to Level1
+          <FontAwesomeIcon icon={faPlus} /> Add New Level2 to Level1
         </button>
       </>
     )
@@ -596,11 +603,12 @@ const NewLevel3Fields: FunctionComponent<{
         &nbsp;
         <button
           type="button"
+          className={adminCommon.buttonPrimary}
           onClick={() => {
             addNewLevel3();
           }}
         >
-          Add New Level3 to Level2
+          <FontAwesomeIcon icon={faPlus} /> Add New Level3 to Level2
         </button>
       </>
     )

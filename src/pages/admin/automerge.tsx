@@ -1,16 +1,13 @@
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { useCallback, useEffect, useState } from "react";
-import styles from "components/admin/admin.module.css";
 import { isLoggedIn } from "http-client/login";
-import Header from "components/interface/header";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { useDocHandle, useDocument } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl, ChangeFn, DocHandleChangePayload } from "@automerge/automerge-repo";
 import { applyChange, diff } from "deep-diff";
 import type { ErrorObject } from "ajv";
 import Ajv from "ajv";
 import { getMissionBackup } from "http-client/mission";
+import adminCommon from "./adminCommon.module.css";
 
 type RouteParams = {
   automergeUrl: string;
@@ -77,62 +74,81 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
   };
 
   return (
-    <>
-      <div className={styles.pageStyle}>
-        <div className={styles.header}>
-          <Header />
-        </div>
-        <div className={styles.bodyContent}>
-          <div className={styles.missionBack}>
-            <FontAwesomeIcon
-              icon={faArrowAltCircleLeft}
-              size="xl"
-              onClick={() => {
-                navigate("/admin/missions");
-              }}
-            />
+    <main className={adminCommon.page}>
+      <div className={adminCommon.container}>
+        <Link to="/admin/missions" className={adminCommon.backLink}>
+          ← Missions
+        </Link>
+        <h1 className={adminCommon.pageTitle}>Manage Automerge Data</h1>
+        {automergeMission?.name && (
+          <div className={adminCommon.missionSubheader}>
+            <span className={adminCommon.missionSubheaderLabel}>Mission</span>
+            <span className={adminCommon.missionSubheaderName}>{automergeMission.name}</span>
           </div>
-          <h1>Manage Automerge Data</h1>
-          Manage the Automerge document for the mission.
-          <br />
-          Database is updated via the auto-backup listener on the server.
-          <br />
-          Live diffs from the Automerge document for this mission are output to the console.
-          <br />
-          <br />
-          <div style={{ marginBottom: "5px" }}>Mission Name: {automergeMission?.name}</div>
-          <div style={{ marginBottom: "5px" }}>AutomergeURL: {params.automergeUrl}</div>
-          <div>
-            <h2>View Data</h2>
-            <div>
+        )}
+        <p className={adminCommon.descriptionText}>
+          Manage the Automerge document for the mission. Database is updated via the auto-backup
+          listener on the server. Live diffs from the Automerge document for this mission are output
+          to the console.
+        </p>
+
+        <section className={adminCommon.section}>
+          <h2>Document Info</h2>
+          <div className={adminCommon.details}>
+            <div className={adminCommon.definitionList}>
+              <div className={adminCommon.definitionRow}>
+                <dt>Mission Name</dt>
+                <dd>{automergeMission?.name}</dd>
+              </div>
+              <div className={adminCommon.definitionRow}>
+                <dt>Automerge URL</dt>
+                <dd style={{ fontFamily: "var(--font-mono)" }}>{params.automergeUrl}</dd>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className={adminCommon.section}>
+          <h2>View Data</h2>
+          <div className={adminCommon.details}>
+            <p className={adminCommon.descriptionText}>
+              Output document data to the browser developer console.
+            </p>
+            <div className={adminCommon.formActions}>
               <button
+                className={adminCommon.button}
                 type="button"
                 onClick={() => {
                   console.log(automergeMission);
                 }}
               >
-                Paste AM doc to console
+                Paste AM Doc to Console
               </button>
-              <br />
               <button
+                className={adminCommon.button}
                 type="button"
                 onClick={async () => {
                   const missionRes = await getMissionBackup(automergeMission?.id);
                   console.log(missionRes);
                 }}
               >
-                Paste backup DB copy to console
+                Paste Backup DB Copy to Console
               </button>
             </div>
           </div>
-          <div>
-            <h2>Validate the Automerge Document</h2>
-            <div style={{ marginBottom: "5px" }}>
+        </section>
+
+        <section className={adminCommon.section}>
+          <h2>Validate</h2>
+          <div className={adminCommon.details}>
+            <p className={adminCommon.descriptionText}>
               Validate the fields in the current Automerge document against the Mission type in the
               codebase. Diffs are output in the dev console (empty array means no diffs). You must
               have already generated a JSON schema.
-              <br />
+            </p>
+            <div className={adminCommon.formActions}>
               <button
+                className={adminCommon.button}
                 onClick={async () => {
                   const results = await validateMission(automergeMission);
                   console.log(results);
@@ -142,20 +158,23 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
               </button>
             </div>
           </div>
-          <br />
-          <div>
-            <h2>Export/Import Automerge Document</h2>
-            <div style={{ userSelect: "none" }}>
+        </section>
+
+        <section className={adminCommon.section}>
+          <h2>Export / Import</h2>
+          <div className={adminCommon.details}>
+            <div className={adminCommon.formActions}>
               <button
+                className={adminCommon.button}
                 onClick={() => {
                   setJsonField(JSON.stringify(automergeMission, null, 2));
                   setImportExportStatus("Export Complete");
                 }}
               >
-                Export as Automerge Document as JSON to Text Field
+                Export Automerge Document as JSON
               </button>
-              &nbsp;
               <button
+                className={adminCommon.buttonDanger}
                 disabled={false}
                 onClick={async () => {
                   const newVersion: unknown = JSON.parse(jsonField);
@@ -185,24 +204,23 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
                   setJsonField("");
                 }}
               >
-                Import JSON in Text Field as a new version to the Automerge Document
+                Import JSON as New Version
               </button>
-              <br />
-              <div>{importExportStatus}</div>
             </div>
-            <div style={{ fontSize: "0.8em" }}>
-              <textarea
-                style={{ width: "100%", height: "200px" }}
-                value={jsonField}
-                onChange={(e) => {
-                  setJsonField(e.target.value);
-                }}
-              />
-            </div>
+            {importExportStatus && (
+              <p className={adminCommon.statusMessage}>{importExportStatus}</p>
+            )}
+            <textarea
+              className={adminCommon.logTextarea}
+              value={jsonField}
+              onChange={(e) => {
+                setJsonField(e.target.value);
+              }}
+            />
           </div>
-        </div>
+        </section>
       </div>
-    </>
+    </main>
   );
 };
 

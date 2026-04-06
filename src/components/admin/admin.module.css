@@ -4,9 +4,9 @@
   height: 50px;
   padding-top: 6px;
   padding-bottom: 6px;
-  background-color: var(--grey1);
-  border-bottom: 2px solid black;
-  color: white;
+  background-color: var(--admin-panel, #4c4e5b);
+  border-bottom: 2px solid var(--admin-border, #474955);
+  color: #e2e8f0;
   width: 100%;
 }
 
@@ -106,38 +106,34 @@
 
 .button {
   user-select: none;
-  border: none;
+  border: 1px solid var(--admin-border, #474955);
   outline: none;
-  color: rgb(255 255 255);
-  text-transform: uppercase;
-  font-weight: 700;
-  font-size: 0.75rem;
-  padding: 0.75rem 1.5rem;
-  background-color: rgb(33 150 243);
-  border-radius: 0.5rem;
-  width: 90%;
-  text-shadow: 0 4px 18px #2c3442;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  background: var(--admin-panel, #4c4e5b);
+  border-radius: 4px;
   cursor: pointer;
+  transition: background 160ms ease;
 }
 
 .disabledButton {
   user-select: none;
-  border: none;
+  border: 1px solid var(--admin-border, #474955);
   outline: none;
-  color: rgb(255 255 255);
-  text-transform: uppercase;
-  font-weight: 700;
-  font-size: 0.75rem;
-  padding: 0.75rem 1.5rem;
-  background-color: rgb(33 150 243);
-  border-radius: 0.5rem;
-  width: 90%;
-  text-shadow: 0 4px 18px #2c3442;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  background: var(--admin-dark, #313131);
+  border-radius: 4px;
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .button:hover {
-  background-color: rgb(33 150 243 / 80%);
+  background: var(--admin-border, #474955);
 }
 
 .divIndent {
@@ -148,6 +144,7 @@
   padding-right: 5px;
   align-self: center;
   text-wrap: nowrap;
+  color: #cbd5e1;
 }
 
 .editDiv {
@@ -158,32 +155,95 @@
 
 .validation {
   font-size: 0.75rem;
-  color: red;
+  color: #f87171;
   line-height: 1rem;
 }
 
 .propertiesErrs {
-  color: red;
+  color: #f87171;
 }
 
 .deleteButton {
-  background-color: #dc3545;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid rgb(248 113 113 / 40%);
+  background: rgb(248 113 113 / 10%);
+  color: #f87171;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.deleteButton:hover {
+  background: rgb(248 113 113 / 20%);
+  border-color: rgb(248 113 113 / 60%);
 }
 
 .sectionDiv {
-  border: 1px solid black;
-  padding: 5px;
-  margin: 5px;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  background: var(--admin-bg, #19181b);
+  color: #e2e8f0;
 }
 
 .sectionDivHeading {
   font-size: 1.1rem;
-  font-weight: bold;
+  font-weight: 700;
   padding: 5px 5px 5px 0;
+  color: #f1f5f9;
+  margin: 0;
 }
 
 .sublayerEditBoxes {
   display: flex;
+}
+
+.sublayerEditBoxes > * {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Two-column newspaper-style layout: fills left column top-to-bottom first */
+.sublayerEditBoxes > .sectionDiv:first-child {
+  column-count: 2;
+  column-gap: 24px;
+}
+
+.sublayerEditBoxes > .sectionDiv:first-child > div {
+  break-inside: avoid;
+}
+
+.sublayerEditBoxes > .sectionDiv:first-child > br {
+  display: none;
+}
+
+.sublayerEditBoxes > .sectionDiv:first-child > [id="readOnlyDiv"] {
+  column-span: all;
+}
+
+/* Two-column grid wrapper for layerEdit and similar small forms */
+.sublayerFieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 20px;
+  align-items: start;
+}
+
+.sublayerEditFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.sublayerEditBoxes > .sectionDiv:first-child > .sublayerEditFooter {
+  column-span: all;
 }
 
 .editMissionDiv {
@@ -192,13 +252,24 @@
 }
 
 .fileTable {
+  width: 100%;
   border-collapse: collapse;
+  font-size: 0.85rem;
 }
 
 .fileTable td,
 .fileTable th {
-  border: 1px solid black;
-  padding: 4px;
+  border-top: 1px solid var(--admin-dark, #313131);
+  padding: 8px 12px;
+  color: #cbd5e1;
+}
+
+.fileTable th {
+  background: var(--admin-panel, #4c4e5b);
+  color: var(--admin-muted, #e0e0e0);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .centerHeader {
@@ -239,10 +310,10 @@
   max-width: 650px;
   height: 600px;
   padding: 20px 50px;
-  border: 1px solid var(--grey4);
-  border-radius: 5px;
-  color: white;
-  background-color: #0b3d91;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 6px;
+  color: #e2e8f0;
+  background: var(--admin-panel, #4c4e5b);
   margin: 0 auto;
 }
 
@@ -278,19 +349,26 @@
   width: 100%;
   border-collapse: collapse;
   border-spacing: 0;
+  font-size: 0.85rem;
 }
 .table th {
-  padding: 0.5rem;
-  border: 1px solid #dddddd;
+  padding: 8px 12px;
   text-align: left;
+  font-weight: 600;
+  color: var(--admin-muted, #e0e0e0);
+  background: var(--admin-panel, #4c4e5b);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
 }
 .table tr {
-  border: 1px solid #dddddd;
+  border: none;
 }
 
 .table td {
-  padding: 0.5rem;
-  border: 1px solid #dddddd;
+  padding: 10px 12px;
+  color: #cbd5e1;
+  border-top: 1px solid var(--admin-dark, #313131);
   text-align: left;
 }
 
@@ -317,16 +395,18 @@
 }
 
 .form {
-  max-width: 300px;
-  height: 400px;
+  max-width: 400px;
+  max-height: 400px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   flex: 1;
-  border-radius: 5px;
-  background-color: #f2f2f2;
+  border-radius: 6px;
+  background: var(--admin-bg, #19181b);
+  border: 1px solid var(--admin-border, #474955);
   padding: 20px;
-  margin-top: 30px;
+  margin-top: 12px;
+  color: #e2e8f0;
 }
 
 .form::-webkit-scrollbar-track {
@@ -340,33 +420,51 @@
 }
 
 .formGroup label {
-  font-size: 0.75rem;
-  color: #333333;
+  font-size: 0.85rem;
+  color: #cbd5e1;
   line-height: 1rem;
   margin-bottom: 0.5rem;
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .formGroup input {
-  font-size: 0.75rem;
-  color: #333333;
+  font-size: 0.85rem;
+  color: #e2e8f0;
   line-height: 1rem;
   margin-bottom: 0.5rem;
-  padding: 0.5rem;
-  border: 1px solid #dddddd;
-  border-radius: 0.25rem;
+  padding: 8px 10px;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 4px;
+  background: var(--admin-bg, #19181b);
   width: 100%;
 }
 
 .formGroup select {
-  font-size: 0.75rem;
-  color: #333333;
+  font-size: 0.85rem;
+  color: #e2e8f0;
   line-height: 1rem;
   margin-bottom: 0.5rem;
-  padding: 0.5rem;
-  border: 1px solid #dddddd;
-  border-radius: 0.25rem;
+  padding: 8px 10px;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 4px;
+  background: var(--admin-bg, #19181b);
   width: 100%;
+}
+
+:where(.sectionDiv, .divWithBorder, .editDiv) button {
+  padding: 6px 12px;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 4px;
+  background: var(--admin-panel, #4c4e5b);
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+:where(.sectionDiv, .divWithBorder, .editDiv) button:hover {
+  background: var(--admin-border, #474955);
 }
 
 .formEnd {
@@ -374,43 +472,49 @@
 }
 
 .formEnd button {
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   color: white;
   line-height: 1rem;
-  padding: 0.5rem;
-  border: 1px solid #dddddd;
-  border-radius: 0.25rem;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
   width: 100%;
-  background-color: #0b3d91;
+  background: #2563eb;
   cursor: pointer;
+  font-weight: 600;
+  transition: background 160ms ease;
+}
+
+.formEnd button:hover {
+  background: #3b82f6;
 }
 
 .formGroup button:hover {
-  background-color: white;
-  color: #0b3d91;
-  border: 2px solid black;
+  background-color: #3b82f6;
+  color: white;
+  border: 2px solid #3b82f6;
 }
 
 .addButton {
-  background-color: #0b3d91;
+  background: #2563eb;
   color: white;
-  border: 1px solid #dddddd;
-  border-radius: 0.25rem;
-  width: 120px;
-  padding: 0.5rem;
-  font-size: 1rem;
+  border: none;
+  border-radius: 4px;
+  width: auto;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
   line-height: 1rem;
   margin-bottom: 0.5rem;
   position: absolute;
   right: 20px;
   top: 40px;
   cursor: pointer;
+  transition: background 160ms ease;
 }
 
 .addButton:hover {
-  background-color: white;
-  color: #0b3d91;
-  border: 2px solid black;
+  background: #3b82f6;
 }
 
 .errorMessage {
@@ -449,7 +553,7 @@
 }
 
 .apiTitle {
-  color: black;
+  color: #f1f5f9;
   text-align: center;
 }
 
@@ -466,12 +570,12 @@
   justify-content: space-between;
   width: 100px;
   padding: 0 10px;
-  color: black;
+  color: #94a3b8;
   transition: 0.5s ease;
 }
 
 .disabledIcon {
-  color: var(--grey4);
+  color: #64748b;
   flex: 1;
   justify-content: space-between;
   width: 100px;
@@ -480,11 +584,11 @@
 }
 
 .icons:hover {
-  color: var(--grey1);
+  color: #93c5fd;
 }
 
 .icons:active {
-  color: var(--grey1);
+  color: #60a5fa;
 }
 
 .apiButton {
@@ -508,7 +612,7 @@
 }
 
 .titleText {
-  color: black;
+  color: #f1f5f9;
   text-align: center;
 }
 
@@ -527,8 +631,9 @@
   padding: 0 10px;
   width: 100%;
   height: 30px;
-  border-bottom: 1px solid var(--grey4);
+  border-bottom: 1px solid var(--admin-border, #474955);
   cursor: pointer;
+  color: #e2e8f0;
 }
 
 .componentListItemActive {
@@ -539,72 +644,100 @@
   padding: 0 10px;
   width: 100%;
   height: 30px;
-  border-bottom: 1px solid var(--grey4);
+  border-bottom: 1px solid var(--admin-border, #474955);
   cursor: pointer;
-  background-color: var(--grey4);
+  background-color: var(--admin-panel, #4c4e5b);
+  color: #e2e8f0;
 }
 
 .componentListItem:hover {
-  background-color: var(--grey4);
+  background-color: var(--admin-panel, #4c4e5b);
 }
 
 .inputText {
   width: 100%;
-  padding: 12px 20px;
+  padding: 10px 12px;
   margin: 8px 0;
   display: inline-block;
-  border: 1px solid #cccccc;
-  border-radius: 4px;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 6px;
   box-sizing: border-box;
+  background: var(--admin-bg, #19181b);
+  color: #e2e8f0;
+  font-size: 0.95rem;
 }
 
 .inputSelect {
   width: 100%;
-  padding: 12px 20px;
+  padding: 10px 12px;
   margin: 8px 0;
   display: inline-block;
-  border: 1px solid #cccccc;
-  border-radius: 4px;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 6px;
   box-sizing: border-box;
+  background: var(--admin-bg, #19181b);
+  color: #e2e8f0;
+  font-size: 0.95rem;
 }
 
 .inputTextArea {
   width: 100%;
   height: 4rem;
-  border-radius: 4px;
+  border-radius: 6px;
+  border: 1px solid var(--admin-border, #474955);
+  background: var(--admin-bg, #19181b);
+  color: #e2e8f0;
+  padding: 10px 12px;
+  font-size: 0.95rem;
 }
 
 .inputValidate {
   width: 100%;
-  padding: 12px 20px;
+  padding: 10px 12px;
   margin: 8px 0;
   display: inline-block;
-  border: 1px solid #cccccc;
-  border-radius: 4px;
+  border: 1px solid #fbbf24;
+  border-radius: 6px;
   box-sizing: border-box;
-  background-color: #ffc107;
+  background: rgb(251 191 36 / 10%);
+  color: #fbbf24;
 }
 
 .inputSubmit {
   width: 100%;
-  background-color: #4caf50;
+  background: #2563eb;
   color: white;
-  padding: 14px 20px;
+  padding: 10px 16px;
   margin: 8px 0;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background 160ms ease;
+}
+
+.inputSubmit:hover {
+  background: #3b82f6;
 }
 
 .deleteInput {
   width: 100%;
-  background-color: #dc3545;
-  color: white;
-  padding: 14px 20px;
+  padding: 10px 16px;
   margin: 8px 0;
-  border: none;
+  border: 1px solid rgb(248 113 113 / 40%);
+  background: rgb(248 113 113 / 10%);
+  color: #f87171;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background 160ms ease;
+}
+
+.deleteInput:hover {
+  background: rgb(248 113 113 / 20%);
+  border-color: rgb(248 113 113 / 60%);
 }
 
 .deleteInput:disabled {
@@ -663,7 +796,7 @@
 .progressBarContainer {
   width: 100%;
   height: 20px;
-  background-color: var(--grey4);
+  background-color: var(--admin-dark, #313131);
   border-radius: 5px;
   margin: 10px 0;
 }
@@ -691,26 +824,34 @@
 }
 
 .importButton {
-  background-color: #4caf50;
+  background: #2563eb;
   color: white;
   margin: 8px 10px;
-  padding: 3px 9px;
+  padding: 6px 12px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: 600;
+  transition: background 160ms ease;
 }
 .importButton:hover {
-  background-color: #46a049;
+  background: #3b82f6;
 }
 
 .exportButton {
-  background-color: #ffffcc;
-  color: black;
+  background: var(--admin-panel, #4c4e5b);
+  color: #e2e8f0;
   margin: 8px 10px;
-  padding: 3px 9px;
-  border: none;
+  padding: 6px 12px;
+  border: 1px solid var(--admin-border, #474955);
   border-radius: 4px;
   cursor: pointer;
+  font-weight: 600;
+  transition: background 160ms ease;
+}
+
+.exportButton:hover {
+  background: var(--admin-border, #474955);
 }
 
 /* Style top right Close button */
@@ -747,25 +888,24 @@
   font-size: 1.2em;
   margin-bottom: 10px;
   color: white;
-  background: #0b3d91;
-  border: 3px solid white;
+  background: #2563eb;
+  border: 2px solid var(--admin-border, #474955);
   border-radius: 25px;
   cursor: pointer;
 }
 
 .missionName:hover {
-  background: white;
-  color: #0b3d91;
-  border: 3px solid #0b3d91;
+  background: #3b82f6;
+  border-color: #60a5fa;
 }
 
 .missionDisabled {
   font-weight: bold;
   font-size: 1.2em;
   margin-bottom: 10px;
-  color: lightgray;
-  background: grey;
-  border: 3px solid #cccccc;
+  color: #64748b;
+  background: var(--admin-dark, #313131);
+  border: 2px solid var(--admin-border, #474955);
   border-radius: 25px;
   cursor: not-allowed;
 }
@@ -777,7 +917,7 @@
 }
 
 .smallGrey {
-  color: black;
+  color: #94a3b8;
   font-size: 0.6em;
   display: block;
 }
@@ -801,10 +941,10 @@
   width: 300px;
   margin: 10px;
   padding: 10px;
-  border: 1px solid var(--grey4);
-  border-radius: 5px;
-  background-color: #0b3d91;
-  color: white;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 6px;
+  background: var(--admin-panel, #4c4e5b);
+  color: #e2e8f0;
   display: flex;
   justify-content: flex-start;
   flex-direction: column;
@@ -891,10 +1031,36 @@
   display: block;
 }
 
+/* Dark theme overrides for native elements within sub-component wrappers */
+.sectionDiv input,
+.sectionDiv select,
+.sectionDiv textarea,
+.divWithBorder input,
+.divWithBorder select,
+.divWithBorder textarea,
+.editDiv input,
+.editDiv select,
+.editDiv textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 4px;
+  background: var(--admin-bg, #19181b);
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.sublayerEditBoxes .editDiv input:not([type="checkbox"], [type="radio"]),
+.sublayerEditBoxes .editDiv select,
+.sublayerEditBoxes .editDiv textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .pageStyle {
-  background-color: white;
+  background-color: var(--admin-bg, #19181b);
   overflow-y: auto;
   height: 100vh;
+  color: #e2e8f0;
 }
 
 .pageStyle .tooltip {
@@ -912,10 +1078,54 @@
   flex-direction: row;
 }
 
+.renameInput {
+  padding: 6px 10px;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 4px;
+  background: var(--admin-bg, #19181b);
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  width: 200px;
+}
+
+.select {
+  padding: 6px 32px 6px 10px;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 4px;
+  background: var(--admin-panel, #4c4e5b);
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: background 160ms ease;
+}
+
+.select:hover {
+  background-color: var(--admin-border, #474955);
+}
+
+.layerListItem {
+  line-height: 1.8;
+}
+
+.layerButtons {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  vertical-align: middle;
+}
+
 .divWithBorder {
-  border: 1px solid black;
-  padding: 5px;
-  margin: 5px;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  background: var(--admin-bg, #19181b);
+  color: #e2e8f0;
 }
 
 .breadcrumb {
@@ -944,4 +1154,5 @@
   margin-top: -2px;
   height: 1em;
   vertical-align: -0.25em;
+  fill: currentcolor;
 }

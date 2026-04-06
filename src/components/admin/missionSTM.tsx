@@ -1,6 +1,7 @@
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useCallback, useEffect, useState } from "react";
 import adminStyles from "./admin.module.css";
+import adminCommon from "pages/admin/adminCommon.module.css";
 import {
   getSTMLevel1s,
   getStmLevel2s,
@@ -11,7 +12,7 @@ import {
 } from "http-client/stm";
 import STMEdit from "components/admin/stmEdit";
 import stmStyles from "./stmEdit.module.css";
-import { faCaretDown, faCaretUp } from "@fortawesome/free-solid-svg-icons";
+import { faCaretDown, faCaretRight, faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { type AutomergeUrl, isValidAutomergeUrl } from "@automerge/automerge-repo";
 import { getAutomergeDocListing } from "http-client/docListing";
@@ -109,7 +110,6 @@ const MissionSTM: FunctionComponent<{
     <>
       {missionId && automergeUrl && (
         <div>
-          <h2>STM for Mission: {missionId}</h2>
           <div className={adminStyles.sectionDiv}>
             <div className={adminStyles.sectionDivHeading}>Science Traceability Matrix</div>
             <Level1List
@@ -177,12 +177,12 @@ const Level1List: FunctionComponent<{
   if (level1s.length > 0) {
     return (
       partialMission && (
-        <ul>
+        <ul style={{ paddingLeft: "1.2rem", margin: 0 }}>
           {level1s.map((objv: STMLevel1) => {
             return (
-              <li key={objv.uuid}>
+              <li key={objv.uuid} style={{ margin: "6px 0" }}>
                 <FontAwesomeIcon
-                  icon={collapsedSTMLevel1s.includes(objv.uuid) ? faCaretUp : faCaretDown}
+                  icon={collapsedSTMLevel1s.includes(objv.uuid) ? faCaretRight : faCaretDown}
                   onClick={() => {
                     if (!collapsedSTMLevel1s.includes(objv.uuid)) {
                       const newCollapsed = [...collapsedSTMLevel1s];
@@ -262,14 +262,14 @@ const Level2List: FunctionComponent<{
 }) => {
   if (level2s) {
     return (
-      <ul>
+      <ul style={{ paddingLeft: "1.2rem", margin: "4px 0" }}>
         {level2s
           .filter((level2) => level2.level1Uuid === parentUuid)
           .map((level2: STMLevel2) => {
             return (
-              <li key={level2.uuid}>
+              <li key={level2.uuid} style={{ margin: "6px 0" }}>
                 <FontAwesomeIcon
-                  icon={collapsedSTMLevel2s.includes(level2.uuid) ? faCaretUp : faCaretDown}
+                  icon={collapsedSTMLevel2s.includes(level2.uuid) ? faCaretRight : faCaretDown}
                   onClick={() => {
                     if (!collapsedSTMLevel2s.includes(level2.uuid)) {
                       const newCollapsed = [...collapsedSTMLevel2s];
@@ -326,12 +326,12 @@ const Level3List: FunctionComponent<{
 }> = ({ parentUuid, level3s, stmLevel3Name, actionSystemVersion, missionId, delSTM }) => {
   if (level3s) {
     return (
-      <ul>
+      <ul style={{ paddingLeft: "1.2rem", margin: "4px 0" }}>
         {level3s
           .filter((level3) => level3.level2Uuid === parentUuid)
           .map((level3: STMLevel3) => {
             return (
-              <li key={level3.uuid}>
+              <li key={level3.uuid} style={{ margin: "6px 0" }}>
                 <STMUpdateFields
                   stm={level3}
                   stmLevelName={stmLevel3Name}
@@ -393,12 +393,13 @@ const STMUpdateFields: FunctionComponent<{
           &nbsp;
           <button
             type="button"
+            className={adminCommon.button}
             onClick={() => {
               setIsEditing(false);
               saveFunction({ ...stm, numbering, name });
             }}
           >
-            Save
+            <FontAwesomeIcon icon={faFloppyDisk} /> Save
           </button>
         </>
       ) : (
@@ -409,6 +410,7 @@ const STMUpdateFields: FunctionComponent<{
           &nbsp;
           <button
             type="button"
+            className={adminCommon.button}
             onClick={() => {
               setIsEditing(true);
             }}
@@ -420,7 +422,7 @@ const STMUpdateFields: FunctionComponent<{
       )}
       &nbsp;
       <button
-        className={adminStyles.deleteButton}
+        className={adminCommon.buttonDanger}
         type="button"
         onClick={() => {
           deleteFunction();

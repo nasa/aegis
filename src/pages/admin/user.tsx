@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { isLoggedIn } from "http-client/login";
-import styles from "components/admin/admin.module.css";
-import Header from "components/interface/header";
 import { deleteAppUsers, getAppUsers, upsertAppUsers } from "../../http-client/appUser";
-import { faEdit, faTrashCan, faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import React from "react";
 import { generateBlankAppUser } from "store/storeUtils/appUser";
 import { getAccurateNow } from "utils/formatting";
 import { getAutomergeDocListing } from "http-client/docListing";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUsers } from "@fortawesome/free-solid-svg-icons";
+import adminCommon from "./adminCommon.module.css";
 
 const User: React.FunctionComponent = () => {
   const navigate = useNavigate();
@@ -26,6 +24,7 @@ const User: React.FunctionComponent = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
   const [automergeDocList, setAutomergeDocList] = useState<AutomergeDocListing[]>([]);
   const [missionList, setMissionList] = useState<{ id: number; name: string }[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
 
   //on load check login and mission id
   useEffect(() => {
@@ -50,7 +49,6 @@ const User: React.FunctionComponent = () => {
           );
           const mission = missionDocHandle.doc();
           missionNamesAndIds.push({ id: record.missionId, name: mission.name });
-          missionDocHandle.delete();
         }
         setMissionList(missionNamesAndIds);
       } else {
@@ -94,19 +92,11 @@ const User: React.FunctionComponent = () => {
     const deleteRes = await deleteAppUsers([user.id]);
     if (deleteRes.status === "success") {
       setUserList(userList.filter((u) => u.id !== user.id));
+      setDeleteTarget(null);
     } else {
       alert("There was an error deleting user");
+      setDeleteTarget(null);
     }
-  };
-
-  const handleBack = async () => {
-    setEditMode(false);
-    setCreateMode(false);
-    setUser(undefined);
-    setInfoMessage("");
-    await getAppUsers().then((users) => {
-      setUserList(users.data.sort((a, b) => a.id - b.id));
-    });
   };
 
   const handleSubmit = async () => {
@@ -163,228 +153,299 @@ const User: React.FunctionComponent = () => {
     });
   };
 
+  const closeModal = () => {
+    setEditMode(false);
+    setCreateMode(false);
+    setUser(undefined);
+    setInfoMessage("");
+    setErrorMessage("");
+    getAppUsers().then((users) => {
+      setUserList(users.data.sort((a, b) => a.id - b.id));
+    });
+  };
+
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    return (
+      d.toLocaleDateString() +
+      " " +
+      d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    );
+  };
+
+  const renderModal = () => {
+    if (!editMode && !createMode) return null;
+    return (
+      <div className={adminCommon.modalOverlay} onClick={closeModal}>
+        <div className={adminCommon.modal} onClick={(e) => e.stopPropagation()}>
+          <div className={adminCommon.modalHeader}>
+            <h2 className={adminCommon.modalTitle}>{createMode ? "Create User" : "Edit User"}</h2>
+            <button className={adminCommon.modalClose} onClick={closeModal} title="Close">
+              ✕
+            </button>
+          </div>
+          <div className={adminCommon.modalBody}>
+            <div className={adminCommon.form}>
+              <div className={adminCommon.formGroup}>
+                <label className={adminCommon.formLabel} htmlFor="username">
+                  Username
+                </label>
+                <input
+                  className={adminCommon.formInput}
+                  onChange={(e) => setUser({ ...user, username: e.target.value })}
+                  value={user?.username || ""}
+                  type="text"
+                  id="username"
+                  name="username"
+                  disabled={user?.id === 2}
+                />
+              </div>
+              <div className={adminCommon.formGroup}>
+                <label className={adminCommon.formLabel} htmlFor="password">
+                  Password
+                </label>
+                <input
+                  className={adminCommon.formInput}
+                  onChange={(e) => setUser({ ...user, password: e.target.value })}
+                  value={user?.password || ""}
+                  type="password"
+                  id="password"
+                  name="password"
+                  disabled={user?.id === 2}
+                />
+              </div>
+
+              <div className={adminCommon.formGroup}>
+                <label className={adminCommon.formLabel}>Roles</label>
+                <div className={adminCommon.checkboxGroup}>
+                  <label className={adminCommon.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      checked={user?.isSuperAdmin || user?.isAdmin || false}
+                      onChange={(e) => setUser({ ...user, isAdmin: e.target.checked })}
+                      disabled={user?.isSuperAdmin || user?.id === 2}
+                    />
+                    Admin
+                  </label>
+                </div>
+              </div>
+
+              <div className={adminCommon.formGroup}>
+                <label className={adminCommon.formLabel}>Mission Access</label>
+                <div
+                  style={{
+                    border: "1px solid var(--admin-border)",
+                    borderRadius: "var(--admin-radius)",
+                    overflow: "hidden",
+                    background: "var(--admin-bg)",
+                  }}
+                >
+                  <table
+                    className={adminCommon.table}
+                    style={{
+                      tableLayout: "fixed",
+                      width: "100%",
+                      borderCollapse: "separate",
+                      borderSpacing: 0,
+                    }}
+                  >
+                    <colgroup>
+                      <col />
+                      <col style={{ width: "60px" }} />
+                      <col style={{ width: "60px" }} />
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th>Mission</th>
+                        <th>View</th>
+                        <th>Edit</th>
+                      </tr>
+                    </thead>
+                  </table>
+                  <div
+                    style={{ maxHeight: "200px", overflowY: "auto", background: "var(--admin-bg)" }}
+                  >
+                    <table
+                      className={adminCommon.table}
+                      style={{
+                        tableLayout: "fixed",
+                        width: "100%",
+                        borderCollapse: "separate",
+                        borderSpacing: 0,
+                      }}
+                    >
+                      <colgroup>
+                        <col />
+                        <col style={{ width: "60px" }} />
+                        <col style={{ width: "60px" }} />
+                      </colgroup>
+                      <tbody>
+                        {missionList.map((mission) => (
+                          <tr key={mission.id}>
+                            <td>{mission.name}</td>
+                            <td>
+                              <label className={adminCommon.checkboxItem}>
+                                <input
+                                  type="checkbox"
+                                  onChange={() => {
+                                    const userPermissionUpdated = user.permissionList.map((p) => {
+                                      if (p.missionId === mission.id) {
+                                        p.permissions.view = !p.permissions.view;
+                                      }
+                                      return p;
+                                    });
+                                    setUser({ ...user, permissionList: userPermissionUpdated });
+                                  }}
+                                  checked={
+                                    user?.permissionList?.some(
+                                      (p) => p.missionId === mission.id && p.permissions.view
+                                    ) || false
+                                  }
+                                  disabled={user?.isSuperAdmin}
+                                />
+                              </label>
+                            </td>
+                            <td>
+                              <label className={adminCommon.checkboxItem}>
+                                <input
+                                  type="checkbox"
+                                  onChange={() => {
+                                    const userPermissionUpdated = user.permissionList.map((p) => {
+                                      if (p.missionId === mission.id) {
+                                        p.permissions.edit = !p.permissions.edit;
+                                        if (p.permissions.edit) {
+                                          p.permissions.view = true;
+                                        }
+                                      }
+                                      return p;
+                                    });
+                                    setUser({ ...user, permissionList: userPermissionUpdated });
+                                  }}
+                                  checked={
+                                    user?.permissionList?.some(
+                                      (p) => p.missionId === mission.id && p.permissions.edit
+                                    ) || false
+                                  }
+                                  disabled={user?.isSuperAdmin || user?.id === 2}
+                                />
+                              </label>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {errorMessage && <p className={adminCommon.statusDisconnected}>{errorMessage}</p>}
+            {infoMessage && <p className={adminCommon.statusConnected}>{infoMessage}</p>}
+          </div>
+          <div className={adminCommon.modalFooter}>
+            <button className={adminCommon.buttonCancel} type="button" onClick={closeModal}>
+              Cancel
+            </button>
+            <button className={adminCommon.buttonPrimary} type="button" onClick={handleSubmit}>
+              {createMode ? "Create" : "Save"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       {isSuperAdmin && (
-        <div className={styles.pageStyle}>
-          <div className={styles.header}>
-            <Header />
-          </div>
-          <div className={styles.bodyContent}>
-            {editMode ? (
-              <>
-                <h1 className={styles.centerHeader}>Edit User</h1>
-                <div className={styles.backButton}>
-                  <FontAwesomeIcon icon={faArrowAltCircleLeft} size="xl" onClick={handleBack} />
-                </div>
-              </>
-            ) : createMode ? (
-              <>
-                <h1 className={styles.centerHeader}>Create User</h1>
-                <div className={styles.backButton}>
-                  <FontAwesomeIcon icon={faArrowAltCircleLeft} size="xl" onClick={handleBack} />
-                </div>
-              </>
-            ) : (
-              <>
-                <div className={styles.backButton}>
-                  <FontAwesomeIcon
-                    icon={faArrowAltCircleLeft}
-                    size="xl"
-                    onClick={() => navigate(-1)}
-                  />
-                </div>
-                <h1 className={styles.centerHeader}>User List</h1>
-                <div
-                  className={styles.addButton}
-                  onClick={() => {
-                    handleCreate();
-                  }}
-                >
-                  <FontAwesomeIcon icon={faPlus} size={"lg"} /> Add User
-                </div>
-              </>
-            )}
+        <main className={adminCommon.page}>
+          <div className={adminCommon.container}>
+            <Link to="/admin" className={adminCommon.backLink}>
+              ← Admin
+            </Link>
+            <h1 className={adminCommon.pageTitle}>User Management</h1>
 
-            {editMode || createMode ? (
-              <>
-                <div className={styles.formContainer}>
-                  <form className={styles.form}>
-                    <div className={styles.formGroup}>
-                      <label htmlFor="username">Username</label>
-                      <input
-                        className={styles.input}
-                        onChange={(e) => {
-                          setUser({ ...user, username: e.target.value });
-                        }}
-                        value={user.username}
-                        type="text"
-                        id="username"
-                        name="username"
-                        disabled={user.id === 2}
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label htmlFor="password">Password</label>
-                      <input
-                        className={styles.input}
-                        onChange={(e) => {
-                          setUser({ ...user, password: e.target.value });
-                        }}
-                        value={user.password}
-                        type="password"
-                        id="password"
-                        name="password"
-                        disabled={user.id === 2}
-                      />
-                    </div>
-                    <div className={styles.formEnd}>
-                      <button type="button" onClick={handleSubmit}>
-                        Save
-                      </button>
-                    </div>
-                    {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
-                    {infoMessage && <p className={styles.successMessage}>{infoMessage}</p>}
-                  </form>
-                  <div className={styles.form}>
-                    <div className={styles.formGroup}>
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Permissions</th>
-                            <th>Access</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td>Admin</td>
-                            <td>
-                              <input
-                                type="checkbox"
-                                id="admin"
-                                name="permission"
-                                value="admin"
-                                checked={user.isSuperAdmin || user.isAdmin}
-                                onChange={(e) => {
-                                  setUser({ ...user, isAdmin: e.target.checked });
-                                }}
-                                disabled={user.isSuperAdmin || user.id === 2}
-                              />
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Mission Access</th>
-                            <th>View</th>
-                            <th>Edit</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {missionList.map((mission) => {
-                            return (
-                              <tr key={mission.id}>
-                                <td>{mission.name}</td>
-                                <td>
-                                  <input
-                                    type="checkbox"
-                                    id={mission.id.toString() + "-view"}
-                                    name="permission-view"
-                                    onChange={() => {
-                                      const userPermissionUpdated = user.permissionList.map((p) => {
-                                        if (p.missionId === mission.id) {
-                                          p.permissions.view = !p.permissions.view;
-                                        }
-                                        return p;
-                                      });
-                                      setUser({ ...user, permissionList: userPermissionUpdated });
-                                    }}
-                                    checked={
-                                      user.permissionList &&
-                                      user.permissionList.some(
-                                        (p) => p.missionId === mission.id && p.permissions.view
-                                      )
-                                    }
-                                    disabled={user.isSuperAdmin}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="checkbox"
-                                    id={mission.id.toString() + "-edit"}
-                                    name="permission-edit"
-                                    onChange={() => {
-                                      const userPermissionUpdated = user.permissionList.map((p) => {
-                                        if (p.missionId === mission.id) {
-                                          p.permissions.edit = !p.permissions.edit;
-                                          if (p.permissions.edit) {
-                                            //edit automatically grants view
-                                            p.permissions.view = true;
-                                          }
-                                        }
-                                        return p;
-                                      });
-                                      setUser({ ...user, permissionList: userPermissionUpdated });
-                                    }}
-                                    checked={
-                                      user.permissionList &&
-                                      user.permissionList.some(
-                                        (p) => p.missionId === mission.id && p.permissions.edit
-                                      )
-                                    }
-                                    disabled={user.isSuperAdmin || user.id === 2}
-                                  />
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+            <section className={adminCommon.section}>
+              <h2>
+                <FontAwesomeIcon icon={faUsers} className={adminCommon.mutedIcon} />
+                Users
+              </h2>
+              <div className={adminCommon.details}>
+                <div className={adminCommon.formActions} style={{ marginBottom: 12 }}>
+                  <button className={adminCommon.buttonPrimary} onClick={() => handleCreate()}>
+                    + Add User
+                  </button>
                 </div>
-              </>
-            ) : (
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {userList.map((user) => {
-                    return (
-                      <tr key={user.id}>
-                        <th scope="row">{user.id}</th>
-                        <td>{user.username}</td>
-                        <td className={styles.actionList}>
-                          <FontAwesomeIcon
-                            icon={faEdit}
-                            onClick={() => {
-                              handleEdit(user);
-                            }}
-                          />
-                          {user.id !== 1 && user.id !== 2 && (
-                            <FontAwesomeIcon
-                              icon={faTrashCan}
-                              onClick={async () => {
-                                await handleDelete(user);
-                              }}
-                            />
-                          )}
+                <table className={`${adminCommon.table} ${adminCommon.tableCompact}`}>
+                  <thead>
+                    <tr>
+                      <th scope="col">ID</th>
+                      <th scope="col">Name</th>
+                      <th scope="col">Created</th>
+                      <th scope="col">Updated</th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {userList.map((u) => (
+                      <tr key={u.id}>
+                        <td>{u.id}</td>
+                        <td style={{ color: "#f1f5f9", fontWeight: 600 }}>{u.username}</td>
+                        <td>{formatDate(u.createdAt)}</td>
+                        <td>{formatDate(u.updatedAt)}</td>
+                        <td>
+                          <div className={adminCommon.formActions}>
+                            <button className={adminCommon.button} onClick={() => handleEdit(u)}>
+                              Edit
+                            </button>
+                            {u.id !== 1 && u.id !== 2 && (
+                              <button
+                                className={adminCommon.buttonDanger}
+                                onClick={() => setDeleteTarget(u)}
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
-        </div>
+
+          {renderModal()}
+
+          {deleteTarget && (
+            <div className={adminCommon.confirmOverlay}>
+              <div className={adminCommon.confirmDialog}>
+                <h3>Delete User</h3>
+                <p>
+                  Are you sure you want to delete <strong>{deleteTarget.username}</strong>? This
+                  action cannot be undone.
+                </p>
+                <div className={adminCommon.confirmActions}>
+                  <button
+                    className={adminCommon.buttonCancel}
+                    onClick={() => setDeleteTarget(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className={adminCommon.buttonDanger}
+                    onClick={() => handleDelete(deleteTarget)}
+                    style={{ padding: "10px 24px", fontSize: "0.95rem" }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
       )}
     </>
   );

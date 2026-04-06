@@ -1,0 +1,92 @@
+/* Missions Page Specific Styles */
+
+.missionPageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.missionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.missionActions button {
+  padding: 3px 8px;
+  font-size: 0.78rem;
+}
+
+.archiveInfo {
+  margin-top: 12px;
+  padding: 14px 18px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-bg);
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.scrollableList {
+  max-height: 500px;
+  overflow-y: auto;
+  background: var(--admin-bg);
+}
+
+.missionTableWrapper {
+  margin-top: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--admin-bg);
+}
+
+.missionTableFixed {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.colId {
+  width: 50px;
+}
+
+.colVersion {
+  width: 90px;
+}
+
+.colDate {
+  width: 190px;
+}
+
+.colActions {
+  width: 460px;
+}
+
+.colDelete {
+  width: 130px;
+}
+
+.buttonSecondary {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--admin-border);
+  background: transparent;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.buttonSecondary:hover {
+  background: var(--admin-dark);
+  color: #94a3b8;
+  border-color: #64748b;
+}
