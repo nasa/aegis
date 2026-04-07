@@ -4,7 +4,7 @@ import type { Query } from "express-serve-static-core";
 import { hasPerms } from "utils/permissions";
 import { Doc_Listing_db } from "server/database/models/_allModels";
 import { globalValues } from "../global";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 /**

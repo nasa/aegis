@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { createMission, deleteMissions } from "http-client/mission";
-import styles from "components/admin/admin.module.css";
-import Header from "components/interface/header";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { isLoggedIn } from "http-client/login";
 import { Tooltip } from "react-tooltip";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -13,6 +9,10 @@ import { setAllSliceStores } from "store/crossActions";
 import { getAutomergeDocListing } from "http-client/docListing";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl, Repo } from "@automerge/automerge-repo";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCaretDown, faCaretRight, faRocket } from "@fortawesome/free-solid-svg-icons";
+import adminCommon from "./adminCommon.module.css";
+import styles from "./missions.module.css";
 
 const Missions: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -51,10 +51,6 @@ const Missions: React.FunctionComponent = () => {
     setMissions(allMissions);
   }, [automergeRepo]);
 
-  const handleBack = () => {
-    navigate("/admin");
-  };
-
   //on load check login and mission id
   useEffect(() => {
     async function isLoggedInAsync() {
@@ -85,25 +81,31 @@ const Missions: React.FunctionComponent = () => {
   }, []);
 
   return (
-    <>
-      <div className={styles.pageStyle}>
-        <Tooltip id="aegis-tooltip" className={styles.tooltip} />
-        <div className={styles.header}>
-          <Header />
-        </div>
-        <div className={styles.bodyContent}>
-          <div className={styles.missionBack}>
-            <FontAwesomeIcon icon={faArrowAltCircleLeft} size="xl" onClick={handleBack} />
-          </div>
-          <h2>Missions</h2>
-          <MissionList
-            missions={missions}
-            automergeDocListings={automergeDocListings}
-            user={user}
-            loadMissions={loadMissions}
-            automergeRepo={automergeRepo}
-          />
+    <main className={adminCommon.page}>
+      <Tooltip
+        id="aegis-tooltip"
+        style={{
+          zIndex: 900,
+          backgroundColor: "black",
+          color: "white",
+          maxWidth: 300,
+          opacity: 1,
+          fontSize: "0.8rem",
+          padding: 10,
+        }}
+      />
+      <div className={adminCommon.container}>
+        <Link to="/admin" className={adminCommon.backLink}>
+          ← Admin
+        </Link>
+        <h1 className={adminCommon.pageTitle}>Missions</h1>
+        <div className={styles.missionPageHeader}>
+          <p className={adminCommon.introText}>
+            Manage existing missions or create new ones. Each mission contains GIS data, layers, and
+            configuration.
+          </p>
           <button
+            className={adminCommon.buttonPrimary}
             type="button"
             onClick={async () => {
               const res = await createMission();
@@ -116,11 +118,57 @@ const Missions: React.FunctionComponent = () => {
             }}
             disabled={user?.id !== 1}
           >
-            Add New Mission
+            + Add New Mission
           </button>
         </div>
+        <MissionList
+          missions={missions}
+          automergeDocListings={automergeDocListings}
+          user={user}
+          loadMissions={loadMissions}
+          automergeRepo={automergeRepo}
+        />
       </div>
-    </>
+    </main>
+  );
+};
+
+const CollapsibleMissionSection = ({
+  title,
+  count,
+  badgeClass,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  count: number;
+  badgeClass: string;
+  defaultOpen: boolean;
+  children: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <section className={adminCommon.section}>
+      <div
+        className={adminCommon.collapsibleHeader}
+        onClick={() => setIsOpen(!isOpen)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") setIsOpen(!isOpen);
+        }}
+      >
+        <span className={adminCommon.collapsibleIcon}>
+          <FontAwesomeIcon icon={isOpen ? faCaretDown : faCaretRight} />
+        </span>
+        <h2 className={adminCommon.sectionHeading}>
+          <FontAwesomeIcon icon={faRocket} className={adminCommon.mutedIcon} />
+          {title}
+          <span className={badgeClass}>{count}</span>
+        </h2>
+      </div>
+      {isOpen && children}
+    </section>
   );
 };
 
@@ -180,7 +228,7 @@ const MissionList = ({
     }
   }
 
-  const listedMissions = (missionType: Mission[]) => {
+  const listedMissionRows = (missionType: Mission[], isArchivedTable = false) => {
     return missionType.map((mission: Mission) => {
       if (
         user?.isSuperAdmin ||
@@ -189,115 +237,130 @@ const MissionList = ({
         const automergeUrlForMission =
           automergeDocListings.find((ar) => ar.missionId === mission.id)?.automergeUrl || "";
         return (
-          <li key={mission.id} style={{ marginBottom: "8px" }}>
-            <>
-              {mission.name}
-              <span className={styles.missionSubtext}>(id: {mission.id})</span>
-              <br />
-              <button
-                type="button"
-                onClick={() => {
-                  navigate(`/admin/mission/${mission.id}/${automergeUrlForMission}`);
-                }}
-              >
-                Edit Mission
-              </button>
-              &nbsp;
-              <button
-                type="button"
-                onClick={() => {
-                  navigate(`/admin/mission_layers/${mission.id}`);
-                }}
-              >
-                Edit Layers
-              </button>
-              &nbsp;
-              <button
-                type="button"
-                onClick={() => {
-                  navigate(`/admin/mission_stm/${mission.id}`);
-                }}
-              >
-                Edit STM
-              </button>
-              &nbsp;
-              <button
-                type="button"
-                onClick={() => {
-                  navigate(`/admin/mission_grid/${mission.id}`);
-                }}
-              >
-                Edit Grid
-              </button>
-              &nbsp;
-              <button
-                type="button"
-                onClick={() => {
-                  navigate(`/admin/export/${mission.id}`);
-                }}
-              >
-                Export Data
-              </button>
-              &nbsp;
-              <button
-                className={styles.duplicateButton}
-                type="button"
-                onClick={() => {
-                  navigate(`/admin/mission_duplicate/${mission.id}`);
-                }}
-              >
-                Duplicate
-              </button>
-              &nbsp;
-              <button
-                className={styles.duplicateButton}
-                type="button"
-                onClick={() => {
-                  archiveMission({
-                    id: mission.id,
-                    archive: !mission.isArchived,
-                  });
-                }}
-              >
-                {mission.isArchived ? "Unarchive" : "Archive"}
-              </button>
-              &nbsp;
-              {mission.isArchived && (
+          <tr key={mission.id}>
+            <td>{mission.id}</td>
+            <td>
+              <span style={{ fontWeight: 600, color: "#e2e8f0", fontSize: "0.95rem" }}>
+                {mission.name}
+              </span>
+            </td>
+            <td style={{ textAlign: "center" }}>{mission.actionSystemVersion ?? "—"}</td>
+            <td style={{ whiteSpace: "nowrap" }}>
+              {mission.updatedAt ? new Date(mission.updatedAt).toLocaleString() : "—"}
+            </td>
+            <td style={{ whiteSpace: "nowrap" }}>
+              {mission.createdAt ? new Date(mission.createdAt).toLocaleString() : "—"}
+            </td>
+            <td>
+              <div className={styles.missionActions}>
                 <button
-                  className={styles.deleteButton}
+                  className={adminCommon.button}
                   type="button"
                   onClick={() => {
-                    delMissionAndAutomerge(mission.id);
+                    navigate(`/admin/mission/${mission.id}/${automergeUrlForMission}`);
                   }}
                 >
-                  Delete Mission
+                  Edit Mission
                 </button>
-              )}
-              <div>
-                Automerge:&nbsp;&nbsp;
-                <>
+                <button
+                  className={adminCommon.button}
+                  type="button"
+                  onClick={() => {
+                    navigate(`/admin/mission_layers/${mission.id}`);
+                  }}
+                >
+                  Layers
+                </button>
+                <button
+                  className={adminCommon.button}
+                  type="button"
+                  onClick={() => {
+                    navigate(`/admin/mission_stm/${mission.id}`);
+                  }}
+                >
+                  STM
+                </button>
+                <button
+                  className={adminCommon.button}
+                  type="button"
+                  onClick={() => {
+                    navigate(`/admin/mission_grid/${mission.id}`);
+                  }}
+                >
+                  Grid
+                </button>
+                <button
+                  className={styles.buttonSecondary}
+                  type="button"
+                  onClick={() => {
+                    navigate(`/admin/export/${mission.id}`);
+                  }}
+                >
+                  Export
+                </button>
+                <button
+                  className={styles.buttonSecondary}
+                  type="button"
+                  onClick={() => {
+                    navigate(`/admin/mission_duplicate/${mission.id}`);
+                  }}
+                >
+                  Duplicate
+                </button>
+                <button
+                  className={styles.buttonSecondary}
+                  type="button"
+                  onClick={() => {
+                    navigate(`/admin/automerge/${automergeUrlForMission}`);
+                  }}
+                >
+                  Automerge
+                </button>
+                <button
+                  className={styles.buttonSecondary}
+                  type="button"
+                  onClick={() => {
+                    const action = mission.isArchived ? "Unarchive" : "Archive";
+                    if (
+                      confirm(`Are you sure you want to ${action.toLowerCase()} "${mission.name}"?`)
+                    ) {
+                      archiveMission({
+                        id: mission.id,
+                        archive: !mission.isArchived,
+                      });
+                    }
+                  }}
+                >
+                  {mission.isArchived ? "Unarchive" : "Archive"}
+                </button>
+              </div>
+            </td>
+            {isArchivedTable && (
+              <td>
+                {mission.isArchived && (
                   <button
+                    className={adminCommon.buttonDanger}
                     type="button"
                     onClick={() => {
-                      navigate(`/admin/automerge/${automergeUrlForMission}`);
+                      delMissionAndAutomerge(mission.id);
                     }}
                   >
-                    Manage
+                    Delete Mission
                   </button>
-                  &nbsp;
-                  {automergeUrlForMission}
-                </>
-              </div>
-            </>
-          </li>
+                )}
+              </td>
+            )}
+          </tr>
         );
       } else {
         return (
-          <li key={mission.id}>
-            <>
-              <span className={styles.noPermission}>{mission.name} [No Edit Permissions]</span>
-            </>
-          </li>
+          <tr key={mission.id}>
+            <td colSpan={isArchivedTable ? 7 : 6}>
+              <span style={{ color: "#64748b", fontStyle: "italic", fontSize: "0.9rem" }}>
+                {mission.name} [No Edit Permissions]
+              </span>
+            </td>
+          </tr>
         );
       }
     });
@@ -310,29 +373,116 @@ const MissionList = ({
 
   if (missions.length > 0) {
     return (
-      <div>
-        <ul>{listedMissions(visibleMissions)}</ul>
-        <h2>Archived Missions:</h2>
-        <p>
-          Archived missions are not shown in the home page mission list.
-          <br />
-          Users cannot access archived missions through a direct link. Archived missions will be
-          kept compatible with the AEGIS application as new updates occur. This means that you can
-          un-archive at any time and view the mission in a future version of AEGIS, but data may be
-          transformed or lost as fields/features are changed in future versions
-        </p>
-        <p>
-          The Delete Mission button will permanently delete the mission and all of its GIS data.
-          <br />
-          This should be used with caution and only if you are sure you will never need the mission
-          again. <br />
-          There is no undo for the Delete Mission action.
-        </p>
-        <ul>{listedMissions(archivedMissions)}</ul>
-      </div>
+      <>
+        <CollapsibleMissionSection
+          title="Active Missions"
+          count={visibleMissions.length}
+          badgeClass={adminCommon.badgeSuccess}
+          defaultOpen={true}
+        >
+          <div className={styles.missionTableWrapper}>
+            <table
+              className={`${adminCommon.table} ${adminCommon.tableCompact} ${styles.missionTableFixed}`}
+            >
+              <colgroup>
+                <col className={styles.colId} />
+                <col />
+                <col className={styles.colVersion} />
+                <col className={styles.colDate} />
+                <col className={styles.colDate} />
+                <col className={styles.colActions} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Mission</th>
+                  <th style={{ textAlign: "center" }}>Version</th>
+                  <th>Updated At</th>
+                  <th>Created At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+            </table>
+            <div className={styles.scrollableList}>
+              <table
+                className={`${adminCommon.table} ${adminCommon.tableCompact} ${styles.missionTableFixed}`}
+              >
+                <colgroup>
+                  <col className={styles.colId} />
+                  <col />
+                  <col className={styles.colVersion} />
+                  <col className={styles.colDate} />
+                  <col className={styles.colDate} />
+                  <col className={styles.colActions} />
+                </colgroup>
+                <tbody>{listedMissionRows(visibleMissions, false)}</tbody>
+              </table>
+            </div>
+          </div>
+        </CollapsibleMissionSection>
+
+        <CollapsibleMissionSection
+          title="Archived Missions"
+          count={archivedMissions.length}
+          badgeClass={adminCommon.badgeNeutral}
+          defaultOpen={false}
+        >
+          <div className={styles.archiveInfo}>
+            Archived missions are hidden from the home page. Users cannot access them via direct
+            link. Archived missions stay compatible with future AEGIS updates — you can un-archive
+            at any time. The Delete button permanently removes the mission and all GIS data.
+          </div>
+          {archivedMissions.length > 0 ? (
+            <div className={styles.missionTableWrapper}>
+              <table
+                className={`${adminCommon.table} ${adminCommon.tableCompact} ${styles.missionTableFixed}`}
+              >
+                <colgroup>
+                  <col className={styles.colId} />
+                  <col />
+                  <col className={styles.colVersion} />
+                  <col className={styles.colDate} />
+                  <col className={styles.colDate} />
+                  <col className={styles.colActions} />
+                  <col className={styles.colDelete} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Mission</th>
+                    <th style={{ textAlign: "center" }}>Version</th>
+                    <th>Updated At</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                    <th>Delete</th>
+                  </tr>
+                </thead>
+              </table>
+              <div className={styles.scrollableList}>
+                <table
+                  className={`${adminCommon.table} ${adminCommon.tableCompact} ${styles.missionTableFixed}`}
+                >
+                  <colgroup>
+                    <col className={styles.colId} />
+                    <col />
+                    <col className={styles.colVersion} />
+                    <col className={styles.colDate} />
+                    <col className={styles.colDate} />
+                    <col className={styles.colActions} />
+                    <col className={styles.colDelete} />
+                  </colgroup>
+                  <tbody>{listedMissionRows(archivedMissions, true)}</tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className={adminCommon.emptyState}>No archived missions.</div>
+          )}
+        </CollapsibleMissionSection>
+      </>
     );
   } else {
-    return <div>No missions found</div>;
+    return <div className={adminCommon.emptyState}>No missions found.</div>;
   }
 };
 

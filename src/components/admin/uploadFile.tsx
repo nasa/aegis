@@ -4,6 +4,7 @@ import prettyBytes from "pretty-bytes";
 import type { ChangeEventHandler, FunctionComponent } from "react";
 import { useEffect, useState } from "react";
 import { validateGeoJSON } from "utils/validateSchemaClient";
+import adminStyles from "components/admin/admin.module.css";
 
 interface UploadProps {
   path: string; //path off of STATIC_DIR
@@ -174,7 +175,7 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
     }
 
     return (
-      <span style={{ color: "red" }} title="Only .zip supported">
+      <span style={{ color: "#f87171" }} title="Only .zip supported">
         <strong>{filetype}</strong>
       </span>
     );
@@ -218,12 +219,19 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
           <p />
         )}
       </div>
-      <div>
-        <button onClick={uploadFileToAPI} disabled={status !== UploadStatus.Ready}>
+      <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+        <button
+          className={adminStyles.button}
+          onClick={uploadFileToAPI}
+          disabled={status !== UploadStatus.Ready}
+        >
           Submit
         </button>
-        &nbsp;
-        <button onClick={abortUpload} disabled={status !== UploadStatus.Uploading}>
+        <button
+          className={adminStyles.button}
+          onClick={abortUpload}
+          disabled={status !== UploadStatus.Uploading}
+        >
           Abort Upload
         </button>
         {status === UploadStatus.Blocked ? (

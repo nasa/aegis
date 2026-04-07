@@ -15,7 +15,7 @@ import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
 import { upsertDatabaseRetry } from "utils/database";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();

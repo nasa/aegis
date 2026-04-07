@@ -1,20 +1,20 @@
-import { faArrowAltCircleLeft } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { deleteGrids, getGrids, upsertGrids } from "http-client/grid";
 import type { ChangeEventHandler, FunctionComponent } from "react";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import styles from "components/admin/admin.module.css";
-import Header from "components/interface/header";
+import adminCommon from "pages/admin/adminCommon.module.css";
 import { v4 as uuidv4 } from "uuid";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import prettyBytes from "pretty-bytes";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
-import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
+import { isValidAutomergeUrl } from "@automerge/automerge-repo";
+import { useDocument } from "@automerge/automerge-repo-react-hooks";
+import { getAutomergeDocListing } from "http-client/docListing";
 
 type RouteParams = {
   id: string;
-  automergeUrl: string;
 };
 
 interface GridGeoJson {
@@ -92,7 +92,6 @@ const parseFullGrid = async (selectedFile: Blob, intMissionId: number): Promise<
 };
 
 const AdminMissionGrid: FunctionComponent<{}> = () => {
-  const navigate = useNavigate();
   const [grids, setGrids] = useState<MissionGrid[]>(null);
   const [isSubmitValid, setIsSubmitValid] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -100,8 +99,16 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
-  // We don't know what mission this is for so use the automergeUrl from the route params
-  const missionDocHandle = useDocHandle<Mission>(params.automergeUrl as AutomergeUrl);
+
+  const [automergeUrl, setAutomergeUrl] = useState<AutomergeUrl>();
+  useEffect(() => {
+    getAutomergeDocListing(intMissionId).then((res) => {
+      if (res.data?.[0] && isValidAutomergeUrl(res.data[0].automergeUrl)) {
+        setAutomergeUrl(res.data[0].automergeUrl as AutomergeUrl);
+      }
+    });
+  }, [intMissionId]);
+  const [missionDoc, changeMissionDoc] = useDocument<Mission>(automergeUrl);
 
   const readAndUploadGrid = async (selectedFile: Blob) => {
     const grid: MissionGrid = await parseFullGrid(selectedFile, intMissionId);
@@ -136,7 +143,7 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
     );
     await upsertGrids(grids, intMissionId, false);
     if (selectedUuid === null) {
-      missionDocHandle.change((m: Mission) => {
+      changeMissionDoc((m: Mission) => {
         m.activeGridUuid = null;
         m.updatedAt = new Date().getTime();
       });
@@ -144,6 +151,11 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
   };
 
   const deleteGrid = async (gridUuid: string) => {
+    const grid = grids.find((g) => g.gridInformation.uuid === gridUuid);
+    if (
+      !confirm(`Are you sure you want to delete grid "${grid?.gridInformation.name ?? gridUuid}"?`)
+    )
+      return;
     await deleteGrids(gridUuid, intMissionId);
     setGrids((prevGrids) => prevGrids.filter((grid) => grid.gridInformation.uuid !== gridUuid));
   };
@@ -177,79 +189,65 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
   }, [intMissionId]);
 
   return (
-    <div className={styles.pageStyle}>
-      <div className={styles.header}>
-        <Header />
-      </div>
+    <main className={adminCommon.page}>
+      <div className={adminCommon.container}>
+        <Link to="/admin/missions" className={adminCommon.backLink}>
+          ← Missions
+        </Link>
+        <h1 className={adminCommon.pageTitle}>Mission Grid</h1>
+        {missionDoc?.name && (
+          <div className={adminCommon.missionSubheader}>
+            <span className={adminCommon.missionSubheaderLabel}>Mission</span>
+            <span className={adminCommon.missionSubheaderName}>{missionDoc.name}</span>
+          </div>
+        )}
 
-      <div className={styles.bodyContent}>
-        <div className={styles.missionBack}>
-          <FontAwesomeIcon
-            icon={faArrowAltCircleLeft}
-            size="xl"
-            onClick={() => {
-              navigate("/admin/missions");
-            }}
-          />
-        </div>
-      </div>
-
-      <div>
-        <div className={styles.sectionDiv}>
-          <div className={styles.sectionDivHeading}>Manage grid for this mission</div>
+        <section className={adminCommon.section}>
+          <h2 className={adminCommon.sectionHeading}>Grid</h2>
           {intMissionId ? (
             <div>
-              <div className={styles.layerContainer}>
-                <div className={styles.divWithBorder}>
-                  Upload grid (.geojson only)
-                  <br />
-                  The below values MUST correspond to the grid file you are uploading.
-                  <br />
-                  <a href="https://eegitlab.fit.nasa.gov/emss/aegis/-/wikis/Formatting-for-geoJSON-grid-uploads">
+              <div className={adminCommon.details} style={{ marginBottom: 16 }}>
+                <p>Upload grid (.geojson only)</p>
+                <p>The below values MUST correspond to the grid file you are uploading.</p>
+                <p>
+                  <a
+                    href="https://eegitlab.fit.nasa.gov/emss/aegis/-/wikis/Formatting-for-geoJSON-grid-uploads"
+                    style={{ color: "#60a5fa" }}
+                  >
                     Grid Upload Instructions
                   </a>
-                  <br />
-                  <>
-                    <br />
-                    <input
-                      type="file"
-                      name="gridFile"
-                      title="Upload File"
-                      onChange={fileChangeHandler}
-                    />
-                    <div style={{ marginLeft: 20 }}>
-                      {isFilePicked ? (
-                        <p>
-                          Filename: {selectedFile.name}
-                          <br />
-                          Filetype: {selectedFile.type}
-                          <br />
-                          File size: {prettyBytes(selectedFile.size)}
-                          <br />
-                          Last modified date:{" "}
-                          {
-                            selectedFile.lastModifiedDate
-                              ? selectedFile.lastModifiedDate.toLocaleDateString()
-                              : "Not Available" //some browsers don't have this data (Firefox, Safari)
-                          }
-                          <br />
-                        </p>
-                      ) : (
-                        <p />
-                      )}
-                    </div>
-                    <div>
-                      {!isSubmitValid && isFilePicked ? (
-                        <>
-                          <br />
-                          Please select a valid file
-                        </>
-                      ) : (
-                        ""
-                      )}
-                    </div>
-                  </>
+                </p>
+                <input
+                  type="file"
+                  name="gridFile"
+                  title="Upload File"
+                  onChange={fileChangeHandler}
+                  style={{ marginTop: 8 }}
+                />
+                <div style={{ marginTop: 8 }}>
+                  {isFilePicked ? (
+                    <p>
+                      Filename: {selectedFile.name}
+                      <br />
+                      Filetype: {selectedFile.type}
+                      <br />
+                      File size: {prettyBytes(selectedFile.size)}
+                      <br />
+                      Last modified date:{" "}
+                      {
+                        selectedFile.lastModifiedDate
+                          ? selectedFile.lastModifiedDate.toLocaleDateString()
+                          : "Not Available" //some browsers don't have this data (Firefox, Safari)
+                      }
+                    </p>
+                  ) : null}
+                </div>
+                {!isSubmitValid && isFilePicked ? (
+                  <p style={{ color: "#f87171" }}>Please select a valid file</p>
+                ) : null}
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                   <button
+                    className={adminCommon.buttonPrimary}
                     type="submit"
                     onClick={() => readAndUploadGrid(selectedFile)}
                     disabled={!isSubmitValid}
@@ -258,61 +256,62 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
                   </button>
                 </div>
               </div>
-              <div className={styles.layerContainer}>
-                <div className={styles.divWithBorder}>
-                  Mission Grids
-                  <div>
-                    {grids && (
-                      <table className={styles.fileTable}>
-                        <thead>
-                          <tr>
-                            <th>Grid Name</th>
-                            <th>Rows</th>
-                            <th>Columns</th>
-                            <th>Active</th>
-                            <th>Delete</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {grids.map((grid) => (
-                            <tr key={grid.gridInformation.uuid}>
-                              <td>{grid.gridInformation.name}</td>
-                              <td>{grid.gridInformation.numRows}</td>
-                              <td>{grid.gridInformation.numCols}</td>
-                              <td className={styles.gridInputContainer}>
-                                <input
-                                  type="radio"
-                                  id={grid.gridInformation.uuid}
-                                  name="chooseGrid"
-                                  checked={grid.gridInformation.isActiveGrid}
-                                  onChange={() => handleGridSelection(grid.gridInformation.uuid)}
-                                />
-                              </td>
-                              <td className={styles.gridInputContainer}>
-                                <FontAwesomeIcon
-                                  icon={faTrash}
-                                  onClick={() => deleteGrid(grid.gridInformation.uuid)}
-                                />
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                    <br />
-                    <button onClick={() => handleGridSelection(null)}>Clear Active Grid</button>
-                  </div>
+
+              <div className={adminCommon.details}>
+                <h3 style={{ margin: "0 0 12px", color: "#e2e8f0" }}>Mission Grids</h3>
+                {grids && (
+                  <table className={styles.fileTable}>
+                    <thead>
+                      <tr>
+                        <th>Grid Name</th>
+                        <th>Rows</th>
+                        <th>Columns</th>
+                        <th>Active</th>
+                        <th>Delete</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {grids.map((grid) => (
+                        <tr key={grid.gridInformation.uuid}>
+                          <td>{grid.gridInformation.name}</td>
+                          <td>{grid.gridInformation.numRows}</td>
+                          <td>{grid.gridInformation.numCols}</td>
+                          <td className={styles.gridInputContainer}>
+                            <input
+                              type="radio"
+                              id={grid.gridInformation.uuid}
+                              name="chooseGrid"
+                              checked={grid.gridInformation.isActiveGrid}
+                              onChange={() => handleGridSelection(grid.gridInformation.uuid)}
+                            />
+                          </td>
+                          <td className={styles.gridInputContainer}>
+                            <FontAwesomeIcon
+                              icon={faTrash}
+                              onClick={() => deleteGrid(grid.gridInformation.uuid)}
+                              style={{ cursor: "pointer" }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <div style={{ marginTop: 12 }}>
+                  <button className={adminCommon.button} onClick={() => handleGridSelection(null)}>
+                    Clear Active Grid
+                  </button>
                 </div>
               </div>
             </div>
           ) : (
-            <div>A new mission must be saved first before you can upload files</div>
+            <div className={adminCommon.emptyState}>
+              A new mission must be saved first before you can upload files
+            </div>
           )}
-        </div>
-        <br />
-        <br />
+        </section>
       </div>
-    </div>
+    </main>
   );
 };
 

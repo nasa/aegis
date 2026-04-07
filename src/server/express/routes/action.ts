@@ -10,7 +10,7 @@ import { emitStoreDelete, emitStoreUpsert } from "server/express/sockets";
 import { convertActionsTypeDbToStore, convertActionsTypeStoreToDb } from "store/storeUtils/action";
 import { hasPerms } from "utils/permissions";
 import { upsertDatabaseRetry } from "utils/database";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../global";
 

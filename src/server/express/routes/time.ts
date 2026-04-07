@@ -1,7 +1,7 @@
 import { asError } from "@emss/utils";
 import type { Request, Response, Router } from "express";
 import express from "express";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 
 const router: Router = express.Router();
 

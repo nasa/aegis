@@ -6,7 +6,7 @@ import sortBy from "lodash/sortBy";
 import { Rex_db } from "server/database/models/_allModels";
 import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { emssTokenIsValid } from "utils/permissions";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../global";
 import { getAutomergeMissions } from "./missionAutomerge";

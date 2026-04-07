@@ -4,7 +4,7 @@ import { hasPerms } from "utils/permissions";
 import { getAutomergeDocListing } from "./docListing";
 import { globalValues } from "../global";
 import type { DocHandle, AutomergeUrl, DocumentId } from "@automerge/automerge-repo/slim";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";

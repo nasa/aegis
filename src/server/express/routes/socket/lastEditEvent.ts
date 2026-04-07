@@ -6,7 +6,7 @@ import express from "express";
 import { hasPerms } from "utils/permissions";
 
 import { globalValues } from "../../global";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 const router = express.Router();

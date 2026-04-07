@@ -4,7 +4,7 @@ import type { Request, Response } from "express";
 import express from "express";
 
 import { Eva_db, Rex_db } from "server/database/models/_allModels";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { globalValues } from "../../global";
 import { emssTokenIsValid } from "utils/permissions";
 import { getAutomergeMissions } from "../missionAutomerge";

@@ -6,7 +6,7 @@ import { sendClientLogsToLogstash } from "@emss/logger";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 
 import { getUser } from "packages/getUser";
-import serverLogger from "utils/logging/serverLogger";
+import { rawServerLogger } from "utils/logging/serverLogger";
 
 const router = express.Router();
 
@@ -23,7 +23,7 @@ router.put("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   // this handles res.send(...); don't do any additional res.send(...) after this
-  sendClientLogsToLogstash({ req, res, user, serverLogger });
+  sendClientLogsToLogstash({ req, res, user, serverLogger: rawServerLogger });
 });
 
 export default router;

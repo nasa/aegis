@@ -11,7 +11,7 @@ import * as httpClient_folder from "http-client/folder";
 import Cookies from "js-cookie";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { getAutomergeDocHandles } from "client/automergeDocHandles";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 
 export const thunkCreateFolder = appCreateAsyncThunk<{ type: FolderType }>(
   "thunkCreateFolder",

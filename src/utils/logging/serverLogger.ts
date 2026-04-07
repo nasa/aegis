@@ -7,8 +7,6 @@ import ConsoleLogger from "./consoleLogger";
  * **Do not use in browser.**
  */
 
-export { ConsoleLogger };
-
 const env = assertEnvVarsExist(
   "LOG_ENABLE_APP_LOGGING",
   "LOG_SERVER_HTTP_ENDPOINT",
@@ -19,13 +17,13 @@ const env = assertEnvVarsExist(
 ConsoleLogger.setConsoleLogLevel((process.env.VITE_PUBLIC_CONSOLE_LOG_LEVEL as LogLevel) || "off");
 ConsoleLogger.setRemoteLogLevel((process.env.VITE_PUBLIC_REMOTE_LOG_LEVEL as LogLevel) || "off");
 
-const serverLogger = createServerLogger({
+export const rawServerLogger = createServerLogger({
   logEnableAppLogging: env.LOG_ENABLE_APP_LOGGING === "true",
   logServerHttpEndpoint: env.LOG_SERVER_HTTP_ENDPOINT,
   logDataAppId: env.LOG_DATA_APP_ID,
   logDataServerName: env.LOG_DATA_SERVER_NAME,
 });
 
-ConsoleLogger.setRemoteLogger(serverLogger);
+ConsoleLogger.setRemoteLogger(rawServerLogger);
 
-export default serverLogger;
+export { ConsoleLogger as serverLogger };

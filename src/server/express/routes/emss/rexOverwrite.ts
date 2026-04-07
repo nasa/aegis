@@ -13,7 +13,7 @@ import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { validateRexOverwrite } from "../../../../utils/rexOverwriteValidator";
 import { upsertDatabaseRetry } from "utils/database";
 import { v4 as uuidv4 } from "uuid";
-import { ConsoleLogger as serverLogger } from "utils/logging/serverLogger";
+import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 import fs from "node:fs";

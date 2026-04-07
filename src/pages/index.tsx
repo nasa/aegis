@@ -12,7 +12,7 @@ import { faEnvelope, faPersonWalkingArrowRight, faTv } from "@fortawesome/free-s
 import { Tooltip } from "react-tooltip";
 import { setAppUser } from "store/user";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 import isEqual from "lodash/isEqual";
 
 const Login = () => {

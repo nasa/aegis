@@ -18,7 +18,7 @@ import { populateStore } from "store/processing/populateStore";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 import { loadAndReturnGrid } from "utils/mapping/grid";
 import { setGridCornerPoint } from "store/map";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import { useEffect, useState } from "react";
@@ -141,7 +141,6 @@ const Main: React.FunctionComponent = () => {
     isVersionChecked,
     automergeRepo,
     missionPerms,
-    storeIsPopulated,
     dispatch,
     intMissionId,
     evaRefUuid,

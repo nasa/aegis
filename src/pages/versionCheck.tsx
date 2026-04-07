@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button } from "components/interface/form/globalFields";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 
 const VersionCheck: React.FunctionComponent = () => {
   const [searchParams] = useSearchParams();

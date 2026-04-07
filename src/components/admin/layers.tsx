@@ -1,6 +1,7 @@
-import type { Dispatch, FunctionComponent } from "react";
-import { useCallback, useEffect, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import adminStyles from "./admin.module.css";
+import adminCommon from "pages/admin/adminCommon.module.css";
 import LayerEdit from "components/admin/layerEdit";
 import SublayerEdit from "components/admin/layerSublayerEdit";
 import { deleteLayers, getLayers } from "http-client/layer";
@@ -13,25 +14,21 @@ import {
   faBezierCurve,
   faClock,
   faCaretDown,
-  faCaretUp,
+  faPlus,
+  faCaretRight,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import GridSquareIcon from "assets/draw-square-regular-full.svg?react";
-import { getAutomergeDocListing } from "http-client/docListing";
-import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
-import { isValidAutomergeUrl } from "@automerge/automerge-repo";
-import { useRepo } from "@automerge/automerge-repo-react-hooks";
 
 const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
-  const automergeRepo = useRepo();
-
   const [allLayers, setAllLayers] = useState<Layer[]>(null);
   const [allSublayers, setAllSublayers] = useState<Sublayer[]>(null);
   const [editSublayerParentUUID, setEditSublayerParentUUID] = useState("0");
   const [editComponent, setEditComponent] = useState<JSX.Element>(null);
+  const [editModalTitle, setEditModalTitle] = useState<string>("");
   const [fileList, setFileList] = useState<GISfile[]>(null);
-  const [automergeMission, setAutomergeMission] = useState<Mission>(null);
-  const [automergeUrl, setAutomergeUrl] = useState<AutomergeUrl>();
+  const [layersSectionCollapsed, setLayersSectionCollapsed] = useState(false);
+  const editRef = useRef<{ save: () => Promise<boolean> }>(null);
 
   const reloadLayers = useCallback(() => {
     if (!missionId) return;
@@ -52,26 +49,41 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
     getLayersAsync();
   }, [missionId]);
 
+  const openEditModal = (component: JSX.Element, title: string) => {
+    setEditComponent(component);
+    setEditModalTitle(title);
+  };
+
+  const closeEditModal = () => {
+    setEditComponent(null);
+    setEditModalTitle("");
+  };
+
   //adds a new blank sublayer object to the parent layer and sets it for edit
   function addNewSublayer() {
     const newSublayer = generateBlankSublayer({
       layerUuid: editSublayerParentUUID,
       missionId: missionId,
     });
-    setEditComponent(
+    openEditModal(
       <SublayerEdit
+        ref={editRef}
         sublayer={newSublayer}
         allSublayers={allSublayers}
         refreshLayerList={reloadLayers}
         fileList={fileList}
         missionId={missionId}
-      />
+      />,
+      "Add Sub Layer"
     );
   }
 
   function addNewLayer() {
     const newLayer = generateBlankLayer({ missionId });
-    setEditComponent(<LayerEdit layer={newLayer} refreshLayerList={reloadLayers} />);
+    openEditModal(
+      <LayerEdit ref={editRef} layer={newLayer} refreshLayerList={reloadLayers} />,
+      "Add Header Layer"
+    );
   }
 
   const checkLayerUsesFolder = useCallback(
@@ -86,108 +98,150 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
     [allSublayers]
   );
 
-  // get the automerge URL from the automerge records db
-  const getAutomerge = useCallback(async () => {
-    if (!missionId) return;
-    const res = await getAutomergeDocListing(missionId);
-    if (isValidAutomergeUrl(res.data[0].automergeUrl)) {
-      setAutomergeUrl(res.data[0].automergeUrl);
-    }
-  }, [missionId]);
-
-  // load the mission from automerge once we've got the URL
-  useEffect(() => {
-    if (!automergeUrl || !automergeRepo) return;
-    (async () => {
-      const missionDocHandle: DocHandle<Mission> = await automergeRepo.find(automergeUrl);
-      setAutomergeMission(missionDocHandle.doc());
-    })();
-  }, [automergeRepo, automergeUrl]);
-
   useEffect(() => {
     reloadLayers();
-    getAutomerge();
-  }, [missionId, reloadLayers, getAutomerge]);
+  }, [missionId, reloadLayers]);
 
   return (
-    <div>
-      <h2>Layers for Mission: {automergeMission?.name}</h2>
-      <div className={adminStyles.layerContainer}>
-        <div>
-          <div id="layerList_div" className={adminStyles.sectionDiv}>
-            <div className={adminStyles.sectionDivHeading}>Layers and Sublayers</div>
-            <LayerList
-              layers={allLayers}
-              sublayers={allSublayers}
-              missionId={missionId}
-              refreshLayerList={reloadLayers}
-              setEditComponent={setEditComponent}
-              fileList={fileList}
-            />
-          </div>
-          <div id="addLayer_div">
-            <button
-              type="button"
-              onClick={() => {
-                addNewLayer();
-              }}
+    <>
+      <section className={adminCommon.section}>
+        <h2
+          className={adminCommon.sectionHeading}
+          style={{
+            cursor: "pointer",
+            userSelect: "none",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+          onClick={() => setLayersSectionCollapsed((c) => !c)}
+        >
+          <FontAwesomeIcon icon={layersSectionCollapsed ? faCaretRight : faCaretDown} />
+          Layers and Sublayers
+        </h2>
+        {!layersSectionCollapsed && (
+          <>
+            <div className={adminCommon.details}>
+              <LayerList
+                layers={allLayers}
+                sublayers={allSublayers}
+                missionId={missionId}
+                refreshLayerList={reloadLayers}
+                openEditModal={openEditModal}
+                editRef={editRef}
+                fileList={fileList}
+              />
+            </div>
+            <div
+              id="addLayer_div"
+              className={adminCommon.details}
+              style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}
             >
-              Add New Header Layer (Clear Form)
-            </button>
-            <br />
-            {allLayers?.length > 0 && (
-              <div id="addNewSublayer_div">
-                <label htmlFor="layerSelect" className={adminStyles.selectLabel}>
-                  Select Header Layer
-                </label>
-                &nbsp;
-                <select
-                  id="layerSelect"
-                  onChange={(e) => setEditSublayerParentUUID(e.target.value)}
-                  value={editSublayerParentUUID}
-                >
-                  {allLayers.map((layer: Layer) => {
-                    return (
-                      <option key={"select" + layer.uuid} value={layer.uuid}>
-                        {`${layer.name}`}
-                      </option>
-                    );
-                  })}
-                </select>
-                &nbsp;
+              <div>
                 <button
+                  className={adminCommon.buttonPrimary}
                   type="button"
                   onClick={() => {
-                    addNewSublayer();
+                    addNewLayer();
                   }}
                 >
-                  Add New Sub Layer (Clear Form)
+                  <FontAwesomeIcon icon={faPlus} /> Add New Header Layer
                 </button>
               </div>
-            )}
+              {allLayers?.length > 0 && (
+                <div
+                  id="addNewSublayer_div"
+                  style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
+                >
+                  <label
+                    htmlFor="layerSelect"
+                    style={{ color: "#cbd5e1", fontWeight: 600, fontSize: "0.9rem" }}
+                  >
+                    Select Header Layer
+                  </label>
+                  <select
+                    id="layerSelect"
+                    className={adminStyles.select}
+                    onChange={(e) => setEditSublayerParentUUID(e.target.value)}
+                    value={editSublayerParentUUID}
+                  >
+                    {allLayers.map((layer: Layer) => {
+                      return (
+                        <option key={"select" + layer.uuid} value={layer.uuid}>
+                          {`${layer.name}`}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <button
+                    className={adminCommon.buttonPrimary}
+                    type="button"
+                    onClick={() => {
+                      addNewSublayer();
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faPlus} /> Add New Sub Layer
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </section>
+      <section className={adminCommon.section}>
+        <h2 className={adminCommon.sectionHeading}>Layer Data Files</h2>
+        <p className={adminCommon.descriptionText}>
+          Manage files in the /Layers folder for this mission.
+        </p>
+        <div className={adminCommon.details}>
+          {missionId ? (
+            <FileManager
+              missionId={missionId}
+              path={`missionFiles/${missionId}/Layers`}
+              setFileList={setFileList}
+              isUsed={checkLayerUsesFolder}
+              zipOnly={true}
+            />
+          ) : (
+            <div className={adminCommon.emptyState}>
+              A new mission must be saved first before you can upload files
+            </div>
+          )}
+        </div>
+      </section>
+      {editComponent && (
+        <div className={adminCommon.modalOverlay} onClick={closeEditModal}>
+          <div
+            className={adminCommon.modal}
+            style={{ maxWidth: "1300px", maxHeight: "92vh" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={adminCommon.modalHeader}>
+              <h2 className={adminCommon.modalTitle}>{editModalTitle}</h2>
+              <button className={adminCommon.modalClose} onClick={closeEditModal} title="Close">
+                ✕
+              </button>
+            </div>
+            <div className={adminCommon.modalBody}>{editComponent}</div>
+            <div className={adminCommon.modalFooter}>
+              <button className={adminCommon.buttonCancel} type="button" onClick={closeEditModal}>
+                Cancel
+              </button>
+              <button
+                className={adminCommon.buttonPrimary}
+                type="button"
+                onClick={async () => {
+                  const saved = await editRef.current?.save();
+                  if (saved) closeEditModal();
+                }}
+              >
+                Save
+              </button>
+            </div>
           </div>
         </div>
-        <div id="editLayer_div">
-          <>{editComponent}</>
-        </div>
-      </div>
-      <div className={adminStyles.sectionDiv} style={{ width: "fit-content" }}>
-        <div className={adminStyles.sectionDivHeading}>
-          Manage files in the /Layers folder for this mission
-        </div>
-        {missionId ? (
-          <FileManager
-            missionId={missionId}
-            path={`missionFiles/${missionId}/Layers`}
-            setFileList={setFileList}
-            isUsed={checkLayerUsesFolder}
-            zipOnly={true}
-          />
-        ) : (
-          <div>A new mission must be saved first before you can upload files</div>
-        )}
-      </div>
-    </div>
+      )}
+    </>
   );
 };
 
@@ -200,7 +254,8 @@ const LayerList = (props: {
   sublayers: Sublayer[];
   missionId: number;
   refreshLayerList: Function;
-  setEditComponent: Dispatch<JSX.Element>;
+  openEditModal: (component: JSX.Element, title: string) => void;
+  editRef: React.RefObject<{ save: () => Promise<boolean> }>;
   fileList: GISfile[];
 }) => {
   const [collapsedLayers, setCollapsedLayers] = useState<string[]>([]);
@@ -229,30 +284,35 @@ const LayerList = (props: {
 
   const setEdit = (type: "layer" | "sublayer", layerOrSublayer: Layer | Sublayer) => {
     if (type === "layer") {
-      props.setEditComponent(
-        <LayerEdit layer={layerOrSublayer as Layer} refreshLayerList={props.refreshLayerList} />
+      const layer = layerOrSublayer as Layer;
+      props.openEditModal(
+        <LayerEdit ref={props.editRef} layer={layer} refreshLayerList={props.refreshLayerList} />,
+        layer.name ? `Edit Header "${layer.name}"` : "Edit Header Layer"
       );
     } else if (type === "sublayer") {
-      props.setEditComponent(
+      const sublayer = layerOrSublayer as Sublayer;
+      props.openEditModal(
         <SublayerEdit
-          sublayer={layerOrSublayer as Sublayer}
+          ref={props.editRef}
+          sublayer={sublayer}
           allSublayers={props.sublayers}
           refreshLayerList={props.refreshLayerList}
           fileList={props.fileList}
           missionId={props.missionId}
-        />
+        />,
+        sublayer.name ? `Edit Sublayer "${sublayer.name}"` : "Edit Sublayer"
       );
     }
   };
 
   if (props.layers?.length > 0) {
     return (
-      <ul>
+      <ul style={{ paddingLeft: "1.2rem", margin: "8px 0", listStyle: "none" }}>
         {props.layers.map((layer) => {
           return (
-            <li key={layer.uuid}>
+            <li key={layer.uuid} className={adminStyles.layerListItem}>
               <FontAwesomeIcon
-                icon={collapsedLayers.includes(layer.uuid) ? faCaretUp : faCaretDown}
+                icon={collapsedLayers.includes(layer.uuid) ? faCaretRight : faCaretDown}
                 onClick={() => {
                   if (!collapsedLayers.includes(layer.uuid)) {
                     const newCollapsed = [...collapsedLayers];
@@ -263,61 +323,84 @@ const LayerList = (props: {
                   }
                 }}
                 className={adminStyles.collapsable}
+                style={{ marginRight: 6 }}
               />
-              &nbsp;
-              {layer.name}&nbsp;
-              <button
-                type="button"
+              <span
+                style={{ cursor: "pointer", userSelect: "none" }}
                 onClick={() => {
-                  setEdit("layer", layer);
+                  if (!collapsedLayers.includes(layer.uuid)) {
+                    setCollapsedLayers([...collapsedLayers, layer.uuid]);
+                  } else {
+                    setCollapsedLayers(collapsedLayers.filter((uuid) => uuid !== layer.uuid));
+                  }
                 }}
               >
-                Edit Header Layer
-              </button>
+                {layer.name}
+              </span>
               &nbsp;
-              <button
-                className={adminStyles.deleteButton}
-                type="button"
-                onClick={() => {
-                  delLayer(layer);
-                }}
-              >
-                Delete Layer
-              </button>
+              <span className={adminStyles.layerButtons}>
+                <button
+                  className={adminCommon.button}
+                  type="button"
+                  onClick={() => {
+                    setEdit("layer", layer);
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  className={adminCommon.buttonDanger}
+                  type="button"
+                  onClick={() => {
+                    delLayer(layer);
+                  }}
+                >
+                  Delete
+                </button>
+              </span>
               &nbsp; {layer.uuid ? "" : "Missing UUID"}
               {!collapsedLayers.includes(layer.uuid) &&
                 props.sublayers?.map((sublayer) => {
                   if (sublayer.layerUuid !== layer.uuid) return;
                   return (
-                    <ul key={sublayer.uuid}>
-                      <li>
-                        {sublayer.type === "tile" && <FontAwesomeIcon icon={faLayerGroup} />}
+                    <ul
+                      key={sublayer.uuid}
+                      style={{ paddingLeft: "1.2rem", margin: "4px 0", listStyle: "none" }}
+                    >
+                      <li className={adminStyles.layerListItem}>
+                        {sublayer.type === "tile" && (
+                          <FontAwesomeIcon icon={faLayerGroup} style={{ marginRight: 4 }} />
+                        )}
                         {sublayer.type === "vector-tile" && (
                           <GridSquareIcon className={adminStyles.iconSvg} />
                         )}
-                        {sublayer.type === "vector" && <FontAwesomeIcon icon={faBezierCurve} />}
-                        {sublayer.isTimeBased && <FontAwesomeIcon icon={faClock} />}
-                        &nbsp;
-                        {sublayer.name}
-                        &nbsp;
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEdit("sublayer", sublayer);
-                          }}
-                        >
-                          Edit Sublayer
-                        </button>
-                        &nbsp;
-                        <button
-                          className={adminStyles.deleteButton}
-                          type="button"
-                          onClick={() => {
-                            delSubLayer(sublayer);
-                          }}
-                        >
-                          Delete Sublayer
-                        </button>
+                        {sublayer.type === "vector" && (
+                          <FontAwesomeIcon icon={faBezierCurve} style={{ marginRight: 4 }} />
+                        )}
+                        {sublayer.isTimeBased && (
+                          <FontAwesomeIcon icon={faClock} style={{ marginRight: 4 }} />
+                        )}
+                        {sublayer.name}&nbsp;
+                        <span className={adminStyles.layerButtons}>
+                          <button
+                            className={adminCommon.button}
+                            type="button"
+                            onClick={() => {
+                              setEdit("sublayer", sublayer);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className={adminCommon.buttonDanger}
+                            type="button"
+                            onClick={() => {
+                              delSubLayer(sublayer);
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </span>
                         &nbsp;{sublayer.uuid ? "" : "Missing UUID"}
                       </li>
                     </ul>

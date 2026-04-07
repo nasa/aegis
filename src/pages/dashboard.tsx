@@ -21,7 +21,7 @@ import { setGridCornerPoint } from "store/map";
 import { loadAndReturnGrid } from "utils/mapping/grid";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 import { LoadingOverlay } from "components/interface/_global-elements";
 
 type RouteParams = {

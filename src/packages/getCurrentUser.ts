@@ -1,7 +1,7 @@
 import { asError } from "@emss/utils";
 // import { fetchJsonWithAuth } from "@emss/oauth2-proxy-frontend";
 import { fetchJsonWithAuth } from "./fetchFns";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 
 let currentUser: undefined | LaunchpadUser;
 

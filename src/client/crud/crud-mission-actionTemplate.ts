@@ -4,7 +4,7 @@ import { getAccurateNow } from "utils/formatting";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { generateUniqueName } from "utils/names/unique-name";
 import { v4 as uuidv4 } from "uuid";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 
 export const crudCreateActionTemplate = (): void => {
   const missionDocHandle = getAutomergeDocHandles()?.mission;

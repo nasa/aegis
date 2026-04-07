@@ -23,7 +23,7 @@ import cloneDeep from "lodash/cloneDeep";
 import sortBy from "lodash/sortBy";
 import { getAccurateNow } from "utils/formatting";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
-import { ConsoleLogger as clientLogger } from "utils/logging/clientLogger";
+import { clientLogger } from "utils/logging/clientLogger";
 import { generateBlankPreset } from "store/storeUtils/preset";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";

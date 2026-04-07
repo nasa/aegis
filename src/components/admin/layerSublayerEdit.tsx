@@ -1,7 +1,6 @@
 import get from "lodash/get";
 import isNull from "lodash/isNull";
-import type { FunctionComponent } from "react";
-import { useState, useEffect } from "react";
+import { forwardRef, useState, useEffect, useImperativeHandle, type ForwardedRef } from "react";
 import styles from "./admin.module.css";
 import { upsertSublayers } from "http-client/sublayer";
 import { validators } from "components/interface/form/formValidators";
@@ -20,8 +19,10 @@ interface SublayerProps {
   missionId: number;
 }
 
+export type SublayerEditHandle = { save: () => Promise<boolean> };
+
 /** Render a single sublayer record from the DB */
-const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) => {
+function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditHandle>) {
   const [sublayer, setSublayer] = useState<Sublayer>(props.sublayer);
   const [boundingBox, setBoundingBox] = useState<string>(props.sublayer.boundingBox?.toString());
   const [legend, setLegend] = useState<string>(
@@ -32,6 +33,31 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
   // geoJSON file names
   const [dataDirGeoJSONs, setDataDirGeoJSONs] = useState<string[]>([]);
   const [propertiesErrs, setPropertiesErrs] = useState<ErrorObject[]>([]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      save: async (): Promise<boolean> => {
+        if (
+          sublayer.isTimeBased &&
+          props.allSublayers.some((s) => s.isTimeBased && s.uuid !== sublayer.uuid)
+        ) {
+          alert(
+            "Unable to save a second time-based sublayer. Please remove the first time-based sublayer before adding a new one."
+          );
+          return false;
+        }
+        const res: WrappedResponse<Sublayer[]> = await upsertSublayers([
+          { ...sublayer, updatedAt: getAccurateNow().toISOString() },
+        ]);
+        props.refreshLayerList();
+        alert(`${res.status} - ${res.message}`);
+        return true;
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sublayer, props.allSublayers]
+  );
 
   // update fields when swapping between sublayers
   useEffect(() => {
@@ -78,16 +104,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
   }, [props.missionId, refreshDirectoryListing]);
 
   //save the current editing sublayer to db
-  async function saveSublayer() {
-    const res: WrappedResponse<Sublayer[]> = await upsertSublayers([
-      {
-        ...sublayer,
-        updatedAt: getAccurateNow().toISOString(),
-      },
-    ]);
-    props.refreshLayerList();
-    alert(`${res.status} - ${res.message}`);
-  }
 
   /**
    * Find and parse the timeLayerManifest if it exists in manifest.json
@@ -339,19 +355,7 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
   return (
     <div className={styles.sublayerEditBoxes}>
       <div className={styles.sectionDiv}>
-        {sublayer.name ? (
-          <div className={styles.sectionDivHeading}>Edit Sublayer &quot;{sublayer.name}&quot;</div>
-        ) : (
-          <div>Edit Sublayer</div>
-        )}
-        <div id="readOnlyDiv">
-          UUID: {sublayer.uuid}
-          <br />
-          MissionId: {sublayer.missionId}
-          <br />
-          Parent Layer: {sublayer.layerUuid}
-        </div>
-        <br />
+        <div id="readOnlyDiv">UUID: {sublayer.uuid}</div>
         <div id="internalExternalDiv">
           <label>
             <input
@@ -378,7 +382,6 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
             External (http)
           </label>
         </div>
-        <br />
         <div id="typeDiv">
           <div className={styles.editDiv}>
             <label htmlFor="layerType">
@@ -618,9 +621,10 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
                 <label htmlFor="boundingbox">Bounding Box (minx, miny, maxx, maxy)</label>
               </div>
               <div className={styles.editDiv}>
-                <input
+                <textarea
                   id="boundingbox"
-                  type="text"
+                  rows={4}
+                  cols={40}
                   onBlur={(e) => {
                     if (!e.target.value) {
                       setSublayer({ ...sublayer, boundingBox: null });
@@ -753,43 +757,22 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
             </div>
           </>
         )}
-        <br />
-        Bounding Box, and Min/Max Native Zoom are pulled from tilemapresource.xml
-        <br />
-        Time layer information is pulled from manifest.json
-        <br />
-        {isExternal ? (
-          <button
-            type="button"
-            onClick={() => {
-              preloadDataFromFiles(sublayer.path);
-            }}
-          >
-            Import From External Source
-          </button>
-        ) : (
-          <>Fields are populated when the Internal Folder changes</>
-        )}
-        <br />
-        <br />
-        <br />
-        <button
-          type="button"
-          onClick={() => {
-            if (
-              sublayer.isTimeBased &&
-              props.allSublayers.some((s) => s.isTimeBased && s.uuid !== sublayer.uuid)
-            ) {
-              alert(
-                "Unable to save a second time-based sublayer. Please remove the first time-based sublayer before adding a new one."
-              );
-            } else {
-              saveSublayer();
-            }
-          }}
-        >
-          Save Sublayer
-        </button>
+        <div className={styles.sublayerEditFooter}>
+          <span>Bounding Box, and Min/Max Native Zoom are pulled from tilemapresource.xml</span>
+          <span>Time layer information is pulled from manifest.json</span>
+          {isExternal ? (
+            <button
+              type="button"
+              onClick={() => {
+                preloadDataFromFiles(sublayer.path);
+              }}
+            >
+              Import From External Source
+            </button>
+          ) : (
+            <span>Fields are populated when the Internal Folder changes</span>
+          )}
+        </div>
       </div>
       {sublayer.isTimeBased && sublayer.timeLayerManifest && (
         <div className={styles.sectionDiv}>
@@ -806,6 +789,8 @@ const SublayerEdit: FunctionComponent<SublayerProps> = (props: SublayerProps) =>
       )}
     </div>
   );
-};
+}
+
+const SublayerEdit = forwardRef<SublayerEditHandle, SublayerProps>(SublayerEditInner);
 
 export default SublayerEdit;
