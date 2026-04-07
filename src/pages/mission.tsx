@@ -141,7 +141,6 @@ const Main: React.FunctionComponent = () => {
     isVersionChecked,
     automergeRepo,
     missionPerms,
-    storeIsPopulated,
     dispatch,
     intMissionId,
     evaRefUuid,
