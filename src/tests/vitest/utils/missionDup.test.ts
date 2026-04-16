@@ -172,7 +172,7 @@ describe("Mission Duplication Tests", () => {
       ],
     });
 
-    // Write the mission to the mission_db backup table (required for cleanup in afterAll)
+    // Write the mission to the mission_backup_db table (required for cleanup in afterAll)
     await upsertBackupDbMissions([missionDocHandle.doc() as unknown as Mission]);
 
     // Initialize UUID maps to track the mapping between original and duplicate entities

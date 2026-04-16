@@ -1,7 +1,7 @@
 // import all models here so that they can be exported from a single file. This avoids circular dependency issues
 // The order of imports is important. Models that are referenced by other models must be imported first.
 import { App_User_db } from "./app_user.model";
-import { Mission_db } from "./mission.model";
+import { MissionBackup_db } from "./missionBackup.model";
 import { Station_db } from "./station.model";
 import { Poi_db } from "./poi.model";
 import { Action_db } from "./action.model";
@@ -22,7 +22,7 @@ import { Automerge_Native_db } from "./automerge_native.model";
 
 export {
   App_User_db,
-  Mission_db,
+  MissionBackup_db,
   Station_db,
   Poi_db,
   Action_db,

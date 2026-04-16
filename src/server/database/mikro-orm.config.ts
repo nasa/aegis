@@ -13,7 +13,7 @@ import { Migrator } from "@mikro-orm/migrations";
 import { SeedManager } from "@mikro-orm/seeder";
 import {
   App_User_db,
-  Mission_db,
+  MissionBackup_db,
   Station_db,
   Poi_db,
   Action_db,
@@ -49,7 +49,7 @@ export default defineConfig({
   },
   entitiesTs: [
     App_User_db,
-    Mission_db,
+    MissionBackup_db,
     Station_db,
     Poi_db,
     Action_db,
@@ -70,7 +70,7 @@ export default defineConfig({
   ],
   entities: [
     App_User_db,
-    Mission_db,
+    MissionBackup_db,
     Station_db,
     Poi_db,
     Action_db,
