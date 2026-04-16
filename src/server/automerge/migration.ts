@@ -11,8 +11,7 @@ import { getAutomergeDocListing } from "server/express/routes/docListing";
 import { missionValidator } from "utils/validateSchemaServer";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
-import { getBackupDbMissions, upsertBackupDbMissions } from "server/express/routes/mission";
-import { Doc_Listing_db } from "server/database/models/_allModels";
+import { upsertBackupDbMissions } from "server/express/routes/mission";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
 
@@ -43,64 +42,8 @@ getORM().then(async () => {
     logId: "automerge-migration",
     logValue: "Starting automerge migration script...",
   });
-  const allMissions: Mission[] = await getBackupDbMissions();
-  let allDocListings: AutomergeDocListing[] = await getAutomergeDocListing();
+  const allDocListings: AutomergeDocListing[] = await getAutomergeDocListing();
   const allDocHandles: DocHandle<Mission>[] = [];
-
-  // Initial conversion from DB records to automerge records
-  // This only needs to be run once per environment and //TODO should be removed in a subsequent MR
-  // Loop through every mission and see if we already have an automerge doc listing for it
-  const docListingsToAdd: AutomergeDocListing[] = [];
-  serverLogger.info({
-    logId: "automerge-migration",
-    logValue: "Checking for missions with no automerge document...",
-  });
-  for (const mission of allMissions) {
-    const hasListing = allDocListings.map((d) => d.missionId).includes(mission.id);
-    if (!hasListing) {
-      const missionDocHandle = automergeRepo.create<Mission>(mission);
-      const newDocListing: AutomergeDocListing = {
-        missionId: mission.id,
-        automergeUrl: missionDocHandle.url,
-      };
-      docListingsToAdd.push(newDocListing);
-      serverLogger.info({
-        logId: "automerge-migration",
-        logValue: `New automerge doc created for: ${mission.id} - ${mission.name}`,
-      });
-    }
-  }
-  if (docListingsToAdd.length > 0) {
-    try {
-      // Must manually fork because this call is outside normal http request context (what we do in routes)
-      const em = globalValues.orm.em.fork();
-      // Add new automerge doc listings to the database
-      for (const docListing of docListingsToAdd) {
-        const dbRes = await em.upsert(Doc_Listing_db, docListing);
-        em.persist(dbRes);
-      }
-      await em.flush();
-      serverLogger.info({
-        logId: "automerge-migration",
-        logValue: `Added ${docListingsToAdd.length} new automerge doc listing(s) to the database`,
-      });
-      // re-query full list of doc listings after adding new ones
-      allDocListings = await getAutomergeDocListing();
-    } catch (e) {
-      serverLogger.error(
-        { logId: "automerge-migration", logValue: "Error adding new automerge doc listings" },
-        e instanceof Error ? e : new Error(String(e))
-      );
-      process.exitCode = 1; // error
-      process.exit();
-    }
-  } else {
-    serverLogger.info({
-      logId: "automerge-migration",
-      logValue: "No new automerge documents created",
-    });
-  }
-  serverLogger.info({ logId: "automerge-migration", logValue: "Check complete." });
 
   // Get docHandles for all the doc listings in the database so we can use them below on the migrations and validation
   serverLogger.info({
