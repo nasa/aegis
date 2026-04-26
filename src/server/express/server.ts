@@ -55,6 +55,16 @@ initializeBase64Wasm(automergeWasmBase64);
     gitCommit: typeof __GIT_COMMIT__ !== "undefined" ? __GIT_COMMIT__ : "unknown",
   };
 
+  globalValues.deployInfo = {
+    app: typeof __DEPLOY_APP__ !== "undefined" ? __DEPLOY_APP__ : "unknown",
+    gitCommit: typeof __GIT_COMMIT__ !== "undefined" ? __GIT_COMMIT__ : "unknown",
+    branch: typeof __DEPLOY_BRANCH__ !== "undefined" ? __DEPLOY_BRANCH__ : "unknown",
+    deployedBy: typeof __DEPLOY_USER__ !== "undefined" ? __DEPLOY_USER__ : "unknown",
+    deployedAt: typeof __DEPLOY_TIMESTAMP__ !== "undefined" ? __DEPLOY_TIMESTAMP__ : "",
+    mrIid: (typeof __DEPLOY_MRS__ !== "undefined" ? __DEPLOY_MRS__ : "").match(/!(\d+)/)?.[1] || "",
+    pipelineUrl: typeof __DEPLOY_PIPELINE_URL__ !== "undefined" ? __DEPLOY_PIPELINE_URL__ : "",
+  };
+
   setupSocketIO();
 
   // express request handler

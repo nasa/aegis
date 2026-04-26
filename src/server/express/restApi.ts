@@ -103,6 +103,10 @@ app.get("/api/v1/version", (req, res) => {
   res.send(globalValues.appVersion);
 });
 
+app.get("/api/v1/deploy", (_req, res) => {
+  res.json(globalValues.deployInfo);
+});
+
 app.use("/api/v1/auth/", authRoutes);
 app.use("/api/v1/action", actionRoutes);
 app.use("/api/v1/all", allRoutes);

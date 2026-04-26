@@ -9,7 +9,19 @@ WORKDIR /app
 # The GIT_COMMIT value is passed in using MAP_ENV_VARS_TO_BUILD_ARGS from the job pipeline.
 # When building this container locally, this is not available so "localDev" will be used as default value
 ARG GIT_COMMIT=localDev
+ARG APP_NAME=aegis
+ARG DEPLOY_BRANCH=localDev
+ARG DEPLOY_USER=localDev
+ARG DEPLOY_TIMESTAMP=
+ARG DEPLOY_MRS=
+ARG PIPELINE_URL=
 ENV GIT_COMMIT=$GIT_COMMIT
+ENV APP_NAME=$APP_NAME
+ENV DEPLOY_BRANCH=$DEPLOY_BRANCH
+ENV DEPLOY_USER=$DEPLOY_USER
+ENV DEPLOY_TIMESTAMP=$DEPLOY_TIMESTAMP
+ENV DEPLOY_MRS=$DEPLOY_MRS
+ENV PIPELINE_URL=$PIPELINE_URL
 
 # The * after npmrc ensure copy operation will not fail if the file does not exist
 COPY .npmrc* .
