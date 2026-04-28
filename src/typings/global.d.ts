@@ -6,6 +6,13 @@ type Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, Socket
     DefaultEventsMap,
     SocketData
   >;
+type Namespace<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData> =
+  import("socket.io").Namespace<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    InterServerEvents,
+    SocketData
+  >;
 
 type Repo = import("@automerge/automerge-repo").Repo;
 type DefaultEventsMap = import("socket.io").DefaultEventsMap;
@@ -17,6 +24,21 @@ type GlobalValues = {
   appVersion: AppVersion;
   isEmssApiEnabled: boolean;
   automergeRepo: Repo;
+  maestro: {
+    socketio: Namespace<
+      MaestroClientToServerEvents,
+      MaestroServerToClientEvents,
+      DefaultEventsMap,
+      {}
+    > | null;
+    /**
+     * Tracks active automerge "change" listeners for Maestro socket rooms.
+     * Key is the socket room name.
+     * Value is a function that removes the listener from the DocHandle.
+     */
+    docListeners: Map<string, () => void>;
+    evaSubscriptions: Map<number, string[]>; // key is missionId, value is array of eva refUuids subscribed to
+  };
 };
 
 // these are defined in esbuild.mjs and vite.config.mts

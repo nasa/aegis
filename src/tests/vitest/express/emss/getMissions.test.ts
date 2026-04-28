@@ -7,7 +7,6 @@ import RexFactory from "tests/vitest/fixtures/entityFactories/RexFactory";
 import DocListingFactory from "../../fixtures/entityFactories/DocListingFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
-import type { MissionsWithEvas } from "server/express/routes/emss/getMissions";
 import { createMockAutomergeRepo } from "../../helpers/mockAutomergeRepo";
 
 let testEvas: Eva_db[];

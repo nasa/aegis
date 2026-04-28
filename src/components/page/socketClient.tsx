@@ -4,7 +4,11 @@ import { useEffect, useRef } from "react";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import type { Socket } from "socket.io-client";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { cleanupSocketListeners, createSocket, attachSocketListeners } from "utils/socketStuff";
+import {
+  cleanupSocketListeners,
+  createClientSocket,
+  attachSocketListeners,
+} from "utils/clientSocketHelpers";
 
 const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   const dispatch = useAppDispatch();
@@ -24,7 +28,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
     // Create a socket connection to the server.
     // On handshake, the server will generate an socket id for the client
     if (!socket.current || (socket.current && !socket.current.connected)) {
-      socket.current = createSocket(window.location.origin);
+      socket.current = createClientSocket(window.location.origin);
     }
 
     attachSocketListeners(socket.current, dispatch, connectionStoreRef, userRef, missionId);

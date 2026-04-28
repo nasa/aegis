@@ -181,7 +181,7 @@ export const thunkMakeExportString = appCreateAsyncThunk<
   ) => {
     const missionDocHandle = getAutomergeDocHandles().mission;
     const mission = missionDocHandle.doc();
-    const allData: AllDataForExport = {
+    const allData: MissionCoreData = {
       mission: mission || ({} as Mission),
       pois: getState().poi.pois,
       stations: getState().station.stations,

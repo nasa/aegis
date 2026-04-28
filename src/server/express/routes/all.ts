@@ -97,6 +97,9 @@ export default router;
  * @param missionId
  */
 export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll> {
+  if (!missionId || isNaN(missionId)) {
+    throw new Error("Invalid mission ID");
+  }
   // All queries start simultaneously and use different connections from the pool
   const [
     mission,
@@ -149,4 +152,40 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
     folders,
   };
   return allData;
+}
+
+/**
+ * Get the core mission data from the database.
+ * This is a subset of OneMissionToRuleThemAll — only the entities needed for
+ * cross-application communication (e.g. Maestro integration, data export).
+ */
+export async function getMissionCoreData(missionId: number): Promise<MissionCoreData> {
+  if (!missionId || isNaN(missionId)) {
+    throw new Error("Invalid mission ID");
+  }
+  const [mission, actions, evas, pois, rexes, stations, level1s, level2s, level3s, traverses] =
+    await Promise.all([
+      getAutomergeMissions([missionId]),
+      getActions({ missionId }),
+      getEVAs(missionId),
+      getPois(missionId),
+      getRexes(missionId),
+      getStations(missionId),
+      getLevel1s(missionId),
+      getLevel2s(missionId),
+      getLevel3s(missionId),
+      getTraverses(missionId),
+    ]);
+  return {
+    mission: mission[0],
+    actions,
+    evas,
+    pois,
+    rexes,
+    stations,
+    level1s,
+    level2s,
+    level3s,
+    traverses,
+  };
 }

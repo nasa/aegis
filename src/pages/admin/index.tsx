@@ -112,8 +112,14 @@ const Index: React.FunctionComponent = () => {
                 enabled={!!user?.isSuperAdmin}
               />
               <NavCard
+                to="/admin/maestro"
+                title="Maestro"
+                description="Monitor Maestro connections."
+                enabled={!!user?.isSuperAdmin}
+              />
+              <NavCard
                 to="/admin/emss"
-                title="EMSS / Maestro"
+                title="EMSS / Maestro (Deprecated)"
                 description="Manage EMSS API integration, clear REX properties, and monitor Maestro connections."
                 enabled={!!user?.isSuperAdmin}
               />

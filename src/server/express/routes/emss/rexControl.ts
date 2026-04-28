@@ -13,8 +13,9 @@ import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "../missionAutomerge";
 
-const router = express.Router();
+// Not used by Maestro - Only used by our AEGIS admin page
 
+const router = express.Router();
 interface RexControlUpdateRequest {
   rexUuid: string;
   maestroControlled?: boolean;

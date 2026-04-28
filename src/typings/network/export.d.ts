@@ -95,7 +95,7 @@ type EquipmentItemUsageReadable = {
   quantityUsed: number;
 };
 
-type AllDataForExport = {
+type MissionCoreData = {
   mission: Mission;
   actions: Action[];
   pois: POI[];

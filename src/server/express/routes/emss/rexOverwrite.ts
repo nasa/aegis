@@ -22,8 +22,8 @@ import { SCHEMA_DIR } from "utils/validateSchemaServer";
 import { getAutomergeMissions } from "../missionAutomerge";
 
 const router = express.Router();
-
-// body of the POST request should be a RexOverwrite object
+// Used by Maestro to control a rex. Deprecated
+// Body of the POST request should be a RexOverwrite object
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
 
@@ -134,8 +134,9 @@ router.get("/schema", async (req: Request, res: Response): Promise<void> => {
 });
 
 // update the rex record. More than one rex may be updated if we need to stop a previously running rex
-async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
-  const em = globalValues.orm.em;
+export async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
+  // must manually fork because sometimes this call is outside normal http request context (what we do in routes)
+  const em = globalValues.orm.em.fork();
   await em.begin(); // start a transaction
 
   let rexEntity = null;

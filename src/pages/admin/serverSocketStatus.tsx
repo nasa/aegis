@@ -6,7 +6,7 @@ import { getMissionHomepageItems } from "http-client/mission";
 import React from "react";
 import uniq from "lodash/uniq";
 import type { Socket } from "socket.io-client";
-import { createSocket } from "utils/socketStuff";
+import { createClientSocket } from "utils/clientSocketHelpers";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlug,
@@ -48,7 +48,7 @@ const ServerSocketStatus: React.FunctionComponent = () => {
 
       // connect to the inspector socket room
       if (!socket.current || (socket.current && !socket.current.connected)) {
-        socket.current = createSocket(window.location.origin);
+        socket.current = createClientSocket(window.location.origin);
       }
 
       socket.current.on("connect", () => {

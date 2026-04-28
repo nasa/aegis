@@ -28,7 +28,7 @@ export const makeEquipmentReadable = (params: {
 
 export const makeExportActions = (params: {
   actions: Action[];
-  allData: AllDataForExport;
+  allData: MissionCoreData;
   missionGrid: MissionGridPoint[][];
 }): ExportAction[] => {
   const { actions, allData, missionGrid } = params;
@@ -105,7 +105,7 @@ export const makeExportActions = (params: {
 export const makeExportPois = (params: {
   pois: POI[];
   missionGrid: MissionGridPoint[][];
-  allData: AllDataForExport;
+  allData: MissionCoreData;
 }): ExportPOI[] => {
   const { pois, allData, missionGrid } = params;
   if (!pois || pois.length === 0) return [];
@@ -142,7 +142,7 @@ export const makeExportPois = (params: {
 export const makeExportStations = (params: {
   stations: Station[];
   missionGrid: MissionGridPoint[][];
-  allData: AllDataForExport;
+  allData: MissionCoreData;
   exportActions?: boolean;
 }): ExportStation[] => {
   const { stations, allData, missionGrid, exportActions = true } = params;
@@ -217,7 +217,7 @@ export const makeExportStations = (params: {
 export const makeExportTraverses = (params: {
   traverses: Traverse[];
   missionGrid: MissionGridPoint[][];
-  allData: AllDataForExport;
+  allData: MissionCoreData;
   exportActions?: boolean;
 }): ExportTraverse[] => {
   const { traverses, allData, missionGrid, exportActions = true } = params;
@@ -270,7 +270,7 @@ export const makeExportTraverses = (params: {
 export const makeExportEvas = (params: {
   evas: Eva[];
   missionGrid: MissionGridPoint[][];
-  allData: AllDataForExport;
+  allData: MissionCoreData;
   exportStations?: boolean;
   exportTraverses?: boolean;
 }): ExportEva[] => {
