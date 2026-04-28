@@ -34,7 +34,17 @@ include:
   - local: .gitlab/includes/server-jobs.yml
   - local: .gitlab/includes/load-test.yml
 
+# Override FIT template jobs to require manual trigger
+# (eegitlabregistry images are inaccessible; these are slow/noisy on every commit)
+yaml-lint:
+  stage: stageless
+  when: manual
+
+code_quality:
+  when: manual
+
 project-check:
+  when: manual
   variables:
     SCAN_FOR_DOCS: "no"
     ALLOWED_FILES: >
@@ -43,10 +53,12 @@ project-check:
 
 dependency-check:
   stage: stageless
-  tags: ["docker", "linux"] # can't use openshift (yet?)
-  needs: ["install_dependencies"] # dependency-check takes a while, don't wait for "test" job
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "int" || $CI_COMMIT_BRANCH == "prod"'
+  when: manual
+  tags: ["openshift"]
+  needs: ["install_dependencies"]
+  before_script:
+    # node_modules is shipped as a tarball artifact (see install_dependencies)
+    - tar -xf node_modules.tar
 
 npm-audit:
   stage: stageless
@@ -61,23 +73,29 @@ npm-audit:
 
 install_dependencies:
   stage: stageless
-  # This could be openshift, but it runs faster in a VM; other jobs rely on it, so get it done ASAP
-  tags: ["docker", "linux"]
+  tags: ["openshift"]
   script:
     - npm ci
+    # Tar node_modules into a single artifact. GitLab spends most of the upload time walking 50k+ files
+    # and adding each to the artifact zip; collapsing to one tarball cuts upload from ~22s to a few seconds,
+    # and dependent jobs see the same speedup on download/extract.
+    - tar -cf node_modules.tar node_modules
   artifacts:
     expire_in: 1 day
     paths:
-      - ./node_modules/*
+      - node_modules.tar
 
 #
 # Creates Software Bill of Materials
 #
 node-sbom:
   stage: stageless
-  tags: ["docker", "linux"] # Can't be openshift due to it not pulling latest tag
+  tags: ["openshift"]
   needs: ["install_dependencies"]
   image: ${CI_REGISTRY}/emss/docker-images/node-ci:sbom # custom image, not on Docker Hub
+  before_script:
+    # node_modules is shipped as a tarball artifact (see install_dependencies)
+    - tar -xf node_modules.tar
   script:
     - /make-sbom.sh
   artifacts:
@@ -107,26 +125,100 @@ node-sbom:
     # DOCKER_IMAGE_DATABASE comes from make-test-dotenv job artifact
     - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/${DOCKER_IMAGE_DATABASE}
       alias: postgres-test-container
-  tags: ["docker", "linux"]
+      variables:
+        # OpenShift runs containers as a random non-root UID. The default
+        # PGDATA (/var/lib/postgresql/data) is owned by the postgres user
+        # (UID 70 on alpine) and not writable by an arbitrary UID, so initdb
+        # fails silently and postgres never starts. Redirecting PGDATA to
+        # /tmp lets initdb create the data directory regardless of UID.
+        PGDATA: /tmp/pgdata
+  tags: ["openshift"]
   before_script:
+    # node_modules is shipped as a tarball artifact (see install_dependencies)
+    - tar -xf node_modules.tar
     # Remove lines from .env file. See "Variable Precedence" section above
     - sed -i '/DB_PASS/d' .env
     - sed -i '/DB_HOST/d' .env
     - sed -i '/DB_NAME/d' .env
+    # OpenShift runners can't write to /d1; redirect file uploads to /tmp.
+    - sed -i 's|^STATIC_DIR=.*|STATIC_DIR=/tmp/aegis-static|' .env
+    - mkdir -p /tmp/aegis-static
 
-test-vitest-lint-tsc:
+.lint-tsc-template:
+  stage: stageless
+  tags: ["openshift"]
+  needs:
+    - install_dependencies
+  before_script:
+    - tar -xf node_modules.tar
+
+lint-js:
+  extends: .lint-tsc-template
+  script:
+    - npm run lint:js
+
+lint-css:
+  extends: .lint-tsc-template
+  script:
+    - npm run lint:css
+
+tsc:
+  extends: .lint-tsc-template
+  script:
+    # schema:create generates the typescript-json-schema outputs that some
+    # types reference; tsc fails without them.
+    - npm run schema:create
+    - npm run tsc
+
+# Sharded vitest. Each shard emits a blob report (coverage data embedded);
+# merge-vitest-coverage consolidates them into the final cobertura/lcov/junit.
+# Per-shard cobertura would only reflect 1/N of the codebase and confuse
+# GitLab's coverage UI.
+test-vitest:
+  parallel:
+    matrix:
+      - SHARD_INDEX: 1
+      - SHARD_INDEX: 2
+      - SHARD_INDEX: 3
+  variables:
+    NUM_SHARDS: 3
   extends: .test_template
   script:
-    # Load production database dump
-    - apk update && apk add --no-cache postgresql-client # Install psql client using apk for Alpine
-    - PGPASSWORD=${DB_PASS} psql -h ${DB_HOST} -U postgres -d ${DB_NAME} < aegis.sql
+    - echo "Running vitest shard ${SHARD_INDEX} of ${NUM_SHARDS}"
+    - node .gitlab/scripts/load-sql-dump.mjs aegis.sql
     - npm run migration:up
-    # Create schemas so the references resolve
     - npm run schema:create
-    # Run all the other things
-    - npm run lint
-    - npm run tsc
-    - npm run test:coverage
+    - npx vitest run
+      --config src/tests/vitest/vitest.config.mts
+      --coverage
+      --reporter=blob
+      --shard=${SHARD_INDEX}/${NUM_SHARDS}
+  artifacts:
+    paths:
+      - .vitest-reports/
+    expire_in: 1 day
+
+# Merge sharded vitest blob reports into a single coverage + junit set.
+# `vitest --merge-reports` reads .vitest-reports/ from all shard artifacts,
+# replays the embedded coverage/test data, and emits whatever reporters we
+# pass. No DB needed — this step does not run tests.
+merge-vitest-coverage:
+  stage: stageless
+  tags: ["openshift"]
+  needs:
+    - install_dependencies
+    - test-vitest
+  before_script:
+    - tar -xf node_modules.tar
+  script:
+    - npx vitest --merge-reports
+      --config src/tests/vitest/vitest.config.mts
+      --reporter=junit
+      --coverage
+      --coverage.reporter=text
+      --coverage.reporter=text-summary
+      --coverage.reporter=cobertura
+      --coverage.reporter=lcov
   coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
   artifacts:
     reports:
@@ -139,20 +231,19 @@ test-vitest-lint-tsc:
       - ./coverage/*
     expire_in: 1 day
 
-# test against next version of node that AEGIS may use, but allow to fail
 test-node-next:
   extends: .test_template
   image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:25.8.1-alpine
+  when: manual
   allow_failure: true
   script:
-    # Load production database dump
-    - apk update && apk add --no-cache postgresql-client # Install psql client using apk for Alpine
-    - PGPASSWORD=${DB_PASS} psql -h ${DB_HOST} -U postgres -d ${DB_NAME} < aegis.sql
+    - node .gitlab/scripts/load-sql-dump.mjs aegis.sql
     - npm run migration:up
-    # Create schemas so the references resolve
     - npm run schema:create
-    # Run all the other things
-    - npm run test:all
+    - npm run lint
+    - npm run tsc
+    - npm run build
+    - npm run test:vitest
 
 test-playwright:
   parallel:
@@ -173,10 +264,8 @@ test-playwright:
   script:
     - echo "Running shard ${SHARD_INDEX} of ${NUM_SHARDS}"
     - mkdir -p playwright-report
-    - apt-get update && apt-get install -y postgresql-client # Fast install, fine that it's not in the image
-    - PGPASSWORD=${DB_PASS} psql -h ${DB_HOST} -U postgres -d ${DB_NAME} < aegis.sql
+    - node .gitlab/scripts/load-sql-dump.mjs aegis.sql
 
-    - npx playwright install-deps # Install Playwright dependencies
     - npm run api:build # Build api in advance so it also builds the automerge:migration
     - npm run migration:up
     - npm run automerge:migration
@@ -202,23 +291,20 @@ test-automerge-migrate:
   extends: .test_template
   script:
     # install the database and load it with prod data to get current automerge doc data
-    - apk update && apk add postgresql-client
-    - PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME < aegis.sql
+    - node .gitlab/scripts/load-sql-dump.mjs aegis.sql
     - npm run migration:up
 
     # generate a schema, build the migration file, run it, and validate against the schema
     - echo "Running migration (1)"
     - npm run test:automerge:migration
     # get a snapshot of the automerge_native_db table
-    - |
-      PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME -c "SELECT * FROM automerge_native_db;" -o automerge_native_db_migrate1.txt
+    - node .gitlab/scripts/dump-table.mjs automerge_native_db automerge_native_db_migrate1.txt
 
     # run the migration a 2nd time. This should not change the output
     - echo "Running migration (2)"
     - npm run test:automerge:migration
     # get a snapshot of the automerge_native_db table
-    - |
-      PGPASSWORD=$DB_PASS psql -h $DB_HOST -U postgres -d $DB_NAME -c "SELECT * FROM automerge_native_db;" -o automerge_native_db_migrate2.txt
+    - node .gitlab/scripts/dump-table.mjs automerge_native_db automerge_native_db_migrate2.txt
 
     # compare snapshots; fail if they differ
     - echo "Comparing snapshots"
@@ -233,12 +319,18 @@ test-automerge-migrate:
 .make-dotenv-template:
   stage: stageless
   needs: []
-  tags: ["docker", "linux"]
+  tags: ["openshift"]
   before_script:
     # Determine the versions of @emss/make-dotenv and tsx defined in package-lock.json
     # This allows us to be sure the same versions are used in CI as are used in local dev
     - MAKE_DOTENV_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/@emss/make-dotenv'].version")
     - TSX_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/tsx'].version")
+
+    # OpenShift runs the container as a random non-root UID, which can't write
+    # the default global npm prefix (/usr/local/lib/node_modules). Redirect to
+    # /tmp and put its bin on PATH so `make-dotenv`/`tsx` resolve below.
+    - export NPM_CONFIG_PREFIX=/tmp/npm-global
+    - export PATH=/tmp/npm-global/bin:$PATH
 
     # Globally install these packages. This allows us to use them without installing
     # all packages specified in package.json, which takes 1-4 minutes depending on the
@@ -317,6 +409,9 @@ make-dotenv:test:
 .kaniko-build-template:
   extends: .emss-kaniko-build
   stage: stageless
+  # Can't move to openshift: the FIT .emss-kaniko-build script writes
+  # /kaniko/.docker/config.json, and /kaniko/ is owned by root in the kaniko
+  # image — openshift's random non-root UID can't create files there.
   tags: ["docker", "linux"]
   needs:
     - make-dotenv:fit
@@ -347,15 +442,40 @@ docker:build:apiv1:
 
 #
 # Retag docker images after necessary jobs pass (e.g. unit testing passes)
+# Used by int/prod deploys — requires tests to pass.
 #
 docker:retag:
   extends: .emss-container-retag
   needs:
     - make-dotenv:fit
+    - job: lint-js
+      artifacts: false
+    - job: lint-css
+      artifacts: false
+    - job: tsc
+      artifacts: false
     - job: test-automerge-migrate
       artifacts: false
-    - job: test-vitest-lint-tsc
+    - job: merge-vitest-coverage
       artifacts: false
+    - job: docker:build:nginx
+      artifacts: false
+    - job: docker:build:gdal
+      artifacts: false
+    - job: docker:build:apiv1
+      artifacts: false
+  variables:
+    RETAG_SERVICE_IMAGES: |
+      nginx
+      gdal
+      apiv1
+
+# Retag for dev environments — does NOT require tests to pass.
+# Allows dev deploys to proceed immediately after builds complete.
+docker:retag:dev:
+  extends: .emss-container-retag
+  needs:
+    - make-dotenv:fit
     - job: docker:build:nginx
       artifacts: false
     - job: docker:build:gdal
@@ -381,6 +501,7 @@ deploy:artifactize-committed-files:
       - docker-compose.yml
     expire_in: 1 day
 
+# Used by int/prod — requires tests to pass (via docker:retag)
 .deploy-template:
   extends: .emss-fitdock-deploy # use job template from gitlab-templates repo
   needs:
@@ -390,9 +511,19 @@ deploy:artifactize-committed-files:
   stage: stageless
   timeout: 10 minutes
 
+# Used by dev envs — does NOT require tests to pass (via docker:retag:dev)
+.deploy-template:dev:
+  extends: .emss-fitdock-deploy
+  needs:
+    - make-dotenv:fit
+    - docker:retag:dev
+    - deploy:artifactize-committed-files
+  stage: stageless
+  timeout: 10 minutes
+
 deploy:carbon:
   extends:
-    - .deploy-template
+    - .deploy-template:dev
     - .carbon-deploy
   when: manual
   before_script:
@@ -402,7 +533,7 @@ deploy:carbon:
 
 deploy:gold:
   extends:
-    - .deploy-template
+    - .deploy-template:dev
     - .gold-deploy
   when: manual
   before_script:
@@ -412,7 +543,7 @@ deploy:gold:
 
 deploy:iron:
   extends:
-    - .deploy-template
+    - .deploy-template:dev
     - .iron-deploy
   when: manual
   before_script:
@@ -422,7 +553,7 @@ deploy:iron:
 
 deploy:neon:
   extends:
-    - .deploy-template
+    - .deploy-template:dev
     - .neon-deploy
   when: manual
   before_script:
@@ -432,7 +563,7 @@ deploy:neon:
 
 deploy:oxygen:
   extends:
-    - .deploy-template
+    - .deploy-template:dev
     - .oxygen-deploy
   when: manual
   before_script:
