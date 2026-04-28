@@ -192,7 +192,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     try {
       // Standard flow for full objects
       const wholeStore: OneMissionToRuleThemAll = await getAll(queryObj.missionId);
-      const allData: AllDataForExport = {
+      const allData: MissionCoreData = {
         mission: wholeStore.mission,
         pois: wholeStore.pois,
         stations: wholeStore.stations,

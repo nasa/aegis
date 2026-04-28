@@ -5,6 +5,8 @@ import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
 const router = express.Router();
 
+// Not used by Maestro - Only used by our AEGIS admin page
+
 // only super admin can get and set this value
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   if (!req.session?.appUser?.isSuperAdmin) {

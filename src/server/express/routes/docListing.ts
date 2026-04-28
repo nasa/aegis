@@ -97,7 +97,7 @@ export default router;
 export async function getAutomergeDocListing(
   missionIds: number[] = null
 ): Promise<AutomergeDocListing[]> {
-  // must manually fork because this call is outside normal http request context (what we do in routes)
+  // must manually fork because sometimes this call is outside normal http request context (what we do in routes)
   const em = globalValues.orm.em.fork();
   let automergeListing: Doc_Listing_db[];
   if (!missionIds) {

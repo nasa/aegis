@@ -5,10 +5,15 @@ import find from "lodash/find";
 import isEqual from "lodash/isEqual";
 import { globalValues } from "./global";
 import type { DefaultEventsMap, Socket } from "socket.io";
-import { emitMaestroStoreDelete, emitMaestroStoreUpsert } from "server/express/maestro-sockets";
+import {
+  emitMaestroStoreDelete,
+  emitMaestroStoreUpsert,
+  emitToMaestroNamespace,
+  isRelevantToSubscribedEvas,
+} from "server/express/sockets-maestro-emitters";
+import { getMaestroSocketRoomName } from "./sockets-maestro";
 
 export const setupSocketIO = (): void => {
-  // initialize the global object that will store the visitor tracking data and last edit events
   const visitorsData: VisitorData[] = globalValues.serverSocketStatus.visitorsData;
   const maestroVisitors: MaestroVisitor[] = globalValues.serverSocketStatus.maestroVisitors;
   const io = globalValues.socketio;
@@ -40,9 +45,12 @@ export const setupSocketIO = (): void => {
 
           // set this visitor's information on the server's global
           // remove this socket from tracking list if it exists and push the new one
+          // Use the server's authoritative socket.id for this client rather than the client-provided
+          // visitorData.socketId that comes in with the join message
           remove(visitorsData, (item) => {
-            return item.socketId === visitorData.socketId;
+            return item.socketId === socket.id;
           });
+          visitorData.socketId = socket.id;
           visitorsData.push(visitorData);
 
           // emit new status to all clients in this room including this client
@@ -65,6 +73,7 @@ export const setupSocketIO = (): void => {
         }
       });
 
+      // Deprecated
       socket.on("maestroJoin", (maestroVisitor: MaestroVisitor) => {
         socket.join(`maestro`); // join a maestro room
 
@@ -86,14 +95,23 @@ export const setupSocketIO = (): void => {
         io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
       });
 
+      socket.on("getMaestroDebugInfo", (callback) => {
+        const docListenerRooms = Array.from(globalValues.maestro.docListeners.keys());
+        const evaSubscriptions: { [missionId: number]: string[] } = {};
+        globalValues.maestro.evaSubscriptions.forEach((refUuids, missionId) => {
+          evaSubscriptions[missionId] = refUuids;
+        });
+        callback({ docListenerRooms, evaSubscriptions });
+      });
+
       socket.on("disconnect", () => {
         try {
-          // remove if this is a maestro visitor
+          // remove this socket if this is a deprecated maestroJoin visitor
           remove(maestroVisitors, (item) => {
             return item.socketId === socket.id;
           });
 
-          // remove this socket from the visitor tracking
+          // remove this socket if it's a regular visitor
           const visitorBeingRemoved = find(visitorsData, {
             socketId: socket.id,
           });
@@ -134,7 +152,8 @@ export const setupSocketIO = (): void => {
   );
 };
 
-export const getStatusFromServer = (missionId: number): StatusFromServer => {
+// build the heartbeat message sent every 10 seconds to clients
+const getStatusFromServer = (missionId: number): StatusFromServer => {
   let editorCounts = 0;
   let viewerCounts = 0;
   const visitorsData = globalValues.serverSocketStatus.visitorsData;
@@ -158,7 +177,8 @@ export const getStatusFromServer = (missionId: number): StatusFromServer => {
 };
 
 /**
- * Server emits an upsert message to all clients in the mission room, and maestro room
+ * Server emits an upsert message to all aegis clients in the mission room, and maestro room
+ * Called from our api endpoints
  * @param payload
  */
 export const emitStoreUpsert = (payload: StoreUpsert): void => {
@@ -167,19 +187,47 @@ export const emitStoreUpsert = (payload: StoreUpsert): void => {
     payload = addLastEditEvent(payload);
     io.to(payload.missionId.toString()).emit("storeUpsert", payload);
 
-    // update the inspector room
+    // Update the inspector room for lastEditEvent
     io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
 
-    // check if we need to emit to maestro room
-    if (globalValues.serverSocketStatus.maestroVisitors?.length === 0) return; // no maestro connected
-    if (["eva", "station", "traverse", "action", "mission", "rex"].includes(payload.type)) {
-      emitMaestroStoreUpsert(payload);
+    // Check if we need to emit to maestro room // Deprecated
+    const roomSize = io.sockets.adapter.rooms.get(`maestro`)?.size ?? 0;
+    if (roomSize !== 0) {
+      if (["eva", "station", "traverse", "action", "rex"].includes(payload.type)) {
+        emitMaestroStoreUpsert(payload);
+      }
+    }
+
+    // Emit to /maestro namespace rooms if payload is relevant to subscribed EVAs
+    const maestroNamespace = globalValues.maestro.socketio;
+    if (maestroNamespace) {
+      const roomName = getMaestroSocketRoomName(payload.missionId);
+      const roomSize = maestroNamespace.adapter.rooms.get(roomName)?.size ?? 0;
+      // Only emit if room isn't empty. This is to improve performance
+      if (roomSize > 0 && ["eva", "station", "traverse", "action", "rex"].includes(payload.type)) {
+        isRelevantToSubscribedEvas(payload.missionId, payload.type, payload)
+          .then((relevant) => {
+            if (relevant) emitToMaestroNamespace(payload.missionId);
+          })
+          .catch((error) => {
+            serverLogger.error(
+              {
+                logId: "socket",
+                logValue: "isRelevantToSubscribedEvas - Error checking relevance for maestro emit",
+                emitType: payload.type,
+                emitTypeUuid: payload.data?.map((sd: StoreData) => sd.uuid),
+                missionId: payload.missionId,
+              },
+              error instanceof Error ? error : new Error(String(error))
+            );
+          });
+      }
     }
   } else {
     serverLogger.error(
       {
         logId: "socket",
-        logValue: "Unable to emit upsert",
+        logValue: "emitStoreUpsert -Unable to emit upsert",
         emitType: payload.type,
         emitTypeUuid: payload.data?.map((sd: StoreData) => sd.uuid),
         missionId: payload.missionId,
@@ -190,7 +238,8 @@ export const emitStoreUpsert = (payload: StoreUpsert): void => {
 };
 
 /**
- * Server emits a delete message to all clients in the mission room, and maestro room
+ * Server emits a delete message to all aegis clients in the mission room, and maestro room
+ * Called from our api endpoints
  * @param payload
  */
 export const emitStoreDelete = (payload: StoreDelete): void => {
@@ -202,16 +251,58 @@ export const emitStoreDelete = (payload: StoreDelete): void => {
     // update the inspector room
     io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
 
-    // check if we need to emit to maestro room
-    if (globalValues.serverSocketStatus.maestroVisitors?.length === 0) return; // no maestro connected
-    if (["eva", "station", "traverse", "action", "mission", "rex"].includes(payload.type)) {
-      emitMaestroStoreDelete(payload);
+    // check if we need to emit to maestro room // Deprecated
+    const roomSize = io.sockets.adapter.rooms.get(`maestro`)?.size ?? 0;
+    if (roomSize !== 0) {
+      if (["eva", "station", "traverse", "action", "mission", "rex"].includes(payload.type)) {
+        emitMaestroStoreDelete(payload);
+      }
+    }
+
+    // Emit to /maestro namespace rooms if payload is relevant to subscribed EVAs
+    const maestroNamespace = globalValues.maestro.socketio;
+    if (maestroNamespace) {
+      const roomName = getMaestroSocketRoomName(payload.missionId);
+      const roomSize = maestroNamespace.adapter.rooms.get(roomName)?.size ?? 0;
+      // Only emit if room isn't empty. This is to improve performance
+      if (roomSize > 0 && ["eva", "station", "traverse", "action", "rex"].includes(payload.type)) {
+        isRelevantToSubscribedEvas(payload.missionId, payload.type, payload)
+          .then((relevant) => {
+            if (relevant) emitToMaestroNamespace(payload.missionId);
+          })
+          .catch((error) => {
+            serverLogger.error(
+              {
+                logId: "socket",
+                logValue: "isRelevantToSubscribedEvas - Error checking relevance for maestro emit",
+                emitType: payload.type,
+                emitTypeUuid: payload.uuids,
+                missionId: payload.missionId,
+              },
+              error instanceof Error ? error : new Error(String(error))
+            );
+          });
+      }
+    }
+
+    // If EVA and it's been subscribed to, remove that EVA from evaSubscriptions
+    // Do this last so that the maestro emitters can still check for relevance above
+    if (payload.type === "eva") {
+      const subscriptions = globalValues.maestro.evaSubscriptions.get(payload.missionId);
+      if (subscriptions) {
+        const updated = subscriptions.filter((uuid) => !payload.uuids.includes(uuid));
+        if (updated.length === 0) {
+          globalValues.maestro.evaSubscriptions.delete(payload.missionId);
+        } else {
+          globalValues.maestro.evaSubscriptions.set(payload.missionId, updated);
+        }
+      }
     }
   } else {
     serverLogger.error(
       {
         logId: "socket",
-        logValue: "Unable to emit delete",
+        logValue: "emitStoreDelete - Unable to emit delete",
         emitType: payload.type,
         emitTypeUuid: payload.uuids,
         missionId: payload.missionId,
@@ -222,7 +313,7 @@ export const emitStoreDelete = (payload: StoreDelete): void => {
 };
 
 /**
- * Updates the global last edit event for this mission and adds it to the payload
+ * Updates the global last edit event for this mission and adds it to the payload.
  * Use function overloading to handle both StoreUpsert and StoreDelete types
  * @param payload
  * @returns

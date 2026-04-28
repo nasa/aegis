@@ -20,6 +20,7 @@ const parseQuery = (query: Query) => {
 };
 
 // Used by Maestro to get all REX executions for a given as-planned EVA
+// Deprecated
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   const emssToken = req.headers["emss-token"] as string;
@@ -54,31 +55,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const em = globalValues.orm.em;
-
-    const refEvaSubQuery = em
-      .createQueryBuilder(Eva_db)
-      .select("uuid")
-      .where({ refUuid: queryObj.evaRefUuid });
-
-    const rexEvasQuery = em
-      .createQueryBuilder(Rex_db)
-      .select(["uuid", "name", "createdAt", "updatedAt", "isRunning"])
-      .where({
-        evaUuid: { $in: refEvaSubQuery.getKnexQuery() },
-        maestroEventId: null,
-      });
-
-    const dbRexes = await rexEvasQuery.execute();
-
-    const refRexes = dbRexes.map((rex) => ({
-      uuid: rex.uuid,
-      name: rex.name,
-      createdAt: rex.createdAt.toISOString(),
-      updatedAt: rex.updatedAt.toISOString(),
-      isRunning: rex.isRunning,
-    }));
-
+    const refRexes = await getRexesByEvaRefData(queryObj.evaRefUuid);
     res.status(200).json({
       status: "success",
       message: `Rexes retrieved`,
@@ -97,5 +74,33 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ status: "error", message: `Error getting rexes ${e}` });
   }
 });
+
+export async function getRexesByEvaRefData(evaRefUuid: string): Promise<RefRex[]> {
+  // must manually fork because sometimes this call is outside normal http request context (what we do in routes)
+  const em = globalValues.orm.em.fork();
+
+  const refEvaSubQuery = em
+    .createQueryBuilder(Eva_db)
+    .select("uuid")
+    .where({ refUuid: evaRefUuid });
+
+  const rexEvasQuery = em
+    .createQueryBuilder(Rex_db)
+    .select(["uuid", "name", "createdAt", "updatedAt", "isRunning"])
+    .where({
+      evaUuid: { $in: refEvaSubQuery.getKnexQuery() },
+      maestroEventId: null,
+    });
+
+  const dbRexes = await rexEvasQuery.execute();
+
+  return dbRexes.map((rex) => ({
+    uuid: rex.uuid,
+    name: rex.name,
+    createdAt: rex.createdAt.toISOString(),
+    updatedAt: rex.updatedAt.toISOString(),
+    isRunning: rex.isRunning,
+  }));
+}
 
 export default router;

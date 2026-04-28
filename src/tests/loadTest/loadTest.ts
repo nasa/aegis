@@ -1,5 +1,9 @@
 import "utils/loadEnv";
-import { attachSocketListeners, cleanupSocketListeners, createSocket } from "utils/socketStuff";
+import {
+  attachSocketListeners,
+  cleanupSocketListeners,
+  createClientSocket,
+} from "utils/clientSocketHelpers";
 import type { RootState } from "store/index";
 import reduxStore from "store/index";
 import { populateStore } from "store/processing/populateStore";
@@ -115,7 +119,7 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
 
     // Add socket listeners
     // Disable TLS verification for self-signed certificates in load testing
-    const socket = createSocket(serverURL, { rejectUnauthorized: false });
+    const socket = createClientSocket(serverURL, { rejectUnauthorized: false });
     attachSocketListeners(socket, dispatch, connectionStoreRef, userRef, TEST_MISSION_ID);
 
     let keepAlive = true;

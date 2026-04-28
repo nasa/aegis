@@ -15,6 +15,7 @@ import AdminMissionDuplicate from "pages/admin/missionDuplicate";
 import AdminUser from "pages/admin/user";
 import ServerSocketStatus from "pages/admin/serverSocketStatus";
 import Emss from "pages/admin/emss";
+import Maestro from "pages/admin/maestro";
 import ManageAutomergeDoc from "pages/admin/automerge";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { setLaunchpadUser } from "store/user";
@@ -57,6 +58,7 @@ const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElemen
         <Route path="/admin/mission_duplicate/:id" element={<AdminMissionDuplicate />} />
         <Route path="/admin/user" element={<AdminUser />} />
         <Route path="/admin/serverSocketStatus" element={<ServerSocketStatus />} />
+        <Route path="/admin/maestro" element={<Maestro />} />
         <Route path="/admin/emss" element={<Emss />} />
       </Routes>
     </>

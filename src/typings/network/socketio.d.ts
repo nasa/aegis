@@ -1,13 +1,14 @@
 declare type LaunchpadUser = import("@emss/oauth2-proxy-common").EmssUser;
 
-/** Socket.io Server instantiation types */
+// ─── Default namespace ("/") — Aegis web client ──────────────────────────────
+
 interface ServerToClientEvents {
   statusFromServer: (payload: StatusFromServer) => void;
   version: (version: AppVersion) => void; // server version sent to client
   storeUpsert: (payload: StoreUpsert) => void;
   storeDelete: (payload: StoreDelete) => void;
-  storeUpsertForMaestro: (payload: StoreUpsertForMaestro) => void;
-  storeDeleteForMaestro: (payload: StoreDeleteForMaestro) => void;
+  storeUpsertForMaestro: (payload: StoreUpsertForMaestro) => void; // Deprecated
+  storeDeleteForMaestro: (payload: StoreDeleteForMaestro) => void; // Deprecated
   inspectorUpdate: (payload: ServerSocketStatus) => void;
 }
 
@@ -15,8 +16,86 @@ interface ClientToServerEvents {
   storeUpsert: (payload: StoreUpsert) => void;
   storeDelete: (payload: StoreDelete) => void;
   visitorJoin: (visitorData: VisitorData) => void;
-  maestroJoin: (maestroVisitor: MaestroVisitor) => void;
+  maestroJoin: (maestroVisitor: MaestroVisitor) => void; // Deprecated
   inspectorJoin: () => void;
+  getMaestroDebugInfo: (
+    callback: (data: {
+      docListenerRooms: string[];
+      evaSubscriptions: { [missionId: number]: string[] };
+    }) => void
+  ) => void;
+}
+
+// ─── /maestro namespace — Maestro API client ─────────────────────────────────
+
+interface MaestroServerToClientEvents {
+  dataAll: (everythingForMaestro: Maestro.IAegisEntity) => void;
+}
+
+interface MaestroClientToServerEvents {
+  missionJoin: (missionId: number, maestroVisitor: MaestroVisitor) => void;
+  missionLeave: (missionId: number) => void;
+  subscribeToEva: (missionId: number, evaRefUuid: string) => void;
+  unsubscribeToEva: (missionId: number, evaRefUuid: string) => void;
+  getEverything: (
+    missionId: number,
+    callback: (
+      response:
+        | { status: "success"; message: string; data: Maestro.IAegisEntity }
+        | { status: "failure"; message: string }
+        | { status: "error"; message: string }
+    ) => void
+  ) => void;
+  getMission: (
+    missionId: number,
+    callback: (
+      response:
+        | { status: "success"; message: string; data: Mission[] }
+        | { status: "failure"; message: string }
+        | { status: "error"; message: string }
+    ) => void
+  ) => void;
+  getReadableEva: (
+    params: ReadableEvaParams,
+    callback: (
+      response:
+        | {
+            status: "success";
+            message: string;
+            data:
+              | ExportEva[]
+              | { uuid: string; refUuid: string; createdAt?: string; updatedAt?: string }[];
+          }
+        | { status: "failure"; message: string }
+        | { status: "error"; message: string }
+    ) => void
+  ) => void;
+  getMissions: (
+    callback: (
+      response:
+        | { status: "success"; message: string; data: MissionsWithEvas }
+        | { status: "failure"; message: string }
+        | { status: "error"; message: string }
+    ) => void
+  ) => void;
+  getRexesByEvaRef: (
+    evaRefUuid: string,
+    callback: (
+      response:
+        | { status: "success"; message: string; data: RefRex[] }
+        | { status: "failure"; message: string }
+        | { status: "error"; message: string }
+    ) => void
+  ) => void;
+  rexOverwrite: (
+    body: RexOverwrite,
+    callback: (
+      response:
+        | { status: "success"; message: string; data: Rex[] }
+        | { status: "failure"; message: string }
+        | { status: "error"; message: string }
+    ) => void
+  ) => void;
 }
 
 type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting" | "failed";
@@ -31,7 +110,8 @@ interface ClientSocketStatus {
 // information stored in the server's globalValues about the socket status
 interface ServerSocketStatus {
   visitorsData: VisitorData[];
-  maestroVisitors: MaestroVisitor[];
+  maestroVisitors: MaestroVisitor[]; // Deprecated
+  maestroMissionVisitors: { [missionId: string]: MaestroVisitor[] };
   lastEditEvents: EditEvents; // last edit events for all missions
 }
 

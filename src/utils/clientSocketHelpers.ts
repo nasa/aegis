@@ -13,7 +13,7 @@ import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
 
-export const createSocket = (
+export const createClientSocket = (
   serverURL: string,
   loadTestOptions?: { rejectUnauthorized?: boolean } // used for load testing ONLY
 ): Socket => {

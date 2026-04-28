@@ -21,14 +21,13 @@ import app from "server/express/restApi";
 import { createMockAutomergeRepo } from "../../helpers/mockAutomergeRepo";
 
 // suppress socketio calls because they won't work during vitest testing
-vi.mock("server/express/sockets", async () => {
-  const actual = await vi.importActual("server/express/sockets");
-  return {
-    ...actual,
-    emitStoreUpsert: vi.fn(),
-    emitStoreDelete: vi.fn(),
-  };
-});
+// Note: avoid vi.importActual here — it would trigger loading the real sockets.ts which
+// transitively loads sockets-maestro.ts → rexOverwrite.ts → sockets.ts (circular), causing
+// rexOverwrite.ts to capture the real emitStoreUpsert instead of the mock.
+vi.mock("server/express/sockets", () => ({
+  emitStoreUpsert: vi.fn(),
+  emitStoreDelete: vi.fn(),
+}));
 
 let testRexes: Rex_db[];
 let testEva: Eva_db;
@@ -453,8 +452,6 @@ describe("REX Status API Endpoint", () => {
 
   describe("POST request - Business Logic", () => {
     test("Successfully updates REX with valid payload", async () => {
-      const emitStoreUpsertSpy = vi.spyOn(SocketIo, "emitStoreUpsert");
-
       const response = await supertest(app)
         .post("/api/v1/emss/rexOverwrite")
         .set("emss-token", emssToken)
@@ -465,7 +462,7 @@ describe("REX Status API Endpoint", () => {
 
       // Check that the array length is 2 (aka 2 rexes were sent because one was stopped)
       expect(response.body.data.length).toBe(2);
-      const callArgs = emitStoreUpsertSpy.mock.calls[0][0]; // Get the first call's arguments
+      const callArgs = vi.mocked(SocketIo.emitStoreUpsert).mock.calls[0][0]; // Get the first call's arguments
       expect(callArgs.data).toHaveLength(2);
 
       // Check updated rex

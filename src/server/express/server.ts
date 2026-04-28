@@ -10,6 +10,7 @@ import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket
 import app from "./restApi";
 
 import { setupSocketIO } from "./sockets";
+import { setupMaestroNamespace } from "./sockets-maestro";
 import { globalValues } from "./global";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
@@ -56,6 +57,7 @@ initializeBase64Wasm(automergeWasmBase64);
   };
 
   setupSocketIO();
+  setupMaestroNamespace(globalValues.socketio);
 
   // express request handler
   server.on("request", app);
