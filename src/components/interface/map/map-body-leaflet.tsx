@@ -1,5 +1,6 @@
 import * as L from "leaflet";
-L.Icon.Default.imagePath = "/leaflet/images/";
+import { prefixUrl } from "utils/basePath";
+L.Icon.Default.imagePath = prefixUrl("/leaflet/images/");
 // Import the plugin libraries so they will modify L
 import "leaflet.tilelayer.colorfilter";
 import "proj4leaflet";

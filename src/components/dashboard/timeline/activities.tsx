@@ -4,6 +4,7 @@ import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import { EmojiRenderer } from "components/interface/emojis";
 import styles from "./activities.module.css";
 import { selectConvertMaestroActivityPropertiesByRefUuidToUuid } from "store/selectors";
+import { prefixUrl } from "utils/basePath";
 
 const Activities: FunctionComponent<{
   sequenceItems: EVASequenceItemForTimeline[];
@@ -95,7 +96,7 @@ const Activity: FunctionComponent<{
     stationIcon = sequenceItem.icon ? (
       <EmojiRenderer iconValue={sequenceItem.icon} />
     ) : (
-      <img src="/images/lander.svg" alt="lander" className={styles.landerImage} />
+      <img src={prefixUrl("/images/lander.svg")} alt="lander" className={styles.landerImage} />
     );
   } else {
     stationIcon = <EmojiRenderer iconValue={sequenceItem.icon ? sequenceItem.icon : "2754"} />;

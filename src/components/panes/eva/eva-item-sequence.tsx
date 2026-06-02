@@ -10,6 +10,7 @@ import { thunkAddStationToEva } from "store/thunk/thunkEva";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { hmmFromMinutes } from "utils/formatting";
 import { EmojiRenderer } from "components/interface/emojis";
+import { prefixUrl } from "utils/basePath";
 import { setHoverUuidsForSequence } from "store/hover";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { RexStatusMenu } from "../rex/rex-status-menu";
@@ -107,7 +108,7 @@ export const EvaEgressIngressListing: FunctionComponent<{
     const icon = station?.icon ? station.icon : "2754";
     xgressIcon = <EmojiRenderer iconValue={icon} />;
   } else {
-    xgressIcon = <img src="/images/lander.svg" alt="lander" className={evaStyles.landerImage} />;
+    xgressIcon = <img src={prefixUrl("/images/lander.svg")} alt="lander" className={evaStyles.landerImage} />;
   }
 
   const xgressName = `${isEgress ? "Egress" : "Ingress"} at ${station ? station.name : "Lander"}`;

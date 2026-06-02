@@ -12,6 +12,7 @@ import {
   secondsFromhhmmss,
 } from "utils/formatting";
 import { EmojiRenderer } from "components/interface/emojis";
+import { prefixUrl } from "utils/basePath";
 import {
   convertLeafletLatLngToAegisPoint,
   convertLeafletLatLngsToAegisPoints,
@@ -348,7 +349,7 @@ export const drawLanderOnMap = async ({
   const uuid = "lander";
 
   const icon = L.icon({
-    iconUrl: "/images/lander.svg",
+    iconUrl: prefixUrl("/images/lander.svg"),
     iconSize: [sizePx, sizePx],
     iconAnchor: [sizePx / 2, sizePx / 2],
   });
@@ -698,7 +699,7 @@ export const drawPosMarkerOnMap = async ({
             style={{
               width: miniMap ? "20px" : "30px",
             }}
-            src="/images/astronaut_outline.svg"
+            src={prefixUrl("/images/astronaut_outline.svg")}
           ></img>
         </div>
       ) : (

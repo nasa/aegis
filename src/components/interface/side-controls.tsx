@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { prefixUrl } from "utils/basePath";
 import {
   setBottomPanelIsOpen,
   setBottomSectionSelected,
@@ -77,7 +78,7 @@ export const LeftControlPanel: FunctionComponent = () => {
             />
           )}
           <div className={styles.drawerLeftSvg}>
-            <img src="/images/drawerNub.svg" alt="Open/Close Timeline" />
+            <img src={prefixUrl("/images/drawerNub.svg")} alt="Open/Close Timeline" />
           </div>
         </div>
       </div>
@@ -132,7 +133,7 @@ export const BottomControlPanel: FunctionComponent = () => {
             <FontAwesomeIcon className={styles.drawerBottomIcon} color="white" icon={faChevronUp} />
           )}
           <div className={styles.drawerBottomSvg}>
-            <img src="/images/drawerNub.svg" alt="Open/Close Timeline" />
+            <img src={prefixUrl("/images/drawerNub.svg")} alt="Open/Close Timeline" />
           </div>
         </div>
       </div>
@@ -190,7 +191,7 @@ export const RightControlPanel: FunctionComponent = () => {
             />
           )}
           <div className={styles.drawerRightSvg}>
-            <img src="/images/drawerNub.svg" alt="Open/Close Timeline" />
+            <img src={prefixUrl("/images/drawerNub.svg")} alt="Open/Close Timeline" />
           </div>
         </div>
       </div>

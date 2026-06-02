@@ -12,6 +12,7 @@ import isEqual from "lodash/isEqual";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
+import { prefixUrl } from "utils/basePath";
 
 export const createClientSocket = (
   serverURL: string,
@@ -20,7 +21,12 @@ export const createClientSocket = (
   return io(serverURL, {
     transports: ["websocket"],
     upgrade: true,
-    path: "/api/v1/socketio",
+    // Subpath-aware: the server-side socket.io path stays at
+    // `/api/v1/socketio` because imago's Traefik strips the tenant prefix
+    // before forwarding. The client must include the prefix because it
+    // talks to the edge. See
+    // imago/docs/consumer-base-url-rewrite.md §6 "WebSocket clients".
+    path: prefixUrl("/api/v1/socketio"),
     reconnectionAttempts: serverURL === "aegis.fit.nasa.gov" ? Infinity : 10,
     // Allow disabling for self-signed certs when running load testing locally
     rejectUnauthorized: loadTestOptions?.rejectUnauthorized ?? true,

@@ -18,6 +18,7 @@ import DashTimeline from "components/dashboard/timeline/dashTimeline";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import MiniMap from "components/dashboard/miniMap";
 import { setGridCornerPoint } from "store/map";
+import { prefixUrl } from "utils/basePath";
 import { loadAndReturnGrid } from "utils/mapping/grid";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
@@ -239,7 +240,7 @@ const Main = (): JSX.Element => {
                   When an EVA begins, this dashboard will refresh automatically.
                 </div>
                 <div>
-                  <img src="/images/EMSS.svg" alt="EMSS Logo" className={styles.emssLogo} />
+                  <img src={prefixUrl("/images/EMSS.svg")} alt="EMSS Logo" className={styles.emssLogo} />
                 </div>
               </div>
             )}

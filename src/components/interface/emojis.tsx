@@ -1,6 +1,7 @@
 import type { FunctionComponent } from "react";
 import Picker from "@emoji-mart/react";
 import emojiPickerData from "@emoji-mart/data";
+import { prefixUrl } from "utils/basePath";
 
 /**
  * Component to render both standard Unicode emojis and custom emoji images
@@ -15,7 +16,7 @@ export const EmojiRenderer: FunctionComponent<{
   if (iconValue === "station") {
     return (
       <img
-        src="/images/station.svg"
+        src={prefixUrl("/images/station.svg")}
         alt="Station"
         style={{ width: `${customSizeEm}em`, height: `${customSizeEm}em` }}
       />
@@ -83,7 +84,7 @@ export const EmojiPicker: FunctionComponent<{
           id: "station",
           name: "Station",
           keywords: ["station", "location", "marker", "artemis"],
-          skins: [{ src: "/images/station.svg" }],
+          skins: [{ src: prefixUrl("/images/station.svg") }],
         },
       ],
     },

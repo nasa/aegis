@@ -13,6 +13,7 @@ import DashboardPETClock from "./headerPetClock";
 import ReactDOMServer from "react-dom/server";
 import { longDateFromDateString } from "utils/formatting";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+import { prefixUrl } from "utils/basePath";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const DashboardHeader: FunctionComponent = () => {
@@ -102,7 +103,7 @@ const DashboardHeader: FunctionComponent = () => {
         <div className={styles.item}>
           <div className={styles.logoRight}>
             <div>
-              <img className={styles.meatball} src="/images/logo_NASA.svg" alt="NASA meatball" />
+              <img className={styles.meatball} src={prefixUrl("/images/logo_NASA.svg")} alt="NASA meatball" />
             </div>
             <div
               className={styles.logoEmssWrapper}

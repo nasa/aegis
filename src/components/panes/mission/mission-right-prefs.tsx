@@ -13,6 +13,7 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "components/interface/form/globalFields";
+import { prefixUrl } from "utils/basePath";
 import {
   ValidatedInputField,
   ValidatedLatLngField,
@@ -168,7 +169,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               <div className={paneStyles.panelSectionTitle}>
                 <div className={missionStyles.lander}>
                   <img
-                    src="/images/lander.svg"
+                    src={prefixUrl("/images/lander.svg")}
                     alt="Lander Icon"
                     style={{ width: "15px", marginRight: "3px" }}
                   />

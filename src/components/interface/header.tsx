@@ -11,6 +11,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkJumpToRunningRex } from "store/thunk/thunkRex";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { prefixUrl } from "utils/basePath";
 
 const Header: FunctionComponent = () => {
   const navigate = useNavigate();
@@ -126,7 +127,7 @@ const Header: FunctionComponent = () => {
           <div>
             <img
               className={headerStyles.meatball}
-              src="/images/logo_NASA.svg"
+              src={prefixUrl("/images/logo_NASA.svg")}
               alt="NASA meatball"
             />
           </div>

@@ -7,6 +7,7 @@ import React from "react";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { createClientSocket } from "utils/clientSocketHelpers";
+import { prefixUrl } from "utils/basePath";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlug, faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
@@ -20,7 +21,8 @@ const createMaestroSocket = (
   return io(`${serverURL}/maestro`, {
     transports: ["websocket"],
     upgrade: true,
-    path: "/api/v1/socketio",
+    // Subpath-aware. See comment in utils/clientSocketHelpers.ts.
+    path: prefixUrl("/api/v1/socketio"),
     auth: { token: emssToken },
     autoConnect: false,
   }) as unknown as Socket<MaestroServerToClientEvents, MaestroClientToServerEvents>;

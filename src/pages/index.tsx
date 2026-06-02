@@ -14,6 +14,7 @@ import { setAppUser } from "store/user";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { clientLogger } from "utils/logging/clientLogger";
 import isEqual from "lodash/isEqual";
+import { prefixUrl } from "utils/basePath";
 
 const Login = () => {
   const dispatch = useAppDispatch();
@@ -285,7 +286,7 @@ const Left: FunctionComponent = () => {
             <span className={styles.wordMark}>AEGIS</span>
           </div>
           <div className={styles.logoRight}>
-            <img className={styles.meatball} src="/images/logo_NASA.svg" alt="NASA meatball" />
+            <img className={styles.meatball} src={prefixUrl("/images/logo_NASA.svg")} alt="NASA meatball" />
             <div
               className={styles.logoEmssWrapper}
               onClick={() => {
