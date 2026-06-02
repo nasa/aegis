@@ -1,10 +1,12 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function upsertStations(stations: Station[]): Promise<WrappedResponse<Station[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: StationUpsertRequest = { missionId, socketId, stations };
-  const res = await fetch(`/api/v1/station`, {
+  const res = await fetch(prefixUrl(`/api/v1/station`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -34,7 +36,7 @@ export async function deleteStations(stationUuids: string[]): Promise<WrappedRes
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: StationDeleteRequest = { missionId, socketId, stationUuids };
-  const res = await fetch(`/api/v1/station`, {
+  const res = await fetch(prefixUrl(`/api/v1/station`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

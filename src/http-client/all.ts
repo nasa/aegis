@@ -1,3 +1,5 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function getAll(
   missionId: number | null = null,
   loadTestOptions?: {
@@ -8,7 +10,7 @@ export async function getAll(
 ): Promise<WrappedResponse<OneMissionToRuleThemAll>> {
   const path = loadTestOptions?.serverURL
     ? `${loadTestOptions?.serverURL}/api/v1/all`
-    : `/api/v1/all`;
+    : prefixUrl(`/api/v1/all`);
 
   const headers: HeadersInit = {};
   if (loadTestOptions?.cookies) {

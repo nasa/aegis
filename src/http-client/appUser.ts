@@ -1,9 +1,11 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function getAppUsers(userId: number = null): Promise<WrappedResponse<AppUser[]>> {
   let res: Response;
   if (userId) {
-    res = await fetch(`/api/v1/appUsers?userId=${userId}`);
+    res = await fetch(prefixUrl(`/api/v1/appUsers?userId=${userId}`));
   } else {
-    res = await fetch(`/api/v1/appUsers`);
+    res = await fetch(prefixUrl(`/api/v1/appUsers`));
   }
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
@@ -21,7 +23,7 @@ export async function getAppUsers(userId: number = null): Promise<WrappedRespons
 
 export async function upsertAppUsers(users: AppUser[]): Promise<WrappedResponse<AppUser[]>> {
   const requestBody: UserUpsertRequest = { users };
-  const res = await fetch(`/api/v1/appUsers`, {
+  const res = await fetch(prefixUrl(`/api/v1/appUsers`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -47,7 +49,7 @@ export async function upsertAppUsers(users: AppUser[]): Promise<WrappedResponse<
 
 export async function deleteAppUsers(userIds: number[]): Promise<WrappedResponse<null>> {
   const requestBody: UserDeleteRequest = { userIds };
-  const res = await fetch(`/api/v1/appUsers`, {
+  const res = await fetch(prefixUrl(`/api/v1/appUsers`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

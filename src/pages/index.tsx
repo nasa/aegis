@@ -483,7 +483,7 @@ const Home: React.FunctionComponent = () => {
   const clientAppVersion = useAppSelector((state) => state.connection.clientAppVersion, deepEqual);
   useEffect(() => {
     const checkVersion = async () => {
-      const res = await fetch("/api/v1/version");
+      const res = await fetch(prefixUrl("/api/v1/version"));
       if (res.status !== 200) {
         console.warn(`Unable to check app version: ${res.status} ${res.statusText}`);
         return;
@@ -495,7 +495,9 @@ const Home: React.FunctionComponent = () => {
           );
           // Redirect to version check page with version info and return URL
           const currentUrl = window.location.pathname + window.location.search;
-          window.location.href = `/versionCheck?returnUrl=${encodeURIComponent(currentUrl)}`;
+          window.location.href = prefixUrl(
+            `/versionCheck?returnUrl=${encodeURIComponent(currentUrl)}`
+          );
         }
       }
     };

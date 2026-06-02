@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button } from "components/interface/form/globalFields";
 import { clientLogger } from "utils/logging/clientLogger";
+import { prefixUrl } from "utils/basePath";
 
 const VersionCheck: React.FunctionComponent = () => {
   const [searchParams] = useSearchParams();
@@ -16,7 +17,7 @@ const VersionCheck: React.FunctionComponent = () => {
 
   // Decode and validate returnUrl to prevent open redirect vulnerabilities
   const getValidatedReturnUrl = (url: string | null): string => {
-    if (!url) return "/";
+    if (!url) return prefixUrl("/");
 
     try {
       const decoded = decodeURIComponent(url);
@@ -33,7 +34,7 @@ const VersionCheck: React.FunctionComponent = () => {
       });
     }
 
-    return "/";
+    return prefixUrl("/");
   };
   const returnUrl = getValidatedReturnUrl(searchParams.get("returnUrl"));
 
@@ -41,7 +42,7 @@ const VersionCheck: React.FunctionComponent = () => {
   useEffect(() => {
     const fetchServerVersion = async () => {
       try {
-        const res = await fetch(`/api/v1/version`);
+        const res = await fetch(prefixUrl(`/api/v1/version`));
         const version: AppVersion = await res.json();
         setServerVersion(version);
       } catch (error) {

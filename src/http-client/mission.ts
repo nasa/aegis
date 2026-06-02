@@ -1,5 +1,7 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function getMissionBackup(missionId: number): Promise<WrappedResponse<Mission[]>> {
-  const res = await fetch(`/api/v1/mission?missionId=${missionId}`);
+  const res = await fetch(prefixUrl(`/api/v1/mission?missionId=${missionId}`));
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
@@ -15,7 +17,7 @@ export async function getMissionBackup(missionId: number): Promise<WrappedRespon
 }
 
 export async function getMissionHomepageItems(): Promise<WrappedResponse<MissionHomepageItem[]>> {
-  const res = await fetch(`/api/v1/missionHomepageItems`);
+  const res = await fetch(prefixUrl(`/api/v1/missionHomepageItems`));
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
@@ -34,7 +36,7 @@ export async function getMissionHomepageItems(): Promise<WrappedResponse<Mission
 export async function createMission(
   sourceMission?: Mission
 ): Promise<WrappedResponse<AutomergeDocListing>> {
-  const res = await fetch(`/api/v1/missionAutomerge`, {
+  const res = await fetch(prefixUrl(`/api/v1/missionAutomerge`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -57,7 +59,7 @@ export async function createMission(
 }
 
 export async function duplicateMission(missionId: number): Promise<WrappedResponse<number>> {
-  const res = await fetch(`/api/v1/missionDup`, {
+  const res = await fetch(prefixUrl(`/api/v1/missionDup`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -82,7 +84,7 @@ export async function duplicateMission(missionId: number): Promise<WrappedRespon
 }
 
 export async function deleteMissions(missionIds: number[]): Promise<WrappedResponse<number[]>> {
-  const res = await fetch(`/api/v1/missionAutomerge`, {
+  const res = await fetch(prefixUrl(`/api/v1/missionAutomerge`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -106,7 +108,7 @@ export async function deleteMissions(missionIds: number[]): Promise<WrappedRespo
 
 // Given that this is a raw dump, we want the raw data and don't need to be worried about whether it matches any specific type.
 export async function dumpMission(missionId: number): Promise<WrappedResponse<MissionDump>> {
-  const res = await fetch(`/api/v1/missionDump?missionId=${missionId}`);
+  const res = await fetch(prefixUrl(`/api/v1/missionDump?missionId=${missionId}`));
   // Using "any" here because the response is database records that haven't gone through transformation to the AEGIS store types.
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;

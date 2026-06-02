@@ -1,3 +1,5 @@
+import { prefixUrl } from "utils/basePath";
+
 /****** GET ******/
 export async function getSTMLevel1s(urlParams?: {
   missionId: number;
@@ -6,7 +8,7 @@ export async function getSTMLevel1s(urlParams?: {
   let params = `stmType=l1&missionId=${urlParams.missionId}`;
 
   if (urlParams?.level1Uuid) params += `&l1=${urlParams.level1Uuid}`;
-  const res = await fetch(`/api/v1/stm?${params}`);
+  const res = await fetch(prefixUrl(`/api/v1/stm?${params}`));
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
@@ -30,7 +32,7 @@ export async function getStmLevel2s(urlParams?: {
   if (urlParams?.level1Uuid) params += `&l1=${urlParams.level1Uuid}`;
   if (urlParams?.level2Uuid) params += `&l2=${urlParams.level2Uuid}`;
 
-  const res = await fetch(`/api/v1/stm?${params}`);
+  const res = await fetch(prefixUrl(`/api/v1/stm?${params}`));
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
@@ -56,7 +58,7 @@ export async function getSTMLevel3s(urlParams?: {
   if (urlParams?.level2Uuid) params += `&l2=${urlParams.level2Uuid}`;
   if (urlParams?.level3Uuid) params += `&l3=${urlParams.level3Uuid}`;
 
-  const res = await fetch(`/api/v1/stm?${params}`);
+  const res = await fetch(prefixUrl(`/api/v1/stm?${params}`));
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
@@ -78,7 +80,7 @@ export async function upsertSTMs(
   stmType: "Level1" | "Level2" | "Level3"
 ): Promise<WrappedResponse<STMLevel1[] | STMLevel2[] | STMLevel3[]>> {
   const requestBody: STMUpsertRequest = { missionId, stmObjects, stmType };
-  const res = await fetch(`/api/v1/stm`, {
+  const res = await fetch(prefixUrl(`/api/v1/stm`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -109,7 +111,7 @@ export async function deleteSTMs(
   uuids: string[] = []
 ): Promise<WrappedResponse<null>> {
   const requestBody: STMDeleteRequest = { missionId, stmType, uuids };
-  const res = await fetch(`/api/v1/stm`, {
+  const res = await fetch(prefixUrl(`/api/v1/stm`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -142,7 +144,7 @@ export async function getSTMRules(missionId?: number): Promise<WrappedResponse<S
       typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
     missionIdNum = missionIdStr ? parseInt(missionIdStr) : undefined;
   }
-  const res = await fetch(`/api/v1/stmRules?missionId=${missionIdNum}`);
+  const res = await fetch(prefixUrl(`/api/v1/stmRules?missionId=${missionIdNum}`));
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
@@ -163,7 +165,7 @@ export async function upsertStmRules(stmRules: STMRule[]): Promise<WrappedRespon
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: STMRuleUpsertRequest = { missionId, socketId, stmRules };
-  const res = await fetch(`/api/v1/stmRules`, {
+  const res = await fetch(prefixUrl(`/api/v1/stmRules`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -193,7 +195,7 @@ export async function deleteStmRules(stmRuleUuids: string[]): Promise<WrappedRes
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: STMRuleDeleteRequest = { missionId, socketId, stmRuleUuids };
-  const res = await fetch(`/api/v1/stmRules`, {
+  const res = await fetch(prefixUrl(`/api/v1/stmRules`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

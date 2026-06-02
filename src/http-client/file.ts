@@ -1,5 +1,6 @@
 import type { AxiosRequestConfig, AxiosResponse, AxiosProgressEvent } from "axios";
 import axios from "axios";
+import { prefixUrl } from "utils/basePath";
 
 export async function uploadFile(
   formData: FormData,
@@ -16,7 +17,11 @@ export async function uploadFile(
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
 
   try {
-    return await axios.post(`/api/v1/file/upload?missionId=${missionId}`, formData, config);
+    return await axios.post(
+      prefixUrl(`/api/v1/file/upload?missionId=${missionId}`),
+      formData,
+      config
+    );
   } catch (e) {
     //axios rejects the promise if the response is an error. Just pass the response data through
     if (axios.isAxiosError(e)) {
@@ -40,7 +45,7 @@ export async function deleteFile(path: string): Promise<Response> {
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   // send as a DELETE request
   return (await fetch(
-    `/api/v1/file/delete?missionId=${missionId}&path=${encodeURIComponent(path)}`,
+    prefixUrl(`/api/v1/file/delete?missionId=${missionId}&path=${encodeURIComponent(path)}`),
     {
       method: "DELETE",
     }
@@ -62,9 +67,11 @@ export async function renameFile(
   const missionId =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   return (await fetch(
-    `/api/v1/file/rename?missionId=${missionId}&path=${encodeURIComponent(path)}&oldname=${encodeURIComponent(
-      oldName
-    )}&newname=${encodeURIComponent(newName)}`
+    prefixUrl(
+      `/api/v1/file/rename?missionId=${missionId}&path=${encodeURIComponent(path)}&oldname=${encodeURIComponent(
+        oldName
+      )}&newname=${encodeURIComponent(newName)}`
+    )
   )) as Response;
 }
 
@@ -77,7 +84,7 @@ export async function listFiles(path: string): Promise<GISfile[]> {
   const missionId =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const res: Response = await fetch(
-    `/api/v1/file/list?missionId=${missionId}&path=${encodeURIComponent(path)}`
+    prefixUrl(`/api/v1/file/list?missionId=${missionId}&path=${encodeURIComponent(path)}`)
   );
   if (res.status !== 200) {
     return [];

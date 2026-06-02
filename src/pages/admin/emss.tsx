@@ -4,6 +4,7 @@ import { isLoggedIn } from "http-client/login";
 import React from "react";
 import type { Socket } from "socket.io-client";
 import { createClientSocket } from "utils/clientSocketHelpers";
+import { prefixUrl } from "utils/basePath";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlug } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
@@ -36,7 +37,7 @@ const Emss: React.FunctionComponent = () => {
         navigate("/");
       }
       // Fetch initial EMSS API status
-      const emssRes = await fetch(`/api/v1/emss/enableEmssApi`);
+      const emssRes = await fetch(prefixUrl(`/api/v1/emss/enableEmssApi`));
       const emssData = await emssRes.json();
       setIsEmssApiEnabled(emssData.data);
 
@@ -80,7 +81,7 @@ const Emss: React.FunctionComponent = () => {
         const response = confirm("Are you sure you want to turn off the EMSS API?");
         if (!response) return;
       }
-      await fetch(`/api/v1/emss/enableEmssApi`, {
+      await fetch(prefixUrl(`/api/v1/emss/enableEmssApi`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -88,7 +89,7 @@ const Emss: React.FunctionComponent = () => {
         body: JSON.stringify({ enable: !isEmssApiEnabled }),
       });
       // Fetch updated status
-      const emssRes = await fetch(`/api/v1/emss/enableEmssApi`);
+      const emssRes = await fetch(prefixUrl(`/api/v1/emss/enableEmssApi`));
       setIsEmssApiEnabled((await emssRes.json()).data);
     } catch (error) {
       console.error("Error toggling EMSS API status:", error);
@@ -97,7 +98,7 @@ const Emss: React.FunctionComponent = () => {
 
   const postRexControl = async () => {
     try {
-      await fetch(`/api/v1/emss/rexControl`, {
+      await fetch(prefixUrl(`/api/v1/emss/rexControl`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

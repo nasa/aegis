@@ -1,5 +1,6 @@
 import type { DefinedError, ErrorObject } from "ajv";
 import Ajv from "ajv";
+import { prefixUrl } from "utils/basePath";
 import geojsonSchema from "./geojson-schema.json";
 
 // instantiate with options
@@ -13,7 +14,7 @@ const ajv = new Ajv({ verbose: true, allowUnionTypes: true, allErrors: true });
 export const validateImportableSublayer = async (
   sublayerToValidate: unknown
 ): Promise<ErrorObject[]> => {
-  const schemaRes = await fetch(`/api/v1/sublayer/schema`);
+  const schemaRes = await fetch(prefixUrl(`/api/v1/sublayer/schema`));
   if (schemaRes.status !== 200) {
     throw new Error(`Error retrieving sublayer schema: ${schemaRes.status}`);
   }
@@ -62,7 +63,7 @@ export const validateMission = async (
 ): Promise<ErrorObject[]> => {
   const path = loadTestOptions?.serverURL
     ? `${loadTestOptions?.serverURL}/api/v1/mission/schema`
-    : `/api/v1/mission/schema`;
+    : prefixUrl(`/api/v1/mission/schema`);
 
   const headers: HeadersInit = {};
   if (loadTestOptions?.cookies) {

@@ -1,10 +1,12 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function upsertEvas(evas: Eva[]): Promise<WrappedResponse<Eva[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: EvaUpsertRequest = { socketId, missionId, evas };
-  const res = await fetch(`/api/v1/eva`, {
+  const res = await fetch(prefixUrl(`/api/v1/eva`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -34,7 +36,7 @@ export async function deleteEvas(evaUuids: string[]): Promise<WrappedResponse<nu
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: EvaDeleteRequest = { socketId, missionId, evaUuids };
-  const res = await fetch(`/api/v1/eva`, {
+  const res = await fetch(prefixUrl(`/api/v1/eva`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

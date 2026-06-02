@@ -1,5 +1,7 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function getPOIs(mission: number): Promise<WrappedResponse<POI[]>> {
-  const res = await fetch(`/api/v1/poi?missionId=${mission}`);
+  const res = await fetch(prefixUrl(`/api/v1/poi?missionId=${mission}`));
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
@@ -20,7 +22,7 @@ export async function upsertPOIs(pois: POI[]): Promise<WrappedResponse<POI[]>> {
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: POIUpsertRequest = { missionId, socketId, pois };
-  const res = await fetch(`/api/v1/poi`, {
+  const res = await fetch(prefixUrl(`/api/v1/poi`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -50,7 +52,7 @@ export async function deletePOIs(poiUuids: string[]): Promise<WrappedResponse<nu
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: POIDeleteRequest = { missionId, socketId, poiUuids };
-  const res = await fetch(`/api/v1/poi`, {
+  const res = await fetch(prefixUrl(`/api/v1/poi`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

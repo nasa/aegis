@@ -1,3 +1,5 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function getAutomergeDocListing(
   missionId: number | null = null,
   loadTestOptions?: {
@@ -8,7 +10,7 @@ export async function getAutomergeDocListing(
 ): Promise<WrappedResponse<AutomergeDocListing[]>> {
   const path = loadTestOptions?.serverURL
     ? `${loadTestOptions?.serverURL}/api/v1/docListing`
-    : `/api/v1/docListing`;
+    : prefixUrl(`/api/v1/docListing`);
 
   const headers: HeadersInit = {};
   if (loadTestOptions?.cookies) {

@@ -1,8 +1,10 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function getLayers(mission: number, uuid?: string): Promise<WrappedResponse<Layer[]>> {
   let params = `missionId=${mission}`;
   if (uuid) params += `&uuid=${uuid}`;
 
-  const res = await fetch(`/api/v1/layer?${params}`);
+  const res = await fetch(prefixUrl(`/api/v1/layer?${params}`));
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
@@ -22,7 +24,7 @@ export async function upsertLayers(layers: Layer[]): Promise<WrappedResponse<Lay
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const requestBody: LayerUpsertRequest = { missionId, layers };
-  const res = await fetch(`/api/v1/layer`, {
+  const res = await fetch(prefixUrl(`/api/v1/layer`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -51,7 +53,7 @@ export async function deleteLayers(layerUuids: string[]): Promise<WrappedRespons
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const requestBody: LayerDeleteRequest = { missionId, layerUuids };
-  const res = await fetch(`/api/v1/layer`, {
+  const res = await fetch(prefixUrl(`/api/v1/layer`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

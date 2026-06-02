@@ -1,5 +1,7 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function isLoggedIn(): Promise<WrappedResponse<AppUser>> {
-  const res = await fetch(`/api/v1/auth/isLoggedIn`);
+  const res = await fetch(prefixUrl(`/api/v1/auth/isLoggedIn`));
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
@@ -20,7 +22,7 @@ export async function login(username: string, password: string): Promise<Wrapped
   data.append("username", username);
   data.append("password", password);
 
-  const res = await fetch(`/api/v1/auth/login`, { method: "POST", body: data });
+  const res = await fetch(prefixUrl(`/api/v1/auth/login`), { method: "POST", body: data });
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
@@ -37,7 +39,7 @@ export async function login(username: string, password: string): Promise<Wrapped
 }
 
 export async function logout(): Promise<WrappedResponse<boolean>> {
-  const res = await fetch(`/api/v1/auth/logout`);
+  const res = await fetch(prefixUrl(`/api/v1/auth/logout`));
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {

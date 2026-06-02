@@ -1,10 +1,12 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function upsertRexes(rexes: Rex[]): Promise<WrappedResponse<Rex[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: RexUpsertRequest = { missionId, socketId, rexes };
-  const res = await fetch(`/api/v1/rex`, {
+  const res = await fetch(prefixUrl(`/api/v1/rex`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -34,7 +36,7 @@ export async function deleteRexes(uuids: string[]): Promise<WrappedResponse<null
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: RexDeleteRequest = { missionId, socketId, uuids };
-  const res = await fetch(`/api/v1/rex`, {
+  const res = await fetch(prefixUrl(`/api/v1/rex`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

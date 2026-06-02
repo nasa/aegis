@@ -1,8 +1,12 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function boxGetFolderItems(
   missionId: number,
   itemId: string = "0"
 ): Promise<WrappedResponse<BoxItemsResponse>> {
-  const res = await fetch(`/api/v1/file/boxGetFolderItems?missionId=${missionId}&itemId=${itemId}`);
+  const res = await fetch(
+    prefixUrl(`/api/v1/file/boxGetFolderItems?missionId=${missionId}&itemId=${itemId}`)
+  );
 
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
@@ -24,7 +28,7 @@ export async function boxDownloadFile(
   path: string
 ): Promise<WrappedResponse<void>> {
   const res = await fetch(
-    `/api/v1/file/boxDownloadFile?missionId=${missionId}&itemId=${itemId}&path=${path}`
+    prefixUrl(`/api/v1/file/boxDownloadFile?missionId=${missionId}&itemId=${itemId}&path=${path}`)
   );
 
   if (res.status !== 200) {

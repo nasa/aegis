@@ -1,10 +1,12 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function upsertPresets(presets: Preset[]): Promise<WrappedResponse<Preset[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: PresetUpsertRequest = { missionId, socketId, presets };
-  const res = await fetch(`/api/v1/preset`, {
+  const res = await fetch(prefixUrl(`/api/v1/preset`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -34,7 +36,7 @@ export async function deletePresets(presetUuids: string[]): Promise<WrappedRespo
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: PresetDeleteRequest = { missionId, socketId, presetUuids };
-  const res = await fetch(`/api/v1/preset`, {
+  const res = await fetch(prefixUrl(`/api/v1/preset`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

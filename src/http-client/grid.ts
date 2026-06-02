@@ -1,3 +1,5 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function getGrids(
   missionId: number = null,
   gridUuid: string = null,
@@ -6,14 +8,18 @@ export async function getGrids(
   let res: Response;
   if (missionId && gridUuid) {
     res = await fetch(
-      `/api/v1/grid?missionId=${missionId}&gridUuid=${gridUuid}&getFullGrids=${getFullGrids}`
+      prefixUrl(
+        `/api/v1/grid?missionId=${missionId}&gridUuid=${gridUuid}&getFullGrids=${getFullGrids}`
+      )
     );
   } else if (missionId) {
-    res = await fetch(`/api/v1/grid?missionId=${missionId}&getFullGrids=${getFullGrids}`);
+    res = await fetch(
+      prefixUrl(`/api/v1/grid?missionId=${missionId}&getFullGrids=${getFullGrids}`)
+    );
   } else if (gridUuid) {
-    res = await fetch(`/api/v1/grid?gridUuid=${gridUuid}&getFullGrids=${getFullGrids}`);
+    res = await fetch(prefixUrl(`/api/v1/grid?gridUuid=${gridUuid}&getFullGrids=${getFullGrids}`));
   } else {
-    res = await fetch(`/api/v1/grid&getFullGrids=${getFullGrids}`);
+    res = await fetch(prefixUrl(`/api/v1/grid&getFullGrids=${getFullGrids}`));
   }
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
@@ -35,7 +41,7 @@ export async function upsertGrids(
   upsertFullGrid: boolean = false
 ): Promise<WrappedResponse<MissionGrid[]>> {
   const requestBody: GridUpsertRequest = { grids, missionId, upsertFullGrid };
-  const res = await fetch(`/api/v1/grid/`, {
+  const res = await fetch(prefixUrl(`/api/v1/grid/`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -64,7 +70,7 @@ export async function deleteGrids(
   missionId: number
 ): Promise<WrappedResponse<null>> {
   const requestBody: GridDeleteRequest = { gridUuid, missionId };
-  const res = await fetch(`/api/v1/grid`, {
+  const res = await fetch(prefixUrl(`/api/v1/grid`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

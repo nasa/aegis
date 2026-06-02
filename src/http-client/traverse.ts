@@ -1,10 +1,12 @@
+import { prefixUrl } from "utils/basePath";
+
 export async function upsertTraverses(traverses: Traverse[]): Promise<WrappedResponse<Traverse[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: TraverseUpsertRequest = { missionId, socketId, traverses };
-  const res = await fetch(`/api/v1/traverse`, {
+  const res = await fetch(prefixUrl(`/api/v1/traverse`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -34,7 +36,7 @@ export async function deleteTraverses(traverseUuids: string[]): Promise<WrappedR
   const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
   const socketId = typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
   const requestBody: TraverseDeleteRequest = { missionId, socketId, traverseUuids };
-  const res = await fetch(`/api/v1/traverse`, {
+  const res = await fetch(prefixUrl(`/api/v1/traverse`), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

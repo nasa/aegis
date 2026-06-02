@@ -130,7 +130,9 @@ export const attachSocketListeners = (
 
         // Redirect to version check page with version info and return URL
         const currentUrl = window.location.pathname + window.location.search;
-        window.location.href = `/versionCheck?returnUrl=${encodeURIComponent(currentUrl)}`;
+        window.location.href = prefixUrl(
+          `/versionCheck?returnUrl=${encodeURIComponent(currentUrl)}`
+        );
         return;
       }
     }

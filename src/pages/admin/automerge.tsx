@@ -7,6 +7,7 @@ import { applyChange, diff } from "deep-diff";
 import type { ErrorObject } from "ajv";
 import Ajv from "ajv";
 import { getMissionBackup } from "http-client/mission";
+import { prefixUrl } from "utils/basePath";
 import adminCommon from "./adminCommon.module.css";
 
 type RouteParams = {
@@ -58,7 +59,7 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
 
   // grab the schema from the server via an api endpoint and use it to validate
   const validateMission = async (missionToValidate: unknown): Promise<ErrorObject[]> => {
-    const schemaRes = await fetch(`/api/v1/mission/schema`);
+    const schemaRes = await fetch(prefixUrl(`/api/v1/mission/schema`));
     if (schemaRes.status !== 200) {
       throw new Error(`Error retrieving schema: ${schemaRes.status}`);
     }
