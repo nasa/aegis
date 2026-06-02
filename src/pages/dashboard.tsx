@@ -240,7 +240,11 @@ const Main = (): JSX.Element => {
                   When an EVA begins, this dashboard will refresh automatically.
                 </div>
                 <div>
-                  <img src={prefixUrl("/images/EMSS.svg")} alt="EMSS Logo" className={styles.emssLogo} />
+                  <img
+                    src={prefixUrl("/images/EMSS.svg")}
+                    alt="EMSS Logo"
+                    className={styles.emssLogo}
+                  />
                 </div>
               </div>
             )}

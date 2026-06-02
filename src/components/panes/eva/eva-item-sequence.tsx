@@ -108,7 +108,9 @@ export const EvaEgressIngressListing: FunctionComponent<{
     const icon = station?.icon ? station.icon : "2754";
     xgressIcon = <EmojiRenderer iconValue={icon} />;
   } else {
-    xgressIcon = <img src={prefixUrl("/images/lander.svg")} alt="lander" className={evaStyles.landerImage} />;
+    xgressIcon = (
+      <img src={prefixUrl("/images/lander.svg")} alt="lander" className={evaStyles.landerImage} />
+    );
   }
 
   const xgressName = `${isEgress ? "Egress" : "Ingress"} at ${station ? station.name : "Lander"}`;

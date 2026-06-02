@@ -188,7 +188,11 @@ const Main: React.FunctionComponent = () => {
             <div className={styles.archivedBody}>
               This mission has been archived. Please contact the EMSS team if you need to access it.
               <div style={{ marginTop: "3rem" }}>
-                <img src={prefixUrl("/images/EMSS.svg")} alt="EMSS Logo" className={styles.emssLogo} />
+                <img
+                  src={prefixUrl("/images/EMSS.svg")}
+                  alt="EMSS Logo"
+                  className={styles.emssLogo}
+                />
               </div>
             </div>
           ) : (

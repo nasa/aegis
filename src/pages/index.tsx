@@ -286,7 +286,11 @@ const Left: FunctionComponent = () => {
             <span className={styles.wordMark}>AEGIS</span>
           </div>
           <div className={styles.logoRight}>
-            <img className={styles.meatball} src={prefixUrl("/images/logo_NASA.svg")} alt="NASA meatball" />
+            <img
+              className={styles.meatball}
+              src={prefixUrl("/images/logo_NASA.svg")}
+              alt="NASA meatball"
+            />
             <div
               className={styles.logoEmssWrapper}
               onClick={() => {

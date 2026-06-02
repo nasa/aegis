@@ -103,7 +103,11 @@ const DashboardHeader: FunctionComponent = () => {
         <div className={styles.item}>
           <div className={styles.logoRight}>
             <div>
-              <img className={styles.meatball} src={prefixUrl("/images/logo_NASA.svg")} alt="NASA meatball" />
+              <img
+                className={styles.meatball}
+                src={prefixUrl("/images/logo_NASA.svg")}
+                alt="NASA meatball"
+              />
             </div>
             <div
               className={styles.logoEmssWrapper}
