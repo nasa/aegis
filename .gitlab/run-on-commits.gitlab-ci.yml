@@ -34,6 +34,9 @@ include:
   - local: .gitlab/includes/server-jobs.yml
   - local: .gitlab/includes/load-test.yml
 
+  # imago preview deploys (per-branch ephemeral tenants on dev VMs)
+  - local: .gitlab/includes/imago-preview.yml
+
 # Override FIT template jobs to require manual trigger
 # (eegitlabregistry images are inaccessible; these are slow/noisy on every commit)
 yaml-lint:
