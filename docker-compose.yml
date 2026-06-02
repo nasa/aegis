@@ -32,6 +32,13 @@ services:
     depends_on:
       - apiv1
     <<: *send_container_logs_to_syslog
+    environment:
+      # Consumed by the nginx envsubst entrypoint to rewrite the literal
+      # `/__BASE_URL__` placeholder in the built SPA assets. Empty for
+      # root deploys (prod, int, dev VMs); set to a tenant prefix like
+      # `/emss/aegis/<branch>` by imago. See
+      # imago/docs/consumer-base-url-rewrite.md.
+      - BASE_URL_REPLACE=${BASE_URL_REPLACE:-}
     volumes:
       - ${STATIC_DIR}:/usr/share/nginx/html/static:ro
       - ${DOCKER_SSL_CERTS_DIR}:/etc/pki/tls/certs
