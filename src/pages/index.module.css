@@ -1,5 +1,5 @@
 .main {
-  background-image: url("/images/horizon-0027.jpg");
+  background-image: url("/__BASE_URL__/images/horizon-0027.jpg");
   background-position: bottom;
   background-repeat: no-repeat;
   background-size: cover;
