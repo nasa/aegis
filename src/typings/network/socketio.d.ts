@@ -35,8 +35,8 @@ interface MaestroServerToClientEvents {
 interface MaestroClientToServerEvents {
   missionJoin: (missionId: number, maestroVisitor: MaestroVisitor) => void;
   missionLeave: (missionId: number) => void;
-  subscribeToEva: (missionId: number, evaRefUuid: string) => void;
-  unsubscribeToEva: (missionId: number, evaRefUuid: string) => void;
+  subscribeToEva: (missionId: number, evaRefUuid: string, rexUuid: string | null) => void;
+  unsubscribeToEva: (missionId: number, evaRefUuid: string, rexUuid: string | null) => void;
   getEverything: (
     missionId: number,
     callback: (

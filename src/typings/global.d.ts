@@ -37,7 +37,7 @@ type GlobalValues = {
      * Value is a function that removes the listener from the DocHandle.
      */
     docListeners: Map<string, () => void>;
-    evaSubscriptions: Map<number, string[]>; // key is missionId, value is array of eva refUuids subscribed to
+    evaSubscriptions: Map<number, string[]>; // key is missionId, value is array of eva uuids subscribed to
   };
 };
 

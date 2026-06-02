@@ -135,7 +135,22 @@ beforeEach(() => {
   };
   globalValues.automergeRepo = { find: vi.fn().mockResolvedValue(defaultDocHandle) } as never;
   mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://default-url" }]);
-  globalValues.orm = { em: {} } as never;
+  // Mock em.fork() so getEvaUuid resolves evaRefUuid directly as the evaUuid.
+  // When rexUuid is null, getEvaUuid finds evas by refUuid then checks for rexes.
+  // We make find() return [{uuid: refUuid}] for Eva_db and [] for Rex_db so
+  // the as-planned eva is always found and its uuid equals the refUuid passed in.
+  const mockEm = {
+    find: vi.fn().mockImplementation((_entity: unknown, where: Record<string, unknown>) => {
+      // For Rex_db lookup (evaUuid: { $in: [...] }) return empty — no rexes exist
+      if (where?.evaUuid) return Promise.resolve([]);
+      // For Eva_db lookup by refUuid, return a fake eva whose uuid === refUuid
+      const refUuid = where?.refUuid as string | undefined;
+      if (refUuid) return Promise.resolve([{ uuid: refUuid }]);
+      return Promise.resolve([]);
+    }),
+    findOne: vi.fn().mockResolvedValue(null),
+  };
+  globalValues.orm = { em: { fork: vi.fn().mockReturnValue(mockEm) } } as never;
   globalValues.maestro.evaSubscriptions = new Map();
   globalValues.maestro.socketio = null;
   globalValues.maestro.docListeners = new Map();
@@ -250,28 +265,28 @@ describe("maestro namespace socket handlers", () => {
   });
 
   describe("subscribeToEva", () => {
-    it("adds EVA refUuid to evaSubscriptions for the mission", () => {
+    it("adds EVA refUuid to evaSubscriptions for the mission", async () => {
       const evaRefUuid = uuidv4();
-      mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null);
 
       const subs = globalValues.maestro.evaSubscriptions.get(MISSION_ID);
       expect(subs).toContain(evaRefUuid);
     });
 
-    it("does not duplicate EVA refUuid on repeated subscribe", () => {
+    it("does not duplicate EVA refUuid on repeated subscribe", async () => {
       const evaRefUuid = uuidv4();
-      mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid);
-      mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null);
 
       const subs = globalValues.maestro.evaSubscriptions.get(MISSION_ID);
       expect(subs.filter((u: string) => u === evaRefUuid)).toHaveLength(1);
     });
 
-    it("supports multiple EVA subscriptions for the same mission", () => {
+    it("supports multiple EVA subscriptions for the same mission", async () => {
       const evaRefUuid1 = uuidv4();
       const evaRefUuid2 = uuidv4();
-      mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid1);
-      mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid2);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid1, null);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid2, null);
 
       const subs = globalValues.maestro.evaSubscriptions.get(MISSION_ID);
       expect(subs).toHaveLength(2);
@@ -281,31 +296,32 @@ describe("maestro namespace socket handlers", () => {
   });
 
   describe("unsubscribeToEva", () => {
-    it("removes the EVA refUuid from subscriptions", () => {
+    it("removes the EVA refUuid from subscriptions", async () => {
       const evaRefUuid = uuidv4();
+      // evaSubscriptions stores the resolved evaUuid; via our mock, that equals evaRefUuid
       globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaRefUuid]);
 
-      mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaRefUuid);
+      await mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaRefUuid, null);
 
       const subs = globalValues.maestro.evaSubscriptions.get(MISSION_ID);
       expect(subs).toBeUndefined();
     });
 
-    it("deletes the mission entry when last subscription is removed", () => {
+    it("deletes the mission entry when last subscription is removed", async () => {
       const evaRefUuid = uuidv4();
       globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaRefUuid]);
 
-      mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaRefUuid);
+      await mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaRefUuid, null);
 
       expect(globalValues.maestro.evaSubscriptions.has(MISSION_ID)).toBe(false);
     });
 
-    it("only removes the specified EVA when multiple are subscribed", () => {
+    it("only removes the specified EVA when multiple are subscribed", async () => {
       const evaRefUuid1 = uuidv4();
       const evaRefUuid2 = uuidv4();
       globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaRefUuid1, evaRefUuid2]);
 
-      mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaRefUuid1);
+      await mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaRefUuid1, null);
 
       const subs = globalValues.maestro.evaSubscriptions.get(MISSION_ID);
       expect(subs).not.toContain(evaRefUuid1);
@@ -313,10 +329,10 @@ describe("maestro namespace socket handlers", () => {
       expect(subs).toHaveLength(1);
     });
 
-    it("does nothing when there are no subscriptions for the mission", () => {
-      expect(() => {
-        mockSocket._handlers["unsubscribeToEva"](MISSION_ID, uuidv4());
-      }).not.toThrow();
+    it("does nothing when there are no subscriptions for the mission", async () => {
+      await expect(
+        mockSocket._handlers["unsubscribeToEva"](MISSION_ID, uuidv4(), null)
+      ).resolves.not.toThrow();
     });
   });
 
