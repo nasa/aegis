@@ -10,10 +10,18 @@ import packageJSON from "./package.json";
 import wasm from "vite-plugin-wasm";
 import topLevelAwait from "vite-plugin-top-level-await";
 
+// Prod build emits a literal placeholder; nginx sub_filter rewrites it per
+// request to the empty string (root deploys: prod, int, dev VMs) or to a
+// tenant prefix like `/emss/aegis/<branch>` (imago previews). See
+// imago/docs/consumer-base-url-rewrite.md. Dev keeps '/' because the Vite
+// dev server bypasses nginx.
+const VITE_BASE = process.env.NODE_ENV === "production" ? "/__BASE_URL__/" : "/";
+
 export const config: UserConfig = {
   root: "./src",
   envDir: "../",
   cacheDir: "../node_modules/.vite",
+  base: VITE_BASE,
   plugins: [react(), svgr(), wasm(), topLevelAwait()],
   resolve: {
     //alias paths so that the import statements are shorter and start from the src folder
@@ -110,6 +118,14 @@ export const config: UserConfig = {
     //   to give it to kaniko docker to use during build. However when running this locally
     //   with NO docker container, we need to set a default value of "localDev"
     __GIT_COMMIT__: JSON.stringify(process.env.GIT_COMMIT || "localDev"),
+    // Mirror the Vite base into a global constant so client code can read
+    // it without referencing `import.meta.env.BASE_URL` directly. The
+    // `import.meta` syntax causes some non-Vite loaders (Playwright,
+    // ts-node) to promote files to ESM and fail on emitted `exports`.
+    // Reading from a global sidesteps that while still being statically
+    // replaced by Vite at build time. See
+    // imago/docs/consumer-base-url-rewrite.md §6.
+    __VITE_BASE_URL__: JSON.stringify(VITE_BASE),
   },
 };
 
