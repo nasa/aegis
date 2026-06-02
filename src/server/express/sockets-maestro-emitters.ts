@@ -204,28 +204,28 @@ export const isRelevantToSubscribedEvas = async (
   type: string,
   payload: StoreUpsert | StoreDelete
 ): Promise<boolean> => {
-  const subscribedEvaRefUuids = globalValues.maestro.evaSubscriptions.get(missionId);
-  if (!subscribedEvaRefUuids || subscribedEvaRefUuids.length === 0) return false;
+  const subscribedEvaUuids = globalValues.maestro.evaSubscriptions.get(missionId);
+  if (!subscribedEvaUuids || subscribedEvaUuids.length === 0) return false;
 
   if (type === "eva") {
     if ("data" in payload) {
-      const refUuids = (payload.data as Eva[]).map((e) => e.refUuid);
-      return refUuids.some((refUuid) => subscribedEvaRefUuids.includes(refUuid));
+      const evaUuids = (payload.data as Eva[]).map((e) => e.uuid);
+      return evaUuids.some((uuid) => subscribedEvaUuids.includes(uuid));
     }
-    // For delete we don't have the eva refUuid, just return true. Over-sending is okay for now
+    // Just return true. Over-sending is okay for now
     return true;
   }
 
   // Get EVAs
   const evas = await getEVAs(missionId);
-  const subscribedEvas = evas.filter((eva) => subscribedEvaRefUuids.includes(eva.refUuid));
+  const subscribedEvas = evas.filter((eva) => subscribedEvaUuids.includes(eva.uuid));
 
   if (type === "rex") {
     if ("data" in payload) {
       const subscribedEvaUuids = subscribedEvas.map((eva) => eva.uuid);
       return (payload.data as Rex[]).some((rex) => subscribedEvaUuids.includes(rex.evaUuid));
     }
-    // For delete we don't have the eva refUuid, just return true. Over-sending is okay for now
+    // Just return true. Over-sending is okay for now
     return true;
   }
 
@@ -308,9 +308,9 @@ export const buildAegisEntityForMaestro = async (
 
   // Only include EVAs that Maestro has subscribed to for this mission
   // Use a Set instead of arrays, they are slightly faster for lookups vs using array includes and filter functions
-  const subscribedEvaRefUuids = globalValues.maestro.evaSubscriptions.get(missionId) ?? [];
-  const subscribedEvaRefUuidSet = new Set(subscribedEvaRefUuids);
-  const subscribedEvas = allData.evas.filter((eva) => subscribedEvaRefUuidSet.has(eva.refUuid));
+  const subscribedEvaUuids = globalValues.maestro.evaSubscriptions.get(missionId) ?? [];
+  const subscribedEvaUuidSet = new Set(subscribedEvaUuids);
+  const subscribedEvas = allData.evas.filter((eva) => subscribedEvaUuidSet.has(eva.uuid));
 
   // Collect station and traverse UUIDs that belong to subscribed EVAs
   const subscribedStationUuidSet = new Set<string>();

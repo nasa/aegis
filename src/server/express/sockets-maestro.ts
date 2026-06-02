@@ -24,6 +24,7 @@ import { getRexesByEvaRefData } from "server/express/routes/emss/getRexesByEvaRe
 import { overwriteRex } from "server/express/routes/emss/rexOverwrite";
 import { validateRexOverwrite } from "utils/rexOverwriteValidator";
 import { upsertDatabaseRetry } from "utils/database";
+import { Eva_db, Rex_db } from "server/database/models/_allModels";
 
 export const setupMaestroNamespace = (
   io: Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, {}>
@@ -97,23 +98,35 @@ export const setupMaestroNamespace = (
           .emit("inspectorUpdate", globalValues.serverSocketStatus);
       });
 
-      socket.on("subscribeToEva", (missionId: number, evaRefUuid: string) => {
-        const subscriptions = globalValues.maestro.evaSubscriptions.get(missionId) ?? [];
-        if (!subscriptions.includes(evaRefUuid)) {
-          subscriptions.push(evaRefUuid);
-          globalValues.maestro.evaSubscriptions.set(missionId, subscriptions);
-        }
-      });
-
-      socket.on("unsubscribeToEva", (missionId: number, evaRefUuid: string) => {
-        const subscriptions = globalValues.maestro.evaSubscriptions.get(missionId);
-        if (subscriptions) {
-          remove(subscriptions, (uuid) => uuid === evaRefUuid);
-          if (subscriptions.length === 0) {
-            globalValues.maestro.evaSubscriptions.delete(missionId);
+      socket.on(
+        "subscribeToEva",
+        async (missionId: number, evaRefUuid: string, rexUuid: string | null) => {
+          const subscriptions = globalValues.maestro.evaSubscriptions.get(missionId) ?? [];
+          // Resolve the eva uuid:
+          const evaUuid = await getEvaUuid(missionId, evaRefUuid, rexUuid);
+          if (!evaUuid) return;
+          if (!subscriptions.includes(evaUuid)) {
+            subscriptions.push(evaUuid);
+            globalValues.maestro.evaSubscriptions.set(missionId, subscriptions);
           }
         }
-      });
+      );
+
+      socket.on(
+        "unsubscribeToEva",
+        async (missionId: number, evaRefUuid: string, rexUuid: string | null) => {
+          const subscriptions = globalValues.maestro.evaSubscriptions.get(missionId);
+          if (subscriptions) {
+            // Convert eva refUuid to uuid
+            const evaUuid = await getEvaUuid(missionId, evaRefUuid, rexUuid);
+            if (!evaUuid) return;
+            remove(subscriptions, (uuid) => uuid === evaUuid);
+            if (subscriptions.length === 0) {
+              globalValues.maestro.evaSubscriptions.delete(missionId);
+            }
+          }
+        }
+      );
 
       socket.on("missionLeave", (missionId: number) => {
         const roomName = getMaestroSocketRoomName(missionId);
@@ -285,6 +298,48 @@ export const setupMaestroNamespace = (
       });
     }
   );
+};
+
+// Helper function to convert an evaRefUuid and rexUuid into the evaUuid
+const getEvaUuid = async (missionId: number, evaRefUuid: string, rexUuid: string | null) => {
+  const em = globalValues.orm.em.fork();
+  let evaUuid: string;
+  if (rexUuid) {
+    const rex = await em.findOne(
+      Rex_db,
+      { missionId: missionId, uuid: rexUuid },
+      { fields: ["uuid", "evaUuid"] }
+    );
+    if (!rex) return;
+    const eva = await em.findOne(
+      Eva_db,
+      { missionId: missionId, uuid: rex.evaUuid, refUuid: evaRefUuid },
+      { fields: ["uuid"] }
+    );
+    if (!eva) return;
+    evaUuid = rex.evaUuid;
+  } else {
+    // Get the as-planned EVA
+    const evasWithRef = await em.find(
+      Eva_db,
+      { missionId: missionId, refUuid: evaRefUuid },
+      { fields: ["uuid"] }
+    );
+    if (evasWithRef.length === 0) return;
+    const evaUuids = evasWithRef.map((e) => e.uuid);
+    // Find those eva uuids have an associated rex
+    const evaUuidsWithRexes = (
+      await em.find(
+        Rex_db,
+        { missionId: missionId, evaUuid: { $in: evaUuids } },
+        { fields: ["evaUuid"] }
+      )
+    ).map((r) => r.evaUuid);
+    const asPlannedEva = evasWithRef.find((e) => !evaUuidsWithRexes.includes(e.uuid));
+    if (!asPlannedEva) return;
+    evaUuid = asPlannedEva.uuid;
+  }
+  return evaUuid;
 };
 
 /**

@@ -211,7 +211,7 @@ describe("isRelevantToSubscribedEvas", () => {
 
   describe("eva type", () => {
     beforeEach(() => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.refUuid]);
+      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
     });
 
     it("returns true for upsert with subscribed EVA refUuid", async () => {
@@ -251,7 +251,7 @@ describe("isRelevantToSubscribedEvas", () => {
 
   describe("rex type", () => {
     beforeEach(() => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.refUuid]);
+      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
       mockGetEVAs.mockResolvedValue([evaSubscribed, evaNotSubscribed]);
     });
 
@@ -292,7 +292,7 @@ describe("isRelevantToSubscribedEvas", () => {
 
   describe("station type", () => {
     beforeEach(() => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.refUuid]);
+      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
       mockGetEVAs.mockResolvedValue([evaSubscribed, evaNotSubscribed]);
     });
 
@@ -344,7 +344,7 @@ describe("isRelevantToSubscribedEvas", () => {
 
   describe("traverse type", () => {
     beforeEach(() => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.refUuid]);
+      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
       mockGetEVAs.mockResolvedValue([evaSubscribed, evaNotSubscribed]);
     });
 
@@ -373,7 +373,7 @@ describe("isRelevantToSubscribedEvas", () => {
 
   describe("action type", () => {
     beforeEach(() => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.refUuid]);
+      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
       mockGetEVAs.mockResolvedValue([evaSubscribed, evaNotSubscribed]);
     });
 
@@ -440,7 +440,7 @@ describe("isRelevantToSubscribedEvas", () => {
 
   describe("irrelevant types", () => {
     it("returns false for poi type (not in maestro type list)", async () => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.refUuid]);
+      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
       mockGetEVAs.mockResolvedValue([evaSubscribed]);
       const payload: StoreUpsert = {
         socketId: "s1",
@@ -479,7 +479,7 @@ describe("emitToMaestroNamespace", () => {
     const roomName = getMaestroSocketRoomName(MISSION_ID);
     ns._rooms.set(roomName, new Set(["socket1"]));
     globalValues.maestro.socketio = ns as never;
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.refUuid]);
+    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
 
     const mockCoreData = buildMockCoreData({
       evas: [evaSubscribed],
@@ -512,7 +512,7 @@ describe("emitToMaestroNamespace", () => {
 
 describe("buildAegisEntityForMaestro", () => {
   it("returns only subscribed EVAs and their related entities", async () => {
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.refUuid]);
+    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
 
     const mockCoreData = buildMockCoreData({
       evas: [evaSubscribed, evaNotSubscribed],
@@ -573,7 +573,7 @@ describe("buildAegisEntityForMaestro", () => {
       missionId: MISSION_ID,
       traverseUuid: traverseA.uuid,
     });
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.refUuid]);
+    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
 
     const mockCoreData = buildMockCoreData({
       evas: [evaSubscribed],
@@ -590,7 +590,7 @@ describe("buildAegisEntityForMaestro", () => {
   });
 
   it("attaches rexUuid to EVA when rex exists for subscribed EVA", async () => {
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.refUuid]);
+    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
 
     const mockCoreData = buildMockCoreData({
       evas: [evaSubscribed],
@@ -616,7 +616,7 @@ describe("buildAegisEntityForMaestro", () => {
       missionId: MISSION_ID,
       sequence: [{ type: "station", uuid: stationWithOrder.uuid }],
     });
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaWithOrder.refUuid]);
+    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaWithOrder.uuid]);
 
     const mockCoreData = buildMockCoreData({
       evas: [evaWithOrder],
@@ -642,7 +642,7 @@ describe("buildAegisEntityForMaestro", () => {
       missionId: MISSION_ID,
       sequence: [{ type: "traverse", uuid: traverseWithOrder.uuid }],
     });
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaWithTraverseOrder.refUuid]);
+    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaWithTraverseOrder.uuid]);
 
     const mockCoreData = buildMockCoreData({
       evas: [evaWithTraverseOrder],
@@ -781,7 +781,7 @@ describe("addMaestroDocListenerForMission", () => {
     const roomName = getMaestroSocketRoomName(LISTENER_MISSION_ID);
     ns._rooms.set(roomName, new Set(["socket1"]));
     globalValues.maestro.socketio = ns as never;
-    globalValues.maestro.evaSubscriptions.set(LISTENER_MISSION_ID, [evaSubscribed.refUuid]);
+    globalValues.maestro.evaSubscriptions.set(LISTENER_MISSION_ID, [evaSubscribed.uuid]);
 
     const mockCoreData = buildMockCoreData({
       evas: [evaSubscribed],

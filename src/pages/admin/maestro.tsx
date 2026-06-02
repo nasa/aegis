@@ -98,10 +98,12 @@ const Maestro: React.FunctionComponent = () => {
   // ── subscribeToEva ────────────────────────────────────────────────────────
   const [subMissionId, setSubMissionId] = useState<string>("");
   const [subEvaUuid, setSubEvaUuid] = useState<string>("");
+  const [subRexUuid, setSubRexUuid] = useState<string>("");
 
   // ── unsubscribeToEva ──────────────────────────────────────────────────────
   const [desubMissionId, setDesubMissionId] = useState<string>("");
   const [desubEvaUuid, setDesubEvaUuid] = useState<string>("");
+  const [desubRexUuid, setDesubRexUuid] = useState<string>("");
 
   // ── getEverything ─────────────────────────────────────────────────────────
   const [everythingMissionId, setEverythingMissionId] = useState<string>("");
@@ -194,12 +196,9 @@ const Maestro: React.FunctionComponent = () => {
     maestroSocket.current = sock;
 
     sock.on("connect", () => {
-      setMaestroConnectionStatus("connected");
-    });
-
-    sock.once("connect", () => {
       const socketId = sock.id;
       setMaestroSocketId(socketId ?? null);
+      setMaestroConnectionStatus("connected");
       const missionId = Number(joinMissionId);
       const maestroVisitor: MaestroVisitor = {
         socketId: socketId,
@@ -209,11 +208,17 @@ const Maestro: React.FunctionComponent = () => {
       sock.emit("missionJoin", missionId, maestroVisitor);
     });
 
-    sock.on("connect_error", () => {
+    sock.onAny((event, ...args) => {
+      console.log("[maestro socket] received event:", event, args);
+    });
+
+    sock.on("connect_error", (err) => {
+      console.warn("[maestro socket] connect_error:", err.message);
       setMaestroConnectionStatus("failed");
     });
 
-    sock.on("disconnect", () => {
+    sock.on("disconnect", (reason) => {
+      console.log("[maestro socket] disconnected:", reason);
       setMaestroConnectionStatus("disconnected");
     });
 
@@ -240,12 +245,22 @@ const Maestro: React.FunctionComponent = () => {
 
   const emitSubscribeToEva = () => {
     if (!maestroSocket.current?.connected) return;
-    maestroSocket.current.emit("subscribeToEva", Number(subMissionId), subEvaUuid.trim());
+    maestroSocket.current.emit(
+      "subscribeToEva",
+      Number(subMissionId),
+      subEvaUuid.trim(),
+      subRexUuid.trim() || null
+    );
   };
 
   const emitunsubscribeToEva = () => {
     if (!maestroSocket.current?.connected) return;
-    maestroSocket.current.emit("unsubscribeToEva", Number(desubMissionId), desubEvaUuid.trim());
+    maestroSocket.current.emit(
+      "unsubscribeToEva",
+      Number(desubMissionId),
+      desubEvaUuid.trim(),
+      desubRexUuid.trim() || null
+    );
   };
 
   const emitGetEverything = () => {
@@ -378,7 +393,7 @@ const Maestro: React.FunctionComponent = () => {
                     <thead>
                       <tr>
                         <th>Mission ID</th>
-                        <th>EVA RefUuid</th>
+                        <th>EVA Uuid</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -574,6 +589,14 @@ const Maestro: React.FunctionComponent = () => {
                 placeholder="EVA RefUuid"
                 style={wideInput}
               />
+              <input
+                className={adminCommon.formInput}
+                type="text"
+                value={subRexUuid}
+                onChange={(e) => setSubRexUuid(e.target.value)}
+                placeholder="Rex Uuid (optional, null if empty)"
+                style={wideInput}
+              />
               <button
                 className={adminCommon.buttonPrimary}
                 onClick={emitSubscribeToEva}
@@ -600,6 +623,14 @@ const Maestro: React.FunctionComponent = () => {
                 value={desubEvaUuid}
                 onChange={(e) => setDesubEvaUuid(e.target.value)}
                 placeholder="EVA RefUuid"
+                style={wideInput}
+              />
+              <input
+                className={adminCommon.formInput}
+                type="text"
+                value={desubRexUuid}
+                onChange={(e) => setDesubRexUuid(e.target.value)}
+                placeholder="Rex Uuid (optional, null if empty)"
                 style={wideInput}
               />
               <button
