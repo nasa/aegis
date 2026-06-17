@@ -1,0 +1,69 @@
+[project]
+name = "aegis-data-conversion"
+version = "0.1.0"
+description = "Data conversion utilities for AEGIS — extract ArcGIS bundles, build COGs, generate tile pyramids."
+requires-python = ">=3.10"
+# NOTE: The geospatial stack (rasterio, fiona, pyproj, gdal) is intentionally
+# NOT listed here. Those packages build from source on PyPI and require a system
+# libgdal/gdal-config, which fails on a clean machine (the exact `fiona` build
+# error this project hit). They are provided instead as conda-forge *binaries*
+# via [tool.pixi.dependencies] below. For pure `uv` users, install them with
+#   uv run --with rasterio --with fiona --with pyproj python <script>.py
+# (uv pulls prebuilt wheels for these on most platforms), or just use pixi.
+dependencies = [
+    "pmtiles>=3.2.0",
+    "mapbox-vector-tile>=2.2.0",
+]
+
+[project.scripts]
+aegis-arcgis-to-pmtiles = "arcgis_compact_cache_v2_to_pmtiles:main"
+aegis-geotiff-to-cog = "geotiff_to_cog:main"
+aegis-inspect-geotiff = "inspect_geotiff:main"
+aegis-raster-to-tiles = "raster_to_tiles:main"
+aegis-mosaic-rasters = "mosaic_rasters:main"
+aegis-stretch-to-8bit = "stretch_to_8bit:main"
+aegis-shp-to-geojson = "shp_to_geojson:main"
+aegis-verify-dem-units = "verify_dem_units:main"
+aegis-colorize-slope = "MS3.colorize_slope:main"
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+# These are standalone single-file scripts in a flat layout, not a package.
+# List them explicitly so setuptools' editable build doesn't fail with
+# "Multiple top-level modules discovered in a flat-layout".
+[tool.setuptools]
+py-modules = [
+    "arcgis_compact_cache_v2_to_pmtiles",
+    "geotiff_to_cog",
+    "inspect_geotiff",
+    "raster_to_tiles",
+    "mosaic_rasters",
+    "stretch_to_8bit",
+    "shp_to_geojson",
+    "verify_dem_units",
+    "LGRS_Grid_Generation_mk7p1",
+]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["win-64"]
+
+# Geospatial stack as conda-forge BINARIES (prebuilt libgdal + the gdal2tiles /
+# gdalbuildvrt / gdalwarp / gdaldem CLIs, plus the rasterio/fiona/pyproj Python
+# bindings). This is the whole point of using pixi here: no source builds, no
+# system GDAL, no gdal-config. Adding fiona/rasterio via --pypi instead would
+# try to build from source and fail with "A GDAL API version must be specified".
+[tool.pixi.dependencies]
+gdal = "*"
+rasterio = ">=1.4.4"
+fiona = ">=1.9.6"
+pyproj = ">=3.6.0"
+
+# Pure-Python deps (no native build) stay on PyPI. The editable self-install
+# brings in the [project].dependencies (pmtiles, mapbox-vector-tile) only.
+[tool.pixi.pypi-dependencies]
+aegis-data-conversion = { path = ".", editable = true }
+
+[tool.pixi.tasks]
