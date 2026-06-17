@@ -1,0 +1,10 @@
+[console_scripts]
+aegis-arcgis-to-pmtiles = arcgis_compact_cache_v2_to_pmtiles:main
+aegis-colorize-slope = MS3.colorize_slope:main
+aegis-geotiff-to-cog = geotiff_to_cog:main
+aegis-inspect-geotiff = inspect_geotiff:main
+aegis-mosaic-rasters = mosaic_rasters:main
+aegis-raster-to-tiles = raster_to_tiles:main
+aegis-shp-to-geojson = shp_to_geojson:main
+aegis-stretch-to-8bit = stretch_to_8bit:main
+aegis-verify-dem-units = verify_dem_units:main

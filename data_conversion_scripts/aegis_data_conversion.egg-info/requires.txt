@@ -1,0 +1,2 @@
+pmtiles>=3.2.0
+mapbox-vector-tile>=2.2.0
