@@ -4,13 +4,9 @@ import {
   goToV2MissionSection,
   toggleEditMode,
   editValidatedField,
+  cancelValidatedFieldEdit,
   displayField,
 } from "./missionTestHelpers";
-
-const t1 = "--TEST ACTION TEMPLATE ONE--";
-const t1Dup = "--TEST ACTION TEMPLATE ONE-- (copy";
-const t2 = "--TEST ACTION TEMPLATE TWO--";
-const t2Edited = "--TEST ACTION TEMPLATE TWO EDITED--";
 
 /**
  * Find the index of a template by exact name.
@@ -66,6 +62,15 @@ async function createAndRenameTemplate(page: Page, t: string) {
 }
 
 export async function actionTemplatesTest(page: Page): Promise<string> {
+  // Test names are built per-run with a random suffix in the test body to avoid
+  // `Name must be unique` collisions with entries left in the automerge mission
+  // doc by previously failed runs.
+  const suffix = Math.floor(Math.random() * 1_000_000).toString(36);
+  const t1 = `--TEST ACTION TEMPLATE ONE ${suffix}--`;
+  const t1Dup = `--TEST ACTION TEMPLATE ONE ${suffix}-- (copy`;
+  const t2 = `--TEST ACTION TEMPLATE TWO ${suffix}--`;
+  const t2Edited = `--TEST ACTION TEMPLATE TWO ${suffix} EDITED--`;
+
   await goToV2MissionSection(page);
 
   // Go to action templates
@@ -127,14 +132,7 @@ export async function actionTemplatesTest(page: Page): Promise<string> {
   await expect(displayField(page, "Template Name", t2Index)).toContainText(t2Edited);
 
   // Test cancel on field edit (dialog cancel)
-  const originalName = await displayField(page, "Template Name", t1Index).textContent();
-  await displayField(page, "Template Name", t1Index).click();
-  const dialog = page.locator("dialog[open]");
-  await dialog.waitFor({ timeout: 3000 });
-  await dialog.locator("input").fill("--SHOULD NOT SAVE--");
-  await dialog.getByText("Cancel").click();
-  await dialog.waitFor({ state: "hidden", timeout: 3000 });
-  await expect(displayField(page, "Template Name", t1Index)).toContainText(originalName);
+  await cancelValidatedFieldEdit(page, "Template Name", "--SHOULD NOT SAVE--", t1Index);
 
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
     startingNumTemplates + 3

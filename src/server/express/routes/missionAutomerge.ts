@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import express from "express";
-import { hasPerms } from "utils/permissions";
+import { hasPerms, emssTokenIsValid } from "utils/permissions";
 import { getAutomergeDocListing } from "./docListing";
 import { globalValues } from "../global";
 import type { DocHandle, AutomergeUrl, DocumentId } from "@automerge/automerge-repo/slim";
@@ -21,6 +21,53 @@ import { deleteFile } from "server/file/file";
  */
 
 const router = express.Router();
+
+/**
+ * Get all mission automerge documents the caller has permission to view.
+ * Uses the server-side automerge repo (already loaded all docs in memory),
+ * so the client doesn't have to replay the document over the WebSocket connection,
+ * which is very slow for large/many missions.
+ */
+router.get("/", async (req: Request, res: Response): Promise<void> => {
+  const emssToken = req.headers["emss-token"] as string;
+  const viewPermission =
+    req.session?.appUser?.isSuperAdmin ||
+    req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
+    emssTokenIsValid(emssToken);
+  if (!viewPermission) {
+    serverLogger.apiRoute({
+      logLevel: "warning",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "missionAutomerge",
+      appUsername: req.session?.appUser?.username,
+      message: "Unauthorized",
+    });
+    res.status(401).json({ status: "failure", message: "Unauthorized" });
+    return;
+  }
+  try {
+    let missionIds: number[] | undefined;
+    if (!req.session?.appUser?.isSuperAdmin && !emssTokenIsValid(emssToken)) {
+      missionIds = req.session.appUser.permissionList.flatMap((p) =>
+        p.permissions.view ? [p.missionId] : []
+      );
+    }
+    const missions = await getAutomergeMissions(missionIds);
+    res.status(200).json({ status: "success", message: "missions retrieved", data: missions });
+  } catch (e) {
+    serverLogger.apiRoute({
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName: "missionAutomerge",
+      appUsername: req.session?.appUser?.username,
+      message: `Error processing the GET request ${e}`,
+      error: asError(e),
+    });
+    res.status(500).json({ status: "error", message: `Error processing the GET request ${e}` });
+  }
+});
 
 /**
  * Create a new mission automerge document, this will also add to the document listing table
@@ -166,6 +213,23 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 export default router;
+
+/**
+ * Get the automerge document handle for a single mission.
+ * @param missionId The ID of the mission to get the handle for
+ * @returns The doc handle, or null if the mission is not found
+ */
+export async function getAutomergeMissionHandle(
+  missionId: number
+): Promise<DocHandle<Mission> | null> {
+  const listings = await getAutomergeDocListing([missionId]);
+  if (!listings.length) return null;
+  const handle = await globalValues.automergeRepo.find<Mission>(
+    listings[0].automergeUrl as AutomergeUrl
+  );
+  await handle.whenReady();
+  return handle;
+}
 
 /**
  * Get automerge document for mission ids.

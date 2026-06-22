@@ -450,7 +450,17 @@ export const ValidatedInputField: FunctionComponent<{
   onSubmit: (value: string) => void;
   focusContents?: boolean;
   onChange?: React.ChangeEventHandler;
-}> = ({ value, editMode, styleContainer, onSubmit, fieldProps, focusContents, onChange }) => {
+  displayStyle?: CSSProperties;
+}> = ({
+  value,
+  editMode,
+  styleContainer,
+  onSubmit,
+  fieldProps,
+  focusContents,
+  onChange,
+  displayStyle,
+}) => {
   const valueToShow = value || "";
 
   const dialogRef = useRef<HTMLDialogElement>(null); // Used to control the dialog box (open/close)
@@ -629,17 +639,13 @@ export const ValidatedInputField: FunctionComponent<{
           data-tooltip-id="aegis-tooltip"
           data-tooltip-html={fieldProps.ariaLabel}
           aria-label={fieldProps.ariaLabel}
+          style={displayStyle}
         >
           {valueToShow}
         </div>
         {editMode && (
           <div className={formStyles.editPencilWrapper}>
-            <FontAwesomeIcon
-              icon={faPencil}
-              style={{
-                fontSize: "0.7rem",
-              }}
-            />
+            <FontAwesomeIcon icon={faPencil} style={{ fontSize: "0.7rem" }} />
           </div>
         )}
       </div>
@@ -894,8 +900,14 @@ export const ValidatedLatLngField: FunctionComponent<{
             e.stopPropagation();
             dialogRef.current?.close();
             // reset value. it's like clicking cancel.
-            formApiRef.current.change(fieldPropsLat.name, initialValueRef.current.lat.toString());
-            formApiRef.current.change(fieldPropsLng.name, initialValueRef.current.lng.toString());
+            formApiRef.current.change(
+              fieldPropsLat.name,
+              initialValueRef.current?.lat?.toString() ?? ""
+            );
+            formApiRef.current.change(
+              fieldPropsLng.name,
+              initialValueRef.current?.lng?.toString() ?? ""
+            );
           }
         }}
       >
@@ -910,8 +922,8 @@ export const ValidatedLatLngField: FunctionComponent<{
               onSubmit(newValue);
             }}
             initialValues={{
-              [fieldPropsLat.name]: value.lat.toString(),
-              [fieldPropsLng.name]: value.lng.toString(),
+              [fieldPropsLat.name]: value?.lat?.toString() ?? "",
+              [fieldPropsLng.name]: value?.lng?.toString() ?? "",
             }}
             render={({ handleSubmit, form }) => {
               // Store form API for use in dialog onClose handler
@@ -998,11 +1010,11 @@ export const ValidatedLatLngField: FunctionComponent<{
                                 onClick={(e) => {
                                   form.change(
                                     fieldPropsLat.name,
-                                    initialValueRef.current.lat.toString()
+                                    initialValueRef.current?.lat?.toString() ?? ""
                                   );
                                   form.change(
                                     fieldPropsLng.name,
-                                    initialValueRef.current.lng.toString()
+                                    initialValueRef.current?.lng?.toString() ?? ""
                                   );
                                   dialogRef.current?.close();
                                   e.stopPropagation();

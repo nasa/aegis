@@ -6,15 +6,16 @@ import { Button } from "components/interface/form/globalFields";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import StationItem from "./station-item";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkCreateStation, thunkDuplicateStation } from "store/thunk/thunkStation";
+import { thunkDocCreateStation, thunkDocDuplicateStation } from "store/thunk/thunkStation";
 import { FolderOrganizer } from "components/interface/folders";
 import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
 import { selectAsPlannedStations } from "store/selectors";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const StationEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const stationUuids = useAppSelector(
-    (state) => selectAsPlannedStations(state).map((station) => station.uuid),
+  const stationUuids = useMissionDocSelector(
+    (mission) => selectAsPlannedStations(mission).map((station) => station.uuid),
     deepEqual
   );
   const selectedStationUuid = useAppSelector(
@@ -22,6 +23,10 @@ const StationEditorLeft: FunctionComponent = () => {
     refEqual
   );
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const showButtons = useAppSelector(
+    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
+    refEqual
+  );
 
   const folderRecords = useAppSelector(
     (state) => state.interface.folders.filter((f) => f.type === "station"),
@@ -82,32 +87,36 @@ const StationEditorLeft: FunctionComponent = () => {
           </div>
         </div>
         <div className={paneStyles.leftPanelContainerBottom}>
-          {editPerms && (
-            <div className={paneStyles.iconButtons}>
-              <Button
-                ariaLabel="addStation"
-                onClick={() => {
-                  dispatch(thunkCreateStation());
-                }}
-                label="Add"
-                icon={faPlusCircle}
-                style={{ width: "65px" }}
-              />
-              <Button
-                ariaLabel="duplicateStation"
-                onClick={() => {
-                  dispatch(
-                    thunkDuplicateStation({
-                      stationUuid: selectedStationUuid,
-                      preserveRefUuid: false,
-                    })
-                  );
-                }}
-                label="Duplicate"
-                icon={faClone}
-                enabled={selectedStationUuid !== null}
-                style={{ width: "95px" }}
-              />
+          <div className={paneStyles.iconButtons}>
+            {showButtons && (
+              <>
+                <Button
+                  ariaLabel="addStation"
+                  onClick={() => {
+                    dispatch(thunkDocCreateStation());
+                  }}
+                  label="Add"
+                  icon={faPlusCircle}
+                  style={{ width: "65px" }}
+                />
+                <Button
+                  ariaLabel="duplicateStation"
+                  onClick={() => {
+                    dispatch(
+                      thunkDocDuplicateStation({
+                        stationUuid: selectedStationUuid,
+                        preserveRefUuid: false,
+                      })
+                    );
+                  }}
+                  label="Duplicate"
+                  icon={faClone}
+                  enabled={selectedStationUuid !== null}
+                  style={{ width: "95px" }}
+                />
+              </>
+            )}
+            {editPerms && (
               <Button
                 ariaLabel="addFolder"
                 onClick={() => {
@@ -117,8 +126,8 @@ const StationEditorLeft: FunctionComponent = () => {
                 icon={faFolderPlus}
                 style={{ width: "80px" }}
               />
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </>

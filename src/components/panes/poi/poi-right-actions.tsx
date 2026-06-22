@@ -1,35 +1,41 @@
 import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { useAppDispatch } from "utils/useAppDispatch";
 
-import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
-import { setPoiEditMode, upsertPoiByField } from "store/poi";
+import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdatePoiByField } from "client/automerge/apply/apply-poi";
 import Actions from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useAppDispatch();
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
-  const selectedPoi = useAppSelector(
-    (state) => state.poi.pois.find((poi) => poi.uuid === selectedPoiUuid),
-    deepEqual
-  );
-  const poiActionUuids = useAppSelector(
-    (state) =>
-      state.action.actions.filter((a) => a.poiUuid === selectedPoiUuid)?.map((a) => a.uuid),
+  const docMaps = useMissionDocSelector(
+    (mission) => ({ pois: mission.pois, actions: mission.actions }),
     shallowEqual
   );
-
-  const actionsCalculatedFields = useAppSelector((state) => {
-    const poiActions = state.action.actions.filter(
+  const selectedPoi = useMemo(
+    () => (selectedPoiUuid ? docMaps?.pois[selectedPoiUuid] : undefined),
+    [docMaps, selectedPoiUuid]
+  );
+  const poiActionUuids = useMemo(() => {
+    if (!docMaps) return [];
+    return Object.values(docMaps.actions)
+      .filter((a) => a.poiUuid === selectedPoiUuid)
+      ?.map((a) => a.uuid);
+  }, [docMaps, selectedPoiUuid]);
+  const actionsCalculatedFields = useMemo<ActionsCalculatedFields>(() => {
+    if (!docMaps) return undefined;
+    const poiActions = Object.values(docMaps.actions).filter(
       (a) => a.poiUuid === selectedPoiUuid && a.enabled
     );
     const poiCalculatedFields = getCalculatedFieldsByPoi({
       poiUuid: selectedPoiUuid,
       poiActions,
     });
-    const newActionsCalculatedFields: ActionsCalculatedFields = {
+    return {
       actionCount: poiCalculatedFields.actionCount,
       totalActionTime: poiCalculatedFields.totalActionTime,
       totalEv1Time: poiCalculatedFields.totalEv1Time,
@@ -38,8 +44,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       totalDwellTime: poiCalculatedFields.totalDwellTime,
       totalMass: poiCalculatedFields.totalMass,
     };
-    return newActionsCalculatedFields;
-  }, deepEqual);
+  }, [docMaps, selectedPoiUuid]);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -50,12 +55,15 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       <div className={paneStyles.rightBodyBody} style={{ overflowY: "hidden" }}>
         <Actions
           editMode={editMode}
-          setEditMode={(newEditMode: boolean) => {
-            dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: newEditMode }));
-          }}
           actionOrderUuids={selectedPoi.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {
-            dispatch(upsertPoiByField(selectedPoiUuid, "actionOrderUuids", actionOrderUuids));
+            withMissionChange((m) =>
+              applyUpdatePoiByField(m, {
+                poiUuid: selectedPoiUuid,
+                fieldName: "actionOrderUuids",
+                value: actionOrderUuids,
+              })
+            );
           }}
           actionParentUuid={{ poiUuid: selectedPoiUuid }}
           parentType="poi"

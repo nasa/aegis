@@ -8,8 +8,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import "react-checkbox-tree/lib/react-checkbox-tree.css";
 import { STM_Coverage } from "./stm-coverage";
-import { upsertActionByField } from "store/action";
-import { useAppDispatch } from "utils/useAppDispatch";
+import { applyUpdateActionByField } from "client/automerge/apply/apply-action";
+import { withMissionChange } from "client/automergeDocHandles";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const STMSelector: FunctionComponent<{
@@ -17,13 +17,12 @@ const STMSelector: FunctionComponent<{
   stmPriorities: StmPriorities;
   actionUuid: string;
 }> = ({ editMode, stmPriorities, actionUuid }) => {
-  const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      stmLevel1Name: doc.stmLevel1Name,
-      stmLevel2Name: doc.stmLevel2Name,
-      stmLevel3Name: doc.stmLevel3Name,
-      stmLevel1Enabled: doc.stmLevel1Enabled,
+    (mission) => ({
+      stmLevel1Name: mission.stmLevel1Name,
+      stmLevel2Name: mission.stmLevel2Name,
+      stmLevel3Name: mission.stmLevel3Name,
+      stmLevel1Enabled: mission.stmLevel1Enabled,
     }),
     deepEqual
   );
@@ -51,9 +50,15 @@ const STMSelector: FunctionComponent<{
       } else {
         newStmPriorities[stmUuid] = priority;
       }
-      dispatch(upsertActionByField(actionUuid, "stmPriorities", newStmPriorities));
+      withMissionChange((m) =>
+        applyUpdateActionByField(m, {
+          actionUuid,
+          fieldName: "stmPriorities",
+          value: newStmPriorities,
+        })
+      );
     },
-    [actionUuid, dispatch, stmPriorities]
+    [actionUuid, stmPriorities]
   );
 
   //build the stm tree

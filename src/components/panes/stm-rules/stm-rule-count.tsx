@@ -1,6 +1,8 @@
 import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { deepEqual } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
 import styles from "./stm-rules-rules.module.css";
 
 type SatisfiedSequenceActions = {
@@ -8,8 +10,11 @@ type SatisfiedSequenceActions = {
 };
 
 const RulesEngineSummary: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
-  const satisfiedSequenceActions = useAppSelector<SatisfiedSequenceActions>((state) => {
-    const allSequenceSTMActions = state.action.actions.filter(
+  const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual);
+  const allStations = useMissionDocSelector((mission) => mission.stations, deepEqual);
+  const allTraverses = useMissionDocSelector((mission) => mission.traverses, deepEqual);
+  const satisfiedSequenceActions = useMemo<SatisfiedSequenceActions>(() => {
+    const allSequenceSTMActions = Object.values(allActionRecords).filter(
       (action) => action.stmAction && (action.stationUuid || action.traverseUuid)
     );
 
@@ -20,9 +25,7 @@ const RulesEngineSummary: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
     const sequenceActions: SatisfiedSequenceActions = {};
     for (const action of resultActions) {
       if (action.traverseUuid) {
-        const traverse = state.traverse.traverses.find(
-          (traverse) => traverse.uuid === action.traverseUuid
-        );
+        const traverse = allTraverses[action.traverseUuid];
         if (traverse) {
           if (!sequenceActions[traverse.name]) {
             sequenceActions[traverse.name] = [];
@@ -30,9 +33,7 @@ const RulesEngineSummary: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
           sequenceActions[traverse.name].push(action);
         }
       } else if (action.stationUuid) {
-        const station = state.station.stations.find(
-          (station) => station.uuid === action.stationUuid
-        );
+        const station = allStations[action.stationUuid];
         if (station) {
           if (!sequenceActions[station.name]) {
             sequenceActions[station.name] = [];
@@ -42,7 +43,7 @@ const RulesEngineSummary: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
       }
     }
     return sequenceActions;
-  }, deepEqual);
+  }, [allActionRecords, allStations, allTraverses, rule]);
 
   const numberOfSequenceActions = Object.values(satisfiedSequenceActions).reduce(
     (acc, actions) => acc + actions.length,

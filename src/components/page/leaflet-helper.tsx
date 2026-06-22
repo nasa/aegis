@@ -28,19 +28,13 @@ import throttle from "lodash/throttle";
 import sortBy from "lodash/sortBy";
 import type { AppDispatch } from "utils/useAppDispatch";
 import { setMeasureInitialCoords, updateMapDirective } from "store/map";
-import { revertWalkbackPath } from "store/station";
 import { thunkUpdateMeasurementPath } from "store/thunk/thunkMeasurement";
-import {
-  thunkUpdateWalkbackPath,
-  thunkFullUpdateWalkback,
-  thunkUpdateStationLocation,
-} from "store/thunk/thunkStation";
-import { thunkUpdateTraversePath, thunkFullUpdateTraverse } from "store/thunk/thunkTraverse";
-import { revertTraversePath } from "store/traverse";
-import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
-import { thunkUpdateLanderLocation } from "store/thunk/thunkMission";
-import { thunkUpdatePoiLocation } from "store/thunk/thunkPoi";
-import { thunkUpdatePosEntryLocation } from "store/thunk/thunkRexPosEntry";
+import { thunkDocUpdateWalkback, thunkDocUpdateStationLocation } from "store/thunk/thunkStation";
+import { thunkDocUpdateTraverse } from "store/thunk/thunkTraverse";
+import { thunkDocUpdateActionLocation } from "store/thunk/thunkAction";
+import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
+import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
+import { thunkDocUpdatePosEntryWithLocation } from "store/thunk/thunkRexPosEntry";
 import { EARTH_RADIUS } from "utils/consts";
 import { checkTimeInBounds, matchTimeToManifest } from "utils/mapping/timeLayers";
 
@@ -1236,7 +1230,7 @@ export const drawGridLabels = ({
 /**
  * Gets the last (most recent) 2 pos entries for each pos type
  * Get the last 2 because we need at least 2 in order to draw the path
- * The lastest (most recent) entry is in index 0
+ * The last (most recent) entry is in index 0
  */
 export const getLatestPosEntryByType = ({
   allPosEntries,
@@ -1286,11 +1280,13 @@ export const setMeasureStartingCoords = (
 export const handleMapDirective = ({
   map,
   mapDirective,
+  originalPoints,
   draggableLines,
   dispatch,
 }: {
   map: MutableRefObject<L.Map>;
   mapDirective: MapDirective;
+  originalPoints: AEGISPoint[];
   draggableLines: MutableRefObject<DraggableLines>;
   dispatch: AppDispatch;
 }): void => {
@@ -1336,30 +1332,27 @@ export const handleMapDirective = ({
       if (polylineToUpdate) {
         draggableLines.current.enableForLayer(polylineToUpdate);
 
-        const dispatchPath = async (e: L.LeafletEvent, saveElevation: boolean) => {
+        // `snapEndpoints` controls whether to apply the server's snapped path
+        // back to the visible layer. We only want to do this on dragend/remove
+        // (when the user has stopped moving). Applying it mid-drag would
+        // overwrite the user's in-progress mouse position with the path the
+        // elevation API returned ~hundreds of ms ago — a visible flicker that
+        // "snaps back" before the next mousemove pushes it forward again.
+        const dispatchPath = async (e: L.LeafletEvent, snapEndpoints: boolean) => {
           //TODO: layer is deprecated but changing this to propagatedFrom throws a null when dragging?
           if (e.layer.uuid !== mapDirective.uuid) return;
 
           const path = convertLeafletLatLngsToAegisPoints(e.layer.getLatLngs());
 
           if (e.layer.mapItemType === "traverse") {
-            if (!saveElevation) {
-              //update just the path
-              await dispatch(
-                thunkUpdateTraversePath({
-                  path,
-                  traverseUuid: mapDirective.uuid,
-                })
-              );
-            } else {
-              //update path, elevation, and snap endpoints
-              const response = await dispatch(
-                thunkFullUpdateTraverse({
-                  traverseUuid: mapDirective.uuid,
-                  path,
-                })
-              );
-
+            //update path, elevation, and snap endpoints
+            const response = await dispatch(
+              thunkDocUpdateTraverse({
+                traverseUuid: mapDirective.uuid,
+                path,
+              })
+            );
+            if (snapEndpoints) {
               //redraw the line in case we had to snap endpoints
               updatePolylineOnMap({
                 map,
@@ -1369,22 +1362,14 @@ export const handleMapDirective = ({
               });
             }
           } else if (e.layer.mapItemType === "walkback") {
-            if (!saveElevation) {
-              //update just the path
-              await dispatch(
-                thunkUpdateWalkbackPath({
-                  path,
-                  stationUuid: mapDirective.uuid,
-                })
-              );
-            } else {
-              //update path, elevation, and snap endpoints
-              const response = await dispatch(
-                thunkFullUpdateWalkback({
-                  path,
-                  stationUuid: mapDirective.uuid,
-                })
-              );
+            //update path, elevation, and snap endpoints
+            const response = await dispatch(
+              thunkDocUpdateWalkback({
+                path,
+                stationUuid: mapDirective.uuid,
+              })
+            );
+            if (snapEndpoints) {
               //redraw the line in case we had to snap endpoints
               updatePolylineOnMap({
                 map,
@@ -1401,7 +1386,7 @@ export const handleMapDirective = ({
         draggableLines.current.on(
           "drag",
           throttle((e) => {
-            dispatchPath(e, true);
+            dispatchPath(e, false);
           }, 100)
         );
 
@@ -1417,10 +1402,10 @@ export const handleMapDirective = ({
       break;
 
     case "saveEditPolyline":
-      // only called by polyline edits. Markers happen on click or draggend events
-      // **** no need to save because we love updating the store with the new location as the user drags the polyline ****
+      // Save only for polyline edits. Markers save happen on click or drag end events
+      // Only need to clear the map here, polyline is saved onchange.
 
-      // find this polyline layer on the map
+      // Find this polyline layer on the map
       const mapItemByUuid = getMapItemByUuid(
         map,
         mapDirective.uuid,
@@ -1431,6 +1416,7 @@ export const handleMapDirective = ({
       }
 
       draggableLines.current.off("drag");
+      draggableLines.current.off("dragend");
       draggableLines.current.off("remove");
 
       clearAction();
@@ -1443,14 +1429,26 @@ export const handleMapDirective = ({
         mapDirective.mapItemType
       ) as L.Polyline;
       if (polylineToCancel) draggableLines.current.disableForLayer(polylineToCancel);
-      if (mapDirective.mapItemType === "traverse") {
-        dispatch(revertTraversePath({ uuid: mapDirective.uuid }));
-      }
-      if (mapDirective.mapItemType === "walkback") {
-        dispatch(revertWalkbackPath({ uuid: mapDirective.uuid }));
+
+      // Revert polyline path back to its original points
+      // Measurements cannot be cancelled
+      if (originalPoints?.length) {
+        if (mapDirective.mapItemType === "traverse") {
+          dispatch(
+            thunkDocUpdateTraverse({
+              traverseUuid: mapDirective.uuid,
+              path: originalPoints,
+            })
+          );
+        } else if (mapDirective.mapItemType === "walkback") {
+          dispatch(
+            thunkDocUpdateWalkback({ stationUuid: mapDirective.uuid, path: originalPoints })
+          );
+        }
       }
 
       draggableLines.current.off("drag");
+      draggableLines.current.off("dragend");
       draggableLines.current.off("remove");
 
       clearAction();
@@ -1477,19 +1475,19 @@ export const saveUpdatedItemPosition = async ({
 }): Promise<void> => {
   switch (mapItemType) {
     case "lander":
-      await dispatch(thunkUpdateLanderLocation({ location }));
+      await dispatch(thunkDocUpdateLanderLocation({ location }));
       break;
     case "poi":
-      await dispatch(thunkUpdatePoiLocation({ location, poiUuid: uuid }));
+      await dispatch(thunkDocUpdatePoiLocation({ location, poiUuid: uuid }));
       break;
     case "station":
-      await dispatch(thunkUpdateStationLocation({ location, stationUuid: uuid }));
+      await dispatch(thunkDocUpdateStationLocation({ location, stationUuid: uuid }));
       break;
     case "action":
-      await dispatch(thunkUpdateActionLocation({ location, actionUuid: uuid }));
+      await dispatch(thunkDocUpdateActionLocation({ location, actionUuid: uuid }));
       break;
     case "posEntry":
-      await dispatch(thunkUpdatePosEntryLocation({ location, posEntryUuid: uuid }));
+      await dispatch(thunkDocUpdatePosEntryWithLocation({ location, posEntryUuid: uuid }));
       break;
   }
 };

@@ -33,10 +33,16 @@ type GlobalValues = {
     > | null;
     /**
      * Tracks active automerge "change" listeners for Maestro socket rooms.
-     * Key is the socket room name.
+     * Key is the missionId.
      * Value is a function that removes the listener from the DocHandle.
      */
-    docListeners: Map<string, () => void>;
+    docListeners: Map<number, () => void>;
+    /**
+     * Cached automerge DocHandles for missions that Maestro is actively listening to.
+     * Key is missionId. Populated by addMaestroDocListenerForMission, cleared by cleanupSocketRoom.
+     * Used to avoid a DB round-trip on every isRelevantToSubscribedEvas check.
+     */
+    docHandles: Map<number, import("@automerge/automerge-repo").DocHandle<Mission>>;
     evaSubscriptions: Map<number, string[]>; // key is missionId, value is array of eva uuids subscribed to
   };
 };

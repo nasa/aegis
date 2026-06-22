@@ -156,6 +156,55 @@
 .evaItem {
   display: flex;
   flex-direction: row;
+  border-radius: var(--radius);
+  /* small vertical gap between adjacent rows so colored backgrounds (selected,
+     hover, in-progress, etc.) don't visually merge into one another */
+  margin: 1px 0;
+}
+
+.evaItemHover {
+  background-color: var(--grey1);
+}
+
+.evaItemSelected {
+  background-color: var(--grey5);
+}
+
+.evaItemRexInProgress {
+  background-color: var(--rexDim);
+}
+
+/* complete + skipped (when not selected) share the same row background */
+.evaItemRexComplete,
+.evaItemRexSkipped {
+  background-color: var(--grey1);
+}
+
+.evaItemRexInProgressSelected {
+  background-color: var(--rex);
+}
+
+/* skipped + selected uses the same background as the regular selected state */
+.evaItemRexSkippedSelected {
+  background-color: var(--grey5);
+}
+
+/* When the row is selected, override the rex status icon colors so they
+   remain visible against the selected background. Scoped to .rexStatusWrapper
+   so the override does NOT apply to the rex status menu dialog (which is a
+   DOM descendant when opened via showModal()). */
+.evaItemSelected .rexStatusWrapper :global(.svg-inline--fa),
+.evaItemRexInProgressSelected .rexStatusWrapper :global(.svg-inline--fa),
+.evaItemRexSkippedSelected .rexStatusWrapper :global(.svg-inline--fa) {
+  color: var(--grey3);
+}
+
+/* Override the skipped icon (background-image SVG) to grey3 when the row is
+   selected. Uses the same SVG path with the grey3 hex (#616574) embedded. */
+.evaItemSelected .rexStatusWrapper > div,
+.evaItemRexInProgressSelected .rexStatusWrapper > div,
+.evaItemRexSkippedSelected .rexStatusWrapper > div {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 512'><path fill='%23616574' d='M64 80c-8.8 0-16 7.2-16 16l0 320c0 8.8 7.2 16 16 16l320 0c8.8 0 16-7.2 16-16l0-320c0-8.8-7.2-16-16-16L64 80zM0 96C0 60.7 28.7 32 64 32l320 0c35.3 0 64 28.7 64 64l0 320c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 96zm143 79c9.4-9.4 24.6-9.4 33.9 0l47 47 47-47c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-47 47 47 47c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-47-47-47 47c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l47-47-47-47c-9.4-9.4-9.4-24.6 0-33.9z'/></svg>");
 }
 
 .evaItemName {
@@ -165,55 +214,29 @@
   gap: 3px;
   font-size: 0.9em;
   padding: 4px 5px 4px 5px;
-  margin: 1px 0 1px 0;
   border-radius: var(--radius);
   user-select: none;
 }
 
-.evaItemName.editMode:hover {
-  background-color: var(--grey2);
-  cursor: default;
-}
-
+/* The inner name div only carries text-color / font-weight overrides that need
+   to sit on top of the parent row's background. Backgrounds for selected /
+   hover / rex states are owned by the parent .evaItem row classes above. */
 .evaItemNameSelected {
-  background-color: var(--grey5);
   font-weight: 500;
   color: black;
-  cursor: pointer;
-}
-.evaItemNameHoverMode {
-  background-color: var(--grey1);
-  cursor: pointer;
-}
-
-.evaItemNameSelected:hover {
-  color: black !important;
 }
 
 .evaItemNameRexInProgress {
-  background-color: var(--rexDim);
   color: var(--grey5);
 }
 
 .evaItemNameRexInProgressSelected {
-  background-color: var(--rex);
   color: var(--grey1);
   font-weight: 500;
 }
 
-.evaItemNameRexSkipped {
-  background-color: var(--grey1);
-  color: var(--grey4);
-}
-
 .evaItemNameRexSkippedSelected {
-  background-color: var(--grey5);
   color: var(--grey1);
-}
-
-.evaItemNameRexComplete {
-  background-color: var(--grey1);
-  color: var(--grey4);
 }
 
 .evaItemLeft {
@@ -258,7 +281,8 @@
 .evaItemNameButton {
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
+  justify-content: center;
+  align-items: center;
 
   background-color: var(--grey3);
   color: #ffffff;
@@ -348,6 +372,13 @@
   border-left: 5px dotted var(--eva);
   overflow-y: visible;
   height: 21px;
+}
+
+/* When the traverse row is selected, color the dotted indicator yellow. */
+.evaItemSelected .iconTraverse,
+.evaItemRexInProgressSelected .iconTraverse,
+.evaItemRexSkippedSelected .iconTraverse {
+  border-left-color: #c49900;
 }
 
 .iconTraverseDotsContainerSmall {

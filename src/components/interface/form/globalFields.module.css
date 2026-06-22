@@ -159,11 +159,6 @@
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
-.iconDropdownModalItemSelected:hover {
-  background-color: white;
-  color: black;
-}
-
 .iconDropdownModalItem {
   display: flex;
   flex-direction: row;

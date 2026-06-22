@@ -21,7 +21,6 @@ import {
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import { toDecimal } from "utils/formatting";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
-import { thunkVerifyNoStationsBeingEdited } from "store/thunk/thunkStation";
 import { globalGrid } from "utils/mapping/grid";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
@@ -82,10 +81,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         mapAction,
       })
     );
-  };
-
-  const verifyNoStationsBeingEdited = async (): Promise<boolean> => {
-    return (await dispatch(thunkVerifyNoStationsBeingEdited())).payload as boolean;
   };
 
   return (
@@ -191,10 +186,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           />
                         ) : (
                           <Button
-                            onClick={async () => {
-                              if (await verifyNoStationsBeingEdited()) {
-                                dispatchMissionMapAction("editMarker");
-                              }
+                            onClick={() => {
+                              dispatchMissionMapAction("editMarker");
                             }}
                             label="Edit on Map"
                             style={{ width: "90px" }}

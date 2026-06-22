@@ -1,10 +1,12 @@
 import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
-import { upsertStationByField } from "store/station";
-import poiStyles from "../poi/poi.module.css";
+import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdateStationByField } from "client/automerge/apply/apply-station";
 import stationStyles from "./station.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { Checkbox, TextArea } from "components/interface/form/globalFields";
@@ -13,6 +15,7 @@ import { faCircle, faMessage } from "@fortawesome/free-solid-svg-icons";
 import { setSectionSelected } from "store/interface";
 import { setSelectedPoiUuid } from "store/poi";
 import sortBy from "lodash/sortBy";
+import poiStyles from "../poi/poi.module.css";
 
 const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -20,15 +23,19 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     (state) => state.station.selectedStationUuid,
     refEqual
   );
-  const selectedStation = useAppSelector(
-    (state) => state.station.stations.find((station) => station.uuid === selectedStationUuid),
-    deepEqual
+  const docMaps = useMissionDocSelector(
+    (mission) => ({ stations: mission.stations, pois: mission.pois }),
+    shallowEqual
   );
-  const pois = useAppSelector((state) => state.poi.poisFromDb, deepEqual);
+  const selectedStationPoiUuids = useMemo(
+    () => docMaps?.stations[selectedStationUuid]?.poiUuids || [],
+    [docMaps, selectedStationUuid]
+  );
+  const pois = useMemo(() => (docMaps ? Object.values(docMaps.pois) : []), [docMaps]);
 
   // maintain a list of selected POIs for the selected station, so we can display them
   const selectedPois = sortBy(
-    pois.filter((poi) => selectedStation.poiUuids?.includes(poi.uuid)),
+    pois.filter((poi) => selectedStationPoiUuids?.includes(poi.uuid)),
     [(poi) => poi.name.toLowerCase()]
   );
 
@@ -88,7 +95,7 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               ) : (
                 <>
                   {sortBy(pois, [(poi) => poi.name.toLowerCase()]).map((poi) => {
-                    const checked = selectedStation.poiUuids?.includes(poi.uuid);
+                    const checked = selectedStationPoiUuids?.includes(poi.uuid);
                     return (
                       poi && (
                         <div
@@ -107,10 +114,14 @@ const Poi_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             checked={checked}
                             onChange={(e) => {
                               const poiUuids = e.target.checked
-                                ? [...selectedStation?.poiUuids, poi.uuid]
-                                : selectedStation?.poiUuids.filter((uuid) => uuid !== poi.uuid);
-                              dispatch(
-                                upsertStationByField(selectedStationUuid, "poiUuids", poiUuids)
+                                ? [...selectedStationPoiUuids, poi.uuid]
+                                : selectedStationPoiUuids.filter((uuid) => uuid !== poi.uuid);
+                              withMissionChange((m) =>
+                                applyUpdateStationByField(m, {
+                                  stationUuid: selectedStationUuid,
+                                  fieldName: "poiUuids",
+                                  value: poiUuids,
+                                })
                               );
                             }}
                             toolTip={`Link ${poi.name}`}

@@ -1,17 +1,6 @@
 import type { Request, Response } from "express";
 import express from "express";
-import { globalValues } from "../../global";
-import {
-  Action_db,
-  Eva_db,
-  Rex_db,
-  Station_db,
-  Traverse_db,
-} from "../../../database/models/_allModels";
-import { emitStoreUpsert } from "../../sockets";
-import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { validateRexOverwrite } from "../../../../utils/rexOverwriteValidator";
-import { upsertDatabaseRetry } from "utils/database";
 import { v4 as uuidv4 } from "uuid";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -19,7 +8,7 @@ import { asError } from "@emss/utils";
 import fs from "node:fs";
 import path from "node:path";
 import { SCHEMA_DIR } from "utils/validateSchemaServer";
-import { getAutomergeMissions } from "../missionAutomerge";
+import { getAutomergeMissions, getAutomergeMissionHandle } from "../missionAutomerge";
 
 const router = express.Router();
 // Used by Maestro to control a rex. Deprecated
@@ -58,32 +47,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const updatedRexes: Rex[] = await upsertDatabaseRetry(() => overwriteRex(req.body));
+    const updatedRexes: Rex[] = await overwriteRex(req.body);
 
-    if (!updatedRexes || updatedRexes.length === 0) {
-      serverLogger.apiRoute({
-        logLevel: "error",
-        httpMethod: "POST",
-        responseStatus: 500,
-        routeName: "emss/rexOverwrite",
-        uuids: [req.body.uuid],
-        message: "Failed to update Rex(es) after multiple tries due to optimistic locking",
-        error: new Error("Failed to update rex after multiple tries due to optimistic locking"),
-      });
-      res.status(500).json({
-        status: "error",
-        message: "Failed to update Rex(es) after multiple tries due to optimistic locking",
-        data: null,
-      });
-      return;
-    }
-
-    emitStoreUpsert({
-      missionId: updatedRexes[0].missionId,
-      socketId: "maestroApi",
-      type: "rex",
-      data: updatedRexes,
-    } as StoreUpsert);
     res.status(200).json({
       status: "success",
       message: `Rex updated for rex uuids ${updatedRexes.map((r) => r.uuid).toString()}`,
@@ -94,25 +59,26 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
-      responseStatus: 500,
+      responseStatus: errorMessage.includes("not found") ? 404 : 500,
       routeName: "emss/rexOverwrite",
       uuids: [req.body.uuid],
       message: `Error processing the POST request: ${errorMessage}`,
       error: asError(e),
     });
+    const status = errorMessage.includes("not found") ? 404 : 500;
     res
-      .status(500)
+      .status(status)
       .json({ status: "error", message: `Error processing the POST request: ${errorMessage}` });
   }
 });
 
 router.get("/schema", async (req: Request, res: Response): Promise<void> => {
   try {
-    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "sublayerImportable.json"), "utf8");
+    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "rexOverwrite.json"), "utf8");
     const schema = JSON.parse(schemaFile);
     res.status(200).json({
       status: "success",
-      message: "importableSublayer schema retrieved",
+      message: "rexOverwrite schema retrieved",
       data: schema,
     });
   } catch (e) {
@@ -120,7 +86,7 @@ router.get("/schema", async (req: Request, res: Response): Promise<void> => {
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
-      routeName: "sublayer/schema",
+      routeName: "rexOverwrite/schema",
       appUsername: req.session?.appUser?.username,
       message: `Error retrieving schema: ${e}`,
       error: asError(e),
@@ -133,165 +99,97 @@ router.get("/schema", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// update the rex record. More than one rex may be updated if we need to stop a previously running rex
+// Update the rex record in the automerge mission document.
+// More than one rex may be updated if we need to stop a previously running rex.
 export async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
-  // must manually fork because sometimes this call is outside normal http request context (what we do in routes)
-  const em = globalValues.orm.em.fork();
-  await em.begin(); // start a transaction
+  // Find the mission containing this rex
+  const allMissions = await getAutomergeMissions();
+  const missionWithRex = allMissions.find((m) => m.rexes?.[rexOverwrite.uuid]);
+  if (!missionWithRex) {
+    throw new Error(`Rex with uuid ${rexOverwrite.uuid} not found.`);
+  }
 
-  let rexEntity = null;
-  let allRunningRexesBeforeUpdate: Rex_db[] = [];
-  try {
-    // Find and Rex
-    rexEntity = await em.findOne(Rex_db, { uuid: rexOverwrite.uuid });
-    if (!rexEntity) {
-      throw new Error(`Rex with uuid ${rexOverwrite.uuid} not found.`);
+  const rex = missionWithRex.rexes[rexOverwrite.uuid];
+  const eva = missionWithRex.evas?.[rex.evaUuid];
+  if (!eva) {
+    throw new Error(`Eva with uuid ${rex.evaUuid} not found.`);
+  }
+
+  const evaSequenceUuids = eva.sequence.map((s) => s.uuid);
+
+  // Build a mapping of refUuid → uuid for all stations, traverses, and actions in the EVA sequence
+  const refUuidToUuid: { [refUuid: string]: string } = {};
+  evaSequenceUuids.forEach((uuid) => {
+    const station = missionWithRex.stations?.[uuid];
+    if (station?.refUuid) refUuidToUuid[station.refUuid] = uuid;
+    const traverse = missionWithRex.traverses?.[uuid];
+    if (traverse?.refUuid) refUuidToUuid[traverse.refUuid] = uuid;
+  });
+  Object.values(missionWithRex.actions || {}).forEach((action) => {
+    const isInSequence =
+      (action.stationUuid && evaSequenceUuids.includes(action.stationUuid)) ||
+      (action.traverseUuid && evaSequenceUuids.includes(action.traverseUuid));
+    if (isInSequence && action.refUuid) {
+      refUuidToUuid[action.refUuid] = action.uuid;
     }
-    // Find the rex's EVA and get the uuid of all the sequence items
-    const eva = await em.findOne(Eva_db, { uuid: rexEntity.evaUuid });
-    if (!eva) {
-      throw new Error(`Eva with uuid ${rexEntity.evaUuid} not found.`);
+  });
+
+  // Validate all refUuids in the overwrite exist in the eva sequence
+  for (const refUuid in rexOverwrite.stationEntriesByRefUuid) {
+    if (!refUuidToUuid[refUuid]) {
+      throw new Error(`Station with refUuid ${refUuid} not found in eva sequence.`);
     }
-    const evaSequenceUuids = eva.sequence.map((s) => s.uuid);
+  }
+  for (const refUuid in rexOverwrite.traverseEntriesByRefUuid) {
+    if (!refUuidToUuid[refUuid]) {
+      throw new Error(`Traverse with refUuid ${refUuid} not found in eva sequence.`);
+    }
+  }
+  for (const refUuid in rexOverwrite.actionEntriesByRefUuid) {
+    if (!refUuidToUuid[refUuid]) {
+      throw new Error(`Action with refUuid ${refUuid} not found in eva sequence.`);
+    }
+  }
 
-    // Make a conversion table of refUuid to station/traverse/action uuid
-    // First build the queries
-    const stationQuery = em
-      .createQueryBuilder(Station_db, "station")
-      .select(["station.uuid", "station.refUuid"])
-      .where({ uuid: { $in: evaSequenceUuids } });
-    const traverseQuery = em
-      .createQueryBuilder(Traverse_db, "traverse")
-      .select(["traverse.uuid", "traverse.refUuid"])
-      .where({ uuid: { $in: evaSequenceUuids } });
-    const actionQuery = em
-      .createQueryBuilder(Action_db, "action")
-      .select(["action.uuid", "action.refUuid"])
-      .where({
-        $or: [
-          { station: { uuid: { $in: evaSequenceUuids } } },
-          { traverse: { uuid: { $in: evaSequenceUuids } } },
-        ],
-      });
-
-    // Execute the queries in parallel
-    const [stationResults, traverseResults, actionResults] = await Promise.all([
-      stationQuery.execute(),
-      traverseQuery.execute(),
-      actionQuery.execute(),
-    ]);
-
-    // Combine results into a single mapping of refUuid to uuid
-    const refUuidToUuid: { [refUuid: string]: string } = {};
-    stationResults.forEach((row) => {
-      refUuidToUuid[row.refUuid] = row.uuid;
-    });
-    traverseResults.forEach((row) => {
-      refUuidToUuid[row.refUuid] = row.uuid;
-    });
-    actionResults.forEach((row) => {
-      refUuidToUuid[row.refUuid] = row.uuid;
-    });
-
-    // loop through each of the entry properties
-    for (const refUuid in rexOverwrite.stationEntriesByRefUuid) {
-      if (!rexEntity.stationEntries) rexEntity.stationEntries = {}; // init if empty
-      // get the station uuid from the refUuid
-      const stationUuid = refUuidToUuid[refUuid];
-      if (!stationUuid) {
-        throw new Error(`Station with refUuid ${refUuid} not found in eva sequence.`);
+  // Determine which other rexes need to be stopped if we are starting
+  const rexUuidsToStop: string[] = [];
+  if (rexOverwrite.isRunning && !rex.isRunning) {
+    for (const uuid in missionWithRex.rexes) {
+      if (uuid !== rexOverwrite.uuid && missionWithRex.rexes[uuid].isRunning) {
+        rexUuidsToStop.push(uuid);
       }
-      const updatedStationEntry: ActivityEntry = {
-        ...rexEntity.stationEntries[stationUuid],
-        ...rexOverwrite.stationEntriesByRefUuid[refUuid],
-      };
-      rexEntity.stationEntries[stationUuid] = updatedStationEntry;
     }
-    for (const refUuid in rexOverwrite.traverseEntriesByRefUuid) {
-      if (!rexEntity.traverseEntries) rexEntity.traverseEntries = {}; // init if empty
-      // get the traverse uuid from the refUuid
-      const traverseUuid = refUuidToUuid[refUuid];
-      if (!traverseUuid) {
-        throw new Error(`Traverse with refUuid ${refUuid} not found in eva sequence.`);
+  }
+
+  const missionDocHandle = await getAutomergeMissionHandle(missionWithRex.id);
+
+  missionDocHandle.change((mission: Mission) => {
+    const rexEntity = mission.rexes[rexOverwrite.uuid];
+    if (!rexEntity) return;
+
+    // Stop all other running rexes – only one can run at a time
+    for (const uuid of rexUuidsToStop) {
+      if (mission.rexes[uuid]) {
+        mission.rexes[uuid].isRunning = false;
+        mission.rexes[uuid].updatedAt = Date.now();
       }
-
-      const updatedTraverseEntry: ActivityEntry = {
-        ...rexEntity.traverseEntries[traverseUuid],
-        ...rexOverwrite.traverseEntriesByRefUuid[refUuid],
-      };
-      rexEntity.traverseEntries[traverseUuid] = updatedTraverseEntry;
-    }
-    for (const refUuid in rexOverwrite.actionEntriesByRefUuid) {
-      if (!rexEntity.actionEntries) rexEntity.actionEntries = {}; // init if empty
-      // get the action uuid from the refUuid
-      const actionUuid = refUuidToUuid[refUuid];
-      if (!actionUuid) {
-        throw new Error(`Action with refUuid ${refUuid} not found in eva sequence.`);
-      }
-
-      let updatedActionEntry: ActionEntry = rexEntity.actionEntries[actionUuid];
-      // if this is the first entry, set defaults and then override
-      if (!updatedActionEntry) {
-        updatedActionEntry = {
-          rexStatus: "pending",
-          markerId: "",
-          containerId: "",
-          secondaryContainerId: "",
-        } as ActionEntry;
-      }
-      // override the existing entry with the new values
-      updatedActionEntry = {
-        ...updatedActionEntry,
-        ...rexOverwrite.actionEntriesByRefUuid[refUuid],
-      } as ActionEntry;
-
-      rexEntity.actionEntries[actionUuid] = updatedActionEntry;
-    }
-    for (const refUuid in rexOverwrite.xgressEntries) {
-      if (!rexEntity.xgressEntries) rexEntity.xgressEntries = {};
-      const updatedXgressEntry: ActivityEntry = {
-        ...rexEntity.xgressEntries[refUuid],
-        ...rexOverwrite.xgressEntries[refUuid],
-      };
-      // typeRefUuid is either "ingress" or "egress"
-      rexEntity.xgressEntries[refUuid] = updatedXgressEntry;
     }
 
-    // Check if we are starting the execution
+    // Generate initial crew position entries when transitioning to running
     if (rexOverwrite.isRunning && !rexEntity.isRunning) {
-      // Check if we need to stop other running rex records
-      allRunningRexesBeforeUpdate = await em.find(Rex_db, {
-        missionId: rexEntity.missionId,
-        isRunning: true,
-        uuid: { $ne: rexOverwrite.uuid },
-      });
-
-      // Stop all other running REX records - only one can run at a time
-      if (allRunningRexesBeforeUpdate.length > 0) {
-        for (const runningRex of allRunningRexesBeforeUpdate) {
-          runningRex.isRunning = false;
-          runningRex.updatedAt = new Date();
-          em.persist(runningRex);
-        }
-      }
-
-      // Check if initial crew positions need to be generated
       if (!rexEntity.posEntries || rexEntity.posEntries.length === 0) {
-        // Get egress location
         let egressLocation: AEGISPoint | null = null;
-        const rexEva = await em.findOne(Eva_db, { uuid: rexEntity.evaUuid });
+        const rexEva = mission.evas?.[rexEntity.evaUuid];
+        // Spread location (same as cloning in this case) so we remove the automerge proxy ref
         if (rexEva?.egressLocationUuid === "lander") {
-          // get lander location from the mission automerge document
-          const mission = (await getAutomergeMissions([rexEva.missionId]))[0];
-          if (mission?.landerLocation) egressLocation = mission.landerLocation;
-        } else {
-          const stationRecord = await em.findOne(Station_db, { uuid: rexEva?.egressLocationUuid });
-          if (stationRecord?.location) egressLocation = stationRecord.location;
+          egressLocation = mission.landerLocation ? { ...mission.landerLocation } : null;
+        } else if (rexEva?.egressLocationUuid) {
+          const loc = mission.stations?.[rexEva.egressLocationUuid]?.location;
+          egressLocation = loc ? { ...loc } : null;
         }
 
-        // Add pos entries for each pos source. Each entry will include all pos types
         if (egressLocation) {
-          if (!rexEntity.posEntries) rexEntity.posEntries = [];
+          rexEntity.posEntries = [];
           for (const posSource of rexEntity.posSources) {
             const newPosEntry: PosEntry = {
               uuid: uuidv4(),
@@ -300,8 +198,8 @@ export async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
               petSeconds: 0,
               posTypeUuids: rexEntity.posTypes.map((posType) => posType.uuid),
               posSourceUuid: posSource.uuid,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
+              createdAt: new Date().getTime(),
+              updatedAt: new Date().getTime(),
             };
             rexEntity.posEntries.push(newPosEntry);
           }
@@ -309,7 +207,59 @@ export async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
       }
     }
 
-    // update the rest of the fields
+    // Apply station entries
+    for (const refUuid in rexOverwrite.stationEntriesByRefUuid) {
+      if (!rexEntity.stationEntries) rexEntity.stationEntries = {};
+      const stationUuid = refUuidToUuid[refUuid];
+      const updatedStationEntry: ActivityEntry = {
+        ...rexEntity.stationEntries[stationUuid],
+        ...rexOverwrite.stationEntriesByRefUuid[refUuid],
+      };
+      rexEntity.stationEntries[stationUuid] = updatedStationEntry;
+    }
+
+    // Apply traverse entries
+    for (const refUuid in rexOverwrite.traverseEntriesByRefUuid) {
+      if (!rexEntity.traverseEntries) rexEntity.traverseEntries = {};
+      const traverseUuid = refUuidToUuid[refUuid];
+      const updatedTraverseEntry: ActivityEntry = {
+        ...rexEntity.traverseEntries[traverseUuid],
+        ...rexOverwrite.traverseEntriesByRefUuid[refUuid],
+      };
+      rexEntity.traverseEntries[traverseUuid] = updatedTraverseEntry;
+    }
+
+    // Apply action entries
+    for (const refUuid in rexOverwrite.actionEntriesByRefUuid) {
+      if (!rexEntity.actionEntries) rexEntity.actionEntries = {};
+      const actionUuid = refUuidToUuid[refUuid];
+      let updatedActionEntry: ActionEntry = rexEntity.actionEntries[actionUuid];
+      if (!updatedActionEntry) {
+        updatedActionEntry = {
+          rexStatus: "pending",
+          markerId: "",
+          containerId: "",
+          secondaryContainerId: "",
+        } as ActionEntry;
+      }
+      updatedActionEntry = {
+        ...updatedActionEntry,
+        ...rexOverwrite.actionEntriesByRefUuid[refUuid],
+      } as ActionEntry;
+      rexEntity.actionEntries[actionUuid] = updatedActionEntry;
+    }
+
+    // Apply xgress entries
+    for (const refUuid in rexOverwrite.xgressEntries) {
+      if (!rexEntity.xgressEntries) rexEntity.xgressEntries = {};
+      const updatedXgressEntry: ActivityEntry = {
+        ...rexEntity.xgressEntries[refUuid],
+        ...rexOverwrite.xgressEntries[refUuid],
+      };
+      rexEntity.xgressEntries[refUuid] = updatedXgressEntry;
+    }
+
+    // Update top-level fields
     rexEntity.petStartStopTimestamp = rexOverwrite.petStartStopTimestamp;
     rexEntity.petValueAtStartStop = rexOverwrite.petValueAtStartStop;
     rexEntity.petRunning = rexOverwrite.petRunning;
@@ -319,20 +269,15 @@ export async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
     rexEntity.isRunning = rexOverwrite.isRunning;
     rexEntity.maestroEventUrl = rexOverwrite.maestroEventUrl;
     rexEntity.maestroActivityPropertiesByRefUuid = rexOverwrite.maestroActivityPropertiesByRefUuid;
-    rexEntity.updatedAt = new Date();
+    rexEntity.updatedAt = Date.now();
+  });
 
-    em.persist(rexEntity);
-    await em.commit(); // commit the transaction. will also flush
-  } catch (error) {
-    await em.rollback(); // rollback the transaction
-    throw error; // throw the error back up to the caller who will re-try this transaction
-  }
-
-  // Convert the updated DB entity back to the store type (Rex)
+  // Read back the updated rexes from the doc
+  const updatedMission = missionDocHandle.doc();
   return [
-    convertRexesTypeDbToStore([rexEntity])[0],
-    ...convertRexesTypeDbToStore(allRunningRexesBeforeUpdate),
-  ];
+    updatedMission.rexes[rexOverwrite.uuid],
+    ...rexUuidsToStop.map((uuid) => updatedMission.rexes[uuid]),
+  ].filter(Boolean);
 }
 
 export default router;

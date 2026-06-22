@@ -4,6 +4,7 @@ import {
   goToV2MissionSection,
   toggleEditMode,
   editValidatedField,
+  cancelValidatedFieldEdit,
   displayField,
 } from "./missionTestHelpers";
 
@@ -26,10 +27,11 @@ async function findActionDefIndexExactName(
 }
 
 /**
- * Test action definitions CRUD. Only available on actionSystemVersion 2 missions.
+ * Test action definitions (create, update, delete). Only available on actionSystemVersion 2 missions.
  * If the panel is not available, the test will skip with a console message.
  */
 export async function actionDefinitionsTest(page: Page): Promise<string> {
+  const suffix = Math.floor(Math.random() * 1_000_000).toString(36);
   await goToV2MissionSection(page);
 
   // Check if actionDefinitions_panel exists (only on v2 missions)
@@ -61,12 +63,12 @@ export async function actionDefinitionsTest(page: Page): Promise<string> {
   // Find the default-named verb
   const defaultIndex = await findActionDefIndexExactName(page, "Verbs", "(Verb Name)");
   expect(defaultIndex).not.toEqual(-1);
-  await editValidatedField(page, "Verbs name", "--TEST VERB ONE--", defaultIndex);
-  let verbIndex = await findActionDefIndexExactName(page, "Verbs", "--TEST VERB ONE--");
+  await editValidatedField(page, "Verbs name", `--TEST VERB ONE ${suffix}--`, defaultIndex);
+  let verbIndex = await findActionDefIndexExactName(page, "Verbs", `--TEST VERB ONE ${suffix}--`);
   await editValidatedField(page, "Verbs abbreviation", "TV1", verbIndex);
 
   // Verify verb was created
-  verbIndex = await findActionDefIndexExactName(page, "Verbs", "--TEST VERB ONE--");
+  verbIndex = await findActionDefIndexExactName(page, "Verbs", `--TEST VERB ONE ${suffix}--`);
   expect(verbIndex).not.toEqual(-1);
   await expect(displayField(page, "Verbs abbreviation", verbIndex)).toContainText("TV1");
 
@@ -76,12 +78,12 @@ export async function actionDefinitionsTest(page: Page): Promise<string> {
 
   const nounDefaultIndex = await findActionDefIndexExactName(page, "Nouns", "(Noun Name)");
   expect(nounDefaultIndex).not.toEqual(-1);
-  await editValidatedField(page, "Nouns name", "--TEST NOUN ONE--", nounDefaultIndex);
-  let nounIndex = await findActionDefIndexExactName(page, "Nouns", "--TEST NOUN ONE--");
+  await editValidatedField(page, "Nouns name", `--TEST NOUN ONE ${suffix}--`, nounDefaultIndex);
+  let nounIndex = await findActionDefIndexExactName(page, "Nouns", `--TEST NOUN ONE ${suffix}--`);
   await editValidatedField(page, "Nouns abbreviation", "TN1", nounIndex);
 
   // Verify noun was created
-  nounIndex = await findActionDefIndexExactName(page, "Nouns", "--TEST NOUN ONE--");
+  nounIndex = await findActionDefIndexExactName(page, "Nouns", `--TEST NOUN ONE ${suffix}--`);
   expect(nounIndex).not.toEqual(-1);
   await expect(displayField(page, "Nouns abbreviation", nounIndex)).toContainText("TN1");
 
@@ -91,43 +93,57 @@ export async function actionDefinitionsTest(page: Page): Promise<string> {
 
   const adjDefaultIndex = await findActionDefIndexExactName(page, "Adjectives", "(Adjective Name)");
   expect(adjDefaultIndex).not.toEqual(-1);
-  await editValidatedField(page, "Adjectives name", "--TEST ADJECTIVE ONE--", adjDefaultIndex);
-  let adjIndex = await findActionDefIndexExactName(page, "Adjectives", "--TEST ADJECTIVE ONE--");
+  await editValidatedField(
+    page,
+    "Adjectives name",
+    `--TEST ADJECTIVE ONE ${suffix}--`,
+    adjDefaultIndex
+  );
+  let adjIndex = await findActionDefIndexExactName(
+    page,
+    "Adjectives",
+    `--TEST ADJECTIVE ONE ${suffix}--`
+  );
   await editValidatedField(page, "Adjectives abbreviation", "TA1", adjIndex);
 
   // Verify adjective was created
-  adjIndex = await findActionDefIndexExactName(page, "Adjectives", "--TEST ADJECTIVE ONE--");
+  adjIndex = await findActionDefIndexExactName(
+    page,
+    "Adjectives",
+    `--TEST ADJECTIVE ONE ${suffix}--`
+  );
   expect(adjIndex).not.toEqual(-1);
   await expect(displayField(page, "Adjectives abbreviation", adjIndex)).toContainText("TA1");
 
   // Edit the verb
-  verbIndex = await findActionDefIndexExactName(page, "Verbs", "--TEST VERB ONE--");
-  await editValidatedField(page, "Verbs name", "--TEST VERB ONE B--", verbIndex);
-  verbIndex = await findActionDefIndexExactName(page, "Verbs", "--TEST VERB ONE B--");
+  verbIndex = await findActionDefIndexExactName(page, "Verbs", `--TEST VERB ONE ${suffix}--`);
+  await editValidatedField(page, "Verbs name", `--TEST VERB ONE B ${suffix}--`, verbIndex);
+  verbIndex = await findActionDefIndexExactName(page, "Verbs", `--TEST VERB ONE B ${suffix}--`);
   expect(verbIndex).not.toEqual(-1);
 
   // Edit the adjective
-  adjIndex = await findActionDefIndexExactName(page, "Adjectives", "--TEST ADJECTIVE ONE--");
-  await editValidatedField(page, "Adjectives name", "--TEST ADJECTIVE ONE B--", adjIndex);
-  adjIndex = await findActionDefIndexExactName(page, "Adjectives", "--TEST ADJECTIVE ONE B--");
+  adjIndex = await findActionDefIndexExactName(
+    page,
+    "Adjectives",
+    `--TEST ADJECTIVE ONE ${suffix}--`
+  );
+  await editValidatedField(page, "Adjectives name", `--TEST ADJECTIVE ONE B ${suffix}--`, adjIndex);
+  adjIndex = await findActionDefIndexExactName(
+    page,
+    "Adjectives",
+    `--TEST ADJECTIVE ONE B ${suffix}--`
+  );
   expect(adjIndex).not.toEqual(-1);
 
   // Test cancel on field edit
-  nounIndex = await findActionDefIndexExactName(page, "Nouns", "--TEST NOUN ONE--");
-  const originalName = await displayField(page, "Nouns name", nounIndex).textContent();
-  await displayField(page, "Nouns name", nounIndex).dispatchEvent("click");
-  const dialog = page.locator("dialog[open]");
-  await dialog.waitFor({ timeout: 3000 });
-  await dialog.locator("input").fill("--SHOULD NOT SAVE--");
-  await dialog.getByText("Cancel").dispatchEvent("click");
-  await dialog.waitFor({ state: "hidden", timeout: 3000 });
-  await expect(displayField(page, "Nouns name", nounIndex)).toContainText(originalName);
+  nounIndex = await findActionDefIndexExactName(page, "Nouns", `--TEST NOUN ONE ${suffix}--`);
+  await cancelValidatedFieldEdit(page, "Nouns name", "--SHOULD NOT SAVE--", nounIndex);
 
   // Delete the test verb
   // deleteButton is shared across all sections. We need to count buttons
   // in the verbs section specifically. Since items are rendered sequentially
   // (verbs first, then nouns, then adjectives), verb delete buttons come first.
-  verbIndex = await findActionDefIndexExactName(page, "Verbs", "--TEST VERB ONE B--");
+  verbIndex = await findActionDefIndexExactName(page, "Verbs", `--TEST VERB ONE B ${suffix}--`);
   await page.getByLabel("deleteButton", { exact: true }).nth(verbIndex).click();
   await page.waitForTimeout(500);
 
@@ -137,7 +153,7 @@ export async function actionDefinitionsTest(page: Page): Promise<string> {
   // Delete the test noun
   // After verb deletion, noun deleteButtons shifted. Noun delete buttons start
   // after all verb delete buttons.
-  nounIndex = await findActionDefIndexExactName(page, "Nouns", "--TEST NOUN ONE--");
+  nounIndex = await findActionDefIndexExactName(page, "Nouns", `--TEST NOUN ONE ${suffix}--`);
   // The deleteButton index for nouns = startingVerbItems (remaining verbs) + nounIndex
   const nounDeleteIndex = startingVerbItems + nounIndex;
   await page.getByLabel("deleteButton", { exact: true }).nth(nounDeleteIndex).click();
@@ -148,7 +164,11 @@ export async function actionDefinitionsTest(page: Page): Promise<string> {
 
   // Delete the test adjective
   // After verb and noun deletions, adjective deleteButtons start after all verb + noun buttons.
-  adjIndex = await findActionDefIndexExactName(page, "Adjectives", "--TEST ADJECTIVE ONE B--");
+  adjIndex = await findActionDefIndexExactName(
+    page,
+    "Adjectives",
+    `--TEST ADJECTIVE ONE B ${suffix}--`
+  );
   // The deleteButton index for adjectives = startingVerbItems (remaining verbs) + startingNounItems (remaining nouns) + adjIndex
   const adjDeleteIndex = startingVerbItems + startingNounItems + adjIndex;
   await page.getByLabel("deleteButton", { exact: true }).nth(adjDeleteIndex).click();

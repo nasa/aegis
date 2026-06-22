@@ -2,13 +2,14 @@ import type { FunctionComponent } from "react";
 import { useState } from "react";
 import styles from "./headerPetClock.module.css";
 import PetInterval from "components/page/petInterval";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { deepEqual } from "utils/useAppSelector";
 
 const DashboardPETClock: FunctionComponent = () => {
-  const runningRex = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
-    deepEqual
-  );
+  const runningRex = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return null;
+    return Object.values(mission.rexes).find((rex) => rex.isRunning) ?? null;
+  }, deepEqual);
   const [rexPetTime, setRexPetTime] = useState("");
   return (
     <>

@@ -3,18 +3,12 @@ import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import { getActions } from "./action";
-import { getEVAs } from "./eva";
 import { getFolders } from "./folder";
 import { getLayers } from "./layer";
 import { getSublayers } from "./sublayer";
-import { getPois } from "./poi";
 import { getPresets } from "./preset";
-import { getRexes } from "./rex";
-import { getStations } from "./station";
 import { getLevel1s, getLevel2s, getLevel3s } from "./stm";
 import { getStmRules } from "./stmRules";
-import { getTraverses } from "./traverse";
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -100,92 +94,28 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
   if (!missionId || isNaN(missionId)) {
     throw new Error("Invalid mission ID");
   }
-  // All queries start simultaneously and use different connections from the pool
-  const [
-    mission,
-    actions,
-    evas,
-    layers,
-    sublayers,
-    pois,
-    presets,
-    rexes,
-    stations,
-    level1s,
-    level2s,
-    level3s,
-    stmRules,
-    traverses,
-    folders,
-  ] = await Promise.all([
-    getAutomergeMissions([missionId]),
-    getActions({ missionId }),
-    getEVAs(missionId),
-    getLayers(missionId),
-    getSublayers(missionId),
-    getPois(missionId),
-    getPresets(missionId),
-    getRexes(missionId),
-    getStations(missionId),
-    getLevel1s(missionId),
-    getLevel2s(missionId),
-    getLevel3s(missionId),
-    getStmRules(missionId),
-    getTraverses(missionId),
-    getFolders(missionId),
-  ]);
-  const allData: OneMissionToRuleThemAll = {
-    mission: mission[0],
-    actions,
-    evas,
-    layers,
-    sublayers,
-    pois,
-    presets,
-    rexes,
-    stations,
-    level1s,
-    level2s,
-    level3s,
-    stmRules,
-    traverses,
-    folders,
-  };
-  return allData;
-}
-
-/**
- * Get the core mission data from the database.
- * This is a subset of OneMissionToRuleThemAll — only the entities needed for
- * cross-application communication (e.g. Maestro integration, data export).
- */
-export async function getMissionCoreData(missionId: number): Promise<MissionCoreData> {
-  if (!missionId || isNaN(missionId)) {
-    throw new Error("Invalid mission ID");
-  }
-  const [mission, actions, evas, pois, rexes, stations, level1s, level2s, level3s, traverses] =
+  const [mission, layers, sublayers, presets, level1s, level2s, level3s, stmRules, folders] =
     await Promise.all([
       getAutomergeMissions([missionId]),
-      getActions({ missionId }),
-      getEVAs(missionId),
-      getPois(missionId),
-      getRexes(missionId),
-      getStations(missionId),
+      getLayers(missionId),
+      getSublayers(missionId),
+      getPresets(missionId),
       getLevel1s(missionId),
       getLevel2s(missionId),
       getLevel3s(missionId),
-      getTraverses(missionId),
+      getStmRules(missionId),
+      getFolders(missionId),
     ]);
-  return {
+  const allData: OneMissionToRuleThemAll = {
     mission: mission[0],
-    actions,
-    evas,
-    pois,
-    rexes,
-    stations,
+    layers,
+    sublayers,
+    presets,
     level1s,
     level2s,
     level3s,
-    traverses,
+    stmRules,
+    folders,
   };
+  return allData;
 }

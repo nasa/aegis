@@ -17,7 +17,7 @@
 
 .reorderIcon {
   display: flex;
-  margin-left: 5px;
+  margin-top: 3px;
   transform: scaleX(0.8);
   cursor: grab;
 }
@@ -98,13 +98,12 @@
 .actionHeadingType {
   font-size: 0.8rem;
   font-weight: 400;
-  min-width: 58px;
-  max-width: 58px;
   overflow: hidden;
   text-overflow: ellipsis;
   text-transform: capitalize;
   cursor: pointer;
-  margin: 4px 0 0 0;
+  display: flex;
+  align-items: center;
 }
 
 .actionHeadingTitle {
@@ -113,6 +112,7 @@
   flex-direction: row;
   font-size: 0.8rem;
   font-weight: 400;
+  align-items: center;
 }
 
 .actionHeadingTitleTextonly {
@@ -129,14 +129,12 @@
 }
 
 .actionHeadingCaret {
-  margin-left: 2px;
   margin-top: 1px;
   cursor: pointer;
 }
 
 .actionHeadingCaretRight {
   margin-top: 0;
-  margin-right: 2px;
 }
 
 .actionHeadingCaretDown {
@@ -145,8 +143,8 @@
 
 .actionHeadingRight {
   display: flex;
-  margin: 0 4px 0 auto;
   user-select: none;
+  align-items: flex-start;
 }
 
 .actionHeadingRightItem {
@@ -290,6 +288,7 @@
   gap: 5px;
   font-size: 0.8em;
   margin: 0 0 0 4px;
+  flex-grow: 2;
 }
 
 .actionDefType {

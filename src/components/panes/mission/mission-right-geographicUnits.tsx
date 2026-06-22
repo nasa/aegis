@@ -8,15 +8,19 @@ import { faList, faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-ic
 import { Button } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkDeleteGeoUnit } from "store/thunk/thunkMission-geoUnits";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
-import { crudCreateGeoUnit, crudUpdateGeoUnitByField } from "client/crud/crud-mission-geoUnit";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkDocDeleteGeoUnit } from "store/thunk/thunkMissionGeoUnit";
+import {
+  applyCreateGeoUnit,
+  applyUpdateGeoUnitByField,
+} from "client/automerge/apply/apply-mission-geoUnit";
+import { withMissionChange } from "client/automergeDocHandles";
 
 const GeographicUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const geographicUnits: GeographicUnits = useMissionDocSelector(
-    (doc) => doc.geographicUnits,
+    (mission) => mission.geographicUnits,
     deepEqual
   );
 
@@ -73,7 +77,7 @@ const GeographicUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
                   label="Add Geographic Unit"
                   style={{ width: "155px", marginLeft: "18px", marginTop: "8px" }}
                   onClick={async () => {
-                    crudCreateGeoUnit();
+                    withMissionChange((m) => applyCreateGeoUnit(m));
                   }}
                   ariaLabel="addGeoUnitButton"
                 />
@@ -94,8 +98,8 @@ const GeographicUnit: FunctionComponent<{
   editMode: boolean;
   evenRow: boolean;
 }> = ({ uuid, geoUnit, editMode, evenRow }) => {
-  const dispatch = useAppDispatch();
   const divRef = useRef<HTMLDivElement>(null);
+  const dispatch = useAppDispatch();
 
   let backgroundColor: string = "var(--grey2)";
   backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
@@ -113,7 +117,13 @@ const GeographicUnit: FunctionComponent<{
             }}
             value={geoUnit.name}
             onSubmit={(val: string) => {
-              crudUpdateGeoUnitByField(uuid, "name", val);
+              withMissionChange((m) =>
+                applyUpdateGeoUnitByField(m, {
+                  geoUnitUuid: uuid,
+                  fieldName: "name",
+                  value: val,
+                })
+              );
             }}
             key={`${uuid}-name`}
             focusContents={geoUnit.name === "(Geographic Unit Name)"}
@@ -129,7 +139,13 @@ const GeographicUnit: FunctionComponent<{
             }}
             value={geoUnit.abbr ?? ""}
             onSubmit={(val: string) => {
-              crudUpdateGeoUnitByField(uuid, "abbr", val);
+              withMissionChange((m) =>
+                applyUpdateGeoUnitByField(m, {
+                  geoUnitUuid: uuid,
+                  fieldName: "abbr",
+                  value: val,
+                })
+              );
             }}
             key={`${uuid}-abbr`}
           />
@@ -141,10 +157,15 @@ const GeographicUnit: FunctionComponent<{
               <FontAwesomeIcon
                 icon={faTrashAlt}
                 size="sm"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  dispatch(thunkDeleteGeoUnit({ geographicUnitUuid: uuid }));
+                  const result = await dispatch(
+                    thunkDocDeleteGeoUnit({ geographicUnitUuid: uuid })
+                  );
+                  if (thunkDocDeleteGeoUnit.rejected.match(result) && result.payload) {
+                    alert(result.payload);
+                  }
                 }}
                 aria-label="deleteButton"
               />

@@ -1,116 +1,249 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import {
-  upsertStations,
-  upsertStationsFromDb,
-  setStationEditMode,
   setSelectedStationUuid,
-  deleteStationsByUuid,
-  deleteStationsFromDbByUuid,
   setStationCircleUIStates,
-  resetAllStationCirclesUIStates,
-  upsertStationByField,
   selectStation,
   setAllStationCirclesUIStates,
 } from "store/station";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mapping/geoMath";
-import { thunkGetElevation } from "./thunkElevation";
+import { getTraverseEndpoints } from "client/automerge/getTraverseEndpoints";
+import { stageTraverseUpdate } from "client/automerge/stage/stage-traverse";
+import { thunkFetchElevation } from "./thunkElevation";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
-import { thunkFullUpdateTraverse, thunkUpdateTraversesAroundStation } from "./thunkTraverse";
+import { applyTraverseUpdatesStage } from "client/automerge/apply/apply-traverse";
 import { generateUniqueName } from "utils/names/unique-name";
-import { v4 as uuidv4 } from "uuid";
-import { makeUniqueStringCopy } from "utils/names/duplicate";
-import { deleteActionsByUuid, upsertActions } from "store/action";
-import * as httpClient_station from "http-client/station";
-import { updateMapDirective } from "store/map";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
+import { applyDeleteActions } from "client/automerge/apply/apply-action";
 import {
-  thunkDeleteActionsFromDbAndStore,
-  thunkDuplicateActions,
-  thunkSaveActions,
-} from "./thunkAction";
+  applyDeleteStations,
+  applyUpsertStation,
+  applyUpdateAllStationCircleControls,
+  applyStationLocationUpdateStage,
+  applyDuplicateStationStage,
+} from "client/automerge/apply/apply-station";
+import { stageDuplicateStation } from "client/automerge/stage/stage-station";
 import { getAccurateNow } from "utils/formatting";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankStation } from "store/storeUtils/station";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
-import { getAutomergeDocHandles } from "client/automergeDocHandles";
+import { getMissionDocHandle } from "client/automergeDocHandles";
 
-export const thunkUpdateStationLatLngField = appCreateAsyncThunk<{
-  stationUuid: string;
-  type: "lat" | "lng";
-  value: number;
-}>("updateStationLatLngField", async ({ stationUuid, type, value }, { getState, dispatch }) => {
-  const stationLocation: AEGISPoint = cloneDeep(
-    getState().station.stations.find((s) => s.uuid === stationUuid)?.location
-  );
-  if (type === "lat") {
-    stationLocation.lat = value;
-  } else {
-    stationLocation.lng = value;
-  }
-  await dispatch(thunkUpdateStationLocation({ location: stationLocation, stationUuid }));
-});
-
-export const thunkUpdateStationLocation = appCreateAsyncThunk<{
+export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
   stationUuid: string;
-}>("updateStationLocation", async ({ location, stationUuid }, { dispatch, getState }) => {
-  const elevation = await dispatch(
-    thunkGetElevation({
-      path: [location],
-      pathSegmentDistances: [0],
-      uuid: stationUuid,
-    })
-  );
-
-  const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-  if (elevation.meta.requestStatus === "rejected") {
-    //no elevation data, update just station location
-    dispatch(upsertStationByField(station.uuid, "location", location, false));
-  } else {
-    //upsert station location and elevation
-    dispatch(upsertStations([{ ...station, location, elevation: elevation.payload as number }]));
-  }
-
-  //update walkback path, elevation, and snap to new location
-  await dispatch(thunkFullUpdateWalkback({ path: station.walkbackPath, stationUuid }));
-
-  //update any eva traverses connected to this station
-  await dispatch(thunkUpdateTraversesAroundStation({ stationUuid, saveToDb: true }));
-
-  //update any traverses of EVAs that use this station as an egress or ingress point
-  await dispatch(thunkUpdateEVAsUsingStationForEgressIngress({ stationUuid }));
-});
-
-/**
- * Only updates walkback path and distances
- * This is used on polyline edit drag
- */
-export const thunkUpdateWalkbackPath = appCreateAsyncThunk<{
-  path: AEGISPoint[];
-  stationUuid: string;
-}>("updateWalkbackPath", async ({ path, stationUuid }, { dispatch, getState }) => {
-  //calculate path distances
-  const missionDocHandle = getAutomergeDocHandles().mission;
+}>("updateStationLocation", async ({ location, stationUuid }, { dispatch }) => {
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return;
   const mission = missionDocHandle.doc();
+  const station = mission.stations?.[stationUuid];
+  if (!station) return;
 
-  const pathSegmentDistances: number[] = [];
-  for (let i = 1; i < path.length; i++) {
-    pathSegmentDistances.push(getTotalDistance([path[i - 1], path[i]], mission.planetRadius));
+  // ── Step 1: Build walkback path, collect all adjacent traverses, fetch all elevations in parallel, and build the stage ──
+  const landerLocation = mission.landerLocation;
+  const rawWalkbackPath = station.walkbackPath;
+
+  let newWalkbackPath: AEGISPoint[];
+  if (!rawWalkbackPath || rawWalkbackPath.length === 0) {
+    newWalkbackPath = cloneDeep([location, landerLocation]);
+  } else {
+    newWalkbackPath = cloneDeep(rawWalkbackPath);
+    // Snap start to new station location, end to lander
+    newWalkbackPath[0] = location;
+    newWalkbackPath[newWalkbackPath.length - 1] = landerLocation;
   }
-  //save walkback
-  const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-  dispatch(
-    upsertStations([
-      {
-        ...station,
-        walkbackPath: path,
-        walkbackPathSegmentDistances: pathSegmentDistances,
-        walkbackPathSegmentElevations: null,
-      },
-    ])
+
+  const walkbackSegmentDistances: number[] = [];
+  for (let i = 1; i < newWalkbackPath.length; i++) {
+    walkbackSegmentDistances.push(
+      getTotalDistance([newWalkbackPath[i - 1], newWalkbackPath[i]], mission.planetRadius)
+    );
+  }
+
+  // ── Collect all adjacent traverses to update ──────────
+  // EVA sequence traverses adjacent to this station
+  type TraverseToUpdate = {
+    traverseUuid: string;
+    evaSequence: EvaSequenceItem[];
+    renameTraverse: boolean;
+  };
+  const traversesToUpdate: TraverseToUpdate[] = [];
+  const hasBeenChecked = new Set<string>();
+
+  const allEvas = Object.values(mission.evas ?? {});
+  for (const eva of allEvas) {
+    // EVA sequence traverses immediately before/after this station
+    for (let i = 0; i < eva.sequence.length; i++) {
+      if (eva.sequence[i].uuid === stationUuid && eva.sequence[i].type === "station") {
+        const traverseBefore = mission.traverses?.[eva.sequence[i - 1]?.uuid];
+        if (traverseBefore && !hasBeenChecked.has(traverseBefore.uuid)) {
+          hasBeenChecked.add(traverseBefore.uuid);
+          traversesToUpdate.push({
+            traverseUuid: traverseBefore.uuid,
+            evaSequence: eva.sequence as EvaSequenceItem[],
+            renameTraverse: true,
+          });
+        }
+        const traverseAfter = mission.traverses?.[eva.sequence[i + 1]?.uuid];
+        if (traverseAfter && !hasBeenChecked.has(traverseAfter.uuid)) {
+          hasBeenChecked.add(traverseAfter.uuid);
+          traversesToUpdate.push({
+            traverseUuid: traverseAfter.uuid,
+            evaSequence: eva.sequence as EvaSequenceItem[],
+            renameTraverse: true,
+          });
+        }
+        break;
+      }
+    }
+    // Egress/ingress boundary traverses
+    if (eva.egressLocationUuid === stationUuid || eva.ingressLocationUuid === stationUuid) {
+      if (eva.sequence.length >= 1) {
+        const firstTraverseUuid = eva.sequence[0]?.uuid;
+        if (firstTraverseUuid && !hasBeenChecked.has(firstTraverseUuid)) {
+          hasBeenChecked.add(firstTraverseUuid);
+          traversesToUpdate.push({
+            traverseUuid: firstTraverseUuid,
+            evaSequence: eva.sequence as EvaSequenceItem[],
+            renameTraverse: false,
+          });
+        }
+        const lastTraverseUuid = eva.sequence[eva.sequence.length - 1]?.uuid;
+        if (
+          lastTraverseUuid &&
+          lastTraverseUuid !== firstTraverseUuid &&
+          !hasBeenChecked.has(lastTraverseUuid)
+        ) {
+          hasBeenChecked.add(lastTraverseUuid);
+          traversesToUpdate.push({
+            traverseUuid: lastTraverseUuid,
+            evaSequence: eva.sequence as EvaSequenceItem[],
+            renameTraverse: false,
+          });
+        }
+      }
+    }
+  }
+
+  // ── Helper to build the updated traverse path ──────────
+  // Given a traverse UUID and its EVA sequence, returns the updated path with
+  // endpoints snapped to their neighboring stations/lander (accounting for the
+  // station's pending new location), the recalculated per-segment distances, and
+  // the human-readable names of the locations on either side of the traverse
+  // (used to rename it as "<before> to <after>").
+  const buildTraversePath = (
+    traverseUuid: string,
+    evaSequence: EvaSequenceItem[],
+    mission: Mission
+  ): { path: AEGISPoint[]; distances: number[]; nameBefore: string; nameAfter: string } => {
+    const traverse = mission?.traverses?.[traverseUuid];
+    const eva = Object.values(mission?.evas ?? {}).find((e) =>
+      e.sequence.some((s) => s.uuid === traverseUuid)
+    );
+    if (!traverse || !eva) {
+      return {
+        path: [mission.landerLocation, mission.landerLocation],
+        distances: [0],
+        nameBefore: "",
+        nameAfter: "",
+      };
+    }
+
+    const path: AEGISPoint[] =
+      traverse.path && traverse.path.length > 0
+        ? cloneDeep(traverse.path)
+        : [mission.landerLocation, mission.landerLocation];
+
+    const { locationBefore, locationAfter, nameBefore, nameAfter } = getTraverseEndpoints(
+      traverseUuid,
+      evaSequence,
+      eva.egressLocationUuid,
+      eva.ingressLocationUuid,
+      mission.stations,
+      mission.landerLocation,
+      { uuid: stationUuid, location, name: station.name ?? "" }
+    );
+
+    if (locationBefore && !isEqual(path.at(0), locationBefore)) path[0] = locationBefore;
+    if (locationAfter && !isEqual(path.at(-1), locationAfter))
+      path[path.length - 1] = locationAfter;
+
+    const distances: number[] = [];
+    for (let i = 1; i < path.length; i++) {
+      distances.push(getTotalDistance([path[i - 1], path[i]], mission.planetRadius));
+    }
+    return { path, distances, nameBefore, nameAfter };
+  };
+
+  // ── Fetch ALL elevations in parallel ───────────────────
+  const recalculatedTraversePaths = traversesToUpdate.map(({ traverseUuid, evaSequence }) =>
+    buildTraversePath(traverseUuid, evaSequence, mission)
   );
+
+  const [stationElevResult, walkbackElevResult, ...traverseElevResults] = await Promise.all([
+    // Station elevation
+    dispatch(
+      thunkFetchElevation({ path: [location], pathSegmentDistances: [0], uuid: stationUuid })
+    ),
+    // Walkback elevation
+    dispatch(
+      thunkFetchElevation({
+        path: newWalkbackPath,
+        pathSegmentDistances: walkbackSegmentDistances,
+        uuid: `${stationUuid}_walkback`,
+      })
+    ),
+    // Get traverse elevations
+    ...traversesToUpdate.map(({ traverseUuid }, idx) => {
+      const { path, distances } = recalculatedTraversePaths[idx];
+      return dispatch(
+        thunkFetchElevation({ path, pathSegmentDistances: distances, uuid: traverseUuid })
+      );
+    }),
+  ]);
+
+  // ── Build the stage ────────────────────────────────────
+  const newElevation =
+    stationElevResult.meta.requestStatus === "fulfilled"
+      ? (stationElevResult.payload as number)
+      : null;
+
+  const newWalkbackElevations =
+    walkbackElevResult.meta.requestStatus === "fulfilled"
+      ? (walkbackElevResult.payload as number[][])
+      : null;
+
+  const stagedTraverseData: TraverseUpdateStageData[] = traversesToUpdate.map(
+    ({ traverseUuid, renameTraverse }, idx) => {
+      const { path, distances, nameBefore, nameAfter } = recalculatedTraversePaths[idx];
+      const elevResult = traverseElevResults[idx];
+      return {
+        traverseUuid,
+        newPath: path,
+        newPathSegmentDistances: distances,
+        newPathSegmentElevations:
+          elevResult.meta.requestStatus === "fulfilled" ? (elevResult.payload as number[][]) : null,
+        newName: renameTraverse ? `${nameBefore} to ${nameAfter}` : undefined,
+        updatedAt: getAccurateNow().getTime(),
+      } satisfies TraverseUpdateStageData;
+    }
+  );
+
+  const stagedStationData: StationLocationUpdateStageData = {
+    stationUuid,
+    newLocation: location,
+    newElevation,
+    newWalkbackPath,
+    newWalkbackPathSegmentDistances: walkbackSegmentDistances,
+    newWalkbackPathSegmentElevations: newWalkbackElevations,
+    traverseUpdates: stagedTraverseData,
+  };
+
+  // ── Step 2: Apply everything atomically in a single .change() ──────────────
+  missionDocHandle.change((m: Mission) => applyStationLocationUpdateStage(m, stagedStationData));
+
+  // No Step 3: this thunk has no UI side-effects of its own.
 });
 
 /**
@@ -121,18 +254,20 @@ export const thunkUpdateWalkbackPath = appCreateAsyncThunk<{
  * Returns the path (could be updated if we had to snap endpoints)
  *  or false if the thunk rejects
  */
-export const thunkFullUpdateWalkback = appCreateAsyncThunk<
+export const thunkDocUpdateWalkback = appCreateAsyncThunk<
   {
     path: AEGISPoint[];
     stationUuid: string;
   },
   AEGISPoint[],
   false
->("fullUpdateWalkback", async ({ path, stationUuid }, { dispatch, getState }) => {
-  const missionDocHandle = getAutomergeDocHandles().mission;
+>("fullUpdateWalkback", async ({ path, stationUuid }, { dispatch }) => {
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return;
   const mission = missionDocHandle.doc();
 
-  //calculate path distances
+  // Step 1: Build the updated walkback path and fetch elevation
+  // Calculate path distances
   let newPath: AEGISPoint[];
   if (!path || path.length === 0) {
     newPath = [mission.landerLocation, mission.landerLocation];
@@ -140,27 +275,27 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
     newPath = cloneDeep(path);
   }
 
-  const station = getState().station.stations.find((s) => s.uuid === stationUuid);
+  const station = mission.stations?.[stationUuid];
   const landerLocation = mission.landerLocation;
-  //set starting station
+  // Set starting station
   if (station && !isEqual(newPath.at(0), station.location)) {
     newPath[0] = station.location;
   }
-  //set ending lander
+  // Set ending lander
   if (landerLocation && !isEqual(newPath.at(-1), landerLocation)) {
     newPath[newPath.length - 1] = landerLocation;
   }
 
-  //calculate new path distances
+  // Calculate new path distances
   const pathSegmentDistances: number[] = [];
   for (let i = 1; i < newPath.length; i++) {
     pathSegmentDistances.push(getTotalDistance([newPath[i - 1], newPath[i]], mission.planetRadius));
   }
 
-  //get elevation traverse
+  // Get elevation traverse
   let newElevationProfile = null;
   const elevationResponse = await dispatch(
-    thunkGetElevation({
+    thunkFetchElevation({
       path: newPath,
       pathSegmentDistances: pathSegmentDistances,
       uuid: stationUuid,
@@ -170,18 +305,17 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
     newElevationProfile = elevationResponse.payload as number[][];
   }
 
-  //save walkback
-  dispatch(
-    upsertStations([
-      {
-        ...station,
-        walkbackPath: newPath,
-        walkbackPathSegmentDistances: pathSegmentDistances,
-        walkbackPathSegmentElevations: newElevationProfile,
-      },
-    ])
-  );
+  // Step 2: Apply single change to automerge
+  // Save walkback to automerge
+  missionDocHandle.change((m: Mission) => {
+    const s = m.stations[stationUuid];
+    if (!s) return;
+    s.walkbackPath = cloneDeep(newPath);
+    s.walkbackPathSegmentDistances = pathSegmentDistances;
+    s.walkbackPathSegmentElevations = newElevationProfile;
+  });
 
+  // No Step 3: this thunk has no UI side-effects of its own.
   return newPath;
 });
 
@@ -189,26 +323,28 @@ export const thunkFullUpdateWalkback = appCreateAsyncThunk<
  * Reset the start and end points of walkback to station and lander
  * Updates path, distance, elevation
  */
-export const thunkResetWalkback = appCreateAsyncThunk<{
+export const thunkDocResetWalkback = appCreateAsyncThunk<{
   stationUuid: string;
-}>("resetWalkback", async ({ stationUuid }, { dispatch, getState }) => {
-  const missionDocHandle = getAutomergeDocHandles().mission;
+}>("resetWalkback", async ({ stationUuid }, { dispatch }) => {
+  // Step 1: Build the reset path and fetch elevation
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return;
   const mission = missionDocHandle.doc();
 
-  const station = getState().station.stations.find((station) => station.uuid === stationUuid);
+  const station = mission.stations?.[stationUuid];
   const landerLocation = mission.landerLocation;
 
-  const newPath = [station.location, landerLocation];
+  const newPath = cloneDeep([station.location, landerLocation]);
 
-  //get new distances
+  // Get new distances
   const newPathSegmentDistances = [
     getDistanceBetweenTwoCoordinates(newPath[0], newPath[1], mission.planetRadius),
   ];
 
-  //get elevation
+  // Get elevation
   let newElevationProfile = null;
   const elevationResponse = await dispatch(
-    thunkGetElevation({
+    thunkFetchElevation({
       path: newPath,
       pathSegmentDistances: newPathSegmentDistances,
       uuid: stationUuid,
@@ -218,261 +354,113 @@ export const thunkResetWalkback = appCreateAsyncThunk<{
     newElevationProfile = elevationResponse.payload as number[][];
   }
 
-  //update store
-  dispatch(
-    upsertStations([
-      {
-        ...station,
-        walkbackPath: newPath,
-        walkbackPathSegmentDistances: newPathSegmentDistances,
-        walkbackPathSegmentElevations: newElevationProfile,
-      },
-    ])
-  );
-});
+  // Step 2: Write the reset walkback path, distances, and elevation atomically
+  missionDocHandle.change((m: Mission) => {
+    const s = m.stations[stationUuid];
+    if (!s) return;
+    s.walkbackPath = newPath;
+    s.walkbackPathSegmentDistances = newPathSegmentDistances;
+    s.walkbackPathSegmentElevations = newElevationProfile;
+  });
 
-export const thunkSaveStation = appCreateAsyncThunk<{
-  stationUuid: string;
-}>("stationSave", async ({ stationUuid }, { dispatch, getState }) => {
-  if (!stationUuid) return;
-  const newStation = getState().station.stations.find((s) => s.uuid === stationUuid);
-  const oldStation = getState().station.stationsFromDb.find((s) => s.uuid === stationUuid);
-
-  const stationActions = getState().action.actions.filter(
-    (action) => action.stationUuid === newStation.uuid
-  );
-  const stationActionsFromDb = getState().action.actionsFromDb.filter(
-    (action) => action.stationUuid === newStation.uuid
-  );
-
-  // update traverse names around this station in any eva using this station
-  // if the station location has changed, the traverse was already updated in thunkUpdateStationLocation
-  if (!isEqual(newStation.name, oldStation?.name)) {
-    await dispatch(
-      thunkUpdateTraversesAroundStation({ stationUuid: newStation.uuid, saveToDb: true })
-    );
-  }
-
-  // check if station has been modified. this may not be the case if the user only changed actions
-  if (!isEqual(newStation, oldStation)) {
-    // upsert the changed Station to the DB via internal API call
-    const updatedStation = {
-      ...newStation,
-      updatedAt: getAccurateNow().toISOString(),
-    };
-    const stationUpsertResponse = await httpClient_station.upsertStations([updatedStation]);
-
-    if (stationUpsertResponse.status !== "success") {
-      throw new Error("Error upserting Station: " + stationUpsertResponse.message);
-    }
-    // upsert the changed Station (with new updated date) to the store
-    dispatch(upsertStations([updatedStation], true));
-    // update the StationFromDb copy in store
-    dispatch(upsertStationsFromDb([updatedStation]));
-  }
-
-  // find out if the actions in this station have been modified and need to be persisted
-  if (!isEqual(stationActions, stationActionsFromDb)) {
-    dispatch(
-      thunkSaveActions({
-        actions: stationActions,
-        actionsFromDb: stationActionsFromDb,
-      })
-    );
-  }
-
-  // if the walkback is in edit mode, cancel it out
-  const stationMapDirective =
-    getState().map.mapDirective?.uuid === newStation.uuid ? getState().map.mapDirective : null;
-  if (stationMapDirective?.mapAction === "editPolyline") {
-    // handle walkback edit state
-    dispatch(
-      updateMapDirective({
-        ...stationMapDirective,
-        mapAction: "saveEditPolyline",
-      })
-    );
-  }
-
-  dispatch(thunkCancelMarkerMapDirective({ uuid: newStation.uuid }));
-  dispatch(setStationEditMode({ stationUuid: newStation.uuid, editMode: false }));
-  dispatch(resetAllStationCirclesUIStates({ stationUuid: newStation.uuid }));
-});
-
-export const thunkStationCancel = appCreateAsyncThunk<{
-  station: Station;
-}>("stationCancel", async ({ station }, { dispatch, getState }) => {
-  const stationFromDb = getState().station.stationsFromDb.find(
-    (stationDb) => stationDb.uuid === station.uuid
-  );
-  const stationActions = getState().action.actions.filter(
-    (action) => action.stationUuid === station.uuid
-  );
-  const stationActionsFromDb = getState().action.actionsFromDb.filter(
-    (action) => action.stationUuid === station.uuid
-  );
-
-  // find out if this station is already on the map
-  if (stationFromDb) {
-    //station is already saved once to the db,
-    // replace it with the one from the db (undoing any changes)
-    dispatch(upsertStations([stationFromDb], true));
-
-    //check if location was changed. if so, revert back traverses
-    if (station.location !== stationFromDb.location) {
-      // Update traverses surrounding this station
-      dispatch(thunkUpdateTraversesAroundStation({ stationUuid: station.uuid, saveToDb: true }));
-    }
-
-    dispatch(upsertActions(stationActionsFromDb, true));
-    //delete newly added actions that user doesn't want to save
-    const addedActionsToDelete: Action[] = stationActions.filter(
-      // only delete actions that don't exist in the db
-      (action) => stationActionsFromDb.findIndex((actionDb) => actionDb.uuid === action.uuid) === -1
-    );
-    dispatch(deleteActionsByUuid(addedActionsToDelete.map((a) => a.uuid)));
-  } else {
-    // station hasn't been saved to the db. delete the station and actions from the store
-    dispatch(deleteStationsByUuid([station.uuid]));
-    dispatch(setSelectedStationUuid(null));
-    dispatch(deleteActionsByUuid(stationActions.map((a) => a.uuid)));
-    dispatch(thunkSetRightPanelIsOpenIfAuto(false));
-    dispatch(
-      thunkAddRemoveFolderItem({
-        itemUuid: station.uuid,
-        folderUuid: null,
-      })
-    );
-  }
-
-  // if the walkback is in edit mode, save the walkback
-  const stationMapDirective =
-    getState().map.mapDirective?.uuid === station.uuid ? getState().map.mapDirective : null;
-
-  if (stationMapDirective?.mapAction === "editPolyline") {
-    // handle walkback edit state
-    dispatch(
-      updateMapDirective({
-        ...stationMapDirective,
-        mapAction: "cancelEditPolyline",
-      })
-    );
-  }
-  dispatch(thunkCancelMarkerMapDirective({ uuid: station.uuid }));
-  dispatch(setStationEditMode({ stationUuid: station.uuid, editMode: false }));
-  dispatch(resetAllStationCirclesUIStates({ stationUuid: station.uuid }));
-
-  //update any traverses of EVAs that use this station as an egress or ingress point
-  await dispatch(thunkUpdateEVAsUsingStationForEgressIngress({ stationUuid: station.uuid }));
+  // No Step 3: this thunk has no UI side-effects of its own.
 });
 
 /**
- * Deletes stations and their actions from the store and db
+ * Deletes stations and their actions from automerge
  */
-export const thunkDeleteStations = appCreateAsyncThunk<{
-  stationUuids: string[];
-  skipValidation?: boolean;
-}>("stationsDelete", async ({ stationUuids, skipValidation = false }, { dispatch, getState }) => {
-  if (!stationUuids || stationUuids.length === 0) return;
-
-  // validate before doing anything
-  // validation is skipped for rex evas so we do not need to worry about finding the as-planned eva name
-  if (!skipValidation) {
-    for (const eva of getState().eva.evas) {
-      // check if this station is in the eva sequence
-      if (eva.sequence.length > 0) {
-        const sequenceItem = eva.sequence.find((sequenceItem) =>
-          stationUuids.includes(sequenceItem.uuid)
-        );
-        if (sequenceItem) {
-          const stationName = getState().station.stations.find(
-            (station) => station.uuid === sequenceItem.uuid
-          )?.name;
-          alert(
-            `Cannot delete a station that is being used by an EVA.
-          \nStation not deleted.
-          \nEVA ${eva.name} is using this station ${stationName}`
-          );
-          return;
-        }
-      }
-
-      // check if this station is used as ingress/egress
-      if (stationUuids.includes(eva.ingressLocationUuid)) {
-        const stationName = getState().station.stations.find(
-          (station) => station.uuid === eva.ingressLocationUuid
-        )?.name;
-        alert(
-          `Cannot delete a station that is being used as an ingress location in an EVA.
-        \nStation not deleted.
-        \nEVA ${eva.name} is using this station ${stationName}`
-        );
-        return;
-      }
-      if (stationUuids.includes(eva.egressLocationUuid)) {
-        const stationName = getState().station.stations.find(
-          (station) => station.uuid === eva.egressLocationUuid
-        )?.name;
-        alert(
-          `Cannot delete a station that is being used as an egress location in an EVA.\nEVA ${eva.name} is using this station ${stationName}`
-        );
-        return;
-      }
-    }
-  }
-
-  const stationActionUuidsToDelete: string[] = [];
-  for (const stationUuid of stationUuids) {
-    dispatch(thunkCancelMarkerMapDirective({ uuid: stationUuid })); // first cancel any map marker directives
-    dispatch(setStationEditMode({ stationUuid: stationUuid, editMode: false })); // cancel station if it's in edit mode
-
-    // update folders
-    dispatch(
-      thunkAddRemoveFolderItem({
-        itemUuid: stationUuid,
-        folderUuid: null,
-      })
-    );
-
-    // gather all the actions to delete
-    const stationActions = getState().action.actions.filter(
-      (action) => action.stationUuid === stationUuid
-    );
-    stationActionUuidsToDelete.push(...stationActions.map((a) => a.uuid));
-  }
-  if (stationActionUuidsToDelete.length > 0) {
-    // delete station's actions from store and db
-    await dispatch(thunkDeleteActionsFromDbAndStore({ uuids: stationActionUuidsToDelete }));
-  }
-  // delete any stations that were in the db in one bulk http call
-  const stationUuidsInDb = stationUuids.filter((uuid) =>
-    getState()
-      .station.stationsFromDb.map((s) => s.uuid)
-      .includes(uuid)
-  );
-  if (stationUuidsInDb.length > 0) {
-    const deleteRes: WrappedResponse<number> =
-      await httpClient_station.deleteStations(stationUuidsInDb);
-    if (deleteRes.status !== "success") {
-      throw new Error("Error deleting Stations: " + deleteRes.message);
-    }
-  }
-  // delete stations from both copies in the store
-  dispatch(deleteStationsByUuid(stationUuids));
-  dispatch(deleteStationsFromDbByUuid(stationUuids));
-  dispatch(setSelectedStationUuid(null));
-  dispatch(thunkSetRightPanelIsOpenIfAuto(false));
-});
-
-export const thunkCreateStation = appCreateAsyncThunk<void>(
-  "stationCreate",
-  async (_, { dispatch, getState }) => {
-    const missionDocHandle = getAutomergeDocHandles().mission;
+export const thunkDocDeleteStations = appCreateAsyncThunk<
+  {
+    stationUuids: string[];
+    skipValidation?: boolean;
+  },
+  void,
+  string
+>(
+  "stationsDelete",
+  async ({ stationUuids, skipValidation = false }, { dispatch, rejectWithValue }) => {
+    if (!stationUuids || stationUuids.length === 0) return;
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
     const mission = missionDocHandle.doc();
 
+    // Step 1: Validate, gather all child action uuids from the doc snapshot,
+    // and pre-fire non-automerge folder removal side-effects.
+    if (!skipValidation) {
+      const allStations = mission?.stations ?? {};
+      for (const eva of Object.values(mission?.evas ?? {})) {
+        // check if this station is in the eva sequence
+        if (eva.sequence.length > 0) {
+          const sequenceItem = eva.sequence.find((sequenceItem) =>
+            stationUuids.includes(sequenceItem.uuid)
+          );
+          if (sequenceItem) {
+            const stationName = allStations[sequenceItem.uuid]?.name;
+            const message = `Cannot delete a station that is being used by an EVA.\nStation not deleted.\nEVA ${eva.name} is using this station ${stationName}`;
+            alert(message);
+            return rejectWithValue(message);
+          }
+        }
+
+        // check if this station is used as ingress/egress
+        if (stationUuids.includes(eva.ingressLocationUuid)) {
+          const stationName = allStations[eva.ingressLocationUuid]?.name;
+          const message = `Cannot delete a station that is being used as an ingress location in an EVA.\nStation not deleted.\nEVA ${eva.name} is using this station ${stationName}`;
+          alert(message);
+          return rejectWithValue(message);
+        }
+        if (stationUuids.includes(eva.egressLocationUuid)) {
+          const stationName = allStations[eva.egressLocationUuid]?.name;
+          const message = `Cannot delete a station that is being used as an egress location in an EVA.\nEVA ${eva.name} is using this station ${stationName}`;
+          alert(message);
+          return rejectWithValue(message);
+        }
+      }
+    }
+
+    dispatch(thunkCancelMarkerMapDirective());
+
+    const stationActionUuidsToDelete: string[] = [];
+    for (const stationUuid of stationUuids) {
+      // Update folders
+      dispatch(
+        thunkAddRemoveFolderItem({
+          itemUuid: stationUuid,
+          folderUuid: null,
+        })
+      );
+
+      // Gather all the actions to delete
+      const stationActions = Object.values(mission?.actions ?? {}).filter(
+        (action) => action.stationUuid === stationUuid
+      );
+      stationActionUuidsToDelete.push(...stationActions.map((a) => a.uuid));
+    }
+
+    // Step 2: Delete child actions and stations atomically in a single .change()
+    missionDocHandle.change((m: Mission) => {
+      applyDeleteActions(m, stationActionUuidsToDelete);
+      applyDeleteStations(m, stationUuids);
+    });
+
+    // Step 3: UI side-effects
+    dispatch(setSelectedStationUuid(null));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(false));
+  }
+);
+
+export const thunkDocCreateStation = appCreateAsyncThunk<void>(
+  "stationCreate",
+  async (_, { getState, dispatch }) => {
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
+    const mission = missionDocHandle.doc();
+
+    // Step 1: Build the new station object
+    const existingStationNames = Object.values(mission?.stations ?? {}).map((s) => s.name);
     const randomName = generateUniqueName({
       dictName: "lotr",
-      existingNames: getState().station.stations.map((item) => item.name),
+      existingNames: existingStationNames,
     });
 
     // build circle controls
@@ -492,11 +480,15 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
       missionId: mission.id,
       name: randomName,
       mapCircleControls: blankMapCircleControls,
+      ownerId: getState().user?.appUser?.id ?? null,
     });
-    dispatch(upsertStations([blankStation], false));
+
+    // Step 2: Insert the fully-built station into the Automerge doc
+    missionDocHandle.change((m: Mission) => applyUpsertStation(m, blankStation));
+
+    // Step 3: UI side-effects
     dispatch(selectStation({ uuid: blankStation.uuid }));
     dispatch(thunkSetRightPanelIsOpenIfAuto(true));
-    dispatch(setStationEditMode({ stationUuid: blankStation.uuid, editMode: true }));
 
     // create station circles ui states entry
     const circleUIStates: CircleUIStates = {};
@@ -507,7 +499,6 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
         };
       });
     }
-
     dispatch(
       setStationCircleUIStates({
         stationUuid: blankStation.uuid,
@@ -518,148 +509,130 @@ export const thunkCreateStation = appCreateAsyncThunk<void>(
 );
 
 /**
- * Duplicate a station and automatically save it to the DB
+ * Duplicate a station and automatically save it to automerge
  */
-export const thunkDuplicateStation = appCreateAsyncThunk<
-  { stationUuid: String; preserveRefUuid: boolean },
+export const thunkDocDuplicateStation = appCreateAsyncThunk<
+  { stationUuid: string; preserveRefUuid: boolean },
   Station,
   false
 >("stationDuplicate", async ({ stationUuid, preserveRefUuid }, { dispatch, getState }) => {
   if (!stationUuid) return;
-  const station = getState().station.stations.find((s) => s.uuid === stationUuid);
-  //duplicate station
-  const newStation: Station = cloneDeep(station);
-  newStation.uuid = uuidv4();
-  // preservingRefUuids only occurs when duplicating an EVA for a REX.
-  if (!preserveRefUuid) {
-    newStation.refUuid = uuidv4();
-    const newDateString = getAccurateNow().toISOString();
-    newStation.updatedAt = newDateString;
-    newStation.createdAt = newDateString;
-    newStation.name = makeUniqueStringCopy(
-      station.name,
-      getState().station.stations.map((s) => s.name)
-    );
-  }
-  newStation.actionOrderUuids = [];
+  const missionDocHandle = getMissionDocHandle();
+  const mission = missionDocHandle?.doc();
+  if (!mission?.stations?.[stationUuid]) return;
 
-  // upsert new station and persist to the db
-  dispatch(upsertStations([newStation], true));
-  dispatch(upsertStationsFromDb([newStation]));
-  const upsertStationResponse = await httpClient_station.upsertStations([newStation]);
-  if (upsertStationResponse.status !== "success") {
-    throw new Error("Error upserting Station: " + upsertStationResponse.message);
-  }
+  // Step 1: Build the full duplication plan
+  // preserveRefUuids only occurs when duplicating an EVA for a REX.
+  const stationStagedData = stageDuplicateStation(mission, {
+    sourceStationUuid: stationUuid,
+    preserveRefUuid,
+  });
+  if (!stationStagedData) return;
 
+  // Step 2: Apply the staged station + its child-action duplications atomically
+  missionDocHandle.change((m: Mission) => applyDuplicateStationStage(m, stationStagedData));
+
+  // Step 3: UI side-effects
   if (!preserveRefUuid) {
-    dispatch(selectStation({ uuid: newStation.uuid }));
+    dispatch(selectStation({ uuid: stationStagedData.newStationUuid }));
     dispatch(thunkSetRightPanelIsOpenIfAuto(true));
   }
 
-  //duplicate actions
-  const stationActions = getState()
-    .action.actions.filter((action) => action.stationUuid === station.uuid)
-    .sort(
-      (a, b) =>
-        station.actionOrderUuids.findIndex((o) => o === a.uuid) -
-        station.actionOrderUuids.findIndex((o) => o === b.uuid)
-    );
-  await dispatch(
-    thunkDuplicateActions({
-      actions: stationActions,
-      stationUuid: newStation.uuid,
-      promotingFromPoi: false,
-      preserveRefUuid: preserveRefUuid,
-      saveToDb: true,
-    })
-  );
-
-  //duplicate station circles ui state
   const newStationCircleUIStates: CircleUIStates = cloneDeep(
-    getState().station.stationCirclesUIStates[station.uuid]
+    getState().station.stationCirclesUIStates[stationUuid]
   );
   dispatch(
     setStationCircleUIStates({
-      stationUuid: newStation.uuid,
+      stationUuid: stationStagedData.newStationUuid,
       circleUIStates: newStationCircleUIStates,
     })
   );
 
-  return newStation;
+  return stationStagedData.newStation;
 });
 
-export const thunkUpdateEVAsUsingStationForEgressIngress = appCreateAsyncThunk<{
+export const thunkDocUpdateStationIngressEgress = appCreateAsyncThunk<{
   stationUuid: string;
-}>("updateEVAsUsingStationForEgressIngress", async ({ stationUuid }, { dispatch, getState }) => {
-  //update any traverses of EVAs that use this station as an egress or ingress point
-  const evasUsingStationEgressIngress: Eva[] = getState().eva.evas.filter((eva) => {
-    return eva.egressLocationUuid === stationUuid || eva.ingressLocationUuid === stationUuid;
-  });
-  //first/last sequence items of these evas
-  const firstLastSequenceItems: EvaSequenceItem[] = [];
-  evasUsingStationEgressIngress.forEach((eva) => {
-    if (eva.sequence.length > 0) {
-      firstLastSequenceItems.push(eva.sequence[0]);
-      firstLastSequenceItems.push(eva.sequence[eva.sequence.length - 1]);
-    }
-  });
+}>("updateEVAsUsingStationForEgressIngress", async ({ stationUuid }, { dispatch }) => {
+  const mission = getMissionDocHandle()?.doc();
+  if (!mission) return;
 
-  //perform full updates of these traverses
-  firstLastSequenceItems.forEach(async (traverse) => {
-    await dispatch(thunkFullUpdateTraverse({ traverseUuid: traverse.uuid, saveToDb: true }));
-  });
-});
+  // Find all traverses that need updating
+  const evasUsingStationEgressIngress = Object.values(mission.evas ?? {}).filter(
+    (eva) => eva.egressLocationUuid === stationUuid || eva.ingressLocationUuid === stationUuid
+  );
 
-/**
- * Thunk used to verify stations in edit. This was created so that components do not
- * have to subscribe to the entire state and cause un-necessary re-renders.
- *
- * If another station is being edited, fire an alert and return false
- */
-export const thunkVerifyNoStationsBeingEdited = appCreateAsyncThunk<void, boolean, false>(
-  "verifyNoStationsBeingEdited",
-  async (_, { getState }) => {
-    const stationsEditing = getState().station.stationsEditing;
-
-    if (stationsEditing.length > 0) {
-      alert(
-        "You are currently editing a station. Please save or cancel your changes before attempting to move the lander location."
-      );
-      return false;
-    } else {
-      return true;
+  // Get first/last sequence items (the boundary traverses) of these evas
+  type TraverseToUpdate = {
+    traverseUuid: string;
+    evaSequence: EvaSequenceItem[];
+  };
+  const traversesToUpdate: TraverseToUpdate[] = [];
+  for (const eva of evasUsingStationEgressIngress) {
+    if (eva.sequence.length > 1) {
+      traversesToUpdate.push({
+        traverseUuid: eva.sequence[0].uuid,
+        evaSequence: eva.sequence as EvaSequenceItem[],
+      });
+      traversesToUpdate.push({
+        traverseUuid: eva.sequence[eva.sequence.length - 1].uuid,
+        evaSequence: eva.sequence as EvaSequenceItem[],
+      });
+    } else if (eva.sequence.length === 1) {
+      // An empty EVA with no stations, just 1 traverse from egress to ingress
+      traversesToUpdate.push({
+        traverseUuid: eva.sequence[0].uuid,
+        evaSequence: eva.sequence as EvaSequenceItem[],
+      });
     }
   }
-);
 
-// when mission is changed, update circle values in stations
-export const thunkSyncStationsWithMission = appCreateAsyncThunk<void>(
+  if (traversesToUpdate.length === 0) return;
+
+  // Step 1: Build updated staged data for all traverses in parallel
+  const traverseUpdates: (TraverseUpdateStageData | null)[] = await Promise.all(
+    traversesToUpdate.map(({ traverseUuid, evaSequence }) =>
+      stageTraverseUpdate(mission, dispatch, { traverseUuid, overrides: { evaSequence } })
+    )
+  );
+
+  const validUpdates = traverseUpdates.filter(Boolean) as TraverseUpdateStageData[];
+  if (validUpdates.length === 0) return;
+
+  // Step 2: Apply all traverse updates in a single .change()
+  getMissionDocHandle()?.change((m: Mission) => applyTraverseUpdatesStage(m, validUpdates));
+
+  // No Step 3: this thunk has no UI side-effects of its own.
+});
+
+// When mission is changed, update circle values in stations
+export const thunkDocSyncStationsWithMission = appCreateAsyncThunk<void>(
   "stationSyncWithMission",
   async (_, { dispatch, getState }) => {
-    const missionDocHandle = getAutomergeDocHandles().mission;
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
     const mission = missionDocHandle.doc();
 
-    const newStations: Station[] = [];
     const newCirclesUIStates: CirclesUIStates = {};
-    getState().station.stations.forEach((station) => {
+    const allStationCircleControlUpdates: Record<string, MapCircleControls> = {};
+    const allStations = Object.values(mission?.stations ?? {});
+
+    // Step 1: Compute all new mapCircleControls and circleUIStates
+    allStations.forEach((station) => {
       const oldStationCircleUIStates = getState().station.stationCirclesUIStates[station.uuid];
-      // start with copies of the old data
-      const newStation: Station = cloneDeep(station);
       const newStationCircleUIStates: CircleUIStates = cloneDeep(oldStationCircleUIStates) || {};
       const newMapCircleControls: MapCircleControls = cloneDeep(station.mapCircleControls) || {};
 
       Object.entries(mission.circleDefinitions || {})?.forEach(([uuid]) => {
-        // update circle UI states
+        // Update circle UI states
         if (!newStationCircleUIStates[uuid]) {
-          // this is a new circle. Add it
           newStationCircleUIStates[uuid] = {
             slidersSelected: false,
           };
         }
 
-        // update station map circle controls
+        // Update station map circle controls
         if (!newMapCircleControls[uuid]) {
-          // new circle, add it.
           newMapCircleControls[uuid] = {
             uuid,
             visible: false,
@@ -668,33 +641,27 @@ export const thunkSyncStationsWithMission = appCreateAsyncThunk<void>(
         }
       });
 
-      // remove any UI states circle definitions that were deleted
+      // Remove any UI states circle definitions that were deleted
       for (const uuid of Object.keys(newStationCircleUIStates)) {
         const existsInMission = mission.circleDefinitions?.[uuid];
         if (!existsInMission) delete newStationCircleUIStates[uuid];
       }
-      // remove any station map circle controls that were deleted
+      // Remove any station map circle controls that were deleted
       for (const uuid of Object.keys(newMapCircleControls)) {
         const existsInMission = mission.circleDefinitions?.[uuid];
         if (!existsInMission) delete newMapCircleControls[uuid];
       }
 
       newCirclesUIStates[station.uuid] = newStationCircleUIStates;
-      newStation.mapCircleControls = newMapCircleControls;
-      newStations.push(newStation);
+      allStationCircleControlUpdates[station.uuid] = newMapCircleControls;
     });
 
-    // perform 1 dispatch at the end of all the station circle UI states
-    dispatch(setAllStationCirclesUIStates({ circlesUIStates: newCirclesUIStates }));
+    // Step 2: Update all station mapCircleControls atomically
+    missionDocHandle.change((m: Mission) =>
+      applyUpdateAllStationCircleControls(m, allStationCircleControlUpdates)
+    );
 
-    // do 1 call to update all the new stations
-    // upsert the changed Station to the DB via internal API call
-    const stationUpsertResponse = await httpClient_station.upsertStations(newStations);
-    if (stationUpsertResponse.status === "success") {
-      dispatch(upsertStations(stationUpsertResponse.data, true));
-      dispatch(upsertStationsFromDb(stationUpsertResponse.data));
-    } else {
-      throw new Error("Error syncing stations with mission: " + stationUpsertResponse.message);
-    }
+    // Step 3: UI side-effects
+    dispatch(setAllStationCirclesUIStates({ circlesUIStates: newCirclesUIStates }));
   }
 );

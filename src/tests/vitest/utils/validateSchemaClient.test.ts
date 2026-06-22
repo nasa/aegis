@@ -83,7 +83,7 @@ describe("validateImportableSublayer", () => {
   test("Returns no errors for a valid SublayerImportable object", async () => {
     // Only the importable subset of fields is allowed
     (global.fetch as Mock).mockResolvedValueOnce(makeMockSuccessResponse());
-    const validImportable: SublayerImportable = { name: "My Sublayer", type: "tile" };
+    const validImportable: SublayerImportable = { name: "Vitest My Sublayer", type: "tile" };
     const errors = await validateImportableSublayer(validImportable);
     expect(errors.length).toBe(0);
   });

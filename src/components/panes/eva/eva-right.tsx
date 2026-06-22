@@ -1,8 +1,10 @@
 import type { FunctionComponent } from "react";
-import { refEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
+import { refEqual, useAppSelector } from "utils/useAppSelector";
 import StationEditorRight from "../station/station-right";
 import EvaRightEva from "./eva-right-eva";
 import TraverseEditorRight from "../traverse/traverse-right";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { deepEqual } from "utils/useAppSelector";
 
 const EvaPlannerRight: FunctionComponent = () => {
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
@@ -10,12 +12,12 @@ const EvaPlannerRight: FunctionComponent = () => {
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const evas = useAppSelector((state) => state.eva.evas, deepEqual);
+  const allEvas = useMissionDocSelector((mission) => mission.evas, deepEqual);
 
   let rightPanelSetToDisplay = <></>;
 
   if (selectedEvaSequenceItemUuid) {
-    evas.forEach((eva) => {
+    Object.values(allEvas ?? {}).forEach((eva) => {
       eva.sequence.forEach((sequenceItem) => {
         if (sequenceItem.uuid === selectedEvaSequenceItemUuid) {
           if (sequenceItem.type === "station") {

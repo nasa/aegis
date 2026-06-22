@@ -380,7 +380,7 @@ export const getCalculatedTimeOfSequenceItem = (params: {
   if (!eva || !sequenceItemUuid || !eva.datetime) return;
 
   // get eva start time
-  const evaStartTimeNumeric = new Date(eva.datetime).getTime();
+  const evaStartTimeNumeric = eva.datetime;
   // go through eva sequence and calculate things
   const evaSequence = eva.sequence;
 

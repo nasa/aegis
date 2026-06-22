@@ -13,7 +13,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../form/globalFields";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { shallowEqual, deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
-import { thunkCancelPosEntryInEdit, thunkPersistPosEntries } from "store/thunk/thunkRexPosEntry";
+import {
+  thunkUICancelPosEntryInEdit,
+  thunkDocSavePosEntryNoLocation,
+} from "store/thunk/thunkRexPosEntry";
 import { clearPosEntryInEdit, setPosEntryInEdit, setSelectedPosEntryUuid } from "store/rex";
 import { calculatePetValue, hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
@@ -25,51 +28,51 @@ import { calcPathDurationMins, getDistanceBetweenTwoCoordinates } from "utils/ma
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { updateMapDirective } from "store/map";
 import { generateBlankPosEntry } from "store/storeUtils/rex";
-import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 export const MapPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
-  const selectedRex = useAppSelector((state) => {
-    return state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid);
-  }, deepEqual);
-
-  const allPosSources = useAppSelector(
-    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid)?.posSources,
+  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
+  const selectedRex = useMissionDocSelector(
+    (mission) => (selectedRexUuid ? mission.rexes?.[selectedRexUuid] : null),
     deepEqual
   );
-  const allPosTypes = useAppSelector((state) => {
-    return state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid)?.posTypes;
-  }, deepEqual);
 
-  const posEntries = useAppSelector((state) => {
-    const posEntries = state.rex.rexes.find(
-      (r) => r.uuid === state.rex.selectedRexUuid
-    )?.posEntries;
-    return orderBy(posEntries, ["createdAt"], "desc");
-  }, deepEqual);
+  const allPosSources = useMissionDocSelector(
+    (mission) => (selectedRexUuid ? mission.rexes?.[selectedRexUuid]?.posSources : null),
+    deepEqual
+  );
+  const allPosTypes = useMissionDocSelector(
+    (mission) => (selectedRexUuid ? mission.rexes?.[selectedRexUuid]?.posTypes : null),
+    deepEqual
+  );
 
+  const posEntries = useMissionDocSelector((mission) => {
+    const entries = selectedRexUuid ? mission.rexes?.[selectedRexUuid]?.posEntries : null;
+    return orderBy(entries, ["createdAt"], "desc");
+  }, deepEqual);
   const posEntryInEdit = useAppSelector((state) => state.rex.posEntryInEdit, deepEqual);
+  const posEntryInEditFromAutomerge = useMissionDocSelector((mission) => {
+    if (!selectedRexUuid || !mission.rexes[selectedRexUuid]) return null;
+    const posEntries = mission.rexes[selectedRexUuid].posEntries;
+    if (!posEntries || posEntries.length === 0) return null;
+    return posEntries.find((p) => p.uuid === posEntryInEdit?.uuid) || null;
+  }, deepEqual);
+  const modified = posEntryInEdit && !isEqual([posEntryInEdit], [posEntryInEditFromAutomerge]);
 
-  const editingPosEntryFromDb = useAppSelector(
-    (state) =>
-      state.rex.rexesFromDb
-        .find((r) => r.uuid === state.rex.selectedRexUuid)
-        ?.posEntries?.find((c) => c.uuid === posEntryInEdit?.uuid),
-    deepEqual
-  );
-
-  const evaAndRexName = useAppSelector((state) => {
-    const selectedRex = state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid);
-    const selectedEva = state.eva.evas.find((e) => e.uuid === selectedRex?.evaUuid);
-    const asPlannedEva = getAsPlannedEvaFromRefUuid(state, selectedEva.refUuid);
-    return `${asPlannedEva?.name} - ${selectedRex?.name}`;
+  const evaAndRexName = useMissionDocSelector((mission) => {
+    if (!mission?.rexes || !mission?.evas || !selectedRexUuid) return "";
+    const rex = mission.rexes[selectedRexUuid];
+    const eva = rex ? mission.evas[rex.evaUuid] : null;
+    if (!eva) return rex?.name ?? "";
+    const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, eva.refUuid);
+    return `${asPlannedEva?.name ?? ""} - ${rex?.name ?? ""}`;
   }, refEqual);
 
-  const selectedRexIsExecuting = useAppSelector((state) => {
-    const selectedRex = state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid);
-    return selectedRex?.isRunning;
+  const selectedRexIsExecuting = useMissionDocSelector((mission) => {
+    return (selectedRexUuid ? mission.rexes?.[selectedRexUuid] : null)?.isRunning ?? false;
   }, refEqual);
 
   const thisMapDirective = useAppSelector((state) => {
@@ -104,8 +107,6 @@ export const MapPositionMenu: FunctionComponent = () => {
       dispatch(setPosEntryInEdit({ ...nullPosEntry, posSourceUuid: allPosSources[0].uuid }));
     }
   }, [allPosTypes, allPosSources, dispatch]);
-
-  const modified = posEntryInEdit && !isEqual([posEntryInEdit], [editingPosEntryFromDb]);
 
   // track the last pos entry for each pos type to determine which items to show in the top list
   const posTypeLastEntryUuids: { [key: string]: string } = {};
@@ -314,7 +315,7 @@ export const MapPositionMenu: FunctionComponent = () => {
                         <Button
                           onClick={async () => {
                             // update selected types and source
-                            await dispatch(thunkPersistPosEntries({ rexUuid: selectedRex.uuid }));
+                            await dispatch(thunkDocSavePosEntryNoLocation());
                           }}
                           icon={faFloppyDisk}
                           toolTip={`Save Position Markers ${modified ? "" : " (nothing to save)"}`}
@@ -473,10 +474,10 @@ export const PositionRow: FunctionComponent<{
 }> = ({ posEntry, showKabob, numbering, isEditing }) => {
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      landerLocation: doc.landerLocation,
-      planetRadius: doc.planetRadius,
-      traverseRate: doc.traverseRate,
+    (mission) => ({
+      landerLocation: mission.landerLocation,
+      planetRadius: mission.planetRadius,
+      traverseRate: mission.traverseRate,
     }),
     deepEqual
   );
@@ -490,9 +491,10 @@ export const PositionRow: FunctionComponent<{
     );
   }
 
-  const duration = useAppSelector((state) => {
+  const selectedEvaUuidLocal = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
+  const duration = useMissionDocSelector((mission) => {
     if (distanceToLander === null) return null;
-    const eva = state.eva.evas.find((e) => e.uuid === state.eva.selectedEvaUuid);
+    const eva = selectedEvaUuidLocal ? mission.evas?.[selectedEvaUuidLocal] : null;
     const traverseRate = eva?.traverseRate ? eva.traverseRate : partialMission.traverseRate;
     return Math.ceil(calcPathDurationMins([distanceToLander], traverseRate));
   }, refEqual);
@@ -506,13 +508,14 @@ export const PositionRow: FunctionComponent<{
     refEqual
   );
 
-  const sourceAbbr = useAppSelector((state) => {
-    const selectedRex = state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid);
-    return selectedRex?.posSources?.find((s) => s.uuid === posEntry.posSourceUuid)?.abbr;
+  const selectedRexUuidLocal = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
+  const sourceAbbr = useMissionDocSelector((mission) => {
+    const rex = selectedRexUuidLocal ? mission.rexes?.[selectedRexUuidLocal] : null;
+    return rex?.posSources?.find((s) => s.uuid === posEntry.posSourceUuid)?.abbr;
   }, refEqual);
 
-  const posNameList = useAppSelector((state) => {
-    const selectedRex = state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid);
+  const posNameList = useMissionDocSelector((mission) => {
+    const selectedRex = selectedRexUuidLocal ? mission.rexes?.[selectedRexUuidLocal] : null;
     return posEntry.posTypeUuids?.map((uuid) => {
       const posType = selectedRex?.posTypes?.find((p) => p.uuid === uuid);
       return posType?.name;
@@ -542,7 +545,7 @@ export const PositionRow: FunctionComponent<{
           }}
           onClick={async () => {
             //cancel out anything currently in edit
-            await dispatch(thunkCancelPosEntryInEdit());
+            await dispatch(thunkUICancelPosEntryInEdit());
 
             if (isSelected) {
               dispatch(setSelectedPosEntryUuid(null));

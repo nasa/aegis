@@ -1,53 +1,74 @@
 import type { FunctionComponent } from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import actionsStyles from "../actions.module.css";
 import evaStyles from "./eva.module.css";
 import paneStyles from "../global-pane-styles.module.css";
-import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual, shallowEqual } from "utils/useAppSelector";
 import { ActionsTopSection, ActionsListHeadings, ActionList } from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
-import { thunkGetHighlightedActions } from "store/thunk/thunkAction";
-import { useAppDispatch } from "utils/useAppDispatch";
 import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 import { EmojiRenderer } from "components/interface/emojis";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { getHighlightedActions } from "store/selectors";
 
 const Actions_Panel: FunctionComponent = () => {
-  const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
-    (doc) => ({ walkbackRate: doc.walkbackRate, traverseRate: doc.traverseRate }),
+    (mission) => ({ walkbackRate: mission.walkbackRate, traverseRate: mission.traverseRate }),
     deepEqual
   );
 
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
-  const selectedEva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
+  const selectedEva = useMissionDocSelector(
+    (mission) => mission.evas?.[selectedEvaUuid],
     deepEqual
   );
-  const selectedRexPartial = useAppSelector((state) => {
-    const rex = state.rex.rexes.find((rex) => rex.uuid === state.rex.selectedRexUuid);
+  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
+  const selectedRexPartial = useMissionDocSelector((mission) => {
+    const rex = mission.rexes?.[selectedRexUuid];
     if (rex) return { uuid: rex.uuid, name: rex.name };
+    return undefined;
   }, deepEqual);
-  const sequenceStations = useAppSelector((state) => {
-    const sequenceUuids = selectedEva?.sequence.map((sequenceItem) => sequenceItem.uuid);
-    return state.station.stations.filter((station) => sequenceUuids.includes(station.uuid));
-  }, deepEqual);
-  const sequenceTraverses = useAppSelector((state) => {
-    const sequenceUuids = selectedEva?.sequence.map((sequenceItem) => sequenceItem.uuid);
-    return state.traverse.traverses.filter((traverse) => sequenceUuids.includes(traverse.uuid));
-  }, deepEqual);
-
-  const evaActionsCalcFields = useAppSelector((state) => {
-    const eva = state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid);
+  const docMaps = useMissionDocSelector(
+    (mission) => ({
+      stations: mission.stations,
+      actions: mission.actions,
+      traverses: mission.traverses,
+    }),
+    shallowEqual
+  );
+  const sequenceStations = useMemo(() => {
+    if (!docMaps) return [];
+    const sequenceStationUuids = new Set(
+      selectedEva?.sequence.filter((s) => s.type === "station").map((s) => s.uuid)
+    );
+    return Object.values(docMaps.stations).filter((station) =>
+      sequenceStationUuids.has(station.uuid)
+    );
+  }, [docMaps, selectedEva]);
+  const sequenceTraverses = useMemo(() => {
+    if (!docMaps) return [];
+    const sequenceTraverseUuids = new Set(
+      selectedEva?.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid)
+    );
+    return Object.values(docMaps.traverses).filter((traverse) =>
+      sequenceTraverseUuids.has(traverse.uuid)
+    );
+  }, [docMaps, selectedEva]);
+  const evaActionsCalcFields = useMemo<ActionsCalculatedFields>(() => {
+    if (!docMaps) return undefined;
+    const sequenceStationUuids = new Set(sequenceStations.map((s) => s.uuid));
+    const sequenceTraverseUuids = new Set(sequenceTraverses.map((t) => t.uuid));
     const evaCalculatedFields = getCalculatedFieldsByEva({
-      eva,
-      evaStations: state.station.stations,
+      eva: selectedEva,
+      evaStations: sequenceStations,
       missionWalkbackRate: partialMission.walkbackRate,
       missionTraverseRate: partialMission.traverseRate,
-      evaActions: state.action.actions,
-      evaTraverses: state.traverse.traverses,
+      evaActions: Object.values(docMaps.actions).filter(
+        (a) => sequenceStationUuids.has(a.stationUuid) || sequenceTraverseUuids.has(a.traverseUuid)
+      ),
+      evaTraverses: sequenceTraverses,
     });
-    const newActionsCalculatedFields: ActionsCalculatedFields = {
+    return {
       actionCount: evaCalculatedFields.actionCount,
       totalActionTime: evaCalculatedFields.totalActionTime,
       totalEv1Time: evaCalculatedFields.totalEv1Time,
@@ -56,8 +77,14 @@ const Actions_Panel: FunctionComponent = () => {
       totalDwellTime: evaCalculatedFields.totalDwellTime,
       totalMass: evaCalculatedFields.totalMass,
     };
-    return newActionsCalculatedFields;
-  }, deepEqual);
+  }, [
+    selectedEva,
+    sequenceStations,
+    sequenceTraverses,
+    docMaps,
+    partialMission.walkbackRate,
+    partialMission.traverseRate,
+  ]);
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
@@ -76,15 +103,15 @@ const Actions_Panel: FunctionComponent = () => {
   //set state of highlighted actions when the STM is hovered over
   const highlightActions = useCallback(
     async (level3Uuid: string) => {
-      if (!evaActionOrderUuids) return;
-      const resHighlightActions = await dispatch(
-        thunkGetHighlightedActions({ actionUuids: evaActionOrderUuids, stmUuid: level3Uuid })
-      );
-      if (resHighlightActions.payload) {
-        setIsActionHighlighted(resHighlightActions.payload);
-      }
+      if (!evaActionOrderUuids || !docMaps) return;
+      const resHighlightActions = getHighlightedActions({
+        actionUuids: evaActionOrderUuids,
+        stmUuid: level3Uuid,
+        actions: docMaps.actions,
+      });
+      setIsActionHighlighted(resHighlightActions);
     },
-    [evaActionOrderUuids, dispatch]
+    [evaActionOrderUuids, docMaps]
   );
 
   return (

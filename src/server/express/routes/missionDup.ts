@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 
 import express from "express";
 
-import { fetchMissionEntities, createMissionCopy } from "utils/dup/core";
+import { fetchMissionSourceData, createMissionCopy } from "utils/dup/core";
 import { upsertDatabaseRetry } from "utils/database";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -100,7 +100,7 @@ const duplicateMission = async (missionId: number): Promise<number> => {
 
   try {
     // 1. Fetch the original mission and related entities
-    const sourceData = await fetchMissionEntities(em, missionId);
+    const sourceData = await fetchMissionSourceData(em, missionId);
 
     // 2. Create a copy of the mission with related entities
     const newMissionId = await createMissionCopy(em, sourceData, {

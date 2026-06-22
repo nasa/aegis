@@ -1,4 +1,4 @@
-import { createCustomTestStore } from "../../fixtures/redux/makeTestStore";
+import { createCustomTestStore } from "../../fixtures/store";
 import { initialState as missionInitialState } from "store/mission";
 import { initialState as measureInitialState } from "store/measure";
 import {
@@ -8,11 +8,11 @@ import {
 } from "store/thunk/thunkMeasurement";
 import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
-const mockThunkGetElevation = vi.fn().mockReturnValue({
+const mockThunkFetchElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
 vi.mock("store/thunk/thunkElevation", () => ({
-  thunkGetElevation: () => mockThunkGetElevation,
+  thunkFetchElevation: () => mockThunkFetchElevation,
 }));
 
 beforeAll(() => {

@@ -208,4 +208,107 @@ export default [
       "no-restricted-imports": "off",
     },
   },
+
+  // Atomicity: forbid inner apply* and stage* helpers from
+  // touching the Automerge doc handle directly. They must remain pure
+  // sync functions that operate on a `Mission` (apply*) or read from
+  // a `Mission` (stage*), so callers can compose them inside a
+  // single atomic `withMissionChange()` block. See
+  // `src/client/automerge/README.md` for the three-layer convention.
+  //
+  // apply* is strictly pure sync — no automergeDocHandle, no thunks.
+  // stage* is mostly pure sync, but MAY import read-only data-fetching
+  // thunks (thunkFetchElevation) to enrich its plan with API-derived values.
+  // It still cannot import the automerge doc handle, and it still cannot
+  // import any mutation thunk (anything that calls .change()).
+  // All code outside src/store/thunk/** must mutate the doc through
+  // withMissionChange((m) => applyFoo(m, args)) — never directly via
+  // getMissionDocHandle() or missionDocHandle.change().
+  // Server code, thunks, automergeDocHandles.ts itself, and tests are excluded.
+  {
+    files: ["src/**"],
+    ignores: [
+      "src/client/automergeDocHandles.ts", // defines withMissionChange + getMissionDocHandle
+      "src/store/thunk/**", // thunks may use the handle directly
+      "src/tests/**", // tests stub the handle directly
+      "src/server/**", // server code is separate
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.property.name='change'][callee.object.type='Identifier'][callee.object.name=/DocHandle$/]",
+          message:
+            "Direct .change() on the mission doc handle is reserved for thunks. Use withMissionChange((m) => applyFoo(m, args)) instead. See src/client/automerge/README.md.",
+        },
+        {
+          selector: "CallExpression[callee.name='getMissionDocHandle']",
+          message:
+            "Direct getMissionDocHandle() access is reserved for thunks and automergeDocHandles.ts. For mutations, use withMissionChange. For reads, prefer a selector or pass the Mission into your apply/stage function. See src/client/automerge/README.md.",
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/client/automerge/apply/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "client/automergeDocHandles",
+              message:
+                "apply* helpers must be pure sync functions over a Mission doc. They cannot call missionDocHandle.change() — only thunk* functions may. Use withMissionChange in components. See src/client/automerge/README.md.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["**/automergeDocHandles", "**/automergeDocHandles.ts"],
+              message:
+                "apply* helpers must be pure sync functions over a Mission doc. They cannot call missionDocHandle.change() — only thunk* functions may. Use withMissionChange in components. See src/client/automerge/README.md.",
+            },
+            {
+              group: ["store/thunk/**", "**/store/thunk/**"],
+              message:
+                "apply* helpers must not depend on thunks (no Redux, no async). Keep them pure. See src/client/automerge/README.md.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/client/automerge/stage/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "client/automergeDocHandles",
+              message:
+                "stage* helpers must receive a Mission as a parameter — they cannot call missionDocHandle.change() or read the live doc directly. See src/client/automerge/README.md.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["**/automergeDocHandles", "**/automergeDocHandles.ts"],
+              message:
+                "stage* helpers must receive a Mission as a parameter — they cannot call missionDocHandle.change() or read the live doc directly. See src/client/automerge/README.md.",
+            },
+            {
+              // Allow only read-only data-fetching thunks (currently: thunkFetchElevation).
+              // Mutation thunks would break the single-.change() atomicity guarantee.
+              group: ["store/thunk/**", "**/store/thunk/**"],
+              allowImportNames: ["thunkFetchElevation"],
+              message:
+                "stage* helpers may only import read-only data-fetching thunks (currently: thunkFetchElevation). Any thunk that calls .change() would break the single-patch atomicity guarantee. See src/client/automerge/README.md.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];

@@ -1,39 +1,36 @@
 import type { StoreType } from "store";
-import { createFullTestStore } from "tests/vitest/fixtures/redux/makeTestStore";
+import { createTestStoreWithAutomergeMission } from "tests/vitest/fixtures/store";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import cloneDeep from "lodash/cloneDeep";
 import { setPresetEditMode, upsertPresets } from "store/preset";
-import { setPoiEditMode, upsertPois } from "store/poi";
-import { setStationEditMode, upsertStations } from "store/station";
-import { setEvaEditMode, upsertEvas } from "store/eva";
-import { setTraversesEditMode, upsertTraverses } from "store/traverse";
-import { upsertRexes } from "store/rex";
-import { upsertActions } from "store/action";
-import { generateBlankAction } from "store/storeUtils/action";
-import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankPoi } from "store/storeUtils/poi";
+import { setRuleEditingUuid, upsertSTMRules } from "store/stm";
+import { setFolderInterfaceEditing, setFolders } from "store/interface";
 import { generateBlankPreset } from "store/storeUtils/preset";
-import { generateBlankRex } from "store/storeUtils/rex";
-import { generateBlankStation } from "store/storeUtils/station";
-import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { generateBlankStmRule } from "store/storeUtils/stm";
+import { generateBlankFolder } from "store/storeUtils/folder";
+import { v4 as uuidv4 } from "uuid";
 
 let store: StoreType;
 
 beforeAll(() => {
-  store = createFullTestStore();
+  store = createTestStoreWithAutomergeMission();
 });
 
-beforeEach(async () => {
-  vi.clearAllMocks(); // clear call count
+beforeEach(() => {
+  vi.clearAllMocks();
 });
 
 afterAll(() => {
   vi.restoreAllMocks();
 });
 
+/**
+ * `thunkSocketsHandleUpsert` / `thunkSocketsHandleDelete` only handle the
+ * DB entity types.
+ */
 describe("Thunk Socket Tests", () => {
   describe("thunkSocketsHandleUpsert", () => {
-    it("preset", async () => {
+    it("preset — upserts new, updates existing, conflicts when in edit mode", async () => {
       const data = generateBlankPreset({ name: "Vitest Test Preset" });
       const storeUpsert: StoreUpsert = {
         socketId: null,
@@ -43,15 +40,13 @@ describe("Thunk Socket Tests", () => {
         lastEditEvent: null,
       };
 
-      let messages: string[] | false;
-
       //test new data
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
+      let messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
       expect(store.getState().preset.presets.some((x) => x.uuid === data.uuid)).toBeTruthy();
       expect(store.getState().preset.presetsFromDb.some((x) => x.uuid === data.uuid)).toBeTruthy();
       expect(messages).toEqual([]);
 
-      //test updating existing the data
+      //test updating existing data
       data.name = "Vitest Test Modified Name";
       storeUpsert.data = [cloneDeep(data)];
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
@@ -59,7 +54,7 @@ describe("Thunk Socket Tests", () => {
       expect(store.getState().preset.presetsFromDb.some((x) => x.name === data.name)).toBeTruthy();
       expect(messages).toEqual([]);
 
-      //test data in edit mode
+      //test data in edit mode -> conflict message + edit-mode cleared
       data.name = "Vitest Test In Edit Mode";
       storeUpsert.data = [cloneDeep(data)];
       store.dispatch(setPresetEditMode({ presetUuid: data.uuid, editMode: true }));
@@ -67,470 +62,140 @@ describe("Thunk Socket Tests", () => {
       expect(store.getState().preset.presets.some((x) => x.name === data.name)).toBeTruthy();
       expect(store.getState().preset.presetsFromDb.some((x) => x.name === data.name)).toBeTruthy();
       expect(store.getState().preset.presetsEditing.includes(data.uuid)).toBeFalsy();
-      expect((messages as Array<string>).length).toEqual(1);
+      expect((messages as string[]).length).toEqual(1);
     });
 
-    it("poi", async () => {
-      const data = generateBlankPoi({ name: "Vitest Poi-1" });
+    it("stmRule — upserts and clears editing if the rule being edited changes", async () => {
+      const data = generateBlankStmRule({ stmUuid: uuidv4() });
       const storeUpsert: StoreUpsert = {
         socketId: null,
         missionId: null,
-        type: "poi",
+        type: "stmRule",
         data: [cloneDeep(data)],
         lastEditEvent: null,
       };
 
-      let messages: string[] | false;
-
-      //test new data
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().poi.pois.some((x) => x.uuid === data.uuid)).toBeTruthy();
-      expect(store.getState().poi.poisFromDb.some((x) => x.uuid === data.uuid)).toBeTruthy();
+      let messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
+      expect(store.getState().stm.rules.some((x) => x.uuid === data.uuid)).toBeTruthy();
+      expect(store.getState().stm.rulesFromDb.some((x) => x.uuid === data.uuid)).toBeTruthy();
       expect(messages).toEqual([]);
 
-      //test updating existing the data
-      data.name = "Vitest Test Modified Name";
-      storeUpsert.data = [cloneDeep(data)];
+      // simulate user editing this rule, then another upsert arrives
+      store.dispatch(setRuleEditingUuid(data.uuid));
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().poi.pois.some((x) => x.name === data.name)).toBeTruthy();
-      expect(store.getState().poi.poisFromDb.some((x) => x.name === data.name)).toBeTruthy();
-      expect(messages).toEqual([]);
-
-      //test data in edit mode
-      data.name = "Vitest Test In Edit Mode";
-      storeUpsert.data = [cloneDeep(data)];
-      store.dispatch(setPoiEditMode({ poiUuid: data.uuid, editMode: true }));
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().poi.pois.some((x) => x.name === data.name)).toBeTruthy();
-      expect(store.getState().poi.poisFromDb.some((x) => x.name === data.name)).toBeTruthy();
-      expect(store.getState().poi.poisEditing.includes(data.uuid)).toBeFalsy();
-      expect((messages as Array<string>).length).toEqual(1);
+      expect(store.getState().stm.ruleEditingUuid).toBeNull();
+      expect((messages as string[]).length).toEqual(1);
     });
 
-    it("station", async () => {
-      const data = generateBlankStation({ name: "Vitest Station-1" });
+    it("folder — upserts new + merges existing, conflicts when editing", async () => {
+      const folder1 = generateBlankFolder({ name: "Vitest Folder One", type: "station" });
+      const folder2 = generateBlankFolder({ name: "Vitest Folder Two", type: "station" });
       const storeUpsert: StoreUpsert = {
         socketId: null,
         missionId: null,
-        type: "station",
-        data: [cloneDeep(data)],
+        type: "folder",
+        data: [cloneDeep(folder1)],
         lastEditEvent: null,
       };
 
-      let messages: string[] | false;
+      // initial folder upsert
+      let messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
+      expect(store.getState().interface.folders.some((f) => f.uuid === folder1.uuid)).toBeTruthy();
+      expect(messages).toEqual([]);
 
-      //test new data
+      // add a second folder
+      storeUpsert.data = [cloneDeep(folder2)];
       messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().station.stations.some((x) => x.uuid === data.uuid)).toBeTruthy();
+      expect(store.getState().interface.folders.some((f) => f.uuid === folder2.uuid)).toBeTruthy();
+      expect(messages).toEqual([]);
+
+      // mark folder1 as being edited, then upsert arrives -> conflict
+      store.dispatch(setFolderInterfaceEditing({ folderUuid: folder1.uuid, editing: true }));
+      const folder1Renamed = { ...folder1, name: "Vitest Folder One Renamed" };
+      storeUpsert.data = [folder1Renamed];
+      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
+      expect((messages as string[]).length).toEqual(1);
       expect(
-        store.getState().station.stationsFromDb.some((x) => x.uuid === data.uuid)
-      ).toBeTruthy();
-      expect(messages).toEqual([]);
-
-      //test updating existing the data
-      data.name = "Vitest Test Modified Name";
-      storeUpsert.data = [cloneDeep(data)];
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().station.stations.some((x) => x.name === data.name)).toBeTruthy();
-      expect(
-        store.getState().station.stationsFromDb.some((x) => x.name === data.name)
-      ).toBeTruthy();
-      expect(messages).toEqual([]);
-
-      //test data in edit mode
-      data.name = "Vitest Test In Edit Mode";
-      storeUpsert.data = [cloneDeep(data)];
-      store.dispatch(setStationEditMode({ stationUuid: data.uuid, editMode: true }));
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().station.stations.some((x) => x.name === data.name)).toBeTruthy();
-      expect(
-        store.getState().station.stationsFromDb.some((x) => x.name === data.name)
-      ).toBeTruthy();
-      expect(store.getState().station.stationsEditing.includes(data.uuid)).toBeFalsy();
-      expect((messages as Array<string>).length).toEqual(1);
-    });
-
-    it("eva", async () => {
-      const data = generateBlankEVA({ name: "Vitest Eva-1" });
-      const storeUpsert: StoreUpsert = {
-        socketId: null,
-        missionId: null,
-        type: "eva",
-        data: [cloneDeep(data)],
-        lastEditEvent: null,
-      };
-
-      let messages: string[] | false;
-
-      //test new data
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().eva.evas.some((x) => x.uuid === data.uuid)).toBeTruthy();
-      expect(store.getState().eva.evasFromDb.some((x) => x.uuid === data.uuid)).toBeTruthy();
-      expect(messages).toEqual([]);
-
-      //test updating existing the data
-      data.name = "Vitest Test Modified Name";
-      storeUpsert.data = [cloneDeep(data)];
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().eva.evas.some((x) => x.name === data.name)).toBeTruthy();
-      expect(store.getState().eva.evasFromDb.some((x) => x.name === data.name)).toBeTruthy();
-      expect(messages).toEqual([]);
-
-      //test data in edit mode
-      data.name = "Vitest Test In Edit Mode";
-      storeUpsert.data = [cloneDeep(data)];
-      store.dispatch(setEvaEditMode({ evaUuid: data.uuid, editMode: true }));
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().eva.evas.some((x) => x.name === data.name)).toBeTruthy();
-      expect(store.getState().eva.evasFromDb.some((x) => x.name === data.name)).toBeTruthy();
-      expect(store.getState().eva.evasEditing.includes(data.uuid)).toBeFalsy();
-      expect((messages as Array<string>).length).toEqual(1);
-    });
-
-    it("action", async () => {
-      const data = generateBlankAction({ name: "Vitest Action-1" });
-      const storeUpsert: StoreUpsert = {
-        socketId: null,
-        missionId: null,
-        type: "action",
-        data: [cloneDeep(data)],
-        lastEditEvent: null,
-      };
-
-      let messages: string[] | false;
-
-      //test new data
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().action.actions.some((x) => x.uuid === data.uuid)).toBeTruthy();
-      expect(store.getState().action.actionsFromDb.some((x) => x.uuid === data.uuid)).toBeTruthy();
-      expect(messages).toEqual([]);
-
-      //test updating existing the data
-      data.name = "Vitest Test Modified Name";
-      storeUpsert.data = [cloneDeep(data)];
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().action.actions.some((x) => x.name === data.name)).toBeTruthy();
-      expect(store.getState().action.actionsFromDb.some((x) => x.name === data.name)).toBeTruthy();
-      expect(messages).toEqual([]);
-    });
-
-    it("traverse", async () => {
-      const data = generateBlankTraverse({ name: "Vitest Traverse-1" });
-      const storeUpsert: StoreUpsert = {
-        socketId: null,
-        missionId: null,
-        type: "traverse",
-        data: [cloneDeep(data)],
-        lastEditEvent: null,
-      };
-
-      let messages: string[] | false;
-
-      //test new data
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().traverse.traverses.some((x) => x.uuid === data.uuid)).toBeTruthy();
-      expect(
-        store.getState().traverse.traversesFromDb.some((x) => x.uuid === data.uuid)
-      ).toBeTruthy();
-      expect(messages).toEqual([]);
-
-      //test updating existing the data
-      data.name = "Vitest Test Modified Name";
-      storeUpsert.data = [cloneDeep(data)];
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().traverse.traverses.some((x) => x.name === data.name)).toBeTruthy();
-      expect(
-        store.getState().traverse.traversesFromDb.some((x) => x.name === data.name)
-      ).toBeTruthy();
-      expect(messages).toEqual([]);
-
-      //test data in edit mode
-      data.name = "Vitest Test In Edit Mode";
-      storeUpsert.data = [cloneDeep(data)];
-      store.dispatch(setTraversesEditMode({ uuids: [data.uuid], editMode: true }));
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().traverse.traverses.some((x) => x.name === data.name)).toBeTruthy();
-      expect(
-        store.getState().traverse.traversesFromDb.some((x) => x.name === data.name)
-      ).toBeTruthy();
-      expect(store.getState().traverse.traversesEditing.includes(data.uuid)).toBeFalsy();
-      expect((messages as Array<string>).length).toEqual(1);
-    });
-
-    it("rex", async () => {
-      const data = generateBlankRex({ name: "Vitest Rex-1", evaUuid: "someEvaUuid" });
-      const storeUpsert: StoreUpsert = {
-        socketId: null,
-        missionId: null,
-        type: "rex",
-        data: [cloneDeep(data)],
-        lastEditEvent: null,
-      };
-
-      let messages: string[] | false;
-
-      //test new data
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().rex.rexes.some((x) => x.uuid === data.uuid)).toBeTruthy();
-      expect(store.getState().rex.rexesFromDb.some((x) => x.uuid === data.uuid)).toBeTruthy();
-      expect(messages).toEqual([]);
-
-      //test updating existing the data
-      data.name = "Vitest Test Modified Name";
-      storeUpsert.data = [cloneDeep(data)];
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().rex.rexes.some((x) => x.name === data.name)).toBeTruthy();
-      expect(store.getState().rex.rexesFromDb.some((x) => x.name === data.name)).toBeTruthy();
-      expect(messages).toEqual([]);
-
-      //test data in edit mode
-      data.name = "Vitest Test In Edit Mode";
-      store.dispatch(setEvaEditMode({ evaUuid: data.evaUuid, editMode: true }));
-      storeUpsert.data = [cloneDeep(data)];
-      messages = (await store.dispatch(thunkSocketsHandleUpsert({ storeUpsert }))).payload;
-      expect(store.getState().rex.rexes.some((x) => x.name === data.name)).toBeTruthy();
-      expect(store.getState().rex.rexesFromDb.some((x) => x.name === data.name)).toBeTruthy();
-      expect((messages as Array<string>).length).toEqual(1);
+        store.getState().interface.foldersInterface.find((f) => f.uuid === folder1.uuid)?.editing
+      ).toBeFalsy();
     });
   });
 
   describe("thunkSocketsHandleDelete", () => {
-    it("preset", async () => {
-      const data = generateBlankPreset({ name: "Vitest Test Preset" });
-      const dataInEditMode = generateBlankPreset({ name: "Vitest Test Preset" });
+    it("preset — deletes, switches to default when selected, conflict on edit", async () => {
+      const data = generateBlankPreset({ name: "Vitest Delete Preset" });
+      const dataInEditMode = generateBlankPreset({ name: "Vitest Delete Preset Edit" });
       store.dispatch(upsertPresets([data, dataInEditMode]));
       store.dispatch(setPresetEditMode({ presetUuid: dataInEditMode.uuid, editMode: true }));
       const storeDelete: StoreDelete = {
         socketId: null,
         missionId: null,
         type: "preset",
-        uuids: [],
-        lastEditEvent: null,
-      };
-
-      let messages: string[] | false;
-
-      //test new data
-      storeDelete.uuids = [data.uuid];
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete })))
-        .payload;
-      expect(store.getState().preset.presets.some((x) => x.uuid === data.uuid)).toBeFalsy();
-      expect(store.getState().preset.presetsFromDb.some((x) => x.uuid === data.uuid)).toBeFalsy();
-      expect(messages).toEqual([]);
-
-      //test data in edit mode
-      storeDelete.uuids = [dataInEditMode.uuid];
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete })))
-        .payload;
-      expect(
-        store.getState().preset.presets.some((x) => x.uuid === dataInEditMode.uuid)
-      ).toBeFalsy();
-      expect(
-        store.getState().preset.presetsFromDb.some((x) => x.uuid === dataInEditMode.uuid)
-      ).toBeFalsy();
-      expect(store.getState().preset.presetsEditing.includes(dataInEditMode.uuid)).toBeFalsy();
-      expect((messages as Array<string>).length).toEqual(1);
-    });
-
-    it("poi", async () => {
-      const data = generateBlankPoi({ name: "Vitest Poi-1" });
-      const dataInEditMode = generateBlankPoi({ name: "Vitest Poi-1" });
-      store.dispatch(upsertPois([data, dataInEditMode]));
-      store.dispatch(setPoiEditMode({ poiUuid: dataInEditMode.uuid, editMode: true }));
-      const storeDelete: StoreDelete = {
-        socketId: null,
-        missionId: null,
-        type: "poi",
-        uuids: [],
-        lastEditEvent: null,
-      };
-
-      let messages: string[] | false;
-
-      //test new data
-      storeDelete.uuids = [data.uuid];
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete })))
-        .payload;
-      expect(store.getState().poi.pois.some((x) => x.uuid === data.uuid)).toBeFalsy();
-      expect(store.getState().poi.poisFromDb.some((x) => x.uuid === data.uuid)).toBeFalsy();
-      expect(messages).toEqual([]);
-
-      //test data in edit mode
-      storeDelete.uuids = [dataInEditMode.uuid];
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete })))
-        .payload;
-      expect(store.getState().poi.pois.some((x) => x.uuid === dataInEditMode.uuid)).toBeFalsy();
-      expect(
-        store.getState().poi.poisFromDb.some((x) => x.uuid === dataInEditMode.uuid)
-      ).toBeFalsy();
-      expect(store.getState().poi.poisEditing.includes(dataInEditMode.uuid)).toBeFalsy();
-      expect((messages as Array<string>).length).toEqual(1);
-    });
-
-    it("station", async () => {
-      const data = generateBlankStation({ name: "Vitest Station-1" });
-      const dataInEditMode = generateBlankStation({ name: "Vitest Station-1" });
-      store.dispatch(upsertStations([data, dataInEditMode]));
-      store.dispatch(setStationEditMode({ stationUuid: dataInEditMode.uuid, editMode: true }));
-      const storeDelete: StoreDelete = {
-        socketId: null,
-        missionId: null,
-        type: "station",
-        uuids: [],
-        lastEditEvent: null,
-      };
-
-      let messages: string[] | false;
-
-      //test new data
-      storeDelete.uuids = [data.uuid];
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete })))
-        .payload;
-      expect(store.getState().station.stations.some((x) => x.uuid === data.uuid)).toBeFalsy();
-      expect(store.getState().station.stationsFromDb.some((x) => x.uuid === data.uuid)).toBeFalsy();
-      expect(messages).toEqual([]);
-
-      //test data in edit mode
-      storeDelete.uuids = [dataInEditMode.uuid];
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete })))
-        .payload;
-      expect(
-        store.getState().station.stations.some((x) => x.uuid === dataInEditMode.uuid)
-      ).toBeFalsy();
-      expect(
-        store.getState().station.stationsFromDb.some((x) => x.uuid === dataInEditMode.uuid)
-      ).toBeFalsy();
-      expect(store.getState().station.stationsEditing.includes(dataInEditMode.uuid)).toBeFalsy();
-      expect((messages as Array<string>).length).toEqual(1);
-    });
-
-    it("eva", async () => {
-      const data = generateBlankEVA({ name: "Vitest Eva-1" });
-      const dataInEditMode = generateBlankEVA({ name: "Vitest Eva-1" });
-      store.dispatch(upsertEvas([data, dataInEditMode]));
-      store.dispatch(setEvaEditMode({ evaUuid: dataInEditMode.uuid, editMode: true }));
-      const storeDelete: StoreDelete = {
-        socketId: null,
-        missionId: null,
-        type: "eva",
-        uuids: [],
-        lastEditEvent: null,
-      };
-
-      let messages: string[] | false;
-
-      //test new data
-      storeDelete.uuids = [data.uuid];
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete })))
-        .payload;
-      expect(store.getState().eva.evas.some((x) => x.uuid === data.uuid)).toBeFalsy();
-      expect(store.getState().eva.evasFromDb.some((x) => x.uuid === data.uuid)).toBeFalsy();
-      expect(messages).toEqual([]);
-
-      //test data in edit mode
-      storeDelete.uuids = [dataInEditMode.uuid];
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete })))
-        .payload;
-      expect(store.getState().eva.evas.some((x) => x.uuid === dataInEditMode.uuid)).toBeFalsy();
-      expect(
-        store.getState().eva.evasFromDb.some((x) => x.uuid === dataInEditMode.uuid)
-      ).toBeFalsy();
-      expect(store.getState().eva.evasEditing.includes(dataInEditMode.uuid)).toBeFalsy();
-      expect((messages as Array<string>).length).toEqual(1);
-    });
-
-    it("action", async () => {
-      const data = generateBlankAction({ name: "Vitest Action-1" });
-      const dataInEditMode = generateBlankAction({ name: "Vitest Action-1" });
-      store.dispatch(upsertActions([data, dataInEditMode]));
-      const storeDelete: StoreDelete = {
-        socketId: null,
-        missionId: null,
-        type: "action",
-        uuids: [],
-        lastEditEvent: null,
-      };
-
-      //test new data
-      storeDelete.uuids = [data.uuid];
-      const messages = (
-        await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete }))
-      ).payload;
-      expect(store.getState().action.actions.some((x) => x.uuid === data.uuid)).toBeFalsy();
-      expect(store.getState().action.actionsFromDb.some((x) => x.uuid === data.uuid)).toBeFalsy();
-      expect(messages).toEqual([]);
-    });
-
-    it("traverse", async () => {
-      const data = generateBlankTraverse({ name: "Vitest Traverse-1" });
-      const dataInEditMode = generateBlankTraverse({ name: "Vitest Traverse-1" });
-      store.dispatch(upsertTraverses([data]));
-      store.dispatch(upsertTraverses([dataInEditMode]));
-      store.dispatch(setTraversesEditMode({ uuids: [dataInEditMode.uuid], editMode: true }));
-      const storeDelete: StoreDelete = {
-        socketId: null,
-        missionId: null,
-        type: "traverse",
-        uuids: [],
-        lastEditEvent: null,
-      };
-
-      let messages: string[] | false;
-
-      //test new data
-      storeDelete.uuids = [data.uuid];
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete })))
-        .payload;
-      expect(store.getState().traverse.traverses.some((x) => x.uuid === data.uuid)).toBeFalsy();
-      expect(
-        store.getState().traverse.traversesFromDb.some((x) => x.uuid === data.uuid)
-      ).toBeFalsy();
-      expect(messages).toEqual([]);
-
-      //test data in edit mode
-      storeDelete.uuids = [dataInEditMode.uuid];
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete: storeDelete })))
-        .payload;
-      expect(
-        store.getState().traverse.traverses.some((x) => x.uuid === dataInEditMode.uuid)
-      ).toBeFalsy();
-      expect(
-        store.getState().traverse.traversesFromDb.some((x) => x.uuid === dataInEditMode.uuid)
-      ).toBeFalsy();
-      expect(store.getState().traverse.traversesEditing.includes(dataInEditMode.uuid)).toBeFalsy();
-      expect((messages as Array<string>).length).toEqual(1);
-    });
-
-    it("rex", async () => {
-      const data = generateBlankRex({ name: "Vitest Rex-1", evaUuid: "someEvaUuid1" });
-      const dataInEditMode = generateBlankRex({ name: "Vitest Rex-1", evaUuid: "someEvaUuid2" });
-      store.dispatch(upsertRexes([data]));
-      store.dispatch(upsertRexes([dataInEditMode]));
-      store.dispatch(setEvaEditMode({ evaUuid: dataInEditMode.evaUuid, editMode: true }));
-      const storeDelete: StoreDelete = {
-        socketId: null,
-        missionId: null,
-        type: "rex",
         uuids: [data.uuid],
         lastEditEvent: null,
       };
 
-      let messages: string[] | false;
-
-      //test new data
-      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete }))).payload;
-      expect(store.getState().rex.rexes.some((x) => x.uuid === data.uuid)).toBeFalsy();
-      expect(store.getState().rex.rexesFromDb.some((x) => x.uuid === data.uuid)).toBeFalsy();
+      let messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete }))).payload;
+      expect(store.getState().preset.presets.some((x) => x.uuid === data.uuid)).toBeFalsy();
+      expect(store.getState().preset.presetsFromDb.some((x) => x.uuid === data.uuid)).toBeFalsy();
       expect(messages).toEqual([]);
 
-      //test data in edit mode
+      // delete the one in edit mode -> conflict message + edit-mode cleared
       storeDelete.uuids = [dataInEditMode.uuid];
       messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete }))).payload;
-      expect(store.getState().rex.rexes.some((x) => x.uuid === dataInEditMode.uuid)).toBeFalsy();
       expect(
-        store.getState().rex.rexesFromDb.some((x) => x.uuid === dataInEditMode.uuid)
+        store.getState().preset.presets.some((x) => x.uuid === dataInEditMode.uuid)
       ).toBeFalsy();
-      expect((messages as Array<string>).length).toEqual(1);
+      expect(store.getState().preset.presetsEditing.includes(dataInEditMode.uuid)).toBeFalsy();
+      expect((messages as string[]).length).toEqual(1);
+    });
+
+    it("stmRule — deletes and clears editing if the deleted rule was being edited", async () => {
+      const rule = generateBlankStmRule({ stmUuid: uuidv4() });
+      store.dispatch(upsertSTMRules([rule]));
+      store.dispatch(setRuleEditingUuid(rule.uuid));
+
+      const storeDelete: StoreDelete = {
+        socketId: null,
+        missionId: null,
+        type: "stmRule",
+        uuids: [rule.uuid],
+        lastEditEvent: null,
+      };
+
+      const messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete }))).payload;
+      expect(store.getState().stm.rules.some((r) => r.uuid === rule.uuid)).toBeFalsy();
+      expect(store.getState().stm.ruleEditingUuid).toBeNull();
+      expect((messages as string[]).length).toEqual(1);
+    });
+
+    it("folder — removes folder; emits conflict when deleted folder was being edited", async () => {
+      const folderA = generateBlankFolder({ name: "Vitest Folder A", type: "station" });
+      const folderB = generateBlankFolder({ name: "Vitest Folder B", type: "station" });
+      store.dispatch(setFolders([folderA, folderB]));
+      store.dispatch(setFolderInterfaceEditing({ folderUuid: folderB.uuid, editing: true }));
+
+      const storeDelete: StoreDelete = {
+        socketId: null,
+        missionId: null,
+        type: "folder",
+        uuids: [folderA.uuid],
+        lastEditEvent: null,
+      };
+
+      // delete a folder that was NOT being edited -> no message
+      let messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete }))).payload;
+      expect(store.getState().interface.folders.some((f) => f.uuid === folderA.uuid)).toBeFalsy();
+      expect(messages).toEqual([]);
+
+      // delete the one being edited -> conflict message + edit-mode cleared
+      storeDelete.uuids = [folderB.uuid];
+      messages = (await store.dispatch(thunkSocketsHandleDelete({ storeDelete }))).payload;
+      expect(store.getState().interface.folders.some((f) => f.uuid === folderB.uuid)).toBeFalsy();
+      expect(
+        store.getState().interface.foldersInterface.find((f) => f.uuid === folderB.uuid)?.editing
+      ).toBeFalsy();
+      expect((messages as string[]).length).toEqual(1);
     });
   });
 });

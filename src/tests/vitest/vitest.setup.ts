@@ -1,7 +1,7 @@
 /**
  * Vitest setup file - runs before each test file
  */
-import cloneDeep from "lodash/cloneDeep";
+import * as Automerge from "@automerge/automerge";
 import {
   generateBlankActionTemplate,
   generateBlankMission,
@@ -28,6 +28,10 @@ vi.mock("utils/validateSchemaServer", async () => {
 
 /**
  * Mock @automerge/automerge-repo for client side testing
+ * We need this mock to prevent any module initialization side effects at loading
+ * time due to imports.
+ *
+ * Note: server side mocking of automerge is performed in src/tests/vitest/helpers/mockAutomergeRepo
  */
 vi.mock("@automerge/automerge-repo", () => {
   class MockDocHandle {
@@ -59,61 +63,65 @@ vi.mock("@automerge/automerge-repo", () => {
   };
 });
 
+/**
+ * Mock the module that the client files all interact with.
+ * Setup mock such that doc() and change() use the real automerge.
+ * @automerge/automerge CRDT engine (pure in-memory, no I/O). This is
+ * intentional to expose two bug classes that the real engine would surface:
+ *
+ *   1. Proxy-reference errors — assigning a live Automerge proxy ref inside
+ *      a .change() callback throws "cannot create a reference to an existing
+ *      document" in production but passes silently with cloneDeep.
+ *
+ *   2. List-reassignment vs splice — filter-reassigning an array inside
+ *      .change() produces the same plain-JS end-state as splice but loses
+ *      per-element CRDT identity. The real engine records distinct change
+ *      operations, making the difference observable.
+ */
 vi.mock("client/automergeDocHandles", () => {
-  // Inline MockDocHandle (same as the @automerge/automerge-repo mock)
-  class MockDocHandle {
-    doc() {
-      return {};
-    }
-    change() {
-      return Promise.resolve();
-    }
-    value() {
-      return {};
-    }
-    on() {}
-    off() {}
-    once() {}
-    whenReady() {
-      return Promise.resolve();
-    }
-  }
-
-  const mockAutomergeDocHandles: AutomergeDocHandles = {
-    mission: null,
-  };
+  let mockAutomergeDocHandles: DocHandle<Mission> = null;
 
   function createMockDocHandle() {
-    const mockDocHandle = new MockDocHandle();
-    let currentDoc = generateBlankMission({
-      name: "Vitest Test Mission",
-      landerLocation: { lat: 3, lng: 3 },
-      actionTemplates: {
-        [uuidv4()]: generateBlankActionTemplate({
-          templateName: "Vitest Action Template",
-        }),
-      },
-      actionDefinitions: generateDefaultActionDefinitions(),
-    });
+    let currentDoc = Automerge.from(
+      generateBlankMission({
+        name: "Vitest Test Mission",
+        landerLocation: { lat: 3, lng: 3 },
+        actionTemplates: {
+          [uuidv4()]: generateBlankActionTemplate({
+            templateName: "Vitest Action Template",
+          }),
+        },
+        actionDefinitions: generateDefaultActionDefinitions(),
+      }) as unknown as Record<string, unknown>
+    ) as unknown as Mission;
 
-    mockDocHandle.doc = vi.fn().mockImplementation(() => currentDoc);
-
-    mockDocHandle.change = vi.fn().mockImplementation((changeFn) => {
-      const docCopy = cloneDeep(currentDoc);
-      changeFn(docCopy);
-      currentDoc = docCopy;
-      return;
-    });
-
-    return mockDocHandle;
+    return {
+      doc: vi.fn().mockImplementation(() => currentDoc),
+      change: vi.fn().mockImplementation((changeFn) => {
+        currentDoc = Automerge.change(currentDoc, changeFn);
+      }),
+      value: vi.fn().mockImplementation(() => currentDoc),
+      on: vi.fn(),
+      off: vi.fn(),
+      once: vi.fn(),
+      whenReady: vi.fn().mockResolvedValue(undefined),
+    };
   }
 
   return {
-    getAutomergeDocHandles: vi.fn(() => mockAutomergeDocHandles),
+    getMissionDocHandle: vi.fn(() => mockAutomergeDocHandles),
     setMissionAutomergeDocHandle: vi.fn(() => {
       const mockDocHandle = createMockDocHandle();
-      mockAutomergeDocHandles.mission = mockDocHandle as unknown as DocHandle<Mission>;
+      mockAutomergeDocHandles = mockDocHandle as unknown as DocHandle<Mission>;
       return mockDocHandle;
+    }),
+    withMissionChange: vi.fn((fn: (m: Mission) => unknown) => {
+      if (!mockAutomergeDocHandles) return undefined;
+      let result: unknown;
+      mockAutomergeDocHandles.change((m) => {
+        result = fn(m);
+      });
+      return result;
     }),
   };
 });

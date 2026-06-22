@@ -5,6 +5,7 @@ interface FFTextPropsAutomerge {
   ariaLabel: string;
   validators?: FieldValidator<unknown>[];
   className?: string;
+  onChange?: React.ChangeEventHandler<HTMLInputElement>;
 }
 
 interface FFTextAreaPropsAutomerge {

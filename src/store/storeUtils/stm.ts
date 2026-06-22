@@ -17,7 +17,7 @@ export const generateBlankStmLvl1 = (partialStm?: Partial<STMLevel1>): STMLevel1
     uuid: uuidv4(),
     name: "",
     numbering: "",
-    missionId: null,
+    missionId: 0,
     createdAt: getAccurateNow().toISOString(),
     updatedAt: getAccurateNow().toISOString(),
   };
@@ -76,7 +76,7 @@ export const generateBlankStmLvl2 = (partialStm?: Partial<STMLevel2>): STMLevel2
     uuid: uuidv4(),
     name: "",
     numbering: "",
-    level1Uuid: null,
+    level1Uuid: "",
     createdAt: getAccurateNow().toISOString(),
     updatedAt: getAccurateNow().toISOString(),
   };
@@ -135,7 +135,7 @@ export const generateBlankStmLvl3 = (partialStm?: Partial<STMLevel3>): STMLevel3
     uuid: uuidv4(),
     name: "",
     numbering: "",
-    level2Uuid: null,
+    level2Uuid: "",
     createdAt: getAccurateNow().toISOString(),
     updatedAt: getAccurateNow().toISOString(),
   };
@@ -190,7 +190,7 @@ export function convertStms3TypeStoreToDb(storeStms: STMLevel3[]): EntityData<ST
 export const generateBlankStmRule = ({ stmUuid }: { stmUuid: string }): STMRule => {
   return {
     uuid: uuidv4(),
-    missionId: null,
+    missionId: 0,
     stmUuid,
     count: 1,
     verbUuids: [],

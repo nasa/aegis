@@ -8,19 +8,20 @@ import { faList, faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-ic
 import { Button, Checkbox } from "components/interface/form/globalFields";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useAppDispatch } from "utils/useAppDispatch";
 import { toDecimal } from "utils/formatting";
-import { thunkDeleteEquipment } from "store/thunk/thunkMission-equipment";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkDocDeleteEquipmentItem } from "store/thunk/thunkMissionEquipment";
 import {
-  crudCreateEquipmentItem,
-  crudUpdateEquipmentItemByField,
-} from "client/crud/crud-mission-equipment";
+  applyCreateEquipmentItem,
+  applyUpdateEquipmentItemByField,
+} from "client/automerge/apply/apply-mission-equipment";
+import { withMissionChange } from "client/automergeDocHandles";
 
 const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const missionEquipItems: EquipmentItems = useMissionDocSelector(
-    (doc) => doc.equipmentItems,
+    (mission) => mission.equipmentItems,
     deepEqual
   );
 
@@ -78,7 +79,7 @@ const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   label="Add Equipment Type"
                   style={{ width: "155px", marginLeft: "18px", marginTop: "8px" }}
                   onClick={async () => {
-                    crudCreateEquipmentItem();
+                    withMissionChange((m) => applyCreateEquipmentItem(m));
                   }}
                   ariaLabel="addNewEquipmentButton"
                 />
@@ -99,8 +100,8 @@ const EquipmentItem: FunctionComponent<{
   editMode: boolean;
   evenRow: boolean;
 }> = ({ uuid, equipItem, editMode, evenRow }) => {
-  const dispatch = useAppDispatch();
   const divRef = useRef<HTMLDivElement>(null);
+  const dispatch = useAppDispatch();
 
   let backgroundColor: string = "var(--grey2)";
   backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
@@ -118,7 +119,13 @@ const EquipmentItem: FunctionComponent<{
             }}
             value={equipItem.name}
             onSubmit={(val: string) => {
-              crudUpdateEquipmentItemByField(uuid, "name", val);
+              withMissionChange((m) =>
+                applyUpdateEquipmentItemByField(m, {
+                  equipmentUuid: uuid,
+                  fieldName: "name",
+                  value: val,
+                })
+              );
             }}
             key={`${uuid}-name`}
             focusContents={equipItem.name === "(Equipment Name)"}
@@ -142,7 +149,13 @@ const EquipmentItem: FunctionComponent<{
             }}
             value={equipItem.quantity?.toString()}
             onSubmit={(val: string) => {
-              crudUpdateEquipmentItemByField(uuid, "quantity", toDecimal(val));
+              withMissionChange((m) =>
+                applyUpdateEquipmentItemByField(m, {
+                  equipmentUuid: uuid,
+                  fieldName: "quantity",
+                  value: toDecimal(val),
+                })
+              );
             }}
             key={`${uuid}-quantity`}
           />
@@ -154,7 +167,13 @@ const EquipmentItem: FunctionComponent<{
                 checked={equipItem.singleUse}
                 editable={editMode}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  crudUpdateEquipmentItemByField(uuid, "singleUse", e.target.checked);
+                  withMissionChange((m) =>
+                    applyUpdateEquipmentItemByField(m, {
+                      equipmentUuid: uuid,
+                      fieldName: "singleUse",
+                      value: e.target.checked,
+                    })
+                  );
                 }}
                 toolTip={`Single Use Item`}
               />
@@ -169,10 +188,15 @@ const EquipmentItem: FunctionComponent<{
               <FontAwesomeIcon
                 icon={faTrashAlt}
                 size="sm"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  dispatch(thunkDeleteEquipment({ equipmentItemUuid: uuid }));
+                  const result = await dispatch(
+                    thunkDocDeleteEquipmentItem({ equipmentItemUuid: uuid })
+                  );
+                  if (thunkDocDeleteEquipmentItem.rejected.match(result) && result.payload) {
+                    alert(result.payload);
+                  }
                 }}
                 aria-label="deleteButton"
               />

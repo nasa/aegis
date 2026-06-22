@@ -1,60 +1,46 @@
 import type { EntityManager } from "@mikro-orm/postgresql";
+import type { DocHandle, AutomergeUrl } from "@automerge/automerge-repo/slim";
 
 import {
-  Station_db,
-  Poi_db,
-  Action_db,
-  Eva_db,
   Layer_db,
   Preset_db,
-  Rex_db,
   STM_Level1_db,
   STM_Level2_db,
   STM_Level3_db,
   Sublayer_db,
-  Traverse_db,
   Grid_db,
   STM_Rule_db,
   Folder_db,
   Doc_Listing_db,
 } from "server/database/models/_allModels";
 import { getAccurateNow } from "utils/formatting";
-
 import {
-  processStations,
-  processPois,
-  processTraverses,
-  processActions,
   processLayers,
   processSublayers,
-  processEvas,
   processPresets,
-  processRexes,
   processStmEntities,
   processStmRules,
   processGrids,
   processFolders,
-  connectPoisToStations,
-  updateActionRelationships,
   updateSublayerToLayerRelationships,
-  updateStationActionOrder,
-  updatePoiActionOrder,
-  updateTraverseActionOrder,
 } from "./entityProcessors";
 import { initializeUuidMaps, copyMissionAssets } from "./helpers";
 import { createAutomergeMission } from "server/express/routes/missionAutomerge";
-import type { DocHandle, AutomergeUrl } from "@automerge/automerge-repo/slim";
 import { globalValues } from "server/express/global";
+import cloneDeep from "lodash/cloneDeep";
 
 // Create a new mission based on the original
 const createMissionFromSource = async (
   originalMission: Mission,
   nameSuffix: string
 ): Promise<DocHandle<Mission>> => {
+  // We are unsure the state of the incoming original mission, so clone it in-case
+  // there are existing Automerge proxy references
+  const sourceMission = cloneDeep(originalMission);
   const newMission: Mission = {
-    ...originalMission,
+    ...sourceMission,
     id: null, // Let the database assign a new ID
-    name: `${originalMission.name} - ${nameSuffix}`,
+    name: `${sourceMission.name} - ${nameSuffix}`,
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };
@@ -115,24 +101,10 @@ export const createMissionCopy = async (
     // 2. Initialize UUID maps
     const uuidMaps = outputUuidMaps || initializeUuidMaps();
 
-    // 3. Process entities in the correct order
-    processStations(em, sourceData.stations, newMissionId, uuidMaps);
-    processPois(em, sourceData.pois, newMissionId, uuidMaps);
-    processTraverses(em, sourceData.traverses, newMissionId, uuidMaps);
-
-    // Actions after base entities are created
-    processActions(em, sourceData.actions, newMissionId, uuidMaps);
-
     // Continue with other entities
     processLayers(em, sourceData.layers, newMissionId, uuidMaps);
-
-    // Process sublayers
     await processSublayers(em, sourceData.sublayers, newMissionId, uuidMaps);
-
-    // Process remaining entities
-    processEvas(em, sourceData.evas, newMissionId, uuidMaps);
     processPresets(em, sourceData.presets, newMissionId, uuidMaps);
-    processRexes(em, sourceData.rexes, newMissionId, uuidMaps);
 
     // STM entities
     const stmLevel1s = sourceData.stmLevel1s || [];
@@ -147,20 +119,15 @@ export const createMissionCopy = async (
     const newActiveGridUuid = processGrids(em, sourceData.grids, newMissionId, uuidMaps);
     processFolders(em, sourceData.folders, newMissionId, uuidMaps);
 
-    // 4. Update relationships between entities
-    await connectPoisToStations(em, sourceData.pois, uuidMaps);
-    await updateActionRelationships(em, sourceData.actions, uuidMaps);
+    // 4. Update cross-entity references
+    // Update DB-layer sublayer → layer relationships
     await updateSublayerToLayerRelationships(em, sourceData.sublayers, uuidMaps);
-
-    // Update action order UUIDs
-    await updateStationActionOrder(em, sourceData.stations, uuidMaps);
-    await updatePoiActionOrder(em, sourceData.pois, uuidMaps);
-    await updateTraverseActionOrder(em, sourceData.traverses, uuidMaps);
 
     // 5. Set active grid UUID if available
     if (newActiveGridUuid) {
-      newMissionDocHandle.change((doc) => {
-        doc.activeGridUuid = newActiveGridUuid;
+      // eslint-disable-next-line no-restricted-syntax
+      newMissionDocHandle.change((mission) => {
+        mission.activeGridUuid = newActiveGridUuid;
       });
     }
 
@@ -179,7 +146,7 @@ export const createMissionCopy = async (
 };
 
 // Function to fetch all entities for a mission
-export const fetchMissionEntities = async (
+export const fetchMissionSourceData = async (
   em: EntityManager,
   missionId: number
 ): Promise<MissionSourceData> => {
@@ -194,26 +161,13 @@ export const fetchMissionEntities = async (
   await missionDocHandle.whenReady();
   const mission = missionDocHandle.doc();
 
-  // Fetch STM entities
   const { stmLevel1s, stmLevel2s, stmLevel3s, stmRules } = await fetchStmEntities(em, missionId);
-
-  // Fetch POIs with populated station collection to avoid initialization errors
-  const pois = await em.find(Poi_db, { missionId }, { populate: ["station"] });
-
-  // Fetch stations with populated poi collection
-  const stations = await em.find(Station_db, { missionId }, { populate: ["poi"] });
 
   return {
     mission,
-    stations,
-    pois,
-    actions: await em.find(Action_db, { missionId }),
-    evas: await em.find(Eva_db, { missionId }),
     layers: await em.find(Layer_db, { missionId }),
     sublayers: await em.find(Sublayer_db, { missionId }),
-    traverses: await em.find(Traverse_db, { missionId }),
     presets: await em.find(Preset_db, { missionId }),
-    rexes: await em.find(Rex_db, { missionId }),
     stmLevel1s,
     stmLevel2s,
     stmLevel3s,

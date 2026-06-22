@@ -4,15 +4,9 @@ import { globalValues } from "server/express/global";
 import type { STM_Level3_db } from "server/database/models/_allModels";
 import {
   App_User_db,
-  Station_db,
-  Poi_db,
-  Action_db,
-  Eva_db,
   Layer_db,
   Sublayer_db,
-  Traverse_db,
   Preset_db,
-  Rex_db,
   STM_Level1_db,
   STM_Level2_db,
   STM_Rule_db,
@@ -20,7 +14,7 @@ import {
   Folder_db,
   Doc_Listing_db,
 } from "server/database/models/_allModels";
-import { fetchMissionEntities, createMissionCopy } from "utils/dup/core";
+import { fetchMissionSourceData, createMissionCopy } from "utils/dup/core";
 import { initializeUuidMaps } from "utils/dup/helpers";
 import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
 import { getAll } from "../../../server/express/routes/all";
@@ -30,7 +24,7 @@ import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { createMockAutomergeRepo } from "../helpers/mockAutomergeRepo";
 import { upsertBackupDbMissions } from "server/express/routes/mission";
 import DocListingFactory from "../fixtures/entityFactories/DocListingFactory";
-import { missionTestSeeder } from "../fixtures/seeders/missionTestSeeder";
+import { seedDatabaseAndGenerateAutomergeMission } from "../fixtures/database";
 
 // These global variables will store our test data
 let testAppUser: App_User_db;
@@ -103,19 +97,6 @@ const safeSerialize = <T extends Record<string, any>>(obj: T): Partial<T> => {
 // What properties to exclude in comparisons for each entity type
 const CHANGING_PROPS = {
   mission: ["id", "uuid", "createdAt", "updatedAt", "name", "activeGridUuid", "version"],
-  station: ["uuid", "missionId", "createdAt", "updatedAt", "actionOrderUuids", "poi", "version"],
-  poi: ["uuid", "missionId", "createdAt", "updatedAt", "actionOrderUuids", "station", "version"],
-  action: [
-    "uuid",
-    "missionId",
-    "createdAt",
-    "updatedAt",
-    "poi",
-    "station",
-    "traverse",
-    "parentAction",
-    "version",
-  ],
   stmLevel1: ["uuid", "missionId", "createdAt", "updatedAt", "level2s", "version"],
   stmLevel2: ["uuid", "level1", "createdAt", "updatedAt", "level3s", "version"],
   stmLevel3: ["uuid", "level2", "createdAt", "updatedAt", "version"],
@@ -126,12 +107,30 @@ let originalFullStore: OneMissionToRuleThemAll;
 
 const MOCK_AUTOMERGE_URL = "automerge:VitestDupTestMission";
 
+/**
+ * Pull the duplicated mission's automerge doc out of the mock repo. Cached
+ * lazily — the doc is created once in the first describe block, then reused.
+ */
+let _duplicatedMissionDoc: Mission | null = null;
+const getDuplicatedMission = async (): Promise<Mission> => {
+  if (_duplicatedMissionDoc) return _duplicatedMissionDoc;
+  const em = globalValues.orm.em.fork();
+  const docListing = await em.findOne(Doc_Listing_db, { missionId: duplicatedMissionId });
+  if (!docListing) throw new Error("Duplicated mission doc listing not found");
+  const handle: DocHandle<Mission> = await globalValues.automergeRepo.find(
+    docListing.automergeUrl as AutomergeUrl
+  );
+  await handle.whenReady();
+  _duplicatedMissionDoc = handle.doc();
+  return _duplicatedMissionDoc;
+};
+
 describe("Mission Duplication Tests", () => {
   beforeAll(async () => {
     // Initialize MikroORM and set it in globalValues
     // Enable allowGlobalContext for this test specifically to allow using the global EM instance.
     // This is required because this test calls getAll(), which internally calls route functions
-    // like getActions(), getEVAs(), etc. These route functions use globalValues.orm.em directly
+    // These route functions use globalValues.orm.em directly
     // (without forking) because in production they are called within Express request handlers
     // where the request context is already established.
     globalValues.orm = await MikroORM.init({ ...config, allowGlobalContext: true });
@@ -156,7 +155,7 @@ describe("Mission Duplication Tests", () => {
     });
 
     // Create a fully potted test mission covering all entity types and relationships.
-    await missionTestSeeder(em, missionId, missionDocHandle);
+    await seedDatabaseAndGenerateAutomergeMission(em, missionId, missionDocHandle);
 
     // Create a test user with permissions for our test mission
     testAppUser = await new AppUserFactory(em).createOne({
@@ -182,13 +181,13 @@ describe("Mission Duplication Tests", () => {
     testMission = missionDocHandle.doc() as unknown as Mission;
 
     // Fetch source mission data
-    sourceData = await fetchMissionEntities(em, missionId);
+    sourceData = await fetchMissionSourceData(em, missionId);
 
     // Populate originalFullStore with the state of the mission before duplication
     originalFullStore = await getAll(missionId);
   });
 
-  describe("Mission Table Duplication", () => {
+  describe("Mission Duplication", () => {
     test("Should duplicate a mission record", async () => {
       const em = globalValues.orm.em.fork();
 
@@ -233,580 +232,217 @@ describe("Mission Duplication Tests", () => {
     });
   });
 
+  // Duplicating a mission creates a new doc that inherits the
+  // entire stations collection 1:1 — same uuids, same content.
   describe("Station Duplication", () => {
-    test("Should duplicate all stations with proper relationships", async () => {
-      const em = globalValues.orm.em.fork();
+    test("Duplicated mission has the same stations (same uuids and content) as the source", async () => {
+      const originalStations = sourceData.mission.stations ?? {};
+      expect(Object.keys(originalStations).length).toBeGreaterThan(0);
 
-      // 1. Get all stations from the original mission
-      const originalStations = sourceData.stations;
-      expect(originalStations.length).toBeGreaterThan(0);
+      const duplicatedMission = await getDuplicatedMission();
+      const duplicatedStations = duplicatedMission.stations ?? {};
 
-      // 2. Get all stations from the duplicated mission
-      const duplicatedStations = await em.find(Station_db, {
-        missionId: duplicatedMissionId,
-      });
-      expect(duplicatedStations.length).toEqual(originalStations.length);
+      expect(Object.keys(duplicatedStations).length).toEqual(Object.keys(originalStations).length);
 
-      // 3. Verify stations were correctly duplicated
-      for (const originalStation of originalStations) {
-        // Get the mapped UUID
-        const newUuid = uuidMaps.stations.get(originalStation.uuid);
-        expect(newUuid).toBeDefined();
-
-        // Find the duplicated station with this UUID
-        const duplicatedStation = duplicatedStations.find((s) => s.uuid === newUuid);
+      for (const [uuid, originalStation] of Object.entries(originalStations)) {
+        const duplicatedStation = duplicatedStations[uuid];
         expect(duplicatedStation).toBeDefined();
-
-        // Verify the properties were duplicated correctly (excluding changing properties)
-        if (duplicatedStation) {
-          // Compare station name (should be identical)
-          expect(duplicatedStation.name).toEqual(originalStation.name);
-
-          // Verify the mission ID was updated
-          expect(duplicatedStation.missionId).toEqual(duplicatedMissionId);
-
-          // Use the safe serialization approach to compare only simple properties
-          const originalStationSimple = safeSerialize(originalStation);
-          const duplicatedStationSimple = safeSerialize(duplicatedStation);
-
-          // Remove the properties we expect to be different
-          const filteredOriginal = omitChangingProps(originalStationSimple, CHANGING_PROPS.station);
-          const filteredDuplicated = omitChangingProps(
-            duplicatedStationSimple,
-            CHANGING_PROPS.station
-          );
-
-          expect(filteredDuplicated).toEqual(filteredOriginal);
-        }
+        // Full content equality — stations are plain JSON in automerge
+        expect(duplicatedStation).toEqual(originalStation);
       }
     });
 
-    test("Should update action order UUIDs in stations", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Get stations with action order UUIDs
-      const stationsWithActions = sourceData.stations.filter(
-        (station: Station_db) => station.actionOrderUuids && station.actionOrderUuids.length > 0
+    test("actionOrderUuids on stations are preserved verbatim", async () => {
+      const stationsWithActions = Object.values(sourceData.mission.stations ?? {}).filter(
+        (station: Station) => station.actionOrderUuids && station.actionOrderUuids.length > 0
       );
-
-      // Skip if no stations have action order UUIDs
       if (stationsWithActions.length === 0) {
         console.warn("No stations with action order UUIDs to test");
         return;
       }
 
+      const duplicatedMission = await getDuplicatedMission();
       for (const originalStation of stationsWithActions) {
-        // Get the mapped UUID
-        const newStationUuid = uuidMaps.stations.get(originalStation.uuid);
-        expect(newStationUuid).toBeDefined();
-
-        // Get the duplicated station
-        const duplicatedStation = await em.findOne(Station_db, { uuid: newStationUuid });
+        const duplicatedStation = duplicatedMission.stations?.[originalStation.uuid];
         expect(duplicatedStation).toBeDefined();
-
-        if (
-          !duplicatedStation ||
-          !duplicatedStation.actionOrderUuids ||
-          !originalStation.actionOrderUuids
-        ) {
-          continue;
-        }
-
-        // Verify the action order UUIDs array length matches
-        expect(duplicatedStation.actionOrderUuids.length).toEqual(
-          originalStation.actionOrderUuids.length
-        );
-
-        // Verify each action UUID was correctly mapped using our UUID mapping
-        for (let i = 0; i < originalStation.actionOrderUuids.length; i++) {
-          const originalActionUuid = originalStation.actionOrderUuids[i];
-          const expectedNewActionUuid = uuidMaps.actions.get(originalActionUuid);
-
-          if (expectedNewActionUuid) {
-            // If the action was found in the map, verify it was used in the duplicated station
-            const actualNewActionUuid = duplicatedStation.actionOrderUuids[i];
-            expect(actualNewActionUuid).toEqual(expectedNewActionUuid);
-          } else {
-            console.warn(`Action UUID ${originalActionUuid} not found in UUID map`);
-          }
-        }
+        expect(duplicatedStation.actionOrderUuids).toEqual(originalStation.actionOrderUuids);
       }
     });
   });
 
   describe("POI Duplication", () => {
-    test("Should duplicate all POIs with proper relationships", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Skip the test if there are no POIs to test
-      if (sourceData.pois.length === 0) {
+    test("Duplicated mission has the same POIs (same uuids and content) as the source", async () => {
+      const originalPois = sourceData.mission.pois ?? {};
+      if (Object.keys(originalPois).length === 0) {
         console.warn("No POIs to test in the source mission");
         return;
       }
 
-      // 1. Get all POIs from the original mission
-      const originalPois = sourceData.pois;
+      const duplicatedMission = await getDuplicatedMission();
+      const duplicatedPois = duplicatedMission.pois ?? {};
 
-      // 2. Get all POIs from the duplicated mission
-      const duplicatedPois = await em.find(Poi_db, { missionId: duplicatedMissionId });
-      expect(duplicatedPois.length).toEqual(originalPois.length);
+      expect(Object.keys(duplicatedPois).length).toEqual(Object.keys(originalPois).length);
 
-      // 3. Verify POIs were correctly duplicated
-      for (const originalPoi of originalPois) {
-        // Get the mapped UUID
-        const newUuid = uuidMaps.pois.get(originalPoi.uuid);
-        expect(newUuid).toBeDefined();
-
-        // Find the duplicated POI with this UUID
-        const duplicatedPoi = duplicatedPois.find((p) => p.uuid === newUuid);
+      for (const [uuid, originalPoi] of Object.entries(originalPois)) {
+        const duplicatedPoi = duplicatedPois[uuid];
         expect(duplicatedPoi).toBeDefined();
-
-        // Verify the properties were duplicated correctly (excluding changing properties)
-        if (duplicatedPoi) {
-          // Compare POI name (should be identical)
-          expect(duplicatedPoi.name).toEqual(originalPoi.name);
-
-          // Verify the mission ID was updated
-          expect(duplicatedPoi.missionId).toEqual(duplicatedMissionId);
-
-          // Use the safe serialization approach to compare only simple properties
-          const originalPoiSimple = safeSerialize(originalPoi);
-          const duplicatedPoiSimple = safeSerialize(duplicatedPoi);
-
-          // Remove the properties we expect to be different
-          const filteredOriginal = omitChangingProps(originalPoiSimple, CHANGING_PROPS.poi);
-          const filteredDuplicated = omitChangingProps(duplicatedPoiSimple, CHANGING_PROPS.poi);
-
-          expect(filteredDuplicated).toEqual(filteredOriginal);
-        }
+        expect(duplicatedPoi).toEqual(originalPoi);
       }
     });
 
-    test("Should maintain relationships between POIs and stations", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Skip the test if there are no POIs to test
-      if (sourceData.pois.length === 0) {
-        console.warn("No POIs to test in the source mission");
-        return;
-      }
-
-      // For each original POI with station relationships
-      for (const originalPoi of sourceData.pois) {
-        // If the POI has associated stations
-        if (
-          originalPoi.station &&
-          typeof originalPoi.station === "object" &&
-          typeof originalPoi.station.isInitialized === "function" &&
-          originalPoi.station.isInitialized()
-        ) {
-          // Get the stations associated with the original POI
-          const originalStations = originalPoi.station.getItems();
-
-          // Get the duplicated POI
-          const newPoiUuid = uuidMaps.pois.get(originalPoi.uuid);
-          if (!newPoiUuid) continue;
-
-          const duplicatedPoi = await em.findOne(
-            Poi_db,
-            { uuid: newPoiUuid },
-            { populate: ["station"] }
-          );
-          expect(duplicatedPoi).toBeDefined();
-
-          if (!duplicatedPoi) continue;
-
-          // Ensure the station collection is initialized
-          if (
-            duplicatedPoi.station &&
-            typeof duplicatedPoi.station === "object" &&
-            typeof duplicatedPoi.station.isInitialized === "function"
-          ) {
-            const duplicatedStations = duplicatedPoi.station.isInitialized()
-              ? duplicatedPoi.station.getItems()
-              : [];
-
-            // Verify the duplicated POI has the same number of stations
-            expect(duplicatedStations.length).toEqual(originalStations.length);
-
-            // Verify each station relationship was properly duplicated
-            for (const originalStation of originalStations) {
-              const newStationUuid = uuidMaps.stations.get(originalStation.uuid);
-              expect(newStationUuid).toBeDefined();
-
-              // Check if the duplicated POI has a relationship with the duplicated station
-              const hasRelationship = duplicatedStations.some((s) => s.uuid === newStationUuid);
-              expect(hasRelationship).toBeTruthy();
-            }
-          }
-        }
-      }
-    });
-
-    test("Should update action order UUIDs in POIs", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Get POIs with action order UUIDs
-      const poisWithActions = sourceData.pois.filter(
-        (poi: Poi_db) => poi.actionOrderUuids && poi.actionOrderUuids.length > 0
+    test("actionOrderUuids on POIs are preserved verbatim", async () => {
+      const poisWithActions = Object.values(sourceData.mission.pois ?? {}).filter(
+        (poi: POI) => poi.actionOrderUuids && poi.actionOrderUuids.length > 0
       );
-
-      // Skip if no POIs have action order UUIDs
       if (poisWithActions.length === 0) {
         console.warn("No POIs with action order UUIDs to test");
         return;
       }
 
+      const duplicatedMission = await getDuplicatedMission();
       for (const originalPoi of poisWithActions) {
-        // Get the mapped UUID
-        const newPoiUuid = uuidMaps.pois.get(originalPoi.uuid);
-        expect(newPoiUuid).toBeDefined();
-
-        // Get the duplicated POI
-        const duplicatedPoi = await em.findOne(Poi_db, { uuid: newPoiUuid });
+        const duplicatedPoi = duplicatedMission.pois?.[originalPoi.uuid];
         expect(duplicatedPoi).toBeDefined();
-
-        if (!duplicatedPoi || !duplicatedPoi.actionOrderUuids || !originalPoi.actionOrderUuids) {
-          continue;
-        }
-
-        // Verify the action order UUIDs array length matches
-        expect(duplicatedPoi.actionOrderUuids.length).toEqual(originalPoi.actionOrderUuids.length);
-
-        // Verify each action UUID was correctly mapped using our UUID mapping
-        for (let i = 0; i < originalPoi.actionOrderUuids.length; i++) {
-          const originalActionUuid = originalPoi.actionOrderUuids[i];
-          const expectedNewActionUuid = uuidMaps.actions.get(originalActionUuid);
-
-          if (expectedNewActionUuid) {
-            // If the action was found in the map, verify it was used in the duplicated POI
-            const actualNewActionUuid = duplicatedPoi.actionOrderUuids[i];
-            expect(actualNewActionUuid).toEqual(expectedNewActionUuid);
-          } else {
-            console.warn(`Action UUID ${originalActionUuid} not found in UUID map`);
-          }
-        }
+        expect(duplicatedPoi.actionOrderUuids).toEqual(originalPoi.actionOrderUuids);
       }
     });
   });
 
   describe("Action Duplication", () => {
-    test("Should duplicate all actions with proper relationships", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Skip the test if there are no actions to test
-      if (sourceData.actions.length === 0) {
+    test("Duplicated mission has the same actions (same uuids and content) as the source", async () => {
+      const originalActions = sourceData.mission.actions ?? {};
+      if (Object.keys(originalActions).length === 0) {
         console.warn("No actions to test in the source mission");
         return;
       }
 
-      // 1. Get all actions from the original mission
-      const originalActions = sourceData.actions;
+      const duplicatedMission = await getDuplicatedMission();
+      const duplicatedActions = duplicatedMission.actions ?? {};
 
-      // 2. Get all actions from the duplicated mission
-      const duplicatedActions = await em.find(Action_db, { missionId: duplicatedMissionId });
-      expect(duplicatedActions.length).toEqual(originalActions.length);
+      expect(Object.keys(duplicatedActions).length).toEqual(Object.keys(originalActions).length);
 
-      // 3. Verify actions were correctly duplicated
-      for (const originalAction of originalActions) {
-        // Get the mapped UUID
-        const newUuid = uuidMaps.actions.get(originalAction.uuid);
-        expect(newUuid).toBeDefined();
-
-        // Find the duplicated action with this UUID
-        const duplicatedAction = duplicatedActions.find((a) => a.uuid === newUuid);
+      for (const [uuid, originalAction] of Object.entries(originalActions)) {
+        const duplicatedAction = duplicatedActions[uuid];
         expect(duplicatedAction).toBeDefined();
-
-        // Verify the properties were duplicated correctly
-        if (duplicatedAction) {
-          // Compare action name (should be identical)
-          expect(duplicatedAction.name).toEqual(originalAction.name);
-
-          // Verify the mission ID was updated
-          expect(duplicatedAction.missionId).toEqual(duplicatedMissionId);
-
-          // Use the safe serialization approach to compare only simple properties
-          const originalActionSimple = safeSerialize(originalAction);
-          const duplicatedActionSimple = safeSerialize(duplicatedAction);
-
-          // Remove the properties we expect to be different
-          const filteredOriginal = omitChangingProps(originalActionSimple, CHANGING_PROPS.action);
-          const filteredDuplicated = omitChangingProps(
-            duplicatedActionSimple,
-            CHANGING_PROPS.action
-          );
-
-          expect(filteredDuplicated).toEqual(filteredOriginal);
-        }
+        expect(duplicatedAction).toEqual(originalAction);
       }
     });
 
-    test("Should maintain action-station relationships", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Find actions that have station relationships
-      const actionsWithStations = sourceData.actions.filter(
-        (action: Action_db) => action.station?.uuid
+    test("action.stationUuid references on the duplicated mission still point at valid stations", async () => {
+      const actionsWithStations = Object.values(sourceData.mission.actions ?? {}).filter(
+        (action: Action) => !!action.stationUuid
       );
-
-      // Skip if no actions have station relationships
       if (actionsWithStations.length === 0) {
         console.warn("No actions with station relationships to test");
         return;
       }
 
+      const duplicatedMission = await getDuplicatedMission();
       for (const originalAction of actionsWithStations) {
-        // Get the station UUID
-        const originalStationUuid = originalAction.station.uuid;
-
-        // Get the mapped UUIDs
-        const newActionUuid = uuidMaps.actions.get(originalAction.uuid);
-        const newStationUuid = uuidMaps.stations.get(originalStationUuid);
-
-        expect(newActionUuid).toBeDefined();
-        expect(newStationUuid).toBeDefined();
-
-        // Get the duplicated action
-        const duplicatedAction = await em.findOne(
-          Action_db,
-          { uuid: newActionUuid },
-          { populate: ["station"] }
-        );
-
+        const duplicatedAction = duplicatedMission.actions?.[originalAction.uuid];
         expect(duplicatedAction).toBeDefined();
-        expect(duplicatedAction?.station).toBeDefined();
-
-        // Verify the action-station relationship was maintained
-        if (duplicatedAction && duplicatedAction.station) {
-          expect(duplicatedAction.station.uuid).toEqual(newStationUuid);
-        }
+        // uuid is preserved, so the stationUuid pointer should be unchanged AND
+        // the station it points at should still exist on the duplicated mission.
+        expect(duplicatedAction.stationUuid).toEqual(originalAction.stationUuid);
+        expect(duplicatedMission.stations?.[duplicatedAction.stationUuid]).toBeDefined();
       }
     });
 
-    test("Should maintain action-POI relationships", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Find actions that have POI relationships
-      const actionsWithPois = sourceData.actions.filter((action: Action_db) => action.poi?.uuid);
-
-      // Skip if no actions have POI relationships
+    test("action.poiUuid references on the duplicated mission still point at valid POIs", async () => {
+      const actionsWithPois = Object.values(sourceData.mission.actions ?? {}).filter(
+        (action: Action) => !!action.poiUuid
+      );
       if (actionsWithPois.length === 0) {
         console.warn("No actions with POI relationships to test");
         return;
       }
 
+      const duplicatedMission = await getDuplicatedMission();
       for (const originalAction of actionsWithPois) {
-        // Get the POI UUID
-        const originalPoiUuid = originalAction.poi.uuid;
-
-        // Get the mapped UUIDs
-        const newActionUuid = uuidMaps.actions.get(originalAction.uuid);
-        const newPoiUuid = uuidMaps.pois.get(originalPoiUuid);
-
-        expect(newActionUuid).toBeDefined();
-        expect(newPoiUuid).toBeDefined();
-
-        // Get the duplicated action
-        const duplicatedAction = await em.findOne(
-          Action_db,
-          { uuid: newActionUuid },
-          { populate: ["poi"] }
-        );
-
+        const duplicatedAction = duplicatedMission.actions?.[originalAction.uuid];
         expect(duplicatedAction).toBeDefined();
-        expect(duplicatedAction?.poi).toBeDefined();
-
-        // Verify the action-POI relationship was maintained
-        if (duplicatedAction && duplicatedAction.poi) {
-          expect(duplicatedAction.poi.uuid).toEqual(newPoiUuid);
-        }
+        expect(duplicatedAction.poiUuid).toEqual(originalAction.poiUuid);
+        expect(duplicatedMission.pois?.[duplicatedAction.poiUuid]).toBeDefined();
       }
     });
 
-    test("Should maintain action-traverse relationships", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Find actions that have traverse relationships
-      const actionsWithTraverses = sourceData.actions.filter(
-        (action: Action_db) => action.traverse?.uuid
+    test("action.traverseUuid references on the duplicated mission still point at valid traverses", async () => {
+      const actionsWithTraverses = Object.values(sourceData.mission.actions ?? {}).filter(
+        (action: Action) => !!action.traverseUuid
       );
-
-      // Skip if no actions have traverse relationships
       if (actionsWithTraverses.length === 0) {
         console.warn("No actions with traverse relationships to test");
         return;
       }
 
+      const duplicatedMission = await getDuplicatedMission();
       for (const originalAction of actionsWithTraverses) {
-        // Get the traverse UUID
-        const originalTraverseUuid = originalAction.traverse.uuid;
-
-        // Get the mapped UUIDs
-        const newActionUuid = uuidMaps.actions.get(originalAction.uuid);
-        const newTraverseUuid = uuidMaps.traverses.get(originalTraverseUuid);
-
-        expect(newActionUuid).toBeDefined();
-        expect(newTraverseUuid).toBeDefined();
-
-        // Get the duplicated action
-        const duplicatedAction = await em.findOne(
-          Action_db,
-          { uuid: newActionUuid },
-          { populate: ["traverse"] }
-        );
-
+        const duplicatedAction = duplicatedMission.actions?.[originalAction.uuid];
         expect(duplicatedAction).toBeDefined();
-        expect(duplicatedAction?.traverse).toBeDefined();
-
-        // Verify the action-traverse relationship was maintained
-        if (duplicatedAction && duplicatedAction.traverse) {
-          expect(duplicatedAction.traverse.uuid).toEqual(newTraverseUuid);
-        }
+        expect(duplicatedAction.traverseUuid).toEqual(originalAction.traverseUuid);
+        expect(duplicatedMission.traverses?.[duplicatedAction.traverseUuid]).toBeDefined();
       }
     });
 
-    test("Should remap parentAction reference to original POI action", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // parentAction records the original POI action an action was derived from
-      // when it was duplicated into having a station parent. After duplication,
-      // it must point to the new (duplicated) POI action, not the original.
-      const actionsWithParent = sourceData.actions.filter(
-        (action: Action_db) => action.parentAction?.uuid
+    test("action.parentActionUuid references on the duplicated mission still point at valid parent actions", async () => {
+      // parentActionUuid records the original POI action an action was derived
+      // from when it was duplicated into having a station parent. Since uuids
+      // are preserved 1:1 inside an automerge mission doc, the parent pointer
+      // is unchanged — just verify the referenced action still exists.
+      const actionsWithParent = Object.values(sourceData.mission.actions ?? {}).filter(
+        (action: Action) => !!action.parentActionUuid
       );
-
       if (actionsWithParent.length === 0) {
         console.warn("No actions with parentAction audit trail to test");
         return;
       }
 
+      const duplicatedMission = await getDuplicatedMission();
       for (const originalAction of actionsWithParent) {
-        const newActionUuid = uuidMaps.actions.get(originalAction.uuid);
-        const expectedNewParentUuid = uuidMaps.actions.get(originalAction.parentAction.uuid);
-
-        expect(newActionUuid).toBeDefined();
-        expect(expectedNewParentUuid).toBeDefined();
-
-        const duplicatedAction = await em.findOne(
-          Action_db,
-          { uuid: newActionUuid },
-          { populate: ["parentAction"] }
-        );
-
+        const duplicatedAction = duplicatedMission.actions?.[originalAction.uuid];
         expect(duplicatedAction).toBeDefined();
-        expect(duplicatedAction?.parentAction).toBeDefined();
-
-        if (duplicatedAction?.parentAction) {
-          expect(duplicatedAction.parentAction.uuid).toEqual(expectedNewParentUuid);
-        }
+        expect(duplicatedAction.parentActionUuid).toEqual(originalAction.parentActionUuid);
+        expect(duplicatedMission.actions?.[duplicatedAction.parentActionUuid]).toBeDefined();
       }
     });
   });
 
   describe("Traverse Duplication", () => {
-    test("Should duplicate all traverses with proper properties", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Skip the test if there are no traverses to test
-      if (sourceData.traverses.length === 0) {
+    test("Duplicated mission has the same traverses (same uuids and content) as the source", async () => {
+      const originalTraverses = sourceData.mission.traverses ?? {};
+      if (Object.keys(originalTraverses).length === 0) {
         console.warn("No traverses to test in the source mission");
         return;
       }
 
-      // 1. Get all traverses from the original mission
-      const originalTraverses = sourceData.traverses;
+      const duplicatedMission = await getDuplicatedMission();
+      const duplicatedTraverses = duplicatedMission.traverses ?? {};
 
-      // 2. Get all traverses from the duplicated mission
-      const duplicatedTraverses = await em.find(Traverse_db, {
-        missionId: duplicatedMissionId,
-      });
-      expect(duplicatedTraverses.length).toEqual(originalTraverses.length);
+      expect(Object.keys(duplicatedTraverses).length).toEqual(
+        Object.keys(originalTraverses).length
+      );
 
-      // 3. Verify traverses were correctly duplicated
-      for (const originalTraverse of originalTraverses) {
-        // Get the mapped UUID
-        const newUuid = uuidMaps.traverses.get(originalTraverse.uuid);
-        expect(newUuid).toBeDefined();
-
-        // Find the duplicated traverse with this UUID
-        const duplicatedTraverse = duplicatedTraverses.find((t) => t.uuid === newUuid);
+      for (const [uuid, originalTraverse] of Object.entries(originalTraverses)) {
+        const duplicatedTraverse = duplicatedTraverses[uuid];
         expect(duplicatedTraverse).toBeDefined();
-
-        // Verify the properties were duplicated correctly
-        if (duplicatedTraverse) {
-          // Compare traverse name (should be identical)
-          expect(duplicatedTraverse.name).toEqual(originalTraverse.name);
-
-          // Verify the mission ID was updated
-          expect(duplicatedTraverse.missionId).toEqual(duplicatedMissionId);
-
-          // Use the safe serialization approach to compare only simple properties
-          const originalTraverseSimple = safeSerialize(originalTraverse);
-          const duplicatedTraverseSimple = safeSerialize(duplicatedTraverse);
-
-          // Compare relevant properties
-          expect(duplicatedTraverseSimple.name).toEqual(originalTraverseSimple.name);
-          expect(duplicatedTraverseSimple.description).toEqual(originalTraverseSimple.description);
-          expect(duplicatedTraverseSimple.status).toEqual(originalTraverseSimple.status);
-          expect(duplicatedTraverseSimple.color).toEqual(originalTraverseSimple.color);
-
-          // Compare path coordinates (if they exist)
-          if (originalTraverse.path && originalTraverse.path.length > 0) {
-            expect(duplicatedTraverse.path).toEqual(originalTraverse.path);
-          }
-        }
+        expect(duplicatedTraverse).toEqual(originalTraverse);
       }
     });
 
-    test("Should update action order UUIDs in traverses", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Get traverses with action order UUIDs
-      const traversesWithActions = sourceData.traverses.filter(
+    test("actionOrderUuids on traverses are preserved verbatim", async () => {
+      const traversesWithActions = Object.values(sourceData.mission.traverses ?? {}).filter(
         (traverse) => traverse.actionOrderUuids && traverse.actionOrderUuids.length > 0
       );
-
-      // Skip if no traverses have action order UUIDs
       if (traversesWithActions.length === 0) {
         console.warn("No traverses with action order UUIDs to test");
         return;
       }
 
+      const duplicatedMission = await getDuplicatedMission();
       for (const originalTraverse of traversesWithActions) {
-        // Get the mapped UUID
-        const newTraverseUuid = uuidMaps.traverses.get(originalTraverse.uuid);
-        expect(newTraverseUuid).toBeDefined();
-
-        // Get the duplicated traverse
-        const duplicatedTraverse = await em.findOne(Traverse_db, { uuid: newTraverseUuid });
+        const duplicatedTraverse = duplicatedMission.traverses?.[originalTraverse.uuid];
         expect(duplicatedTraverse).toBeDefined();
-
-        if (
-          !duplicatedTraverse ||
-          !duplicatedTraverse.actionOrderUuids ||
-          !originalTraverse.actionOrderUuids
-        ) {
-          continue;
-        }
-
-        // Verify the action order UUIDs array length matches
-        expect(duplicatedTraverse.actionOrderUuids.length).toEqual(
-          originalTraverse.actionOrderUuids.length
-        );
-
-        // Verify each action UUID was correctly mapped using our UUID mapping
-        for (let i = 0; i < originalTraverse.actionOrderUuids.length; i++) {
-          const originalActionUuid = originalTraverse.actionOrderUuids[i];
-          const expectedNewActionUuid = uuidMaps.actions.get(originalActionUuid);
-
-          if (expectedNewActionUuid) {
-            // If the action was found in the map, verify it was used in the duplicated traverse
-            const actualNewActionUuid = duplicatedTraverse.actionOrderUuids[i];
-            expect(actualNewActionUuid).toEqual(expectedNewActionUuid);
-          } else {
-            console.warn(`Action UUID ${originalActionUuid} not found in UUID map`);
-          }
-        }
+        expect(duplicatedTraverse.actionOrderUuids).toEqual(originalTraverse.actionOrderUuids);
       }
     });
   });
@@ -938,145 +574,70 @@ describe("Mission Duplication Tests", () => {
   });
 
   describe("EVA Duplication", () => {
-    test("Should duplicate all EVAs with proper properties", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Skip the test if there are no EVAs to test
-      if (sourceData.evas.length === 0) {
+    test("Duplicated mission has the same EVAs (same uuids and content) as the source", async () => {
+      const originalEvas = sourceData.mission.evas ?? {};
+      if (Object.keys(originalEvas).length === 0) {
         console.warn("No EVAs to test in the source mission");
         return;
       }
 
-      // 1. Get all EVAs from the original mission
-      const originalEvas = sourceData.evas;
+      const duplicatedMission = await getDuplicatedMission();
+      const duplicatedEvas = duplicatedMission.evas ?? {};
 
-      // 2. Get all EVAs from the duplicated mission
-      const duplicatedEvas = await em.find(Eva_db, { missionId: duplicatedMissionId });
-      expect(duplicatedEvas.length).toEqual(originalEvas.length);
+      expect(Object.keys(duplicatedEvas).length).toEqual(Object.keys(originalEvas).length);
 
-      // 3. Verify EVAs were correctly duplicated
-      for (const originalEva of originalEvas) {
-        // Get the mapped UUID
-        const newUuid = uuidMaps.evas.get(originalEva.uuid);
-        expect(newUuid).toBeDefined();
-
-        // Find the duplicated EVA with this UUID
-        const duplicatedEva = duplicatedEvas.find((e) => e.uuid === newUuid);
+      for (const [uuid, originalEva] of Object.entries(originalEvas)) {
+        const duplicatedEva = duplicatedEvas[uuid];
         expect(duplicatedEva).toBeDefined();
-
-        // Verify the properties were duplicated correctly
-        if (duplicatedEva) {
-          // Compare EVA name (should be identical)
-          expect(duplicatedEva.name).toEqual(originalEva.name);
-
-          // Verify the mission ID was updated
-          expect(duplicatedEva.missionId).toEqual(duplicatedMissionId);
-
-          // Use the safe serialization approach to compare only simple properties
-          const originalEvaSimple = safeSerialize(originalEva);
-          const duplicatedEvaSimple = safeSerialize(duplicatedEva);
-
-          // Compare relevant properties
-          expect(duplicatedEvaSimple.name).toEqual(originalEvaSimple.name);
-          expect(duplicatedEvaSimple.description).toEqual(originalEvaSimple.description);
-          expect(duplicatedEvaSimple.status).toEqual(originalEvaSimple.status);
-        }
+        expect(duplicatedEva).toEqual(originalEva);
       }
     });
 
-    test("Should update station and traverse references in EVA sequences", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Skip the test if there are no EVAs to test
-      if (sourceData.evas.length === 0) {
-        console.warn("No EVAs to test in the source mission");
+    test("EVA sequences are preserved verbatim and reference valid stations/traverses", async () => {
+      const evasWithSequence = Object.values(sourceData.mission.evas ?? {}).filter(
+        (eva) => eva.sequence && eva.sequence.length > 0
+      );
+      if (evasWithSequence.length === 0) {
+        console.warn("No EVAs with sequences to test");
         return;
       }
 
-      // For each EVA with a sequence
-      for (const originalEva of sourceData.evas) {
-        if (!originalEva.sequence || originalEva.sequence.length === 0) {
-          continue;
-        }
-
-        // Get the mapped EVA UUID
-        const newEvaUuid = uuidMaps.evas.get(originalEva.uuid);
-        expect(newEvaUuid).toBeDefined();
-
-        // Get the duplicated EVA
-        const duplicatedEva = await em.findOne(Eva_db, { uuid: newEvaUuid });
+      const duplicatedMission = await getDuplicatedMission();
+      for (const originalEva of evasWithSequence) {
+        const duplicatedEva = duplicatedMission.evas?.[originalEva.uuid];
         expect(duplicatedEva).toBeDefined();
+        expect(duplicatedEva.sequence).toEqual(originalEva.sequence);
 
-        if (!duplicatedEva || !duplicatedEva.sequence) {
-          continue;
-        }
-
-        // Verify the sequence length matches
-        expect(duplicatedEva.sequence.length).toEqual(originalEva.sequence.length);
-
-        // Check each sequence item
-        for (let i = 0; i < originalEva.sequence.length; i++) {
-          const originalItem = originalEva.sequence[i];
-          const duplicatedItem = duplicatedEva.sequence[i];
-
-          // Type should match
-          expect(duplicatedItem.type).toEqual(originalItem.type);
-
-          // UUID should be updated based on the item type
-          if (originalItem.type === "station" && originalItem.uuid) {
-            const expectedNewUuid = uuidMaps.stations.get(originalItem.uuid);
-            // Only check non-empty UUIDs that have mappings
-            if (expectedNewUuid) {
-              expect(duplicatedItem.uuid).toEqual(expectedNewUuid);
-            }
-          } else if (originalItem.type === "traverse" && originalItem.uuid) {
-            const expectedNewUuid = uuidMaps.traverses.get(originalItem.uuid);
-            // Only check non-empty UUIDs that have mappings
-            if (expectedNewUuid) {
-              expect(duplicatedItem.uuid).toEqual(expectedNewUuid);
-            }
+        // Every sequence item must point at an entity that exists on the
+        // duplicated mission (no dangling references).
+        for (const item of duplicatedEva.sequence) {
+          if (item.type === "station" && item.uuid) {
+            expect(duplicatedMission.stations?.[item.uuid]).toBeDefined();
+          } else if (item.type === "traverse" && item.uuid) {
+            expect(duplicatedMission.traverses?.[item.uuid]).toBeDefined();
           }
         }
       }
     });
 
-    test("Should update egress and ingress location references in EVAs", async () => {
-      const em = globalValues.orm.em.fork();
+    test("EVA egress / ingress location references are preserved verbatim", async () => {
+      const originalEvas = Object.values(sourceData.mission.evas ?? {});
+      if (originalEvas.length === 0) return;
 
-      // Skip the test if there are no EVAs to test
-      if (sourceData.evas.length === 0) {
-        console.warn("No EVAs to test in the source mission");
-        return;
-      }
-
-      // For each EVA with egress/ingress locations
-      for (const originalEva of sourceData.evas) {
-        // Get the mapped EVA UUID
-        const newEvaUuid = uuidMaps.evas.get(originalEva.uuid);
-        expect(newEvaUuid).toBeDefined();
-
-        // Get the duplicated EVA
-        const duplicatedEva = await em.findOne(Eva_db, { uuid: newEvaUuid });
+      const duplicatedMission = await getDuplicatedMission();
+      for (const originalEva of originalEvas) {
+        const duplicatedEva = duplicatedMission.evas?.[originalEva.uuid];
         expect(duplicatedEva).toBeDefined();
 
-        if (!duplicatedEva) continue;
+        expect(duplicatedEva.egressLocationUuid).toEqual(originalEva.egressLocationUuid);
+        expect(duplicatedEva.ingressLocationUuid).toEqual(originalEva.ingressLocationUuid);
 
-        // Check egress location UUID
-        if (originalEva.egressLocationUuid && originalEva.egressLocationUuid !== "lander") {
-          const expectedNewEgressUuid = uuidMaps.stations.get(originalEva.egressLocationUuid);
-          expect(duplicatedEva.egressLocationUuid).toEqual(expectedNewEgressUuid);
-        } else if (originalEva.egressLocationUuid === "lander") {
-          // If it's the lander, it should remain as 'lander'
-          expect(duplicatedEva.egressLocationUuid).toEqual("lander");
+        // If not "lander", the referenced station must exist on the dup mission.
+        if (duplicatedEva.egressLocationUuid && duplicatedEva.egressLocationUuid !== "lander") {
+          expect(duplicatedMission.stations?.[duplicatedEva.egressLocationUuid]).toBeDefined();
         }
-
-        // Check ingress location UUID
-        if (originalEva.ingressLocationUuid && originalEva.ingressLocationUuid !== "lander") {
-          const expectedNewIngressUuid = uuidMaps.stations.get(originalEva.ingressLocationUuid);
-          expect(duplicatedEva.ingressLocationUuid).toEqual(expectedNewIngressUuid);
-        } else if (originalEva.ingressLocationUuid === "lander") {
-          // If it's the lander, it should remain as 'lander'
-          expect(duplicatedEva.ingressLocationUuid).toEqual("lander");
+        if (duplicatedEva.ingressLocationUuid && duplicatedEva.ingressLocationUuid !== "lander") {
+          expect(duplicatedMission.stations?.[duplicatedEva.ingressLocationUuid]).toBeDefined();
         }
       }
     });
@@ -1505,135 +1066,63 @@ describe("Mission Duplication Tests", () => {
   });
 
   describe("REX Duplication", () => {
-    test("Should duplicate all REX entities with proper properties", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Skip the test if there are no REXes to test
-      if (sourceData.rexes.length === 0) {
+    test("Duplicated mission has the same REXes (same uuids and content) as the source", async () => {
+      const originalRexes = sourceData.mission.rexes ?? {};
+      if (Object.keys(originalRexes).length === 0) {
         console.warn("No REX entities to test in the source mission");
         return;
       }
 
-      // 1. Get all REXes from the original mission
-      const originalRexes = sourceData.rexes;
+      const duplicatedMission = await getDuplicatedMission();
+      const duplicatedRexes = duplicatedMission.rexes ?? {};
 
-      // 2. Get all REXes from the duplicated mission
-      const duplicatedRexes = await em.find(Rex_db, { missionId: duplicatedMissionId });
-      expect(duplicatedRexes.length).toEqual(originalRexes.length);
+      expect(Object.keys(duplicatedRexes).length).toEqual(Object.keys(originalRexes).length);
 
-      // 3. Verify REXes were correctly duplicated
-      for (const originalRex of originalRexes) {
-        // Get the mapped UUID
-        const newUuid = uuidMaps.rexes.get(originalRex.uuid);
-        expect(newUuid).toBeDefined();
-
-        // Find the duplicated REX with this UUID
-        const duplicatedRex = duplicatedRexes.find((r) => r.uuid === newUuid);
+      for (const [uuid, originalRex] of Object.entries(originalRexes)) {
+        const duplicatedRex = duplicatedRexes[uuid];
         expect(duplicatedRex).toBeDefined();
-
-        // Verify the properties were duplicated correctly
-        if (duplicatedRex) {
-          // Compare REX name (should be identical)
-          expect(duplicatedRex.name).toEqual(originalRex.name);
-
-          // Verify the mission ID was updated
-          expect(duplicatedRex.missionId).toEqual(duplicatedMissionId);
-
-          // Use the safe serialization approach to compare only simple properties
-          const originalRexSimple = safeSerialize(originalRex);
-          const duplicatedRexSimple = safeSerialize(duplicatedRex);
-
-          // Compare relevant properties
-          expect(duplicatedRexSimple.name).toEqual(originalRexSimple.name);
-          expect(duplicatedRexSimple.description).toEqual(originalRexSimple.description);
-
-          // If the REX is linked to an EVA, verify the EVA UUID was updated
-          if (originalRex.evaUuid) {
-            const newEvaUuid = uuidMaps.evas.get(originalRex.evaUuid);
-            expect(duplicatedRex.evaUuid).toEqual(newEvaUuid);
-          }
+        expect(duplicatedRex).toEqual(originalRex);
+        // Pointer to the rex's EVA should still resolve on the duplicated mission.
+        if (duplicatedRex.evaUuid) {
+          expect(duplicatedMission.evas?.[duplicatedRex.evaUuid]).toBeDefined();
         }
       }
     });
 
-    test("Should update entity references in REX entries", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Get REXes that have station entries
-      const rexesWithStationEntries = sourceData.rexes.filter(
-        (rex) => rex.stationEntries && Object.keys(rex.stationEntries).length > 0
-      );
-
-      // Skip if no REXes have station entries
-      if (rexesWithStationEntries.length === 0) {
-        console.warn("No REXes with station entries to test");
+    test("REX entry maps (station/traverse/action) keep their original entity uuids", async () => {
+      const allRexes = Object.values(sourceData.mission.rexes ?? {});
+      if (allRexes.length === 0) {
+        console.warn("No REX entities to test in the source mission");
         return;
       }
 
-      for (const originalRex of rexesWithStationEntries) {
-        // Get the mapped UUID
-        const newRexUuid = uuidMaps.rexes.get(originalRex.uuid);
-        expect(newRexUuid).toBeDefined();
+      const duplicatedMission = await getDuplicatedMission();
 
-        // Get the duplicated REX
-        const duplicatedRex = await em.findOne(Rex_db, { uuid: newRexUuid });
+      for (const originalRex of allRexes) {
+        const duplicatedRex = duplicatedMission.rexes?.[originalRex.uuid];
         expect(duplicatedRex).toBeDefined();
 
-        if (!duplicatedRex || !duplicatedRex.stationEntries) continue;
-
-        // For each station UUID in the original entries
-        for (const originalStationUuid of Object.keys(originalRex.stationEntries)) {
-          // Get the mapped station UUID
-          const newStationUuid = uuidMaps.stations.get(originalStationUuid);
-
-          // If we have a mapping for this station UUID
-          if (newStationUuid) {
-            // Check that the duplicated entries contain an entry for the new station UUID
-            expect(duplicatedRex.stationEntries[newStationUuid]).toBeDefined();
+        // stationEntries
+        if (originalRex.stationEntries) {
+          expect(duplicatedRex.stationEntries).toEqual(originalRex.stationEntries);
+          for (const stationUuid of Object.keys(originalRex.stationEntries)) {
+            expect(duplicatedMission.stations?.[stationUuid]).toBeDefined();
           }
         }
-      }
 
-      // Do similar checks for traverse entries if they exist
-      const rexesWithTraverseEntries = sourceData.rexes.filter(
-        (rex) => rex.traverseEntries && Object.keys(rex.traverseEntries).length > 0
-      );
-
-      if (rexesWithTraverseEntries.length > 0) {
-        for (const originalRex of rexesWithTraverseEntries) {
-          const newRexUuid = uuidMaps.rexes.get(originalRex.uuid);
-          const duplicatedRex = await em.findOne(Rex_db, { uuid: newRexUuid });
-
-          if (!duplicatedRex || !duplicatedRex.traverseEntries) continue;
-
-          for (const originalTraverseUuid of Object.keys(originalRex.traverseEntries)) {
-            const newTraverseUuid = uuidMaps.traverses.get(originalTraverseUuid);
-
-            if (newTraverseUuid) {
-              expect(duplicatedRex.traverseEntries[newTraverseUuid]).toBeDefined();
-            }
+        // traverseEntries
+        if (originalRex.traverseEntries) {
+          expect(duplicatedRex.traverseEntries).toEqual(originalRex.traverseEntries);
+          for (const traverseUuid of Object.keys(originalRex.traverseEntries)) {
+            expect(duplicatedMission.traverses?.[traverseUuid]).toBeDefined();
           }
         }
-      }
 
-      // Check action entries
-      const rexesWithActionEntries = sourceData.rexes.filter(
-        (rex) => rex.actionEntries && Object.keys(rex.actionEntries).length > 0
-      );
-
-      if (rexesWithActionEntries.length > 0) {
-        for (const originalRex of rexesWithActionEntries) {
-          const newRexUuid = uuidMaps.rexes.get(originalRex.uuid);
-          const duplicatedRex = await em.findOne(Rex_db, { uuid: newRexUuid });
-
-          if (!duplicatedRex || !duplicatedRex.actionEntries) continue;
-
-          for (const originalActionUuid of Object.keys(originalRex.actionEntries)) {
-            const newActionUuid = uuidMaps.actions.get(originalActionUuid);
-
-            if (newActionUuid) {
-              expect(duplicatedRex.actionEntries[newActionUuid]).toBeDefined();
-            }
+        // actionEntries
+        if (originalRex.actionEntries) {
+          expect(duplicatedRex.actionEntries).toEqual(originalRex.actionEntries);
+          for (const actionUuid of Object.keys(originalRex.actionEntries)) {
+            expect(duplicatedMission.actions?.[actionUuid]).toBeDefined();
           }
         }
       }
@@ -1715,129 +1204,74 @@ describe("Mission Duplication Tests", () => {
     });
   });
 
+  // Folders themselves are DB-backed (Folder_db) and get new uuids during dup
+  // (tracked in uuidMaps.folders). The entities they point at are split:
+  //   - poi / station / eva items live on the Automerge mission doc and KEEP
+  //     their original uuids when the mission is duplicated.
+  //   - preset / layer items live in postgres and DO get fresh uuids via
+  //     `uuidMaps.presets` / `uuidMaps.layers`.
   describe("Folder Duplication", () => {
-    test("Should duplicate all folders with proper properties", async () => {
+    test("Folders are duplicated with new folder uuids and preserved item lists", async () => {
       const em = globalValues.orm.em.fork();
-
-      // Skip the test if there are no folders to test
       if (sourceData.folders.length === 0) {
         console.warn("No folders to test in the source mission");
         return;
       }
 
-      // 1. Get all folders from the original mission
       const originalFolders = sourceData.folders;
-
-      // 2. Get all folders from the duplicated mission
       const duplicatedFolders = await em.find(Folder_db, { missionId: duplicatedMissionId });
       expect(duplicatedFolders.length).toEqual(originalFolders.length);
 
-      // 3. Verify folders were correctly duplicated
       for (const originalFolder of originalFolders) {
-        // Get the mapped UUID
         const newUuid = uuidMaps.folders.get(originalFolder.uuid);
         expect(newUuid).toBeDefined();
 
-        // Find the duplicated folder with this UUID
         const duplicatedFolder = duplicatedFolders.find((f) => f.uuid === newUuid);
         expect(duplicatedFolder).toBeDefined();
+        if (!duplicatedFolder) continue;
 
-        // Verify the properties were duplicated correctly
-        if (duplicatedFolder) {
-          // Compare folder name (should be identical)
-          expect(duplicatedFolder.name).toEqual(originalFolder.name);
-
-          // Verify the mission ID was updated
-          expect(duplicatedFolder.missionId).toEqual(duplicatedMissionId);
-
-          // Compare folder type
-          expect(duplicatedFolder.type).toEqual(originalFolder.type);
-
-          // Verify the items array length matches
-          expect(duplicatedFolder.items.length).toEqual(originalFolder.items.length);
-        }
+        expect(duplicatedFolder.name).toEqual(originalFolder.name);
+        expect(duplicatedFolder.missionId).toEqual(duplicatedMissionId);
+        expect(duplicatedFolder.type).toEqual(originalFolder.type);
+        expect(duplicatedFolder.items.length).toEqual(originalFolder.items.length);
       }
     });
 
-    test("Should update entity references in folder items", async () => {
+    test("Folder item uuids: automerge entity items are preserved, DB-backed items are remapped", async () => {
       const em = globalValues.orm.em.fork();
-
-      // Skip if there are no folders to test
-      if (sourceData.folders.length === 0) {
-        console.warn("No folders to test in the source mission");
-        return;
-      }
+      if (sourceData.folders.length === 0) return;
 
       for (const originalFolder of sourceData.folders) {
         if (!originalFolder.items || originalFolder.items.length === 0) continue;
 
-        // Get the mapped folder UUID
         const newFolderUuid = uuidMaps.folders.get(originalFolder.uuid);
         expect(newFolderUuid).toBeDefined();
 
-        // Get the duplicated folder
         const duplicatedFolder = await em.findOne(Folder_db, { uuid: newFolderUuid });
         expect(duplicatedFolder).toBeDefined();
-
         if (!duplicatedFolder || !duplicatedFolder.items) continue;
 
-        // Check each item in the folder based on folder type
         switch (originalFolder.type) {
-          case "station":
-            for (let i = 0; i < originalFolder.items.length; i++) {
-              const originalStationUuid = originalFolder.items[i];
-              const newStationUuid = uuidMaps.stations.get(originalStationUuid);
-
-              if (newStationUuid) {
-                // Check that the duplicated folder contains the new station UUID
-                expect(duplicatedFolder.items).toContain(newStationUuid);
-              }
-            }
-            break;
-
+          // Automerge-backed entities: item uuids are preserved 1:1
           case "poi":
-            for (let i = 0; i < originalFolder.items.length; i++) {
-              const originalPoiUuid = originalFolder.items[i];
-              const newPoiUuid = uuidMaps.pois.get(originalPoiUuid);
-
-              if (newPoiUuid) {
-                // Check that the duplicated folder contains the new POI UUID
-                expect(duplicatedFolder.items).toContain(newPoiUuid);
-              }
-            }
-            break;
-
+          case "station":
           case "eva":
-            for (let i = 0; i < originalFolder.items.length; i++) {
-              const originalEvaUuid = originalFolder.items[i];
-              const newEvaUuid = uuidMaps.evas.get(originalEvaUuid);
-
-              if (newEvaUuid) {
-                // Check that the duplicated folder contains the new EVA UUID
-                expect(duplicatedFolder.items).toContain(newEvaUuid);
-              }
-            }
+            expect(duplicatedFolder.items).toEqual(originalFolder.items);
             break;
 
+          // DB-backed entities: item uuids get remapped to the new entity uuids
           case "preset":
-            for (let i = 0; i < originalFolder.items.length; i++) {
-              const originalPresetUuid = originalFolder.items[i];
+            for (const originalPresetUuid of originalFolder.items) {
               const newPresetUuid = uuidMaps.presets.get(originalPresetUuid);
-
               if (newPresetUuid) {
-                // Check that the duplicated folder contains the new Preset UUID
                 expect(duplicatedFolder.items).toContain(newPresetUuid);
               }
             }
             break;
-
           case "layer":
-            for (let i = 0; i < originalFolder.items.length; i++) {
-              const originalLayerUuid = originalFolder.items[i];
+            for (const originalLayerUuid of originalFolder.items) {
               const newLayerUuid = uuidMaps.layers.get(originalLayerUuid);
-
               if (newLayerUuid) {
-                // Check that the duplicated folder contains the new layer UUID
                 expect(duplicatedFolder.items).toContain(newLayerUuid);
               }
             }

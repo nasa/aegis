@@ -1,6 +1,6 @@
 import paper from "paper";
 import type { FunctionComponent, MutableRefObject } from "react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 
 import styles from "./timeline.module.css";
@@ -15,6 +15,7 @@ import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { initGraphItemsRef, initPaperRefs } from "./timeline-init";
 import TimelineHoverValues from "./timeline-hover";
 import { selectEvaActions, selectEvaStations, selectEvaTraverses } from "store/selectors";
+import { useMissionDocSelector } from "utils/useDocSelector";
 import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../../page/petInterval";
 import { getStmUuids } from "store/storeUtils/store";
@@ -23,7 +24,6 @@ import {
   getCalculatedFieldsByTraverse,
 } from "store/processing/calculatedFields";
 import { processEvaDataFromStore } from "./common-timeline";
-import { useMissionDocSelector } from "utils/useDocSelector";
 
 /**
  * Renders the navigation timeline presented at the bottom of the window
@@ -31,29 +31,27 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 const NavTimeline: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      walkbackRate: doc.walkbackRate,
-      traverseRate: doc.traverseRate,
-      demResolution: doc.demResolution,
-      defaultEvaDuration: doc.defaultEvaDuration,
-      landerLocation: doc.landerLocation,
-      planetRadius: doc.planetRadius,
-      landerElevationMeters: doc.landerElevationMeters,
-      actionSystemVersion: doc.actionSystemVersion,
+    (mission) => ({
+      walkbackRate: mission.walkbackRate,
+      traverseRate: mission.traverseRate,
+      demResolution: mission.demResolution,
+      defaultEvaDuration: mission.defaultEvaDuration,
+      landerLocation: mission.landerLocation,
+      planetRadius: mission.planetRadius,
+      landerElevationMeters: mission.landerElevationMeters,
+      actionSystemVersion: mission.actionSystemVersion,
     }),
     deepEqual
   );
 
-  const selectedRex = useAppSelector(
-    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid),
+  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
+  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
+  const selectedRex = useMissionDocSelector(
+    (mission) => (selectedRexUuid ? mission.rexes?.[selectedRexUuid] : null),
     deepEqual
   );
-  const selectedRexFromDb = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid),
-    deepEqual
-  );
-  const selectedEva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
+  const selectedEva = useMissionDocSelector(
+    (mission) => (selectedEvaUuid ? mission.evas?.[selectedEvaUuid] : null),
     deepEqual
   );
   const selectedEvaSequenceItemUuid = useAppSelector(
@@ -61,24 +59,33 @@ const NavTimeline: FunctionComponent = () => {
     refEqual
   );
   const selectedPosEntryUuid = useAppSelector((state) => state.rex.selectedPosEntryUuid, refEqual);
-  const evaActions = useAppSelector(selectEvaActions(), deepEqual);
-  const evaStations = useAppSelector(selectEvaStations(), deepEqual);
-  const evaTraverses = useAppSelector(selectEvaTraverses(), deepEqual);
-  const runningRex = useAppSelector((state) => state.rex.rexes.find((r) => r.isRunning), deepEqual);
-  const runningRexFromDb = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
+  const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual);
+  const evaActions = useMissionDocSelector(
+    (mission) => selectEvaActions(mission.actions, mission.evas?.[selectedEvaUuid]),
     deepEqual
   );
+  const evaStations = useMissionDocSelector(
+    (mission) => selectEvaStations(mission, selectedEvaUuid),
+    deepEqual
+  );
+  const evaTraverses = useMissionDocSelector(
+    (mission) => selectEvaTraverses(mission, selectedEvaUuid),
+    deepEqual
+  );
+  const runningRex = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return null;
+    return Object.values(mission.rexes).find((r) => r.isRunning) ?? null;
+  }, deepEqual);
 
-  const stationCalculatedFieldsInSelectedEva = useAppSelector((state) => {
-    const eva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
+  const stationCalculatedFieldsInSelectedEva = useMemo(() => {
+    const eva = selectedEva;
     const stationsInEvaSequence = eva?.sequence
       ? eva.sequence.filter((s) => s.type === "station")
       : [];
     const allStationCalculatedFields: StationCalculatedFields[] = [];
     for (const stationSeqItem of stationsInEvaSequence) {
-      const station = state.station.stations.find((s) => s.uuid === stationSeqItem.uuid);
-      const stationActions = state.action.actions.filter(
+      const station = evaStations.find((s) => s.uuid === stationSeqItem.uuid);
+      const stationActions = Object.values(allActionRecords).filter(
         (a) => a.stationUuid === stationSeqItem.uuid && a.enabled
       );
       allStationCalculatedFields.push(
@@ -90,21 +97,17 @@ const NavTimeline: FunctionComponent = () => {
       );
     }
     return allStationCalculatedFields;
-  }, deepEqual);
-  const traverseCalculatedFieldsInSelectedEva = useAppSelector((state) => {
-    const eva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
+  }, [selectedEva, evaStations, allActionRecords, partialMission.walkbackRate]);
+  const traverseCalculatedFieldsInSelectedEva = useMemo(() => {
+    const eva = selectedEva;
     const traversesInEvaSequence = eva?.sequence
       ? eva.sequence.filter((s) => s.type === "traverse")
       : [];
     const allTraverseCalculatedFields: TraverseCalculatedFields[] = [];
     for (const traverseSeqItem of traversesInEvaSequence) {
-      const traverse = state.traverse.traverses.find(
-        (traverse) => traverse.uuid === traverseSeqItem.uuid
-      );
-      const traverseEva = state.eva.evas.find((eva) =>
-        eva.sequence.some((seqItem) => seqItem.uuid === traverse?.uuid)
-      );
-      const traverseActions = state.action.actions.filter(
+      const traverse = evaTraverses.find((traverse) => traverse.uuid === traverseSeqItem.uuid);
+      const traverseEva = selectedEva; // traverse is always in the selected eva
+      const traverseActions = Object.values(allActionRecords).filter(
         (a) => a.traverseUuid === traverse?.uuid && a.enabled
       );
       allTraverseCalculatedFields.push(
@@ -117,7 +120,7 @@ const NavTimeline: FunctionComponent = () => {
       );
     }
     return allTraverseCalculatedFields;
-  }, deepEqual);
+  }, [selectedEva, evaTraverses, allActionRecords, partialMission.traverseRate]);
 
   const showDistanceFromLander = useAppSelector(
     (state) => state.interface.timelineShowDistanceFromLander,
@@ -224,14 +227,14 @@ const NavTimeline: FunctionComponent = () => {
     TimelineDrawing.drawGraphAxis(paperDataRef, storeRef);
     //draw pet line for selected rex.
     const rexPetTimeToDraw =
-      runningRexFromDb?.uuid === selectedRexFromDb?.uuid
+      runningRex?.uuid === selectedRex?.uuid
         ? runningRexPetTime // draw the ticking time
-        : selectedRexFromDb?.petValueAtStartStop; // draw the static time at the start/stop of the rex
+        : selectedRex?.petValueAtStartStop; // draw the static time at the start/stop of the rex
     TimelineDrawing.drawPetLine(
       paperDataRef,
       paperGroupsRef,
       rexPetTimeToDraw,
-      selectedRexFromDb?.petRunning
+      selectedRex?.petRunning
     );
     //draw all the things
     if (selectedEva) {
@@ -270,7 +273,7 @@ const NavTimeline: FunctionComponent = () => {
   }, [
     selectedEva,
     selectedRex,
-    selectedRexFromDb,
+    selectedRex,
     selectedEvaSequenceItemUuid,
     showDistanceFromLander,
     showElevation,
@@ -290,9 +293,9 @@ const NavTimeline: FunctionComponent = () => {
       paperDataRef,
       paperGroupsRef,
       runningRexPetTime,
-      selectedRexFromDb?.petRunning
+      selectedRex?.petRunning
     );
-  }, [runningRexPetTime, paperGroupsRef?.current?.petLine, selectedRexFromDb]);
+  }, [runningRexPetTime, paperGroupsRef?.current?.petLine, selectedRex]);
 
   //redraw entire timeline
   useEffect(() => {
@@ -408,7 +411,7 @@ const NavTimeline: FunctionComponent = () => {
   return (
     <div className={styles.timelineContainer}>
       <PetInterval
-        runningRex={runningRexFromDb}
+        runningRex={runningRex}
         rexPetTime={runningRexPetTime}
         setRexPetTime={setRunningRexPetTime}
       />

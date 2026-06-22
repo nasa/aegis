@@ -3,11 +3,10 @@ import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import { globalValues } from "../../global";
-import { Eva_db, Rex_db } from "server/database/models/_allModels";
 import { emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { getAutomergeMissions } from "../missionAutomerge";
 
 const router = express.Router();
 
@@ -76,29 +75,22 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 export async function getRexesByEvaRefData(evaRefUuid: string): Promise<RefRex[]> {
-  // must manually fork because sometimes this call is outside normal http request context (what we do in routes)
-  const em = globalValues.orm.em.fork();
+  const allMissions = await getAutomergeMissions();
 
-  const refEvaSubQuery = em
-    .createQueryBuilder(Eva_db)
-    .select("uuid")
-    .where({ refUuid: evaRefUuid });
+  const matchingRexes = allMissions.flatMap((mission) => {
+    const evaUuidsWithMatchingRef = Object.values(mission.evas || {})
+      .filter((e) => e.refUuid === evaRefUuid)
+      .map((e) => e.uuid);
+    return Object.values(mission.rexes || {}).filter(
+      (r) => evaUuidsWithMatchingRef.includes(r.evaUuid) && !r.maestroEventId
+    );
+  });
 
-  const rexEvasQuery = em
-    .createQueryBuilder(Rex_db)
-    .select(["uuid", "name", "createdAt", "updatedAt", "isRunning"])
-    .where({
-      evaUuid: { $in: refEvaSubQuery.getKnexQuery() },
-      maestroEventId: null,
-    });
-
-  const dbRexes = await rexEvasQuery.execute();
-
-  return dbRexes.map((rex) => ({
+  return matchingRexes.map((rex) => ({
     uuid: rex.uuid,
     name: rex.name,
-    createdAt: rex.createdAt.toISOString(),
-    updatedAt: rex.updatedAt.toISOString(),
+    createdAt: new Date(rex.createdAt).toISOString(),
+    updatedAt: new Date(rex.updatedAt).toISOString(),
     isRunning: rex.isRunning,
   }));
 }

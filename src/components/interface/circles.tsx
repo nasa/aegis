@@ -33,7 +33,10 @@ const Circles: FunctionComponent<{
   circleUIStates = circleUIStates || {};
   circleUIStateSetterFunction = circleUIStateSetterFunction || (() => {});
   const dispatch = useAppDispatch();
-  const circleDefinitions = useMissionDocSelector((doc) => doc.circleDefinitions, deepEqual);
+  const circleDefinitions = useMissionDocSelector(
+    (mission) => mission.circleDefinitions,
+    deepEqual
+  );
 
   const handleNavToMissionSection = () => {
     dispatch(setSectionSelected("mission"));

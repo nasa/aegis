@@ -1,7 +1,8 @@
 import type { FunctionComponent } from "react";
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import styles from "./stm-viewer-indicators.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { stmViewSetHoveredTopItem } from "store/stm";
 import sortBy from "lodash/sortBy";
@@ -12,21 +13,27 @@ export const IndicatorGridRow: FunctionComponent<{
   actionType?: ActionType;
   actionUuid?: string;
 }> = ({ level3Uuid, actionType, actionUuid }) => {
-  const sortedEvaUuids = useAppSelector((state) => {
-    const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
+  const sortedEvaUuids = useMissionDocSelector((mission) => {
+    if (!mission?.evas || !mission?.rexes) return [];
+    const allRexEvasUuids = Object.values(mission.rexes).map((rex) => rex.evaUuid);
     const sortedAsPlannedEvas = sortBy(
-      state.eva.evas.filter((eva) => !allRexEvasUuids.includes(eva.uuid)),
+      Object.values(mission.evas).filter((eva) => !allRexEvasUuids.includes(eva.uuid)),
       [(eva) => eva.name?.toLowerCase()]
     );
-    return sortedAsPlannedEvas
-      .filter((eva) => state.stm.stmViewSelectedEvas.includes(eva.uuid))
-      .map((eva) => eva.uuid);
+    return sortedAsPlannedEvas.map((eva) => eva.uuid);
   }, shallowEqual);
-  const allStationsNotInASelectedEvas = useAppSelector((state) => {
-    const sortedAsPlannedStations = selectAsPlannedStations(state);
-    const selectedEvaUuids = state.stm.stmViewSelectedEvas;
-    for (const evaUuid of selectedEvaUuids) {
-      const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
+  const stmViewSelectedEvas = useAppSelector(
+    (state) => state.stm.stmViewSelectedEvas,
+    shallowEqual
+  );
+  const filteredSortedEvaUuids = useMemo(
+    () => sortedEvaUuids.filter((uuid) => stmViewSelectedEvas.includes(uuid)),
+    [sortedEvaUuids, stmViewSelectedEvas]
+  );
+  const allStationsNotInASelectedEvas = useMissionDocSelector((mission) => {
+    const sortedAsPlannedStations = selectAsPlannedStations(mission);
+    for (const evaUuid of stmViewSelectedEvas) {
+      const eva = mission?.evas?.[evaUuid];
       if (eva) {
         const stationUuids = eva.sequence
           .filter((sequenceItem) => sequenceItem.type === "station")
@@ -44,7 +51,7 @@ export const IndicatorGridRow: FunctionComponent<{
 
   return (
     <div className={styles.indicatorGridRow}>
-      {sortedEvaUuids.map((evaUuid, index) => (
+      {filteredSortedEvaUuids.map((evaUuid, index) => (
         <Fragment key={evaUuid}>
           {index > 0 && <div className={styles.indicatorGridCellDivider}></div>}
           <IndicatorGridStationGroup
@@ -55,7 +62,7 @@ export const IndicatorGridRow: FunctionComponent<{
           />
         </Fragment>
       ))}
-      {sortedEvaUuids.length > 0 && <div className={styles.indicatorGridCellDivider}></div>}
+      {filteredSortedEvaUuids.length > 0 && <div className={styles.indicatorGridCellDivider}></div>}
       {allStationsNotInASelectedEvas.map((station) => (
         <IndicatorGridCell
           key={`${station.uuid}_standalone`}
@@ -75,14 +82,13 @@ const IndicatorGridStationGroup: FunctionComponent<{
   actionType?: ActionType;
   actionUuid?: string;
 }> = ({ level3Uuid, evaUuid, actionType, actionUuid }) => {
-  const allStations = useAppSelector(
-    (state) => sortBy(state.station.stations, [(station) => station.name.toLowerCase()]),
-    deepEqual
-  );
-  const eva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === evaUuid),
-    deepEqual
-  );
+  const allStations =
+    useMissionDocSelector(
+      (mission) =>
+        sortBy(Object.values(mission.stations), [(station) => station.name.toLowerCase()]),
+      deepEqual
+    ) ?? [];
+  const eva = useMissionDocSelector((mission) => mission.evas?.[evaUuid], deepEqual);
   let stations: Station[] = [];
   if (eva) {
     // filter stations by evaUuid
@@ -127,12 +133,13 @@ const IndicatorGridCell: FunctionComponent<{
   actionUuid?: string;
 }> = ({ level3Uuid, stationUuid, actionType = null, actionUuid = null }) => {
   const dispatch = useAppDispatch();
+  const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual) ?? {};
   const stmViewHoveredTopItem = useAppSelector(
     (state) => (state.stm.stmViewShowCrosshairs ? state.stm.stmViewHoveredTopItem : null),
     refEqual
   );
   const indicator: IndicatorStyle = useAppSelector((state) => {
-    const stationActions = state.action.actions.filter(
+    const stationActions = Object.values(allActionRecords).filter(
       (action) => action.stationUuid === stationUuid
     );
     if (stationActions.length === 0) {

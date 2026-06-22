@@ -4,7 +4,7 @@ L.Icon.Default.imagePath = "/leaflet/images/";
 import "leaflet.tilelayer.colorfilter";
 import "proj4leaflet";
 import styles from "components/dashboard/map.module.css";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 
 import type { FunctionComponent, Dispatch, SetStateAction } from "react";
 import { useEffect, useRef, useState, useLayoutEffect, useCallback, useMemo } from "react";
@@ -44,6 +44,7 @@ import PresetMenu from "../interface/map/map-menu-preset";
 import { addTimeToDateTime } from "utils/mapping/timeLayers";
 import { EARTH_RADIUS } from "utils/consts";
 import { globalGrid } from "utils/mapping/grid";
+
 import { selectAsPlannedStations } from "store/selectors";
 import isEqual from "lodash/isEqual";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -79,25 +80,25 @@ const MapBody: FunctionComponent<{
   const posEntryFeatureGroup = useRef<L.FeatureGroup>(null);
   const highlightFeatureGroup = useRef<L.FeatureGroup>(null);
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      id: doc.id,
-      activeGridUuid: doc.activeGridUuid,
-      landerLocation: doc.landerLocation,
-      projIsCustom: doc.projIsCustom,
-      projResUnitsPerPixel: doc.projResUnitsPerPixel,
-      projEpsg: doc.projEpsg,
-      projProj4String: doc.projProj4String,
-      projResZoomLevel: doc.projResZoomLevel,
-      projOriginX: doc.projOriginX,
-      projOriginY: doc.projOriginY,
-      projBoundsMinX: doc.projBoundsMinX,
-      projBoundsMinY: doc.projBoundsMinY,
-      projBoundsMaxX: doc.projBoundsMaxX,
-      projBoundsMaxY: doc.projBoundsMaxY,
-      initialZoom: doc.initialZoom,
-      planetRadius: doc.planetRadius,
-      circleDefinitions: doc.circleDefinitions,
-      actionDefinitions: doc.actionDefinitions,
+    (mission) => ({
+      id: mission.id,
+      activeGridUuid: mission.activeGridUuid,
+      landerLocation: mission.landerLocation,
+      projIsCustom: mission.projIsCustom,
+      projResUnitsPerPixel: mission.projResUnitsPerPixel,
+      projEpsg: mission.projEpsg,
+      projProj4String: mission.projProj4String,
+      projResZoomLevel: mission.projResZoomLevel,
+      projOriginX: mission.projOriginX,
+      projOriginY: mission.projOriginY,
+      projBoundsMinX: mission.projBoundsMinX,
+      projBoundsMinY: mission.projBoundsMinY,
+      projBoundsMaxX: mission.projBoundsMaxX,
+      projBoundsMaxY: mission.projBoundsMaxY,
+      initialZoom: mission.initialZoom,
+      planetRadius: mission.planetRadius,
+      circleDefinitions: mission.circleDefinitions,
+      actionDefinitions: mission.actionDefinitions,
     }),
     deepEqual
   );
@@ -107,87 +108,86 @@ const MapBody: FunctionComponent<{
 
   const presetsFromDb = useAppSelector((state) => state.preset.presetsFromDb, deepEqual);
 
-  const stationsFromDb = useAppSelector((state) => state.station.stationsFromDb, deepEqual);
-  const traversesFromDb = useAppSelector((state) => state.traverse.traversesFromDb, deepEqual);
-  const actionsFromDb = useAppSelector((state) => state.action.actionsFromDb, deepEqual);
-  const runningRexFromDb = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((r) => r.isRunning),
+  const allStations = useMissionDocSelector(
+    (mission) => Object.values(mission.stations),
     deepEqual
   );
-  // Extract posTypes and posSources directly with selectors that use deepEqual to prevent unnecessary re-renders
-  const posTypes = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((r) => r.isRunning)?.posTypes || [],
+  const allTraverses = useMissionDocSelector(
+    (mission) => Object.values(mission.traverses),
     deepEqual
   );
-  const posSources = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((r) => r.isRunning)?.posSources || [],
-    deepEqual
-  );
+  const allActions = useMissionDocSelector((mission) => Object.values(mission.actions), deepEqual);
+  const allEvas = useMissionDocSelector((mission) => mission.evas || {}, deepEqual);
 
-  const stationsInProgress: Station[] = useAppSelector((state) => {
-    const stationsInProgress: Station[] = [];
-    for (const stationUuid in runningRexFromDb.stationEntries) {
-      const stationEntry: ActivityEntry = runningRexFromDb.stationEntries[stationUuid];
-      const evaSequenceUuids =
-        state.eva.evas
-          .find((e) => e.uuid === runningRexFromDb.evaUuid)
-          ?.sequence.map((item) => item.uuid) || [];
+  const runningRex = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return null;
+    return Object.values(mission.rexes).find((r) => r.isRunning) ?? null;
+  }, deepEqual);
+  // Extract posTypes and posSources directly to prevent unnecessary re-renders in useEffects
+  const runningRexPosTypes = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return [];
+    return Object.values(mission.rexes).find((r) => r.isRunning)?.posTypes ?? [];
+  }, deepEqual);
+  const runningRexPosSources = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return [];
+    return Object.values(mission.rexes).find((r) => r.isRunning)?.posSources ?? [];
+  }, deepEqual);
+
+  const stationsInProgress: Station[] = useMissionDocSelector((mission) => {
+    const result: Station[] = [];
+    const runningRex = Object.values(mission.rexes ?? {}).find((r) => r.isRunning);
+    if (!runningRex) return result;
+    const evaSequenceUuids =
+      mission.evas?.[runningRex.evaUuid]?.sequence.map((item) => item.uuid) ?? [];
+    for (const stationUuid in runningRex.stationEntries) {
+      const stationEntry: ActivityEntry = runningRex.stationEntries[stationUuid];
       // only get stations that are currently in the sequence. There might be old entries for stations that were deleted
       if (stationEntry.rexStatus === "in-progress" && evaSequenceUuids.includes(stationUuid)) {
-        const station = state.station.stationsFromDb.find((s) => s.uuid === stationUuid);
-        if (station) stationsInProgress.push(station);
+        const station = mission.stations[stationUuid];
+        if (station) result.push(station);
       }
     }
-    return stationsInProgress;
+    return result;
   }, deepEqual);
-  const traversesInProgress: Traverse[] = useAppSelector((state) => {
-    const traversesInProgress: Traverse[] = [];
-    for (const traverseUuid in runningRexFromDb.traverseEntries) {
-      const traverseEntry: ActivityEntry = runningRexFromDb.traverseEntries[traverseUuid];
-      const evaSequenceUuids =
-        state.eva.evas
-          .find((e) => e.uuid === runningRexFromDb.evaUuid)
-          ?.sequence.map((item) => item.uuid) || [];
+  const traversesInProgress: Traverse[] = useMissionDocSelector((mission) => {
+    const result: Traverse[] = [];
+    const runningRex = Object.values(mission.rexes ?? {}).find((r) => r.isRunning);
+    if (!runningRex) return result;
+    const evaSequenceUuids =
+      mission.evas?.[runningRex.evaUuid]?.sequence.map((item) => item.uuid) ?? [];
+    for (const traverseUuid in runningRex.traverseEntries) {
+      const traverseEntry: ActivityEntry = runningRex.traverseEntries[traverseUuid];
       // only get traverses that are currently in the sequence. There might be old entries for traverses that were deleted
       if (traverseEntry.rexStatus === "in-progress" && evaSequenceUuids.includes(traverseUuid)) {
-        const traverse = state.traverse.traversesFromDb.find(
-          (traverse) => traverse.uuid === traverseUuid
-        );
-        if (traverse) traversesInProgress.push(traverse);
+        const traverse = mission.traverses[traverseUuid];
+        if (traverse) result.push(traverse);
       }
     }
-    return traversesInProgress;
+    return result;
   }, deepEqual);
 
-  const runningEvaFromDb = useAppSelector(
-    (state) => state.eva.evasFromDb.find((eva) => eva.uuid === runningRexFromDb?.evaUuid),
-    deepEqual
+  const runningEva = useMissionDocSelector((mission) => {
+    if (!mission?.evas || !runningRex) return null;
+    return mission.evas[runningRex.evaUuid] ?? null;
+  }, deepEqual);
+  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
+  const selectedEva = useMemo(
+    () => (selectedEvaUuid ? allEvas?.[selectedEvaUuid] : null),
+    [selectedEvaUuid, allEvas]
   );
-  const selectedEva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
-    deepEqual
-  );
-  const asPlannedStationUuids = useAppSelector(
-    (state) => selectAsPlannedStations(state).map((s) => s.uuid),
+  const asPlannedStationUuids = useMissionDocSelector(
+    (mission) => selectAsPlannedStations(mission).map((s) => s.uuid),
     deepEqual
   );
 
   const gridCorner = useAppSelector((state) => state.map.gridCornerPoint, deepEqual);
 
-  const egressLocation = useAppSelector(
-    (state) => {
-      if (isEqual(runningEvaFromDb?.egressLocationUuid, "lander")) {
-        return partialMission.landerLocation;
-      } else {
-        const foundStation = state.station.stations.find(
-          (station) => station.uuid === runningEvaFromDb?.egressLocationUuid
-        );
-        return foundStation ? foundStation.location : null;
-      }
-    },
-
-    deepEqual
-  );
+  const egressLocation = useMissionDocSelector((mission) => {
+    const egressStation = mission.stations[runningEva?.egressLocationUuid];
+    return isEqual(runningEva?.egressLocationUuid, "lander")
+      ? partialMission.landerLocation
+      : (egressStation?.location ?? null);
+  }, deepEqual);
 
   const [posEntriesShowing, setPosEntriesShowing] = useState<PosEntry[]>([]);
   const [latestPosEntriesByType, setLatestPosEntriesByType] = useState<{
@@ -253,11 +253,11 @@ const MapBody: FunctionComponent<{
     ];
   };
 
-  // Update followModeOptions when runningRexFromDb.posTypes changes
+  // Update followModeOptions when runningRex.posTypes changes
   useEffect(() => {
-    if (!posTypes) return;
+    if (!runningRex?.posTypes) return;
 
-    const followPosOptions: MapFollowOptions = posTypes.reduce(
+    const followPosOptions: MapFollowOptions = runningRex.posTypes.reduce(
       (followOptionsForPos: MapFollowOptions, posType: PosType) => {
         followOptionsForPos[posType.uuid] = {
           follow: posType.name === "EV1" || posType.name === "EV2",
@@ -281,7 +281,7 @@ const MapBody: FunctionComponent<{
         return preserved;
       }, {} as MapFollowOptions),
     }));
-  }, [posTypes, defaultFollowOptions]);
+  }, [runningRex, defaultFollowOptions]);
 
   // put this in a useCallback so props isn't a dependency on map instantiation
   const updateBigMapBounds = useCallback(
@@ -424,14 +424,14 @@ const MapBody: FunctionComponent<{
    * Pan/zoom map view in follow mode
    */
   useEffect(() => {
-    if (!followMode || !posTypes) return;
+    if (!followMode || !runningRex?.posTypes) return;
     let objectCoordinates: AEGISPoint[] = [];
 
     // get the coordinates of all objects that are in progress
     if (followModeOptions["stations"].follow) {
       for (const station of stationsInProgress) {
         objectCoordinates.push(station.location);
-        for (const action of actionsFromDb) {
+        for (const action of allActions) {
           if (action.stationUuid === station.uuid && action.location && action.enabled) {
             objectCoordinates.push(action.location);
           }
@@ -441,7 +441,7 @@ const MapBody: FunctionComponent<{
     if (followModeOptions["traverses"].follow) {
       for (const traverse of traversesInProgress) {
         objectCoordinates = objectCoordinates.concat(traverse.path);
-        for (const action of actionsFromDb) {
+        for (const action of allActions) {
           if (action.traverseUuid === traverse.uuid && action.location && action.enabled) {
             objectCoordinates.push(action.location);
           }
@@ -455,24 +455,24 @@ const MapBody: FunctionComponent<{
       }
     }
     // egress and ingress
-    if (runningRexFromDb.xgressEntries?.["egress"]?.rexStatus === "in-progress") {
+    if (runningRex.xgressEntries?.["egress"]?.rexStatus === "in-progress") {
       let egressCoordinates: AEGISPoint;
-      if (runningEvaFromDb?.egressLocationUuid === "lander") {
+      if (runningEva?.egressLocationUuid === "lander") {
         egressCoordinates = partialMission.landerLocation;
       } else {
-        egressCoordinates = stationsFromDb.find(
-          (station) => station.uuid === runningEvaFromDb?.egressLocationUuid
+        egressCoordinates = allStations.find(
+          (station) => station.uuid === runningEva?.egressLocationUuid
         )?.location;
       }
       objectCoordinates.push(egressCoordinates);
     }
-    if (runningRexFromDb.xgressEntries?.["ingress"]?.rexStatus === "in-progress") {
+    if (runningRex.xgressEntries?.["ingress"]?.rexStatus === "in-progress") {
       let ingressCoordinates: AEGISPoint;
-      if (runningEvaFromDb?.ingressLocationUuid === "lander") {
+      if (runningEva?.ingressLocationUuid === "lander") {
         ingressCoordinates = partialMission.landerLocation;
       } else {
-        ingressCoordinates = stationsFromDb.find(
-          (station) => station.uuid === runningEvaFromDb?.ingressLocationUuid
+        ingressCoordinates = allStations.find(
+          (station) => station.uuid === runningEva?.ingressLocationUuid
         )?.location;
       }
       objectCoordinates.push(ingressCoordinates);
@@ -508,15 +508,14 @@ const MapBody: FunctionComponent<{
   }, [
     followModeOptions,
     partialMission,
-    actionsFromDb,
+    allActions,
     stationsInProgress,
     traversesInProgress,
     latestPosEntriesByType,
     followMode,
-    runningEvaFromDb,
-    stationsFromDb,
-    runningRexFromDb,
-    posTypes,
+    runningEva,
+    allStations,
+    runningRex,
   ]);
 
   /**
@@ -569,19 +568,17 @@ const MapBody: FunctionComponent<{
    * Determine stations to show and draw them on map when stations or selections change
    */
   useEffect(() => {
-    if (!stationsFromDb || !map.current) return;
+    if (!allStations || !map.current) return;
 
     const stationUuidsToShow: string[] = [];
     // always show the stations on a selected EVA
-    if (runningEvaFromDb) {
-      const stationSequenceItems = runningEvaFromDb.sequence.filter(
-        (item) => item.type === "station"
-      );
+    if (runningEva) {
+      const stationSequenceItems = runningEva.sequence.filter((item) => item.type === "station");
       stationUuidsToShow.push(...stationSequenceItems.map((item) => item.uuid));
-      if (runningEvaFromDb.egressLocationUuid !== "lander")
-        stationUuidsToShow.push(runningEvaFromDb.egressLocationUuid);
-      if (runningEvaFromDb.ingressLocationUuid !== "lander")
-        stationUuidsToShow.push(runningEvaFromDb.ingressLocationUuid);
+      if (runningEva.egressLocationUuid !== "lander")
+        stationUuidsToShow.push(runningEva.egressLocationUuid);
+      if (runningEva.ingressLocationUuid !== "lander")
+        stationUuidsToShow.push(runningEva.ingressLocationUuid);
     }
 
     // for the rest of the stations (not selected), check eyeball menu setting and folder settings
@@ -598,7 +595,7 @@ const MapBody: FunctionComponent<{
     });
 
     // get the station object for all the station uuids to show
-    const stationsToShow: Station[] = stationsFromDb.filter((station) =>
+    const stationsToShow: Station[] = allStations.filter((station) =>
       stationUuidsToShow.includes(station.uuid)
     );
 
@@ -703,8 +700,8 @@ const MapBody: FunctionComponent<{
     stationFeatureGroup.current.setZIndex(999);
     stationCirclesFeatureGroup.current.setZIndex(998);
   }, [
-    stationsFromDb,
-    runningEvaFromDb,
+    allStations,
+    runningEva,
     mapDisplayStations,
     isWin10,
     asPlannedStationUuids,
@@ -726,32 +723,32 @@ const MapBody: FunctionComponent<{
 
   /** Determine time associated with currently running rex time */
   useEffect(() => {
-    if (runningEvaFromDb?.datetime) {
-      if (runningRexFromDb.petRunning && rexPetTime.endsWith("0")) {
-        setSelectedRexDateTime(addTimeToDateTime(runningEvaFromDb.datetime, rexPetTime));
-      } else if (runningRexFromDb) {
-        setSelectedRexDateTime(runningEvaFromDb.datetime);
+    if (runningEva?.datetime) {
+      if (runningRex.petRunning && rexPetTime.endsWith("0")) {
+        setSelectedRexDateTime(addTimeToDateTime(runningEva.datetime, rexPetTime));
+      } else if (runningRex) {
+        setSelectedRexDateTime(new Date(runningEva.datetime).toISOString());
       } else {
         setSelectedRexDateTime(null);
       }
     } else {
       setSelectedRexDateTime(null);
     }
-  }, [rexPetTime, runningEvaFromDb?.datetime, runningRexFromDb]);
+  }, [rexPetTime, runningEva?.datetime, runningRex]);
 
   /**
    * Determine actions to show and draw them on map when actions or selections change
    */
   useEffect(() => {
-    if (!actionsFromDb || !map.current) return;
+    if (!allActions || !map.current) return;
 
     let actionsToShow: Action[] = [];
     if (mapDisplayActions.show) {
-      const actionsInStation = actionsFromDb.filter(
+      const actionsInStation = allActions.filter(
         (action) =>
           stationsInProgress.map((s) => s.uuid).includes(action.stationUuid) && action.enabled
       );
-      const actionsInTraverse = actionsFromDb.filter(
+      const actionsInTraverse = allActions.filter(
         (action) =>
           traversesInProgress.map((s) => s.uuid).includes(action.traverseUuid) && action.enabled
       );
@@ -792,7 +789,7 @@ const MapBody: FunctionComponent<{
       }
     });
   }, [
-    actionsFromDb,
+    allActions,
     stationsInProgress,
     mapDisplayActions,
     isWin10,
@@ -804,14 +801,12 @@ const MapBody: FunctionComponent<{
    * Determine traverses to show and draw them on map when traverses or selections change
    */
   useEffect(() => {
-    if (!traversesFromDb || !map.current) return;
+    if (!allTraverses || !map.current) return;
 
     let traversesToShow: Traverse[] = [];
-    if (runningEvaFromDb) {
-      const traverseSequenceItems = runningEvaFromDb.sequence.filter(
-        (item) => item.type === "traverse"
-      );
-      const traversesInEva = traversesFromDb.filter((traverse) =>
+    if (runningEva) {
+      const traverseSequenceItems = runningEva.sequence.filter((item) => item.type === "traverse");
+      const traversesInEva = allTraverses.filter((traverse) =>
         traverseSequenceItems.find((item) => item.uuid === traverse.uuid)
       );
       traversesToShow = traversesInEva;
@@ -825,7 +820,7 @@ const MapBody: FunctionComponent<{
     });
     // draw all traverses in the selectedEva sequence
     traversesToShow.forEach((traverse) => {
-      const baseColor = traverse.color || runningEvaFromDb?.traverseColor || "#03adfc";
+      const baseColor = traverse.color || runningEva?.traverseColor || "#03adfc";
 
       drawPolylineOnMap({
         map,
@@ -852,7 +847,7 @@ const MapBody: FunctionComponent<{
         },
       });
     });
-  }, [traversesFromDb, runningEvaFromDb, showArrows]);
+  }, [allTraverses, runningEva, showArrows]);
 
   /**
    * Draw circles around the lander for each circle definition
@@ -1187,14 +1182,14 @@ const MapBody: FunctionComponent<{
    * General Pos Entry drawing function. Determines which pos entries to show and draws them on the map. Also determines latest pos entries for each pos type.
    */
   useEffect(() => {
-    if (!map.current || !runningRexFromDb) return;
+    if (!map.current || !runningRex) return;
 
     let posEntriesToShow: PosEntry[] = [];
     let posTypeLatestEntries: { [key: string]: PosEntry[] } = {};
 
     // determine which pos entries to show
     if (mapDisplayPos.show) {
-      const posEntriesWithLocations = runningRexFromDb.posEntries?.filter(
+      const posEntriesWithLocations = runningRex.posEntries?.filter(
         (posEntry) => posEntry.location
       );
       // filter out the pos entries that are not from a selected source. Empty source array means "all".
@@ -1269,7 +1264,7 @@ const MapBody: FunctionComponent<{
         map,
         posEntry: posEntry,
         posEntryFeatureGroup,
-        selectedOrRunningRex: runningRexFromDb,
+        selectedOrRunningRex: runningRex,
         markerOptions: { opacity },
         tooltipOptions: { opacity: 0.65, className: styles.tooltip, permanent: keepTooltipOpen },
         overridePosTypesUuidsToDraw: customPosTypesUuids.length > 0 ? customPosTypesUuids : null,
@@ -1291,7 +1286,7 @@ const MapBody: FunctionComponent<{
     if (mapDisplayPos.showPaths) {
       //hide old paths
       if (!mapDisplayPos.showOldPaths) {
-        for (const posType of runningRexFromDb.posTypes) {
+        for (const posType of runningRex.posTypes) {
           if (!posTypeLatestEntries[posType.uuid] || posTypeLatestEntries[posType.uuid].length <= 1)
             continue;
           //loop over posTypes and get their latest entries
@@ -1312,7 +1307,7 @@ const MapBody: FunctionComponent<{
         }
       } else {
         // show all paths
-        const posTypes = runningRexFromDb.posTypes;
+        const posTypes = runningRex.posTypes;
         posTypes?.forEach((posType) => {
           const posEntriesForType = posEntriesToShow.filter((posEntry) =>
             posEntry.posTypeUuids.includes(posType.uuid)
@@ -1377,7 +1372,7 @@ const MapBody: FunctionComponent<{
     setLatestPosEntriesByType(posTypeLatestEntries);
     setPosEntriesShowing(posEntriesToShow);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, mapDisplayPos, runningRexFromDb, isWin10, egressLocation]); // do not include dependency for rexPetTime
+  }, [map, mapDisplayPos, runningRex, isWin10, egressLocation]); // do not include dependency for rexPetTime
 
   /**
    * Update position entry tooltips when rex is ticking
@@ -1409,7 +1404,7 @@ const MapBody: FunctionComponent<{
               entry.createdAt > latestPosEntry.createdAt
           );
           if (otherPosEntriesWithThisType.length === 0) {
-            const posTypeAbbr = posTypes.find(
+            const posTypeAbbr = runningRexPosTypes.find(
               (posTypeFromRex) => posTypeFromRex.uuid === posTypeUuidFromEntry
             )?.abbr;
             markerPosTypeAbbrs.push(posTypeAbbr);
@@ -1418,7 +1413,7 @@ const MapBody: FunctionComponent<{
 
         // set the marker tooltip
         const timeToShow = hhmmssFromSeconds(rexPetSeconds - latestPosEntry.petSeconds);
-        const sourceAbbr = posSources.find(
+        const sourceAbbr = runningRexPosSources.find(
           (posSource) => posSource.uuid === latestPosEntry.posSourceUuid
         )?.abbr;
         const newLabel = `${timeToShow} / ${markerPosTypeAbbrs} (${sourceAbbr})`;
@@ -1429,11 +1424,11 @@ const MapBody: FunctionComponent<{
       for (let i = 0; i < posEntriesShowing.length; i++) {
         //build label
         const timeToShow = hhmmssFromSeconds(rexPetSeconds - posEntriesShowing[i].petSeconds);
-        const sourceAbbr = posSources.find(
+        const sourceAbbr = runningRexPosSources.find(
           (posSource) => posSource.uuid === posEntriesShowing[i].posSourceUuid
         )?.abbr;
         const markerPosTypeAbbrs = posEntriesShowing[i].posTypeUuids.map((posTypeUuid) => {
-          const posType = posTypes.find((posType) => posType.uuid === posTypeUuid);
+          const posType = runningRexPosTypes.find((posType) => posType.uuid === posTypeUuid);
           return posType?.abbr;
         });
         const newLabel = `${timeToShow} / ${markerPosTypeAbbrs} (${sourceAbbr})`;
@@ -1444,7 +1439,14 @@ const MapBody: FunctionComponent<{
         }
       }
     }
-  }, [rexPetTime, posEntriesShowing, latestPosEntriesByType, mapDisplayPos, posSources, posTypes]);
+  }, [
+    rexPetTime,
+    posEntriesShowing,
+    latestPosEntriesByType,
+    mapDisplayPos,
+    runningRexPosTypes,
+    runningRexPosSources,
+  ]);
 
   return (
     <div
@@ -1457,11 +1459,7 @@ const MapBody: FunctionComponent<{
       }}
       ref={mapContainerRef}
     >
-      <PetInterval
-        runningRex={runningRexFromDb}
-        rexPetTime={rexPetTime}
-        setRexPetTime={setRexPetTime}
-      />
+      <PetInterval runningRex={runningRex} rexPetTime={rexPetTime} setRexPetTime={setRexPetTime} />
       <div className={styles.map} ref={mapRef} />
       <div className={`${!showMenu && styles.hide}`}>
         <div className={`${styles.mapViewDisplay} `}>
@@ -1503,7 +1501,7 @@ const MapBody: FunctionComponent<{
                   { label: "Stations", value: "stations" },
                   { label: "Traverses", value: "traverses" },
                 ].concat(
-                  posTypes.map((posType) => {
+                  (runningRex?.posTypes ?? []).map((posType) => {
                     return { label: posType.name, value: posType.uuid };
                   })
                 )}

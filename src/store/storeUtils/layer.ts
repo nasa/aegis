@@ -13,7 +13,7 @@ import { getAccurateNow } from "utils/formatting";
 export const generateBlankLayer = (partialLayer?: Partial<Layer>): Layer => {
   const defaultNewLayer: Layer = {
     uuid: uuidv4(),
-    missionId: null,
+    missionId: 0,
     name: "",
     createdAt: getAccurateNow().toISOString(),
     updatedAt: getAccurateNow().toISOString(),

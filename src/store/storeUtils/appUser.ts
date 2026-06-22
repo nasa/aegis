@@ -4,18 +4,18 @@ import type { App_User_db } from "server/database/models/_allModels";
 import { getAccurateNow } from "utils/formatting";
 
 /**
- * Generate a blank user
+ * Generate a blank app user
  * @param partialUser any fields that are to be overridden from default
  * @returns the generated user
  */
 export const generateBlankAppUser = (partialUser?: Partial<AppUser>): AppUser => {
   const defaultNewUser: AppUser = {
-    id: null,
+    id: 0,
     username: "",
     password: "",
     isAdmin: false,
     isSuperAdmin: false,
-    permissionList: null,
+    permissionList: [],
     createdAt: getAccurateNow().toISOString(),
     updatedAt: getAccurateNow().toISOString(),
   };

@@ -1,30 +1,34 @@
 import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 
 import Circles from "../../interface/circles";
 import { useAppDispatch } from "utils/useAppDispatch";
 import paneStyles from "../global-pane-styles.module.css";
 import styles from "../../interface/circles.module.css";
-import {
-  setStationCircleStyle,
-  setStationCircleUIState,
-  toggleStationCircleVisible,
-} from "store/station";
+import { setStationCircleUIState } from "store/station";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import {
+  applyToggleStationCircleVisible,
+  applyUpdateStationCircleStyle,
+} from "client/automerge/apply/apply-station";
 
 const Station_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const circleDefinitions = useMissionDocSelector((doc) => doc.circleDefinitions, deepEqual);
+  const circleDefinitions = useMissionDocSelector(
+    (mission) => mission.circleDefinitions,
+    deepEqual
+  );
 
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual
   );
-  const mapCircleControls = useAppSelector(
-    (state) =>
-      state.station.stations.find((station) => station.uuid === selectedStationUuid)
-        ?.mapCircleControls,
-    deepEqual
+  const stations = useMissionDocSelector((mission) => mission.stations, shallowEqual);
+  const mapCircleControls = useMemo(
+    () => stations?.[selectedStationUuid]?.mapCircleControls,
+    [stations, selectedStationUuid]
   );
   const circleUIStates = useAppSelector(
     (state) => state.station.stationCirclesUIStates[selectedStationUuid],
@@ -51,11 +55,8 @@ const Station_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
   };
 
   const toggleStationCircleVisibleHandler = ({ circleUuid }: { circleUuid: string }) => {
-    dispatch(
-      toggleStationCircleVisible({
-        stationUuid: selectedStationUuid,
-        circleUuid,
-      })
+    withMissionChange((m) =>
+      applyToggleStationCircleVisible(m, { stationUuid: selectedStationUuid, circleUuid })
     );
   };
 
@@ -66,11 +67,11 @@ const Station_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
     uuid: string;
     layerStyle: MapSublayerStyle;
   }) => {
-    dispatch(
-      setStationCircleStyle({
+    withMissionChange((m) =>
+      applyUpdateStationCircleStyle(m, {
         stationUuid: selectedStationUuid,
-        circleDefUuid: uuid,
-        style: layerStyle,
+        circleUuid: uuid,
+        layerStyle,
       })
     );
   };

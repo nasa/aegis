@@ -39,27 +39,15 @@ export const populateStore = async (params: {
   } // Gracefully handle an error if no data is returned?
 
   const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
-  wholeStoreState.action.actions = allDataRes.data.actions;
-  wholeStoreState.action.actionsFromDb = allDataRes.data.actions;
-  wholeStoreState.eva.evas = allDataRes.data.evas;
-  wholeStoreState.eva.evasFromDb = allDataRes.data.evas;
   wholeStoreState.mission.layers = allDataRes.data.layers;
   wholeStoreState.mission.sublayers = allDataRes.data.sublayers;
-  wholeStoreState.poi.pois = allDataRes.data.pois;
-  wholeStoreState.poi.poisFromDb = allDataRes.data.pois;
   wholeStoreState.preset.presets = allDataRes.data.presets;
   wholeStoreState.preset.presetsFromDb = allDataRes.data.presets;
-  wholeStoreState.rex.rexes = allDataRes.data.rexes;
-  wholeStoreState.rex.rexesFromDb = allDataRes.data.rexes;
-  wholeStoreState.station.stations = allDataRes.data.stations;
-  wholeStoreState.station.stationsFromDb = allDataRes.data.stations;
   wholeStoreState.stm.level1s = allDataRes.data.level1s;
   wholeStoreState.stm.level2s = allDataRes.data.level2s;
   wholeStoreState.stm.level3s = allDataRes.data.level3s;
   wholeStoreState.stm.rules = allDataRes.data.stmRules;
   wholeStoreState.stm.rulesFromDb = allDataRes.data.stmRules;
-  wholeStoreState.traverse.traverses = allDataRes.data.traverses;
-  wholeStoreState.traverse.traversesFromDb = allDataRes.data.traverses;
   wholeStoreState.interface.folders = allDataRes.data.folders;
 
   // Generate folders interface states for the store (using cookies if available)
@@ -78,19 +66,19 @@ export const populateStore = async (params: {
     throw new Error("Mission doc handle not found in repo");
   }
   await missionDocHandle.whenReady();
-  setMissionAutomergeDocHandle(missionDocHandle); // Save doc handle to global for future access
+  setMissionAutomergeDocHandle(missionDocHandle); // Save doc handle to client global for future access
 
   // Get circle definitions from the mission automerge doc
-  const automergeMission = missionDocHandle.doc();
-  const missionCircleDefinitions = automergeMission.circleDefinitions;
+  const mission = missionDocHandle.doc();
+  const missionCircleDefinitions = mission.circleDefinitions;
 
-  // Run audits on the data returned, modifying the data as needed. Each audit function will save needed changes to the DB
+  // Run audits on the data returned, modifying the data as needed. Each audit function will save needed changes
   // Require the automerge doc handle is ready since these audits need access to and update mission
   if (runAudit) {
     await auditPresetsAgainstLayers({ wholeStoreState });
     await auditActionDefinitions({ missionDocHandle });
-    await auditFolders({ wholeStoreState });
-    await auditActions({ wholeStoreState });
+    await auditFolders({ wholeStoreState, missionDocHandle });
+    await auditActions({ wholeStoreState, missionDocHandle });
   }
 
   // Set the default preset
@@ -108,13 +96,14 @@ export const populateStore = async (params: {
   generatePresetsCirclesUIStates({ wholeStoreState, missionCircleDefinitions });
 
   // Generate station circles UI states for the store (not in the DB)
-  generateStationsCirclesUIStates({ wholeStoreState, missionCircleDefinitions });
+  const stationUuids = Object.keys(mission?.stations ?? {});
+  generateStationsCirclesUIStates({ wholeStoreState, missionCircleDefinitions, stationUuids });
 
-  // Generate eva dropdown selected state for the store (not in the DB)
-  generateEvaDropdownUIStates({ wholeStoreState });
+  // Generate eva dropdown selected state from automerge evas (not in the DB)
+  generateEvaDropdownUIStates({ wholeStoreState, mission });
 
   // If a rex is running, then switch the interface to show the rex pane and EVA actions right panel
-  setRunningRexView({ wholeStoreState });
+  setRunningRexView({ wholeStoreState, mission });
 
   // Run a schema validator check on the mission data
   // Consider expanding this to all object types
@@ -129,25 +118,30 @@ export const populateStore = async (params: {
   return wholeStoreState;
 };
 
-// If a rex is running, then switch the interface to show the rex pane and EVA actions right panel
-export const setRunningRexView = (params: { wholeStoreState: WholeStoreState }): void => {
-  const { wholeStoreState } = params;
-  const runningRex = wholeStoreState.rex.rexes.find((rex) => rex.isRunning === true);
+// If a rex is running, switch the interface to show the rex pane and EVA actions right panel
+export const setRunningRexView = (params: {
+  wholeStoreState: WholeStoreState;
+  mission: Mission;
+}): void => {
+  const { wholeStoreState, mission } = params;
+  const allRexes = Object.values(mission?.rexes ?? {});
+  const runningRex = allRexes.find((rex) => rex.isRunning === true);
   if (runningRex) {
     wholeStoreState.interface.rightPanelIsOpen = true;
     wholeStoreState.interface.sectionSelectedLabel = "evas";
     wholeStoreState.eva.showRunningRexOnly = true;
     wholeStoreState.rex.selectedRexUuid = runningRex.uuid;
     // Find the EVA UUID associated with the Rex
-    const evaUuid = wholeStoreState.rex.rexes.find((rex) => rex.uuid === runningRex.uuid)?.evaUuid;
+    const evaUuid = runningRex.evaUuid;
     if (evaUuid) {
-      // select the EVA and open up the actions panel
+      const allEvas = Object.values(mission?.evas ?? {});
+      // Select the EVA and open up the actions panel
       wholeStoreState.eva.selectedEvaUuid = evaUuid;
       wholeStoreState.eva.selectedEvaRightNavItem = "actions_panel";
-      // expand the as-planned version and set it in the eva dropdown
-      const allRexEvas = wholeStoreState.rex.rexes.map((rex) => rex.evaUuid);
-      const evaRefUuid = wholeStoreState.eva.evas.find((e) => e.uuid === evaUuid)?.refUuid;
-      const asPlannedEvaUuid = wholeStoreState.eva.evas.find(
+      // Expand the as-planned version and set it in the eva dropdown
+      const allRexEvas = allRexes.map((rex) => rex.evaUuid);
+      const evaRefUuid = mission.evas[evaUuid]?.refUuid;
+      const asPlannedEvaUuid = allEvas.find(
         (e) => e.refUuid === evaRefUuid && !allRexEvas.includes(e.uuid)
       )?.uuid;
       wholeStoreState.eva.expandedEvaUuids = [asPlannedEvaUuid];
@@ -163,7 +157,7 @@ const generatePresetsLayersUIStates = async (params: {
   // Generate preset UI states
   const presetUuids = wholeStoreState.preset.presets.map((p) => p.uuid);
   presetUuids.forEach((presetUuid) => {
-    //build preset ui states for the layer and sublayers
+    // Build preset ui states for the layer and sublayers
     const presetLayerUIStates: LayerUIStates = {};
     for (const layer of wholeStoreState.mission?.layers) {
       if (!layer.uuid) continue;
@@ -182,7 +176,6 @@ const generatePresetsLayersUIStates = async (params: {
         type: "sublayer",
       };
     }
-
     wholeStoreState.preset.presetLayersUIStates[presetUuid] = presetLayerUIStates;
   });
 };
@@ -195,16 +188,13 @@ const generatePresetsCirclesUIStates = async (params: {
   // Generate preset UI states
   const presetUuids = wholeStoreState.preset.presets.map((p) => p.uuid);
   presetUuids.forEach((presetUuid) => {
-    //build preset ui states for the layer and sublayers
+    // Build preset ui states for the layer and sublayers
     const presetCircleUIStates: CircleUIStates = {};
     if (missionCircleDefinitions) {
       Object.entries(missionCircleDefinitions || {})?.forEach(([uuid]) => {
-        presetCircleUIStates[uuid] = {
-          slidersSelected: false,
-        };
+        presetCircleUIStates[uuid] = { slidersSelected: false };
       });
     }
-
     wholeStoreState.preset.presetCirclesUIStates[presetUuid] = presetCircleUIStates;
   });
 };
@@ -212,22 +202,18 @@ const generatePresetsCirclesUIStates = async (params: {
 const generateStationsCirclesUIStates = async (params: {
   wholeStoreState: WholeStoreState;
   missionCircleDefinitions: CircleDefinitions;
+  stationUuids: string[];
 }): Promise<void> => {
-  const { wholeStoreState, missionCircleDefinitions } = params;
+  const { wholeStoreState, missionCircleDefinitions, stationUuids } = params;
   // Generate station UI states
-  const stationUuids = wholeStoreState.station.stations.map((s) => s.uuid);
   stationUuids.forEach((stationUuid) => {
-    //build station ui states for the circles
+    // Build preset ui states for the layer and sublayers
     const stationCircleUIStates: CircleUIStates = {};
-
     if (missionCircleDefinitions) {
       Object.entries(missionCircleDefinitions || {})?.forEach(([uuid]) => {
-        stationCircleUIStates[uuid] = {
-          slidersSelected: false,
-        };
+        stationCircleUIStates[uuid] = { slidersSelected: false };
       });
     }
-
     wholeStoreState.station.stationCirclesUIStates[stationUuid] = stationCircleUIStates;
   });
 };
@@ -238,7 +224,6 @@ const generateFoldersInterfaceStates = (params: { wholeStoreState: WholeStoreSta
     const foldersInterfaceCookie: FoldersInterfaceCookie = JSON.parse(
       Cookies.get("AEGIS_Folders_Interface") || "{}"
     );
-
     wholeStoreState.interface.foldersInterface = wholeStoreState.interface.folders.map((folder) => {
       const savedState = foldersInterfaceCookie[folder.uuid];
       return {
@@ -268,11 +253,16 @@ const generateFoldersInterfaceStates = (params: { wholeStoreState: WholeStoreSta
   }
 };
 
-const generateEvaDropdownUIStates = (params: { wholeStoreState: WholeStoreState }): void => {
-  const { wholeStoreState } = params;
-  //get list of all as-planned evas
-  const rexEvas = wholeStoreState.rex.rexes.map((rex) => rex.evaUuid);
-  const asPlannedEvas = wholeStoreState.eva.evas.filter((e) => !rexEvas.includes(e.uuid));
+const generateEvaDropdownUIStates = (params: {
+  wholeStoreState: WholeStoreState;
+  mission: Mission;
+}): void => {
+  const { wholeStoreState, mission } = params;
+  // Get list of all as-planned evas
+  const allEvas = Object.values(mission?.evas ?? {});
+  const allRexes = Object.values(mission?.rexes ?? {});
+  const rexEvas = allRexes.map((rex) => rex.evaUuid);
+  const asPlannedEvas = allEvas.filter((e) => !rexEvas.includes(e.uuid));
   for (const eva of asPlannedEvas) {
     wholeStoreState.eva.evaDropdownUIStates[eva.uuid] = eva.uuid;
   }

@@ -104,8 +104,7 @@ export function findDateDistance(time1: Date, time2: Date): number {
   return Math.abs(time1.getTime() - time2.getTime());
 }
 
-export function addTimeToDateTime(dateTime: string, time: string): string {
-  const dateTimeNumeric = new Date(dateTime).getTime();
+export function addTimeToDateTime(dateTime: number, time: string): string {
   const timeNumeric = secondsFromhhmmss(time) * 1000;
-  return new Date(dateTimeNumeric + timeNumeric).toISOString();
+  return new Date(dateTime + timeNumeric).toISOString();
 }

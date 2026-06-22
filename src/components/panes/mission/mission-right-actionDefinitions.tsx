@@ -10,13 +10,14 @@ import { ValidatedInputField } from "components/interface/form/globalFieldsAutom
 import { validators } from "components/interface/form/formValidators";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkDeleteActionDefItem } from "store/thunk/thunkActionDefinitions";
+import { thunkDocDeleteActionDefItem } from "store/thunk/thunkActionDefinitions";
 import capitalize from "lodash/capitalize";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import {
-  crudCreateActionDefinitionItem,
-  crudUpdateActionDefinitionItemByField,
-} from "client/crud/crud-mission-actionDefinition";
+  applyCreateActionDefinitionItem,
+  applyUpdateActionDefinitionItemByField,
+} from "client/automerge/apply/apply-mission-actionDefinition";
+import { withMissionChange } from "client/automergeDocHandles";
 
 const ActionDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   return (
@@ -46,7 +47,10 @@ const ActionDefinitions: FunctionComponent<{
   editMode: boolean;
 }> = ({ type, editMode }) => {
   const divRef = useRef<HTMLDivElement>(null);
-  const actionDefinitions = useMissionDocSelector((doc) => doc.actionDefinitions, deepEqual);
+  const actionDefinitions = useMissionDocSelector(
+    (mission) => mission.actionDefinitions,
+    deepEqual
+  );
 
   // Makes a 2nd sorted array of the key value object map
   const actionDefinitionItemsSorted = Object.entries(actionDefinitions?.[type] || {}).sort(
@@ -101,7 +105,7 @@ const ActionDefinitions: FunctionComponent<{
             label={`Add Action ${capitalize(type.slice(0, -1))}`}
             style={{ width: buttonWidth, marginLeft: "18px", marginTop: "8px" }}
             onClick={async () => {
-              crudCreateActionDefinitionItem(type);
+              withMissionChange((m) => applyCreateActionDefinitionItem(m, { type }));
             }}
             ariaLabel="addGeoUnitButton"
           />
@@ -135,7 +139,14 @@ const ActionDefinitionItem: FunctionComponent<{
             }}
             value={actionDefinitionKeyValue[1].name}
             onSubmit={(val: string) => {
-              crudUpdateActionDefinitionItemByField(type, actionDefinitionKeyValue[0], "name", val);
+              withMissionChange((m) =>
+                applyUpdateActionDefinitionItemByField(m, {
+                  type,
+                  uuid: actionDefinitionKeyValue[0],
+                  fieldName: "name",
+                  value: val,
+                })
+              );
             }}
             focusContents={
               actionDefinitionKeyValue[1].name === `(${capitalize(type.slice(0, -1))} Name)`
@@ -152,7 +163,14 @@ const ActionDefinitionItem: FunctionComponent<{
             }}
             value={actionDefinitionKeyValue[1].abbr}
             onSubmit={(val: string) => {
-              crudUpdateActionDefinitionItemByField(type, actionDefinitionKeyValue[0], "abbr", val);
+              withMissionChange((m) =>
+                applyUpdateActionDefinitionItemByField(m, {
+                  type,
+                  uuid: actionDefinitionKeyValue[0],
+                  fieldName: "abbr",
+                  value: val,
+                })
+              );
             }}
             key={`${actionDefinitionKeyValue[0]}-abbr`}
             focusContents={actionDefinitionKeyValue[1].abbr === "abbr"}
@@ -169,7 +187,7 @@ const ActionDefinitionItem: FunctionComponent<{
                   e.preventDefault();
                   e.stopPropagation();
                   dispatch(
-                    thunkDeleteActionDefItem({
+                    thunkDocDeleteActionDefItem({
                       type,
                       uuid: actionDefinitionKeyValue[0],
                     })

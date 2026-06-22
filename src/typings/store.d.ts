@@ -13,7 +13,11 @@ interface MissionState {
   layers: Layer[] | null;
   sublayers: Sublayer[] | null;
   selectedRightNavItem: string;
-  missionSectionsEditing: string[];
+  /**
+   * Single global edit-mode flag. When true, edit mode is on for mission, eva,
+   * traverse, station, poi, rex, and action sections.
+   */
+  isInEditMode: boolean;
   automergeUrl: string;
 }
 
@@ -26,6 +30,11 @@ interface UserState {
 
 interface MapState {
   mapDirective: MapDirective;
+  /**
+   * Original location(s) captured before a map edit begins, so a Cancel can
+   * revert the item back to its pre-edit state.
+   */
+  originalPoints: AEGISPoint[];
   measureInitialCoords: AEGISPoint[];
   gridCornerPoint: MissionGridPoint;
 }
@@ -38,9 +47,6 @@ interface EvaState {
   evaDropdownUIStates: EvaDropdownUIStates;
   showRunningRexOnly: boolean;
   runningRexExpanded: boolean;
-  evas: Eva[];
-  evasFromDb: Eva[];
-  evasEditing: string[];
 }
 
 interface EvaDropdownUIStates {
@@ -48,18 +54,12 @@ interface EvaDropdownUIStates {
 }
 
 interface TraverseState {
-  traverses: Traverse[];
-  traversesFromDb: Traverse[];
-  traversesEditing: string[];
   selectedTraverseRightNavItem: string;
 }
 
 interface PoiState {
-  pois: POI[];
-  poisFromDb: POI[];
   selectedPoiUuid: string;
   selectedRightNavItem: string;
-  poisEditing: string[];
 }
 
 interface PresetState {
@@ -126,23 +126,16 @@ interface STMState {
 }
 
 interface StationState {
-  stations: Station[];
-  stationsFromDb: Station[];
   selectedStationUuid: string;
   selectedRightNavItem: string;
-  stationsEditing: string[];
   stationCirclesUIStates: CirclesUIStates;
 }
 
 interface ActionState {
-  actions: Action[];
-  actionsFromDb: Action[];
   actionsExpanded: string[];
 }
 
 interface RexState {
-  rexes: Rex[];
-  rexesFromDb: Rex[];
   selectedRexUuid: string;
   selectedPosEntryUuid: string;
   posEntryInEdit: PosEntry | null;

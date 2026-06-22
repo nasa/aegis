@@ -3,18 +3,19 @@ import { useState } from "react";
 import assocPoisStyles from "./actions-assocpois.module.css";
 import actionStyles from "./actions-action.module.css";
 import paneStyles from "./global-pane-styles.module.css";
-import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { faCaretDown, faCaretRight, faCheck, faClone } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSelectedPoiUuid } from "store/poi";
 import { setSectionSelected } from "store/interface";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkDuplicateActions } from "store/thunk/thunkAction";
 import { hmmFromMinutes } from "utils/formatting";
 import { EmojiRenderer } from "components/interface/emojis";
 import { ActionsListHeadings } from "./actions";
 import { ActionDefType } from "./actions-action";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyDuplicateActions } from "client/automerge/apply/apply-action";
 
 export const Assoc_POIs: FunctionComponent<{
   stationPoiUuids: string[];
@@ -79,39 +80,32 @@ const Assoc_POI: FunctionComponent<{
 }> = ({ poiUuid, stationActionUuids, editMode }) => {
   const dispatch = useAppDispatch();
 
-  const stationActions = useAppSelector(
-    (state) => state.action.actions.filter((action) => stationActionUuids.includes(action.uuid)),
+  const stationActions = useMissionDocSelector(
+    (mission) => stationActionUuids.map((uuid) => mission.actions[uuid]).filter(Boolean),
     deepEqual
   );
 
-  const poiActions = useAppSelector(
-    (state) => state.action.actions.filter((action) => action.poiUuid === poiUuid),
+  const poiActions = useMissionDocSelector(
+    (mission) => Object.values(mission.actions).filter((action) => action.poiUuid === poiUuid),
     deepEqual
   );
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual
   );
-  const poiActionOrderUuids = useAppSelector(
-    (state) => state.poi.pois.find((poi) => poi.uuid === poiUuid).actionOrderUuids,
-    shallowEqual
-  );
-  const poi = useAppSelector(
-    (state) => state.poi.pois.find((poi) => poi.uuid === poiUuid),
-    deepEqual
-  );
+  const poi = useMissionDocSelector((mission) => mission.pois[poiUuid], deepEqual);
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      actionSystemVersion: doc.actionSystemVersion,
-      actionDefinitions: doc.actionDefinitions,
+    (mission) => ({
+      actionSystemVersion: mission.actionSystemVersion,
+      actionDefinitions: mission.actionDefinitions,
     }),
     deepEqual
   );
 
   // sort the actions by the order in the POI
   poiActions.sort((action1: Action, action2: Action) => {
-    const index1 = poiActionOrderUuids.indexOf(action1.uuid);
-    const index2 = poiActionOrderUuids.indexOf(action2.uuid);
+    const index1 = poi?.actionOrderUuids?.indexOf(action1.uuid) ?? -1;
+    const index2 = poi?.actionOrderUuids?.indexOf(action2.uuid) ?? -1;
     return (index1 > -1 ? index1 : Infinity) - (index2 > -1 ? index2 : Infinity);
   });
 
@@ -185,8 +179,6 @@ const Assoc_POIAction: FunctionComponent<{
   actionSystemVersion,
   actionDefinitions,
 }) => {
-  const dispatch = useAppDispatch();
-
   return (
     <div className={assocPoisStyles.stationPoiActionItemsWrapper} key={action.uuid}>
       <div
@@ -213,7 +205,10 @@ const Assoc_POIAction: FunctionComponent<{
                   className={actionStyles.actionHeadingRightItem}
                   data-tooltip-id="aegis-tooltip"
                   data-tooltip-html={"Duration (h:mm)"}
-                  style={{ color: action.duration < 0 ? "var(--warning)" : "inherit" }}
+                  style={{
+                    color: action.duration < 0 ? "var(--warning)" : "inherit",
+                    marginTop: "2px",
+                  }}
                 >
                   {hmmFromMinutes(action.duration)}
                 </div>
@@ -224,32 +219,30 @@ const Assoc_POIAction: FunctionComponent<{
               <div className={assocPoisStyles.actionHeadingTitleIcon}>
                 <EmojiRenderer iconValue={action.icon ? action.icon : "2754"} />
               </div>
-              <div className={actionStyles.verticalCenter}>
-                <div className={actionStyles.actionV2Header}>
-                  <ActionDefType
-                    actionUuid={action.uuid}
-                    type={"verbs"}
-                    selectedUuid={action.actionDefinition?.verbUuid}
-                    editMode={false}
-                    actionDefinitionItems={actionDefinitions.verbs}
-                  />
-                  <div className={actionStyles.actionDefType}>of</div>
-                  <ActionDefType
-                    actionUuid={action.uuid}
-                    type={"nouns"}
-                    selectedUuid={action.actionDefinition?.nounUuid}
-                    editMode={false}
-                    actionDefinitionItems={actionDefinitions.nouns}
-                  />
-                  <div className={actionStyles.actionDefType}>in</div>
-                  <ActionDefType
-                    actionUuid={action.uuid}
-                    type={"adjectives"}
-                    selectedUuid={action.actionDefinition?.adjectiveUuid}
-                    editMode={false}
-                    actionDefinitionItems={actionDefinitions.adjectives}
-                  />
-                </div>
+              <div className={actionStyles.actionV2Header}>
+                <ActionDefType
+                  actionUuid={action.uuid}
+                  type={"verbs"}
+                  selectedUuid={action.actionDefinition?.verbUuid}
+                  editMode={false}
+                  actionDefinitionItems={actionDefinitions.verbs}
+                />
+                <div className={actionStyles.actionDefType}>of</div>
+                <ActionDefType
+                  actionUuid={action.uuid}
+                  type={"nouns"}
+                  selectedUuid={action.actionDefinition?.nounUuid}
+                  editMode={false}
+                  actionDefinitionItems={actionDefinitions.nouns}
+                />
+                <div className={actionStyles.actionDefType}>in</div>
+                <ActionDefType
+                  actionUuid={action.uuid}
+                  type={"adjectives"}
+                  selectedUuid={action.actionDefinition?.adjectiveUuid}
+                  editMode={false}
+                  actionDefinitionItems={actionDefinitions.adjectives}
+                />
               </div>
               <div className={actionStyles.actionHeadingRight}>
                 <div
@@ -282,13 +275,12 @@ const Assoc_POIAction: FunctionComponent<{
                 size="xs"
                 className={assocPoisStyles.copyIcon}
                 onClick={(e) => {
-                  dispatch(
-                    thunkDuplicateActions({
+                  withMissionChange((m) =>
+                    applyDuplicateActions(m, {
                       actions: [action],
                       stationUuid: stationUuid,
                       promotingFromPoi: true,
                       preserveRefUuid: false,
-                      saveToDb: false,
                     })
                   );
                   e.stopPropagation();

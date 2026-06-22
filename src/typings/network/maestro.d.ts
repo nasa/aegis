@@ -174,7 +174,7 @@ declare namespace Maestro {
 
   export type ReadableActions<T extends "Station" | "Traverse"> = {
     actionsReadable: AegisAction[];
-    _itemType: T; // eslint-disable-line @typescript-eslint/naming-convention
+    _itemType: T;
   };
 
   /**

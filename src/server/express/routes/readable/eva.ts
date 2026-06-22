@@ -8,8 +8,9 @@ import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
-import { getAll } from "../all";
 import { getGrids } from "../grid";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+import { getAutomergeMissions } from "../missionAutomerge";
 
 const router = express.Router();
 
@@ -20,50 +21,34 @@ const router = express.Router();
 export async function getReadableEvaData(params: ReadableEvaParams): Promise<ExportEva[]> {
   const { missionId, evaRefUuid, rexUuid } = params;
 
-  const wholeStore: OneMissionToRuleThemAll = await getAll(missionId);
-  const allData: MissionCoreData = {
-    mission: wholeStore.mission,
-    pois: wholeStore.pois,
-    stations: wholeStore.stations,
-    actions: wholeStore.actions,
-    traverses: wholeStore.traverses,
-    evas: wholeStore.evas,
-    rexes: wholeStore.rexes,
-    level1s: wholeStore.level1s,
-    level2s: wholeStore.level2s,
-    level3s: wholeStore.level3s,
-  };
-
+  const mission = (await getAutomergeMissions([missionId]))[0];
   let evas: Eva[] = [];
 
   if (rexUuid) {
-    // specific eva from a rex
-    const rexEva = allData.rexes.find((r) => r.uuid === rexUuid);
+    // Specific eva from a rex uuid
+    const rexEva = mission.rexes[rexUuid];
     if (rexEva) {
-      const eva = allData.evas.find((e) => e.uuid === rexEva.evaUuid);
+      const eva = mission.evas[rexEva.evaUuid];
       if (eva) evas = [eva];
     }
   } else if (evaRefUuid) {
-    // get the as-planned copy of this eva. The as-planned eva is one that has the same refUuid, but is not a rex eva
-    // if they had provided a rexUuid, it would have been caught in the previous if statement
-    const allRexEvas = allData.rexes.map((r) => r.evaUuid);
-    const asPlannedEva = allData.evas.find(
-      (e) => e.refUuid === evaRefUuid && !allRexEvas.includes(e.uuid)
-    );
+    // Get the as-planned copy of this eva. The as-planned eva is one that has the same refUuid, but is not a rex eva
+    // If they had provided a rexUuid, it would have been caught in the previous if statement
+    const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, evaRefUuid);
     if (asPlannedEva) evas = [asPlannedEva];
   } else {
-    // all as-planned evas for this mission
-    const allRexEvas = allData.rexes.map((r) => r.evaUuid);
-    evas = allData.evas.filter((e) => !allRexEvas.includes(e.uuid));
+    // All as-planned evas for this mission
+    const allRexEvas = Object.values(mission.rexes).map((r) => r.evaUuid);
+    const asPlannedEvas = Object.values(mission.evas).filter((e) => !allRexEvas.includes(e.uuid));
+    evas = asPlannedEvas;
   }
 
   let gridCoordinates = null;
-  if (allData.mission.activeGridUuid) {
+  if (mission.activeGridUuid) {
     try {
-      gridCoordinates = (await getGrids(missionId, true, allData.mission.activeGridUuid))[0]
-        ?.coordinates;
+      gridCoordinates = (await getGrids(missionId, true, mission.activeGridUuid))[0]?.coordinates;
     } catch (e) {
-      // something went wrong with fetching grids. Report an error but continue without grid data
+      // Something went wrong with fetching grids. Report an error but continue without grid data
       serverLogger.apiRoute({
         logLevel: "error",
         httpMethod: "GET",
@@ -76,7 +61,11 @@ export async function getReadableEvaData(params: ReadableEvaParams): Promise<Exp
     }
   }
 
-  return makeExportEvas({ evas, allData, missionGrid: gridCoordinates });
+  return makeExportEvas({
+    evas: evas,
+    mission,
+    missionGrid: gridCoordinates,
+  });
 }
 
 const parseQuery = (query: Query) => {

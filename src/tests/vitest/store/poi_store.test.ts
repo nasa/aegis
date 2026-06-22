@@ -1,53 +1,38 @@
-import { upsertPois } from "store/poi";
-import { createCustomTestStore } from "../fixtures/redux/makeTestStore";
-import type { StoreType } from "store";
-import { initialState as poiInitialState } from "store/poi";
-import { generateBlankPoi } from "store/storeUtils/poi";
+import { createCustomTestStore } from "tests/vitest/fixtures/store";
+import { initialState as poiInitialState, setSelectedPoiUuid } from "store/poi";
+import { initialState as missionInitialState, setIsInEditMode } from "store/mission";
+import { clearAllEditing } from "store/crossActions";
+import { v4 as uuidv4 } from "uuid";
 
-let store: StoreType;
-let testPoi: POI;
-
-beforeAll(() => {
-  //populate the poi state in the store
-  testPoi = generateBlankPoi({ name: "Vitest Poi-1" });
-  store = createCustomTestStore({
-    poi: {
-      ...poiInitialState,
-      pois: [testPoi],
-    },
+describe("POI Store Reducers", () => {
+  it("setSelectedPoiUuid", () => {
+    const store = createCustomTestStore({ poi: { ...poiInitialState } });
+    const uuid = uuidv4();
+    store.dispatch(setSelectedPoiUuid(uuid));
+    expect(store.getState().poi.selectedPoiUuid).toEqual(uuid);
   });
 });
 
-describe("POI Store Reducers", () => {
-  it("upsert poi", async () => {
-    //upsert a new poi
-    const newPoi: POI = generateBlankPoi({ name: "Vitest Poi-1" });
-    let poiCount = store.getState().poi.pois.length;
-    store.dispatch(upsertPois([newPoi]));
-    expect(store.getState().poi.pois.length).toEqual(poiCount + 1);
+describe("Mission Edit Mode", () => {
+  it("setIsInEditMode - turn on", () => {
+    const store = createCustomTestStore({ mission: { ...missionInitialState } });
+    store.dispatch(setIsInEditMode(true));
+    expect(store.getState().mission.isInEditMode).toBe(true);
+  });
 
-    //upsert to an existing poi
-    poiCount = store.getState().poi.pois.length;
-    const existingPoi = store.getState().poi.pois.find((p) => p.uuid === testPoi.uuid);
-    const existingPoiUpdatedDate = existingPoi.updatedAt;
-    expect(existingPoi.description).toEqual("");
+  it("setIsInEditMode - turn off", () => {
+    const store = createCustomTestStore({
+      mission: { ...missionInitialState, isInEditMode: true },
+    });
+    store.dispatch(setIsInEditMode(false));
+    expect(store.getState().mission.isInEditMode).toBe(false);
+  });
 
-    //perform the upsert
-    store.dispatch(
-      upsertPois([{ ...existingPoi, description: "modified description test" }], true)
-    );
-
-    //get new state and run checks
-    let updatedPoi = store.getState().poi.pois.find((p) => p.uuid === testPoi.uuid);
-    expect(updatedPoi.description).toEqual("modified description test"); //description was upserted
-    expect(updatedPoi.updatedAt).toEqual(existingPoiUpdatedDate); //preserved modified date
-    expect(store.getState().poi.pois.length).toEqual(poiCount); //no new pois were added
-
-    //upsert again but with do not preserving modified date
-    store.dispatch(upsertPois([{ ...existingPoi, description: "modified description test 2" }]));
-    updatedPoi = store.getState().poi.pois.find((p) => p.uuid === testPoi.uuid);
-    expect(updatedPoi.description).toEqual("modified description test 2"); //description was upserted
-    expect(updatedPoi.updatedAt).not.toEqual(existingPoiUpdatedDate); //did not preserve modified date
-    expect(store.getState().poi.pois.length).toEqual(poiCount); //no new pois were added
+  it("clearAllEditing turns off isInEditMode", () => {
+    const store = createCustomTestStore({
+      mission: { ...missionInitialState, isInEditMode: true },
+    });
+    store.dispatch(clearAllEditing());
+    expect(store.getState().mission.isInEditMode).toBe(false);
   });
 });

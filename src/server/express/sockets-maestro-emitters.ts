@@ -1,32 +1,86 @@
 import { globalValues } from "server/express/global";
-import { getAll, getMissionCoreData } from "server/express/routes/all";
+import { getAll } from "server/express/routes/all";
 import {
   makeExportActions,
   makeExportEvas,
-  makeEquipmentReadable,
-  makeReadableActionDefinition,
   makeExportRexes,
   makeExportStations,
   makeExportTraverses,
 } from "../../utils/export";
-import { decodeEmoji } from "utils/formatting";
-import {
-  getMaestroCalculatedFieldsForStation,
-  getMaestroCalculatedFieldsForTraverse,
-} from "store/processing/calculatedFields";
 import uniq from "lodash/uniq";
-import { getActionRefUuids } from "server/express/routes/action";
-import { getStationRefUuids } from "server/express/routes/station";
-import { getTraverseRefUuids } from "server/express/routes/traverse";
-import { getEVAs, getEVARefUuids } from "server/express/routes/eva";
 import { getAutomergeDocListing } from "./routes/docListing";
 import type { DocumentId } from "@automerge/automerge-repo";
 import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
-import { getMaestroSocketRoomName, getMissionIdFromSocketRoomName } from "./sockets-maestro";
+import { getMaestroSocketRoomName } from "./sockets-maestro";
+import { buildAegisEntityForMaestro } from "utils/maestro";
 
-// Deprecated
-export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<void> => {
+/**
+ * @deprecated
+ */
+type AllDataForMaestro = {
+  mission: Mission;
+  pois: POI[];
+  stations: Station[];
+  actions: Action[];
+  traverses: Traverse[];
+  evas: Eva[];
+  rexes: Rex[];
+  level1s: STMLevel1[];
+  level2s: STMLevel2[];
+  level3s: STMLevel3[];
+};
+
+/**
+ * @deprecated
+ */
+interface StoreUpsertLegacy {
+  socketId: string;
+  missionId: number;
+  type: SocketStoreTypeLegacy;
+  data: StoreDataLegacy[];
+  lastEditEvent: EditEvent;
+}
+
+/**
+ * @deprecated
+ */
+type SocketStoreTypeLegacy =
+  | "preset"
+  | "poi"
+  | "station"
+  | "eva"
+  | "action"
+  | "traverse"
+  | "rex"
+  | "stmRule"
+  | "folder";
+
+/**
+ * @deprecated
+ */
+type StoreDataLegacy = POI | Preset | Station | Eva | Action | Traverse | Rex | STMRule | Folder;
+
+/**
+ * @deprecated Helper function only used in the deprecated emitMaestroStoreUpsert
+ */
+const getAllAsExportData = async (missionId: number): Promise<AllDataForMaestro> => {
+  const data = await getAll(missionId);
+  return {
+    ...data,
+    pois: Object.values(data.mission?.pois ?? {}),
+    stations: Object.values(data.mission?.stations ?? {}),
+    actions: Object.values(data.mission?.actions ?? {}),
+    traverses: Object.values(data.mission?.traverses ?? {}),
+    evas: Object.values(data.mission?.evas ?? {}),
+    rexes: Object.values(data.mission?.rexes ?? {}),
+  };
+};
+
+/**
+ * @deprecated This should be removed and the new maestro socket namespace should be used instead
+ */
+const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsertLegacy): Promise<void> => {
   const io = globalValues.socketio;
   if (!io) return; // no socket.io initialized
   const maestroPayload: StoreUpsertForMaestro = {
@@ -35,7 +89,7 @@ export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<
     data: null,
   };
   if (storeUpsert.type === "action") {
-    const allData = await getAll(storeUpsert.missionId);
+    const allData = await getAllAsExportData(storeUpsert.missionId);
     const actionData = storeUpsert.data as Action[];
     // check action is in an eva
     const allEvaSequenceUuids = allData.evas.flatMap((eva) =>
@@ -52,7 +106,7 @@ export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<
 
     const exportedActionData = makeExportActions({
       actions: actionsForMaestro,
-      allData,
+      mission: allData.mission,
       missionGrid: null,
     });
     maestroPayload.data = exportedActionData;
@@ -66,7 +120,7 @@ export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<
       const exportedActionStations = makeExportStations({
         stations: allData.stations.filter((station) => uniqueStationUuids.includes(station.uuid)),
         missionGrid: null,
-        allData,
+        mission: allData.mission,
         exportActions: false,
       });
       io.to("maestro").emit("storeUpsertForMaestro", {
@@ -83,7 +137,7 @@ export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<
           uniqueTraverseUuids.includes(traverse.uuid)
         ),
         missionGrid: null, // not used
-        allData,
+        mission: allData.mission,
         exportActions: false,
       });
       io.to("maestro").emit("storeUpsertForMaestro", {
@@ -93,7 +147,7 @@ export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<
       });
     }
   } else if (storeUpsert.type === "station") {
-    const allData = await getAll(storeUpsert.missionId);
+    const allData = await getAllAsExportData(storeUpsert.missionId);
     const stationData = storeUpsert.data as Station[];
     // check if station is in an eva
     const allEvaStations = allData.evas.flatMap((eva) =>
@@ -108,13 +162,13 @@ export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<
     const exportedStationData = makeExportStations({
       stations: stationsForMaestro,
       missionGrid: null,
-      allData,
+      mission: allData.mission,
       exportActions: false,
     });
     maestroPayload.data = exportedStationData;
     io.to("maestro").emit("storeUpsertForMaestro", maestroPayload);
   } else if (storeUpsert.type === "traverse") {
-    const allData = await getAll(storeUpsert.missionId);
+    const allData = await getAllAsExportData(storeUpsert.missionId);
     const traverseData = storeUpsert.data as Traverse[];
     // Check if traverse is in an eva
     // Technically traverses are *always* in an eva, so always send it, with the one exception where
@@ -133,17 +187,17 @@ export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<
     const exportedTraverses: ExportTraverse[] = makeExportTraverses({
       traverses: storeUpsert.data as Traverse[],
       missionGrid: null, // not used
-      allData,
+      mission: allData.mission,
       exportActions: false,
     });
     maestroPayload.data = exportedTraverses;
     io.to("maestro").emit("storeUpsertForMaestro", maestroPayload);
   } else if (storeUpsert.type === "eva") {
-    const allData = await getAll(storeUpsert.missionId);
+    const allData = await getAllAsExportData(storeUpsert.missionId);
     const evaData = storeUpsert.data as Eva[];
     const evasForMaestro = makeExportEvas({
       evas: evaData,
-      allData,
+      mission: allData.mission,
       missionGrid: null, // not used
     });
     maestroPayload.data = evasForMaestro;
@@ -165,451 +219,452 @@ export const emitMaestroStoreUpsert = async (storeUpsert: StoreUpsert): Promise<
   }
 };
 
-// Deprecated
-export const emitMaestroStoreDelete = async (storeDelete: StoreDelete): Promise<void> => {
-  const io = globalValues.socketio;
-  if (!io) return; // no socket.io initialized
-  const maestroPayload: StoreDeleteForMaestro = {
-    ...storeDelete,
-    type: storeDelete.type as StoreTypeForMaestro,
-    refUuids: null,
-  };
-  if (storeDelete.type === "action") {
-    const actionRefUuids = await getActionRefUuids(storeDelete.uuids);
-    maestroPayload.refUuids = actionRefUuids;
-  } else if (storeDelete.type === "station") {
-    const stationRefUuids = await getStationRefUuids(storeDelete.uuids);
-    maestroPayload.refUuids = stationRefUuids;
-  } else if (storeDelete.type === "traverse") {
-    const traverseRefUuids = await getTraverseRefUuids(storeDelete.uuids);
-    maestroPayload.refUuids = traverseRefUuids;
-  } else if (storeDelete.type === "eva") {
-    const evaRefUuids = await getEVARefUuids(storeDelete.uuids);
-    maestroPayload.refUuids = evaRefUuids;
-  } else if (storeDelete.type === "rex") {
-    // nothing needs translated here, just send the rex as is
-  } else {
-    throw new Error(`Unknown store delete type in emitMaestroStoreDelete: ${storeDelete.type}`);
-  }
-  io.to("maestro").emit("storeDeleteForMaestro", maestroPayload);
-};
-
 // ─── Maestro namespace emit helpers ──────────────────────────────────────────
 
 /**
- * Determines whether a payload contains data relevant to subscribed EVAs.
+ * Top-level Mission keys for entity collections (stations, evas, etc.) that Maestro cares about.
  */
-export const isRelevantToSubscribedEvas = async (
+type MaestroRelevantCollectionKey = Extract<
+  keyof Mission,
+  "evas" | "stations" | "traverses" | "actions" | "rexes"
+>;
+
+/**
+ * Top-level Mission fields that Maestro cares about.
+ * Any change to these is always relevant to Maestro regardless of EVA subscriptions.
+ *
+ * `satisfies` ensures the returned object has exactly the keys of Maestro.AegisMission for safety.
+ * It only works if there are no optional fields in Maestro.AegisMission type.
+ */
+const MAESTRO_RELEVANT_MISSION_FIELDS = [
+  "name",
+  "id",
+  "description",
+  "actionSystemVersion",
+  "createdAt",
+  "updatedAt",
+] as const satisfies readonly (keyof Maestro.AegisMission)[];
+
+type MaestroRelevantMissionField = (typeof MAESTRO_RELEVANT_MISSION_FIELDS)[number];
+
+/** Diff result — what was upserted and what was deleted. */
+type MaestroDiff = {
+  evas: { upserted: Eva[]; deletedUuids: string[] };
+  stations: { upserted: Station[]; deletedUuids: string[] };
+  traverses: { upserted: Traverse[]; deletedUuids: string[] };
+  actions: { upserted: Action[]; deletedUuids: string[] };
+  rexes: { upserted: Rex[]; deletedUuids: string[] };
+  changedMissionFields: MaestroRelevantMissionField[]; // Names of Maestro-relevant mission fields that changed value.
+  hasAnyChange: boolean; // True if anything at all changed since the previous snapshot.
+};
+
+/**
+ * The slice of a Mission that Maestro cares about. Only these top-level keys are
+ * tracked between change events; anything else can change freely without notifying Maestro.
+ */
+type MissionDataMaestroCaresAbout = {
+  evas: Mission["evas"];
+  stations: Mission["stations"];
+  traverses: Mission["traverses"];
+  actions: Mission["actions"];
+  rexes: Mission["rexes"];
+  missionFields: Pick<Mission, MaestroRelevantMissionField>;
+};
+
+/**
+ * Stored per-mission snapshot of mission data maestro cares about
+ * Use this to compare and find diffs
+ */
+const maestroDataSnapshots = new Map<number, MissionDataMaestroCaresAbout>();
+
+// Helper function to build the data Maestro cares about (snapshot) from a full Mission object
+const buildMissionDataMaestroCaresAbout = (mission: Mission): MissionDataMaestroCaresAbout => ({
+  evas: mission.evas,
+  stations: mission.stations,
+  traverses: mission.traverses,
+  actions: mission.actions,
+  rexes: mission.rexes,
+  missionFields: {
+    name: mission.name,
+    id: mission.id,
+    description: mission.description,
+    actionSystemVersion: mission.actionSystemVersion,
+    createdAt: mission.createdAt,
+    updatedAt: mission.updatedAt,
+  },
+});
+
+/**
+ * Diffs two collections by reference. Returns the entities that were added or
+ * modified (present in `next` with a different reference than `prev`) and the UUIDs
+ * that were removed.
+ *
+ * Relies on automerge's referential stability for unchanged sub-objects.
+ * Automerge keeps unchanged sub-objects referentially equal across changes, so collection
+ * diffing only requires `===` checks — no deep equality library needed.
+ */
+const diffCollection = <T>(
+  prev: { [uuid: string]: T } | undefined,
+  next: { [uuid: string]: T } | undefined
+): { upserted: T[]; deletedUuids: string[] } => {
+  const upserted: T[] = [];
+  const deletedUuids: string[] = [];
+
+  if (prev === next) return { upserted, deletedUuids };
+
+  if (next) {
+    for (const uuid in next) {
+      if (!prev || prev[uuid] !== next[uuid]) upserted.push(next[uuid]);
+    }
+  }
+  if (prev) {
+    for (const uuid in prev) {
+      if (!next || !(uuid in next)) deletedUuids.push(uuid);
+    }
+  }
+  return { upserted, deletedUuids };
+};
+
+/**
+ * Computes a full diff of the mission data maestro cares about against prevSnapshot.
+ * If prevSnapshot is undefined, everything in mission is treated as upsert/changed
+ *
+ * Reasoning:
+ * We compare full snapshots of mission data maestro cares about to determine what
+ * changed since the last emit. This is preferred over the old patch-based approach
+ * because the throttled change listener may drop intermediate patches, but snapshots
+ * always reflect the full delta between consecutive throttled invocations.
+ */
+const computeMaestroDiff = (
+  mission: Mission,
+  prevSnapshot: MissionDataMaestroCaresAbout | undefined
+): MaestroDiff => {
+  const evas = diffCollection<Eva>(prevSnapshot?.evas, mission.evas);
+  const stations = diffCollection<Station>(prevSnapshot?.stations, mission.stations);
+  const traverses = diffCollection<Traverse>(prevSnapshot?.traverses, mission.traverses);
+  const actions = diffCollection<Action>(prevSnapshot?.actions, mission.actions);
+  const rexes = diffCollection<Rex>(prevSnapshot?.rexes, mission.rexes);
+
+  const changedMissionFields: MaestroRelevantMissionField[] = [];
+  for (const field of MAESTRO_RELEVANT_MISSION_FIELDS) {
+    if (!prevSnapshot || prevSnapshot.missionFields[field] !== mission[field]) {
+      changedMissionFields.push(field);
+    }
+  }
+
+  const hasAnyChange =
+    changedMissionFields.length > 0 ||
+    evas.upserted.length > 0 ||
+    evas.deletedUuids.length > 0 ||
+    stations.upserted.length > 0 ||
+    stations.deletedUuids.length > 0 ||
+    traverses.upserted.length > 0 ||
+    traverses.deletedUuids.length > 0 ||
+    actions.upserted.length > 0 ||
+    actions.deletedUuids.length > 0 ||
+    rexes.upserted.length > 0 ||
+    rexes.deletedUuids.length > 0;
+
+  return { evas, stations, traverses, actions, rexes, changedMissionFields, hasAnyChange };
+};
+
+/**
+ * Determines whether a diff contains anything that the currently
+ * subscribed EVAs care about. Returns true if Maestro should be notified.
+ * Any change to a Maestro-relevant mission field is always relevant.
+ */
+export const isDiffRelevantToSubscribedEvas = (
   missionId: number,
-  type: string,
-  payload: StoreUpsert | StoreDelete
-): Promise<boolean> => {
+  mission: Mission,
+  diff: MaestroDiff
+): boolean => {
+  // Mission-level fields are always relevant
+  if (diff.changedMissionFields.length > 0) return true;
+
   const subscribedEvaUuids = globalValues.maestro.evaSubscriptions.get(missionId);
   if (!subscribedEvaUuids || subscribedEvaUuids.length === 0) return false;
 
-  if (type === "eva") {
-    if ("data" in payload) {
-      const evaUuids = (payload.data as Eva[]).map((e) => e.uuid);
-      return evaUuids.some((uuid) => subscribedEvaUuids.includes(uuid));
-    }
-    // Just return true. Over-sending is okay for now
-    return true;
-  }
+  const subscribedEvaUuidSet = new Set(subscribedEvaUuids); // convert to Set
 
-  // Get EVAs
-  const evas = await getEVAs(missionId);
-  const subscribedEvas = evas.filter((eva) => subscribedEvaUuids.includes(eva.uuid));
+  // EVA upserts/deletes: relevant if any touched EVA is subscribed
+  if (diff.evas.upserted.some((e) => subscribedEvaUuidSet.has(e.uuid))) return true;
+  if (diff.evas.deletedUuids.some((uuid) => subscribedEvaUuidSet.has(uuid))) return true;
 
-  if (type === "rex") {
-    if ("data" in payload) {
-      const subscribedEvaUuids = subscribedEvas.map((eva) => eva.uuid);
-      return (payload.data as Rex[]).some((rex) => subscribedEvaUuids.includes(rex.evaUuid));
-    }
-    // Just return true. Over-sending is okay for now
-    return true;
-  }
-
-  const subscribedSequenceUuids = new Set(
-    subscribedEvas.flatMap((eva) => eva.sequence.map((seq) => seq.uuid))
+  // Build the set of sequence UUIDs (stations + traverses) for subscribed EVAs
+  const subscribedEvas = Object.values(mission.evas).filter((eva) =>
+    subscribedEvaUuidSet.has(eva.uuid)
   );
-  // action - Check action parent fields has one of the sequence uuids
-  if (type === "action") {
-    if ("data" in payload) {
-      return (payload.data as Action[]).some(
-        (a) =>
-          subscribedSequenceUuids.has(a.stationUuid) || subscribedSequenceUuids.has(a.traverseUuid)
-      );
+  const subscribedSequenceUuids = new Set<string>();
+  for (const eva of subscribedEvas) {
+    for (const seqItem of eva.sequence) {
+      subscribedSequenceUuids.add(seqItem.uuid);
     }
-    // For delete we don't have the action's parents, just return true. Over-sending is okay for now
+  }
+
+  // Stations / traverses: relevant if their uuid is in a subscribed EVA's sequence
+  if (diff.stations.upserted.some((s) => subscribedSequenceUuids.has(s.uuid))) return true;
+  if (diff.stations.deletedUuids.some((uuid) => subscribedSequenceUuids.has(uuid))) return true;
+  if (diff.traverses.upserted.some((t) => subscribedSequenceUuids.has(t.uuid))) return true;
+  if (diff.traverses.deletedUuids.some((uuid) => subscribedSequenceUuids.has(uuid))) return true;
+
+  // Actions: relevant if parent station or traverse is in a subscribed EVA's sequence.
+  // Don't handle deleted actions because a station or traverse will always be updated at the same time,
+  // also deleted actions don't have parent uuid info so we can't check if it's relevant anyway
+  if (
+    diff.actions.upserted.some(
+      (a) =>
+        (a.stationUuid && subscribedSequenceUuids.has(a.stationUuid)) ||
+        (a.traverseUuid && subscribedSequenceUuids.has(a.traverseUuid))
+    )
+  ) {
     return true;
   }
 
-  // station or traverse — check by sequence uuid in eva
-  const uuids =
-    "data" in payload ? (payload.data as { uuid: string }[]).map((d) => d.uuid) : payload.uuids;
-  return uuids.some((uuid) => subscribedSequenceUuids.has(uuid));
-};
+  // Rexes: relevant if rex.evaUuid is a subscribed EVA.
+  if (diff.rexes.upserted.some((rex) => subscribedEvaUuidSet.has(rex.evaUuid))) return true;
+  // Deleted rexes don't have evaUuid, so over-send (return true) when any rex is deleted
+  if (diff.rexes.deletedUuids.length > 0) return true;
 
-/**
- * Throttled emitters for the /maestro namespace, keyed by missionId.
- * This is for performance so we don't have to build the AegisEntity for maestro a bunch of times
- */
-const throttledMaestroEmitters = new Map<number, ReturnType<typeof throttle>>();
+  return false;
+};
 
 /**
  * Emits the AEGIS data Maestro cares about to the maestro namespace for a given mission ID.
- * This is throttled and should be used for any updates that would require Maestro to update its data,
- * such as store upserts and deletes. Over-sending emits is fine for now.
- * @param missionId
  */
-export const emitToMaestroNamespace = (missionId: number): void => {
-  if (!throttledMaestroEmitters.has(missionId)) {
-    throttledMaestroEmitters.set(
-      missionId,
-      throttle(
-        async () => {
-          try {
-            const maestroNamespace = globalValues.maestro.socketio;
-            if (!maestroNamespace) return;
-            const roomName = getMaestroSocketRoomName(missionId);
-            // Check the room size again. It's already checked before this
-            // function is called but check again just in-case the room
-            // emptied while we were checking relevance
-            const roomSize = maestroNamespace.adapter.rooms.get(roomName)?.size ?? 0;
-            if (roomSize === 0) return;
-
-            const entity = await buildAegisEntityForMaestro(missionId);
-            maestroNamespace.to(roomName).emit("dataAll", entity);
-          } catch (error) {
-            serverLogger.error(
-              {
-                logId: "socket-maestro",
-                logValue: `Error emitting to maestro namespace for mission ${missionId}`,
-              },
-              error instanceof Error ? error : new Error(String(error))
-            );
-          }
-        },
-        500,
-        { leading: true, trailing: true }
-      )
-    );
-  }
-  throttledMaestroEmitters.get(missionId)!();
-};
-
-/**
- * Creates the object for AEGIS data maestro cares about to be sent across sockets
- */
-export const buildAegisEntityForMaestro = async (
-  missionId: number
-): Promise<Maestro.IAegisEntity> => {
-  const allData = await getMissionCoreData(missionId);
-
-  // Only include EVAs that Maestro has subscribed to for this mission
-  // Use a Set instead of arrays, they are slightly faster for lookups vs using array includes and filter functions
-  const subscribedEvaUuids = globalValues.maestro.evaSubscriptions.get(missionId) ?? [];
-  const subscribedEvaUuidSet = new Set(subscribedEvaUuids);
-  const subscribedEvas = allData.evas.filter((eva) => subscribedEvaUuidSet.has(eva.uuid));
-
-  // Collect station and traverse UUIDs that belong to subscribed EVAs
-  const subscribedStationUuidSet = new Set<string>();
-  const subscribedTraverseUuidSet = new Set<string>();
-  for (const eva of subscribedEvas) {
-    for (const seqItem of eva.sequence) {
-      if (seqItem.type === "station") subscribedStationUuidSet.add(seqItem.uuid);
-      else subscribedTraverseUuidSet.add(seqItem.uuid);
-    }
-  }
-
-  const subscribedStations = allData.stations.filter((s) => subscribedStationUuidSet.has(s.uuid));
-  const subscribedTraverses = allData.traverses.filter((t) =>
-    subscribedTraverseUuidSet.has(t.uuid)
-  );
-  const subscribedActions = allData.actions.filter(
-    (a) =>
-      (a.stationUuid && subscribedStationUuidSet.has(a.stationUuid)) ||
-      (a.traverseUuid && subscribedTraverseUuidSet.has(a.traverseUuid))
-  );
-
-  // Build lookup maps once for O(1) access in format functions
-  const lookups = buildLookupMaps(allData);
-
-  const formattedMission = formatMissionForMaestro(allData.mission);
-  const formattedEvas = formatEvasForMaestro(subscribedEvas, lookups);
-  const formattedStations = formatStationsForMaestro(subscribedStations, allData, lookups);
-  const formattedTraverses = formatTraversesForMaestro(subscribedTraverses, allData, lookups);
-  const formattedActions = formatActionsForMaestro(subscribedActions, allData, lookups);
-
-  return {
-    aegisMissions: { [missionId]: formattedMission },
-    aegisEvas: Object.fromEntries(formattedEvas.map((eva) => [eva.refUuid, eva])),
-    aegisStations: Object.fromEntries(
-      formattedStations.map((station) => [station.refUuid, station])
-    ),
-    aegisTraverses: Object.fromEntries(
-      formattedTraverses.map((traverse) => [traverse.refUuid, traverse])
-    ),
-    storedAegisActions: {}, // Deprecated
-    fetchedAegisActions: Object.fromEntries(
-      formattedActions.map((action) => [action.refUuid, action])
-    ),
-  };
-};
-
-const formatMissionForMaestro = (mission: Mission): Maestro.AegisMission => ({
-  id: mission.id,
-  name: mission.name,
-  description: mission.description ?? "",
-  actionSystemVersion: mission.actionSystemVersion as 1 | 2,
-  createdAt: new Date(mission.createdAt).toISOString(),
-  updatedAt: new Date(mission.updatedAt).toISOString(),
-});
-
-interface LookupMaps {
-  stationByUuid: Map<string, Station>;
-  traverseByUuid: Map<string, Traverse>;
-  actionByUuid: Map<string, Action>;
-  rexByEvaUuid: Map<string, Rex>;
-  evaBySequenceUuid: Map<string, Eva>;
-}
-
-// Build a lookup for performance, keyed by uuid for faster lookup of objects
-// This allows lookups in O(1) instead of using Array.find O(n)
-const buildLookupMaps = (allData: MissionCoreData): LookupMaps => {
-  const stationByUuid = new Map(allData.stations.map((s) => [s.uuid, s]));
-  const traverseByUuid = new Map(allData.traverses.map((t) => [t.uuid, t]));
-  const actionByUuid = new Map(allData.actions.map((a) => [a.uuid, a]));
-  const rexByEvaUuid = new Map(allData.rexes.map((r) => [r.evaUuid, r]));
-
-  // Map each sequence item UUID to its parent EVA for O(1) "which EVA contains this?" lookups
-  const evaBySequenceUuid = new Map<string, Eva>();
-  for (const eva of allData.evas) {
-    for (const seqItem of eva.sequence) {
-      evaBySequenceUuid.set(seqItem.uuid, eva);
-    }
-  }
-
-  return { stationByUuid, traverseByUuid, actionByUuid, rexByEvaUuid, evaBySequenceUuid };
-};
-
-const formatEvasForMaestro = (evas: Eva[], lookups: LookupMaps): Maestro.AegisEva[] => {
-  return evas.map((eva) => {
-    const rex = lookups.rexByEvaUuid.get(eva.uuid);
-    return {
-      missionId: eva.missionId,
-      name: eva.name,
-      refUuid: eva.refUuid,
-      description: eva.description,
-      sequenceRefUuids: eva.sequence.map((seqItem) => {
-        let refUuid = "";
-        if (seqItem.type === "station") {
-          refUuid = lookups.stationByUuid.get(seqItem.uuid)?.refUuid ?? "";
-        } else {
-          refUuid = lookups.traverseByUuid.get(seqItem.uuid)?.refUuid ?? "";
-        }
-        return { type: seqItem.type, refUuid };
-      }),
-      ingressLocationRefUuid:
-        eva.ingressLocationUuid === "lander"
-          ? "lander"
-          : (lookups.stationByUuid.get(eva.ingressLocationUuid)?.refUuid ?? ""),
-      ingressDuration: eva.ingressDuration ?? 0,
-      egressLocationRefUuid:
-        eva.egressLocationUuid === "lander"
-          ? "lander"
-          : (lookups.stationByUuid.get(eva.egressLocationUuid)?.refUuid ?? ""),
-      egressDuration: eva.egressDuration ?? 0,
-      createdAt: new Date(eva.createdAt).toISOString(),
-      updatedAt: new Date(eva.updatedAt).toISOString(),
-      ...(rex && { rexUuid: rex.uuid }),
-    };
-  });
-};
-
-const formatStationsForMaestro = (
-  stations: Station[],
-  allData: MissionCoreData,
-  lookups: LookupMaps
-): Maestro.AegisStation[] => {
-  return stations.map((station) => {
-    const stationActions = allData.actions.filter(
-      (a) => a.stationUuid === station.uuid && a.enabled
-    );
-    const evaThisStationIsIn = lookups.evaBySequenceUuid.get(station.uuid);
-    const rex = evaThisStationIsIn ? lookups.rexByEvaUuid.get(evaThisStationIsIn.uuid) : undefined;
-    return {
-      missionId: station.missionId,
-      name: station.name,
-      refUuid: station.refUuid,
-      iconEmojiDecoded: decodeEmoji(station.icon),
-      duration: station.duration,
-      calculatedFields: getMaestroCalculatedFieldsForStation(stationActions),
-      description: station.description,
-      actionOrderRefUuids:
-        station.actionOrderUuids
-          ?.map((uuid) => lookups.actionByUuid.get(uuid)?.refUuid)
-          .filter(Boolean) ?? [],
-      createdAt: new Date(station.createdAt).toISOString(),
-      updatedAt: new Date(station.updatedAt).toISOString(),
-      ...(rex && { rexUuid: rex.uuid }),
-    };
-  });
-};
-
-const formatTraversesForMaestro = (
-  traverses: Traverse[],
-  allData: MissionCoreData,
-  lookups: LookupMaps
-): Maestro.AegisTraverse[] => {
-  return traverses.map((traverse) => {
-    const traverseEva = lookups.evaBySequenceUuid.get(traverse.uuid);
-    const traverseActions = allData.actions.filter(
-      (a) => a.traverseUuid === traverse.uuid && a.enabled
-    );
-    const rex = traverseEva ? lookups.rexByEvaUuid.get(traverseEva.uuid) : undefined;
-    return {
-      refUuid: traverse.refUuid,
-      missionId: traverse.missionId,
-      name: traverse.name,
-      description: traverse.description,
-      actionOrderRefUuids:
-        traverse.actionOrderUuids
-          ?.map((uuid) => lookups.actionByUuid.get(uuid)?.refUuid)
-          .filter(Boolean) ?? [],
-      createdAt: new Date(traverse.createdAt).toISOString(),
-      updatedAt: new Date(traverse.updatedAt).toISOString(),
-      duration: traverse.duration,
-      calculatedFields: getMaestroCalculatedFieldsForTraverse({
-        traverse,
-        missionTraverseRate: allData.mission.traverseRate,
-        evaTraverseRate: traverseEva?.traverseRate,
-        traverseActions,
-      }),
-      ...(rex && { rexUuid: rex.uuid }),
-    };
-  });
-};
-
-const formatActionsForMaestro = (
-  actions: Action[],
-  allData: MissionCoreData,
-  lookups: LookupMaps
-): Maestro.AegisAction[] => {
-  return actions.map((action) => {
-    const actionStation = action.stationUuid
-      ? lookups.stationByUuid.get(action.stationUuid)
-      : undefined;
-    const actionTraverse = action.traverseUuid
-      ? lookups.traverseByUuid.get(action.traverseUuid)
-      : undefined;
-    let rexUuid: string | undefined;
-    const parentUuid = actionStation?.uuid ?? actionTraverse?.uuid;
-    const evaThisActionIsIn = parentUuid ? lookups.evaBySequenceUuid.get(parentUuid) : undefined;
-    if (evaThisActionIsIn) {
-      const rex = lookups.rexByEvaUuid.get(evaThisActionIsIn.uuid);
-      if (rex) rexUuid = rex.uuid;
-    }
-    return {
-      name: action.name,
-      refUuid: action.refUuid,
-      descriptionTask: action.descriptionTask,
-      equipmentItemsUsageReadable: makeEquipmentReadable({
-        equipmentItems: action.equipmentItemsUsage,
-        mission: allData.mission,
-      }),
-      actionDefinitionReadable: makeReadableActionDefinition({
-        action,
-        actionDefinitions: allData.mission.actionDefinitions,
-      }),
-      missionId: action.missionId,
-      icon: action.icon,
-      createdAt: new Date(action.createdAt).toISOString(),
-      updatedAt: new Date(action.updatedAt).toISOString(),
-      crewAssigned: action.crewAssigned,
-      duration: action.duration,
-      stmAction: action.stmAction,
-      iconEmojiDecoded: decodeEmoji(action.icon),
-      stationRefUuid: actionStation?.refUuid,
-      traverseRefUuid: actionTraverse?.refUuid,
-      enabled: action.enabled,
-      ...(rexUuid && { rexUuid }),
-    };
-  });
-};
-
-// Adds a new automerge doc listener for a mission and emits changes to the roomName
-// Called when a maestro visitor joins a mission
-export const addMaestroDocListenerForMission = async (
-  missionId: number,
-  roomName: string
-): Promise<void> => {
-  if (globalValues.maestro.docListeners.has(roomName)) return; // Already listening, exit
-
+const emitToMaestroNamespace = async (missionId: number): Promise<void> => {
   try {
-    // The listener function to watch for changes on the automerge doc
-    // Format data and send across sockets. The emit function is also throttled
-    // so technically there are 2 throttles in this flow.
-    const throttledListener = throttle(
-      () => {
-        const maestroNamespace = globalValues.maestro.socketio;
-        if (!maestroNamespace) return; // maestro namespace not initialized
-        const roomSize = maestroNamespace.adapter.rooms.get(roomName)?.size ?? 0;
-        if (roomSize === 0) return; // no one in room, exit early
+    const maestroNamespace = globalValues.maestro.socketio;
+    if (!maestroNamespace) return;
+    const roomName = getMaestroSocketRoomName(missionId);
+    // Check the room size again. It's already checked before this
+    // function is called but check again just in-case the room
+    // emptied while we were checking relevance
+    const roomSize = maestroNamespace.adapter.rooms.get(roomName)?.size ?? 0;
+    if (roomSize === 0) return;
 
-        emitToMaestroNamespace(missionId);
-      },
-      500,
-      { leading: true, trailing: true }
-    );
-
-    // Get automerge doc handle
-    const automergeListing = (await getAutomergeDocListing([missionId]))[0];
-    const missionDocHandle = await globalValues.automergeRepo.find<Mission>(
-      automergeListing.automergeUrl as DocumentId
-    );
-    await missionDocHandle.whenReady();
-
-    // Attach listener and add references to global values
-    missionDocHandle.on("change", throttledListener);
-    globalValues.maestro.docListeners.set(roomName, () =>
-      missionDocHandle.off("change", throttledListener)
-    );
-    serverLogger.debug({
-      logId: "socket-maestro",
-      logValue: `addMaestroDocListenerForMission - Added maestro automerge doc listener for room ${roomName} and mission ${missionId}`,
-    });
+    const entity = await buildAegisEntityForMaestro(missionId);
+    maestroNamespace.to(roomName).emit("dataAll", entity);
   } catch (error) {
     serverLogger.error(
       {
         logId: "socket-maestro",
-        logValue: `addMaestroDocListenerForMission - Error adding maestro doc listener for mission ${missionId} and room ${roomName}`,
+        logValue: `Error emitting to maestro namespace for mission ${missionId}`,
       },
       error instanceof Error ? error : new Error(String(error))
     );
   }
 };
 
-// This fn is only called if the room is empty
-export const cleanupSocketRoom = (roomName: string): void => {
-  // Gets the automerge doc handle listeners from global for a room name and removes them
-  const removeListenerFn = globalValues.maestro.docListeners.get(roomName);
-  if (!removeListenerFn) return;
-  // remove the docHandle change listener and delete the reference from global
-  removeListenerFn();
-  globalValues.maestro.docListeners.delete(roomName);
+/**
+ * @deprecated type used to support the previous data structure sent to Maestro
+ * Map from a Maestro-relevant collection key (plural, e.g. "stations") to the
+ * StoreUpsert type string (singular, e.g. "station"). Kept explicit rather than
+ * derived (e.g. via `replace(/s$/, "")`) so renames stay refactor-safe.
+ */
+const KEY_TO_LEGACY_STORE_TYPE = {
+  evas: "eva",
+  stations: "station",
+  traverses: "traverse",
+  actions: "action",
+  rexes: "rex",
+} as const satisfies Record<MaestroRelevantCollectionKey, StoreTypeForMaestro>;
 
-  // Removes the throttle emitter
-  const removed = throttledMaestroEmitters.delete(getMissionIdFromSocketRoomName(roomName) ?? -1);
-  if (!removed) {
+/**
+ * @deprecated — mirrors the old emitStoreUpsert calls that used to be in API endpoints
+ * Delete events are not emitted — this was never supported.
+ */
+const emitMaestroStoreUpsertFromDiff = (missionId: number, diff: MaestroDiff): void => {
+  const io = globalValues.socketio;
+  if (!io) return;
+  const maestroRoomSize = io.sockets.adapter.rooms.get("maestro")?.size ?? 0;
+  if (maestroRoomSize === 0) return; // no legacy Maestro clients connected
+
+  // Shared stub fields for the StoreUpsert.
+  const storeUpsertBase = {
+    socketId: "automerge",
+    missionId,
+    lastEditEvent: null as unknown as EditEvent,
+  };
+
+  // Per-collection upserts
+  const collectionUpserts: { key: MaestroRelevantCollectionKey; data: StoreDataLegacy[] }[] = [
+    { key: "evas", data: diff.evas.upserted },
+    { key: "stations", data: diff.stations.upserted },
+    { key: "traverses", data: diff.traverses.upserted },
+    { key: "actions", data: diff.actions.upserted },
+    { key: "rexes", data: diff.rexes.upserted },
+  ];
+
+  for (const { key, data } of collectionUpserts) {
+    if (data.length === 0) continue;
+    const type = KEY_TO_LEGACY_STORE_TYPE[key];
+    const storeUpsert: StoreUpsertLegacy = { ...storeUpsertBase, type, data };
+    emitMaestroStoreUpsert(storeUpsert).catch((error) => {
+      serverLogger.error(
+        {
+          logId: "socket-maestro",
+          logValue: `emitMaestroStoreUpsertFromDiff - Error emitting ${type} for mission ${missionId}`,
+          missionId,
+        },
+        error instanceof Error ? error : new Error(String(error))
+      );
+    });
+  }
+};
+
+/**
+ * Removes the given EVA uuids from global eva subscriptions
+ */
+const removeDeletedEvasFromSubscriptions = (missionId: number, deletedEvaUuids: string[]): void => {
+  if (deletedEvaUuids.length === 0) return;
+  const subscriptions = globalValues.maestro.evaSubscriptions.get(missionId);
+  if (!subscriptions || subscriptions.length === 0) return;
+
+  const updatedSubscriptions = subscriptions.filter((uuid) => !deletedEvaUuids.includes(uuid));
+
+  if (updatedSubscriptions.length === subscriptions.length) return; // nothing changed
+  if (updatedSubscriptions.length === 0) {
+    globalValues.maestro.evaSubscriptions.delete(missionId);
+  } else {
+    globalValues.maestro.evaSubscriptions.set(missionId, updatedSubscriptions);
+  }
+};
+
+/**
+ * Adds a new automerge doc listener for a mission and emits Maestro updates whenever
+ * the Maestro-relevant slice of the document changes.
+ * Called when a Maestro visitor joins a mission.
+ */
+export const addMaestroDocListenerForMission = async (missionId: number): Promise<void> => {
+  if (globalValues.maestro.docListeners.has(missionId)) return; // Already listening, exit
+
+  // Set a placeholder immediately (before any awaits) to prevent two concurrent
+  // calls from attaching duplicate listeners because this one was still processing
+  globalValues.maestro.docListeners.set(missionId, () => {});
+
+  try {
+    // Get automerge doc handle
+    const automergeListing = (await getAutomergeDocListing([missionId]))[0];
+    const missionDocHandle = await globalValues.automergeRepo.find<Mission>(
+      automergeListing.automergeUrl as DocumentId
+    );
+
+    // Save the reference to the handle so isRelevantToSubscribedEvas / buildAegisEntityForMaestro
+    // can access the document faster without having to find it.
+    globalValues.maestro.docHandles.set(missionId, missionDocHandle);
+
+    // Initialize first snapshot with the current doc state.
+    const initialDoc = missionDocHandle.doc();
+    if (initialDoc) {
+      maestroDataSnapshots.set(missionId, buildMissionDataMaestroCaresAbout(initialDoc));
+    }
+
+    const throttledListener = throttle(
+      () => {
+        try {
+          const mission = missionDocHandle.doc();
+          if (!mission) return;
+
+          // Diff the mission-data-maestro-cares-about against the stored snapshot.
+          const prevSnapshot = maestroDataSnapshots.get(missionId);
+          const diff = computeMaestroDiff(mission, prevSnapshot);
+
+          // Always update the snapshot, even if nothing relevant changed, so a no-op
+          // change doesn't cause the next change to look like a larger delta.
+          maestroDataSnapshots.set(missionId, buildMissionDataMaestroCaresAbout(mission));
+
+          if (!diff.hasAnyChange) return;
+
+          // Drop subscriptions to deleted EVAs
+          if (diff.evas.deletedUuids.length > 0) {
+            removeDeletedEvasFromSubscriptions(missionId, diff.evas.deletedUuids);
+          }
+
+          // Emit to the /maestro namespace if the diff is relevant to subscribed EVAs.
+          const maestroNamespace = globalValues.maestro.socketio;
+          if (maestroNamespace) {
+            const roomName = getMaestroSocketRoomName(missionId);
+            const roomSize = maestroNamespace.adapter.rooms.get(roomName)?.size ?? 0;
+            if (roomSize > 0 && isDiffRelevantToSubscribedEvas(missionId, mission, diff)) {
+              emitToMaestroNamespace(missionId).catch((error) => {
+                serverLogger.error(
+                  {
+                    logId: "socket-maestro",
+                    logValue: `addMaestroDocListenerForMission - Error in emitToMaestroNamespace for mission ${missionId}`,
+                    missionId,
+                  },
+                  error instanceof Error ? error : new Error(String(error))
+                );
+              });
+            }
+          }
+
+          // Deprecated: emit to the legacy "maestro" room.
+          emitMaestroStoreUpsertFromDiff(missionId, diff);
+        } catch (error) {
+          serverLogger.error(
+            {
+              logId: "socket-maestro",
+              logValue: `addMaestroDocListenerForMission - Error in throttled listener for mission ${missionId}`,
+              missionId,
+            },
+            error instanceof Error ? error : new Error(String(error))
+          );
+        }
+      },
+      500,
+      { leading: true, trailing: true }
+    );
+
+    missionDocHandle.on("change", throttledListener);
+    globalValues.maestro.docListeners.set(missionId, () => {
+      missionDocHandle.off("change", throttledListener);
+    });
+
+    serverLogger.debug({
+      logId: "socket-maestro",
+      logValue: `addMaestroDocListenerForMission - Added maestro automerge doc listener for mission ${missionId}`,
+    });
+  } catch (error) {
+    serverLogger.error(
+      {
+        logId: "socket-maestro",
+        logValue: `addMaestroDocListenerForMission - Error adding maestro doc listener for mission ${missionId}`,
+      },
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
+};
+
+// This is only called if the room is empty
+export const cleanupSocketRoom = (missionId: number): void => {
+  // Remove the docHandle change listener and delete the reference from global
+  const removeListenerFn = globalValues.maestro.docListeners.get(missionId);
+  if (!removeListenerFn) {
     serverLogger.warning({
       logId: "socket-maestro",
-      logValue: `cleanupSocketRoom - No throttled emitter found to remove for room ${roomName}`,
+      logValue: `cleanupSocketRoom - No listener function found to remove for mission ${missionId}`,
+    });
+  } else {
+    removeListenerFn();
+    globalValues.maestro.docListeners.delete(missionId);
+  }
+
+  // Remove snapshot
+  maestroDataSnapshots.delete(missionId);
+
+  // Remove global doc handle reference
+  const docHandleRemoved = globalValues.maestro.docHandles.delete(missionId);
+  if (!docHandleRemoved) {
+    serverLogger.warning({
+      logId: "socket-maestro",
+      logValue: `cleanupSocketRoom - No docHandle found to remove for mission ${missionId}`,
     });
   }
 
+  // All cleanup done
   serverLogger.debug({
     logId: "socket-maestro",
-    logValue: `cleanupSocketRoom - Cleaned up maestro socket room ${roomName}`,
+    logValue: `cleanupSocketRoom - Cleaned up listener, docHandle, and snapshot for mission ${missionId}`,
   });
 };

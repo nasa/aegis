@@ -10,18 +10,18 @@ import isNil from "lodash/isNil";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
 import { STM_Coverage } from "./stm/stm-coverage";
-import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkCreateAction, thunkGetHighlightedActions } from "store/thunk/thunkAction";
 import CalculatedDwell from "./calculated-dwell";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { Assoc_POIs } from "./actions-assocpois";
 import { getStmUuids } from "store/storeUtils/store";
 import { letterOrdinal } from "utils/formatting";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyCreateAction } from "client/automerge/apply/apply-action";
+import { getHighlightedActions } from "store/selectors";
 
 const Actions: FunctionComponent<{
   editMode: boolean;
-  setEditMode: (newEditMode: boolean) => void;
   actionOrderUuids: string[];
   setActionOrderUuids: (actionOrderUuids: string[]) => void;
   actionParentUuid: Pick<Action, "poiUuid" | "stationUuid" | "traverseUuid">;
@@ -37,8 +37,8 @@ const Actions: FunctionComponent<{
   actionsCalculatedFields,
   rexUuid,
 }) => {
-  const dispatch = useAppDispatch();
-  const actionTemplates = useMissionDocSelector((doc) => doc.actionTemplates, deepEqual);
+  const actionTemplates = useMissionDocSelector((mission) => mission.actionTemplates, deepEqual);
+  const allActions = useMissionDocSelector((mission) => mission.actions, deepEqual);
 
   const sortedActionTemplates = !actionTemplates
     ? []
@@ -46,16 +46,18 @@ const Actions: FunctionComponent<{
         a.templateName.localeCompare(b.templateName)
       );
 
-  const parentStationPoiUuids = useAppSelector(
-    (state) =>
-      state.station.stations.find((s) => s.uuid === actionParentUuid?.stationUuid)?.poiUuids,
+  const parentStationPoiUuids = useMissionDocSelector(
+    (mission) => mission.stations[actionParentUuid?.stationUuid]?.poiUuids,
     shallowEqual
   );
-  const stationPoiUuids = useAppSelector(
-    (state) =>
-      state.poi.pois.filter((poi) => parentStationPoiUuids?.includes(poi.uuid)).map((p) => p.uuid),
-    shallowEqual
-  );
+  const stationPoiUuids =
+    useMissionDocSelector(
+      (mission) =>
+        Object.values(mission.pois)
+          .filter((poi) => parentStationPoiUuids?.includes(poi.uuid))
+          .map((p) => p.uuid),
+      shallowEqual
+    ) ?? [];
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
@@ -66,15 +68,15 @@ const Actions: FunctionComponent<{
   //set state of highlighted actions when the STM is hovered over
   const highlightActions = useCallback(
     async (level3Uuid: string) => {
-      if (!actionOrderUuids) return;
-      const resHighlightActions = await dispatch(
-        thunkGetHighlightedActions({ actionUuids: actionOrderUuids, stmUuid: level3Uuid })
-      );
-      if (resHighlightActions.payload) {
-        setIsActionHighlighted(resHighlightActions.payload);
-      }
+      if (!actionOrderUuids || !allActions) return;
+      const resHighlightActions = getHighlightedActions({
+        actionUuids: actionOrderUuids,
+        stmUuid: level3Uuid,
+        actions: allActions,
+      });
+      setIsActionHighlighted(resHighlightActions);
     },
-    [actionOrderUuids, dispatch]
+    [actionOrderUuids, allActions]
   );
 
   //reorder actions and save back to state.
@@ -126,8 +128,12 @@ const Actions: FunctionComponent<{
               actionOrderUuids={actionOrderUuids}
               highlightActions={highlightActions}
               isActionHighlighted={isActionHighlighted}
-              stations={useAppSelector((state) => state.station.stations, deepEqual)}
-              pois={useAppSelector((state) => state.poi.pois, deepEqual)}
+              stations={
+                useMissionDocSelector((mission) => Object.values(mission.stations), deepEqual) ?? []
+              }
+              pois={
+                useMissionDocSelector((mission) => Object.values(mission.pois), deepEqual) ?? []
+              }
               newActionUuid={newActionUuid}
             />
           </ReactDragListView>
@@ -154,16 +160,12 @@ const Actions: FunctionComponent<{
                   ? sortedActionTemplates.find((sat) => sat[0] === selectedTemplateUuid)?.[1]
                   : null;
                 setNewActionUuid(
-                  (
-                    await dispatch(
-                      thunkCreateAction({
-                        actionParentUuid,
-                        actionOrderUuids,
-                        setActionOrderUuids,
-                        actionTemplate,
-                      })
-                    )
-                  ).payload
+                  withMissionChange((m) =>
+                    applyCreateAction(m, {
+                      actionParentUuid,
+                      actionTemplate,
+                    })
+                  )
                 );
               }}
             />
@@ -200,24 +202,27 @@ export const ActionsTopSection: FunctionComponent<{
   actionsCalculatedFields: ActionsCalculatedFields;
   rexUuid: string;
 }> = ({ actionOrderUuids, showDwell, highlightActions, actionsCalculatedFields, rexUuid }) => {
-  const actionSystemVersion = useMissionDocSelector((doc) => doc.actionSystemVersion, refEqual);
+  const actionSystemVersion = useMissionDocSelector(
+    (mission) => mission.actionSystemVersion,
+    refEqual
+  );
+  const allActions = useMissionDocSelector((mission) => mission.actions, deepEqual) ?? {};
 
   // make a 2D array of all stm uuids for each action
   // of the STMs that are referenced by the action in the action STMPriorities object
-  const stmUuidsByAction = useAppSelector(
-    (state) =>
-      state.action.actions
-        .filter((action) => actionOrderUuids?.includes(action.uuid))
-        .map((action) => {
-          if (action.enabled === false) return null;
-          return getStmUuids(action.stmPriorities);
-        }),
-    deepEqual
-  );
+  const stmUuidsByAction = useMissionDocSelector((mission) => {
+    return actionOrderUuids
+      ?.filter((uuid) => mission.actions[uuid])
+      .map((uuid) => {
+        const action = mission.actions[uuid];
+        if (action.enabled === false) return null;
+        return getStmUuids(action.stmPriorities);
+      });
+  }, deepEqual);
 
-  const completedStmUuidsByAction = useAppSelector((state) => {
-    if (!rexUuid) return null;
-    const rex = state.rex.rexes.find((r) => r.uuid === rexUuid);
+  const completedStmUuidsByAction = useMissionDocSelector((mission) => {
+    if (!rexUuid || !mission?.rexes) return null;
+    const rex = mission.rexes[rexUuid];
     const stmUuidsByActionUuid: string[][] = [];
     for (const actionUuid in rex.actionEntries) {
       // check if this action is part of the current list (actionOrderUuids). this is to cover
@@ -226,17 +231,17 @@ export const ActionsTopSection: FunctionComponent<{
         rex.actionEntries[actionUuid]?.rexStatus === "complete" &&
         actionOrderUuids?.includes(actionUuid)
       ) {
-        const action = state.action.actions.find((a) => a.uuid === actionUuid);
-        if (action.enabled === false) return null;
-        stmUuidsByActionUuid.push(getStmUuids(action.stmPriorities));
+        const action = allActions[actionUuid];
+        if (action?.enabled === false) return null;
+        stmUuidsByActionUuid.push(getStmUuids(action?.stmPriorities));
       }
     }
     return stmUuidsByActionUuid;
   }, deepEqual);
 
-  const inProgressStmUuidsByAction = useAppSelector((state) => {
-    if (!rexUuid) return null;
-    const rex = state.rex.rexes.find((r) => r.uuid === rexUuid);
+  const inProgressStmUuidsByAction = useMissionDocSelector((mission) => {
+    if (!rexUuid || !mission?.rexes) return null;
+    const rex = mission.rexes[rexUuid];
     const stmUuidsByActionUuid: string[][] = [];
     for (const actionUuid in rex.actionEntries) {
       // check if this action is part of the current list (actionOrderUuids). this is to cover
@@ -245,22 +250,22 @@ export const ActionsTopSection: FunctionComponent<{
         rex.actionEntries[actionUuid]?.rexStatus === "in-progress" &&
         actionOrderUuids?.includes(actionUuid)
       ) {
-        const action = state.action.actions.find((a) => a.uuid === actionUuid);
-        if (action.enabled === false) return null;
-        stmUuidsByActionUuid.push(getStmUuids(action.stmPriorities));
+        const action = allActions[actionUuid];
+        if (action?.enabled === false) return null;
+        stmUuidsByActionUuid.push(getStmUuids(action?.stmPriorities));
       }
     }
     return stmUuidsByActionUuid;
   }, deepEqual);
 
   // there's a difference between null/undefined and 0. Only calculate rex mass if it's 0. Null/undefined means it hasn't been filled in.
-  const rexMass = useAppSelector((state) => {
-    if (!rexUuid || !actionOrderUuids) return null;
-    const rex = state.rex.rexes.find((r) => r.uuid === rexUuid);
+  const rexMass = useMissionDocSelector((mission) => {
+    if (!rexUuid || !actionOrderUuids || !mission?.rexes) return null;
+    const rex = mission.rexes[rexUuid];
     let mass = null;
     // loop through all actions
     for (const actionUuid of actionOrderUuids) {
-      const action = state.action.actions.find((a) => a.uuid === actionUuid);
+      const action = allActions[actionUuid];
       if (!action || !action.enabled) continue;
       if (
         !rex.actionEntries ||
@@ -278,12 +283,12 @@ export const ActionsTopSection: FunctionComponent<{
     return mass;
   }, refEqual);
 
-  const rexMassDelta = useAppSelector((state) => {
+  const rexMassDelta = useMissionDocSelector((mission) => {
     if (!rexUuid || isNull(rexMass)) return null;
     let massPlanned = 0;
     // loop through all actions
     for (const actionUuid of actionOrderUuids) {
-      const action = state.action.actions.find((a) => a.uuid === actionUuid);
+      const action = mission.actions[actionUuid];
       if (!action || !action.enabled || !action.mass) continue;
       massPlanned += action.mass;
     }
@@ -392,7 +397,10 @@ export const ActionsListHeadings: FunctionComponent<{
   editPerms: boolean;
   isRex: boolean;
 }> = ({ editMode, showCrewHeading, editPerms, isRex }) => {
-  const actionSystemVersion = useMissionDocSelector((doc) => doc.actionSystemVersion, refEqual);
+  const actionSystemVersion = useMissionDocSelector(
+    (mission) => mission.actionSystemVersion,
+    refEqual
+  );
 
   return (
     <div
