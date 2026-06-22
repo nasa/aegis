@@ -87,9 +87,17 @@ In v1, the projection is **not** read from the data — it is configured explici
 | `projBoundsMaxX/MaxY`   | `931100 / 931100`                                                                              |
 | `projOriginX / OriginY` | `-931100 / -931100` (tile-grid origin = bottom-left of extent)                                 |
 | `projResZoomLevel`      | `0`                                                                                            |
-| `projResUnitsPerPixel`  | **must equal the z=0 resolution baked into the imagery tile pyramid** (see ⚠️ below)           |
+| `projResUnitsPerPixel`  | `12800` (z0 resolution of the shared polar-cap grid — already set; no change needed)           |
 
-> ⚠️ **`projResUnitsPerPixel` must match the tile pyramid you generate in §6.** In v1 this value — not `tilemapresource.xml` — is the authoritative tile-grid resolution (the XML is unreliable; see `V2_TILESET-MIGRATION-STRATEGY.md` §1 and the `tilemapResource.ts` comment). When you tile with `gdal2tiles -p raster`, the z=0 resolution is determined by the pyramid; read it back (e.g. with `inspect_geotiff.py` on a z0 tile, or compute from the raster extent ÷ 256) and set `projResUnitsPerPixel` to that exact number so OpenLayers and the tiles agree. Do **not** invent an arbitrary value like the legacy `12800`.
+> The tiles are cut on the shared `NAC_POLE_SOUTH_CM_AVG_MERGE` polar-cap grid (origin −931100,
+> **z0=12800 m/px → z13=1.5625 m/px**). Mission 595's projection fields already declare this grid
+> (`projResUnitsPerPixel = 12800`, the value the working external NAC basemap uses). See
+> `data_conversion_scripts/MS3/PROBLEM_nac-ortho-scale.md` for the investigation.
+>
+> **z0 history:** this was `8192` until 2026-06-22, when it was changed to **12800** to match the
+> external basemap / mission record — Leaflet's resolution pyramid is per-mission, not per-layer, so
+> tiles cut on a different z0 are requested at non-existent indices (404s). See PROBLEM doc §9. Every
+> `8192` below is historical; the live grid is `12800`.
 
 However, the WKT _labels_ differ between files (this is cosmetic — proj4 is identical):
 
@@ -323,15 +331,16 @@ Script responsibilities:
 **Imagery → PNG tile pyramid (required for Leaflet production — see §7):**
 
 ```bash
-# PNG tile pyramid — the only imagery form Leaflet production can render.
-# Needs GDAL on PATH (gdal2tiles) — provided by pixi, no system GDAL (see §4.2.1).
-pixi run python raster_to_tiles.py \
+# PNG tile pyramid on the shared polar-cap grid (origin −931100, z0=12800).
+# Uses tile_to_cap_grid.py — NOT raster_to_tiles.py. See §7 and PROBLEM_nac-ortho-scale.md.
+pixi run python MS3/tile_to_cap_grid.py \
     "../../aegis_static/processed/A03MP026/nac_sfs_ortho_8bit.tif" \
-    "../../aegis_static/processed/A03MP026/Layers/nac_sfs_ortho" \
-    --profile raster
+    "../../aegis_static/processed/A03MP026/Layers/nac_sfs_ortho"
 ```
 
-> After tiling, **read back the z=0 resolution** (compute `extent_width / (256 × 2^maxZoom_at_z0)` from the pyramid, or inspect the generated `tilemapresource.xml` zoom range against the raster extent) and set `mission.projResUnitsPerPixel` to it (§3.1). v1 trusts this value, not the XML.
+Result: 281 tiles, z0–13, cap-grid indices x 2564–2576 / y(TMS) 2691–2704. The
+`tilemapresource.xml` is written automatically with Origin −931100 and z0=12800. Mission
+`projResUnitsPerPixel` is already set to 12800 — no change needed.
 
 **DEM (single GeoTIFF for `demFilePath` — the elevation/slope source, not a map layer):**
 
@@ -357,10 +366,10 @@ pixi run python MS3/colorize_slope.py \
     "../../aegis_static/processed/A03MP026/slope_5mpp_rgba.tif"
 # (auto-detects AMPES_Slope 1.lyrx next to the slope raster; or pass --lyrx explicitly)
 
-pixi run python raster_to_tiles.py \
+# Tile on the cap grid (snaps 5 mpp → z11 = 4 m/px). NOT raster_to_tiles.py.
+pixi run python MS3/tile_to_cap_grid.py \
     "../../aegis_static/processed/A03MP026/slope_5mpp_rgba.tif" \
-    "../../aegis_static/processed/A03MP026/Layers/slope_5mpp" \
-    --profile raster
+    "../../aegis_static/processed/A03MP026/Layers/slope_5mpp"
 ```
 
 ### 6.5 Step 4 — Vector: ellipse → GeoJSON _(reuse pattern; small script `shp_to_geojson.py` if not present)_
@@ -393,11 +402,18 @@ uv run python verify_dem_units.py \
 
 ## 7. Imagery: PNG Tile Pyramid (now) — COG is a future option
 
-**Production runs Leaflet, which can only render PNG/TMS tile pyramids.** So the NAC ortho mosaic must be generated as a tile pyramid with `gdal2tiles` (via `raster_to_tiles.py --profile raster`). There is no COG option in production today.
+**Production runs Leaflet, which can only render PNG/TMS tile pyramids.** The NAC ortho mosaic
+is generated as a tile pyramid by `MS3/tile_to_cap_grid.py` (NOT `raster_to_tiles.py --profile
+raster`). There is no COG option in production today.
 
-Generate it and **set `mission.projResUnitsPerPixel` to the pyramid's z=0 resolution** (§3.1) so the Leaflet `L.Proj.CRS` tile grid and the tiles agree (the XML resolution is unreliable — use the computed value).
+The tiles must be cut on the **shared polar-cap grid** (origin −931100, z0=12800) that the
+production `NAC_POLE_SOUTH_CM_AVG_MERGE` basemap uses. `tile_to_cap_grid.py` handles this
+automatically via a virtual full-cap VRT. Mission `projResUnitsPerPixel` is already `12800` —
+no change is needed after tiling.
 
-> **Tile-grid consistency.** Use `gdal2tiles -p raster` and do **not** post-process or reorganize the output directory — the tiles and `tilemapresource.xml` must stay self-consistent (see `V2_TILESET-MIGRATION-STRATEGY.md` §3). Upload the whole output folder (including the XML) to `Layers/nac_sfs_ortho/`.
+> **Why not `raster_to_tiles.py`?** That script calls `gdal2tiles -p raster`, which anchors the
+> tile grid to the input raster's own corner, producing a grid unique to that raster. The tiles
+> would not overlay the existing basemap. See `data_conversion_scripts/MS3/PROBLEM_nac-ortho-scale.md`.
 
 ### 7.1 Future: COG `.tif` when OpenLayers ships
 
@@ -530,18 +546,22 @@ uv run python stretch_to_8bit.py \
 - Reads the VRT directly, samples a decimated histogram, maps the 2–98% range to `[1,255]`, and reserves `0` as transparent nodata.
 - Keep `nac_sfs_ortho_8bit.tif` after tiling — it's the one-command source for a future COG if/when OpenLayers ships (§7.1).
 
-### Step 3 — Tile the 8-bit mosaic → PNG pyramid _(pixi run)_
+### Step 3 — Tile the 8-bit mosaic → PNG pyramid (cap grid) _(pixi run)_
 
 ```bash
-pixi run python raster_to_tiles.py \
+pixi run python MS3/tile_to_cap_grid.py \
     /c/Users/bfeist/code/aegis_static/MissionFiles/595/nac_sfs_ortho_8bit.tif \
-    /c/Users/bfeist/code/aegis_static/MissionFiles/595/Layers/nac_sfs_ortho \
-    --profile raster
+    /c/Users/bfeist/code/aegis_static/MissionFiles/595/Layers/nac_sfs_ortho
 ```
 
-- Produces the **PNG tile pyramid** Leaflet production renders, written into `Layers/nac_sfs_ortho/` with its `tilemapresource.xml`.
-- **Do not** reorganise the output folder afterward (§7).
-- ⚠️ **Then read back the z=0 resolution** and set it as `mission.projResUnitsPerPixel` (§3.1) — see Step 6.
+- Tiles onto the shared polar-cap grid (origin −931100, z0=12800) so the ortho overlays the
+  production basemap and mission-25 layers. Produces 281 tiles at z0–13 in ~6 s.
+- Writes its own `tilemapresource.xml` with Origin −931100 and **BoundingBox = the full cap
+  −931100…931100** (same as the basemap / mission-16 layers). The BoundingBox must be the cap, not
+  the data footprint: AEGIS feeds it to Leaflet's `L.tileLayer({ bounds })` as a *lat/lng* gate, and
+  a tight projected-metre box read as lat/lng gates out every tile (blank layer, no requests). See
+  `data_conversion_scripts/MS3/PROBLEM_nac-ortho-scale.md` §8.
+- `mission.projResUnitsPerPixel` is already `12800` — no change needed.
 
 ### Step 4 — DEM for `demFilePath` _(uv run)_
 
@@ -566,20 +586,18 @@ uv run python shp_to_geojson.py \
 
 - Reprojects to EPSG:4326 and carries all attributes. Load as a `"vector"` sublayer with `dataProjection: "EPSG:4326"`, `featureProjection: "IAU2000:30166"`.
 
-### Step 6 — Verify outputs & capture the tile-grid resolution _(uv run)_
+### Step 6 — Verify outputs _(uv run)_
 
 ```bash
 # Confirm the 8-bit mosaic's CRS / extent
 uv run python inspect_geotiff.py \
     /c/Users/bfeist/code/aegis_static/MissionFiles/595/nac_sfs_ortho_8bit.tif
 
-# Read back the pyramid's z=0 resolution for projResUnitsPerPixel:
-#   resolution_z0 = (raster_extent_width_in_meters) / (256 * 2^max_zoom)
-# Cross-check against the <BoundingBox>/<TileSet> entries in:
+# Confirm the pyramid is on the cap grid (Origin = -931100, z0 = 12800.0):
 cat /c/Users/bfeist/code/aegis_static/MissionFiles/595/Layers/nac_sfs_ortho/tilemapresource.xml
 ```
 
-Set `mission.projResUnitsPerPixel` to that **measured** z=0 value (v1 trusts this number, not the XML — §3.1).
+`mission.projResUnitsPerPixel` is `12800` — already set, matches the cap grid (§3.1).
 
 ### Step 7 _(optional)_ — Slope display overlay _(pixi run)_
 
@@ -618,17 +636,18 @@ pixi run python MS3/colorize_slope.py \
 # auto-detects AMPES_Slope 1.lyrx from the same directory as the slope raster;
 # use --lyrx /explicit/path.lyrx if the file is elsewhere.
 
-# Step 7b — tile the 8-bit RGBA result
-pixi run python raster_to_tiles.py \
+# Step 7b — tile the 8-bit RGBA result on the cap grid (snaps 5 mpp → z11 = 4 m/px)
+pixi run python MS3/tile_to_cap_grid.py \
     /c/Users/bfeist/code/aegis_static/MissionFiles/595/slope_5mpp_rgba.tif \
-    /c/Users/bfeist/code/aegis_static/MissionFiles/595/Layers/slope_5mpp \
-    --profile raster
+    /c/Users/bfeist/code/aegis_static/MissionFiles/595/Layers/slope_5mpp
 
 # Step 7c — remove the intermediate (optional)
 rm -f /c/Users/bfeist/code/aegis_static/MissionFiles/595/slope_5mpp_rgba.tif
 ```
 
-> **gdal2tiles and float32:** `gdal2tiles` refuses to tile float32 rasters directly (`Please convert this file to 8-bit`). `colorize_slope.py` in 7a converts the float degree values to an 8-bit RGBA GeoTIFF first; `raster_to_tiles.py` in 7b then tiles that without error. No intermediate `.txt` colour-table file is created — `colorize_slope.py` parses the `.lyrx` directly and passes the ramp to `gdaldem` via a temp file that is cleaned up automatically.
+> `tile_to_cap_grid.py` auto-snaps the 5 mpp slope to cap level z11 (4 m/px), so it overlays
+> the basemap and the ortho on the same cap grid. No intermediate `.txt` colour-table file is
+> created — `colorize_slope.py` parses the `.lyrx` directly via a temp file cleaned up automatically.
 
 ### Step 8 — Clean up scratch (optional)
 
@@ -662,14 +681,14 @@ MissionFiles/595/
 - [ ] **Step 0** — delete `*.sr.lock` files; `mkdir -p MissionFiles/595/{Layers,Data/DEM}`.
 - [ ] **Step 1** — `pixi run mosaic_rasters.py` → `MissionFiles/595/nac_sfs_ortho_mosaic.vrt` (126 `M*-map.tif`, `mm2-*` excluded).
 - [ ] **Step 2** — `uv run stretch_to_8bit.py` → `MissionFiles/595/nac_sfs_ortho_8bit.tif` (single-band 8-bit, 2–98%).
-- [ ] **Step 3** — `pixi run raster_to_tiles.py --profile raster` → `MissionFiles/595/Layers/nac_sfs_ortho/` **PNG pyramid**. Keep the 8-bit tif for a future COG.
+- [x] **Step 3** — `pixi run MS3/tile_to_cap_grid.py` → `MissionFiles/595/Layers/nac_sfs_ortho/` (281 tiles, cap grid, z0–13). Keep the 8-bit tif for a future COG.
 - [ ] **Step 4** — `uv run geotiff_to_cog.py` → `MissionFiles/595/Data/DEM/sfs_dem_1mpp.tif` (`demFilePath`; or reuse the pre-existing `Data/mp2-sfs-dem_MoonSP_COG.tif`).
-- [ ] **Step 5** — `uv run shp_to_geojson.py` → `MissionFiles/595/Data/a03mp026_ellipse.geojson` (EPSG:4326).
-- [ ] **Step 6** — `uv run inspect_geotiff.py` outputs to confirm CRS/extent; read back the pyramid z=0 resolution.
-- [x] **Step 7** _(optional)_ — slope overlay → `Layers/slope_5mpp/` (3,776 tiles). 7a `colorize_slope.py` (parses `.lyrx` directly, no temp `.txt`) → 7b `raster_to_tiles.py` → 7c deleted `slope_5mpp_rgba.tif`. See §9.5 Step 7 for commands and the `-exact_color_entry` pitfall note.
+- [x] **Step 5** — `uv run shp_to_geojson.py` → `MissionFiles/595/Data/a03mp026_ellipse.geojson` (EPSG:4326).
+- [ ] **Step 6** — `uv run inspect_geotiff.py` outputs to confirm CRS/extent; verify `tilemapresource.xml` shows Origin −931100.
+- [ ] **Step 7** _(optional)_ — slope overlay: 7a `colorize_slope.py` → 7b `MS3/tile_to_cap_grid.py` (snaps 5 mpp → z11 cap level) → `Layers/slope_5mpp/`. See §9.5 Step 7 for commands and the `-exact_color_entry` pitfall note.
 - [ ] **Step 8** _(optional)_ — delete scratch `nac_sfs_ortho_mosaic.vrt` + `.inputs.txt`.
-- [ ] Create the AEGIS **v1** mission **595**: `landerLocation {-84.223397, 33.5021945}`, `planetRadius 1737400`, `demFilePath → Data/DEM/sfs_dem_1mpp.tif`, `demResolution 1.0`, and **all `proj*` fields per §3.1** (set `projResUnitsPerPixel` to the measured pyramid z=0 resolution).
-- [ ] Create the `"tile"` (ortho) and `"vector"` (ellipse) sublayers per §5 — files are already rendered in place under `MissionFiles/595/`.
+- [ ] Create the AEGIS **v1** mission **595**: `landerLocation {-84.223397, 33.5021945}`, `planetRadius 1737400`, `demFilePath → Data/DEM/sfs_dem_1mpp.tif`, `demResolution 1.0`, `projResUnitsPerPixel 12800`, and all other `proj*` fields per §3.1.
+- [ ] Create the `"tile"` (ortho, path `nac_sfs_ortho`, tileFormat `tms`, zoom 0–13) and `"vector"` (ellipse) sublayers per §5.
 - [ ] Validate in the Leaflet production map; spot-check an elevation profile and slope at the ellipse center.
 
 ---
