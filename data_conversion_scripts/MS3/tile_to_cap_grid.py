@@ -159,10 +159,15 @@ def main() -> None:
         description="Tile a raster onto the AEGIS lunar south-pole cap grid.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    ap.add_argument("input", type=Path, help="Input 8-bit raster (on the lunar S-pole stereo CRS)")
+    ap.add_argument(
+        "input", type=Path, help="Input 8-bit raster (on the lunar S-pole stereo CRS)"
+    )
     ap.add_argument("output_dir", type=Path, help="Output tile directory")
-    ap.add_argument("--resampling", default="average",
-                    help="Max-zoom + overview resampling (default: average)")
+    ap.add_argument(
+        "--resampling",
+        default="average",
+        help="Max-zoom + overview resampling (default: average)",
+    )
     args = ap.parse_args()
 
     if not args.input.exists():
@@ -175,8 +180,8 @@ def main() -> None:
     # Cap grid geometry. The cap pyramid is z0_res / 2**z, with z0 fixed to match the
     # mission's projResUnitsPerPixel (12800) — see CAP_Z0_RES. It is NOT derived from the
     # native 1 m resolution any more, because 12800 is not a power-of-two multiple of 1 m.
-    cap_max_zoom = CAP_MAX_ZOOM                                 # 13
-    z0_res = CAP_Z0_RES                                         # 12800
+    cap_max_zoom = CAP_MAX_ZOOM  # 13
+    z0_res = CAP_Z0_RES  # 12800
 
     # Snap the layer to the cap level whose resolution is closest to its own, so a coarse
     # raster is never blown up onto a giant fine canvas. out_res is always a cap level
@@ -187,8 +192,8 @@ def main() -> None:
         dminx, dminy, dmaxx, dmaxy = b.left, b.bottom, b.right, b.top
         r_in = float(ds.res[0])
     max_zoom = min(cap_max_zoom, max(0, round(math.log2(z0_res / r_in))))
-    out_res = z0_res / 2 ** max_zoom            # cap resolution this layer tiles at
-    tile_span = TILE * out_res                  # metres per tile at max_zoom
+    out_res = z0_res / 2**max_zoom  # cap resolution this layer tiles at
+    tile_span = TILE * out_res  # metres per tile at max_zoom
 
     # The cap is NOT a whole number of tiles wide: (931100 - -931100) / tile_span has a
     # fractional remainder (1,862,200 m / 256 m = 7274.21875 tiles at z13). That partial
@@ -206,7 +211,7 @@ def main() -> None:
     # BOTTOM-left stays exactly on -931100. gdal's top-anchored Y-flip then resolves to
     # the same bottom-anchored grid the basemap (and Leaflet) use.
     n_tiles = math.ceil((CAP_MAX - CAP_MIN) / tile_span)
-    cap_top = CAP_MIN + n_tiles * tile_span     # padded top; keeps CAP_MIN tile-aligned
+    cap_top = CAP_MIN + n_tiles * tile_span  # padded top; keeps CAP_MIN tile-aligned
 
     xmin = int((dminx - CAP_MIN) // tile_span)
     xmax = int((dmaxx - CAP_MIN) // tile_span)
@@ -219,9 +224,13 @@ def main() -> None:
     print("Tile → AEGIS lunar south-pole cap grid")
     print("=" * 64)
     print(f"  input              {args.input}")
-    print(f"  data extent        E {dminx:.1f}..{dmaxx:.1f}  N {dminy:.1f}..{dmaxy:.1f}")
+    print(
+        f"  data extent        E {dminx:.1f}..{dmaxx:.1f}  N {dminy:.1f}..{dmaxy:.1f}"
+    )
     print(f"  cap origin         ({CAP_MIN:.0f}, {CAP_MIN:.0f})")
-    print(f"  input res          {r_in:g} m/px  ->  cap level z{max_zoom} ({out_res:g} m/px), z0 units/px = {z0_res:.0f}")
+    print(
+        f"  input res          {r_in:g} m/px  ->  cap level z{max_zoom} ({out_res:g} m/px), z0 units/px = {z0_res:.0f}"
+    )
     print(f"  tile window @z{max_zoom}    x {xmin}..{xmax}   y(xyz) {ymin}..{ymax}")
     print()
 
@@ -230,23 +239,51 @@ def main() -> None:
     with tempfile.TemporaryDirectory() as td:
         vrt = Path(td) / "fullcap.vrt"
         subprocess.run(
-            [gdalbuildvrt, "-overwrite",
-             "-te", str(CAP_MIN), str(CAP_MIN), str(cap_top), str(cap_top),
-             "-tr", str(out_res), str(out_res),
-             str(vrt), str(args.input)],
+            [
+                gdalbuildvrt,
+                "-overwrite",
+                "-te",
+                str(CAP_MIN),
+                str(CAP_MIN),
+                str(cap_top),
+                str(cap_top),
+                "-tr",
+                str(out_res),
+                str(out_res),
+                str(vrt),
+                str(args.input),
+            ],
             check=True,
         )
         cmd = [
-            gdal, "raster", "tile",
-            "--tiling-scheme", "raster",
-            "--convention", "tms",
-            "--resampling", args.resampling,
-            "--overview-resampling", args.resampling,
+            gdal,
+            "raster",
+            "tile",
+            "--tiling-scheme",
+            "raster",
+            "--convention",
+            "tms",
+            "--resampling",
+            args.resampling,
+            "--overview-resampling",
+            args.resampling,
             "--skip-blank",
-            "--min-zoom", "0", "--max-zoom", str(max_zoom),
-            "--min-x", str(xmin), "--max-x", str(xmax),
-            "--min-y", str(ymin), "--max-y", str(ymax),
-            "-i", str(vrt), "-o", str(args.output_dir),
+            "--min-zoom",
+            "0",
+            "--max-zoom",
+            str(max_zoom),
+            "--min-x",
+            str(xmin),
+            "--max-x",
+            str(xmax),
+            "--min-y",
+            str(ymin),
+            "--max-y",
+            str(ymax),
+            "-i",
+            str(vrt),
+            "-o",
+            str(args.output_dir),
         ]
         print("$ " + " ".join(cmd) + "\n")
         subprocess.run(cmd, check=True)
@@ -256,8 +293,10 @@ def main() -> None:
     n = sum(1 for _ in args.output_dir.rglob("*.png"))
     print(f"\n  tiles written: {n:,}")
     print(f"  tilemapresource.xml: {args.output_dir / 'tilemapresource.xml'}")
-    print("\n  Cap-grid layer — overlays the existing basemap; mission projOrigin/"
-          "projResUnitsPerPixel stay unchanged (-931100 / 12800).")
+    print(
+        "\n  Cap-grid layer — overlays the existing basemap; mission projOrigin/"
+        "projResUnitsPerPixel stay unchanged (-931100 / 12800)."
+    )
 
 
 if __name__ == "__main__":

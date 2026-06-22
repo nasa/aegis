@@ -298,6 +298,7 @@ def _grid_origin(tmr_path: Path, fallback: str = _TBD) -> tuple[str, str]:
         root = ET.parse(tmr_path).getroot()
         origin = root.find("Origin")
         if origin is not None:
+
             def _trim(raw: str) -> str:
                 try:
                     return str(float(raw))
