@@ -14,6 +14,7 @@ For full background see
 | Script                | Purpose                                                                        | Run with               |
 | --------------------- | ------------------------------------------------------------------------------ | ---------------------- |
 | `_main.py`            | **Pipeline runner** — run all steps or individual steps (see below)            | `pixi run`             |
+| `tile_to_cap_grid.py` | Tile any raster onto the shared polar-cap grid (origin −931100, z0=8192)       | `pixi run`             |
 | `mosaic_rasters.py`   | Merge 126 overlapping LROC NAC frames → VRT mosaic                             | `pixi run`             |
 | `stretch_to_8bit.py`  | Percentile-stretch float radiance → single-band 8-bit GeoTIFF                  | `uv run` or `pixi run` |
 | `colorize_slope.py`   | Parse `.lyrx` colour standard → 8-bit RGBA slope GeoTIFF (no temp `.txt` file) | `pixi run`             |
@@ -24,7 +25,7 @@ The remaining pipeline steps reuse scripts from the parent `data_conversion_scri
 
 | Script                  | Purpose                                                    | Run with               |
 | ----------------------- | ---------------------------------------------------------- | ---------------------- |
-| `../raster_to_tiles.py` | Tile the 8-bit mosaic → PNG pyramid for Leaflet            | `pixi run`             |
+| `../raster_to_tiles.py` | Tile a raster (data-corner grid) — **not used for step 3** | `pixi run`             |
 | `../geotiff_to_cog.py`  | Re-emit the 1 mpp DEM as a clean GeoTIFF for `demFilePath` | `uv run` or `pixi run` |
 | `../inspect_geotiff.py` | Sanity-check any output raster                             | `uv run` or `pixi run` |
 
@@ -167,23 +168,22 @@ one-command source for a future COG if/when OpenLayers reaches production.
 
 ---
 
-## Step 3 — Tile the 8-bit mosaic → PNG pyramid
-
-> ⚠️ **The NAC ortho layer renders at the wrong scale and the correct tiling recipe is
-> not yet settled.** Do not treat the command below as final. See
-> [`PROBLEM_nac-ortho-scale.md`](./PROBLEM_nac-ortho-scale.md) for the full investigation,
-> the evidence that the earlier "pad to the full polar cap" idea was wrong, and the open
-> questions for the GIS team. Resolve that doc before regenerating the tiles for real.
+## Step 3 — Tile the 8-bit mosaic → PNG pyramid (cap grid)
 
 ```bash
-pixi run python raster_to_tiles.py \
+pixi run python MS3/_main.py --steps 3
+# or directly:
+pixi run python MS3/tile_to_cap_grid.py \
     /c/Users/bfeist/code/aegis_static/MissionFiles/595/nac_sfs_ortho_8bit.tif \
-    /c/Users/bfeist/code/aegis_static/MissionFiles/595/Layers/nac_sfs_ortho \
-    --profile raster
+    /c/Users/bfeist/code/aegis_static/MissionFiles/595/Layers/nac_sfs_ortho
 ```
 
-Produces a PNG tile pyramid into `Layers/nac_sfs_ortho/`. Do **not** reorganise the output
-folder afterward — tiles and `tilemapresource.xml` must stay self-consistent.
+Tiles the ortho onto the **shared polar-cap grid** (origin −931100, z0=8192) so it overlays
+the production `NAC_POLE_SOUTH_CM_AVG_MERGE` basemap. Result: 623 tiles at z0–13, indices
+x 4006–4026 / y(TMS) 4206–4226. Takes ~6 s. Writes its own `tilemapresource.xml`.
+
+See [`PROBLEM_nac-ortho-scale.md`](./PROBLEM_nac-ortho-scale.md) for the full investigation
+of why `raster_to_tiles.py` cannot be used here.
 
 ---
 
@@ -228,13 +228,9 @@ Reprojects to EPSG:4326 and carries all attributes (`ellipse_id`, `diam_m`, `lat
 pixi run python inspect_geotiff.py \
     /c/Users/bfeist/code/aegis_static/MissionFiles/595/nac_sfs_ortho_8bit.tif
 
-# Inspect the generated pyramid grid:
+# Confirm the pyramid grid matches the cap (Origin = -931100, z0 = 8192.0):
 cat /c/Users/bfeist/code/aegis_static/MissionFiles/595/Layers/nac_sfs_ortho/tilemapresource.xml
 ```
-
-> ⚠️ The relationship between this `tilemapresource.xml` grid and the mission's
-> `projResUnitsPerPixel` / `projResZoomLevel` is the unresolved scaling issue. See
-> [`PROBLEM_nac-ortho-scale.md`](./PROBLEM_nac-ortho-scale.md) before setting those fields.
 
 ---
 
@@ -263,17 +259,16 @@ pixi run python MS3/colorize_slope.py \
 The script auto-detects `AMPES_Slope 1.lyrx` in the same folder as the slope raster.
 To use a different `.lyrx`, add `--lyrx /path/to/file.lyrx`.
 
-### Step 7b — Tile the RGBA result
+### Step 7b — Tile the RGBA result (cap grid)
 
 ```bash
-pixi run python raster_to_tiles.py \
+pixi run python MS3/tile_to_cap_grid.py \
     /c/Users/bfeist/code/aegis_static/MissionFiles/595/slope_5mpp_rgba.tif \
-    /c/Users/bfeist/code/aegis_static/MissionFiles/595/Layers/slope_5mpp \
-    --profile raster
+    /c/Users/bfeist/code/aegis_static/MissionFiles/595/Layers/slope_5mpp
 ```
 
-> ⚠️ The slope overlay shares the same unresolved scaling question as the NAC ortho — see
-> [`PROBLEM_nac-ortho-scale.md`](./PROBLEM_nac-ortho-scale.md). Regenerate once that's settled.
+The 5 mpp slope snaps to cap level z11 (4 m/px), so it overlays the basemap and the ortho
+on the same cap grid (origin −931100, z0=8192). No `raster_to_tiles.py` — same reason as step 3.
 
 ### Step 7c — Remove intermediate _(optional)_
 
@@ -324,22 +319,21 @@ MissionFiles/595/
 | `projBoundsMaxX/MaxY`  | `931100`                                                                                       |
 | `projOriginX/OriginY`  | `-931100`                                                                                      |
 | `projResZoomLevel`     | `0`                                                                                            |
-| `projResUnitsPerPixel` | _(UNRESOLVED — see [`PROBLEM_nac-ortho-scale.md`](./PROBLEM_nac-ortho-scale.md))_              |
+| `projResUnitsPerPixel` | `8192` (z0 resolution of the shared cap grid — already set; no change needed)                  |
 
 ---
 
 ## Checklist
 
-- [ ] `pixi install` — sanity-check `pixi run gdal2tiles --version`
-- [ ] Step 0 — delete `*.sr.lock`; create output folders
-- [ ] Step 1 — mosaic → `nac_sfs_ortho_mosaic.vrt`
-- [ ] Step 2 — stretch → `nac_sfs_ortho_8bit.tif`
-- [ ] ⚠️ **BLOCKED:** resolve [`PROBLEM_nac-ortho-scale.md`](./PROBLEM_nac-ortho-scale.md) — the NAC ortho renders at the wrong scale and the correct tiling recipe / `projResUnitsPerPixel` is not yet known
-- [ ] Step 3 — tile → `Layers/nac_sfs_ortho/` PNG pyramid (recipe TBD per PROBLEM doc)
-- [ ] Step 4 — DEM → `Data/DEM/sfs_dem_1mpp.tif`
-- [ ] Step 5 — ellipse → `Data/a03mp026_ellipse.geojson`
+- [x] `pixi install` — sanity-check `pixi run gdal2tiles --version`
+- [x] Step 0 — delete `*.sr.lock`; create output folders
+- [x] Step 1 — mosaic → `nac_sfs_ortho_mosaic.vrt`
+- [x] Step 2 — stretch → `nac_sfs_ortho_8bit.tif`
+- [x] Step 3 — tile → `Layers/nac_sfs_ortho/` PNG pyramid (623 tiles, cap grid, origin −931100, z0–13)
+- [ ] Step 4 — DEM → `Data/DEM/sfs_dem_1mpp.tif` (or use pre-existing `Data/mp2-sfs-dem_MoonSP_COG.tif`)
+- [x] Step 5 — ellipse → `Data/a03mp026_ellipse.geojson`
 - [ ] Step 6 — inspect outputs
-- [ ] Step 7 _(optional)_ — slope overlay (same scaling question as the ortho)
+- [ ] Step 7 _(optional)_ — slope overlay (`tile_to_cap_grid.py` → `Layers/slope_5mpp/`, snaps to z11)
 - [ ] Step 8 _(optional)_ — delete scratch files
-- [ ] Create AEGIS mission 595 with fields above; add `"tile"` + `"vector"` sublayers
+- [ ] Create AEGIS mission 595 `"tile"` sublayer for the ortho (path `nac_sfs_ortho`, tileFormat `tms`, zoom 0–13)
 - [ ] Validate in Leaflet production; spot-check elevation profile at ellipse centre

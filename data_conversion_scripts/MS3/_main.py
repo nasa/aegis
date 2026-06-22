@@ -148,16 +148,20 @@ def step_2_stretch() -> None:
 
 
 def step_3_tile() -> None:
-    """Tile 8-bit mosaic → PNG pyramid."""
-    banner("Step 3 — Tile 8-bit mosaic → PNG pyramid")
+    """Tile 8-bit mosaic → PNG pyramid on the shared lunar south-pole cap grid.
+
+    Uses tile_to_cap_grid.py (NOT raster_to_tiles.py) so the tiles land on the
+    SAME grid as the production NAC_POLE_SOUTH basemap (origin -931100, z0=12800).
+    That lets the mission keep its fixed projOrigin/projResUnitsPerPixel and lets
+    every layer overlay the basemap. See MS3/PROBLEM_nac-ortho-scale.md.
+    """
+    banner("Step 3 — Tile 8-bit mosaic → PNG pyramid (cap grid)")
     run(
         [
             "python",
-            "raster_to_tiles.py",
+            MS3 / "tile_to_cap_grid.py",
             ORTHO_8BIT,
             ORTHO_TILES,
-            "--profile",
-            "raster",
         ]
     )
 
@@ -219,15 +223,15 @@ def step_7_slope() -> None:
         ]
     )
 
-    banner("Step 7b — Tile slope RGBA → PNG pyramid")
+    banner("Step 7b — Tile slope RGBA → PNG pyramid (cap grid)")
+    # Cap grid like the ortho so the slope overlay registers with the basemap.
+    # The 5 mpp slope snaps to cap level z11 (4 m/px) — see tile_to_cap_grid.py.
     run(
         [
             "python",
-            "raster_to_tiles.py",
+            MS3 / "tile_to_cap_grid.py",
             SLOPE_RGBA,
             SLOPE_TILES,
-            "--profile",
-            "raster",
         ]
     )
 
@@ -281,6 +285,31 @@ def _z0_units_per_pixel(tmr_path: Path, fallback: str = _TBD) -> str:
     return fallback
 
 
+def _grid_origin(tmr_path: Path, fallback: str = _TBD) -> tuple[str, str]:
+    """Parse the tile-grid <Origin x= y=> from a tilemapresource.xml.
+
+    gdal2tiles -p raster anchors the grid at the input raster's corner, so this
+    is the value that must go into mission.projOriginX/Y for Leaflet's L.Proj.CRS
+    to line the tiles up with the vectors (see MS3/PROBLEM_nac-ortho-scale.md).
+    """
+    if not tmr_path.exists():
+        return (fallback, fallback)
+    try:
+        root = ET.parse(tmr_path).getroot()
+        origin = root.find("Origin")
+        if origin is not None:
+            def _trim(raw: str) -> str:
+                try:
+                    return str(float(raw))
+                except (TypeError, ValueError):
+                    return raw
+
+            return (_trim(origin.get("x")), _trim(origin.get("y")))
+    except ET.ParseError:
+        return ("(parse error)", "(parse error)")
+    return (fallback, fallback)
+
+
 def _tile_layer_row(
     name: str,
     layer_dir: Path,
@@ -307,6 +336,11 @@ def print_aegis_summary(slope_built: bool = False) -> None:
         print(f"  {'─' * (W + 2 + 46)}")
 
     # ── Mission-level fields ──────────────────────────────────────────────
+    # projOrigin + projResUnitsPerPixel are read back from the ortho tile pyramid
+    # so they always match the tiles on disk (see MS3/PROBLEM_nac-ortho-scale.md).
+    ortho_tmr = ORTHO_TILES / "tilemapresource.xml"
+    origin_x, origin_y = _grid_origin(ortho_tmr)
+    z0_res = _z0_units_per_pixel(ortho_tmr)
     print("\n  ┌─ Mission (top-level fields) ─────────────────────────────────┐")
     row("landerLocation (lat)", "-84.223397")
     row("landerLocation (lng)", "33.5021945")
@@ -318,9 +352,10 @@ def print_aegis_summary(slope_built: bool = False) -> None:
     row("", "  +units=m +no_defs")
     row("projBoundsMinX / MinY", "-931100")
     row("projBoundsMaxX / MaxY", "931100")
-    row("projOriginX / OriginY", "-931100")
+    row("projOriginX", origin_x)
+    row("projOriginY", origin_y)
     row("projResZoomLevel", "0")
-    row("projResUnitsPerPixel", "(see PROBLEM doc — TBD)")
+    row("projResUnitsPerPixel", z0_res)
     print("  └──────────────────────────────────────────────────────────────┘")
 
     # ── DEM ───────────────────────────────────────────────────────────────
