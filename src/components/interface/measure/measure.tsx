@@ -37,7 +37,10 @@ const Measure: FunctionComponent = () => {
       : null;
   }, deepEqual);
 
-  const usingLGRSCoordinates = useMissionDocSelector((doc) => doc.usingLGRSCoordinates, refEqual);
+  const usingLGRSCoordinates = useMissionDocSelector(
+    (mission) => mission.usingLGRSCoordinates,
+    refEqual
+  );
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 

@@ -13,7 +13,7 @@ import { getAccurateNow } from "utils/formatting";
 export const generateBlankFolder = (partialFolder?: Partial<Folder>): Folder => {
   const defaultNewFolder: Folder = {
     uuid: uuidv4(),
-    missionId: null,
+    missionId: 0,
     name: "",
     type: "poi", // Default type
     items: [],

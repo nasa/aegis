@@ -1,6 +1,7 @@
 import type { FunctionComponent } from "react";
 import { useLayoutEffect, useRef } from "react";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { deepEqual } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
 import { EmojiRenderer } from "components/interface/emojis";
 import styles from "./activities.module.css";
 import { selectConvertMaestroActivityPropertiesByRefUuidToUuid } from "store/selectors";
@@ -10,9 +11,9 @@ const Activities: FunctionComponent<{
   pixelsPerSecondY: number;
   rex: Rex;
 }> = ({ sequenceItems, pixelsPerSecondY, rex }) => {
-  const maestroActivityProperties = useAppSelector(
-    (state) =>
-      selectConvertMaestroActivityPropertiesByRefUuidToUuid(state, {
+  const maestroActivityProperties = useMissionDocSelector(
+    (mission) =>
+      selectConvertMaestroActivityPropertiesByRefUuidToUuid(mission, {
         maestroActivityPropertiesByRefUuid: rex?.maestroActivityPropertiesByRefUuid,
         rexUuid: rex?.uuid || "",
       }),

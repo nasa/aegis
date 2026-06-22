@@ -316,6 +316,31 @@ test-automerge-migrate:
       - automerge_native_db_migrate2.txt
     expire_in: 1 day
 
+# Run the FK integrity check against the prod database on demand.
+# Produces a JSON report as a downloadable artifact for offline review.
+# Depends on the prod DB export so it always runs against real production data.
+test-automerge-integrity:
+  extends: .test_template
+  when: manual
+  needs:
+    - install_dependencies
+    - make-dotenv:test
+    - z:db-export:prod
+  script:
+    # Load prod data and bring the schema up to date
+    - node .gitlab/scripts/load-sql-dump.mjs aegis.sql
+    - npm run migration:up
+
+    # Run the full migration first so all entity data is in Automerge docs,
+    # then run the standalone integrity check against those docs.
+    - npm run test:automerge:migration
+    - npm run test:automerge:integrity
+  artifacts:
+    when: always
+    paths:
+      - .local/integrity-report-*.json
+    expire_in: 7 days
+
 .make-dotenv-template:
   stage: stageless
   needs: []

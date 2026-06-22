@@ -4,6 +4,7 @@ import {
   goToV2MissionSection,
   toggleEditMode,
   editValidatedField,
+  cancelValidatedFieldEdit,
   displayField,
 } from "./missionTestHelpers";
 
@@ -11,30 +12,6 @@ type MissionEquipment = {
   name: string;
   quantity: string;
   singleUse: boolean;
-};
-
-const equip1: MissionEquipment = {
-  name: "--TEST EQUIPMENT 1--",
-  quantity: "5",
-  singleUse: true,
-};
-
-const equip1Edited: MissionEquipment = {
-  name: "--TEST EQUIPMENT 1 EDITED--",
-  quantity: "20",
-  singleUse: true,
-};
-
-const equip2: MissionEquipment = {
-  name: "--TEST EQUIPMENT 2--",
-  quantity: "5",
-  singleUse: true,
-};
-
-const equip2Edited: MissionEquipment = {
-  name: equip2.name,
-  quantity: equip2.quantity,
-  singleUse: false,
 };
 
 /**
@@ -50,6 +27,31 @@ async function findEquipmentIndexExactName(page: Page, name: string): Promise<nu
 }
 
 export async function missionEquipmentTest(page: Page): Promise<string> {
+  // Equipment names are built per-run with a random suffix inside
+  // missionEquipmentTest to avoid `Name must be unique` failures from leftover
+  // automerge state.
+  const suffix = Math.floor(Math.random() * 1_000_000).toString(36);
+  const equip1: MissionEquipment = {
+    name: `--TEST EQUIPMENT 1 ${suffix}--`,
+    quantity: "5",
+    singleUse: true,
+  };
+  const equip1Edited: MissionEquipment = {
+    name: `--TEST EQUIPMENT 1 ${suffix} EDITED--`,
+    quantity: "20",
+    singleUse: true,
+  };
+  const equip2: MissionEquipment = {
+    name: `--TEST EQUIPMENT 2 ${suffix}--`,
+    quantity: "5",
+    singleUse: true,
+  };
+  const equip2Edited: MissionEquipment = {
+    name: equip2.name,
+    quantity: equip2.quantity,
+    singleUse: false,
+  };
+
   await goToV2MissionSection(page);
 
   // Go to equipment list
@@ -116,13 +118,7 @@ export async function missionEquipmentTest(page: Page): Promise<string> {
 
   // Test cancel on field edit (dialog cancel)
   eq1Index = await findEquipmentIndexExactName(page, equip1.name);
-  await displayField(page, "Equipment item name", eq1Index).click();
-  const dialog = page.locator("dialog[open]");
-  await dialog.waitFor({ timeout: 3000 });
-  await dialog.locator("input").fill("--SHOULD NOT SAVE--");
-  await dialog.getByText("Cancel").click();
-  await dialog.waitFor({ state: "hidden", timeout: 3000 });
-  await expect(displayField(page, "Equipment item name", eq1Index)).toContainText(equip1.name);
+  await cancelValidatedFieldEdit(page, "Equipment item name", "--SHOULD NOT SAVE--", eq1Index);
 
   // Edit eq1 name and quantity
   eq1Index = await findEquipmentIndexExactName(page, equip1.name);

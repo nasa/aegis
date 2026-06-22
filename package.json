@@ -1,6 +1,6 @@
 {
   "name": "aegis",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "packageManager": "npm@11.11.0",
   "scripts": {
@@ -23,6 +23,7 @@
     "test:playwright:ci": "playwright test --config=./src/tests/playwright/playwright.config.ts --shard=$SHARD_INDEX/$NUM_SHARDS",
     "test:playwright:ui": "playwright test --config ./src/tests/playwright/playwright.config.ts --ui",
     "test:automerge:migration": "npm run schema:create && npm run automerge:migration:build && npm run automerge:migration",
+    "test:automerge:integrity": "npm run automerge:integrity:build && npm run automerge:integrity",
     "test:loadtest:build": "node ./src/tests/loadTest/esbuild.loadtest.mjs",
     "test:loadtest": "node ./.local/express/dist/loadTest/startLoadTest.js",
     "seed": "npx mikro-orm seeder:run",
@@ -53,7 +54,9 @@
     "schema:create:rexOverwrite": "typescript-json-schema ./tsconfig.schema.json RexOverwrite --noExtraProps --required --ignoreErrors -o ./.local/schemas/rexOverwrite.json",
     "schema:create:mission": "typescript-json-schema ./tsconfig.schema.json Mission --noExtraProps --required --ignoreErrors -o ./.local/schemas/mission.json",
     "automerge:migration:build": "node ./src/server/automerge/esbuild.automerge.mjs",
-    "automerge:migration": "node ./.local/automerge/dist/migration.js"
+    "automerge:migration": "node ./.local/automerge/dist/migration.js",
+    "automerge:integrity:build": "node ./src/server/automerge/esbuild.automerge.mjs",
+    "automerge:integrity": "node ./.local/automerge/dist/integrityCheck.js"
   },
   "dependencies": {
     "@automerge/automerge": "3.2.4",

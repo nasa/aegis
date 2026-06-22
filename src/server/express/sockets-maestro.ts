@@ -11,11 +11,9 @@ import { RequestContext } from "@mikro-orm/postgresql";
 import { globalValues } from "./global";
 import {
   addMaestroDocListenerForMission,
-  buildAegisEntityForMaestro,
   cleanupSocketRoom,
 } from "server/express/sockets-maestro-emitters";
 import { emssTokenIsValid } from "utils/permissions";
-import { emitStoreUpsert } from "./sockets";
 import { asError } from "@emss/utils";
 import { getBackupDbMissions } from "server/express/routes/mission";
 import { getReadableEvaData } from "server/express/routes/readable/eva";
@@ -23,8 +21,9 @@ import { getMissionsData } from "server/express/routes/emss/getMissions";
 import { getRexesByEvaRefData } from "server/express/routes/emss/getRexesByEvaRef";
 import { overwriteRex } from "server/express/routes/emss/rexOverwrite";
 import { validateRexOverwrite } from "utils/rexOverwriteValidator";
-import { upsertDatabaseRetry } from "utils/database";
-import { Eva_db, Rex_db } from "server/database/models/_allModels";
+import { buildAegisEntityForMaestro } from "utils/maestro";
+import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 export const setupMaestroNamespace = (
   io: Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, {}>
@@ -90,7 +89,7 @@ export const setupMaestroNamespace = (
         // Attach automerge listener for this mission if not already attached
         // The listener will be removed when the last maestro visitor for this mission disconnects
         // No need to await here, the code below doesn't depend on this function
-        addMaestroDocListenerForMission(missionId, roomName);
+        addMaestroDocListenerForMission(missionId);
 
         // Update the inspector room on the default namespace
         globalValues.socketio
@@ -139,7 +138,7 @@ export const setupMaestroNamespace = (
           });
           // If the room is now empty
           if (globalValues.serverSocketStatus.maestroMissionVisitors[roomName].length === 0) {
-            cleanupSocketRoom(roomName);
+            cleanupSocketRoom(missionId);
           }
         }
 
@@ -157,7 +156,8 @@ export const setupMaestroNamespace = (
           });
           // If the room is now empty
           if (globalValues.serverSocketStatus.maestroMissionVisitors[roomName].length === 0) {
-            cleanupSocketRoom(roomName);
+            const missionIdForRoom = getMissionIdFromSocketRoomName(roomName);
+            if (missionIdForRoom != null) cleanupSocketRoom(missionIdForRoom);
           }
         }
 
@@ -264,7 +264,7 @@ export const setupMaestroNamespace = (
         }
 
         try {
-          const updatedRexes: Rex[] = await upsertDatabaseRetry(() => overwriteRex(body));
+          const updatedRexes: Rex[] = await overwriteRex(body);
 
           if (!updatedRexes || updatedRexes.length === 0) {
             callback({
@@ -273,14 +273,6 @@ export const setupMaestroNamespace = (
             });
             return;
           }
-
-          // emit back to aegis users via normal sockets\
-          emitStoreUpsert({
-            missionId: updatedRexes[0].missionId,
-            socketId: "maestroApi",
-            type: "rex",
-            data: updatedRexes,
-          } as StoreUpsert);
 
           callback({
             status: "success",
@@ -302,48 +294,33 @@ export const setupMaestroNamespace = (
 
 // Helper function to convert an evaRefUuid and rexUuid into the evaUuid
 const getEvaUuid = async (missionId: number, evaRefUuid: string, rexUuid: string | null) => {
-  const em = globalValues.orm.em.fork();
-  let evaUuid: string;
-  if (rexUuid) {
-    const rex = await em.findOne(
-      Rex_db,
-      { missionId: missionId, uuid: rexUuid },
-      { fields: ["uuid", "evaUuid"] }
-    );
-    if (!rex) return;
-    const eva = await em.findOne(
-      Eva_db,
-      { missionId: missionId, uuid: rex.evaUuid, refUuid: evaRefUuid },
-      { fields: ["uuid"] }
-    );
-    if (!eva) return;
-    evaUuid = rex.evaUuid;
+  // First try to get the mission information from the global maestro doc handle
+  let mission;
+  const docHandle = globalValues.maestro.docHandles.get(missionId);
+  if (!docHandle) {
+    mission = (await getAutomergeMissions([missionId]))[0];
+    if (!mission) return;
   } else {
-    // Get the as-planned EVA
-    const evasWithRef = await em.find(
-      Eva_db,
-      { missionId: missionId, refUuid: evaRefUuid },
-      { fields: ["uuid"] }
-    );
-    if (evasWithRef.length === 0) return;
-    const evaUuids = evasWithRef.map((e) => e.uuid);
-    // Find those eva uuids have an associated rex
-    const evaUuidsWithRexes = (
-      await em.find(
-        Rex_db,
-        { missionId: missionId, evaUuid: { $in: evaUuids } },
-        { fields: ["evaUuid"] }
-      )
-    ).map((r) => r.evaUuid);
-    const asPlannedEva = evasWithRef.find((e) => !evaUuidsWithRexes.includes(e.uuid));
-    if (!asPlannedEva) return;
-    evaUuid = asPlannedEva.uuid;
+    mission = docHandle.doc();
   }
-  return evaUuid;
+
+  if (rexUuid) {
+    // Verify the rex exists and its EVA matches the given refUuid
+    const rex = mission.rexes?.[rexUuid];
+    if (!rex) return;
+    const eva = mission.evas?.[rex.evaUuid];
+    if (!eva || eva.refUuid !== evaRefUuid) return;
+    return rex.evaUuid;
+  } else {
+    // Get the as-planned EVA (not linked to any rex)
+    const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, evaRefUuid);
+    if (!asPlannedEva) return;
+    return asPlannedEva.uuid;
+  }
 };
 
 /**
- * One liner function to unify where the room name string is built.
+ * One liner function to unify where the room name string is built for maestro namespace
  * This is for consistency and to avoid hardcoding the room name string in multiple places
  * @param missionId
  * @returns

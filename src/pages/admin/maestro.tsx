@@ -32,7 +32,7 @@ const parseMissionIdFromRoomName = (roomName: string): number | null => {
 };
 
 type MaestroDebugInfo = {
-  docListenerRooms: string[];
+  docListenerMissionIds: number[];
   evaSubscriptions: { [missionId: number]: string[] };
 };
 
@@ -253,7 +253,7 @@ const Maestro: React.FunctionComponent = () => {
     );
   };
 
-  const emitunsubscribeToEva = () => {
+  const emitUnsubscribeToEva = () => {
     if (!maestroSocket.current?.connected) return;
     maestroSocket.current.emit(
       "unsubscribeToEva",
@@ -422,19 +422,19 @@ const Maestro: React.FunctionComponent = () => {
                 >
                   AM Doc Listeners
                 </p>
-                {!maestroDebugInfo?.docListenerRooms.length ? (
+                {!maestroDebugInfo?.docListenerMissionIds.length ? (
                   <div className={adminCommon.emptyState}>No active listeners.</div>
                 ) : (
                   <table className={adminCommon.table}>
                     <thead>
                       <tr>
-                        <th>Room Name With Active Listeners</th>
+                        <th>Mission With Active Doc Listeners</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {maestroDebugInfo.docListenerRooms.map((room) => (
-                        <tr key={room}>
-                          <td>{room}</td>
+                      {maestroDebugInfo.docListenerMissionIds.map((missionId) => (
+                        <tr key={missionId}>
+                          <td>{missionNames.get(missionId) ?? missionId}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -635,7 +635,7 @@ const Maestro: React.FunctionComponent = () => {
               />
               <button
                 className={adminCommon.buttonPrimary}
-                onClick={emitunsubscribeToEva}
+                onClick={emitUnsubscribeToEva}
                 disabled={!isMaestroConnected || !desubMissionId || !desubEvaUuid}
                 style={{ marginTop: "auto" }}
               >

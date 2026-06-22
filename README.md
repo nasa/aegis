@@ -128,15 +128,18 @@ Setup local environment using the instructions above before performing the follo
 You've made code changes and you want to make sure the application still acts as expected. Make sure you add / update tests to reflect the new behavior(s) that you've coded.
 
 ```sh
-npm run test
+npm run test:all
 ```
 
-**Apply local migrations**
+**Apply migrations**
 
-You've made changes to the database schema and now you want to apply them.
+You've made changes to the database schema or automerge schema and now you want to apply them.
 
 ```sh
 npm run migration:up
+npm run schema:create
+npm run automerge:migration:build
+npm run automerge:migration
 ```
 
 **Create or reset to a fresh database (with prod data)**

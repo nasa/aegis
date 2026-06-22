@@ -1,7 +1,6 @@
-import { ModifiedIndicator } from "components/interface/_global-elements";
 import type { FunctionComponent } from "react";
-import { useCallback, useMemo } from "react";
-import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
+import { useCallback } from "react";
+import { useAppSelector, refEqual } from "utils/useAppSelector";
 import {
   setSelectedEvaUuid,
   setSelectedEvaSequenceItemUuid,
@@ -21,98 +20,64 @@ import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { setSelectedRexUuid } from "store/rex";
 import EvaItemSequence, { EvaEgressIngressListing } from "./eva-item-sequence";
 import { Button } from "components/interface/form/globalFields";
-import { thunkAddStationToEva } from "store/thunk/thunkEva";
+import { thunkDocAddStationToEva } from "store/thunk/thunkEva";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const EvaRunningRex: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const rexUuid = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.uuid,
-    refEqual
-  );
-  const rexName = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.name,
-    refEqual
-  );
-  const evaUuid = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.evaUuid,
-    refEqual
-  );
-  // only used for modified indicator, so strip out partial properties to prevent over-rendering
-  const partialThisEva = useAppSelector((state) => {
-    const thisEva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
-    if (thisEva) {
-      return {
-        uuid: thisEva.uuid,
-        refUuid: thisEva.refUuid,
-        updatedAt: thisEva.updatedAt,
-        createdAt: thisEva.createdAt,
-      };
-    }
-  }, deepEqual);
-  // only used for modified indicator, so strip out partial properties to prevent over-rendering
-  const partialThisEvaFromDb = useAppSelector((state) => {
-    const thisEva = state.eva.evasFromDb.find((eva) => eva.uuid === evaUuid);
-    if (thisEva) {
-      return {
-        uuid: thisEva.uuid,
-        refUuid: thisEva.refUuid,
-        updatedAt: thisEva.updatedAt,
-        createdAt: thisEva.createdAt,
-      };
-    }
-  }, deepEqual);
 
-  const asPlannedEvaName = useAppSelector((state) => {
-    return getAsPlannedEvaFromRefUuid(state, partialThisEva.refUuid)?.name;
+  const rexUuid = useMissionDocSelector(
+    (mission) =>
+      mission.rexes
+        ? (Object.values(mission.rexes).find((rex) => rex.isRunning)?.uuid ?? null)
+        : null,
+    refEqual
+  );
+
+  const rexName = useMissionDocSelector(
+    (mission) =>
+      mission.rexes
+        ? (Object.values(mission.rexes).find((rex) => rex.isRunning)?.name ?? null)
+        : null,
+    refEqual
+  );
+
+  const evaUuid = useMissionDocSelector(
+    (mission) =>
+      mission.rexes
+        ? (Object.values(mission.rexes).find((rex) => rex.isRunning)?.evaUuid ?? null)
+        : null,
+    refEqual
+  );
+
+  const asPlannedEvaName = useMissionDocSelector((mission) => {
+    if (!mission.rexes) return null;
+    const runningRex = Object.values(mission.rexes).find((rex) => rex.isRunning);
+    if (!runningRex) return null;
+    const rexEva = mission.evas?.[runningRex.evaUuid];
+    return getAsPlannedEvaFromRefUuid(mission, rexEva?.refUuid)?.name ?? null;
   }, refEqual);
 
-  const evaTraversesForModified = useAppSelector((state) => {
-    const thisEva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
-    const traverseUuidInEva = thisEva?.sequence.filter((item) => item.type === "traverse");
-    const traverseSubset = state.traverse.traverses.filter((traverse) =>
-      traverseUuidInEva?.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
-    );
-    return traverseSubset.map((traverse) => {
-      return { uuid: traverse.uuid, updatedAt: traverse.updatedAt };
-    });
-  }, deepEqual);
-  const evaTraversesFromDbForModified = useAppSelector((state) => {
-    const thisEvaFromDb = state.eva.evasFromDb.find((eva) => eva.uuid === evaUuid);
-    const traverseUuidInEva = thisEvaFromDb?.sequence.filter((item) => item.type === "traverse");
-    const traverseSubset = state.traverse.traverses.filter((traverse) =>
-      traverseUuidInEva?.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
-    );
-    return traverseSubset.map((traverse) => {
-      return { uuid: traverse.uuid, updatedAt: traverse.updatedAt };
-    });
-  }, deepEqual);
-
-  // interface stuff
+  // Interface stuff
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
+  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
   const isExpanded = useAppSelector((state) => state.eva.runningRexExpanded, refEqual);
 
-  const selectedEvaIsRunningRex = useAppSelector((state) => {
-    const selectedRex = state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid);
-    const runningRex = state.rex.rexesFromDb.find((rex) => rex.isRunning);
-    return selectedRex?.evaUuid === runningRex?.evaUuid && selectedRex?.uuid === runningRex?.uuid;
-  }, refEqual);
+  const selectedEvaIsRunningRex =
+    evaUuid !== null && selectedEvaUuid === evaUuid && selectedRexUuid === rexUuid;
 
-  // set styles. if this eva is selected, highlight it. if the sequence item is selected, emphasize it
-  const selectedStyleState: null | "highlight" = useMemo(() => {
-    if (evaUuid === selectedEvaUuid && selectedEvaSequenceItemUuid === null) {
-      return "highlight";
-    }
-    return null;
-  }, [evaUuid, selectedEvaUuid, selectedEvaSequenceItemUuid]);
+  // Set styles. if this eva is selected, highlight it. if the sequence item is selected, emphasize it
+  const selectedStyleState: null | "highlight" =
+    evaUuid === selectedEvaUuid && selectedEvaSequenceItemUuid === null ? "highlight" : null;
 
   const handleClickOnEvaName = useCallback(() => {
     if (selectedEvaUuid === evaUuid && selectedEvaSequenceItemUuid === null) {
-      // re-selecting the currently selected item. Deselect it
+      // Re-selecting the currently selected item. Deselect it
       dispatch(setSelectedEvaUuid(null));
       dispatch(setSelectedRexUuid(null));
       dispatch(thunkSetRightPanelIsOpenIfAuto(false));
@@ -124,10 +89,7 @@ const EvaRunningRex: FunctionComponent = () => {
     dispatch(setSelectedEvaSequenceItemUuid(null));
   }, [selectedEvaUuid, evaUuid, selectedEvaSequenceItemUuid, dispatch, rexUuid]);
 
-  // Early return if no running rex or eva data
-  if (!rexUuid || !evaUuid) {
-    return null;
-  }
+  if (!rexUuid || !evaUuid) return null;
 
   return (
     <div
@@ -152,11 +114,6 @@ const EvaRunningRex: FunctionComponent = () => {
         >
           <div className={styles.nameTopRow}>
             <div className={styles.nameText}>{asPlannedEvaName}</div>
-            <ModifiedIndicator
-              obj1={[partialThisEva, ...evaTraversesForModified]}
-              obj2={[partialThisEvaFromDb, ...evaTraversesFromDbForModified]}
-            />
-
             <div className={styles.nameSpacer} />
             <FontAwesomeIcon
               icon={faPersonWalkingArrowRight}
@@ -181,28 +138,26 @@ export const EvaSequenceRunningRex: FunctionComponent<{
   evaUuid: string;
 }> = ({ evaUuid }) => {
   const dispatch = useAppDispatch();
-  const eva = useAppSelector((state) => {
-    return state.eva.evas.find((eva) => eva.uuid === evaUuid);
-  }, deepEqual);
-  const editMode = useAppSelector((state) => state.eva.evasEditing.includes(evaUuid), refEqual);
-  const isRexEva = useAppSelector((state) => {
-    const rexEvaUuids = state.rex.rexes.map((rex) => rex.evaUuid);
-    return rexEvaUuids.includes(evaUuid);
+  const editMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
+
+  const isRexEva = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return false;
+    return Object.values(mission.rexes).some((rex) => rex.evaUuid === evaUuid);
   }, refEqual);
 
   return (
     <>
       <div className={styles.evaSequenceContainer}>
-        <EvaEgressIngressListing eva={eva} isEgress={true} isRexEva={isRexEva} />
+        <EvaEgressIngressListing evaUuid={evaUuid} isEgress={true} isRexEva={isRexEva} />
         <EvaItemSequence evaUuid={evaUuid} />
-        <EvaEgressIngressListing eva={eva} isEgress={false} isRexEva={isRexEva} />
+        <EvaEgressIngressListing evaUuid={evaUuid} isEgress={false} isRexEva={isRexEva} />
       </div>
       {editMode && (
         <div className={styles.evaFooterContainer}>
           <div className={styles.iconButtons}>
             <Button
               onClick={() => {
-                dispatch(thunkAddStationToEva({ evaUuid }));
+                dispatch(thunkDocAddStationToEva({ evaUuid }));
               }}
               label="Add Station"
               icon={faPlusCircle}

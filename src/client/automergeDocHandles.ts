@@ -1,13 +1,59 @@
-const automergeDocHandles: AutomergeDocHandles = {
-  mission: null,
-  // Other future doc handles can go here
-};
+let automergeMissionDocHandle: DocHandle<Mission> = null;
 
-// Used mainly for getting the docHandle from a thunk where we don't have access to the automerge react hooks
-export const getAutomergeDocHandles = (): AutomergeDocHandles => {
-  return automergeDocHandles;
+/**
+ * Returns the mission doc handle, or null if it has not been set yet.
+ * Logs an error when null so callers don't need to repeat the log boilerplate.
+ * Callers should guard with `if (!missionDocHandle) return;`.
+ */
+export const getMissionDocHandle = (): DocHandle<Mission> | null => {
+  const handle = automergeMissionDocHandle;
+  if (!handle) {
+    // Import lazily to avoid circular-dependency issues at module init time.
+    import("utils/logging/clientLogger").then(({ clientLogger }) => {
+      clientLogger.error(
+        {
+          logId: "automergeDocHandles",
+          logValue: "getMissionDocHandle: Mission doc handle is not set",
+        },
+        new Error("Mission doc handle is not set")
+      );
+    });
+  }
+  return handle;
 };
 
 export const setMissionAutomergeDocHandle = (docHandle: DocHandle<Mission>): void => {
-  automergeDocHandles.mission = docHandle;
+  automergeMissionDocHandle = docHandle;
 };
+
+/**
+ * Run a single atomic mutation on the Mission Automerge document.
+ *
+ * This is the only sanctioned way for components and helpers outside of
+ * `src/store/thunk/**` to mutate the doc. It centralizes the null-guard
+ * for `getMissionDocHandle()` and the call to `.change()` so callers never
+ * have to handle either themselves.
+ *
+ * Pass a synchronous mutator that takes the live draft and mutates it via
+ * `apply*` helpers from `src/client/automerge/apply/`. The mutator may
+ * return a value (e.g. a newly-allocated uuid from `applyCreateAction`),
+ * which this function returns through to the caller.
+ *
+ * IMPORTANT — atomicity rule:
+ *   Exactly one `withMissionChange(...)` call (or one
+ *   `missionDocHandle.change(...)` call in thunk code) per logical user
+ *   operation. Splitting an operation across two calls produces two
+ *   patches and breaks the atomicity guarantee.
+ *
+ * @returns the value returned by `fn`, or `undefined` if the doc handle
+ *          is not available.
+ */
+export function withMissionChange<T>(fn: (m: Mission) => T): T | undefined {
+  const handle = getMissionDocHandle();
+  if (!handle) return undefined;
+  let result: T;
+  handle.change((m) => {
+    result = fn(m);
+  });
+  return result;
+}

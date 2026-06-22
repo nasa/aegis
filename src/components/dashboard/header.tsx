@@ -12,21 +12,24 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import DashboardPETClock from "./headerPetClock";
 import ReactDOMServer from "react-dom/server";
 import { longDateFromDateString } from "utils/formatting";
-import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 const DashboardHeader: FunctionComponent = () => {
-  const missionName = useMissionDocSelector((doc) => doc.name, refEqual);
+  const missionName = useMissionDocSelector((mission) => mission.name, refEqual);
 
-  const runningRexName = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.name,
-    refEqual
-  );
-  const runningAsPlannedEvaName = useAppSelector((state) => {
-    const runningRex = state.rex.rexesFromDb.find((rex) => rex.isRunning);
-    if (!runningRex) return undefined;
-    const runningEva = state.eva.evas.find((eva) => eva.uuid === runningRex.evaUuid);
-    return getAsPlannedEvaFromRefUuid(state, runningEva.refUuid)?.name;
+  const runningRexName = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return undefined;
+    return Object.values(mission.rexes).find((rex) => rex.isRunning)?.name;
+  }, refEqual);
+  const runningAsPlannedEvaName = useMissionDocSelector((mission) => {
+    if (!mission?.rexes || !mission?.evas) return "";
+    const runningRex = Object.values(mission.rexes).find((rex) => rex.isRunning);
+    if (!runningRex) return "";
+    const runningEva = mission.evas[runningRex.evaUuid];
+    if (!runningEva) return "";
+    const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, runningEva.refUuid);
+    return asPlannedEva?.name;
   }, refEqual);
   const socketStatus = useAppSelector((state) => state.connection.socketStatus, deepEqual);
 

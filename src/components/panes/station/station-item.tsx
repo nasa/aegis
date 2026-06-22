@@ -1,5 +1,5 @@
-import { ModifiedIndicator } from "components/interface/_global-elements";
 import type { FunctionComponent } from "react";
+import { useEffect, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
@@ -8,6 +8,7 @@ import stationStyles from "./station.module.css";
 import { EmojiRenderer } from "components/interface/emojis";
 import { setHoverUuidsForSequence } from "store/hover";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const StationItem: FunctionComponent<{
   stationUuid: string;
@@ -17,39 +18,17 @@ const StationItem: FunctionComponent<{
     (state) => state.station.selectedRightNavItem,
     refEqual
   );
-  const station = useAppSelector(
-    (state) => state.station.stations.find((s) => s.uuid === stationUuid),
+  const stationPartial: { uuid: string; icon: string; name: string } = useMissionDocSelector(
+    (mission) => {
+      const station = mission.stations[stationUuid];
+      return {
+        uuid: station.uuid,
+        icon: station.icon,
+        name: station.name,
+      };
+    },
     deepEqual
   );
-  // we're stripping out only the values that isModified uses when comparing objects
-  const stationFromDbIsModified = useAppSelector((state) => {
-    const station = state.station.stationsFromDb.find((s) => s.uuid === stationUuid);
-    if (!station) return null; // station is in draft
-    return {
-      uuid: station.uuid,
-      updatedAt: station.updatedAt,
-    };
-  }, deepEqual);
-
-  const stationActionsIsModified = useAppSelector((state) => {
-    const actionsIsModified = state.action.actions
-      .filter((action) => action.stationUuid === station.uuid)
-      .map((action) => ({
-        uuid: action.uuid,
-        updatedAt: action.updatedAt,
-      }));
-    return actionsIsModified;
-  }, deepEqual);
-
-  const stationActionsFromDbIsModified = useAppSelector((state) => {
-    const actionsIsModified = state.action.actionsFromDb
-      .filter((action) => action.stationUuid === station.uuid)
-      .map((action) => ({
-        uuid: action.uuid,
-        updatedAt: action.updatedAt,
-      }));
-    return actionsIsModified;
-  }, deepEqual);
 
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
@@ -58,42 +37,52 @@ const StationItem: FunctionComponent<{
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
 
   let isStationSelectedOrHoveredStyle = null;
-  if (station.uuid === selectedStationUuid) {
+  if (stationPartial.uuid === selectedStationUuid) {
     isStationSelectedOrHoveredStyle = stationStyles.nameSelected;
-  } else if (station.uuid === hoverItemUuid) {
+  } else if (stationPartial.uuid === hoverItemUuid) {
     isStationSelectedOrHoveredStyle = stationStyles.nameHovered;
   }
 
+  // Scroll into view when this station becomes selected (e.g. after add/duplicate)
+  const itemRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (stationPartial.uuid === selectedStationUuid) {
+      itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [stationPartial.uuid, selectedStationUuid]);
+
   return (
     <div
+      ref={itemRef}
       aria-label="stationList-item"
       className={stationStyles.stationItem}
       onClick={() => {
-        if (selectedStationUuid === station.uuid) {
+        if (selectedStationUuid === stationPartial.uuid) {
           dispatch(setSelectedStationUuid(null)); //hide station right panel
           dispatch(thunkSetRightPanelIsOpenIfAuto(false));
         } else {
-          dispatch(setSelectedStationUuid(station.uuid));
+          dispatch(setSelectedStationUuid(stationPartial.uuid));
           if (!selectedRightNavItem) dispatch(setSelectedStationRightNavItem("info_panel"));
           dispatch(thunkSetRightPanelIsOpenIfAuto(true));
         }
       }}
       onMouseEnter={() => {
-        dispatch(setHoverUuidsForSequence({ sequenceUuid: station.uuid, mapItemType: "station" }));
+        dispatch(
+          setHoverUuidsForSequence({ sequenceUuid: stationPartial.uuid, mapItemType: "station" })
+        );
       }}
       onMouseLeave={() => {
         dispatch(setHoverUuidsForSequence({ sequenceUuid: null, mapItemType: null }));
       }}
     >
       <div className={stationStyles.itemIcon}>
-        <EmojiRenderer iconValue={station?.icon ? station.icon : "2754"} customSizeEm={1.4} />
+        <EmojiRenderer
+          iconValue={stationPartial?.icon ? stationPartial.icon : "2754"}
+          customSizeEm={1.4}
+        />
       </div>
       <div className={`${stationStyles.name} ${isStationSelectedOrHoveredStyle}`}>
-        <div>{station.name}</div>
-        <ModifiedIndicator
-          obj1={[station, ...stationActionsIsModified]}
-          obj2={[stationFromDbIsModified, ...stationActionsFromDbIsModified]}
-        />
+        <div>{stationPartial.name}</div>
         <div className={stationStyles.stationRightSpacer} />
       </div>
     </div>

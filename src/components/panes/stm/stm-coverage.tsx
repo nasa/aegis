@@ -23,11 +23,11 @@ export const STM_Coverage: FunctionComponent<{
   const allSTMLevel2 = useAppSelector((state) => state.stm.level2s, deepEqual);
   const allSTMLevel3 = useAppSelector((state) => state.stm.level3s, deepEqual);
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      stmLevel1Name: doc.stmLevel1Name,
-      stmLevel2Name: doc.stmLevel2Name,
-      stmLevel3Name: doc.stmLevel3Name,
-      stmLevel1Enabled: doc.stmLevel1Enabled,
+    (mission) => ({
+      stmLevel1Name: mission.stmLevel1Name,
+      stmLevel2Name: mission.stmLevel2Name,
+      stmLevel3Name: mission.stmLevel3Name,
+      stmLevel1Enabled: mission.stmLevel1Enabled,
     }),
     deepEqual
   );

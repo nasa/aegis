@@ -1,56 +1,14 @@
-import isEqual from "lodash/isEqual";
-import cloneDeep from "lodash/cloneDeep";
-import {
-  deleteTraversesByUuid,
-  deleteTraversesFromDbByUuid,
-  setTraversesEditMode,
-  upsertTraverses,
-  upsertTraversesFromDb,
-} from "store/traverse";
-import { getTotalDistance } from "utils/mapping/geoMath";
+import { stageTraverseUpdate } from "client/automerge/stage/stage-traverse";
 import appCreateAsyncThunk from "./thunkUtil";
-import { thunkGetElevation } from "./thunkElevation";
-import * as httpClient_Traverse from "http-client/traverse";
-import { getAccurateNow } from "utils/formatting";
 import { thunkUpdateMapDirective } from "./thunkMap";
+import { getMissionDocHandle } from "client/automergeDocHandles";
+import { applyDeleteActions } from "client/automerge/apply/apply-action";
 import {
-  thunkDeleteActionsFromDbAndStore,
-  thunkDuplicateActions,
-  thunkSaveActions,
-} from "./thunkAction";
-import { v4 as uuidv4 } from "uuid";
-import { deleteActionsByUuid, upsertActions } from "store/action";
-import { getAutomergeDocHandles } from "client/automergeDocHandles";
-
-/**
- * Only updates traverse path and distances
- * This is used on polyline edit drag,
- */
-export const thunkUpdateTraversePath = appCreateAsyncThunk<{
-  path: AEGISPoint[];
-  traverseUuid: string;
-}>("updateTraversePath", async ({ path, traverseUuid }, { dispatch, getState }) => {
-  const missionDocHandle = getAutomergeDocHandles().mission;
-  const mission = missionDocHandle.doc();
-
-  //calculate path distances
-  const pathSegmentDistances: number[] = [];
-  for (let i = 1; i < path.length; i++) {
-    pathSegmentDistances.push(getTotalDistance([path[i - 1], path[i]], mission.planetRadius));
-  }
-  //save traverse
-  const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
-  dispatch(
-    upsertTraverses([
-      {
-        ...traverse,
-        path: path,
-        pathSegmentDistances: pathSegmentDistances,
-        pathSegmentElevations: null,
-      },
-    ])
-  );
-});
+  applyDeleteTraverses,
+  applyUpdateTraverseByField,
+  applyUpsertTraverse,
+  applyTraverseUpdatesStage,
+} from "client/automerge/apply/apply-traverse";
 
 /**
  * Updates the traverse path, distances, elevation, and
@@ -65,176 +23,58 @@ export const thunkUpdateTraversePath = appCreateAsyncThunk<{
  * Returns the path (could be updated if we had to snap endpoints)
  *  or false if the thunk rejects
  */
-export const thunkFullUpdateTraverse = appCreateAsyncThunk<
+export const thunkDocUpdateTraverse = appCreateAsyncThunk<
   {
     traverseUuid: string;
     path?: AEGISPoint[];
-    rename?: boolean;
+    renameTraverse?: boolean;
     evaSequence?: EvaSequenceItem[];
-    saveToDb?: boolean;
   },
   AEGISPoint[],
   false
 >(
   "fullUpdateTraverse",
-  async (
-    { path, traverseUuid, rename = false, evaSequence, saveToDb = false },
-    { dispatch, getState }
-  ) => {
-    const traverse = getState().traverse.traverses.find((t) => t.uuid === traverseUuid);
-    const missionDocHandle = getAutomergeDocHandles().mission;
-    const mission = missionDocHandle.doc();
-
-    const eva = getState().eva.evas.find((eva) => {
-      return eva.sequence.find((sequenceItem) => {
-        return sequenceItem.uuid === traverseUuid;
-      });
+  async ({ traverseUuid, path, renameTraverse = false, evaSequence }, { dispatch }) => {
+    // Step 1: Build the updated traverse path, distances, and elevation
+    const mission = getMissionDocHandle()?.doc();
+    if (!mission) return;
+    const stageData = await stageTraverseUpdate(mission, dispatch, {
+      traverseUuid,
+      renameTraverse,
+      overrides: { path, evaSequence },
     });
+    if (!stageData) return;
 
-    //make a copy
-    let newPath: AEGISPoint[];
-    if (path && path.length > 0) {
-      newPath = cloneDeep(path);
-    } else {
-      //use traverse path
-      if (traverse.path && traverse.path.length > 0) {
-        newPath = cloneDeep(traverse.path);
-      } else {
-        newPath = [mission.landerLocation, mission.landerLocation];
-      }
-    }
-
-    // find the traverse and start/end stations to check endpoints
-    let selectedEvaSequence = evaSequence;
-    if (!selectedEvaSequence) {
-      selectedEvaSequence = eva?.sequence;
-    }
-
-    let locationBefore: AEGISPoint;
-    let locationAfter: AEGISPoint;
-    let nameBefore: string;
-    let nameAfter: string;
-    selectedEvaSequence?.forEach((item, index) => {
-      if (item.type === "traverse" && item.uuid === traverseUuid) {
-        // if this is the first item in the sequence, use the egressLocation as the before location
-        if (index === 0) {
-          if (eva.egressLocationUuid === "lander") {
-            locationBefore = mission.landerLocation;
-            nameBefore = "Lander";
-          } else {
-            const stationUuidBefore = eva.egressLocationUuid;
-            const stationBefore = getState().station.stations.find(
-              (s) => s.uuid === stationUuidBefore
-            );
-            locationBefore = stationBefore.location;
-            nameBefore = stationBefore.name;
-          }
-        } else {
-          const stationUuidBefore = selectedEvaSequence[index - 1].uuid;
-          const stationBefore = getState().station.stations.find(
-            (s) => s.uuid === stationUuidBefore
-          );
-          locationBefore = stationBefore.location;
-          nameBefore = stationBefore.name;
-        }
-
-        // if this is the last item in the sequence, use ingressLocation as the after location
-        if (index === selectedEvaSequence.length - 1) {
-          if (eva.ingressLocationUuid === "lander") {
-            locationAfter = mission.landerLocation;
-            nameAfter = "Lander";
-          } else {
-            const stationUuidAfter = eva.ingressLocationUuid;
-            const stationAfter = getState().station.stations.find(
-              (s) => s.uuid === stationUuidAfter
-            );
-            locationAfter = stationAfter.location;
-            nameAfter = stationAfter.name;
-          }
-        } else {
-          const stationUuidAfter = selectedEvaSequence[index + 1].uuid;
-          const stationAfter = getState().station.stations.find((s) => s.uuid === stationUuidAfter);
-          locationAfter = stationAfter.location;
-          nameAfter = stationAfter.name;
-        }
-      }
-    });
-
-    //set starting location
-    if (locationBefore && !isEqual(newPath.at(0), locationBefore)) {
-      newPath[0] = locationBefore;
-    }
-    //set ending location
-    if (locationAfter && !isEqual(newPath.at(-1), locationAfter)) {
-      newPath[newPath.length - 1] = locationAfter;
-    }
-
-    //calculate new path distances
-    const pathSegmentDistances: number[] = [];
-    for (let i = 1; i < newPath.length; i++) {
-      pathSegmentDistances.push(
-        getTotalDistance([newPath[i - 1], newPath[i]], mission.planetRadius)
-      );
-    }
-
-    //get elevation traverse
-    const elevationResponse = await dispatch(
-      thunkGetElevation({
-        path: newPath,
-        pathSegmentDistances: pathSegmentDistances,
-        uuid: traverseUuid,
-      })
-    );
-
-    /**
-     * The response from thunkGetElevation is a PayloadAction.
-     *  get the value by using .payload which will be either the return value
-     *  or false if the thunk was un-fulfilled.
-     */
-    let newElevationProfile = null;
-    if (elevationResponse.meta.requestStatus === "fulfilled") {
-      //good response from the thunk, cast as our number type
-      newElevationProfile = elevationResponse.payload as number[][];
-    }
-
+    // Step 2: Upsert the fully-built traverse in a single atomic .change()
+    // We need the full Traverse shape, so spread the existing traverse and
+    // overlay the stage data fields
+    const traverse = getMissionDocHandle()?.doc()?.traverses?.[traverseUuid];
+    if (!traverse) return;
     const newTraverse: Traverse = {
       ...traverse,
-      name: rename ? nameBefore + " to " + nameAfter : traverse.name,
-      path: newPath,
-      pathSegmentDistances: pathSegmentDistances,
-      pathSegmentElevations: newElevationProfile,
-      updatedAt: getAccurateNow().toISOString(),
+      name: stageData.newName ?? traverse.name,
+      path: stageData.newPath,
+      pathSegmentDistances: stageData.newPathSegmentDistances,
+      pathSegmentElevations: stageData.newPathSegmentElevations,
+      updatedAt: stageData.updatedAt,
     };
-    if (saveToDb) {
-      const upsertTraverseRes = await httpClient_Traverse.upsertTraverses([newTraverse]);
-      if (upsertTraverseRes.status !== "success") {
-        throw new Error(
-          "Error upserting Traverse in fullUpdateTraverse: " + upsertTraverseRes.message
-        );
-      }
-      dispatch(setTraversesEditMode({ uuids: [newTraverse.uuid], editMode: false }));
-      dispatch(upsertTraversesFromDb([newTraverse]));
-    } else {
-      dispatch(setTraversesEditMode({ uuids: [newTraverse.uuid], editMode: true }));
-    }
-    //update the store
-    dispatch(upsertTraverses([newTraverse], true));
+    getMissionDocHandle()?.change((m: Mission) => applyUpsertTraverse(m, newTraverse));
 
-    return newPath;
+    // No Step 3: this thunk has no UI side-effects of its own.
+    return stageData.newPath;
   }
 );
 
 /**
  * Reset traverse to a single segment from start/end station locations
  */
-export const thunkResetTraverse = appCreateAsyncThunk<{
+export const thunkDocResetTraverse = appCreateAsyncThunk<{
   traverseUuid: string;
 }>("resetTraverse", async ({ traverseUuid }, { dispatch, getState }) => {
-  const selectedEva = getState().eva.evas.find(
-    (eva) => eva.uuid === getState().eva.selectedEvaUuid
-  );
-  const missionDocHandle = getAutomergeDocHandles().mission;
-  const mission = missionDocHandle.doc();
+  // Step 1: Derive the straight-line reset path (egress→ingress endpoints) from the doc
+  const mission = getMissionDocHandle()?.doc();
+  const selectedEva = mission?.evas?.[getState().eva.selectedEvaUuid];
+  const allStations = mission.stations ?? {};
 
   let fromStationLoc: AEGISPoint;
   let toStationLoc: AEGISPoint;
@@ -247,190 +87,166 @@ export const thunkResetTraverse = appCreateAsyncThunk<{
     if (selectedEva.egressLocationUuid === "lander") {
       fromStationLoc = mission.landerLocation;
     } else {
-      fromStationLoc = getState().station.stations.find(
-        (s) => s.uuid === selectedEva.egressLocationUuid
-      )?.location;
+      fromStationLoc = allStations[selectedEva.egressLocationUuid]?.location;
     }
   } else {
-    fromStationLoc = getState().station.stations.find(
-      (station) => station.uuid === selectedEva.sequence[sequenceIndex - 1].uuid
-    )?.location;
+    fromStationLoc = allStations[selectedEva.sequence[sequenceIndex - 1].uuid]?.location;
   }
   if (sequenceIndex === selectedEva.sequence.length - 1) {
     //last traverse in sequence. get ingress location
     if (selectedEva.ingressLocationUuid === "lander") {
       toStationLoc = mission.landerLocation;
     } else {
-      toStationLoc = getState().station.stations.find(
-        (s) => s.uuid === selectedEva.ingressLocationUuid
-      )?.location;
+      toStationLoc = allStations[selectedEva.ingressLocationUuid]?.location;
     }
   } else {
-    toStationLoc = getState().station.stations.find(
-      (station) => station.uuid === selectedEva.sequence[sequenceIndex + 1].uuid
-    )?.location;
+    toStationLoc = allStations[selectedEva.sequence[sequenceIndex + 1].uuid]?.location;
   }
   const newPath = [fromStationLoc, toStationLoc];
 
+  // Step 2 (delegated): This thunk makes no .change() call directly — it delegates
+  // the elevation fetch and atomic .change() to thunkDocUpdateTraverse.
   await dispatch(
-    thunkFullUpdateTraverse({
+    thunkDocUpdateTraverse({
       path: newPath,
       traverseUuid,
       evaSequence: selectedEva.sequence,
+      renameTraverse: true,
     })
   );
+
+  // No Step 3: this thunk has no UI side-effects of its own.
 });
 
 /**
  * Full update for traverses attached to a given station.
- * Save to DB.
  * Optional: only update for a single EVA, or if none is provided update all EVAs
  */
-export const thunkUpdateTraversesAroundStation = appCreateAsyncThunk<{
+export const thunkDocUpdateTraversesAroundStation = appCreateAsyncThunk<{
   stationUuid: string;
   evaUuid?: string;
-  saveToDb?: boolean;
-}>(
-  "updateTraversesAroundStation",
-  async ({ stationUuid, evaUuid, saveToDb = false }, { dispatch, getState }) => {
-    //get evas to update
-    const evas = evaUuid
-      ? [getState().eva.evas.find((e) => e.uuid === evaUuid)]
-      : getState().eva.evas;
-    for (const eva of evas) {
-      for (let i = 0; i < eva.sequence.length; i++) {
-        if (eva.sequence[i].uuid === stationUuid) {
-          //get traverse before
-          const traverseBefore = getState().traverse.traverses.find(
-            (t) => t.uuid === eva.sequence[i - 1].uuid
-          );
-          //update traverse in store
-          await dispatch(
-            thunkFullUpdateTraverse({
-              traverseUuid: traverseBefore.uuid,
-              rename: true,
-              evaSequence: eva.sequence,
-              saveToDb,
-            })
-          );
-          //get traverse after
-          const traverseAfter = getState().traverse.traverses.find(
-            (t) => t.uuid === eva.sequence[i + 1].uuid
-          );
-          //update traverse in store
-          await dispatch(
-            thunkFullUpdateTraverse({
-              traverseUuid: traverseAfter.uuid,
-              rename: true,
-              evaSequence: eva.sequence,
-              saveToDb,
-            })
-          );
-          break;
+}>("updateTraversesAroundStation", async ({ stationUuid, evaUuid }, { dispatch }) => {
+  // Step 1: Identify all traverses adjacent to the station across all relevant EVAs
+  const mission = getMissionDocHandle()?.doc();
+  if (!mission) return;
+  const allTraverses = mission.traverses ?? {};
+  const allEvas = Object.values(mission?.evas ?? {});
+  const evas = evaUuid ? [mission?.evas?.[evaUuid]] : allEvas;
+
+  // Collect traverses to update with their context for naming
+  type TraverseToUpdate = {
+    traverseUuid: string;
+    evaSequence: EvaSequenceItem[];
+    renameTraverse: boolean;
+  };
+  const traversesToUpdate: TraverseToUpdate[] = [];
+
+  for (const eva of evas) {
+    if (!eva) continue;
+    for (let i = 0; i < eva.sequence.length; i++) {
+      if (eva.sequence[i].uuid === stationUuid) {
+        const traverseBefore = allTraverses[eva.sequence[i - 1]?.uuid];
+        if (traverseBefore) {
+          traversesToUpdate.push({
+            traverseUuid: traverseBefore.uuid,
+            evaSequence: eva.sequence as EvaSequenceItem[],
+            renameTraverse: true,
+          });
         }
+        const traverseAfter = allTraverses[eva.sequence[i + 1]?.uuid];
+        if (traverseAfter) {
+          traversesToUpdate.push({
+            traverseUuid: traverseAfter.uuid,
+            evaSequence: eva.sequence as EvaSequenceItem[],
+            renameTraverse: true,
+          });
+        }
+        break;
       }
     }
   }
-);
+
+  if (traversesToUpdate.length === 0) return;
+
+  // Build updated path + fetch elevations for all traverses in parallel
+  const traverseUpdates: (TraverseUpdateStageData | null)[] = await Promise.all(
+    traversesToUpdate.map(({ traverseUuid, evaSequence, renameTraverse }) =>
+      stageTraverseUpdate(mission, dispatch, {
+        traverseUuid,
+        renameTraverse,
+        overrides: { evaSequence },
+      })
+    )
+  );
+
+  const validUpdates = traverseUpdates.filter(Boolean) as TraverseUpdateStageData[];
+  if (validUpdates.length === 0) return;
+
+  // Step 2: Apply all traverse updates in a single .change()
+  getMissionDocHandle()?.change((m: Mission) => applyTraverseUpdatesStage(m, validUpdates));
+
+  // No Step 3: this thunk has no UI side-effects of its own.
+});
 
 /**
- * Save the traverse and any actions to the db
+ * Save the traverse (update name and exit edit mode)
  */
-export const thunkSaveTraverse = appCreateAsyncThunk<{ traverseUuid: string }>(
+export const thunkDocSaveTraverse = appCreateAsyncThunk<{ traverseUuid: string }>(
   "traverseSave",
   async ({ traverseUuid }, { dispatch, getState }) => {
     if (!traverseUuid) return;
-    const traverseActions = getState().action.actions.filter(
-      (action) => action.traverseUuid === traverseUuid
-    );
-    const traverseActionsFromDb = getState().action.actionsFromDb.filter(
-      (action) => action.traverseUuid === traverseUuid
-    );
-    const newTraverse = getState().traverse.traverses.find((s) => s.uuid === traverseUuid);
-    const oldTraverse = getState().traverse.traversesFromDb.find((s) => s.uuid === traverseUuid);
 
-    // Check if the traverse name needs to be updated. Users cannot manually modify the name.
-    // Name can get out of sync if a user cancels the traverse edit that had an updated name in it.
-    let stationNameBefore: string = "";
-    let stationNameAfter: string = "";
-    const selectedEva = getState().eva.evas.find(
-      (eva) => eva.uuid === getState().eva.selectedEvaUuid
-    );
+    // Step 1: Derive the correct traverse name from surrounding stations in the doc snapshot
+    const mission = getMissionDocHandle()?.doc();
+    const traverse = mission?.traverses?.[traverseUuid];
+    const allStations = mission.stations ?? {};
+    if (!traverse) return;
+
+    let stationNameBefore = "";
+    let stationNameAfter = "";
+    const selectedEva = mission?.evas?.[getState().eva.selectedEvaUuid];
     const selectedEvaSequence = selectedEva?.sequence;
     if (selectedEvaSequence) {
       const traverseIndex = selectedEvaSequence.findIndex((item) => item.uuid === traverseUuid);
       if (traverseIndex !== -1) {
         if (traverseIndex === 0) {
-          // traverse from egress
           if (selectedEva.egressLocationUuid === "lander") {
             stationNameBefore = "Lander";
           } else {
-            const stationUuidBefore = selectedEva.egressLocationUuid;
-            const stationBefore = getState().station.stations.find(
-              (s) => s.uuid === stationUuidBefore
-            );
-            stationNameBefore = stationBefore.name;
+            stationNameBefore = allStations[selectedEva.egressLocationUuid]?.name ?? "";
           }
         } else {
-          const stationUuidBefore = selectedEvaSequence[traverseIndex - 1].uuid;
-          const stationBefore = getState().station.stations.find(
-            (s) => s.uuid === stationUuidBefore
-          );
-          stationNameBefore = stationBefore.name;
+          stationNameBefore = allStations[selectedEvaSequence[traverseIndex - 1].uuid]?.name ?? "";
         }
 
-        // if this is the last item in the sequence, use ingressLocation as the after location
         if (traverseIndex === selectedEvaSequence.length - 1) {
-          // traverse to ingress
           if (selectedEva.ingressLocationUuid === "lander") {
             stationNameAfter = "Lander";
           } else {
-            const stationUuidAfter = selectedEva.ingressLocationUuid;
-            const stationAfter = getState().station.stations.find(
-              (s) => s.uuid === stationUuidAfter
-            );
-            stationNameAfter = stationAfter.name;
+            stationNameAfter = allStations[selectedEva.ingressLocationUuid]?.name ?? "";
           }
         } else {
-          const stationUuidAfter = selectedEvaSequence[traverseIndex + 1].uuid;
-          const stationAfter = getState().station.stations.find((s) => s.uuid === stationUuidAfter);
-          stationNameAfter = stationAfter.name;
+          stationNameAfter = allStations[selectedEvaSequence[traverseIndex + 1].uuid]?.name ?? "";
         }
-      } else throw new Error("Traverse not found in EVA sequence");
-    } else throw new Error("No EVA sequence found for the traverse");
-
-    // if the traverse has been modified, update it in the db
-    const traverseWithUpdatedName = {
-      ...newTraverse,
-      name: `${stationNameBefore} to ${stationNameAfter}`, // update the name just in case
-    };
-    if (!isEqual(traverseWithUpdatedName, oldTraverse)) {
-      const updatedTraverse = {
-        ...traverseWithUpdatedName,
-        updatedAt: getAccurateNow().toISOString(),
-      };
-      const upsertTraverseRes = await httpClient_Traverse.upsertTraverses([updatedTraverse]);
-      if (upsertTraverseRes.status !== "success") {
-        throw new Error("Error upserting Traverse: " + upsertTraverseRes.message);
       }
-      dispatch(upsertTraverses([updatedTraverse], true));
-      dispatch(upsertTraversesFromDb([updatedTraverse]));
     }
 
-    // find out if the actions in this traverse have been modified and need to be persisted
-    if (!isEqual(traverseActions, traverseActionsFromDb)) {
-      dispatch(
-        thunkSaveActions({
-          actions: traverseActions,
-          actionsFromDb: traverseActionsFromDb,
+    // Step 2: Apply the single .change() directly (only if name changed)
+    const newName = `${stationNameBefore} to ${stationNameAfter}`;
+    if (traverse.name !== newName) {
+      getMissionDocHandle()?.change((m: Mission) =>
+        applyUpdateTraverseByField(m, {
+          traverseUuid,
+          fieldName: "name",
+          value: newName,
+          preserveUpdatedAt: true,
         })
       );
     }
 
-    // if there's an active traverse edit action, cancel it
+    // Step 3: UI side-effects — trigger map polyline save if an edit is in progress
     const traverseMapDirective =
       getState().map.mapDirective?.uuid === traverseUuid ? getState().map.mapDirective : null;
-
     if (traverseMapDirective?.mapAction === "editPolyline") {
       dispatch(
         thunkUpdateMapDirective({
@@ -439,85 +255,14 @@ export const thunkSaveTraverse = appCreateAsyncThunk<{ traverseUuid: string }>(
         })
       );
     }
-
-    dispatch(setTraversesEditMode({ uuids: [traverseUuid], editMode: false }));
   }
 );
 
-/**
- * Duplicate a traverse and automatically save it to the db
- */
-export const thunkDuplicateTraverse = appCreateAsyncThunk<
-  { traverseUuid: String; preserveRefUuid: boolean },
-  Traverse,
-  false
->("traverseDuplicate", async ({ traverseUuid, preserveRefUuid }, { dispatch, getState }) => {
-  if (!traverseUuid) return;
-  const traverse = getState().traverse.traverses.find((s) => s.uuid === traverseUuid);
-  //duplicate traverse
-  const newTraverse: Traverse = cloneDeep(traverse);
-  newTraverse.uuid = uuidv4();
-  // preservingRefUuids only occurs when duplicating an EVA for a REX.
-  if (!preserveRefUuid) {
-    newTraverse.refUuid = uuidv4();
-    const newDateString = getAccurateNow().toISOString();
-    newTraverse.updatedAt = newDateString;
-    newTraverse.createdAt = newDateString;
-  }
-  newTraverse.actionOrderUuids = [];
-
-  // duplicating traverse and persist to the db
-  dispatch(upsertTraverses([newTraverse], true));
-  dispatch(upsertTraversesFromDb([newTraverse]));
-  const upsertTraverseRes = await httpClient_Traverse.upsertTraverses([newTraverse]);
-  if (upsertTraverseRes.status !== "success") {
-    throw new Error("Error upserting Traverse in traverseDuplicate: " + upsertTraverseRes.message);
-  }
-
-  //duplicate actions
-  const traverseActions = getState()
-    .action.actions.filter((action) => action.traverseUuid === traverse.uuid)
-    .sort(
-      (a, b) =>
-        traverse.actionOrderUuids.findIndex((o) => o === a.uuid) -
-        traverse.actionOrderUuids.findIndex((o) => o === b.uuid)
-    );
-  await dispatch(
-    thunkDuplicateActions({
-      actions: traverseActions,
-      traverseUuid: newTraverse.uuid,
-      promotingFromPoi: false,
-      preserveRefUuid: preserveRefUuid,
-      saveToDb: true,
-    })
-  );
-
-  return newTraverse;
-});
-
-export const thunkCancelTraverse = appCreateAsyncThunk<{ traverseUuid: string }>(
+export const thunkUICancelTraverse = appCreateAsyncThunk<{ traverseUuid: string }>(
   "traverseCancel",
   async ({ traverseUuid }, { dispatch, getState }) => {
-    const traverseActions = getState().action.actions.filter(
-      (action) => action.traverseUuid === traverseUuid
-    );
-    const traverseActionsFromDb = getState().action.actionsFromDb.filter(
-      (action) => action.traverseUuid === traverseUuid
-    );
-    if (traverseActions || traverseActionsFromDb) {
-      // revert any modified actions
-      dispatch(upsertActions(traverseActionsFromDb, true));
-
-      //delete newly added actions that user doesn't want to save
-      const addedActionsToDelete: Action[] = traverseActions.filter(
-        // only delete actions that don't exist in the db
-        (action) =>
-          traverseActionsFromDb.findIndex((actionDb) => actionDb.uuid === action.uuid) === -1
-      );
-      dispatch(deleteActionsByUuid(addedActionsToDelete.map((a) => a.uuid)));
-    }
-
-    // if there's an active traverse map edit action, cancel it
+    // No Step 1/2: this thunk makes no .change() call.
+    // Step 3: UI side-effects — cancel map polyline edit if one is in progress
     const traverseMapDirective =
       getState().map.mapDirective?.uuid === traverseUuid ? getState().map.mapDirective : null;
     if (traverseMapDirective?.mapAction === "editPolyline") {
@@ -528,22 +273,16 @@ export const thunkCancelTraverse = appCreateAsyncThunk<{ traverseUuid: string }>
         })
       );
     }
-
-    // revert traverse to db version
-    const traverseFromDb = getState().traverse.traversesFromDb.find((t) => t.uuid === traverseUuid);
-    if (traverseFromDb) {
-      dispatch(upsertTraverses([traverseFromDb], true));
-    }
-
-    dispatch(setTraversesEditMode({ uuids: [traverseUuid], editMode: false }));
   }
 );
 
-export const thunkDeleteTraverses = appCreateAsyncThunk<{ traverseUuids: string[] }>(
+export const thunkDocDeleteTraverses = appCreateAsyncThunk<{ traverseUuids: string[] }>(
   "traversesDelete",
   async ({ traverseUuids }, { dispatch, getState }) => {
     if (!traverseUuids || traverseUuids.length === 0) return;
 
+    // Step 1: Collect all child action uuids to delete from the doc,
+    // and cancel any active map edit for affected traverses (UI pre-effect).
     const traverseActionUuidsToDelete: string[] = [];
     for (const traverseUuid of traverseUuids) {
       // first, if there's an active traverse map edit action for any of these traverses, cancel it
@@ -559,32 +298,20 @@ export const thunkDeleteTraverses = appCreateAsyncThunk<{ traverseUuids: string[
       }
 
       // delete traverse actions from store and db
-      const traverseActions = getState().action.actions.filter(
+      const traverseActions = Object.values(getMissionDocHandle()?.doc()?.actions ?? {}).filter(
         (action) => action.traverseUuid === traverseUuid
       );
       traverseActionUuidsToDelete.push(...traverseActions.map((a) => a.uuid));
     }
-    if (traverseActionUuidsToDelete.length > 0) {
-      await dispatch(thunkDeleteActionsFromDbAndStore({ uuids: traverseActionUuidsToDelete }));
-    }
 
-    // delete any traverses that were in the db in one bulk http call
-    const traverseUuidsInDb = traverseUuids.filter((uuid) =>
-      getState()
-        .traverse.traversesFromDb.map((t) => t.uuid)
-        .includes(uuid)
-    );
-    if (traverseUuidsInDb.length > 0) {
-      const deleteRes = await httpClient_Traverse.deleteTraverses(traverseUuidsInDb);
-      if (deleteRes.status !== "success") {
-        throw new Error("Error deleting traverses: " + deleteRes.message);
-      }
-    }
+    // Step 2: Delete child actions and traverses atomically in a single .change()
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
+    missionDocHandle.change((m: Mission) => {
+      applyDeleteActions(m, traverseActionUuidsToDelete);
+      applyDeleteTraverses(m, traverseUuids);
+    });
 
-    // delete traverses from both copies in the store
-    dispatch(deleteTraversesByUuid(traverseUuids));
-    dispatch(deleteTraversesFromDbByUuid(traverseUuids));
-    // remove edit mode for any traverses that were in edit mode
-    dispatch(setTraversesEditMode({ uuids: traverseUuids, editMode: false }));
+    // No Step 3: UI map-edit cancellation was handled in Step 1 above as a pre-effect.
   }
 );

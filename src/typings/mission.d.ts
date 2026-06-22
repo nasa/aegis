@@ -40,6 +40,12 @@ interface Mission {
   stmLevel1Name?: string;
   stmLevel2Name?: string;
   stmLevel3Name?: string;
+  pois: { [uuid: string]: POI };
+  actions: { [uuid: string]: Action };
+  stations: { [uuid: string]: Station };
+  traverses: { [uuid: string]: Traverse };
+  evas: { [uuid: string]: Eva };
+  rexes: { [uuid: string]: Rex };
   createdAt: number;
   updatedAt: number;
 }
@@ -155,19 +161,13 @@ type MissionHomepageItem = {
 
 type OneMissionToRuleThemAll = {
   mission: Mission;
-  actions: Action[];
-  evas: Eva[];
   layers: Layer[];
-  pois: POI[];
   presets: Preset[];
-  rexes: Rex[];
-  stations: Station[];
   level1s: STMLevel1[];
   level2s: STMLevel2[];
   level3s: STMLevel3[];
   stmRules: STMRule[];
   sublayers: Sublayer[];
-  traverses: Traverse[];
   folders: Folder[];
 };
 

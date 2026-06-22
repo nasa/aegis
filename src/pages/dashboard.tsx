@@ -16,10 +16,10 @@ import { populateStore } from "store/processing/populateStore";
 import MapBody from "components/dashboard/map";
 import DashTimeline from "components/dashboard/timeline/dashTimeline";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
 import MiniMap from "components/dashboard/miniMap";
 import { setGridCornerPoint } from "store/map";
 import { loadAndReturnGrid } from "utils/mapping/grid";
-import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import { clientLogger } from "utils/logging/clientLogger";
 import { LoadingOverlay } from "components/interface/_global-elements";
@@ -34,7 +34,7 @@ const Main = (): JSX.Element => {
   const [eyeballMenuCookie] = useCookies(["AEGIS_Map_View_Settings"]);
   const automergeRepo = useRepo();
   const partialMission = useMissionDocSelector(
-    (doc) => ({ name: doc.name, activeGridUuid: doc.activeGridUuid }),
+    (mission) => ({ name: mission.name, activeGridUuid: mission.activeGridUuid }),
     deepEqual
   );
   const isVersionChecked = useAppSelector(
@@ -42,10 +42,10 @@ const Main = (): JSX.Element => {
     (state) => !!state.connection.socketStatus.lastStatusFromServer.serverVersion,
     deepEqual
   );
-  const runningRexFromDb = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((r) => r.isRunning),
-    deepEqual
-  );
+  const runningRex = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return null;
+    return Object.values(mission.rexes).find((r) => r.isRunning) ?? null;
+  }, deepEqual);
   const defaultPreset = useAppSelector((state) => {
     const defaultPresetUuid = state.preset.presetsFromDb.find((p) => p.missionDefault)?.uuid;
     return state.preset.presetsFromDb.find((p) => p.uuid === defaultPresetUuid);
@@ -83,10 +83,10 @@ const Main = (): JSX.Element => {
 
   // Set default sourceUuids when runningRexFromDb changes, reading from cookie settings
   useEffect(() => {
-    if (!runningRexFromDb?.posSources) return;
+    if (!runningRex?.posSources) return;
 
-    const taskSourceUuid = runningRexFromDb.posSources.find((source) => source.abbr === "T")?.uuid;
-    const crewSourceUuid = runningRexFromDb.posSources.find((source) => source.abbr === "C")?.uuid;
+    const taskSourceUuid = runningRex.posSources.find((source) => source.abbr === "T")?.uuid;
+    const crewSourceUuid = runningRex.posSources.find((source) => source.abbr === "C")?.uuid;
 
     // Get existing settings from cookie, similar to map-body-leaflet
     const existingSettings = eyeballMenuCookie["AEGIS_Map_View_Settings"];
@@ -104,7 +104,7 @@ const Main = (): JSX.Element => {
         sourceUuids: [taskSourceUuid, crewSourceUuid].filter(Boolean),
       }));
     }
-  }, [runningRexFromDb?.posSources, eyeballMenuCookie]);
+  }, [runningRex?.posSources, eyeballMenuCookie]);
 
   useEffect(() => {
     if (!intMissionId) return;
@@ -206,7 +206,7 @@ const Main = (): JSX.Element => {
         <DashboardHeader />
         {missionPerms && storeIsPopulated ? (
           <>
-            {runningRexFromDb ? (
+            {runningRex ? (
               <div className={styles.mainContent}>
                 <div className={`${styles.middlePanel} ${styles.mapBody}`}>
                   <MapBody

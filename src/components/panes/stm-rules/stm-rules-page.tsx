@@ -18,11 +18,11 @@ const StmViewerPage: FunctionComponent = () => {
     refEqual
   );
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      stmLevel1Name: doc.stmLevel1Name,
-      stmLevel2Name: doc.stmLevel2Name,
-      stmLevel3Name: doc.stmLevel3Name,
-      stmLevel1Enabled: doc.stmLevel1Enabled,
+    (mission) => ({
+      stmLevel1Name: mission.stmLevel1Name,
+      stmLevel2Name: mission.stmLevel2Name,
+      stmLevel3Name: mission.stmLevel3Name,
+      stmLevel1Enabled: mission.stmLevel1Enabled,
     }),
     deepEqual
   );

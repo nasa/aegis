@@ -1,23 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { makeUniqueStringCopy } from "utils/names/duplicate";
-import { getAccurateNow } from "utils/formatting";
-import {
-  deleteRexesByUuid,
-  deleteRexesFromDbByUuid,
-  upsertRexes,
-  upsertRexesFromDb,
-  setSelectedRexUuid,
-  upsertRexByField,
-  setSelectedPosEntryUuid,
-} from "store/rex";
-import cloneDeep from "lodash/cloneDeep";
-import { makeExportRexes } from "utils/export";
-import * as jsonKeysSort from "json-keys-sort";
-import * as httpClient_Rex from "http-client/rex";
-import { generateBlankRex } from "store/storeUtils/rex";
-import { thunkAddRemoveFolderItem } from "./thunkFolder";
-import { getAutomergeDocHandles } from "client/automergeDocHandles";
-import { thunkDeleteEva, thunkDuplicateEva } from "./thunkEva";
+import { setSelectedRexUuid, setSelectedPosEntryUuid } from "store/rex";
+
+import { getMissionDocHandle } from "client/automergeDocHandles";
 import {
   setEvaDropdownUIState,
   setSelectedEvaUuid,
@@ -26,334 +10,119 @@ import {
 } from "store/eva";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { setSectionSelected } from "store/interface";
+import { setStationCircleUIStates } from "store/station";
+import {
+  applyCreateRexStage,
+  applyDeleteRexStage,
+  applyUpdateRexByField,
+  applyUpsertRexEntryItem,
+} from "client/automerge/apply/apply-rex";
+import { stageCreateRex, stageDeleteRex } from "client/automerge/stage/stage-rex";
+import { v4 as uuidv4 } from "uuid";
+import { getAccurateNow } from "utils/formatting";
+import cloneDeep from "lodash/cloneDeep";
 
 /**
- * Creates a new rex via duplication and saves everything to DB. returns the newly created eva uuid
+ * Creates a new rex via duplication and saves everything to automerge.
+ * Returns the newly created eva uuid.
  */
-export const thunkCreateRex = appCreateAsyncThunk<
+export const thunkDocCreateRex = appCreateAsyncThunk<
   { asPlannedEvaUuid: string },
   string | null,
   false
->("rexCreate", async ({ asPlannedEvaUuid }, { dispatch, getState }) => {
-  const missionDocHandle = getAutomergeDocHandles().mission;
+>("rexCreate", async ({ asPlannedEvaUuid }, { getState, dispatch }) => {
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return null;
   const mission = missionDocHandle.doc();
+  if (!mission) return null;
 
-  if (!asPlannedEvaUuid) throw new Error("Error creating Rex. No EVA uuid provided");
-
-  // duplicate the EVA (this will save to the db)
-  const dupEvaThunkRes = await dispatch(
-    thunkDuplicateEva({ evaUuid: asPlannedEvaUuid, includeStations: true, isRexEva: true })
-  );
-  if (dupEvaThunkRes?.meta.requestStatus === "rejected" || !dupEvaThunkRes.payload) {
-    throw new Error("Error creating Rexes. Cannot duplicate EVA ");
+  // Step 1: Build the full REX creation stage from the doc
+  const ownerId = getState().user?.appUser?.id ?? null;
+  const rexStagedData = stageCreateRex(mission, { asPlannedEvaUuid, ownerId });
+  if (!rexStagedData) {
+    throw new Error(`Error creating Rexes. Cannot duplicate EVA ${asPlannedEvaUuid}`);
   }
-  const duplicatedEva = dupEvaThunkRes.payload;
 
-  // create Rex and add duplicated EVA to it
-  const evaUuidsWithSameRefUuid = getState()
-    .eva.evas.filter((e) => e.refUuid === duplicatedEva.refUuid)
-    .map((e) => e.uuid);
-  const rexNames = getState()
-    .rex.rexes.filter((r) => evaUuidsWithSameRefUuid.includes(r.evaUuid))
-    .map((r) => r.name);
-  const randomName = makeUniqueStringCopy("REX", rexNames, false);
-  const blankRex = generateBlankRex({
-    missionId: mission.id,
-    name: randomName,
-    evaUuid: duplicatedEva.uuid,
-  });
+  // Step 2: Apply the entire stage (REX + duplicated EVA tree) atomically
+  missionDocHandle.change((m: Mission) => applyCreateRexStage(m, rexStagedData));
 
-  // save rex to db
-  const upsertRexResponse = await httpClient_Rex.upsertRexes([blankRex]);
-  if (upsertRexResponse.status !== "success") {
-    throw new Error("Error upserting Rexes: " + upsertRexResponse.message);
-  }
-  dispatch(upsertRexes([blankRex]));
-  dispatch(upsertRexesFromDb([blankRex]));
-
-  // set selections
-  dispatch(setSelectedRexUuid(blankRex.uuid));
-  dispatch(setSelectedEvaUuid(duplicatedEva.uuid));
+  // Step 3: UI side-effects
+  dispatch(setSelectedRexUuid(rexStagedData.newRexUuid));
+  dispatch(setSelectedEvaUuid(rexStagedData.evaStage.newEvaUuid));
+  dispatch(setSelectedEvaSequenceItemUuid(null));
   dispatch(thunkSetRightPanelIsOpenIfAuto(true));
-  dispatch(setEvaDropdownUIState({ asPlannedEvaUuid, dropdownEvaUuid: duplicatedEva.uuid }));
-  return duplicatedEva.uuid;
+  dispatch(
+    setEvaDropdownUIState({ asPlannedEvaUuid, dropdownEvaUuid: rexStagedData.evaStage.newEvaUuid })
+  );
+
+  // Initialize stationCirclesUIStates
+  // Get all of the new stations staged data that was added
+  const { stationStages, ingressStationStage, egressStationStage } = rexStagedData.evaStage;
+  const allNewStationStages = [...stationStages];
+  if (ingressStationStage) allNewStationStages.push(ingressStationStage);
+  if (egressStationStage) allNewStationStages.push(egressStationStage);
+  // Initialize the stationCirclesUIStates for each new station
+  for (const stationStage of allNewStationStages) {
+    const sourceCircleUIStates =
+      cloneDeep(getState().station.stationCirclesUIStates[stationStage.oldStationUuid]) ?? {};
+    dispatch(
+      setStationCircleUIStates({
+        stationUuid: stationStage.newStationUuid,
+        circleUIStates: sourceCircleUIStates,
+      })
+    );
+  }
+
+  return rexStagedData.evaStage.newEvaUuid;
 });
 
-export const thunkSaveRex = appCreateAsyncThunk<{ rexUuid: string }>(
-  "rexSave",
-  async ({ rexUuid }, { dispatch, getState }) => {
-    if (!rexUuid) return;
-    const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
-
-    const rexToSave: Rex = cloneDeep(rex);
-
-    // if we are stopping execution and had "only show running rex" enabled, disable it so everything re-appears
-    const rexFromDb = getState().rex.rexesFromDb.find((r) => r.uuid === rexUuid);
-    if (rexFromDb.isRunning && !rex.isRunning && getState().eva.showRunningRexOnly) {
-      dispatch(setOnlyShowRunningRex(false));
-    }
-
-    const upsertResponse = await httpClient_Rex.upsertRexes([rexToSave]);
-    if (upsertResponse.status !== "success") {
-      throw new Error("Error upserting Rexes: " + upsertResponse.message);
-    }
-    // upsert the changed rex to the store
-    dispatch(upsertRexes([upsertResponse.data[0]], true));
-    // update the rex in the store from the DB
-    dispatch(upsertRexesFromDb([upsertResponse.data[0]]));
-  }
-);
-
-export const thunkCancelRex = appCreateAsyncThunk<{ rexUuid: string }>(
-  "rexCancel",
-  async ({ rexUuid }, { dispatch, getState }) => {
-    const rexFromDb = getState().rex.rexesFromDb.find((rexDb) => rexDb.uuid === rexUuid);
-    const rexEvaUuid = getState().rex.rexes.find((rex) => rex.uuid === rexUuid)?.evaUuid;
-
-    // if selected rex isn't in the db, delete it from the store
-    if (!rexFromDb) {
-      // first delete the rex's EVA from the store
-      await dispatch(thunkDeleteEva({ evaUuid: rexEvaUuid, forRex: true }));
-
-      // now delete the rex
-      dispatch(deleteRexesByUuid([rexUuid]));
-      dispatch(setSelectedRexUuid(null)); // reset since the rex was deleted
-      dispatch(
-        thunkAddRemoveFolderItem({
-          itemUuid: rexUuid,
-          folderUuid: null,
-        })
-      );
-    } else {
-      // if selected rex is in the db, replace it with the one from the db (undoing any changes)
-      dispatch(upsertRexes([rexFromDb], true));
-    }
-  }
-);
-
-export const thunkDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
+export const thunkDocDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
   "rexDelete",
   async ({ rexUuid }, { dispatch, getState }) => {
     if (!rexUuid) return;
-    const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
+    const mission = missionDocHandle.doc();
+    const rex = mission?.rexes?.[rexUuid];
+    if (!rex) return;
+
+    // Step 1: Build the full deletion stage from the doc
     if (rex.isRunning && getState().eva.showRunningRexOnly) {
       dispatch(setOnlyShowRunningRex(false));
     }
-
-    // delete from dropdown UI state
-    const allRexEvasUuids = getState().rex.rexes.map((rex) => rex.evaUuid);
-    const eva = getState().eva.evas.find((e) => e.uuid === rex.evaUuid);
-    const asPlannedEvaUuid = getState().eva.evas.find(
-      (e) => e.refUuid === eva.refUuid && !allRexEvasUuids.includes(e.uuid)
+    const allRexEvasUuids = Object.values(mission?.rexes ?? {}).map((r) => r.evaUuid);
+    const eva = mission?.evas?.[rex.evaUuid];
+    const asPlannedEvaUuid = Object.values(mission?.evas ?? {}).find(
+      (e) => e.refUuid === eva?.refUuid && !allRexEvasUuids.includes(e.uuid)
     )?.uuid;
+    const stage = stageDeleteRex(mission, { rexUuid });
+
+    // Step 2: Apply the entire deletion (REX + EVA tree) atomically
+    if (stage) {
+      missionDocHandle.change((m: Mission) => applyDeleteRexStage(m, stage));
+    }
+
+    // Step 3: UI side-effects
     dispatch(
       setEvaDropdownUIState({
         asPlannedEvaUuid: asPlannedEvaUuid,
         dropdownEvaUuid: null,
       })
     );
-    // clear other selections
     dispatch(setSelectedEvaUuid(asPlannedEvaUuid));
     dispatch(setSelectedPosEntryUuid(null));
     dispatch(setSelectedRexUuid(null));
-
-    // delete the rex from the store and DB
-    dispatch(deleteRexesByUuid([rexUuid]));
-    dispatch(deleteRexesFromDbByUuid([rexUuid]));
-    const deleteResponse = await httpClient_Rex.deleteRexes([rexUuid]);
-    if (deleteResponse.status !== "success") {
-      throw new Error("Error deleting Rex: " + deleteResponse.message);
-    }
-
-    // delete the eva last to prevent race conditions
-    await dispatch(thunkDeleteEva({ evaUuid: rex.evaUuid, forRex: true }));
   }
 );
 
-export const thunkRexPetStartStop = appCreateAsyncThunk<{
-  rexUuid: string;
-  directive: "start" | "stop";
-  petValue: string;
-}>("rexPetTimerStartStop", async ({ rexUuid, directive, petValue }, { getState, dispatch }) => {
-  const rex = getState().rex.rexes.find((rex) => rex.uuid === rexUuid);
-
-  dispatch(
-    upsertRexes([
-      {
-        ...rex,
-        petRunning: directive === "start",
-        petValueAtStartStop: petValue,
-        petStartStopTimestamp: getAccurateNow().toISOString(),
-      },
-    ])
-  );
-});
-
-export const thunkAddRexStatusEntry = appCreateAsyncThunk<{
-  entryType: "station" | "traverse" | "action" | "xgress";
-  uuid: string; //uuid of the station, traverse, or action to add a status to
-  rexStatus: RexStatus;
-}>("addRexStatusEntry", async ({ entryType, uuid, rexStatus }, { dispatch, getState }) => {
-  const runningRexFromDb = cloneDeep(getState().rex.rexesFromDb.find((rex) => rex.isRunning));
-  if (!runningRexFromDb) return;
-
-  const runningRex = getState().rex.rexes.find((r) => r.isRunning);
-  if (!runningRex) return null;
-  //modify the rex object based on the entry type. upsert to both copies in the store
-  if (entryType === "station") {
-    const newEntry: ActivityEntry = {
-      rexStatus,
-    };
-    const newEntries = cloneDeep(runningRexFromDb.stationEntries) || {};
-    newEntries[uuid] = newEntry;
-    runningRexFromDb.stationEntries = newEntries;
-    dispatch(upsertRexByField(runningRexFromDb.uuid, "stationEntries", newEntries, true));
-    dispatch(upsertRexesFromDb([runningRexFromDb]));
-  } else if (entryType === "traverse") {
-    const newEntry: ActivityEntry = {
-      rexStatus,
-    };
-    const newEntries = cloneDeep(runningRexFromDb.traverseEntries) || {};
-    newEntries[uuid] = newEntry;
-    runningRexFromDb.traverseEntries = newEntries;
-    dispatch(upsertRexByField(runningRexFromDb.uuid, "traverseEntries", newEntries, true));
-    dispatch(upsertRexesFromDb([runningRexFromDb]));
-  } else if (entryType === "action") {
-    const newEntries = cloneDeep(runningRexFromDb.actionEntries) || {};
-    if (newEntries[uuid]) {
-      newEntries[uuid] = {
-        ...newEntries[uuid],
-        rexStatus,
-      };
-    } else {
-      newEntries[uuid] = {
-        rexStatus,
-        mass: null,
-        markerId: null,
-        containerId: null,
-        secondaryContainerId: null,
-      };
-    }
-    runningRexFromDb.actionEntries = newEntries;
-    dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
-    dispatch(upsertRexesFromDb([runningRexFromDb]));
-  } else if (entryType === "xgress") {
-    const newEntry: XgressEntry = {
-      rexStatus,
-    };
-    const newEntries = cloneDeep(runningRexFromDb.xgressEntries) || {};
-    newEntries[uuid] = newEntry;
-    runningRexFromDb.xgressEntries = newEntries;
-    dispatch(upsertRexByField(runningRexFromDb.uuid, "xgressEntries", newEntries, true));
-    dispatch(upsertRexesFromDb([runningRexFromDb]));
-  }
-
-  // update the rex in the database
-  const upsertRexRes = await httpClient_Rex.upsertRexes([runningRexFromDb]);
-  if (upsertRexRes.status !== "success") {
-    throw new Error("Error upserting Rexes for status entry: " + upsertRexRes.message);
-  }
-});
-
-export const thunkAddRexActionMass = appCreateAsyncThunk<{
-  uuid: string;
-  mass: number;
-}>("addRexActionMass", async ({ uuid, mass }, { dispatch, getState }) => {
-  const runningRexFromDb = cloneDeep(getState().rex.rexesFromDb.find((rex) => rex.isRunning));
-  if (!runningRexFromDb) return;
-
-  const newEntries = cloneDeep(runningRexFromDb.actionEntries) || {};
-  if (newEntries[uuid]) {
-    newEntries[uuid] = {
-      ...newEntries[uuid],
-      mass,
-    }; // update the mass of the entry
-  } else {
-    newEntries[uuid] = {
-      rexStatus: null,
-      mass,
-      markerId: null,
-      containerId: null,
-      secondaryContainerId: null,
-    };
-  }
-  runningRexFromDb.actionEntries = newEntries;
-  dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
-  dispatch(upsertRexesFromDb([runningRexFromDb]));
-
-  // update the rex in the database
-  const upsertRexRes = await httpClient_Rex.upsertRexes([runningRexFromDb]);
-  if (upsertRexRes.status !== "success") {
-    throw new Error("Error upserting Rexes for action mass: " + upsertRexRes.message);
-  }
-});
-
-export const thunkAddCollectionId = appCreateAsyncThunk<{
-  uuid: string;
-  id: string;
-  collectionType: "marker" | "container" | "secondaryContainer";
-}>("addRexCollectionId", async ({ uuid, id, collectionType }, { dispatch, getState }) => {
-  const runningRexFromDb = cloneDeep(getState().rex.rexesFromDb.find((rex) => rex.isRunning));
-  if (!runningRexFromDb) return;
-
-  const newEntries = cloneDeep(runningRexFromDb.actionEntries) || {};
-  if (newEntries[uuid]) {
-    newEntries[uuid] = {
-      ...newEntries[uuid],
-      markerId: collectionType === "marker" ? id : newEntries[uuid].markerId,
-      containerId: collectionType === "container" ? id : newEntries[uuid].containerId,
-      secondaryContainerId:
-        collectionType === "secondaryContainer" ? id : newEntries[uuid].secondaryContainerId,
-    }; // entry IDs
-  } else {
-    newEntries[uuid] = {
-      rexStatus: null,
-      mass: null,
-      markerId: collectionType === "marker" ? id : null,
-      containerId: collectionType === "container" ? id : null,
-      secondaryContainerId: collectionType === "secondaryContainer" ? id : null,
-    };
-  }
-  runningRexFromDb.actionEntries = newEntries;
-  dispatch(upsertRexByField(runningRexFromDb.uuid, "actionEntries", newEntries, true));
-  dispatch(upsertRexesFromDb([runningRexFromDb]));
-
-  // update the rex in the database
-  const upsertRexRes = await httpClient_Rex.upsertRexes([runningRexFromDb]);
-  if (upsertRexRes.status !== "success") {
-    throw new Error("Error upserting Rexes for action collection ID: " + upsertRexRes.message);
-  }
-});
-
-export const thunkMakeExportRexString = appCreateAsyncThunk<
-  {
-    rexUuid: string;
-  },
-  string,
-  false
->("makeExportRexString", async ({ rexUuid }, { getState }) => {
-  /**
-   * REX
-   */
-  const rexes: ExportRex[] = makeExportRexes({
-    rexes: getState().rex?.rexes,
-  });
-
-  const exportRex = rexes.find((rex) => rex.uuid === rexUuid);
-
-  const selectedExportedData = { rex: exportRex };
-
-  // convert object to readable string
-  const sortedJson = jsonKeysSort.sort(selectedExportedData);
-  const dataStr = JSON.stringify(sortedJson, null, 2);
-
-  return dataStr;
-});
-
-export const thunkJumpToRunningRex = appCreateAsyncThunk<void>(
+export const thunkUIJumpToRunningRex = appCreateAsyncThunk<void>(
   "jumpToRunningRex",
-  async (_, { getState, dispatch }) => {
-    const runningRex = getState().rex.rexes.find((rex) => rex.isRunning);
+  async (_, { dispatch }) => {
+    // No Step 1/2: this thunk makes no .change() call.
+    // Step 3: UI side-effects only — navigate to the running REX and update selection
+    const runningRex = Object.values(getMissionDocHandle()?.doc()?.rexes ?? {}).find(
+      (rex) => rex.isRunning
+    );
     if (!runningRex) return;
     dispatch(setSectionSelected("evas"));
     dispatch(setSelectedPosEntryUuid(null));
@@ -361,5 +130,194 @@ export const thunkJumpToRunningRex = appCreateAsyncThunk<void>(
     dispatch(setOnlyShowRunningRex(true));
     dispatch(setSelectedEvaUuid(runningRex.evaUuid));
     dispatch(setSelectedRexUuid(runningRex.uuid));
+  }
+);
+
+export const thunkDocAddRexStatusEntry = appCreateAsyncThunk<{
+  entryType: "station" | "traverse" | "action" | "xgress";
+  uuid: string;
+  rexStatus: RexStatus;
+}>("addRexStatusEntry", async ({ entryType, uuid, rexStatus }) => {
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return;
+  const doc = missionDocHandle.doc();
+  if (!doc) return;
+  // Step 1: Read the running REX and existing entry data from the doc.
+  const runningRex = Object.values(doc.rexes ?? {}).find((rex) => rex.isRunning);
+  if (!runningRex) return;
+
+  // Step 2: Apply the entry update for the given entry type.
+  if (entryType === "station") {
+    missionDocHandle.change((m: Mission) =>
+      applyUpsertRexEntryItem(m, {
+        rexUuid: runningRex.uuid,
+        mapField: "stationEntries",
+        itemUuid: uuid,
+        value: { rexStatus },
+      })
+    );
+  } else if (entryType === "traverse") {
+    missionDocHandle.change((m: Mission) =>
+      applyUpsertRexEntryItem(m, {
+        rexUuid: runningRex.uuid,
+        mapField: "traverseEntries",
+        itemUuid: uuid,
+        value: { rexStatus },
+      })
+    );
+  } else if (entryType === "action") {
+    const existingEntry = runningRex.actionEntries?.[uuid];
+    missionDocHandle.change((m: Mission) =>
+      applyUpsertRexEntryItem(m, {
+        rexUuid: runningRex.uuid,
+        mapField: "actionEntries",
+        itemUuid: uuid,
+        value: existingEntry
+          ? { ...existingEntry, rexStatus }
+          : {
+              rexStatus,
+              mass: null,
+              markerId: null,
+              containerId: null,
+              secondaryContainerId: null,
+            },
+      })
+    );
+  } else if (entryType === "xgress") {
+    missionDocHandle.change((m: Mission) =>
+      applyUpsertRexEntryItem(m, {
+        rexUuid: runningRex.uuid,
+        mapField: "xgressEntries",
+        itemUuid: uuid,
+        value: { rexStatus },
+      })
+    );
+  }
+
+  // No Step 3: this thunk has no UI side-effects of its own.
+});
+
+export const thunkDocAddRexActionMass = appCreateAsyncThunk<{ uuid: string; mass: number }>(
+  "addRexActionMass",
+  async ({ uuid, mass }) => {
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
+    const doc = missionDocHandle.doc();
+    if (!doc) return;
+    // Step 1: Read the running REX and the existing action entry from the doc.
+    const runningRex = Object.values(doc.rexes ?? {}).find((rex) => rex.isRunning);
+    if (!runningRex) return;
+    const existingEntry = runningRex.actionEntries?.[uuid];
+
+    // Step 2: Apply the mass update to the action entry.
+    missionDocHandle.change((m: Mission) =>
+      applyUpsertRexEntryItem(m, {
+        rexUuid: runningRex.uuid,
+        mapField: "actionEntries",
+        itemUuid: uuid,
+        value: existingEntry
+          ? { ...existingEntry, mass }
+          : {
+              rexStatus: null,
+              mass,
+              markerId: null,
+              containerId: null,
+              secondaryContainerId: null,
+            },
+      })
+    );
+
+    // No Step 3: this thunk has no UI side-effects of its own.
+  }
+);
+
+export const thunkDocAddCollectionId = appCreateAsyncThunk<{
+  uuid: string;
+  id: string;
+  collectionType: "marker" | "container" | "secondaryContainer";
+}>("addCollectionId", async ({ uuid, id, collectionType }) => {
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return;
+  const doc = missionDocHandle.doc();
+  if (!doc) return;
+  // Step 1: Read the running REX and the existing action entry from the doc.
+  const runningRex = Object.values(doc.rexes ?? {}).find((rex) => rex.isRunning);
+  if (!runningRex) return;
+  const existingEntry = runningRex.actionEntries?.[uuid];
+
+  // Step 2: Apply the collection ID update to the action entry.
+  missionDocHandle.change((m: Mission) =>
+    applyUpsertRexEntryItem(m, {
+      rexUuid: runningRex.uuid,
+      mapField: "actionEntries",
+      itemUuid: uuid,
+      value: existingEntry
+        ? {
+            ...existingEntry,
+            markerId: collectionType === "marker" ? id : existingEntry.markerId,
+            containerId: collectionType === "container" ? id : existingEntry.containerId,
+            secondaryContainerId:
+              collectionType === "secondaryContainer" ? id : existingEntry.secondaryContainerId,
+          }
+        : {
+            rexStatus: null,
+            mass: null,
+            markerId: collectionType === "marker" ? id : null,
+            containerId: collectionType === "container" ? id : null,
+            secondaryContainerId: collectionType === "secondaryContainer" ? id : null,
+          },
+    })
+  );
+
+  // No Step 3: this thunk has no UI side-effects of its own.
+});
+
+export const thunkDocCreateInitialPosEntries = appCreateAsyncThunk<void>(
+  "createInitialPosEntries",
+  async () => {
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
+    const doc = missionDocHandle.doc();
+    if (!doc) return;
+
+    const runningRex = Object.values(doc.rexes ?? {}).find((r) => r.isRunning);
+    if (!runningRex) return;
+
+    // Step 1: Build the new pos entries from the running REX's pos sources and types.
+    const runningRexEva = doc.evas?.[runningRex.evaUuid];
+    const posEntryLocation: AEGISPoint =
+      runningRexEva?.egressLocationUuid === "lander"
+        ? doc.landerLocation
+        : doc.stations?.[runningRexEva?.egressLocationUuid]?.location;
+
+    const newPosEntries: PosEntry[] = [];
+    for (const posSource of runningRex?.posSources ?? []) {
+      const newPosEntry: PosEntry = {
+        uuid: uuidv4(),
+        location: posEntryLocation,
+        elevation: null,
+        petSeconds: 0,
+        posTypeUuids: runningRex.posTypes.map((posType) => posType.uuid),
+        posSourceUuid: posSource.uuid,
+        createdAt: getAccurateNow().getTime(),
+        updatedAt: getAccurateNow().getTime(),
+      };
+      newPosEntries.push(newPosEntry);
+    }
+
+    const existingPosEntries = cloneDeep(runningRex.posEntries ?? []);
+    const mergedPosEntries = [...existingPosEntries, ...newPosEntries];
+
+    // Step 2: Apply the merged pos entries to the running REX.
+    missionDocHandle.change((m: Mission) =>
+      applyUpdateRexByField(m, {
+        rexUuid: runningRex.uuid,
+        fieldName: "posEntries",
+        value: mergedPosEntries,
+        preserveUpdatedAt: true,
+      })
+    );
+
+    // No Step 3: this thunk has no UI side-effects of its own.
   }
 );

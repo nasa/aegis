@@ -1,22 +1,24 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { getAccurateNow } from "utils/formatting";
-import { getAutomergeDocHandles } from "client/automergeDocHandles";
+import { getMissionDocHandle } from "client/automergeDocHandles";
 
 type ActionDefPrintableListItem = {
   parentType: "Action in Station" | "Rule in STM Item" | "Action Template";
   parentName: string;
 };
 
-export const thunkDeleteActionDefItem = appCreateAsyncThunk<
+export const thunkDocDeleteActionDefItem = appCreateAsyncThunk<
   { type: ActionDefinitionType; uuid: string },
   void,
   null
 >("deleteActionDefinitionItem", async ({ type, uuid }, { getState }) => {
-  const missionDocHandle = getAutomergeDocHandles().mission;
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return;
   const mission = missionDocHandle.doc();
 
+  // Step 1: Check if definition is in use; gather dependency info and alert if so.
   // find all of the actions using this definition
-  const actionsUsingActionDef = getState().action.actions.filter(
+  const actionsUsingActionDef = Object.values(mission?.actions ?? {}).filter(
     (action) =>
       action.stmAction &&
       (action.actionDefinition.verbUuid === uuid ||
@@ -40,10 +42,9 @@ export const thunkDeleteActionDefItem = appCreateAsyncThunk<
     : [];
   const printableList: ActionDefPrintableListItem[] = [];
   if (actionsUsingActionDef?.length > 0) {
+    const stations = getMissionDocHandle()?.doc()?.stations;
     const actionsList: ActionDefPrintableListItem[] = actionsUsingActionDef.map((action) => {
-      const parentName = getState().station.stations.find(
-        (station) => station.uuid === action.stationUuid
-      )?.name;
+      const parentName = stations?.[action.stationUuid]?.name;
       return {
         parentType: "Action in Station",
         parentName,
@@ -83,11 +84,13 @@ export const thunkDeleteActionDefItem = appCreateAsyncThunk<
     return;
   }
 
-  //this item is not being used. All good to delete it
+  // Step 2: Definition is not in use — delete it from the Automerge doc.
   missionDocHandle.change((m: Mission) => {
     if (m.actionDefinitions[type] && m.actionDefinitions[type][uuid]) {
       delete m.actionDefinitions[type][uuid];
       m.updatedAt = getAccurateNow().getTime();
     }
   });
+
+  // No Step 3: this thunk has no UI side-effects of its own.
 });

@@ -5,13 +5,6 @@ import find from "lodash/find";
 import isEqual from "lodash/isEqual";
 import { globalValues } from "./global";
 import type { DefaultEventsMap, Socket } from "socket.io";
-import {
-  emitMaestroStoreDelete,
-  emitMaestroStoreUpsert,
-  emitToMaestroNamespace,
-  isRelevantToSubscribedEvas,
-} from "server/express/sockets-maestro-emitters";
-import { getMaestroSocketRoomName } from "./sockets-maestro";
 
 export const setupSocketIO = (): void => {
   const visitorsData: VisitorData[] = globalValues.serverSocketStatus.visitorsData;
@@ -96,12 +89,12 @@ export const setupSocketIO = (): void => {
       });
 
       socket.on("getMaestroDebugInfo", (callback) => {
-        const docListenerRooms = Array.from(globalValues.maestro.docListeners.keys());
+        const docListenerMissionIds = Array.from(globalValues.maestro.docListeners.keys());
         const evaSubscriptions: { [missionId: number]: string[] } = {};
-        globalValues.maestro.evaSubscriptions.forEach((refUuids, missionId) => {
-          evaSubscriptions[missionId] = refUuids;
+        globalValues.maestro.evaSubscriptions.forEach((uuids, missionId) => {
+          evaSubscriptions[missionId] = uuids;
         });
-        callback({ docListenerRooms, evaSubscriptions });
+        callback({ docListenerMissionIds, evaSubscriptions });
       });
 
       socket.on("disconnect", () => {
@@ -189,40 +182,6 @@ export const emitStoreUpsert = (payload: StoreUpsert): void => {
 
     // Update the inspector room for lastEditEvent
     io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
-
-    // Check if we need to emit to maestro room // Deprecated
-    const roomSize = io.sockets.adapter.rooms.get(`maestro`)?.size ?? 0;
-    if (roomSize !== 0) {
-      if (["eva", "station", "traverse", "action", "rex"].includes(payload.type)) {
-        emitMaestroStoreUpsert(payload);
-      }
-    }
-
-    // Emit to /maestro namespace rooms if payload is relevant to subscribed EVAs
-    const maestroNamespace = globalValues.maestro.socketio;
-    if (maestroNamespace) {
-      const roomName = getMaestroSocketRoomName(payload.missionId);
-      const roomSize = maestroNamespace.adapter.rooms.get(roomName)?.size ?? 0;
-      // Only emit if room isn't empty. This is to improve performance
-      if (roomSize > 0 && ["eva", "station", "traverse", "action", "rex"].includes(payload.type)) {
-        isRelevantToSubscribedEvas(payload.missionId, payload.type, payload)
-          .then((relevant) => {
-            if (relevant) emitToMaestroNamespace(payload.missionId);
-          })
-          .catch((error) => {
-            serverLogger.error(
-              {
-                logId: "socket",
-                logValue: "isRelevantToSubscribedEvas - Error checking relevance for maestro emit",
-                emitType: payload.type,
-                emitTypeUuid: payload.data?.map((sd: StoreData) => sd.uuid),
-                missionId: payload.missionId,
-              },
-              error instanceof Error ? error : new Error(String(error))
-            );
-          });
-      }
-    }
   } else {
     serverLogger.error(
       {
@@ -250,54 +209,6 @@ export const emitStoreDelete = (payload: StoreDelete): void => {
 
     // update the inspector room
     io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
-
-    // check if we need to emit to maestro room // Deprecated
-    const roomSize = io.sockets.adapter.rooms.get(`maestro`)?.size ?? 0;
-    if (roomSize !== 0) {
-      if (["eva", "station", "traverse", "action", "mission", "rex"].includes(payload.type)) {
-        emitMaestroStoreDelete(payload);
-      }
-    }
-
-    // Emit to /maestro namespace rooms if payload is relevant to subscribed EVAs
-    const maestroNamespace = globalValues.maestro.socketio;
-    if (maestroNamespace) {
-      const roomName = getMaestroSocketRoomName(payload.missionId);
-      const roomSize = maestroNamespace.adapter.rooms.get(roomName)?.size ?? 0;
-      // Only emit if room isn't empty. This is to improve performance
-      if (roomSize > 0 && ["eva", "station", "traverse", "action", "rex"].includes(payload.type)) {
-        isRelevantToSubscribedEvas(payload.missionId, payload.type, payload)
-          .then((relevant) => {
-            if (relevant) emitToMaestroNamespace(payload.missionId);
-          })
-          .catch((error) => {
-            serverLogger.error(
-              {
-                logId: "socket",
-                logValue: "isRelevantToSubscribedEvas - Error checking relevance for maestro emit",
-                emitType: payload.type,
-                emitTypeUuid: payload.uuids,
-                missionId: payload.missionId,
-              },
-              error instanceof Error ? error : new Error(String(error))
-            );
-          });
-      }
-    }
-
-    // If EVA and it's been subscribed to, remove that EVA from evaSubscriptions
-    // Do this last so that the maestro emitters can still check for relevance above
-    if (payload.type === "eva") {
-      const subscriptions = globalValues.maestro.evaSubscriptions.get(payload.missionId);
-      if (subscriptions) {
-        const updated = subscriptions.filter((uuid) => !payload.uuids.includes(uuid));
-        if (updated.length === 0) {
-          globalValues.maestro.evaSubscriptions.delete(payload.missionId);
-        } else {
-          globalValues.maestro.evaSubscriptions.set(payload.missionId, updated);
-        }
-      }
-    }
   } else {
     serverLogger.error(
       {

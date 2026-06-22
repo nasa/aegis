@@ -16,19 +16,18 @@ interface Eva {
   ingressDuration: number | null; // minutes
   egressLocationUuid: string; // station uuid or "lander"
   ingressLocationUuid: string; // station uuid or "lander"
-  traverseColor: string;
+  traverseColor: string | null;
   ownerId: number;
-  datetime: string;
-  showEditWarning: boolean;
-  editWarningMsg: string;
+  datetime: number | null;
 
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
-type Eva_db_type = Omit<Eva, "createdAt" | "updatedAt"> & {
+type Eva_db_type = Omit<Eva, "createdAt" | "updatedAt" | "datetime"> & {
   createdAt?: Date;
   updatedAt?: Date;
+  datetime: string; // DB column stores as varchar; migration.ts converts to number | null for Automerge
 };
 
 type EVAStatus = "Archived" | "Candidate" | "In Review" | "Approved";
@@ -51,8 +50,8 @@ interface Traverse {
   traverseRate?: number | null; // km/h
   color?: string | null;
 
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
 type Traverse_db_type = Omit<Traverse, "createdAt" | "updatedAt"> & {
@@ -92,8 +91,8 @@ interface Station {
    */
   duration: number | null; // in minutes
 
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
 type Station_db_type = Omit<Station, "createdAt" | "updatedAt"> & {
@@ -156,10 +155,11 @@ interface POI {
    */
   status: POIStatus | null;
 
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
+// TODO remove me when the POI postgres table is removed
 type Poi_db_type = Omit<POI, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;

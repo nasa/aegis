@@ -302,7 +302,7 @@ const throttledDbBackup = throttle(
     const missionToSave = payload.doc;
     // console.log(diff(payload.patchInfo.before, payload.patchInfo.after));
     // validate contents before saving to the DB
-    const isValid = missionValidator(missionToSave);
+    const isValid = missionValidator(structuredClone(missionToSave));
     if (!isValid && missionValidator.errors?.length > 0) {
       // log the validation errors
       serverLogger.error(

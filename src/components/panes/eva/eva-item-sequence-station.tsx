@@ -1,4 +1,3 @@
-import { ModifiedIndicator } from "components/interface/_global-elements";
 import { Dropdown } from "components/interface/form/globalFields";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo } from "react";
@@ -13,14 +12,15 @@ import { setHoverUuidsForSequence } from "store/hover";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import {
-  thunkChangeStationInEva,
-  thunkDeleteStationFromEva,
-  thunkReorderStationInEva,
+  thunkDocChangeStationInEva,
+  thunkDocDeleteStationFromEva,
+  thunkDocReorderStationInEva,
 } from "store/thunk/thunkEva";
-import { getRexStatusDisplayProperties } from "../../../utils/component-helpers";
+import { getRexStatusDisplayProperties, getSequenceItemRowStyles } from "utils/component-helpers";
 import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+
 import { selectAsPlannedStations } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -31,38 +31,30 @@ const SequenceItemStation: FunctionComponent<{
   isRexRunning: boolean; // if the eva that this station belongs to is in a running rex
 }> = ({ evaUuid, stationUuid }) => {
   const dispatch = useAppDispatch();
-  const missionWalkbackRate = useMissionDocSelector((doc) => doc.walkbackRate, refEqual);
-
-  const isRexEva = useAppSelector((state) => {
-    const rexEvaUuids = state.rex.rexes.map((rex) => rex.evaUuid);
-    return rexEvaUuids.includes(evaUuid);
+  const missionWalkbackRate = useMissionDocSelector((mission) => mission.walkbackRate, refEqual);
+  const isRexEva = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return false;
+    return Object.values(mission.rexes).some((rex) => rex.evaUuid === evaUuid);
   }, refEqual);
-  const editMode = useAppSelector((state) => state.eva.evasEditing.includes(evaUuid), refEqual);
+  const editMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
-  const thisStation = useAppSelector(
-    (state) => state.station.stations.find((station) => station.uuid === stationUuid),
-    deepEqual
-  );
-  const thisStationFromDb = useAppSelector(
-    (state) => state.station.stationsFromDb.find((station) => station.uuid === stationUuid),
-    deepEqual
-  );
-  const evaSequence = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === evaUuid)?.sequence,
+  const thisStation = useMissionDocSelector((mission) => mission.stations[stationUuid], deepEqual);
+  const evaSequence = useMissionDocSelector(
+    (mission) => mission.evas?.[evaUuid]?.sequence,
     deepEqual
   );
   const sequenceIndex = evaSequence.findIndex((s) => s.uuid === stationUuid);
 
   // get a list of stations for the dropdown menu when selecting a station for the eva sequence
   // only return some of the properties in station to reduce re-renders
-  const partialStationsForDropdown = useAppSelector((state) => {
-    const asPlannedStations = selectAsPlannedStations(state).map((s) => {
+  const partialStationsForDropdown = useMissionDocSelector((mission) => {
+    const asPlannedStations = selectAsPlannedStations(mission).map((s) => {
       return { name: s.name, uuid: s.uuid, location: s.location };
     });
     // add on the current station if it is not already in the list (this will occur in a rex's eva)
     if (!asPlannedStations.map((s) => s.uuid).includes(stationUuid)) {
-      const station = state.station.stations.find((s) => s.uuid === stationUuid);
+      const station = thisStation;
       if (station) {
         asPlannedStations.unshift({
           name: `${station?.name} (As Executed)`,
@@ -103,28 +95,28 @@ const SequenceItemStation: FunctionComponent<{
     },
   });
 
-  const thisStationCalculatedFields = useAppSelector((state) => {
-    const station = state.station.stations.find((s) => s.uuid === stationUuid);
-    const stationActions = state.action.actions.filter(
+  const thisStationCalculatedFields = useMissionDocSelector((mission) => {
+    const stationActions = Object.values(mission.actions || {}).filter(
       (a) => a.stationUuid === stationUuid && a.enabled
     );
     return getCalculatedFieldsByStation({
-      station,
+      station: mission.stations ? mission.stations[stationUuid] : null,
       missionWalkbackRate,
       stationActions,
     });
   }, deepEqual);
 
-  const stationRexStatus = useAppSelector((state) => {
-    const rex = state.rex.rexesFromDb.find((rex) => rex.evaUuid === evaUuid);
+  const stationRexStatus = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return null;
+    const rex = Object.values(mission.rexes).find((rex) => rex.evaUuid === evaUuid);
     if (!rex || !rex.stationEntries) return null;
     return rex.stationEntries[stationUuid]?.rexStatus;
   }, shallowEqual);
 
-  const rexMaestroControlled = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.maestroControlled,
-    refEqual
-  );
+  const rexMaestroControlled = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return false;
+    return Object.values(mission.rexes).find((rex) => rex.isRunning)?.maestroControlled ?? false;
+  }, refEqual);
 
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -133,41 +125,17 @@ const SequenceItemStation: FunctionComponent<{
 
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
 
-  // returns the rex from db object if this is a rex eva and is executing
-  const rexFromDbIfExecuting = useAppSelector((state) => {
-    if (!isRexEva) return null;
-    return state.rex.rexesFromDb.find((rex) => rex.isRunning && rex.evaUuid === evaUuid);
+  // returns the running rex if this is a rex eva and is executing
+  const rexFromDbIfExecuting = useMissionDocSelector((mission) => {
+    if (!isRexEva || !mission?.rexes) return null;
+    return (
+      Object.values(mission.rexes).find((rex) => rex.isRunning && rex.evaUuid === evaUuid) ?? null
+    );
   }, deepEqual);
-
-  // determine styling
-  let evaSequenceStyle = null;
-  if (stationUuid === selectedEvaSequenceItemUuid) {
-    evaSequenceStyle = evaStyles.evaItemNameSelected;
-  } else if (stationUuid === hoverItemUuid) {
-    evaSequenceStyle = evaStyles.evaItemNameHoverMode;
-  }
-  if (isRexEva) {
-    if (stationRexStatus === "in-progress") {
-      evaSequenceStyle = evaStyles.evaItemNameRexInProgress;
-      if (stationUuid === selectedEvaSequenceItemUuid) {
-        evaSequenceStyle = evaStyles.evaItemNameRexInProgressSelected;
-      }
-    } else if (stationRexStatus === "complete") {
-      evaSequenceStyle = evaStyles.evaItemNameRexComplete;
-      if (stationUuid === selectedEvaSequenceItemUuid) {
-        evaSequenceStyle = evaStyles.evaItemNameSelected;
-      }
-    } else if (stationRexStatus === "skipped") {
-      evaSequenceStyle = evaStyles.evaItemNameRexSkipped;
-      if (stationUuid === selectedEvaSequenceItemUuid) {
-        evaSequenceStyle = evaStyles.evaItemNameRexSkippedSelected;
-      }
-    }
-  }
 
   const handleMoveStationUp = (index: number) => {
     dispatch(
-      thunkReorderStationInEva({
+      thunkDocReorderStationInEva({
         direction: "up",
         evaSequence: evaSequence,
         stationIndex: index,
@@ -178,7 +146,7 @@ const SequenceItemStation: FunctionComponent<{
 
   const handleMoveStationDown = (index: number) => {
     dispatch(
-      thunkReorderStationInEva({
+      thunkDocReorderStationInEva({
         direction: "down",
         evaSequence: evaSequence,
         stationIndex: index,
@@ -208,10 +176,17 @@ const SequenceItemStation: FunctionComponent<{
     [dispatch, evaUuid, selectedEvaSequenceItemUuid]
   );
 
+  const { rowClassName, nameClassName } = getSequenceItemRowStyles({
+    rexStatus: stationRexStatus,
+    isSelected: stationUuid === selectedEvaSequenceItemUuid,
+    isHovered: stationUuid === hoverItemUuid,
+    isRexEva,
+  });
+
   return (
     <div className={evaStyles.evaSequence}>
       <div
-        className={evaStyles.evaItem}
+        className={`${evaStyles.evaItem} ${rowClassName}`}
         key={`${sequenceIndex}${evaUuid}${stationUuid}`}
         onMouseEnter={() => {
           dispatch(setHoverUuidsForSequence({ sequenceUuid: stationUuid, mapItemType: "station" }));
@@ -219,6 +194,8 @@ const SequenceItemStation: FunctionComponent<{
         onMouseLeave={() => {
           dispatch(setHoverUuidsForSequence({ sequenceUuid: null, mapItemType: null }));
         }}
+        onClick={() => handleSequenceItemClick(stationUuid)}
+        style={{ cursor: "pointer" }}
       >
         <div className={evaStyles.iconCustom}>
           <EmojiRenderer
@@ -240,20 +217,14 @@ const SequenceItemStation: FunctionComponent<{
 
         {!editMode ? (
           <div
-            className={`${evaStyles.evaItemName} ${evaSequenceStyle} ${
-              getRexStatusDisplayProperties(stationRexStatus).customTextClassName
+            className={`${evaStyles.evaItemName} ${nameClassName} ${
+              getRexStatusDisplayProperties(stationRexStatus).customTextClassName ?? ""
             }`}
-            onClick={() => {
-              if (editMode) return;
-
-              handleSequenceItemClick(stationUuid);
-            }}
           >
             <div className={evaStyles.evaItemLeft}>
               <div className={evaStyles.evaItemNameText}>
                 {thisStation?.name ? thisStation?.name : `< Station not selected >`}
               </div>
-              <ModifiedIndicator obj1={[thisStation]} obj2={[thisStationFromDb]} />
             </div>
             <div className={evaStyles.evaItemRight}>
               <div
@@ -267,7 +238,7 @@ const SequenceItemStation: FunctionComponent<{
             </div>
           </div>
         ) : (
-          <div className={`${evaStyles.evaItemName} ${evaStyles.editMode} ${evaSequenceStyle}`}>
+          <div className={evaStyles.evaItemName}>
             <div className={evaStyles.evaItemLeft}>
               <Dropdown
                 selected={thisStation?.uuid || ""}
@@ -275,11 +246,12 @@ const SequenceItemStation: FunctionComponent<{
                 selectStyle={{ width: "100%" }}
                 onChange={(val) => {
                   dispatch(
-                    thunkChangeStationInEva({
-                      evaSequence,
+                    thunkDocChangeStationInEva({
                       sequenceIndex: sequenceIndex,
                       newStationUuid: val,
+                      oldStationUuid: stationUuid,
                       evaUuid,
+                      isRexEva,
                     })
                   );
                 }}
@@ -314,10 +286,11 @@ const SequenceItemStation: FunctionComponent<{
                 className={evaStyles.evaItemNameButton}
                 onClick={() => {
                   dispatch(
-                    thunkDeleteStationFromEva({
+                    thunkDocDeleteStationFromEva({
                       evaSequence,
                       sequenceIndex: sequenceIndex,
                       evaUuid,
+                      isRexEva,
                     })
                   );
                 }}

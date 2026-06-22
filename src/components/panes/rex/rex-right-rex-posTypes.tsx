@@ -2,7 +2,7 @@ import type { FunctionComponent } from "react";
 import { useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import rexStyles from "./rex.module.css";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import cloneDeep from "lodash/cloneDeep";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import {
@@ -12,41 +12,48 @@ import {
   faGripVertical,
 } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
-import {
-  Button,
-  InLineEditInput,
-  PathColorPickerMenu,
-} from "components/interface/form/globalFields";
+import { Button, PathColorPickerMenu } from "components/interface/form/globalFields";
+import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
 import { validators } from "components/interface/form/formValidators";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import {
-  thunkCreatePosType,
-  thunkDeletePosType,
-  thunkUpdatePosTypeField,
-} from "store/thunk/thunkRexPosEntry";
-import {
-  thunkCreatePosSource,
-  thunkDeletePosSource,
-  thunkUpdatePosSourceField,
-} from "store/thunk/thunkRexPosSource";
+import { thunkDocCreatePosType, thunkDocDeletePosType } from "store/thunk/thunkRexPosEntry";
+import { thunkDocCreatePosSource, thunkDocDeletePosSource } from "store/thunk/thunkRexPosSource";
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
-import { upsertRexByField } from "store/rex";
+import {
+  applyUpdatePosSourceField,
+  applyUpdatePosTypeField,
+  applyUpdateRexByField,
+} from "client/automerge/apply/apply-rex";
+import { withMissionChange } from "client/automergeDocHandles";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { useMemo } from "react";
 
 const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const selectedRex = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.uuid === state.rex.selectedRexUuid),
-    deepEqual
+  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
+  const allRexes = useMissionDocSelector((mission) => mission.rexes, deepEqual);
+  const selectedRex = useMemo(
+    () => (selectedRexUuid ? allRexes?.[selectedRexUuid] : undefined),
+    [allRexes, selectedRexUuid]
   );
 
-  //reorder pos types and upsert to rex
+  // Reorder pos types and upsert to rex
   function reorderType(fromIndex: number, toIndex: number) {
     const newPositionTypeList = cloneDeep(selectedRex.posTypes);
-    const headerLayerBeingMoved = newPositionTypeList.splice(fromIndex, 1)[0]; //remove header layer
-    newPositionTypeList.splice(toIndex, 0, headerLayerBeingMoved); //reinsert in new position
-    dispatch(upsertRexByField(selectedRex.uuid, "posTypes", newPositionTypeList));
+    // Remove header layer
+    const headerLayerBeingMoved = newPositionTypeList.splice(fromIndex, 1)[0];
+    // Reinsert in new position
+    newPositionTypeList.splice(toIndex, 0, headerLayerBeingMoved);
+    withMissionChange((m) =>
+      applyUpdateRexByField(m, {
+        rexUuid: selectedRex.uuid,
+        fieldName: "posTypes",
+        value: newPositionTypeList,
+        preserveUpdatedAt: true,
+      })
+    );
   }
 
   return (
@@ -104,7 +111,7 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   label="Add Position Marker"
                   style={{ width: "155px", marginLeft: "18px", marginTop: "8px" }}
                   onClick={() => {
-                    dispatch(thunkCreatePosType());
+                    dispatch(thunkDocCreatePosType());
                   }}
                 />
               )}
@@ -153,7 +160,7 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   label="Add Position Source"
                   style={{ width: "155px", marginLeft: "18px", marginTop: "8px" }}
                   onClick={() => {
-                    dispatch(thunkCreatePosSource());
+                    dispatch(thunkDocCreatePosSource());
                   }}
                 />
               )}
@@ -174,7 +181,6 @@ const PosType: FunctionComponent<{
   evenRow: boolean;
 }> = ({ rexUuid, item, editMode, evenRow }) => {
   const dispatch = useAppDispatch();
-
   let backgroundColor: string = "var(--grey2)";
   if (!editMode) {
     backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
@@ -195,18 +201,17 @@ const PosType: FunctionComponent<{
           )}
         </div>
         <div className={rexStyles.propertyRowAbbr}>
-          <InLineEditInput
-            editing={editMode}
+          <ValidatedInputField
+            editMode={editMode}
             fieldProps={{
               name: "posTypeAbbr",
               ariaLabel: "Position Marker Abbr.",
-              style: { width: "100%" },
               validators: [validators.maxLength(1), validators.required],
             }}
             value={item.abbr}
             onSubmit={(val: string) => {
-              dispatch(
-                thunkUpdatePosTypeField({
+              withMissionChange((m) =>
+                applyUpdatePosTypeField(m, {
                   rexUuid,
                   uuid: item.uuid,
                   fieldName: "abbr",
@@ -218,18 +223,17 @@ const PosType: FunctionComponent<{
           />
         </div>
         <div className={rexStyles.propertyRowName}>
-          <InLineEditInput
-            editing={editMode}
+          <ValidatedInputField
+            editMode={editMode}
             fieldProps={{
               name: "posTypeName",
               ariaLabel: "Position Marker Name",
-              style: { width: "100%" },
               validators: [validators.maxLength(255), validators.required],
             }}
             value={item.name}
             onSubmit={(val: string) => {
-              dispatch(
-                thunkUpdatePosTypeField({
+              withMissionChange((m) =>
+                applyUpdatePosTypeField(m, {
                   rexUuid,
                   uuid: item.uuid,
                   fieldName: "name",
@@ -246,8 +250,8 @@ const PosType: FunctionComponent<{
               item={item}
               editMode={editMode}
               updateIcon={(val) => {
-                dispatch(
-                  thunkUpdatePosTypeField({
+                withMissionChange((m) =>
+                  applyUpdatePosTypeField(m, {
                     rexUuid,
                     uuid: item.uuid,
                     fieldName: "icon",
@@ -264,8 +268,8 @@ const PosType: FunctionComponent<{
             currentColor={item.pathColor}
             editMode={editMode}
             updateColor={(val) => {
-              dispatch(
-                thunkUpdatePosTypeField({
+              withMissionChange((m) =>
+                applyUpdatePosTypeField(m, {
                   rexUuid,
                   uuid: item.uuid,
                   fieldName: "pathColor",
@@ -281,10 +285,15 @@ const PosType: FunctionComponent<{
             <FontAwesomeIcon
               icon={faTrashAlt}
               size="sm"
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                dispatch(thunkDeletePosType({ rexUuid, posTypeUuid: item.uuid }));
+                const result = await dispatch(
+                  thunkDocDeletePosType({ rexUuid, posTypeUuid: item.uuid })
+                );
+                if (thunkDocDeletePosType.rejected.match(result) && result.payload) {
+                  alert(result.payload);
+                }
               }}
             />
           )}
@@ -362,7 +371,6 @@ const PosSource: FunctionComponent<{
   evenRow: boolean;
 }> = ({ rexUuid, item, editMode, evenRow }) => {
   const dispatch = useAppDispatch();
-
   let backgroundColor: string = "var(--grey2)";
   if (!editMode) {
     backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
@@ -372,18 +380,17 @@ const PosSource: FunctionComponent<{
     <div className={paneStyles.descriptionContainer}>
       <div className={rexStyles.propertyRow} style={{ backgroundColor }}>
         <div className={rexStyles.propertyRowAbbr}>
-          <InLineEditInput
-            editing={editMode}
+          <ValidatedInputField
+            editMode={editMode}
             fieldProps={{
               name: "posSourceAbbr",
               ariaLabel: "Position Source Abbr.",
-              style: { width: "100%" },
               validators: [validators.maxLength(1), validators.required],
             }}
             value={item.abbr}
             onSubmit={(val: string) => {
-              dispatch(
-                thunkUpdatePosSourceField({
+              withMissionChange((m) =>
+                applyUpdatePosSourceField(m, {
                   rexUuid,
                   uuid: item.uuid,
                   fieldName: "abbr",
@@ -395,18 +402,17 @@ const PosSource: FunctionComponent<{
           />
         </div>
         <div className={rexStyles.propertyRowName}>
-          <InLineEditInput
-            editing={editMode}
+          <ValidatedInputField
+            editMode={editMode}
             fieldProps={{
               name: "posSourceName",
               ariaLabel: "Position Source Name",
-              style: { width: "100%" },
               validators: [validators.maxLength(255), validators.required],
             }}
             value={item.name}
             onSubmit={(val: string) => {
-              dispatch(
-                thunkUpdatePosSourceField({
+              withMissionChange((m) =>
+                applyUpdatePosSourceField(m, {
                   rexUuid,
                   uuid: item.uuid,
                   fieldName: "name",
@@ -423,10 +429,15 @@ const PosSource: FunctionComponent<{
             <FontAwesomeIcon
               icon={faTrashAlt}
               size="sm"
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                dispatch(thunkDeletePosSource({ rexUuid, posSourceUuid: item.uuid }));
+                const result = await dispatch(
+                  thunkDocDeletePosSource({ rexUuid, posSourceUuid: item.uuid })
+                );
+                if (thunkDocDeletePosSource.rejected.match(result) && result.payload) {
+                  alert(result.payload);
+                }
               }}
             />
           )}

@@ -14,6 +14,7 @@ export const globalValues: GlobalValues = {
   maestro: {
     socketio: null,
     docListeners: new Map(),
+    docHandles: new Map(),
     evaSubscriptions: new Map(),
   },
 };

@@ -8,53 +8,6 @@ import {
   upsertPresetsFromDb,
 } from "store/preset";
 import {
-  deletePoisByUuid,
-  deletePoisFromDbByUuid,
-  setPoiEditMode,
-  setSelectedPoiUuid,
-  upsertPois,
-  upsertPoisFromDb,
-} from "store/poi";
-import {
-  deleteStationsByUuid,
-  deleteStationsFromDbByUuid,
-  setSelectedStationUuid,
-  setStationEditMode,
-  upsertStations,
-  upsertStationsFromDb,
-} from "store/station";
-import {
-  deleteEvasByUuid,
-  deleteEvasFromDbByUuid,
-  setEvaEditMode,
-  setOnlyShowRunningRex,
-  setSelectedEvaSequenceItemUuid,
-  setSelectedEvaUuid,
-  upsertEvas,
-  upsertEvasFromDb,
-} from "store/eva";
-import {
-  deleteActionsByUuid,
-  deleteActionsFromDbByUuid,
-  upsertActions,
-  upsertActionsFromDb,
-} from "store/action";
-import {
-  deleteTraversesByUuid,
-  deleteTraversesFromDbByUuid,
-  setTraversesEditMode,
-  upsertTraverses,
-  upsertTraversesFromDb,
-} from "store/traverse";
-import {
-  deleteRexesByUuid,
-  deleteRexesFromDbByUuid,
-  setSelectedRexUuid,
-  upsertRexes,
-  upsertRexesFromDb,
-} from "store/rex";
-import { updateMapDirective } from "store/map";
-import {
   deleteSTMRules,
   deleteSTMRulesFromDb,
   setRuleEditingUuid,
@@ -65,11 +18,8 @@ import {
   setFolders,
   setFolderInterfaceEditing,
   setFolderInterfaceNameValue,
-  setRightPanelIsOpen,
 } from "store/interface";
 import cloneDeep from "lodash/cloneDeep";
-import { thunkSetOnlyShowRunningRexEva } from "./thunkEva";
-import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 /**
  * Handles the storeUpsert socket event
@@ -78,8 +28,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
   {
     storeUpsert: StoreUpsert;
   },
-  string[],
-  false
+  string[]
 >("thunkSocketsHandleUpsert", async ({ storeUpsert }, { dispatch, getState }) => {
   const upsertMessages: string[] = [];
 
@@ -93,101 +42,6 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     }
     dispatch(upsertPresets(changedPresets, true));
     dispatch(upsertPresetsFromDb(changedPresets));
-  } else if (storeUpsert.type === "poi") {
-    const changedPois = storeUpsert.data as POI[];
-    for (const changedPoi of changedPois) {
-      if (getState().poi.poisEditing.includes(changedPoi.uuid)) {
-        upsertMessages.push(getConflictMessage("POI", changedPoi.name, "upsert"));
-        dispatch(setPoiEditMode({ poiUuid: changedPoi.uuid, editMode: false }));
-        //if there was an open map directive for this poi, cancel it.
-        if (getState().map.mapDirective?.uuid === changedPoi.uuid) {
-          dispatch(
-            updateMapDirective({
-              mapItemType: "poi",
-              uuid: changedPoi.uuid,
-              mapAction: "cancelEditMarker",
-            })
-          );
-        }
-      }
-    }
-    dispatch(upsertPois(changedPois, true));
-    dispatch(upsertPoisFromDb(changedPois));
-  } else if (storeUpsert.type === "station") {
-    const changedStations = storeUpsert.data as Station[];
-    for (const changedStation of changedStations) {
-      if (getState().station.stationsEditing.includes(changedStation.uuid)) {
-        upsertMessages.push(getConflictMessage("Station", changedStation.name, "upsert"));
-        dispatch(setStationEditMode({ stationUuid: changedStation.uuid, editMode: false }));
-        //if there was an open map directive for this station, cancel it.
-        if (getState().map.mapDirective?.uuid === changedStation.uuid) {
-          dispatch(
-            updateMapDirective({
-              mapItemType: "station",
-              uuid: changedStation.uuid,
-              mapAction: "cancelEditMarker",
-            })
-          );
-        }
-      }
-    }
-    dispatch(upsertStations(changedStations, true));
-    dispatch(upsertStationsFromDb(changedStations));
-  } else if (storeUpsert.type === "eva") {
-    const changedEvas = storeUpsert.data as Eva[];
-    for (const changedEva of changedEvas) {
-      if (getState().eva.evasEditing.includes(changedEva.uuid)) {
-        const asPlannedEva = getAsPlannedEvaFromRefUuid(getState(), changedEva.refUuid);
-        upsertMessages.push(getConflictMessage("EVA", asPlannedEva.name, "upsert"));
-        dispatch(setEvaEditMode({ evaUuid: changedEva.uuid, editMode: false }));
-      }
-      // if the eva being upserted is the selected eva, then nullify the selectedSequenceItemUuid
-      if (getState().eva.selectedEvaUuid === changedEva.uuid) {
-        dispatch(setSelectedEvaSequenceItemUuid(null));
-      }
-    }
-    dispatch(upsertEvas(changedEvas, true));
-    dispatch(upsertEvasFromDb(changedEvas));
-  } else if (storeUpsert.type === "action") {
-    const changedActions = storeUpsert.data as Action[];
-    for (const changedAction of changedActions) {
-      //if there was an open map directive for this action, cancel it.
-      if (getState().map.mapDirective?.uuid === changedAction.uuid) {
-        dispatch(
-          updateMapDirective({
-            mapItemType: "action",
-            uuid: changedAction.uuid,
-            mapAction: "cancelEditMarker",
-          })
-        );
-      }
-    }
-    dispatch(upsertActions(changedActions, true));
-    dispatch(upsertActionsFromDb(changedActions));
-  } else if (storeUpsert.type === "traverse") {
-    const changedTraverses = storeUpsert.data as Traverse[];
-    for (const changedTraverse of changedTraverses) {
-      if (getState().traverse.traversesEditing.includes(changedTraverse.uuid)) {
-        upsertMessages.push(getConflictMessage("traverse", changedTraverse.name, "upsert"));
-        dispatch(setTraversesEditMode({ uuids: [changedTraverse.uuid], editMode: false }));
-      }
-    }
-    dispatch(upsertTraverses(storeUpsert.data as Traverse[], true));
-    dispatch(upsertTraversesFromDb(storeUpsert.data as Traverse[]));
-  } else if (storeUpsert.type === "rex") {
-    const changedRexes = storeUpsert.data as Rex[];
-    for (const changedRex of changedRexes) {
-      //check changes on rex object
-      if (getState().eva.evasEditing.includes(changedRex.evaUuid)) {
-        upsertMessages.push(getConflictMessage("rex", changedRex.name, "upsert"));
-      }
-    }
-    dispatch(upsertRexes(changedRexes, true));
-    dispatch(upsertRexesFromDb(changedRexes));
-    // disengage showRunningRexOnly if there are now no running rexes
-    if (!getState().rex.rexesFromDb.some((rex) => rex.isRunning)) {
-      dispatch(thunkSetOnlyShowRunningRexEva({ show: false }));
-    }
   } else if (storeUpsert.type === "stmRule") {
     const changedStmRules = storeUpsert.data as STMRule[];
     for (const changedStmRule of changedStmRules) {
@@ -216,7 +70,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     }
 
     const allFolders = cloneDeep(getState().interface.folders) as Folder[];
-    // update existing folders with the new data
+    // Update existing folders with the new data
     allFolders.forEach((folder, index) => {
       const changedFolder = changedFolders.find((f) => f.uuid === folder.uuid);
       if (changedFolder) {
@@ -224,7 +78,7 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
       }
     });
 
-    // add new folders
+    // Add new folders
     changedFolders.forEach((changedFolder) => {
       if (!allFolders.find((f) => f.uuid === changedFolder.uuid)) {
         allFolders.push(changedFolder);
@@ -232,6 +86,8 @@ export const thunkSocketsHandleUpsert = appCreateAsyncThunk<
     });
 
     dispatch(setFolders(allFolders));
+  } else {
+    throw new Error(`Unhandled storeUpsert type: ${storeUpsert.type}`);
   }
   return upsertMessages;
 });
@@ -243,8 +99,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
   {
     storeDelete: StoreDelete;
   },
-  string[],
-  false
+  string[]
 >("thunkSocketsHandleDelete", async ({ storeDelete }, { dispatch, getState }) => {
   const deletedMessages: string[] = [];
 
@@ -258,7 +113,7 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
         dispatch(setPresetEditMode({ presetUuid: deletedPreset.uuid, editMode: false }));
       }
       if (getState().preset.selectedPresetUuid === deletedUuid) {
-        // set the selected preset to the default preset
+        // Set the selected preset to the default preset
         const defaultPreset = getState().preset.presets.find(
           (thisPreset) => thisPreset.missionDefault === true
         ) as Preset;
@@ -267,81 +122,6 @@ export const thunkSocketsHandleDelete = appCreateAsyncThunk<
     }
     dispatch(deletePresetsByUuid(storeDelete.uuids));
     dispatch(deletePresetsFromDbByUuid(storeDelete.uuids));
-  } else if (storeDelete.type === "poi") {
-    for (const deletedUuid of storeDelete.uuids) {
-      if (getState().poi.poisEditing.includes(deletedUuid)) {
-        const poiDeleted = getState().poi.pois.find((poi) => poi.uuid === deletedUuid);
-        deletedMessages.push(getConflictMessage("POI", poiDeleted.name, "delete"));
-        dispatch(setPoiEditMode({ poiUuid: poiDeleted.uuid, editMode: false }));
-      }
-      if (getState().poi.selectedPoiUuid === deletedUuid) dispatch(setSelectedPoiUuid(null));
-    }
-    dispatch(deletePoisByUuid(storeDelete.uuids));
-    dispatch(deletePoisFromDbByUuid(storeDelete.uuids));
-  } else if (storeDelete.type === "station") {
-    for (const deletedUuid of storeDelete.uuids) {
-      if (getState().station.stationsEditing.includes(deletedUuid)) {
-        const stationDeleted = getState().station.stations.find(
-          (station) => station.uuid === deletedUuid
-        );
-        deletedMessages.push(getConflictMessage("station", stationDeleted.name, "delete"));
-        dispatch(setStationEditMode({ stationUuid: stationDeleted.uuid, editMode: false }));
-      }
-      if (getState().station.selectedStationUuid === deletedUuid)
-        dispatch(setSelectedStationUuid(null));
-    }
-    dispatch(deleteStationsByUuid(storeDelete.uuids));
-    dispatch(deleteStationsFromDbByUuid(storeDelete.uuids));
-  } else if (storeDelete.type === "eva") {
-    for (const deletedUuid of storeDelete.uuids) {
-      if (getState().eva.evasEditing.includes(deletedUuid)) {
-        const evaDeleted = getState().eva.evas.find((eva) => eva.uuid === deletedUuid);
-        deletedMessages.push(getConflictMessage("EVA", evaDeleted.name, "delete"));
-        dispatch(setEvaEditMode({ evaUuid: evaDeleted.uuid, editMode: false }));
-      }
-      if (getState().eva.selectedEvaUuid === deletedUuid) {
-        dispatch(setSelectedEvaUuid(null));
-        dispatch(setSelectedEvaSequenceItemUuid(null));
-      }
-    }
-
-    dispatch(deleteEvasByUuid(storeDelete.uuids));
-    dispatch(deleteEvasFromDbByUuid(storeDelete.uuids));
-  } else if (storeDelete.type === "action") {
-    dispatch(deleteActionsByUuid(storeDelete.uuids));
-    dispatch(deleteActionsFromDbByUuid(storeDelete.uuids));
-  } else if (storeDelete.type === "traverse") {
-    for (const deletedUuid of storeDelete.uuids) {
-      if (getState().traverse.traversesEditing.includes(deletedUuid)) {
-        const traverseDeleted = getState().traverse.traverses.find(
-          (traverse) => traverse.uuid === deletedUuid
-        );
-        deletedMessages.push(getConflictMessage("traverse", traverseDeleted.name, "delete"));
-        dispatch(setTraversesEditMode({ uuids: [traverseDeleted.uuid], editMode: false }));
-      }
-    }
-    dispatch(deleteTraversesByUuid(storeDelete.uuids));
-    dispatch(deleteTraversesFromDbByUuid(storeDelete.uuids));
-  } else if (storeDelete.type === "rex") {
-    for (const deletedUuid of storeDelete.uuids) {
-      const rexDeleted = getState().rex.rexes.find((rex) => rex.uuid === deletedUuid);
-      if (getState().eva.evasEditing.includes(rexDeleted.evaUuid)) {
-        deletedMessages.push(getConflictMessage("rex", rexDeleted.name, "delete"));
-      }
-      if (rexDeleted.isRunning) {
-        dispatch(setOnlyShowRunningRex(false));
-      }
-      if (rexDeleted.uuid === getState().rex.selectedRexUuid) {
-        dispatch(setSelectedRexUuid(null));
-        //close right panel
-        dispatch(setRightPanelIsOpen(false));
-      }
-      if (rexDeleted.evaUuid === getState().eva.selectedEvaUuid) {
-        dispatch(setSelectedEvaUuid(null));
-      }
-    }
-    dispatch(deleteRexesByUuid(storeDelete.uuids));
-    dispatch(deleteRexesFromDbByUuid(storeDelete.uuids));
   } else if (storeDelete.type === "stmRule") {
     for (const deletedUuid of storeDelete.uuids) {
       if (getState().stm.ruleEditingUuid === deletedUuid) {

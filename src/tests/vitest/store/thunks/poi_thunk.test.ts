@@ -1,277 +1,179 @@
-import {
-  thunkCreatePoi,
-  thunkDeletePoi,
-  thunkDuplicatePoi,
-  thunkPoiCancel,
-  thunkSavePoi,
-  thunkUpdatePoiLocation,
-} from "store/thunk/thunkPoi";
-import { createCustomTestStore } from "../../fixtures/redux/makeTestStore";
+import { createCustomTestStore } from "tests/vitest/fixtures/store";
 import { initialState as poiInitialState } from "store/poi";
-import { initialState as actionInitialState } from "store/action";
-
-// mock all calls to the db so no transactions are actually made
-// CAUTION, the import line must be below the vi.mock
-vi.mock("http-client/action");
-vi.mock("http-client/poi");
-import * as httpClient_action from "http-client/action";
-import * as httpClient_poi from "http-client/poi";
-import { generateBlankAction } from "store/storeUtils/action";
+import type { StoreType } from "store";
+import {
+  thunkDocCreatePoi,
+  thunkDocDuplicatePoi,
+  thunkDocDeletePoi,
+  thunkDocUpdatePoiLocation,
+} from "store/thunk/thunkPoi";
 import { generateBlankPoi } from "store/storeUtils/poi";
-import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
+import { generateBlankAction } from "store/storeUtils/action";
+import { generateBlankStation } from "store/storeUtils/station";
+import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
-const mockThunkGetElevation = vi.fn().mockReturnValue({
+const mockThunkFetchElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
 vi.mock("store/thunk/thunkElevation", () => ({
-  thunkGetElevation: () => mockThunkGetElevation,
+  thunkFetchElevation: () => mockThunkFetchElevation,
 }));
 
-const mockThunkSaveActions = vi.fn();
-const mockThunkDuplicateActions = vi.fn();
-vi.mock("store/thunk/thunkAction", async () => ({
-  ...(await vi.importActual("store/thunk/thunkAction")),
-  thunkSaveActions: () => mockThunkSaveActions,
-  thunkDuplicateActions: () => mockThunkDuplicateActions,
-}));
+let store: StoreType;
 
 beforeAll(() => {
-  /**
-   * Init the mission automerge doc. In the app this is handled in the component.
-   * Pass in null because this function is being mocked so we don't
-   * have to pass in a real value.
-   */
   setMissionAutomergeDocHandle(null);
 });
 
-beforeEach(async () => {
-  vi.clearAllMocks(); // clear call count
-});
-
-afterAll(() => {
-  vi.restoreAllMocks();
+beforeEach(() => {
+  vi.clearAllMocks();
+  getMissionDocHandle().change((m) => {
+    m.pois = {};
+    m.actions = {};
+    m.stations = {};
+  });
 });
 
 describe("Thunk POI Tests", () => {
-  it("thunkUpdatePoiLocation()", async () => {
-    //populate the poi state in the store
-    const newPoi: POI = generateBlankPoi({ name: "Vitest Poi-1" });
-    const store = createCustomTestStore({
-      poi: {
-        ...poiInitialState,
-        pois: [newPoi],
-      },
+  describe("thunkDocCreatePoi", () => {
+    it("adds a new poi to automerge and selects it", async () => {
+      const missionDocHandle = getMissionDocHandle();
+      const poisBefore = Object.keys(missionDocHandle.doc().pois).length;
+
+      store = createCustomTestStore({
+        poi: { ...poiInitialState },
+      });
+
+      await store.dispatch(thunkDocCreatePoi());
+      const poisAfter = Object.keys(missionDocHandle.doc().pois);
+      expect(poisAfter.length).toEqual(poisBefore + 1);
+      // should select the new poi
+      const newPoiUuid = store.getState().poi.selectedPoiUuid;
+      expect(newPoiUuid).toBeTruthy();
+      expect(missionDocHandle.doc().pois[newPoiUuid]).toBeTruthy();
     });
-
-    //call the thunk
-    expect(store.getState().poi.pois.length).toEqual(1);
-    expect(store.getState().poi.pois[0].location).toBeNull();
-    const newLocation: AEGISPoint = { lat: 1, lng: 2 };
-    await store.dispatch(thunkUpdatePoiLocation({ location: newLocation, poiUuid: newPoi.uuid }));
-    expect(store.getState().poi.pois[0].location).toEqual(newLocation);
-
-    //we're expecting elevation call to gdal will fail with a console error during vitest testing
-    expect(mockThunkGetElevation).toHaveBeenCalledTimes(1);
   });
 
-  it("thunkSavePoi() - no modified actions", async () => {
-    //populate the poi state in the store
-    const poi: POI = generateBlankPoi({ name: "Vitest Poi-1" });
-    const poiModified = {
-      ...poi,
-      description: "modified description",
-      updatedAt: new Date().toISOString(),
-    };
-    const newPoiAction: Action = generateBlankAction({
-      name: "Vitest Action-1",
-      poiUuid: poi.uuid,
-    });
-    const store = createCustomTestStore({
-      poi: { ...poiInitialState, pois: [poiModified], poisFromDb: [poi], poisEditing: [poi.uuid] },
-      action: { ...actionInitialState, actions: [newPoiAction], actionsFromDb: [newPoiAction] },
+  describe("thunkDocDuplicatePoi", () => {
+    it("creates a copy of the poi with actions and selects it", async () => {
+      const poi = generateBlankPoi({ name: "Vitest Poi-1" });
+      const poiAction = generateBlankAction({ name: "Vitest Poi Action", poiUuid: poi.uuid });
+      poi.actionOrderUuids = [poiAction.uuid];
+
+      const missionDocHandle = getMissionDocHandle();
+      missionDocHandle.change((mission) => {
+        mission.pois[poi.uuid] = poi;
+      });
+
+      store = createCustomTestStore({
+        poi: { ...poiInitialState },
+      });
+
+      await store.dispatch(thunkDocDuplicatePoi({ poiUuid: poi.uuid }));
+      const allPois = Object.values(missionDocHandle.doc().pois);
+      const duplicatedPoi = allPois.find((p) => p.name === "Vitest Poi-1 (copy 1)");
+      expect(duplicatedPoi).toBeTruthy();
+      expect(duplicatedPoi.uuid).not.toEqual(poi.uuid);
+      // should select the new poi
+      expect(store.getState().poi.selectedPoiUuid).toEqual(duplicatedPoi.uuid);
     });
 
-    //check init values in store
-    let storeState = store.getState();
-    expect(storeState.poi.pois[0].description).toEqual("modified description");
-    expect(storeState.poi.poisFromDb[0].description).toEqual("");
-
-    //call the thunk
-    await store.dispatch(
-      thunkSavePoi({
-        poi: poiModified,
-      })
-    );
-    storeState = store.getState(); //get the new state (always has to be called when state changes)
-    expect(storeState.poi.pois[0].description).toEqual("modified description");
-    expect(storeState.poi.poisFromDb[0].description).toEqual("modified description");
-    expect(storeState.poi.poisEditing.length).toEqual(0);
-    expect(httpClient_poi.upsertPOIs).toHaveBeenCalledTimes(1); //check the db call was made
-    expect(mockThunkSaveActions).toHaveBeenCalledTimes(0);
-    expect(storeState.action.actions[0]).toEqual(storeState.action.actionsFromDb[0]); //no actions were modified
+    it("is a no-op when poi doesn't exist", async () => {
+      store = createCustomTestStore({ poi: { ...poiInitialState } });
+      const before = Object.keys(getMissionDocHandle().doc().pois).length;
+      await store.dispatch(thunkDocDuplicatePoi({ poiUuid: "missing" }));
+      const after = Object.keys(getMissionDocHandle().doc().pois).length;
+      expect(after).toBe(before);
+    });
   });
 
-  it("thunkSavePoi() - saves actions", async () => {
-    //populate the poi state in the store
-    const poi: POI = generateBlankPoi({ name: "Vitest Poi-1" });
-    const poiAction: Action = generateBlankAction({ name: "Vitest Action-1", poiUuid: poi.uuid });
-    const poiActionModified = {
-      ...poiAction,
-      description: "modified description",
-      updatedAt: new Date().getTime() + 1,
-    };
-    const store = createCustomTestStore({
-      poi: { ...poiInitialState, pois: [poi], poisFromDb: [poi], poisEditing: [poi.uuid] },
-      action: { ...actionInitialState, actions: [poiActionModified], actionsFromDb: [poiAction] },
+  describe("thunkDocDeletePoi", () => {
+    it("removes the poi from automerge and deselects it", async () => {
+      const poi = generateBlankPoi({ name: "Vitest Poi-1" });
+
+      const missionDocHandle = getMissionDocHandle();
+      missionDocHandle.change((mission) => {
+        mission.pois[poi.uuid] = poi;
+      });
+
+      store = createCustomTestStore({
+        poi: { ...poiInitialState, selectedPoiUuid: poi.uuid },
+      });
+
+      await store.dispatch(thunkDocDeletePoi({ poiUuid: poi.uuid }));
+      // POI should be deleted from automerge
+      expect(missionDocHandle.doc().pois[poi.uuid]).toBeUndefined();
+      // should deselect
+      expect(store.getState().poi.selectedPoiUuid).toBeNull();
     });
 
-    //check init values in store
-    let storeState = store.getState();
-    expect(storeState.action.actions[0]).not.toEqual(storeState.action.actionsFromDb[0]);
+    it("removes the poi reference from any stations that include it", async () => {
+      const poi = generateBlankPoi({ name: "Vitest POI" });
+      const station = generateBlankStation({ name: "Vitest Has POI", poiUuids: [poi.uuid] });
+      const missionDocHandle = getMissionDocHandle();
+      missionDocHandle.change((m) => {
+        m.pois[poi.uuid] = poi;
+        m.stations[station.uuid] = station;
+      });
+      store = createCustomTestStore({ poi: { ...poiInitialState } });
 
-    //call the thunk
-    await store.dispatch(thunkSavePoi({ poi }));
-    storeState = store.getState();
+      await store.dispatch(thunkDocDeletePoi({ poiUuid: poi.uuid }));
+      expect(missionDocHandle.doc().pois[poi.uuid]).toBeUndefined();
+      expect(missionDocHandle.doc().stations[station.uuid].poiUuids).not.toContain(poi.uuid);
+    });
 
-    expect(httpClient_poi.upsertPOIs).toHaveBeenCalledTimes(1); //check the db call was made
-    expect(mockThunkSaveActions).toHaveBeenCalledTimes(1);
-    expect(storeState.poi.poisEditing.length).toEqual(0);
+    it("deletes any actions attached to the poi", async () => {
+      const poi = generateBlankPoi({ name: "Vitest POI" });
+      const action = generateBlankAction({ name: "Vitest POI Action", poiUuid: poi.uuid });
+      poi.actionOrderUuids = [action.uuid];
+      const missionDocHandle = getMissionDocHandle();
+      missionDocHandle.change((m) => {
+        m.pois[poi.uuid] = poi;
+        m.actions[action.uuid] = action;
+      });
+      store = createCustomTestStore({ poi: { ...poiInitialState } });
+
+      await store.dispatch(thunkDocDeletePoi({ poiUuid: poi.uuid }));
+      expect(missionDocHandle.doc().pois[poi.uuid]).toBeUndefined();
+      expect(missionDocHandle.doc().actions[action.uuid]).toBeUndefined();
+    });
   });
 
-  it("thunkPoiCancel()", async () => {
-    //populate the poi state in the store
-    const poi: POI = generateBlankPoi({ name: "Vitest Poi-1" });
-    const poiModified = {
-      ...poi,
-      description: "modified description",
-      updatedAt: new Date().toISOString(),
-    };
-    const unsavedPoi: POI = generateBlankPoi({ name: "Vitest Poi-1" });
-    const newPoiAction: Action = generateBlankAction({
-      name: "Vitest Action-1",
-      poiUuid: poi.uuid,
-    });
-    const newPoiActionModified = {
-      ...newPoiAction,
-      description: "modified description",
-      updatedAt: new Date().getTime() + 1,
-    };
-    const store = createCustomTestStore({
-      poi: {
-        ...poiInitialState,
-        pois: [poiModified, unsavedPoi],
-        poisFromDb: [poi],
-        poisEditing: [poi.uuid, unsavedPoi.uuid],
-      },
-      action: {
-        ...actionInitialState,
-        actions: [newPoiActionModified],
-        actionsFromDb: [newPoiAction],
-      },
+  describe("thunkDocUpdatePoiLocation", () => {
+    it("updates the location and skips elevation when elevation lookup is rejected", async () => {
+      const poi = generateBlankPoi({ name: "Vitest Poi-1", location: { lat: 1, lng: 2 } });
+      const missionDocHandle = getMissionDocHandle();
+      missionDocHandle.change((mission) => {
+        mission.pois[poi.uuid] = poi;
+      });
+
+      store = createCustomTestStore({});
+
+      const newLocation: AEGISPoint = { lat: 10, lng: 20 };
+      await store.dispatch(thunkDocUpdatePoiLocation({ location: newLocation, poiUuid: poi.uuid }));
+
+      // elevation was rejected, so only location should update
+      const updatedPoi = missionDocHandle.doc().pois[poi.uuid];
+      expect(updatedPoi.location.lat).toEqual(10);
+      expect(updatedPoi.location.lng).toEqual(20);
     });
 
-    //cancel a poi that has changes pending
-    await store.dispatch(thunkPoiCancel({ poi: poiModified }));
-    let storeState = store.getState();
-    const cancelledPoi = storeState.poi.pois.find((p) => p.uuid === poi.uuid);
-    expect(cancelledPoi.description).toEqual("");
-    expect(cancelledPoi).toEqual(storeState.poi.poisFromDb[0]);
-    expect(storeState.poi.poisEditing.includes(poi.uuid)).toBeFalsy();
-    expect(storeState.action.actions[0]).toEqual(storeState.action.actionsFromDb[0]);
+    it("writes elevation when elevation lookup succeeds", async () => {
+      mockThunkFetchElevation.mockReturnValueOnce({
+        meta: { requestStatus: "fulfilled" },
+        payload: 7777,
+      });
+      const poi = generateBlankPoi({ name: "Vitest POI", location: { lat: 0, lng: 0 } });
+      const missionDocHandle = getMissionDocHandle();
+      missionDocHandle.change((m) => {
+        m.pois[poi.uuid] = poi;
+      });
+      store = createCustomTestStore({});
 
-    //cancel a poi that hasn't been saved to the db
-    expect(storeState.poi.pois.length).toEqual(2);
-    await store.dispatch(thunkPoiCancel({ poi: unsavedPoi }));
-    storeState = store.getState();
-    expect(storeState.poi.poisEditing.includes(poi.uuid)).toBeFalsy();
-    expect(storeState.poi.pois.length).toEqual(1);
-    expect(storeState.poi.poisFromDb.length).toEqual(1);
-  });
-
-  it("thunkDeletePoi()", async () => {
-    //populate the poi state in the store
-    const poi: POI = generateBlankPoi({ name: "Vitest Poi-1" });
-    const poiAction: Action = generateBlankAction({ name: "Vitest Action-1", poiUuid: poi.uuid });
-    const unsavedPoi: POI = generateBlankPoi({ name: "Vitest Poi-1" });
-    const unsavedPoiAction: Action = generateBlankAction({
-      name: "Vitest Action-1",
-      poiUuid: unsavedPoi.uuid,
+      await store.dispatch(
+        thunkDocUpdatePoiLocation({ location: { lat: 5, lng: 5 }, poiUuid: poi.uuid })
+      );
+      expect(missionDocHandle.doc().pois[poi.uuid].elevation).toBe(7777);
     });
-
-    const store = createCustomTestStore({
-      poi: {
-        ...poiInitialState,
-        pois: [poi, unsavedPoi],
-        poisFromDb: [poi],
-        selectedPoiUuid: poi.uuid,
-        poisEditing: [poi.uuid, unsavedPoi.uuid],
-      },
-      action: {
-        ...actionInitialState,
-        actions: [poiAction, unsavedPoiAction],
-        actionsFromDb: [poiAction],
-      },
-    });
-
-    //delete a saved poi
-    await store.dispatch(thunkDeletePoi({ poi: poi }));
-    let storeState = store.getState();
-    expect(storeState.poi.pois.find((p) => p.uuid === poi.uuid)).toBeFalsy();
-    expect(storeState.poi.poisFromDb.find((p) => p.uuid === poi.uuid)).toBeFalsy();
-    expect(storeState.poi.poisEditing.includes(poi.uuid)).toBeFalsy();
-    expect(storeState.action.actionsFromDb.find((a) => a.uuid === poiAction.uuid)).toBeFalsy();
-    expect(storeState.action.actions.find((a) => a.uuid === poiAction.uuid)).toBeFalsy();
-    expect(storeState.poi.selectedPoiUuid).toBeFalsy();
-    expect(httpClient_poi.deletePOIs).toHaveBeenCalledTimes(1);
-    expect(httpClient_action.deleteActions).toHaveBeenCalledTimes(1);
-
-    //delete an unsaved poi
-    await store.dispatch(thunkDeletePoi({ poi: unsavedPoi }));
-    storeState = store.getState();
-    expect(storeState.poi.pois.find((p) => p.uuid === unsavedPoi.uuid)).toBeFalsy();
-    expect(storeState.poi.poisEditing.includes(unsavedPoi.uuid)).toBeFalsy();
-    expect(storeState.action.actions.find((a) => a.uuid === unsavedPoiAction.uuid)).toBeFalsy();
-    expect(httpClient_poi.deletePOIs).toHaveBeenCalledTimes(1); //no additional calls should have been made from the earlier call
-  });
-
-  it("thunkCreatePoi()", async () => {
-    //populate the poi state in the store
-    const store = createCustomTestStore({
-      poi: { ...poiInitialState },
-    });
-
-    await store.dispatch(thunkCreatePoi());
-    const storeState = store.getState();
-    expect(storeState.poi.pois.length).toEqual(1);
-    expect(storeState.poi.poisEditing.length).toEqual(1);
-    expect(storeState.poi.selectedPoiUuid).toBeTruthy();
-    expect(storeState.poi.selectedRightNavItem).toEqual("info_panel");
-  });
-
-  it("thunkDuplicatePoi()", async () => {
-    //populate the poi state in the store
-    const poi: POI = generateBlankPoi({ name: "Vitest Poi-1" });
-    const poiAction1: Action = generateBlankAction({ name: "Vitest Action-1", poiUuid: poi.uuid });
-    const poiAction2: Action = generateBlankAction({ name: "Vitest Action-1", poiUuid: poi.uuid });
-    poi.actionOrderUuids = [poiAction1.uuid, poiAction2.uuid];
-    const store = createCustomTestStore({
-      poi: { ...poiInitialState, pois: [poi], poisFromDb: [poi] },
-      action: {
-        ...actionInitialState,
-        actions: [poiAction1, poiAction2],
-        actionsFromDb: [poiAction1, poiAction2],
-      },
-    });
-
-    await store.dispatch(thunkDuplicatePoi({ poiUuid: poi.uuid }));
-    const storeState = store.getState();
-    expect(storeState.poi.pois.length).toEqual(2);
-    expect(storeState.poi.selectedPoiUuid).toBeTruthy();
-    expect(storeState.poi.selectedRightNavItem).toEqual("info_panel");
-    // should have saved to db
-    expect(storeState.poi.poisFromDb.length).toEqual(2);
-    expect(httpClient_poi.upsertPOIs).toHaveBeenCalledTimes(1);
-    // we mocked the thunk duplicate action, so no further conditions will be tested here
-    expect(mockThunkDuplicateActions).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,6 +1,3 @@
-import type { EntityData } from "@mikro-orm/postgresql";
-import type { Rex_db } from "server/database/models/_allModels";
-
 import { v4 as uuidv4 } from "uuid";
 
 import { getAccurateNow } from "utils/formatting";
@@ -56,8 +53,8 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
 
   const defaultNewRex: Rex = {
     uuid: uuidv4(),
-    ownerId: null,
-    missionId: null,
+    ownerId: 0,
+    missionId: 0,
     name: "",
     description: "",
     petStartStopTimestamp: null,
@@ -76,8 +73,8 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     maestroEventId: null,
     maestroEventUrl: null,
     maestroActivityPropertiesByRefUuid: null,
-    createdAt: getAccurateNow().toISOString(),
-    updatedAt: getAccurateNow().toISOString(),
+    createdAt: getAccurateNow().getTime(),
+    updatedAt: getAccurateNow().getTime(),
   };
   return { ...defaultNewRex, ...partialRex };
 };
@@ -100,84 +97,9 @@ export const generateBlankPosEntry = (partialPosEntry?: Partial<PosEntry>): PosE
     elevation: null,
     petSeconds: 0,
     posTypeUuids: [],
-    posSourceUuid: null,
-    createdAt: getAccurateNow().toISOString(),
-    updatedAt: getAccurateNow().toISOString(),
+    posSourceUuid: "",
+    createdAt: getAccurateNow().getTime(),
+    updatedAt: getAccurateNow().getTime(),
   };
   return { ...defaultNewPosEntry, ...partialPosEntry };
 };
-/**
- * Converts db rex fks to their uuid/id arrays
- * @param dbRexes an array of rexes in mikro db format
- * @returns an a converted array of rexes or a single rex
- */
-export function convertRexesTypeDbToStore(dbRexes: Rex_db[]): Rex[] {
-  const rexes: Rex[] = [];
-  for (const dbRex of dbRexes) {
-    const convertedRex: Rex = {
-      uuid: dbRex.uuid,
-      ownerId: dbRex.ownerId,
-      missionId: dbRex.missionId,
-      name: dbRex.name,
-      description: dbRex.description,
-      petStartStopTimestamp: dbRex.petStartStopTimestamp,
-      petValueAtStartStop: dbRex.petValueAtStartStop,
-      petRunning: dbRex.petRunning,
-      evaUuid: dbRex.evaUuid,
-      isRunning: dbRex.isRunning,
-      posEntries: dbRex.posEntries,
-      posTypes: dbRex.posTypes,
-      posSources: dbRex.posSources,
-      stationEntries: dbRex.stationEntries,
-      traverseEntries: dbRex.traverseEntries,
-      actionEntries: dbRex.actionEntries,
-      xgressEntries: dbRex.xgressEntries,
-      maestroControlled: dbRex.maestroControlled,
-      maestroEventId: dbRex.maestroEventId,
-      maestroEventUrl: dbRex.maestroEventUrl,
-      maestroActivityPropertiesByRefUuid: dbRex.maestroActivityPropertiesByRefUuid,
-      updatedAt: dbRex.updatedAt.toISOString(),
-      createdAt: dbRex.createdAt.toISOString(),
-    };
-    rexes.push(convertedRex);
-  }
-  return rexes;
-}
-
-/**
- * Converts rexes that come from the store into the db type
- * @param storeRexes
- * @returns
- */
-export function convertRexesTypeStoreToDb(storeRexes: Rex[]): EntityData<Rex_db>[] {
-  const dbRexes: EntityData<Rex_db>[] = [];
-  for (const storeRex of storeRexes) {
-    const convertedRecord: EntityData<Rex_db> = {
-      missionId: storeRex.missionId,
-      uuid: storeRex.uuid,
-      ownerId: storeRex.ownerId,
-      name: storeRex.name,
-      description: storeRex.description,
-      petStartStopTimestamp: storeRex.petStartStopTimestamp,
-      petValueAtStartStop: storeRex.petValueAtStartStop,
-      petRunning: storeRex.petRunning,
-      evaUuid: storeRex.evaUuid,
-      isRunning: storeRex.isRunning,
-      posEntries: storeRex.posEntries,
-      posTypes: storeRex.posTypes,
-      posSources: storeRex.posSources,
-      stationEntries: storeRex.stationEntries,
-      traverseEntries: storeRex.traverseEntries,
-      actionEntries: storeRex.actionEntries,
-      xgressEntries: storeRex.xgressEntries,
-      maestroControlled: storeRex.maestroControlled,
-      maestroEventId: storeRex.maestroEventId,
-      maestroEventUrl: storeRex.maestroEventUrl,
-      maestroActivityPropertiesByRefUuid: storeRex.maestroActivityPropertiesByRefUuid,
-      updatedAt: new Date(storeRex.updatedAt),
-      createdAt: new Date(storeRex.createdAt),
-    };
-    dbRexes.push(convertedRecord);
-  }
-  return dbRexes;
-}

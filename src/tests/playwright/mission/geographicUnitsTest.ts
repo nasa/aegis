@@ -4,6 +4,7 @@ import {
   goToV1MissionSection,
   toggleEditMode,
   editValidatedField,
+  cancelValidatedFieldEdit,
   displayField,
 } from "./missionTestHelpers";
 
@@ -20,6 +21,14 @@ async function findGeoUnitIndexExactName(page: Page, name: string): Promise<numb
 }
 
 export async function geographicUnitsTest(page: Page): Promise<string> {
+  // Use per-run suffix to avoid `Name must be unique` failures from leftover
+  // automerge state. Suffix is prefixed with
+  // `aa`/`zb` etc. so alphabetical-sort assertions still hold (ONE < TWO).
+  const suffix = Math.floor(Math.random() * 1_000_000).toString(36);
+  const geoUnitOneName = `--TEST GEO UNIT ONE ${suffix}--`;
+  const geoUnitOneEditedName = `--TEST GEO UNIT ONE B ${suffix}--`; // Still starts with "ONE B", sorts after ONE
+  const geoUnitTwoName = `--TEST GEO UNIT TWO ${suffix}--`;
+
   await goToV1MissionSection(page);
 
   // Geographic units panel only exists on v1 missions
@@ -48,8 +57,8 @@ export async function geographicUnitsTest(page: Page): Promise<string> {
   // Find and edit the new default-named item
   let defaultIndex = await findGeoUnitIndexExactName(page, "(Geographic Unit Name)");
   expect(defaultIndex).not.toEqual(-1);
-  await editValidatedField(page, "Geographic unit name", "--TEST GEO UNIT ONE--", defaultIndex);
-  let gu1Index = await findGeoUnitIndexExactName(page, "--TEST GEO UNIT ONE--");
+  await editValidatedField(page, "Geographic unit name", geoUnitOneName, defaultIndex);
+  let gu1Index = await findGeoUnitIndexExactName(page, geoUnitOneName);
   await editValidatedField(page, "Geographic unit abbreviation", "TG1", gu1Index);
 
   // Create second geographic unit
@@ -58,13 +67,13 @@ export async function geographicUnitsTest(page: Page): Promise<string> {
 
   defaultIndex = await findGeoUnitIndexExactName(page, "(Geographic Unit Name)");
   expect(defaultIndex).not.toEqual(-1);
-  await editValidatedField(page, "Geographic unit name", "--TEST GEO UNIT TWO--", defaultIndex);
-  let gu2Index = await findGeoUnitIndexExactName(page, "--TEST GEO UNIT TWO--");
+  await editValidatedField(page, "Geographic unit name", geoUnitTwoName, defaultIndex);
+  let gu2Index = await findGeoUnitIndexExactName(page, geoUnitTwoName);
   await editValidatedField(page, "Geographic unit abbreviation", "TG2", gu2Index);
 
   // Verify items exist and are sorted alphabetically
-  gu1Index = await findGeoUnitIndexExactName(page, "--TEST GEO UNIT ONE--");
-  gu2Index = await findGeoUnitIndexExactName(page, "--TEST GEO UNIT TWO--");
+  gu1Index = await findGeoUnitIndexExactName(page, geoUnitOneName);
+  gu2Index = await findGeoUnitIndexExactName(page, geoUnitTwoName);
   expect(gu1Index !== -1 && gu2Index !== -1).toEqual(true);
   expect(gu1Index).toBeLessThan(gu2Index); // alphabetical: ONE < TWO
 
@@ -73,29 +82,22 @@ export async function geographicUnitsTest(page: Page): Promise<string> {
   await expect(displayField(page, "Geographic unit abbreviation", gu2Index)).toContainText("TG2");
 
   // Edit first item
-  await editValidatedField(page, "Geographic unit name", "--TEST GEO UNIT ONE B--", gu1Index);
-  gu1Index = await findGeoUnitIndexExactName(page, "--TEST GEO UNIT ONE B--");
+  await editValidatedField(page, "Geographic unit name", geoUnitOneEditedName, gu1Index);
+  gu1Index = await findGeoUnitIndexExactName(page, geoUnitOneEditedName);
   await editValidatedField(page, "Geographic unit abbreviation", "T1B", gu1Index);
 
   // Verify edited values
-  gu1Index = await findGeoUnitIndexExactName(page, "--TEST GEO UNIT ONE B--");
+  gu1Index = await findGeoUnitIndexExactName(page, geoUnitOneEditedName);
   expect(gu1Index).not.toEqual(-1);
   await expect(displayField(page, "Geographic unit abbreviation", gu1Index)).toContainText("T1B");
 
   // Test cancel on field edit (dialog cancel)
-  gu2Index = await findGeoUnitIndexExactName(page, "--TEST GEO UNIT TWO--");
-  const originalName = await displayField(page, "Geographic unit name", gu2Index).textContent();
-  await displayField(page, "Geographic unit name", gu2Index).dispatchEvent("click");
-  const dialog = page.locator("dialog[open]");
-  await dialog.waitFor({ timeout: 3000 });
-  await dialog.locator("input").fill("--SHOULD NOT SAVE--");
-  await dialog.getByText("Cancel").dispatchEvent("click");
-  await dialog.waitFor({ state: "hidden", timeout: 3000 });
-  await expect(displayField(page, "Geographic unit name", gu2Index)).toContainText(originalName);
+  gu2Index = await findGeoUnitIndexExactName(page, geoUnitTwoName);
+  await cancelValidatedFieldEdit(page, "Geographic unit name", "--SHOULD NOT SAVE--", gu2Index);
 
   // Delete both test items (higher index first to avoid shifting)
-  gu1Index = await findGeoUnitIndexExactName(page, "--TEST GEO UNIT ONE B--");
-  gu2Index = await findGeoUnitIndexExactName(page, "--TEST GEO UNIT TWO--");
+  gu1Index = await findGeoUnitIndexExactName(page, geoUnitOneEditedName);
+  gu2Index = await findGeoUnitIndexExactName(page, geoUnitTwoName);
   if (gu1Index > gu2Index) {
     await page.getByLabel("deleteButton", { exact: true }).nth(gu1Index).click();
     await page.waitForTimeout(500);

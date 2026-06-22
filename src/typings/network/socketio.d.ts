@@ -7,8 +7,7 @@ interface ServerToClientEvents {
   version: (version: AppVersion) => void; // server version sent to client
   storeUpsert: (payload: StoreUpsert) => void;
   storeDelete: (payload: StoreDelete) => void;
-  storeUpsertForMaestro: (payload: StoreUpsertForMaestro) => void; // Deprecated
-  storeDeleteForMaestro: (payload: StoreDeleteForMaestro) => void; // Deprecated
+  storeUpsertForMaestro: (payload: StoreUpsertForMaestro) => void; // Deprecated - use Maestro namespace instead
   inspectorUpdate: (payload: ServerSocketStatus) => void;
 }
 
@@ -16,11 +15,11 @@ interface ClientToServerEvents {
   storeUpsert: (payload: StoreUpsert) => void;
   storeDelete: (payload: StoreDelete) => void;
   visitorJoin: (visitorData: VisitorData) => void;
-  maestroJoin: (maestroVisitor: MaestroVisitor) => void; // Deprecated
+  maestroJoin: (maestroVisitor: MaestroVisitor) => void; // Deprecated - use Maestro namespace instead
   inspectorJoin: () => void;
   getMaestroDebugInfo: (
     callback: (data: {
-      docListenerRooms: string[];
+      docListenerMissionIds: number[];
       evaSubscriptions: { [missionId: number]: string[] };
     }) => void
   ) => void;
@@ -159,18 +158,8 @@ interface EditEvents {
   [missionId: number]: EditEvent;
 }
 
-type SocketStoreType =
-  | "preset"
-  | "poi"
-  | "station"
-  | "eva"
-  | "action"
-  | "traverse"
-  | "rex"
-  | "stmRule"
-  | "folder";
-
-type StoreData = POI | Preset | Station | Eva | Action | Traverse | Rex | STMRule | Folder;
+type SocketStoreType = "preset" | "stmRule" | "folder";
+type StoreData = Preset | STMRule | Folder;
 
 interface StoreUpsert {
   socketId: string;
@@ -188,22 +177,23 @@ interface StoreDelete {
   lastEditEvent: EditEvent;
 }
 
+/**
+ * @deprecated
+ */
 type StoreTypeForMaestro = "station" | "eva" | "action" | "traverse" | "rex";
 
+/**
+ * @deprecated
+ */
 type StoreDataForMaestro = ExportStation | ExportEva | ExportAction | ExportTraverse | ExportRex;
 
+/**
+ * @deprecated
+ */
 interface StoreUpsertForMaestro {
   socketId: string;
   missionId: number;
   type: StoreTypeForMaestro;
   data: StoreDataForMaestro[];
-  lastEditEvent: EditEvent;
-}
-
-interface StoreDeleteForMaestro {
-  socketId: string;
-  missionId: number;
-  type: StoreTypeForMaestro;
-  refUuids: string[];
   lastEditEvent: EditEvent;
 }

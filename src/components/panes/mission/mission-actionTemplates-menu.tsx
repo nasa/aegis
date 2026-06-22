@@ -4,9 +4,10 @@ import type { FunctionComponent } from "react";
 import { useRef } from "react";
 import actionStyles from "../actions-action.module.css";
 import {
-  crudDeleteActionTemplate,
-  crudDuplicateActionTemplate,
-} from "client/crud/crud-mission-actionTemplate";
+  applyDeleteActionTemplate,
+  applyDuplicateActionTemplate,
+} from "client/automerge/apply/apply-mission-actionTemplate";
+import { withMissionChange } from "client/automergeDocHandles";
 
 export const ActionTemplateMenu: FunctionComponent<{
   uuid: string;
@@ -34,7 +35,9 @@ export const ActionTemplateMenu: FunctionComponent<{
           <div
             className={actionStyles.menuItem}
             onClick={() => {
-              crudDuplicateActionTemplate(uuid);
+              withMissionChange((m) =>
+                applyDuplicateActionTemplate(m, { actionTemplateUuid: uuid })
+              );
               dialogRef.current?.close();
             }}
             aria-label="Duplicate"
@@ -48,7 +51,9 @@ export const ActionTemplateMenu: FunctionComponent<{
             className={actionStyles.menuItem}
             onClick={(e) => {
               if (window.confirm("Are you sure you want to delete this Action Template?")) {
-                crudDeleteActionTemplate(uuid);
+                withMissionChange((m) =>
+                  applyDeleteActionTemplate(m, { actionTemplateUuid: uuid })
+                );
                 e.stopPropagation();
               }
               dialogRef.current?.close();

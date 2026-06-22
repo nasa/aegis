@@ -1,10 +1,10 @@
 import type { FunctionComponent, MutableRefObject } from "react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   getCalculatedFieldsByStation,
   getCalculatedFieldsByTraverse,
 } from "store/processing/calculatedFields";
-import { deepEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual } from "utils/useAppSelector";
 import { processEvaDataFromStore } from "../../interface/timeline/common-timeline";
 import { selectEvaStations, selectEvaTraverses } from "store/selectors";
 import styles from "./dashTimeline.module.css";
@@ -15,38 +15,45 @@ import Activities from "./activities";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const DashTimeline: FunctionComponent = () => {
-  const runningRexFromDb = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((r) => r.isRunning),
-    deepEqual
-  );
-  const runningEvaFromDb = useAppSelector(
-    (state) => state.eva.evasFromDb.find((eva) => eva.uuid === runningRexFromDb?.evaUuid),
-    deepEqual
-  );
+  const runningRex = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return null;
+    return Object.values(mission.rexes).find((r) => r.isRunning) ?? null;
+  }, deepEqual);
+  const runningEva = useMissionDocSelector((mission) => {
+    if (!mission?.evas || !runningRex) return null;
+    return mission.evas[runningRex.evaUuid] ?? null;
+  }, deepEqual);
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      walkbackRate: doc.walkbackRate,
-      traverseRate: doc.traverseRate,
-      demResolution: doc.demResolution,
-      landerElevationMeters: doc.landerElevationMeters,
-      landerLocation: doc.landerLocation,
-      planetRadius: doc.planetRadius,
-      defaultEvaDuration: doc.defaultEvaDuration,
+    (mission) => ({
+      walkbackRate: mission.walkbackRate,
+      traverseRate: mission.traverseRate,
+      demResolution: mission.demResolution,
+      landerElevationMeters: mission.landerElevationMeters,
+      landerLocation: mission.landerLocation,
+      planetRadius: mission.planetRadius,
+      defaultEvaDuration: mission.defaultEvaDuration,
     }),
     deepEqual
   );
 
-  const evaStations = useAppSelector(selectEvaStations(runningEvaFromDb?.uuid), deepEqual);
-  const evaTraverses = useAppSelector(selectEvaTraverses(runningEvaFromDb?.uuid), deepEqual);
+  const evaStations = useMissionDocSelector(
+    (mission) => selectEvaStations(mission, runningEva?.uuid),
+    deepEqual
+  );
+  const evaTraverses = useMissionDocSelector(
+    (mission) => selectEvaTraverses(mission, runningEva?.uuid),
+    deepEqual
+  );
+  const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual);
 
-  const stationCalculatedFieldsInRunningEva = useAppSelector((state) => {
-    const stationsInEvaSequence = runningEvaFromDb?.sequence
-      ? runningEvaFromDb.sequence.filter((s) => s.type === "station")
+  const stationCalculatedFieldsInRunningEva = useMemo(() => {
+    const stationsInEvaSequence = runningEva?.sequence
+      ? runningEva.sequence.filter((s) => s.type === "station")
       : [];
     const allStationCalculatedFields: StationCalculatedFields[] = [];
     for (const stationSeqItem of stationsInEvaSequence) {
-      const station = state.station.stations.find((s) => s.uuid === stationSeqItem.uuid);
-      const stationActions = state.action.actions.filter(
+      const station = evaStations.find((s) => s.uuid === stationSeqItem.uuid);
+      const stationActions = Object.values(allActionRecords).filter(
         (a) => a.stationUuid === stationSeqItem.uuid && a.enabled
       );
       allStationCalculatedFields.push(
@@ -58,20 +65,16 @@ const DashTimeline: FunctionComponent = () => {
       );
     }
     return allStationCalculatedFields;
-  }, deepEqual);
-  const traverseCalculatedFieldsInRunningEva = useAppSelector((state) => {
-    const traversesInEvaSequence = runningEvaFromDb?.sequence
-      ? runningEvaFromDb.sequence.filter((s) => s.type === "traverse")
+  }, [runningEva, evaStations, allActionRecords, partialMission.walkbackRate]);
+  const traverseCalculatedFieldsInRunningEva = useMemo(() => {
+    const traversesInEvaSequence = runningEva?.sequence
+      ? runningEva.sequence.filter((s) => s.type === "traverse")
       : [];
     const allTraverseCalculatedFields: TraverseCalculatedFields[] = [];
     for (const traverseSeqItem of traversesInEvaSequence) {
-      const traverse = state.traverse.traverses.find(
-        (traverse) => traverse.uuid === traverseSeqItem.uuid
-      );
-      const traverseEva = state.eva.evas.find((eva) =>
-        eva.sequence.some((seqItem) => seqItem.uuid === traverse?.uuid)
-      );
-      const traverseActions = state.action.actions.filter(
+      const traverse = evaTraverses.find((traverse) => traverse.uuid === traverseSeqItem.uuid);
+      const traverseEva = runningEva; // traverse is always in the running eva
+      const traverseActions = Object.values(allActionRecords).filter(
         (a) => a.traverseUuid === traverseSeqItem.uuid && a.enabled
       );
       allTraverseCalculatedFields.push(
@@ -84,7 +87,7 @@ const DashTimeline: FunctionComponent = () => {
       );
     }
     return allTraverseCalculatedFields;
-  }, deepEqual);
+  }, [runningEva, evaTraverses, allActionRecords, partialMission.traverseRate]);
 
   const storeRef: MutableRefObject<EvaCalculated_PaperJS> = useRef({
     sequenceItems: [],
@@ -125,7 +128,7 @@ const DashTimeline: FunctionComponent = () => {
   }, [
     storeRef,
     containerRef,
-    runningEvaFromDb,
+    runningEva,
     width,
     height,
     evaStations,
@@ -138,23 +141,23 @@ const DashTimeline: FunctionComponent = () => {
     processEvaDataFromStore({
       storeRef,
       partialMission,
-      selectedEva: runningEvaFromDb,
+      selectedEva: runningEva,
       evaStations,
       evaTraverses,
       stationCalculatedFieldsInSelectedEva: stationCalculatedFieldsInRunningEva,
       traverseCalculatedFieldsInSelectedEva: traverseCalculatedFieldsInRunningEva,
-      selectedRex: runningRexFromDb,
+      selectedRex: runningRex,
     });
     setSequenceItems(storeRef.current.sequenceItems);
   }, [
     storeRef,
     partialMission,
-    runningEvaFromDb,
+    runningEva,
     evaStations,
     evaTraverses,
     stationCalculatedFieldsInRunningEva,
     traverseCalculatedFieldsInRunningEva,
-    runningRexFromDb,
+    runningRex,
     pixelsPerSecondY,
     timelineDurationMins,
     width,
@@ -168,7 +171,7 @@ const DashTimeline: FunctionComponent = () => {
           <div className={styles.title}>EV1</div>
           <div className={styles.title}>EV2</div>
         </div>
-        <EVAMaxTimeline pixelsPerSecondY={pixelsPerSecondY} duration={runningEvaFromDb?.duration} />
+        <EVAMaxTimeline pixelsPerSecondY={pixelsPerSecondY} duration={runningEva?.duration} />
         <PetTimeLine
           pixelsPerSecondY={pixelsPerSecondY}
           rexPetTime={rexPetTime}
@@ -182,7 +185,7 @@ const DashTimeline: FunctionComponent = () => {
         <Activities
           sequenceItems={sequenceItems}
           pixelsPerSecondY={pixelsPerSecondY}
-          rex={runningRexFromDb}
+          rex={runningRex}
         />
       </div>
     </>

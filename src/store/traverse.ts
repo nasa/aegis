@@ -1,13 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
-import cloneDeep from "lodash/cloneDeep";
 import { setAllSliceStores } from "store/crossActions";
-import { getAccurateNow } from "utils/formatting";
-import { upsertToArrayByUuid } from "store/storeUtils/store";
 
 export const initialState: TraverseState = {
-  traverses: [],
-  traversesFromDb: [],
-  traversesEditing: [],
   selectedTraverseRightNavItem: "info_panel",
 };
 
@@ -15,104 +9,8 @@ export const traverseSlice = createSlice({
   name: "traverse",
   initialState,
   reducers: {
-    upsertTraverses: {
-      prepare: (traverses: Traverse[], preserveModifiedDate: boolean = false) => {
-        if (preserveModifiedDate) {
-          return { payload: traverses };
-        } else {
-          return {
-            payload: traverses.map((traverse) => ({
-              ...traverse,
-              updatedAt: getAccurateNow().toISOString(),
-            })),
-          };
-        }
-      },
-      reducer: (state, action: { payload: Traverse[] }) => {
-        action.payload.forEach((traverse) => upsertToArrayByUuid(state.traverses, traverse));
-      },
-    },
-    upsertTraversesFromDb: (state, action: { payload: Traverse[] }) => {
-      action.payload.forEach((traverse) => upsertToArrayByUuid(state.traversesFromDb, traverse));
-    },
-    upsertTraverseByField: {
-      prepare: (
-        traverseUuid: string,
-        fieldName: keyof Traverse,
-        value: Traverse[keyof Traverse],
-        preserveModifiedDate: boolean = false
-      ) => {
-        if (preserveModifiedDate) {
-          return {
-            payload: { traverseUuid, fieldName, value, updatedAt: null },
-          };
-        } else {
-          return {
-            payload: {
-              traverseUuid,
-              fieldName,
-              value,
-              updatedAt: getAccurateNow().toISOString(),
-            },
-          };
-        }
-      },
-      reducer: (
-        state,
-        action: {
-          payload: {
-            traverseUuid: string;
-            fieldName: keyof Traverse;
-            value: Traverse[keyof Traverse];
-            updatedAt: string;
-          };
-        }
-      ) => {
-        const traverse = state.traverses.find((s) => s.uuid === action.payload.traverseUuid);
-        const newTraverse: Traverse = cloneDeep(traverse);
-        newTraverse.updatedAt = action.payload.updatedAt || traverse.updatedAt;
-        const key = action.payload.fieldName;
-        (newTraverse as Record<typeof key, Traverse[keyof Traverse]>)[key] = action.payload.value;
-        upsertToArrayByUuid(state.traverses, newTraverse);
-      },
-    },
-    deleteTraversesByUuid: (state, action: { payload: string[] }) => {
-      state.traverses = state.traverses.filter(
-        (traverse) => !action.payload.includes(traverse.uuid)
-      );
-    },
-    deleteTraversesFromDbByUuid: (state, action: { payload: string[] }) => {
-      state.traversesFromDb = state.traversesFromDb.filter(
-        (traverse) => !action.payload.includes(traverse.uuid)
-      );
-    },
     setSelectedTraverseRightNavItem: (state, action: { payload: string }) => {
       state.selectedTraverseRightNavItem = action.payload;
-    },
-    setTraversesEditMode: (state, action: { payload: { uuids: string[]; editMode: boolean } }) => {
-      if (action.payload.editMode) {
-        for (const uuid of action.payload.uuids) {
-          // Ensure we only add unique UUIDs to the editing list
-          if (!state.traversesEditing.includes(uuid)) {
-            state.traversesEditing.push(uuid);
-          }
-        }
-      } else {
-        state.traversesEditing = state.traversesEditing.filter(
-          (uuid) => !action.payload.uuids.includes(uuid)
-        );
-      }
-    },
-    revertTraversePath: (state, action: { payload: { uuid: string } }) => {
-      const traverse = state.traverses.find((traverse) => traverse.uuid === action.payload.uuid);
-      const traverseFromDb = state.traversesFromDb.find(
-        (traverse) => traverse.uuid === action.payload.uuid
-      );
-      if (traverse && traverseFromDb) {
-        traverse.path = traverseFromDb.path;
-        traverse.pathSegmentDistances = traverseFromDb.pathSegmentDistances;
-        traverse.pathSegmentElevations = traverseFromDb.pathSegmentElevations;
-      }
     },
 
     obliterateState: (state) => {
@@ -128,14 +26,4 @@ export const traverseSlice = createSlice({
   },
 });
 
-export const {
-  upsertTraverses,
-  upsertTraversesFromDb,
-  upsertTraverseByField,
-  deleteTraversesByUuid,
-  deleteTraversesFromDbByUuid,
-  setSelectedTraverseRightNavItem,
-  setTraversesEditMode,
-  revertTraversePath,
-  obliterateState,
-} = traverseSlice.actions;
+export const { setSelectedTraverseRightNavItem, obliterateState } = traverseSlice.actions;

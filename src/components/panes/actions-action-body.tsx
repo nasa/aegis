@@ -16,12 +16,17 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
-import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
+import { Button } from "components/interface/form/globalFields";
+import {
+  ValidatedInputField,
+  ValidatedTextArea,
+} from "components/interface/form/globalFieldsAutomerge";
 import type { FunctionComponent } from "react";
 import { useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
-import { upsertActionByField } from "store/action";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdateActionByField } from "client/automerge/apply/apply-action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { longDateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
@@ -30,14 +35,14 @@ import { validators, regExValidators } from "components/interface/form/formValid
 import round from "lodash/round";
 import isNull from "lodash/isNull";
 import { EquipmentSelector, GeographicUnitSelector } from "./actions-action-body-multiselectors";
-import { thunkUpdateActionLocation } from "store/thunk/thunkAction";
+import { thunkDocUpdateActionLocation } from "store/thunk/thunkAction";
 import {
   findGlobalGridCoordsFromPoint,
   getDistanceBetweenTwoCoordinates,
 } from "utils/mapping/geoMath";
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
-import { thunkAddCollectionId, thunkAddRexActionMass } from "store/thunk/thunkRex";
+import { thunkDocAddCollectionId, thunkDocAddRexActionMass } from "store/thunk/thunkRex";
 import { globalGrid } from "utils/mapping/grid";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -53,10 +58,10 @@ const RightActionBody: FunctionComponent<{
 }> = ({ editMode, action, parentType, parentLocation, parentElevation, rexUuid, allowRexEdit }) => {
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      usingLGRSCoordinates: doc.usingLGRSCoordinates,
-      planetRadius: doc.planetRadius,
-      actionSystemVersion: doc.actionSystemVersion,
+    (mission) => ({
+      usingLGRSCoordinates: mission.usingLGRSCoordinates,
+      planetRadius: mission.planetRadius,
+      actionSystemVersion: mission.actionSystemVersion,
     }),
     deepEqual
   );
@@ -71,22 +76,16 @@ const RightActionBody: FunctionComponent<{
     refEqual
   );
 
-  const actionRexEntry = useAppSelector((state) => {
-    if (!rexUuid) return;
-    //find all action entry that match this action uuid for the running rex. return the status of the last one.
-    const rex = state.rex.rexesFromDb.find((rex) => rex.uuid === rexUuid);
-    if (!rex?.actionEntries || !rex.actionEntries[action.uuid]) {
-      return null;
-    } else {
-      return rex.actionEntries[action.uuid];
-    }
+  const actionRexEntry = useMissionDocSelector((mission) => {
+    if (!rexUuid || !mission?.rexes) return null;
+    const rex = mission.rexes[rexUuid];
+    if (!rex?.actionEntries || !rex.actionEntries[action.uuid]) return null;
+    return rex.actionEntries[action.uuid];
   }, deepEqual);
 
-  const actionRexMaestroControlled = useAppSelector((state) => {
-    if (!rexUuid) return false;
-    //find all action entry that match this action uuid for the running rex. return the status of the last one.
-    const rex = state.rex.rexesFromDb.find((rex) => rex.uuid === rexUuid);
-    return rex?.maestroControlled || false;
+  const actionRexMaestroControlled = useMissionDocSelector((mission) => {
+    if (!rexUuid || !mission?.rexes) return false;
+    return mission.rexes[rexUuid]?.maestroControlled ?? false;
   }, deepEqual);
 
   const actionGridCoordinates = useAppSelector((state) => {
@@ -103,13 +102,15 @@ const RightActionBody: FunctionComponent<{
     }
   }, shallowEqual);
 
-  const actionParentPoi = useAppSelector((state) => {
+  const parentPoiUuid = useMissionDocSelector((mission) => {
     if (!action.parentActionUuid) return undefined;
-    const parentAction = state.action.actions.find((a) => a.uuid === action.parentActionUuid);
-    if (!parentAction || !parentAction.poiUuid) return undefined;
-    const poi = state.poi.pois.find((p) => p.uuid === parentAction.poiUuid);
-    return poi;
+    const parentAction = mission.actions[action.parentActionUuid];
+    return parentAction?.poiUuid;
   }, refEqual);
+  const actionParentPoi = useMissionDocSelector(
+    (mission) => (parentPoiUuid ? mission.pois[parentPoiUuid] : undefined),
+    deepEqual
+  );
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -157,7 +158,14 @@ const RightActionBody: FunctionComponent<{
                 <div
                   className={`${actionStyles.actionDualButtonsLeft} ${action.stmAction ? actionStyles.actionDualButtonsSelected : undefined}`}
                   onClick={() => {
-                    if (editMode) dispatch(upsertActionByField(action.uuid, "stmAction", true));
+                    if (editMode)
+                      withMissionChange((m) =>
+                        applyUpdateActionByField(m, {
+                          actionUuid: action.uuid,
+                          fieldName: "stmAction",
+                          value: true,
+                        })
+                      );
                   }}
                 >
                   STM
@@ -166,7 +174,14 @@ const RightActionBody: FunctionComponent<{
                 <div
                   className={`${actionStyles.actionDualButtonsRight} ${!action.stmAction ? actionStyles.actionDualButtonsSelected : undefined}`}
                   onClick={() => {
-                    if (editMode) dispatch(upsertActionByField(action.uuid, "stmAction", false));
+                    if (editMode)
+                      withMissionChange((m) =>
+                        applyUpdateActionByField(m, {
+                          actionUuid: action.uuid,
+                          fieldName: "stmAction",
+                          value: false,
+                        })
+                      );
                   }}
                 >
                   Non-STM
@@ -185,11 +200,17 @@ const RightActionBody: FunctionComponent<{
           <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
         </div>
         <div className={paneStyles.descriptionContainer}>
-          <TextArea
+          <ValidatedTextArea
             value={action.description || ""}
-            editing={editMode}
+            editMode={editMode}
             onSubmit={(value: string) => {
-              dispatch(upsertActionByField(action.uuid, "description", value || ""));
+              withMissionChange((m) =>
+                applyUpdateActionByField(m, {
+                  actionUuid: action.uuid,
+                  fieldName: "description",
+                  value: value || "",
+                })
+              );
             }}
             fieldProps={{ name: "description", ariaLabel: "Action Description" }}
             key={`${action.uuid}-description`}
@@ -206,11 +227,17 @@ const RightActionBody: FunctionComponent<{
               </SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <TextArea
+              <ValidatedTextArea
                 value={action.descriptionTask || ""}
-                editing={editMode}
+                editMode={editMode}
                 onSubmit={(value: string) => {
-                  dispatch(upsertActionByField(action.uuid, "descriptionTask", value));
+                  withMissionChange((m) =>
+                    applyUpdateActionByField(m, {
+                      actionUuid: action.uuid,
+                      fieldName: "descriptionTask",
+                      value,
+                    })
+                  );
                 }}
                 fieldProps={{ name: "descriptionTask", ariaLabel: "Task Description" }}
                 key={action.uuid}
@@ -232,13 +259,12 @@ const RightActionBody: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldValue}>
-                    <InLineEditInput
+                    <ValidatedInputField
                       value={action.duration?.toString()}
-                      editing={editMode}
+                      editMode={editMode}
                       fieldProps={{
                         name: "duration",
                         ariaLabel: "Duration in minutes",
-                        style: { width: "45px" },
                         validators: [
                           validators.maxLength(4),
                           validators.mustBeInteger,
@@ -250,7 +276,13 @@ const RightActionBody: FunctionComponent<{
                         },
                       }}
                       onSubmit={(value: string) => {
-                        dispatch(upsertActionByField(action.uuid, "duration", toDecimal(value)));
+                        withMissionChange((m) =>
+                          applyUpdateActionByField(m, {
+                            actionUuid: action.uuid,
+                            fieldName: "duration",
+                            value: toDecimal(value),
+                          })
+                        );
                       }}
                       key={`${action.uuid}-duration`}
                     />
@@ -276,13 +308,12 @@ const RightActionBody: FunctionComponent<{
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.inputFieldValue}>
-                      <InLineEditInput
+                      <ValidatedInputField
                         value={action.priority?.toString()}
-                        editing={editMode}
+                        editMode={editMode}
                         fieldProps={{
                           name: "priority",
                           ariaLabel: "Priority",
-                          style: { width: "45px" },
                           validators: [validators.maxLength(2), validators.mustBeInteger],
                           onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                             e.target.value = e.target.value.replace(
@@ -292,7 +323,13 @@ const RightActionBody: FunctionComponent<{
                           },
                         }}
                         onSubmit={(value: string) => {
-                          dispatch(upsertActionByField(action.uuid, "priority", toDecimal(value)));
+                          withMissionChange((m) =>
+                            applyUpdateActionByField(m, {
+                              actionUuid: action.uuid,
+                              fieldName: "priority",
+                              value: toDecimal(value),
+                            })
+                          );
                         }}
                         key={`${action.uuid}-priority`}
                       />
@@ -319,24 +356,29 @@ const RightActionBody: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldValue}>
-                    <InLineEditInput
+                    <ValidatedInputField
                       value={action.mass?.toString()}
-                      editing={editMode}
+                      editMode={editMode}
                       fieldProps={{
                         name: "mass",
                         ariaLabel: "Planned Sample Mass",
-                        style: { width: "45px" },
                         validators: [
                           validators.mustBeNumber,
                           validators.maxLength(4),
                           validators.mustBeInteger,
                         ],
-                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                          e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
-                        },
+                      }}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
                       }}
                       onSubmit={(value: string) => {
-                        dispatch(upsertActionByField(action.uuid, "mass", toDecimal(value)));
+                        withMissionChange((m) =>
+                          applyUpdateActionByField(m, {
+                            actionUuid: action.uuid,
+                            fieldName: "mass",
+                            value: toDecimal(value),
+                          })
+                        );
                       }}
                       key={`${action.uuid}-mass`}
                     />
@@ -352,13 +394,12 @@ const RightActionBody: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldValue}>
-                    <InLineEditInput
+                    <ValidatedInputField
                       value={actionRexEntry?.mass?.toString()}
-                      editing={!isNull(rexUuid) && allowRexEdit}
+                      editMode={!isNull(rexUuid) && allowRexEdit}
                       fieldProps={{
                         name: "mass",
                         ariaLabel: "Executed Sample Mass",
-                        style: { width: "45px" },
                         validators: [
                           validators.maxLength(4),
                           validators.mustBeInteger,
@@ -370,7 +411,7 @@ const RightActionBody: FunctionComponent<{
                       }}
                       onSubmit={(value: string) => {
                         dispatch(
-                          thunkAddRexActionMass({ uuid: action.uuid, mass: toDecimal(value) })
+                          thunkDocAddRexActionMass({ uuid: action.uuid, mass: toDecimal(value) })
                         );
                       }}
                       key={`${action.uuid}-mass`}
@@ -407,18 +448,17 @@ const RightActionBody: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldValue}>
-                    <InLineEditInput
+                    <ValidatedInputField
                       value={actionRexEntry?.markerId?.toString()}
-                      editing={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      editMode={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
                       fieldProps={{
                         name: "markerId",
                         ariaLabel: "Sample Marker ID",
-                        style: { width: "45px" },
                         validators: [validators.maxLength(20)],
                       }}
                       onSubmit={(value: string) => {
                         dispatch(
-                          thunkAddCollectionId({
+                          thunkDocAddCollectionId({
                             uuid: action.uuid,
                             id: value,
                             collectionType: "marker",
@@ -436,18 +476,17 @@ const RightActionBody: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldValue}>
-                    <InLineEditInput
+                    <ValidatedInputField
                       value={actionRexEntry?.containerId?.toString()}
-                      editing={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      editMode={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
                       fieldProps={{
                         name: "containerId",
                         ariaLabel: "Container ID",
-                        style: { width: "45px" },
                         validators: [validators.maxLength(20)],
                       }}
                       onSubmit={(value: string) => {
                         dispatch(
-                          thunkAddCollectionId({
+                          thunkDocAddCollectionId({
                             uuid: action.uuid,
                             id: value,
                             collectionType: "container",
@@ -465,18 +504,17 @@ const RightActionBody: FunctionComponent<{
                 </div>
                 <div className={paneStyles.panelColumnTableCell}>
                   <div className={paneStyles.inputFieldValue}>
-                    <InLineEditInput
+                    <ValidatedInputField
                       value={actionRexEntry?.secondaryContainerId?.toString()}
-                      editing={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      editMode={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
                       fieldProps={{
                         name: "secondaryContainerId",
                         ariaLabel: "Secondary Container ID",
-                        style: { width: "45px" },
                         validators: [validators.maxLength(20)],
                       }}
                       onSubmit={(value: string) => {
                         dispatch(
-                          thunkAddCollectionId({
+                          thunkDocAddCollectionId({
                             uuid: action.uuid,
                             id: value,
                             collectionType: "secondaryContainer",
@@ -501,9 +539,7 @@ const RightActionBody: FunctionComponent<{
           <EquipmentSelector
             equipmentItemsUsage={action.equipmentItemsUsage}
             editMode={editMode}
-            onChange={(e) => {
-              dispatch(upsertActionByField(action.uuid, "equipmentItemsUsage", e));
-            }}
+            actionUuid={action.uuid}
             uniqueId={action.uuid}
           />
         </div>
@@ -518,9 +554,7 @@ const RightActionBody: FunctionComponent<{
               <GeographicUnitSelector
                 geographicUnitsUsage={action.geographicUnitsUsage}
                 editMode={editMode}
-                onChange={(e) => {
-                  dispatch(upsertActionByField(action.uuid, "geographicUnitsUsage", e));
-                }}
+                actionUuid={action.uuid}
                 uniqueId={action.uuid}
               />
             </div>
@@ -577,7 +611,7 @@ const RightActionBody: FunctionComponent<{
                   <Button
                     onClick={() => {
                       dispatch(
-                        thunkUpdateActionLocation({
+                        thunkDocUpdateActionLocation({
                           location: parentLocation,
                           actionUuid: action.uuid,
                         })
@@ -585,12 +619,23 @@ const RightActionBody: FunctionComponent<{
                     }}
                     label={parentType === "station" ? "Set to Station" : "Set to POI"}
                     style={{ width: "95px" }}
+                    enabled={!!parentLocation}
                   />
                 )}
                 <Button
                   onClick={() => {
-                    dispatch(upsertActionByField(action.uuid, "location", null));
-                    dispatch(upsertActionByField(action.uuid, "elevation", null));
+                    withMissionChange((m) => {
+                      applyUpdateActionByField(m, {
+                        actionUuid: action.uuid,
+                        fieldName: "location",
+                        value: null,
+                      });
+                      applyUpdateActionByField(m, {
+                        actionUuid: action.uuid,
+                        fieldName: "elevation",
+                        value: null,
+                      });
+                    });
                   }}
                   label="Clear Location"
                   style={{ width: "99px" }}
@@ -635,21 +680,24 @@ const RightActionBody: FunctionComponent<{
                     {!action.location ? (
                       <>Not set</>
                     ) : (
-                      <InLineEditInput
+                      <ValidatedInputField
                         value={round(action.location.lat, 6).toString()}
-                        editing={editMode}
+                        editMode={editMode}
                         fieldProps={{
                           name: "Lat",
                           ariaLabel: "Latitude",
-                          style: { width: "100px" },
                           validators: [validators.mustBeNumber, validators.required],
                         }}
                         styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                         onSubmit={(val: string) => {
-                          dispatch(
-                            upsertActionByField(action.uuid, "location", {
-                              lat: parseFloat(val),
-                              lng: action.location.lng,
+                          withMissionChange((m) =>
+                            applyUpdateActionByField(m, {
+                              actionUuid: action.uuid,
+                              fieldName: "location",
+                              value: {
+                                lat: parseFloat(val),
+                                lng: action.location.lng,
+                              },
                             })
                           );
                         }}
@@ -668,21 +716,24 @@ const RightActionBody: FunctionComponent<{
                     {!action.location ? (
                       <>Not set</>
                     ) : (
-                      <InLineEditInput
+                      <ValidatedInputField
                         value={round(action.location.lng, 6).toString()}
-                        editing={editMode}
+                        editMode={editMode}
                         fieldProps={{
                           name: "Lng",
                           ariaLabel: "Longitude",
-                          style: { width: "100px" },
                           validators: [validators.mustBeNumber, validators.required],
                         }}
                         styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                         onSubmit={(val: string) => {
-                          dispatch(
-                            upsertActionByField(action.uuid, "location", {
-                              lat: action.location.lat,
-                              lng: parseFloat(val),
+                          withMissionChange((m) =>
+                            applyUpdateActionByField(m, {
+                              actionUuid: action.uuid,
+                              fieldName: "location",
+                              value: {
+                                lat: action.location.lat,
+                                lng: parseFloat(val),
+                              },
                             })
                           );
                         }}
@@ -778,7 +829,13 @@ const RightActionBody: FunctionComponent<{
                       onEmojiSelect={(e) => {
                         // Handle both standard emojis (unified) and custom emojis (id)
                         const iconValue = e.unified || e.id;
-                        dispatch(upsertActionByField(action.uuid, "icon", iconValue));
+                        withMissionChange((m) =>
+                          applyUpdateActionByField(m, {
+                            actionUuid: action.uuid,
+                            fieldName: "icon",
+                            value: iconValue,
+                          })
+                        );
                         setShowEmojiPicker(false);
                       }}
                     />
@@ -822,7 +879,7 @@ const RightActionBody: FunctionComponent<{
           <LastEditedNumeric
             updatedAt={action?.updatedAt}
             createdAt={action?.createdAt}
-            infoString={`Action UUID: ${action?.uuid}`}
+            infoString={`Action UUID: ${action?.uuid}<br />Action RefUUID: ${action?.refUuid}`}
           />
         </div>
       </div>

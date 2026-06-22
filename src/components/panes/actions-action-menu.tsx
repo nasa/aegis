@@ -9,17 +9,19 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { FunctionComponent } from "react";
 import { useRef } from "react";
-import { useAppDispatch } from "utils/useAppDispatch";
 import actionStyles from "./actions-action.module.css";
-import { upsertActions } from "store/action";
-import { thunkDeleteActionFromStore, thunkDuplicateActions } from "store/thunk/thunkAction";
-import { thunkCreateTemplateFromAction } from "store/thunk/thunkMission";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import {
+  applyDeleteActionAndUpdateParent,
+  applyDuplicateActions,
+  applyUpdateActionByField,
+} from "client/automerge/apply/apply-action";
+import { applyCreateTemplateFromAction } from "client/automerge/apply/apply-mission-actionTemplate";
 
 export const ActionMenu: FunctionComponent<{
   action: Action;
 }> = ({ action }) => {
-  const dispatch = useAppDispatch();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +53,13 @@ export const ActionMenu: FunctionComponent<{
           <div
             className={actionStyles.menuItem}
             onClick={() => {
-              dispatch(upsertActions([{ ...action, enabled: !action.enabled }]));
+              withMissionChange((m) =>
+                applyUpdateActionByField(m, {
+                  actionUuid: action.uuid,
+                  fieldName: "enabled",
+                  value: !action.enabled,
+                })
+              );
               dialogRef.current?.close();
             }}
           >
@@ -66,7 +74,9 @@ export const ActionMenu: FunctionComponent<{
             className={actionStyles.menuItem}
             onClick={(e) => {
               if (window.confirm("Are you sure you want to delete this Action?")) {
-                dispatch(thunkDeleteActionFromStore({ uuid: action.uuid }));
+                withMissionChange((m) =>
+                  applyDeleteActionAndUpdateParent(m, { uuid: action.uuid })
+                );
                 e.stopPropagation();
               }
               dialogRef.current?.close();
@@ -82,7 +92,9 @@ export const ActionMenu: FunctionComponent<{
               className={actionStyles.menuItem}
               onClick={async (e) => {
                 e.stopPropagation();
-                await dispatch(thunkCreateTemplateFromAction({ actionUuid: action.uuid }));
+                withMissionChange((m) =>
+                  applyCreateTemplateFromAction(m, { actionUuid: action.uuid })
+                );
                 window.alert(`Action Template successfully created from action.`);
 
                 dialogRef.current?.close();
@@ -98,14 +110,13 @@ export const ActionMenu: FunctionComponent<{
             className={actionStyles.menuItem}
             onClick={(e) => {
               e.stopPropagation();
-              dispatch(
-                thunkDuplicateActions({
+              withMissionChange((m) =>
+                applyDuplicateActions(m, {
                   actions: [action],
                   stationUuid: action.stationUuid,
                   poiUuid: action.poiUuid,
                   traverseUuid: action.traverseUuid,
                   preserveRefUuid: false,
-                  saveToDb: false,
                 })
               );
               dialogRef.current?.close();

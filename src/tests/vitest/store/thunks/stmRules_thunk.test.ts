@@ -1,4 +1,4 @@
-import { createCustomTestStore } from "../../fixtures/redux/makeTestStore";
+import { createCustomTestStore } from "../../fixtures/store";
 import { initialState as stmInitialState } from "store/stm"; // Assuming you have an initial state for stmRules
 import * as thunkStmRules from "store/thunk/thunkStmRules"; // Adjust based on actual paths
 

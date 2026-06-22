@@ -166,9 +166,9 @@ const LevelNames: FunctionComponent<{
     deepEqual
   );
 
-  // wrapper to also update the updatedAt field when any change is made
   const changeAutomergeMission = useCallback(
     (updateFn: (m: Mission) => void) => {
+      // eslint-disable-next-line no-restricted-syntax
       missionDocHandle.change((m: Mission) => {
         updateFn(m);
         m.updatedAt = new Date().getTime();

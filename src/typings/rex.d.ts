@@ -20,8 +20,8 @@ type Rex = {
   maestroEventId: string | null;
   maestroEventUrl: string | null;
   maestroActivityPropertiesByRefUuid: MaestroActivityPropertiesByRefUuid | null;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: number;
+  updatedAt?: number;
 };
 
 type Rex_db_type = Omit<Rex, "createdAt" | "updatedAt"> & {
@@ -38,12 +38,12 @@ interface PosSource {
 interface PosEntry {
   uuid: string;
   location: AEGISPoint;
-  elevation: number;
+  elevation: number | null;
   petSeconds: number;
   posTypeUuids: string[];
   posSourceUuid: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 interface PosType {
@@ -79,11 +79,11 @@ interface MaestroActivityProperties {
 }
 
 interface ActionEntry {
-  rexStatus: RexStatus;
-  mass?: number;
-  markerId?: string;
-  containerId?: string;
-  secondaryContainerId?: string;
+  rexStatus: RexStatus | null;
+  mass?: number | null;
+  markerId?: string | null;
+  containerId?: string | null;
+  secondaryContainerId?: string | null;
 }
 
 interface ActionEntries {

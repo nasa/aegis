@@ -3,12 +3,9 @@ import type { Request, Response } from "express";
 import express from "express";
 import sortBy from "lodash/sortBy";
 
-import { Rex_db } from "server/database/models/_allModels";
-import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
 import { emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
-import { globalValues } from "../global";
 import { getAutomergeMissions } from "./missionAutomerge";
 
 const router = express.Router();
@@ -70,33 +67,20 @@ export default router;
 async function getHomepageMissionItems(
   missionIdList: number[] = null
 ): Promise<MissionHomepageItem[]> {
-  const em = globalValues.orm.em;
-
   // Get missions from automerge documents in parallel
   const allMissions = await getAutomergeMissions(missionIdList);
   // Only include active/non-archived missions
   const missions = allMissions.filter((mission) => !mission.isArchived);
 
-  // Get rexes from database
-  let rexes: Rex_db[];
-  if (!missionIdList) {
-    rexes = await em.find(Rex_db, {}); // all rexes
-  } else {
-    rexes = await em.find(Rex_db, { missionId: { $in: missionIdList } }); // rexes for specified missions
-  }
-
   const missionHomepageItems: MissionHomepageItem[] = [];
 
   for (const mission of missions) {
-    const runningRexForMission = rexes.find((rex) => rex.missionId === mission.id && rex.isRunning);
-    const rex: Rex = runningRexForMission
-      ? convertRexesTypeDbToStore([runningRexForMission])[0]
-      : null;
+    const runningRex = Object.values(mission.rexes ?? {}).find((rex) => rex.isRunning) ?? null;
 
     const missionHomepageItem: MissionHomepageItem = {
       id: mission.id,
       name: mission.name,
-      runningRex: rex,
+      runningRex: runningRex,
     };
     missionHomepageItems.push(missionHomepageItem);
   }

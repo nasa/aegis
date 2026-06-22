@@ -1,5 +1,5 @@
 import type { FunctionComponent } from "react";
-import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual } from "utils/useAppSelector";
 import {
   faAtlas,
   faToolbox,
@@ -13,9 +13,7 @@ import {
 import Prefs_panel from "./mission-right-prefs";
 import Circles_panel from "./mission-right-circles";
 import paneStyles from "../global-pane-styles.module.css";
-import { ToggleButton } from "components/interface/form/globalFieldsAutomerge";
-import { useAppDispatch } from "utils/useAppDispatch";
-import { setMissionSectionEditing, setSelectedMissionRightNavItem } from "store/mission";
+import { setSelectedMissionRightNavItem } from "store/mission";
 import Equipment_Panel from "./mission-right-equipment";
 import GeographicUnits_Panel from "./mission-right-geographicUnits";
 import ActionTemplates_Panel from "./mission-right-actionTemplates";
@@ -23,29 +21,19 @@ import { RightTabs } from "components/interface/side-controls";
 import Export_Panel from "./mission-right-export";
 import ActionDefinitions_Panel from "./mission-right-actionDefinitions";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { isConnected } from "store/selectors";
 
 const MissionPrefsRight: FunctionComponent = () => {
-  const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.mission.selectedRightNavItem,
     refEqual
   );
-  const missionSectionsEditing = useAppSelector(
-    (state) => state.mission.missionSectionsEditing?.includes("prefs"),
-    shallowEqual
-  );
-  const editPerms = useAppSelector(
-    (state) =>
-      (state.user.missionPerms.permissions.edit && state.user.appUser.isAdmin) ||
-      state.user.appUser.isSuperAdmin,
-    refEqual
-  );
-
-  const isOnline = useAppSelector(isConnected, refEqual);
+  const isInEditMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
 
   // get the mission automerge document so we can get actionSystemVersion
-  const actionSystemVersion = useMissionDocSelector((doc) => doc.actionSystemVersion, refEqual);
+  const actionSystemVersion = useMissionDocSelector(
+    (mission) => mission.actionSystemVersion,
+    refEqual
+  );
 
   let panelTypes: PanelTypes;
   if (actionSystemVersion === 1) {
@@ -142,32 +130,8 @@ const MissionPrefsRight: FunctionComponent = () => {
           panelTypes={panelTypes}
           dispatchFunction={setSelectedMissionRightNavItem}
         />
-        <div className={paneStyles.saveCancelContainer}>
-          {editPerms && (
-            <ToggleButton
-              toggled={missionSectionsEditing}
-              isDisabled={!isOnline}
-              onClick={() => {
-                if (!isOnline) return;
-                dispatch(
-                  setMissionSectionEditing({
-                    section: "prefs",
-                    editMode: !missionSectionsEditing,
-                  })
-                );
-              }}
-              toolTip={
-                isOnline
-                  ? `Turn ${missionSectionsEditing ? "Off" : "On"} Edit Mode`
-                  : "Offline: Editing Disabled"
-              }
-              label="Edit"
-              toggleAriaLabel="missionEditToggle"
-            />
-          )}
-        </div>
       </div>
-      <ActiveComponent className={paneStyles.rightActiveWindow} editMode={missionSectionsEditing} />
+      <ActiveComponent className={paneStyles.rightActiveWindow} editMode={isInEditMode} />
     </>
   );
 };

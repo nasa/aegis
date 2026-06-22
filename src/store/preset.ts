@@ -105,6 +105,10 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].visible =
           !state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].visible;
+        // TODO: getAccurateNow() is a side-effect (Date.now() call) inside a reducer body.
+        // Redux Toolkit / Immer tolerate this today, but it makes reducers impure and
+        // untestable with time-mocking. Consider moving timestamp generation into a
+        // `prepare` callback (like upsertPresets/upsertPresetByField already do).
         state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
       }
     },
@@ -119,6 +123,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapSublayerControls[action.payload.layerUuid].style =
           action.payload.style;
+        // TODO: same impure Date.now() side-effect as togglePresetSublayerVisible — see note above.
         state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
       }
     },
@@ -136,6 +141,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapCircleControls[action.payload.circleDefUuid].style =
           action.payload.style;
+        // TODO: same impure Date.now() side-effect — see note on togglePresetSublayerVisible.
         state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
       }
     },
@@ -152,6 +158,7 @@ export const presetSlice = createSlice({
       if (presetIndex >= 0) {
         state.presets[presetIndex].mapCircleControls[action.payload.circleUuid].visible =
           !state.presets[presetIndex].mapCircleControls[action.payload.circleUuid].visible;
+        // TODO: same impure Date.now() side-effect — see note on togglePresetSublayerVisible.
         state.presets[presetIndex].updatedAt = getAccurateNow().toISOString();
       }
     },
