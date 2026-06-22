@@ -558,7 +558,7 @@ pixi run python MS3/tile_to_cap_grid.py \
   production basemap and mission-25 layers. Produces 281 tiles at z0–13 in ~6 s.
 - Writes its own `tilemapresource.xml` with Origin −931100 and **BoundingBox = the full cap
   −931100…931100** (same as the basemap / mission-16 layers). The BoundingBox must be the cap, not
-  the data footprint: AEGIS feeds it to Leaflet's `L.tileLayer({ bounds })` as a *lat/lng* gate, and
+  the data footprint: AEGIS feeds it to Leaflet's `L.tileLayer({ bounds })` as a _lat/lng_ gate, and
   a tight projected-metre box read as lat/lng gates out every tile (blank layer, no requests). See
   `data_conversion_scripts/MS3/PROBLEM_nac-ortho-scale.md` §8.
 - `mission.projResUnitsPerPixel` is already `12800` — no change needed.
