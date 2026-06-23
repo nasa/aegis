@@ -88,6 +88,13 @@ type FolderDeleteRequest = {
   folderUuids: string[];
 };
 
+type EnvironmentConfigData = {
+  defaultUrl: string;
+  urlOverride: string | null;
+  effectiveUrl: string;
+  isOverridden: boolean;
+};
+
 type AutomergeUpsertRequest = {
   automergeDocListings?: AutomergeDocListing[];
 };

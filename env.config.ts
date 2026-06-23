@@ -195,6 +195,16 @@ export const config: DotenvConfig<typeof environments> = {
   },
 
   /**
+   * Maestro
+   * The URL of the Maestro server this AEGIS instance should pair with.
+   * Can be overridden per-deployment via the admin Maestro Env Pairing page.
+   */
+  MAESTRO_PAIR_ENV_URL: {
+    prod: "maestro.fit.nasa.gov",
+    default: "maestro-beta.fit.nasa.gov",
+  },
+
+  /**
    * Logging
    */
   // Used by @emss/logger package to determine if server or client (client logs are
