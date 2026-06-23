@@ -1,4 +1,5 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { Link, useParams } from "react-router";
 import adminStyles from "components/admin/admin.module.css";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
@@ -9,6 +10,8 @@ import { validators } from "components/interface/form/formValidators";
 import Projection from "components/admin/projection";
 import adminCommon from "./adminCommon.module.css";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
+import { maestroCreateDoc } from "http-client/maestro";
+import { getCurrentUser } from "packages/getCurrentUser";
 
 type RouteParams = {
   id: string;
@@ -68,6 +71,58 @@ const Mission: React.FunctionComponent = () => {
       m.landerElevationMeters = elevation;
     });
   }, [automergeMission, changeAutomergeMission]);
+
+  // Maestro section state
+  const [maestroAccessControl, setMaestroAccessControl] = useState<MaestroAccessControl>("public");
+  const [maestroLoading, setMaestroLoading] = useState(false);
+  const [maestroError, setMaestroError] = useState<string | null>(null);
+  const [maestroResponseMeta, setMaestroResponseMeta] = useState<unknown | null>(null);
+  const maestroCurrentUser = useAppSelector((state) => state.user.launchpadUser, shallowEqual);
+
+  const handleCreateMaestroProject = useCallback(async () => {
+    if (!automergeMission?.id) return;
+    setMaestroLoading(true);
+    setMaestroError(null);
+    setMaestroResponseMeta(null);
+
+    const currentUser = await getCurrentUser();
+    const owners: LaunchpadUser[] = currentUser instanceof Error ? [] : [currentUser];
+
+    const response = await maestroCreateDoc({
+      missionId: automergeMission.id,
+      missionName: automergeMission.name,
+      owners,
+      accessControl: maestroAccessControl,
+    });
+
+    setMaestroLoading(false);
+
+    if (response.status === "error") {
+      setMaestroError(response.message);
+    } else {
+      setMaestroResponseMeta(response.data.alteredInitialState ?? null);
+      if (response.data.error) {
+        const errStr =
+          typeof response.data.error === "string"
+            ? response.data.error
+            : JSON.stringify(response.data.error);
+        if (errStr && errStr !== "{}" && errStr !== "null") {
+          setMaestroError(errStr);
+        }
+      }
+      changeAutomergeMission((m: Mission) => {
+        m.maestroDocId = response.data.documentId;
+      });
+    }
+  }, [automergeMission, changeAutomergeMission, maestroAccessControl]);
+
+  const handleClearMaestroDocId = useCallback(() => {
+    setMaestroError(null);
+    setMaestroResponseMeta(null);
+    changeAutomergeMission((m: Mission) => {
+      m.maestroDocId = null;
+    });
+  }, [changeAutomergeMission]);
 
   return (
     <main className={adminCommon.page}>
@@ -508,6 +563,153 @@ const Mission: React.FunctionComponent = () => {
                   automergeMission={automergeMission}
                   changeAutomergeMission={changeAutomergeMission}
                 />
+
+                {/* Maestro Section */}
+                <section className={adminCommon.section} style={{ marginBottom: 16 }}>
+                  <h2 className={adminCommon.sectionHeading}>Maestro</h2>
+                  <div className={adminCommon.details}>
+                    {automergeMission.maestroDocId ? (
+                      <div>
+                        <div className={adminCommon.definitionList}>
+                          <div className={adminCommon.definitionRow}>
+                            <span className={adminCommon.infoLabel}>maestroDocId</span>
+                            <span className={adminCommon.infoValue}>
+                              {automergeMission.maestroDocId}
+                            </span>
+                          </div>
+                        </div>
+                        <p className={adminCommon.formHint} style={{ marginTop: 10 }}>
+                          This mission is linked to a Maestro project. To unlink, visit{" "}
+                          <a
+                            href="https://maestro-beta.fit.nasa.gov/admin/aegis"
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ color: "#60a5fa" }}
+                          >
+                            Maestro Admin → AEGIS
+                          </a>
+                          , then use the Clear button below to remove the stored ID in AEGIS.
+                        </p>
+                        <div className={adminCommon.actionButtons} style={{ marginTop: 12 }}>
+                          <button
+                            className={adminCommon.buttonDanger}
+                            type="button"
+                            onClick={handleClearMaestroDocId}
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className={adminCommon.descriptionText} style={{ marginBottom: 12 }}>
+                          Create a new Maestro project linked to this mission. The current user will
+                          be set as the owner.
+                        </p>
+                        <div className={adminCommon.formGroup}>
+                          <span className={adminCommon.formLabel}>Access Control</span>
+                          <div
+                            className={adminCommon.checkboxGroup}
+                            style={{ flexDirection: "row", gap: 20 }}
+                          >
+                            <label className={adminCommon.checkboxItem}>
+                              <input
+                                type="radio"
+                                name="maestroAccessControl"
+                                value="public"
+                                checked={maestroAccessControl === "public"}
+                                onChange={() => setMaestroAccessControl("public")}
+                              />
+                              Public
+                            </label>
+                            <label className={adminCommon.checkboxItem}>
+                              <input
+                                type="radio"
+                                name="maestroAccessControl"
+                                value="private"
+                                checked={maestroAccessControl === "private"}
+                                onChange={() => setMaestroAccessControl("private")}
+                              />
+                              Private
+                            </label>
+                          </div>
+                        </div>
+                        <div className={adminCommon.statusMessage} style={{ marginTop: 8 }}>
+                          <details>
+                            <summary style={{ cursor: "pointer", color: "#94a3b8" }}>
+                              Request params
+                            </summary>
+                            <pre
+                              style={{
+                                marginTop: 8,
+                                fontSize: "0.75rem",
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-all",
+                                color: "#cbd5e1",
+                              }}
+                            >
+                              {JSON.stringify(
+                                {
+                                  missionId: automergeMission.id,
+                                  missionName: automergeMission.name,
+                                  owners: maestroCurrentUser ? [maestroCurrentUser] : [],
+                                  accessControl: maestroAccessControl,
+                                },
+                                null,
+                                2
+                              )}
+                            </pre>
+                          </details>
+                        </div>
+                        <div className={adminCommon.actionButtons} style={{ marginTop: 12 }}>
+                          <button
+                            className={adminCommon.buttonPrimary}
+                            type="button"
+                            disabled={maestroLoading || !automergeMission.id}
+                            onClick={handleCreateMaestroProject}
+                          >
+                            {maestroLoading ? "Creating…" : "Create Project"}
+                          </button>
+                        </div>
+                        {!automergeMission.id && (
+                          <p className={adminCommon.formHint} style={{ marginTop: 8 }}>
+                            Mission must be saved before linking to Maestro.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {maestroError && (
+                      <div
+                        className={adminCommon.statusMessage}
+                        style={{ borderLeftColor: "#f87171", marginTop: 12 }}
+                      >
+                        <span className={adminCommon.statusDisconnected}>Error: </span>
+                        {maestroError}
+                      </div>
+                    )}
+                    {maestroResponseMeta && (
+                      <div className={adminCommon.statusMessage} style={{ marginTop: 8 }}>
+                        <details>
+                          <summary style={{ cursor: "pointer", color: "#94a3b8" }}>
+                            Response metadata
+                          </summary>
+                          <pre
+                            style={{
+                              marginTop: 8,
+                              fontSize: "0.75rem",
+                              whiteSpace: "pre-wrap",
+                              wordBreak: "break-all",
+                              color: "#cbd5e1",
+                            }}
+                          >
+                            {JSON.stringify(maestroResponseMeta, null, 2)}
+                          </pre>
+                        </details>
+                      </div>
+                    )}
+                  </div>
+                </section>
               </div>
 
               <div>

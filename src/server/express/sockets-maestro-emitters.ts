@@ -243,7 +243,7 @@ const MAESTRO_RELEVANT_MISSION_FIELDS = [
   "actionSystemVersion",
   "createdAt",
   "updatedAt",
-] as const satisfies readonly (keyof Maestro.AegisMission)[];
+] as const satisfies readonly (keyof Maegistro.AegisMission)[];
 
 type MaestroRelevantMissionField = (typeof MAESTRO_RELEVANT_MISSION_FIELDS)[number];
 

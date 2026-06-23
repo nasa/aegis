@@ -575,7 +575,7 @@ describe("maestro namespace socket handlers", () => {
     });
 
     it("calls callback with success when data is retrieved", async () => {
-      const aegisEntity = { aegisMissions: {}, aegisEvas: {} } as Maestro.IAegisEntity;
+      const aegisEntity = { aegisMissions: {}, aegisEvas: {} } as Maegistro.IAegisEntity;
       mockBuildAegisEntityForMaestro.mockResolvedValue(aegisEntity);
       const callback = vi.fn();
       await mockSocket._handlers["getEverything"](MISSION_ID, callback);

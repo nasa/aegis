@@ -5,6 +5,7 @@ interface Mission {
   id: number | null;
   name: string;
   description: string | null;
+  maestroDocId: string | null;
   missionBanner: string | null;
   isArchived: boolean;
   usingLGRSCoordinates: boolean;

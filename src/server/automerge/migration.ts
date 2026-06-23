@@ -422,9 +422,21 @@ getORM()
     //   });
     // };
 
+    // Migration: Add maestroDocId field (null by default) to all mission docs
+    const automergeMigration20260528AddMaestroDocId = async (docHandle: DocHandle<Mission>) => {
+      docHandle.change((mission: Mission) => {
+        if (!("maestroDocId" in mission)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (mission as any).maestroDocId = null;
+        }
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
-    const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [];
+    const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
+      automergeMigration20260528AddMaestroDocId,
+    ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {
       serverLogger.debug({

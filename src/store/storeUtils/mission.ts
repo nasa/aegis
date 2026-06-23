@@ -11,6 +11,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
   const defaultNewMission: Mission = {
     id: null,
     name: "",
+    maestroDocId: null,
     isArchived: false,
     usingLGRSCoordinates: false,
     description: "",
