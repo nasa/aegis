@@ -47,6 +47,7 @@ import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 import docListingRoute from "./routes/docListing";
 import environmentConfigRoute from "./routes/environmentConfig";
 import missionAutomergeRoutes from "./routes/missionAutomerge";
+import maestroRoutes from "./routes/maestro";
 
 import readableActionRoutes from "./routes/readable/action";
 import readableEvaRoutes from "./routes/readable/eva";
@@ -124,6 +125,7 @@ app.use("/api/v1/log/from-client", logFromClient);
 app.use("/api/v1/folder", folderRoutes);
 app.use("/api/v1/docListing", docListingRoute);
 app.use("/api/v1/environmentConfig", environmentConfigRoute);
+app.use("/api/v1/maestro", maestroRoutes);
 
 // readable endpoints
 app.use("/api/v1/readable/action", readableActionRoutes);

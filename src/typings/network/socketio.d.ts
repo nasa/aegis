@@ -28,7 +28,7 @@ interface ClientToServerEvents {
 // ─── /maestro namespace — Maestro API client ─────────────────────────────────
 
 interface MaestroServerToClientEvents {
-  dataAll: (everythingForMaestro: Maestro.IAegisEntity) => void;
+  dataAll: (everythingForMaestro: Maegistro.IAegisEntity) => void;
 }
 
 interface MaestroClientToServerEvents {
@@ -40,7 +40,7 @@ interface MaestroClientToServerEvents {
     missionId: number,
     callback: (
       response:
-        | { status: "success"; message: string; data: Maestro.IAegisEntity }
+        | { status: "success"; message: string; data: Maegistro.IAegisEntity }
         | { status: "failure"; message: string }
         | { status: "error"; message: string }
     ) => void

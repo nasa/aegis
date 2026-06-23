@@ -12,7 +12,7 @@ import { globalValues } from "server/express/global";
  */
 export const buildAegisEntityForMaestro = async (
   missionId: number
-): Promise<Maestro.IAegisEntity> => {
+): Promise<Maegistro.IAegisEntity> => {
   // Use the stored DocHandle reference for efficiency.
   const docHandle = globalValues.maestro.docHandles.get(missionId);
   const mission: Mission = docHandle
@@ -76,7 +76,7 @@ export const buildAegisEntityForMaestro = async (
 
 // `satisfies` ensures the returned object has exactly the keys of Maestro.AegisMission for safety
 // It only works if there are no optional fields in Maestro.AegisMission type.
-const formatMissionForMaestro = (mission: Mission): Maestro.AegisMission =>
+const formatMissionForMaestro = (mission: Mission): Maegistro.AegisMission =>
   ({
     id: mission.id,
     name: mission.name,
@@ -84,7 +84,7 @@ const formatMissionForMaestro = (mission: Mission): Maestro.AegisMission =>
     actionSystemVersion: mission.actionSystemVersion as 1 | 2,
     createdAt: new Date(mission.createdAt).toISOString(),
     updatedAt: new Date(mission.updatedAt).toISOString(),
-  }) satisfies Record<keyof Maestro.AegisMission, unknown>;
+  }) satisfies Record<keyof Maegistro.AegisMission, unknown>;
 
 interface LookupMaps {
   /** Maps sequence-item UUID → the EVA that owns it. */
@@ -132,7 +132,7 @@ const formatEvasForMaestro = (
   evas: Eva[],
   mission: Mission,
   lookups: LookupMaps
-): Maestro.AegisEva[] => {
+): Maegistro.AegisEva[] => {
   return evas.map((eva) => {
     const rex = lookups.rexByEvaUuid.get(eva.uuid);
     return {
@@ -170,7 +170,7 @@ const formatStationsForMaestro = (
   stations: Station[],
   mission: Mission,
   lookups: LookupMaps
-): Maestro.AegisStation[] => {
+): Maegistro.AegisStation[] => {
   return stations.map((station) => {
     const stationActions = (lookups.actionsByStationUuid.get(station.uuid) ?? []).filter(
       (a) => a.enabled
@@ -199,7 +199,7 @@ const formatTraversesForMaestro = (
   traverses: Traverse[],
   mission: Mission,
   lookups: LookupMaps
-): Maestro.AegisTraverse[] => {
+): Maegistro.AegisTraverse[] => {
   return traverses.map((traverse) => {
     const traverseEva = lookups.evaBySequenceUuid.get(traverse.uuid);
     const traverseActions = (lookups.actionsByTraverseUuid.get(traverse.uuid) ?? []).filter(
@@ -232,7 +232,7 @@ const formatActionsForMaestro = (
   actions: Action[],
   mission: Mission,
   lookups: LookupMaps
-): Maestro.AegisAction[] => {
+): Maegistro.AegisAction[] => {
   return actions.map((action) => {
     const actionStation = action.stationUuid ? mission.stations[action.stationUuid] : undefined;
     const actionTraverse = action.traverseUuid ? mission.traverses[action.traverseUuid] : undefined;
