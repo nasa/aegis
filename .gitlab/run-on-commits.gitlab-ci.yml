@@ -524,6 +524,7 @@ deploy:artifactize-committed-files:
     paths:
       - .fitdock.yml
       - docker-compose.yml
+      - scripts/upgrade-db.sh
     expire_in: 1 day
 
 # Used by int/prod — requires tests to pass (via docker:retag)
@@ -613,8 +614,25 @@ deploy:int:
   only:
     - int
   before_script:
+    - chmod +x ./scripts/upgrade-db.sh
+    - ./scripts/upgrade-db.sh
     - sed -i "s/INSERT_SUBDOMAIN/aegis-int/g" .env
     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/int/g" .env
+
+# test-db-upgrade:gold:
+#   extends:
+#     - .deploy-template:dev
+#     - .gold-deploy
+#   when: manual
+#   needs:
+#     - make-dotenv:fit
+#     - deploy:artifactize-committed-files
+#   script:
+#     - chmod +x ./scripts/upgrade-db.sh
+#     - ./scripts/upgrade-db.sh
+#   before_script:
+#     - sed -i "s/INSERT_SUBDOMAIN/gold-emss-dev/g" .env
+#     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/gold/g" .env
 
 deploy:prod:
   extends: .deploy-template
@@ -634,5 +652,7 @@ deploy:prod:
   only:
     - prod
   before_script:
+    - chmod +x ./scripts/upgrade-db.sh
+    - ./scripts/upgrade-db.sh
     - sed -i "s/INSERT_SUBDOMAIN/aegis/g" .env
     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/prod/g" .env

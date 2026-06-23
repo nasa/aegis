@@ -19,7 +19,14 @@ if (!sqlPath) {
   process.exit(2);
 }
 
-const sql = await readFile(sqlPath, "utf8");
+// Strip PostGIS extension DDL from dumps created before postgres:17 migration.
+// AEGIS doesn't use PostGIS features, but historical dumps from the postgis/postgis
+// image contain extension DDL that plain postgres:17 can't execute.
+// IMPORTANT: Keep pattern synchronized with bash sed in CI scripts and upgrade-db.sh
+const POSTGIS_EXTENSIONS = "(postgis|tiger|topology|fuzzystrmatch)";
+const sql = (await readFile(sqlPath, "utf8"))
+  .replace(new RegExp(`^CREATE EXTENSION.*${POSTGIS_EXTENSIONS}.*;\\s*$`, "gim"), "")
+  .replace(new RegExp(`^COMMENT ON EXTENSION ${POSTGIS_EXTENSIONS}.*;\\s*$`, "gim"), "");
 
 const config = {
   host: process.env.DB_HOST,
@@ -30,7 +37,7 @@ const config = {
 };
 
 console.log(
-  `loading ${sqlPath} into ${config.user}@${config.host}:${config.port}/${config.database}`,
+  `loading ${sqlPath} into ${config.user}@${config.host}:${config.port}/${config.database}`
 );
 
 // Connect with retry. GitLab Kubernetes executor doesn't wait for service
@@ -43,9 +50,7 @@ const connectWithRetry = async (cfg, deadline) => {
       return c;
     } catch (err) {
       if (Date.now() > deadline) throw err;
-      console.log(
-        `postgres not ready (${err.code ?? err.message}); retrying...`,
-      );
+      console.log(`postgres not ready (${err.code ?? err.message}); retrying...`);
       await c.end().catch(() => {});
       await new Promise((r) => setTimeout(r, 2000));
     }
@@ -57,10 +62,7 @@ const connectWithRetry = async (cfg, deadline) => {
 // `postgis`/`tiger`/`topology` schemas, which then collide with the dump's
 // own `CREATE SCHEMA` statements.
 const adminDeadline = Date.now() + 90_000;
-const admin = await connectWithRetry(
-  { ...config, database: "postgres" },
-  adminDeadline,
-);
+const admin = await connectWithRetry({ ...config, database: "postgres" }, adminDeadline);
 try {
   await admin.query(`DROP DATABASE IF EXISTS "${config.database}"`);
   await admin.query(`CREATE DATABASE "${config.database}"`);
