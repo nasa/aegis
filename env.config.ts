@@ -53,7 +53,7 @@ export const config: DotenvConfig<typeof environments> = {
   REGISTRY_IMAGE: {
     default: "eegitlabregistry.fit.nasa.gov/emss/aegis",
   },
-  DOCKER_IMAGE_DATABASE: { default: "postgis/postgis:14-3.2-alpine" },
+  DOCKER_IMAGE_DATABASE: { default: "postgres:17.10-alpine" },
 
   /**
    * Box information

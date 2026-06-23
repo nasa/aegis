@@ -19,7 +19,20 @@
     - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
     - PROJECT_DIR=$(pwd)
     - cd /opt/aegis
-    - sudo docker compose exec database pg_dump -U postgres aegis > "${PROJECT_DIR}/aegis.sql"
+    # Exclude PostGIS schemas/tables and strip extension DDL from the dump.
+    # pg_dump has no --exclude-extension flag, so extension CREATE/COMMENT lines are piped
+    # through sed. Import jobs also strip (defense-in-depth for old cached dumps).
+    # IMPORTANT: Keep pattern synchronized with .gitlab/scripts/load-sql-dump.mjs,
+    # scripts/upgrade-db.sh, and .gitlab/includes/db-import.yml
+    - sudo docker compose exec database pg_dump -U postgres aegis
+      --exclude-schema=tiger
+      --exclude-schema=tiger_data
+      --exclude-schema=topology
+      --exclude-table=public.spatial_ref_sys
+      | sed -E
+      '/^CREATE EXTENSION.*(postgis|tiger|topology|fuzzystrmatch).*;$/d;
+      /^COMMENT ON EXTENSION (postgis|tiger|topology|fuzzystrmatch).*;$/d'
+      > "${PROJECT_DIR}/aegis.sql"
   artifacts:
     paths:
       - aegis.sql

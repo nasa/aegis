@@ -59,6 +59,11 @@ export default defineConfig({
         "src/**/*.test.tsx",
         "src/tests/**",
         "src/server/database/migrations/**",
+        // Rollup's native WASM parser (used by coverage-v8 remapCoverage) cannot
+        // parse TypeScript syntax such as `import type { }`. These server entry-point
+        // files use TypeScript-only syntax and are not unit-testable anyway.
+        "src/server/express/server.ts",
+        "src/server/automerge/migration.ts",
       ],
     },
     globalSetup: [path.resolve(__dirname, "./vitest.globalSetup.ts")],
