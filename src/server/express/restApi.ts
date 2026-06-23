@@ -45,6 +45,7 @@ import { getUser } from "packages/getUser";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 
 import docListingRoute from "./routes/docListing";
+import environmentConfigRoute from "./routes/environmentConfig";
 import missionAutomergeRoutes from "./routes/missionAutomerge";
 
 import readableActionRoutes from "./routes/readable/action";
@@ -122,6 +123,7 @@ app.use("/api/v1/file/delete", fileDeleteRoute);
 app.use("/api/v1/log/from-client", logFromClient);
 app.use("/api/v1/folder", folderRoutes);
 app.use("/api/v1/docListing", docListingRoute);
+app.use("/api/v1/environmentConfig", environmentConfigRoute);
 
 // readable endpoints
 app.use("/api/v1/readable/action", readableActionRoutes);

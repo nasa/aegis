@@ -31,6 +31,7 @@ import {
   Folder_db,
   Doc_Listing_db,
   Automerge_Native_db,
+  EnvironmentConfig_db,
 } from "./models/_allModels";
 import path from "path";
 
@@ -67,6 +68,7 @@ export default defineConfig({
     Folder_db,
     Doc_Listing_db,
     Automerge_Native_db,
+    EnvironmentConfig_db,
   ],
   entities: [
     App_User_db,
@@ -88,6 +90,7 @@ export default defineConfig({
     Folder_db,
     Doc_Listing_db,
     Automerge_Native_db,
+    EnvironmentConfig_db,
   ],
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
   extensions: [Migrator, SeedManager],

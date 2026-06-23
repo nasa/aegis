@@ -19,6 +19,7 @@ import { STM_Rule_db } from "./stm_rules.model";
 import { Folder_db } from "./folder.model";
 import { Doc_Listing_db } from "./doc_listing.model";
 import { Automerge_Native_db } from "./automerge_native.model";
+import { EnvironmentConfig_db } from "./environmentConfig.model";
 
 export {
   App_User_db,
@@ -40,4 +41,5 @@ export {
   Folder_db,
   Doc_Listing_db,
   Automerge_Native_db,
+  EnvironmentConfig_db,
 };

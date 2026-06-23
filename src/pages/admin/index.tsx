@@ -112,8 +112,14 @@ const Index: React.FunctionComponent = () => {
                 enabled={!!user?.isSuperAdmin}
               />
               <NavCard
+                to="/admin/environmentConfig"
+                title="Environment Configuration"
+                description="Configure server / environment settings that apply to all missions running on this instance."
+                enabled={!!user?.isSuperAdmin}
+              />
+              <NavCard
                 to="/admin/maestro"
-                title="Maestro"
+                title="Maestro Monitor"
                 description="Monitor Maestro connections."
                 enabled={!!user?.isSuperAdmin}
               />
