@@ -1,9 +1,4 @@
-LGRS_Grid_Generation_mk7p1
-arcgis_compact_cache_v2_to_pmtiles
+MS3
 geotiff_to_cog
 inspect_geotiff
-mosaic_rasters
 raster_to_tiles
-shp_to_geojson
-stretch_to_8bit
-verify_dem_units

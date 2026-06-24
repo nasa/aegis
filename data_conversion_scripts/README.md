@@ -65,42 +65,26 @@ uv run python raster_to_tiles.py \
 **Important:** Do NOT post-process or reorganise tiles after generation. The `tilemapresource.xml`
 and tile layout must stay consistent. See `TILESET-MIGRATION-STRATEGY.md`.
 
-### `mosaic_rasters.py` — Mosaic many overlapping frames → one raster/VRT
+### `MS3/NAC_processing/build_nac_layer_pyramids.py` — NAC frames → per-frame layer pyramids
 
-Merges many overlapping single-band GeoTIFF frames (e.g. 126 LROC NAC SfS ortho frames) into one
-seamless mosaic, nodata-aware. The default output is a tiny **VRT** that the stretch step reads
-directly — no multi-GB intermediate. Pass `--materialize` to write a real GeoTIFF.
-
-Requires GDAL CLIs (`gdalbuildvrt` / `gdal_translate`) on PATH — run via `pixi run` on machines
-without system GDAL (see `SITE_A03MP026-MONS-MOUTON-PLATEAU.md` §4.2.1).
+Builds one AEGIS-importable PNG/TMS layer pyramid per LROC NAC frame. Each `M*-map.tif` frame is
+contrast-stretched independently by `MS3/NAC_processing/stretch_to_8bit.py`, then tiled with
+`MS3/tile_to_cap_grid.py` onto the shared south-pole cap grid (`projResUnitsPerPixel = 12800`).
 
 ```bash
-# VRT mosaic (preferred), excluding mm2-* QA rasters (excluded by default):
-pixi run python mosaic_rasters.py \
+pixi run python MS3/NAC_processing/build_nac_layer_pyramids.py \
     ../../aegis_static/A03MP026_SFS_1mpp_orthoimages \
-    ../../aegis_static/processed/A03MP026/nac_sfs_ortho_mosaic.vrt \
-    --glob "M*-map.tif" --nodata -3.4e38
-
-# Materialised GeoTIFF instead of a VRT:
-pixi run python mosaic_rasters.py <in_dir> <out.tif> --glob "M*-map.tif" \
-    --nodata -3.4e38 --materialize
+    ../../aegis_static/missionFiles/64/Layers
 ```
 
-### `stretch_to_8bit.py` — Float radiance → single-band 8-bit grayscale
+### `MS3/NAC_processing/stretch_to_8bit.py` — NAC float radiance → 8-bit grayscale
 
-Percentile-stretches a float raster (radiance/reflectance) to a display-ready single-band 8-bit
-grayscale GeoTIFF, reserving `0` as transparent nodata. Samples a decimated histogram for the cut
-values (never reads the whole mosaic) and can read a `.vrt` mosaic directly. Uses rasterio's bundled
-GDAL, so it runs under `uv run` **or** `pixi run` with no GDAL CLI.
+Percentile-stretches one float NAC frame to a display-ready single-band 8-bit grayscale GeoTIFF,
+reserving `0` as transparent nodata. This is normally called by `build_nac_layer_pyramids.py`.
 
 ```bash
-uv run python stretch_to_8bit.py \
-    ../../aegis_static/processed/A03MP026/nac_sfs_ortho_mosaic.vrt \
-    ../../aegis_static/processed/A03MP026/nac_sfs_ortho_8bit.tif \
+uv run python MS3/NAC_processing/stretch_to_8bit.py in.tif out_8bit.tif \
     --pct-low 2 --pct-high 98 --nodata -3.4e38
-
-# Explicit cut values instead of percentiles:
-uv run python stretch_to_8bit.py in.vrt out.tif --min 0.0 --max 0.07
 ```
 
 ### `shp_to_geojson.py` — Shapefile → GeoJSON (reproject + attributes)
@@ -176,46 +160,27 @@ uv run python raster_to_tiles.py source_imagery.tif tiles/ --profile mercator
 # 3. Upload tiles/ directory to S3
 ```
 
-### Mosaic + Stretch + Tile Many Frames (e.g. A03MP026 NAC SfS ortho)
+### Per-frame NAC layer pyramids (A03MP026)
 
-For a drop of many overlapping float radiance frames that must become one displayable imagery layer.
-The mosaic/stretch/tile steps need GDAL CLIs — run them via `pixi run` if there's no system GDAL
-(see `SITE_A03MP026-MONS-MOUTON-PLATEAU.md` §4.2.1).
+For A03MP026, do not mosaic the NAC frames. Build one layer pyramid per frame under mission 64:
 
 ```bash
-# 1. Mosaic the frames into a VRT (exclude QA rasters; mm2-* excluded by default)
-pixi run python mosaic_rasters.py \
+# 1. Build one cap-grid tile pyramid per NAC frame
+pixi run python MS3/NAC_processing/build_nac_layer_pyramids.py \
     ../../aegis_static/A03MP026_SFS_1mpp_orthoimages \
-    ../../aegis_static/processed/A03MP026/nac_sfs_ortho_mosaic.vrt \
-    --glob "M*-map.tif" --nodata -3.4e38
+    ../../aegis_static/missionFiles/64/Layers
 
-# 2. Stretch radiance → single-band 8-bit grayscale (reads the VRT directly)
-uv run python stretch_to_8bit.py \
-    ../../aegis_static/processed/A03MP026/nac_sfs_ortho_mosaic.vrt \
-    ../../aegis_static/processed/A03MP026/nac_sfs_ortho_8bit.tif \
-    --pct-low 2 --pct-high 98 --nodata -3.4e38
-
-# 3. Tile the 8-bit mosaic into a PNG pyramid (Leaflet production imagery)
-pixi run python raster_to_tiles.py \
-    ../../aegis_static/processed/A03MP026/nac_sfs_ortho_8bit.tif \
-    ../../aegis_static/processed/A03MP026/Layers/nac_sfs_ortho \
-    --profile raster
-
-# 4. DEM for elevation/slope (single GeoTIFF for demFilePath, not a layer)
+# 2. DEM for elevation/slope (single GeoTIFF for demFilePath, not a layer)
 uv run python geotiff_to_cog.py \
     ../../aegis_static/A03MP026/SFS_1mpp_DEM/mp2-sfs-dem_MoonSP_COG.tif \
     --compress zstd \
-    -o ../../aegis_static/processed/A03MP026/Data/DEM/sfs_dem_1mpp.tif
+    -o ../../aegis_static/missionFiles/64/Data/sfs_dem_1mpp.tif
 
-# 5. Landing ellipse shapefile → GeoJSON (EPSG:4326)
+# 3. Landing ellipse shapefile → GeoJSON (EPSG:4326)
 uv run python shp_to_geojson.py \
     ../../aegis_static/A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp \
-    ../../aegis_static/processed/A03MP026/Data/a03mp026_ellipse.geojson \
+    ../../aegis_static/missionFiles/64/Data/a03mp026_ellipse.geojson \
     --to-epsg 4326
-
-# 6. Inspect outputs; read back the pyramid z=0 resolution for projResUnitsPerPixel
-uv run python inspect_geotiff.py \
-    ../../aegis_static/processed/A03MP026/nac_sfs_ortho_8bit.tif
 ```
 
 ### Convert Large Raster to COG (Alternative to Tiling)

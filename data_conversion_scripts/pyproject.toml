@@ -13,17 +13,16 @@ requires-python = ">=3.10"
 dependencies = [
     "pmtiles>=3.2.0",
     "mapbox-vector-tile>=2.2.0",
+    "pillow>=12.2.0",
 ]
 
 [project.scripts]
-aegis-arcgis-to-pmtiles = "arcgis_compact_cache_v2_to_pmtiles:main"
 aegis-geotiff-to-cog = "geotiff_to_cog:main"
 aegis-inspect-geotiff = "inspect_geotiff:main"
 aegis-raster-to-tiles = "raster_to_tiles:main"
-aegis-mosaic-rasters = "mosaic_rasters:main"
-aegis-stretch-to-8bit = "stretch_to_8bit:main"
-aegis-shp-to-geojson = "shp_to_geojson:main"
-aegis-verify-dem-units = "verify_dem_units:main"
+aegis-nac-build-layer-pyramids = "MS3.NAC_processing.build_nac_layer_pyramids:main"
+aegis-nac-stretch-to-8bit = "MS3.NAC_processing.stretch_to_8bit:main"
+aegis-shp-to-geojson = "MS3.shp_to_geojson:main"
 aegis-colorize-slope = "MS3.colorize_slope:main"
 
 [build-system]
@@ -35,16 +34,13 @@ build-backend = "setuptools.build_meta"
 # "Multiple top-level modules discovered in a flat-layout".
 [tool.setuptools]
 py-modules = [
-    "arcgis_compact_cache_v2_to_pmtiles",
     "geotiff_to_cog",
     "inspect_geotiff",
     "raster_to_tiles",
-    "mosaic_rasters",
-    "stretch_to_8bit",
-    "shp_to_geojson",
-    "verify_dem_units",
-    "LGRS_Grid_Generation_mk7p1",
 ]
+
+[tool.setuptools.packages.find]
+include = ["MS3*"]
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]

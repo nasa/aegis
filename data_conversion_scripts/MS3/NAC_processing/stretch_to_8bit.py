@@ -1,7 +1,7 @@
 """Percentile-stretch a float radiance raster to single-band 8-bit grayscale.
 
-The LROC NAC SfS ortho mosaic is a single float32 band of orthorectified
-radiance with values in a *tiny* range (~0.0–0.07). AEGIS cannot display that
+The LROC NAC SfS ortho frames are single float32 bands of orthorectified
+radiance with values in a *tiny* range (~0.0–0.07). AEGIS cannot display them
 directly — it must be contrast-stretched to an 8-bit grayscale image first.
 
 This script:
@@ -17,21 +17,19 @@ Leaflet / OpenLayers render single-band PNG tiles fine, so there is no reason
 to triple the data into RGB.
 
 Because it uses rasterio (which bundles its own GDAL), this script runs fine
-under either ``uv run`` or ``pixi run``; it needs no GDAL CLI on PATH. It can
-read a ``.vrt`` mosaic produced by ``mosaic_rasters.py`` directly, so no
-materialised intermediate is required.
+under either ``uv run`` or ``pixi run``; it needs no GDAL CLI on PATH.
 
 Usage:
     cd data_conversion_scripts
 
-    # Read the VRT mosaic, write an 8-bit grayscale GeoTIFF, 2–98% stretch
-    uv run python stretch_to_8bit.py \\
-        ../../aegis_static/processed/A03MP026/nac_sfs_ortho_mosaic.vrt \\
-        ../../aegis_static/processed/A03MP026/nac_sfs_ortho_8bit.tif \\
+    # Stretch one NAC frame to an 8-bit grayscale GeoTIFF, 2–98% stretch
+    uv run python MS3/NAC_processing/stretch_to_8bit.py \\
+        ../../aegis_static/A03MP026_SFS_1mpp_orthoimages/M1409412744RE-tile.5.2-map.tif \\
+        /tmp/M1409412744RE-tile.5.2-map_8bit.tif \\
         --pct-low 2 --pct-high 98 --nodata -3.4e38
 
     # Use explicit cut values instead of percentiles
-    uv run python stretch_to_8bit.py in.vrt out.tif --min 0.0 --max 0.07
+    uv run python MS3/NAC_processing/stretch_to_8bit.py in.tif out.tif --min 0.0 --max 0.07
 """
 
 from __future__ import annotations
@@ -210,17 +208,17 @@ def main() -> None:
         description=(
             "Percentile-stretch a float radiance raster to single-band 8-bit\n"
             "grayscale. Output value 0 is reserved as transparent nodata.\n"
-            "Reads .vrt mosaics directly; needs no GDAL CLI (rasterio bundles GDAL)."
+            "Needs no GDAL CLI (rasterio bundles GDAL)."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  uv run python stretch_to_8bit.py in.vrt out.tif \\\n"
+            "  uv run python MS3/NAC_processing/stretch_to_8bit.py in.tif out.tif \\\n"
             "      --pct-low 2 --pct-high 98 --nodata -3.4e38\n\n"
-            "  uv run python stretch_to_8bit.py in.vrt out.tif --min 0.0 --max 0.07\n"
+            "  uv run python MS3/NAC_processing/stretch_to_8bit.py in.tif out.tif --min 0.0 --max 0.07\n"
         ),
     )
-    parser.add_argument("input", type=Path, help="Input float raster or .vrt mosaic")
+    parser.add_argument("input", type=Path, help="Input float NAC frame raster")
     parser.add_argument("output", type=Path, help="Output 8-bit grayscale GeoTIFF")
     parser.add_argument(
         "--band", type=int, default=1, help="Source band to stretch (default: 1)"
@@ -323,11 +321,10 @@ def main() -> None:
         compress=args.compress,
     )
 
-    print("Next: tile the 8-bit mosaic into a PNG pyramid:")
+    print("Next: tile the 8-bit frame into a PNG pyramid:")
     print(
-        f"  pixi run python raster_to_tiles.py {args.output} "
+        f"  pixi run python MS3/tile_to_cap_grid.py {args.output} "
         f"{args.output.with_name(args.output.stem.replace('_8bit', '') + '_tiles')} "
-        f"--profile raster"
     )
 
 
