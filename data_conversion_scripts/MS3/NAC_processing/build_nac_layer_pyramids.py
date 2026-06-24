@@ -93,15 +93,25 @@ def build_one_frame(
         stretched = Path(td) / f"{frame.stem}_8bit.tif"
         env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
         stretch_cmd = [
-            str(PYTHON), str(stretch_script), str(frame), str(stretched),
-            "--pct-low", pct_low, "--pct-high", pct_high, "--nodata", nodata,
+            str(PYTHON),
+            str(stretch_script),
+            str(frame),
+            str(stretched),
+            "--pct-low",
+            pct_low,
+            "--pct-high",
+            pct_high,
+            "--nodata",
+            nodata,
         ]
         printable = " ".join(stretch_cmd)
         print(f"\n$ {printable}")
         result = subprocess.run(stretch_cmd, env=env)
         if result.returncode != 0:
-            print(f"\n[warn] stretch failed for {frame.name} (likely all-nodata frame) — skipping",
-                  file=sys.stderr)
+            print(
+                f"\n[warn] stretch failed for {frame.name} (likely all-nodata frame) — skipping",
+                file=sys.stderr,
+            )
             return False
         run([PYTHON, tile_script, stretched, layer_dir])
     return True
@@ -151,7 +161,9 @@ def main() -> None:
     stretch_script = nac_processing_dir / "stretch_to_8bit.py"
     tile_script = ms3_dir / "tile_to_cap_grid.py"
 
-    scratch_dir = args.scratch if args.scratch else args.output_layers.parent / "scratch"
+    scratch_dir = (
+        args.scratch if args.scratch else args.output_layers.parent / "scratch"
+    )
 
     frames = discover_frames(args.input_dir, args.glob)
     print(f"Found {len(frames)} NAC frames in {args.input_dir}")
@@ -174,7 +186,10 @@ def main() -> None:
             args.overwrite,
             scratch_dir,
         )
-        if not ok and not (args.output_layers / frame.stem / "tilemapresource.xml").exists():
+        if (
+            not ok
+            and not (args.output_layers / frame.stem / "tilemapresource.xml").exists()
+        ):
             skipped_nodata.append(frame.name)
 
     # Clean up scratch dir if empty
