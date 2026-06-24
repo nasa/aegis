@@ -1,10 +1,8 @@
 [console_scripts]
-aegis-arcgis-to-pmtiles = arcgis_compact_cache_v2_to_pmtiles:main
 aegis-colorize-slope = MS3.colorize_slope:main
 aegis-geotiff-to-cog = geotiff_to_cog:main
 aegis-inspect-geotiff = inspect_geotiff:main
-aegis-mosaic-rasters = mosaic_rasters:main
+aegis-nac-build-layer-pyramids = MS3.NAC_processing.build_nac_layer_pyramids:main
+aegis-nac-stretch-to-8bit = MS3.NAC_processing.stretch_to_8bit:main
 aegis-raster-to-tiles = raster_to_tiles:main
-aegis-shp-to-geojson = shp_to_geojson:main
-aegis-stretch-to-8bit = stretch_to_8bit:main
-aegis-verify-dem-units = verify_dem_units:main
+aegis-shp-to-geojson = MS3.shp_to_geojson:main

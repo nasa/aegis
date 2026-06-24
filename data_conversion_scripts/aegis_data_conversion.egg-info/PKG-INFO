@@ -5,3 +5,4 @@ Summary: Data conversion utilities for AEGIS — extract ArcGIS bundles, build C
 Requires-Python: >=3.10
 Requires-Dist: pmtiles>=3.2.0
 Requires-Dist: mapbox-vector-tile>=2.2.0
+Requires-Dist: pillow>=12.2.0

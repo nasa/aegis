@@ -1,27 +1,24 @@
 #!/usr/bin/env python3
 """
-MS3 — Mons Mouton Plateau (Mission 595) data-processing pipeline.
+MS3 — Mons Mouton Plateau (Mission 64) data-processing pipeline.
 
-Run the full pipeline or individual steps.  Must be executed from the
+Run the full pipeline or individual steps. Must be executed from the
 **parent `data_conversion_scripts/` directory** via pixi so that GDAL
-CLI tools (gdalbuildvrt, gdal2tiles) are on PATH:
+CLI tools are on PATH:
 
-    cd /c/Users/bfeist/code/aegis/data_conversion_scripts
-    pixi run python MS3/_main.py            # full pipeline
-    pixi run python MS3/_main.py --steps 0 1 2
-    pixi run python MS3/_main.py --list
+        cd /c/Users/bfeist/code/aegis/data_conversion_scripts
+        pixi run python MS3/_main.py
+        pixi run python MS3/_main.py --steps 0 1 2
+        pixi run python MS3/_main.py --list
 
 Steps
 -----
-  0  Stage  — remove ArcGIS .sr.lock files; create output folders
-  1  Mosaic — 126 NAC frames → VRT
-  2  Stretch — VRT → 8-bit grayscale GeoTIFF
-  3  Tile   — 8-bit mosaic → PNG pyramid (nac_sfs_ortho)
-  4  DEM    — 1 mpp SFS DEM → clean GeoTIFF (demFilePath)
-  5  Ellipse — landing-ellipse shapefile → GeoJSON
-  6  Inspect — sanity-check 8-bit mosaic and print tilemapresource.xml
-  7  Slope  — (optional) colorize float32 slope → RGBA, tile, clean scratch
-  8  Cleanup — remove scratch VRT / input list
+    0  Stage    — remove ArcGIS .sr.lock files; create output folders
+    1  NAC      — stretch each NAC frame and tile it to its own cap-grid layer
+    2  DEM      — 1 mpp SFS DEM → clean GeoTIFF (demFilePath)
+    3  Ellipse  — landing-ellipse shapefile → GeoJSON
+    4  Inspect  — summarize generated NAC layer pyramids
+    5  Slope    — (optional) colorize float32 slope → RGBA, tile, clean scratch
 """
 
 from __future__ import annotations
@@ -33,6 +30,10 @@ import sys
 import textwrap
 import xml.etree.ElementTree as ET
 from pathlib import Path
+
+# Always invoke sub-scripts with the same interpreter that is running this
+# file, so the uv venv (rasterio, numpy, PIL, etc.) is available.
+PYTHON = sys.executable
 
 # Windows consoles default to cp1252, which can't encode the "→" used in banners.
 # Force UTF-8 so the pipeline runs without PYTHONUTF8/PYTHONIOENCODING env vars.
@@ -46,10 +47,10 @@ for _stream in (sys.stdout, sys.stderr):
 # Canonical paths
 # ---------------------------------------------------------------------------
 
-STATIC = Path("C:/Users/bfeist/code/aegis_static")
+STATIC = Path("F:/_repos/aegis_static/MS3")
 SRC = STATIC / "A03MP026"
 ORTHO_DIR = STATIC / "A03MP026_SFS_1mpp_orthoimages"
-OUT = STATIC / "MissionFiles/595"
+OUT = Path("F:/_repos/aegis_static/missionFiles/64")
 LAYERS = OUT / "Layers"
 DATA = OUT / "Data"
 
@@ -59,9 +60,6 @@ SLOPE_IN = SRC / "Slope/SiteUD1_final_adj_5mpp_slp.tif"
 ELLIPSE_SHP = SRC / "Ellipse_shapefile/A03MP026_Ellipse.shp"
 
 # Intermediates / outputs
-VRT = OUT / "nac_sfs_ortho_mosaic.vrt"
-ORTHO_8BIT = OUT / "nac_sfs_ortho_8bit.tif"
-ORTHO_TILES = LAYERS / "nac_sfs_ortho"
 DEM_OUT = DATA / "sfs_dem_1mpp.tif"
 ELLIPSE_OUT = DATA / "a03mp026_ellipse.geojson"
 SLOPE_RGBA = OUT / "slope_5mpp_rgba.tif"
@@ -69,6 +67,7 @@ SLOPE_TILES = LAYERS / "slope_5mpp"
 
 # MS3 scripts live one level down relative to cwd (data_conversion_scripts/)
 MS3 = Path("MS3")
+NAC_PROCESSING = MS3 / "NAC_processing"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -111,67 +110,33 @@ def step_0_stage() -> None:
         print(f"  mkdir {folder}")
 
 
-def step_1_mosaic() -> None:
-    """Merge 126 LROC NAC frames → VRT mosaic."""
-    banner("Step 1 — Mosaic NAC frames → VRT")
+def _nac_frame_paths() -> list[Path]:
+    return sorted(
+        p
+        for p in ORTHO_DIR.glob("M*-map.tif")
+        if p.is_file() and not p.name.startswith("mm2-")
+    )
+
+
+def step_1_nac_layers() -> None:
+    """Stretch each NAC frame and tile it into its own cap-grid layer."""
+    banner("Step 1 — NAC frames → per-frame cap-grid layer pyramids")
     run(
         [
-            "python",
-            MS3 / "mosaic_rasters.py",
+            PYTHON,
+            NAC_PROCESSING / "build_nac_layer_pyramids.py",
             ORTHO_DIR,
-            VRT,
-            "--glob",
-            "M*-map.tif",
-            "--nodata",
-            "-3.4e38",
+            LAYERS,
         ]
     )
 
 
-def step_2_stretch() -> None:
-    """Percentile-stretch float radiance → 8-bit GeoTIFF."""
-    banner("Step 2 — Stretch radiance → 8-bit grayscale")
-    run(
-        [
-            "python",
-            MS3 / "stretch_to_8bit.py",
-            VRT,
-            ORTHO_8BIT,
-            "--pct-low",
-            "2",
-            "--pct-high",
-            "98",
-            "--nodata",
-            "-3.4e38",
-        ]
-    )
-
-
-def step_3_tile() -> None:
-    """Tile 8-bit mosaic → PNG pyramid on the shared lunar south-pole cap grid.
-
-    Uses tile_to_cap_grid.py (NOT raster_to_tiles.py) so the tiles land on the
-    SAME grid as the production NAC_POLE_SOUTH basemap (origin -931100, z0=12800).
-    That lets the mission keep its fixed projOrigin/projResUnitsPerPixel and lets
-    every layer overlay the basemap. See MS3/PROBLEM_nac-ortho-scale.md.
-    """
-    banner("Step 3 — Tile 8-bit mosaic → PNG pyramid (cap grid)")
-    run(
-        [
-            "python",
-            MS3 / "tile_to_cap_grid.py",
-            ORTHO_8BIT,
-            ORTHO_TILES,
-        ]
-    )
-
-
-def step_4_dem() -> None:
+def step_2_dem() -> None:
     """Re-emit 1 mpp SFS DEM as a clean GeoTIFF."""
-    banner("Step 4 — DEM → clean GeoTIFF (demFilePath)")
+    banner("Step 2 — DEM → clean GeoTIFF (demFilePath)")
     run(
         [
-            "python",
+            PYTHON,
             "geotiff_to_cog.py",
             DEM_IN,
             "--compress",
@@ -182,12 +147,12 @@ def step_4_dem() -> None:
     )
 
 
-def step_5_ellipse() -> None:
+def step_3_ellipse() -> None:
     """Convert landing-ellipse shapefile → GeoJSON (EPSG:4326)."""
-    banner("Step 5 — Ellipse shapefile → GeoJSON")
+    banner("Step 3 — Ellipse shapefile → GeoJSON")
     run(
         [
-            "python",
+            PYTHON,
             MS3 / "shp_to_geojson.py",
             ELLIPSE_SHP,
             ELLIPSE_OUT,
@@ -197,45 +162,64 @@ def step_5_ellipse() -> None:
     )
 
 
-def step_6_inspect() -> None:
-    """Sanity-check the 8-bit mosaic and print tilemapresource.xml."""
-    banner("Step 6 — Verify outputs & read tile-grid resolution")
-    run(["python", "inspect_geotiff.py", ORTHO_8BIT])
-    tmr = ORTHO_TILES / "tilemapresource.xml"
-    if tmr.exists():
-        print(f"\n--- {tmr} ---")
-        print(tmr.read_text())
-    else:
-        print(f"  (tilemapresource.xml not found at {tmr} — run Step 3 first)")
+def step_4_inspect() -> None:
+    """Summarize generated NAC layer pyramids and print one sample tilemapresource.xml."""
+    banner("Step 4 — Verify per-frame NAC layer outputs")
+    frames = _nac_frame_paths()
+    built = []
+    missing = []
+    for frame in frames:
+        layer_dir = LAYERS / frame.stem
+        tmr = layer_dir / "tilemapresource.xml"
+        if tmr.exists():
+            built.append(layer_dir)
+        else:
+            missing.append(layer_dir)
+
+    print(f"  expected NAC layers: {len(frames)}")
+    print(f"  built NAC layers:    {len(built)}")
+    print(f"  missing NAC layers:  {len(missing)}")
+
+    if built:
+        sample = built[0] / "tilemapresource.xml"
+        print(f"\n--- sample {sample} ---")
+        print(sample.read_text())
+
+    if missing:
+        print("\n  Missing layer folders:")
+        for layer_dir in missing[:10]:
+            print(f"    {layer_dir.name}")
+        if len(missing) > 10:
+            print(f"    ... and {len(missing) - 10} more")
 
 
 def step_7_slope() -> None:
     """(Optional) Colorize slope float32 → RGBA, tile, clean scratch."""
-    banner("Step 7 — Slope overlay (optional)")
+    banner("Step 5 — Slope overlay (optional)")
 
-    banner("Step 7a — Colorize slope float32 → 8-bit RGBA")
+    banner("Step 5a — Colorize slope float32 → 8-bit RGBA")
     run(
         [
-            "python",
+            PYTHON,
             MS3 / "colorize_slope.py",
             SLOPE_IN,
             SLOPE_RGBA,
         ]
     )
 
-    banner("Step 7b — Tile slope RGBA → PNG pyramid (cap grid)")
+    banner("Step 5b — Tile slope RGBA → PNG pyramid (cap grid)")
     # Cap grid like the ortho so the slope overlay registers with the basemap.
     # The 5 mpp slope snaps to cap level z11 (4 m/px) — see tile_to_cap_grid.py.
     run(
         [
-            "python",
+            PYTHON,
             MS3 / "tile_to_cap_grid.py",
             SLOPE_RGBA,
             SLOPE_TILES,
         ]
     )
 
-    banner("Step 7c — Remove intermediate slope RGBA")
+    banner("Step 5c — Remove intermediate slope RGBA")
     if SLOPE_RGBA.exists():
         SLOPE_RGBA.unlink()
         print(f"  removed {SLOPE_RGBA}")
@@ -243,27 +227,12 @@ def step_7_slope() -> None:
         print(f"  (not found — skipping): {SLOPE_RGBA}")
 
 
-def step_8_cleanup() -> None:
-    """Remove scratch VRT and input list."""
-    banner("Step 8 — Clean up scratch files")
-    scratch = [
-        VRT,
-        OUT / "nac_sfs_ortho_mosaic.inputs.txt",
-    ]
-    for f in scratch:
-        if f.exists():
-            f.unlink()
-            print(f"  removed {f}")
-        else:
-            print(f"  (not found — skipping): {f}")
-
-
 # ---------------------------------------------------------------------------
 # AEGIS admin summary
 # ---------------------------------------------------------------------------
 
-_TBD = "(run Step 3 first)"
-_TBD_SLOPE = "(run Step 7 first)"
+_TBD = "(run Step 1 first)"
+_TBD_SLOPE = "(run Step 5 first)"
 
 
 def _z0_units_per_pixel(tmr_path: Path, fallback: str = _TBD) -> str:
@@ -326,7 +295,7 @@ def _tile_layer_row(
 
 def print_aegis_summary(slope_built: bool = False) -> None:
     """Print a compact AEGIS admin input summary."""
-    banner("AEGIS Admin Input Summary — Mission 595")
+    banner("AEGIS Admin Input Summary — Mission 64")
 
     W = 36  # label column width
 
@@ -337,11 +306,19 @@ def print_aegis_summary(slope_built: bool = False) -> None:
         print(f"  {'─' * (W + 2 + 46)}")
 
     # ── Mission-level fields ──────────────────────────────────────────────
-    # projOrigin + projResUnitsPerPixel are read back from the ortho tile pyramid
-    # so they always match the tiles on disk (see MS3/PROBLEM_nac-ortho-scale.md).
-    ortho_tmr = ORTHO_TILES / "tilemapresource.xml"
-    origin_x, origin_y = _grid_origin(ortho_tmr)
-    z0_res = _z0_units_per_pixel(ortho_tmr)
+    sample_layer = next(
+        (
+            LAYERS / p.stem
+            for p in _nac_frame_paths()
+            if (LAYERS / p.stem / "tilemapresource.xml").exists()
+        ),
+        None,
+    )
+    sample_tmr = (
+        sample_layer / "tilemapresource.xml" if sample_layer else Path("missing")
+    )
+    origin_x, origin_y = _grid_origin(sample_tmr)
+    z0_res = _z0_units_per_pixel(sample_tmr)
     print("\n  ┌─ Mission (top-level fields) ─────────────────────────────────┐")
     row("landerLocation (lat)", "-84.223397")
     row("landerLocation (lng)", "33.5021945")
@@ -367,27 +344,35 @@ def print_aegis_summary(slope_built: bool = False) -> None:
     print("  └──────────────────────────────────────────────────────────────┘")
 
     # ── Tile layers ───────────────────────────────────────────────────────
-    tile_layers = [
-        _tile_layer_row(
-            "NAC ortho mosaic",
-            ORTHO_TILES,
-            "Layers/nac_sfs_ortho/{z}/{x}/{y}.png",
-        ),
-    ]
+    nac_frames = _nac_frame_paths()
+    built_nac = [p for p in nac_frames if (LAYERS / p.stem).exists()]
     if slope_built or SLOPE_TILES.exists():
-        tile_layers.append(
-            _tile_layer_row(
-                "Slope overlay (optional)",
-                SLOPE_TILES,
-                "Layers/slope_5mpp/{z}/{x}/{y}.png",
-                tmr_fallback=_TBD_SLOPE,
-            )
+        slope_row = _tile_layer_row(
+            "Slope overlay (optional)",
+            SLOPE_TILES,
+            "Layers/slope_5mpp/{z}/{x}/{y}.png",
+            tmr_fallback=_TBD_SLOPE,
         )
+    else:
+        slope_row = None
 
     print('\n  ┌─ Tile sublayers (type: "tile") ────────────────────────────────┐')
-    print(f"  {'Layer':<26} {'urlTemplate':<42} {'projResUnitsPerPixel':<22} {'Built'}")
+    print(
+        f"  {'Layer group':<26} {'urlTemplate':<42} {'projResUnitsPerPixel':<22} {'Built'}"
+    )
     sep()
-    for lname, url, res, exists in tile_layers:
+    print(
+        f"  {'Per-frame NAC layers':<26} "
+        f"{'Layers/<frame>/{z}/{x}/{y}.png':<42} "
+        f"{z0_res:<22} "
+        f"{len(built_nac)}/{len(nac_frames)}"
+    )
+    if nac_frames:
+        print(
+            f"  {'Example layer folder':<26} {nac_frames[0].stem:<42} {'':<22} {'✓' if (LAYERS / nac_frames[0].stem).exists() else '✗'}"
+        )
+    if slope_row:
+        lname, url, res, exists = slope_row
         print(f"  {lname:<26} {url:<42} {res:<22} {exists}")
     print("  └──────────────────────────────────────────────────────────────┘")
 
@@ -413,29 +398,23 @@ def print_aegis_summary(slope_built: bool = False) -> None:
 
 STEPS: list[tuple[int, str, str]] = [
     (0, "stage", "Remove .sr.lock files; create output folders"),
-    (1, "mosaic", "Merge 126 NAC frames → VRT"),
-    (2, "stretch", "Percentile-stretch VRT → 8-bit GeoTIFF"),
-    (3, "tile", "Tile 8-bit mosaic → PNG pyramid (nac_sfs_ortho)"),
-    (4, "dem", "1 mpp SFS DEM → clean GeoTIFF for demFilePath"),
-    (5, "ellipse", "Landing-ellipse shapefile → GeoJSON"),
-    (6, "inspect", "Sanity-check outputs; print tilemapresource.xml"),
-    (7, "slope", "(optional) Colorize + tile slope overlay"),
-    (8, "cleanup", "(optional) Delete VRT scratch files"),
+    (1, "nac", "Stretch each NAC frame and tile it to its own layer pyramid"),
+    (2, "dem", "1 mpp SFS DEM → clean GeoTIFF for demFilePath"),
+    (3, "ellipse", "Landing-ellipse shapefile → GeoJSON"),
+    (4, "inspect", "Summarize generated NAC layer pyramids"),
+    (5, "slope", "(optional) Colorize + tile slope overlay"),
 ]
 
 STEP_FNS = {
     0: step_0_stage,
-    1: step_1_mosaic,
-    2: step_2_stretch,
-    3: step_3_tile,
-    4: step_4_dem,
-    5: step_5_ellipse,
-    6: step_6_inspect,
-    7: step_7_slope,
-    8: step_8_cleanup,
+    1: step_1_nac_layers,
+    2: step_2_dem,
+    3: step_3_ellipse,
+    4: step_4_inspect,
+    5: step_7_slope,
 }
 
-DEFAULT_STEPS = [0, 1, 2, 3, 4, 5, 6]  # excludes optional 7 & 8
+DEFAULT_STEPS = [0, 1, 2, 3, 4]
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -447,7 +426,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python MS3/_main.py",
         description=textwrap.dedent("""\
-            MS3 — Mons Mouton Plateau (Mission 595) data-processing pipeline.
+            MS3 — Mons Mouton Plateau (Mission 64) data-processing pipeline.
 
             Must be run from data_conversion_scripts/ via pixi:
               cd /c/Users/bfeist/code/aegis/data_conversion_scripts
@@ -463,7 +442,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         help=(
             "Space-separated step numbers to run (e.g. --steps 1 2 3). "
-            f"Default: {DEFAULT_STEPS} (steps 7 and 8 are opt-in)."
+            f"Default: {DEFAULT_STEPS} (step 5 is opt-in)."
         ),
     )
     parser.add_argument(
@@ -520,7 +499,7 @@ def main() -> None:
     banner("Pipeline complete")
     print(f"\nOutput root: {OUT}")
 
-    slope_built = 7 in chosen or SLOPE_TILES.exists()
+    slope_built = 5 in chosen or SLOPE_TILES.exists()
     print_aegis_summary(slope_built=slope_built)
 
 
