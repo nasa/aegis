@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MS3 — Mons Mouton Plateau (Mission 64) data-processing pipeline.
+MS3 — Mons Mouton Plateau (Mission 49) data-processing pipeline.
 
 Run the full pipeline or individual steps. Must be executed from the
 **parent `data_conversion_scripts/` directory** via pixi so that GDAL
@@ -50,7 +50,7 @@ for _stream in (sys.stdout, sys.stderr):
 STATIC = Path("F:/_repos/aegis_static/MS3")
 SRC = STATIC / "A03MP026"
 ORTHO_DIR = STATIC / "A03MP026_SFS_1mpp_orthoimages"
-OUT = Path("F:/_repos/aegis_static/missionFiles/64")
+OUT = Path("F:/_repos/aegis_static/missionFiles/49")
 LAYERS = OUT / "Layers"
 DATA = OUT / "Data"
 
@@ -120,15 +120,16 @@ def _nac_frame_paths() -> list[Path]:
 
 def step_1_nac_layers() -> None:
     """Stretch each NAC frame and tile it into its own cap-grid layer."""
-    banner("Step 1 — NAC frames → per-frame cap-grid layer pyramids")
-    run(
-        [
-            PYTHON,
-            NAC_PROCESSING / "build_nac_layer_pyramids.py",
-            ORTHO_DIR,
-            LAYERS,
-        ]
-    )
+    banner("Step 1 — NAC frames -> per-frame cap-grid layer pyramids")
+    cmd = [
+        PYTHON,
+        NAC_PROCESSING / "build_nac_layer_pyramids.py",
+        ORTHO_DIR,
+        LAYERS,
+    ]
+    if _OVERWRITE:
+        cmd.append("--overwrite")
+    run(cmd)
 
 
 def step_2_dem() -> None:
@@ -295,7 +296,7 @@ def _tile_layer_row(
 
 def print_aegis_summary(slope_built: bool = False) -> None:
     """Print a compact AEGIS admin input summary."""
-    banner("AEGIS Admin Input Summary — Mission 64")
+    banner("AEGIS Admin Input Summary — Mission 49")
 
     W = 36  # label column width
 
@@ -416,6 +417,9 @@ STEP_FNS = {
 
 DEFAULT_STEPS = [0, 1, 2, 3, 4]
 
+# Set to True by --overwrite CLI flag; forwarded to step 1.
+_OVERWRITE = False
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -426,7 +430,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python MS3/_main.py",
         description=textwrap.dedent("""\
-            MS3 — Mons Mouton Plateau (Mission 64) data-processing pipeline.
+            MS3 — Mons Mouton Plateau (Mission 49) data-processing pipeline.
 
             Must be run from data_conversion_scripts/ via pixi:
               cd /c/Users/bfeist/code/aegis/data_conversion_scripts
@@ -453,6 +457,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run all default steps starting from N (inclusive).",
     )
     parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Re-tile NAC frames even if their layer already exists (forwarded to step 1).",
+    )
+    parser.add_argument(
         "--list",
         action="store_true",
         help="Print available steps and exit.",
@@ -468,6 +477,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+
+    global _OVERWRITE
+    _OVERWRITE = args.overwrite
 
     if args.list:
         print("Available steps:")
