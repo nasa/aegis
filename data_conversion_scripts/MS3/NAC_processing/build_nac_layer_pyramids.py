@@ -10,7 +10,7 @@ Run from `data_conversion_scripts/` via pixi so GDAL CLIs are on PATH:
 
     pixi run python MS3/NAC_processing/build_nac_layer_pyramids.py \
         C:/Users/bfeist/code/aegis_static/A03MP026_SFS_1mpp_orthoimages \
-        C:/Users/bfeist/code/aegis_static/MissionFiles/64/Layers
+        C:/Users/bfeist/code/aegis_static/MissionFiles/49/Layers
 """
 
 from __future__ import annotations

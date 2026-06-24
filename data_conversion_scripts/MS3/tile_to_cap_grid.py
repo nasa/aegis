@@ -57,8 +57,8 @@ CAP_MIN = -931100.0
 CAP_MAX = 931100.0
 TILE = 256
 
-CAP_Z0_RES = 12800.0   # must equal mission projResUnitsPerPixel
-CAP_MAX_ZOOM = 13       # z13 = 1.5625 m/px
+CAP_Z0_RES = 12800.0  # must equal mission projResUnitsPerPixel
+CAP_MAX_ZOOM = 13  # z13 = 1.5625 m/px
 
 CAP_SRS = (
     'PROJCS["PolarStereographic_Moon",GEOGCS["GCS_Moon",DATUM["D_Moon",'
@@ -74,6 +74,7 @@ CAP_SRS = (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def write_tilemapresource(out_dir: Path, max_zoom: int, z0_res: float) -> None:
     """Emit a cap-grid tilemapresource.xml with full-cap BoundingBox."""
@@ -97,7 +98,9 @@ def write_tilemapresource(out_dir: Path, max_zoom: int, z0_res: float) -> None:
     (out_dir / "tilemapresource.xml").write_text(xml, encoding="utf-8")
 
 
-def _resample_to_res(src: rasterio.DatasetReader, out_res: float, resampling: Resampling) -> tuple[np.ndarray, rasterio.transform.Affine]:
+def _resample_to_res(
+    src: rasterio.DatasetReader, out_res: float, resampling: Resampling
+) -> tuple[np.ndarray, rasterio.transform.Affine]:
     """Read the dataset resampled to out_res m/px using rasterio."""
     src_res = src.res[0]
     scale = src_res / out_res
@@ -108,17 +111,47 @@ def _resample_to_res(src: rasterio.DatasetReader, out_res: float, resampling: Re
         resampling=resampling,
     )
     new_transform = rasterio.transform.Affine(
-        out_res, 0.0, src.bounds.left,
-        0.0, -out_res, src.bounds.top,
+        out_res,
+        0.0,
+        src.bounds.left,
+        0.0,
+        -out_res,
+        src.bounds.top,
     )
     return data, new_transform
 
 
-def _tile_range(cap_min: float, tile_span: float, data_min: float, data_max: float) -> tuple[int, int]:
-    """Return inclusive [first, last] tile indices along one axis (bottom-anchored)."""
-    first = int((data_min - cap_min) // tile_span)
-    last = int((data_max - cap_min) // tile_span)
+def _x_tile_range(
+    tile_span: float, data_min: float, data_max: float
+) -> tuple[int, int]:
+    """X tile indices — bottom-left anchored at CAP_MIN."""
+    first = int((data_min - CAP_MIN) // tile_span)
+    last = int((data_max - CAP_MIN) // tile_span)
     return first, last
+
+
+def _y_tile_range(
+    tile_span: float, cap_top: float, data_min: float, data_max: float
+) -> tuple[int, int]:
+    """Y TMS tile indices using the same padded cap_top the gdal version uses.
+
+    The cap is not a whole number of tiles tall, so we pad cap_top up to the
+    next tile boundary.  The working gdal pipeline (commit f0161bcb2) used:
+        cap_top = CAP_MIN + ceil(cap_width / tile_span) * tile_span
+        ymin_xyz = (cap_top - dmaxy) // tile_span
+        ymax_xyz = (cap_top - dminy) // tile_span
+    and --convention tms flipped those XYZ indices to TMS with the tile count.
+    We replicate that directly so our TMS y-indices land on the same rows.
+    """
+    # XYZ (top-down) indices, anchored at padded cap_top
+    y_xyz_min = int((cap_top - data_max) // tile_span)
+    y_xyz_max = int((cap_top - data_min) // tile_span)
+    # n_tiles is the total number of tile rows in the padded cap
+    n_tiles = int(round((cap_top - CAP_MIN) / tile_span))
+    # TMS flip: tms_y = (n_tiles - 1) - xyz_y
+    tms_min = (n_tiles - 1) - y_xyz_max
+    tms_max = (n_tiles - 1) - y_xyz_min
+    return tms_min, tms_max
 
 
 def tile_raster(
@@ -136,23 +169,41 @@ def tile_raster(
         z0_res = CAP_Z0_RES
         cap_max_zoom = CAP_MAX_ZOOM
         max_zoom = min(cap_max_zoom, max(0, round(math.log2(z0_res / r_in))))
-        out_res = z0_res / 2 ** max_zoom
+        out_res = z0_res / 2**max_zoom
         tile_span = TILE * out_res
 
-        dminx, dminy, dmaxx, dmaxy = bounds.left, bounds.bottom, bounds.right, bounds.top
+        dminx, dminy, dmaxx, dmaxy = (
+            bounds.left,
+            bounds.bottom,
+            bounds.right,
+            bounds.top,
+        )
+
+        # Padded cap top — same calculation as the working gdal version (commit f0161bcb2).
+        # The cap is NOT a whole number of tiles wide; pad top/right to the next tile
+        # boundary so the bottom-left stays exactly on CAP_MIN.  This makes y-indices
+        # match what gdal raster tile --convention tms would produce.
+        n_cap_tiles = math.ceil((CAP_MAX - CAP_MIN) / tile_span)
+        cap_top = CAP_MIN + n_cap_tiles * tile_span
 
         print("=" * 64)
         print("Tile → AEGIS lunar south-pole cap grid (pure rasterio)")
         print("=" * 64)
         print(f"  input              {input_path}")
-        print(f"  data extent        E {dminx:.1f}..{dmaxx:.1f}  N {dminy:.1f}..{dmaxy:.1f}")
-        print(f"  input res          {r_in:g} m/px  →  cap z{max_zoom} ({out_res:g} m/px)")
+        print(
+            f"  data extent        E {dminx:.1f}..{dmaxx:.1f}  N {dminy:.1f}..{dmaxy:.1f}"
+        )
+        print(
+            f"  input res          {r_in:g} m/px  →  cap z{max_zoom} ({out_res:g} m/px)"
+        )
         print(f"  z0 units/px        {z0_res:.0f}")
+        print(f"  cap_top (padded)   {cap_top:.1f}")
 
-        # Tile index window (bottom-anchored, matching the basemap / Leaflet convention)
-        tx_min, tx_max = _tile_range(CAP_MIN, tile_span, dminx, dmaxx)
-        ty_min, ty_max = _tile_range(CAP_MIN, tile_span, dminy, dmaxy)
-        print(f"  tile window @z{max_zoom}    x {tx_min}..{tx_max}   y(TMS) {ty_min}..{ty_max}")
+        tx_min, tx_max = _x_tile_range(tile_span, dminx, dmaxx)
+        ty_min, ty_max = _y_tile_range(tile_span, cap_top, dminy, dmaxy)
+        print(
+            f"  tile window @z{max_zoom}    x {tx_min}..{tx_max}   y(TMS) {ty_min}..{ty_max}"
+        )
         print()
 
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -167,13 +218,20 @@ def tile_raster(
         n_written = 0
 
         for z in range(max_zoom + 1):
-            z_res = z0_res / 2 ** z
-            z_tile_span = TILE * z_res
-            scale = out_res / z_res  # >1 means we need to upscale (won't happen for z<=max_zoom)
+            # Scale factor from max_zoom to this zoom: each coarser tile covers
+            # 2^(max_zoom - z) max_zoom tiles. We derive the tile indices directly
+            # from the max_zoom indices so all zoom levels share the same grid anchor.
+            scale = 2 ** (max_zoom - z)
 
-            # tile range at this zoom
-            tx0, tx1 = _tile_range(CAP_MIN, z_tile_span, dminx, dmaxx)
-            ty0, ty1 = _tile_range(CAP_MIN, z_tile_span, dminy, dmaxy)
+            # Tile indices at this zoom are simply the max_zoom indices divided by scale
+            # (floor for min, floor for max — same boundary alignment).
+            tx0 = tx_min // scale
+            tx1 = tx_max // scale
+            ty0 = ty_min // scale
+            ty1 = ty_max // scale
+
+            z_res = z0_res / 2**z
+            z_tile_span = TILE * z_res
 
             z_dir = output_dir / str(z)
 
@@ -182,30 +240,34 @@ def tile_raster(
                 x_dir.mkdir(parents=True, exist_ok=True)
                 for ty in range(ty0, ty1 + 1):
                     # Tile bounds in projected coords (bottom-anchored TMS)
-                    tile_left  = CAP_MIN + tx * z_tile_span
+                    tile_left = CAP_MIN + tx * z_tile_span
                     tile_bottom = CAP_MIN + ty * z_tile_span
                     tile_right = tile_left + z_tile_span
-                    tile_top   = tile_bottom + z_tile_span
+                    tile_top = tile_bottom + z_tile_span
 
                     # Map tile projected coords → pixel coords in the resampled data array
                     # data top-left is (dminx, dmaxy), pixel size is out_res
-                    px_left  = (tile_left  - dminx) / out_res
-                    px_top   = (dmaxy - tile_top)   / out_res
+                    px_left = (tile_left - dminx) / out_res
+                    px_top = (dmaxy - tile_top) / out_res
                     px_right = (tile_right - dminx) / out_res
-                    px_bot   = (dmaxy - tile_bottom) / out_res
+                    px_bot = (dmaxy - tile_bottom) / out_res
 
                     # Source pixel window in the resampled array (clipped to array bounds)
-                    src_px_left  = max(0.0, px_left)
-                    src_px_top   = max(0.0, px_top)
+                    src_px_left = max(0.0, px_left)
+                    src_px_top = max(0.0, px_top)
                     src_px_right = min(float(res_w), px_right)
-                    src_px_bot   = min(float(res_h), px_bot)
+                    src_px_bot = min(float(res_h), px_bot)
 
                     if src_px_right <= src_px_left or src_px_bot <= src_px_top:
                         continue  # tile fully outside data
 
-                    # Destination pixel offsets within the 256×256 tile
-                    dst_px_left  = round(src_px_left  - px_left)
-                    dst_px_top   = round(src_px_top   - px_top)
+                    # Destination pixel offsets within the 256×256 tile.
+                    # px_left/px_top are in max_zoom pixel units; the tile canvas is
+                    # in *this zoom's* pixel units, so scale by zoom_scale (<1 for
+                    # overview zooms).
+                    zoom_scale = 2 ** (z - max_zoom)  # <1 for z < max_zoom
+                    dst_px_left = round((src_px_left - px_left) * zoom_scale)
+                    dst_px_top = round((src_px_top - px_top) * zoom_scale)
 
                     # Slice from the resampled data
                     row0 = round(src_px_top)
@@ -216,9 +278,6 @@ def tile_raster(
                     if row1 <= row0 or col1 <= col0:
                         continue
 
-                    # Scale factor for this zoom relative to max_zoom data
-                    zoom_scale = 2 ** (z - max_zoom)  # <1 for z < max_zoom (downscale)
-
                     if zoom_scale < 1.0:
                         # For overview zooms, resample the max-zoom data
                         # Sample at lower resolution
@@ -227,10 +286,13 @@ def tile_raster(
                         patch = data[:, row0:row1, col0:col1]
                         # Simple average downsample
                         from PIL import Image as PILImage
+
                         imgs = []
                         for b in range(bands):
                             arr = patch[b]
-                            img = PILImage.fromarray(arr.astype(np.uint8) if arr.dtype != np.uint8 else arr)
+                            img = PILImage.fromarray(
+                                arr.astype(np.uint8) if arr.dtype != np.uint8 else arr
+                            )
                             img = img.resize((ovr_w, ovr_h), PILImage.LANCZOS)
                             imgs.append(np.array(img))
                         patch_scaled = np.stack(imgs)
@@ -298,7 +360,9 @@ def main() -> None:
         description="Tile a raster onto the AEGIS lunar south-pole cap grid (pure rasterio, no gdal CLI).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    ap.add_argument("input", type=Path, help="Input 8-bit raster (lunar S-pole stereo CRS)")
+    ap.add_argument(
+        "input", type=Path, help="Input 8-bit raster (lunar S-pole stereo CRS)"
+    )
     ap.add_argument("output_dir", type=Path, help="Output tile directory")
     ap.add_argument(
         "--resampling",

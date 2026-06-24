@@ -18,7 +18,7 @@ The final process is:
 - keep each NAC frame separate,
 - contrast-stretch each frame independently,
 - tile each stretched frame onto the shared lunar south-pole cap grid,
-- write one AEGIS-importable layer folder per frame under `missionFiles/64/Layers/`.
+- write one AEGIS-importable layer folder per frame under `missionFiles/49/Layers/`.
 
 This matches the current AEGIS implementation because Leaflet consumes PNG/TMS pyramids and the mission already uses the shared cap-grid projection settings with `projResUnitsPerPixel = 12800`.
 
@@ -107,8 +107,8 @@ This preserves original frame boundaries and avoids a synthetic merged product.
 ### Step 0 — Stage
 
 - remove ArcGIS `.sr.lock` files
-- create `missionFiles/64/Layers`
-- create `missionFiles/64/Data`
+- create `missionFiles/49/Layers`
+- create `missionFiles/49/Data`
 
 ### Step 1 — NAC per-frame processing
 
@@ -117,7 +117,7 @@ For every `M*-map.tif` frame:
 1. run `MS3/NAC_processing/stretch_to_8bit.py`,
 2. write a temporary 8-bit grayscale GeoTIFF,
 3. run `MS3/tile_to_cap_grid.py`,
-4. write tiles to `missionFiles/64/Layers/<frame-stem>/`.
+4. write tiles to `missionFiles/49/Layers/<frame-stem>/`.
 
 The temporary stretched GeoTIFF is scratch only.
 
@@ -125,13 +125,13 @@ The temporary stretched GeoTIFF is scratch only.
 
 Re-emit the 1 mpp DEM as:
 
-- `missionFiles/64/Data/sfs_dem_1mpp.tif`
+- `missionFiles/49/Data/sfs_dem_1mpp.tif`
 
 ### Step 3 — Ellipse
 
 Convert the ellipse shapefile to:
 
-- `missionFiles/64/Data/a03mp026_ellipse.geojson`
+- `missionFiles/49/Data/a03mp026_ellipse.geojson`
 
 ### Step 4 — Inspect
 
@@ -139,7 +139,7 @@ Summarize expected NAC frame count, built layer count, missing layer count, and 
 
 ### Step 5 — Optional slope overlay
 
-Colorize `SiteUD1_final_adj_5mpp_slp.tif`, then tile it with `MS3/tile_to_cap_grid.py` into `missionFiles/64/Layers/slope_5mpp/`.
+Colorize `SiteUD1_final_adj_5mpp_slp.tif`, then tile it with `MS3/tile_to_cap_grid.py` into `missionFiles/49/Layers/slope_5mpp/`.
 
 ---
 
@@ -185,7 +185,7 @@ pixi run python MS3/_main.py --steps 1
 ```bash
 pixi run python MS3/NAC_processing/build_nac_layer_pyramids.py \
     /f/_repos/aegis_static/A03MP026_SFS_1mpp_orthoimages \
-    /f/_repos/aegis_static/missionFiles/64/Layers
+    /f/_repos/aegis_static/missionFiles/49/Layers
 ```
 
 ---
@@ -193,7 +193,7 @@ pixi run python MS3/NAC_processing/build_nac_layer_pyramids.py \
 ## 8. Expected output layout
 
 ```text
-missionFiles/64/
+missionFiles/49/
 ├── Data/
 │   ├── sfs_dem_1mpp.tif
 │   └── a03mp026_ellipse.geojson
