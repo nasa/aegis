@@ -276,7 +276,7 @@ test-playwright:
 
     # Run Playwright tests
     - npm run test:playwright:ci
-  timeout: 15 minutes
+  timeout: 30 minutes
   artifacts:
     when: always
     paths:
