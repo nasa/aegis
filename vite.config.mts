@@ -5,8 +5,12 @@ import { UserConfig, defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import svgr from "vite-plugin-svgr";
 import path from "path";
-import packageJSON from "./package.json";
+import { fileURLToPath } from "url";
+import packageJSON from "./package.json" with { type: "json" };
 import wasm from "vite-plugin-wasm";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const config: UserConfig = {
   root: "./src",

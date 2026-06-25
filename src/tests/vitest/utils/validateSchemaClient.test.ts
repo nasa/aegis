@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Mock } from "vitest";
 import {
   validateGeoJSON,
@@ -11,6 +12,8 @@ import { generateBlankSublayer } from "store/storeUtils/sublayer";
 
 global.fetch = vi.fn();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const testDir = path.resolve(__dirname, "..");
 const schemaDir = path.resolve(__dirname, "../../../../.local/schemas");
 

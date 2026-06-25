@@ -29,9 +29,12 @@ const context = await esbuild.context({
   },
   bundle: true,
   sourcemap: true,
-  format: "cjs",
+  format: "esm",
   platform: "node",
   target: "node22",
+  banner: {
+    js: "import { createRequire as _importRequire } from 'module'; const require = _importRequire(import.meta.url);",
+  },
   // esbuild will not bundle the following packages due to an esm/cjs conflict. This sets them as external to the bundler.
   external: [
     "@mikro-orm/mongodb",

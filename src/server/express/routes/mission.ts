@@ -26,7 +26,7 @@ import { globalValues } from "../global";
 
 import type { DocHandle, DocHandleChangePayload } from "@automerge/automerge-repo";
 import throttle from "lodash/throttle";
-import path from "path";
+import path from "node:path";
 import fs from "fs";
 import { missionValidator, SCHEMA_DIR } from "utils/validateSchemaServer";
 import { serverLogger } from "utils/logging/serverLogger";

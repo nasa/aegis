@@ -3,7 +3,8 @@ import express from "express";
 import cookieSession from "cookie-session";
 import cors from "cors";
 import { globalValues } from "./global";
-import path from "path";
+import path from "node:path";
+import { fileURLToPath } from "url";
 import { RequestContext } from "@mikro-orm/postgresql";
 
 import authRoutes from "./routes/auth";
@@ -52,6 +53,9 @@ import maestroRoutes from "./routes/maestro";
 import readableActionRoutes from "./routes/readable/action";
 import readableEvaRoutes from "./routes/readable/eva";
 import readableMissionRoutes from "./routes/readable/mission";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app: Application = express();
 

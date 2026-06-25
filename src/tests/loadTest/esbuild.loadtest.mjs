@@ -18,9 +18,12 @@ const loadTestContext = await esbuild.context({
   },
   bundle: true,
   sourcemap: true,
-  format: "cjs",
+  format: "esm",
   platform: "node",
   target: "node22",
+  banner: {
+    js: "import { createRequire as _importRequire } from 'module'; const require = _importRequire(import.meta.url);",
+  },
   external: [
     // Keep automerge packages external so they can load WASM files from node_modules
     "@automerge/automerge",
