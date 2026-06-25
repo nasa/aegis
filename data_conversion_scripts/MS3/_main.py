@@ -194,6 +194,19 @@ def step_4_inspect() -> None:
             print(f"    ... and {len(missing) - 10} more")
 
 
+def step_6_insert_nac_layers() -> None:
+    """Call the AEGIS API to insert a sublayer record for every built NAC frame."""
+    banner("Step 6 — Insert NAC frame sublayers into AEGIS via API")
+    run(
+        [
+            PYTHON,
+            MS3 / "insert_nac_layers.py",
+            "--mission-id",
+            str(49),
+        ]
+    )
+
+
 def step_7_slope() -> None:
     """(Optional) Colorize slope float32 → RGBA, tile, clean scratch."""
     banner("Step 5 — Slope overlay (optional)")
@@ -404,6 +417,7 @@ STEPS: list[tuple[int, str, str]] = [
     (3, "ellipse", "Landing-ellipse shapefile → GeoJSON"),
     (4, "inspect", "Summarize generated NAC layer pyramids"),
     (5, "slope", "(optional) Colorize + tile slope overlay"),
+    (6, "insert-layers", "Insert NAC frame sublayers into AEGIS via API"),
 ]
 
 STEP_FNS = {
@@ -413,9 +427,10 @@ STEP_FNS = {
     3: step_3_ellipse,
     4: step_4_inspect,
     5: step_7_slope,
+    6: step_6_insert_nac_layers,
 }
 
-DEFAULT_STEPS = [0, 1, 2, 3, 4]
+DEFAULT_STEPS = [0, 1, 2, 3, 4, 6]
 
 # Set to True by --overwrite CLI flag; forwarded to step 1.
 _OVERWRITE = False
