@@ -256,7 +256,7 @@ test-playwright:
     NUM_SHARDS: 4
   extends: .test_template
   stage: stageless
-  image: mcr.microsoft.com/playwright:v1.58.2-jammy
+  image: mcr.microsoft.com/playwright:v1.61.0-jammy
   needs:
     - install_dependencies
     - make-dotenv:test
@@ -346,14 +346,13 @@ test-automerge-integrity:
   needs: []
   tags: ["openshift"]
   before_script:
-    # Determine the versions of @emss/make-dotenv and tsx defined in package-lock.json
-    # This allows us to be sure the same versions are used in CI as are used in local dev
+    # Determine the version of @emss/make-dotenv defined in package-lock.json
+    # This allows us to be sure the same version is used in CI as is used in local dev
     - MAKE_DOTENV_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/@emss/make-dotenv'].version")
-    - TSX_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/tsx'].version")
 
     # OpenShift runs the container as a random non-root UID, which can't write
     # the default global npm prefix (/usr/local/lib/node_modules). Redirect to
-    # /tmp and put its bin on PATH so `make-dotenv`/`tsx` resolve below.
+    # /tmp and put its bin on PATH so `make-dotenv` resolves below.
     - export NPM_CONFIG_PREFIX=/tmp/npm-global
     - export PATH=/tmp/npm-global/bin:$PATH
 
@@ -375,7 +374,6 @@ test-automerge-integrity:
     #      version specified on the docker image on this job. We'd have to be careful to
     #      keep the two in sync. The current job as-written seems simpler and good enough.
     - npm i -g "@emss/make-dotenv@${MAKE_DOTENV_VERSION}" --userconfig ./.npmrc
-    - npm i -g "tsx@${TSX_VERSION}"
   script:
     # Copy contents of DOTENV_SECRET from CI/CD variables to a new .env.secret file
     - echo "${DOTENV_SECRET_TS}" > ./env.secret.ts

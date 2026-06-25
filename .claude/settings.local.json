@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(cmd //c \"where uv\")",
-      "Bash(cmd //c \"where python\")",
-      "Bash(cmd //c \"echo %PATH%\")"
-    ]
-  }
-}

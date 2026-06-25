@@ -295,6 +295,8 @@ const NavTimeline: FunctionComponent = () => {
       runningRexPetTime,
       selectedRex?.petRunning
     );
+    /* TODO #920*/
+    // eslint-disable-next-line react-hooks/refs
   }, [runningRexPetTime, paperGroupsRef?.current?.petLine, selectedRex]);
 
   //redraw entire timeline

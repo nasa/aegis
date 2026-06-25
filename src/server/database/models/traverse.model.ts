@@ -1,4 +1,5 @@
-import { Collection, Entity, OneToMany, PrimaryKey, Property } from "@mikro-orm/postgresql";
+import { Entity, OneToMany, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
+import { Collection } from "@mikro-orm/core";
 import { types as MikroTypes } from "@mikro-orm/postgresql";
 
 import { Action_db } from "./_allModels";
@@ -16,7 +17,7 @@ export class Traverse_db implements Traverse_db_type {
 
   @Property({ type: MikroTypes.integer })
   missionId!: number;
-  @OneToMany(() => Action_db, (i) => i.traverse) //one traverse has many actions
+  @OneToMany(() => Action_db, (i: Action_db) => i.traverse) //one traverse has many actions
   action = new Collection<Action_db>(this);
 
   @Property({ type: MikroTypes.text })

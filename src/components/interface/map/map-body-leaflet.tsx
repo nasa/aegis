@@ -2361,6 +2361,8 @@ const MapBody: FunctionComponent<{}> = () => {
             presetsFromDb={presetsFromDb}
           />
         </div>
+        {/* TODO #920*/}
+        {/* eslint-disable-next-line react-hooks/refs */}
         <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
         <div className={styles.mapPositionDisplay}>
           {showMouseLatLon && mouseLatLng && latLngDiv(mouseLatLng)}

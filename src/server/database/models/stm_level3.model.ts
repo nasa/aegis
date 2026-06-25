@@ -1,10 +1,5 @@
-import {
-  Entity,
-  PrimaryKey,
-  Property,
-  ManyToOne,
-  types as MikroTypes,
-} from "@mikro-orm/postgresql";
+import { Entity, PrimaryKey, Property, ManyToOne } from "@mikro-orm/decorators/legacy";
+import { types as MikroTypes } from "@mikro-orm/postgresql";
 
 import { STM_Level2_db } from "./_allModels";
 

@@ -852,7 +852,9 @@ describe("Mission Duplication Tests", () => {
             expect(newLevel2Uuid).toBeDefined();
 
             // Check if the duplicated Level1 has this Level2 child
-            const hasChild = duplicatedLevel2s.some((l2) => l2.uuid === newLevel2Uuid);
+            const hasChild = duplicatedLevel2s.some(
+              (l2: STM_Level2_db) => l2.uuid === newLevel2Uuid
+            );
             expect(hasChild).toBeTruthy();
           }
         }
@@ -895,7 +897,9 @@ describe("Mission Duplication Tests", () => {
             expect(newLevel3Uuid).toBeDefined();
 
             // Check if the duplicated Level2 has this Level3 child
-            const hasChild = duplicatedLevel3s.some((l3) => l3.uuid === newLevel3Uuid);
+            const hasChild = duplicatedLevel3s.some(
+              (l3: STM_Level3_db) => l3.uuid === newLevel3Uuid
+            );
             expect(hasChild).toBeTruthy();
           }
         }

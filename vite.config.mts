@@ -5,16 +5,14 @@ import { UserConfig, defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import svgr from "vite-plugin-svgr";
 import path from "path";
-import _ from "lodash";
 import packageJSON from "./package.json";
 import wasm from "vite-plugin-wasm";
-import topLevelAwait from "vite-plugin-top-level-await";
 
 export const config: UserConfig = {
   root: "./src",
   envDir: "../",
   cacheDir: "../node_modules/.vite",
-  plugins: [react(), svgr(), wasm(), topLevelAwait()],
+  plugins: [react(), svgr(), wasm()],
   resolve: {
     //alias paths so that the import statements are shorter and start from the src folder
     alias: {
@@ -59,45 +57,52 @@ export const config: UserConfig = {
     sourcemap: true,
     manifest: true,
     chunkSizeWarningLimit: 1500,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        // Creates a separate bundles for each of these chunks so there isn't one huge bundle.js file
-        manualChunks: {
-          react: [
-            "react",
-            "react-dom",
-            "react-redux",
-            "react-router",
-            "react-checkbox-tree",
-            "@uiw/react-color-compact",
-            "react-cookie",
-            "react-drag-listview",
-            "react-final-form",
-            "@reduxjs/toolkit",
-            "@fortawesome/react-fontawesome", // needs to be here to prevent circular chunking issues
-          ],
-          leaflet: [
-            "leaflet",
-            "leaflet-ant-path",
-            "leaflet-draggable-lines",
-            "leaflet-highlightable-layers",
-            "leaflet-polylinedecorator",
-            "leaflet.tilelayer.colorfilter",
-            "proj4leaflet",
-          ],
-          emojis: ["@emoji-mart/data", "@emoji-mart/react"],
-          fonts: [
-            "@fortawesome/fontawesome-svg-core",
-            "@fortawesome/free-regular-svg-icons",
-            "@fortawesome/free-solid-svg-icons",
-          ],
-          paper: ["paper"],
-          automerge: [
-            "@automerge/automerge",
-            "@automerge/automerge-repo",
-            "@automerge/automerge-repo-network-websocket",
-            "@automerge/automerge-repo-react-hooks",
-          ],
+        // Creates separate bundles for each group so there isn't one huge bundle.js file
+        manualChunks(id) {
+          const chunkGroups: Record<string, string[]> = {
+            react: [
+              "react",
+              "react-dom",
+              "react-redux",
+              "react-router",
+              "react-checkbox-tree",
+              "@uiw/react-color-compact",
+              "react-cookie",
+              "react-drag-listview",
+              "react-final-form",
+              "@reduxjs/toolkit",
+              "@fortawesome/react-fontawesome", // needs to be here to prevent circular chunking issues
+            ],
+            leaflet: [
+              "leaflet",
+              "leaflet-ant-path",
+              "leaflet-draggable-lines",
+              "leaflet-highlightable-layers",
+              "leaflet-polylinedecorator",
+              "leaflet.tilelayer.colorfilter",
+              "proj4leaflet",
+            ],
+            emojis: ["@emoji-mart/data", "@emoji-mart/react"],
+            fonts: [
+              "@fortawesome/fontawesome-svg-core",
+              "@fortawesome/free-regular-svg-icons",
+              "@fortawesome/free-solid-svg-icons",
+            ],
+            paper: ["paper"],
+            automerge: [
+              "@automerge/automerge",
+              "@automerge/automerge-repo",
+              "@automerge/automerge-repo-network-websocket",
+              "@automerge/automerge-repo-react-hooks",
+            ],
+          };
+          for (const [chunkName, packages] of Object.entries(chunkGroups)) {
+            if (packages.some((pkg) => id.includes(`/node_modules/${pkg}/`))) {
+              return chunkName;
+            }
+          }
         },
       },
       external: ["path", "os", "crypto"],

@@ -260,7 +260,7 @@ getORM()
             duration: dbStation.duration,
             icon: dbStation.icon,
             mapCircleControls: dbStation.mapCircleControls,
-            poiUuids: dbStation.poi.map((p) => p.uuid),
+            poiUuids: dbStation.poi.map((p: Poi_db) => p.uuid),
             createdAt: dbStation.createdAt.getTime(), // Make dates numeric
             updatedAt: dbStation.updatedAt.getTime(), // Make dates numeric
           };

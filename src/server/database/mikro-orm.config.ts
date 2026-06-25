@@ -1,16 +1,11 @@
+import "reflect-metadata"; // required by @mikro-orm/decorators/legacy
 import dotenv from "dotenv"; //needed to allow vitest to init Mikro in globalTeardown
 dotenv.config({ override: true, quiet: true });
-
-// The following 3 lines are needed to make the MikroORM 6.0.x import for the PostgreSqlDriver work in vitest.
-import { TextEncoder, TextDecoder } from "util";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-global.TextEncoder = TextEncoder as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-global.TextDecoder = TextDecoder as any;
 
 import { PostgreSqlDriver, defineConfig } from "@mikro-orm/postgresql";
 import { Migrator } from "@mikro-orm/migrations";
 import { SeedManager } from "@mikro-orm/seeder";
+import { ReflectMetadataProvider } from "@mikro-orm/decorators/legacy";
 import {
   App_User_db,
   MissionBackup_db,
@@ -92,6 +87,7 @@ export default defineConfig({
     Automerge_Native_db,
     EnvironmentConfig_db,
   ],
+  metadataProvider: ReflectMetadataProvider,
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
   extensions: [Migrator, SeedManager],
 });

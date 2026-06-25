@@ -10,6 +10,7 @@
     "resolveJsonModule": true,
     "preserveConstEnums": true,
     "esModuleInterop": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": "./src",
     "paths": {
       "@fseehawer/react-circular-slider": ["typings/react-circular-slider.d.ts"], // This is an override for the react-circular-slider package because it throws a tsc error.

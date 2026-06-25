@@ -1,4 +1,4 @@
-import type { Loggable } from "@emss/logger";
+import type { Loggable } from "@emss/logger/types";
 import { ConsoleLogger } from "../../../utils/logging/consoleLogger";
 
 describe("ConsoleLogger", () => {

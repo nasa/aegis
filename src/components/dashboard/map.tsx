@@ -1541,6 +1541,8 @@ const MapBody: FunctionComponent<{
           />
         </div>
       </div>
+      {/* TODO #920*/}
+      {/* eslint-disable-next-line react-hooks/refs */}
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
       {showSunEarth && <SunEarth type="dashboard" selectedPreset={selectedPreset} />}
     </div>
