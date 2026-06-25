@@ -3,6 +3,7 @@ import StreamZip from "node-stream-zip";
 import * as fs from "fs";
 import { readdir, mkdir, rm, rename, stat } from "node:fs/promises";
 import path from "node:path";
+import { spawn } from "node:child_process";
 
 const destRoot = process.env.STATIC_DIR;
 /**
@@ -288,16 +289,14 @@ async function executeCommand(
   args: string[],
   options: { acceptableExitCodes?: number[]; cwd?: string } = {}
 ): Promise<void> {
-  const { spawn } = require("child_process");
-
   return new Promise((resolve, reject) => {
-    const process = spawn(command, args, { cwd: options.cwd });
+    const proc = spawn(command, args, { cwd: options.cwd });
 
-    process.on("error", (err: Error) => {
+    proc.on("error", (err: Error) => {
       reject(new Error(`Failed to execute ${command}: ${err.message}`));
     });
 
-    process.on("close", (code: number) => {
+    proc.on("close", (code: number) => {
       if (options.acceptableExitCodes && options.acceptableExitCodes.includes(code)) {
         resolve();
       } else if (code === 0) {

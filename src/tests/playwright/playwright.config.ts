@@ -1,6 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const storageStatePath = path.resolve(__dirname, "../../../.local/playwright/auth.json");
 
 export default defineConfig({
@@ -77,6 +80,6 @@ export default defineConfig({
     stderr: "pipe",
   },
 
-  globalSetup: require.resolve("./playwright.globalSetup.ts"),
-  globalTeardown: require.resolve("./playwright.globalTeardown.ts"),
+  globalSetup: path.resolve(__dirname, "./playwright.globalSetup.ts"),
+  globalTeardown: path.resolve(__dirname, "./playwright.globalTeardown.ts"),
 });

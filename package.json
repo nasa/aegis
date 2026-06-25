@@ -1,6 +1,7 @@
 {
   "name": "aegis",
   "version": "1.2.1",
+  "type": "module",
   "private": true,
   "packageManager": "npm@11.17.0",
   "scripts": {
@@ -197,7 +198,7 @@
     "wait-on": "9.0.10"
   },
   "mikro-orm": {
-    "useTsNode": true,
+    "preferTs": true,
     "tsConfigPath": "./src/server/database/tsconfig.orm.json",
     "configPaths": [
       "./src/server/database/mikro-orm.config.ts"
