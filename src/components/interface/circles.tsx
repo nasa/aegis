@@ -30,8 +30,8 @@ const Circles: FunctionComponent<{
   circleUIStateSetterFunction,
   styleSetter,
 }) => {
-  circleUIStates = circleUIStates || {};
-  circleUIStateSetterFunction = circleUIStateSetterFunction || (() => {});
+  const safeCircleUIStates = circleUIStates ?? {};
+  const safeCircleUIStateSetterFn = circleUIStateSetterFunction ?? (() => {});
   const dispatch = useAppDispatch();
   const circleDefinitions = useMissionDocSelector(
     (mission) => mission.circleDefinitions,
@@ -65,7 +65,7 @@ const Circles: FunctionComponent<{
             .map(([uuid, circleDefinition]) => {
               return (
                 mapCircleControls[uuid] &&
-                circleUIStates[uuid] && (
+                safeCircleUIStates[uuid] && (
                   <CircleLayer
                     editMode={editMode}
                     key={uuid}
@@ -73,8 +73,8 @@ const Circles: FunctionComponent<{
                     circleDefinition={circleDefinition}
                     mapCircleControls={mapCircleControls}
                     toggleVisibleFunction={toggleVisibleFunction}
-                    circleUIStates={circleUIStates}
-                    circleUIStateSetterFunction={circleUIStateSetterFunction}
+                    circleUIStates={safeCircleUIStates}
+                    circleUIStateSetterFunction={safeCircleUIStateSetterFn}
                     styleSetter={styleSetter}
                   />
                 )
@@ -112,8 +112,8 @@ const CircleLayer: FunctionComponent<{
   circleUIStateSetterFunction,
   styleSetter,
 }) => {
-  circleUIStates = circleUIStates || {};
-  circleUIStateSetterFunction = circleUIStateSetterFunction || (() => {});
+  const safeCircleUIStates = circleUIStates ?? {};
+  const safeCircleUIStateSetterFn = circleUIStateSetterFunction ?? (() => {});
   return (
     <div className={styles.sublayerItemContainer}>
       <div
@@ -151,9 +151,9 @@ const CircleLayer: FunctionComponent<{
               onClick={() => {
                 if (!editMode) return;
 
-                circleUIStateSetterFunction({
+                safeCircleUIStateSetterFn({
                   circleDefUuid: uuid,
-                  slidersSelected: !circleUIStates[uuid].slidersSelected,
+                  slidersSelected: !safeCircleUIStates[uuid].slidersSelected,
                 });
               }}
             >
@@ -162,7 +162,7 @@ const CircleLayer: FunctionComponent<{
           )}
         </div>
       </div>
-      {circleUIStates[uuid].slidersSelected && (
+      {safeCircleUIStates[uuid].slidersSelected && (
         <div>
           <Settings_subpanel
             styleSetter={styleSetter}

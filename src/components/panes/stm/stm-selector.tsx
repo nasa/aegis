@@ -158,6 +158,7 @@ const STMSelector: FunctionComponent<{
     <>
       {editMode ? (
         <CheckboxTree
+          id="stm-selector-tree"
           nodes={stmTreeNodes}
           expanded={expanded}
           checkModel="leaf" //only leaf nodes can be checked, ie investigations

@@ -1,4 +1,4 @@
-import { createClientLogger } from "@emss/logger";
+import { createClientLogger } from "@emss/logger/client";
 import ConsoleLogger from "./consoleLogger";
 
 /**

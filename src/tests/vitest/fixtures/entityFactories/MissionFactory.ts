@@ -12,7 +12,7 @@ export default class MissionFactory {
     const missionId = docListing.missionId;
     const data = generateBlankMission({ name: "Vitest Mission-1", id: missionId });
     const backup = this.em.create(MissionBackup_db, { missionId, data });
-    await this.em.persistAndFlush(backup);
+    await this.em.persist(backup).flush();
     return backup;
   }
 

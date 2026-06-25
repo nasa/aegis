@@ -1,11 +1,5 @@
-import {
-  Collection,
-  Entity,
-  ManyToMany,
-  OneToMany,
-  PrimaryKey,
-  Property,
-} from "@mikro-orm/postgresql";
+import { Entity, ManyToMany, OneToMany, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
+import { Collection } from "@mikro-orm/core";
 import { types as MikroTypes } from "@mikro-orm/postgresql";
 
 import { Action_db, Poi_db } from "./_allModels";

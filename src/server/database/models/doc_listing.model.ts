@@ -1,4 +1,5 @@
-import { Entity, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/core";
+import { Entity, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
+import { types as MikroTypes } from "@mikro-orm/core";
 
 @Entity()
 export class Doc_Listing_db implements DocListing_db_type {

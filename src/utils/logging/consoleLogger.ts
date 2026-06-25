@@ -1,4 +1,4 @@
-import type { Loggable } from "@emss/logger";
+import type { Loggable } from "@emss/logger/types";
 
 // RFC 5424: emergency(0) is most severe, debug(7) is least. "off" disables all logging.
 const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {

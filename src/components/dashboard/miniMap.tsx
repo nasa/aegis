@@ -689,6 +689,8 @@ const MiniMap: FunctionComponent<{
     <div className={styles.mapContainer} ref={mapContainerRef}>
       <PetInterval runningRex={runningRex} rexPetTime={rexPetTime} setRexPetTime={setRexPetTime} />
       <div className={styles.map} ref={mapRef} />
+      {/* TODO #920*/}
+      {/* eslint-disable-next-line react-hooks/refs */}
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
     </div>
   );
