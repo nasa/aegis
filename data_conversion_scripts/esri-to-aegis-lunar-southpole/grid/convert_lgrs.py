@@ -122,8 +122,24 @@ def row_and_column_counter(
     return row, column, empty_lgrs
 
 
+def split_lgrs_coordinate(
+    lgrs_acc: str, l_coord: str, r_coord: str, empty_lgrs: bool
+) -> tuple[str, str, str]:
+    """Use pre-split L/R coords supplied by the generator (``generate_lgrs.py``).
+
+    The generator already derives ``L_coord``/``R_coord`` from the ACC condensed string, so
+    we just apply the AEGIS blank-before-new-row rule and keep the full ``LGRS_ACC``.
+    """
+    if empty_lgrs:
+        return lgrs_acc, " ", " "
+    return lgrs_acc, l_coord, r_coord
+
+
 def clean_lgrs_coordinate(lgrs_acc: str, empty_lgrs: bool) -> tuple[str, str, str]:
-    """Truncate the LGRS string into (full, L_coord, R_coord) per AEGIS rules."""
+    """Truncate the LGRS string into (full, L_coord, R_coord) per AEGIS rules.
+
+    Legacy path for the raw ESRI/ArcGIS export, whose ``LGRS_ACC`` is not pre-split.
+    """
     if empty_lgrs:
         # AEGIS wants a blank L/R on the last point before a new row; keep full ACC.
         return lgrs_acc, " ", " "
@@ -147,12 +163,21 @@ def convert(raw: dict, name: str) -> dict:
     lgrs_col, dist_col = detect_columns(features[0]["properties"])
     dist = [float(f["properties"][dist_col]) for f in features]
 
+    # Features from generate_lgrs.py carry pre-split L_coord/R_coord; the raw ESRI export
+    # does not (we truncate its LGRS_ACC instead).
+    presplit = "L_coord" in features[0]["properties"] and "R_coord" in features[0]["properties"]
+
     out_features: list[dict] = []
     row = column = 0
     for i, feat in enumerate(features):
         props = feat["properties"]
         row, column, empty_lgrs = row_and_column_counter(dist, i, row, column)
-        lgrs_acc, l_coord, r_coord = clean_lgrs_coordinate(str(props[lgrs_col]), empty_lgrs)
+        if presplit:
+            lgrs_acc, l_coord, r_coord = split_lgrs_coordinate(
+                str(props[lgrs_col]), str(props["L_coord"]), str(props["R_coord"]), empty_lgrs
+            )
+        else:
+            lgrs_acc, l_coord, r_coord = clean_lgrs_coordinate(str(props[lgrs_col]), empty_lgrs)
 
         out_features.append(
             {
