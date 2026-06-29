@@ -23,13 +23,13 @@ Usage:
     cd data_conversion_scripts
 
     # Stretch one NAC frame to an 8-bit grayscale GeoTIFF, 2–98% stretch
-    uv run python MS3/NAC_processing/stretch_to_8bit.py \\
+    uv run python esri-to-aegis-lunar-southpole/nac/stretch_to_8bit.py \\
         ../../aegis_static/A03MP026_SFS_1mpp_orthoimages/M1409412744RE-tile.5.2-map.tif \\
         /tmp/M1409412744RE-tile.5.2-map_8bit.tif \\
         --pct-low 2 --pct-high 98 --nodata -3.4e38
 
     # Use explicit cut values instead of percentiles
-    uv run python MS3/NAC_processing/stretch_to_8bit.py in.tif out.tif --min 0.0 --max 0.07
+    uv run python esri-to-aegis-lunar-southpole/nac/stretch_to_8bit.py in.tif out.tif --min 0.0 --max 0.07
 """
 
 from __future__ import annotations
@@ -213,9 +213,9 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
-            "  uv run python MS3/NAC_processing/stretch_to_8bit.py in.tif out.tif \\\n"
+            "  uv run python esri-to-aegis-lunar-southpole/nac/stretch_to_8bit.py in.tif out.tif \\\n"
             "      --pct-low 2 --pct-high 98 --nodata -3.4e38\n\n"
-            "  uv run python MS3/NAC_processing/stretch_to_8bit.py in.tif out.tif --min 0.0 --max 0.07\n"
+            "  uv run python esri-to-aegis-lunar-southpole/nac/stretch_to_8bit.py in.tif out.tif --min 0.0 --max 0.07\n"
         ),
     )
     parser.add_argument("input", type=Path, help="Input float NAC frame raster")
@@ -323,7 +323,7 @@ def main() -> None:
 
     print("Next: tile the 8-bit frame into a PNG pyramid:")
     print(
-        f"  pixi run python MS3/tile_to_cap_grid.py {args.output} "
+        f"  pixi run python esri-to-aegis-lunar-southpole/common/tile_to_cap_grid.py {args.output} "
         f"{args.output.with_name(args.output.stem.replace('_8bit', '') + '_tiles')} "
     )
 

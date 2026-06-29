@@ -1,8 +1,0 @@
-[console_scripts]
-aegis-colorize-slope = MS3.colorize_slope:main
-aegis-geotiff-to-cog = geotiff_to_cog:main
-aegis-inspect-geotiff = inspect_geotiff:main
-aegis-nac-build-layer-pyramids = MS3.NAC_processing.build_nac_layer_pyramids:main
-aegis-nac-stretch-to-8bit = MS3.NAC_processing.stretch_to_8bit:main
-aegis-raster-to-tiles = raster_to_tiles:main
-aegis-shp-to-geojson = MS3.shp_to_geojson:main

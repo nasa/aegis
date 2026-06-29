@@ -45,12 +45,12 @@ Usage
     cd data_conversion_scripts
 
     # Minimal — auto-detect lyrx next to the input raster
-    pixi run python MS3/colorize_slope.py \\
+    pixi run python esri-to-aegis-lunar-southpole/slope/colorize_slope.py \\
         /path/to/SiteUD1_final_adj_5mpp_slp.tif \\
         /path/to/output/slope_colorized.tif
 
     # Explicit lyrx path
-    pixi run python MS3/colorize_slope.py \\
+    pixi run python esri-to-aegis-lunar-southpole/slope/colorize_slope.py \\
         /path/to/SiteUD1_final_adj_5mpp_slp.tif \\
         /path/to/output/slope_colorized.tif \\
         --lyrx "/path/to/AMPES_Slope 1.lyrx"

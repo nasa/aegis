@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Build one AEGIS tile layer per NAC frame.
+"""PRESERVED EXAMPLE — build one AEGIS tile layer per NAC frame.
+
+This is the test configuration that tiles EACH `M*-map.tif` frame into its own
+AEGIS sublayer (100+ sublayers per mission). It is **not** the shipping path —
+the production NAC process tiles a single GIS-provided mosaic into one layer (see
+`nac/stretch_to_8bit.py` + `common/tile_to_cap_grid.py`, driven by `main.py`).
+It is kept here only as a worked example of how per-frame layers could be built
+if ever needed. See the README in this folder.
 
 Each input `M*-map.tif` frame is stretched independently to 8-bit grayscale and
 then tiled onto the shared lunar south-pole cap grid used by Leaflet production
@@ -8,9 +15,9 @@ per frame, named after the source stem, e.g. `M1409412744RE-tile.5.2-map`.
 
 Run from `data_conversion_scripts/` via pixi so GDAL CLIs are on PATH:
 
-    pixi run python MS3/NAC_processing/build_nac_layer_pyramids.py \
-        C:/Users/bfeist/code/aegis_static/A03MP026_SFS_1mpp_orthoimages \
-        C:/Users/bfeist/code/aegis_static/MissionFiles/49/Layers
+    pixi run python esri-to-aegis-lunar-southpole/nac/examples/per_frame_layers/build_nac_layer_pyramids.py \
+        F:/_repos/aegis_static/MS3/A03MP026_SFS_1mpp_orthoimages \
+        F:/_repos/aegis_static/<output-root>/Layers
 """
 
 from __future__ import annotations
@@ -156,10 +163,11 @@ def main() -> None:
         print(f"ERROR: input dir not found: {args.input_dir}", file=sys.stderr)
         sys.exit(1)
 
-    nac_processing_dir = Path(__file__).resolve().parent
-    ms3_dir = nac_processing_dir.parent
-    stretch_script = nac_processing_dir / "stretch_to_8bit.py"
-    tile_script = ms3_dir / "tile_to_cap_grid.py"
+    # This script lives at <root>/nac/examples/per_frame_layers/; reach the
+    # production stretch + tile scripts at <root>/nac/ and <root>/common/.
+    pipeline_root = Path(__file__).resolve().parents[3]
+    stretch_script = pipeline_root / "nac" / "stretch_to_8bit.py"
+    tile_script = pipeline_root / "common" / "tile_to_cap_grid.py"
 
     scratch_dir = (
         args.scratch if args.scratch else args.output_layers.parent / "scratch"
