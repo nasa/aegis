@@ -4,6 +4,8 @@
 // like `L.Proj` end up undefined at runtime if you don't do it correctly.
 import L from "leaflet";
 import "leaflet-polylinedecorator";
+// side-effect: adds the `projectedBounds` tile clip to L.TileLayer
+import "utils/mapping/leaflet-projected-bounds";
 import type * as geojson from "geojson";
 import type DraggableLines from "leaflet-draggable-lines";
 import VectorTileLayer from "leaflet-vector-tile-layer";
@@ -956,6 +958,10 @@ export const drawLayersOnMap = ({
   // check map layers in order
   // if layer is time based and does not have a map time set, do not draw it
   const layerBaseURL = "/static/missionFiles";
+  // Custom (projected) CRS missions store sublayer.boundingBox in projected units.
+  // Leaflet's `bounds` option clips in lat/lng, so for these we clip in projected
+  // space via `projectedBounds` instead (see leaflet-projected-bounds.ts).
+  const isProjCrs = !!L.Proj && map.current.options.crs instanceof L.Proj.CRS;
   layersToAddInOrder
     .filter((sublayer) => !sublayer.isTimeBased || sublayer.chosenTimeLayer)
     .map((sublayer, index) => {
@@ -978,10 +984,16 @@ export const drawLayersOnMap = ({
             uuid: sublayer.uuid,
             type: "tile",
             tileSize: 256,
-            bounds: [
-              [sublayer.boundingBox[1], sublayer.boundingBox[0]],
-              [sublayer.boundingBox[3], sublayer.boundingBox[2]],
-            ],
+            // For custom projected CRS missions the boundingBox is in projected units,
+            // so clip in projected space; otherwise use Leaflet's lat/lng bounds.
+            ...(isProjCrs
+              ? { projectedBounds: sublayer.boundingBox }
+              : {
+                  bounds: [
+                    [sublayer.boundingBox[1], sublayer.boundingBox[0]],
+                    [sublayer.boundingBox[3], sublayer.boundingBox[2]],
+                  ] as L.LatLngBoundsExpression,
+                }),
             tms: sublayer.tileFormat === "tms",
             minZoom: sublayer.minNativeZoom || 1,
             minNativeZoom: sublayer.minNativeZoom,
