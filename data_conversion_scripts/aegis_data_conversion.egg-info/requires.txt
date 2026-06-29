@@ -1,3 +1,0 @@
-pmtiles>=3.2.0
-mapbox-vector-tile>=2.2.0
-pillow>=12.2.0
