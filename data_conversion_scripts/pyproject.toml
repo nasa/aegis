@@ -52,7 +52,17 @@ pyproj = ">=3.6.0"
 
 # Pure-Python deps (no native build) stay on PyPI. The editable self-install
 # brings in the [project].dependencies (pmtiles, mapbox-vector-tile) only.
+#
+# lgrs (the USGS/SETI Lunar Grid Reference System generator) + geopandas are
+# pure-Python wheels — they bind to the conda-forge shapely/pyproj/fiona binaries
+# already provided above, so they belong here (NOT in [project.dependencies], which
+# would force from-source builds). lgrs needs Python >=3.13; the pixi env resolves
+# 3.14, so no separate interpreter is required. Used by grid/generate_lgrs.py to
+# generate the LGRS grid (replacing the manual ESRI/ArcGIS export step). We do NOT
+# install lgrs's optional [reference] extra, which would pull a source-built gdal.
 [tool.pixi.pypi-dependencies]
 aegis-data-conversion = { path = ".", editable = true }
+lgrs = ">=0.3.0"
+geopandas = "*"
 
 [tool.pixi.tasks]

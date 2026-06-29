@@ -83,6 +83,9 @@ pixi run python esri-to-aegis-lunar-southpole/main.py --out <dir> --summary   # 
 
 These take positional `input` / `output` paths directly (no `--src`/`--out`):
 
+- [`grid/generate_lgrs.py`](esri-to-aegis-lunar-southpole/grid/) — generate the raw LGRS grid
+  for a landing site (USGS `lgrs` package; replaces the manual ESRI export).
+  `generate_lgrs.py --lat <deg> --lng <deg> [--extent 10km] [--precision 100] -o <raw.geojson>`.
 - [`grid/convert_lgrs.py`](esri-to-aegis-lunar-southpole/grid/) — raw LGRS GeoJSON → AEGIS
   mission-grid GeoJSON. `convert_lgrs.py <raw.geojson> [-o <outdir>]` (default: alongside input).
 - [`timeaware/singleband_timeaware.py`](esri-to-aegis-lunar-southpole/timeaware/) —

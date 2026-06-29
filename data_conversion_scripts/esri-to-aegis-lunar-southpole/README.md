@@ -32,7 +32,8 @@ admin auto-imports — see [`properties/`](properties/).
 
 | Tool                                          | Input                              | Output                                              |
 | --------------------------------------------- | ---------------------------------- | --------------------------------------------------- |
-| [`grid/convert_lgrs.py`](grid/)               | raw ESRI LGRS GeoJSON (WGS84)      | AEGIS mission-grid GeoJSON (`Cleaned_*.geojson`)    |
+| [`grid/generate_lgrs.py`](grid/)              | lander `--lat/--lng` + `--extent`  | raw LGRS grid GeoJSON (feeds `convert_lgrs.py`)     |
+| [`grid/convert_lgrs.py`](grid/)               | raw LGRS GeoJSON (generated or ESRI) | AEGIS mission-grid GeoJSON (`Cleaned_*.geojson`)  |
 | [`timeaware/singleband_timeaware.py`](timeaware/) | dir of single-band time rasters | tiled time layers + `manifest.json`                 |
 | [`../mercator/tile_mercator.py`](../mercator/) | Earth/Moon non-polar raster        | Web-Mercator / geodetic tile pyramid                |
 
@@ -61,6 +62,7 @@ esri-to-aegis-lunar-southpole/
 ├── properties/
 │   └── write_properties.py   # GDAL colour ramp → AEGIS properties.json (name/description/legend)
 ├── grid/
+│   ├── generate_lgrs.py      # lander lat/lng → raw LGRS grid GeoJSON (USGS lgrs package)
 │   └── convert_lgrs.py       # raw LGRS GeoJSON → AEGIS mission-grid GeoJSON (stdlib only)
 ├── timeaware/
 │   └── singleband_timeaware.py  # single-band time series → tiles + manifest.json
