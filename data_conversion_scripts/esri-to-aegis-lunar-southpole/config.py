@@ -88,6 +88,20 @@ OUT_NAC_LAYER_NAME = "nac"
 OUT_SLOPE_LAYER_NAME = "slope"
 OUT_SLOPE_RGBA_NAME = "slope_rgba.tif"  # scratch, removed after tiling
 
+# DEM-derived product layers (Layers/<name>/). Slope is intentionally omitted from the
+# default products step because the dedicated `slope` step already produces a slope layer
+# using the GIS-team .lyrx — which encodes the SAME standard as products/color_ramps/slope.txt.
+# (The standalone products/dem_products.py can still generate slope on demand.)
+OUT_HILLSHADE_LAYER_NAME = "hillshade"
+OUT_ASPECT_LAYER_NAME = "aspect"
+OUT_TRI_LAYER_NAME = "tri"
+PRODUCTS_DEFAULT = ["hillshade", "aspect", "tri"]
+
+# Colour-ramp directory (single source of truth for AEGIS colour treatment).
+COLOR_RAMPS_DIR = Path(__file__).resolve().parent / "products" / "color_ramps"
+# Legend units per colorized product (passed to properties/write_properties.py).
+PRODUCT_UNITS = {"slope": "deg", "aspect": "", "tri": "m"}
+
 
 @dataclass(frozen=True)
 class PipelinePaths:

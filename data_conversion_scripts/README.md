@@ -28,7 +28,27 @@ pixi run python esri-to-aegis-lunar-southpole/main.py --list
 pixi run python esri-to-aegis-lunar-southpole/main.py --out <output-root> --nac-mosaic <mosaic.tif>
 ```
 
-See its [README](esri-to-aegis-lunar-southpole/README.md) for the four data types,
-folder layout, and AEGIS import settings. General raster utilities
+Pipeline steps: `dem · nac · slope · products · vector`. The `products` step derives
+hillshade/aspect/tri from the DEM; every tile layer gets a `properties.json` legend the
+AEGIS admin auto-imports. It also ships standalone converters for inputs that aren't part
+of the ESRI drop:
+
+- [`grid/convert_lgrs.py`](esri-to-aegis-lunar-southpole/grid/) — raw LGRS GeoJSON → AEGIS
+  mission-grid GeoJSON.
+- [`timeaware/singleband_timeaware.py`](esri-to-aegis-lunar-southpole/timeaware/) —
+  single-band time series → tiles + `manifest.json`.
+
+See its [README](esri-to-aegis-lunar-southpole/README.md) for all data types, folder layout,
+AEGIS import settings, and [`docs/LEGACY-COVERAGE.md`](esri-to-aegis-lunar-southpole/docs/LEGACY-COVERAGE.md)
+(what was ported from the legacy `lunar_utils/aegis` package). General raster utilities
 (`geotiff_to_cog`, `inspect_geotiff`, `raster_to_tiles`) live in its
 [`common/`](esri-to-aegis-lunar-southpole/common/) folder.
+
+### [`mercator/`](mercator/)
+
+Mercator / global tiling for **non-polar / Earth** data (the counterpart to the south-pole
+cap grid): `--body earth` → EPSG:3857 Web-Mercator tiles; `--body moon` → geodetic tiles.
+
+```bash
+pixi run python mercator/tile_mercator.py imagery.tif out_tiles --body earth
+```

@@ -61,6 +61,7 @@ temp
 __pycache__
 *.py[cod]
 /static
+*.egg-info
 
 # playwright testing stuff
 /test-results/
