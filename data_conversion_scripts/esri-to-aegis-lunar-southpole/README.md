@@ -46,7 +46,8 @@ esri-to-aegis-lunar-southpole/
 ├── vector/
 │   └── shp_to_geojson.py     # shapefile → GeoJSON (EPSG:4326, attrs preserved)
 └── docs/
-    └── SITE_A03MP026-MONS-MOUTON-PLATEAU.md
+    ├── SITE_A03MP026-MONS-MOUTON-PLATEAU.md
+    └── leaflet-notes.md          # Leaflet-specific bits + what changes for the OpenLayers cutover
 ```
 
 `common/` = logic shared across types (+ general raster utilities); each type folder

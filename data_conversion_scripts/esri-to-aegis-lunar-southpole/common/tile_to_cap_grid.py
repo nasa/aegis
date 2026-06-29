@@ -70,8 +70,22 @@ for _stream in (sys.stdout, sys.stderr):
 # ---------------------------------------------------------------------------
 
 
-def write_tilemapresource(out_dir: Path, max_zoom: int, z0_res: float) -> None:
-    """Emit a cap-grid tilemapresource.xml with full-cap BoundingBox."""
+def write_tilemapresource(
+    out_dir: Path,
+    max_zoom: int,
+    z0_res: float,
+    bbox: tuple[float, float, float, float] | None = None,
+) -> None:
+    """Emit a cap-grid tilemapresource.xml.
+
+    ``bbox`` is the layer's TIGHT data extent ``(minx, miny, maxx, maxy)`` in cap-grid
+    projected metres.  Renderers (Leaflet via our projected-bounds shim, OpenLayers via
+    a native ``extent``) use it to clip tile requests to the data patch instead of
+    walking the whole ~1.86 Mm cap — without it the layer 404-storms for every tile that
+    was never written.  ``<Origin>`` always stays the cap origin so tile indices remain
+    on the shared grid.  When ``bbox`` is ``None`` it falls back to the full cap.
+    """
+    minx, miny, maxx, maxy = bbox if bbox is not None else (CAP_MIN, CAP_MIN, CAP_MAX, CAP_MAX)
     tilesets = "\n".join(
         f'        <TileSet href="{z}" units-per-pixel="{z0_res / 2 ** z:.14f}" order="{z}"/>'
         for z in range(max_zoom + 1)
@@ -81,7 +95,7 @@ def write_tilemapresource(out_dir: Path, max_zoom: int, z0_res: float) -> None:
       <Title>{out_dir.name}</Title>
       <Abstract></Abstract>
       <SRS>{CAP_SRS}</SRS>
-      <BoundingBox minx="{CAP_MIN:.14f}" miny="{CAP_MIN:.14f}" maxx="{CAP_MAX:.14f}" maxy="{CAP_MAX:.14f}"/>
+      <BoundingBox minx="{minx:.14f}" miny="{miny:.14f}" maxx="{maxx:.14f}" maxy="{maxy:.14f}"/>
       <Origin x="{CAP_MIN:.14f}" y="{CAP_MIN:.14f}"/>
       <TileFormat width="256" height="256" mime-type="image/png" extension="png"/>
       <TileSets profile="raster">
@@ -340,8 +354,21 @@ def tile_raster(
                     img.save(str(tile_path), format="PNG")
                     n_written += 1
 
-    write_tilemapresource(output_dir, max_zoom, CAP_Z0_RES)
+    # Tight data extent (projected metres) = the max-zoom tile window snapped to the
+    # cap grid, clamped to the cap.  Renderers clip tile requests to this so the layer
+    # only fetches tiles that were actually written instead of the whole cap.
+    bbox = (
+        max(CAP_MIN, CAP_MIN + tx_min * tile_span),
+        max(CAP_MIN, CAP_MIN + ty_min * tile_span),
+        min(CAP_MAX, CAP_MIN + (tx_max + 1) * tile_span),
+        min(CAP_MAX, CAP_MIN + (ty_max + 1) * tile_span),
+    )
+    write_tilemapresource(output_dir, max_zoom, CAP_Z0_RES, bbox)
     print(f"\n  tiles written: {n_written:,}")
+    print(
+        f"  data bbox (proj m) minx {bbox[0]:.1f}  miny {bbox[1]:.1f}  "
+        f"maxx {bbox[2]:.1f}  maxy {bbox[3]:.1f}"
+    )
     print(f"  tilemapresource.xml: {output_dir / 'tilemapresource.xml'}")
     print(
         "\n  Cap-grid layer — overlays the existing basemap; "
