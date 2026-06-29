@@ -24,9 +24,10 @@ bottom-left and counts up, so the TMS y=0 row coincides with y=-931100.
 Usage
 -----
     cd data_conversion_scripts
-    uv run python MS3/tile_to_cap_grid.py <input_8bit.tif> <output_dir>
+    uv run python esri-to-aegis-lunar-southpole/common/tile_to_cap_grid.py <input_8bit.tif> <output_dir>
 
-See MS3/PROBLEM_nac-ortho-scale.md for the full alignment investigation.
+The cap-grid / projection constants live in ``config.py`` at the pipeline root, so
+the tiler and the AEGIS admin summary can never drift apart.
 """
 
 from __future__ import annotations
@@ -43,32 +44,25 @@ from rasterio.transform import from_bounds
 from rasterio.windows import Window
 from PIL import Image  # type: ignore
 
+# Import the shared projection profile from the pipeline root (one level up from
+# common/). This file is run as a script via subprocess, so common/ — not the
+# pipeline root — is on sys.path[0]; add the root explicitly before importing.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from config import (  # noqa: E402
+    CAP_MIN,
+    CAP_MAX,
+    TILE,
+    CAP_Z0_RES,
+    CAP_MAX_ZOOM,
+    CAP_SRS,
+)
+
 # Windows consoles default to cp1252; force UTF-8 so banners don't crash.
 for _stream in (sys.stdout, sys.stderr):
     try:
         _stream.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
     except (AttributeError, ValueError):
         pass
-
-# ---------------------------------------------------------------------------
-# Cap-grid constants
-# ---------------------------------------------------------------------------
-CAP_MIN = -931100.0
-CAP_MAX = 931100.0
-TILE = 256
-
-CAP_Z0_RES = 12800.0  # must equal mission projResUnitsPerPixel
-CAP_MAX_ZOOM = 13  # z13 = 1.5625 m/px
-
-CAP_SRS = (
-    'PROJCS["PolarStereographic_Moon",GEOGCS["GCS_Moon",DATUM["D_Moon",'
-    'SPHEROID["Moon",1737400,0]],PRIMEM["Reference_Meridian",0],'
-    'UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]]],'
-    'PROJECTION["Polar_Stereographic"],PARAMETER["latitude_of_origin",-90],'
-    'PARAMETER["central_meridian",0],PARAMETER["false_easting",0],'
-    'PARAMETER["false_northing",0],UNIT["metre",1],'
-    'AXIS["Easting",NORTH],AXIS["Northing",NORTH]]'
-)
 
 
 # ---------------------------------------------------------------------------

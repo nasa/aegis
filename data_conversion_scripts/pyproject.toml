@@ -16,31 +16,24 @@ dependencies = [
     "pillow>=12.2.0",
 ]
 
-[project.scripts]
-aegis-geotiff-to-cog = "geotiff_to_cog:main"
-aegis-inspect-geotiff = "inspect_geotiff:main"
-aegis-raster-to-tiles = "raster_to_tiles:main"
-aegis-nac-build-layer-pyramids = "MS3.NAC_processing.build_nac_layer_pyramids:main"
-aegis-nac-stretch-to-8bit = "MS3.NAC_processing.stretch_to_8bit:main"
-aegis-shp-to-geojson = "MS3.shp_to_geojson:main"
-aegis-colorize-slope = "MS3.colorize_slope:main"
+# NOTE: the pipeline scripts are run by path (e.g.
+#   pixi run python esri-to-aegis-lunar-southpole/main.py ...
+# ) and orchestrate their sub-scripts via subprocess, so there are no console-script
+# entry points and nothing is imported as a dotted package. The editable self-install
+# below exists only to pull the pure-Python PyPI deps via pixi.
 
 [build-system]
 requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
-# These are standalone single-file scripts in a flat layout, not a package.
-# List them explicitly so setuptools' editable build doesn't fail with
-# "Multiple top-level modules discovered in a flat-layout".
+# Nothing here is an importable package — the pipeline lives in the hyphenated
+# directory `esri-to-aegis-lunar-southpole/` and is executed by path. Install no
+# Python modules/packages; the editable install only brings in [project.dependencies].
 [tool.setuptools]
-py-modules = [
-    "geotiff_to_cog",
-    "inspect_geotiff",
-    "raster_to_tiles",
-]
+py-modules = []
 
 [tool.setuptools.packages.find]
-include = ["MS3*"]
+include = []
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]

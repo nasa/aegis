@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 """
-insert_nac_layers.py — Insert a sublayer record into AEGIS for every built
-NAC frame that doesn't already have one.
+PRESERVED EXAMPLE — insert one AEGIS sublayer record per built NAC frame.
+
+Companion to ``build_nac_layer_pyramids.py``: this registers the per-frame layer
+folders it produced as individual AEGIS sublayers (100+ per mission). This is the
+test configuration, NOT the shipping path — see the README in this folder.
 
 The script:
   1. GETs existing sublayers for the mission from the AEGIS API.
-  2. Scans LAYERS_DIR for built NAC frame directories (those containing a
-     tilemapresource.xml).
+  2. Scans the given --layers-dir for built NAC frame directories (those
+     containing a tilemapresource.xml).
   3. Parses each tilemapresource.xml to extract bounding box and zoom levels.
   4. Skips any frame whose folder name already appears as a sublayer ``path``.
   5. POSTs new sublayers for the missing frames, all attached to the existing
-     MS3 layer UUID (discovered from the GET /layer response by name).
+     parent layer UUID (discovered from the GET /layer response by name).
 
 Usage (from data_conversion_scripts/):
-    pixi run python MS3/insert_nac_layers.py
-    pixi run python MS3/insert_nac_layers.py --dry-run
-    pixi run python MS3/insert_nac_layers.py --mission-id 49 --base-url http://localhost:4001
+    pixi run python esri-to-aegis-lunar-southpole/nac/examples/per_frame_layers/insert_nac_layers_into_aegis_db.py \
+        --mission-id <id> --layers-dir <output-root>/Layers --layer-name <parent-layer> --dry-run
 """
 
 from __future__ import annotations
@@ -35,13 +37,13 @@ except ImportError:
     pass  # stdlib – always present
 
 # ---------------------------------------------------------------------------
-# Defaults (mirror _main.py canonical paths)
+# Defaults
 # ---------------------------------------------------------------------------
+# Mission id and layers dir are intentionally NOT defaulted — they are per
+# environment and must be passed explicitly (this is an un-pinned example).
 
-LAYERS_DIR = Path("F:/_repos/aegis_static/missionFiles/49/Layers")
-MISSION_ID = 49
 BASE_URL = "http://localhost:4001"
-MS3_LAYER_NAME = "MS3"  # name of the parent Layer record
+DEFAULT_LAYER_NAME = "NAC"  # name of the parent Layer record in AEGIS
 
 # EMSS token – loaded from the repo .env at runtime if not passed on CLI
 ENV_FILE = Path("F:/_repos/aegis/.env")
@@ -151,29 +153,29 @@ def run(
     base_url: str,
     token: str,
     layers_dir: Path,
-    ms3_layer_name: str,
+    layer_name: str,
     dry_run: bool,
 ) -> None:
-    # ── 1. Fetch existing layers → find the MS3 parent layer UUID ──────────
+    # ── 1. Fetch existing layers → find the parent layer UUID ──────────────
     print(f"GET {base_url}/api/v1/layer?missionId={mission_id}")
     layer_resp = api_get(f"{base_url}/api/v1/layer?missionId={mission_id}", token)
     if layer_resp.get("status") not in ("success", "ok"):
         print(f"ERROR fetching layers: {layer_resp}", file=sys.stderr)
         sys.exit(1)
 
-    ms3_layer = next(
-        (l for l in layer_resp["data"] if l["name"] == ms3_layer_name), None
+    parent_layer = next(
+        (l for l in layer_resp["data"] if l["name"] == layer_name), None
     )
-    if ms3_layer is None:
+    if parent_layer is None:
         print(
-            f"ERROR: No layer named '{ms3_layer_name}' found for mission {mission_id}. "
+            f"ERROR: No layer named '{layer_name}' found for mission {mission_id}. "
             "Create it in the AEGIS admin UI first.",
             file=sys.stderr,
         )
         sys.exit(1)
 
-    ms3_layer_uuid = ms3_layer["uuid"]
-    print(f"  Found MS3 layer UUID: {ms3_layer_uuid}")
+    parent_layer_uuid = parent_layer["uuid"]
+    print(f"  Found parent layer UUID: {parent_layer_uuid}")
 
     # ── 2. Fetch existing sublayers → collect paths already in DB ──────────
     print(f"GET {base_url}/api/v1/sublayer?missionId={mission_id}")
@@ -202,7 +204,7 @@ def run(
         sublayer = {
             "uuid": str(uuid.uuid4()),
             "missionId": mission_id,
-            "layerUuid": ms3_layer_uuid,
+            "layerUuid": parent_layer_uuid,
             "type": "tile",
             "name": frame_name,
             "description": "",
@@ -260,10 +262,10 @@ def run(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Insert missing NAC frame sublayers into AEGIS for mission 49."
+        description="Insert missing per-frame NAC sublayers into AEGIS (preserved example)."
     )
     parser.add_argument(
-        "--mission-id", type=int, default=MISSION_ID, help=f"Mission ID (default: {MISSION_ID})"
+        "--mission-id", type=int, required=True, help="Mission ID (required)"
     )
     parser.add_argument(
         "--base-url",
@@ -278,13 +280,13 @@ def main() -> None:
     parser.add_argument(
         "--layers-dir",
         type=Path,
-        default=LAYERS_DIR,
-        help=f"Path to the Layers output directory (default: {LAYERS_DIR})",
+        required=True,
+        help="Path to the Layers output directory holding the built per-frame NAC folders (required)",
     )
     parser.add_argument(
-        "--ms3-layer-name",
-        default=MS3_LAYER_NAME,
-        help=f"Name of the parent MS3 Layer record in AEGIS (default: {MS3_LAYER_NAME!r})",
+        "--layer-name",
+        default=DEFAULT_LAYER_NAME,
+        help=f"Name of the parent Layer record in AEGIS (default: {DEFAULT_LAYER_NAME!r})",
     )
     parser.add_argument(
         "--dry-run",
@@ -306,7 +308,7 @@ def main() -> None:
         base_url=args.base_url,
         token=token,
         layers_dir=args.layers_dir,
-        ms3_layer_name=args.ms3_layer_name,
+        layer_name=args.layer_name,
         dry_run=args.dry_run,
     )
 
