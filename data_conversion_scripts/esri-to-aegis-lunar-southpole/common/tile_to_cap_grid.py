@@ -338,12 +338,19 @@ def tile_raster(
                             patch_scaled[0, :src_row1c, :src_col1c]
                         )
 
-                    # Alpha: 0 where nodata/0, 255 elsewhere
-                    luma = patch_scaled[0, :src_row1c, :src_col1c]
-                    if nodata is not None:
-                        alpha = np.where(luma == int(nodata), 0, 255).astype(np.uint8)
+                    # Alpha. If the source already carries an alpha band (RGBA, e.g. a
+                    # colorized slope/aspect/TRI product), honour it directly — inferring
+                    # transparency from band 0 would wrongly clip valid colours whose red
+                    # channel is 0 (e.g. the darkest TRI class rgb(0,38,115)). Otherwise
+                    # fall back to "transparent where band 0 == nodata/0".
+                    if bands >= 4:
+                        alpha = patch_scaled[3, :src_row1c, :src_col1c].astype(np.uint8)
                     else:
-                        alpha = np.where(luma == 0, 0, 255).astype(np.uint8)
+                        luma = patch_scaled[0, :src_row1c, :src_col1c]
+                        if nodata is not None:
+                            alpha = np.where(luma == int(nodata), 0, 255).astype(np.uint8)
+                        else:
+                            alpha = np.where(luma == 0, 0, 255).astype(np.uint8)
                     tile_arr[dst_px_top:dst_row1c, dst_px_left:dst_col1c, 3] = alpha
 
                     if not np.any(tile_arr[:, :, 3]):

@@ -60,6 +60,8 @@ TILE_TO_CAP_GRID = ROOT / "common" / "tile_to_cap_grid.py"
 STRETCH_TO_8BIT = ROOT / "nac" / "stretch_to_8bit.py"
 COLORIZE_SLOPE = ROOT / "slope" / "colorize_slope.py"
 SHP_TO_GEOJSON = ROOT / "vector" / "shp_to_geojson.py"
+DEM_PRODUCTS = ROOT / "products" / "dem_products.py"
+WRITE_PROPERTIES = ROOT / "properties" / "write_properties.py"
 
 
 # ---------------------------------------------------------------------------
@@ -124,6 +126,28 @@ def is_uint8(raster: Path) -> bool:
         return False
 
 
+def write_properties(
+    layer_dir: Path,
+    processing: str,
+    name: str,
+    *,
+    ramp: Path | None = None,
+    units: str | None = None,
+) -> None:
+    """Write an AEGIS properties.json into a tile-layer dir (legend from a colour ramp)."""
+    cmd: list[str | Path] = [
+        PYTHON, WRITE_PROPERTIES,
+        "--processing", processing,
+        "--name", name,
+        "--out", layer_dir / "properties.json",
+    ]
+    if ramp is not None:
+        cmd += ["--ramp", ramp]
+    if units is not None:
+        cmd += ["--units", units]
+    run(cmd)
+
+
 # ---------------------------------------------------------------------------
 # Steps  (each takes the resolved paths + the overwrite flag)
 # ---------------------------------------------------------------------------
@@ -160,6 +184,7 @@ def step_nac(p: config.PipelinePaths, overwrite: bool) -> None:
     if is_uint8(p.nac_mosaic):
         print("  mosaic is already 8-bit — tiling directly (no stretch)")
         run([PYTHON, TILE_TO_CAP_GRID, p.nac_mosaic, p.nac_layer])
+        write_properties(p.nac_layer, "nac", config.OUT_NAC_LAYER_NAME)
         return
 
     scratch = p.out / "scratch"
@@ -178,6 +203,7 @@ def step_nac(p: config.PipelinePaths, overwrite: bool) -> None:
             ]
         )
         run([PYTHON, TILE_TO_CAP_GRID, stretched, p.nac_layer])
+        write_properties(p.nac_layer, "nac", config.OUT_NAC_LAYER_NAME)
     finally:
         stretched.unlink(missing_ok=True)
         try:
@@ -201,8 +227,52 @@ def step_slope(p: config.PipelinePaths, overwrite: bool) -> None:
     try:
         run(colorize_cmd)
         run([PYTHON, TILE_TO_CAP_GRID, p.slope_rgba, p.slope_layer])
+        # Legend from slope.txt — the same standard the .lyrx encodes, so the legend
+        # matches the colorized tiles regardless of which slope source was used.
+        write_properties(
+            p.slope_layer, "slope", config.OUT_SLOPE_LAYER_NAME,
+            ramp=config.COLOR_RAMPS_DIR / "slope.txt", units=config.PRODUCT_UNITS["slope"],
+        )
     finally:
         p.slope_rgba.unlink(missing_ok=True)
+
+
+def step_products(p: config.PipelinePaths, overwrite: bool) -> None:
+    """Derive standardized products from the DEM → colorize → tile (one layer each).
+
+    Default products are hillshade/aspect/tri (config.PRODUCTS_DEFAULT); slope is left to the
+    dedicated `slope` step, which uses the identical colour standard.
+    """
+    banner("products — DEM → slope/hillshade/aspect/tri → cap-grid tile layers")
+    require_input(p.dem_in, "DEM GeoTIFF", "--dem")
+
+    layer_name = {
+        "hillshade": config.OUT_HILLSHADE_LAYER_NAME,
+        "aspect": config.OUT_ASPECT_LAYER_NAME,
+        "tri": config.OUT_TRI_LAYER_NAME,
+        "slope": config.OUT_SLOPE_LAYER_NAME,
+    }
+
+    scratch = p.out / "scratch_products"
+    scratch.mkdir(parents=True, exist_ok=True)
+    try:
+        run([PYTHON, DEM_PRODUCTS, "--dem", p.dem_in, "--out", scratch,
+             "--products", *config.PRODUCTS_DEFAULT])
+        for product in config.PRODUCTS_DEFAULT:
+            layer_dir = p.layers / layer_name[product]
+            if not clear_layer_dir(layer_dir, overwrite):
+                continue
+            run([PYTHON, TILE_TO_CAP_GRID, scratch / f"{product}.tif", layer_dir])
+            ramp = None if product == "hillshade" else config.COLOR_RAMPS_DIR / f"{product}.txt"
+            units = config.PRODUCT_UNITS.get(product)
+            write_properties(layer_dir, product, layer_name[product], ramp=ramp, units=units)
+    finally:
+        for product in config.PRODUCTS_DEFAULT:
+            (scratch / f"{product}.tif").unlink(missing_ok=True)
+        try:
+            scratch.rmdir()
+        except OSError:
+            pass
 
 
 def step_vector(p: config.PipelinePaths, overwrite: bool) -> None:
@@ -222,6 +292,7 @@ STEPS: list[tuple[str, str]] = [
     ("dem", "DEM GeoTIFF → clean COG (demFilePath)"),
     ("nac", "NAC mosaic → stretch (if float) → tile to one cap-grid layer"),
     ("slope", "Slope float → colorize → tile to one cap-grid layer"),
+    ("products", "DEM → hillshade/aspect/tri → colorize → tile (one layer each)"),
     ("vector", "Landing-ellipse shapefile → GeoJSON"),
 ]
 
@@ -230,6 +301,7 @@ STEP_FNS = {
     "dem": step_dem,
     "nac": step_nac,
     "slope": step_slope,
+    "products": step_products,
     "vector": step_vector,
 }
 
@@ -272,7 +344,12 @@ def _trim(raw: str | None, fallback: str = _TBD) -> str:
 
 
 def _first_built_tmr(p: config.PipelinePaths) -> Path | None:
-    for layer in (p.nac_layer, p.slope_layer):
+    product_layers = [p.layers / n for n in (
+        config.OUT_HILLSHADE_LAYER_NAME,
+        config.OUT_ASPECT_LAYER_NAME,
+        config.OUT_TRI_LAYER_NAME,
+    )]
+    for layer in (p.nac_layer, p.slope_layer, *product_layers):
         tmr = layer / "tilemapresource.xml"
         if tmr.exists():
             return tmr
@@ -331,11 +408,14 @@ def print_aegis_summary(p: config.PipelinePaths) -> None:
     row("demResolution", "1.0")
     row("NAC tile layer", f"Layers/{config.OUT_NAC_LAYER_NAME}/  {mark(p.nac_layer)}")
     row("Slope tile layer", f"Layers/{config.OUT_SLOPE_LAYER_NAME}/  {mark(p.slope_layer)}")
+    for name in (config.OUT_HILLSHADE_LAYER_NAME, config.OUT_ASPECT_LAYER_NAME, config.OUT_TRI_LAYER_NAME):
+        row(f"{name.capitalize()} tile layer", f"Layers/{name}/  {mark(p.layers / name)}")
     row("Landing ellipse (vector)", f"Data/{config.OUT_ELLIPSE_NAME}  {mark(p.ellipse_out)}")
     print("  └───────────────────────────────────────────────────────────────┘")
     print(
         '\n  Tile layers (type "tile"): urlTemplate Layers/<name>/{z}/{x}/{y}.png, '
-        'tileFormat "tms".'
+        'tileFormat "tms".  Each writes a properties.json (name/description/legend) the '
+        "admin auto-imports."
     )
     print(
         '  Vector (type "vector"): dataProjection EPSG:4326, '
