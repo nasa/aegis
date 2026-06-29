@@ -1,7 +1,0 @@
-README.md
-pyproject.toml
-aegis_data_conversion.egg-info/PKG-INFO
-aegis_data_conversion.egg-info/SOURCES.txt
-aegis_data_conversion.egg-info/dependency_links.txt
-aegis_data_conversion.egg-info/requires.txt
-aegis_data_conversion.egg-info/top_level.txt

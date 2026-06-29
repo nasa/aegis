@@ -1,8 +1,0 @@
-Metadata-Version: 2.4
-Name: aegis-data-conversion
-Version: 0.1.0
-Summary: Data conversion utilities for AEGIS — extract ArcGIS bundles, build COGs, generate tile pyramids.
-Requires-Python: >=3.10
-Requires-Dist: pmtiles>=3.2.0
-Requires-Dist: mapbox-vector-tile>=2.2.0
-Requires-Dist: pillow>=12.2.0
