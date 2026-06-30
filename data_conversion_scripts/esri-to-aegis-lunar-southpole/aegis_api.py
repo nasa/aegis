@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tiny HTTP client for the AEGIS REST API (mission / layer / sublayer).
+"""Tiny HTTP client for the AEGIS REST API (mission / layer / sublayer / grid).
 
 Stdlib-only (``urllib``) so it runs under a bare ``.venv`` as well as ``pixi`` — the
 ``register`` step in ``main.py`` needs no geospatial imports.
@@ -9,13 +9,16 @@ passed explicitly — same convention as ``nac/examples/per_frame_layers/``.
 
 Endpoints used:
   * ``POST   /api/v1/missionAutomerge/fields`` — set GIS/setup fields on the mission doc
-  * ``GET    /api/v1/layer?missionId=``  — list header layers
-  * ``POST   /api/v1/layer``             — upsert header layers
+  * ``GET    /api/v1/layer?missionId=``    — list header layers
+  * ``POST   /api/v1/layer``               — upsert header layers
   * ``GET    /api/v1/sublayer?missionId=`` — list sublayers
-  * ``POST   /api/v1/sublayer``          — upsert sublayers
+  * ``POST   /api/v1/sublayer``            — upsert sublayers
+  * ``GET    /api/v1/grid?missionId=``     — list grid metadata
+  * ``POST   /api/v1/grid``                — upsert grids (writes the active grid's coords to Data/)
 
-All AEGIS responses are ``WrappedResponse`` ``{status, message, data?}`` where ``status``
-is ``"success"`` (some legacy routes use ``"ok"``); :meth:`AegisApiClient._unwrap` checks both.
+All AEGIS responses are ``WrappedResponse`` ``{status, message, data?}`` with ``status`` of
+``"success"`` | ``"failure"`` | ``"error"``; :meth:`AegisApiClient._unwrap` also accepts
+``"ok"`` defensively.
 """
 
 from __future__ import annotations

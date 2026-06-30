@@ -9,8 +9,9 @@ delivered symbology can be used **instead of** the built-in default ramp.
 The emitted table uses **duplicate values at each class boundary** so gdaldem's linear
 interpolation renders a flat colour across each bin (matching ArcGIS's classified rendering)
 even on float rasters whose pixel values never match a table entry exactly — the same
-technique as ``slope/colorize_slope.py``. Output is byte-compatible with
-``properties/write_properties.py`` (which reads the ramp to build the AEGIS legend) and with
+technique as ``slope/colorize_slope.py``. The output uses the same ramp format as
+``products/default_color_ramps/*.txt``, so it is consumed unchanged by
+``properties/write_properties.py`` (which reads the ramp to build the AEGIS legend) and by
 ``products/dem_products.py`` (which feeds it to ``gdaldem color-relief``).
 
 Usage

@@ -39,7 +39,7 @@ for _s in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError):
         pass
 
-# boxsdk emits a lot of red preflight noise; chunk-upload threads tuned to match lunar_utils.
+# Box's chunked uploader has a 20 MB minimum; smaller files use a plain single-shot upload.
 _MIN_CHUNKED_BYTES = 20_000_000
 
 

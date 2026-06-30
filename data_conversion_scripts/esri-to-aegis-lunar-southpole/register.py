@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-"""Register a built mission into AEGIS over HTTP (mission fields + layers + sublayers).
+"""Register a built mission into AEGIS over HTTP (mission fields + layers + sublayers + grid).
 
 Given a built output root (``<static>/missionFiles/<id>`` with ``Data/`` and ``Layers/``)
 and an existing mission id, this:
 
-  1. Updates the mission's GIS/setup fields (projection cap-grid profile, lander
-     location, demFilePath/demResolution, name) via ``POST /api/v1/missionAutomerge/fields``.
+  1. Updates the mission's GIS/setup fields (projection cap-grid profile, lander location,
+     demFilePath/demResolution, name, actionSystemVersion=2, usingLGRSCoordinates=true) via
+     ``POST /api/v1/missionAutomerge/fields``.
   2. Ensures the header layers exist: ``Common_LSP`` (external NAC basemap only),
      ``Raster`` (all tiled layers), ``Vector`` (all GeoJSON layers).
   3. Builds one sublayer per built ``Layers/<dir>`` (boundingBox/zoom from each
      ``tilemapresource.xml``; name/description/legend/tilePattern from ``properties.json``
      if present), one per ``Data/*.geojson``, and the shared external NAC tile layer.
   4. Skips any sublayer whose (header, path) already exists, then POSTs the rest.
+  5. If a grid GeoJSON is present, POSTs it as the **active** mission grid via
+     ``POST /api/v1/grid`` (the server writes its coordinates to ``Data/<name>.json``).
 
 Stdlib-only (no geospatial imports) so it runs under ``.venv`` or ``pixi``.
 
