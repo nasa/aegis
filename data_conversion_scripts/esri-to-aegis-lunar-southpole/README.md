@@ -1,13 +1,17 @@
 # ESRI → AEGIS (lunar south pole)
 
-Turns an ArcGIS/ESRI GIS data drop into AEGIS-ready map products for a
-**lunar south-pole** mission, served as Leaflet-compatible PNG/TMS tile layers on
-the shared cap grid (origin `-931100`, `projResUnitsPerPixel = 12800`).
+Turns a GIS data drop into AEGIS-ready map products for a **lunar south-pole** mission,
+served as Leaflet-compatible PNG/TMS tile layers on the shared cap grid (origin
+`-931100`, `projResUnitsPerPixel = 12800`) **and registers them on a running AEGIS
+server** over HTTP.
 
-The pipeline is **mission-agnostic**: there are no mission numbers anywhere. You
-point it at an input data drop (`--src`) and an output root (`--out`) and it writes
-`Layers/` + `Data/` ready to register in AEGIS. The lunar south-pole cap grid is the
-single projection profile (see [`config.py`](config.py)).
+Given an existing mission id (created in the AEGIS admin), the pipeline writes products
+into `<static>/missionFiles/<id>/` (resolved from `STATIC_DIR` in the repo `.env`), then —
+opt-in — sets the mission's projection/DEM/lander fields, creates the `Common_LSP` /
+`Raster` / `Vector` header layers, and registers every generated layer as a sublayer. No
+admin "import from file" clicking required. It can also zip and upload the results to Box.
+
+The lunar south-pole cap grid is the single projection profile (see [`config.py`](config.py)).
 
 > First built for **A03MP026** (Mons Mouton Plateau) — see
 > [`docs/SITE_A03MP026-MONS-MOUTON-PLATEAU.md`](docs/SITE_A03MP026-MONS-MOUTON-PLATEAU.md)
@@ -19,14 +23,25 @@ single projection profile (see [`config.py`](config.py)).
 
 | Type         | Input                                    | Output                              | Process                                 |
 | ------------ | ---------------------------------------- | ----------------------------------- | --------------------------------------- |
-| **dem**      | DEM GeoTIFF                              | `Data/dem.tif` (COG)                | re-emit as clean COG                    |
+| **dem**      | DEM GeoTIFF                              | `Data/<source>_zstd.tif` (COG)      | re-emit as clean COG (keeps source name) |
 | **nac**      | single NAC mosaic raster (from GIS team) | `Layers/nac/` tile pyramid          | stretch (if float) → tile               |
 | **slope**    | slope float raster (°) + `.lyrx` ramp    | `Layers/slope/` tile pyramid        | colorize → tile                         |
-| **products** | the DEM (`--dem`)                        | `Layers/{hillshade,aspect,tri}/`    | derive from DEM → colorize → tile       |
+| **products** | the DEM (`--dem`)                        | `Layers/{hillshade,aspect,tri[,slope]}/` | derive from DEM → colorize → tile (`--products`) |
 | **vector**   | landing-ellipse shapefile                | `Data/ellipse.geojson`              | reproject to EPSG:4326                  |
+| **rasters**  | custom rasters (`--raster`, repeatable)  | `Layers/<stem>/` tile pyramid each  | stretch (if float) → tile               |
+| **vectors**  | custom vectors (`--vector`, repeatable)  | `Data/<stem>.geojson` each          | shp → reproject; geojson copied         |
+| **grid**     | lander `--lander-lat/--lander-lng`       | `grid_source.geojson` (10 km dflt)  | LGRS grid → AEGIS mission-grid GeoJSON  |
+| **register** | the built `<out>` + `--mission-id`       | mission fields + sublayers + active grid | POST fields + layers/sublayers + grid |
+| **box**      | the built `<out>` + `--mission-name`     | zips uploaded to Box (parallel)     | zip `Data/` + each layer → upload       |
 
 Every tile layer also gets a `properties.json` (name/description/legend) that the AEGIS
-admin auto-imports — see [`properties/`](properties/).
+admin auto-imports — see [`properties/`](properties/). The **register** step reads those
+sidecars (plus each `tilemapresource.xml`) to build sublayers directly via the REST API:
+external NAC → `Common_LSP` header, tile layers → `Raster` header, GeoJSON → `Vector` header.
+It also POSTs the **mission grid** (active) and sets the mission GIS fields, including
+`actionSystemVersion = 2` and `usingLGRSCoordinates = true`. Steps run only when their inputs
+are present (default), or pick explicitly with `--steps`. Each run writes a
+`Data/conversion_report.md` capturing the full console log + per-step timings.
 
 ## Standalone converters (inputs not part of the ESRI drop)
 
@@ -43,8 +58,12 @@ admin auto-imports — see [`properties/`](properties/).
 
 ```text
 esri-to-aegis-lunar-southpole/
-├── main.py            # pipeline runner (--out / --src / --steps)
-├── config.py          # cap-grid projection profile + path resolution (all the mission/site bits)
+├── main.py            # thin CLI runner (--mission-id / --src / --steps / --register / --box)
+├── pipeline/          # runner internals: reporting (output capture), steps, summary
+├── config.py          # cap-grid profile + path resolution + header/external-NAC constants
+├── aegis_api.py       # stdlib HTTP client for the AEGIS REST API (mission/layer/sublayer/grid)
+├── register.py        # build + POST mission fields, header layers, sublayers, active grid
+├── box_publish.py     # zip Data/ + each layer and upload to Box, in parallel (ported BoxClient)
 ├── common/            # shared across data types + general raster tools
 │   ├── tile_to_cap_grid.py   # tile any raster onto the south-pole cap grid (NAC + slope)
 │   ├── geotiff_to_cog.py     # GeoTIFF → Cloud-Optimised GeoTIFF
@@ -57,8 +76,9 @@ esri-to-aegis-lunar-southpole/
 ├── slope/
 │   └── colorize_slope.py     # .lyrx colour standard → 8-bit RGBA
 ├── products/          # DEM-derived products (slope/hillshade/aspect/tri)
-│   ├── dem_products.py       # DEM → product rasters via gdal.DEMProcessing
-│   └── color_ramps/          # standard AEGIS colour treatment (single source of truth)
+│   ├── dem_products.py       # DEM → product rasters via gdal.DEMProcessing (+ --*-lyrx)
+│   ├── lyrx_to_ramp.py       # ArcGIS .lyrx symbology → gdaldem color-relief ramp
+│   └── default_color_ramps/  # built-in fallback ramps (used when no .lyrx is delivered)
 ├── properties/
 │   └── write_properties.py   # GDAL colour ramp → AEGIS properties.json (name/description/legend)
 ├── grid/
@@ -91,25 +111,62 @@ rasterio / fiona stack is on PATH:
 ```bash
 cd data_conversion_scripts
 
-# Full pipeline (provide the GIS-delivered NAC mosaic)
+# Full pipeline for an existing mission: build products, register, and upload to Box.
+# Output folder is <static>/missionFiles/<mission-id> (STATIC_DIR from the repo .env).
 pixi run python esri-to-aegis-lunar-southpole/main.py \
-    --out F:/_repos/aegis_static/<env> \
-    --nac-mosaic F:/path/to/nac_mosaic.tif
+    --aegis-url http://localhost:4000 \
+    --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --lander-lat -84.223397 --lander-lng 33.5021945 \
+    --dem F:/drop/dem.tif --products hillshade slope aspect tri \
+    --nac-mosaic F:/drop/nac_mosaic.tif \
+    --raster F:/drop/keepout.tif --vector F:/drop/stations.shp \
+    --register --box
 
-# Selected steps (names or indices)
-pixi run python esri-to-aegis-lunar-southpole/main.py --out <dir> --steps dem vector
-pixi run python esri-to-aegis-lunar-southpole/main.py --out <dir> --from slope
+# DEM-only mission (A03MP026 MS3): derive all four products from the DEM + LGRS grid.
+# The grid step runs automatically when a lander location is given (default 10 km square).
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --lander-lat -84.223397 --lander-lng 33.5021945 \
+    --src F:/tempF/MS3_data_drop \
+    --products hillshade slope aspect tri \
+    --grid-extent 10km --grid-precision 100 \
+    --register --box
+
+# Selected steps (names or indices) — e.g. only (re)register without rebuilding tiles
+pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --steps register
+pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --from slope
+
+# Preview the registration without calling the API
+pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --steps register --dry-run
 
 # List steps / print the AEGIS admin input summary
 pixi run python esri-to-aegis-lunar-southpole/main.py --list
-pixi run python esri-to-aegis-lunar-southpole/main.py --out <dir> --summary
+pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --summary
 ```
 
-Steps: `0 stage · 1 dem · 2 nac · 3 slope · 4 products · 5 vector` (default = all). Inputs
-default to the A03MP026 layout under `--src`; override any of them with `--dem`, `--slope`,
-`--lyrx`, `--ellipse`, `--nac-mosaic`. The `products` step derives hillshade/aspect/tri from
-the DEM (slope is left to the dedicated `slope` step, which uses the identical colour
-standard — see [`products/README.md`](products/README.md)).
+Steps: `0 stage · 1 dem · 2 nac · 3 slope · 4 products · 5 vector · 6 rasters · 7 vectors ·
+8 grid · 9 register · 10 box`. By default the pipeline runs only the steps whose inputs are
+present — `grid` runs when a lander location is given, and `register`/`box` when
+`--register`/`--box` are passed; `--steps` overrides this.
+Inputs default to the A03MP026 layout under `--src`; override any with `--dem`, `--slope`,
+`--lyrx`, `--ellipse`, `--nac-mosaic`, `--raster`, `--vector`. Use `--out` to override the
+default `<static>/missionFiles/<id>` output root. The EMSS token is read from the repo
+`.env` (`EMSS_TOKEN`) unless `--token` is passed.
+
+**DEM-derived products.** The `products` step defaults to **hillshade, aspect, tri**; the
+dedicated `slope` step is preferred when a GIS-delivered slope raster + `.lyrx` exist. When
+the **only** input is a DEM (e.g. the A03MP026 MS3 drop), derive all four straight from the
+DEM with `--products hillshade slope aspect tri`. The **TRI** colour ramp is
+resolution-dependent — the step auto-selects
+`default_color_ramps/ARCHIVE/TRIColors_{1m,5m,10m}_DEM.txt` to match `--dem-resolution`
+(falling back to the legacy `tri.txt`), so set `--dem-resolution` to your DEM's m/px.
+
+**Provided symbology (`.lyrx`).** When the GIS team delivers product symbology as an ArcGIS
+`.lyrx` (e.g. `AMPES_Slope 1.lyrx`), pass it with `--lyrx` and the `products`/`slope` steps
+use it **instead of** the built-in `default_color_ramps/` ramp — for both the colorize and the
+AEGIS legend. `products/lyrx_to_ramp.py` converts the `.lyrx` to a `gdaldem color-relief` ramp
+(it can also be run standalone, or fed to `dem_products.py` via `--slope-lyrx`/`--aspect-lyrx`/
+`--tri-lyrx`). The `default_color_ramps/` are only the fallback when no `.lyrx` is provided.
 
 ### Inputs (defaults, relative to `--src`)
 
@@ -120,39 +177,121 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
 <delivered separately>                             # nac mosaic → pass --nac-mosaic
 ```
 
-### Outputs (under `--out`)
+### Outputs (under `<static>/missionFiles/<id>`)
 
 ```text
 <out>/
+├── grid_source.geojson           # AEGIS mission-grid GeoJSON (register POSTs it; not in Data/)
 ├── Data/
-│   ├── dem.tif            # demFilePath
-│   └── ellipse.geojson    # vector sublayer
+│   ├── <source>_zstd.tif         # demFilePath (keeps the source filename, e.g. mp2-sfs-dem_MoonSP_COG_zstd.tif)
+│   ├── ellipse.geojson           # vector sublayer (if a vector step ran)
+│   ├── LGRS.json                 # active grid coordinates (written by the grid API on register)
+│   └── conversion_report.md      # captured run log + per-step timings
 └── Layers/
-    ├── nac/               # tile sublayer  → Layers/nac/{z}/{x}/{y}.png  (+ properties.json)
-    ├── slope/             # tile sublayer  (+ properties.json with legend)
-    ├── hillshade/         # tile sublayer  (no legend)
-    ├── aspect/            # tile sublayer  (+ properties.json with legend)
-    └── tri/               # tile sublayer  (+ properties.json with legend)
+    ├── nac/                      # tile sublayer  → Layers/nac/{z}/{x}/{y}.png  (+ properties.json)
+    ├── slope/                    # tile sublayer  (+ properties.json with legend)
+    ├── hillshade/                # tile sublayer  (no legend)
+    ├── aspect/                   # tile sublayer  (+ properties.json with legend)
+    └── tri/                      # tile sublayer  (+ properties.json with legend)
 ```
 
 Each `Layers/<name>/` also contains a `tilemapresource.xml` (bbox + zoom) and a
-`properties.json` (name/description/legend) — both auto-imported by the admin.
+`properties.json` (name/description/legend) — both auto-imported by the admin. The DEM COG
+keeps its source filename (with a `_zstd` suffix) so `demFilePath` is self-describing.
 
 ---
 
 ## AEGIS import
 
-`--summary` prints the exact admin values. Mission projection (fixed, lunar south pole):
+The **`register` step** does all of this over HTTP (idempotent — re-running skips
+already-registered `(header, path)` pairs):
 
-- `projIsCustom = true`, `projEpsg = "IAU2000:30166"`
-- `projOriginX = projOriginY = -931100`, `projResZoomLevel = 0`, `projResUnitsPerPixel = 12800`
-- `projBounds = ±931100`, `planetRadius = 1737400`
+- **Mission fields** — `POST /api/v1/missionAutomerge/fields` sets the fixed lunar south-pole
+  projection (`projIsCustom=true`, `projEpsg="IAU2000:30166"`, `projOrigin = -931100`,
+  `projResZoomLevel=0`, `projResUnitsPerPixel=12800`, `projBounds = ±931100`,
+  `planetRadius=1737400`), plus `name`, `landerLocation`, `demFilePath`, `demResolution`,
+  `actionSystemVersion=2`, and `usingLGRSCoordinates=true`.
+  (This endpoint exists specifically so external tooling can set mission GIS fields, which
+  otherwise live only in the Automerge doc; see `src/server/express/routes/missionAutomerge.ts`.)
+- **Header layers** — `POST /api/v1/layer` creates `Common_LSP` (external NAC only),
+  `Raster` (all tile layers), and `Vector` (all GeoJSON), as needed.
+- **Sublayers** — `POST /api/v1/sublayer`: each `tile` sublayer
+  (`path = <folder>`, `tilePattern "{z}/{x}/{y}.png"`, `tileFormat "tms"`), the ellipse +
+  custom GeoJSON as `vector` sublayers (`path = <file>.geojson`), and the shared external
+  NAC (`path = <S3 base URL>`). bbox/zoom come from each `tilemapresource.xml`;
+  name/description/legend from each `properties.json`.
+- **Mission grid** — `POST /api/v1/grid` (with `upsertFullGrid`) uploads `grid_source.geojson`
+  as the **active** grid: the server writes its coordinates to `Data/LGRS.json` and sets the
+  mission's `activeGridUuid`. Replaces the manual upload at `/admin/mission_grid/<id>`.
 
-Register each tile layer as a `tile` sublayer (`urlTemplate Layers/<name>/{z}/{x}/{y}.png`,
-`tileFormat "tms"`); the ellipse as a `vector` sublayer (`dataProjection EPSG:4326`,
-`featureProjection IAU2000:30166`); the DEM as `demFilePath`. The admin auto-imports each
-layer's `properties.json` (name/description/legend) and reads bbox/zoom from its
-`tilemapresource.xml`.
+`--summary` prints the exact field values without calling the API. `--dry-run` previews the
+register/box actions. Run `register` alone with `--steps register` to (re)register an
+already-built mission folder.
+
+### Registering on another server (e.g. prod) after a local build + Box upload
+
+Promote a locally-built mission to a different AEGIS server (e.g.
+`https://aegis.fit.nasa.gov/`). The data files travel via Box; only the layer/mission
+**metadata** is (re)registered against the target server with this script.
+
+**Prerequisites for the prod step**
+
+- The mission already **exists on prod** — an admin creates it in the prod admin first and
+  notes its `<PROD_ID>` (it will differ from your `<LOCAL_ID>`).
+- You have a **prod EMSS token** with edit permission. Pass it with `--token` (the repo
+  `.env` `EMSS_TOKEN` is for local only — do not rely on it for prod).
+- The data is on prod: the admin downloads the Box zips for the mission and unzips them into
+  prod's `missionFiles/<PROD_ID>/` so it contains `Data/` and `Layers/`.
+- You still have the **local build** on disk (`<static>/missionFiles/<LOCAL_ID>`) — the
+  script reads it to discover which layers to register.
+
+**Step 1 — local: build, register on localhost, upload to Box**
+
+```bash
+cd data_conversion_scripts
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --aegis-url http://localhost:4000 \
+    --mission-id <LOCAL_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --lander-lat -84.223397 --lander-lng 33.5021945 \
+    --dem F:/drop/dem.tif --nac-mosaic F:/drop/nac_mosaic.tif \
+    --register --box
+```
+
+**Step 2 — admin (manual):** create the mission on prod (note `<PROD_ID>`), download the
+Box zips for `"A03MP026 - ART3 Surface EVA MS 3"`, and unzip them into prod's
+`missionFiles/<PROD_ID>/{Data,Layers}`.
+
+**Step 3 — register on prod (no rebuild, no Box):** preview first with `--dry-run`, then run.
+
+```bash
+# preview
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --aegis-url https://aegis.fit.nasa.gov \
+    --mission-id <PROD_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --lander-lat -84.223397 --lander-lng 33.5021945 \
+    --out F:/_repos/aegis_static/missionFiles/<LOCAL_ID> \
+    --token <PROD_EMSS_TOKEN> --steps register --dry-run
+
+# run for real (drop --dry-run)
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --aegis-url https://aegis.fit.nasa.gov \
+    --mission-id <PROD_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --lander-lat -84.223397 --lander-lng 33.5021945 \
+    --out F:/_repos/aegis_static/missionFiles/<LOCAL_ID> \
+    --token <PROD_EMSS_TOKEN> --steps register
+```
+
+**Step 4 — verify:** open the mission on prod and confirm the `Common_LSP` / `Raster` /
+`Vector` header layers and their sublayers appear and draw. Re-running `register` is safe —
+it skips `(header, path)` pairs that already exist.
+
+**Why it works across servers:** internal sublayer `path`s are just **folder names** (e.g.
+`slope`), and bbox/zoom/legend come from the built sidecars — none depend on the mission id.
+So the only prod-specific values are `--aegis-url`, `--token`, and `--mission-id`. `--out`
+points at the **local** build (whose id differs from prod's) so the script knows which layers
+to register; the `missionId` written into every payload is `<PROD_ID>`. (If you instead run
+the script *on* the prod host after unzipping, `missionFiles/<PROD_ID>` already exists, so
+you can drop `--out`.)
 
 Other AEGIS import targets produced by the standalone converters:
 

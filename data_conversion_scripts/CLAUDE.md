@@ -7,8 +7,11 @@ Python toolset** (its own pixi/uv environment), separate from the TypeScript app
 
 Scripts that convert GIS data drops into AEGIS-ready map artifacts: cap-grid tile pyramids,
 COGs, GeoJSON, mission grids, time-aware layers, and the `properties.json` / `manifest.json`
-sidecars the AEGIS admin imports. It supersedes the legacy `../../lunar_utils/lunar_utils/aegis`
-package — see [`esri-to-aegis-lunar-southpole/docs/LEGACY-COVERAGE.md`](esri-to-aegis-lunar-southpole/docs/LEGACY-COVERAGE.md).
+sidecars. Beyond producing files, the main pipeline also **registers a mission on a running
+AEGIS server over HTTP** (mission GIS fields, header layers, sublayers, active grid) and can
+**zip + upload the results to Box** — so a generated mission needs no admin "import from file"
+clicking. It supersedes the legacy `../../lunar_utils/lunar_utils/aegis` package — see
+[`esri-to-aegis-lunar-southpole/docs/LEGACY-COVERAGE.md`](esri-to-aegis-lunar-southpole/docs/LEGACY-COVERAGE.md).
 
 ## Environment & commands
 
@@ -33,16 +36,24 @@ pixi run python <script>.py ...
 ## Layout
 
 - [`esri-to-aegis-lunar-southpole/`](esri-to-aegis-lunar-southpole/) — main pipeline (lunar
-  **south-pole cap grid**). `main.py` runner; `config.py` holds the cap-grid projection
-  profile + path resolution; `common/` shared raster tools; one folder per concern
-  (`dem nac slope products vector grid timeaware properties`).
+  **south-pole cap grid**). `main.py` is a thin CLI; `pipeline/` holds the runner internals
+  (`reporting` output-capture, `steps`, `summary`); `config.py` holds the cap-grid projection
+  profile + path resolution + header/external-NAC/grid constants; `aegis_api.py` /
+  `register.py` / `box_publish.py` do the HTTP registration + Box upload; `common/` shared
+  raster tools; one folder per concern (`dem nac slope products vector grid timeaware
+  properties`). `products/lyrx_to_ramp.py` converts GIS-delivered ArcGIS `.lyrx` symbology to
+  gdaldem ramps; `products/default_color_ramps/` are the built-in fallback ramps.
 - [`mercator/`](mercator/) — Mercator/global tiling for **non-polar / Earth** data.
 
 ## Conventions for new/edited scripts
 
-- **Run-by-path, not importable.** Scripts are invoked as `pixi run python <path>.py` and
-  orchestrate sub-scripts via `subprocess` (see `main.py`). There are no console entry points
-  and nothing is imported as a dotted package (the dir name is hyphenated on purpose).
+- **Run-by-path geo sub-scripts; package-imported orchestration.** The per-concern geo
+  scripts (`common/`, `dem/`, `nac/`, `slope/`, `products/`, `vector/`, `grid/`, `timeaware/`)
+  are invoked as `pixi run python <path>.py` and orchestrated via `subprocess` (see
+  `pipeline/steps.py`). The orchestration layer is the exception: `main.py` imports its
+  same-dir modules (`config`, `aegis_api`, `register`, `box_publish`) and the `pipeline/`
+  package directly — `sys.path[0]` is the runner's dir, so those imports resolve while the
+  hyphenated parent never needs to. New geo sub-scripts stay run-by-path + self-contained.
 - **UTF-8 shim.** Start each CLI by reconfiguring `sys.stdout/stderr` to UTF-8 (Windows
   consoles default to cp1252 and crash on `→`/`≥`). Copy the pattern from any existing script.
 - **argparse CLI**, `from __future__ import annotations`, lazy heavy imports where it helps.
@@ -62,13 +73,25 @@ pixi run python <script>.py ...
   **one** time-based sublayer per mission.
 - **Mission grid GeoJSON**: top-level `row_total`/`column_total`/`name`/`crs` + Point features
   with `id, LGRS_ACC, L_coord, R_coord, row, column` (see `grid/convert_lgrs.py`).
-- **DEM** is registered as the mission `demFilePath`/`demResolution`, not a sublayer.
+- **DEM** is registered as the mission `demFilePath`/`demResolution`, not a sublayer. The COG
+  keeps its source filename with a `_zstd` suffix (e.g. `Data/mp2-sfs-dem_MoonSP_COG_zstd.tif`).
+- **HTTP registration** (the `register` step, `register.py` + `aegis_api.py`) replaces admin
+  clicking: `POST /api/v1/missionAutomerge/fields` (projection/DEM/lander/`actionSystemVersion=2`/
+  `usingLGRSCoordinates=true`), `POST /api/v1/layer` (Common_LSP/Raster/Vector header layers),
+  `POST /api/v1/sublayer`, and `POST /api/v1/grid` (active grid → `Data/<name>.json`). The
+  server-side endpoint `POST /api/v1/missionAutomerge/fields` exists specifically for this (the
+  app otherwise mutates the mission only via the Automerge websocket). Each run also writes a
+  `Data/conversion_report.md` (full console log + per-step timings).
 
 ## Gotchas
 
-- **Colour standards** in `products/color_ramps/` are the single source of truth.
-  `slope.txt` is **identical** to the GIS-team `AMPES_Slope 1.lyrx`; keep them in sync.
-  **TRI is resolution-dependent** — pick a ramp from `color_ramps/ARCHIVE/` per DEM resolution.
+- **Colour ramps**: `products/default_color_ramps/` are the **fallback** ramps. When the GIS
+  team delivers symbology as a `.lyrx`, the `slope`/`products` steps convert it
+  (`products/lyrx_to_ramp.py`) and use it **instead of** the default — for both the colorize
+  and the legend — so there is no longer a `slope.txt`↔`.lyrx` "keep in sync" burden (the
+  fallback `slope.txt` still matches the MS3 `AMPES_Slope 1.lyrx`). **TRI is
+  resolution-dependent** — the `products` step auto-selects `default_color_ramps/ARCHIVE/
+  TRIColors_{1m,5m,10m}_DEM.txt` to match `--dem-resolution`.
 - `tile_to_cap_grid.py` honours a real alpha band when input is RGBA; for ≤3-band input it
   infers transparency from band 0 == nodata/0. Colorized products should be RGBA so colours
   with red=0 (e.g. darkest TRI `rgb(0,38,115)`) aren't clipped.

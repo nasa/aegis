@@ -65,4 +65,15 @@ aegis-data-conversion = { path = ".", editable = true }
 lgrs = ">=0.3.0"
 geopandas = "*"
 
+# Pure-Python deps for the esri-to-aegis main.py `register` / `box` steps. Kept here (not in
+# [project.dependencies]) so pixi installs them directly into its env — newly-added
+# [project.dependencies] are not picked up without rebuilding the editable self-install above.
+# boxsdk is PINNED to the legacy 3.x line (CCGAuth client) ported from lunar_utils/box_client.py:
+# the `boxsdk` PyPI project's 10.x releases ship the incompatible new `box_sdk_gen` module, so a
+# `>=` constraint silently breaks box_publish.py. tqdm drives the upload progress bar;
+# python-dotenv reads Box/EMSS credentials from the .env.
+boxsdk = "==3.9.2"
+tqdm = ">=4.66.0"
+python-dotenv = ">=1.0.0"
+
 [tool.pixi.tasks]

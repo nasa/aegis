@@ -4,11 +4,13 @@
 **Site:** Mons Mouton Plateau (`A03MP026`)
 **Body:** Moon — South Pole
 **Target:** AEGIS Leaflet-first, cap-grid PNG/TMS tile layers
-**Output root:** chosen per environment via `main.py --out` (no mission number)
+**Output root:** `<static>/missionFiles/<mission-id>/` (from `main.py --mission-id`)
 
 This is the original data drop the pipeline was built against. Use it as a concrete
-example of the inputs and the resulting AEGIS settings; the pipeline itself is
-mission-agnostic.
+example of the inputs and the resulting AEGIS settings. The pipeline both builds the files
+and (opt-in) **registers them on a running AEGIS server** — mission GIS fields, header
+layers, sublayers, and the active LGRS grid — via the `register` step (see §1, and the
+pipeline README "AEGIS import" section).
 
 ---
 
@@ -16,8 +18,12 @@ mission-agnostic.
 
 Each data type is handled by the pipeline (`main.py`) as follows:
 
-- **DEM** — re-emit the 1 mpp DEM as a clean COG (`Data/dem.tif`), used as
-  `demFilePath`. Not a tile layer.
+- **DEM** — re-emit the 1 mpp DEM as a clean COG (keeps the source name, e.g.
+  `Data/mp2-sfs-dem_MoonSP_COG_zstd.tif`), used as `demFilePath`. Not a tile layer.
+- **Products** — derive hillshade/slope/aspect/TRI from the DEM (`--products`), colorized;
+  slope honours the GIS `.lyrx` symbology when provided.
+- **Grid** — generate the LGRS mission grid from the lander location (default 10 km) and
+  register it as the active grid.
 - **NAC** — the GIS team delivers a **single mosaic raster**; we contrast-stretch it
   (if it is float) and tile it onto the shared cap grid as **one** layer
   (`Layers/nac/`). We do **not** mosaic frames ourselves, and we do **not** ship one
@@ -110,31 +116,43 @@ ellipse paths can each be overridden on the CLI.
 ## 5. Expected output layout
 
 ```text
-<out>/
+<out>/                                  # <static>/missionFiles/<mission-id>/
+├── grid_source.geojson                # AEGIS mission-grid GeoJSON (register POSTs it)
 ├── Data/
-│   ├── dem.tif
-│   └── ellipse.geojson
+│   ├── mp2-sfs-dem_MoonSP_COG_zstd.tif # demFilePath (keeps source name)
+│   ├── ellipse.geojson
+│   ├── <grid>.json                    # active grid coordinates (written by the grid API)
+│   └── conversion_report.md           # captured run log + per-step timings
 └── Layers/
-    ├── nac/      # one NAC layer (from the GIS mosaic)
-    └── slope/    # optional slope overlay
+    ├── nac/                           # one NAC layer (from the GIS mosaic)
+    ├── slope/  hillshade/  aspect/  tri/   # DEM-derived products
+    └── <custom rasters>/
 ```
 
 ---
 
 ## 6. AEGIS import implications
 
-- Import the NAC and slope layers as `tile` sublayers
-  (`Layers/<name>/{z}/{x}/{y}.png`, `tileFormat "tms"`).
-- Import the ellipse as a `vector` sublayer (`dataProjection EPSG:4326`,
-  `featureProjection IAU2000:30166`).
-- Set the DEM as `demFilePath` (`Data/dem.tif`, `demResolution = 1.0`).
-- Keep mission projection settings on the `12800` cap grid; do not change the origin.
+The `register` step performs all of this over HTTP (no manual admin entry); the values below
+are what it sets:
+
+- NAC + DEM-derived products → `tile` sublayers under the `Raster` header
+  (`Layers/<name>/{z}/{x}/{y}.png`, `tileFormat "tms"`); the shared external NAC basemap →
+  the `Common_LSP` header.
+- Ellipse + custom vectors → `vector` sublayers under the `Vector` header
+  (`dataProjection EPSG:4326`, `featureProjection IAU2000:30166`).
+- DEM → `demFilePath` (`Data/mp2-sfs-dem_MoonSP_COG_zstd.tif`, `demResolution = 1.0`).
+- Mission projection on the `12800` cap grid (origin unchanged); `actionSystemVersion = 2`,
+  `usingLGRSCoordinates = true`; the LGRS grid set active.
 
 ---
 
 ## 7. Slope colour standard provenance
 
-The data drop did **not** include slope symbology. The `.lyrx` (`AMPES_Slope 1.lyrx`,
-ColorBrewer RdYlBu 10-class reversed + dark-purple hazard cap >20°) was obtained
-separately from the GIS team on 2026-06-16. `slope/colorize_slope.py` parses it
-directly to build the `gdaldem color-relief` table.
+The original data drop did **not** include slope symbology. The `.lyrx` (`AMPES_Slope 1.lyrx`,
+ColorBrewer RdYlBu 10-class reversed + dark-purple hazard cap >20°) was obtained separately
+from the GIS team on 2026-06-16; a later drop includes it at the `A03MP026/` root.
+`slope/colorize_slope.py` parses it directly, and `products/lyrx_to_ramp.py` converts it to a
+`gdaldem color-relief` ramp so the `slope`/`products` steps use the delivered symbology
+instead of the built-in `default_color_ramps/slope.txt` (which matches it). Pass it with
+`--lyrx`.

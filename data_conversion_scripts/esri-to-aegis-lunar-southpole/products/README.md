@@ -12,10 +12,10 @@ pixi run python esri-to-aegis-lunar-southpole/products/dem_products.py \
 
 | Product       | Engine (`gdal.DEMProcessing`) | Colour ramp                 | Output            |
 | ------------- | ----------------------------- | --------------------------- | ----------------- |
-| **slope**     | `slope` → `color-relief`      | `color_ramps/slope.txt`     | 8-bit RGBA GeoTIFF |
+| **slope**     | `slope` → `color-relief`      | `default_color_ramps/slope.txt`     | 8-bit RGBA GeoTIFF |
 | **hillshade** | `hillshade`                   | none (grayscale)            | 8-bit grayscale    |
-| **aspect**    | `aspect` → `color-relief`     | `color_ramps/aspect.txt`    | 8-bit RGBA GeoTIFF |
-| **tri**       | `TRI` → `color-relief`        | `color_ramps/tri.txt`       | 8-bit RGBA GeoTIFF |
+| **aspect**    | `aspect` → `color-relief`     | `default_color_ramps/aspect.txt`    | 8-bit RGBA GeoTIFF |
+| **tri**       | `TRI` → `color-relief`        | `default_color_ramps/tri.txt`       | 8-bit RGBA GeoTIFF |
 
 Then tile each with [`../common/tile_to_cap_grid.py`](../common/tile_to_cap_grid.py) and
 write a legend with [`../properties/write_properties.py`](../properties/). `main.py`'s
@@ -23,11 +23,12 @@ write a legend with [`../properties/write_properties.py`](../properties/). `main
 
 GDAL comes from **pixi/conda-forge** — no system GDAL install required.
 
-## Colour standards (`color_ramps/`)
+## Colour standards (`default_color_ramps/`)
 
-This folder is the **single source of truth** for AEGIS colour treatment. The ramps are
-GDAL `color-relief` text files (`value R G B [A]`, with `nv` = no-data). They were copied
-from the legacy `lunar_utils/aegis/color_ramps/`.
+These are the **built-in fallback ramps**, used when the GIS team does **not** deliver product
+symbology. When a `.lyrx` is provided (see "Provided symbology" below), it is converted and
+used instead. The ramps are GDAL `color-relief` text files (`value R G B [A]`, with `nv` =
+no-data), copied from the legacy `lunar_utils/aegis/default_color_ramps/`.
 
 | File                     | Legacy source             | Notes                                                                 |
 | ------------------------ | ------------------------- | -------------------------------------------------------------------- |
@@ -38,25 +39,29 @@ from the legacy `lunar_utils/aegis/color_ramps/`.
 | `comm_mask_4glte.txt`    | `4GLTE_Comm_Mask.txt`     | No generator here; kept as the AEGIS comm-mask standard.              |
 | `ARCHIVE/TRIColors_{1m,5m,10m}_DEM.txt` | same       | Resolution-specific TRI ramps — pass via `--tri-ramp` to match your DEM. |
 
-### Slope: `.lyrx` ↔ `slope.txt` equivalence
+## Provided symbology (`.lyrx`)
 
-The slope colour standard exists in two representations that **must stay in sync**:
+When the GIS team delivers product symbology as an ArcGIS `.lyrx` (e.g. `AMPES_Slope 1.lyrx`),
+it is used **instead of** the matching `default_color_ramps/` ramp — no manual ramp editing:
 
-- `slope/colorize_slope.py` reads the GIS-team **`AMPES_Slope 1.lyrx`** for the
-  GIS-delivered slope raster.
-- `products` / `properties` use **`color_ramps/slope.txt`** for the DEM-derived slope and
-  its legend.
+- [`lyrx_to_ramp.py`](lyrx_to_ramp.py) converts a `.lyrx` (`CIMRasterClassifyColorizer`) into
+  a `gdaldem color-relief` ramp, byte-compatible with `dem_products.py` and
+  `properties/write_properties.py` (so colorize and legend match).
+- `dem_products.py` accepts `--slope-lyrx` / `--aspect-lyrx` / `--tri-lyrx`; precedence per
+  product is `--*-lyrx` > `--*-ramp` > `default_color_ramps/`.
+- The `main.py` `slope` and `products` steps auto-use the `--lyrx` symbology when present (for
+  both the colorize and the AEGIS legend), falling back to `default_color_ramps/slope.txt`.
 
-Both encode the same bins (0–2° `rgb(49,54,149)` … 18–20° `rgb(215,48,39)`, >20°
-`rgb(48,31,66)`), so DEM-derived slope and GIS-delivered slope render identically. If the
-GIS team revises the `.lyrx`, update `slope.txt` to match.
+`slope.txt` encodes the same bins as the MS3 `AMPES_Slope 1.lyrx` (0–2° `rgb(49,54,149)` …
+18–20° `rgb(215,48,39)`, >20° `rgb(48,31,66)`), so the fallback renders identically to the
+delivered symbology.
 
 ### TRI is resolution-dependent
 
 TRI values scale with DEM resolution, so a single ramp can't fit every DEM. The default
 `tri.txt` is the legacy 7-class ramp; for a known resolution prefer a matching ramp from
-`color_ramps/ARCHIVE/` via `--tri-ramp`, e.g.:
+`default_color_ramps/ARCHIVE/` via `--tri-ramp`, e.g.:
 
 ```bash
-... --products tri --tri-ramp esri-to-aegis-lunar-southpole/products/color_ramps/ARCHIVE/TRIColors_1m_DEM.txt
+... --products tri --tri-ramp esri-to-aegis-lunar-southpole/products/default_color_ramps/ARCHIVE/TRIColors_1m_DEM.txt
 ```
