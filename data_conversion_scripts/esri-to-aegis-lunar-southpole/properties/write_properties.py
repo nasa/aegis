@@ -29,7 +29,7 @@ Usage
     # Slope (degrees) legend from the standard ramp
     pixi run python esri-to-aegis-lunar-southpole/properties/write_properties.py \\
         --processing slope --units deg \\
-        --ramp esri-to-aegis-lunar-southpole/products/color_ramps/slope.txt \\
+        --ramp esri-to-aegis-lunar-southpole/products/default_color_ramps/slope.txt \\
         --out <out>/Layers/slope/properties.json
 
     # Hillshade — no ramp, no legend

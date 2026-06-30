@@ -26,6 +26,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from aegis_api import DEFAULT_ENV_FILE, REPO_ROOT, load_env_value
+
 # ---------------------------------------------------------------------------
 # Projection profile — AEGIS lunar south-pole cap grid
 # ---------------------------------------------------------------------------
@@ -82,25 +84,114 @@ REL_NAC_FRAMES = Path("A03MP026_SFS_1mpp_orthoimages")
 # Output file/dir names under --out (generic; the pipeline is mission-agnostic).
 OUT_LAYERS_DIRNAME = "Layers"
 OUT_DATA_DIRNAME = "Data"
-OUT_DEM_NAME = "dem.tif"
+# The DEM keeps its source filename with a compression suffix (e.g.
+# mp2-sfs-dem_MoonSP_COG.tif → mp2-sfs-dem_MoonSP_COG_zstd.tif) so the mission's
+# demFilePath is self-describing rather than an opaque "dem.tif".
+DEM_COMPRESS = "zstd"
 OUT_ELLIPSE_NAME = "ellipse.geojson"
+
+
+def dem_output_name(dem_in: Path) -> str:
+    """COG output filename for a DEM input: ``<source-stem>_<compress>.tif``."""
+    return f"{dem_in.stem}_{DEM_COMPRESS}.tif"
 OUT_NAC_LAYER_NAME = "nac"
 OUT_SLOPE_LAYER_NAME = "slope"
 OUT_SLOPE_RGBA_NAME = "slope_rgba.tif"  # scratch, removed after tiling
 
 # DEM-derived product layers (Layers/<name>/). Slope is intentionally omitted from the
 # default products step because the dedicated `slope` step already produces a slope layer
-# using the GIS-team .lyrx — which encodes the SAME standard as products/color_ramps/slope.txt.
+# using the GIS-team .lyrx — which encodes the SAME standard as default_color_ramps/slope.txt.
 # (The standalone products/dem_products.py can still generate slope on demand.)
 OUT_HILLSHADE_LAYER_NAME = "hillshade"
 OUT_ASPECT_LAYER_NAME = "aspect"
 OUT_TRI_LAYER_NAME = "tri"
 PRODUCTS_DEFAULT = ["hillshade", "aspect", "tri"]
 
-# Colour-ramp directory (single source of truth for AEGIS colour treatment).
-COLOR_RAMPS_DIR = Path(__file__).resolve().parent / "products" / "color_ramps"
+# Built-in (fallback) colour ramps. Used when the GIS team does not deliver product
+# symbology as a .lyrx; a delivered .lyrx is converted (products/lyrx_to_ramp.py) and used
+# instead. slope.txt encodes the same standard as the MS3 AMPES_Slope 1.lyrx.
+DEFAULT_COLOR_RAMPS_DIR = Path(__file__).resolve().parent / "products" / "default_color_ramps"
 # Legend units per colorized product (passed to properties/write_properties.py).
 PRODUCT_UNITS = {"slope": "deg", "aspect": "", "tri": "m"}
+
+# TRI colour treatment is resolution-dependent (see the gotcha in data_conversion_scripts/
+# CLAUDE.md): a matching ramp from default_color_ramps/ARCHIVE/ must be used per DEM resolution,
+# otherwise the legend bins (and colours) are wrong. Falls back to the legacy tri.txt.
+TRI_RAMP_BY_RESOLUTION = {
+    1.0: "TRIColors_1m_DEM.txt",
+    5.0: "TRIColors_5m_DEM.txt",
+    10.0: "TRIColors_10m_DEM.txt",
+}
+
+
+# ---------------------------------------------------------------------------
+# Mission grid (LGRS) defaults
+# ---------------------------------------------------------------------------
+# Square grid extent centred on the lander and cell size (metres) for grid/generate_lgrs.py.
+GRID_EXTENT_DEFAULT = "10km"
+GRID_PRECISION_DEFAULT = 100
+GRID_DEFAULT_NAME = "LGRS"
+# The AEGIS mission-grid GeoJSON produced by the grid step (kept in the output ROOT, not in
+# Data/, so it is not mis-registered as a vector layer; the register step POSTs it to the grid
+# API, which writes the active grid's coordinate JSON into Data/ itself).
+OUT_GRID_SOURCE_NAME = "grid_source.geojson"
+
+
+def tri_ramp_for_resolution(resolution: float | None) -> Path:
+    """Return the TRI colour ramp matching the DEM resolution (legacy tri.txt fallback)."""
+    name = TRI_RAMP_BY_RESOLUTION.get(float(resolution)) if resolution is not None else None
+    if name:
+        candidate = DEFAULT_COLOR_RAMPS_DIR / "ARCHIVE" / name
+        if candidate.exists():
+            return candidate
+    return DEFAULT_COLOR_RAMPS_DIR / "tri.txt"
+
+# Default DEM native resolution (m/px) written to the mission demResolution.
+DEFAULT_DEM_RESOLUTION = 1.0
+
+# ---------------------------------------------------------------------------
+# AEGIS registration: header layers + the shared external NAC basemap
+# ---------------------------------------------------------------------------
+# Header (parent) layer names the `register` step groups sublayers under.
+HEADER_COMMON_LSP = "Common_LSP"  # external lunar south-pole basemap(s) only
+HEADER_RASTER = "Raster"  # all generated/custom tile layers
+HEADER_VECTOR = "Vector"  # all GeoJSON vector layers
+
+# The shared lunar south-pole NAC mosaic, hosted externally and reused by every LSP
+# mission. Registered as an "external" tile sublayer: path = base URL, final tile URL
+# = path + "/" + tilePattern. boundingBox/zoom mirror the published tilemapresource.xml
+# (cap grid, z0..z13). See https://ares-aegis.s3.us-gov-west-1.amazonaws.com/NAC_POLE_SOUTH_CM_AVG_MERGE/
+EXTERNAL_NAC = {
+    "name": "NAC_POLE_SOUTH_CM_AVG_MERGE",
+    "base_url": "https://ares-aegis.s3.us-gov-west-1.amazonaws.com/NAC_POLE_SOUTH_CM_AVG_MERGE",
+    "tile_pattern": "{z}/{x}/{y}.png",
+    "bounding_box": [CAP_MIN, CAP_MIN, CAP_MAX, CAP_MAX],
+    "min_native_zoom": 0,
+    "max_native_zoom": CAP_MAX_ZOOM,
+    "tile_format": "tms",
+    "description": (
+        "Lunar Reconnaissance Orbiter Camera (LROC) Narrow Angle Camera (NAC) "
+        "high-resolution panchromatic mosaic of the lunar south pole."
+    ),
+}
+
+
+def resolve_static_dir(static_dir: Path | None = None) -> Path:
+    """Resolve the AEGIS static root (holds ``missionFiles/<id>``).
+
+    Precedence: explicit ``static_dir`` arg > ``STATIC_DIR`` in the repo ``.env`` >
+    ``../aegis_static`` next to the repo. Relative values resolve against the repo root.
+    """
+    if static_dir is not None:
+        return static_dir.resolve()
+    env_val = load_env_value("STATIC_DIR", DEFAULT_ENV_FILE) or "../aegis_static"
+    p = Path(env_val)
+    return p.resolve() if p.is_absolute() else (REPO_ROOT / p).resolve()
+
+
+def mission_output_dir(mission_id: int, static_dir: Path | None = None) -> Path:
+    """The output root for a mission: ``<static>/missionFiles/<id>``."""
+    return resolve_static_dir(static_dir) / "missionFiles" / str(mission_id)
 
 
 @dataclass(frozen=True)
@@ -154,11 +245,12 @@ def resolve_paths(
 
     layers = out / OUT_LAYERS_DIRNAME
     data = out / OUT_DATA_DIRNAME
+    dem_in_resolved = under_src(dem, REL_DEM)
 
     return PipelinePaths(
         src=src,
         out=out,
-        dem_in=under_src(dem, REL_DEM),
+        dem_in=dem_in_resolved,
         slope_in=under_src(slope, REL_SLOPE),
         lyrx=under_src(lyrx, REL_LYRX),
         ellipse_shp=under_src(ellipse, REL_ELLIPSE),
@@ -166,7 +258,7 @@ def resolve_paths(
         nac_frames_dir=under_src(nac_frames, REL_NAC_FRAMES),
         layers=layers,
         data=data,
-        dem_out=data / OUT_DEM_NAME,
+        dem_out=data / dem_output_name(dem_in_resolved),
         ellipse_out=data / OUT_ELLIPSE_NAME,
         nac_layer=layers / OUT_NAC_LAYER_NAME,
         slope_layer=layers / OUT_SLOPE_LAYER_NAME,

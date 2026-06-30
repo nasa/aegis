@@ -5,19 +5,20 @@ This lets us **control our own standardized products** straight from a DEM input
 than depending on whatever the GIS team happens to deliver.  Each product is produced as
 an 8-bit raster ready for ``common/tile_to_cap_grid.py``:
 
-    slope      → degrees, colorized via products/color_ramps/slope.txt      (RGBA)
+    slope      → degrees, colorized via default_color_ramps/slope.txt       (RGBA)
     hillshade  → shaded relief, grayscale, no colour ramp                   (single band)
     aspect     → slope-facing azimuth, colorized via aspect.txt             (RGBA)
     tri        → Terrain Ruggedness Index (m), colorized via tri.txt        (RGBA)
 
-Colour standards live in ``products/color_ramps/`` and are the single source of truth for
-AEGIS colour treatment (see ``products/README.md``).  Notably ``slope.txt`` encodes the
-**same** standard as the GIS-team ``AMPES_Slope 1.lyrx`` used by ``slope/colorize_slope.py``
-(ColorBrewer RdYlBu-10 reversed + dark-purple >20° cap), so DEM-derived slope and
-GIS-delivered slope render identically.
+Built-in ramps live in ``products/default_color_ramps/`` (the fallbacks). When the GIS team
+delivers product symbology as an ArcGIS ``.lyrx``, pass it with ``--slope-lyrx`` /
+``--aspect-lyrx`` / ``--tri-lyrx`` and it is used **instead of** the default ramp (converted
+on the fly by ``lyrx_to_ramp.py``). Precedence per product: ``--*-lyrx`` > ``--*-ramp`` >
+default. ``default_color_ramps/slope.txt`` encodes the same standard as the MS3
+``AMPES_Slope 1.lyrx``, so DEM-derived slope and GIS-delivered slope render identically.
 
 **TRI is resolution-dependent** — the default ``tri.txt`` is the legacy 7-class ramp; for a
-specific DEM resolution prefer a matching ramp from ``products/color_ramps/ARCHIVE/``
+specific DEM resolution prefer a matching ramp from ``products/default_color_ramps/ARCHIVE/``
 (``TRIColors_{1m,5m,10m}_DEM.txt``) via ``--tri-ramp``.
 
 Ported from ``lunar_utils/aegis/products.py``.  Uses the GDAL Python bindings provided by
@@ -57,7 +58,7 @@ for _s in (sys.stdout, sys.stderr):
         pass
 
 ROOT = Path(__file__).resolve().parent
-RAMPS = ROOT / "color_ramps"
+RAMPS = ROOT / "default_color_ramps"
 
 # Default colour ramp per product. Hillshade is grayscale → no ramp.
 DEFAULT_RAMPS: dict[str, Path | None] = {
@@ -151,9 +152,35 @@ def make_parser() -> argparse.ArgumentParser:
         "--tri-ramp",
         type=Path,
         default=None,
-        help="Override TRI colour ramp (prefer a resolution-matched ramp from color_ramps/ARCHIVE/).",
+        help="Override TRI colour ramp (prefer a resolution-matched ramp from default_color_ramps/ARCHIVE/).",
     )
+    # GIS-delivered ArcGIS symbology per product. Converted to a gdaldem ramp and used
+    # INSTEAD OF the default/--*-ramp (precedence: --*-lyrx > --*-ramp > default).
+    p.add_argument("--slope-lyrx", type=Path, default=None, help="ArcGIS .lyrx slope symbology to use instead of the slope ramp.")
+    p.add_argument("--aspect-lyrx", type=Path, default=None, help="ArcGIS .lyrx aspect symbology to use instead of the aspect ramp.")
+    p.add_argument("--tri-lyrx", type=Path, default=None, help="ArcGIS .lyrx TRI symbology to use instead of the TRI ramp.")
     return p
+
+
+def _resolve_ramp(product: str, lyrx: Path | None, override: Path | None, out_dir: Path) -> Path | None:
+    """Pick a product's colour ramp: provided .lyrx (converted) > --*-ramp > default."""
+    if lyrx is not None:
+        lyrx = lyrx.resolve()
+        if not lyrx.exists():
+            print(f"ERROR: lyrx not found for {product}: {lyrx}", file=sys.stderr)
+            sys.exit(1)
+        from lyrx_to_ramp import lyrx_to_ramp  # same-dir module
+
+        ramp = lyrx_to_ramp(lyrx, out_dir / f"{product}_from_lyrx.txt")
+        print(f"  [{product}] using GIS symbology {lyrx.name} → {ramp.name}")
+        return ramp
+    ramp = override or DEFAULT_RAMPS[product]
+    if ramp is not None:
+        ramp = Path(ramp).resolve()
+        if not ramp.exists():
+            print(f"ERROR: colour ramp not found for {product}: {ramp}", file=sys.stderr)
+            sys.exit(1)
+    return ramp
 
 
 def main() -> None:
@@ -168,18 +195,17 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     overrides = {"slope": args.slope_ramp, "aspect": args.aspect_ramp, "tri": args.tri_ramp}
+    lyrxes = {"slope": args.slope_lyrx, "aspect": args.aspect_lyrx, "tri": args.tri_lyrx}
 
     print("=" * 64)
     print("DEM → standardized AEGIS products")
     print("=" * 64)
 
     for product in args.products:
-        ramp = overrides.get(product) or DEFAULT_RAMPS[product]
-        if ramp is not None:
-            ramp = Path(ramp).resolve()
-            if not ramp.exists():
-                print(f"ERROR: colour ramp not found for {product}: {ramp}", file=sys.stderr)
-                sys.exit(1)
+        # hillshade has no ramp; everything else resolves lyrx > --*-ramp > default.
+        ramp = None if product == "hillshade" else _resolve_ramp(
+            product, lyrxes.get(product), overrides.get(product), out_dir
+        )
         make_product(dem, product, ramp, out_dir)
 
     print(f"\nDone. Products in {out_dir}")

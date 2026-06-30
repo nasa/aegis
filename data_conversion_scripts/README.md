@@ -18,65 +18,70 @@ pixi install
 
 ### [`esri-to-aegis-lunar-southpole/`](esri-to-aegis-lunar-southpole/)
 
-The main pipeline: turns an ArcGIS/ESRI GIS data drop (DEM, NAC mosaic, slope,
-landing-ellipse shapefile) into AEGIS-ready cap-grid tile layers + data products for
-a lunar south-pole mission. Mission-agnostic — there are no mission numbers; you point
-it at an input drop and an output root.
+The main pipeline: turns a GIS data drop (DEM, NAC mosaic, slope, vectors) into AEGIS-ready
+cap-grid tile layers + data products for a lunar south-pole mission, **and registers them on
+a running AEGIS server over HTTP** (mission fields, header layers, sublayers, active LGRS
+grid) — optionally zipping + uploading the results to Box. You give it an existing
+**`--mission-id`** (created in the AEGIS admin); output lands in
+`<static>/missionFiles/<id>/` (`STATIC_DIR` from the repo `.env`).
 
 ```bash
-pixi run python esri-to-aegis-lunar-southpole/main.py --list          # show the steps, then exit
-pixi run python esri-to-aegis-lunar-southpole/main.py --out <output-root> --nac-mosaic <mosaic.tif>
+pixi run python esri-to-aegis-lunar-southpole/main.py --list           # show the steps, then exit
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --lander-lat -84.223397 --lander-lng 33.5021945 \
+    --src <drop> --products hillshade slope aspect tri --register --box
 ```
 
 #### Selecting which steps run
 
-The pipeline is six ordered steps; `--out` is always required.
-
 ```text
-0 stage · 1 dem · 2 nac · 3 slope · 4 products · 5 vector
+0 stage · 1 dem · 2 nac · 3 slope · 4 products · 5 vector · 6 rasters · 7 vectors ·
+8 grid · 9 register · 10 box
 ```
+
+By default the pipeline runs only the steps whose inputs are present (e.g. `grid` when a
+lander location is given), plus `register`/`box` when `--register`/`--box` are passed.
 
 | You want…                       | Flag                                  |
 | ------------------------------- | ------------------------------------- |
-| All steps (the default)         | _(omit `--steps`/`--from`)_           |
+| Default (input-driven) steps    | _(omit `--steps`/`--from`)_           |
 | Specific steps, by name         | `--steps dem vector`                  |
 | Specific steps, by index        | `--steps 1 5`                         |
 | Everything from a step onward   | `--from slope` (or `--from 3`)        |
 | Rebuild layers that already exist | add `--overwrite` (tile steps skip existing layers otherwise) |
 
-```bash
-pixi run python esri-to-aegis-lunar-southpole/main.py --out <dir> --steps dem vector
-pixi run python esri-to-aegis-lunar-southpole/main.py --out <dir> --from slope --overwrite
-```
-
 #### Specifying source & destination paths
 
-There is one **destination** (`--out`) and one **source root** (`--src`); each step then
-reads a specific input under `--src` that you can override individually. Outputs land in
-`<out>/Data/` (dem, ellipse) and `<out>/Layers/` (tile layers).
+Output goes to `<static>/missionFiles/<mission-id>/` by default (override with `--out`); each
+step reads a specific input under `--src` that you can override individually. Outputs land in
+`<out>/Data/` (DEM, vectors, grid coords, conversion report) and `<out>/Layers/` (tile layers).
 
-| Step       | Source flag (overrides the `--src` default)   | Destination (under `--out`)          |
-| ---------- | --------------------------------------------- | ------------------------------------ |
-| `dem`      | `--dem <dem.tif>`                             | `Data/dem.tif`                       |
-| `nac`      | `--nac-mosaic <mosaic.tif>` _(required; delivered separately)_ | `Layers/nac/`        |
-| `slope`    | `--slope <slope.tif>` + `--lyrx <ramp.lyrx>` | `Layers/slope/`                      |
-| `products` | `--dem <dem.tif>` (derives hillshade/aspect/tri) | `Layers/{hillshade,aspect,tri}/`  |
-| `vector`   | `--ellipse <ellipse.shp>`                    | `Data/ellipse.geojson`               |
+| Step       | Source flag (overrides the `--src` default)   | Destination (under `--out`)              |
+| ---------- | --------------------------------------------- | ---------------------------------------- |
+| `dem`      | `--dem <dem.tif>`                             | `Data/<source>_zstd.tif` (keeps source name) |
+| `nac`      | `--nac-mosaic <mosaic.tif>` _(delivered separately)_ | `Layers/nac/`                     |
+| `slope`    | `--slope <slope.tif>` + `--lyrx <ramp.lyrx>` | `Layers/slope/`                          |
+| `products` | `--dem` + `--products hillshade slope aspect tri` | `Layers/{hillshade,slope,aspect,tri}/` |
+| `vector`   | `--ellipse <ellipse.shp>`                    | `Data/ellipse.geojson`                   |
+| `rasters`  | `--raster <path>` (repeatable)               | `Layers/<stem>/` each                    |
+| `vectors`  | `--vector <path>` (repeatable, shp/geojson)  | `Data/<stem>.geojson` each               |
+| `grid`     | `--lander-lat/--lander-lng` (`--grid-extent 10km`) | `grid_source.geojson`              |
+| `register` | `--mission-id` (+ `--aegis-url`/`--token`)   | mission fields + layers/sublayers + active grid |
+| `box`      | `--mission-name`                             | zips → Box `<mission name>/{Data,Layers}/` |
 
 Omit a source flag and the step uses its default path under `--src` (the A03MP026 layout).
-`--nac-mosaic` is delivered outside the ESRI drop, so it has no default — pass it whenever
-the `nac` step runs. Every tile layer also gets a `properties.json` legend the AEGIS admin
-auto-imports.
+A GIS-delivered `.lyrx` passed with `--lyrx` is used **instead of** the built-in colour ramp
+(see the pipeline README). Every tile layer also gets a `properties.json` legend.
 
 ```bash
-# Custom source root, default per-step inputs inside it:
-pixi run python esri-to-aegis-lunar-southpole/main.py --src <drop> --out <dir> --nac-mosaic <mosaic.tif>
+# Register a previously-built mission onto another server (e.g. prod) — no rebuild:
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --aegis-url https://aegis.fit.nasa.gov --mission-id <PROD_ID> \
+    --mission-name "..." --lander-lat .. --lander-lng .. \
+    --out <static>/missionFiles/<LOCAL_ID> --token <PROD_TOKEN> --steps register
 
-# Override individual inputs regardless of --src:
-pixi run python esri-to-aegis-lunar-southpole/main.py --out <dir> \
-    --steps dem slope --dem <dem.tif> --slope <slope.tif> --lyrx <ramp.lyrx>
-
-pixi run python esri-to-aegis-lunar-southpole/main.py --out <dir> --summary   # print AEGIS admin values
+pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --summary   # print AEGIS values
 ```
 
 #### Standalone converters (inputs not part of the ESRI drop)

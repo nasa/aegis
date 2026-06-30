@@ -13,7 +13,10 @@ answered.
 | `timeaware/singleband_timeaware_raster.py` + `timemanifest.py` | Time-aware tile layers + `manifest.json` | [`timeaware/singleband_timeaware.py`](../timeaware/) | Tiling now via `common/tile_to_cap_grid.py`; single-band check via rasterio; **robust** datetime parsing. |
 | `products.py` | DEM-derived slope/hillshade/aspect/TRI | [`products/dem_products.py`](../products/) | Same `gdal.DEMProcessing` engine, now from pixi GDAL. RGBA output (alpha band) instead of `noData=0,0,0`. |
 | `properties.py` | Per-layer `properties.json` + legend | [`properties/write_properties.py`](../properties/) | Output trimmed to the schema-allowed keys (`additionalProperties:false`). `tiff_manager` coupling dropped. |
-| `color_ramps/` (+ `ARCHIVE/`) | Standard colour treatment | [`products/color_ramps/`](../products/color_ramps/) | Copied verbatim; renamed active ramps. `slope.txt` confirmed identical to the MS3 `AMPES_Slope 1.lyrx`. |
+| `default_color_ramps/` (+ `ARCHIVE/`) | Built-in colour treatment (fallback) | [`products/default_color_ramps/`](../products/default_color_ramps/) | Copied verbatim; renamed from `color_ramps/` → `default_color_ramps/`. Used only when no `.lyrx` is delivered. `slope.txt` confirmed identical to the MS3 `AMPES_Slope 1.lyrx`. |
+| (new) `.lyrx` → gdaldem ramp | Use GIS-delivered symbology directly | [`products/lyrx_to_ramp.py`](../products/) | Converts an ArcGIS `CIMRasterClassifyColorizer` to a `gdaldem color-relief` ramp; `dem_products.py` `--*-lyrx` and the `slope`/`products` steps use it instead of the fallback ramp. |
+| `client.py` (AEGIS REST client) | Register mission/layers/sublayers/grid over HTTP | [`aegis_api.py`](../aegis_api.py) + [`register.py`](../register.py) | New: `POST /api/v1/{missionAutomerge/fields,layer,sublayer,grid}`. Replaces admin "import from file". |
+| Box upload | Zip + upload the built mission to Box | [`box_publish.py`](../box_publish.py) | Ported from `lunar_utils/box_client.py` (legacy `boxsdk` CCG auth); parallel zip + upload. |
 | `tiling.py` `_tile_earth` (EPSG:3857) | Earth / non-polar tiling | [`../../mercator/tile_mercator.py`](../../mercator/) | Reuses `common/raster_to_tiles.py` (`gdal2tiles`). Adds a `--body moon` geodetic mode. |
 
 ## Already covered before this work
@@ -29,9 +32,8 @@ answered.
 | Legacy item | Why |
 | --- | --- |
 | `gdal2tiles.py` / `gdal2customtiles.py` (vendored, ~180 KB each) | Replaced by `common/tile_to_cap_grid.py` (south pole) and pixi's GDAL `gdal2tiles` (mercator). No vendored scripts to maintain. |
-| `client.py` (AEGIS REST client) + Box upload | This pipeline writes to a static output dir for admin import; it does not push over the API. |
 | `error.py` (`GDAL2TilesError`) | Only used by the vendored tilers. |
-| `viewshed` / `geounits` / `wac` generators | No generator existed in legacy either (only descriptions/ramps). Descriptions are kept in `properties/write_properties.py`; `viewshed.txt` / comm-mask ramps are kept in `products/color_ramps/`. |
+| `viewshed` / `geounits` / `wac` generators | No generator existed in legacy either (only descriptions/ramps). Descriptions are kept in `properties/write_properties.py`; `viewshed.txt` / comm-mask ramps are kept in `products/default_color_ramps/`. |
 
 ## Verified
 
