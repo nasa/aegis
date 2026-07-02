@@ -9,6 +9,13 @@ from pathlib import Path
 import rasterio
 from rasterio.crs import CRS
 
+# Force UTF-8 stdout/stderr — avoids UnicodeEncodeError on default cp1252 terminals.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    except (AttributeError, ValueError):
+        pass
+
 
 def inspect(path: Path) -> None:
     with rasterio.open(path) as ds:
@@ -34,7 +41,10 @@ def inspect(path: Path) -> None:
             dt = ds.dtypes[i - 1]
             nodata = ds.nodatavals[i - 1]
             # Read a small sample for quick stats (don't read the whole 129 GB!)
-            win = rasterio.windows.Window(cols // 2 - 500, rows // 2 - 500, 1000, 1000)
+            # Clamp to the raster so files smaller than 1000 px still sample cleanly.
+            w = min(1000, cols)
+            h = min(1000, rows)
+            win = rasterio.windows.Window(max(0, cols // 2 - w // 2), max(0, rows // 2 - h // 2), w, h)
             try:
                 sample = ds.read(i, window=win)
                 print(

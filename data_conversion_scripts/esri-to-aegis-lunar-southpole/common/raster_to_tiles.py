@@ -4,31 +4,25 @@ This is the standard pipeline for new AEGIS missions (tile_grid_version 2).
 It produces a self-consistent tile directory with a correct tilemapresource.xml.
 
 Prerequisites:
-    - GDAL must be installed (gdal2tiles.py on PATH)
-    - For Docker users: the aegis/gdal image includes it
+    - gdal2tiles.py on PATH — provided by the pixi env (conda-forge GDAL), so run
+      under ``pixi run`` from data_conversion_scripts/
 
 Usage:
     cd data_conversion_scripts
-    uv run python raster_to_tiles.py <input.tif> <output_dir>
-    uv run python raster_to_tiles.py <input.tif> <output_dir> --profile raster
-    uv run python raster_to_tiles.py <input.tif> <output_dir> --profile mercator --zoom 0-17
+    pixi run python esri-to-aegis-lunar-southpole/common/raster_to_tiles.py <input.tif> <output_dir>
+    pixi run python esri-to-aegis-lunar-southpole/common/raster_to_tiles.py <input.tif> <output_dir> --profile mercator --zoom 0-17
 
 Examples:
     # Lunar south pole raster (custom projection) — use 'raster' profile:
-    uv run python raster_to_tiles.py \\
-        ../../aegis_static/missions/25/NAC_merge.tif \\
-        ../../aegis_static/missions/25/tiles \\
-        --profile raster
+    pixi run python esri-to-aegis-lunar-southpole/common/raster_to_tiles.py \\
+        NAC_merge.tif tiles/ --profile raster
 
-    # Earth mission (Web Mercator) — use 'mercator' profile:
-    uv run python raster_to_tiles.py \\
-        ../../aegis_static/missions/4/imagery.tif \\
-        ../../aegis_static/missions/4/tiles \\
-        --profile mercator
+    # Earth mission (Web Mercator) — use 'mercator' profile (see ../../mercator/):
+    pixi run python esri-to-aegis-lunar-southpole/common/raster_to_tiles.py \\
+        imagery.tif tiles/ --profile mercator
 
     # Resample source raster to specific resolution BEFORE tiling:
-    gdalwarp -tr 1.0 1.0 -r bilinear input.tif resampled.tif
-    uv run python raster_to_tiles.py resampled.tif output_tiles/
+    pixi run gdalwarp -tr 1.0 1.0 -r bilinear input.tif resampled.tif
 
 Notes:
     - ALWAYS use this script (or gdal2tiles directly) for new missions.
@@ -46,6 +40,13 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+# Force UTF-8 stdout/stderr — avoids UnicodeEncodeError on default cp1252 terminals.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    except (AttributeError, ValueError):
+        pass
 
 
 def find_gdal2tiles() -> str | None:
@@ -149,9 +150,9 @@ def main() -> None:
             "             Bounds in projection units (meters). Use with tile_grid_version=2.\n"
             "  mercator — for EPSG:3857 Web Mercator rasters (Earth missions)\n"
             "             Bounds in degrees. Standard web map tiles.\n\n"
-            "Examples:\n"
-            "  uv run python raster_to_tiles.py input.tif output_tiles/ --profile raster\n"
-            "  uv run python raster_to_tiles.py input.tif output_tiles/ --profile mercator --zoom 0-17\n"
+            "Examples (from data_conversion_scripts/):\n"
+            "  pixi run python esri-to-aegis-lunar-southpole/common/raster_to_tiles.py input.tif output_tiles/ --profile raster\n"
+            "  pixi run python esri-to-aegis-lunar-southpole/common/raster_to_tiles.py input.tif output_tiles/ --profile mercator --zoom 0-17\n"
         ),
     )
     parser.add_argument("input", type=Path, help="Input GeoTIFF")

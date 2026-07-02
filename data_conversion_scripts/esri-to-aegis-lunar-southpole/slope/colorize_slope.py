@@ -272,6 +272,8 @@ def colorize(
             "TILED=YES",
             "-co",
             "COMPRESS=DEFLATE",
+            "-co",
+            "BIGTIFF=IF_SAFER",  # RGBA output of a large slope raster can exceed 4 GB
         ]
 
         print("-" * 60)

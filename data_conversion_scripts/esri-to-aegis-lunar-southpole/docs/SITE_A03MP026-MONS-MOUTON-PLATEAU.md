@@ -96,16 +96,18 @@ mission declares (`common/tile_to_cap_grid.py` enforces this).
 Run from `data_conversion_scripts/` via pixi:
 
 ```bash
-# Full pipeline for this site
+# Full pipeline for this site (output → <static>/missionFiles/<mission-id>)
 pixi run python esri-to-aegis-lunar-southpole/main.py \
-    --out F:/_repos/aegis_static/<env> \
-    --src F:/_repos/aegis_static/MS3 \
-    --nac-mosaic F:/path/to/nac_mosaic.tif
+    --mission-id <id> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --lander-lat -84.223397 --lander-lng 33.5021945 \
+    --src F:/tempF/MS3_data_drop \
+    --products hillshade slope aspect tri \
+    --register
 
 # Individual steps
-pixi run python esri-to-aegis-lunar-southpole/main.py --out <dir> --steps dem
-pixi run python esri-to-aegis-lunar-southpole/main.py --out <dir> --steps vector
-pixi run python esri-to-aegis-lunar-southpole/main.py --out <dir> --steps slope
+pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id <id> --src <drop> --steps dem
+pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id <id> --src <drop> --steps vector
+pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id <id> --src <drop> --steps slope
 ```
 
 Inputs default to the A03MP026 layout under `--src`; the DEM, slope, `.lyrx`, and
@@ -151,7 +153,8 @@ are what it sets:
 
 The original data drop did **not** include slope symbology. The `.lyrx` (`AMPES_Slope 1.lyrx`,
 ColorBrewer RdYlBu 10-class reversed + dark-purple hazard cap >20°) was obtained separately
-from the GIS team on 2026-06-16; a later drop includes it at the `A03MP026/` root.
+from the GIS team on 2026-06-16; later drops include it alongside the slope raster
+(`A03MP026/Slope/AMPES_Slope 1.lyrx`).
 `slope/colorize_slope.py` parses it directly, and `products/lyrx_to_ramp.py` converts it to a
 `gdaldem color-relief` ramp so the `slope`/`products` steps use the delivered symbology
 instead of the built-in `default_color_ramps/slope.txt` (which matches it). Pass it with

@@ -36,7 +36,7 @@ Usage
 
     cd data_conversion_scripts
     pixi run python esri-to-aegis-lunar-southpole/timeaware/singleband_timeaware.py \\
-        /path/to/illum_frames --datatype mazarico --out /path/to/output
+        /path/to/illum_frames --datatype mazarico -o /path/to/output
     # manifest only (skip tiling):
     pixi run python esri-to-aegis-lunar-southpole/timeaware/singleband_timeaware.py \\
         /path/to/illum_frames --datatype quickmap --no-tile
