@@ -1,3 +1,7 @@
+// IMPORTANT: use `import L from "leaflet"`, NOT `import * as L from "leaflet"`.
+// The leaflet plugins below are CJS and patch `L` via `require("leaflet")`. In prod builds
+// the namespace-import form resolves to a different interop wrapper, so plugin additions
+// like `L.Proj` end up undefined at runtime if you don't do it correctly.
 import L from "leaflet";
 import "leaflet-polylinedecorator";
 import type * as geojson from "geojson";

@@ -19,10 +19,10 @@
     # Clear the init dir before writing — removes any leftover restore-dump.sql from a prior upgrade-db run
     # so Postgres doesn't try to replay both files when it reinitializes.
     - sudo rm -f /d1/aegis/db-init/*.sql
-    # Strip PostGIS extension DDL from historical dumps (pre-postgres:17 migration).
+    # Strip PostGIS content from historical dumps (pre-postgres:17 migration).
     # IMPORTANT: Keep pattern synchronized with .gitlab/scripts/load-sql-dump.mjs,
     # scripts/upgrade-db.sh, and .gitlab/includes/server-jobs.yml
-    - sed -E '/^CREATE EXTENSION.*(postgis|tiger|topology|fuzzystrmatch).*;$/d; /^COMMENT ON EXTENSION (postgis|tiger|topology|fuzzystrmatch).*;$/d' "${PROJECT_DIR}/aegis.sql" > /d1/aegis/db-init/aegis.sql
+    - sed -E '/^CREATE EXTENSION.*(postgis|tiger|topology|fuzzystrmatch).*;$/d; /^COMMENT ON EXTENSION (postgis|tiger|topology|fuzzystrmatch).*;$/d; /^CREATE SCHEMA (tiger|tiger_data|topology);$/d; /^ALTER SCHEMA (tiger|tiger_data|topology) OWNER TO .*;$/d; /^COMMENT ON SCHEMA (tiger|tiger_data|topology) .*;$/d; /^COPY (public\.spatial_ref_sys|tiger\.[a-z_]+|topology\.[a-z_]+) .* FROM stdin;$/,/^\\.$/d' "${PROJECT_DIR}/aegis.sql" > /d1/aegis/db-init/aegis.sql
 
     # Stop docker compose, then remove database files
     - sudo /usr/bin/docker compose down --remove-orphans

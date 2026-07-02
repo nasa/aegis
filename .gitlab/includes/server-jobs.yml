@@ -19,9 +19,12 @@
     - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
     - PROJECT_DIR=$(pwd)
     - cd /opt/aegis
-    # Exclude PostGIS schemas/tables and strip extension DDL from the dump.
+    # Exclude PostGIS schemas/tables and strip PostGIS DDL/COPY blocks from the dump.
     # pg_dump has no --exclude-extension flag, so extension CREATE/COMMENT lines are piped
-    # through sed. Import jobs also strip (defense-in-depth for old cached dumps).
+    # through sed. The tiger/topology schema DDL and spatial_ref_sys / tiger.* / topology.*
+    # COPY blocks are also stripped as defense-in-depth: --exclude-schema removes contents
+    # but pg_dump can still emit the empty schema shell. Import jobs also strip (defense-
+    # in-depth for old cached dumps that predate --exclude-schema on the export side).
     # IMPORTANT: Keep pattern synchronized with .gitlab/scripts/load-sql-dump.mjs,
     # scripts/upgrade-db.sh, and .gitlab/includes/db-import.yml
     - sudo docker compose exec database pg_dump -U postgres aegis
@@ -31,7 +34,11 @@
       --exclude-table=public.spatial_ref_sys
       | sed -E
       '/^CREATE EXTENSION.*(postgis|tiger|topology|fuzzystrmatch).*;$/d;
-      /^COMMENT ON EXTENSION (postgis|tiger|topology|fuzzystrmatch).*;$/d'
+      /^COMMENT ON EXTENSION (postgis|tiger|topology|fuzzystrmatch).*;$/d;
+      /^CREATE SCHEMA (tiger|tiger_data|topology);$/d;
+      /^ALTER SCHEMA (tiger|tiger_data|topology) OWNER TO .*;$/d;
+      /^COMMENT ON SCHEMA (tiger|tiger_data|topology) .*;$/d;
+      /^COPY (public\.spatial_ref_sys|tiger\.[a-z_]+|topology\.[a-z_]+) .* FROM stdin;$/,/^\\.$/d'
       > "${PROJECT_DIR}/aegis.sql"
   artifacts:
     paths:

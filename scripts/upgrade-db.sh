@@ -89,15 +89,22 @@ if [ "$RUNNING_MAJOR_VERSION" -lt "$TARGET_MAJOR_VERSION" ]; then
   DUMP_SIZE=$(wc -c < dump.sql)
   echo "   Dump completed successfully. Size: $DUMP_SIZE bytes"
 
-  echo "1b. Stripping PostGIS extension lines from dump..."
-  # pg_dump always emits CREATE EXTENSION DDL regardless of --exclude-schema/--exclude-table.
-  # Plain postgres:17 doesn't have these extensions, so they must be removed before postgres
-  # tries to import the file on first boot via /docker-entrypoint-initdb.d/.
+  echo "1b. Stripping PostGIS content from dump..."
+  # pg_dump always emits CREATE EXTENSION DDL regardless of --exclude-schema/--exclude-table,
+  # and historical dumps taken before the export job added --exclude-schema/--exclude-table
+  # flags may still contain PostGIS schema DDL and COPY data blocks. Plain postgres:17 doesn't
+  # have these extensions, so any surviving PostGIS statements must be removed before postgres
+  # tries to import the file on first boot via /docker-entrypoint-initdb.d/ (psql aborts on the
+  # first error and silently drops all subsequent statements, leaving the DB in a broken state).
   # IMPORTANT: Keep pattern synchronized with .gitlab/scripts/load-sql-dump.mjs,
   # .gitlab/includes/db-import.yml, and .gitlab/includes/server-jobs.yml
   sed -E \
     '/^CREATE EXTENSION.*(postgis|tiger|topology|fuzzystrmatch).*;$/d;
-     /^COMMENT ON EXTENSION (postgis|tiger|topology|fuzzystrmatch).*;$/d' \
+     /^COMMENT ON EXTENSION (postgis|tiger|topology|fuzzystrmatch).*;$/d;
+     /^CREATE SCHEMA (tiger|tiger_data|topology);$/d;
+     /^ALTER SCHEMA (tiger|tiger_data|topology) OWNER TO .*;$/d;
+     /^COMMENT ON SCHEMA (tiger|tiger_data|topology) .*;$/d;
+     /^COPY (public\.spatial_ref_sys|tiger\.[a-z_]+|topology\.[a-z_]+) .* FROM stdin;$/,/^\\\.$/d' \
     dump.sql > dump_clean.sql
   mv dump_clean.sql dump.sql
   echo "   Strip complete. New size: $(wc -c < dump.sql) bytes"

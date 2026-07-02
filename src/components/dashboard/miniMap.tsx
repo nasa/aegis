@@ -1,4 +1,8 @@
-import * as L from "leaflet";
+// IMPORTANT: use `import L from "leaflet"`, NOT `import * as L from "leaflet"`.
+// The leaflet plugins below are CJS and patch `L` via `require("leaflet")`. In prod builds
+// the namespace-import form resolves to a different interop wrapper, so plugin additions
+// like `L.Proj` end up undefined at runtime if you don't do it correctly.
+import L from "leaflet";
 L.Icon.Default.imagePath = "/leaflet/images/";
 // Import the plugin libraries so they will modify L
 import "leaflet.tilelayer.colorfilter";
