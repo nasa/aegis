@@ -19,14 +19,26 @@ if (!sqlPath) {
   process.exit(2);
 }
 
-// Strip PostGIS extension DDL from dumps created before postgres:17 migration.
+// Strip PostGIS content from dumps created before postgres:17 migration.
 // AEGIS doesn't use PostGIS features, but historical dumps from the postgis/postgis
-// image contain extension DDL that plain postgres:17 can't execute.
+// image contain postGIS content
 // IMPORTANT: Keep pattern synchronized with bash sed in CI scripts and upgrade-db.sh
 const POSTGIS_EXTENSIONS = "(postgis|tiger|topology|fuzzystrmatch)";
+const POSTGIS_SCHEMAS = "(tiger|tiger_data|topology)";
+const POSTGIS_COPY_TABLE = "(public\\.spatial_ref_sys|tiger\\.[a-z_]+|topology\\.[a-z_]+)";
 const sql = (await readFile(sqlPath, "utf8"))
   .replace(new RegExp(`^CREATE EXTENSION.*${POSTGIS_EXTENSIONS}.*;\\s*$`, "gim"), "")
-  .replace(new RegExp(`^COMMENT ON EXTENSION ${POSTGIS_EXTENSIONS}.*;\\s*$`, "gim"), "");
+  .replace(new RegExp(`^COMMENT ON EXTENSION ${POSTGIS_EXTENSIONS}.*;\\s*$`, "gim"), "")
+  .replace(new RegExp(`^CREATE SCHEMA ${POSTGIS_SCHEMAS};\\s*$`, "gim"), "")
+  .replace(new RegExp(`^ALTER SCHEMA ${POSTGIS_SCHEMAS} OWNER TO .*;\\s*$`, "gim"), "")
+  .replace(new RegExp(`^COMMENT ON SCHEMA ${POSTGIS_SCHEMAS} .*;\\s*$`, "gim"), "")
+  .replace(
+    new RegExp(
+      `^COPY ${POSTGIS_COPY_TABLE} .* FROM stdin;\\s*$[\\s\\S]*?^\\\\\\.\\s*$\\r?\\n?`,
+      "gm"
+    ),
+    ""
+  );
 
 const config = {
   host: process.env.DB_HOST,
