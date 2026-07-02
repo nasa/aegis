@@ -143,17 +143,30 @@ def get_ordinal_direction(lower_bound: float, upper_bound: float) -> str:
     else:
         mid = (upper_bound + lower_bound) / 2
 
+    # Snap to the nearest 45° sector: ramps mark bin edges with epsilon offsets
+    # (e.g. 22.499/22.5), so midpoints land near — not exactly on — the sector centre.
     by_mid = {0: "N", 45: "NE", 90: "E", 135: "SE", 180: "S", 225: "SW", 270: "W", 315: "NW"}
-    if mid in by_mid:
-        return by_mid[mid]
+    snapped = round(mid / 45) * 45 % 360
+    if abs(mid - round(mid / 45) * 45) <= 2:
+        return by_mid[snapped]
     raise ValueError(f"Bad inputs for ordinal direction: {(lower_bound, upper_bound)}, midpoint={mid}")
+
+
+def fmt_bound(v: float) -> str:
+    """Format a legend bound: 1 decimal when that's exact enough, else 2.
+
+    The legacy 1-decimal rounding collapsed fine-grained ramps (the 1 m TRI ramp
+    steps by 0.04 m) into degenerate bins like ``[0.0, 0.0)``.
+    """
+    return f"{v:.1f}" if round(v, 2) == round(v, 1) else f"{v:.2f}"
 
 
 class LegendValue:
     """Helper for merging consecutive equal-colour rows into a single bin."""
 
     def __init__(self, value: str, color: str):
-        self.value = round(float(value), 1)
+        # Tolerate comparison prefixes used by some kept ramps (comm_mask's ">0").
+        self.value = float(value.lstrip("><="))
         self.color = color
         self.bounds = [self.value]
 
@@ -173,7 +186,10 @@ def finalize_aspect(rows: list[LegendValue]) -> list[dict]:
             first_last_same = True
             rows[-1].merge(row)
             continue
-        desc = f"{get_ordinal_direction(row.bounds[0], row.bounds[-1])} [{row.bounds[0]}, {row.bounds[-1]})"
+        desc = (
+            f"{get_ordinal_direction(row.bounds[0], row.bounds[-1])} "
+            f"[{fmt_bound(row.bounds[0])}, {fmt_bound(row.bounds[-1])})"
+        )
         if r == n - 1 and first_last_same:
             data.insert(0, {"color": row.color, "description": desc})
             continue
@@ -185,9 +201,9 @@ def finalize(rows: list[LegendValue]) -> list[dict]:
     data: list[dict] = []
     n = len(rows)
     for r, row in enumerate(rows):
-        desc = f"[{row.bounds[0]}, {row.bounds[-1]})"
+        desc = f"[{fmt_bound(row.bounds[0])}, {fmt_bound(row.bounds[-1])})"
         if r == n - 1:
-            desc = f"≥ {row.bounds[0]}"  # ≥ on the last bin
+            desc = f"≥ {fmt_bound(row.bounds[0])}"  # ≥ on the last bin
         data.append({"color": row.color, "description": desc})
     return data
 

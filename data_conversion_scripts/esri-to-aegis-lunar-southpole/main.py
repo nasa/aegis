@@ -186,15 +186,19 @@ def main() -> None:
     tee(f"  src       : {p.src}")
     tee(f"  out       : {p.out}")
     tee(f"  plan      : {len(chosen)} step(s)")
+    step_desc = dict(steps.STEPS)
     for i, name in enumerate(chosen):
-        tee(f"    {i + 1}. {name}")
+        tee(f"    {i + 1}. {name:<9} — {step_desc[name]}")
 
     steps_timing: list[tuple[str, float, str]] = []
     overall_start = time.monotonic()
     try:
         for i, name in enumerate(chosen):
             tee(f"\n{'━' * 70}")
-            tee(f"  ▶ STEP {i + 1}/{len(chosen)}: {name}   (elapsed {time.monotonic() - overall_start:.0f}s)")
+            tee(
+                f"  ▶ STEP {i + 1}/{len(chosen)}: {name}   "
+                f"[{time.strftime('%H:%M:%S')} · elapsed {time.monotonic() - overall_start:.0f}s]"
+            )
             tee("━" * 70)
             t0 = time.monotonic()
             try:

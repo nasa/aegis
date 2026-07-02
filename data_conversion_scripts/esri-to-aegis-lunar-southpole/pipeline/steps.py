@@ -233,31 +233,41 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         "slope": config.OUT_SLOPE_LAYER_NAME,
     }
 
+    # Rebuild only what's missing (or everything with --overwrite): dem_products on a
+    # large DEM is expensive, so don't derive products whose layer is already built.
+    to_build = [
+        pr for pr in products if clear_layer_dir(p.layers / layer_name[pr], args.overwrite)
+    ]
+    if not to_build:
+        tee("  all requested product layers already built — nothing to do")
+        return
+
     scratch = p.out / "scratch_products"
     scratch.mkdir(parents=True, exist_ok=True)
     try:
         # Per-product colour ramp (None = no legend). slope honours GIS-delivered .lyrx
         # symbology when present; TRI is resolution-matched. The SAME ramp drives both the
-        # gdaldem colorize (dem_products) and the AEGIS legend (write_properties).
-        ramp_for = {
-            "hillshade": None,
-            "slope": slope_ramp(p, scratch),
-            "aspect": config.DEFAULT_COLOR_RAMPS_DIR / "aspect.txt",
-            "tri": config.tri_ramp_for_resolution(args.dem_resolution),
+        # gdaldem colorize (dem_products) and the AEGIS legend (write_properties). Resolved
+        # lazily so the .lyrx conversion only runs when slope is actually being built.
+        ramp_resolvers = {
+            "hillshade": lambda: None,
+            "slope": lambda: slope_ramp(p, scratch),
+            "aspect": lambda: config.DEFAULT_COLOR_RAMPS_DIR / "aspect.txt",
+            "tri": lambda: config.tri_ramp_for_resolution(args.dem_resolution),
         }
+        ramp_for = {product: ramp_resolvers[product]() for product in to_build}
 
         dem_cmd: list[str | Path] = [
-            PYTHON, DEM_PRODUCTS, "--dem", p.dem_in, "--out", scratch, "--products", *products
+            PYTHON, DEM_PRODUCTS, "--dem", p.dem_in, "--out", scratch, "--products", *to_build
         ]
-        for product in products:
+        for product in to_build:
             if ramp_for[product] is not None:
                 dem_cmd += [f"--{product}-ramp", ramp_for[product]]
         run(dem_cmd)
 
-        for product in products:
+        for i, product in enumerate(to_build):
             layer_dir = p.layers / layer_name[product]
-            if not clear_layer_dir(layer_dir, args.overwrite):
-                continue
+            tee(f"\n  tiling product {i + 1}/{len(to_build)}: {product} → {layer_dir}")
             run([PYTHON, TILE_TO_CAP_GRID, scratch / f"{product}.tif", layer_dir])
             write_properties(
                 layer_dir, product, layer_name[product],

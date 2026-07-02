@@ -178,6 +178,10 @@ def stretch(
 
         t0 = time.time()
         n_blocks = 0
+        total_blocks = (
+            -(-src.height // blocksize) * -(-src.width // blocksize)  # ceil-div
+        )
+        next_pct = 10
         with rasterio.open(dst_path, "w", **profile) as dst:
             # Iterate the output's block windows for cache-friendly I/O.
             for _, window in dst.block_windows(1):
@@ -196,6 +200,13 @@ def stretch(
 
                 dst.write(out, 1, window=window)
                 n_blocks += 1
+                if total_blocks and n_blocks / total_blocks * 100 >= next_pct:
+                    print(
+                        f"    {n_blocks:,}/{total_blocks:,} blocks "
+                        f"({n_blocks / total_blocks * 100:3.0f}%)  {time.time() - t0:.0f}s",
+                        flush=True,
+                    )
+                    next_pct += 10
 
         elapsed = time.time() - t0
         size_mb = dst_path.stat().st_size / (1024**2)

@@ -65,7 +65,9 @@ def run(cmd: list[str | Path], *, check: bool = True) -> int:
     """Run a command, streaming its output live to the console AND the run log."""
     printable = " ".join(str(a) for a in cmd)
     tee(f"\n$ {printable}")
-    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
+    # PYTHONUNBUFFERED: child stdout is a pipe (block-buffered by default), so without it
+    # progress lines only arrive when the 8 KB buffer fills — i.e. not live.
+    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"}
     proc = subprocess.Popen(
         [str(a) for a in cmd],
         stdout=subprocess.PIPE,

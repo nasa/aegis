@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -216,6 +217,18 @@ def tile_raster(
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Candidate tile count across all zooms (upper bound: fully-transparent tiles are
+        # skipped) — lets the progress lines below report percentages.
+        n_candidates = 0
+        for z in range(max_zoom + 1):
+            scale = 2 ** (max_zoom - z)
+            n_candidates += (tx_max // scale - tx_min // scale + 1) * (
+                ty_max // scale - ty_min // scale + 1
+            )
+        print(f"  candidate tiles    {n_candidates:,} across z0..z{max_zoom}")
+
+        print(f"  resampling source to {out_res:g} m/px ...", flush=True)
+
         # Resample source to cap out_res
         data, _ = _resample_to_res(src, out_res, resampling)
 
@@ -224,6 +237,9 @@ def tile_raster(
         res_h, res_w = data.shape[1], data.shape[2]
 
         n_written = 0
+        n_visited = 0
+        t_start = time.monotonic()
+        t_last_report = t_start
 
         for z in range(max_zoom + 1):
             # Scale factor from max_zoom to this zoom: each coarser tile covers
@@ -243,10 +259,26 @@ def tile_raster(
 
             z_dir = output_dir / str(z)
 
+            n_z = (tx1 - tx0 + 1) * (ty1 - ty0 + 1)
+            print(f"  z{z:<2}  {tx1 - tx0 + 1} x {ty1 - ty0 + 1} = {n_z:,} candidate tile(s)", flush=True)
+
             for tx in range(tx0, tx1 + 1):
                 x_dir = z_dir / str(tx)
                 x_dir.mkdir(parents=True, exist_ok=True)
                 for ty in range(ty0, ty1 + 1):
+                    # Periodic progress: every ~5 s so long max-zoom sweeps stay visible.
+                    n_visited += 1
+                    now = time.monotonic()
+                    if now - t_last_report >= 5.0:
+                        pct = n_visited / n_candidates * 100
+                        rate = n_visited / (now - t_start)
+                        eta = (n_candidates - n_visited) / rate if rate > 0 else 0
+                        print(
+                            f"    progress {n_visited:,}/{n_candidates:,} tiles visited "
+                            f"({pct:.0f}%) · {n_written:,} written · ETA {eta:.0f}s",
+                            flush=True,
+                        )
+                        t_last_report = now
                     # Tile bounds in projected coords (bottom-anchored TMS)
                     tile_left = CAP_MIN + tx * z_tile_span
                     tile_bottom = CAP_MIN + ty * z_tile_span
@@ -371,7 +403,7 @@ def tile_raster(
         min(CAP_MAX, CAP_MIN + (ty_max + 1) * tile_span),
     )
     write_tilemapresource(output_dir, max_zoom, CAP_Z0_RES, bbox)
-    print(f"\n  tiles written: {n_written:,}")
+    print(f"\n  tiles written: {n_written:,}  in {time.monotonic() - t_start:.0f}s")
     print(
         f"  data bbox (proj m) minx {bbox[0]:.1f}  miny {bbox[1]:.1f}  "
         f"maxx {bbox[2]:.1f}  maxy {bbox[3]:.1f}"

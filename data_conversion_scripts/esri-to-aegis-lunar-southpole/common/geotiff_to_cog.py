@@ -19,17 +19,13 @@ Usage:
     cd data_conversion_scripts
 
     # Default (ZSTD lossless):
-    uv run python geotiff_to_cog.py <input.tif>
+    pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py <input.tif>
 
     # JPEG lossy (smallest file):
-    uv run python geotiff_to_cog.py <input.tif> --compress jpeg
+    pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py <input.tif> --compress jpeg
 
     # Custom output path:
-    uv run python geotiff_to_cog.py <input.tif> -o <output_cog.tif>
-
-Example:
-    uv run python geotiff_to_cog.py \\
-        ../../aegis_static/test/NAC_POLE_SOUTH_CM_AVG_MERGE.tif
+    pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py <input.tif> -o <output_cog.tif>
 """
 
 from __future__ import annotations
@@ -37,11 +33,19 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import threading
 import time
 from pathlib import Path
 
 import rasterio
 import rasterio.shutil
+
+# Force UTF-8 stdout/stderr — avoids UnicodeEncodeError on default cp1252 terminals.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    except (AttributeError, ValueError):
+        pass
 
 
 def build_cog(
@@ -98,9 +102,31 @@ def build_cog(
         if compress in ("deflate", "lzw", "zstd"):
             copy_kwargs["predictor"] = "yes"
 
-        print("  Writing COG (single-pass, multi-threaded) ...")
-        print("  (watch output file grow to monitor progress)")
-        rasterio.shutil.copy(src, str(dst_path), **copy_kwargs)
+        print("  Writing COG (single-pass, multi-threaded) ...", flush=True)
+
+        # rasterio.shutil.copy has no progress callback, so report the growing output
+        # file size every 15 s from a monitor thread. Size is a proxy (compression means
+        # it won't match the source), but it shows the write is alive and how fast.
+        done = threading.Event()
+
+        def _monitor() -> None:
+            while not done.wait(15):
+                try:
+                    written_gb = dst_path.stat().st_size / (1024**3)
+                except OSError:
+                    continue
+                print(
+                    f"    ... {written_gb:.2f} GB written  ({time.time() - t0:.0f}s elapsed)",
+                    flush=True,
+                )
+
+        mon = threading.Thread(target=_monitor, daemon=True)
+        mon.start()
+        try:
+            rasterio.shutil.copy(src, str(dst_path), **copy_kwargs)
+        finally:
+            done.set()
+            mon.join(timeout=1)
 
     elapsed = time.time() - t0
     cog_size_gb = dst_path.stat().st_size / (1024**3)
@@ -129,13 +155,13 @@ def main() -> None:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "Examples:\n"
+            "Examples (from data_conversion_scripts/):\n"
             "  # ZSTD (default, lossless):\n"
-            "  uv run python geotiff_to_cog.py input.tif\n\n"
+            "  pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py input.tif\n\n"
             "  # JPEG (lossy, smallest file):\n"
-            "  uv run python geotiff_to_cog.py input.tif --compress jpeg\n\n"
+            "  pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py input.tif --compress jpeg\n\n"
             "  # Custom output path:\n"
-            "  uv run python geotiff_to_cog.py input.tif -o my_output_cog.tif\n"
+            "  pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py input.tif -o my_output_cog.tif\n"
         ),
     )
     parser.add_argument("input", type=Path, help="Input GeoTIFF")

@@ -15,19 +15,15 @@ the lunar body, so the planar→geographic transform is what matters (it is the
 inverse of the stereographic projection), not any Earth datum.
 
 Uses fiona (which bundles its own GDAL/OGR) plus pyproj for the coordinate
-transform — so it runs with no system GDAL. Provide the dependencies via uv:
-
-    uv run --with fiona --with pyproj python shp_to_geojson.py ...
-
-or add them to the project (pyproject.toml) and just ``uv run`` / ``pixi run``.
+transform — both provided as conda-forge binaries by the pixi env, so run it
+under ``pixi run`` (fiona is not importable under a bare ``.venv``/``uv``).
 
 Usage:
     cd data_conversion_scripts
 
-    uv run --with fiona --with pyproj python shp_to_geojson.py \\
-        ../../aegis_static/A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp \\
-        ../../aegis_static/processed/A03MP026/Data/a03mp026_ellipse.geojson \\
-        --to-epsg 4326
+    pixi run python esri-to-aegis-lunar-southpole/vector/shp_to_geojson.py \\
+        <drop>/A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp \\
+        <out>/Data/ellipse.geojson --to-epsg 4326
 """
 
 from __future__ import annotations
@@ -51,8 +47,8 @@ try:
 except ImportError:  # pragma: no cover - guidance path
     print(
         "ERROR: fiona is required.\n"
-        "Run with:  uv run --with fiona --with pyproj python shp_to_geojson.py ...\n"
-        "or add fiona + pyproj to pyproject.toml.",
+        "Run this script under the pixi env:\n"
+        "  pixi run python esri-to-aegis-lunar-southpole/vector/shp_to_geojson.py ...",
         file=sys.stderr,
     )
     sys.exit(1)
@@ -162,9 +158,9 @@ def main() -> None:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "Example:\n"
-            "  uv run --with fiona --with pyproj python shp_to_geojson.py \\\n"
-            "      A03MP026_Ellipse.shp a03mp026_ellipse.geojson --to-epsg 4326\n"
+            "Example (from data_conversion_scripts/):\n"
+            "  pixi run python esri-to-aegis-lunar-southpole/vector/shp_to_geojson.py \\\n"
+            "      A03MP026_Ellipse.shp ellipse.geojson --to-epsg 4326\n"
         ),
     )
     parser.add_argument("input", type=Path, help="Input shapefile (.shp)")

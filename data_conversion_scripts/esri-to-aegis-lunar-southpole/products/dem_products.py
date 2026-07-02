@@ -43,7 +43,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-import tempfile
+import time
 from pathlib import Path
 
 from osgeo import gdal
@@ -79,6 +79,20 @@ GDAL_MODE = {
 ALL_PRODUCTS = ["slope", "hillshade", "aspect", "tri"]
 
 
+def _progress(label: str):
+    """A gdal progress callback printing a line every 10% (works when stdout is a pipe)."""
+    state = {"next": 0.1, "t0": time.monotonic()}
+
+    def cb(complete: float, _msg, _data) -> int:
+        if complete >= state["next"] or complete >= 1.0:
+            elapsed = time.monotonic() - state["t0"]
+            print(f"    [{label}] {complete * 100:3.0f}%  ({elapsed:.0f}s)", flush=True)
+            state["next"] = complete + 0.1
+        return 1  # non-zero = keep going
+
+    return cb
+
+
 def _colorize(processed: str, ramp: Path, out_path: Path) -> None:
     """gdaldem color-relief a single-band raster → 8-bit RGBA GeoTIFF (nodata transparent)."""
     gdal.DEMProcessing(
@@ -88,8 +102,9 @@ def _colorize(processed: str, ramp: Path, out_path: Path) -> None:
         colorFilename=str(ramp),
         addAlpha=True,  # emit an alpha band: valid=255, nodata=0 (honoured by tile_to_cap_grid)
         format="GTiff",
-        creationOptions=["TILED=YES", "COMPRESS=DEFLATE"],
+        creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
         computeEdges=True,
+        callback=_progress("colorize"),
     )
 
 
@@ -97,7 +112,7 @@ def make_product(dem: Path, product: str, ramp: Path | None, out_dir: Path) -> P
     """Produce one DEM-derived product. Returns the output GeoTIFF path."""
     mode = GDAL_MODE[product]
     out_path = out_dir / f"{product}.tif"
-    print(f"\n--- {product} ({mode}) ---")
+    print(f"\n--- {product} ({mode}) ---", flush=True)
     print(f"  dem:  {dem}")
     if ramp:
         print(f"  ramp: {ramp}")
@@ -109,24 +124,29 @@ def make_product(dem: Path, product: str, ramp: Path | None, out_dir: Path) -> P
             srcDS=str(dem),
             processing="hillshade",
             format="GTiff",
-            creationOptions=["TILED=YES", "COMPRESS=DEFLATE"],
+            creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
+            callback=_progress("hillshade"),
         )
         print(f"  wrote {out_path}")
         return out_path
 
-    # slope / aspect / tri: process to a temp float raster, then colorize → RGBA.
-    with tempfile.NamedTemporaryFile(suffix=".tif", delete=False) as tmp:
-        processed = tmp.name
+    # slope / aspect / tri: process to an intermediate float raster, then colorize → RGBA.
+    # The intermediate lives next to the outputs (NOT %TEMP%: a big DEM would drop a
+    # multi-GB uncompressed float there, often on a small system drive) and is compressed.
+    processed = out_dir / f"_{product}_float.tif"
     try:
         gdal.DEMProcessing(
-            destName=processed,
+            destName=str(processed),
             srcDS=str(dem),
             processing=mode,
             computeEdges=True,
+            format="GTiff",
+            creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
+            callback=_progress(mode),
         )
-        _colorize(processed, ramp, out_path)  # type: ignore[arg-type]
+        _colorize(str(processed), ramp, out_path)  # type: ignore[arg-type]
     finally:
-        Path(processed).unlink(missing_ok=True)  # NamedTemporaryFile(delete=False) → clean up
+        processed.unlink(missing_ok=True)
 
     print(f"  wrote {out_path}")
     return out_path
