@@ -89,6 +89,19 @@ the existing basemap. These values are centralized in `config.py` and printed by
 Critical Leaflet constraint: every layer pyramid must be cut on the same cap grid the
 mission declares (`common/tile_to_cap_grid.py` enforces this).
 
+> **Resolution cap (Leaflet-era limitation):** the shared cap-grid pyramid tops out at
+> `CAP_MAX_ZOOM = 13`, i.e. `12800 / 2**13 = 1.5625 m/px` at the deepest level. Because every
+> layer must share the mission's single cap grid so it overlays the external NAC basemap
+> pixel-for-pixel, the tiler clamps to z13 (`tile_to_cap_grid.py`), so a native **1 mpp** DEM (and
+> its derived products) is downsampled to 1.5625 m/px — its full detail is never tiled. This is a
+> constraint of Leaflet's single-grid model, **not** of `dem_products.py`, which emits products at
+> native resolution.
+>
+> **When we switch to OpenLayers:** OpenLayers supports per-layer tile grids / resolution sets, so
+> each layer can be tiled natively (e.g. z14 = 0.78125 m/px for the 1 mpp DEM) without forcing the
+> whole mission onto one shared max zoom. At that point we can drop the global `CAP_MAX_ZOOM` clamp
+> and let `tile_to_cap_grid.py` cut each layer to its own native resolution.
+
 ---
 
 ## 4. Commands
