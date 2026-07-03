@@ -12,9 +12,6 @@ declare module "leaflet" {
     type: string;
     colorFilter: string[];
     timeInfo?: TimeLayerInfo;
-    // tight data extent [minx, miny, maxx, maxy] in the map CRS's projected units;
-    // used by the projected-bounds shim to clip tile requests (see leaflet-projected-bounds.ts)
-    projectedBounds?: number[];
   }
 
   //add name and uuid to feature group

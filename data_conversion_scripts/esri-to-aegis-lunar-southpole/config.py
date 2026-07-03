@@ -49,6 +49,11 @@ PROJ_PROJ4 = (
     "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 "
     "+a=1737400 +b=1737400 +units=m +no_defs"
 )
+# Geographic (lon/lat) counterpart of PROJ_PROJ4 — same lunar sphere. The tiler reprojects
+# each layer's tight cap-grid extent into these degrees before writing the tilemapresource
+# <BoundingBox>, because AEGIS/Leaflet clips tile requests in geographic lat/lng (see the
+# BoundingBox note in common/tile_to_cap_grid.py).
+PROJ_GEOGRAPHIC_PROJ4 = "+proj=longlat +a=1737400 +b=1737400 +no_defs"
 
 # Full WKT SRS written into each layer's tilemapresource.xml.
 CAP_SRS = (

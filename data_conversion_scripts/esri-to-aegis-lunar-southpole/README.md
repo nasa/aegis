@@ -144,6 +144,51 @@ pixi run python esri-to-aegis-lunar-southpole/main.py --list
 pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --summary
 ```
 
+### Generate once, then run just `register` or just `box`
+
+A common flow is to build all the tiles/products **locally once** (no publishing), inspect
+them, and only afterwards register the mission and/or upload to Box — without re-tiling.
+
+`--steps` selects exactly which steps run and **overrides** the `--register`/`--box` gating,
+so a publish-only run is just `--steps register` or `--steps box` (don't also pass
+`--register`/`--box`). Both reuse the already-built output folder — by default
+`<static>/missionFiles/<mission-id>`; if your build lives elsewhere, point at it with `--out`.
+
+```bash
+cd data_conversion_scripts
+
+# 1. Build everything locally, no publishing. Omit --register/--box so only the data
+#    steps run; the folder <static>/missionFiles/123 now holds Data/ + Layers/.
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --lander-lat -84.223397 --lander-lng 33.5021945 \
+    --dem F:/drop/dem.tif --nac-mosaic F:/drop/nac_mosaic.tif \
+    --products hillshade slope aspect tri
+
+# 2a. Register ONLY (mission fields + header layers + sublayers + active grid).
+#     Reads the built folder; needs --mission-id + an EMSS token (--token or .env).
+#     --dry-run previews without calling the API.
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --aegis-url http://localhost:4000 --mission-id 123 \
+    --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --lander-lat -84.223397 --lander-lng 33.5021945 \
+    --steps register            # add --dry-run to preview; --no-mission-fields to skip GIS fields
+
+# 2b. Box upload ONLY (zip Data/ + each layer → Box). Needs --mission-name (the Box
+#     folder); no AEGIS URL/token required. --dry-run lists the zips without uploading.
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --steps box                 # add --dry-run to preview; --box-workers N to parallelise
+
+# If the local build is not at the default folder, point either at it with --out:
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --mission-id 123 --steps register --out F:/_repos/aegis_static/missionFiles/123
+```
+
+> Re-running `register` is safe — it skips `(header, path)` sublayer pairs that already
+> exist. To change an already-registered sublayer's `boundingBox`/zoom (e.g. after re-tiling),
+> delete that sublayer in the admin first, then re-run `register`.
+
 Steps: `0 stage · 1 dem · 2 nac · 3 slope · 4 products · 5 vector · 6 rasters · 7 vectors ·
 8 grid · 9 register · 10 box`. By default the pipeline runs only the steps whose inputs are
 present — `grid` runs when a lander location is given, and `register`/`box` when

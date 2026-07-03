@@ -40,8 +40,10 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
+from rasterio.crs import CRS
 from rasterio.enums import Resampling
 from rasterio.transform import from_bounds
+from rasterio.warp import transform_bounds
 from rasterio.windows import Window
 from PIL import Image  # type: ignore
 
@@ -56,6 +58,8 @@ from config import (  # noqa: E402
     CAP_Z0_RES,
     CAP_MAX_ZOOM,
     CAP_SRS,
+    PROJ_PROJ4,
+    PROJ_GEOGRAPHIC_PROJ4,
 )
 
 # Windows consoles default to cp1252; force UTF-8 so banners don't crash.
@@ -71,6 +75,24 @@ for _stream in (sys.stdout, sys.stderr):
 # ---------------------------------------------------------------------------
 
 
+def _proj_bbox_to_lonlat(
+    bbox: tuple[float, float, float, float]
+) -> tuple[float, float, float, float]:
+    """Reproject a cap-grid ``(minx, miny, maxx, maxy)`` (projected metres) to geographic
+    ``(min_lon, min_lat, max_lon, max_lat)`` degrees on the lunar sphere.
+
+    ``densify_pts`` samples points along each edge before taking the min/max, so the
+    curvature of the polar-stereographic rectangle's edges in lon/lat is captured (the four
+    corners alone would under-cover the true lon span).
+    """
+    return transform_bounds(  # type: ignore[return-value]
+        CRS.from_proj4(PROJ_PROJ4),
+        CRS.from_proj4(PROJ_GEOGRAPHIC_PROJ4),
+        *bbox,
+        densify_pts=21,
+    )
+
+
 def write_tilemapresource(
     out_dir: Path,
     max_zoom: int,
@@ -80,13 +102,17 @@ def write_tilemapresource(
     """Emit a cap-grid tilemapresource.xml.
 
     ``bbox`` is the layer's TIGHT data extent ``(minx, miny, maxx, maxy)`` in cap-grid
-    projected metres.  Renderers (Leaflet via our projected-bounds shim, OpenLayers via
-    a native ``extent``) use it to clip tile requests to the data patch instead of
-    walking the whole ~1.86 Mm cap — without it the layer 404-storms for every tile that
-    was never written.  ``<Origin>`` always stays the cap origin so tile indices remain
-    on the shared grid.  When ``bbox`` is ``None`` it falls back to the full cap.
+    projected metres.  It is written to ``<BoundingBox>`` as **geographic lon/lat degrees**
+    (reprojected here), because AEGIS reads that element straight into ``sublayer.boundingBox``
+    and Leaflet clips tile requests against it in lat/lng — so the layer only fetches tiles
+    that were actually written instead of walking the whole ~1.86 Mm cap (or, if the box were
+    left in projected metres, rejecting every real tile and rendering nothing).  ``<SRS>`` /
+    ``<Origin>`` / ``<TileSet units-per-pixel>`` stay in projected metres to document the grid;
+    only ``<BoundingBox>`` is geographic.  When ``bbox`` is ``None`` it falls back to the full
+    cap (an effectively unbounded lat/lng box — no clip).
     """
-    minx, miny, maxx, maxy = bbox if bbox is not None else (CAP_MIN, CAP_MIN, CAP_MAX, CAP_MAX)
+    proj_bbox = bbox if bbox is not None else (CAP_MIN, CAP_MIN, CAP_MAX, CAP_MAX)
+    minx, miny, maxx, maxy = _proj_bbox_to_lonlat(proj_bbox)
     tilesets = "\n".join(
         f'        <TileSet href="{z}" units-per-pixel="{z0_res / 2 ** z:.14f}" order="{z}"/>'
         for z in range(max_zoom + 1)
@@ -403,10 +429,15 @@ def tile_raster(
         min(CAP_MAX, CAP_MIN + (ty_max + 1) * tile_span),
     )
     write_tilemapresource(output_dir, max_zoom, CAP_Z0_RES, bbox)
+    ll = _proj_bbox_to_lonlat(bbox)
     print(f"\n  tiles written: {n_written:,}  in {time.monotonic() - t_start:.0f}s")
     print(
         f"  data bbox (proj m) minx {bbox[0]:.1f}  miny {bbox[1]:.1f}  "
         f"maxx {bbox[2]:.1f}  maxy {bbox[3]:.1f}"
+    )
+    print(
+        f"  BoundingBox (lon/lat°) minlon {ll[0]:.5f}  minlat {ll[1]:.5f}  "
+        f"maxlon {ll[2]:.5f}  maxlat {ll[3]:.5f}"
     )
     print(f"  tilemapresource.xml: {output_dir / 'tilemapresource.xml'}")
     print(
