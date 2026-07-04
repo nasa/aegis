@@ -2,9 +2,15 @@ import type { FunctionComponent } from "react";
 import styles from "./stm-coverage.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
-import { getStmActionName } from "utils/component-helpers";
+import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { stmCoverageSetDrilldownWidth } from "store/stm";
+
 import { useStmCoverage } from "./stm-coverage-context";
+
+const DRILLDOWN_MIN_WIDTH = 220;
+/** Grid width the drilldown can never squeeze past when dragged wide. */
+const GRID_MIN_WIDTH = 300;
 
 /**
  * Side panel showing the per-rule breakdown of one clicked cell: match counts
@@ -22,6 +28,8 @@ const StmCoverageDrilldown: FunctionComponent = () => {
     cellSelection,
     setCellSelection,
   } = useStmCoverage();
+  const dispatch = useAppDispatch();
+  const drilldownWidth = useAppSelector((state) => state.stm.stmCoverageDrilldownWidth, refEqual);
   const level3 = useAppSelector(
     (state) => state.stm.level3s.find((item) => item.uuid === cellSelection?.stmUuid),
     shallowEqual
@@ -55,38 +63,60 @@ const StmCoverageDrilldown: FunctionComponent = () => {
     return true;
   };
 
+  // Divider drag: pointer capture keeps move events flowing while the cursor
+  // leaves the 6px handle; width is clamped so neither side can vanish.
+  const onResizerPointerMove = (event: React.PointerEvent<HTMLDivElement>): void => {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    const body = event.currentTarget.parentElement;
+    if (!body) return;
+    const bodyRect = body.getBoundingClientRect();
+    const maxWidth = Math.max(bodyRect.width - GRID_MIN_WIDTH, DRILLDOWN_MIN_WIDTH);
+    const width = Math.min(Math.max(bodyRect.right - event.clientX, DRILLDOWN_MIN_WIDTH), maxWidth);
+    if (width !== drilldownWidth) dispatch(stmCoverageSetDrilldownWidth(Math.round(width)));
+  };
+
   return (
-    <div className={styles.drilldown}>
-      <div className={styles.drilldownHeader}>
-        <div>
-          <div className={styles.drilldownTitle}>{level3?.name}</div>
-          <div className={styles.drilldownSubtitle}>
-            {column.isRex ? `REX: ${column.label}` : column.label}
-            {scopeLabel ? ` — ${scopeLabel}` : ""}
+    <>
+      <div
+        className={styles.drilldownResizer}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={onResizerPointerMove}
+      />
+      <div className={styles.drilldown} style={{ width: drilldownWidth }}>
+        <div className={styles.drilldownHeader}>
+          <div>
+            <div className={styles.drilldownTitle}>{level3?.name}</div>
+            <div className={styles.drilldownSubtitle}>
+              {column.isRex ? `REX: ${column.label}` : column.label}
+              {scopeLabel ? ` — ${scopeLabel}` : ""}
+            </div>
+          </div>
+          <div className={styles.drilldownClose} onClick={() => setCellSelection(null)}>
+            <FontAwesomeIcon icon={faXmark} />
           </div>
         </div>
-        <div className={styles.drilldownClose} onClick={() => setCellSelection(null)}>
-          <FontAwesomeIcon icon={faXmark} />
+        <div className={styles.drilldownContent}>
+          {coverage.status === "noRules" && <div>No rules defined for this item.</div>}
+          {coverage.rules.map((ruleCoverage) => (
+            <DrilldownRule
+              key={ruleCoverage.ruleUuid}
+              ruleCoverage={ruleCoverage}
+              rule={rulesByUuid[ruleCoverage.ruleUuid]}
+              baselineRuleCoverage={
+                diffMode
+                  ? (baselineCoverage?.rules.find((rc) => rc.ruleUuid === ruleCoverage.ruleUuid) ??
+                    null)
+                  : null
+              }
+              matchesScope={matchesScope}
+            />
+          ))}
         </div>
       </div>
-      <div className={styles.drilldownContent}>
-        {coverage.status === "noRules" && <div>No rules defined for this item.</div>}
-        {coverage.rules.map((ruleCoverage) => (
-          <DrilldownRule
-            key={ruleCoverage.ruleUuid}
-            ruleCoverage={ruleCoverage}
-            rule={rulesByUuid[ruleCoverage.ruleUuid]}
-            baselineRuleCoverage={
-              diffMode
-                ? (baselineCoverage?.rules.find((rc) => rc.ruleUuid === ruleCoverage.ruleUuid) ??
-                  null)
-                : null
-            }
-            matchesScope={matchesScope}
-          />
-        ))}
-      </div>
-    </div>
+    </>
   );
 };
 
@@ -107,7 +137,11 @@ const DrilldownRule: FunctionComponent<{
   return (
     <div className={styles.drilldownRule}>
       <div className={styles.drilldownRuleSentence}>
-        {rule ? ruleSentence(rule, mission?.actionDefinitions) : "(deleted rule)"}
+        {rule ? (
+          <RuleSentence rule={rule} actionDefinitions={mission?.actionDefinitions ?? null} />
+        ) : (
+          "(deleted rule)"
+        )}
       </div>
       <div className={styles.drilldownRuleCounts}>
         <FontAwesomeIcon
@@ -134,12 +168,14 @@ const DrilldownRule: FunctionComponent<{
             :
           </div>
           <div>
-            {mission?.actionDefinitions
-              ? getStmActionName({
-                  actionDefinition: action.actionDefinition,
-                  missionActionDefs: mission.actionDefinitions,
-                })
-              : action.name}
+            {mission?.actionDefinitions ? (
+              <StmActionName
+                actionDefinition={action.actionDefinition}
+                missionActionDefs={mission.actionDefinitions}
+              />
+            ) : (
+              action.name
+            )}
           </div>
         </div>
       ))}
@@ -147,7 +183,26 @@ const DrilldownRule: FunctionComponent<{
   );
 };
 
-const ruleSetNames = (
+const StmActionName: FunctionComponent<{
+  actionDefinition: ActionDefinition;
+  missionActionDefs: ActionDefinitions;
+}> = ({ actionDefinition, missionActionDefs }) => {
+  const verbName = missionActionDefs.verbs[actionDefinition?.verbUuid]?.name ?? "Unknown";
+  const nounName = missionActionDefs.nouns[actionDefinition?.nounUuid]?.name ?? "Unknown";
+  const adjectiveName =
+    missionActionDefs.adjectives[actionDefinition?.adjectiveUuid]?.name ?? "Unknown";
+  return (
+    <span>
+      <span className={styles.drilldownRuleVerb}>{verbName}</span>
+      {" of "}
+      <span className={styles.drilldownRuleNoun}>{nounName}</span>
+      {" in "}
+      <span className={styles.drilldownRuleAdjective}>{adjectiveName}</span>
+    </span>
+  );
+};
+
+const ruleSetLabel = (
   uuids: string[],
   any: boolean,
   items: ActionDefinitionItems | undefined
@@ -157,6 +212,25 @@ const ruleSetNames = (
   return names.length > 0 ? names.join(" or ") : "(none)";
 };
 
-const ruleSentence = (rule: STMRule, actionDefinitions: ActionDefinitions | null): string => {
-  return `${rule.count} × ${ruleSetNames(rule.verbUuids, rule.verbAny, actionDefinitions?.verbs)} of ${ruleSetNames(rule.nounUuids, rule.nounAny, actionDefinitions?.nouns)} in ${ruleSetNames(rule.adjectiveUuids, rule.adjectiveAny, actionDefinitions?.adjectives)}`;
+const RuleSentence: FunctionComponent<{
+  rule: STMRule;
+  actionDefinitions: ActionDefinitions | null;
+}> = ({ rule, actionDefinitions }) => {
+  return (
+    <span>
+      {rule.count}
+      {" × "}
+      <span className={styles.drilldownRuleVerb}>
+        {ruleSetLabel(rule.verbUuids, rule.verbAny, actionDefinitions?.verbs)}
+      </span>
+      {" of "}
+      <span className={styles.drilldownRuleNoun}>
+        {ruleSetLabel(rule.nounUuids, rule.nounAny, actionDefinitions?.nouns)}
+      </span>
+      {" in "}
+      <span className={styles.drilldownRuleAdjective}>
+        {ruleSetLabel(rule.adjectiveUuids, rule.adjectiveAny, actionDefinitions?.adjectives)}
+      </span>
+    </span>
+  );
 };

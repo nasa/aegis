@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import styles from "./stm-coverage.module.css";
 import pageStyles from "../stm-rules-page.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faMinus, faPlus, faStar } from "@fortawesome/free-solid-svg-icons";
+import { faMinus, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
@@ -12,16 +12,42 @@ import {
   stmCoverageToggleEvaColumnExpansion,
 } from "store/stm";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { groupCoverageColumns } from "utils/stmEvaCoverage";
 import { StmTierTitle, useStmTierExpansion } from "../stm-rules-tier-titles";
 import { useStmCoverage } from "./stm-coverage-context";
 
+/** Column title: the EVA name for plan columns, "REX: <name>" for executions. */
+const columnTitle = (column: StmCoverageEvaColumn) =>
+  column.isRex ? `REX: ${column.label}` : column.label;
+
+/**
+ * Rotated summary labels have room for 2 vertical lines of text; longer names
+ * are abbreviated with "…" so they can't spill past the header cell. The full
+ * name is always available in the tooltip. The budget assumes fully packed
+ * lines (word-break: break-all on .rotatedLabelWrap): 2 lines of 110px fit
+ * ~31 chars even with wide all-caps glyphs.
+ */
+const HEADER_LABEL_MAX_CHARS = 28;
+const truncateHeaderLabel = (label: string) =>
+  label.length > HEADER_LABEL_MAX_CHARS
+    ? `${label.slice(0, HEADER_LABEL_MAX_CHARS - 1).trimEnd()}…`
+    : label;
+
+/** Tooltip title: like columnTitle but names the parent EVA on REX columns. */
+const columnTooltipName = (column: StmCoverageEvaColumn) =>
+  column.isRex ? `REX: ${column.label} (${column.groupLabel})` : column.label;
+
+/**
+ * Columns are ordered in as-planned EVA families (plan column followed by its
+ * REX executions). The thick divider only separates families, so the grouping
+ * reads from the column order + the "REX:" label prefix.
+ */
 const StmCoverageHeader: FunctionComponent = () => {
   const { visibleColumns } = useStmCoverage();
   const { stmLevel1Enabled, tierColumns } = useStmTierExpansion();
   const stmLevel3Name = useMissionDocSelector((mission) => mission.stmLevel3Name, refEqual);
 
-  const asPlannedColumns = visibleColumns.filter((column) => !column.isRex);
-  const rexColumns = visibleColumns.filter((column) => column.isRex);
+  const groups = groupCoverageColumns(visibleColumns);
 
   return (
     <div className={styles.header}>
@@ -34,38 +60,20 @@ const StmCoverageHeader: FunctionComponent = () => {
         <div className={pageStyles.listTableTitle}>{stmLevel3Name}s</div>
       </div>
       <div className={styles.headerColumns}>
-        {asPlannedColumns.length > 0 && (
-          <ColumnGroup label="As-Planned EVAs" columns={asPlannedColumns} />
-        )}
-        {asPlannedColumns.length > 0 && rexColumns.length > 0 && (
-          <div className={styles.columnDivider} />
-        )}
-        {rexColumns.length > 0 && <ColumnGroup label="Executions (REX)" columns={rexColumns} />}
-      </div>
-    </div>
-  );
-};
-
-export default StmCoverageHeader;
-
-const ColumnGroup: FunctionComponent<{
-  label: string;
-  columns: StmCoverageEvaColumn[];
-}> = ({ label, columns }) => {
-  return (
-    <div className={styles.columnGroup}>
-      <div className={styles.columnGroupLabel}>{label}</div>
-      <div className={styles.headerColumns}>
-        {columns.map((column, index) => (
-          <Fragment key={column.key}>
+        {groups.map((group, index) => (
+          <Fragment key={group.groupKey}>
             {index > 0 && <div className={styles.columnDivider} />}
-            <ColumnHeader column={column} />
+            {group.columns.map((column) => (
+              <ColumnHeader key={column.key} column={column} />
+            ))}
           </Fragment>
         ))}
       </div>
     </div>
   );
 };
+
+export default StmCoverageHeader;
 
 const ColumnHeader: FunctionComponent<{ column: StmCoverageEvaColumn }> = ({ column }) => {
   const dispatch = useAppDispatch();
@@ -80,7 +88,7 @@ const ColumnHeader: FunctionComponent<{ column: StmCoverageEvaColumn }> = ({ col
         isBaseline={isBaseline}
         isExpanded={false}
         cellKey={column.key}
-        label={column.label}
+        label={truncateHeaderLabel(columnTitle(column))}
       />
     );
   }
@@ -92,10 +100,21 @@ const ColumnHeader: FunctionComponent<{ column: StmCoverageEvaColumn }> = ({ col
         className={styles.columnGroupLabel}
         onClick={() => dispatch(stmCoverageSetBaselineColumnKey(column.key))}
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html={`${column.label} — click to set as baseline`}
+        data-tooltip-html={`${columnTooltipName(column)}${isBaseline ? " (baseline)" : " — click to set as baseline"}`}
         style={{ cursor: "pointer" }}
       >
-        {column.label}
+        {columnTitle(column)}
+        <span
+          className={styles.columnHeaderIcons}
+          onClick={(e) => {
+            e.stopPropagation();
+            dispatch(stmCoverageToggleEvaColumnExpansion(column.key));
+          }}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-html="Collapse stations"
+        >
+          <FontAwesomeIcon icon={faMinus} />
+        </span>
       </div>
       <div className={styles.headerColumns}>
         {stations.map((station) => (
@@ -127,17 +146,17 @@ const SummaryHeaderCell: FunctionComponent<{
   return (
     <div
       className={`${styles.columnHeaderCell} ${isBaseline ? styles.columnHeaderCellBaseline : ""}`}
-      style={hoveredTopItem === cellKey ? { backgroundColor: "var(--stmTableHover)" } : null}
+      style={hoveredTopItem === cellKey ? { backgroundColor: "var(--stmCoverageHover)" } : null}
       onClick={() => dispatch(stmCoverageSetBaselineColumnKey(column.key))}
       onMouseEnter={() => dispatch(stmCoverageSetHoveredTopItem(cellKey))}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={`${column.isRex ? "REX: " : ""}${column.label}${
+      data-tooltip-html={`${columnTooltipName(column)}${
         isBaseline ? " (baseline)" : " — click to set as baseline"
       }`}
       data-tooltip-place="left-start"
     >
-      <div className={styles.rotatedLabel}>{label}</div>
-      <div
+      <div className={`${styles.rotatedLabel} ${styles.rotatedLabelWrap}`}>{label}</div>
+      <span
         className={styles.columnHeaderIcons}
         onClick={(e) => {
           e.stopPropagation();
@@ -146,9 +165,8 @@ const SummaryHeaderCell: FunctionComponent<{
         data-tooltip-id="aegis-tooltip"
         data-tooltip-html={isExpanded ? "Collapse stations" : "Expand into stations"}
       >
-        {isBaseline && <FontAwesomeIcon icon={faStar} />}
         <FontAwesomeIcon icon={isExpanded ? faMinus : faPlus} />
-      </div>
+      </span>
     </div>
   );
 };
@@ -165,7 +183,7 @@ const StationHeaderCell: FunctionComponent<{
   return (
     <div
       className={styles.stationHeaderCell}
-      style={hoveredTopItem === cellKey ? { backgroundColor: "var(--stmTableHover)" } : null}
+      style={hoveredTopItem === cellKey ? { backgroundColor: "var(--stmCoverageHover)" } : null}
       onMouseEnter={() => dispatch(stmCoverageSetHoveredTopItem(cellKey))}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={label}

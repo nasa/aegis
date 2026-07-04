@@ -32,6 +32,7 @@ export const initialState: STMState = {
   stmCoverageExpandedEvaColumns: [],
   stmCoverageHoveredTopItem: null,
   stmCoverageHoveredLeftItem: null,
+  stmCoverageDrilldownWidth: 320,
 };
 
 export const stmSlice = createSlice({
@@ -187,6 +188,17 @@ export const stmSlice = createSlice({
         state.stmCoverageHiddenColumns.push(action.payload);
       }
     },
+    // Hide/show several columns atomically (used when toggling an as-planned
+    // EVA in the Columns dropdown, which also hides/shows its REX children)
+    stmCoverageSetColumnsHidden: (
+      state,
+      action: { payload: { columnKeys: string[]; hidden: boolean } }
+    ) => {
+      const { columnKeys, hidden } = action.payload;
+      state.stmCoverageHiddenColumns = hidden
+        ? [...new Set([...state.stmCoverageHiddenColumns, ...columnKeys])]
+        : state.stmCoverageHiddenColumns.filter((key) => !columnKeys.includes(key));
+    },
     stmCoverageToggleEvaColumnExpansion: (state, action: { payload: string }) => {
       const index = state.stmCoverageExpandedEvaColumns.indexOf(action.payload);
       if (index > -1) {
@@ -200,6 +212,9 @@ export const stmSlice = createSlice({
     },
     stmCoverageSetHoveredLeftItem: (state, action: { payload: string }) => {
       state.stmCoverageHoveredLeftItem = action.payload;
+    },
+    stmCoverageSetDrilldownWidth: (state, action: { payload: number }) => {
+      state.stmCoverageDrilldownWidth = action.payload;
     },
     obliterateState: (state) => {
       //eslint-disable-next-line
@@ -240,8 +255,10 @@ export const {
   stmCoverageToggleDifferencesOnly,
   stmCoverageSetRexStatusFilter,
   stmCoverageToggleHiddenColumn,
+  stmCoverageSetColumnsHidden,
   stmCoverageToggleEvaColumnExpansion,
   stmCoverageSetHoveredTopItem,
   stmCoverageSetHoveredLeftItem,
+  stmCoverageSetDrilldownWidth,
   obliterateState,
 } = stmSlice.actions;

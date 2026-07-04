@@ -86,6 +86,13 @@ type RexStatusFilter = "all" | "notSkipped" | "completeOnly";
  * One column of the coverage grid. As-planned EVAs are keyed by their evaUuid;
  * REX columns are keyed by rexUuid (an EVA referenced by multiple rexes yields
  * one column per rex).
+ *
+ * Columns are ordered and grouped by as-planned EVA: each plan column is
+ * immediately followed by its REX execution columns (linked via the rex EVA's
+ * refUuid, which stageDuplicateEva preserves when creating a REX). groupKey is
+ * the as-planned EVA's uuid — identical for the plan column and its rexes — and
+ * groupLabel is the as-planned EVA's name. Orphan rexes (no as-planned EVA with
+ * a matching refUuid) share a trailing "Other REXes" group.
  */
 type StmCoverageEvaColumn = {
   key: string;
@@ -93,6 +100,15 @@ type StmCoverageEvaColumn = {
   isRex: boolean;
   rexUuid?: string;
   label: string;
+  groupKey: string;
+  groupLabel: string;
+};
+
+/** A run of consecutive coverage columns sharing a groupKey (one as-planned EVA family). */
+type StmCoverageColumnGroup = {
+  groupKey: string;
+  groupLabel: string;
+  columns: StmCoverageEvaColumn[];
 };
 
 /** Coverage of a single rule within one EVA column. */

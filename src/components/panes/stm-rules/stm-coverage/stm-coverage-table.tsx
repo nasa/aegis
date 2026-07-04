@@ -9,6 +9,7 @@ import { stmRulesToggleTierExpansion, stmCoverageSetHoveredLeftItem } from "stor
 import sortBy from "lodash/sortBy";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { deepEqual } from "utils/useAppSelector";
+import { groupCoverageColumns } from "utils/stmEvaCoverage";
 import { useStmCoverage } from "./stm-coverage-context";
 import { StmCoverageColumnCells } from "./stm-coverage-cell";
 
@@ -187,14 +188,15 @@ const STMLevel3Row: FunctionComponent<{
     refEqual
   );
 
-  const asPlannedColumns = visibleColumns.filter((column) => !column.isRex);
-  const rexColumns = visibleColumns.filter((column) => column.isRex);
+  const columnGroups = groupCoverageColumns(visibleColumns);
 
   return (
     <div className={tableStyles.gridCellLevel3Container}>
       <div
         className={tableStyles.gridCellLevel3Heading}
-        style={hoveredLeftItem === level3.uuid ? { backgroundColor: "var(--stmTableHover)" } : null}
+        style={
+          hoveredLeftItem === level3.uuid ? { backgroundColor: "var(--stmCoverageHover)" } : null
+        }
         onMouseEnter={() => {
           if (hoveredLeftItem !== level3.uuid) {
             dispatch(stmCoverageSetHoveredLeftItem(level3.uuid));
@@ -214,19 +216,12 @@ const STMLevel3Row: FunctionComponent<{
         </div>
       </div>
       <div className={styles.tableRowCells}>
-        {asPlannedColumns.map((column, index) => (
-          <Fragment key={column.key}>
-            {index > 0 && <div className={styles.columnDivider} />}
-            <StmCoverageColumnCells column={column} stmUuid={level3.uuid} />
-          </Fragment>
-        ))}
-        {asPlannedColumns.length > 0 && rexColumns.length > 0 && (
-          <div className={styles.columnDivider} />
-        )}
-        {rexColumns.map((column, index) => (
-          <Fragment key={column.key}>
-            {index > 0 && <div className={styles.columnDivider} />}
-            <StmCoverageColumnCells column={column} stmUuid={level3.uuid} />
+        {columnGroups.map((group, groupIndex) => (
+          <Fragment key={group.groupKey}>
+            {groupIndex > 0 && <div className={styles.columnDivider} />}
+            {group.columns.map((column) => (
+              <StmCoverageColumnCells key={column.key} column={column} stmUuid={level3.uuid} />
+            ))}
           </Fragment>
         ))}
       </div>
