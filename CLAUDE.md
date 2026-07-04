@@ -83,6 +83,12 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
 - **Socket.io** client syncs non-Automerge real-time events (connection status, live notifications, preset/STM/folder upserts).
 - Vite path aliases map `"store"`, `"components"`, `"utils"`, etc. directly to `src/` subdirectories — use these aliases in imports.
 
+### TypeScript Type Conventions
+
+- **Types are ambient.** Domain/data types live in `.d.ts` files under `src/typings/` (e.g. `stm.d.ts`, `store.d.ts`, `thunkStageData.d.ts`) and are declared _without_ `export` — they are globally available across the codebase with no import needed. **Do not `export` types** and do not import them; reference them by name directly.
+- **Where types go:** any type that describes data (entities, computed shapes, context values, function args/returns, unions, enums-as-unions) belongs in the appropriate `src/typings/*.d.ts` file, _not_ inline with the code that uses it.
+- **The one exception is component prop interfaces.** A React component's props type may be declared inline in the component file (e.g. `type Props = {...}` or an inline `FunctionComponent<{...}>`), since it is local to that component and not shared. Everything else goes in a `.d.ts`.
+
 ### Backend
 
 - **Express 5** REST API on port 4001. Routes are organized by resource under `src/server/express/routes/`. REST routes cover infrastructure and admin concerns (auth, users, doc listings, elevation, STM rules, folders, grids, layers, presets, mission management utilities). Entity create/read/update/delete for action/eva/poi/rex/station/traverse is **not** handled via REST — those operations go through Automerge.
