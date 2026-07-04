@@ -1,59 +1,41 @@
-.modalDialog {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  border: none;
-  background-color: var(--grey1);
-  color: var(--grey5);
-  width: 75vw;
-  height: 75vh;
-  border-radius: var(--panelRadius);
-}
-.modalDialog::backdrop {
-  background-color: rgb(0 0 0 / 75%);
-}
-
-.detailsTable {
+.matchesBody {
   flex: 1 1 auto;
   display: flex;
   flex-direction: row;
   overflow: hidden;
 }
-.detailsLeft {
-  flex: 0 0 155px;
+
+.emptyState {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: var(--grey4);
+  font-size: 0.9em;
+}
+
+.treePanel {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .detailsRight {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  margin: 0 0 0 8px;
+  border-left: 2px solid var(--grey0);
 }
-.detailsHeader {
+.detailsHeaderRow {
   flex: 0 0 auto;
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
-  margin: 3px 5px;
-  font-size: 0.8rem;
-  font-weight: 300;
-  height: 25px;
-}
-.detailsHeaderRuleContainer {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-}
-.detailsHeaderRuleTitle {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-.detailsHeaderRuleButtons {
-  flex: 0 0 200px;
-  display: flex;
-  justify-content: right;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
 }
 .detailsContent {
   flex: 1 1 auto;
@@ -72,18 +54,37 @@
   font-weight: 400;
   border-radius: var(--panelRadius);
 }
-.stmRuleContainer {
+.rulesList {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 3px 5px;
+  max-height: 40%;
+  overflow-y: auto;
+}
+.ruleRow {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   background-color: var(--grey2);
   padding: 5px 5px 5px 5px;
-  margin: 3px 5px;
+  border: 1px solid var(--grey0);
   border-radius: var(--radius);
+  cursor: pointer;
+}
+.ruleRow:hover {
+  background-color: var(--grey3);
+}
+.ruleRowSelected {
+  border-color: var(--grey5);
 }
 
 .evaSelector {
-  margin: 2px 5px;
+  position: relative;
+  flex: 0 0 155px;
+  height: 26px;
+  margin: 3px 5px 0 0;
 }
 
 .multiselectDropdownContainer {
@@ -185,17 +186,6 @@
   width: 550px;
   margin: 0 0 0 15px;
   font-size: 1rem;
-}
-
-.iconTraverseDotsContainer {
-  margin-left: 12px;
-  width: 16px;
-}
-
-.iconTraverse {
-  border-left: 5px dotted var(--eva);
-  overflow-y: visible;
-  height: 32px;
 }
 
 .iconTraverseDotsContainerSmall {

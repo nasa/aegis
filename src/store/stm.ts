@@ -20,6 +20,18 @@ export const initialState: STMState = {
   stmViewHoveredTopItem: null,
   stmViewHoveredLeftItem: null,
   stmRulesSelectedRexes: [],
+  stmRulesActiveTab: "rules",
+  stmRulesSelectedStmUuid: null,
+  stmRulesSelectedRuleUuid: null,
+  stmRulesTierExpansion: { level1: true, level2: true },
+  stmCoverageBaselineColumnKey: null,
+  stmCoverageDiffMode: true,
+  stmCoverageDifferencesOnly: false,
+  stmCoverageRexStatusFilter: "all",
+  stmCoverageHiddenColumns: [],
+  stmCoverageExpandedEvaColumns: [],
+  stmCoverageHoveredTopItem: null,
+  stmCoverageHoveredLeftItem: null,
 };
 
 export const stmSlice = createSlice({
@@ -85,7 +97,7 @@ export const stmSlice = createSlice({
       state.rules = state.rules.filter((rule) => !action.payload.includes(rule.uuid));
     },
     deleteSTMRulesFromDb: (state, action: { payload: string[] }) => {
-      state.rules = state.rulesFromDb.filter((rule) => !action.payload.includes(rule.uuid));
+      state.rulesFromDb = state.rulesFromDb.filter((rule) => !action.payload.includes(rule.uuid));
     },
     setRuleEditingUuid: (state, action: { payload: string }) => {
       state.ruleEditingUuid = action.payload;
@@ -143,6 +155,52 @@ export const stmSlice = createSlice({
         state.stmRulesSelectedRexes.push(action.payload);
       }
     },
+    setStmRulesActiveTab: (state, action: { payload: StmRulesTab }) => {
+      state.stmRulesActiveTab = action.payload;
+    },
+    setStmRulesSelectedStmUuid: (state, action: { payload: string }) => {
+      state.stmRulesSelectedStmUuid = action.payload;
+    },
+    setStmRulesSelectedRuleUuid: (state, action: { payload: string }) => {
+      state.stmRulesSelectedRuleUuid = action.payload;
+    },
+    stmRulesToggleTierExpansion: (state, action: { payload: keyof StmRulesTierExpansion }) => {
+      state.stmRulesTierExpansion[action.payload] = !state.stmRulesTierExpansion[action.payload];
+    },
+    stmCoverageSetBaselineColumnKey: (state, action: { payload: string }) => {
+      state.stmCoverageBaselineColumnKey = action.payload;
+    },
+    stmCoverageToggleDiffMode: (state) => {
+      state.stmCoverageDiffMode = !state.stmCoverageDiffMode;
+    },
+    stmCoverageToggleDifferencesOnly: (state) => {
+      state.stmCoverageDifferencesOnly = !state.stmCoverageDifferencesOnly;
+    },
+    stmCoverageSetRexStatusFilter: (state, action: { payload: RexStatusFilter }) => {
+      state.stmCoverageRexStatusFilter = action.payload;
+    },
+    stmCoverageToggleHiddenColumn: (state, action: { payload: string }) => {
+      const index = state.stmCoverageHiddenColumns.indexOf(action.payload);
+      if (index > -1) {
+        state.stmCoverageHiddenColumns.splice(index, 1);
+      } else {
+        state.stmCoverageHiddenColumns.push(action.payload);
+      }
+    },
+    stmCoverageToggleEvaColumnExpansion: (state, action: { payload: string }) => {
+      const index = state.stmCoverageExpandedEvaColumns.indexOf(action.payload);
+      if (index > -1) {
+        state.stmCoverageExpandedEvaColumns.splice(index, 1);
+      } else {
+        state.stmCoverageExpandedEvaColumns.push(action.payload);
+      }
+    },
+    stmCoverageSetHoveredTopItem: (state, action: { payload: string }) => {
+      state.stmCoverageHoveredTopItem = action.payload;
+    },
+    stmCoverageSetHoveredLeftItem: (state, action: { payload: string }) => {
+      state.stmCoverageHoveredLeftItem = action.payload;
+    },
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
@@ -173,5 +231,17 @@ export const {
   stmViewSetHoveredTopItem,
   stmViewSetHoveredLeftItem,
   stmRulesToggleRex,
+  setStmRulesActiveTab,
+  setStmRulesSelectedStmUuid,
+  setStmRulesSelectedRuleUuid,
+  stmRulesToggleTierExpansion,
+  stmCoverageSetBaselineColumnKey,
+  stmCoverageToggleDiffMode,
+  stmCoverageToggleDifferencesOnly,
+  stmCoverageSetRexStatusFilter,
+  stmCoverageToggleHiddenColumn,
+  stmCoverageToggleEvaColumnExpansion,
+  stmCoverageSetHoveredTopItem,
+  stmCoverageSetHoveredLeftItem,
   obliterateState,
 } = stmSlice.actions;

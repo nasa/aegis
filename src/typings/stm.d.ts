@@ -74,3 +74,61 @@ type STMRule_db_type = Omit<STMRule, "createdAt" | "updatedAt"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
+
+/**
+ * STM Rules v2 "EVA Coverage" report types (see utils/stmEvaCoverage.ts)
+ */
+
+/** Which REX action statuses count toward rule satisfaction on REX columns. */
+type RexStatusFilter = "all" | "notSkipped" | "completeOnly";
+
+/**
+ * One column of the coverage grid. As-planned EVAs are keyed by their evaUuid;
+ * REX columns are keyed by rexUuid (an EVA referenced by multiple rexes yields
+ * one column per rex).
+ */
+type StmCoverageEvaColumn = {
+  key: string;
+  evaUuid: string;
+  isRex: boolean;
+  rexUuid?: string;
+  label: string;
+};
+
+/** Coverage of a single rule within one EVA column. */
+type StmCoverageRule = {
+  ruleUuid: string;
+  matchCount: number;
+  required: number;
+  satisfied: boolean;
+  matchingActionUuids: string[];
+};
+
+type StmCoverageLevel3Status = "satisfied" | "partial" | "none" | "noRules";
+
+/**
+ * Rollup of all of a level3's rules within one EVA column.
+ * totalMatches counts match instances (an action matching two rules counts twice)
+ * so that per-station breakdowns sum to the column total.
+ */
+type StmCoverageLevel3 = {
+  stmUuid: string;
+  status: StmCoverageLevel3Status;
+  rules: StmCoverageRule[];
+  totalMatches: number;
+};
+
+/** Per-station breakdown of a StmCoverageLevel3 for the expanded-column view. */
+type StmCoverageSequenceItemMatches = {
+  stations: { [stationUuid: string]: number };
+  traverseTotal: number;
+};
+
+/** Tabs of the v2 STM Satisfaction Rules pane. */
+type StmRulesTab = "rules" | "matches" | "coverage";
+
+/** Which STM tier name columns are expanded (names) vs collapsed (ordinals only). */
+type StmRulesTierExpansion = {
+  level1: boolean;
+  level2: boolean;
+};

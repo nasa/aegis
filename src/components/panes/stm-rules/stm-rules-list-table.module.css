@@ -47,6 +47,13 @@
   padding: 3px 3px 0 4px;
   border-left: 1px solid var(--grey0);
 }
+
+.tierCellClickable {
+  cursor: pointer;
+}
+.tierCellClickable:hover {
+  background-color: var(--grey3);
+}
 .gridCellLevel2Name {
   padding: 3px 3px 0 3px;
 }
@@ -78,6 +85,23 @@
 .gridCellLevel3Name {
   padding: 3px 3px 1em 0;
 }
+
+/* Select mode (Rule Matches tab): no rules column, level3 rows are selectable */
+.gridCellLevel3ContainerSelect {
+  grid-template-columns: 285px;
+  border-right: 1px solid var(--grey0);
+}
+.gridCellLevel3HeadingHover:hover {
+  background-color: var(--grey3);
+}
+.gridCellLevel3HeadingSelected {
+  background-color: var(--grey5);
+  color: var(--grey0);
+}
+.gridCellLevel3NameSelect {
+  padding: 3px 3px 3px 0;
+}
+
 .stmRuleCreateButton {
   position: absolute;
   left: 265px;
