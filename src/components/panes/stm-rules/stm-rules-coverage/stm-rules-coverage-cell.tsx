@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
-import styles from "./stm-coverage.module.css";
+import styles from "./stm-rules-coverage.module.css";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useMissionDocSelector } from "utils/useDocSelector";

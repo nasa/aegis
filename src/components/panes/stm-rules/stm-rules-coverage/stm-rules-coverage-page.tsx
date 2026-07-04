@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react";
 import { useEffect, useMemo } from "react";
-import styles from "./stm-coverage.module.css";
+import styles from "./stm-rules-coverage.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { stmCoverageSetDerivedData } from "store/stm";
@@ -11,10 +11,10 @@ import {
   getEvaColumns,
   getEvaSequenceItems,
 } from "utils/stmEvaCoverage";
-import StmCoverageControls from "./stm-coverage-controls";
-import StmCoverageHeader from "./stm-coverage-header";
-import StmCoverageTable from "./stm-coverage-table";
-import StmCoverageDrilldown from "./stm-coverage-drilldown";
+import StmCoverageControls from "./stm-rules-coverage-controls";
+import StmCoverageHeader from "./stm-rules-coverage-header";
+import StmCoverageTable from "./stm-rules-coverage-table";
+import StmCoverageDrilldown from "./stm-rules-coverage-drilldown";
 
 /**
  * "EVA Coverage" tab: STM level3 items down the left, one column per EVA
