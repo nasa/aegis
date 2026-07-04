@@ -9,7 +9,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { clearMapItemHover } from "store/hover";
 import throttle from "lodash/throttle";
 import isNil from "lodash/isNil";
-import { STM_Coverage } from "components/panes/stm/stm-coverage";
+import { STM_Coverage } from "components/panes/stm-legacy/stm-legacy-coverage";
 import * as TimelineDrawing from "./timeline-drawing";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { initGraphItemsRef, initPaperRefs } from "./timeline-init";

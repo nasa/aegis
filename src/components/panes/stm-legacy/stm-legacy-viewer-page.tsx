@@ -1,7 +1,7 @@
 import type { FunctionComponent } from "react";
 import { Fragment, useMemo } from "react";
-import styles from "./stm-viewer-page.module.css";
-import STMListTable from "./stm-viewer-list-table";
+import styles from "./stm-legacy-viewer-page.module.css";
+import STMListTable from "./stm-legacy-viewer-list-table";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { abbreviateString, titleCase } from "utils/formatting";
 import { Button, MultiSelectDropdown } from "components/interface/form/globalFields";

@@ -9,7 +9,7 @@ import clone from "lodash/clone";
 import isNil from "lodash/isNil";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import ReactDragListView from "react-drag-listview";
-import { STM_Coverage } from "./stm/stm-coverage";
+import { STM_Coverage } from "./stm-legacy/stm-legacy-coverage";
 import CalculatedDwell from "./calculated-dwell";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { Assoc_POIs } from "./actions-assocpois";

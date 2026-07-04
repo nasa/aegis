@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react";
 import { useRef } from "react";
-import styles from "./stm-coverage.module.css";
+import styles from "./stm-rules-coverage.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXmark, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
 
