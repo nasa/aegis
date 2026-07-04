@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react";
 import { useId } from "react";
-import stmStyles from "./stm-coverage.module.css";
+import stmStyles from "./stm-legacy-coverage.module.css";
 import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import uniqBy from "lodash/uniqBy";

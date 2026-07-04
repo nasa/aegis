@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react";
 import { Fragment } from "react";
-import styles from "./stm-coverage.module.css";
+import styles from "./stm-rules-coverage.module.css";
 import tableStyles from "../stm-rules-list-table.module.css";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import type { RootState } from "store";
@@ -10,7 +10,7 @@ import sortBy from "lodash/sortBy";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { deepEqual } from "utils/useAppSelector";
 import { groupCoverageColumns } from "utils/stmEvaCoverage";
-import { StmCoverageColumnCells } from "./stm-coverage-cell";
+import { StmCoverageColumnCells } from "./stm-rules-coverage-cell";
 
 /**
  * STM hierarchy rows of the EVA Coverage grid. The tier layout is the same as
