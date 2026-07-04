@@ -1,5 +1,5 @@
 import type { FunctionComponent } from "react";
-import stmStyles from "./stm-coverage.module.css";
+import stmStyles from "./stm-legacy-coverage.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import uniqBy from "lodash/uniqBy";
 import uniq from "lodash/uniq";

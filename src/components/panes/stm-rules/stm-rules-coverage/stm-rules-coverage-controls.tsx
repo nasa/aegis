@@ -1,5 +1,5 @@
 import type { FunctionComponent } from "react";
-import styles from "./stm-coverage.module.css";
+import styles from "./stm-rules-coverage.module.css";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
@@ -17,7 +17,7 @@ import {
   MultiSelectDropdown,
 } from "components/interface/form/globalFields";
 import { faCodeCompare } from "@fortawesome/free-solid-svg-icons";
-import StmCoverageHelp from "./stm-coverage-help";
+import StmCoverageHelp from "./stm-rules-coverage-help";
 
 const REX_STATUS_FILTER_OPTIONS: { value: RexStatusFilter; label: string }[] = [
   { value: "all", label: "All actions" },

@@ -5,7 +5,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { setStmRulesActiveTab } from "store/stm";
 import StmRulesTabRules from "./stm-rules-tab-rules";
 import StmRulesTabMatches from "./stm-rules-tab-matches";
-import StmCoveragePage from "./stm-coverage/stm-coverage-page";
+import StmCoveragePage from "./stm-rules-coverage/stm-rules-coverage-page";
 
 const TABS: { key: StmRulesTab; label: string }[] = [
   { key: "rules", label: "Rules" },

@@ -30,7 +30,7 @@ import { applyUpdateActionByField } from "client/automerge/apply/apply-action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { longDateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
-import STMSelector from "./stm/stm-selector";
+import STMSelector from "./stm-legacy/stm-legacy-selector";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import round from "lodash/round";
 import isNull from "lodash/isNull";

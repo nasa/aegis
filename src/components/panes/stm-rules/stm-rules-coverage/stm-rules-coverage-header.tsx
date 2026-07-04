@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react";
 import { Fragment } from "react";
-import styles from "./stm-coverage.module.css";
+import styles from "./stm-rules-coverage.module.css";
 import pageStyles from "../stm-rules-page.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMinusCircle, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
