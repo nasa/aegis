@@ -5,6 +5,7 @@ import {
   getCoverageDifferences,
   getEligibleActionsForColumn,
   getEvaColumns,
+  getEvaSequenceItems,
   groupCoverageColumns,
   groupMatchesBySequenceItem,
   STM_COVERAGE_ORPHAN_GROUP_KEY,
@@ -482,7 +483,7 @@ describe("getCoverageDifferences()", () => {
 });
 
 describe("groupMatchesBySequenceItem()", () => {
-  test("station counts plus traverseTotal sum to totalMatches, double-counting shared actions", () => {
+  test("station and traverse counts sum to totalMatches, double-counting shared actions", () => {
     const { mission, makeAction } = buildFixture();
     mission.actions = {
       act1: makeAction({ uuid: "act1", stationUuid: "s1" }),
@@ -501,7 +502,45 @@ describe("groupMatchesBySequenceItem()", () => {
 
     const grouped = groupMatchesBySequenceItem({ mission, level3Coverage: coverage["stm1"] });
     expect(grouped.stations).toEqual({ s1: 4 });
-    expect(grouped.traverseTotal).toBe(2);
+    expect(grouped.traverses).toEqual({ t1: 2 });
     expect(4 + 2).toBe(coverage["stm1"].totalMatches);
+  });
+});
+
+describe("getEvaSequenceItems()", () => {
+  test("returns stations and traverses interleaved in EVA sequence order", () => {
+    const { mission } = buildFixture();
+    const items = getEvaSequenceItems(mission, "eva1");
+    expect(items.map((item) => `${item.type}:${item.uuid}`)).toEqual([
+      "traverse:t1",
+      "station:s1",
+      "station:s2",
+    ]);
+    expect(items.map((item) => item.name)).toEqual(["Traverse 1", "Station 1", "Station 2"]);
+  });
+
+  test("skips deleted entities, dedupes revisits, and appends non-lander ingress/egress stations", () => {
+    const { mission } = buildFixture();
+    mission.stations["s3"] = generateBlankStation({ uuid: "s3", name: "Egress" });
+    mission.evas["eva1"].sequence = [
+      { type: "station", uuid: "s1" },
+      { type: "traverse", uuid: "t1" },
+      { type: "station", uuid: "s1" }, // revisit
+      { type: "station", uuid: "ghost" }, // deleted
+      { type: "traverse", uuid: "ghostTrav" }, // deleted
+    ];
+    mission.evas["eva1"].egressLocationUuid = "s3";
+
+    const items = getEvaSequenceItems(mission, "eva1");
+    expect(items.map((item) => `${item.type}:${item.uuid}`)).toEqual([
+      "station:s1",
+      "traverse:t1",
+      "station:s3",
+    ]);
+  });
+
+  test("missing EVA yields an empty list", () => {
+    const { mission } = buildFixture();
+    expect(getEvaSequenceItems(mission, "ghost")).toEqual([]);
   });
 });

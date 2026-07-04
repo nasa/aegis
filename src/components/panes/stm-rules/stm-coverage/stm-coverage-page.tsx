@@ -3,9 +3,12 @@ import { useMemo, useState } from "react";
 import styles from "./stm-coverage.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { computeColumnCoverage, getCoverageDifferences, getEvaColumns } from "utils/stmEvaCoverage";
-import { selectEvaStations } from "store/selectors";
-import type { StmCoverageCellSelection } from "./stm-coverage-context";
+import {
+  computeColumnCoverage,
+  getCoverageDifferences,
+  getEvaColumns,
+  getEvaSequenceItems,
+} from "utils/stmEvaCoverage";
 import { StmCoverageContext } from "./stm-coverage-context";
 import StmCoverageControls from "./stm-coverage-controls";
 import StmCoverageHeader from "./stm-coverage-header";
@@ -66,12 +69,12 @@ const StmCoveragePage: FunctionComponent = () => {
     return result;
   }, [mission, level3s, rules, visibleColumns, rexStatusFilter]);
 
-  const stationsByColumnKey = useMemo(() => {
-    const result: { [columnKey: string]: Station[] } = {};
+  const sequenceByColumnKey = useMemo(() => {
+    const result: { [columnKey: string]: StmCoverageSequenceItem[] } = {};
     if (!mission) return result;
     for (const column of visibleColumns) {
       if (expandedColumnKeys.includes(column.key)) {
-        result[column.key] = selectEvaStations(mission, column.evaUuid);
+        result[column.key] = getEvaSequenceItems(mission, column.evaUuid);
       }
     }
     return result;
@@ -113,7 +116,7 @@ const StmCoveragePage: FunctionComponent = () => {
         baselineKey,
         diffMode,
         expandedColumnKeys,
-        stationsByColumnKey,
+        sequenceByColumnKey,
         visibleStmUuids,
         cellSelection,
         setCellSelection,

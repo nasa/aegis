@@ -4,7 +4,6 @@ import styles from "./stm-coverage.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { stmCoverageSetHoveredLeftItem, stmCoverageSetHoveredTopItem } from "store/stm";
 import { diffLevel3, groupMatchesBySequenceItem } from "utils/stmEvaCoverage";
-import type { StmCoverageCellSelection } from "./stm-coverage-context";
 import { useStmCoverage } from "./stm-coverage-context";
 
 /** Whether the drilldown selection points at exactly this cell. */
@@ -16,18 +15,18 @@ const isCellSelected = (
   selection.stmUuid === target.stmUuid &&
   selection.columnKey === target.columnKey &&
   selection.stationUuid === target.stationUuid &&
-  !!selection.traversesOnly === !!target.traversesOnly;
+  selection.traverseUuid === target.traverseUuid;
 
 /**
  * All cells for one (level3 row × EVA column): a single summary cell when the
- * column is collapsed, or per-station sub-cells + Traverses + Total when
- * expanded. Sub-cell counts always sum to the Total cell.
+ * column is collapsed, or per-station/per-traverse sub-cells (in EVA sequence
+ * order) + Total when expanded. Sub-cell counts always sum to the Total cell.
  */
 export const StmCoverageColumnCells: FunctionComponent<{
   column: StmCoverageEvaColumn;
   stmUuid: string;
 }> = ({ column, stmUuid }) => {
-  const { mission, coverageByColumnKey, expandedColumnKeys, stationsByColumnKey } =
+  const { mission, coverageByColumnKey, expandedColumnKeys, sequenceByColumnKey } =
     useStmCoverage();
   const coverage = coverageByColumnKey[column.key]?.[stmUuid];
   const isExpanded = expandedColumnKeys.includes(column.key);
@@ -46,26 +45,29 @@ export const StmCoverageColumnCells: FunctionComponent<{
     return <SummaryCell column={column} stmUuid={stmUuid} coverage={coverage} />;
   }
 
-  const stations = stationsByColumnKey[column.key] ?? [];
+  const sequenceItems = sequenceByColumnKey[column.key] ?? [];
   return (
     <>
-      {stations.map((station) => (
-        <CountCell
-          key={station.uuid}
-          cellKey={`${column.key}_${station.uuid}`}
-          stmUuid={stmUuid}
-          count={sequenceMatches?.stations[station.uuid] ?? 0}
-          tooltip={`${station.name}: ${sequenceMatches?.stations[station.uuid] ?? 0} matching actions`}
-          onClickSelection={{ stmUuid, columnKey: column.key, stationUuid: station.uuid }}
-        />
-      ))}
-      <CountCell
-        cellKey={`${column.key}_trav`}
-        stmUuid={stmUuid}
-        count={sequenceMatches?.traverseTotal ?? 0}
-        tooltip={`Traverses: ${sequenceMatches?.traverseTotal ?? 0} matching actions`}
-        onClickSelection={{ stmUuid, columnKey: column.key, traversesOnly: true }}
-      />
+      {sequenceItems.map((item) => {
+        const count =
+          (item.type === "station"
+            ? sequenceMatches?.stations[item.uuid]
+            : sequenceMatches?.traverses[item.uuid]) ?? 0;
+        return (
+          <CountCell
+            key={item.uuid}
+            cellKey={`${column.key}_${item.uuid}`}
+            stmUuid={stmUuid}
+            count={count}
+            tooltip={`${item.name}: ${count} matching actions`}
+            onClickSelection={
+              item.type === "station"
+                ? { stmUuid, columnKey: column.key, stationUuid: item.uuid }
+                : { stmUuid, columnKey: column.key, traverseUuid: item.uuid }
+            }
+          />
+        );
+      })}
       <SummaryCell column={column} stmUuid={stmUuid} coverage={coverage} />
     </>
   );
@@ -153,7 +155,7 @@ const SummaryCell: FunctionComponent<{
   );
 };
 
-/** A 22px per-station (or Traverses) count sub-cell. Blank when zero. */
+/** A 22px per-station (or per-traverse) count sub-cell. Blank when zero. */
 const CountCell: FunctionComponent<{
   cellKey: string;
   stmUuid: string;
@@ -163,7 +165,7 @@ const CountCell: FunctionComponent<{
     stmUuid: string;
     columnKey: string;
     stationUuid?: string;
-    traversesOnly?: boolean;
+    traverseUuid?: string;
   };
 }> = ({ cellKey, stmUuid, count, tooltip, onClickSelection }) => {
   const { cellSelection, setCellSelection } = useStmCoverage();
