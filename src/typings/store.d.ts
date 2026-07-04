@@ -138,6 +138,22 @@ interface STMState {
   stmCoverageHoveredTopItem: string;
   stmCoverageHoveredLeftItem: string;
   stmCoverageDrilldownWidth: number;
+  // Currently-selected coverage cell (drives the drilldown panel).
+  stmCoverageCellSelection: StmCoverageCellSelection;
+  // Derived coverage data, computed once in stm-coverage-page.tsx from the
+  // mission doc + the stm slice and mirrored here so the grid components can
+  // read it without prop-drilling. See StmCoverageDerivedData.
+  stmCoverageVisibleColumns: StmCoverageEvaColumn[];
+  stmCoverageCoverageByColumnKey: {
+    [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 };
+  };
+  // Baseline column key after fallback resolution (the user-chosen key lives in
+  // stmCoverageBaselineColumnKey; this is what the grid actually compares to).
+  stmCoverageResolvedBaselineKey: string | null;
+  stmCoverageSequenceByColumnKey: { [columnKey: string]: StmCoverageSequenceItem[] };
+  // Level3 uuids to show when "differences only" is on; null = show all.
+  // Stored as an array (not a Set) to keep the store serializable.
+  stmCoverageVisibleStmUuids: string[] | null;
 }
 
 interface StationState {

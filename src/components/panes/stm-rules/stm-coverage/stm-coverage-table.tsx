@@ -10,7 +10,6 @@ import sortBy from "lodash/sortBy";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { deepEqual } from "utils/useAppSelector";
 import { groupCoverageColumns } from "utils/stmEvaCoverage";
-import { useStmCoverage } from "./stm-coverage-context";
 import { StmCoverageColumnCells } from "./stm-coverage-cell";
 
 /**
@@ -37,7 +36,10 @@ export default StmCoverageTable;
 
 const STMLevel1Block: FunctionComponent<{ level1: STMLevel1 }> = ({ level1 }) => {
   const dispatch = useAppDispatch();
-  const { visibleStmUuids } = useStmCoverage();
+  const visibleStmUuids = useAppSelector(
+    (state: RootState) => state.stm.stmCoverageVisibleStmUuids,
+    shallowEqual
+  );
   const level2s = useAppSelector(
     (state: RootState) =>
       sortBy(
@@ -50,7 +52,8 @@ const STMLevel1Block: FunctionComponent<{ level1: STMLevel1 }> = ({ level1 }) =>
     const level3s = state.stm.level3s.filter((level3) =>
       level2s.some((level2) => level2.uuid === level3.level2Uuid)
     );
-    return level3s.filter((level3) => !visibleStmUuids || visibleStmUuids.has(level3.uuid)).length;
+    return level3s.filter((level3) => !visibleStmUuids || visibleStmUuids.includes(level3.uuid))
+      .length;
   }, refEqual);
   const level1Expanded = useAppSelector(
     (state: RootState) => state.stm.stmRulesTierExpansion.level1,
@@ -116,14 +119,17 @@ const STMLevel2Block: FunctionComponent<{ level2: STMLevel2; stmLevel1Enabled: b
   stmLevel1Enabled,
 }) => {
   const dispatch = useAppDispatch();
-  const { visibleStmUuids } = useStmCoverage();
+  const visibleStmUuids = useAppSelector(
+    (state: RootState) => state.stm.stmCoverageVisibleStmUuids,
+    shallowEqual
+  );
   const level3s = useAppSelector(
     (state: RootState) =>
       sortBy(
         state.stm.level3s.filter(
           (level3) =>
             level3.level2Uuid === level2.uuid &&
-            (!visibleStmUuids || visibleStmUuids.has(level3.uuid))
+            (!visibleStmUuids || visibleStmUuids.includes(level3.uuid))
         ),
         "numbering"
       ),
@@ -173,7 +179,10 @@ const STMLevel3Row: FunctionComponent<{
   stmLevel1Enabled: boolean;
 }> = ({ level3, stmLevel1Enabled }) => {
   const dispatch = useAppDispatch();
-  const { visibleColumns } = useStmCoverage();
+  const visibleColumns = useAppSelector(
+    (state: RootState) => state.stm.stmCoverageVisibleColumns,
+    shallowEqual
+  );
   const level1Numbering = useAppSelector((state: RootState) => {
     const level2 = state.stm.level2s.find((level2) => level2.uuid === level3.level2Uuid);
     return state.stm.level1s.find((level1) => level1.uuid === level2?.level1Uuid)?.numbering || "";
