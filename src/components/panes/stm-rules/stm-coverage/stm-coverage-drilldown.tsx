@@ -4,9 +4,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { stmCoverageSetDrilldownWidth } from "store/stm";
-
-import { useStmCoverage } from "./stm-coverage-context";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { stmCoverageSetCellSelection, stmCoverageSetDrilldownWidth } from "store/stm";
 
 const DRILLDOWN_MIN_WIDTH = 220;
 /** Grid width the drilldown can never squeeze past when dragged wide. */
@@ -19,16 +18,19 @@ const GRID_MIN_WIDTH = 300;
  * controllers can see where a difference comes from.
  */
 const StmCoverageDrilldown: FunctionComponent = () => {
-  const {
-    mission,
-    visibleColumns,
-    coverageByColumnKey,
-    baselineKey,
-    diffMode,
-    cellSelection,
-    setCellSelection,
-  } = useStmCoverage();
   const dispatch = useAppDispatch();
+  const mission = useMissionDocSelector((m) => m, refEqual);
+  const visibleColumns = useAppSelector(
+    (state) => state.stm.stmCoverageVisibleColumns,
+    shallowEqual
+  );
+  const coverageByColumnKey = useAppSelector(
+    (state) => state.stm.stmCoverageCoverageByColumnKey,
+    refEqual
+  );
+  const baselineKey = useAppSelector((state) => state.stm.stmCoverageResolvedBaselineKey, refEqual);
+  const diffMode = useAppSelector((state) => state.stm.stmCoverageDiffMode, refEqual);
+  const cellSelection = useAppSelector((state) => state.stm.stmCoverageCellSelection, refEqual);
   const drilldownWidth = useAppSelector((state) => state.stm.stmCoverageDrilldownWidth, refEqual);
   const level3 = useAppSelector(
     (state) => state.stm.level3s.find((item) => item.uuid === cellSelection?.stmUuid),
@@ -94,7 +96,10 @@ const StmCoverageDrilldown: FunctionComponent = () => {
               {scopeLabel ? ` — ${scopeLabel}` : ""}
             </div>
           </div>
-          <div className={styles.drilldownClose} onClick={() => setCellSelection(null)}>
+          <div
+            className={styles.drilldownClose}
+            onClick={() => dispatch(stmCoverageSetCellSelection(null))}
+          >
             <FontAwesomeIcon icon={faXmark} />
           </div>
         </div>
@@ -128,7 +133,7 @@ const DrilldownRule: FunctionComponent<{
   baselineRuleCoverage: StmCoverageRule | null;
   matchesScope: (action: Action | undefined) => boolean;
 }> = ({ ruleCoverage, rule, baselineRuleCoverage, matchesScope }) => {
-  const { mission } = useStmCoverage();
+  const mission = useMissionDocSelector((m) => m, refEqual);
 
   const scopedActions = ruleCoverage.matchingActionUuids
     .map((actionUuid) => mission?.actions?.[actionUuid])

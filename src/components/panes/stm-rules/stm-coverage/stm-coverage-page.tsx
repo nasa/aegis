@@ -1,7 +1,9 @@
 import type { FunctionComponent } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import styles from "./stm-coverage.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { stmCoverageSetDerivedData } from "store/stm";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import {
   computeColumnCoverage,
@@ -9,7 +11,6 @@ import {
   getEvaColumns,
   getEvaSequenceItems,
 } from "utils/stmEvaCoverage";
-import { StmCoverageContext } from "./stm-coverage-context";
 import StmCoverageControls from "./stm-coverage-controls";
 import StmCoverageHeader from "./stm-coverage-header";
 import StmCoverageTable from "./stm-coverage-table";
@@ -22,6 +23,7 @@ import StmCoverageDrilldown from "./stm-coverage-drilldown";
  * compare EVA plans and see where coverage differs.
  */
 const StmCoveragePage: FunctionComponent = () => {
+  const dispatch = useAppDispatch();
   // The coverage computation reads actions/stations/traverses/evas/rexes, so
   // subscribe to the whole doc and memo the derived data below on its identity.
   const mission = useMissionDocSelector((m) => m, refEqual);
@@ -29,7 +31,6 @@ const StmCoveragePage: FunctionComponent = () => {
   const rules = useAppSelector((state) => state.stm.rules, deepEqual);
   const hiddenColumns = useAppSelector((state) => state.stm.stmCoverageHiddenColumns, shallowEqual);
   const rexStatusFilter = useAppSelector((state) => state.stm.stmCoverageRexStatusFilter, refEqual);
-  const diffMode = useAppSelector((state) => state.stm.stmCoverageDiffMode, refEqual);
   const differencesOnly = useAppSelector((state) => state.stm.stmCoverageDifferencesOnly, refEqual);
   const storedBaselineKey = useAppSelector(
     (state) => state.stm.stmCoverageBaselineColumnKey,
@@ -39,7 +40,7 @@ const StmCoveragePage: FunctionComponent = () => {
     (state) => state.stm.stmCoverageExpandedEvaColumns,
     shallowEqual
   );
-  const [cellSelection, setCellSelection] = useState<StmCoverageCellSelection>(null);
+  const cellSelection = useAppSelector((state) => state.stm.stmCoverageCellSelection, refEqual);
 
   const allColumns = useMemo(() => (mission ? getEvaColumns(mission) : []), [mission]);
   const visibleColumns = useMemo(
@@ -105,23 +106,32 @@ const StmCoveragePage: FunctionComponent = () => {
   );
   const visibleStmUuids = coverageDifferences?.stmUuids ?? null;
 
+  // Mirror the derived data into the stm slice so the grid components can read
+  // it from Redux instead of a context. visibleStmUuids is stored as an array
+  // to keep the store serializable.
+  useEffect(() => {
+    dispatch(
+      stmCoverageSetDerivedData({
+        visibleColumns: displayedColumns,
+        coverageByColumnKey,
+        resolvedBaselineKey: baselineKey,
+        sequenceByColumnKey,
+        visibleStmUuids: visibleStmUuids ? [...visibleStmUuids] : null,
+      })
+    );
+  }, [
+    dispatch,
+    displayedColumns,
+    coverageByColumnKey,
+    baselineKey,
+    sequenceByColumnKey,
+    visibleStmUuids,
+  ]);
+
   if (!mission) return null;
 
   return (
-    <StmCoverageContext.Provider
-      value={{
-        mission,
-        visibleColumns: displayedColumns,
-        coverageByColumnKey,
-        baselineKey,
-        diffMode,
-        expandedColumnKeys,
-        sequenceByColumnKey,
-        visibleStmUuids,
-        cellSelection,
-        setCellSelection,
-      }}
-    >
+    <>
       <StmCoverageControls allColumns={allColumns} baselineKey={baselineKey} />
       <div className={styles.coverageBody}>
         <div className={styles.gridScroll}>
@@ -130,7 +140,7 @@ const StmCoveragePage: FunctionComponent = () => {
         </div>
         {cellSelection && <StmCoverageDrilldown />}
       </div>
-    </StmCoverageContext.Provider>
+    </>
   );
 };
 
