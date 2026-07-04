@@ -56,7 +56,16 @@ const StmCoverageHeader: FunctionComponent = () => {
     <div className={styles.header}>
       <div
         className={styles.headerLeft}
-        style={{ gridTemplateColumns: [...tierColumns, "285px"].join(" ") }}
+        style={{
+          gridTemplateColumns: [...tierColumns, "285px"].join(" "),
+          // Row cells sit behind two 1px border-lefts the header has no
+          // equivalent of: the level1 tier wrapper's (stm-rules-list-table
+          // .gridCellLevel1Expanded/Collapsed, only when level1 is enabled)
+          // and the level3 row container's (.gridCellLevel3Container,
+          // always). Pad the header by the same amount so its columns start
+          // at the same x position as the body's.
+          paddingLeft: stmLevel1Enabled ? 2 : 1,
+        }}
       >
         {stmLevel1Enabled && <StmTierTitle tier="level1" />}
         <StmTierTitle tier="level2" />
