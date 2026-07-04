@@ -137,6 +137,7 @@ interface STMState {
   stmCoverageExpandedEvaColumns: string[];
   stmCoverageHoveredTopItem: string;
   stmCoverageHoveredLeftItem: string;
+  stmCoverageDrilldownWidth: number;
 }
 
 interface StationState {

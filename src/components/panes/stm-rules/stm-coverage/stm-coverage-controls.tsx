@@ -4,6 +4,7 @@ import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
   stmCoverageSetBaselineColumnKey,
+  stmCoverageSetColumnsHidden,
   stmCoverageSetRexStatusFilter,
   stmCoverageToggleDiffMode,
   stmCoverageToggleDifferencesOnly,
@@ -16,12 +17,16 @@ import {
   MultiSelectDropdown,
 } from "components/interface/form/globalFields";
 import { faCodeCompare } from "@fortawesome/free-solid-svg-icons";
+import StmCoverageHelp from "./stm-coverage-help";
 
 const REX_STATUS_FILTER_OPTIONS: { value: RexStatusFilter; label: string }[] = [
   { value: "all", label: "All actions" },
   { value: "notSkipped", label: "Not skipped" },
   { value: "completeOnly", label: "Completed only" },
 ];
+
+/** Non-breaking indent for REX entries nested under their as-planned EVA. */
+const REX_OPTION_INDENT = "   ";
 
 const StmCoverageControls: FunctionComponent<{
   allColumns: StmCoverageEvaColumn[];
@@ -38,6 +43,24 @@ const StmCoverageControls: FunctionComponent<{
     .filter((column) => !hiddenColumns.includes(column.key))
     .map((column) => column.key);
 
+  // Toggling an as-planned EVA hides/shows its REX children with it; toggling
+  // a REX only affects itself. allColumns is already in grouped order (each
+  // plan column immediately followed by its rexes).
+  const toggleColumn = (columnKey: string) => {
+    const column = allColumns.find((c) => c.key === columnKey);
+    if (column && !column.isRex) {
+      const groupKeys = allColumns.filter((c) => c.groupKey === column.groupKey).map((c) => c.key);
+      dispatch(
+        stmCoverageSetColumnsHidden({
+          columnKeys: groupKeys,
+          hidden: !hiddenColumns.includes(columnKey),
+        })
+      );
+    } else {
+      dispatch(stmCoverageToggleHiddenColumn(columnKey));
+    }
+  };
+
   return (
     <div className={styles.controls}>
       <div className={styles.controlGroup}>
@@ -51,7 +74,7 @@ const StmCoverageControls: FunctionComponent<{
             .filter((column) => !hiddenColumns.includes(column.key))
             .map((column) => (
               <option key={column.key} value={column.key}>
-                {column.isRex ? `REX: ${column.label}` : column.label}
+                {column.isRex ? `${REX_OPTION_INDENT}${column.label}` : column.label}
               </option>
             ))}
         </Dropdown>
@@ -72,9 +95,9 @@ const StmCoverageControls: FunctionComponent<{
         checked={differencesOnly}
         editable={true}
         onChange={() => dispatch(stmCoverageToggleDifferencesOnly())}
-        onClick={() => dispatch(stmCoverageToggleDifferencesOnly())}
-        toolTip="Only show rows where a column differs from the baseline"
+        toolTip="Only show rows and columns that differ from the baseline"
         label="Differences only"
+        uniqueId="stm-coverage-differences-only"
       />
       {hasRexColumns && (
         <div className={styles.controlGroup}>
@@ -95,17 +118,19 @@ const StmCoverageControls: FunctionComponent<{
       <div className={styles.multiselectDropdownOutside}>
         <MultiSelectDropdown
           items={allColumns.map((column) => ({
-            label: column.isRex ? `REX: ${column.label}` : column.label,
+            label: column.label,
             value: column.key,
+            indentLevel: column.isRex ? 1 : 0,
           }))}
           selectedItemsValues={shownColumnKeys}
-          toggleItem={(columnKey) => dispatch(stmCoverageToggleHiddenColumn(columnKey))}
+          toggleItem={toggleColumn}
           titleLabel="Columns"
           containerStyle={{ zIndex: 20 }}
           containerClassName={styles.multiselectDropdownContainer}
           headerClassName={styles.multiselectDropdownHeader}
         />
       </div>
+      <StmCoverageHelp />
     </div>
   );
 };

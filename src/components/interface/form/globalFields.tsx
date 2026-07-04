@@ -240,7 +240,7 @@ export const IconDropdown: FunctionComponent<{
 };
 
 export const MultiSelectDropdown: FunctionComponent<{
-  items: { label: string; value: string }[];
+  items: { label: string; value: string; indentLevel?: number }[];
   selectedItemsValues: string[];
   toggleItem: (itemValue: string) => void;
   titleLabel: string;
@@ -290,6 +290,7 @@ export const MultiSelectDropdown: FunctionComponent<{
               <div
                 key={item.value}
                 className={formStyles.multiselectDropdownItem}
+                style={item.indentLevel ? { paddingLeft: `${item.indentLevel * 14}px` } : null}
                 onClick={(e) => {
                   // toggle the selectedItem
                   toggleItem(item.value);

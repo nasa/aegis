@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import styles from "./stm-coverage.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { computeColumnCoverage, diffLevel3, getEvaColumns } from "utils/stmEvaCoverage";
+import { computeColumnCoverage, getCoverageDifferences, getEvaColumns } from "utils/stmEvaCoverage";
 import { selectEvaStations } from "store/selectors";
 import type { StmCoverageCellSelection } from "./stm-coverage-context";
 import { StmCoverageContext } from "./stm-coverage-context";
@@ -77,23 +77,30 @@ const StmCoveragePage: FunctionComponent = () => {
     return result;
   }, [mission, visibleColumns, expandedColumnKeys]);
 
-  const visibleStmUuids = useMemo(() => {
-    if (!differencesOnly || !baselineKey) return null;
-    const baselineCoverage = coverageByColumnKey[baselineKey];
-    if (!baselineCoverage) return null;
-    const stmUuids = new Set<string>();
-    for (const level3 of level3s) {
-      const baseline = baselineCoverage[level3.uuid];
-      if (!baseline) continue;
-      const differs = visibleColumns.some((column) => {
-        if (column.key === baselineKey) return false;
-        const other = coverageByColumnKey[column.key]?.[level3.uuid];
-        return other ? !diffLevel3(baseline, other).equal : false;
-      });
-      if (differs) stmUuids.add(level3.uuid);
-    }
-    return stmUuids;
-  }, [differencesOnly, baselineKey, coverageByColumnKey, level3s, visibleColumns]);
+  // "Differences only": hide rows and columns whose coverage is identical to
+  // the baseline everywhere (the baseline column itself always stays visible)
+  const coverageDifferences = useMemo(
+    () =>
+      differencesOnly && baselineKey
+        ? getCoverageDifferences({
+            coverageByColumnKey,
+            columns: visibleColumns,
+            baselineKey,
+            level3s,
+          })
+        : null,
+    [differencesOnly, baselineKey, coverageByColumnKey, visibleColumns, level3s]
+  );
+  const displayedColumns = useMemo(
+    () =>
+      coverageDifferences
+        ? visibleColumns.filter(
+            (column) => column.key === baselineKey || coverageDifferences.columnKeys.has(column.key)
+          )
+        : visibleColumns,
+    [coverageDifferences, visibleColumns, baselineKey]
+  );
+  const visibleStmUuids = coverageDifferences?.stmUuids ?? null;
 
   if (!mission) return null;
 
@@ -101,7 +108,7 @@ const StmCoveragePage: FunctionComponent = () => {
     <StmCoverageContext.Provider
       value={{
         mission,
-        visibleColumns,
+        visibleColumns: displayedColumns,
         coverageByColumnKey,
         baselineKey,
         diffMode,

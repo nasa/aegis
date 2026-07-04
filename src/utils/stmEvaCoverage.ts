@@ -14,37 +14,90 @@ import { selectEvaStations, selectEvaTraverses } from "store/selectors";
  * declared ambiently in typings/stm.d.ts.
  */
 
+/** groupKey of the trailing group holding rexes with no matching as-planned EVA. */
+export const STM_COVERAGE_ORPHAN_GROUP_KEY = "__orphanRexes__";
+export const STM_COVERAGE_ORPHAN_GROUP_LABEL = "Other REXes";
+
 /**
- * Builds the grid's columns: as-planned EVAs (sorted by name) followed by one
- * column per Rex (sorted by rex name — REX EVAs have a blank name, their
- * display name lives on the Rex).
+ * Builds the grid's columns, grouped by as-planned EVA: each plan column
+ * (sorted by EVA name) is immediately followed by its REX execution columns
+ * (sorted by rex name — REX EVAs have a blank name, their display name lives
+ * on the Rex). A rex belongs to the as-planned EVA whose refUuid matches its
+ * own EVA's refUuid (stageDuplicateEva preserves refUuid for REX EVAs). Rexes
+ * whose as-planned EVA can't be resolved land in a trailing "Other REXes"
+ * group; rexes pointing at a missing EVA are skipped entirely.
  */
 export const getEvaColumns = (mission: Mission): StmCoverageEvaColumn[] => {
-  const rexes = Object.values(mission?.rexes ?? {});
+  const rexes = sortBy(Object.values(mission?.rexes ?? {}), [(rex) => rex.name.toLowerCase()]);
   const rexEvaUuids = rexes.map((rex) => rex.evaUuid);
 
   const asPlannedEvas = sortBy(
     Object.values(mission?.evas ?? {}).filter((eva) => !rexEvaUuids.includes(eva.uuid)),
     [(eva) => eva.name.toLowerCase()]
   );
-  const asPlannedColumns: StmCoverageEvaColumn[] = asPlannedEvas.map((eva) => ({
-    key: eva.uuid,
-    evaUuid: eva.uuid,
-    isRex: false,
-    label: eva.name,
-  }));
 
-  const rexColumns: StmCoverageEvaColumn[] = sortBy(rexes, [(rex) => rex.name.toLowerCase()])
-    .filter((rex) => mission?.evas?.[rex.evaUuid])
-    .map((rex) => ({
-      key: rex.uuid,
-      evaUuid: rex.evaUuid,
-      isRex: true,
-      rexUuid: rex.uuid,
-      label: rex.name,
-    }));
+  const rexColumn = (rex: Rex, groupKey: string, groupLabel: string): StmCoverageEvaColumn => ({
+    key: rex.uuid,
+    evaUuid: rex.evaUuid,
+    isRex: true,
+    rexUuid: rex.uuid,
+    label: rex.name,
+    groupKey,
+    groupLabel,
+  });
 
-  return [...asPlannedColumns, ...rexColumns];
+  const groupedRexUuids = new Set<string>();
+  const columns: StmCoverageEvaColumn[] = [];
+  for (const eva of asPlannedEvas) {
+    columns.push({
+      key: eva.uuid,
+      evaUuid: eva.uuid,
+      isRex: false,
+      label: eva.name,
+      groupKey: eva.uuid,
+      groupLabel: eva.name,
+    });
+    for (const rex of rexes) {
+      if (groupedRexUuids.has(rex.uuid)) continue;
+      const rexEva = mission?.evas?.[rex.evaUuid];
+      if (rexEva && rexEva.refUuid && rexEva.refUuid === eva.refUuid) {
+        groupedRexUuids.add(rex.uuid);
+        columns.push(rexColumn(rex, eva.uuid, eva.name));
+      }
+    }
+  }
+
+  // Rexes whose EVA exists but matches no as-planned EVA's refUuid
+  for (const rex of rexes) {
+    if (!groupedRexUuids.has(rex.uuid) && mission?.evas?.[rex.evaUuid]) {
+      columns.push(rexColumn(rex, STM_COVERAGE_ORPHAN_GROUP_KEY, STM_COVERAGE_ORPHAN_GROUP_LABEL));
+    }
+  }
+
+  return columns;
+};
+
+/**
+ * Chunks an ordered column list (getEvaColumns order, possibly with hidden
+ * columns filtered out) into runs of consecutive columns sharing a groupKey.
+ * The header and row renderers both use this so band widths and divider
+ * positions always line up.
+ */
+export const groupCoverageColumns = (columns: StmCoverageEvaColumn[]): StmCoverageColumnGroup[] => {
+  const groups: StmCoverageColumnGroup[] = [];
+  for (const column of columns) {
+    const lastGroup = groups[groups.length - 1];
+    if (lastGroup && lastGroup.groupKey === column.groupKey) {
+      lastGroup.columns.push(column);
+    } else {
+      groups.push({
+        groupKey: column.groupKey,
+        groupLabel: column.groupLabel,
+        columns: [column],
+      });
+    }
+  }
+  return groups;
 };
 
 /**
@@ -166,6 +219,45 @@ export const diffLevel3 = (
     other.rules.every((rc) => baselineCountsByRule[rc.ruleUuid] === rc.matchCount);
 
   return { delta, statusChanged, equal: !statusChanged && sameRuleCounts };
+};
+
+/**
+ * The level3 rows and columns that differ from the baseline column in at
+ * least one cell. Drives the "differences only" filter, which hides rows AND
+ * columns whose coverage is identical to the baseline everywhere (with many
+ * columns almost every row differs somewhere, so filtering rows alone rarely
+ * removes anything). The baseline column is never included in `columnKeys`;
+ * callers keep it visible unconditionally.
+ */
+export const getCoverageDifferences = ({
+  coverageByColumnKey,
+  columns,
+  baselineKey,
+  level3s,
+}: {
+  coverageByColumnKey: { [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 } };
+  columns: StmCoverageEvaColumn[];
+  baselineKey: string;
+  level3s: STMLevel3[];
+}): { stmUuids: Set<string>; columnKeys: Set<string> } => {
+  const stmUuids = new Set<string>();
+  const columnKeys = new Set<string>();
+  const baselineCoverage = coverageByColumnKey[baselineKey];
+  if (!baselineCoverage) return { stmUuids, columnKeys };
+
+  for (const column of columns) {
+    if (column.key === baselineKey) continue;
+    for (const level3 of level3s) {
+      const baseline = baselineCoverage[level3.uuid];
+      const other = coverageByColumnKey[column.key]?.[level3.uuid];
+      if (!baseline || !other) continue;
+      if (!diffLevel3(baseline, other).equal) {
+        stmUuids.add(level3.uuid);
+        columnKeys.add(column.key);
+      }
+    }
+  }
+  return { stmUuids, columnKeys };
 };
 
 /**
