@@ -89,6 +89,12 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  /* width is set inline (see ColumnHeader) rather than left to auto/content
+     sizing: Firefox miscomputes a flex item's intrinsic width when its
+     descendants use writing-mode: vertical-rl (the rotated labels below),
+     https://bugzilla.mozilla.org/show_bug.cgi?id=1332555. flex-shrink: 0
+     keeps that explicit width from being squeezed under space pressure. */
+  flex-shrink: 0;
   padding-top: 16px;
 }
 /* absolutely positioned so a long label can never widen the group beyond its
