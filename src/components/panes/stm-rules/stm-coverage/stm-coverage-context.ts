@@ -16,6 +16,11 @@ export type StmCoverageCellSelection = {
  */
 export type StmCoverageContextValue = {
   mission: Mission;
+  /**
+   * Columns to render, in getEvaColumns order: manually hidden columns are
+   * removed, and when "differences only" is on so are columns identical to
+   * the baseline.
+   */
   visibleColumns: StmCoverageEvaColumn[];
   coverageByColumnKey: { [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 } };
   baselineKey: string | null;

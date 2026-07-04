@@ -13,6 +13,9 @@
 
 .gridScroll {
   flex: 1 1 auto;
+  /* allow the grid to shrink when the drilldown opens/widens instead of
+     pushing the drilldown off the page */
+  min-width: 0;
   overflow: auto;
 }
 
@@ -39,19 +42,19 @@
 .multiselectDropdownOutside {
   position: relative;
   width: 160px;
-  height: 24px;
+  height: 20px;
 }
 .multiselectDropdownContainer {
   position: absolute;
+  top: 0;
   width: 160px;
   background-color: var(--grey3);
   cursor: pointer;
   user-select: none;
-  padding: 5px;
   z-index: 20;
 }
 .multiselectDropdownHeader {
-  height: 18px;
+  height: 20px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -136,12 +139,22 @@
 .rotatedLabel {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
-  height: 66px;
+  height: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.85em;
   padding: 2px 0;
+}
+/* EVA/REX summary columns: let long names wrap to a second vertical line
+   (station sub-columns are only 22px wide and stay single-line). break-all
+   packs each line to the full label height, so the char budget applied by
+   truncateHeaderLabel() reliably fits in two lines — word-boundary wrapping
+   leaves short lines and pushes long names onto a clipped third line. */
+.rotatedLabelWrap {
+  white-space: normal;
+  line-height: 1.2;
+  word-break: break-all;
 }
 
 .columnHeaderIcons {
@@ -152,10 +165,11 @@
   width: 100%;
   height: 16px;
   font-size: 0.75em;
-  color: var(--grey4);
+  color: white;
+  opacity: 0.6;
 }
 .columnHeaderIcons:hover {
-  color: var(--grey5);
+  opacity: 1;
 }
 
 .columnDivider {
@@ -171,16 +185,22 @@
   flex-direction: row;
 }
 
+/*
+ * Cells stretch to the full row height (rows grow when the level3 name wraps)
+ * so the 1px column borders and status backgrounds read as a continuous table
+ * grid. The value keeps the 22px rhythm via line-height + flex-start; row
+ * separators come from gridCellLevel3Container's border-bottom.
+ */
 .cell {
   flex: 0 0 40px;
-  height: 22px;
+  min-height: 22px;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  line-height: 22px;
   font-size: 0.75em;
   font-weight: 600;
   border-left: 1px solid var(--grey0);
-  border-bottom: 1px solid var(--grey0);
   cursor: pointer;
   user-select: none;
 }
@@ -188,14 +208,23 @@
   flex: 0 0 22px;
 }
 .cellHovered {
-  background-color: var(--stmTableHover);
+  background-color: var(--stmCoverageHover);
 }
 
+/*
+ * ---------- status colors (absolute mode) ----------
+ * Soft pastels drawn from the app palette (see timeline-init.ts / globals.css):
+ * satisfied = pastel green (--adjective family), partial = pastel blue
+ * (--noun / timeline blue). Each background pairs with an explicit light text
+ * color so the number stays legible regardless of the tint underneath.
+ */
 .cellSatisfied {
-  background-color: #3e7d4c99;
+  background-color: #52f0751f;
+  color: #a8e8b6;
 }
 .cellPartial {
-  background-color: #b0872f99;
+  background-color: #6ee5ff1f;
+  color: #a5dcec;
 }
 .cellNone {
   color: var(--grey4);
@@ -204,29 +233,62 @@
   color: var(--grey3);
 }
 
+/*
+ * ---------- diff colors ----------
+ * Tinted backgrounds mirror the status pastels so a positive delta reads as
+ * "more coverage" (green) and a negative delta as "less" (soft red). Text
+ * colors are lightened tints of the same hue for high contrast on the dark
+ * grid, never a saturated fill behind saturated text.
+ */
 .cellDiffEqual {
   color: var(--grey4);
 }
 .cellDiffPositive {
-  color: #7fd18f;
+  background-color: #52f0751a;
+  color: #a8e8b6;
 }
 .cellDiffNegative {
-  color: #e08c8c;
+  background-color: #ff70701a;
+  color: #f0aeae;
 }
+/* coverage status flipped (e.g. satisfied -> partial) between baseline and
+   this column: a subtle pastel-blue outline draws the eye without clashing
+   with the diff background tint underneath. */
 .cellStatusChanged {
-  outline: 1px solid #e0b34d;
+  outline: 1px solid #6ee5ff99;
   outline-offset: -1px;
+}
+/* the cell whose breakdown is open in the drilldown panel. Inset box-shadow
+   (not outline) so it can coexist with the cellStatusChanged outline. */
+.cellSelected {
+  box-shadow: inset 0 0 0 2px var(--grey5);
 }
 
 /* ---------- drilldown panel ---------- */
 
+/* drag handle between the grid and the drilldown; doubles as the divider */
+.drilldownResizer {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background-color: var(--grey0);
+  touch-action: none;
+}
+.drilldownResizer:hover,
+.drilldownResizer:active {
+  background-color: var(--grey3);
+}
+
 .drilldown {
-  flex: 0 0 320px;
+  /* width set inline from stmCoverageDrilldownWidth; the resizer drags it.
+     max-width mirrors the drag clamp (300px grid + 6px resizer) so a width
+     stored in a wider window can't push the panel off-screen after a resize */
+  flex: 0 0 auto;
+  min-width: 220px;
+  max-width: calc(100% - 306px);
   display: flex;
   flex-direction: column;
-  border-left: 2px solid var(--grey0);
   background-color: var(--grey2);
-  overflow-y: auto;
+  overflow: auto;
   font-size: 0.9em;
 }
 .drilldownHeader {
@@ -270,6 +332,15 @@
 .drilldownRuleSentence {
   font-size: 0.9em;
 }
+.drilldownRuleVerb {
+  color: var(--verb);
+}
+.drilldownRuleNoun {
+  color: var(--noun);
+}
+.drilldownRuleAdjective {
+  color: var(--adjective);
+}
 .drilldownRuleCounts {
   display: flex;
   flex-direction: row;
@@ -278,10 +349,10 @@
   font-size: 0.85em;
 }
 .drilldownRuleSatisfied {
-  color: #7fd18f;
+  color: #a8e8b6;
 }
 .drilldownRuleUnsatisfied {
-  color: #e08c8c;
+  color: #f0aeae;
 }
 .drilldownBaselineNote {
   color: var(--grey4);
@@ -296,4 +367,134 @@
 .drilldownActionSequenceName {
   color: var(--grey4);
   white-space: nowrap;
+}
+
+/* ---------- help button + modal ---------- */
+
+.helpButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--grey4);
+  cursor: pointer;
+  font-size: 1em;
+}
+.helpButton:hover {
+  color: var(--grey5);
+}
+
+.helpDialog {
+  padding: 0;
+  border: 1px solid var(--grey3);
+  border-radius: var(--panelRadius);
+  background-color: var(--grey1);
+  color: var(--grey5);
+  box-shadow: 0 4px 20px rgb(0 0 0 / 50%);
+  max-width: 560px;
+  width: calc(100% - 40px);
+  max-height: calc(100vh - 60px);
+}
+.helpDialog::backdrop {
+  background: rgb(0 0 0 / 40%);
+}
+.helpDialogInner {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 60px);
+}
+
+.helpDialogHeader {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--grey0);
+  background-color: var(--grey2);
+  border-radius: var(--panelRadius) var(--panelRadius) 0 0;
+}
+.helpDialogTitle {
+  font-size: 1.05em;
+  font-weight: 500;
+}
+.helpDialogClose {
+  cursor: pointer;
+  color: var(--grey4);
+  padding: 0 4px;
+  font-size: 1.1em;
+}
+.helpDialogClose:hover {
+  color: var(--grey5);
+}
+
+.helpDialogContent {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 12px 16px 16px;
+  font-size: 0.9em;
+  line-height: 1.45;
+}
+.helpDialogContent p {
+  margin: 0 0 4px;
+}
+.helpIntro {
+  color: var(--grey5);
+  margin-bottom: 12px !important;
+}
+
+.helpSection {
+  margin-top: 14px;
+}
+.helpSectionTitle {
+  font-weight: 500;
+  color: var(--base);
+  margin-bottom: 6px;
+  font-size: 0.95em;
+}
+
+.helpLegendRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin: 5px 0;
+}
+/* legend swatch reuses the real cell status/diff classes; this only sets the
+   shared box shape so a swatch renders identically to a grid cell. It must NOT
+   set background-color here: this rule is defined after the status/diff classes,
+   so an equal-specificity background-color would win by source order and paint
+   over the very colors the legend is trying to demonstrate. Swatches with no
+   status class (the "no fill" / dash cases) fall back to the transparent grid
+   cell look, matching how those cells actually render. */
+.helpSwatch {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  font-weight: 600;
+  border: 1px solid var(--grey0);
+  border-radius: var(--radius);
+}
+.helpLegendText {
+  flex: 1 1 auto;
+  color: var(--grey5);
+}
+
+.helpInlineIcon {
+  color: var(--grey4);
+  margin: 0 1px;
+}
+
+.helpList {
+  margin: 0;
+  padding-left: 18px;
+}
+.helpList li {
+  margin: 3px 0;
 }

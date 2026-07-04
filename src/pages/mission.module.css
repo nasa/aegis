@@ -68,6 +68,9 @@
   display: flex;
   width: 100%;
   height: 100%;
+  /* wide pane content (e.g. the EVA Coverage grid) must not widen this past
+     the viewport — let inner panes scroll instead */
+  min-width: 0;
 }
 
 .archivedBody {
