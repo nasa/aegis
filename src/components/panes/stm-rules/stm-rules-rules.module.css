@@ -2,7 +2,6 @@
   display: flex;
   flex-direction: row;
   border-bottom: 1px solid var(--grey0);
-  cursor: pointer;
 }
 .stmRuleRowContainer:last-child {
   border-bottom: none;
@@ -97,10 +96,33 @@
   margin: 0 0 0 5px;
 }
 .matchingActionStats {
-  flex: 0 0 170px;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   justify-content: space-around;
   padding: 5px;
+}
+
+.stmRuleRight {
+  flex: 0 0 240px;
+  display: flex;
+  flex-direction: row;
   border-left: 1px solid var(--grey0);
+}
+
+.stmRuleButtonsContainer {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px 0 0;
+}
+
+.stmRuleIcon {
+  cursor: pointer;
+  color: var(--grey4);
+}
+.stmRuleIcon:hover {
+  color: var(--grey5);
 }
