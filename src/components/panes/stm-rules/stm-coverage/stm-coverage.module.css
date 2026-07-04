@@ -165,11 +165,31 @@
   width: 100%;
   height: 16px;
   font-size: 0.75em;
-  color: white;
-  opacity: 0.6;
+  /* follow the header cell's text color so the icon darkens with it on light
+     backgrounds (e.g. the baseline column) */
+  color: inherit;
+  opacity: 1;
+  margin-top: 2px;
 }
 .columnHeaderIcons:hover {
   opacity: 1;
+}
+
+/* icon strip at the foot of an expanded station/traverse sub-column header;
+   fixed height keeps station and traverse headers the same size and lines up
+   with the 16px + 2px expand/collapse strip of the summary column */
+.sequenceHeaderIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  font-size: 0.8em;
+  margin-top: 2px;
+}
+/* miniature of the Matches tab traverse glyph: a short dotted vertical line */
+.sequenceHeaderTraverseIcon {
+  border-left: 3px dotted var(--eva);
+  height: 12px;
 }
 
 .columnDivider {

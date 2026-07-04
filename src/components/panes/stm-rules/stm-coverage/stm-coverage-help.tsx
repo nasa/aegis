@@ -57,8 +57,8 @@ const StmCoverageHelp: FunctionComponent = () => {
               <div className={styles.helpSectionTitle}>The number in a cell</div>
               <p>
                 The number is the count of matching actions in that EVA for that STM item. When a
-                column is expanded into stations, each sub-column shows the count for a single
-                station (or Traverses), and the <strong>Total</strong> column sums them.
+                column is expanded, each sub-column shows the count for a single station or traverse
+                in EVA sequence order, and the <strong>Total</strong> column sums them.
               </p>
             </div>
 
