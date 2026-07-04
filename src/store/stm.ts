@@ -33,6 +33,12 @@ export const initialState: STMState = {
   stmCoverageHoveredTopItem: null,
   stmCoverageHoveredLeftItem: null,
   stmCoverageDrilldownWidth: 320,
+  stmCoverageCellSelection: null,
+  stmCoverageVisibleColumns: [],
+  stmCoverageCoverageByColumnKey: {},
+  stmCoverageResolvedBaselineKey: null,
+  stmCoverageSequenceByColumnKey: {},
+  stmCoverageVisibleStmUuids: null,
 };
 
 export const stmSlice = createSlice({
@@ -216,6 +222,16 @@ export const stmSlice = createSlice({
     stmCoverageSetDrilldownWidth: (state, action: { payload: number }) => {
       state.stmCoverageDrilldownWidth = action.payload;
     },
+    stmCoverageSetCellSelection: (state, action: { payload: StmCoverageCellSelection }) => {
+      state.stmCoverageCellSelection = action.payload;
+    },
+    stmCoverageSetDerivedData: (state, action: { payload: StmCoverageDerivedData }) => {
+      state.stmCoverageVisibleColumns = action.payload.visibleColumns;
+      state.stmCoverageCoverageByColumnKey = action.payload.coverageByColumnKey;
+      state.stmCoverageResolvedBaselineKey = action.payload.resolvedBaselineKey;
+      state.stmCoverageSequenceByColumnKey = action.payload.sequenceByColumnKey;
+      state.stmCoverageVisibleStmUuids = action.payload.visibleStmUuids;
+    },
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
@@ -260,5 +276,7 @@ export const {
   stmCoverageSetHoveredTopItem,
   stmCoverageSetHoveredLeftItem,
   stmCoverageSetDrilldownWidth,
+  stmCoverageSetCellSelection,
+  stmCoverageSetDerivedData,
   obliterateState,
 } = stmSlice.actions;

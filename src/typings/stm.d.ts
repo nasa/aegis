@@ -171,12 +171,13 @@ type StmCoverageCellSelection = {
 } | null;
 
 /**
- * Computed coverage data shared by the EVA Coverage grid components.
- * Assembled once in stm-coverage-page.tsx and read by the header, table,
- * cells and drilldown so we don't recompute or prop-drill per row.
+ * Derived coverage data assembled once in stm-coverage-page.tsx and pushed into
+ * the stm slice (via stmCoverageSetDerivedData) so the header, table, cells and
+ * drilldown can read it from Redux without recomputing or prop-drilling per row.
+ * The mission doc itself is not part of this payload — consumers that need it
+ * read it directly with useMissionDocSelector.
  */
-type StmCoverageContextValue = {
-  mission: Mission;
+type StmCoverageDerivedData = {
   /**
    * Columns to render, in getEvaColumns order: manually hidden columns are
    * removed, and when "differences only" is on so are columns identical to
@@ -184,13 +185,10 @@ type StmCoverageContextValue = {
    */
   visibleColumns: StmCoverageEvaColumn[];
   coverageByColumnKey: { [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 } };
-  baselineKey: string | null;
-  diffMode: boolean;
-  expandedColumnKeys: string[];
+  /** Baseline column key after fallback resolution. */
+  resolvedBaselineKey: string | null;
   /** Sequence-ordered stations + traverses per expanded column, keyed by column key. */
   sequenceByColumnKey: { [columnKey: string]: StmCoverageSequenceItem[] };
   /** Level3 uuids to show when "differences only" is on; null = show all. */
-  visibleStmUuids: Set<string> | null;
-  cellSelection: StmCoverageCellSelection;
-  setCellSelection: (selection: StmCoverageCellSelection) => void;
+  visibleStmUuids: string[] | null;
 };
