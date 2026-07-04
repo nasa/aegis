@@ -1,10 +1,15 @@
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 import styles from "./stm-coverage.module.css";
+import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { stmCoverageSetHoveredLeftItem, stmCoverageSetHoveredTopItem } from "store/stm";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import {
+  stmCoverageSetCellSelection,
+  stmCoverageSetHoveredLeftItem,
+  stmCoverageSetHoveredTopItem,
+} from "store/stm";
 import { diffLevel3, groupMatchesBySequenceItem } from "utils/stmEvaCoverage";
-import { useStmCoverage } from "./stm-coverage-context";
 
 /** Whether the drilldown selection points at exactly this cell. */
 const isCellSelected = (
@@ -26,14 +31,25 @@ export const StmCoverageColumnCells: FunctionComponent<{
   column: StmCoverageEvaColumn;
   stmUuid: string;
 }> = ({ column, stmUuid }) => {
-  const { mission, coverageByColumnKey, expandedColumnKeys, sequenceByColumnKey } =
-    useStmCoverage();
+  const mission = useMissionDocSelector((m) => m, refEqual);
+  const coverageByColumnKey = useAppSelector(
+    (state) => state.stm.stmCoverageCoverageByColumnKey,
+    refEqual
+  );
+  const expandedColumnKeys = useAppSelector(
+    (state) => state.stm.stmCoverageExpandedEvaColumns,
+    shallowEqual
+  );
+  const sequenceByColumnKey = useAppSelector(
+    (state) => state.stm.stmCoverageSequenceByColumnKey,
+    refEqual
+  );
   const coverage = coverageByColumnKey[column.key]?.[stmUuid];
   const isExpanded = expandedColumnKeys.includes(column.key);
 
   const sequenceMatches = useMemo(
     () =>
-      coverage && isExpanded
+      mission && coverage && isExpanded
         ? groupMatchesBySequenceItem({ mission, level3Coverage: coverage })
         : null,
     [mission, coverage, isExpanded]
@@ -97,8 +113,14 @@ const SummaryCell: FunctionComponent<{
   stmUuid: string;
   coverage: StmCoverageLevel3;
 }> = ({ column, stmUuid, coverage }) => {
-  const { coverageByColumnKey, baselineKey, diffMode, cellSelection, setCellSelection } =
-    useStmCoverage();
+  const dispatch = useAppDispatch();
+  const coverageByColumnKey = useAppSelector(
+    (state) => state.stm.stmCoverageCoverageByColumnKey,
+    refEqual
+  );
+  const baselineKey = useAppSelector((state) => state.stm.stmCoverageResolvedBaselineKey, refEqual);
+  const diffMode = useAppSelector((state) => state.stm.stmCoverageDiffMode, refEqual);
+  const cellSelection = useAppSelector((state) => state.stm.stmCoverageCellSelection, refEqual);
 
   const isBaseline = column.key === baselineKey;
   const baselineCoverage = baselineKey ? coverageByColumnKey[baselineKey]?.[stmUuid] : null;
@@ -148,7 +170,7 @@ const SummaryCell: FunctionComponent<{
       className={statusClass}
       tooltip={tooltip}
       selected={isCellSelected(cellSelection, { stmUuid, columnKey: column.key })}
-      onClick={() => setCellSelection({ stmUuid, columnKey: column.key })}
+      onClick={() => dispatch(stmCoverageSetCellSelection({ stmUuid, columnKey: column.key }))}
     >
       {text}
     </BaseCell>
@@ -168,7 +190,8 @@ const CountCell: FunctionComponent<{
     traverseUuid?: string;
   };
 }> = ({ cellKey, stmUuid, count, tooltip, onClickSelection }) => {
-  const { cellSelection, setCellSelection } = useStmCoverage();
+  const dispatch = useAppDispatch();
+  const cellSelection = useAppSelector((state) => state.stm.stmCoverageCellSelection, refEqual);
   return (
     <BaseCell
       cellKey={cellKey}
@@ -176,7 +199,7 @@ const CountCell: FunctionComponent<{
       className={styles.cellStation}
       tooltip={tooltip}
       selected={isCellSelected(cellSelection, onClickSelection)}
-      onClick={() => setCellSelection(onClickSelection)}
+      onClick={() => dispatch(stmCoverageSetCellSelection(onClickSelection))}
     >
       {count > 0 ? count : ""}
     </BaseCell>

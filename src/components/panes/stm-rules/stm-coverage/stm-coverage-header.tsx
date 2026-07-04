@@ -4,7 +4,7 @@ import styles from "./stm-coverage.module.css";
 import pageStyles from "../stm-rules-page.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMinusCircle, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
-import { refEqual, useAppSelector } from "utils/useAppSelector";
+import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
   stmCoverageSetBaselineColumnKey,
@@ -15,7 +15,6 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { groupCoverageColumns } from "utils/stmEvaCoverage";
 import { EmojiRenderer } from "components/interface/emojis";
 import { StmTierTitle, useStmTierExpansion } from "../stm-rules-tier-titles";
-import { useStmCoverage } from "./stm-coverage-context";
 
 /** Column title: the EVA name for plan columns, "REX: <name>" for executions. */
 const columnTitle = (column: StmCoverageEvaColumn) =>
@@ -44,7 +43,10 @@ const columnTooltipName = (column: StmCoverageEvaColumn) =>
  * reads from the column order + the "REX:" label prefix.
  */
 const StmCoverageHeader: FunctionComponent = () => {
-  const { visibleColumns } = useStmCoverage();
+  const visibleColumns = useAppSelector(
+    (state) => state.stm.stmCoverageVisibleColumns,
+    shallowEqual
+  );
   const { stmLevel1Enabled, tierColumns } = useStmTierExpansion();
   const stmLevel3Name = useMissionDocSelector((mission) => mission.stmLevel3Name, refEqual);
 
@@ -78,7 +80,15 @@ export default StmCoverageHeader;
 
 const ColumnHeader: FunctionComponent<{ column: StmCoverageEvaColumn }> = ({ column }) => {
   const dispatch = useAppDispatch();
-  const { baselineKey, expandedColumnKeys, sequenceByColumnKey } = useStmCoverage();
+  const baselineKey = useAppSelector((state) => state.stm.stmCoverageResolvedBaselineKey, refEqual);
+  const expandedColumnKeys = useAppSelector(
+    (state) => state.stm.stmCoverageExpandedEvaColumns,
+    shallowEqual
+  );
+  const sequenceByColumnKey = useAppSelector(
+    (state) => state.stm.stmCoverageSequenceByColumnKey,
+    shallowEqual
+  );
   const isBaseline = column.key === baselineKey;
   const isExpanded = expandedColumnKeys.includes(column.key);
 
