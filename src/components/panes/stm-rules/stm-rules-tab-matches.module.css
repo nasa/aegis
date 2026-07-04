@@ -119,6 +119,16 @@
   padding: 5px 0 5px 6px;
   margin: 5px 0 3px 0;
 }
+.stmRuleEvasTitleRow {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.stmRuleEvasTitleRow .stmRuleEvasTitle {
+  flex: 1 1 auto;
+}
 
 .stmRuleEvasEvasContainer {
   flex: 1 1 auto;

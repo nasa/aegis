@@ -52,14 +52,14 @@ const StmCoverageDrilldown: FunctionComponent = () => {
 
   const scopeLabel = cellSelection.stationUuid
     ? mission?.stations?.[cellSelection.stationUuid]?.name
-    : cellSelection.traversesOnly
-      ? "Traverses"
+    : cellSelection.traverseUuid
+      ? mission?.traverses?.[cellSelection.traverseUuid]?.name
       : null;
 
   const matchesScope = (action: Action | undefined): boolean => {
     if (!action) return false;
     if (cellSelection.stationUuid) return action.stationUuid === cellSelection.stationUuid;
-    if (cellSelection.traversesOnly) return !!action.traverseUuid;
+    if (cellSelection.traverseUuid) return action.traverseUuid === cellSelection.traverseUuid;
     return true;
   };
 

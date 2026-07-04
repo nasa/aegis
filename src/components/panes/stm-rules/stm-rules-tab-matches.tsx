@@ -58,7 +58,6 @@ const StmRulesTabMatches: FunctionComponent = () => {
           <>
             <div className={styles.detailsHeaderRow}>
               <STMItemName stmUuid={selectedStmUuid} />
-              <RexSelector />
             </div>
             {rules.length > 0 ? (
               <>
@@ -219,8 +218,11 @@ const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
 
   return (
     <div className={styles.stmRuleEvasContainer}>
-      <div className={styles.stmRuleEvasTitle}>
-        Actions that satisfy this rule in the selected Executions
+      <div className={styles.stmRuleEvasTitleRow}>
+        <div className={styles.stmRuleEvasTitle}>
+          Actions that satisfy this rule in the selected Executions
+        </div>
+        <RexSelector />
       </div>
       <div className={styles.stmRuleEvasEvasContainer}>
         {selectedRexUuids.map((rexUuid) => (

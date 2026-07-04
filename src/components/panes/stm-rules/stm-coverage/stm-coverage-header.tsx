@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import styles from "./stm-coverage.module.css";
 import pageStyles from "../stm-rules-page.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faMinus, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faMinusCircle, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
@@ -13,6 +13,7 @@ import {
 } from "store/stm";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { groupCoverageColumns } from "utils/stmEvaCoverage";
+import { EmojiRenderer } from "components/interface/emojis";
 import { StmTierTitle, useStmTierExpansion } from "../stm-rules-tier-titles";
 import { useStmCoverage } from "./stm-coverage-context";
 
@@ -77,7 +78,7 @@ export default StmCoverageHeader;
 
 const ColumnHeader: FunctionComponent<{ column: StmCoverageEvaColumn }> = ({ column }) => {
   const dispatch = useAppDispatch();
-  const { baselineKey, expandedColumnKeys, stationsByColumnKey } = useStmCoverage();
+  const { baselineKey, expandedColumnKeys, sequenceByColumnKey } = useStmCoverage();
   const isBaseline = column.key === baselineKey;
   const isExpanded = expandedColumnKeys.includes(column.key);
 
@@ -93,7 +94,7 @@ const ColumnHeader: FunctionComponent<{ column: StmCoverageEvaColumn }> = ({ col
     );
   }
 
-  const stations = stationsByColumnKey[column.key] ?? [];
+  const sequenceItems = sequenceByColumnKey[column.key] ?? [];
   return (
     <div className={styles.columnGroup}>
       <div
@@ -113,14 +114,13 @@ const ColumnHeader: FunctionComponent<{ column: StmCoverageEvaColumn }> = ({ col
           data-tooltip-id="aegis-tooltip"
           data-tooltip-html="Collapse stations"
         >
-          <FontAwesomeIcon icon={faMinus} />
+          <FontAwesomeIcon icon={faMinusCircle} />
         </span>
       </div>
       <div className={styles.headerColumns}>
-        {stations.map((station) => (
-          <StationHeaderCell key={station.uuid} column={column} station={station} />
+        {sequenceItems.map((item) => (
+          <SequenceHeaderCell key={item.uuid} column={column} item={item} />
         ))}
-        <StationHeaderCell key={`${column.key}_trav`} column={column} station={null} />
         <SummaryHeaderCell
           column={column}
           isBaseline={isBaseline}
@@ -165,19 +165,22 @@ const SummaryHeaderCell: FunctionComponent<{
         data-tooltip-id="aegis-tooltip"
         data-tooltip-html={isExpanded ? "Collapse stations" : "Expand into stations"}
       >
-        <FontAwesomeIcon icon={isExpanded ? faMinus : faPlus} />
+        <FontAwesomeIcon icon={isExpanded ? faMinusCircle : faPlusCircle} />
       </span>
     </div>
   );
 };
 
-const StationHeaderCell: FunctionComponent<{
+/**
+ * Header cell for one expanded sub-column: a station (emoji icon, like the
+ * Matches tab) or a traverse (standard dotted traverse icon).
+ */
+const SequenceHeaderCell: FunctionComponent<{
   column: StmCoverageEvaColumn;
-  station: Station | null;
-}> = ({ column, station }) => {
+  item: StmCoverageSequenceItem;
+}> = ({ column, item }) => {
   const dispatch = useAppDispatch();
-  const cellKey = station ? `${column.key}_${station.uuid}` : `${column.key}_trav`;
-  const label = station ? station.name : "Traverses";
+  const cellKey = `${column.key}_${item.uuid}`;
   const hoveredTopItem = useAppSelector((state) => state.stm.stmCoverageHoveredTopItem, refEqual);
 
   return (
@@ -186,10 +189,17 @@ const StationHeaderCell: FunctionComponent<{
       style={hoveredTopItem === cellKey ? { backgroundColor: "var(--stmCoverageHover)" } : null}
       onMouseEnter={() => dispatch(stmCoverageSetHoveredTopItem(cellKey))}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={label}
+      data-tooltip-html={item.name}
       data-tooltip-place="left-start"
     >
-      <div className={styles.rotatedLabel}>{label}</div>
+      <div className={styles.rotatedLabel}>{item.name}</div>
+      <div className={styles.sequenceHeaderIcon}>
+        {item.type === "station" ? (
+          <EmojiRenderer iconValue={item.icon ? item.icon : "2754"} />
+        ) : (
+          <div className={styles.sequenceHeaderTraverseIcon} />
+        )}
+      </div>
     </div>
   );
 };
