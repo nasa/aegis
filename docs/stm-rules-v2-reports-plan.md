@@ -16,7 +16,7 @@ AEGIS has two per-mission action system versions (`Mission.actionSystemVersion`)
   and Redux state (`stmView*`) are never shared with v2 — any pattern v2
   borrows (22px grid rhythm, rotated column labels, crosshair hover) is
   duplicated, not imported.
-- **v2** defines *satisfaction rules* per STM level-3 item. A rule reads
+- **v2** defines _satisfaction rules_ per STM level-3 item. A rule reads
   "**count** × **verbs** OF **nouns** IN **adjectives**" and is evaluated
   against the verb/noun/adjective `actionDefinition` of actions via
   `src/utils/stmRuleEngine.ts` (json-logic). Before this work, v2's only
@@ -26,7 +26,7 @@ AEGIS has two per-mission action system versions (`Mission.actionSystemVersion`)
 The driving requirement: flight controllers need a report **by EVA** — both
 as-planned EVAs and REX (execution) EVAs — summarizing how all the actions in
 each EVA contribute to satisfying each STM item, so that two similar EVA plans
-can be compared and the *source* of coverage differences located.
+can be compared and the _source_ of coverage differences located.
 
 ## Satisfaction semantics
 
@@ -37,7 +37,7 @@ For one STM level-3 item within one EVA column:
   ingress/egress) or traverses (`selectEvaTraverses`). For REX columns an
   additional rex-status filter applies (see below).
 - **Per rule**: `matches` = rule engine over the eligible actions. The rule
-  is *satisfied* when `matches.length >= rule.count`.
+  is _satisfied_ when `matches.length >= rule.count`.
 - **Level-3 rollup**:
   - `satisfied` — every rule satisfied
   - `partial` — at least one match, but not all rules satisfied
@@ -50,9 +50,13 @@ For one STM level-3 item within one EVA column:
   A null `Rex.actionEntries`, a missing entry, or a null `rexStatus` all mean
   `pending`.
 - **Diff vs baseline** (per level3): delta of total matches, plus a
-  status-change highlight. Two cells are *equal* only when the per-rule match
+  status-change highlight. Two cells are _equal_ only when the per-rule match
   counts are identical — the same total from a different rule distribution
   renders as `≠`.
+- **Differences only** hides both rows and columns whose coverage is equal to
+  the baseline in every cell (the baseline column always stays). Rows alone
+  would rarely filter anything: with many columns, almost every row differs
+  somewhere.
 
 Engine caveat (asserted in unit tests): an action missing an
 `actionDefinition` dimension never matches, including `*Any` wildcard rules —
@@ -74,6 +78,9 @@ REST/Redux to Automerge only changes the caller's selector, not this module.
 - `computeColumnCoverage({mission, level3s, rules, column, rexStatusFilter})`
   → `{ [stmUuid]: StmCoverageLevel3 }`
 - `diffLevel3(baseline, other)` → `{ delta, statusChanged, equal }`
+- `getCoverageDifferences({coverageByColumnKey, columns, baselineKey, level3s})`
+  → `{ stmUuids, columnKeys }` — the rows/columns differing from the baseline,
+  backing the "differences only" filter
 - `groupMatchesBySequenceItem({mission, level3Coverage})` — per-station match
   counts + traverse total for the expanded-column view; derived from the
   already-computed matches, never re-runs the engine.
@@ -101,20 +108,20 @@ deliberately separate from v1's `stmView*` keys:
 
 `src/components/panes/stm-rules/`:
 
-| File | Role |
-| --- | --- |
-| `stm-rules-page.tsx` | Tab shell: **Rules \| Rule Matches \| EVA Coverage** |
-| `stm-rules-tier-titles.tsx` | Clickable tier column headers + shared `useStmTierExpansion()` |
-| `stm-rules-tab-rules.tsx` | Rules tab: header titles + STM list table |
-| `stm-rules-list-table.tsx` | STM hierarchy with per-level3 rules |
-| `stm-rules-rules.tsx` | Rule rows with inline editing + per-rule buttons |
-| `stm-rules-tab-matches.tsx` | Rule Matches tab (replaces the old details modal) |
-| `stm-coverage/stm-coverage-page.tsx` | Coverage orchestrator: computes columns/coverage/diffs, provides context |
-| `stm-coverage/stm-coverage-controls.tsx` | Baseline dropdown, Diff toggle, Differences-only, REX filter, column multiselect |
-| `stm-coverage/stm-coverage-header.tsx` | Sticky column headers, As-Planned/REX groups, expand-into-stations toggles |
-| `stm-coverage/stm-coverage-table.tsx` | STM hierarchy rows + per-row cells |
-| `stm-coverage/stm-coverage-cell.tsx` | Summary/diff cells and per-station sub-cells |
-| `stm-coverage/stm-coverage-drilldown.tsx` | Per-cell side panel: per-rule counts, matching actions, baseline comparison |
+| File                                      | Role                                                                             |
+| ----------------------------------------- | -------------------------------------------------------------------------------- |
+| `stm-rules-page.tsx`                      | Tab shell: **Rules \| Rule Matches \| EVA Coverage**                             |
+| `stm-rules-tier-titles.tsx`               | Clickable tier column headers + shared `useStmTierExpansion()`                   |
+| `stm-rules-tab-rules.tsx`                 | Rules tab: header titles + STM list table                                        |
+| `stm-rules-list-table.tsx`                | STM hierarchy with per-level3 rules                                              |
+| `stm-rules-rules.tsx`                     | Rule rows with inline editing + per-rule buttons                                 |
+| `stm-rules-tab-matches.tsx`               | Rule Matches tab (replaces the old details modal)                                |
+| `stm-coverage/stm-coverage-page.tsx`      | Coverage orchestrator: computes columns/coverage/diffs, provides context         |
+| `stm-coverage/stm-coverage-controls.tsx`  | Baseline dropdown, Diff toggle, Differences-only, REX filter, column multiselect |
+| `stm-coverage/stm-coverage-header.tsx`    | Sticky column headers, As-Planned/REX groups, expand-into-stations toggles       |
+| `stm-coverage/stm-coverage-table.tsx`     | STM hierarchy rows + per-row cells                                               |
+| `stm-coverage/stm-coverage-cell.tsx`      | Summary/diff cells and per-station sub-cells                                     |
+| `stm-coverage/stm-coverage-drilldown.tsx` | Per-cell side panel: per-rule counts, matching actions, baseline comparison      |
 
 ## UX decisions
 

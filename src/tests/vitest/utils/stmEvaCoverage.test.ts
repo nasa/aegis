@@ -2,9 +2,13 @@ import {
   computeColumnCoverage,
   diffLevel3,
   getActionRexStatus,
+  getCoverageDifferences,
   getEligibleActionsForColumn,
   getEvaColumns,
+  groupCoverageColumns,
   groupMatchesBySequenceItem,
+  STM_COVERAGE_ORPHAN_GROUP_KEY,
+  STM_COVERAGE_ORPHAN_GROUP_LABEL,
 } from "utils/stmEvaCoverage";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankEVA } from "store/storeUtils/eva";
@@ -61,24 +65,48 @@ const asPlannedColumn: StmCoverageEvaColumn = {
   evaUuid: "eva1",
   isRex: false,
   label: "Alpha",
+  groupKey: "eva1",
+  groupLabel: "Alpha",
 };
 
 describe("getEvaColumns()", () => {
-  test("returns as-planned EVAs sorted by name, then rex columns sorted by rex name", () => {
+  test("groups each as-planned EVA with its rexes: plan column then rex columns sorted by rex name", () => {
     const { mission } = buildFixture();
     mission.evas["eva2"] = generateBlankEVA({ uuid: "eva2", name: "Bravo", sequence: [] });
-    // REX EVA: blank name, referenced by two rexes (one column each)
-    mission.evas["rexEva1"] = generateBlankEVA({ uuid: "rexEva1", name: "", sequence: [] });
+    // REX EVA copy of Alpha: blank name, refUuid preserved from the source
+    // EVA (as stageDuplicateEva does), referenced by two rexes
+    mission.evas["rexEva1"] = generateBlankEVA({
+      uuid: "rexEva1",
+      name: "",
+      refUuid: mission.evas["eva1"].refUuid,
+      sequence: [],
+    });
     mission.rexes = {
       rexB: generateBlankRex({ uuid: "rexB", evaUuid: "rexEva1", name: "Rex Bravo" }),
       rexA: generateBlankRex({ uuid: "rexA", evaUuid: "rexEva1", name: "Rex Alpha" }),
     };
 
     const columns = getEvaColumns(mission);
-    expect(columns.map((c) => c.key)).toEqual(["eva1", "eva2", "rexA", "rexB"]);
-    expect(columns.map((c) => c.label)).toEqual(["Alpha", "Bravo", "Rex Alpha", "Rex Bravo"]);
-    expect(columns.map((c) => c.isRex)).toEqual([false, false, true, true]);
-    expect(columns[2].evaUuid).toBe("rexEva1");
+    expect(columns.map((c) => c.key)).toEqual(["eva1", "rexA", "rexB", "eva2"]);
+    expect(columns.map((c) => c.label)).toEqual(["Alpha", "Rex Alpha", "Rex Bravo", "Bravo"]);
+    expect(columns.map((c) => c.isRex)).toEqual([false, true, true, false]);
+    expect(columns.map((c) => c.groupKey)).toEqual(["eva1", "eva1", "eva1", "eva2"]);
+    expect(columns.map((c) => c.groupLabel)).toEqual(["Alpha", "Alpha", "Alpha", "Bravo"]);
+    expect(columns[1].evaUuid).toBe("rexEva1");
+  });
+
+  test("rex whose EVA matches no as-planned refUuid lands in the trailing orphan group", () => {
+    const { mission } = buildFixture();
+    // rexEva with its own (unmatched) refUuid
+    mission.evas["rexEva1"] = generateBlankEVA({ uuid: "rexEva1", name: "", sequence: [] });
+    mission.rexes = {
+      rexX: generateBlankRex({ uuid: "rexX", evaUuid: "rexEva1", name: "Rex X" }),
+    };
+
+    const columns = getEvaColumns(mission);
+    expect(columns.map((c) => c.key)).toEqual(["eva1", "rexX"]);
+    expect(columns[1].groupKey).toBe(STM_COVERAGE_ORPHAN_GROUP_KEY);
+    expect(columns[1].groupLabel).toBe(STM_COVERAGE_ORPHAN_GROUP_LABEL);
   });
 
   test("mission with no rexes returns only as-planned columns", () => {
@@ -94,6 +122,34 @@ describe("getEvaColumns()", () => {
       rexX: generateBlankRex({ uuid: "rexX", evaUuid: "ghost", name: "Ghost" }),
     };
     expect(getEvaColumns(mission)).toHaveLength(1);
+  });
+});
+
+describe("groupCoverageColumns()", () => {
+  test("chunks consecutive columns sharing a groupKey, keeping a group whose plan column is hidden", () => {
+    const rexColumn = (
+      key: string,
+      groupKey: string,
+      groupLabel: string
+    ): StmCoverageEvaColumn => ({
+      key,
+      evaUuid: `${key}Eva`,
+      isRex: true,
+      rexUuid: key,
+      label: key,
+      groupKey,
+      groupLabel,
+    });
+    const groups = groupCoverageColumns([
+      asPlannedColumn,
+      rexColumn("rexA", "eva1", "Alpha"),
+      // eva2's plan column hidden: its rex still forms an "eva2" group
+      rexColumn("rexB", "eva2", "Bravo"),
+    ]);
+    expect(groups.map((g) => g.groupKey)).toEqual(["eva1", "eva2"]);
+    expect(groups[0].columns.map((c) => c.key)).toEqual(["eva1", "rexA"]);
+    expect(groups[1].columns.map((c) => c.key)).toEqual(["rexB"]);
+    expect(groups[1].groupLabel).toBe("Bravo");
   });
 });
 
@@ -149,6 +205,8 @@ describe("getEligibleActionsForColumn()", () => {
       isRex: true,
       rexUuid: "rex1",
       label: "Rex 1",
+      groupKey: "eva1",
+      groupLabel: "Alpha",
     };
 
     const all = getEligibleActionsForColumn({ mission, column, rexStatusFilter: "all" });
@@ -181,6 +239,8 @@ describe("getEligibleActionsForColumn()", () => {
       isRex: true,
       rexUuid: "rex1",
       label: "Rex 1",
+      groupKey: "eva1",
+      groupLabel: "Alpha",
     };
 
     expect(getActionRexStatus(mission.rexes["rex1"], "act1")).toBe("pending");
@@ -348,6 +408,76 @@ describe("diffLevel3()", () => {
     expect(diffLevel3(baseline, shuffled).equal).toBe(false);
     expect(diffLevel3(baseline, shuffled).delta).toBe(0);
     expect(diffLevel3(baseline, identical).equal).toBe(true);
+  });
+});
+
+describe("getCoverageDifferences()", () => {
+  const cellOf = (matchCount: number, required = 3): StmCoverageLevel3 => ({
+    stmUuid: "ignored",
+    status: matchCount >= required ? "satisfied" : matchCount > 0 ? "partial" : "none",
+    rules: [
+      {
+        ruleUuid: "rule1",
+        matchCount,
+        required,
+        satisfied: matchCount >= required,
+        matchingActionUuids: [],
+      },
+    ],
+    totalMatches: matchCount,
+  });
+  const makeColumn = (key: string): StmCoverageEvaColumn => ({
+    key,
+    evaUuid: key,
+    isRex: false,
+    label: key,
+    groupKey: key,
+    groupLabel: key,
+  });
+  const level3s = [generateBlankStmLvl3({ uuid: "stmA" }), generateBlankStmLvl3({ uuid: "stmB" })];
+
+  test("collects only the rows and columns that differ from the baseline; baseline never included", () => {
+    const columns = [makeColumn("base"), makeColumn("same"), makeColumn("diff")];
+    const coverageByColumnKey = {
+      base: { stmA: cellOf(2), stmB: cellOf(1) },
+      same: { stmA: cellOf(2), stmB: cellOf(1) },
+      diff: { stmA: cellOf(2), stmB: cellOf(0) },
+    };
+
+    const { stmUuids, columnKeys } = getCoverageDifferences({
+      coverageByColumnKey,
+      columns,
+      baselineKey: "base",
+      level3s,
+    });
+    expect([...stmUuids]).toEqual(["stmB"]);
+    expect([...columnKeys]).toEqual(["diff"]);
+  });
+
+  test("returns empty sets when every column matches the baseline or baseline coverage is missing", () => {
+    const columns = [makeColumn("base"), makeColumn("same")];
+    const coverageByColumnKey = {
+      base: { stmA: cellOf(2), stmB: cellOf(0) },
+      same: { stmA: cellOf(2), stmB: cellOf(0) },
+    };
+
+    const allEqual = getCoverageDifferences({
+      coverageByColumnKey,
+      columns,
+      baselineKey: "base",
+      level3s,
+    });
+    expect(allEqual.stmUuids.size).toBe(0);
+    expect(allEqual.columnKeys.size).toBe(0);
+
+    const missingBaseline = getCoverageDifferences({
+      coverageByColumnKey,
+      columns,
+      baselineKey: "ghost",
+      level3s,
+    });
+    expect(missingBaseline.stmUuids.size).toBe(0);
+    expect(missingBaseline.columnKeys.size).toBe(0);
   });
 });
 
