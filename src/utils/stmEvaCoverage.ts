@@ -261,9 +261,9 @@ export const getCoverageDifferences = ({
 };
 
 /**
- * Per-station match counts for one (level3, column) cell, for the expanded
- * per-station sub-column view. Counts match instances the same way
- * totalMatches does, so stations + traverseTotal always sum to totalMatches.
+ * Per-station and per-traverse match counts for one (level3, column) cell, for
+ * the expanded sub-column view. Counts match instances the same way
+ * totalMatches does, so stations + traverses always sum to totalMatches.
  */
 export const groupMatchesBySequenceItem = ({
   mission,
@@ -273,7 +273,7 @@ export const groupMatchesBySequenceItem = ({
   level3Coverage: StmCoverageLevel3;
 }): StmCoverageSequenceItemMatches => {
   const stations: { [stationUuid: string]: number } = {};
-  let traverseTotal = 0;
+  const traverses: { [traverseUuid: string]: number } = {};
   for (const ruleCoverage of level3Coverage.rules) {
     for (const actionUuid of ruleCoverage.matchingActionUuids) {
       const action = mission?.actions?.[actionUuid];
@@ -281,9 +281,49 @@ export const groupMatchesBySequenceItem = ({
       if (action.stationUuid) {
         stations[action.stationUuid] = (stations[action.stationUuid] ?? 0) + 1;
       } else if (action.traverseUuid) {
-        traverseTotal += 1;
+        traverses[action.traverseUuid] = (traverses[action.traverseUuid] ?? 0) + 1;
       }
     }
   }
-  return { stations, traverseTotal };
+  return { stations, traverses };
+};
+
+/**
+ * The sub-columns of an expanded EVA column: stations AND traverses in EVA
+ * sequence order (mirroring how the Matches tab renders an EVA sequence),
+ * followed by any non-lander ingress/egress stations that aren't already in
+ * the sequence. The station set matches selectEvaStations and the traverse set
+ * matches selectEvaTraverses, so the sub-cell counts always sum to the
+ * column's Total. Deduped by uuid so revisited stations get a single column.
+ */
+export const getEvaSequenceItems = (
+  mission: Mission,
+  evaUuid: string
+): StmCoverageSequenceItem[] => {
+  const eva = mission?.evas?.[evaUuid];
+  if (!eva) return [];
+
+  const items: StmCoverageSequenceItem[] = [];
+  const seenUuids = new Set<string>();
+  const pushStation = (stationUuid: string): void => {
+    const station = mission?.stations?.[stationUuid];
+    if (!station || seenUuids.has(station.uuid)) return;
+    seenUuids.add(station.uuid);
+    items.push({ type: "station", uuid: station.uuid, name: station.name, icon: station.icon });
+  };
+
+  for (const sequenceItem of eva.sequence ?? []) {
+    if (sequenceItem.type === "station") {
+      pushStation(sequenceItem.uuid);
+    } else {
+      const traverse = mission?.traverses?.[sequenceItem.uuid];
+      if (!traverse || seenUuids.has(traverse.uuid)) continue;
+      seenUuids.add(traverse.uuid);
+      items.push({ type: "traverse", uuid: traverse.uuid, name: traverse.name });
+    }
+  }
+  if (eva.ingressLocationUuid !== "lander") pushStation(eva.ingressLocationUuid);
+  if (eva.egressLocationUuid !== "lander") pushStation(eva.egressLocationUuid);
+
+  return items;
 };

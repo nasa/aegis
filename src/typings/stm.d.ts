@@ -134,10 +134,21 @@ type StmCoverageLevel3 = {
   totalMatches: number;
 };
 
-/** Per-station breakdown of a StmCoverageLevel3 for the expanded-column view. */
+/** Per-station / per-traverse breakdown of a StmCoverageLevel3 for the expanded-column view. */
 type StmCoverageSequenceItemMatches = {
   stations: { [stationUuid: string]: number };
-  traverseTotal: number;
+  traverses: { [traverseUuid: string]: number };
+};
+
+/**
+ * One sub-column of an expanded EVA column: a station or traverse in EVA
+ * sequence order. `icon` is the station's emoji icon value (stations only).
+ */
+type StmCoverageSequenceItem = {
+  type: "station" | "traverse";
+  uuid: string;
+  name: string;
+  icon?: string;
 };
 
 /** Tabs of the v2 STM Satisfaction Rules pane. */
@@ -147,4 +158,39 @@ type StmRulesTab = "rules" | "matches" | "coverage";
 type StmRulesTierExpansion = {
   level1: boolean;
   level2: boolean;
+};
+
+/** A selected coverage cell (or sub-cell), or null when nothing is selected. */
+type StmCoverageCellSelection = {
+  stmUuid: string;
+  columnKey: string;
+  /** set when a per-station sub-cell was clicked */
+  stationUuid?: string;
+  /** set when a per-traverse sub-cell was clicked */
+  traverseUuid?: string;
+} | null;
+
+/**
+ * Computed coverage data shared by the EVA Coverage grid components.
+ * Assembled once in stm-coverage-page.tsx and read by the header, table,
+ * cells and drilldown so we don't recompute or prop-drill per row.
+ */
+type StmCoverageContextValue = {
+  mission: Mission;
+  /**
+   * Columns to render, in getEvaColumns order: manually hidden columns are
+   * removed, and when "differences only" is on so are columns identical to
+   * the baseline.
+   */
+  visibleColumns: StmCoverageEvaColumn[];
+  coverageByColumnKey: { [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 } };
+  baselineKey: string | null;
+  diffMode: boolean;
+  expandedColumnKeys: string[];
+  /** Sequence-ordered stations + traverses per expanded column, keyed by column key. */
+  sequenceByColumnKey: { [columnKey: string]: StmCoverageSequenceItem[] };
+  /** Level3 uuids to show when "differences only" is on; null = show all. */
+  visibleStmUuids: Set<string> | null;
+  cellSelection: StmCoverageCellSelection;
+  setCellSelection: (selection: StmCoverageCellSelection) => void;
 };
