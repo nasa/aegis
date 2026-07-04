@@ -1,11 +1,22 @@
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 import styles from "./stm-coverage.module.css";
-import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { stmCoverageSetHoveredLeftItem, stmCoverageSetHoveredTopItem } from "store/stm";
 import { diffLevel3, groupMatchesBySequenceItem } from "utils/stmEvaCoverage";
+import type { StmCoverageCellSelection } from "./stm-coverage-context";
 import { useStmCoverage } from "./stm-coverage-context";
+
+/** Whether the drilldown selection points at exactly this cell. */
+const isCellSelected = (
+  selection: StmCoverageCellSelection,
+  target: NonNullable<StmCoverageCellSelection>
+): boolean =>
+  !!selection &&
+  selection.stmUuid === target.stmUuid &&
+  selection.columnKey === target.columnKey &&
+  selection.stationUuid === target.stationUuid &&
+  !!selection.traversesOnly === !!target.traversesOnly;
 
 /**
  * All cells for one (level3 row × EVA column): a single summary cell when the
@@ -84,7 +95,8 @@ const SummaryCell: FunctionComponent<{
   stmUuid: string;
   coverage: StmCoverageLevel3;
 }> = ({ column, stmUuid, coverage }) => {
-  const { coverageByColumnKey, baselineKey, diffMode, setCellSelection } = useStmCoverage();
+  const { coverageByColumnKey, baselineKey, diffMode, cellSelection, setCellSelection } =
+    useStmCoverage();
 
   const isBaseline = column.key === baselineKey;
   const baselineCoverage = baselineKey ? coverageByColumnKey[baselineKey]?.[stmUuid] : null;
@@ -133,6 +145,7 @@ const SummaryCell: FunctionComponent<{
       stmUuid={stmUuid}
       className={statusClass}
       tooltip={tooltip}
+      selected={isCellSelected(cellSelection, { stmUuid, columnKey: column.key })}
       onClick={() => setCellSelection({ stmUuid, columnKey: column.key })}
     >
       {text}
@@ -153,13 +166,14 @@ const CountCell: FunctionComponent<{
     traversesOnly?: boolean;
   };
 }> = ({ cellKey, stmUuid, count, tooltip, onClickSelection }) => {
-  const { setCellSelection } = useStmCoverage();
+  const { cellSelection, setCellSelection } = useStmCoverage();
   return (
     <BaseCell
       cellKey={cellKey}
       stmUuid={stmUuid}
       className={styles.cellStation}
       tooltip={tooltip}
+      selected={isCellSelected(cellSelection, onClickSelection)}
       onClick={() => setCellSelection(onClickSelection)}
     >
       {count > 0 ? count : ""}
@@ -172,20 +186,15 @@ const BaseCell: FunctionComponent<{
   stmUuid: string;
   className?: string;
   tooltip: string;
+  selected?: boolean;
   onClick: () => void;
   children: React.ReactNode;
-}> = ({ cellKey, stmUuid, className, tooltip, onClick, children }) => {
+}> = ({ cellKey, stmUuid, className, tooltip, selected, onClick, children }) => {
   const dispatch = useAppDispatch();
-  const isHovered = useAppSelector(
-    (state) =>
-      state.stm.stmCoverageHoveredTopItem === cellKey ||
-      state.stm.stmCoverageHoveredLeftItem === stmUuid,
-    refEqual
-  );
 
   return (
     <div
-      className={`${styles.cell} ${className ?? ""} ${isHovered ? styles.cellHovered : ""}`}
+      className={`${styles.cell} ${className ?? ""} ${selected ? styles.cellSelected : ""}`}
       onClick={onClick}
       onMouseEnter={() => {
         dispatch(stmCoverageSetHoveredTopItem(cellKey));
