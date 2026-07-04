@@ -114,8 +114,17 @@ const ColumnHeader: FunctionComponent<{ column: StmCoverageEvaColumn }> = ({ col
   }
 
   const sequenceItems = sequenceByColumnKey[column.key] ?? [];
+  // Firefox miscomputes the automatic (content-based) width of a flex item
+  // whose descendants use writing-mode: vertical-rl (the rotated labels below)
+  // — see https://bugzilla.mozilla.org/show_bug.cgi?id=1332555. Chrome gets it
+  // right, Firefox doesn't, which is why this only breaks there. Sidestep it
+  // entirely by giving the group its exact pixel width up front instead of
+  // letting either browser derive it from nested content: one 22px
+  // .stationHeaderCell per sequence item plus the trailing 40px "Total"
+  // .columnHeaderCell.
+  const groupWidth = sequenceItems.length * 22 + 40;
   return (
-    <div className={styles.columnGroup}>
+    <div className={styles.columnGroup} style={{ width: groupWidth }}>
       <div
         className={styles.columnGroupLabel}
         onClick={() => dispatch(stmCoverageSetBaselineColumnKey(column.key))}
