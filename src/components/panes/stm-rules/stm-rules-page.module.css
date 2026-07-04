@@ -17,185 +17,70 @@
   overflow: hidden;
 }
 
-.panelTop {
-  flex: 0 0 130px;
+.tabBar {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: row;
+  gap: 2px;
+  margin: 0 8px 8px 0;
+  border-bottom: 2px solid var(--grey0);
+  user-select: none;
+}
+
+.tab {
+  padding: 4px 14px;
+  font-size: 0.9em;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background-color: var(--grey1);
+  cursor: pointer;
+}
+.tab:hover {
+  background-color: var(--grey3);
+}
+.tabActive {
+  background-color: var(--grey5);
+  color: var(--grey0);
+  font-weight: 500;
+}
+.tabActive:hover {
+  background-color: var(--grey5);
+}
+
+.listHeaderTitles {
+  flex: 0 0 auto;
+  display: grid;
+  cursor: default;
   border-bottom: 2px solid var(--grey0);
 }
 
-.panelTopExpanded {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.panelTopCollapsed {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.selectionControls {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin-right: 20px;
-}
-.selectionControlsLeft {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-}
-.filterIndicator {
-  position: relative;
-  left: 405px;
-  top: 5px;
-  cursor: pointer;
-}
-
-.selectionControl {
-  flex: 0 0 30px;
-}
-
-.buttonsContainer {
-  display: flex;
-  gap: 2px;
-  font-size: 0.9em;
-}
-
-.listTableTitlesExpanded {
-  flex: 0 0 15px;
-  display: grid;
-  grid-template-columns: 155px 175px 285px auto;
-  cursor: default;
-}
-.listTableTitlesCollapsed {
-  flex: 0 0 15px;
-  display: grid;
-  grid-template-columns: 20px 20px 285px auto;
-  cursor: default;
-}
-.listTableTier1DisabledTitlesExpanded {
-  display: grid;
-  grid-template-columns: 175px 285px auto;
-  cursor: default;
-}
-.listTableTier1DisabledTitlesCollapsed {
-  display: grid;
-  grid-template-columns: 20px 285px auto;
-  cursor: default;
-}
 .listTableTitle {
   font-size: 0.8em;
   font-weight: 300;
   padding: 0 0 2px 4px;
 }
+
+.tierTitleClickable {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.tierTitleClickable:hover {
+  color: var(--grey5);
+  background-color: var(--grey3);
+}
+.tierTitleChevron {
+  font-size: 0.8em;
+  color: var(--grey4);
+}
+
 .listTableRuleTitleContainer {
   display: flex;
   width: 100%;
   flex-direction: row;
   justify-content: space-between;
-}
-
-.panelTopRight {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  cursor: default;
-  user-select: none;
-}
-.stationGroupTitles {
-  flex: 0 0 35px;
-  font-size: 0.9em;
-  display: flex;
-  flex-direction: row;
-}
-.stationGroupTitleContainer {
-  display: flex;
-  flex-direction: column;
-}
-.stationGroupTitle {
-  margin: 0 0 0 0;
-}
-
-.stationNameGroups {
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  padding: 0 0 0 0;
-}
-
-.stationGroupTitleStyling {
-  display: flex;
-}
-
-.stationGroupTitleStylingItem {
-  position: relative;
-  width: 22px;
-}
-
-.evaCircle {
-  position: absolute;
-  top: 2px;
-  left: 5px;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background-color: var(--grey5);
-  margin: 0 0 0 0;
-}
-.evaLine {
-  position: absolute;
-  top: 8px;
-  left: 2px;
-  width: 20px;
-  height: 2px;
-  background-color: var(--grey5);
-}
-
-.stationRemaining {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  height: 100%;
-}
-
-.gridStationNames {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 22px); /* Creates as many 22px columns as can fit */
-  grid-auto-flow: column;
-  width: 100%;
-
-  /* height: 100px; */
-  /* border-left: 1px solid var(--grey0); */
-}
-
-.gridStationNamesDivider {
-  background-color: var(--grey0);
-}
-
-.gridStationNameContainer {
-  overflow: hidden;
-  background-color: var(--grey3);
-  border-top: 1px solid var(--grey0);
-  border-left: 1px solid var(--grey0);
-  cursor: pointer;
-}
-/* .gridStationNameContainer:first-child {
-  border-left: none;
-} */
-.gridStationNameContainer:last-child {
-  border-right: 1px solid var(--grey0);
-}
-.gridStationNameText {
-  font-size: 0.9em;
-  text-wrap: nowrap;
-  transform-origin: 11px;
-  rotate: -90deg;
-  transform: translateX(-65px);
 }
 
 .panelBottom {
