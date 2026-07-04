@@ -123,6 +123,20 @@ interface STMState {
   stmViewHoveredTopItem: string;
   stmViewHoveredLeftItem: string;
   stmRulesSelectedRexes: string[];
+  // v2 STM Satisfaction Rules pane (tabs + reports). Deliberately separate from
+  // the legacy v1 stmView* state above — v1 and v2 never share UI state.
+  stmRulesActiveTab: StmRulesTab;
+  stmRulesSelectedStmUuid: string;
+  stmRulesSelectedRuleUuid: string;
+  stmRulesTierExpansion: StmRulesTierExpansion;
+  stmCoverageBaselineColumnKey: string;
+  stmCoverageDiffMode: boolean;
+  stmCoverageDifferencesOnly: boolean;
+  stmCoverageRexStatusFilter: RexStatusFilter;
+  stmCoverageHiddenColumns: string[];
+  stmCoverageExpandedEvaColumns: string[];
+  stmCoverageHoveredTopItem: string;
+  stmCoverageHoveredLeftItem: string;
 }
 
 interface StationState {

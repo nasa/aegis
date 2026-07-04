@@ -15,6 +15,8 @@ export const thunkCreateStmRule = appCreateAsyncThunk<{ stmUuid: string }>(
   async ({ stmUuid }, { dispatch }) => {
     const newRule = generateBlankStmRule({ stmUuid });
     await dispatch(thunkSaveStmRule({ stmRule: newRule }));
+    // a freshly created rule is blank — put it straight into inline edit mode
+    dispatch(setRuleEditingUuid(newRule.uuid));
   }
 );
 
