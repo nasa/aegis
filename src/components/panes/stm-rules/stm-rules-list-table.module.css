@@ -61,7 +61,7 @@
 .gridCellLevel3Container {
   position: relative;
   display: grid;
-  grid-template-columns: 285px auto;
+  grid-template-columns: var(--stmLevel3NameWidth, 285px) auto;
   border-bottom: 1px solid var(--grey0);
   border-right: 1px solid var(--grey0);
   border-left: 1px solid var(--grey0);
@@ -88,7 +88,7 @@
 
 /* Select mode (Rule Matches tab): no rules column, level3 rows are selectable */
 .gridCellLevel3ContainerSelect {
-  grid-template-columns: 285px;
+  grid-template-columns: var(--stmLevel3NameWidth, 285px);
   border-right: 1px solid var(--grey0);
 }
 .gridCellLevel3HeadingHover:hover {

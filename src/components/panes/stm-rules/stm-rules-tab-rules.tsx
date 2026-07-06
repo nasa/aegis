@@ -4,7 +4,11 @@ import tableStyles from "./stm-rules-list-table.module.css";
 import STMRulesTable from "./stm-rules-list-table";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { StmTierTitle, useStmTierExpansion } from "./stm-rules-tier-titles";
+import {
+  StmTierTitle,
+  useStmTierExpansion,
+  STM_LEVEL3_NAME_COLUMN_WIDTH,
+} from "./stm-rules-tier-titles";
 import { useStmRuleColumnWidths } from "./stm-rule-column-widths";
 
 /**
@@ -34,7 +38,11 @@ const StmRulesTabRules: FunctionComponent = () => {
       <div ref={fontRef} className={`${tableStyles.stmTables} ${styles.fontProbe}`} />
       <div
         className={styles.listHeaderTitles}
-        style={{ gridTemplateColumns: [...tierColumns, "285px", "auto"].join(" ") }}
+        style={{
+          gridTemplateColumns: [...tierColumns, `${STM_LEVEL3_NAME_COLUMN_WIDTH}px`, "auto"].join(
+            " "
+          ),
+        }}
       >
         {stmLevel1Enabled && <StmTierTitle tier="level1" />}
         <StmTierTitle tier="level2" />
