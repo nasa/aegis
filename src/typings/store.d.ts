@@ -138,6 +138,8 @@ interface STMState {
   stmCoverageHoveredTopItem: string;
   stmCoverageHoveredLeftItem: string;
   stmCoverageDrilldownWidth: number;
+  // Drilldown diff filter: hide matched rows, show only plus/minus rows.
+  stmCoverageDrilldownChangesOnly: boolean;
   // Currently-selected coverage cell (drives the drilldown panel).
   stmCoverageCellSelection: StmCoverageCellSelection;
   // Derived coverage data, computed once in stm-coverage-page.tsx from the

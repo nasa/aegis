@@ -9,7 +9,7 @@ import {
   stmCoverageSetHoveredLeftItem,
   stmCoverageSetHoveredTopItem,
 } from "store/stm";
-import { diffLevel3, groupMatchesBySequenceItem } from "utils/stmEvaCoverage";
+import { diffLevel3Actions, groupMatchesBySequenceItem } from "utils/stmEvaCoverage";
 
 /** Whether the drilldown selection points at exactly this cell. */
 const isCellSelected = (
@@ -105,8 +105,10 @@ const STATUS_LABEL: { [status in StmCoverageLevel3Status]: string } = {
 
 /**
  * The rollup cell for one column. Baseline (or absolute mode) shows the match
- * total colored by status; other columns in diff mode show the delta vs the
- * baseline.
+ * total colored by status; other columns in diff mode show the added and
+ * removed action counts vs the baseline (paired per rule by verb/noun/
+ * adjective tuple, matching the drilldown), with the background tint driven
+ * by the net change.
  */
 const SummaryCell: FunctionComponent<{
   column: StmCoverageEvaColumn;
@@ -114,6 +116,7 @@ const SummaryCell: FunctionComponent<{
   coverage: StmCoverageLevel3;
 }> = ({ column, stmUuid, coverage }) => {
   const dispatch = useAppDispatch();
+  const mission = useMissionDocSelector((m) => m, refEqual);
   const coverageByColumnKey = useAppSelector(
     (state) => state.stm.stmCoverageCoverageByColumnKey,
     refEqual
@@ -126,38 +129,49 @@ const SummaryCell: FunctionComponent<{
   const baselineCoverage = baselineKey ? coverageByColumnKey[baselineKey]?.[stmUuid] : null;
   const showDiff = diffMode && !isBaseline && !!baselineCoverage && coverage.status !== "noRules";
 
-  let text: string;
+  const actionsDiff = useMemo(
+    () =>
+      showDiff && mission && baselineCoverage
+        ? diffLevel3Actions({ mission, baseline: baselineCoverage, other: coverage })
+        : null,
+    [showDiff, mission, baselineCoverage, coverage]
+  );
+
+  let content: React.ReactNode;
   let statusClass = "";
   let tooltip: string;
   if (coverage.status === "noRules") {
-    text = "—";
+    content = "—";
     statusClass = STATUS_CLASS.noRules;
     tooltip = `${column.label}: ${STATUS_LABEL.noRules}`;
-  } else if (!showDiff) {
-    text = `${coverage.totalMatches}`;
+  } else if (!showDiff || !actionsDiff || !baselineCoverage) {
+    content = `${coverage.totalMatches}`;
     statusClass = STATUS_CLASS[coverage.status];
     const satisfiedRules = coverage.rules.filter((rc) => rc.satisfied).length;
     tooltip = `${column.label}: ${coverage.totalMatches} matching actions, ${satisfiedRules}/${coverage.rules.length} rules satisfied (${STATUS_LABEL[coverage.status]})`;
   } else {
-    const diff = diffLevel3(baselineCoverage, coverage);
-    if (diff.equal) {
-      text = "=";
+    const { added, removed } = actionsDiff;
+    const net = added - removed;
+    if (added === 0 && removed === 0) {
+      content = "=";
       statusClass = styles.cellDiffEqual;
       tooltip = `${column.label}: same coverage as baseline`;
-    } else if (diff.delta === 0) {
-      text = "≠";
-      statusClass = styles.cellDiffEqual;
-      tooltip = `${column.label}: same total as baseline but matches come from different rules`;
-    } else if (diff.delta > 0) {
-      text = `+${diff.delta}`;
-      statusClass = styles.cellDiffPositive;
-      tooltip = `${column.label}: ${diff.delta} more matching actions than baseline`;
     } else {
-      text = `−${Math.abs(diff.delta)}`;
-      statusClass = styles.cellDiffNegative;
-      tooltip = `${column.label}: ${Math.abs(diff.delta)} fewer matching actions than baseline`;
+      content = (
+        <span className={styles.cellDiffValues}>
+          {added > 0 && <span className={styles.cellDiffAdded}>+{added}</span>}
+          {removed > 0 && <span className={styles.cellDiffRemoved}>−{removed}</span>}
+        </span>
+      );
+      statusClass =
+        net > 0
+          ? styles.cellDiffPositive
+          : net < 0
+            ? styles.cellDiffNegative
+            : styles.cellDiffEqual;
+      tooltip = `${column.label}: ${added} added, ${removed} removed vs baseline`;
     }
-    if (diff.statusChanged) {
+    if (baselineCoverage.status !== coverage.status) {
       statusClass = `${statusClass} ${styles.cellStatusChanged}`;
       tooltip += ` — status changed from ${STATUS_LABEL[baselineCoverage.status]} to ${STATUS_LABEL[coverage.status]}`;
     }
@@ -172,7 +186,7 @@ const SummaryCell: FunctionComponent<{
       selected={isCellSelected(cellSelection, { stmUuid, columnKey: column.key })}
       onClick={() => dispatch(stmCoverageSetCellSelection({ stmUuid, columnKey: column.key }))}
     >
-      {text}
+      {content}
     </BaseCell>
   );
 };

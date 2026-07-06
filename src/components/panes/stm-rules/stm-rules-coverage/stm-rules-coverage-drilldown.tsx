@@ -5,7 +5,13 @@ import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { stmCoverageSetCellSelection, stmCoverageSetDrilldownWidth } from "store/stm";
+import {
+  stmCoverageSetCellSelection,
+  stmCoverageSetDrilldownWidth,
+  stmCoverageToggleDrilldownChangesOnly,
+} from "store/stm";
+import { diffRuleActions } from "utils/stmEvaCoverage";
+import { Checkbox } from "components/interface/form/globalFields";
 
 const DRILLDOWN_MIN_WIDTH = 220;
 /** Grid width the drilldown can never squeeze past when dragged wide. */
@@ -14,8 +20,10 @@ const GRID_MIN_WIDTH = 300;
 /**
  * Side panel showing the per-rule breakdown of one clicked cell: match counts
  * against required counts, and the matching actions grouped by their station
- * or traverse. In diff mode the baseline's counts are shown alongside so
- * controllers can see where a difference comes from.
+ * or traverse. In diff mode the cell's actions are diffed against the
+ * baseline column's actions per rule (paired by verb/noun/adjective tuple,
+ * station-agnostic): matched rows exist in both, "+" rows only in this cell,
+ * "−" rows only in the baseline. A "Changes only" toggle hides matched rows.
  */
 const StmCoverageDrilldown: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -32,6 +40,10 @@ const StmCoverageDrilldown: FunctionComponent = () => {
   const diffMode = useAppSelector((state) => state.stm.stmCoverageDiffMode, refEqual);
   const cellSelection = useAppSelector((state) => state.stm.stmCoverageCellSelection, refEqual);
   const drilldownWidth = useAppSelector((state) => state.stm.stmCoverageDrilldownWidth, refEqual);
+  const changesOnly = useAppSelector(
+    (state) => state.stm.stmCoverageDrilldownChangesOnly,
+    refEqual
+  );
   const level3 = useAppSelector(
     (state) => state.stm.level3s.find((item) => item.uuid === cellSelection?.stmUuid),
     shallowEqual
@@ -51,6 +63,9 @@ const StmCoverageDrilldown: FunctionComponent = () => {
     baselineKey && baselineKey !== column.key
       ? coverageByColumnKey[baselineKey]?.[cellSelection.stmUuid]
       : null;
+
+  const diffActive = diffMode && !!baselineCoverage;
+  const scoped = !!cellSelection.stationUuid || !!cellSelection.traverseUuid;
 
   const scopeLabel = cellSelection.stationUuid
     ? mission?.stations?.[cellSelection.stationUuid]?.name
@@ -104,6 +119,16 @@ const StmCoverageDrilldown: FunctionComponent = () => {
           </div>
         </div>
         <div className={styles.drilldownContent}>
+          {diffActive && (
+            <Checkbox
+              checked={changesOnly}
+              editable={true}
+              onChange={() => dispatch(stmCoverageToggleDrilldownChangesOnly())}
+              toolTip="Hide actions that also match in the baseline; show only added (+) and baseline-only (−) actions"
+              label="Changes only"
+              uniqueId="stm-coverage-drilldown-changes-only"
+            />
+          )}
           {coverage.status === "noRules" && <div>No rules defined for this item.</div>}
           {coverage.rules.map((ruleCoverage) => (
             <DrilldownRule
@@ -117,6 +142,9 @@ const StmCoverageDrilldown: FunctionComponent = () => {
                   : null
               }
               matchesScope={matchesScope}
+              diffActive={diffActive}
+              changesOnly={changesOnly}
+              scoped={scoped}
             />
           ))}
         </div>
@@ -132,12 +160,39 @@ const DrilldownRule: FunctionComponent<{
   rule: STMRule | undefined;
   baselineRuleCoverage: StmCoverageRule | null;
   matchesScope: (action: Action | undefined) => boolean;
-}> = ({ ruleCoverage, rule, baselineRuleCoverage, matchesScope }) => {
+  diffActive: boolean;
+  changesOnly: boolean;
+  scoped: boolean;
+}> = ({
+  ruleCoverage,
+  rule,
+  baselineRuleCoverage,
+  matchesScope,
+  diffActive,
+  changesOnly,
+  scoped,
+}) => {
   const mission = useMissionDocSelector((m) => m, refEqual);
 
   const scopedActions = ruleCoverage.matchingActionUuids
     .map((actionUuid) => mission?.actions?.[actionUuid])
-    .filter((action) => matchesScope(action));
+    .filter((action): action is Action => matchesScope(action));
+
+  // The baseline side is never scoped to the clicked station/traverse: baseline
+  // columns are different EVAs whose stations have different uuids, so pairing
+  // is always against the full baseline rule matches.
+  const baselineActions = diffActive
+    ? (baselineRuleCoverage?.matchingActionUuids ?? [])
+        .map((actionUuid) => mission?.actions?.[actionUuid])
+        .filter((action): action is Action => !!action)
+    : [];
+  const diff = diffActive
+    ? diffRuleActions({ baselineActions, selectedActions: scopedActions })
+    : null;
+  // At single-station/traverse scope a "missing vs the whole baseline EVA" row
+  // is misleading, so minus rows only render for whole-column selections.
+  const removed = diff && !scoped ? diff.removed : [];
+  const noChanges = diff && changesOnly && diff.added.length === 0 && removed.length === 0;
 
   return (
     <div className={styles.drilldownRule}>
@@ -164,26 +219,92 @@ const DrilldownRule: FunctionComponent<{
           </div>
         )}
       </div>
-      {scopedActions.map((action) => (
-        <div key={action.uuid} className={styles.drilldownActionRow}>
-          <div className={styles.drilldownActionSequenceName}>
-            {action.stationUuid
-              ? mission?.stations?.[action.stationUuid]?.name
-              : mission?.traverses?.[action.traverseUuid]?.name}
-            :
-          </div>
-          <div>
-            {mission?.actionDefinitions ? (
-              <StmActionName
-                actionDefinition={action.actionDefinition}
-                missionActionDefs={mission.actionDefinitions}
+      {!diff &&
+        scopedActions.map((action) => (
+          <DrilldownActionRow key={action.uuid} action={action} kind="matched" mission={mission} />
+        ))}
+      {diff && (
+        <>
+          {!changesOnly &&
+            diff.matched.map((action) => (
+              <DrilldownActionRow
+                key={`m-${action.uuid}`}
+                action={action}
+                kind="matched"
+                showIndicator={true}
+                mission={mission}
               />
-            ) : (
-              action.name
-            )}
-          </div>
-        </div>
-      ))}
+            ))}
+          {diff.added.map((action) => (
+            <DrilldownActionRow
+              key={`p-${action.uuid}`}
+              action={action}
+              kind="plus"
+              showIndicator={true}
+              mission={mission}
+            />
+          ))}
+          {removed.length > 0 && (
+            <>
+              <div className={styles.drilldownBaselineSectionLabel}>In baseline only:</div>
+              {removed.map((action) => (
+                <DrilldownActionRow
+                  key={`b-${action.uuid}`}
+                  action={action}
+                  kind="minus"
+                  showIndicator={true}
+                  mission={mission}
+                />
+              ))}
+            </>
+          )}
+          {noChanges && <div className={styles.drilldownBaselineNote}>(no changes)</div>}
+        </>
+      )}
+    </div>
+  );
+};
+
+const DIFF_INDICATORS = { matched: "", plus: "+", minus: "−" };
+const DIFF_ROW_CLASSES = {
+  matched: styles.drilldownActionRow,
+  plus: `${styles.drilldownActionRow} ${styles.drilldownActionPlus}`,
+  minus: `${styles.drilldownActionRow} ${styles.drilldownActionMinus}`,
+};
+
+/**
+ * One action row of the drilldown. `kind` is "matched" outside diff mode or
+ * for actions present in both columns; "plus" = only in the selected cell,
+ * "minus" = only in the baseline (the station/traverse name shown is the
+ * baseline action's own parent).
+ */
+const DrilldownActionRow: FunctionComponent<{
+  action: Action;
+  kind: "matched" | "plus" | "minus";
+  showIndicator?: boolean;
+  mission: Mission | undefined;
+}> = ({ action, kind, showIndicator = false, mission }) => {
+  return (
+    <div className={DIFF_ROW_CLASSES[kind]}>
+      {showIndicator && (
+        <div className={styles.drilldownDiffIndicator}>{DIFF_INDICATORS[kind]}</div>
+      )}
+      <div className={styles.drilldownActionSequenceName}>
+        {action.stationUuid
+          ? mission?.stations?.[action.stationUuid]?.name
+          : mission?.traverses?.[action.traverseUuid]?.name}
+        :
+      </div>
+      <div>
+        {mission?.actionDefinitions ? (
+          <StmActionName
+            actionDefinition={action.actionDefinition}
+            missionActionDefs={mission.actionDefinitions}
+          />
+        ) : (
+          action.name
+        )}
+      </div>
     </div>
   );
 };
