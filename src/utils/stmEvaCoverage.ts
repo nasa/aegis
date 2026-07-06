@@ -222,19 +222,119 @@ export const diffLevel3 = (
 };
 
 /**
+ * Pairs one rule's matching actions between the baseline column and a selected
+ * cell for the drilldown's action-level diff. Actions pair by their
+ * actionDefinition tuple (verb|noun|adjective) only — station/traverse never
+ * participates, so the same task at a different station still counts as
+ * matched. Pairing is multiset-style: each baseline action pairs with at most
+ * one selected action (2 identical tuples in baseline + 3 in selected → 2
+ * matched + 1 added). Actions with a null actionDefinition all share the empty
+ * tuple and pair with each other. Callers resolve uuids to Actions (dropping
+ * deleted ones) before calling. `added` keeps selected-input order; `removed`
+ * keeps baseline-input order.
+ */
+export const diffRuleActions = ({
+  baselineActions,
+  selectedActions,
+}: {
+  baselineActions: Action[];
+  selectedActions: Action[];
+}): StmCoverageRuleActionDiff => {
+  const tupleKey = (action: Action): string =>
+    `${action.actionDefinition?.verbUuid ?? ""}|${action.actionDefinition?.nounUuid ?? ""}|${action.actionDefinition?.adjectiveUuid ?? ""}`;
+
+  const unpairedBaseline = new Map<string, Action[]>();
+  for (const action of baselineActions) {
+    const key = tupleKey(action);
+    const queue = unpairedBaseline.get(key);
+    if (queue) queue.push(action);
+    else unpairedBaseline.set(key, [action]);
+  }
+
+  const matched: Action[] = [];
+  const added: Action[] = [];
+  for (const action of selectedActions) {
+    const queue = unpairedBaseline.get(tupleKey(action));
+    if (queue && queue.length > 0) {
+      queue.shift();
+      matched.push(action);
+    } else {
+      added.push(action);
+    }
+  }
+
+  const removed = baselineActions.filter((action) => {
+    const queue = unpairedBaseline.get(tupleKey(action));
+    if (!queue || queue[0] !== action) return false;
+    queue.shift();
+    return true;
+  });
+
+  return { matched, added, removed };
+};
+
+/**
+ * Total added/removed action counts for one level3 cell vs the baseline,
+ * summed over the per-rule tuple pairing of diffRuleActions — so the cell's
+ * "+A −R" always agrees with the rows the drilldown lists. Rules present in
+ * only one coverage (shouldn't happen — both are computed from the same rules
+ * array — but guarded anyway) count wholly as added/removed. Deleted actions
+ * are skipped on both sides.
+ */
+export const diffLevel3Actions = ({
+  mission,
+  baseline,
+  other,
+}: {
+  mission: Mission;
+  baseline: StmCoverageLevel3;
+  other: StmCoverageLevel3;
+}): { added: number; removed: number } => {
+  const resolve = (actionUuids: string[]): Action[] =>
+    actionUuids
+      .map((actionUuid) => mission?.actions?.[actionUuid])
+      .filter((action): action is Action => !!action);
+
+  const baselineByRule: { [ruleUuid: string]: StmCoverageRule } = {};
+  for (const rc of baseline.rules) baselineByRule[rc.ruleUuid] = rc;
+
+  let added = 0;
+  let removed = 0;
+  const seenRuleUuids = new Set<string>();
+  for (const rc of other.rules) {
+    seenRuleUuids.add(rc.ruleUuid);
+    const diff = diffRuleActions({
+      baselineActions: resolve(baselineByRule[rc.ruleUuid]?.matchingActionUuids ?? []),
+      selectedActions: resolve(rc.matchingActionUuids),
+    });
+    added += diff.added.length;
+    removed += diff.removed.length;
+  }
+  for (const rc of baseline.rules) {
+    if (!seenRuleUuids.has(rc.ruleUuid)) removed += resolve(rc.matchingActionUuids).length;
+  }
+  return { added, removed };
+};
+
+/**
  * The level3 rows and columns that differ from the baseline column in at
  * least one cell. Drives the "differences only" filter, which hides rows AND
  * columns whose coverage is identical to the baseline everywhere (with many
  * columns almost every row differs somewhere, so filtering rows alone rarely
- * removes anything). The baseline column is never included in `columnKeys`;
- * callers keep it visible unconditionally.
+ * removes anything). A cell also counts as different when its per-rule counts
+ * equal the baseline's but the underlying verb/noun/adjective tuples differ
+ * (diffLevel3Actions), so rows the cells render as "+N −N" are never hidden.
+ * The baseline column is never included in `columnKeys`; callers keep it
+ * visible unconditionally.
  */
 export const getCoverageDifferences = ({
+  mission,
   coverageByColumnKey,
   columns,
   baselineKey,
   level3s,
 }: {
+  mission: Mission;
   coverageByColumnKey: { [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 } };
   columns: StmCoverageEvaColumn[];
   baselineKey: string;
@@ -251,7 +351,12 @@ export const getCoverageDifferences = ({
       const baseline = baselineCoverage[level3.uuid];
       const other = coverageByColumnKey[column.key]?.[level3.uuid];
       if (!baseline || !other) continue;
-      if (!diffLevel3(baseline, other).equal) {
+      let differs = !diffLevel3(baseline, other).equal;
+      if (!differs) {
+        const { added, removed } = diffLevel3Actions({ mission, baseline, other });
+        differs = added > 0 || removed > 0;
+      }
+      if (differs) {
         stmUuids.add(level3.uuid);
         columnKeys.add(column.key);
       }

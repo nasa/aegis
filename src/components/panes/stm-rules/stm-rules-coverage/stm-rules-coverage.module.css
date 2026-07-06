@@ -277,6 +277,22 @@
   background-color: #ff70701a;
   color: #f0aeae;
 }
+/* Diff cells stack the added and removed counts vertically ("+2" over "−1")
+   so the paired deltas read as a compact two-line stack rather than a wide
+   "+2 −1" run; each value keeps its own color regardless of the net tint. */
+.cellDiffValues {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+  padding: 3px 0;
+}
+.cellDiffAdded {
+  color: #a8e8b6;
+}
+.cellDiffRemoved {
+  color: #f0aeae;
+}
 /* coverage status flipped (e.g. satisfied -> partial) between baseline and
    this column: a subtle pastel-blue outline draws the eye without clashing
    with the diff background tint underneath. */
@@ -393,6 +409,34 @@
 .drilldownActionSequenceName {
   color: var(--grey4);
   white-space: nowrap;
+}
+/* Diff rows: same tints as the grid's .cellDiffPositive/.cellDiffNegative so
+   drilldown pluses/minuses read identically to cell deltas. */
+.drilldownDiffIndicator {
+  width: 10px;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--grey4);
+}
+.drilldownActionPlus {
+  background-color: #52f0751a;
+  border-radius: 3px;
+}
+.drilldownActionPlus .drilldownDiffIndicator {
+  color: #a8e8b6;
+}
+.drilldownActionMinus {
+  background-color: #ff70701a;
+  border-radius: 3px;
+}
+.drilldownActionMinus .drilldownDiffIndicator {
+  color: #f0aeae;
+}
+.drilldownBaselineSectionLabel {
+  color: var(--grey4);
+  font-size: 0.8em;
+  padding-left: 8px;
+  margin-top: 2px;
 }
 
 /* ---------- help button + modal ---------- */
