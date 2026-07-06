@@ -19,7 +19,11 @@ import { EmojiRenderer } from "components/interface/emojis";
 import { getAsPlannedEvaFromRefUuid, selectAsPlannedStations } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import STMRulesTable from "./stm-rules-list-table";
-import { StmTierTitle, useStmTierExpansion } from "./stm-rules-tier-titles";
+import {
+  StmTierTitle,
+  useStmTierExpansion,
+  STM_LEVEL3_NAME_COLUMN_WIDTH,
+} from "./stm-rules-tier-titles";
 
 /**
  * "Rule Matches" tab: read-only report of the actions matching one rule,
@@ -54,7 +58,9 @@ const StmRulesTabMatches: FunctionComponent = () => {
       <div className={styles.treePanel}>
         <div
           className={pageStyles.listHeaderTitles}
-          style={{ gridTemplateColumns: [...tierColumns, "285px"].join(" ") }}
+          style={{
+            gridTemplateColumns: [...tierColumns, `${STM_LEVEL3_NAME_COLUMN_WIDTH}px`].join(" "),
+          }}
         >
           {stmLevel1Enabled && <StmTierTitle tier="level1" />}
           <StmTierTitle tier="level2" />
@@ -276,6 +282,7 @@ const STMRuleRex: FunctionComponent<{ rexUuid: string; rule: STMRule }> = ({ rex
   const asPlannedEvaName = useMissionDocSelector((mission) => {
     if (!mission?.evas || !mission?.rexes || !rex) return undefined;
     const eva = mission.evas[rex.evaUuid];
+    if (!eva) return undefined;
     const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, eva.refUuid);
     return asPlannedEva?.name;
   }, shallowEqual);
@@ -543,7 +550,7 @@ export const RexSelector: FunctionComponent<{ startOpen?: boolean }> = ({ startO
     if (!mission?.rexes || !mission?.evas) return [];
     const items = Object.values(mission.rexes).map((rex) => {
       const rexEva = mission.evas[rex.evaUuid];
-      const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, rexEva.refUuid);
+      const asPlannedEva = rexEva ? getAsPlannedEvaFromRefUuid(mission, rexEva.refUuid) : undefined;
       const rexWithEvaName = `${asPlannedEva?.name ?? ""} - ${rex.name}`;
       return { uuid: rex.uuid, name: rexWithEvaName };
     });

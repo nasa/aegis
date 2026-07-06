@@ -14,7 +14,13 @@ import {
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { groupCoverageColumns } from "utils/stmEvaCoverage";
 import { EmojiRenderer } from "components/interface/emojis";
-import { StmTierTitle, useStmTierExpansion } from "../stm-rules-tier-titles";
+import {
+  StmTierTitle,
+  useStmTierExpansion,
+  STM_LEVEL3_NAME_COLUMN_WIDTH,
+  STM_COVERAGE_STATION_CELL_WIDTH,
+  STM_COVERAGE_SUMMARY_CELL_WIDTH,
+} from "../stm-rules-tier-titles";
 
 /** Column title: the EVA name for plan columns, "REX: <name>" for executions. */
 const columnTitle = (column: StmCoverageEvaColumn) =>
@@ -57,7 +63,7 @@ const StmCoverageHeader: FunctionComponent = () => {
       <div
         className={styles.headerLeft}
         style={{
-          gridTemplateColumns: [...tierColumns, "285px"].join(" "),
+          gridTemplateColumns: [...tierColumns, `${STM_LEVEL3_NAME_COLUMN_WIDTH}px`].join(" "),
           // Row cells sit behind two 1px border-lefts the header has no
           // equivalent of: the level1 tier wrapper's (stm-rules-list-table
           // .gridCellLevel1Expanded/Collapsed, only when level1 is enabled)
@@ -122,12 +128,13 @@ const ColumnHeader: FunctionComponent<{ column: StmCoverageEvaColumn }> = ({ col
   // letting either browser derive it from nested content: one 22px
   // .stationHeaderCell per sequence item plus the trailing 40px "Total"
   // .columnHeaderCell.
-  const groupWidth = sequenceItems.length * 22 + 40;
+  const groupWidth =
+    sequenceItems.length * STM_COVERAGE_STATION_CELL_WIDTH + STM_COVERAGE_SUMMARY_CELL_WIDTH;
   return (
     <div className={styles.columnGroup} style={{ width: groupWidth }}>
       <div
         className={styles.columnGroupLabel}
-        onClick={() => dispatch(stmCoverageSetBaselineColumnKey(column.key))}
+        onClick={() => dispatch(stmCoverageSetBaselineColumnKey(isBaseline ? null : column.key))}
         data-tooltip-id="aegis-tooltip"
         data-tooltip-html={`${columnTooltipName(column)}${isBaseline ? " (baseline)" : " — click to set as baseline"}`}
         style={{ cursor: "pointer" }}
@@ -175,7 +182,7 @@ const SummaryHeaderCell: FunctionComponent<{
     <div
       className={`${styles.columnHeaderCell} ${isBaseline ? styles.columnHeaderCellBaseline : ""}`}
       style={hoveredTopItem === cellKey ? { backgroundColor: "var(--stmCoverageHover)" } : null}
-      onClick={() => dispatch(stmCoverageSetBaselineColumnKey(column.key))}
+      onClick={() => dispatch(stmCoverageSetBaselineColumnKey(isBaseline ? null : column.key))}
       onMouseEnter={() => dispatch(stmCoverageSetHoveredTopItem(cellKey))}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={`${columnTooltipName(column)}${

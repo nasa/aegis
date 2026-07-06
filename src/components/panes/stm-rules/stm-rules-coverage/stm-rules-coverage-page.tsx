@@ -1,9 +1,13 @@
-import type { FunctionComponent } from "react";
+import type { CSSProperties, FunctionComponent } from "react";
 import { useEffect, useMemo } from "react";
 import styles from "./stm-rules-coverage.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { stmCoverageSetDerivedData } from "store/stm";
+import {
+  stmCoverageSetDerivedData,
+  stmCoverageSetHoveredLeftItem,
+  stmCoverageSetHoveredTopItem,
+} from "store/stm";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import {
   computeColumnCoverage,
@@ -11,6 +15,10 @@ import {
   getEvaColumns,
   getEvaSequenceItems,
 } from "utils/stmEvaCoverage";
+import {
+  STM_COVERAGE_STATION_CELL_WIDTH,
+  STM_COVERAGE_SUMMARY_CELL_WIDTH,
+} from "../stm-rules-tier-titles";
 import StmCoverageControls from "./stm-rules-coverage-controls";
 import StmCoverageHeader from "./stm-rules-coverage-header";
 import StmCoverageTable from "./stm-rules-coverage-table";
@@ -24,9 +32,22 @@ import StmCoverageDrilldown from "./stm-rules-coverage-drilldown";
  */
 const StmCoveragePage: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  // The coverage computation reads actions/stations/traverses/evas/rexes, so
-  // subscribe to the whole doc and memo the derived data below on its identity.
   const mission = useMissionDocSelector((m) => m, refEqual);
+  // The coverage computation only reads these 5 collections. Gate the memos
+  // below on their identity (shallowEqual) rather than the whole mission's, so
+  // an unrelated doc mutation elsewhere (e.g. renaming a POI) doesn't force a
+  // full coverage recompute — Automerge only gives a new reference to a
+  // collection when something inside it actually changed.
+  const coverageRevision = useMissionDocSelector(
+    (m) => ({
+      actions: m?.actions,
+      stations: m?.stations,
+      traverses: m?.traverses,
+      evas: m?.evas,
+      rexes: m?.rexes,
+    }),
+    shallowEqual
+  );
   const level3s = useAppSelector((state) => state.stm.level3s, shallowEqual);
   const rules = useAppSelector((state) => state.stm.rules, deepEqual);
   const hiddenColumns = useAppSelector((state) => state.stm.stmCoverageHiddenColumns, shallowEqual);
@@ -42,7 +63,11 @@ const StmCoveragePage: FunctionComponent = () => {
   );
   const cellSelection = useAppSelector((state) => state.stm.stmCoverageCellSelection, refEqual);
 
-  const allColumns = useMemo(() => (mission ? getEvaColumns(mission) : []), [mission]);
+  const allColumns = useMemo(
+    () => (mission ? getEvaColumns(mission) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- gated on coverageRevision, see its declaration above
+    [coverageRevision]
+  );
   const visibleColumns = useMemo(
     () => allColumns.filter((column) => !hiddenColumns.includes(column.key)),
     [allColumns, hiddenColumns]
@@ -68,7 +93,8 @@ const StmCoveragePage: FunctionComponent = () => {
       });
     }
     return result;
-  }, [mission, level3s, rules, visibleColumns, rexStatusFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- gated on coverageRevision, see its declaration above
+  }, [coverageRevision, level3s, rules, visibleColumns, rexStatusFilter]);
 
   const sequenceByColumnKey = useMemo(() => {
     const result: { [columnKey: string]: StmCoverageSequenceItem[] } = {};
@@ -79,7 +105,8 @@ const StmCoveragePage: FunctionComponent = () => {
       }
     }
     return result;
-  }, [mission, visibleColumns, expandedColumnKeys]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- gated on coverageRevision, see its declaration above
+  }, [coverageRevision, visibleColumns, expandedColumnKeys]);
 
   // "Differences only": hide rows and columns whose coverage is identical to
   // the baseline everywhere (the baseline column itself always stays visible)
@@ -94,7 +121,8 @@ const StmCoveragePage: FunctionComponent = () => {
             level3s,
           })
         : null,
-    [differencesOnly, baselineKey, mission, coverageByColumnKey, visibleColumns, level3s]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- gated on coverageRevision, see its declaration above
+    [differencesOnly, baselineKey, coverageRevision, coverageByColumnKey, visibleColumns, level3s]
   );
   const displayedColumns = useMemo(
     () =>
@@ -135,7 +163,19 @@ const StmCoveragePage: FunctionComponent = () => {
     <>
       <StmCoverageControls allColumns={allColumns} baselineKey={baselineKey} />
       <div className={styles.coverageBody}>
-        <div className={styles.gridScroll}>
+        <div
+          className={styles.gridScroll}
+          style={
+            {
+              "--stmCoverageStationCellWidth": `${STM_COVERAGE_STATION_CELL_WIDTH}px`,
+              "--stmCoverageSummaryCellWidth": `${STM_COVERAGE_SUMMARY_CELL_WIDTH}px`,
+            } as CSSProperties
+          }
+          onMouseLeave={() => {
+            dispatch(stmCoverageSetHoveredTopItem(null));
+            dispatch(stmCoverageSetHoveredLeftItem(null));
+          }}
+        >
           <StmCoverageHeader />
           <StmCoverageTable />
         </div>
