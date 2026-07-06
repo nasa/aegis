@@ -33,6 +33,7 @@ export const initialState: STMState = {
   stmCoverageHoveredTopItem: null,
   stmCoverageHoveredLeftItem: null,
   stmCoverageDrilldownWidth: 320,
+  stmCoverageDrilldownChangesOnly: false,
   stmCoverageCellSelection: null,
   stmCoverageVisibleColumns: [],
   stmCoverageCoverageByColumnKey: {},
@@ -222,6 +223,9 @@ export const stmSlice = createSlice({
     stmCoverageSetDrilldownWidth: (state, action: { payload: number }) => {
       state.stmCoverageDrilldownWidth = action.payload;
     },
+    stmCoverageToggleDrilldownChangesOnly: (state) => {
+      state.stmCoverageDrilldownChangesOnly = !state.stmCoverageDrilldownChangesOnly;
+    },
     stmCoverageSetCellSelection: (state, action: { payload: StmCoverageCellSelection }) => {
       state.stmCoverageCellSelection = action.payload;
     },
@@ -276,6 +280,7 @@ export const {
   stmCoverageSetHoveredTopItem,
   stmCoverageSetHoveredLeftItem,
   stmCoverageSetDrilldownWidth,
+  stmCoverageToggleDrilldownChangesOnly,
   stmCoverageSetCellSelection,
   stmCoverageSetDerivedData,
   obliterateState,

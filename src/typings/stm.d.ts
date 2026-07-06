@@ -120,6 +120,19 @@ type StmCoverageRule = {
   matchingActionUuids: string[];
 };
 
+/**
+ * Result of pairing one rule's matching actions between the baseline column
+ * and a selected cell, by actionDefinition tuple (verb|noun|adjective) only —
+ * station/traverse never participates. Multiset semantics: duplicate tuples
+ * pair 1:1. `matched` and `added` hold the selected cell's Action objects;
+ * `removed` holds the baseline column's Action objects.
+ */
+type StmCoverageRuleActionDiff = {
+  matched: Action[];
+  added: Action[];
+  removed: Action[];
+};
+
 type StmCoverageLevel3Status = "satisfied" | "partial" | "none" | "noRules";
 
 /**
