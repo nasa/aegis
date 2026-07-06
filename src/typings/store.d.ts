@@ -114,29 +114,29 @@ interface STMState {
   level3s: STMLevel3[];
   rules: STMRule[];
   rulesFromDb: STMRule[];
-  ruleEditingUuid: string;
+  ruleEditingUuid: string | null;
   stmViewExpandedItems: STMViewExpandedItem[];
   stmViewSelectedEvas: string[];
   stmViewSelectedActionTypes: ActionType[];
   stmViewExpandTopTiers: boolean;
   stmViewShowCrosshairs: boolean;
-  stmViewHoveredTopItem: string;
-  stmViewHoveredLeftItem: string;
+  stmViewHoveredTopItem: string | null;
+  stmViewHoveredLeftItem: string | null;
   stmRulesSelectedRexes: string[];
   // v2 STM Satisfaction Rules pane (tabs + reports). Deliberately separate from
   // the legacy v1 stmView* state above — v1 and v2 never share UI state.
   stmRulesActiveTab: StmRulesTab;
-  stmRulesSelectedStmUuid: string;
-  stmRulesSelectedRuleUuid: string;
+  stmRulesSelectedStmUuid: string | null;
+  stmRulesSelectedRuleUuid: string | null;
   stmRulesTierExpansion: StmRulesTierExpansion;
-  stmCoverageBaselineColumnKey: string;
+  stmCoverageBaselineColumnKey: string | null;
   stmCoverageDiffMode: boolean;
   stmCoverageDifferencesOnly: boolean;
   stmCoverageRexStatusFilter: RexStatusFilter;
   stmCoverageHiddenColumns: string[];
   stmCoverageExpandedEvaColumns: string[];
-  stmCoverageHoveredTopItem: string;
-  stmCoverageHoveredLeftItem: string;
+  stmCoverageHoveredTopItem: string | null;
+  stmCoverageHoveredLeftItem: string | null;
   stmCoverageDrilldownWidth: number;
   // Drilldown diff filter: hide matched rows, show only plus/minus rows.
   stmCoverageDrilldownChangesOnly: boolean;

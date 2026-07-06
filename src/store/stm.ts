@@ -107,7 +107,7 @@ export const stmSlice = createSlice({
     deleteSTMRulesFromDb: (state, action: { payload: string[] }) => {
       state.rulesFromDb = state.rulesFromDb.filter((rule) => !action.payload.includes(rule.uuid));
     },
-    setRuleEditingUuid: (state, action: { payload: string }) => {
+    setRuleEditingUuid: (state, action: { payload: string | null }) => {
       state.ruleEditingUuid = action.payload;
     },
     stmViewExpandItem: (state, action: { payload: STMViewExpandedItem }) => {
@@ -146,10 +146,10 @@ export const stmSlice = createSlice({
     stmViewToggleExpandTopTiers: (state) => {
       state.stmViewExpandTopTiers = !state.stmViewExpandTopTiers;
     },
-    stmViewSetHoveredTopItem: (state, action: { payload: string }) => {
+    stmViewSetHoveredTopItem: (state, action: { payload: string | null }) => {
       state.stmViewHoveredTopItem = action.payload;
     },
-    stmViewSetHoveredLeftItem: (state, action: { payload: string }) => {
+    stmViewSetHoveredLeftItem: (state, action: { payload: string | null }) => {
       state.stmViewHoveredLeftItem = action.payload;
     },
     stmViewToggleCrosshairs: (state) => {
@@ -166,16 +166,16 @@ export const stmSlice = createSlice({
     setStmRulesActiveTab: (state, action: { payload: StmRulesTab }) => {
       state.stmRulesActiveTab = action.payload;
     },
-    setStmRulesSelectedStmUuid: (state, action: { payload: string }) => {
+    setStmRulesSelectedStmUuid: (state, action: { payload: string | null }) => {
       state.stmRulesSelectedStmUuid = action.payload;
     },
-    setStmRulesSelectedRuleUuid: (state, action: { payload: string }) => {
+    setStmRulesSelectedRuleUuid: (state, action: { payload: string | null }) => {
       state.stmRulesSelectedRuleUuid = action.payload;
     },
     stmRulesToggleTierExpansion: (state, action: { payload: keyof StmRulesTierExpansion }) => {
       state.stmRulesTierExpansion[action.payload] = !state.stmRulesTierExpansion[action.payload];
     },
-    stmCoverageSetBaselineColumnKey: (state, action: { payload: string }) => {
+    stmCoverageSetBaselineColumnKey: (state, action: { payload: string | null }) => {
       state.stmCoverageBaselineColumnKey = action.payload;
     },
     stmCoverageToggleDiffMode: (state) => {
@@ -214,10 +214,10 @@ export const stmSlice = createSlice({
         state.stmCoverageExpandedEvaColumns.push(action.payload);
       }
     },
-    stmCoverageSetHoveredTopItem: (state, action: { payload: string }) => {
+    stmCoverageSetHoveredTopItem: (state, action: { payload: string | null }) => {
       state.stmCoverageHoveredTopItem = action.payload;
     },
-    stmCoverageSetHoveredLeftItem: (state, action: { payload: string }) => {
+    stmCoverageSetHoveredLeftItem: (state, action: { payload: string | null }) => {
       state.stmCoverageHoveredLeftItem = action.payload;
     },
     stmCoverageSetDrilldownWidth: (state, action: { payload: number }) => {

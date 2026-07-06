@@ -8,6 +8,17 @@ import { stmRulesToggleTierExpansion } from "store/stm";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 /**
+ * Pixel widths shared across the v2 STM tabs' JS layout code (grid-template-
+ * columns strings, the Firefox writing-mode workaround in
+ * stm-rules-coverage-header.tsx) and the CSS modules that also hard-code them
+ * (stm-rules-list-table.module.css, stm-rules-coverage.module.css). Consumers
+ * feed these into CSS custom properties rather than duplicating the numbers.
+ */
+export const STM_LEVEL3_NAME_COLUMN_WIDTH = 285;
+export const STM_COVERAGE_STATION_CELL_WIDTH = 22;
+export const STM_COVERAGE_SUMMARY_CELL_WIDTH = 40;
+
+/**
  * Shared tier-expansion state for the v2 STM tabs (Rules and EVA Coverage).
  * Returns the per-tier grid column widths for the level1/level2 name columns so
  * headers and table rows stay aligned across both tabs.

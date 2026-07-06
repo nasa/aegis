@@ -1,6 +1,6 @@
 import sortBy from "lodash/sortBy";
 import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
-import { selectEvaStations, selectEvaTraverses } from "store/selectors";
+import { getAsPlannedEvaFromRefUuid, selectEvaStations, selectEvaTraverses } from "store/selectors";
 
 /**
  * Pure computation module for the STM Rules v2 "EVA Coverage" report.
@@ -46,6 +46,17 @@ export const getEvaColumns = (mission: Mission): StmCoverageEvaColumn[] => {
     groupLabel,
   });
 
+  // Resolve each rex's as-planned parent EVA once via the canonical selector,
+  // so this grouping can never drift from getAsPlannedEvaFromRefUuid's semantics.
+  const asPlannedEvaByRexUuid = new Map<string, Eva | undefined>();
+  for (const rex of rexes) {
+    const rexEva = mission?.evas?.[rex.evaUuid];
+    asPlannedEvaByRexUuid.set(
+      rex.uuid,
+      rexEva ? getAsPlannedEvaFromRefUuid(mission, rexEva.refUuid) : undefined
+    );
+  }
+
   const groupedRexUuids = new Set<string>();
   const columns: StmCoverageEvaColumn[] = [];
   for (const eva of asPlannedEvas) {
@@ -59,8 +70,7 @@ export const getEvaColumns = (mission: Mission): StmCoverageEvaColumn[] => {
     });
     for (const rex of rexes) {
       if (groupedRexUuids.has(rex.uuid)) continue;
-      const rexEva = mission?.evas?.[rex.evaUuid];
-      if (rexEva && rexEva.refUuid && rexEva.refUuid === eva.refUuid) {
+      if (asPlannedEvaByRexUuid.get(rex.uuid)?.uuid === eva.uuid) {
         groupedRexUuids.add(rex.uuid);
         columns.push(rexColumn(rex, eva.uuid, eva.name));
       }
