@@ -85,15 +85,16 @@ const StmCoveragePage: FunctionComponent = () => {
   // the baseline everywhere (the baseline column itself always stays visible)
   const coverageDifferences = useMemo(
     () =>
-      differencesOnly && baselineKey
+      differencesOnly && baselineKey && mission
         ? getCoverageDifferences({
+            mission,
             coverageByColumnKey,
             columns: visibleColumns,
             baselineKey,
             level3s,
           })
         : null,
-    [differencesOnly, baselineKey, coverageByColumnKey, visibleColumns, level3s]
+    [differencesOnly, baselineKey, mission, coverageByColumnKey, visibleColumns, level3s]
   );
   const displayedColumns = useMemo(
     () =>
