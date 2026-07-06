@@ -118,7 +118,7 @@
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  flex: 0 0 40px;
+  flex: 0 0 var(--stmCoverageSummaryCellWidth, 40px);
   background-color: var(--grey3);
   border-top: 1px solid var(--grey0);
   border-left: 1px solid var(--grey0);
@@ -135,7 +135,7 @@
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  flex: 0 0 22px;
+  flex: 0 0 var(--stmCoverageStationCellWidth, 22px);
   background-color: var(--grey3);
   border-top: 1px solid var(--grey0);
   border-left: 1px solid var(--grey0);
@@ -218,7 +218,7 @@
  * separators come from gridCellLevel3Container's border-bottom.
  */
 .cell {
-  flex: 0 0 40px;
+  flex: 0 0 var(--stmCoverageSummaryCellWidth, 40px);
   min-height: 22px;
   display: flex;
   justify-content: center;
@@ -231,7 +231,7 @@
   user-select: none;
 }
 .cellStation {
-  flex: 0 0 22px;
+  flex: 0 0 var(--stmCoverageStationCellWidth, 22px);
 }
 .cellHovered {
   background-color: var(--stmCoverageHover);
