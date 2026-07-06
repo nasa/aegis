@@ -1,5 +1,6 @@
-import type { FunctionComponent } from "react";
+import type { CSSProperties, FunctionComponent, ReactNode } from "react";
 import styles from "./stm-rules-list-table.module.css";
+import { STM_LEVEL3_NAME_COLUMN_WIDTH } from "./stm-rules-tier-titles";
 import { refEqual, shallowEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import type { RootState } from "store";
 import STMRules from "./stm-rules-rules";
@@ -7,25 +8,46 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { faSquarePlus } from "@fortawesome/free-solid-svg-icons";
 import { thunkCreateStmRule } from "store/thunk/thunkStmRules";
-import { setStmRulesSelectedStmUuid, stmRulesToggleTierExpansion } from "store/stm";
+import {
+  setStmRulesSelectedStmUuid,
+  stmCoverageSetHoveredLeftItem,
+  stmRulesToggleTierExpansion,
+} from "store/stm";
 import sortBy from "lodash/sortBy";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 /**
- * STM hierarchy table. Default mode (Rules tab) shows each level3 with its
- * rules and inline editing; `selectMode` (Rule Matches tab) hides the rules
- * column and makes level3 rows selectable instead.
+ * STM hierarchy table, shared by all three v2 STM tabs. Exactly one of the
+ * mode props may be set:
+ * - (neither) Rules tab: each level3 shows its rules with inline editing.
+ * - `selectMode`: Rule Matches tab; hides the rules column, level3 rows are
+ *   selectable instead.
+ * - `coverageContent`: EVA Coverage tab; renders the caller's per-column
+ *   cells instead of rules, restricts rows to `stmCoverageVisibleStmUuids`,
+ *   and highlights the row via `stmCoverageHoveredLeftItem`.
  */
-const STMRulesTable: FunctionComponent<{ selectMode?: boolean }> = ({ selectMode = false }) => {
+const STMRulesTable: FunctionComponent<{
+  selectMode?: boolean;
+  coverageContent?: (stmUuid: string) => ReactNode;
+}> = ({ selectMode = false, coverageContent }) => {
   const level1s = useAppSelector(
     (state: RootState) => sortBy(state.stm.level1s, "numbering"),
     shallowEqual
   );
 
   return (
-    <div className={styles.stmTables}>
+    <div
+      className={styles.stmTables}
+      style={{ "--stmLevel3NameWidth": `${STM_LEVEL3_NAME_COLUMN_WIDTH}px` } as CSSProperties}
+    >
       {level1s.map((level1, l1index) => (
-        <STMLevel1 key={level1.uuid} level1={level1} index={l1index} selectMode={selectMode} />
+        <STMLevel1
+          key={level1.uuid}
+          level1={level1}
+          index={l1index}
+          selectMode={selectMode}
+          coverageContent={coverageContent}
+        />
       ))}
     </div>
   );
@@ -33,23 +55,33 @@ const STMRulesTable: FunctionComponent<{ selectMode?: boolean }> = ({ selectMode
 
 export default STMRulesTable;
 
-const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number; selectMode: boolean }> = ({
-  level1,
-  selectMode,
-}) => {
+const STMLevel1: FunctionComponent<{
+  level1: STMLevel1;
+  index: number;
+  selectMode: boolean;
+  coverageContent?: (stmUuid: string) => ReactNode;
+}> = ({ level1, selectMode, coverageContent }) => {
   const dispatch = useAppDispatch();
+  const visibleStmUuids = useAppSelector(
+    (state: RootState) => state.stm.stmCoverageVisibleStmUuids,
+    shallowEqual
+  );
   const numLevel3s = useAppSelector((state: RootState) => {
     const level2s = state.stm.level2s.filter((level2) => level2.level1Uuid === level1.uuid);
     const level3s = state.stm.level3s.filter((level3) =>
       level2s.some((level2) => level2.uuid === level3.level2Uuid)
     );
-    return level3s.length;
+    return coverageContent
+      ? level3s.filter((level3) => !visibleStmUuids || visibleStmUuids.includes(level3.uuid)).length
+      : level3s.length;
   }, refEqual);
   const level1Expanded = useAppSelector(
     (state: RootState) => state.stm.stmRulesTierExpansion.level1,
     refEqual
   );
   const stmLevel1Enabled = useMissionDocSelector((mission) => mission.stmLevel1Enabled, deepEqual);
+
+  if (coverageContent && numLevel3s === 0) return null;
 
   const numLines = numLevel3s;
   const maxHeightEm = 1.2 * numLines;
@@ -84,8 +116,8 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number; selectMod
           <div>
             <STMLevel2s
               level1Uuid={level1.uuid}
-              stmLevel1Enabled={stmLevel1Enabled}
               selectMode={selectMode}
+              coverageContent={coverageContent}
             />
           </div>
         </div>
@@ -93,8 +125,8 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number; selectMod
         <div>
           <STMLevel2s
             level1Uuid={level1.uuid}
-            stmLevel1Enabled={stmLevel1Enabled}
             selectMode={selectMode}
+            coverageContent={coverageContent}
           />
         </div>
       )}
@@ -104,14 +136,50 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number; selectMod
 
 const STMLevel2s: FunctionComponent<{
   level1Uuid: string;
-  stmLevel1Enabled: boolean;
   selectMode: boolean;
-}> = ({ level1Uuid, stmLevel1Enabled, selectMode }) => {
-  const dispatch = useAppDispatch();
+  coverageContent?: (stmUuid: string) => ReactNode;
+}> = ({ level1Uuid, selectMode, coverageContent }) => {
   const level2s = useAppSelector(
     (state: RootState) =>
       sortBy(
         state.stm.level2s.filter((level2) => level2.level1Uuid === level1Uuid),
+        "numbering"
+      ),
+    shallowEqual
+  );
+
+  return (
+    <>
+      {level2s.map((level2) => (
+        <STMLevel2
+          key={level2.uuid}
+          level2={level2}
+          selectMode={selectMode}
+          coverageContent={coverageContent}
+        />
+      ))}
+    </>
+  );
+};
+
+const STMLevel2: FunctionComponent<{
+  level2: STMLevel2;
+  selectMode: boolean;
+  coverageContent?: (stmUuid: string) => ReactNode;
+}> = ({ level2, selectMode, coverageContent }) => {
+  const dispatch = useAppDispatch();
+  const visibleStmUuids = useAppSelector(
+    (state: RootState) => state.stm.stmCoverageVisibleStmUuids,
+    shallowEqual
+  );
+  const level3s = useAppSelector(
+    (state: RootState) =>
+      sortBy(
+        state.stm.level3s.filter(
+          (level3) =>
+            level3.level2Uuid === level2.uuid &&
+            (!coverageContent || !visibleStmUuids || visibleStmUuids.includes(level3.uuid))
+        ),
         "numbering"
       ),
     shallowEqual
@@ -121,81 +189,50 @@ const STMLevel2s: FunctionComponent<{
     refEqual
   );
 
-  return (
-    <>
-      {level2s.map((level2) => {
-        return (
-          <div
-            className={
-              level2Expanded ? styles.gridCellLevel2expanded : styles.gridCellLevel2Collapsed
-            }
-            key={level2.uuid}
-          >
-            <div
-              className={`${styles.gridCellLevel2Ordinal} ${styles.tierCellClickable}`}
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-content={level2.name}
-              data-tooltip-place="top-start"
-              onClick={() => dispatch(stmRulesToggleTierExpansion("level2"))}
-            >
-              {level2.numbering.toLocaleUpperCase()}.
-            </div>
-            {level2Expanded && (
-              <div
-                className={`${styles.gridCellLevel2Name} ${styles.tierCellClickable}`}
-                onClick={() => dispatch(stmRulesToggleTierExpansion("level2"))}
-              >
-                {level2.name}
-              </div>
-            )}
-            <div className={styles.level3sContainer}>
-              <STMLevel3s
-                level2Uuid={level2.uuid}
-                stmLevel1Enabled={stmLevel1Enabled}
-                selectMode={selectMode}
-              />
-            </div>
-          </div>
-        );
-      })}
-    </>
-  );
-};
-
-export const STMLevel3s: FunctionComponent<{
-  level2Uuid: string;
-  stmLevel1Enabled: boolean;
-  selectMode: boolean;
-}> = ({ level2Uuid, stmLevel1Enabled, selectMode }) => {
-  const level3s = useAppSelector(
-    (state: RootState) =>
-      sortBy(
-        state.stm.level3s.filter((level3) => level3.level2Uuid === level2Uuid),
-        "numbering"
-      ),
-    shallowEqual
-  );
+  if (coverageContent && level3s.length === 0) return null;
 
   return (
-    <>
-      {level3s.map((level3) => (
-        <STMLevel3
-          key={level3.uuid}
-          level3={level3}
-          stmLevel1Enabled={stmLevel1Enabled}
-          selectMode={selectMode}
-        />
-      ))}
-    </>
+    <div
+      className={level2Expanded ? styles.gridCellLevel2expanded : styles.gridCellLevel2Collapsed}
+    >
+      <div
+        className={`${styles.gridCellLevel2Ordinal} ${styles.tierCellClickable}`}
+        data-tooltip-id="aegis-tooltip"
+        data-tooltip-html={level2.name}
+        data-tooltip-place="top-start"
+        onClick={() => dispatch(stmRulesToggleTierExpansion("level2"))}
+      >
+        {level2.numbering.toLocaleUpperCase()}.
+      </div>
+      {level2Expanded && (
+        <div
+          className={`${styles.gridCellLevel2Name} ${styles.tierCellClickable}`}
+          onClick={() => dispatch(stmRulesToggleTierExpansion("level2"))}
+        >
+          {level2.name}
+        </div>
+      )}
+      <div className={styles.level3sContainer}>
+        {level3s.map((level3) => (
+          <STMLevel3
+            key={level3.uuid}
+            level3={level3}
+            selectMode={selectMode}
+            coverageContent={coverageContent}
+          />
+        ))}
+      </div>
+    </div>
   );
 };
 
 const STMLevel3: FunctionComponent<{
   level3: STMLevel3;
-  stmLevel1Enabled: boolean;
   selectMode: boolean;
-}> = ({ level3, stmLevel1Enabled, selectMode }) => {
+  coverageContent?: (stmUuid: string) => ReactNode;
+}> = ({ level3, selectMode, coverageContent }) => {
   const dispatch = useAppDispatch();
+  const stmLevel1Enabled = useMissionDocSelector((mission) => mission.stmLevel1Enabled, refEqual);
   const level1Numbering = useAppSelector((state: RootState) => {
     const level2 = state.stm.level2s.find((level2) => level2.uuid === level3.level2Uuid);
     return state.stm.level1s.find((level1) => level1.uuid === level2?.level1Uuid)?.numbering || "";
@@ -207,6 +244,10 @@ const STMLevel3: FunctionComponent<{
   );
   const isSelected = useAppSelector(
     (state: RootState) => state.stm.stmRulesSelectedStmUuid === level3.uuid,
+    refEqual
+  );
+  const hoveredLeftItem = useAppSelector(
+    (state: RootState) => state.stm.stmCoverageHoveredLeftItem,
     refEqual
   );
 
@@ -226,6 +267,35 @@ const STMLevel3: FunctionComponent<{
             {level3.name}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (coverageContent) {
+    return (
+      <div className={styles.gridCellLevel3Container}>
+        <div
+          className={styles.gridCellLevel3Heading}
+          style={
+            hoveredLeftItem === level3.uuid ? { backgroundColor: "var(--stmCoverageHover)" } : null
+          }
+          onMouseEnter={() => {
+            if (hoveredLeftItem !== level3.uuid) {
+              dispatch(stmCoverageSetHoveredLeftItem(level3.uuid));
+            }
+          }}
+        >
+          <div className={styles.gridCellLevel3Ordinal}>{ordinal}</div>
+          <div
+            className={styles.gridCellLevel3Name}
+            data-tooltip-id="aegis-tooltip"
+            data-tooltip-html={level3.name}
+            data-tooltip-place="top-start"
+          >
+            {level3.name}
+          </div>
+        </div>
+        {coverageContent(level3.uuid)}
       </div>
     );
   }
