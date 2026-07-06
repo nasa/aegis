@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import type { FunctionComponent } from "react";
+import type { CSSProperties, FunctionComponent } from "react";
 import { useMemo } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import styles from "./stm-rules-tab-matches.module.css";
@@ -9,7 +9,8 @@ import actionsStyles from "../actions.module.css";
 import { faPersonWalkingArrowRight, faRoute } from "@fortawesome/free-solid-svg-icons";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import type { RootState } from "store";
-import { STMRuleSet } from "./stm-rules-rules";
+import { STMRuleSet, ruleSetContainerClass } from "./stm-rules-rules";
+import { useStmRuleColumnWidths } from "./stm-rule-column-widths";
 import { setStmRulesSelectedRuleUuid, stmRulesToggleRex } from "store/stm";
 import { MultiSelectDropdown } from "components/interface/form/globalFields";
 import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
@@ -35,6 +36,16 @@ const StmRulesTabMatches: FunctionComponent = () => {
     (state) => state.stm.rules.filter((r) => r.stmUuid === selectedStmUuid),
     deepEqual
   );
+  const actionDefinitions = useMissionDocSelector(
+    (mission) => mission.actionDefinitions,
+    deepEqual
+  );
+  const { widths, fontRef } = useStmRuleColumnWidths(rules, actionDefinitions);
+  const widthVars = {
+    "--stmVerbColWidth": `${widths.verbWidth}px`,
+    "--stmNounColWidth": `${widths.nounWidth}px`,
+    "--stmAdjectiveColWidth": `${widths.adjectiveWidth}px`,
+  } as CSSProperties;
   // fall back to the first rule when none of this level3's rules is selected
   const selectedRule = rules.find((r) => r.uuid === selectedRuleUuid) ?? rules[0] ?? null;
 
@@ -61,7 +72,8 @@ const StmRulesTabMatches: FunctionComponent = () => {
             </div>
             {rules.length > 0 ? (
               <>
-                <div className={styles.rulesList}>
+                <div className={styles.rulesList} style={widthVars}>
+                  <div ref={fontRef} className={`${styles.ruleRow} ${styles.fontProbe}`} />
                   {rules.map((rule) => (
                     <RuleRow
                       key={rule.uuid}
@@ -144,15 +156,15 @@ const RuleRow: FunctionComponent<{
   return (
     <div className={ruleRowClass} onClick={() => dispatch(setStmRulesSelectedRuleUuid(rule.uuid))}>
       <div className={ruleStyles.stmRuleCount}>{rule.count}</div>
-      <div className={ruleStyles.stmRuleSetContainer}>
+      <div className={ruleSetContainerClass(ruleStyles.stmRuleSetContainerVerb, false)}>
         <STMRuleSet isEditing={false} stmRule={rule} type="verbs" />
       </div>
       <div className={ruleStyles.stmRuleSetConjunction}>of</div>
-      <div className={ruleStyles.stmRuleSetContainer}>
+      <div className={ruleSetContainerClass(ruleStyles.stmRuleSetContainerNoun, false)}>
         <STMRuleSet isEditing={false} stmRule={rule} type="nouns" />
       </div>
       <div className={ruleStyles.stmRuleSetConjunction}>in</div>
-      <div className={ruleStyles.stmRuleSetContainer}>
+      <div className={ruleSetContainerClass(ruleStyles.stmRuleSetContainerAdjective, false)}>
         <STMRuleSet isEditing={false} stmRule={rule} type="adjectives" />
       </div>
     </div>

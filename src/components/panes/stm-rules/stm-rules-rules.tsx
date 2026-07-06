@@ -30,6 +30,16 @@ import cloneDeep from "lodash/cloneDeep";
 import capitalize from "lodash/capitalize";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
+/**
+ * className for a rule word-column wrapper: the base container plus its
+ * measured content-fit width — or the auto-width override while the row is being
+ * edited so the multiselect dropdown fits. Shared with the Rule Matches tab.
+ */
+export const ruleSetContainerClass = (widthClass: string, isEditing: boolean): string =>
+  isEditing
+    ? `${styles.stmRuleSetContainer} ${styles.stmRuleSetContainerEditing}`
+    : `${styles.stmRuleSetContainer} ${widthClass}`;
+
 const STMRules: FunctionComponent<{ stmUuid: string }> = ({ stmUuid }) => {
   const rules = useAppSelector(
     (state) => state.stm.rules.filter((rule) => rule.stmUuid === stmUuid),
@@ -52,15 +62,15 @@ const STMRule: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
     <div className={styles.stmRuleRowContainer}>
       <div className={styles.stmRuleContainer}>
         <STMRuleCount isEditing={isEditing} rule={rule} />
-        <div className={styles.stmRuleSetContainer}>
+        <div className={ruleSetContainerClass(styles.stmRuleSetContainerVerb, isEditing)}>
           <STMRuleSet isEditing={isEditing} stmRule={rule} type="verbs" />
         </div>
         <div className={styles.stmRuleSetConjunction}>of</div>
-        <div className={styles.stmRuleSetContainer}>
+        <div className={ruleSetContainerClass(styles.stmRuleSetContainerNoun, isEditing)}>
           <STMRuleSet isEditing={isEditing} stmRule={rule} type="nouns" />
         </div>
         <div className={styles.stmRuleSetConjunction}>in</div>
-        <div className={styles.stmRuleSetContainer}>
+        <div className={ruleSetContainerClass(styles.stmRuleSetContainerAdjective, isEditing)}>
           <STMRuleSet isEditing={isEditing} stmRule={rule} type="adjectives" />
         </div>
       </div>
