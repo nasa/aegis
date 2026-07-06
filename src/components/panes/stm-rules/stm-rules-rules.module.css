@@ -8,7 +8,7 @@
 }
 
 .stmRuleContainer {
-  flex: 1;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: row;
   background-color: var(--grey2);
@@ -28,9 +28,28 @@
   user-select: none;
 }
 .stmRuleSetContainer {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
+}
+/*
+ * Content-fit column widths. The three vars are measured (see
+ * stm-rule-column-widths.ts) and set on an ancestor so every row shares them,
+ * keeping the columns aligned table-wide while sized to their widest entry.
+ */
+.stmRuleSetContainerVerb {
+  width: var(--stmVerbColWidth);
+}
+.stmRuleSetContainerNoun {
+  width: var(--stmNounColWidth);
+}
+.stmRuleSetContainerAdjective {
+  width: var(--stmAdjectiveColWidth);
+}
+/* An editing row expands to fit the multiselect dropdown + "Any" checkbox. */
+.stmRuleSetContainerEditing {
+  width: auto;
+  min-width: 235px;
 }
 .stmRuleSetConjunction {
   display: flex;
@@ -51,6 +70,7 @@
   padding: 5px;
   display: flex;
   flex-direction: row;
+  align-items: center;
   background-color: var(--grey1);
   border-radius: var(--radius);
 }
@@ -67,9 +87,11 @@
 .stmRuleSetMultiselectOutsideContainer {
   position: relative;
   width: 180px;
+  height: 1.6em;
 }
 .stmRuleSetMultiselectContainer {
   position: absolute;
+  top: 0.15em;
   width: 180px;
   cursor: pointer;
   user-select: none;
@@ -104,7 +126,8 @@
 }
 
 .stmRuleRight {
-  flex: 0 0 240px;
+  flex: 1 1 auto;
+  min-width: 200px;
   display: flex;
   flex-direction: row;
   border-left: 1px solid var(--grey0);

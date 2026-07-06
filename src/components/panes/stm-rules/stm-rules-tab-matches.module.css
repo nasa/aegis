@@ -80,6 +80,17 @@
   border-color: var(--grey5);
 }
 
+/* Hidden probe whose computed font drives rule-column text measurement. */
+.fontProbe {
+  position: absolute;
+  visibility: hidden;
+  height: 0;
+  padding: 0;
+  border: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .evaSelector {
   position: relative;
   flex: 0 0 155px;
