@@ -1,6 +1,8 @@
 import {
   computeColumnCoverage,
   diffLevel3,
+  diffLevel3Actions,
+  diffRuleActions,
   getActionRexStatus,
   getCoverageDifferences,
   getEligibleActionsForColumn,
@@ -412,6 +414,195 @@ describe("diffLevel3()", () => {
   });
 });
 
+describe("diffRuleActions()", () => {
+  const { makeAction } = buildFixture();
+  const uuids = (actions: Action[]): string[] => actions.map((a) => a.uuid);
+
+  test("identical tuples on both sides all pair as matched", () => {
+    const baselineActions = [makeAction({ uuid: "b1", stationUuid: "s1" })];
+    const selectedActions = [makeAction({ uuid: "c1", stationUuid: "s1" })];
+    const diff = diffRuleActions({ baselineActions, selectedActions });
+    expect(uuids(diff.matched)).toEqual(["c1"]);
+    expect(diff.added).toEqual([]);
+    expect(diff.removed).toEqual([]);
+  });
+
+  test("multiset pairing: surplus selected actions become added, surplus baseline become removed", () => {
+    const twoBaseline = [makeAction({ uuid: "b1" }), makeAction({ uuid: "b2" })];
+    const threeSelected = [
+      makeAction({ uuid: "c1" }),
+      makeAction({ uuid: "c2" }),
+      makeAction({ uuid: "c3" }),
+    ];
+
+    const moreSelected = diffRuleActions({
+      baselineActions: twoBaseline,
+      selectedActions: threeSelected,
+    });
+    expect(uuids(moreSelected.matched)).toEqual(["c1", "c2"]);
+    expect(uuids(moreSelected.added)).toEqual(["c3"]);
+    expect(moreSelected.removed).toEqual([]);
+
+    const moreBaseline = diffRuleActions({
+      baselineActions: threeSelected,
+      selectedActions: twoBaseline,
+    });
+    expect(uuids(moreBaseline.matched)).toEqual(["b1", "b2"]);
+    expect(moreBaseline.added).toEqual([]);
+    expect(uuids(moreBaseline.removed)).toEqual(["c3"]);
+  });
+
+  test("station and traverse parents are ignored: same tuple pairs across locations", () => {
+    const diff = diffRuleActions({
+      baselineActions: [makeAction({ uuid: "b1", stationUuid: "s1" })],
+      selectedActions: [makeAction({ uuid: "c1", traverseUuid: "t1" })],
+    });
+    expect(uuids(diff.matched)).toEqual(["c1"]);
+    expect(diff.added).toEqual([]);
+    expect(diff.removed).toEqual([]);
+  });
+
+  test("disjoint tuples yield only added and removed", () => {
+    const diff = diffRuleActions({
+      baselineActions: [
+        makeAction({
+          uuid: "b1",
+          actionDefinition: { verbUuid: "v2", nounUuid: "n1", adjectiveUuid: "a1" },
+        }),
+      ],
+      selectedActions: [makeAction({ uuid: "c1" })],
+    });
+    expect(diff.matched).toEqual([]);
+    expect(uuids(diff.added)).toEqual(["c1"]);
+    expect(uuids(diff.removed)).toEqual(["b1"]);
+  });
+
+  test("null actionDefinitions share the empty tuple and pair with each other", () => {
+    const bothNull = diffRuleActions({
+      baselineActions: [makeAction({ uuid: "b1", actionDefinition: null })],
+      selectedActions: [makeAction({ uuid: "c1", actionDefinition: null })],
+    });
+    expect(uuids(bothNull.matched)).toEqual(["c1"]);
+
+    const oneNull = diffRuleActions({
+      baselineActions: [makeAction({ uuid: "b1", actionDefinition: null })],
+      selectedActions: [makeAction({ uuid: "c1" })],
+    });
+    expect(oneNull.matched).toEqual([]);
+    expect(uuids(oneNull.added)).toEqual(["c1"]);
+    expect(uuids(oneNull.removed)).toEqual(["b1"]);
+  });
+
+  test("a partial tuple does not pair with a full tuple sharing its populated dimensions", () => {
+    const diff = diffRuleActions({
+      baselineActions: [
+        makeAction({ uuid: "b1", actionDefinition: { verbUuid: "v1", nounUuid: "n1" } }),
+      ],
+      selectedActions: [makeAction({ uuid: "c1" })],
+    });
+    expect(diff.matched).toEqual([]);
+    expect(uuids(diff.added)).toEqual(["c1"]);
+    expect(uuids(diff.removed)).toEqual(["b1"]);
+  });
+
+  test("empty sides: everything added when baseline is empty, everything removed when selected is empty", () => {
+    const actions = [makeAction({ uuid: "x1" }), makeAction({ uuid: "x2" })];
+    const emptyBaseline = diffRuleActions({ baselineActions: [], selectedActions: actions });
+    expect(uuids(emptyBaseline.added)).toEqual(["x1", "x2"]);
+    expect(emptyBaseline.matched).toEqual([]);
+    expect(emptyBaseline.removed).toEqual([]);
+
+    const emptySelected = diffRuleActions({ baselineActions: actions, selectedActions: [] });
+    expect(uuids(emptySelected.removed)).toEqual(["x1", "x2"]);
+    expect(emptySelected.matched).toEqual([]);
+    expect(emptySelected.added).toEqual([]);
+  });
+
+  test("added keeps selected-input order and removed keeps baseline-input order across mixed tuples", () => {
+    const tuple = (verbUuid: string): ActionDefinition => ({
+      verbUuid,
+      nounUuid: "n1",
+      adjectiveUuid: "a1",
+    });
+    const diff = diffRuleActions({
+      baselineActions: [
+        makeAction({ uuid: "b1", actionDefinition: tuple("vOnlyBaseline1") }),
+        makeAction({ uuid: "b2", actionDefinition: tuple("vShared") }),
+        makeAction({ uuid: "b3", actionDefinition: tuple("vOnlyBaseline2") }),
+      ],
+      selectedActions: [
+        makeAction({ uuid: "c1", actionDefinition: tuple("vOnlySelected1") }),
+        makeAction({ uuid: "c2", actionDefinition: tuple("vShared") }),
+        makeAction({ uuid: "c3", actionDefinition: tuple("vOnlySelected2") }),
+      ],
+    });
+    expect(uuids(diff.matched)).toEqual(["c2"]);
+    expect(uuids(diff.added)).toEqual(["c1", "c3"]);
+    expect(uuids(diff.removed)).toEqual(["b1", "b3"]);
+  });
+});
+
+describe("diffLevel3Actions()", () => {
+  const { mission, makeAction } = buildFixture();
+  mission.actions = {
+    a1: makeAction({ uuid: "a1" }),
+    a2: makeAction({ uuid: "a2" }),
+    // same rule-set match, different tuple (v2 instead of v1)
+    b1: makeAction({
+      uuid: "b1",
+      actionDefinition: { verbUuid: "v2", nounUuid: "n1", adjectiveUuid: "a1" },
+    }),
+  };
+  const level3CoverageOf = (
+    rules: { ruleUuid: string; actionUuids: string[] }[]
+  ): StmCoverageLevel3 => ({
+    stmUuid: "stm1",
+    status: "partial",
+    rules: rules.map(({ ruleUuid, actionUuids }) => ({
+      ruleUuid,
+      matchCount: actionUuids.length,
+      required: 1,
+      satisfied: actionUuids.length >= 1,
+      matchingActionUuids: actionUuids,
+    })),
+    totalMatches: rules.reduce((acc, r) => acc + r.actionUuids.length, 0),
+  });
+
+  test("identical action sets per rule yield no added/removed", () => {
+    const baseline = level3CoverageOf([{ ruleUuid: "rule1", actionUuids: ["a1", "a2"] }]);
+    const other = level3CoverageOf([{ ruleUuid: "rule1", actionUuids: ["a1", "a2"] }]);
+    expect(diffLevel3Actions({ mission, baseline, other })).toEqual({ added: 0, removed: 0 });
+  });
+
+  test("counts surplus actions as added or removed per rule", () => {
+    const baseline = level3CoverageOf([{ ruleUuid: "rule1", actionUuids: ["a1"] }]);
+    const other = level3CoverageOf([{ ruleUuid: "rule1", actionUuids: ["a1", "a2"] }]);
+    expect(diffLevel3Actions({ mission, baseline, other })).toEqual({ added: 1, removed: 0 });
+    expect(diffLevel3Actions({ mission, baseline: other, other: baseline })).toEqual({
+      added: 0,
+      removed: 1,
+    });
+  });
+
+  test("equal match counts with different tuples report both added and removed", () => {
+    const baseline = level3CoverageOf([{ ruleUuid: "rule1", actionUuids: ["a1"] }]);
+    const other = level3CoverageOf([{ ruleUuid: "rule1", actionUuids: ["b1"] }]);
+    expect(diffLevel3Actions({ mission, baseline, other })).toEqual({ added: 1, removed: 1 });
+  });
+
+  test("a rule present on only one side counts wholly as added or removed", () => {
+    const baseline = level3CoverageOf([{ ruleUuid: "ruleOld", actionUuids: ["a1", "a2"] }]);
+    const other = level3CoverageOf([{ ruleUuid: "ruleNew", actionUuids: ["b1"] }]);
+    expect(diffLevel3Actions({ mission, baseline, other })).toEqual({ added: 1, removed: 2 });
+  });
+
+  test("deleted action uuids are ignored on both sides", () => {
+    const baseline = level3CoverageOf([{ ruleUuid: "rule1", actionUuids: ["ghost1"] }]);
+    const other = level3CoverageOf([{ ruleUuid: "rule1", actionUuids: ["a1", "ghost2"] }]);
+    expect(diffLevel3Actions({ mission, baseline, other })).toEqual({ added: 1, removed: 0 });
+  });
+});
+
 describe("getCoverageDifferences()", () => {
   const cellOf = (matchCount: number, required = 3): StmCoverageLevel3 => ({
     stmUuid: "ignored",
@@ -436,6 +627,7 @@ describe("getCoverageDifferences()", () => {
     groupLabel: key,
   });
   const level3s = [generateBlankStmLvl3({ uuid: "stmA" }), generateBlankStmLvl3({ uuid: "stmB" })];
+  const { mission, makeAction } = buildFixture();
 
   test("collects only the rows and columns that differ from the baseline; baseline never included", () => {
     const columns = [makeColumn("base"), makeColumn("same"), makeColumn("diff")];
@@ -446,6 +638,7 @@ describe("getCoverageDifferences()", () => {
     };
 
     const { stmUuids, columnKeys } = getCoverageDifferences({
+      mission,
       coverageByColumnKey,
       columns,
       baselineKey: "base",
@@ -463,6 +656,7 @@ describe("getCoverageDifferences()", () => {
     };
 
     const allEqual = getCoverageDifferences({
+      mission,
       coverageByColumnKey,
       columns,
       baselineKey: "base",
@@ -472,6 +666,7 @@ describe("getCoverageDifferences()", () => {
     expect(allEqual.columnKeys.size).toBe(0);
 
     const missingBaseline = getCoverageDifferences({
+      mission,
       coverageByColumnKey,
       columns,
       baselineKey: "ghost",
@@ -479,6 +674,46 @@ describe("getCoverageDifferences()", () => {
     });
     expect(missingBaseline.stmUuids.size).toBe(0);
     expect(missingBaseline.columnKeys.size).toBe(0);
+  });
+
+  test("detects a cell with equal per-rule counts but different action tuples", () => {
+    const tupleMission = { ...mission };
+    tupleMission.actions = {
+      a1: makeAction({ uuid: "a1" }),
+      b1: makeAction({
+        uuid: "b1",
+        actionDefinition: { verbUuid: "v2", nounUuid: "n1", adjectiveUuid: "a1" },
+      }),
+    };
+    const cellWith = (actionUuids: string[]): StmCoverageLevel3 => ({
+      stmUuid: "ignored",
+      status: "partial",
+      rules: [
+        {
+          ruleUuid: "rule1",
+          matchCount: actionUuids.length,
+          required: 3,
+          satisfied: false,
+          matchingActionUuids: actionUuids,
+        },
+      ],
+      totalMatches: actionUuids.length,
+    });
+    const columns = [makeColumn("base"), makeColumn("swapped")];
+    const coverageByColumnKey = {
+      base: { stmA: cellWith(["a1"]), stmB: cellOf(0) },
+      swapped: { stmA: cellWith(["b1"]), stmB: cellOf(0) },
+    };
+
+    const { stmUuids, columnKeys } = getCoverageDifferences({
+      mission: tupleMission,
+      coverageByColumnKey,
+      columns,
+      baselineKey: "base",
+      level3s,
+    });
+    expect([...stmUuids]).toEqual(["stmA"]);
+    expect([...columnKeys]).toEqual(["swapped"]);
   });
 });
 
