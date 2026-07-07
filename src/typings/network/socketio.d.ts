@@ -25,78 +25,6 @@ interface ClientToServerEvents {
   ) => void;
 }
 
-// ─── /maestro namespace — Maestro API client ─────────────────────────────────
-
-interface MaestroServerToClientEvents {
-  dataAll: (everythingForMaestro: Maegistro.IAegisEntity) => void;
-}
-
-interface MaestroClientToServerEvents {
-  missionJoin: (missionId: number, maestroVisitor: MaestroVisitor) => void;
-  missionLeave: (missionId: number) => void;
-  subscribeToEva: (missionId: number, evaRefUuid: string, rexUuid: string | null) => void;
-  unsubscribeToEva: (missionId: number, evaRefUuid: string, rexUuid: string | null) => void;
-  getEverything: (
-    missionId: number,
-    callback: (
-      response:
-        | { status: "success"; message: string; data: Maegistro.IAegisEntity }
-        | { status: "failure"; message: string }
-        | { status: "error"; message: string }
-    ) => void
-  ) => void;
-  getMission: (
-    missionId: number,
-    callback: (
-      response:
-        | { status: "success"; message: string; data: Mission[] }
-        | { status: "failure"; message: string }
-        | { status: "error"; message: string }
-    ) => void
-  ) => void;
-  getReadableEva: (
-    params: ReadableEvaParams,
-    callback: (
-      response:
-        | {
-            status: "success";
-            message: string;
-            data:
-              | ExportEva[]
-              | { uuid: string; refUuid: string; createdAt?: string; updatedAt?: string }[];
-          }
-        | { status: "failure"; message: string }
-        | { status: "error"; message: string }
-    ) => void
-  ) => void;
-  getMissions: (
-    callback: (
-      response:
-        | { status: "success"; message: string; data: MissionsWithEvas }
-        | { status: "failure"; message: string }
-        | { status: "error"; message: string }
-    ) => void
-  ) => void;
-  getRexesByEvaRef: (
-    evaRefUuid: string,
-    callback: (
-      response:
-        | { status: "success"; message: string; data: RefRex[] }
-        | { status: "failure"; message: string }
-        | { status: "error"; message: string }
-    ) => void
-  ) => void;
-  rexOverwrite: (
-    body: RexOverwrite,
-    callback: (
-      response:
-        | { status: "success"; message: string; data: Rex[] }
-        | { status: "failure"; message: string }
-        | { status: "error"; message: string }
-    ) => void
-  ) => void;
-}
-
 type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting" | "failed";
 
 // information stored in the client redux store about the socket status
@@ -124,14 +52,6 @@ interface VisitorData {
   launchpadUser: LaunchpadUser;
   connectedAt: number; // timestamp when the visitor joined
 }
-
-// sent by maestro client when joining and stored in server's globalValues
-interface MaestroVisitor {
-  socketId: string; // identifier for managing the list on server global
-  name: string; // name of the maestro server
-  connectedAt: number; // timestamp when the maestro joined
-}
-
 interface VisitorCounts {
   editors: number;
   viewers: number;
@@ -174,26 +94,5 @@ interface StoreDelete {
   missionId: number;
   type: SocketStoreType;
   uuids: string[];
-  lastEditEvent: EditEvent;
-}
-
-/**
- * @deprecated
- */
-type StoreTypeForMaestro = "station" | "eva" | "action" | "traverse" | "rex";
-
-/**
- * @deprecated
- */
-type StoreDataForMaestro = ExportStation | ExportEva | ExportAction | ExportTraverse | ExportRex;
-
-/**
- * @deprecated
- */
-interface StoreUpsertForMaestro {
-  socketId: string;
-  missionId: number;
-  type: StoreTypeForMaestro;
-  data: StoreDataForMaestro[];
   lastEditEvent: EditEvent;
 }

@@ -97,7 +97,10 @@ export const selectConvertMaestroActivityPropertiesByRefUuidToUuid = (
   {
     maestroActivityPropertiesByRefUuid,
     rexUuid,
-  }: { maestroActivityPropertiesByRefUuid: MaestroActivityPropertiesByRefUuid; rexUuid: string }
+  }: {
+    maestroActivityPropertiesByRefUuid: MaestroActivityPropertiesByRefUuid;
+    rexUuid: string | null;
+  }
 ): MaestroActivityProperties => {
   if (!maestroActivityPropertiesByRefUuid) return {};
   // Loop through the maestroActivityProperty keys which are refUuids for stations and traverses,
@@ -127,43 +130,35 @@ export const selectConvertMaestroActivityPropertiesByRefUuidToUuid = (
 /**
  * Get sequence item (station or traverse) from a refUuid and rexUuid
  * Returns the UUID of the sequence item or undefined if not found
- * If refUuid is null, returns the as-planned sequence uuid
+ * If rexUuid is null, returns the as-planned sequence uuid
  */
 export const getSequenceUuidByRefUuidAndRexUuid = (
   mission: Mission,
-  { refUuid, rexUuid }: { refUuid: string | null; rexUuid: string }
+  { refUuid, rexUuid }: { refUuid: string | null; rexUuid: string | null }
 ): string | undefined => {
-  // Find all the station or traverse records that have this refUuid
-  const allStationUuidsWithRefUuid = Object.values(mission?.stations ?? {})
-    .filter((station) => station.refUuid === refUuid)
-    .map((s) => s.uuid);
-  const allTraverseUuidsWithRefUuid = Object.values(mission?.traverses ?? {})
-    .filter((traverse) => traverse.refUuid === refUuid)
-    .map((t) => t.uuid);
-  const combinedUuids = [...allStationUuidsWithRefUuid, ...allTraverseUuidsWithRefUuid];
+  const matchesRefUuid = (seq: EvaSequenceItem): boolean => {
+    if (seq.type === "station") return mission.stations[seq.uuid]?.refUuid === refUuid;
+    if (seq.type === "traverse") return mission.traverses[seq.uuid]?.refUuid === refUuid;
+    return false;
+  };
 
-  let arrayOfUuidsFromSequence = [];
-  // If refUuid is null, find as planned evas
-  if (refUuid === null) {
-    // Get all REX EVA UUIDs to filter out
-    const allRexEvasUuids = Object.values(mission?.rexes ?? {}).map((rex) => rex.evaUuid);
-    // Find as-planned EVAs (not referenced by any REX)
-    const asPlannedEvas = Object.values(mission?.evas ?? {}).filter(
-      (eva) => !allRexEvasUuids.includes(eva.uuid)
-    );
-    // Check if we have any non-REX EVAs. This should never happen since a rex eva can't exist without and as-planned eva existing
-    if (!asPlannedEvas || asPlannedEvas.length === 0) {
-      return undefined;
+  if (rexUuid === null) {
+    // Use all as-planned EVAs (not referenced by any REX)
+    // Use a Set for O(1) rex EVA uuid lookups instead of O(n) array.includes
+    const rexEvaUuidSet = new Set(Object.values(mission?.rexes ?? {}).map((rex) => rex.evaUuid));
+    for (const eva of Object.values(mission?.evas ?? {})) {
+      if (rexEvaUuidSet.has(eva.uuid)) continue;
+      // Iterate each EVA's sequence directly to short-circuit as soon as a match is found,
+      // avoiding the cost of flatMap materializing the full combined sequence array upfront
+      const match = eva.sequence?.find(matchesRefUuid);
+      if (match) return match.uuid;
     }
-    const targetEva = asPlannedEvas[0];
-    arrayOfUuidsFromSequence = targetEva?.sequence?.map((seq) => seq.uuid);
+    return undefined;
   } else {
-    const evaUuidFromRex = mission.rexes[rexUuid]?.evaUuid;
-    const evaSequenceFromRexEva = mission.evas[evaUuidFromRex]?.sequence;
-    arrayOfUuidsFromSequence = evaSequenceFromRexEva?.map((seq) => seq.uuid);
+    const evaUuid = mission.rexes[rexUuid]?.evaUuid;
+    const sequence = mission.evas[evaUuid]?.sequence ?? [];
+    return sequence.find(matchesRefUuid)?.uuid;
   }
-
-  return arrayOfUuidsFromSequence?.find((uuid) => combinedUuids.includes(uuid));
 };
 
 /** Returns the as planned eva given an eva refUuid */
