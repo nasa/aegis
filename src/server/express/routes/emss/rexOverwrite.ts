@@ -102,6 +102,8 @@ router.get("/schema", async (req: Request, res: Response): Promise<void> => {
 // Update the rex record in the automerge mission document.
 // More than one rex may be updated if we need to stop a previously running rex.
 export async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
+  if (!rexOverwrite || !rexOverwrite.uuid) return [];
+
   // Find the mission containing this rex
   const allMissions = await getAutomergeMissions();
   const missionWithRex = allMissions.find((m) => m.rexes?.[rexOverwrite.uuid]);

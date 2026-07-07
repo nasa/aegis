@@ -125,6 +125,11 @@ const Maestro: React.FunctionComponent = () => {
   );
   const [rexOverwriteJsonError, setRexOverwriteJsonError] = useState<string | null>(null);
 
+  // ── sendMDAU ──────────────────────────────────────────────────────────────
+  const [sendMdauMissionId, setSendMdauMissionId] = useState<string>("");
+  const [sendMdauJson, setSendMdauJson] = useState<string>(JSON.stringify({ uuid: "" }, null, 2));
+  const [sendMdauJsonError, setSendMdauJsonError] = useState<string | null>(null);
+
   // ── Maestro debug info ────────────────────────────────────────────────────
   const [maestroDebugInfo, setMaestroDebugInfo] = useState<MaestroDebugInfo | null>(null);
 
@@ -301,6 +306,17 @@ const Maestro: React.FunctionComponent = () => {
       maestroSocket.current.emit("rexOverwrite", body, () => {});
     } catch (e) {
       setRexOverwriteJsonError(`Invalid JSON: ${String(e)}`);
+    }
+  };
+
+  const emitSendMdau = () => {
+    if (!maestroSocket.current?.connected || !sendMdauMissionId) return;
+    try {
+      const mdau = JSON.parse(sendMdauJson) as MaestroDataAegisUses;
+      setSendMdauJsonError(null);
+      maestroSocket.current.emit("sendMDAU", Number(sendMdauMissionId), mdau);
+    } catch (e) {
+      setSendMdauJsonError(`Invalid JSON: ${String(e)}`);
     }
   };
 
@@ -749,6 +765,49 @@ const Maestro: React.FunctionComponent = () => {
               >
                 Emit
               </button>
+            </EmitCard>
+
+            {/* sendMDAU */}
+            <EmitCard title="sendMDAU">
+              <input
+                className={adminCommon.formInput}
+                type="number"
+                value={sendMdauMissionId}
+                onChange={(e) => setSendMdauMissionId(e.target.value)}
+                placeholder="Mission ID"
+                style={narrowInput}
+              />
+              <textarea
+                className={adminCommon.formInput}
+                rows={4}
+                value={sendMdauJson}
+                onChange={(e) => {
+                  setSendMdauJson(e.target.value);
+                  setSendMdauJsonError(null);
+                }}
+                style={{
+                  fontFamily: "var(--font-mono, monospace)",
+                  fontSize: "0.85em",
+                  width: "100%",
+                }}
+              />
+              <div
+                style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "6px" }}
+              >
+                {sendMdauJsonError && (
+                  <p style={{ color: "#f87171", margin: 0, fontSize: "0.85em" }}>
+                    {sendMdauJsonError}
+                  </p>
+                )}
+                <button
+                  className={adminCommon.buttonPrimary}
+                  onClick={emitSendMdau}
+                  disabled={!isMaestroConnected || !sendMdauMissionId}
+                  style={{ width: "fit-content" }}
+                >
+                  Emit
+                </button>
+              </div>
             </EmitCard>
 
             {/* rexOverwrite */}

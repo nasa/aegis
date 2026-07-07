@@ -11,6 +11,7 @@ import { RequestContext } from "@mikro-orm/postgresql";
 import { globalValues } from "./global";
 import {
   addMaestroDocListenerForMission,
+  applyMdauStationsToDoc,
   cleanupSocketRoom,
 } from "server/express/sockets-maestro-emitters";
 import { emssTokenIsValid } from "utils/permissions";
@@ -183,6 +184,34 @@ export const setupMaestroNamespace = (
             error instanceof Error ? error : new Error(String(error))
           );
           callback({ status: "error", message: `Error getting everything ${error}` });
+        }
+      });
+
+      socket.on("sendMDAU", (missionId: number, mdau: MaestroDataAegisUses) => {
+        if (!missionId || isNaN(missionId)) {
+          serverLogger.warning({
+            logId: "socket-maestro",
+            logValue: `sendMDAU - invalid missionId ${missionId}`,
+          });
+          return;
+        }
+        try {
+          // strip out aegisStations and send the rest as a new RexOverwrite object
+          const { aegisStations, ...rexOverwrite } = mdau;
+          overwriteRex(rexOverwrite);
+
+          // update stations
+          applyMdauStationsToDoc(missionId, aegisStations).catch((error) => {
+            serverLogger.error(
+              { logId: "socket-maestro", logValue: "SocketIO - sendMDAU - applyMdauStationsToDoc" },
+              error instanceof Error ? error : new Error(String(error))
+            );
+          });
+        } catch (error) {
+          serverLogger.error(
+            { logId: "socket-maestro", logValue: "SocketIO - sendMDAU" },
+            error instanceof Error ? error : new Error(String(error))
+          );
         }
       });
 
