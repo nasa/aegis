@@ -54,6 +54,8 @@ import readableActionRoutes from "./routes/readable/action";
 import readableEvaRoutes from "./routes/readable/eva";
 import readableMissionRoutes from "./routes/readable/mission";
 
+import dustRoute from "./routes/external/dust";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -142,5 +144,8 @@ app.use("/api/v1/emss/getRexesByEvaRef", rexByEvaRef);
 app.use("/api/v1/emss/getMissions", getMissions);
 app.use("/api/v1/emss/enableEmssApi", enableEmssApi);
 app.use("/api/v1/emss/rexOverwrite", rexOverwrite);
+
+// external endpoints used by other stakeholders
+app.use("/api/v1/external/dust", dustRoute);
 
 export default app;
