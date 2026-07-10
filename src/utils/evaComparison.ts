@@ -1,5 +1,10 @@
-import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
+import {
+  getCalculatedFieldsByEva,
+  getCalculatedFieldsByStation,
+  getCalculatedFieldsByTraverse,
+} from "store/processing/calculatedFields";
 import { selectEvaStations, selectEvaTraverses } from "store/selectors";
+import { mergeEquipmentItems } from "store/storeUtils/store";
 import { resolveCampaignExecutionRexes } from "utils/evaReportColumns";
 import {
   calcPathDurationMins,
@@ -433,5 +438,132 @@ export const computeComparisonColumnValues = ({
 
   // Unknown kind: all null.
   for (const row of EVA_COMPARISON_METRIC_ROWS) values[row.id] = null;
+  return values;
+};
+
+/**
+ * Per-metric-row values for one station or traverse sub-column of an expanded
+ * EVA/REX column, keyed by metric row id. Mirrors computeComparisonColumnValues
+ * but attributes each metric to the single sequence item where that is
+ * meaningful:
+ *  - summable rows (dwell, action count/time, sample mass, per-traverse
+ *    distance/ascent) hold the item's own contribution, so the sub-cells sum to
+ *    the column Total;
+ *  - "max" rows (max distance from lander, worst-case walkback) hold the item's
+ *    own value, so the column Total stays the max of its items;
+ *  - EVA-level rows (allotted time, time margin, and REX-only actual distance
+ *    walked) are null — they don't attribute to a single item.
+ * For a REX column the REX-only rows (actual sample mass, actions complete/
+ * skipped) are attributed from the REX action entries of the item's actions.
+ */
+export const computeSequenceItemMetrics = ({
+  mission,
+  column,
+  item,
+}: {
+  mission: Mission;
+  column: EvaReportColumn;
+  item: StmCoverageSequenceItem;
+}): EvaComparisonColumnValues => {
+  const values: EvaComparisonColumnValues = {};
+  for (const row of EVA_COMPARISON_METRIC_ROWS) values[row.id] = null;
+
+  const eva = column.evaUuid ? mission.evas?.[column.evaUuid] : undefined;
+  if (!eva) return values;
+
+  const planetRadius = mission?.planetRadius ?? DEFAULT_PLANET_RADIUS_METERS;
+  const landerLocation = mission?.landerLocation;
+  const hasLander = !!landerLocation && landerLocation.lat != null && landerLocation.lng != null;
+  const itemActions = Object.values(mission.actions ?? {}).filter(
+    (action) =>
+      action.enabled &&
+      (item.type === "station"
+        ? action.stationUuid === item.uuid
+        : action.traverseUuid === item.uuid)
+  );
+
+  if (item.type === "station") {
+    const station = mission.stations?.[item.uuid];
+    if (!station) return values;
+    const calc = getCalculatedFieldsByStation({
+      station,
+      missionWalkbackRate: mission.walkbackRate,
+      stationActions: itemActions,
+    });
+    if (!calc) return values;
+
+    values.totalEvaTimeCalculated = calc.totalDwellTime;
+    values.dwellEv1 = calc.totalEv1Time;
+    values.dwellEv2 = calc.totalEv2Time;
+    values.dwellUnassigned = calc.totalUnassignedTime;
+    values.totalDwellTime = calc.totalDwellTime;
+    values.maxDistanceFromLander =
+      hasLander && station.location
+        ? (getDistanceBetweenTwoCoordinates(station.location, landerLocation, planetRadius) ?? 0)
+        : 0;
+    values.worstCaseWalkbackDuration = calc.walkbackDurationMinutes;
+    values.stationCount = 1;
+    values.actionCount = calc.actionCount;
+    values.totalActionTime = calc.totalActionTime;
+    values.plannedSampleMass = calc.totalMass / GRAMS_PER_KG;
+    values.singleUseConsumablesCount = countSingleUseConsumables(mission, calc.equipmentItems);
+  } else if (item.type === "traverse") {
+    const traverse = mission.traverses?.[item.uuid];
+    if (!traverse) return values;
+    const calc = getCalculatedFieldsByTraverse({
+      traverse,
+      missionTraverseRate: mission.traverseRate,
+      evaTraverseRate: eva.traverseRate,
+      traverseActions: itemActions,
+    });
+    if (!calc) return values;
+
+    values.totalEvaTimeCalculated = calc.durationMinutes + calc.totalDwellTime;
+    values.totalTraverseTime = calc.durationMinutes;
+    values.dwellEv1 = calc.totalEv1Time;
+    values.dwellEv2 = calc.totalEv2Time;
+    values.dwellUnassigned = calc.totalUnassignedTime;
+    values.totalDwellTime = calc.totalDwellTime;
+    values.totalTraverseDistance = calc.distanceMeters;
+    values.totalAscent = calc.ascentDescent.totalMetersClimbed;
+    values.totalDescent = calc.ascentDescent.totalMetersDescended;
+    values.maxDistanceFromLander = hasLander
+      ? (traverse.path ?? []).reduce((max, point) => {
+          const distance = point
+            ? getDistanceBetweenTwoCoordinates(point, landerLocation, planetRadius)
+            : null;
+          return distance != null && distance > max ? distance : max;
+        }, 0)
+      : 0;
+    values.actionCount = calc.actionCount;
+    values.totalActionTime = calc.totalActionTime;
+    values.plannedSampleMass = calc.totalMass / GRAMS_PER_KG;
+    const traverseEquipment = itemActions.reduce<EquipmentItemUsages>(
+      (merged, action) => mergeEquipmentItems(action.equipmentItemsUsage, merged),
+      {}
+    );
+    values.singleUseConsumablesCount = countSingleUseConsumables(mission, traverseEquipment);
+  }
+
+  if (column.kind === "rex") {
+    const rex = column.rexUuid ? mission.rexes?.[column.rexUuid] : undefined;
+    if (rex) {
+      let actualSampleMass = 0;
+      let actionsCompleteCount = 0;
+      let actionsSkippedCount = 0;
+      for (const action of itemActions) {
+        const entry = rex.actionEntries?.[action.uuid];
+        if (!entry) continue;
+        if (typeof entry.mass === "number") actualSampleMass += entry.mass;
+        if (entry.rexStatus === "complete") actionsCompleteCount += 1;
+        if (entry.rexStatus === "skipped") actionsSkippedCount += 1;
+      }
+      values.actualSampleMass = actualSampleMass / GRAMS_PER_KG;
+      values.actionsCompleteCount = actionsCompleteCount;
+      values.actionsSkippedCount = actionsSkippedCount;
+      // actualDistanceWalked is a REX-level position track — not attributable per item.
+    }
+  }
+
   return values;
 };

@@ -308,7 +308,7 @@ describe("computePoiTraceability() — linkage", () => {
     expect(row.promotedActionCount).toBe(0);
     expect(row.plannedEvaCount).toBe(1); // eva1 contributed by linkage alone
     expect(row.linkedStations).toEqual([
-      { stationUuid: "s1", stationName: "Station 1", inScopeEvaUuids: ["eva1"] },
+      { stationUuid: "s1", stationName: "Station 1", stationIcon: null, inScopeEvaUuids: ["eva1"] },
     ]);
   });
 
@@ -326,7 +326,7 @@ describe("computePoiTraceability() — linkage", () => {
     expect(row.linkedStationCount).toBe(0);
     expect(row.plannedEvaCount).toBe(0);
     expect(row.linkedStations).toEqual([
-      { stationUuid: "s3", stationName: "Station 3", inScopeEvaUuids: [] },
+      { stationUuid: "s3", stationName: "Station 3", stationIcon: null, inScopeEvaUuids: [] },
     ]);
   });
 });

@@ -23,6 +23,7 @@ type PoiTraceStationCopy = {
   stationActionUuid: string;
   stationUuid: string | null;
   stationName: string | null;
+  stationIcon: string | null;
   traverseUuid: string | null;
   traverseName: string | null;
   parentCopyDate: number | null;
@@ -57,5 +58,10 @@ type PoiTraceRow = {
   skippedCount: number;
   actions: PoiTraceActionDetail[];
   /** Every as-planned station linked via poiUuids (with its in-scope EVAs). */
-  linkedStations: { stationUuid: string; stationName: string; inScopeEvaUuids: string[] }[];
+  linkedStations: {
+    stationUuid: string;
+    stationName: string;
+    stationIcon: string | null;
+    inScopeEvaUuids: string[];
+  }[];
 };
