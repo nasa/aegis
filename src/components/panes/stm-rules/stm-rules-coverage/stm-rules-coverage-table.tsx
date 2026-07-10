@@ -2,7 +2,7 @@ import type { FunctionComponent } from "react";
 import { Fragment } from "react";
 import styles from "./stm-rules-coverage.module.css";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
-import { groupCoverageColumns } from "utils/stmEvaCoverage";
+import { groupCoverageColumns } from "utils/evaReportColumns";
 import { StmCoverageColumnCells } from "./stm-rules-coverage-cell";
 import STMRulesTable from "../stm-rules-list-table";
 
@@ -28,7 +28,19 @@ const StmCoverageRowCells: FunctionComponent<{ stmUuid: string }> = ({ stmUuid }
     <div className={styles.tableRowCells}>
       {columnGroups.map((group, groupIndex) => (
         <Fragment key={group.groupKey}>
-          {groupIndex > 0 && <div className={styles.columnDivider} />}
+          {groupIndex === 0 && !group.columns[0]?.campaignUuid && (
+            <div className={`${styles.columnDivider} ${styles.campaignDivider}`} />
+          )}
+          {groupIndex > 0 && (
+            <div
+              className={`${styles.columnDivider} ${
+                group.columns[0]?.campaignUuid &&
+                !columnGroups[groupIndex - 1]?.columns[0]?.campaignUuid
+                  ? styles.campaignDivider
+                  : ""
+              }`}
+            />
+          )}
           {group.columns.map((column) => (
             <StmCoverageColumnCells key={column.key} column={column} stmUuid={stmUuid} />
           ))}

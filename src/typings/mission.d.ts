@@ -37,6 +37,7 @@ interface Mission {
   projResZoomLevel: number | null;
   projResUnitsPerPixel: number | null;
   circleDefinitions: CircleDefinitions | null;
+  reportCampaigns?: { [uuid: string]: ReportCampaign } | null;
   actionTemplates: ActionTemplates | null;
   stmLevel1Enabled?: boolean;
   stmLevel1Name?: string;
@@ -175,6 +176,16 @@ type CircleDefinition = {
   name: string;
   radius: number;
 };
+
+interface ReportCampaign {
+  uuid: string;
+  name: string;
+  description: string | null;
+  memberEvaUuids: string[];
+  executionRexUuidByEvaUuid: { [evaUuid: string]: string } | null;
+  createdAt: number;
+  updatedAt: number | null;
+}
 
 type MissionHomepageItem = {
   id: number;

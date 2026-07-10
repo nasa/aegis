@@ -12,7 +12,7 @@ import {
   stmCoverageToggleEvaColumnExpansion,
 } from "store/stm";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { groupCoverageColumns } from "utils/stmEvaCoverage";
+import { groupCoverageColumns } from "utils/evaReportColumns";
 import { EmojiRenderer } from "components/interface/emojis";
 import {
   StmTierTitle,
@@ -23,8 +23,12 @@ import {
 } from "../stm-rules-tier-titles";
 
 /** Column title: the EVA name for plan columns, "REX: <name>" for executions. */
-const columnTitle = (column: StmCoverageEvaColumn) =>
-  column.isRex ? `REX: ${column.label}` : column.label;
+const columnTitle = (column: EvaReportColumn) =>
+  column.isRex
+    ? `REX: ${column.label}`
+    : column.campaignUuid
+      ? `${column.groupLabel}: ${column.label}`
+      : column.label;
 
 /**
  * Rotated summary labels have room for 2 vertical lines of text; longer names
@@ -40,8 +44,12 @@ const truncateHeaderLabel = (label: string) =>
     : label;
 
 /** Tooltip title: like columnTitle but names the parent EVA on REX columns. */
-const columnTooltipName = (column: StmCoverageEvaColumn) =>
-  column.isRex ? `REX: ${column.label} (${column.groupLabel})` : column.label;
+const columnTooltipName = (column: EvaReportColumn) =>
+  column.isRex
+    ? `REX: ${column.label} (${column.groupLabel})`
+    : column.campaignUuid
+      ? `${column.groupLabel}: ${column.label}`
+      : column.label;
 
 /**
  * Columns are ordered in as-planned EVA families (plan column followed by its
@@ -80,7 +88,24 @@ const StmCoverageHeader: FunctionComponent = () => {
       <div className={styles.headerColumns}>
         {groups.map((group, index) => (
           <Fragment key={group.groupKey}>
-            {index > 0 && <div className={styles.columnDivider} />}
+            {index === 0 && !group.columns[0]?.campaignUuid && (
+              <div className={`${styles.columnDivider} ${styles.campaignDivider}`}>
+                <span className={styles.sectionDividerLabel}>EVAs and REXs</span>
+              </div>
+            )}
+            {index > 0 && (
+              <div
+                className={`${styles.columnDivider} ${
+                  group.columns[0]?.campaignUuid && !groups[index - 1]?.columns[0]?.campaignUuid
+                    ? styles.campaignDivider
+                    : ""
+                }`}
+              >
+                {group.columns[0]?.campaignUuid && !groups[index - 1]?.columns[0]?.campaignUuid ? (
+                  <span className={styles.sectionDividerLabel}>CAMPAIGNS</span>
+                ) : null}
+              </div>
+            )}
             {group.columns.map((column) => (
               <ColumnHeader key={column.key} column={column} />
             ))}
@@ -93,7 +118,7 @@ const StmCoverageHeader: FunctionComponent = () => {
 
 export default StmCoverageHeader;
 
-const ColumnHeader: FunctionComponent<{ column: StmCoverageEvaColumn }> = ({ column }) => {
+const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }) => {
   const dispatch = useAppDispatch();
   const baselineKey = useAppSelector((state) => state.stm.stmCoverageResolvedBaselineKey, refEqual);
   const expandedColumnKeys = useAppSelector(
@@ -147,7 +172,7 @@ const ColumnHeader: FunctionComponent<{ column: StmCoverageEvaColumn }> = ({ col
             dispatch(stmCoverageToggleEvaColumnExpansion(column.key));
           }}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html="Collapse stations"
+          data-tooltip-html={column.campaignUuid ? "Collapse EVAs" : "Collapse stations"}
         >
           <FontAwesomeIcon icon={faMinusCircle} />
         </span>
@@ -169,7 +194,7 @@ const ColumnHeader: FunctionComponent<{ column: StmCoverageEvaColumn }> = ({ col
 };
 
 const SummaryHeaderCell: FunctionComponent<{
-  column: StmCoverageEvaColumn;
+  column: EvaReportColumn;
   isBaseline: boolean;
   isExpanded: boolean;
   cellKey: string;
@@ -198,7 +223,15 @@ const SummaryHeaderCell: FunctionComponent<{
           dispatch(stmCoverageToggleEvaColumnExpansion(column.key));
         }}
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html={isExpanded ? "Collapse stations" : "Expand into stations"}
+        data-tooltip-html={
+          isExpanded
+            ? column.campaignUuid
+              ? "Collapse EVAs"
+              : "Collapse stations"
+            : column.campaignUuid
+              ? "Expand into member EVAs"
+              : "Expand into stations"
+        }
       >
         <FontAwesomeIcon icon={isExpanded ? faMinusCircle : faPlusCircle} />
       </span>
@@ -211,7 +244,7 @@ const SummaryHeaderCell: FunctionComponent<{
  * Matches tab) or a traverse (standard dotted traverse icon).
  */
 const SequenceHeaderCell: FunctionComponent<{
-  column: StmCoverageEvaColumn;
+  column: EvaReportColumn;
   item: StmCoverageSequenceItem;
 }> = ({ column, item }) => {
   const dispatch = useAppDispatch();
@@ -231,9 +264,9 @@ const SequenceHeaderCell: FunctionComponent<{
       <div className={styles.sequenceHeaderIcon}>
         {item.type === "station" ? (
           <EmojiRenderer iconValue={item.icon ? item.icon : "2754"} />
-        ) : (
+        ) : item.type === "traverse" ? (
           <div className={styles.sequenceHeaderTraverseIcon} />
-        )}
+        ) : null}
       </div>
     </div>
   );
