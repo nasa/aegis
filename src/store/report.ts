@@ -37,7 +37,7 @@ export const initialState: ReportState = {
     filterText: "",
     sortKey: "priority",
     selectedPoiUuid: null,
-    drilldownWidth: 360,
+    drilldownWidth: null,
   },
 };
 

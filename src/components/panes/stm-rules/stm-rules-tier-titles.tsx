@@ -18,6 +18,12 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 export const STM_LEVEL3_NAME_COLUMN_WIDTH = 285;
 export const STM_COVERAGE_STATION_CELL_WIDTH = 22;
 export const STM_COVERAGE_SUMMARY_CELL_WIDTH = 40;
+/**
+ * EVA Comparison station/traverse sub-cells hold metric values (e.g. "1,367"),
+ * not the small match counts of EVA STM Coverage, so they need the wider summary
+ * width instead of the 22px count cell.
+ */
+export const EVA_COMPARISON_STATION_CELL_WIDTH = STM_COVERAGE_SUMMARY_CELL_WIDTH;
 
 /**
  * Shared tier-expansion state for the v2 STM tabs (Rules and EVA Coverage).

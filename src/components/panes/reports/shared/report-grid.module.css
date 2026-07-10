@@ -565,6 +565,7 @@
   max-width: 560px;
   width: calc(100% - 40px);
   max-height: calc(100vh - 60px);
+  overflow: hidden;
 }
 .helpDialog::backdrop {
   background: rgb(0 0 0 / 40%);

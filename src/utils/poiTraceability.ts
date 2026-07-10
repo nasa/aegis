@@ -118,6 +118,7 @@ export const computePoiTraceability = ({
       .map((station) => ({
         stationUuid: station.uuid,
         stationName: station.name,
+        stationIcon: station.icon ?? null,
         inScopeEvaUuids: evasContainingStation(station.uuid),
       }));
     const linkedStationCount = linkedStations.filter(
@@ -169,6 +170,7 @@ export const computePoiTraceability = ({
           stationActionUuid: copy.uuid,
           stationUuid: copy.stationUuid ?? null,
           stationName: station?.name ?? null,
+          stationIcon: station?.icon ?? null,
           traverseUuid: copy.traverseUuid ?? null,
           traverseName: traverse?.name ?? null,
           parentCopyDate: copy.parentCopyDate ?? null,
