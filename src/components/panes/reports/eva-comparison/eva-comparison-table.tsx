@@ -71,7 +71,7 @@ const ComparisonRow: FunctionComponent<{ row: EvaComparisonMetricRow }> = ({ row
       <div className={styles.tableRowCells}>
         {columnGroups.map((group, groupIndex) => (
           <Fragment key={group.groupKey}>
-            {groupIndex === 0 && !group.columns[0]?.campaignUuid && (
+            {groupIndex === 0 && (
               <div className={`${styles.columnDivider} ${styles.campaignDivider}`} />
             )}
             {groupIndex > 0 && (

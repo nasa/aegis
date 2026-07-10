@@ -1,15 +1,21 @@
 import type { FunctionComponent } from "react";
-import { useMemo } from "react";
+import { Fragment, useLayoutEffect, useMemo, useRef } from "react";
 import styles from "./poi-traceability.module.css";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { poiTraceSetFilterText, poiTraceSetScope, poiTraceSetSortKey } from "store/report";
+import {
+  poiTraceSetDrilldownWidth,
+  poiTraceSetFilterText,
+  poiTraceSetScope,
+  poiTraceSetSortKey,
+} from "store/report";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { computePoiTraceability } from "utils/poiTraceability";
 import { Dropdown } from "components/interface/form/globalFields";
 import sortBy from "lodash/sortBy";
 import PoiTraceabilityTable from "./poi-traceability-table";
 import PoiTraceabilityDrilldown from "./poi-traceability-drilldown";
+import PoiTraceabilityHelp from "./poi-traceability-help";
 
 /** Encode/decode the scope selection to a dropdown string value. */
 const scopeToValue = (scope: PoiTraceScope): string =>
@@ -50,6 +56,8 @@ const PoiTraceabilityPage: FunctionComponent = () => {
     (state) => state.report.poiTrace.selectedPoiUuid,
     refEqual
   );
+  const drilldownWidth = useAppSelector((state) => state.report.poiTrace.drilldownWidth, refEqual);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   const campaigns = useMemo(
     () => sortBy(Object.values(mission?.reportCampaigns ?? {}), [(c) => c.name.toLowerCase()]),
@@ -64,13 +72,7 @@ const PoiTraceabilityPage: FunctionComponent = () => {
 
   const filteredRows = useMemo(() => {
     const needle = filterText.trim().toLowerCase();
-    const matched = needle
-      ? rows.filter(
-          (row) =>
-            row.name.toLowerCase().includes(needle) ||
-            row.tags.some((tag) => tag.toLowerCase().includes(needle))
-        )
-      : rows;
+    const matched = needle ? rows.filter((row) => row.name.toLowerCase().includes(needle)) : rows;
     return sortKey === "name"
       ? sortBy(matched, [(row) => row.name.toLowerCase()])
       : sortBy(matched, [
@@ -81,10 +83,19 @@ const PoiTraceabilityPage: FunctionComponent = () => {
 
   const selectedRow = filteredRows.find((row) => row.poiUuid === selectedPoiUuid) ?? null;
 
+  // First time the panel opens, default it to half the pane width. Runs before
+  // paint so there's no flash at the fallback width; once the user drags the
+  // divider, drilldownWidth is a number and this no longer fires.
+  useLayoutEffect(() => {
+    if (selectedRow && drilldownWidth == null && bodyRef.current) {
+      dispatch(poiTraceSetDrilldownWidth(Math.round(bodyRef.current.clientWidth / 2)));
+    }
+  }, [selectedRow, drilldownWidth, dispatch]);
+
   if (!mission) return null;
 
   return (
-    <div className={styles.body}>
+    <div className={styles.body} ref={bodyRef}>
       <div className={styles.main}>
         <div className={styles.controls}>
           <div className={styles.controlGroup}>
@@ -96,16 +107,20 @@ const PoiTraceabilityPage: FunctionComponent = () => {
               toolTip="Which EVAs the traceability rollup is computed over"
             >
               <option value="all">All EVAs</option>
-              {campaigns.map((campaign) => (
-                <optgroup key={campaign.uuid} label={campaign.name}>
-                  <option value={`campaignPlanned:${campaign.uuid}`}>
-                    {campaign.name} — Planned set
-                  </option>
-                  <option value={`campaignExecuted:${campaign.uuid}`}>
-                    {campaign.name} — Executed set
-                  </option>
+              {campaigns.length > 0 && (
+                <optgroup label="Campaigns">
+                  {campaigns.map((campaign) => (
+                    <Fragment key={campaign.uuid}>
+                      <option value={`campaignPlanned:${campaign.uuid}`}>
+                        {campaign.name} — Planned set
+                      </option>
+                      <option value={`campaignExecuted:${campaign.uuid}`}>
+                        {campaign.name} — Executed set
+                      </option>
+                    </Fragment>
+                  ))}
                 </optgroup>
-              ))}
+              )}
             </Dropdown>
           </div>
           <div className={styles.controlGroup}>
@@ -113,8 +128,8 @@ const PoiTraceabilityPage: FunctionComponent = () => {
             <input
               className={styles.filterInput}
               value={filterText}
-              placeholder="name or tag…"
-              aria-label="Filter POIs by name or tag"
+              placeholder="name…"
+              aria-label="Filter POIs by name"
               onChange={(event) => dispatch(poiTraceSetFilterText(event.target.value))}
             />
           </div>
@@ -129,8 +144,14 @@ const PoiTraceabilityPage: FunctionComponent = () => {
               <option value="name">Name</option>
             </Dropdown>
           </div>
+          <div className={styles.controlSpacer} />
+          <PoiTraceabilityHelp />
         </div>
-        <PoiTraceabilityTable rows={filteredRows} selectedPoiUuid={selectedPoiUuid} />
+        <PoiTraceabilityTable
+          rows={filteredRows}
+          selectedPoiUuid={selectedPoiUuid}
+          showExecutionColumns={scope.type === "campaignExecuted"}
+        />
       </div>
       {selectedRow && <PoiTraceabilityDrilldown row={selectedRow} />}
     </div>

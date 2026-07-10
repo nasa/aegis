@@ -27,6 +27,10 @@
   align-items: center;
   gap: 4px;
 }
+/* pushes the help button to the right edge of the controls row */
+.controlSpacer {
+  flex: 1 1 auto;
+}
 .controlLabel {
   font-size: 0.85em;
   font-weight: 300;
@@ -48,7 +52,11 @@
 }
 
 .table {
-  width: 100%;
+  /* auto (not 100%) so the handful of columns hug their content on the left and
+     the spare width of a wide pane collects on the right, rather than stretching
+     the cells into a loose, mostly-empty grid */
+  width: auto;
+  min-width: min(100%, 640px);
   border-collapse: collapse;
   font-size: 0.85em;
 }
@@ -95,9 +103,6 @@
   color: var(--eva);
   font-weight: 600;
 }
-.tags {
-  color: var(--grey4);
-}
 
 /* rollup badges */
 .count {
@@ -116,6 +121,35 @@
 .emptyState {
   padding: 16px;
   color: var(--grey4);
+}
+
+/* ---------- drilldown tabs ---------- */
+.tabBar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  margin: 0 0 8px;
+  border-bottom: 2px solid var(--grey0);
+  user-select: none;
+}
+.tab {
+  padding: 4px 12px;
+  font-size: 0.85em;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background-color: var(--grey1);
+  cursor: pointer;
+}
+.tab:hover {
+  background-color: var(--grey3);
+}
+.tabActive {
+  background-color: var(--grey5);
+  color: var(--grey0);
+  font-weight: 500;
+}
+.tabActive:hover {
+  background-color: var(--grey5);
 }
 
 /* ---------- drilldown lineage ---------- */
@@ -143,6 +177,9 @@
 }
 .lineageStationName {
   color: var(--grey5);
+}
+.lineageStationIcon {
+  margin-right: 4px;
 }
 .lineageMeta {
   color: var(--grey4);
@@ -172,4 +209,10 @@
 .sectionLabel {
   font-weight: 500;
   margin: 6px 0 4px;
+}
+.sectionCaption {
+  color: var(--grey4);
+  font-size: 0.8em;
+  line-height: 1.35;
+  margin: 0 0 6px;
 }

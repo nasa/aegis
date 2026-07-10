@@ -196,7 +196,8 @@ interface PoiTraceState {
   filterText: string;
   sortKey: PoiTraceSortKey;
   selectedPoiUuid: string | null;
-  drilldownWidth: number;
+  /** null until the panel is first opened, then sized to half the pane width. */
+  drilldownWidth: number | null;
 }
 
 type ColumnReportId = "stmCoverage" | "comparison";

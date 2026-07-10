@@ -10,14 +10,19 @@ import {
   reportSetHoveredTopItem,
 } from "store/report";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { EVA_COMPARISON_METRIC_ROWS, computeComparisonColumnValues } from "utils/evaComparison";
+import {
+  EVA_COMPARISON_METRIC_ROWS,
+  computeComparisonColumnValues,
+  computeSequenceItemMetrics,
+} from "utils/evaComparison";
+import { getEvaSequenceItems } from "utils/stmEvaCoverage";
 import {
   getCampaignMemberItems,
   getEvaColumns,
   resolveCampaignExecutionRexes,
 } from "utils/evaReportColumns";
 import {
-  STM_COVERAGE_STATION_CELL_WIDTH,
+  EVA_COMPARISON_STATION_CELL_WIDTH,
   STM_COVERAGE_SUMMARY_CELL_WIDTH,
 } from "../../stm-rules/stm-rules-tier-titles";
 import ReportControls from "../shared/report-controls";
@@ -126,11 +131,12 @@ const EvaComparisonPage: FunctionComponent = () => {
     const result: { [columnKey: string]: StmCoverageSequenceItem[] } = {};
     if (!mission) return result;
     for (const column of visibleColumns) {
-      // Only campaign columns decompose (into member EVAs); a single EVA/REX
-      // column has no sub-metrics, so expanding it just shows its Total.
-      if (expandedColumnKeys.includes(column.key) && column.campaignUuid) {
-        result[column.key] = getCampaignMemberItems(mission, column);
-      }
+      if (!expandedColumnKeys.includes(column.key)) continue;
+      // Campaign columns decompose into member EVAs; a single EVA/REX column
+      // decomposes into its station/traverse sequence (as in EVA STM Coverage).
+      result[column.key] = column.campaignUuid
+        ? getCampaignMemberItems(mission, column)
+        : getEvaSequenceItems(mission, column.evaUuid ?? "");
     }
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- gated on revision
@@ -141,11 +147,20 @@ const EvaComparisonPage: FunctionComponent = () => {
     if (!mission) return result;
     for (const column of visibleColumns) {
       result[column.key] = computeComparisonColumnValues({ mission, column });
-      // per-member values for an expanded campaign column
+      // per-sub-column values for an expanded column: member EVAs for a campaign
+      // column, per-station/traverse contributions for a single EVA/REX column.
       for (const item of sequenceByColumnKey[column.key] ?? []) {
-        const synthetic = memberColumn(mission, column, item.uuid);
-        if (synthetic)
-          result[synthetic.key] = computeComparisonColumnValues({ mission, column: synthetic });
+        if (column.campaignUuid) {
+          const synthetic = memberColumn(mission, column, item.uuid);
+          if (synthetic)
+            result[synthetic.key] = computeComparisonColumnValues({ mission, column: synthetic });
+        } else {
+          result[`${column.key}_${item.uuid}`] = computeSequenceItemMetrics({
+            mission,
+            column,
+            item,
+          });
+        }
       }
     }
     return result;
@@ -223,7 +238,7 @@ const EvaComparisonPage: FunctionComponent = () => {
           className={styles.gridScroll}
           style={
             {
-              "--stmCoverageStationCellWidth": `${STM_COVERAGE_STATION_CELL_WIDTH}px`,
+              "--stmCoverageStationCellWidth": `${EVA_COMPARISON_STATION_CELL_WIDTH}px`,
               "--stmCoverageSummaryCellWidth": `${STM_COVERAGE_SUMMARY_CELL_WIDTH}px`,
               "--reportMetricLabelWidth": `${METRIC_LABEL_COLUMN_WIDTH}px`,
             } as CSSProperties
