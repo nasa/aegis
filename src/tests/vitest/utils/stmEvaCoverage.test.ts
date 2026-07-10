@@ -3,16 +3,18 @@ import {
   diffLevel3,
   diffLevel3Actions,
   diffRuleActions,
-  getActionRexStatus,
   getCoverageDifferences,
+  getEvaSequenceItems,
+  groupMatchesBySequenceItem,
+} from "utils/stmEvaCoverage";
+import {
+  getActionRexStatus,
   getEligibleActionsForColumn,
   getEvaColumns,
-  getEvaSequenceItems,
   groupCoverageColumns,
-  groupMatchesBySequenceItem,
   STM_COVERAGE_ORPHAN_GROUP_KEY,
   STM_COVERAGE_ORPHAN_GROUP_LABEL,
-} from "utils/stmEvaCoverage";
+} from "utils/evaReportColumns";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankStation } from "store/storeUtils/station";
@@ -63,8 +65,9 @@ const makeRule = (partial: Partial<STMRule>): STMRule => ({
   ...partial,
 });
 
-const asPlannedColumn: StmCoverageEvaColumn = {
+const asPlannedColumn: EvaReportColumn = {
   key: "eva1",
+  kind: "eva",
   evaUuid: "eva1",
   isRex: false,
   label: "Alpha",
@@ -130,12 +133,9 @@ describe("getEvaColumns()", () => {
 
 describe("groupCoverageColumns()", () => {
   test("chunks consecutive columns sharing a groupKey, keeping a group whose plan column is hidden", () => {
-    const rexColumn = (
-      key: string,
-      groupKey: string,
-      groupLabel: string
-    ): StmCoverageEvaColumn => ({
+    const rexColumn = (key: string, groupKey: string, groupLabel: string): EvaReportColumn => ({
       key,
+      kind: "rex",
       evaUuid: `${key}Eva`,
       isRex: true,
       rexUuid: key,
@@ -202,8 +202,9 @@ describe("getEligibleActionsForColumn()", () => {
         },
       }),
     };
-    const column: StmCoverageEvaColumn = {
+    const column: EvaReportColumn = {
       key: "rex1",
+      kind: "rex",
       evaUuid: "eva1",
       isRex: true,
       rexUuid: "rex1",
@@ -236,8 +237,9 @@ describe("getEligibleActionsForColumn()", () => {
     mission.rexes = {
       rex1: generateBlankRex({ uuid: "rex1", evaUuid: "eva1", name: "Rex 1", actionEntries: null }),
     };
-    const column: StmCoverageEvaColumn = {
+    const column: EvaReportColumn = {
       key: "rex1",
+      kind: "rex",
       evaUuid: "eva1",
       isRex: true,
       rexUuid: "rex1",
@@ -618,8 +620,9 @@ describe("getCoverageDifferences()", () => {
     ],
     totalMatches: matchCount,
   });
-  const makeColumn = (key: string): StmCoverageEvaColumn => ({
+  const makeColumn = (key: string): EvaReportColumn => ({
     key,
+    kind: "eva",
     evaUuid: key,
     isRex: false,
     label: key,

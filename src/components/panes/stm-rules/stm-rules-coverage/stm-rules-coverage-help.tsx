@@ -48,17 +48,44 @@ const StmCoverageHelp: FunctionComponent = () => {
 
           <div className={styles.helpDialogContent}>
             <p className={styles.helpIntro}>
-              Each row is an STM item and each column is an EVA (as-planned) or REX (as-executed). A
-              cell rolls up how well that EVA&apos;s actions satisfy the rules defined for that STM
-              item.
+              Each row is an STM item. The grid begins with the <strong>EVAs and REXs</strong>
+              section, followed by any reporting Campaigns. A cell rolls up how well the
+              column&apos;s actions satisfy the rules defined for that STM item.
             </p>
+
+            <div className={styles.helpSection}>
+              <div className={styles.helpSectionTitle}>EVA, REX, and Campaign columns</div>
+              <p>
+                EVA columns represent as-planned EVAs, while REX columns represent their as-executed
+                results. A configured campaign appears in the <strong>CAMPAIGNS</strong> section as
+                two columns:
+              </p>
+              <ul className={styles.helpList}>
+                <li>
+                  <strong>Planned set</strong> combines the selected campaign members&apos; planned
+                  actions.
+                </li>
+                <li>
+                  <strong>Executed set</strong> combines the selected campaign members&apos;
+                  executed REX actions, using the selected execution REX for each member when
+                  available.
+                </li>
+              </ul>
+              <p>
+                Expand a campaign column with the + icon to see its member EVAs. The black vertical
+                dividers label the <strong>EVAs and REXs</strong> and <strong>CAMPAIGNS</strong>{" "}
+                sections.
+              </p>
+            </div>
 
             <div className={styles.helpSection}>
               <div className={styles.helpSectionTitle}>The number in a cell</div>
               <p>
-                The number is the count of matching actions in that EVA for that STM item. When a
-                column is expanded, each sub-column shows the count for a single station or traverse
-                in EVA sequence order, and the <strong>Total</strong> column sums them.
+                The number is the count of matching actions in that EVA, REX, or campaign set for
+                that STM item. When an EVA or REX column is expanded, each sub-column shows the
+                count for a single station or traverse in EVA sequence order. When a campaign column
+                is expanded, each sub-column shows one campaign member. The <strong>Total</strong>{" "}
+                column sums them.
               </p>
             </div>
 
