@@ -20,6 +20,7 @@ import {
   STM_LEVEL3_NAME_COLUMN_WIDTH,
   STM_COVERAGE_STATION_CELL_WIDTH,
   STM_COVERAGE_SUMMARY_CELL_WIDTH,
+  EVA_COMPARISON_STATION_CELL_WIDTH,
 } from "../../stm-rules/stm-rules-tier-titles";
 import { useReportId } from "../reports-context";
 
@@ -78,9 +79,11 @@ const ReportColumnHeader: FunctionComponent<{ leftAxis: React.ReactNode }> = ({ 
       <div className={styles.headerColumns}>
         {groups.map((group, index) => (
           <Fragment key={group.groupKey}>
-            {index === 0 && !group.columns[0]?.campaignUuid && (
+            {index === 0 && (
               <div className={`${styles.columnDivider} ${styles.campaignDivider}`}>
-                <span className={styles.sectionDividerLabel}>EVAs and REXs</span>
+                <span className={styles.sectionDividerLabel}>
+                  {group.columns[0]?.campaignUuid ? "CAMPAIGNS" : "EVAs and REXs"}
+                </span>
               </div>
             )}
             {index > 0 && (
@@ -170,10 +173,13 @@ const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }
   // Firefox miscomputes the automatic (content-based) width of a flex item
   // whose descendants use writing-mode: vertical-rl (the rotated labels below)
   // — see https://bugzilla.mozilla.org/show_bug.cgi?id=1332555. Sidestep it by
-  // giving the group its exact pixel width up front: one 22px .stationHeaderCell
-  // per sequence item plus the trailing 40px "Total" .columnHeaderCell.
-  const groupWidth =
-    sequenceItems.length * STM_COVERAGE_STATION_CELL_WIDTH + STM_COVERAGE_SUMMARY_CELL_WIDTH;
+  // giving the group its exact pixel width up front: one .stationHeaderCell per
+  // sequence item plus the trailing "Total" .columnHeaderCell. Comparison sub-
+  // cells hold metric values, so they use the wider summary width (must match
+  // the --stmCoverageStationCellWidth the comparison page sets).
+  const stationCellWidth =
+    reportId === "comparison" ? EVA_COMPARISON_STATION_CELL_WIDTH : STM_COVERAGE_STATION_CELL_WIDTH;
+  const groupWidth = sequenceItems.length * stationCellWidth + STM_COVERAGE_SUMMARY_CELL_WIDTH;
   return (
     <div className={styles.columnGroup} style={{ width: groupWidth }}>
       <div

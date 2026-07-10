@@ -1,6 +1,7 @@
 import {
   EVA_COMPARISON_METRIC_ROWS,
   computeComparisonColumnValues,
+  computeSequenceItemMetrics,
   getActualDistanceWalked,
   getMaxDistanceFromLander,
 } from "utils/evaComparison";
@@ -436,6 +437,148 @@ describe("computeComparisonColumnValues() — campaign columns", () => {
       column: campaignExecutedColumn,
     });
     for (const row of EVA_COMPARISON_METRIC_ROWS) expect(missingCampaign[row.id]).toBeNull();
+  });
+});
+
+describe("computeSequenceItemMetrics() — per-station/traverse sub-columns", () => {
+  const stationItem = (uuid: string, name: string): StmCoverageSequenceItem => ({
+    type: "station",
+    uuid,
+    name,
+  });
+  const traverseItem = (uuid: string, name: string): StmCoverageSequenceItem => ({
+    type: "traverse",
+    uuid,
+    name,
+  });
+
+  test("attributes a station's own plan metrics; EVA-level + traverse rows are null", () => {
+    const { mission } = buildFixture();
+    // s1: a1 (EV1, 20 min, 100 g), a2 (EV2, 30 min, 50 g); walkback 600 m -> 18 min.
+    const s1 = computeSequenceItemMetrics({
+      mission,
+      column: evaColumn,
+      item: stationItem("s1", "Station 1"),
+    });
+
+    expect(s1.totalEvaTimeCalculated).toBe(30); // station's dwell
+    expect(s1.dwellEv1).toBe(20);
+    expect(s1.dwellEv2).toBe(30);
+    expect(s1.totalDwellTime).toBe(30); // max(EV1, EV2)
+    expect(s1.stationCount).toBe(1);
+    expect(s1.actionCount).toBe(2);
+    expect(s1.totalActionTime).toBe(50);
+    expect(s1.plannedSampleMass).toBe(0.15);
+    expect(s1.singleUseConsumablesCount).toBe(0); // s1 actions use no equipment
+    expect(s1.worstCaseWalkbackDuration).toBe(18);
+    expect(s1.maxDistanceFromLander).toBe(
+      getDistanceBetweenTwoCoordinates({ lat: 0, lng: 0.05 }, LANDER, RADIUS)
+    );
+
+    // EVA-level rows never attribute to a single item.
+    expect(s1.allottedEvaTime).toBeNull();
+    expect(s1.evaTimeMargin).toBeNull();
+    // Traverse-only rows are null on a station.
+    expect(s1.totalTraverseTime).toBeNull();
+    expect(s1.totalTraverseDistance).toBeNull();
+    // REX-only rows null on a plan column.
+    expect(s1.actualSampleMass).toBeNull();
+  });
+
+  test("attributes a traverse's distance/ascent; station-only rows are null", () => {
+    const { mission } = buildFixture();
+    // t1: 300 m -> 9 min at 2 km/h; ascent 10, descent 5; no actions.
+    const t1 = computeSequenceItemMetrics({
+      mission,
+      column: evaColumn,
+      item: traverseItem("t1", "Traverse 1"),
+    });
+
+    expect(t1.totalTraverseTime).toBe(9);
+    expect(t1.totalEvaTimeCalculated).toBe(9); // duration + own dwell (0)
+    expect(t1.totalTraverseDistance).toBe(300);
+    expect(t1.totalAscent).toBe(10);
+    expect(t1.totalDescent).toBe(5);
+    expect(t1.actionCount).toBe(0);
+    expect(t1.maxDistanceFromLander).toBe(
+      getDistanceBetweenTwoCoordinates({ lat: 0, lng: 0.02 }, LANDER, RADIUS)
+    );
+    // Station-only rows null on a traverse.
+    expect(t1.stationCount).toBeNull();
+    expect(t1.worstCaseWalkbackDuration).toBeNull();
+  });
+
+  test("summable rows sum to the column Total; max rows equal the item max", () => {
+    const { mission } = buildFixture();
+    const total = computeComparisonColumnValues({ mission, column: evaColumn });
+    const items = [
+      traverseItem("t1", "Traverse 1"),
+      stationItem("s1", "Station 1"),
+      stationItem("s2", "Station 2"),
+    ].map((item) => computeSequenceItemMetrics({ mission, column: evaColumn, item }));
+
+    const sumOf = (id: string) =>
+      items.reduce((acc, values) => acc + ((values[id] as number | null) ?? 0), 0);
+
+    for (const id of [
+      "totalDwellTime",
+      "dwellEv1",
+      "dwellEv2",
+      "actionCount",
+      "totalActionTime",
+      "plannedSampleMass",
+      "stationCount",
+      "totalTraverseDistance",
+      "singleUseConsumablesCount",
+    ]) {
+      expect(sumOf(id)).toBeCloseTo(total[id] as number, 10);
+    }
+
+    const maxOf = (id: string) =>
+      Math.max(...items.map((values) => (values[id] as number | null) ?? 0));
+    expect(maxOf("maxDistanceFromLander")).toBe(total.maxDistanceFromLander);
+    expect(maxOf("worstCaseWalkbackDuration")).toBe(total.worstCaseWalkbackDuration);
+  });
+
+  test("REX column attributes REX-only rows per station from action entries", () => {
+    const { mission } = buildFixture();
+    // s1 holds a1 (complete, 90 g) + a2 (skipped, 40 g); s2 holds a3 (complete, 210 g).
+    const s1 = computeSequenceItemMetrics({
+      mission,
+      column: rexColumn,
+      item: stationItem("s1", "Station 1"),
+    });
+    expect(s1.actualSampleMass).toBe(0.13);
+    expect(s1.actionsCompleteCount).toBe(1);
+    expect(s1.actionsSkippedCount).toBe(1);
+    // Position track is REX-level, not attributable per station.
+    expect(s1.actualDistanceWalked).toBeNull();
+
+    const s2 = computeSequenceItemMetrics({
+      mission,
+      column: rexColumn,
+      item: stationItem("s2", "Station 2"),
+    });
+    expect(s2.actualSampleMass).toBe(0.21);
+    expect(s2.actionsCompleteCount).toBe(1);
+    expect(s2.actionsSkippedCount).toBe(0);
+  });
+
+  test("missing EVA or missing station yields all-null values", () => {
+    const { mission } = buildFixture();
+    const ghostEva = computeSequenceItemMetrics({
+      mission,
+      column: { ...evaColumn, evaUuid: "ghost" },
+      item: stationItem("s1", "Station 1"),
+    });
+    for (const row of EVA_COMPARISON_METRIC_ROWS) expect(ghostEva[row.id]).toBeNull();
+
+    const ghostStation = computeSequenceItemMetrics({
+      mission,
+      column: evaColumn,
+      item: stationItem("ghost", "Ghost"),
+    });
+    for (const row of EVA_COMPARISON_METRIC_ROWS) expect(ghostStation[row.id]).toBeNull();
   });
 });
 
