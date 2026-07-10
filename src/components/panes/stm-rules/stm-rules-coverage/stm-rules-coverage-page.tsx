@@ -12,9 +12,9 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import {
   computeColumnCoverage,
   getCoverageDifferences,
-  getEvaColumns,
   getEvaSequenceItems,
 } from "utils/stmEvaCoverage";
+import { getCampaignMemberItems, getEvaColumns } from "utils/evaReportColumns";
 import {
   STM_COVERAGE_STATION_CELL_WIDTH,
   STM_COVERAGE_SUMMARY_CELL_WIDTH,
@@ -45,6 +45,7 @@ const StmCoveragePage: FunctionComponent = () => {
       traverses: m?.traverses,
       evas: m?.evas,
       rexes: m?.rexes,
+      reportCampaigns: m?.reportCampaigns,
     }),
     shallowEqual
   );
@@ -101,7 +102,9 @@ const StmCoveragePage: FunctionComponent = () => {
     if (!mission) return result;
     for (const column of visibleColumns) {
       if (expandedColumnKeys.includes(column.key)) {
-        result[column.key] = getEvaSequenceItems(mission, column.evaUuid);
+        result[column.key] = column.campaignUuid
+          ? getCampaignMemberItems(mission, column)
+          : getEvaSequenceItems(mission, column.evaUuid ?? "");
       }
     }
     return result;

@@ -1,6 +1,5 @@
-import sortBy from "lodash/sortBy";
 import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
-import { getAsPlannedEvaFromRefUuid, selectEvaStations, selectEvaTraverses } from "store/selectors";
+import { getEligibleActionsForColumn } from "utils/evaReportColumns";
 
 /**
  * Pure computation module for the STM Rules v2 "EVA Coverage" report.
@@ -10,151 +9,9 @@ import { getAsPlannedEvaFromRefUuid, selectEvaStations, selectEvaTraverses } fro
  * upcoming rules-to-Automerge migration only changes the caller's selector, not
  * this module.
  *
- * Types (StmCoverageEvaColumn, StmCoverageLevel3, RexStatusFilter, ...) are
+ * Types (EvaReportColumn, StmCoverageLevel3, RexStatusFilter, ...) are
  * declared ambiently in typings/stm.d.ts.
  */
-
-/** groupKey of the trailing group holding rexes with no matching as-planned EVA. */
-export const STM_COVERAGE_ORPHAN_GROUP_KEY = "__orphanRexes__";
-export const STM_COVERAGE_ORPHAN_GROUP_LABEL = "Other REXes";
-
-/**
- * Builds the grid's columns, grouped by as-planned EVA: each plan column
- * (sorted by EVA name) is immediately followed by its REX execution columns
- * (sorted by rex name — REX EVAs have a blank name, their display name lives
- * on the Rex). A rex belongs to the as-planned EVA whose refUuid matches its
- * own EVA's refUuid (stageDuplicateEva preserves refUuid for REX EVAs). Rexes
- * whose as-planned EVA can't be resolved land in a trailing "Other REXes"
- * group; rexes pointing at a missing EVA are skipped entirely.
- */
-export const getEvaColumns = (mission: Mission): StmCoverageEvaColumn[] => {
-  const rexes = sortBy(Object.values(mission?.rexes ?? {}), [(rex) => rex.name.toLowerCase()]);
-  const rexEvaUuids = rexes.map((rex) => rex.evaUuid);
-
-  const asPlannedEvas = sortBy(
-    Object.values(mission?.evas ?? {}).filter((eva) => !rexEvaUuids.includes(eva.uuid)),
-    [(eva) => eva.name.toLowerCase()]
-  );
-
-  const rexColumn = (rex: Rex, groupKey: string, groupLabel: string): StmCoverageEvaColumn => ({
-    key: rex.uuid,
-    evaUuid: rex.evaUuid,
-    isRex: true,
-    rexUuid: rex.uuid,
-    label: rex.name,
-    groupKey,
-    groupLabel,
-  });
-
-  // Resolve each rex's as-planned parent EVA once via the canonical selector,
-  // so this grouping can never drift from getAsPlannedEvaFromRefUuid's semantics.
-  const asPlannedEvaByRexUuid = new Map<string, Eva | undefined>();
-  for (const rex of rexes) {
-    const rexEva = mission?.evas?.[rex.evaUuid];
-    asPlannedEvaByRexUuid.set(
-      rex.uuid,
-      rexEva ? getAsPlannedEvaFromRefUuid(mission, rexEva.refUuid) : undefined
-    );
-  }
-
-  const groupedRexUuids = new Set<string>();
-  const columns: StmCoverageEvaColumn[] = [];
-  for (const eva of asPlannedEvas) {
-    columns.push({
-      key: eva.uuid,
-      evaUuid: eva.uuid,
-      isRex: false,
-      label: eva.name,
-      groupKey: eva.uuid,
-      groupLabel: eva.name,
-    });
-    for (const rex of rexes) {
-      if (groupedRexUuids.has(rex.uuid)) continue;
-      if (asPlannedEvaByRexUuid.get(rex.uuid)?.uuid === eva.uuid) {
-        groupedRexUuids.add(rex.uuid);
-        columns.push(rexColumn(rex, eva.uuid, eva.name));
-      }
-    }
-  }
-
-  // Rexes whose EVA exists but matches no as-planned EVA's refUuid
-  for (const rex of rexes) {
-    if (!groupedRexUuids.has(rex.uuid) && mission?.evas?.[rex.evaUuid]) {
-      columns.push(rexColumn(rex, STM_COVERAGE_ORPHAN_GROUP_KEY, STM_COVERAGE_ORPHAN_GROUP_LABEL));
-    }
-  }
-
-  return columns;
-};
-
-/**
- * Chunks an ordered column list (getEvaColumns order, possibly with hidden
- * columns filtered out) into runs of consecutive columns sharing a groupKey.
- * The header and row renderers both use this so band widths and divider
- * positions always line up.
- */
-export const groupCoverageColumns = (columns: StmCoverageEvaColumn[]): StmCoverageColumnGroup[] => {
-  const groups: StmCoverageColumnGroup[] = [];
-  for (const column of columns) {
-    const lastGroup = groups[groups.length - 1];
-    if (lastGroup && lastGroup.groupKey === column.groupKey) {
-      lastGroup.columns.push(column);
-    } else {
-      groups.push({
-        groupKey: column.groupKey,
-        groupLabel: column.groupLabel,
-        columns: [column],
-      });
-    }
-  }
-  return groups;
-};
-
-/**
- * Resolves the rexStatus of an action within a rex.
- * A null actionEntries record, missing entry, or null rexStatus all mean "pending".
- */
-export const getActionRexStatus = (rex: Rex | undefined, actionUuid: string): RexStatus => {
-  return rex?.actionEntries?.[actionUuid]?.rexStatus ?? "pending";
-};
-
-/**
- * All actions in a column's EVA that are eligible for rule matching:
- * stmAction, enabled, parented by one of the EVA's stations or traverses, and
- * (for REX columns) passing the rex-status filter.
- */
-export const getEligibleActionsForColumn = ({
-  mission,
-  column,
-  rexStatusFilter,
-}: {
-  mission: Mission;
-  column: StmCoverageEvaColumn;
-  rexStatusFilter: RexStatusFilter;
-}): Action[] => {
-  const stationUuids = new Set(
-    selectEvaStations(mission, column.evaUuid).map((station) => station.uuid)
-  );
-  const traverseUuids = new Set(
-    selectEvaTraverses(mission, column.evaUuid).map((traverse) => traverse.uuid)
-  );
-
-  const rex = column.isRex && column.rexUuid ? mission?.rexes?.[column.rexUuid] : undefined;
-
-  return Object.values(mission?.actions ?? {}).filter((action) => {
-    if (!action.stmAction || !action.enabled) return false;
-    const inEva =
-      (action.stationUuid && stationUuids.has(action.stationUuid)) ||
-      (action.traverseUuid && traverseUuids.has(action.traverseUuid));
-    if (!inEva) return false;
-    if (column.isRex && rexStatusFilter !== "all") {
-      const rexStatus = getActionRexStatus(rex, action.uuid);
-      if (rexStatusFilter === "notSkipped") return rexStatus !== "skipped";
-      if (rexStatusFilter === "completeOnly") return rexStatus === "complete";
-    }
-    return true;
-  });
-};
 
 /**
  * Computes the StmCoverageLevel3 for every level3, for one EVA column.
@@ -169,7 +26,7 @@ export const computeColumnCoverage = ({
   mission: Mission;
   level3s: STMLevel3[];
   rules: STMRule[];
-  column: StmCoverageEvaColumn;
+  column: EvaReportColumn;
   rexStatusFilter: RexStatusFilter;
 }): { [stmUuid: string]: StmCoverageLevel3 } => {
   const eligibleActions = getEligibleActionsForColumn({ mission, column, rexStatusFilter });
@@ -346,7 +203,7 @@ export const getCoverageDifferences = ({
 }: {
   mission: Mission;
   coverageByColumnKey: { [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 } };
-  columns: StmCoverageEvaColumn[];
+  columns: EvaReportColumn[];
   baselineKey: string;
   level3s: STMLevel3[];
 }): { stmUuids: Set<string>; columnKeys: Set<string> } => {
@@ -400,7 +257,7 @@ export const groupMatchesBySequenceItem = ({
       }
     }
   }
-  return { stations, traverses };
+  return { stations, traverses, evas: {} };
 };
 
 /**

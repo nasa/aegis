@@ -94,11 +94,13 @@ type RexStatusFilter = "all" | "notSkipped" | "completeOnly";
  * groupLabel is the as-planned EVA's name. Orphan rexes (no as-planned EVA with
  * a matching refUuid) share a trailing "Other REXes" group.
  */
-type StmCoverageEvaColumn = {
+type EvaReportColumn = {
   key: string;
-  evaUuid: string;
+  kind: "eva" | "rex" | "campaignPlanned" | "campaignExecuted";
+  evaUuid?: string;
   isRex: boolean;
   rexUuid?: string;
+  campaignUuid?: string;
   label: string;
   groupKey: string;
   groupLabel: string;
@@ -108,7 +110,7 @@ type StmCoverageEvaColumn = {
 type StmCoverageColumnGroup = {
   groupKey: string;
   groupLabel: string;
-  columns: StmCoverageEvaColumn[];
+  columns: EvaReportColumn[];
 };
 
 /** Coverage of a single rule within one EVA column. */
@@ -151,6 +153,7 @@ type StmCoverageLevel3 = {
 type StmCoverageSequenceItemMatches = {
   stations: { [stationUuid: string]: number };
   traverses: { [traverseUuid: string]: number };
+  evas: { [evaUuid: string]: number };
 };
 
 /**
@@ -158,7 +161,7 @@ type StmCoverageSequenceItemMatches = {
  * sequence order. `icon` is the station's emoji icon value (stations only).
  */
 type StmCoverageSequenceItem = {
-  type: "station" | "traverse";
+  type: "station" | "traverse" | "eva";
   uuid: string;
   name: string;
   icon?: string;
@@ -181,6 +184,8 @@ type StmCoverageCellSelection = {
   stationUuid?: string;
   /** set when a per-traverse sub-cell was clicked */
   traverseUuid?: string;
+  /** set when a campaign member EVA sub-cell was clicked */
+  evaUuid?: string;
 } | null;
 
 /**
@@ -196,7 +201,7 @@ type StmCoverageDerivedData = {
    * removed, and when "differences only" is on so are columns identical to
    * the baseline.
    */
-  visibleColumns: StmCoverageEvaColumn[];
+  visibleColumns: EvaReportColumn[];
   coverageByColumnKey: { [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 } };
   /** Baseline column key after fallback resolution. */
   resolvedBaselineKey: string | null;

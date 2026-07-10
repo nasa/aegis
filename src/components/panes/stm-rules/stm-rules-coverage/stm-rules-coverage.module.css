@@ -39,28 +39,112 @@
   font-weight: 300;
   white-space: nowrap;
 }
-.multiselectDropdownOutside {
+.columnVisibilityPanelOutside {
   position: relative;
-  width: 160px;
-  height: 20px;
+  flex: 0 0 auto;
 }
-.multiselectDropdownContainer {
-  position: absolute;
-  top: 0;
-  width: 160px;
+
+.columnVisibilityPanelButton {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 10px;
+  border: 1px solid var(--grey2);
+  border-radius: var(--radius);
   background-color: var(--grey3);
+  color: inherit;
   cursor: pointer;
   user-select: none;
+  white-space: nowrap;
+}
+
+.columnVisibilityPanel {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  width: 280px;
+  max-height: min(500px, calc(100vh - 180px));
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--grey1);
+  border-radius: var(--radius);
+  background-color: var(--grey3);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 35%);
   z-index: 20;
 }
-.multiselectDropdownHeader {
-  height: 20px;
+
+.columnVisibilitySection + .columnVisibilitySection {
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid var(--grey2);
+}
+
+.columnVisibilityToggleSection {
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--grey2);
+}
+
+.columnVisibilitySectionHeader,
+.columnVisibilityGroupRow,
+.columnVisibilityChildRow,
+.columnVisibilityToggleRow {
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
   align-items: center;
-  padding: 0 5px 0 4px;
+  gap: 6px;
+  min-height: 23px;
+}
+
+.columnVisibilitySectionHeader {
+  font-size: 0.85em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.columnVisibilityToggleRow {
+  cursor: pointer;
   font-size: 0.9em;
+  font-weight: 500;
+}
+
+.columnVisibilityGroup {
+  margin-top: 3px;
+}
+
+.columnVisibilityGroupRow {
+  font-weight: 500;
+}
+
+.columnVisibilityCheckbox {
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--blue, #4a90e2);
+  cursor: pointer;
+}
+
+.columnVisibilityExpandButton {
+  width: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.columnVisibilityGroupLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.columnVisibilityChildren {
+  margin-left: 24px;
+}
+
+.columnVisibilityChildRow {
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 300;
 }
 
 /* ---------- header ---------- */
@@ -202,6 +286,22 @@
   flex: 0 0 4px;
   align-self: stretch;
   background-color: var(--grey0);
+}
+
+.campaignDivider {
+  flex-basis: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sectionDividerLabel {
+  color: white;
+  font-size: 0.75em;
+  font-weight: 600;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
 }
 
 /* ---------- table rows ---------- */
