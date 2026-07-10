@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react";
 import { useRef } from "react";
-import styles from "./stm-rules-coverage.module.css";
+import styles from "../shared/report-grid.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXmark, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
 
@@ -11,7 +11,7 @@ import { faXmark, faCircleQuestion } from "@fortawesome/free-solid-svg-icons";
  * reuse the exact status/diff classes from the grid so the legend can never
  * drift from the real cells.
  */
-const StmCoverageHelp: FunctionComponent = () => {
+const EvaStmCoverageHelp: FunctionComponent = () => {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   return (
@@ -201,4 +201,4 @@ const StmCoverageHelp: FunctionComponent = () => {
   );
 };
 
-export default StmCoverageHelp;
+export default EvaStmCoverageHelp;

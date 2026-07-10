@@ -2,10 +2,11 @@ import type { FunctionComponent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown, faChevronRight, faSliders } from "@fortawesome/free-solid-svg-icons";
-import styles from "./stm-rules-coverage.module.css";
+import styles from "./report-grid.module.css";
 import { STM_COVERAGE_ORPHAN_GROUP_KEY, groupCoverageColumns } from "utils/evaReportColumns";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { stmCoverageSetColumnsHidden } from "store/stm";
+import { reportSetColumnsHidden } from "store/report";
+import { useReportId } from "../reports-context";
 
 /** A checkbox that represents all, none, or part of a set of table columns. */
 const ColumnVisibilityCheckbox: FunctionComponent<{
@@ -14,6 +15,7 @@ const ColumnVisibilityCheckbox: FunctionComponent<{
   label: string;
 }> = ({ columnKeys, hiddenColumnKeys, label }) => {
   const dispatch = useAppDispatch();
+  const reportId = useReportId();
   const checkboxRef = useRef<HTMLInputElement>(null);
   const visibleCount = columnKeys.filter((key) => !hiddenColumnKeys.includes(key)).length;
   const checked = visibleCount === columnKeys.length;
@@ -32,7 +34,8 @@ const ColumnVisibilityCheckbox: FunctionComponent<{
       aria-label={label}
       onChange={() =>
         dispatch(
-          stmCoverageSetColumnsHidden({
+          reportSetColumnsHidden({
+            reportId,
             columnKeys,
             hidden: checked,
           })
@@ -130,7 +133,7 @@ const ViewToggle: FunctionComponent<{
  * toggle an entire EVA family or campaign, while child rows retain precise
  * per-column control.
  */
-const StmCoverageColumnPanel: FunctionComponent<{
+const ReportColumnPanel: FunctionComponent<{
   allColumns: EvaReportColumn[];
   hiddenColumnKeys: string[];
 }> = ({ allColumns, hiddenColumnKeys }) => {
@@ -210,4 +213,4 @@ const StmCoverageColumnPanel: FunctionComponent<{
   );
 };
 
-export default StmCoverageColumnPanel;
+export default ReportColumnPanel;
