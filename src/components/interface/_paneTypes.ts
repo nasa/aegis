@@ -10,8 +10,16 @@ import MissionConfig from "components/panes/mission/mission";
 import MissionConfigRight from "components/panes/mission/mission-right";
 import StmViewerPage from "components/panes/stm-legacy/stm-legacy-viewer-page";
 import StmRulesPage from "components/panes/stm-rules/stm-rules-page";
+import ReportsPage from "components/panes/reports/reports-page";
 import StationIcon from "assets/station.svg?react";
-import { faCircle, faFlask, faGlobe, faRocket, faRoute } from "@fortawesome/free-solid-svg-icons";
+import {
+  faChartColumn,
+  faCircle,
+  faFlask,
+  faGlobe,
+  faRocket,
+  faRoute,
+} from "@fortawesome/free-solid-svg-icons";
 import type { ReactNode } from "react";
 
 export const getPaneTypes = (actionSystemVersion = 1): PaneTypes => {
@@ -78,6 +86,14 @@ export const getPaneTypes = (actionSystemVersion = 1): PaneTypes => {
         rightPane: StmRulesPage,
         color: "var(--stmViewer)",
         icon: faFlask,
+        fullScreen: true,
+      },
+      reports: {
+        title: "Reports",
+        leftPane: (): ReactNode => null,
+        rightPane: ReportsPage,
+        color: "var(--reports)",
+        icon: faChartColumn,
         fullScreen: true,
       },
     };

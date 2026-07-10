@@ -6,12 +6,10 @@ import { setStmRulesActiveTab } from "store/stm";
 import { thunkCancelStmRuleByUuid } from "store/thunk/thunkStmRules";
 import StmRulesTabRules from "./stm-rules-tab-rules";
 import StmRulesTabMatches from "./stm-rules-tab-matches";
-import StmCoveragePage from "./stm-rules-coverage/stm-rules-coverage-page";
 
 const TABS: { key: StmRulesTab; label: string }[] = [
   { key: "rules", label: "Rules" },
   { key: "matches", label: "Rule Matches" },
-  { key: "coverage", label: "EVA Coverage" },
 ];
 
 const StmRulesPage: FunctionComponent = () => {
@@ -42,7 +40,6 @@ const StmRulesPage: FunctionComponent = () => {
         </div>
         {activeTab === "rules" && <StmRulesTabRules />}
         {activeTab === "matches" && <StmRulesTabMatches />}
-        {activeTab === "coverage" && <StmCoveragePage />}
       </div>
     </div>
   );

@@ -1,13 +1,13 @@
 import type { CSSProperties, FunctionComponent } from "react";
 import { useEffect, useMemo } from "react";
-import styles from "./stm-rules-coverage.module.css";
+import styles from "../shared/report-grid.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
-  stmCoverageSetDerivedData,
-  stmCoverageSetHoveredLeftItem,
-  stmCoverageSetHoveredTopItem,
-} from "store/stm";
+  reportSetColumnDerivedData,
+  reportSetHoveredLeftItem,
+  reportSetHoveredTopItem,
+} from "store/report";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import {
   computeColumnCoverage,
@@ -18,26 +18,29 @@ import { getCampaignMemberItems, getEvaColumns } from "utils/evaReportColumns";
 import {
   STM_COVERAGE_STATION_CELL_WIDTH,
   STM_COVERAGE_SUMMARY_CELL_WIDTH,
-} from "../stm-rules-tier-titles";
-import StmCoverageControls from "./stm-rules-coverage-controls";
-import StmCoverageHeader from "./stm-rules-coverage-header";
-import StmCoverageTable from "./stm-rules-coverage-table";
-import StmCoverageDrilldown from "./stm-rules-coverage-drilldown";
+} from "../../stm-rules/stm-rules-tier-titles";
+import ReportControls from "../shared/report-controls";
+import ReportColumnHeader, { CoverageHeaderLeftAxis } from "../shared/report-column-header";
+import { ReportIdProvider } from "../reports-context";
+import EvaStmCoverageTable from "./eva-stm-coverage-table";
+import EvaStmCoverageDrilldown from "./eva-stm-coverage-drilldown";
+import EvaStmCoverageHelp from "./eva-stm-coverage-help";
+
+const REPORT_ID: ColumnReportId = "stmCoverage";
 
 /**
- * "EVA Coverage" tab: STM level3 items down the left, one column per EVA
- * (as-planned and REX), each cell rolling up how that EVA's actions satisfy
- * the level3's rules. A baseline column plus diff mode lets flight controllers
- * compare EVA plans and see where coverage differs.
+ * "EVA STM Coverage" report: STM level3 items down the left, one column per EVA
+ * (as-planned and REX) plus per-campaign planned/executed columns, each cell
+ * rolling up how that column's actions satisfy the level3's rules. A baseline
+ * column plus diff mode lets flight controllers compare EVA plans and see where
+ * coverage differs. Shares the header/controls/cell grid with EVA Comparison.
  */
-const StmCoveragePage: FunctionComponent = () => {
+const EvaStmCoveragePage: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const mission = useMissionDocSelector((m) => m, refEqual);
-  // The coverage computation only reads these 5 collections. Gate the memos
-  // below on their identity (shallowEqual) rather than the whole mission's, so
-  // an unrelated doc mutation elsewhere (e.g. renaming a POI) doesn't force a
-  // full coverage recompute — Automerge only gives a new reference to a
-  // collection when something inside it actually changed.
+  // The coverage computation only reads these collections. Gate the memos below
+  // on their identity (shallowEqual) rather than the whole mission's, so an
+  // unrelated doc mutation elsewhere doesn't force a full coverage recompute.
   const coverageRevision = useMissionDocSelector(
     (m) => ({
       actions: m?.actions,
@@ -51,18 +54,27 @@ const StmCoveragePage: FunctionComponent = () => {
   );
   const level3s = useAppSelector((state) => state.stm.level3s, shallowEqual);
   const rules = useAppSelector((state) => state.stm.rules, deepEqual);
-  const hiddenColumns = useAppSelector((state) => state.stm.stmCoverageHiddenColumns, shallowEqual);
-  const rexStatusFilter = useAppSelector((state) => state.stm.stmCoverageRexStatusFilter, refEqual);
-  const differencesOnly = useAppSelector((state) => state.stm.stmCoverageDifferencesOnly, refEqual);
+  const hiddenColumns = useAppSelector(
+    (state) => state.report[REPORT_ID].hiddenColumns,
+    shallowEqual
+  );
+  const rexStatusFilter = useAppSelector(
+    (state) => state.report[REPORT_ID].rexStatusFilter,
+    refEqual
+  );
+  const differencesOnly = useAppSelector(
+    (state) => state.report[REPORT_ID].differencesOnly,
+    refEqual
+  );
   const storedBaselineKey = useAppSelector(
-    (state) => state.stm.stmCoverageBaselineColumnKey,
+    (state) => state.report[REPORT_ID].baselineColumnKey,
     refEqual
   );
   const expandedColumnKeys = useAppSelector(
-    (state) => state.stm.stmCoverageExpandedEvaColumns,
+    (state) => state.report[REPORT_ID].expandedColumns,
     shallowEqual
   );
-  const cellSelection = useAppSelector((state) => state.stm.stmCoverageCellSelection, refEqual);
+  const cellSelection = useAppSelector((state) => state.report[REPORT_ID].cellSelection, refEqual);
 
   const allColumns = useMemo(
     () => (mission ? getEvaColumns(mission) : []),
@@ -138,17 +150,19 @@ const StmCoveragePage: FunctionComponent = () => {
   );
   const visibleStmUuids = coverageDifferences?.stmUuids ?? null;
 
-  // Mirror the derived data into the stm slice so the grid components can read
-  // it from Redux instead of a context. visibleStmUuids is stored as an array
-  // to keep the store serializable.
+  // Mirror the derived data into the report slice so the grid components can
+  // read it from Redux instead of a context / prop-drilling.
   useEffect(() => {
     dispatch(
-      stmCoverageSetDerivedData({
-        visibleColumns: displayedColumns,
-        coverageByColumnKey,
-        resolvedBaselineKey: baselineKey,
-        sequenceByColumnKey,
-        visibleStmUuids: visibleStmUuids ? [...visibleStmUuids] : null,
+      reportSetColumnDerivedData({
+        reportId: REPORT_ID,
+        data: {
+          visibleColumns: displayedColumns,
+          coverageByColumnKey,
+          resolvedBaselineKey: baselineKey,
+          sequenceByColumnKey,
+          visibleRowIds: visibleStmUuids ? [...visibleStmUuids] : null,
+        },
       })
     );
   }, [
@@ -163,8 +177,12 @@ const StmCoveragePage: FunctionComponent = () => {
   if (!mission) return null;
 
   return (
-    <>
-      <StmCoverageControls allColumns={allColumns} baselineKey={baselineKey} />
+    <ReportIdProvider value={REPORT_ID}>
+      <ReportControls
+        allColumns={allColumns}
+        baselineKey={baselineKey}
+        help={<EvaStmCoverageHelp />}
+      />
       <div className={styles.coverageBody}>
         <div
           className={styles.gridScroll}
@@ -175,17 +193,17 @@ const StmCoveragePage: FunctionComponent = () => {
             } as CSSProperties
           }
           onMouseLeave={() => {
-            dispatch(stmCoverageSetHoveredTopItem(null));
-            dispatch(stmCoverageSetHoveredLeftItem(null));
+            dispatch(reportSetHoveredTopItem({ reportId: REPORT_ID, item: null }));
+            dispatch(reportSetHoveredLeftItem({ reportId: REPORT_ID, item: null }));
           }}
         >
-          <StmCoverageHeader />
-          <StmCoverageTable />
+          <ReportColumnHeader leftAxis={<CoverageHeaderLeftAxis />} />
+          <EvaStmCoverageTable />
         </div>
-        {cellSelection && <StmCoverageDrilldown />}
+        {cellSelection && <EvaStmCoverageDrilldown />}
       </div>
-    </>
+    </ReportIdProvider>
   );
 };
 
-export default StmCoveragePage;
+export default EvaStmCoveragePage;
