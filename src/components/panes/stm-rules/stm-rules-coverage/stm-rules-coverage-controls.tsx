@@ -4,20 +4,15 @@ import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
   stmCoverageSetBaselineColumnKey,
-  stmCoverageSetColumnsHidden,
   stmCoverageSetRexStatusFilter,
   stmCoverageToggleDiffMode,
   stmCoverageToggleDifferencesOnly,
-  stmCoverageToggleHiddenColumn,
 } from "store/stm";
-import {
-  Button,
-  Checkbox,
-  Dropdown,
-  MultiSelectDropdown,
-} from "components/interface/form/globalFields";
+import { Button, Checkbox, Dropdown } from "components/interface/form/globalFields";
 import { faCodeCompare } from "@fortawesome/free-solid-svg-icons";
 import StmCoverageHelp from "./stm-rules-coverage-help";
+import ReportCampaignsDialog from "./report-campaigns-dialog";
+import StmCoverageColumnPanel from "./stm-rules-coverage-column-panel";
 
 const REX_STATUS_FILTER_OPTIONS: { value: RexStatusFilter; label: string }[] = [
   { value: "all", label: "All actions" },
@@ -29,7 +24,7 @@ const REX_STATUS_FILTER_OPTIONS: { value: RexStatusFilter; label: string }[] = [
 const REX_OPTION_INDENT = "   ";
 
 const StmCoverageControls: FunctionComponent<{
-  allColumns: StmCoverageEvaColumn[];
+  allColumns: EvaReportColumn[];
   baselineKey: string | null;
 }> = ({ allColumns, baselineKey }) => {
   const dispatch = useAppDispatch();
@@ -38,29 +33,9 @@ const StmCoverageControls: FunctionComponent<{
   const rexStatusFilter = useAppSelector((state) => state.stm.stmCoverageRexStatusFilter, refEqual);
   const hiddenColumns = useAppSelector((state) => state.stm.stmCoverageHiddenColumns, shallowEqual);
 
-  const hasRexColumns = allColumns.some((column) => column.isRex);
-  const shownColumnKeys = allColumns
-    .filter((column) => !hiddenColumns.includes(column.key))
-    .map((column) => column.key);
-
-  // Toggling an as-planned EVA hides/shows its REX children with it; toggling
-  // a REX only affects itself. allColumns is already in grouped order (each
-  // plan column immediately followed by its rexes).
-  const toggleColumn = (columnKey: string) => {
-    const column = allColumns.find((c) => c.key === columnKey);
-    if (column && !column.isRex) {
-      const groupKeys = allColumns.filter((c) => c.groupKey === column.groupKey).map((c) => c.key);
-      dispatch(
-        stmCoverageSetColumnsHidden({
-          columnKeys: groupKeys,
-          hidden: !hiddenColumns.includes(columnKey),
-        })
-      );
-    } else {
-      dispatch(stmCoverageToggleHiddenColumn(columnKey));
-    }
-  };
-
+  const hasRexColumns = allColumns.some(
+    (column) => column.isRex || column.kind === "campaignExecuted"
+  );
   return (
     <div className={styles.controls}>
       <div className={styles.controlGroup}>
@@ -68,13 +43,18 @@ const StmCoverageControls: FunctionComponent<{
         <Dropdown
           selected={baselineKey ?? ""}
           onChange={(columnKey) => dispatch(stmCoverageSetBaselineColumnKey(columnKey))}
+          containerStyle={{ width: "220px", flex: "0 0 220px" }}
           toolTip="EVA that other columns are compared against"
         >
           {allColumns
             .filter((column) => !hiddenColumns.includes(column.key))
             .map((column) => (
               <option key={column.key} value={column.key}>
-                {column.isRex ? `${REX_OPTION_INDENT}${column.label}` : column.label}
+                {column.isRex
+                  ? `${REX_OPTION_INDENT}${column.label}`
+                  : column.campaignUuid
+                    ? `${column.groupLabel}: ${column.label}`
+                    : column.label}
               </option>
             ))}
         </Dropdown>
@@ -115,21 +95,8 @@ const StmCoverageControls: FunctionComponent<{
           </Dropdown>
         </div>
       )}
-      <div className={styles.multiselectDropdownOutside}>
-        <MultiSelectDropdown
-          items={allColumns.map((column) => ({
-            label: column.label,
-            value: column.key,
-            indentLevel: column.isRex ? 1 : 0,
-          }))}
-          selectedItemsValues={shownColumnKeys}
-          toggleItem={toggleColumn}
-          titleLabel="Columns"
-          containerStyle={{ zIndex: 20 }}
-          containerClassName={styles.multiselectDropdownContainer}
-          headerClassName={styles.multiselectDropdownHeader}
-        />
-      </div>
+      <StmCoverageColumnPanel allColumns={allColumns} hiddenColumnKeys={hiddenColumns} />
+      <ReportCampaignsDialog />
       <StmCoverageHelp />
     </div>
   );

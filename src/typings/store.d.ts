@@ -145,7 +145,7 @@ interface STMState {
   // Derived coverage data, computed once in stm-coverage-page.tsx from the
   // mission doc + the stm slice and mirrored here so the grid components can
   // read it without prop-drilling. See StmCoverageDerivedData.
-  stmCoverageVisibleColumns: StmCoverageEvaColumn[];
+  stmCoverageVisibleColumns: EvaReportColumn[];
   stmCoverageCoverageByColumnKey: {
     [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 };
   };

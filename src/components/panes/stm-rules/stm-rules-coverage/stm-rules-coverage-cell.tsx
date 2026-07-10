@@ -10,6 +10,7 @@ import {
   stmCoverageSetHoveredTopItem,
 } from "store/stm";
 import { diffLevel3Actions, groupMatchesBySequenceItem } from "utils/stmEvaCoverage";
+import { groupCampaignMatchesByMember } from "utils/evaReportColumns";
 
 /** Whether the drilldown selection points at exactly this cell. */
 const isCellSelected = (
@@ -20,7 +21,8 @@ const isCellSelected = (
   selection.stmUuid === target.stmUuid &&
   selection.columnKey === target.columnKey &&
   selection.stationUuid === target.stationUuid &&
-  selection.traverseUuid === target.traverseUuid;
+  selection.traverseUuid === target.traverseUuid &&
+  selection.evaUuid === target.evaUuid;
 
 /**
  * All cells for one (level3 row × EVA column): a single summary cell when the
@@ -28,7 +30,7 @@ const isCellSelected = (
  * order) + Total when expanded. Sub-cell counts always sum to the Total cell.
  */
 export const StmCoverageColumnCells: FunctionComponent<{
-  column: StmCoverageEvaColumn;
+  column: EvaReportColumn;
   stmUuid: string;
 }> = ({ column, stmUuid }) => {
   const mission = useMissionDocSelector((m) => m, refEqual);
@@ -46,14 +48,23 @@ export const StmCoverageColumnCells: FunctionComponent<{
   );
   const coverage = coverageByColumnKey[column.key]?.[stmUuid];
   const isExpanded = expandedColumnKeys.includes(column.key);
-
-  const sequenceMatches = useMemo(
-    () =>
-      mission && coverage && isExpanded
-        ? groupMatchesBySequenceItem({ mission, level3Coverage: coverage })
-        : null,
-    [mission, coverage, isExpanded]
+  const sequenceItems = useMemo(
+    () => sequenceByColumnKey[column.key] ?? [],
+    [sequenceByColumnKey, column.key]
   );
+
+  const sequenceMatches = useMemo(() => {
+    if (!mission || !coverage || !isExpanded) return null;
+    const matches = groupMatchesBySequenceItem({ mission, level3Coverage: coverage });
+    if (column.campaignUuid) {
+      matches.evas = groupCampaignMatchesByMember({
+        mission,
+        column,
+        level3Coverage: coverage,
+      });
+    }
+    return matches;
+  }, [mission, coverage, isExpanded, column]);
 
   if (!coverage) return null;
 
@@ -61,14 +72,15 @@ export const StmCoverageColumnCells: FunctionComponent<{
     return <SummaryCell column={column} stmUuid={stmUuid} coverage={coverage} />;
   }
 
-  const sequenceItems = sequenceByColumnKey[column.key] ?? [];
   return (
     <>
       {sequenceItems.map((item) => {
         const count =
           (item.type === "station"
             ? sequenceMatches?.stations[item.uuid]
-            : sequenceMatches?.traverses[item.uuid]) ?? 0;
+            : item.type === "traverse"
+              ? sequenceMatches?.traverses[item.uuid]
+              : sequenceMatches?.evas[item.uuid]) ?? 0;
         return (
           <CountCell
             key={item.uuid}
@@ -79,7 +91,9 @@ export const StmCoverageColumnCells: FunctionComponent<{
             onClickSelection={
               item.type === "station"
                 ? { stmUuid, columnKey: column.key, stationUuid: item.uuid }
-                : { stmUuid, columnKey: column.key, traverseUuid: item.uuid }
+                : item.type === "traverse"
+                  ? { stmUuid, columnKey: column.key, traverseUuid: item.uuid }
+                  : { stmUuid, columnKey: column.key, evaUuid: item.uuid }
             }
           />
         );
@@ -111,7 +125,7 @@ const STATUS_LABEL: { [status in StmCoverageLevel3Status]: string } = {
  * by the net change.
  */
 const SummaryCell: FunctionComponent<{
-  column: StmCoverageEvaColumn;
+  column: EvaReportColumn;
   stmUuid: string;
   coverage: StmCoverageLevel3;
 }> = ({ column, stmUuid, coverage }) => {
@@ -202,6 +216,7 @@ const CountCell: FunctionComponent<{
     columnKey: string;
     stationUuid?: string;
     traverseUuid?: string;
+    evaUuid?: string;
   };
 }> = ({ cellKey, stmUuid, count, tooltip, onClickSelection }) => {
   const dispatch = useAppDispatch();

@@ -11,6 +11,7 @@ import {
   stmCoverageToggleDrilldownChangesOnly,
 } from "store/stm";
 import { diffRuleActions } from "utils/stmEvaCoverage";
+import { actionBelongsToCampaignMember } from "utils/evaReportColumns";
 import { Checkbox } from "components/interface/form/globalFields";
 
 const DRILLDOWN_MIN_WIDTH = 220;
@@ -59,24 +60,38 @@ const StmCoverageDrilldown: FunctionComponent = () => {
   const coverage = coverageByColumnKey[cellSelection.columnKey]?.[cellSelection.stmUuid];
   if (!column || !coverage) return null;
 
-  const baselineCoverage =
+  const baselineColumn =
     baselineKey && baselineKey !== column.key
-      ? coverageByColumnKey[baselineKey]?.[cellSelection.stmUuid]
-      : null;
+      ? visibleColumns.find((item) => item.key === baselineKey)
+      : undefined;
+  const baselineCoverage = baselineColumn
+    ? coverageByColumnKey[baselineColumn.key]?.[cellSelection.stmUuid]
+    : null;
 
   const diffActive = diffMode && !!baselineCoverage;
-  const scoped = !!cellSelection.stationUuid || !!cellSelection.traverseUuid;
+  const scoped =
+    !!cellSelection.stationUuid || !!cellSelection.traverseUuid || !!cellSelection.evaUuid;
 
   const scopeLabel = cellSelection.stationUuid
     ? mission?.stations?.[cellSelection.stationUuid]?.name
     : cellSelection.traverseUuid
       ? mission?.traverses?.[cellSelection.traverseUuid]?.name
-      : null;
+      : cellSelection.evaUuid
+        ? mission?.evas?.[cellSelection.evaUuid]?.name
+        : null;
 
   const matchesScope = (action: Action | undefined): boolean => {
     if (!action) return false;
     if (cellSelection.stationUuid) return action.stationUuid === cellSelection.stationUuid;
     if (cellSelection.traverseUuid) return action.traverseUuid === cellSelection.traverseUuid;
+    if (cellSelection.evaUuid && mission) {
+      return actionBelongsToCampaignMember({
+        mission,
+        column,
+        memberEvaUuid: cellSelection.evaUuid,
+        action,
+      });
+    }
     return true;
   };
 
@@ -145,6 +160,8 @@ const StmCoverageDrilldown: FunctionComponent = () => {
               diffActive={diffActive}
               changesOnly={changesOnly}
               scoped={scoped}
+              column={column}
+              baselineColumn={baselineColumn}
             />
           ))}
         </div>
@@ -163,6 +180,8 @@ const DrilldownRule: FunctionComponent<{
   diffActive: boolean;
   changesOnly: boolean;
   scoped: boolean;
+  column: EvaReportColumn;
+  baselineColumn: EvaReportColumn | undefined;
 }> = ({
   ruleCoverage,
   rule,
@@ -171,6 +190,8 @@ const DrilldownRule: FunctionComponent<{
   diffActive,
   changesOnly,
   scoped,
+  column,
+  baselineColumn,
 }) => {
   const mission = useMissionDocSelector((m) => m, refEqual);
 
@@ -193,6 +214,14 @@ const DrilldownRule: FunctionComponent<{
   // is misleading, so minus rows only render for whole-column selections.
   const removed = diff && !scoped ? diff.removed : [];
   const noChanges = diff && changesOnly && diff.added.length === 0 && removed.length === 0;
+  const sortActions = (actions: Action[], actionColumn = column): Action[] =>
+    [...actions].sort((a, b) =>
+      getCampaignActionGroupLabel(mission, actionColumn, a).localeCompare(
+        getCampaignActionGroupLabel(mission, actionColumn, b),
+        undefined,
+        { sensitivity: "base" }
+      )
+    );
 
   return (
     <div className={styles.drilldownRule}>
@@ -220,40 +249,49 @@ const DrilldownRule: FunctionComponent<{
         )}
       </div>
       {!diff &&
-        scopedActions.map((action) => (
-          <DrilldownActionRow key={action.uuid} action={action} kind="matched" mission={mission} />
+        sortActions(scopedActions).map((action) => (
+          <DrilldownActionRow
+            key={action.uuid}
+            action={action}
+            kind="matched"
+            mission={mission}
+            column={column}
+          />
         ))}
       {diff && (
         <>
           {!changesOnly &&
-            diff.matched.map((action) => (
+            sortActions(diff.matched).map((action) => (
               <DrilldownActionRow
                 key={`m-${action.uuid}`}
                 action={action}
                 kind="matched"
                 showIndicator={true}
                 mission={mission}
+                column={column}
               />
             ))}
-          {diff.added.map((action) => (
+          {sortActions(diff.added).map((action) => (
             <DrilldownActionRow
               key={`p-${action.uuid}`}
               action={action}
               kind="plus"
               showIndicator={true}
               mission={mission}
+              column={column}
             />
           ))}
           {removed.length > 0 && (
             <>
               <div className={styles.drilldownBaselineSectionLabel}>In baseline only:</div>
-              {removed.map((action) => (
+              {sortActions(removed, baselineColumn).map((action) => (
                 <DrilldownActionRow
                   key={`b-${action.uuid}`}
                   action={action}
                   kind="minus"
                   showIndicator={true}
                   mission={mission}
+                  column={baselineColumn ?? column}
                 />
               ))}
             </>
@@ -263,6 +301,20 @@ const DrilldownRule: FunctionComponent<{
       )}
     </div>
   );
+};
+
+const getCampaignActionGroupLabel = (
+  mission: Mission | undefined,
+  column: EvaReportColumn,
+  action: Action
+): string => {
+  if (!mission || !column.campaignUuid) return "";
+  const campaign = mission.reportCampaigns?.[column.campaignUuid];
+  const memberEvaUuid = campaign?.memberEvaUuids.find((evaUuid) =>
+    actionBelongsToCampaignMember({ mission, column, memberEvaUuid: evaUuid, action })
+  );
+  const memberName = memberEvaUuid ? mission.evas?.[memberEvaUuid]?.name : null;
+  return memberName ? `${memberName} / ` : "";
 };
 
 const DIFF_INDICATORS = { matched: "", plus: "+", minus: "−" };
@@ -283,13 +335,15 @@ const DrilldownActionRow: FunctionComponent<{
   kind: "matched" | "plus" | "minus";
   showIndicator?: boolean;
   mission: Mission | undefined;
-}> = ({ action, kind, showIndicator = false, mission }) => {
+  column: EvaReportColumn;
+}> = ({ action, kind, showIndicator = false, mission, column }) => {
   return (
     <div className={DIFF_ROW_CLASSES[kind]}>
       {showIndicator && (
         <div className={styles.drilldownDiffIndicator}>{DIFF_INDICATORS[kind]}</div>
       )}
       <div className={styles.drilldownActionSequenceName}>
+        {getCampaignActionGroupLabel(mission, column, action)}
         {action.stationUuid
           ? mission?.stations?.[action.stationUuid]?.name
           : mission?.traverses?.[action.traverseUuid]?.name}
