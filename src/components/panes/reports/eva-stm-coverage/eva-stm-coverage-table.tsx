@@ -1,25 +1,25 @@
 import type { FunctionComponent } from "react";
 import { Fragment } from "react";
-import styles from "./stm-rules-coverage.module.css";
+import styles from "../shared/report-grid.module.css";
 import { shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { groupCoverageColumns } from "utils/evaReportColumns";
-import { StmCoverageColumnCells } from "./stm-rules-coverage-cell";
-import STMRulesTable from "../stm-rules-list-table";
+import { EvaStmCoverageColumnCells } from "./eva-stm-coverage-cell";
+import STMRulesTable from "../../stm-rules/stm-rules-list-table";
 
 /**
- * STM hierarchy rows of the EVA Coverage grid. Renders the shared STM
- * hierarchy tree (see STMRulesTable) with per-column coverage cells in place
- * of the Rules tab's rule list.
+ * STM hierarchy rows of the EVA STM Coverage grid. Renders the shared STM
+ * hierarchy tree (see STMRulesTable) with per-column coverage cells in place of
+ * the Rules tab's rule list.
  */
-const StmCoverageTable: FunctionComponent = () => (
-  <STMRulesTable coverageContent={(stmUuid) => <StmCoverageRowCells stmUuid={stmUuid} />} />
+const EvaStmCoverageTable: FunctionComponent = () => (
+  <STMRulesTable coverageContent={(stmUuid) => <EvaStmCoverageRowCells stmUuid={stmUuid} />} />
 );
 
-export default StmCoverageTable;
+export default EvaStmCoverageTable;
 
-const StmCoverageRowCells: FunctionComponent<{ stmUuid: string }> = ({ stmUuid }) => {
+const EvaStmCoverageRowCells: FunctionComponent<{ stmUuid: string }> = ({ stmUuid }) => {
   const visibleColumns = useAppSelector(
-    (state) => state.stm.stmCoverageVisibleColumns,
+    (state) => state.report.stmCoverage.visibleColumns,
     shallowEqual
   );
   const columnGroups = groupCoverageColumns(visibleColumns);
@@ -42,7 +42,7 @@ const StmCoverageRowCells: FunctionComponent<{ stmUuid: string }> = ({ stmUuid }
             />
           )}
           {group.columns.map((column) => (
-            <StmCoverageColumnCells key={column.key} column={column} stmUuid={stmUuid} />
+            <EvaStmCoverageColumnCells key={column.key} column={column} stmUuid={stmUuid} />
           ))}
         </Fragment>
       ))}

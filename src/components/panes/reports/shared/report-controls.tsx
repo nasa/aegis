@@ -1,18 +1,18 @@
-import type { FunctionComponent } from "react";
-import styles from "./stm-rules-coverage.module.css";
+import type { FunctionComponent, ReactNode } from "react";
+import styles from "./report-grid.module.css";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
-  stmCoverageSetBaselineColumnKey,
-  stmCoverageSetRexStatusFilter,
-  stmCoverageToggleDiffMode,
-  stmCoverageToggleDifferencesOnly,
-} from "store/stm";
+  reportSetBaselineColumnKey,
+  reportSetRexStatusFilter,
+  reportToggleDiffMode,
+  reportToggleDifferencesOnly,
+} from "store/report";
 import { Button, Checkbox, Dropdown } from "components/interface/form/globalFields";
 import { faCodeCompare } from "@fortawesome/free-solid-svg-icons";
-import StmCoverageHelp from "./stm-rules-coverage-help";
 import ReportCampaignsDialog from "./report-campaigns-dialog";
-import StmCoverageColumnPanel from "./stm-rules-coverage-column-panel";
+import ReportColumnPanel from "./report-column-panel";
+import { useReportId } from "../reports-context";
 
 const REX_STATUS_FILTER_OPTIONS: { value: RexStatusFilter; label: string }[] = [
   { value: "all", label: "All actions" },
@@ -21,17 +21,43 @@ const REX_STATUS_FILTER_OPTIONS: { value: RexStatusFilter; label: string }[] = [
 ];
 
 /** Non-breaking indent for REX entries nested under their as-planned EVA. */
-const REX_OPTION_INDENT = "   ";
+const REX_OPTION_INDENT = "   ";
 
-const StmCoverageControls: FunctionComponent<{
+/**
+ * The shared controls row for the column-family reports: baseline dropdown,
+ * Diff toggle, Differences-only, Include-REX-actions filter, the View column
+ * panel, Campaigns dialog and a per-report Help slot. Reads/writes
+ * state.report[reportId] via the report context. `differencesOnlyToolTip` lets
+ * each report phrase the row/column filter for its own left axis.
+ */
+const ReportControls: FunctionComponent<{
   allColumns: EvaReportColumn[];
   baselineKey: string | null;
-}> = ({ allColumns, baselineKey }) => {
+  help?: ReactNode;
+  showRexFilter?: boolean;
+  differencesOnlyToolTip?: string;
+}> = ({
+  allColumns,
+  baselineKey,
+  help,
+  showRexFilter = true,
+  differencesOnlyToolTip = "Only show rows and columns that differ from the baseline",
+}) => {
   const dispatch = useAppDispatch();
-  const diffMode = useAppSelector((state) => state.stm.stmCoverageDiffMode, refEqual);
-  const differencesOnly = useAppSelector((state) => state.stm.stmCoverageDifferencesOnly, refEqual);
-  const rexStatusFilter = useAppSelector((state) => state.stm.stmCoverageRexStatusFilter, refEqual);
-  const hiddenColumns = useAppSelector((state) => state.stm.stmCoverageHiddenColumns, shallowEqual);
+  const reportId = useReportId();
+  const diffMode = useAppSelector((state) => state.report[reportId].diffMode, refEqual);
+  const differencesOnly = useAppSelector(
+    (state) => state.report[reportId].differencesOnly,
+    refEqual
+  );
+  const rexStatusFilter = useAppSelector(
+    (state) => state.report[reportId].rexStatusFilter,
+    refEqual
+  );
+  const hiddenColumns = useAppSelector(
+    (state) => state.report[reportId].hiddenColumns,
+    shallowEqual
+  );
 
   const hasRexColumns = allColumns.some(
     (column) => column.isRex || column.kind === "campaignExecuted"
@@ -42,9 +68,9 @@ const StmCoverageControls: FunctionComponent<{
         <div className={styles.controlLabel}>Baseline</div>
         <Dropdown
           selected={baselineKey ?? ""}
-          onChange={(columnKey) => dispatch(stmCoverageSetBaselineColumnKey(columnKey))}
+          onChange={(columnKey) => dispatch(reportSetBaselineColumnKey({ reportId, columnKey }))}
           containerStyle={{ width: "220px", flex: "0 0 220px" }}
-          toolTip="EVA that other columns are compared against"
+          toolTip="Column that other columns are compared against"
         >
           {allColumns
             .filter((column) => !hiddenColumns.includes(column.key))
@@ -62,7 +88,7 @@ const StmCoverageControls: FunctionComponent<{
       <Button
         icon={faCodeCompare}
         label="Diff"
-        onClick={() => dispatch(stmCoverageToggleDiffMode())}
+        onClick={() => dispatch(reportToggleDiffMode({ reportId }))}
         toolTip="Show other columns as differences vs the baseline"
         style={
           diffMode
@@ -74,17 +100,19 @@ const StmCoverageControls: FunctionComponent<{
       <Checkbox
         checked={differencesOnly}
         editable={true}
-        onChange={() => dispatch(stmCoverageToggleDifferencesOnly())}
-        toolTip="Only show rows and columns that differ from the baseline"
+        onChange={() => dispatch(reportToggleDifferencesOnly({ reportId }))}
+        toolTip={differencesOnlyToolTip}
         label="Differences only"
-        uniqueId="stm-coverage-differences-only"
+        uniqueId={`${reportId}-differences-only`}
       />
-      {hasRexColumns && (
+      {showRexFilter && hasRexColumns && (
         <div className={styles.controlGroup}>
           <div className={styles.controlLabel}>Include REX actions</div>
           <Dropdown
             selected={rexStatusFilter}
-            onChange={(value) => dispatch(stmCoverageSetRexStatusFilter(value as RexStatusFilter))}
+            onChange={(value) =>
+              dispatch(reportSetRexStatusFilter({ reportId, value: value as RexStatusFilter }))
+            }
             toolTip="Which REX action statuses count toward rule satisfaction"
           >
             {REX_STATUS_FILTER_OPTIONS.map((option) => (
@@ -95,11 +123,11 @@ const StmCoverageControls: FunctionComponent<{
           </Dropdown>
         </div>
       )}
-      <StmCoverageColumnPanel allColumns={allColumns} hiddenColumnKeys={hiddenColumns} />
+      <ReportColumnPanel allColumns={allColumns} hiddenColumnKeys={hiddenColumns} />
       <ReportCampaignsDialog />
-      <StmCoverageHelp />
+      {help}
     </div>
   );
 };
 
-export default StmCoverageControls;
+export default ReportControls;

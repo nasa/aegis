@@ -85,7 +85,8 @@ type InterfaceSection =
   | "station"
   | "evas"
   | "stmViewer"
-  | "stmRules";
+  | "stmRules"
+  | "reports";
 type BottomInterfaceSection = "timeline" | "measure";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
@@ -123,39 +124,89 @@ interface STMState {
   stmViewHoveredTopItem: string | null;
   stmViewHoveredLeftItem: string | null;
   stmRulesSelectedRexes: string[];
-  // v2 STM Satisfaction Rules pane (tabs + reports). Deliberately separate from
-  // the legacy v1 stmView* state above — v1 and v2 never share UI state.
+  // v2 STM Satisfaction Rules pane (tabs). Deliberately separate from the legacy
+  // v1 stmView* state above — v1 and v2 never share UI state. The column-report
+  // UI/derived state (EVA STM Coverage, EVA Comparison) now lives in the `report`
+  // slice, keyed by report id — see ReportState.
   stmRulesActiveTab: StmRulesTab;
   stmRulesSelectedStmUuid: string | null;
   stmRulesSelectedRuleUuid: string | null;
   stmRulesTierExpansion: StmRulesTierExpansion;
-  stmCoverageBaselineColumnKey: string | null;
-  stmCoverageDiffMode: boolean;
-  stmCoverageDifferencesOnly: boolean;
-  stmCoverageRexStatusFilter: RexStatusFilter;
-  stmCoverageHiddenColumns: string[];
-  stmCoverageExpandedEvaColumns: string[];
-  stmCoverageHoveredTopItem: string | null;
-  stmCoverageHoveredLeftItem: string | null;
-  stmCoverageDrilldownWidth: number;
+}
+
+/**
+ * UI + derived state for the column-family reports (EVA STM Coverage, EVA
+ * Comparison). Both reports share the same column header band, grouping,
+ * expansion, baseline + diff grammar and controls, so they share this shape.
+ * The per-report instances are kept apart in ReportState so each tab keeps its
+ * own baseline/diff/hidden/expanded columns and derived data.
+ */
+interface ColumnReportState {
+  baselineColumnKey: string | null;
+  diffMode: boolean;
+  differencesOnly: boolean;
+  rexStatusFilter: RexStatusFilter;
+  hiddenColumns: string[];
+  expandedColumns: string[];
+  hoveredTopItem: string | null;
+  hoveredLeftItem: string | null;
+  drilldownWidth: number;
   // Drilldown diff filter: hide matched rows, show only plus/minus rows.
-  stmCoverageDrilldownChangesOnly: boolean;
-  // Currently-selected coverage cell (drives the drilldown panel).
-  stmCoverageCellSelection: StmCoverageCellSelection;
-  // Derived coverage data, computed once in stm-coverage-page.tsx from the
-  // mission doc + the stm slice and mirrored here so the grid components can
-  // read it without prop-drilling. See StmCoverageDerivedData.
-  stmCoverageVisibleColumns: EvaReportColumn[];
-  stmCoverageCoverageByColumnKey: {
+  drilldownChangesOnly: boolean;
+  // Currently-selected cell (drives the coverage drilldown panel).
+  cellSelection: StmCoverageCellSelection;
+  // Derived data, computed once in the report page from the mission doc + the
+  // stm slice and mirrored here so the grid components can read it without
+  // prop-drilling. coverageByColumnKey is used by EVA STM Coverage;
+  // metricsByColumnKey by EVA Comparison.
+  visibleColumns: EvaReportColumn[];
+  resolvedBaselineKey: string | null;
+  sequenceByColumnKey: { [columnKey: string]: StmCoverageSequenceItem[] };
+  // Left-axis row ids to show when "differences only" is on; null = show all.
+  // (level3 uuids for coverage, metric-row ids for comparison.) Array, not Set,
+  // to keep the store serializable.
+  visibleRowIds: string[] | null;
+  coverageByColumnKey: {
     [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 };
   };
-  // Baseline column key after fallback resolution (the user-chosen key lives in
-  // stmCoverageBaselineColumnKey; this is what the grid actually compares to).
-  stmCoverageResolvedBaselineKey: string | null;
-  stmCoverageSequenceByColumnKey: { [columnKey: string]: StmCoverageSequenceItem[] };
-  // Level3 uuids to show when "differences only" is on; null = show all.
-  // Stored as an array (not a Set) to keep the store serializable.
-  stmCoverageVisibleStmUuids: string[] | null;
+  metricsByColumnKey: { [columnKey: string]: EvaComparisonColumnValues };
+}
+
+/** Patch pushed into a column report each render by its page's derived-data effect. */
+type ColumnReportDerivedData = {
+  visibleColumns: EvaReportColumn[];
+  resolvedBaselineKey: string | null;
+  sequenceByColumnKey: { [columnKey: string]: StmCoverageSequenceItem[] };
+  visibleRowIds: string[] | null;
+  coverageByColumnKey?: { [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 } };
+  metricsByColumnKey?: { [columnKey: string]: EvaComparisonColumnValues };
+};
+
+/** Which set of EVAs the POI Traceability report is scoped to. */
+type PoiTraceScope =
+  | { type: "all" }
+  | { type: "campaignPlanned"; campaignUuid: string }
+  | { type: "campaignExecuted"; campaignUuid: string };
+
+type PoiTraceSortKey = "priority" | "name";
+
+/** UI state for the POI Traceability report (its own report-slice slot). */
+interface PoiTraceState {
+  scope: PoiTraceScope;
+  filterText: string;
+  sortKey: PoiTraceSortKey;
+  selectedPoiUuid: string | null;
+  drilldownWidth: number;
+}
+
+type ColumnReportId = "stmCoverage" | "comparison";
+type ReportId = ColumnReportId | "poiTrace";
+
+/** All Reports-pane UI/derived state, keyed by report id. */
+interface ReportState {
+  stmCoverage: ColumnReportState;
+  comparison: ColumnReportState;
+  poiTrace: PoiTraceState;
 }
 
 interface StationState {
@@ -201,6 +252,7 @@ interface WholeStoreState {
   interface: InterfaceState;
   connection: ConnectionState;
   stm: STMState;
+  report: ReportState;
   station: StationState;
   action: ActionState;
   rex: RexState;

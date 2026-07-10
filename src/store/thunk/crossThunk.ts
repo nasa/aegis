@@ -22,6 +22,7 @@ import { obliterateState as presetObliterateState } from "store/preset";
 import { obliterateState as rexObliterateState } from "store/rex";
 import { obliterateState as stationObliterateState } from "store/station";
 import { obliterateState as stmObliterateState } from "store/stm";
+import { obliterateState as reportObliterateState } from "store/report";
 import { obliterateState as traverseObliterateState } from "store/traverse";
 import { obliterateState as measurementObliterateState } from "store/measure";
 import { clientLogger } from "utils/logging/clientLogger";
@@ -59,6 +60,7 @@ export const thunkObliterateMissionSpecificData = appCreateAsyncThunk<void>(
     dispatch(rexObliterateState());
     dispatch(stationObliterateState());
     dispatch(stmObliterateState());
+    dispatch(reportObliterateState());
     dispatch(traverseObliterateState());
     dispatch(measurementObliterateState());
   }

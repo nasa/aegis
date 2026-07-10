@@ -1,16 +1,16 @@
 import type { FunctionComponent } from "react";
 import { Fragment } from "react";
-import styles from "./stm-rules-coverage.module.css";
-import pageStyles from "../stm-rules-page.module.css";
+import styles from "./report-grid.module.css";
+import pageStyles from "../../stm-rules/stm-rules-page.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMinusCircle, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import {
-  stmCoverageSetBaselineColumnKey,
-  stmCoverageSetHoveredTopItem,
-  stmCoverageToggleEvaColumnExpansion,
-} from "store/stm";
+  reportSetBaselineColumnKey,
+  reportSetHoveredTopItem,
+  reportToggleColumnExpansion,
+} from "store/report";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { groupCoverageColumns } from "utils/evaReportColumns";
 import { EmojiRenderer } from "components/interface/emojis";
@@ -20,7 +20,8 @@ import {
   STM_LEVEL3_NAME_COLUMN_WIDTH,
   STM_COVERAGE_STATION_CELL_WIDTH,
   STM_COVERAGE_SUMMARY_CELL_WIDTH,
-} from "../stm-rules-tier-titles";
+} from "../../stm-rules/stm-rules-tier-titles";
+import { useReportId } from "../reports-context";
 
 /** Column title: the EVA name for plan columns, "REX: <name>" for executions. */
 const columnTitle = (column: EvaReportColumn) =>
@@ -52,39 +53,28 @@ const columnTooltipName = (column: EvaReportColumn) =>
       : column.label;
 
 /**
- * Columns are ordered in as-planned EVA families (plan column followed by its
- * REX executions). The thick divider only separates families, so the grouping
- * reads from the column order + the "REX:" label prefix.
+ * The shared column-header band for the column-family reports. Columns are
+ * ordered in as-planned EVA families (plan column followed by its REX
+ * executions), then one planned/executed pair per campaign. The thick divider
+ * separates families; a labelled divider separates the EVA/REX section from the
+ * CAMPAIGNS section.
+ *
+ * `leftAxis` is the report's own left-header content (STM tier titles for
+ * coverage, the metric-group header for comparison), rendered in the sticky
+ * top-left corner aligned with the body's row labels.
  */
-const StmCoverageHeader: FunctionComponent = () => {
+const ReportColumnHeader: FunctionComponent<{ leftAxis: React.ReactNode }> = ({ leftAxis }) => {
+  const reportId = useReportId();
   const visibleColumns = useAppSelector(
-    (state) => state.stm.stmCoverageVisibleColumns,
+    (state) => state.report[reportId].visibleColumns,
     shallowEqual
   );
-  const { stmLevel1Enabled, tierColumns } = useStmTierExpansion();
-  const stmLevel3Name = useMissionDocSelector((mission) => mission.stmLevel3Name, refEqual);
 
   const groups = groupCoverageColumns(visibleColumns);
 
   return (
     <div className={styles.header}>
-      <div
-        className={styles.headerLeft}
-        style={{
-          gridTemplateColumns: [...tierColumns, `${STM_LEVEL3_NAME_COLUMN_WIDTH}px`].join(" "),
-          // Row cells sit behind two 1px border-lefts the header has no
-          // equivalent of: the level1 tier wrapper's (stm-rules-list-table
-          // .gridCellLevel1Expanded/Collapsed, only when level1 is enabled)
-          // and the level3 row container's (.gridCellLevel3Container,
-          // always). Pad the header by the same amount so its columns start
-          // at the same x position as the body's.
-          paddingLeft: stmLevel1Enabled ? 2 : 1,
-        }}
-      >
-        {stmLevel1Enabled && <StmTierTitle tier="level1" />}
-        <StmTierTitle tier="level2" />
-        <div className={pageStyles.listTableTitle}>{stmLevel3Name}s</div>
-      </div>
+      {leftAxis}
       <div className={styles.headerColumns}>
         {groups.map((group, index) => (
           <Fragment key={group.groupKey}>
@@ -116,17 +106,49 @@ const StmCoverageHeader: FunctionComponent = () => {
   );
 };
 
-export default StmCoverageHeader;
+export default ReportColumnHeader;
+
+/**
+ * The STM-hierarchy left-axis header for the coverage report (level1/level2
+ * tier titles + the level3 name column). Kept here so it renders inside the
+ * shared sticky header band; passed to ReportColumnHeader as `leftAxis`.
+ */
+export const CoverageHeaderLeftAxis: FunctionComponent = () => {
+  const { stmLevel1Enabled, tierColumns } = useStmTierExpansion();
+  const stmLevel3Name = useMissionDocSelector((mission) => mission.stmLevel3Name, refEqual);
+
+  return (
+    <div
+      className={styles.headerLeft}
+      style={{
+        gridTemplateColumns: [...tierColumns, `${STM_LEVEL3_NAME_COLUMN_WIDTH}px`].join(" "),
+        // Row cells sit behind two 1px border-lefts the header has no equivalent
+        // of: the level1 tier wrapper's and the level3 row container's. Pad the
+        // header by the same amount so its columns start at the same x position
+        // as the body's.
+        paddingLeft: stmLevel1Enabled ? 2 : 1,
+      }}
+    >
+      {stmLevel1Enabled && <StmTierTitle tier="level1" />}
+      <StmTierTitle tier="level2" />
+      <div className={pageStyles.listTableTitle}>{stmLevel3Name}s</div>
+    </div>
+  );
+};
 
 const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }) => {
   const dispatch = useAppDispatch();
-  const baselineKey = useAppSelector((state) => state.stm.stmCoverageResolvedBaselineKey, refEqual);
+  const reportId = useReportId();
+  const baselineKey = useAppSelector(
+    (state) => state.report[reportId].resolvedBaselineKey,
+    refEqual
+  );
   const expandedColumnKeys = useAppSelector(
-    (state) => state.stm.stmCoverageExpandedEvaColumns,
+    (state) => state.report[reportId].expandedColumns,
     shallowEqual
   );
   const sequenceByColumnKey = useAppSelector(
-    (state) => state.stm.stmCoverageSequenceByColumnKey,
+    (state) => state.report[reportId].sequenceByColumnKey,
     shallowEqual
   );
   const isBaseline = column.key === baselineKey;
@@ -147,19 +169,20 @@ const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }
   const sequenceItems = sequenceByColumnKey[column.key] ?? [];
   // Firefox miscomputes the automatic (content-based) width of a flex item
   // whose descendants use writing-mode: vertical-rl (the rotated labels below)
-  // — see https://bugzilla.mozilla.org/show_bug.cgi?id=1332555. Chrome gets it
-  // right, Firefox doesn't, which is why this only breaks there. Sidestep it
-  // entirely by giving the group its exact pixel width up front instead of
-  // letting either browser derive it from nested content: one 22px
-  // .stationHeaderCell per sequence item plus the trailing 40px "Total"
-  // .columnHeaderCell.
+  // — see https://bugzilla.mozilla.org/show_bug.cgi?id=1332555. Sidestep it by
+  // giving the group its exact pixel width up front: one 22px .stationHeaderCell
+  // per sequence item plus the trailing 40px "Total" .columnHeaderCell.
   const groupWidth =
     sequenceItems.length * STM_COVERAGE_STATION_CELL_WIDTH + STM_COVERAGE_SUMMARY_CELL_WIDTH;
   return (
     <div className={styles.columnGroup} style={{ width: groupWidth }}>
       <div
         className={styles.columnGroupLabel}
-        onClick={() => dispatch(stmCoverageSetBaselineColumnKey(isBaseline ? null : column.key))}
+        onClick={() =>
+          dispatch(
+            reportSetBaselineColumnKey({ reportId, columnKey: isBaseline ? null : column.key })
+          )
+        }
         data-tooltip-id="aegis-tooltip"
         data-tooltip-html={`${columnTooltipName(column)}${isBaseline ? " (baseline)" : " — click to set as baseline"}`}
         style={{ cursor: "pointer" }}
@@ -169,7 +192,7 @@ const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }
           className={styles.columnHeaderIcons}
           onClick={(e) => {
             e.stopPropagation();
-            dispatch(stmCoverageToggleEvaColumnExpansion(column.key));
+            dispatch(reportToggleColumnExpansion({ reportId, columnKey: column.key }));
           }}
           data-tooltip-id="aegis-tooltip"
           data-tooltip-html={column.campaignUuid ? "Collapse EVAs" : "Collapse stations"}
@@ -201,14 +224,19 @@ const SummaryHeaderCell: FunctionComponent<{
   label: string;
 }> = ({ column, isBaseline, isExpanded, cellKey, label }) => {
   const dispatch = useAppDispatch();
-  const hoveredTopItem = useAppSelector((state) => state.stm.stmCoverageHoveredTopItem, refEqual);
+  const reportId = useReportId();
+  const hoveredTopItem = useAppSelector((state) => state.report[reportId].hoveredTopItem, refEqual);
 
   return (
     <div
       className={`${styles.columnHeaderCell} ${isBaseline ? styles.columnHeaderCellBaseline : ""}`}
       style={hoveredTopItem === cellKey ? { backgroundColor: "var(--stmCoverageHover)" } : null}
-      onClick={() => dispatch(stmCoverageSetBaselineColumnKey(isBaseline ? null : column.key))}
-      onMouseEnter={() => dispatch(stmCoverageSetHoveredTopItem(cellKey))}
+      onClick={() =>
+        dispatch(
+          reportSetBaselineColumnKey({ reportId, columnKey: isBaseline ? null : column.key })
+        )
+      }
+      onMouseEnter={() => dispatch(reportSetHoveredTopItem({ reportId, item: cellKey }))}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={`${columnTooltipName(column)}${
         isBaseline ? " (baseline)" : " — click to set as baseline"
@@ -220,7 +248,7 @@ const SummaryHeaderCell: FunctionComponent<{
         className={styles.columnHeaderIcons}
         onClick={(e) => {
           e.stopPropagation();
-          dispatch(stmCoverageToggleEvaColumnExpansion(column.key));
+          dispatch(reportToggleColumnExpansion({ reportId, columnKey: column.key }));
         }}
         data-tooltip-id="aegis-tooltip"
         data-tooltip-html={
@@ -241,21 +269,23 @@ const SummaryHeaderCell: FunctionComponent<{
 
 /**
  * Header cell for one expanded sub-column: a station (emoji icon, like the
- * Matches tab) or a traverse (standard dotted traverse icon).
+ * Matches tab), a traverse (dotted traverse icon), or a campaign member EVA
+ * (no icon).
  */
 const SequenceHeaderCell: FunctionComponent<{
   column: EvaReportColumn;
   item: StmCoverageSequenceItem;
 }> = ({ column, item }) => {
   const dispatch = useAppDispatch();
+  const reportId = useReportId();
   const cellKey = `${column.key}_${item.uuid}`;
-  const hoveredTopItem = useAppSelector((state) => state.stm.stmCoverageHoveredTopItem, refEqual);
+  const hoveredTopItem = useAppSelector((state) => state.report[reportId].hoveredTopItem, refEqual);
 
   return (
     <div
       className={styles.stationHeaderCell}
       style={hoveredTopItem === cellKey ? { backgroundColor: "var(--stmCoverageHover)" } : null}
-      onMouseEnter={() => dispatch(stmCoverageSetHoveredTopItem(cellKey))}
+      onMouseEnter={() => dispatch(reportSetHoveredTopItem({ reportId, item: cellKey }))}
       data-tooltip-id="aegis-tooltip"
       data-tooltip-html={item.name}
       data-tooltip-place="left-start"

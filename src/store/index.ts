@@ -8,6 +8,7 @@ import { poiSlice, initialState as poiInitialState } from "./poi";
 import { interfaceSlice, initialState as interfaceInitialState } from "./interface";
 import { connectionSlice, initialState as connectionInitialState } from "./connection";
 import { stmSlice, initialState as stmInitialState } from "./stm";
+import { reportSlice, initialState as reportInitialState } from "./report";
 import { presetSlice, initialState as presetInitialState } from "./preset";
 import { stationSlice, initialState as stationInitialState } from "./station";
 import { actionSlice, initialState as actionInitialState } from "./action";
@@ -29,6 +30,7 @@ export const initialState: WholeStoreState = {
   interface: interfaceInitialState,
   connection: connectionInitialState,
   stm: stmInitialState,
+  report: reportInitialState,
   preset: presetInitialState,
   station: stationInitialState,
   action: actionInitialState,
@@ -47,6 +49,7 @@ export const sliceReducers = combineReducers({
   interface: interfaceSlice.reducer,
   connection: connectionSlice.reducer,
   stm: stmSlice.reducer,
+  report: reportSlice.reducer,
   preset: presetSlice.reducer,
   station: stationSlice.reducer,
   action: actionSlice.reducer,

@@ -1,48 +1,53 @@
 import type { FunctionComponent } from "react";
-import styles from "./stm-rules-coverage.module.css";
+import styles from "../shared/report-grid.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import {
-  stmCoverageSetCellSelection,
-  stmCoverageSetDrilldownWidth,
-  stmCoverageToggleDrilldownChangesOnly,
-} from "store/stm";
+  reportSetCellSelection,
+  reportSetDrilldownWidth,
+  reportToggleDrilldownChangesOnly,
+} from "store/report";
 import { diffRuleActions } from "utils/stmEvaCoverage";
 import { actionBelongsToCampaignMember } from "utils/evaReportColumns";
 import { Checkbox } from "components/interface/form/globalFields";
+import ReportSidePanel from "../shared/report-side-panel";
 
-const DRILLDOWN_MIN_WIDTH = 220;
-/** Grid width the drilldown can never squeeze past when dragged wide. */
-const GRID_MIN_WIDTH = 300;
+const REPORT_ID: ColumnReportId = "stmCoverage";
 
 /**
- * Side panel showing the per-rule breakdown of one clicked cell: match counts
- * against required counts, and the matching actions grouped by their station
- * or traverse. In diff mode the cell's actions are diffed against the
+ * Side panel showing the per-rule breakdown of one clicked coverage cell: match
+ * counts against required counts, and the matching actions grouped by their
+ * station or traverse. In diff mode the cell's actions are diffed against the
  * baseline column's actions per rule (paired by verb/noun/adjective tuple,
  * station-agnostic): matched rows exist in both, "+" rows only in this cell,
  * "−" rows only in the baseline. A "Changes only" toggle hides matched rows.
  */
-const StmCoverageDrilldown: FunctionComponent = () => {
+const EvaStmCoverageDrilldown: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const mission = useMissionDocSelector((m) => m, refEqual);
   const visibleColumns = useAppSelector(
-    (state) => state.stm.stmCoverageVisibleColumns,
+    (state) => state.report[REPORT_ID].visibleColumns,
     shallowEqual
   );
   const coverageByColumnKey = useAppSelector(
-    (state) => state.stm.stmCoverageCoverageByColumnKey,
+    (state) => state.report[REPORT_ID].coverageByColumnKey,
     refEqual
   );
-  const baselineKey = useAppSelector((state) => state.stm.stmCoverageResolvedBaselineKey, refEqual);
-  const diffMode = useAppSelector((state) => state.stm.stmCoverageDiffMode, refEqual);
-  const cellSelection = useAppSelector((state) => state.stm.stmCoverageCellSelection, refEqual);
-  const drilldownWidth = useAppSelector((state) => state.stm.stmCoverageDrilldownWidth, refEqual);
+  const baselineKey = useAppSelector(
+    (state) => state.report[REPORT_ID].resolvedBaselineKey,
+    refEqual
+  );
+  const diffMode = useAppSelector((state) => state.report[REPORT_ID].diffMode, refEqual);
+  const cellSelection = useAppSelector((state) => state.report[REPORT_ID].cellSelection, refEqual);
+  const drilldownWidth = useAppSelector(
+    (state) => state.report[REPORT_ID].drilldownWidth,
+    refEqual
+  );
   const changesOnly = useAppSelector(
-    (state) => state.stm.stmCoverageDrilldownChangesOnly,
+    (state) => state.report[REPORT_ID].drilldownChangesOnly,
     refEqual
   );
   const level3 = useAppSelector(
@@ -95,82 +100,51 @@ const StmCoverageDrilldown: FunctionComponent = () => {
     return true;
   };
 
-  // Divider drag: pointer capture keeps move events flowing while the cursor
-  // leaves the 6px handle; width is clamped so neither side can vanish.
-  const onResizerPointerMove = (event: React.PointerEvent<HTMLDivElement>): void => {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-    const body = event.currentTarget.parentElement;
-    if (!body) return;
-    const bodyRect = body.getBoundingClientRect();
-    const maxWidth = Math.max(bodyRect.width - GRID_MIN_WIDTH, DRILLDOWN_MIN_WIDTH);
-    const width = Math.min(Math.max(bodyRect.right - event.clientX, DRILLDOWN_MIN_WIDTH), maxWidth);
-    if (width !== drilldownWidth) dispatch(stmCoverageSetDrilldownWidth(Math.round(width)));
-  };
-
   return (
-    <>
-      <div
-        className={styles.drilldownResizer}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          event.currentTarget.setPointerCapture(event.pointerId);
-        }}
-        onPointerMove={onResizerPointerMove}
-      />
-      <div className={styles.drilldown} style={{ width: drilldownWidth }}>
-        <div className={styles.drilldownHeader}>
-          <div>
-            <div className={styles.drilldownTitle}>{level3?.name}</div>
-            <div className={styles.drilldownSubtitle}>
-              {column.isRex ? `REX: ${column.label}` : column.label}
-              {scopeLabel ? ` — ${scopeLabel}` : ""}
-            </div>
-          </div>
-          <div
-            className={styles.drilldownClose}
-            onClick={() => dispatch(stmCoverageSetCellSelection(null))}
-          >
-            <FontAwesomeIcon icon={faXmark} />
-          </div>
-        </div>
-        <div className={styles.drilldownContent}>
-          {diffActive && (
-            <Checkbox
-              checked={changesOnly}
-              editable={true}
-              onChange={() => dispatch(stmCoverageToggleDrilldownChangesOnly())}
-              toolTip="Hide actions that also match in the baseline; show only added (+) and baseline-only (−) actions"
-              label="Changes only"
-              uniqueId="stm-coverage-drilldown-changes-only"
-            />
-          )}
-          {coverage.status === "noRules" && <div>No rules defined for this item.</div>}
-          {coverage.rules.map((ruleCoverage) => (
-            <DrilldownRule
-              key={ruleCoverage.ruleUuid}
-              ruleCoverage={ruleCoverage}
-              rule={rulesByUuid[ruleCoverage.ruleUuid]}
-              baselineRuleCoverage={
-                diffMode
-                  ? (baselineCoverage?.rules.find((rc) => rc.ruleUuid === ruleCoverage.ruleUuid) ??
-                    null)
-                  : null
-              }
-              matchesScope={matchesScope}
-              diffActive={diffActive}
-              changesOnly={changesOnly}
-              scoped={scoped}
-              column={column}
-              baselineColumn={baselineColumn}
-            />
-          ))}
-        </div>
-      </div>
-    </>
+    <ReportSidePanel
+      width={drilldownWidth}
+      onWidthChange={(width) => dispatch(reportSetDrilldownWidth({ reportId: REPORT_ID, width }))}
+      onClose={() => dispatch(reportSetCellSelection({ reportId: REPORT_ID, selection: null }))}
+      title={level3?.name}
+      subtitle={`${column.isRex ? `REX: ${column.label}` : column.label}${
+        scopeLabel ? ` — ${scopeLabel}` : ""
+      }`}
+    >
+      {diffActive && (
+        <Checkbox
+          checked={changesOnly}
+          editable={true}
+          onChange={() => dispatch(reportToggleDrilldownChangesOnly({ reportId: REPORT_ID }))}
+          toolTip="Hide actions that also match in the baseline; show only added (+) and baseline-only (−) actions"
+          label="Changes only"
+          uniqueId="eva-stm-coverage-drilldown-changes-only"
+        />
+      )}
+      {coverage.status === "noRules" && <div>No rules defined for this item.</div>}
+      {coverage.rules.map((ruleCoverage) => (
+        <DrilldownRule
+          key={ruleCoverage.ruleUuid}
+          ruleCoverage={ruleCoverage}
+          rule={rulesByUuid[ruleCoverage.ruleUuid]}
+          baselineRuleCoverage={
+            diffMode
+              ? (baselineCoverage?.rules.find((rc) => rc.ruleUuid === ruleCoverage.ruleUuid) ??
+                null)
+              : null
+          }
+          matchesScope={matchesScope}
+          diffActive={diffActive}
+          changesOnly={changesOnly}
+          scoped={scoped}
+          column={column}
+          baselineColumn={baselineColumn}
+        />
+      ))}
+    </ReportSidePanel>
   );
 };
 
-export default StmCoverageDrilldown;
+export default EvaStmCoverageDrilldown;
 
 const DrilldownRule: FunctionComponent<{
   ruleCoverage: StmCoverageRule;
@@ -325,10 +299,10 @@ const DIFF_ROW_CLASSES = {
 };
 
 /**
- * One action row of the drilldown. `kind` is "matched" outside diff mode or
- * for actions present in both columns; "plus" = only in the selected cell,
- * "minus" = only in the baseline (the station/traverse name shown is the
- * baseline action's own parent).
+ * One action row of the drilldown. `kind` is "matched" outside diff mode or for
+ * actions present in both columns; "plus" = only in the selected cell, "minus" =
+ * only in the baseline (the station/traverse name shown is the baseline
+ * action's own parent).
  */
 const DrilldownActionRow: FunctionComponent<{
   action: Action;
