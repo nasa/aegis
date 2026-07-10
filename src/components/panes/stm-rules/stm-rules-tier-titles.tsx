@@ -10,8 +10,9 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 /**
  * Pixel widths shared across the v2 STM tabs' JS layout code (grid-template-
  * columns strings, the Firefox writing-mode workaround in
- * stm-rules-coverage-header.tsx) and the CSS modules that also hard-code them
- * (stm-rules-list-table.module.css, stm-rules-coverage.module.css). Consumers
+ * reports/shared/report-column-header.tsx) and the CSS modules that also
+ * hard-code them (stm-rules-list-table.module.css,
+ * reports/shared/report-grid.module.css). Consumers
  * feed these into CSS custom properties rather than duplicating the numbers.
  */
 export const STM_LEVEL3_NAME_COLUMN_WIDTH = 285;

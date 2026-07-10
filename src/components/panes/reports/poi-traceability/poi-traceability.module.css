@@ -1,0 +1,175 @@
+.body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+.main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.controls {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  margin: 0 8px 6px 0;
+  font-size: 0.9em;
+}
+.controlGroup {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+.controlLabel {
+  font-size: 0.85em;
+  font-weight: 300;
+  white-space: nowrap;
+}
+.filterInput {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--grey2);
+  border-radius: var(--radius);
+  background-color: var(--grey3);
+  color: inherit;
+  width: 180px;
+}
+
+.tableScroll {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+.table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--grey2);
+  border-bottom: 2px solid var(--grey0);
+  text-align: left;
+  padding: 5px 8px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.table th.num,
+.table td.num {
+  text-align: right;
+}
+.row {
+  cursor: pointer;
+  border-bottom: 1px solid var(--grey1);
+}
+.row:hover {
+  background-color: var(--grey1);
+}
+.rowSelected {
+  background-color: var(--grey3);
+}
+.row td {
+  padding: 4px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+.poiName {
+  font-weight: 500;
+}
+/* the "not yet hit" case: no linkage and no promoted actions */
+.rowUntouched td {
+  color: var(--grey4);
+}
+.flagMismatch {
+  color: var(--eva);
+  font-weight: 600;
+}
+.tags {
+  color: var(--grey4);
+}
+
+/* rollup badges */
+.count {
+  font-variant-numeric: tabular-nums;
+}
+.countZero {
+  color: var(--grey4);
+}
+.countComplete {
+  color: #a8e8b6;
+}
+.countSkipped {
+  color: #f0aeae;
+}
+
+.emptyState {
+  padding: 16px;
+  color: var(--grey4);
+}
+
+/* ---------- drilldown lineage ---------- */
+.lineageAction {
+  border: 1px solid var(--grey1);
+  border-radius: var(--radius);
+  padding: 6px;
+  margin-bottom: 8px;
+  background-color: var(--grey1);
+}
+.lineageActionName {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.lineageCopy {
+  padding: 3px 0 3px 10px;
+  border-left: 2px solid var(--grey3);
+  margin: 3px 0 3px 4px;
+}
+.lineageCopyHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.9em;
+}
+.lineageStationName {
+  color: var(--grey5);
+}
+.lineageMeta {
+  color: var(--grey4);
+  font-size: 0.85em;
+}
+.lineageExec {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.85em;
+  padding-left: 8px;
+}
+.execComplete {
+  color: #a8e8b6;
+}
+.execSkipped {
+  color: #f0aeae;
+}
+.execPending {
+  color: var(--grey4);
+}
+.lineageEmpty {
+  color: var(--grey4);
+  font-size: 0.85em;
+  padding-left: 10px;
+}
+.sectionLabel {
+  font-weight: 500;
+  margin: 6px 0 4px;
+}

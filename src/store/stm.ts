@@ -24,22 +24,6 @@ export const initialState: STMState = {
   stmRulesSelectedStmUuid: null,
   stmRulesSelectedRuleUuid: null,
   stmRulesTierExpansion: { level1: true, level2: true },
-  stmCoverageBaselineColumnKey: null,
-  stmCoverageDiffMode: true,
-  stmCoverageDifferencesOnly: false,
-  stmCoverageRexStatusFilter: "all",
-  stmCoverageHiddenColumns: [],
-  stmCoverageExpandedEvaColumns: [],
-  stmCoverageHoveredTopItem: null,
-  stmCoverageHoveredLeftItem: null,
-  stmCoverageDrilldownWidth: 320,
-  stmCoverageDrilldownChangesOnly: false,
-  stmCoverageCellSelection: null,
-  stmCoverageVisibleColumns: [],
-  stmCoverageCoverageByColumnKey: {},
-  stmCoverageResolvedBaselineKey: null,
-  stmCoverageSequenceByColumnKey: {},
-  stmCoverageVisibleStmUuids: null,
 };
 
 export const stmSlice = createSlice({
@@ -175,67 +159,6 @@ export const stmSlice = createSlice({
     stmRulesToggleTierExpansion: (state, action: { payload: keyof StmRulesTierExpansion }) => {
       state.stmRulesTierExpansion[action.payload] = !state.stmRulesTierExpansion[action.payload];
     },
-    stmCoverageSetBaselineColumnKey: (state, action: { payload: string | null }) => {
-      state.stmCoverageBaselineColumnKey = action.payload;
-    },
-    stmCoverageToggleDiffMode: (state) => {
-      state.stmCoverageDiffMode = !state.stmCoverageDiffMode;
-    },
-    stmCoverageToggleDifferencesOnly: (state) => {
-      state.stmCoverageDifferencesOnly = !state.stmCoverageDifferencesOnly;
-    },
-    stmCoverageSetRexStatusFilter: (state, action: { payload: RexStatusFilter }) => {
-      state.stmCoverageRexStatusFilter = action.payload;
-    },
-    stmCoverageToggleHiddenColumn: (state, action: { payload: string }) => {
-      const index = state.stmCoverageHiddenColumns.indexOf(action.payload);
-      if (index > -1) {
-        state.stmCoverageHiddenColumns.splice(index, 1);
-      } else {
-        state.stmCoverageHiddenColumns.push(action.payload);
-      }
-    },
-    // Hide/show several columns atomically (used when toggling an as-planned
-    // EVA in the Columns dropdown, which also hides/shows its REX children)
-    stmCoverageSetColumnsHidden: (
-      state,
-      action: { payload: { columnKeys: string[]; hidden: boolean } }
-    ) => {
-      const { columnKeys, hidden } = action.payload;
-      state.stmCoverageHiddenColumns = hidden
-        ? [...new Set([...state.stmCoverageHiddenColumns, ...columnKeys])]
-        : state.stmCoverageHiddenColumns.filter((key) => !columnKeys.includes(key));
-    },
-    stmCoverageToggleEvaColumnExpansion: (state, action: { payload: string }) => {
-      const index = state.stmCoverageExpandedEvaColumns.indexOf(action.payload);
-      if (index > -1) {
-        state.stmCoverageExpandedEvaColumns.splice(index, 1);
-      } else {
-        state.stmCoverageExpandedEvaColumns.push(action.payload);
-      }
-    },
-    stmCoverageSetHoveredTopItem: (state, action: { payload: string | null }) => {
-      state.stmCoverageHoveredTopItem = action.payload;
-    },
-    stmCoverageSetHoveredLeftItem: (state, action: { payload: string | null }) => {
-      state.stmCoverageHoveredLeftItem = action.payload;
-    },
-    stmCoverageSetDrilldownWidth: (state, action: { payload: number }) => {
-      state.stmCoverageDrilldownWidth = action.payload;
-    },
-    stmCoverageToggleDrilldownChangesOnly: (state) => {
-      state.stmCoverageDrilldownChangesOnly = !state.stmCoverageDrilldownChangesOnly;
-    },
-    stmCoverageSetCellSelection: (state, action: { payload: StmCoverageCellSelection }) => {
-      state.stmCoverageCellSelection = action.payload;
-    },
-    stmCoverageSetDerivedData: (state, action: { payload: StmCoverageDerivedData }) => {
-      state.stmCoverageVisibleColumns = action.payload.visibleColumns;
-      state.stmCoverageCoverageByColumnKey = action.payload.coverageByColumnKey;
-      state.stmCoverageResolvedBaselineKey = action.payload.resolvedBaselineKey;
-      state.stmCoverageSequenceByColumnKey = action.payload.sequenceByColumnKey;
-      state.stmCoverageVisibleStmUuids = action.payload.visibleStmUuids;
-    },
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
@@ -270,18 +193,5 @@ export const {
   setStmRulesSelectedStmUuid,
   setStmRulesSelectedRuleUuid,
   stmRulesToggleTierExpansion,
-  stmCoverageSetBaselineColumnKey,
-  stmCoverageToggleDiffMode,
-  stmCoverageToggleDifferencesOnly,
-  stmCoverageSetRexStatusFilter,
-  stmCoverageToggleHiddenColumn,
-  stmCoverageSetColumnsHidden,
-  stmCoverageToggleEvaColumnExpansion,
-  stmCoverageSetHoveredTopItem,
-  stmCoverageSetHoveredLeftItem,
-  stmCoverageSetDrilldownWidth,
-  stmCoverageToggleDrilldownChangesOnly,
-  stmCoverageSetCellSelection,
-  stmCoverageSetDerivedData,
   obliterateState,
 } = stmSlice.actions;

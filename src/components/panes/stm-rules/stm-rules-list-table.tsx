@@ -8,11 +8,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { faSquarePlus } from "@fortawesome/free-solid-svg-icons";
 import { thunkCreateStmRule } from "store/thunk/thunkStmRules";
-import {
-  setStmRulesSelectedStmUuid,
-  stmCoverageSetHoveredLeftItem,
-  stmRulesToggleTierExpansion,
-} from "store/stm";
+import { setStmRulesSelectedStmUuid, stmRulesToggleTierExpansion } from "store/stm";
+import { reportSetHoveredLeftItem } from "store/report";
 import sortBy from "lodash/sortBy";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
@@ -23,8 +20,9 @@ import { useMissionDocSelector } from "utils/useDocSelector";
  * - `selectMode`: Rule Matches tab; hides the rules column, level3 rows are
  *   selectable instead.
  * - `coverageContent`: EVA Coverage tab; renders the caller's per-column
- *   cells instead of rules, restricts rows to `stmCoverageVisibleStmUuids`,
- *   and highlights the row via `stmCoverageHoveredLeftItem`.
+ *   cells instead of rules, restricts rows to the coverage report's
+ *   `visibleRowIds`, and highlights the row via its `hoveredLeftItem`
+ *   (both in `state.report.stmCoverage`).
  */
 const STMRulesTable: FunctionComponent<{
   selectMode?: boolean;
@@ -63,7 +61,7 @@ const STMLevel1: FunctionComponent<{
 }> = ({ level1, selectMode, coverageContent }) => {
   const dispatch = useAppDispatch();
   const visibleStmUuids = useAppSelector(
-    (state: RootState) => state.stm.stmCoverageVisibleStmUuids,
+    (state: RootState) => state.report.stmCoverage.visibleRowIds,
     shallowEqual
   );
   const numLevel3s = useAppSelector((state: RootState) => {
@@ -169,7 +167,7 @@ const STMLevel2: FunctionComponent<{
 }> = ({ level2, selectMode, coverageContent }) => {
   const dispatch = useAppDispatch();
   const visibleStmUuids = useAppSelector(
-    (state: RootState) => state.stm.stmCoverageVisibleStmUuids,
+    (state: RootState) => state.report.stmCoverage.visibleRowIds,
     shallowEqual
   );
   const level3s = useAppSelector(
@@ -247,7 +245,7 @@ const STMLevel3: FunctionComponent<{
     refEqual
   );
   const hoveredLeftItem = useAppSelector(
-    (state: RootState) => state.stm.stmCoverageHoveredLeftItem,
+    (state: RootState) => state.report.stmCoverage.hoveredLeftItem,
     refEqual
   );
 
@@ -281,7 +279,7 @@ const STMLevel3: FunctionComponent<{
           }
           onMouseEnter={() => {
             if (hoveredLeftItem !== level3.uuid) {
-              dispatch(stmCoverageSetHoveredLeftItem(level3.uuid));
+              dispatch(reportSetHoveredLeftItem({ reportId: "stmCoverage", item: level3.uuid }));
             }
           }}
         >

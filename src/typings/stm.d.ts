@@ -167,8 +167,8 @@ type StmCoverageSequenceItem = {
   icon?: string;
 };
 
-/** Tabs of the v2 STM Satisfaction Rules pane. */
-type StmRulesTab = "rules" | "matches" | "coverage";
+/** Tabs of the v2 STM Satisfaction Rules pane. (EVA Coverage moved to the Reports pane.) */
+type StmRulesTab = "rules" | "matches";
 
 /** Which STM tier name columns are expanded (names) vs collapsed (ordinals only). */
 type StmRulesTierExpansion = {
@@ -188,25 +188,5 @@ type StmCoverageCellSelection = {
   evaUuid?: string;
 } | null;
 
-/**
- * Derived coverage data assembled once in stm-coverage-page.tsx and pushed into
- * the stm slice (via stmCoverageSetDerivedData) so the header, table, cells and
- * drilldown can read it from Redux without recomputing or prop-drilling per row.
- * The mission doc itself is not part of this payload — consumers that need it
- * read it directly with useMissionDocSelector.
- */
-type StmCoverageDerivedData = {
-  /**
-   * Columns to render, in getEvaColumns order: manually hidden columns are
-   * removed, and when "differences only" is on so are columns identical to
-   * the baseline.
-   */
-  visibleColumns: EvaReportColumn[];
-  coverageByColumnKey: { [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 } };
-  /** Baseline column key after fallback resolution. */
-  resolvedBaselineKey: string | null;
-  /** Sequence-ordered stations + traverses per expanded column, keyed by column key. */
-  sequenceByColumnKey: { [columnKey: string]: StmCoverageSequenceItem[] };
-  /** Level3 uuids to show when "differences only" is on; null = show all. */
-  visibleStmUuids: string[] | null;
-};
+// Derived column-report data (visibleColumns, coverageByColumnKey, ...) now
+// lives in the `report` slice as ColumnReportDerivedData — see typings/store.d.ts.

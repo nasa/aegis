@@ -1,16 +1,16 @@
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
-import styles from "./stm-rules-coverage.module.css";
+import styles from "../shared/report-grid.module.css";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import {
-  stmCoverageSetCellSelection,
-  stmCoverageSetHoveredLeftItem,
-  stmCoverageSetHoveredTopItem,
-} from "store/stm";
+import { reportSetCellSelection } from "store/report";
 import { diffLevel3Actions, groupMatchesBySequenceItem } from "utils/stmEvaCoverage";
 import { groupCampaignMatchesByMember } from "utils/evaReportColumns";
+import { BaseCell } from "../shared/report-cell";
+import { useReportId } from "../reports-context";
+
+const REPORT_ID: ColumnReportId = "stmCoverage";
 
 /** Whether the drilldown selection points at exactly this cell. */
 const isCellSelected = (
@@ -25,25 +25,25 @@ const isCellSelected = (
   selection.evaUuid === target.evaUuid;
 
 /**
- * All cells for one (level3 row × EVA column): a single summary cell when the
+ * All cells for one (level3 row × column): a single summary cell when the
  * column is collapsed, or per-station/per-traverse sub-cells (in EVA sequence
  * order) + Total when expanded. Sub-cell counts always sum to the Total cell.
  */
-export const StmCoverageColumnCells: FunctionComponent<{
+export const EvaStmCoverageColumnCells: FunctionComponent<{
   column: EvaReportColumn;
   stmUuid: string;
 }> = ({ column, stmUuid }) => {
   const mission = useMissionDocSelector((m) => m, refEqual);
   const coverageByColumnKey = useAppSelector(
-    (state) => state.stm.stmCoverageCoverageByColumnKey,
+    (state) => state.report[REPORT_ID].coverageByColumnKey,
     refEqual
   );
   const expandedColumnKeys = useAppSelector(
-    (state) => state.stm.stmCoverageExpandedEvaColumns,
+    (state) => state.report[REPORT_ID].expandedColumns,
     shallowEqual
   );
   const sequenceByColumnKey = useAppSelector(
-    (state) => state.stm.stmCoverageSequenceByColumnKey,
+    (state) => state.report[REPORT_ID].sequenceByColumnKey,
     refEqual
   );
   const coverage = coverageByColumnKey[column.key]?.[stmUuid];
@@ -121,8 +121,7 @@ const STATUS_LABEL: { [status in StmCoverageLevel3Status]: string } = {
  * The rollup cell for one column. Baseline (or absolute mode) shows the match
  * total colored by status; other columns in diff mode show the added and
  * removed action counts vs the baseline (paired per rule by verb/noun/
- * adjective tuple, matching the drilldown), with the background tint driven
- * by the net change.
+ * adjective tuple), with the background tint driven by the net change.
  */
 const SummaryCell: FunctionComponent<{
   column: EvaReportColumn;
@@ -130,14 +129,18 @@ const SummaryCell: FunctionComponent<{
   coverage: StmCoverageLevel3;
 }> = ({ column, stmUuid, coverage }) => {
   const dispatch = useAppDispatch();
+  const reportId = useReportId();
   const mission = useMissionDocSelector((m) => m, refEqual);
   const coverageByColumnKey = useAppSelector(
-    (state) => state.stm.stmCoverageCoverageByColumnKey,
+    (state) => state.report[REPORT_ID].coverageByColumnKey,
     refEqual
   );
-  const baselineKey = useAppSelector((state) => state.stm.stmCoverageResolvedBaselineKey, refEqual);
-  const diffMode = useAppSelector((state) => state.stm.stmCoverageDiffMode, refEqual);
-  const cellSelection = useAppSelector((state) => state.stm.stmCoverageCellSelection, refEqual);
+  const baselineKey = useAppSelector(
+    (state) => state.report[REPORT_ID].resolvedBaselineKey,
+    refEqual
+  );
+  const diffMode = useAppSelector((state) => state.report[REPORT_ID].diffMode, refEqual);
+  const cellSelection = useAppSelector((state) => state.report[REPORT_ID].cellSelection, refEqual);
 
   const isBaseline = column.key === baselineKey;
   const baselineCoverage = baselineKey ? coverageByColumnKey[baselineKey]?.[stmUuid] : null;
@@ -194,11 +197,15 @@ const SummaryCell: FunctionComponent<{
   return (
     <BaseCell
       cellKey={column.key}
-      stmUuid={stmUuid}
+      rowId={stmUuid}
       className={statusClass}
       tooltip={tooltip}
       selected={isCellSelected(cellSelection, { stmUuid, columnKey: column.key })}
-      onClick={() => dispatch(stmCoverageSetCellSelection({ stmUuid, columnKey: column.key }))}
+      onClick={() =>
+        dispatch(
+          reportSetCellSelection({ reportId, selection: { stmUuid, columnKey: column.key } })
+        )
+      }
     >
       {content}
     </BaseCell>
@@ -220,44 +227,18 @@ const CountCell: FunctionComponent<{
   };
 }> = ({ cellKey, stmUuid, count, tooltip, onClickSelection }) => {
   const dispatch = useAppDispatch();
-  const cellSelection = useAppSelector((state) => state.stm.stmCoverageCellSelection, refEqual);
+  const reportId = useReportId();
+  const cellSelection = useAppSelector((state) => state.report[REPORT_ID].cellSelection, refEqual);
   return (
     <BaseCell
       cellKey={cellKey}
-      stmUuid={stmUuid}
+      rowId={stmUuid}
       className={styles.cellStation}
       tooltip={tooltip}
       selected={isCellSelected(cellSelection, onClickSelection)}
-      onClick={() => dispatch(stmCoverageSetCellSelection(onClickSelection))}
+      onClick={() => dispatch(reportSetCellSelection({ reportId, selection: onClickSelection }))}
     >
       {count > 0 ? count : ""}
     </BaseCell>
-  );
-};
-
-const BaseCell: FunctionComponent<{
-  cellKey: string;
-  stmUuid: string;
-  className?: string;
-  tooltip: string;
-  selected?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}> = ({ cellKey, stmUuid, className, tooltip, selected, onClick, children }) => {
-  const dispatch = useAppDispatch();
-
-  return (
-    <div
-      className={`${styles.cell} ${className ?? ""} ${selected ? styles.cellSelected : ""}`}
-      onClick={onClick}
-      onMouseEnter={() => {
-        dispatch(stmCoverageSetHoveredTopItem(cellKey));
-        dispatch(stmCoverageSetHoveredLeftItem(stmUuid));
-      }}
-      data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={tooltip}
-    >
-      {children}
-    </div>
   );
 };
