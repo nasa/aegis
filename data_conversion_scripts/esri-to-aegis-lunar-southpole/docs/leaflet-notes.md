@@ -10,6 +10,14 @@ lands these scripts can be simplified to target OpenLayers directly. Everything 
 listed here (the GDAL/rasterio raster work, COG emit, colorize, reproject) is
 renderer-agnostic and unaffected.
 
+> **See also** [`OPENLAYERS-MIGRATION-TODO.md`](./OPENLAYERS-MIGRATION-TODO.md) — the
+> forward-looking backlog of pipeline changes and new capabilities (per-layer native
+> resolution, COG-on-the-fly serving, elevation-via-COG) for new missions. **There is no
+> cutover:** old missions keep their Leaflet-era output forever and are never regenerated, so
+> that doc frames every improvement as additive/self-identifying output the OpenLayers app can
+> render alongside legacy data. This doc is the *reference* for what's Leaflet-specific; that
+> doc is the *task list*.
+
 > TL;DR: the **tile bytes and the tight data extent are renderer-agnostic and stay as-is**.
 > What's Leaflet-specific is (1) how the _resolution pyramid / CRS_ is declared, (2) the
 > **TMS y-from-bottom** tiling convention, and (3) the fact that the extent is written to
