@@ -5,26 +5,30 @@ import {
   faCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Dropdown, InLineEditInput } from "components/interface/form/globalFields";
+import { Dropdown } from "components/interface/form/globalFields";
+import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
 import { ActionDefDropdown } from "components/interface/actionDefDropdown";
 import type { FunctionComponent } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionsStyles from "./actions.module.css";
 import actionStyles from "./actions-action.module.css";
-import { upsertActions, upsertActionByField } from "store/action";
-import { useAppDispatch } from "utils/useAppDispatch";
+import { collapseActions, expandActions } from "store/action";
+import { withMissionChange } from "client/automergeDocHandles";
+import {
+  applyUpdateActionByField,
+  applyUpdateActionDefinitionSelection,
+} from "client/automerge/apply/apply-action";
 import { hmmFromMinutes, titleCase } from "utils/formatting";
 import { EmojiRenderer } from "components/interface/emojis";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { validators } from "components/interface/form/formValidators";
 import capitalize from "lodash/capitalize";
-import { collapseActions, expandActions } from "store/action";
+import { useAppDispatch } from "utils/useAppDispatch";
 import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
 import { getRexStatusDisplayProperties } from "../../utils/component-helpers";
 import { RexStatusMenu } from "./rex/rex-status-menu";
 import { actionTypes } from "store/storeUtils/action";
-import { thunkUpsertActionDefinitionSelection } from "store/thunk/thunkAction";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const RightAction: FunctionComponent<{
@@ -50,35 +54,28 @@ const RightAction: FunctionComponent<{
 }) => {
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      actionSystemVersion: doc.actionSystemVersion,
-      actionDefinitions: doc.actionDefinitions,
+    (mission) => ({
+      actionSystemVersion: mission.actionSystemVersion,
+      actionDefinitions: mission.actionDefinitions,
     }),
     deepEqual
   );
 
-  const action = useAppSelector(
-    (state) => state.action.actions.find((a) => a.uuid === actionUuid),
-    deepEqual
-  );
+  const action = useMissionDocSelector((mission) => mission.actions[actionUuid], deepEqual);
   const actionsExpanded = useAppSelector((state) => state.action.actionsExpanded, shallowEqual);
-  const isRexRunning = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.uuid === rexUuid)?.isRunning,
+  const isRexRunning = useMissionDocSelector(
+    (mission) => (rexUuid ? (mission.rexes?.[rexUuid]?.isRunning ?? false) : false),
     refEqual
   );
-  const rexMaestroControlled = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.maestroControlled,
-    refEqual
-  );
-  const actionRexStatusEntry = useAppSelector((state) => {
-    if (!rexUuid) return;
-    //find all action entry that match this action uuid for the running rex. return the status of the last one.
-    const rex = state.rex.rexesFromDb.find((rex) => rex.uuid === rexUuid);
-    if (!rex?.actionEntries || !rex.actionEntries[actionUuid]) {
-      return null;
-    } else {
-      return rex.actionEntries[actionUuid].rexStatus;
-    }
+  const rexMaestroControlled = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return false;
+    return Object.values(mission.rexes).find((rex) => rex.isRunning)?.maestroControlled ?? false;
+  }, refEqual);
+  const actionRexStatusEntry = useMissionDocSelector((mission) => {
+    if (!rexUuid || !mission?.rexes) return null;
+    const rex = mission.rexes[rexUuid];
+    if (!rex?.actionEntries || !rex.actionEntries[actionUuid]) return null;
+    return rex.actionEntries[actionUuid].rexStatus;
   }, refEqual);
 
   const editPermsStore = useAppSelector(
@@ -96,13 +93,12 @@ const RightAction: FunctionComponent<{
     } else {
       newCrew = [...currentCrew, crewMember];
     }
-    dispatch(
-      upsertActions([
-        {
-          ...action,
-          crewAssigned: newCrew,
-        },
-      ])
+    withMissionChange((m) =>
+      applyUpdateActionByField(m, {
+        actionUuid: action.uuid,
+        fieldName: "crewAssigned",
+        value: newCrew,
+      })
     );
   };
 
@@ -122,13 +118,15 @@ const RightAction: FunctionComponent<{
     ? actionStyles.actionDualButtonsSelected
     : undefined;
 
-  const actionParentPoiName = useAppSelector((state) => {
+  const parentPoiUuid = useMissionDocSelector((mission) => {
     if (!action || !action.parentActionUuid) return undefined;
-    const parentAction = state.action.actions.find((a) => a.uuid === action.parentActionUuid);
-    if (!parentAction || !parentAction.poiUuid) return undefined;
-    const poi = state.poi.pois.find((p) => p.uuid === parentAction.poiUuid);
-    return poi?.name;
+    const parentAction = mission.actions[action.parentActionUuid];
+    return parentAction?.poiUuid;
   }, refEqual);
+  const actionParentPoiName = useMissionDocSelector(
+    (mission) => (parentPoiUuid ? mission.pois[parentPoiUuid]?.name : undefined),
+    refEqual
+  );
 
   return (
     <>
@@ -165,18 +163,19 @@ const RightAction: FunctionComponent<{
               } ${!action.enabled && actionStyles.actionHeadingDisabled} ${
                 getRexStatusDisplayProperties(actionRexStatusEntry).customTextClassName
               }`}
-              style={
-                !highlight
+              style={{
+                ...(!highlight
                   ? {
                       backgroundColor: action.enabled
                         ? getRexStatusDisplayProperties(actionRexStatusEntry).headerBackgroundColor
                         : "var(--grey1)",
                     }
-                  : undefined
-              }
+                  : undefined),
+                ...(editMode ? { padding: "4px 0px 4px 0px" } : { padding: "2px 0px 2px 0px" }),
+              }}
             >
               {editMode && (
-                <a className={actionStyles.verticalCenter}>
+                <a>
                   <FontAwesomeIcon
                     icon={faGripVertical}
                     className={actionStyles.reorderIcon}
@@ -187,7 +186,6 @@ const RightAction: FunctionComponent<{
 
               <div
                 className={actionStyles.actionHeadingCaret}
-                style={{ marginTop: editMode ? "4px" : "2px" }}
                 onClick={() => {
                   toggleActionExpanded(action.uuid);
                 }}
@@ -222,10 +220,17 @@ const RightAction: FunctionComponent<{
                     <Dropdown
                       selected={action.type}
                       onChange={(val) => {
-                        dispatch(upsertActions([{ ...action, type: val as ActionType }]));
+                        withMissionChange((m) =>
+                          applyUpdateActionByField(m, {
+                            actionUuid: action.uuid,
+                            fieldName: "type",
+                            value: val as ActionType,
+                          })
+                        );
                       }}
                       toolTip="Action Type"
                       arrowStyle={{ color: "var(--grey5)" }}
+                      containerStyle={{ justifyContent: "flex-start", width: "inherit" }}
                     >
                       {actionTypes.map((type) => (
                         <option key={type} value={type}>
@@ -236,28 +241,32 @@ const RightAction: FunctionComponent<{
                   )}
                 </>
               )}
-              <div
-                className={actionStyles.actionHeadingTitleIcon}
-                style={{ marginTop: editMode ? "4px" : "2px" }}
-              >
+              <div className={actionStyles.actionHeadingTitleIcon}>
                 <EmojiRenderer iconValue={action.icon ? action.icon : "2800"} customSizeEm={1.5} />
               </div>
               {partialMission.actionSystemVersion === 1 || !action.stmAction ? (
                 <div className={actionStyles.actionHeadingTitle}>
-                  <div className={actionStyles.verticalCenter}>
-                    <InLineEditInput
+                  <div>
+                    <ValidatedInputField
                       value={action.name}
-                      editing={editMode}
+                      editMode={editMode}
                       fieldProps={{
                         name: "Name",
-                        style: { width: "100%" },
+                        ariaLabel: "Action Name",
                         validators: [validators.required, validators.maxLength(255)],
                       }}
                       onSubmit={(value: string) => {
-                        dispatch(upsertActionByField(action.uuid, "name", value || ""));
+                        withMissionChange((m) =>
+                          applyUpdateActionByField(m, {
+                            actionUuid: action.uuid,
+                            fieldName: "name",
+                            value: value || "",
+                          })
+                        );
                       }}
                       key={`${action.uuid}-name`}
-                      toFocus={toFocus}
+                      focusContents={toFocus}
+                      styleContainer={{ margin: "-3px" }}
                     />
                   </div>
                 </div>
@@ -291,14 +300,11 @@ const RightAction: FunctionComponent<{
                 </>
               )}
 
-              <div
-                className={actionStyles.actionHeadingRight}
-                style={editMode ? { marginTop: "5px" } : undefined}
-              >
+              <div className={actionStyles.actionHeadingRight}>
                 {action.parentActionUuid && (
                   <div
                     className={actionStyles.actionHeadingRightItem}
-                    style={{ marginRight: "0", cursor: "pointer" }}
+                    style={{ marginRight: "0", cursor: "pointer", marginTop: "3px" }}
                     data-tooltip-id="aegis-tooltip"
                     data-tooltip-html={"Copied from POI: " + actionParentPoiName}
                   >
@@ -309,7 +315,10 @@ const RightAction: FunctionComponent<{
                   className={actionStyles.actionHeadingRightItem}
                   data-tooltip-id="aegis-tooltip"
                   data-tooltip-html={"Duration (h:mm)"}
-                  style={{ color: action.duration < 0 ? "var(--warning)" : "inherit" }}
+                  style={{
+                    color: action.duration < 0 ? "var(--warning)" : "inherit",
+                    marginTop: "2px",
+                  }}
                 >
                   {hmmFromMinutes(action.duration)}
                 </div>
@@ -377,7 +386,6 @@ export const ActionDefType: FunctionComponent<{
   actionDefinitionItems: ActionDefinitionItems;
 }> = ({ actionUuid, type, selectedUuid, editMode, actionDefinitionItems }) => {
   const selectedName = actionDefinitionItems[selectedUuid]?.name;
-  const dispatch = useAppDispatch();
   return (
     <>
       {!editMode ? (
@@ -393,7 +401,9 @@ export const ActionDefType: FunctionComponent<{
           type={type}
           selectedUuid={selectedUuid}
           onSelect={(uuid) =>
-            dispatch(thunkUpsertActionDefinitionSelection({ actionUuid, type, typeUuid: uuid }))
+            withMissionChange((m) =>
+              applyUpdateActionDefinitionSelection(m, { actionUuid, type, typeUuid: uuid })
+            )
           }
         />
       )}

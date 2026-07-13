@@ -1,7 +1,12 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vitest/config";
 import path from "path";
+import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+
+// ESM equivalents of __filename / __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Resolve the workspace root (3 levels up from src/tests/vitest/)
 const workspaceRoot = path.resolve(__dirname, "../../..");
@@ -59,6 +64,11 @@ export default defineConfig({
         "src/**/*.test.tsx",
         "src/tests/**",
         "src/server/database/migrations/**",
+        // Rollup's native WASM parser (used by coverage-v8 remapCoverage) cannot
+        // parse TypeScript syntax such as `import type { }`. These server entry-point
+        // files use TypeScript-only syntax and are not unit-testable anyway.
+        "src/server/express/server.ts",
+        "src/server/automerge/migration.ts",
       ],
     },
     globalSetup: [path.resolve(__dirname, "./vitest.globalSetup.ts")],

@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { FunctionComponent } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import styles from "./stm-rules-details.modal.module.css";
 import ruleStyles from "./stm-rules-rules.module.css";
@@ -72,9 +72,9 @@ const STMRuleDetails: FunctionComponent<{
   setIsModalOpen: Function;
 }> = ({ rule, setIsModalOpen }) => {
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      stmLevel3Name: doc.stmLevel3Name,
-      stmLevel1Enabled: doc.stmLevel1Enabled,
+    (mission) => ({
+      stmLevel3Name: mission.stmLevel3Name,
+      stmLevel1Enabled: mission.stmLevel1Enabled,
     }),
     deepEqual
   );
@@ -179,30 +179,29 @@ const STMRuleTitle: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
 
 const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
   const selectedRexUuids = useAppSelector((state) => state.stm.stmRulesSelectedRexes, shallowEqual);
-  const selectedRexEvaUuids = useAppSelector((state) => {
-    const selectedEvaUuids = [];
-    for (const rexUuid of state.stm.stmRulesSelectedRexes) {
-      const rex = state.rex.rexes.find((rex) => rex.uuid === rexUuid);
-      if (rex) {
-        selectedEvaUuids.push(rex.evaUuid);
-      }
+  const selectedRexEvaUuids = useMissionDocSelector((mission) => {
+    const selectedEvaUuids: string[] = [];
+    for (const rexUuid of selectedRexUuids) {
+      const rex = mission?.rexes?.[rexUuid];
+      if (rex) selectedEvaUuids.push(rex.evaUuid);
     }
     return selectedEvaUuids;
   }, shallowEqual);
 
   // get all as-planned evas that are not in the selected rex evas
-  const otherAsPlannedEvaUuids = useAppSelector((state) => {
-    const allRexEvaUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
-    return state.eva.evas
-      .filter((eva) => {
-        return !selectedRexEvaUuids.includes(eva.uuid) && !allRexEvaUuids.includes(eva.uuid);
-      })
+  const otherAsPlannedEvaUuids = useMissionDocSelector((mission) => {
+    if (!mission?.evas || !mission?.rexes) return [];
+    const allRexEvaUuids = Object.values(mission.rexes).map((rex) => rex.evaUuid);
+    return Object.values(mission.evas)
+      .filter(
+        (eva) => !selectedRexEvaUuids.includes(eva.uuid) && !allRexEvaUuids.includes(eva.uuid)
+      )
       .map((eva) => eva.uuid);
   }, shallowEqual);
 
   // get all as-planned stations that are not in the selected rex evas
-  const otherAsPlannedStations = useAppSelector((state) => {
-    const allAsPlannedStations = selectAsPlannedStations(state);
+  const otherAsPlannedStations = useMissionDocSelector((mission) => {
+    const allAsPlannedStations = selectAsPlannedStations(mission);
     // remove stations that have no actions
     const stationsNotInSelectedRexEvas = allAsPlannedStations.filter(
       (station) => station.actionOrderUuids && station.actionOrderUuids.length > 0
@@ -210,17 +209,26 @@ const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
     return stationsNotInSelectedRexEvas;
   }, deepEqual);
 
-  const otherTraverseUuids = useAppSelector((state) => {
-    const selectedTraverseUuids = selectedRexEvaUuids.flatMap((evaUuid) => {
-      const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
-      return eva?.sequence
-        .filter((sequenceItem) => sequenceItem.type === "traverse")
-        .map((item) => item.uuid);
+  const selectedTraverseUuids = useMissionDocSelector((mission) => {
+    return selectedRexEvaUuids.flatMap((evaUuid) => {
+      const eva = mission?.evas?.[evaUuid];
+      return (
+        eva?.sequence
+          .filter((sequenceItem) => sequenceItem.type === "traverse")
+          .map((item) => item.uuid) ?? []
+      );
     });
-    return state.traverse.traverses
-      .filter((traverse) => !selectedTraverseUuids.includes(traverse.uuid))
-      .map((traverse) => traverse.uuid);
-  }, shallowEqual);
+  }, deepEqual);
+  const allTraverseUuids = useMissionDocSelector(
+    (mission) => Object.keys(mission.traverses),
+    shallowEqual
+  );
+  const otherTraverseUuids = useMemo(
+    () =>
+      allTraverseUuids?.filter((traverseUuid) => !selectedTraverseUuids.includes(traverseUuid)) ??
+      [],
+    [allTraverseUuids, selectedTraverseUuids]
+  );
 
   return (
     <div className={styles.stmRuleEvasContainer}>
@@ -263,13 +271,11 @@ const STMRuleRexes: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
 };
 
 const STMRuleRex: FunctionComponent<{ rexUuid: string; rule: STMRule }> = ({ rexUuid, rule }) => {
-  const rex = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.uuid === rexUuid),
-    shallowEqual
-  );
-  const asPlannedEvaName = useAppSelector((state) => {
-    const eva = state.eva.evas.find((eva) => eva.uuid === rex?.evaUuid);
-    const asPlannedEva = getAsPlannedEvaFromRefUuid(state, eva?.refUuid);
+  const rex = useMissionDocSelector((mission) => mission.rexes?.[rexUuid], shallowEqual);
+  const asPlannedEvaName = useMissionDocSelector((mission) => {
+    if (!mission?.evas || !mission?.rexes || !rex) return undefined;
+    const eva = mission.evas[rex.evaUuid];
+    const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, eva.refUuid);
     return asPlannedEva?.name;
   }, shallowEqual);
 
@@ -304,10 +310,7 @@ const STMRuleEva: FunctionComponent<{
   otherTraverseUuids: string[];
   rule: STMRule;
 }> = ({ evaUuid, otherTraverseUuids, rule }) => {
-  const eva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === evaUuid),
-    shallowEqual
-  );
+  const eva = useMissionDocSelector((mission) => mission.evas?.[evaUuid], shallowEqual);
 
   return (
     <div className={styles.rexEvaContainer}>
@@ -330,20 +333,22 @@ const STMRuleRexSequence: FunctionComponent<{
   rexUuid: string;
   rule: STMRule;
 }> = ({ rexUuid, rule }) => {
-  const eva = useAppSelector((state) => {
-    const rex = state.rex.rexes.find((rex) => rex.uuid === rexUuid);
-    return state.eva.evas.find((eva) => eva.uuid === rex?.evaUuid);
+  const eva = useMissionDocSelector((mission) => {
+    const rex = mission?.rexes?.[rexUuid];
+    return rex ? mission?.evas?.[rex.evaUuid] : null;
   }, refEqual);
+  const allStations = useMissionDocSelector((mission) => mission.stations, deepEqual);
+  const allTraverses = useMissionDocSelector((mission) => mission.traverses, deepEqual);
 
-  const filteredSequence = useAppSelector((state) => {
+  const filteredSequence = useMemo(() => {
     return eva.sequence.filter((sequenceItem) => {
       if (sequenceItem.type === "station") {
-        return state.station.stations.some((station) => station.uuid === sequenceItem.uuid);
+        return !!allStations[sequenceItem.uuid];
       } else {
-        return state.traverse.traverses.some((traverse) => traverse.uuid === sequenceItem.uuid);
+        return !!allTraverses[sequenceItem.uuid];
       }
     });
-  }, deepEqual);
+  }, [eva, allStations, allTraverses]);
 
   return (
     <div className={styles.evaStations}>
@@ -377,9 +382,7 @@ const STMRuleEvaTraverses: FunctionComponent<{
   otherTraverseUuids: string[];
   rule: STMRule;
 }> = ({ evaUuid, otherTraverseUuids, rule }) => {
-  const eva = useAppSelector((state) => {
-    return state.eva.evas.find((eva) => eva.uuid === evaUuid);
-  }, refEqual);
+  const eva = useMissionDocSelector((mission) => mission.evas?.[evaUuid], refEqual);
 
   const filteredSequence = eva.sequence.filter((sequenceItem) => {
     return otherTraverseUuids.some((traverseUuid) => traverseUuid === sequenceItem.uuid);
@@ -401,22 +404,34 @@ const STMRuleStation: FunctionComponent<{
   stationUuid: string;
   rule: STMRule;
 }> = ({ rexUuid, stationUuid, rule }) => {
-  const station = useAppSelector(
-    (state) => state.station.stations.find((station) => station.uuid === stationUuid),
-    refEqual
-  );
-  const satisfiedActions = useAppSelector((state) => {
-    if (!station.actionOrderUuids || station.actionOrderUuids.length === 0) {
+  const stationPartial: {
+    name: string;
+    icon: string;
+    actionOrderUuids: string[];
+    location: AEGISPoint;
+    elevation: number;
+  } = useMissionDocSelector((mission) => {
+    const station = mission.stations[stationUuid];
+    return {
+      name: station.name,
+      icon: station.icon,
+      actionOrderUuids: station.actionOrderUuids,
+      location: station.location,
+      elevation: station.elevation,
+    };
+  }, deepEqual);
+  const satisfiedActions = useMissionDocSelector((mission) => {
+    if (!stationPartial.actionOrderUuids || stationPartial.actionOrderUuids.length === 0) {
       return [];
     }
 
-    const actions: Action[] = station.actionOrderUuids.map((actionUuid) => {
-      return state.action.actions.find((action) => action.uuid === actionUuid);
+    const stationActions: Action[] = stationPartial.actionOrderUuids.map((actionUuid) => {
+      return mission.actions[actionUuid];
     });
 
     const resultActions = getSatisfiedActionsByRule({
       rule,
-      actionsToConsider: actions,
+      actionsToConsider: stationActions,
     });
 
     return resultActions;
@@ -426,9 +441,9 @@ const STMRuleStation: FunctionComponent<{
     <div key={stationUuid} className={styles.evaStation}>
       <div className={styles.stationHeaderRow}>
         <div>
-          <EmojiRenderer iconValue={station.icon ? station.icon : "2754"} />
+          <EmojiRenderer iconValue={stationPartial.icon ? stationPartial.icon : "2754"} />
         </div>
-        <div className={styles.stationName}>{station.name}</div>
+        <div className={styles.stationName}>{stationPartial.name}</div>
       </div>
       <div className={styles.stationLineRow}>
         <div className={styles.stationLineContainer}>
@@ -442,8 +457,8 @@ const STMRuleStation: FunctionComponent<{
                 actionUuid={action.uuid}
                 highlight={false}
                 parentType={"station"}
-                parentLocation={station?.location}
-                parentElevation={station?.elevation}
+                parentLocation={stationPartial?.location}
+                parentElevation={stationPartial?.elevation}
                 rexUuid={rexUuid}
                 toFocus={false}
                 allowEdit={false}
@@ -461,23 +476,26 @@ const STMRuleTraverse: FunctionComponent<{
   traverseUuid: string;
   rule: STMRule;
 }> = ({ rexUuid, traverseUuid, rule }) => {
-  const traverse = useAppSelector(
-    (state) => state.traverse.traverses.find((traverse) => traverse.uuid === traverseUuid),
-    refEqual
+  const traversePartial: { name: string; actionOrderUuids: string[] } = useMissionDocSelector(
+    (mission) => {
+      const traverse = mission.traverses[traverseUuid];
+      return { name: traverse.name, actionOrderUuids: traverse.actionOrderUuids };
+    },
+    deepEqual
   );
 
-  const satisfiedActions = useAppSelector((state) => {
-    if (!traverse.actionOrderUuids || traverse.actionOrderUuids.length === 0) {
+  const satisfiedActions = useMissionDocSelector((mission) => {
+    if (!traversePartial.actionOrderUuids || traversePartial.actionOrderUuids.length === 0) {
       return [];
     }
 
-    const actions: Action[] = traverse.actionOrderUuids.map((actionUuid) => {
-      return state.action.actions.find((action) => action.uuid === actionUuid);
+    const traverseActions: Action[] = traversePartial.actionOrderUuids.map((actionUuid) => {
+      return mission.actions[actionUuid];
     });
 
     const resultActions = getSatisfiedActionsByRule({
       rule,
-      actionsToConsider: actions,
+      actionsToConsider: traverseActions,
     });
 
     return resultActions;
@@ -489,7 +507,7 @@ const STMRuleTraverse: FunctionComponent<{
         <div className={styles.iconTraverseDotsContainerSmall}>
           <div className={styles.iconTraverseSmall} />
         </div>
-        <div className={styles.stationName}>{traverse.name}</div>
+        <div className={styles.stationName}>{traversePartial.name}</div>
       </div>
       <div className={styles.stationLineRow}>
         <div className={styles.stationLineContainer}>
@@ -606,11 +624,12 @@ const STMRuleDetailsButtons: FunctionComponent<{
 export const RexSelector: FunctionComponent<{ startOpen?: boolean }> = ({ startOpen = false }) => {
   const dispatch = useAppDispatch();
   const selectedRexes = useAppSelector((state) => state.stm.stmRulesSelectedRexes, deepEqual);
-  const rexesForDropdown = useAppSelector((state) => {
-    const items = state.rex.rexes.map((rex) => {
-      const rexEva = state.eva.evas.find((eva) => eva.uuid === rex.evaUuid);
-      const asPlannedEvaName = getAsPlannedEvaFromRefUuid(state, rexEva.refUuid);
-      const rexWithEvaName = `${asPlannedEvaName.name} - ${rex.name}`;
+  const rexesForDropdown = useMissionDocSelector((mission) => {
+    if (!mission?.rexes || !mission?.evas) return [];
+    const items = Object.values(mission.rexes).map((rex) => {
+      const rexEva = mission.evas[rex.evaUuid];
+      const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, rexEva.refUuid);
+      const rexWithEvaName = `${asPlannedEva?.name ?? ""} - ${rex.name}`;
       return { uuid: rex.uuid, name: rexWithEvaName };
     });
     return items.sort((a, b) => a.name.localeCompare(b.name));

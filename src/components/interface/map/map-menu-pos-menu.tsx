@@ -3,7 +3,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { FunctionComponent } from "react";
 import { useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkCancelPosEntryInEdit, thunkDeletePosEntryByUuid } from "store/thunk/thunkRexPosEntry";
+import {
+  thunkUICancelPosEntryInEdit,
+  thunkDocDeletePosEntryByUuid,
+} from "store/thunk/thunkRexPosEntry";
 import styles from "./map-menu-pos.module.css";
 import { setPosEntryInEdit, setSelectedPosEntryUuid } from "store/rex";
 
@@ -31,7 +34,7 @@ export const PosKabobMenu: FunctionComponent<{
 
   const handleEdit = async (posEntryUuid: string) => {
     //cancel out anything else in edit before putting this one in edit
-    await dispatch(thunkCancelPosEntryInEdit());
+    await dispatch(thunkUICancelPosEntryInEdit());
     dispatch(setPosEntryInEdit(posEntry));
     dispatch(setSelectedPosEntryUuid(posEntryUuid));
   };
@@ -62,7 +65,7 @@ export const PosKabobMenu: FunctionComponent<{
             onClick={(e) => {
               if (window.confirm("Are you sure you want to delete this Crew Position?")) {
                 dispatch(
-                  thunkDeletePosEntryByUuid({
+                  thunkDocDeletePosEntryByUuid({
                     posEntryUuid: posEntry.uuid,
                   })
                 );

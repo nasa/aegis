@@ -1,6 +1,3 @@
-import type { EntityData } from "@mikro-orm/postgresql";
-import type { Action_db } from "server/database/models/_allModels";
-
 import { v4 as uuidv4 } from "uuid";
 
 import { getAccurateNow } from "utils/formatting";
@@ -43,94 +40,6 @@ export const generateBlankAction = (partialAction?: Partial<Action>): Action => 
   };
   return { ...defaultNewAction, ...partialAction };
 };
-
-/**
- * Converts db action fks to their uuid/id arrays
- * @param dbActions an array of actions in mikro db format
- * @returns an a converted array of actions or a single action
- */
-export function convertActionsTypeDbToStore(dbActions: Action_db[]): Action[] {
-  const actions: Action[] = [];
-  for (const dbAction of dbActions) {
-    const convertedAction: Action = {
-      uuid: dbAction.uuid,
-      refUuid: dbAction.refUuid,
-      name: dbAction.name,
-      missionId: dbAction.missionId,
-      poiUuid: dbAction.poi?.uuid,
-      stationUuid: dbAction.station?.uuid,
-      traverseUuid: dbAction.traverse?.uuid,
-      parentActionUuid: dbAction.parentAction?.uuid,
-      parentCopyDate: dbAction.parentCopyDate,
-      priority: dbAction.priority,
-      stmPriorities: dbAction.stmPriorities,
-      type: dbAction.type,
-      description: dbAction.description,
-      descriptionTask: dbAction.descriptionTask,
-      stmAction: dbAction.stmAction,
-      actionDefinition: dbAction.actionDefinition,
-      icon: dbAction.icon,
-      location: dbAction.location,
-      elevation: dbAction.elevation,
-      duration: dbAction.duration,
-      equipmentItemsUsage: dbAction.equipmentItemsUsage,
-      geographicUnitsUsage: dbAction.geographicUnitsUsage,
-      mass: dbAction.mass,
-      status: dbAction.status,
-      enabled: dbAction.enabled,
-      crewAssigned: dbAction.crewAssigned,
-      createdAt: dbAction.createdAt,
-      updatedAt: dbAction.updatedAt,
-    };
-    actions.push(convertedAction);
-  }
-  return actions;
-}
-
-/**
- * Converts actions that come from the store into the db type
- * @param storeActions
- * @returns
- */
-export function convertActionsTypeStoreToDb(storeActions: Action[]): EntityData<Action_db>[] {
-  const dbActions: EntityData<Action_db>[] = [];
-  for (const storeAction of storeActions) {
-    const convertedRecord: EntityData<Action_db> = {
-      uuid: storeAction.uuid,
-      refUuid: storeAction.refUuid,
-      name: storeAction.name,
-      missionId: storeAction.missionId,
-      poi: storeAction.poiUuid,
-      station: storeAction.stationUuid,
-      traverse: storeAction.traverseUuid,
-      parentAction: storeAction.parentActionUuid,
-      parentCopyDate: storeAction.parentCopyDate
-        ? new Date(storeAction.parentCopyDate).getTime()
-        : null,
-      priority: storeAction.priority,
-      stmPriorities: storeAction.stmPriorities,
-      type: storeAction.type,
-      description: storeAction.description,
-      descriptionTask: storeAction.descriptionTask,
-      stmAction: storeAction.stmAction,
-      actionDefinition: storeAction.actionDefinition,
-      icon: storeAction.icon,
-      location: storeAction.location,
-      elevation: storeAction.elevation,
-      duration: storeAction.duration,
-      equipmentItemsUsage: storeAction.equipmentItemsUsage,
-      geographicUnitsUsage: storeAction.geographicUnitsUsage,
-      mass: storeAction.mass,
-      status: storeAction.status,
-      enabled: storeAction.enabled,
-      crewAssigned: storeAction.crewAssigned,
-      updatedAt: new Date(storeAction.updatedAt).getTime(),
-      createdAt: new Date(storeAction.createdAt).getTime(),
-    };
-    dbActions.push(convertedRecord);
-  }
-  return dbActions;
-}
 
 export const actionTypes: ActionType[] = [
   "measurement",

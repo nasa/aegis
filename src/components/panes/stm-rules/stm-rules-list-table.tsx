@@ -39,7 +39,7 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
     (state: RootState) => state.stm.stmViewExpandTopTiers,
     refEqual
   );
-  const stmLevel1Enabled = useMissionDocSelector((doc) => doc.stmLevel1Enabled, deepEqual);
+  const stmLevel1Enabled = useMissionDocSelector((mission) => mission.stmLevel1Enabled, deepEqual);
 
   const numLines = numLevel3s;
   const maxHeightEm = 1.2 * numLines;

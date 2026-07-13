@@ -4,8 +4,8 @@ import { useRef } from "react";
 import rexStyles from "./rex.module.css";
 import evaStyles from "../eva/eva.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { thunkDocAddRexStatusEntry } from "store/thunk/thunkRex";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkAddRexStatusEntry } from "store/thunk/thunkRex";
 import { getRexStatusDisplayProperties } from "utils/component-helpers";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 
@@ -56,8 +56,11 @@ export const RexStatusMenu: FunctionComponent<{
     }
   };
 
-  const handleRexStatusClick = (rexStatus: RexStatus) => {
-    dispatch(thunkAddRexStatusEntry({ entryType, uuid, rexStatus }));
+  const handleRexStatusClick = async (rexStatus: RexStatus) => {
+    const result = await dispatch(thunkDocAddRexStatusEntry({ entryType, uuid, rexStatus }));
+    if (thunkDocAddRexStatusEntry.rejected.match(result) && result.payload) {
+      alert(result.payload);
+    }
     dialogRef.current?.close();
   };
 
@@ -66,7 +69,8 @@ export const RexStatusMenu: FunctionComponent<{
       <dialog
         ref={dialogRef}
         className={rexStyles.rexStatusContainer}
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           dialogRef.current?.close();
         }}
       >
@@ -96,7 +100,8 @@ export const RexStatusMenu: FunctionComponent<{
       <dialog
         ref={maestroDialogRef}
         className={rexStyles.maestroDialogContainer}
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           maestroDialogRef.current?.close();
         }}
       >
@@ -107,7 +112,7 @@ export const RexStatusMenu: FunctionComponent<{
       </dialog>
       <div
         className={divClassName}
-        style={{ ...divStyle, cursor: editPerms && maestroControlled ? "pointer" : "default" }}
+        style={{ ...divStyle, cursor: editPerms && !maestroControlled ? "pointer" : "default" }}
         onClick={(e) => {
           handleMenuOpen(e);
           e.stopPropagation();

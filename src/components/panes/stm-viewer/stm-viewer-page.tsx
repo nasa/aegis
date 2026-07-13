@@ -1,5 +1,5 @@
 import type { FunctionComponent } from "react";
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import styles from "./stm-viewer-page.module.css";
 import STMListTable from "./stm-viewer-list-table";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
@@ -28,8 +28,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { setSelectedStationUuid } from "store/station";
 import { actionTypes } from "store/storeUtils/action";
 import sortBy from "lodash/sortBy";
-import { selectAsPlannedStations } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { selectAsPlannedStations } from "store/selectors";
 
 const StmViewerPage: FunctionComponent = () => {
   const stmViewExpandTopTiers = useAppSelector(
@@ -41,11 +41,11 @@ const StmViewerPage: FunctionComponent = () => {
     refEqual
   );
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      stmLevel1Enabled: doc.stmLevel1Enabled,
-      stmLevel1Name: doc.stmLevel1Name,
-      stmLevel2Name: doc.stmLevel2Name,
-      stmLevel3Name: doc.stmLevel3Name,
+    (mission) => ({
+      stmLevel1Enabled: mission.stmLevel1Enabled,
+      stmLevel1Name: mission.stmLevel1Name,
+      stmLevel2Name: mission.stmLevel2Name,
+      stmLevel3Name: mission.stmLevel3Name,
     }),
     deepEqual
   );
@@ -172,14 +172,19 @@ const StmViewerPage: FunctionComponent = () => {
 export default StmViewerPage;
 
 const StationGroupTitles: FunctionComponent = () => {
-  const sortedEvaUuids = useAppSelector((state) => {
-    const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
+  const stmViewSelectedEvas = useAppSelector(
+    (state) => state.stm.stmViewSelectedEvas,
+    shallowEqual
+  );
+  const sortedEvaUuids = useMissionDocSelector((mission) => {
+    if (!mission?.evas || !mission?.rexes) return [];
+    const allRexEvasUuids = Object.values(mission.rexes).map((rex) => rex.evaUuid);
     const sortedAsPlannedEvas = sortBy(
-      state.eva.evas.filter((eva) => !allRexEvasUuids.includes(eva.uuid)),
+      Object.values(mission.evas).filter((eva) => !allRexEvasUuids.includes(eva.uuid)),
       [(eva) => eva.name?.toLowerCase()]
     );
     return sortedAsPlannedEvas
-      .filter((eva) => state.stm.stmViewSelectedEvas.includes(eva.uuid))
+      .filter((eva) => stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
   return (
@@ -196,19 +201,23 @@ const StationGroupTitles: FunctionComponent = () => {
 };
 
 const StationGroupTitle: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid }) => {
-  const allStations = useAppSelector(
-    (state) => sortBy(state.station.stations, [(station) => station.name.toLowerCase()]),
+  const allStations = useMissionDocSelector(
+    (mission) => sortBy(Object.values(mission.stations), [(station) => station.name.toLowerCase()]),
     deepEqual
   );
-  const eva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === evaUuid),
+  const evaPartial: { name: string; sequence: EvaSequenceItem[] } = useMissionDocSelector(
+    (mission) => {
+      const eva = evaUuid ? mission.evas?.[evaUuid] : null;
+      if (!eva) return null;
+      return { name: eva.name, sequence: eva.sequence };
+    },
     deepEqual
   );
   // filter stations by evaUuid
   let stations: Station[] = [];
-  if (eva) {
+  if (evaPartial) {
     // filter stations by evaUuid
-    const stationUuids = eva.sequence
+    const stationUuids = evaPartial.sequence
       .filter((sequenceItem) => sequenceItem.type === "station")
       .map((sequenceItem) => sequenceItem.uuid);
     // preserve the order of stationUuids because this is the sequence order
@@ -228,10 +237,10 @@ const StationGroupTitle: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid })
       <div
         className={styles.stationGroupTitle}
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html={eva?.name}
+        data-tooltip-html={evaPartial?.name}
         style={{ width: `${(numberOfStationsInEva + 1) * 22}px` }}
       >
-        {eva && abbreviateString(eva.name, 3 * numberOfStationsInEva)}
+        {evaPartial && abbreviateString(evaPartial.name, 3 * numberOfStationsInEva)}
       </div>
       {evaUuid ? (
         <div className={styles.stationGroupTitleStyling}>
@@ -252,30 +261,30 @@ const StationGroupTitle: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid })
 };
 
 const StationNameGroups: FunctionComponent = () => {
-  const sortedEvaUuids = useAppSelector((state) => {
-    const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
+  const stmViewSelectedEvas = useAppSelector(
+    (state) => state.stm.stmViewSelectedEvas,
+    shallowEqual
+  );
+  const sortedEvaUuids = useMissionDocSelector((mission) => {
+    if (!mission?.evas || !mission?.rexes) return [];
+    const allRexEvasUuids = Object.values(mission.rexes).map((rex) => rex.evaUuid);
     const sortedAsPlannedEvas = sortBy(
-      state.eva.evas.filter((eva) => !allRexEvasUuids.includes(eva.uuid)),
+      Object.values(mission.evas).filter((eva) => !allRexEvasUuids.includes(eva.uuid)),
       [(eva) => eva.name?.toLowerCase()]
     );
     return sortedAsPlannedEvas
-      .filter((eva) => state.stm.stmViewSelectedEvas.includes(eva.uuid))
+      .filter((eva) => stmViewSelectedEvas.includes(eva.uuid))
       .map((eva) => eva.uuid);
   }, shallowEqual);
-  const allStationsNotInASelectedEvas = useAppSelector((state) => {
-    const sortedAsPlannedStations = selectAsPlannedStations(state);
-    const selectedEvaUuids = state.stm.stmViewSelectedEvas;
-    for (const evaUuid of selectedEvaUuids) {
-      const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
+  const allStationsNotInASelectedEvas = useMissionDocSelector((mission) => {
+    const sortedAsPlannedStations = selectAsPlannedStations(mission);
+    for (const evaUuid of stmViewSelectedEvas) {
+      const eva = mission?.evas?.[evaUuid];
       if (eva) {
-        const stationUuids = eva.sequence
-          .filter((sequenceItem) => sequenceItem.type === "station")
-          .map((sequenceItem) => sequenceItem.uuid);
+        const stationUuids = eva.sequence.filter((s) => s.type === "station").map((s) => s.uuid);
         for (const stationUuid of stationUuids) {
-          const station = sortedAsPlannedStations.find((station) => station.uuid === stationUuid);
-          if (station) {
-            sortedAsPlannedStations.splice(sortedAsPlannedStations.indexOf(station), 1);
-          }
+          const idx = sortedAsPlannedStations.findIndex((s) => s.uuid === stationUuid);
+          if (idx >= 0) sortedAsPlannedStations.splice(idx, 1);
         }
       }
     }
@@ -299,18 +308,17 @@ const StationNameGroups: FunctionComponent = () => {
 };
 
 const StationNames: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid }) => {
-  const allStations = useAppSelector(
-    (state) => sortBy(state.station.stations, [(station) => station.name.toLowerCase()]),
+  const allStations = useMissionDocSelector(
+    (mission) => sortBy(Object.values(mission.stations), [(station) => station.name.toLowerCase()]),
     deepEqual
   );
-  const stations = useAppSelector((state) => {
-    const eva = state.eva.evas.find((eva) => eva.uuid === evaUuid);
-    if (eva) {
-      const stationUuids = eva.sequence
-        .filter((sequenceItem) => sequenceItem.type === "station")
-        .map((sequenceItem) => sequenceItem.uuid);
+  const evaSequenceStationUuids = useMissionDocSelector((mission) => {
+    return mission.evas?.[evaUuid]?.sequence.filter((s) => s.type === "station").map((s) => s.uuid);
+  }, deepEqual);
+  const stations = useMemo(() => {
+    if (evaSequenceStationUuids) {
       const stations: Station[] = [];
-      for (const stationUuid of stationUuids) {
+      for (const stationUuid of evaSequenceStationUuids) {
         const station = allStations.find((station) => station.uuid === stationUuid);
         if (station) {
           stations.push(station);
@@ -320,7 +328,7 @@ const StationNames: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid }) => {
     } else {
       return allStations;
     }
-  }, deepEqual);
+  }, [evaSequenceStationUuids, allStations]);
 
   return (
     <>
@@ -362,15 +370,15 @@ const StationName: FunctionComponent<{ station: Station }> = ({ station }) => {
 const EvaSelector: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedEvas = useAppSelector((state) => state.stm.stmViewSelectedEvas, deepEqual);
-  const asPlannedEvaWithStations = useAppSelector((state) => {
-    const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
-    const asPlannedEvasWithStations = state.eva.evas.filter(
+  const asPlannedEvaWithStations = useMissionDocSelector((mission) => {
+    if (!mission?.evas || !mission?.rexes) return [];
+    const allRexEvasUuids = Object.values(mission.rexes).map((rex) => rex.evaUuid);
+    const asPlannedEvasWithStations = Object.values(mission.evas).filter(
       (eva) =>
-        !allRexEvasUuids.includes(eva.uuid) && // not in a rex
-        eva.sequence.filter((sequenceItem) => sequenceItem.type === "station").length > 0 // has a station
+        !allRexEvasUuids.includes(eva.uuid) &&
+        eva.sequence.filter((s) => s.type === "station").length > 0
     );
-    const sortedEvas = sortBy(asPlannedEvasWithStations, [(eva) => eva.name.toLowerCase()]);
-    return sortedEvas;
+    return sortBy(asPlannedEvasWithStations, [(eva) => eva.name.toLowerCase()]);
   }, deepEqual);
 
   return (

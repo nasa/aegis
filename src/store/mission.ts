@@ -5,7 +5,7 @@ export const initialState: MissionState = {
   layers: null,
   sublayers: null,
   selectedRightNavItem: "prefs_panel",
-  missionSectionsEditing: [],
+  isInEditMode: false,
   automergeUrl: "",
 };
 
@@ -24,17 +24,12 @@ export const missionSlice = createSlice({
     setSelectedMissionRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
     },
-    setMissionSectionEditing: (
-      state,
-      action: { payload: { section: string; editMode: boolean } }
-    ) => {
-      if (action.payload.editMode) {
-        state.missionSectionsEditing = [...state.missionSectionsEditing, action.payload.section];
-      } else {
-        state.missionSectionsEditing = state.missionSectionsEditing.filter(
-          (section) => section !== action.payload.section
-        );
-      }
+    /**
+     * Single global edit-mode toggle. When on, edit mode is enabled for
+     * mission, eva, traverse, station, poi, rex, and action sections.
+     */
+    setIsInEditMode: (state, action: { payload: boolean }) => {
+      state.isInEditMode = action.payload;
     },
     setAutomergeUrl: (state, action: { payload: string }) => {
       state.automergeUrl = action.payload;
@@ -51,7 +46,7 @@ export const missionSlice = createSlice({
     });
 
     builder.addCase(clearAllEditing, (state) => {
-      state.missionSectionsEditing = [];
+      state.isInEditMode = false;
     });
   },
 });
@@ -60,7 +55,7 @@ export const {
   setLayers,
   setSublayers,
   setSelectedMissionRightNavItem,
-  setMissionSectionEditing,
+  setIsInEditMode,
   setAutomergeUrl,
   obliterateState,
 } = missionSlice.actions;

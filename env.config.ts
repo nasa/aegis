@@ -53,7 +53,7 @@ export const config: DotenvConfig<typeof environments> = {
   REGISTRY_IMAGE: {
     default: "eegitlabregistry.fit.nasa.gov/emss/aegis",
   },
-  DOCKER_IMAGE_DATABASE: { default: "postgis/postgis:14-3.2-alpine" },
+  DOCKER_IMAGE_DATABASE: { default: "postgres:17.10-alpine" },
 
   /**
    * Box information
@@ -192,6 +192,16 @@ export const config: DotenvConfig<typeof environments> = {
     default: {
       type: "required-from-secret",
     },
+  },
+
+  /**
+   * Maestro
+   * The URL of the Maestro server this AEGIS instance should pair with.
+   * Can be overridden per-deployment via the admin Maestro Env Pairing page.
+   */
+  MAESTRO_PAIR_ENV_URL: {
+    prod: "maestro.fit.nasa.gov",
+    default: "maestro-beta.fit.nasa.gov",
   },
 
   /**

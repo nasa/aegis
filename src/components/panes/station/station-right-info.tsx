@@ -1,5 +1,5 @@
 import type { FunctionComponent } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import stationStyles from "./station.module.css";
 import {
@@ -12,83 +12,98 @@ import {
   faToolbox,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
+import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
+import { Button } from "components/interface/form/globalFields";
+import {
+  ValidatedInputField,
+  ValidatedLatLngField,
+  ValidatedTextArea,
+} from "components/interface/form/globalFieldsAutomerge";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
-import { setSelectedStationRightNavItem, upsertStationByField } from "store/station";
+import { setSelectedStationRightNavItem } from "store/station";
 import { calcCentroidofCoordinates, findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
 import { formatNumberWithCommas, isNotNumber, toDecimal } from "utils/formatting";
 import { useAppDispatch } from "utils/useAppDispatch";
-import {
-  thunkResetWalkback,
-  thunkUpdateStationLatLngField,
-  thunkUpdateStationLocation,
-} from "store/thunk/thunkStation";
+import { thunkDocResetWalkback, thunkDocUpdateStationLocation } from "store/thunk/thunkStation";
 import { makeTraverseRateString } from "utils/component-helpers";
-import round from "lodash/round";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
+import { setOriginalPoints, updateMapDirective } from "store/map";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import { globalGrid } from "utils/mapping/grid";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdateStationByField } from "client/automerge/apply/apply-station";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      walkbackRate: doc.walkbackRate,
-      usingLGRSCoordinates: doc.usingLGRSCoordinates,
-      planetRadius: doc.planetRadius,
-      equipmentItems: doc.equipmentItems,
-      landerLocation: doc.landerLocation,
-      projBoundsMinY: doc.projBoundsMinY,
-      projBoundsMaxY: doc.projBoundsMaxY,
-      projBoundsMinX: doc.projBoundsMinX,
-      projBoundsMaxX: doc.projBoundsMaxX,
-      landerElevationMeters: doc.landerElevationMeters,
+    (mission) => ({
+      walkbackRate: mission.walkbackRate,
+      usingLGRSCoordinates: mission.usingLGRSCoordinates,
+      planetRadius: mission.planetRadius,
+      equipmentItems: mission.equipmentItems,
+      landerLocation: mission.landerLocation,
+      projBoundsMinY: mission.projBoundsMinY,
+      projBoundsMaxY: mission.projBoundsMaxY,
+      projBoundsMinX: mission.projBoundsMinX,
+      projBoundsMaxX: mission.projBoundsMaxX,
+      landerElevationMeters: mission.landerElevationMeters,
     }),
     deepEqual
   );
 
-  const selectedStation = useAppSelector(
-    (state) =>
-      state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
-    deepEqual
+  const selectedStationUuid = useAppSelector(
+    (state) => state.station.selectedStationUuid,
+    refEqual
   );
-  const thisMapDirective = useAppSelector((state) => {
-    return state.map.mapDirective?.uuid === selectedStation.uuid ? state.map.mapDirective : null;
-  }, shallowEqual);
+  const docMaps = useMissionDocSelector(
+    (mission) => ({
+      stations: mission.stations,
+      actions: mission.actions,
+      pois: mission.pois,
+    }),
+    shallowEqual
+  );
+  const selectedStation = useMemo(
+    () => docMaps?.stations[selectedStationUuid],
+    [docMaps, selectedStationUuid]
+  );
+  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
+  const thisMapDirective = useMemo(
+    () => (mapDirective?.uuid === selectedStationUuid ? mapDirective : null),
+    [mapDirective, selectedStationUuid]
+  );
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   const elevationPendingIndex = useAppSelector(
     (state) =>
-      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStation.uuid),
+      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedStationUuid),
     refEqual
   );
-  const stationPoisLocations = useAppSelector(
-    (state) =>
-      selectedStation.poiUuids.map((poiUuid) => {
-        const poi = state.poi.pois.find((p) => p.uuid === poiUuid);
-        return poi.location;
-      }),
-    shallowEqual
-  );
+  const stationPoisLocations = useMemo(() => {
+    if (!docMaps || !selectedStation) return [];
+    return selectedStation.poiUuids.map((poiUuid) => {
+      const poi = docMaps.pois[poiUuid];
+      return poi?.location;
+    });
+  }, [docMaps, selectedStation]);
 
-  const countEvasUsingThisStation = useAppSelector((state) => {
+  const countEvasUsingThisStation = useMissionDocSelector((mission) => {
     let numEvas = 0;
-    state.eva.evas.forEach((eva) => {
+    Object.values(mission?.evas ?? {}).forEach((eva) => {
       if (
-        eva.ingressLocationUuid === selectedStation.uuid ||
-        eva.egressLocationUuid === selectedStation.uuid
+        eva.ingressLocationUuid === selectedStationUuid ||
+        eva.egressLocationUuid === selectedStationUuid
       ) {
         numEvas++;
       } else {
         eva.sequence.forEach((sequenceItem) => {
-          if (sequenceItem.uuid === selectedStation.uuid) {
+          if (sequenceItem.uuid === selectedStationUuid) {
             numEvas++;
           }
         });
@@ -97,8 +112,9 @@ const Info_Panel: FunctionComponent<{
     return numEvas;
   }, refEqual);
 
-  const calculatedFields = useAppSelector((state) => {
-    const stationActions = state.action.actions.filter(
+  const calculatedFields = useMemo(() => {
+    if (!docMaps) return undefined;
+    const stationActions = Object.values(docMaps.actions).filter(
       (a) => a.stationUuid === selectedStation?.uuid && a.enabled
     );
     return getCalculatedFieldsByStation({
@@ -106,13 +122,14 @@ const Info_Panel: FunctionComponent<{
       missionWalkbackRate: partialMission.walkbackRate,
       stationActions,
     });
-  }, deepEqual);
+  }, [docMaps, selectedStation, partialMission.walkbackRate]);
 
-  const stationGridCoordinates = useAppSelector((state) => {
-    if (selectedStation.location && partialMission.usingLGRSCoordinates) {
+  const gridCornerPoint = useAppSelector((state) => state.map.gridCornerPoint, refEqual);
+  const stationGridCoordinates = useMemo(() => {
+    if (selectedStation?.location && partialMission.usingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(selectedStation.location.lat, selectedStation.location.lng);
     }
-    if (selectedStation.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
+    if (selectedStation?.location && globalGrid?.coordinates && gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
         globalGrid.coordinates,
         selectedStation.location,
@@ -121,7 +138,12 @@ const Info_Panel: FunctionComponent<{
     } else {
       return "Not set";
     }
-  }, deepEqual);
+  }, [
+    selectedStation,
+    partialMission.usingLGRSCoordinates,
+    partialMission.planetRadius,
+    gridCornerPoint,
+  ]);
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
 
@@ -185,10 +207,13 @@ const Info_Panel: FunctionComponent<{
 
   const handleCalcCentroid = () => {
     const centroid = calcCentroidofCoordinates(stationPoisLocations);
-    dispatch(thunkUpdateStationLocation({ location: centroid, stationUuid: selectedStation.uuid }));
+    dispatch(
+      thunkDocUpdateStationLocation({ location: centroid, stationUuid: selectedStation.uuid })
+    );
   };
 
   const handleEditWalkback = async () => {
+    dispatch(setOriginalPoints(selectedStation.walkbackPath));
     dispatch(
       thunkUpdateMapDirective({
         mapItemType: "walkback",
@@ -199,10 +224,13 @@ const Info_Panel: FunctionComponent<{
   };
 
   const handleCancelEditWalkback = () => {
+    // Dispatched synchronously instead of via thunkUpdateMapDirective so the
+    // 200ms delay can't let a trailing throttled drag write the edited path
+    // to Automerge after the user already clicked Cancel.
     dispatch(
-      thunkUpdateMapDirective({
-        mapItemType: "walkback",
+      updateMapDirective({
         uuid: selectedStation.uuid,
+        mapItemType: "walkback",
         mapAction: "cancelEditPolyline",
       })
     );
@@ -219,7 +247,7 @@ const Info_Panel: FunctionComponent<{
   };
 
   const handleResetWalkback = useCallback(() => {
-    dispatch(thunkResetWalkback({ stationUuid: selectedStation.uuid }));
+    dispatch(thunkDocResetWalkback({ stationUuid: selectedStation.uuid }));
   }, [dispatch, selectedStation.uuid]);
 
   useEffect(() => {
@@ -240,13 +268,19 @@ const Info_Panel: FunctionComponent<{
             <div className={paneStyles.panelSectionTitle}>
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
-            <div className={paneStyles.descriptionContainer}>
-              <TextArea
+            <div className={paneStyles.fieldContainerAutomerge}>
+              <ValidatedTextArea
                 key={selectedStation.uuid}
                 value={selectedStation.description || ""}
-                editing={editMode}
+                editMode={editMode}
                 onSubmit={(value: string) => {
-                  dispatch(upsertStationByField(selectedStation.uuid, "description", value || ""));
+                  withMissionChange((m) =>
+                    applyUpdateStationByField(m, {
+                      stationUuid: selectedStation.uuid,
+                      fieldName: "description",
+                      value: value || "",
+                    })
+                  );
                 }}
                 fieldProps={{ name: "stationDescription", ariaLabel: "Station Description" }}
               />
@@ -266,13 +300,12 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
+                        <ValidatedInputField
                           value={selectedStation.duration?.toString()}
-                          editing={editMode}
+                          editMode={editMode}
                           fieldProps={{
                             name: "duration",
                             ariaLabel: "Time in minutes",
-                            style: { width: "45px" },
                             validators: [
                               validators.mustBeNumber,
                               validators.maxLength(4),
@@ -286,9 +319,13 @@ const Info_Panel: FunctionComponent<{
                               );
                             },
                           }}
-                          onSubmit={(val) => {
-                            dispatch(
-                              upsertStationByField(selectedStation.uuid, "duration", toDecimal(val))
+                          onSubmit={(val: string) => {
+                            withMissionChange((m) =>
+                              applyUpdateStationByField(m, {
+                                stationUuid: selectedStation.uuid,
+                                fieldName: "duration",
+                                value: toDecimal(val),
+                              })
                             );
                           }}
                           key={`${selectedStation.uuid}-duration`}
@@ -423,7 +460,7 @@ const Info_Panel: FunctionComponent<{
                         <Button
                           onClick={async () => {
                             await dispatch(
-                              thunkUpdateStationLocation({
+                              thunkDocUpdateStationLocation({
                                 location: partialMission.landerLocation,
                                 stationUuid: selectedStation.uuid,
                               })
@@ -467,88 +504,43 @@ const Info_Panel: FunctionComponent<{
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Lat:</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {!selectedStation.location ? (
-                          <>Not set</>
-                        ) : (
-                          <InLineEditInput
-                            value={round(selectedStation.location.lat, 6).toString()}
-                            editing={editMode}
-                            fieldProps={{
-                              name: "Lat",
-                              ariaLabel: "Latitude",
-                              style: { width: "100px" },
-                              validators: [
-                                validators.mustBeNumber,
-                                validators.required,
-                                validators.withinBoundary(
-                                  partialMission.projBoundsMinY,
-                                  partialMission.projBoundsMaxY
-                                ),
-                              ],
-                            }}
-                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
-                            onSubmit={(val: string) => {
-                              dispatch(
-                                thunkUpdateStationLatLngField({
-                                  stationUuid: selectedStation.uuid,
-                                  type: "lat",
-                                  value: parseFloat(val),
-                                })
-                              );
-                            }}
-                            key={`${selectedStation.uuid}-lat`}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Lng:</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {!selectedStation.location ? (
-                          <>Not set</>
-                        ) : (
-                          <InLineEditInput
-                            value={round(selectedStation.location.lng, 6).toString()}
-                            editing={editMode}
-                            fieldProps={{
-                              name: "Lng",
-                              ariaLabel: "Longitude",
-                              style: { width: "100px" },
-                              validators: [
-                                validators.mustBeNumber,
-                                validators.required,
-                                validators.withinBoundary(
-                                  partialMission.projBoundsMinX,
-                                  partialMission.projBoundsMaxX
-                                ),
-                              ],
-                            }}
-                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
-                            onSubmit={(val: string) => {
-                              dispatch(
-                                thunkUpdateStationLatLngField({
-                                  stationUuid: selectedStation.uuid,
-                                  type: "lng",
-                                  value: parseFloat(val),
-                                })
-                              );
-                            }}
-                            key={`${selectedStation.uuid}-lng`}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <ValidatedLatLngField
+                    value={selectedStation.location}
+                    editMode={editMode}
+                    fieldPropsLat={{
+                      name: "Lat",
+                      ariaLabel: "LatitudeStation",
+                      validators: [
+                        validators.mustBeNumber,
+                        validators.required,
+                        validators.withinBoundary(
+                          partialMission.projBoundsMinY,
+                          partialMission.projBoundsMaxY
+                        ),
+                      ],
+                    }}
+                    fieldPropsLng={{
+                      name: "Lng",
+                      ariaLabel: "LongitudeStation",
+                      validators: [
+                        validators.mustBeNumber,
+                        validators.required,
+                        validators.withinBoundary(
+                          partialMission.projBoundsMinX,
+                          partialMission.projBoundsMaxX
+                        ),
+                      ],
+                    }}
+                    onSubmit={(val: AEGISPoint) => {
+                      dispatch(
+                        thunkDocUpdateStationLocation({
+                          location: val,
+                          stationUuid: selectedStation.uuid,
+                        })
+                      );
+                    }}
+                    key={`${selectedStation.uuid}-latlng`}
+                  />
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
@@ -738,13 +730,12 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
+                        <ValidatedInputField
                           value={selectedStation.walkbackTraverseRate?.toString()}
-                          editing={editMode}
+                          editMode={editMode}
                           fieldProps={{
                             name: "walkbackTraverseRate",
                             ariaLabel: "Average Walkback Traverse Rate",
-                            style: { width: "55px" },
                             validators: [validators.mustBeNumber, validators.maxLength(4)],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
@@ -754,12 +745,12 @@ const Info_Panel: FunctionComponent<{
                             },
                           }}
                           onSubmit={(val: string) => {
-                            dispatch(
-                              upsertStationByField(
-                                selectedStation.uuid,
-                                "walkbackTraverseRate",
-                                toDecimal(val)
-                              )
+                            withMissionChange((m) =>
+                              applyUpdateStationByField(m, {
+                                stationUuid: selectedStation.uuid,
+                                fieldName: "walkbackTraverseRate",
+                                value: toDecimal(val),
+                              })
                             );
                           }}
                           key={`${selectedStation.uuid}-walkbackTraverseRate`}
@@ -843,10 +834,10 @@ const Info_Panel: FunctionComponent<{
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldValue}>
-                      <LastEdited
+                      <LastEditedNumeric
                         updatedAt={selectedStation?.updatedAt}
                         createdAt={selectedStation?.createdAt}
-                        infoString={`Station UUID: ${selectedStation?.uuid}`}
+                        infoString={`Station UUID: ${selectedStation?.uuid}<br />Station RefUUID: ${selectedStation?.refUuid}`}
                       />
                     </div>
                   </div>

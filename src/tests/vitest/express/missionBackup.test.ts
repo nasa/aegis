@@ -1,7 +1,7 @@
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import { Mission_db, App_User_db } from "server/database/models/_allModels";
+import { MissionBackup_db, Doc_Listing_db, App_User_db } from "server/database/models/_allModels";
 import MissionFactory from "../fixtures/entityFactories/MissionFactory";
 import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
 import supertest from "supertest";
@@ -16,7 +16,7 @@ vi.mock("server/express/sockets", async () => {
   };
 });
 
-let testMissions: Mission_db[];
+let testMissions: MissionBackup_db[];
 let testAdmin: App_User_db;
 let testSuperAdmin: App_User_db;
 
@@ -26,26 +26,20 @@ beforeAll(async () => {
 
   const em = globalValues.orm.em.fork();
 
-  // Because new missions are inserted into the backup mission_db with a manual ID,
-  // the sequence needs to be reset to avoid conflicts when creating test missions.
-  await em
-    .getConnection()
-    .execute(`SELECT setval(pg_get_serial_sequence('mission_db', 'id'), MAX(id)) FROM mission_db`);
-
   testMissions = await new MissionFactory(em).create(3);
   testAdmin = await new AppUserFactory(em).createOne({
     username: "Vitest testAdminForMission",
     isAdmin: true,
     permissionList: [
       {
-        missionId: testMissions[0].id,
+        missionId: testMissions[0].missionId,
         permissions: {
           edit: true,
           view: true,
         },
       },
       {
-        missionId: testMissions[1].id,
+        missionId: testMissions[1].missionId,
         permissions: {
           edit: false,
           view: true,
@@ -90,7 +84,7 @@ describe("Mission API Endpoint", () => {
       const res = await supertest(app)
         .get("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[0].id });
+        .query({ missionId: testMissions[0].missionId });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
@@ -122,7 +116,7 @@ describe("Mission API Endpoint", () => {
       const res = await supertest(app)
         .get("/api/v1/mission")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissions[2].id });
+        .query({ missionId: testMissions[2].missionId });
 
       expect(res.statusCode).toBe(401);
       expect(res.body.status).toBe("failure");
@@ -161,7 +155,7 @@ describe("Mission API Endpoint", () => {
       const res = await supertest(app)
         .get("/api/v1/mission")
         .set("emss-token", process.env.EMSS_TOKEN)
-        .query({ missionId: testMissions[1].id });
+        .query({ missionId: testMissions[1].missionId });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
@@ -176,7 +170,8 @@ afterAll(async () => {
   await em.nativeDelete(App_User_db, { id: testAdmin.id });
   await em.nativeDelete(App_User_db, { id: testSuperAdmin.id });
   for (let i = 0; i < testMissions.length; i++) {
-    await em.nativeDelete(Mission_db, { id: testMissions[i].id });
+    await em.nativeDelete(MissionBackup_db, { missionId: testMissions[i].missionId });
+    await em.nativeDelete(Doc_Listing_db, { missionId: testMissions[i].missionId });
   }
 
   // Closing the DB connection allows Vitest to exit successfully.

@@ -1,272 +1,167 @@
-import {
-  deletePoisByUuid,
-  deletePoisFromDbByUuid,
-  selectPoi,
-  upsertPoiByField,
-  upsertPoisFromDb,
-} from "store/poi";
+import { selectPoi } from "store/poi";
 import appCreateAsyncThunk from "./thunkUtil";
-import { thunkGetElevation } from "./thunkElevation";
-import * as httpClient_poi from "http-client/poi";
-import * as httpClient_station from "http-client/station";
-import { upsertActions, deleteActionsByUuid } from "store/action";
-import { thunkDeletePoiAndActionsFromStore } from "./crossThunk";
-import { setPoiEditMode, setSelectedPoiUuid, upsertPois } from "store/poi";
-import { generateUniqueName } from "utils/names/unique-name";
+import { thunkFetchElevation } from "./thunkElevation";
+import { setSelectedPoiUuid } from "store/poi";
 import { v4 as uuidv4 } from "uuid";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
 import cloneDeep from "lodash/cloneDeep";
-import {
-  thunkDeleteActionsFromDbAndStore,
-  thunkDuplicateActions,
-  thunkSaveActions,
-} from "./thunkAction";
 import { getAccurateNow } from "utils/formatting";
-import { isModified } from "utils/component-helpers";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
-import { generateBlankPoi } from "store/storeUtils/poi";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
-import { upsertStations, upsertStationsFromDb } from "store/station";
-import { getAutomergeDocHandles } from "client/automergeDocHandles";
+import { getMissionDocHandle } from "client/automergeDocHandles";
+import { applyDeleteActions, applyDuplicateActions } from "client/automerge/apply/apply-action";
+import { applyDeletePois, applyUpsertPoi } from "client/automerge/apply/apply-poi";
+import { generateUniqueName } from "utils/names/unique-name";
+import { generateBlankPoi } from "store/storeUtils/poi";
 
-export const thunkUpdatePoiLatLngField = appCreateAsyncThunk<{
-  poiUuid: string;
-  type: "lat" | "lng";
-  value: number;
-}>("updatePoiLatLngField", async ({ poiUuid, type, value }, { getState, dispatch }) => {
-  const poiLocation: AEGISPoint = cloneDeep(
-    getState().poi.pois.find((p) => p.uuid === poiUuid)?.location
-  );
-  if (type === "lat") {
-    poiLocation.lat = value;
-  } else {
-    poiLocation.lng = value;
-  }
-  await dispatch(thunkUpdatePoiLocation({ location: poiLocation, poiUuid }));
-});
-
-export const thunkUpdatePoiLocation = appCreateAsyncThunk<{
+export const thunkDocUpdatePoiLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
   poiUuid: string;
-}>("updatePoiLocation", async ({ location, poiUuid }, { dispatch, getState }) => {
+}>("updatePoiLocation", async ({ location, poiUuid }, { dispatch }) => {
+  // Step 1: Fetch elevation for the new location
   const elevationRes = await dispatch(
-    thunkGetElevation({
+    thunkFetchElevation({
       path: [location],
       pathSegmentDistances: [0],
       uuid: poiUuid,
     })
   );
-  const poi = getState().poi.pois.find((s) => s.uuid === poiUuid);
-  if (elevationRes.meta.requestStatus === "rejected") {
-    //elevation failed - upsert without it
-    dispatch(upsertPoiByField(poi.uuid, "location", location, false));
-  } else {
-    //upsert location and elevation
-    dispatch(upsertPois([{ ...poi, location, elevation: elevationRes.payload as number }]));
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return;
+  let elevation = null;
+  if (elevationRes.meta.requestStatus === "fulfilled") {
+    elevation = elevationRes.payload as number;
   }
+  // Step 2: Apply all field updates (location + elevation + updatedAt)
+  missionDocHandle.change((m: Mission) => {
+    const poi = m.pois[poiUuid];
+    if (!poi) return;
+    poi.location = cloneDeep(location);
+    poi.elevation = elevation;
+    poi.updatedAt = getAccurateNow().getTime();
+  });
+
+  // No Step 3: this thunk has no UI side-effects of its own.
 });
 
-export const thunkSavePoi = appCreateAsyncThunk<{
-  poi: POI;
-}>("poiSave", async ({ poi }, { dispatch, getState }) => {
-  const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi.uuid);
-  const poiActionsFromDb = getState().action.actionsFromDb.filter(
-    (action) => action.poiUuid === poi.uuid
+export const thunkDocDeletePoi = appCreateAsyncThunk<{
+  poiUuid: string;
+}>("poiDelete", async ({ poiUuid }, { dispatch }) => {
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return;
+  const mission = missionDocHandle.doc();
+
+  // Step 1: Read the doc synchronously to derive all data needed
+  const poiActions = Object.values(mission?.actions ?? {}).filter(
+    (action) => action.poiUuid === poiUuid
+  );
+  const actionUuidsToDelete = poiActions.map((a) => a.uuid);
+  const stationsWithThisPoi = Object.values(mission?.stations ?? {}).filter((s) =>
+    s.poiUuids?.includes(poiUuid)
   );
 
-  //save poi to db
-  const updatedPoi = {
-    ...poi,
-    updatedAt: getAccurateNow().toISOString(),
-  };
-  const poiUpsertResponse = await httpClient_poi.upsertPOIs([updatedPoi]);
-
-  if (poiUpsertResponse.status !== "success") {
-    throw new Error("Error upserting POI: " + poiUpsertResponse.message);
-  }
-  // upsert the changed POI to the store
-  dispatch(upsertPois([updatedPoi], true));
-  // update the POI in the store with a fresh copy of POIs from DB
-  dispatch(upsertPoisFromDb([updatedPoi]));
-
-  // find out if the actions in this poi have been modified and need to be persisted
-  const actionsModified = isModified(poiActions, poiActionsFromDb);
-  if (actionsModified) {
-    await dispatch(thunkSaveActions({ actions: poiActions, actionsFromDb: poiActionsFromDb }));
-  }
-
-  dispatch(setPoiEditMode({ poiUuid: poi.uuid, editMode: false }));
-  //if we're in the middle of a map action, cancel it
-  dispatch(thunkCancelMarkerMapDirective({ uuid: poi.uuid }));
-});
-
-export const thunkPoiCancel = appCreateAsyncThunk<{
-  poi: POI;
-}>("poiCancel", async ({ poi }, { dispatch, getState }) => {
-  const poiFromDb = getState().poi.poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
-  const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi.uuid);
-  const poiActionsFromDb = getState().action.actionsFromDb.filter(
-    (action) => action.poiUuid === poi.uuid
-  );
-
-  if (poiFromDb) {
-    // if selected poi is in the db, replace it with the one from the db (undoing any changes)
-    dispatch(upsertPois([poiFromDb], true));
-    dispatch(upsertActions(poiActionsFromDb, true));
-
-    //delete newly added actions from the store that user doesn't want to save
-    const addedActionsToDelete: Action[] = poiActions.filter(
-      // only delete actions that don't exist in the db
-      (action) => poiActionsFromDb.findIndex((actionDb) => actionDb.uuid === action.uuid) === -1
-    );
-    dispatch(deleteActionsByUuid(addedActionsToDelete.map((a) => a.uuid)));
-  } else {
-    // if selected poi isn't in the db, delete it from the store
-    await dispatch(thunkDeletePoiAndActionsFromStore({ poiUuid: poi.uuid }));
-    dispatch(
-      thunkAddRemoveFolderItem({
-        itemUuid: poi.uuid,
-        folderUuid: null,
-      })
-    );
-  }
-
-  dispatch(setPoiEditMode({ poiUuid: poi.uuid, editMode: false }));
-  //if we're in the middle of a map action, cancel it
-  dispatch(thunkCancelMarkerMapDirective({ uuid: poi.uuid }));
-});
-
-export const thunkDeletePoi = appCreateAsyncThunk<{
-  poi: POI;
-}>("poiDelete", async ({ poi }, { dispatch, getState }) => {
-  const poiActions = getState().action.actions.filter((action) => action.poiUuid === poi.uuid);
-  const poiFromDb = getState().poi.poisFromDb.find((poiFromDb) => poiFromDb.uuid === poi.uuid);
-
-  // remove poi from any stations that reference it
-  const stationsWithThisPoi = getState().station.stations.filter((s) =>
-    s.poiUuids?.includes(poi.uuid)
-  );
-  // only poi's saved to the db can be associated with stations
-  if (poiFromDb && stationsWithThisPoi.length > 0) {
-    const updatedStations = cloneDeep(stationsWithThisPoi);
-    // remove this poi uuid from each station's poiUuids array
-    updatedStations.forEach((s) => (s.poiUuids = s.poiUuids.filter((uuid) => uuid !== poi.uuid)));
-    // persist the updated stations to the db
-    const upsertStationsResponse = await httpClient_station.upsertStations(updatedStations);
-    if (upsertStationsResponse.status !== "success") {
-      throw new Error("Error upserting stations: " + upsertStationsResponse.message);
+  // Step 2: Apply all deletions atomically in a single .change()
+  missionDocHandle.change((m: Mission) => {
+    // Strip poi reference from all stations (in-place splice so automerge
+    // sees a single-element removal, not a full array replacement).
+    for (const s of stationsWithThisPoi) {
+      const station = m.stations[s.uuid];
+      if (!station) continue;
+      const idx = station.poiUuids?.findIndex((uuid) => uuid === poiUuid);
+      if (idx !== undefined && idx >= 0) {
+        station.poiUuids.splice(idx, 1);
+      }
     }
-    // update the stations in the store
-    dispatch(upsertStations(updatedStations, true));
-    dispatch(upsertStationsFromDb(updatedStations));
-  }
+    applyDeleteActions(m, actionUuidsToDelete);
+    applyDeletePois(m, [poiUuid]);
+  });
 
-  // if the selected poi is in poisFromDb then delete it from the db
-  if (poiFromDb) {
-    // delete actions from the db via internal api call
-    const actionUuidsToDelete = poiActions.map((a) => a.uuid);
-    if (actionUuidsToDelete.length > 0) {
-      await dispatch(thunkDeleteActionsFromDbAndStore({ uuids: actionUuidsToDelete }));
-    }
-
-    // delete the POI from the DB via internal API call
-    const deleteResponse = await httpClient_poi.deletePOIs([poi.uuid]);
-    if (deleteResponse.status !== "success") {
-      throw new Error("Error deleting POI: " + deleteResponse.message);
-    }
-    // remove the corresponding POI from the store
-    dispatch(deletePoisByUuid([poi.uuid]));
-    dispatch(deletePoisFromDbByUuid([poi.uuid]));
-    dispatch(setSelectedPoiUuid(null));
-  } else {
-    // if the selected poi is not in poisFromDb then only delete it from the store copies
-    dispatch(deletePoisByUuid([poi.uuid]));
-    dispatch(setSelectedPoiUuid(null));
-    dispatch(deleteActionsByUuid(poiActions.map((a) => a.uuid)));
-  }
-
-  // remove from folder
+  // Step 3: UI side-effects
+  dispatch(setSelectedPoiUuid(null));
   dispatch(
+    // remove from folder
     thunkAddRemoveFolderItem({
-      itemUuid: poi.uuid,
+      itemUuid: poiUuid,
       folderUuid: null,
     })
   );
-  dispatch(setPoiEditMode({ poiUuid: poi.uuid, editMode: false }));
-  // if we're in the middle of a map action, cancel it
-  dispatch(thunkCancelMarkerMapDirective({ uuid: poi.uuid }));
-
-  // close right panel
-  dispatch(thunkSetRightPanelIsOpenIfAuto(false));
+  dispatch(thunkCancelMarkerMapDirective()); // if we're in the middle of a map action, cancel it
+  dispatch(thunkSetRightPanelIsOpenIfAuto(false)); // close right panel
 });
 
-export const thunkCreatePoi = appCreateAsyncThunk<void>(
+export const thunkDocCreatePoi = appCreateAsyncThunk<void>(
   "poiCreate",
-  async (_, { dispatch, getState }) => {
-    const missionDocHandle = getAutomergeDocHandles().mission;
+  async (_, { getState, dispatch }) => {
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
     const mission = missionDocHandle.doc();
 
+    // Step 1: Build the new POI object synchronously from the current doc
+    const existingPois = Object.values(missionDocHandle.doc()?.pois ?? {});
     const randomName = generateUniqueName({
       dictName: "animals",
-      existingNames: getState().poi.pois.map((item: POI) => item.name),
+      existingNames: existingPois.map((item: POI) => item.name),
     });
-
     const blankPoi = generateBlankPoi({
       missionId: mission.id,
       name: randomName,
+      ownerId: getState().user?.appUser?.id ?? null,
     });
-    dispatch(upsertPois([blankPoi]));
+
+    // Step 2: Insert the new POI into the Automerge doc
+    missionDocHandle.change((m: Mission) => applyUpsertPoi(m, blankPoi));
+
+    // Step 3: UI side-effects
     dispatch(selectPoi({ uuid: blankPoi.uuid }));
-    dispatch(setPoiEditMode({ poiUuid: blankPoi.uuid, editMode: true }));
     dispatch(thunkSetRightPanelIsOpenIfAuto(true));
   }
 );
 
-export const thunkDuplicatePoi = appCreateAsyncThunk<{ poiUuid: string }>(
+export const thunkDocDuplicatePoi = appCreateAsyncThunk<{ poiUuid: string }>(
   "poiDuplicate",
-  async ({ poiUuid }, { dispatch, getState }) => {
+  async ({ poiUuid }, { dispatch }) => {
     if (!poiUuid) return;
 
-    const poi = getState().poi.pois.find((p) => p.uuid === poiUuid);
-    //duplicate poi
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
+    const mission = missionDocHandle.doc();
+    const poi = mission?.pois?.[poiUuid];
+    if (!poi) return;
+
+    // Step 1: Build the full duplication plan synchronously from the doc
+    const existingPois = Object.values(mission?.pois ?? {});
     const newPoi: POI = cloneDeep(poi);
     newPoi.uuid = uuidv4();
-    newPoi.updatedAt = null;
-    newPoi.createdAt = getAccurateNow().toISOString();
+    newPoi.updatedAt = getAccurateNow().getTime();
+    newPoi.createdAt = getAccurateNow().getTime();
     newPoi.name = makeUniqueStringCopy(
       poi.name,
-      getState().poi.pois.map((item) => item.name)
+      existingPois.map((item) => item.name)
     );
     newPoi.actionOrderUuids = [];
 
-    // upsert new poi and persist to the db
-    dispatch(upsertPois([newPoi]));
-    dispatch(upsertPoisFromDb([newPoi]));
-    const upsertPoisResponse = await httpClient_poi.upsertPOIs([newPoi]);
-    if (upsertPoisResponse.status !== "success") {
-      throw new Error("Error upserting POI: " + upsertPoisResponse.message);
-    }
-
-    dispatch(selectPoi({ uuid: newPoi.uuid }));
-    dispatch(thunkSetRightPanelIsOpenIfAuto(true));
-
-    //duplicate actions, in order
-    const poiActions = getState()
-      .action.actions.filter((action) => action.poiUuid === poi?.uuid)
+    const poiActions = Object.values(mission?.actions ?? {})
+      .filter((action) => action.poiUuid === poi?.uuid)
       .sort(
         (a, b) =>
           poi.actionOrderUuids.findIndex((o) => o === a.uuid) -
           poi.actionOrderUuids.findIndex((o) => o === b.uuid)
       );
-    await dispatch(
-      thunkDuplicateActions({
+
+    // Step 2: Apply the entire duplication atomically in a single .change()
+    missionDocHandle.change((m: Mission) => {
+      applyUpsertPoi(m, newPoi);
+      applyDuplicateActions(m, {
         actions: poiActions,
         poiUuid: newPoi.uuid,
         promotingFromPoi: false,
         preserveRefUuid: false,
-        saveToDb: true,
-      })
-    );
+      });
+    });
+
+    // Step 3: UI side-effects
+    dispatch(selectPoi({ uuid: newPoi.uuid }));
+    dispatch(thunkSetRightPanelIsOpenIfAuto(true));
   }
 );

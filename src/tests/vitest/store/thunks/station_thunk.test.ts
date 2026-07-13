@@ -1,491 +1,596 @@
-import { createCustomTestStore } from "tests/vitest/fixtures/redux/makeTestStore";
-import { initialState as evaInitialState } from "store/eva";
+import { createCustomTestStore } from "tests/vitest/fixtures/store";
 import { initialState as stationInitialState } from "store/station";
-import { initialState as missionInitialState } from "store/mission";
-import { initialState as mapInitialState } from "store/map";
-import { initialState as actionInitialState } from "store/action";
 import * as thunkStation from "store/thunk/thunkStation";
-
-// mock all calls to the db so no transactions are actually made
-// CAUTION, the import line must be below the vi.mock
-vi.mock("http-client/station");
-vi.mock("http-client/action");
-import * as httpClient_station from "http-client/station";
-import * as httpClient_action from "http-client/action";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankStation } from "store/storeUtils/station";
-import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
+import { setMissionAutomergeDocHandle, getMissionDocHandle } from "client/automergeDocHandles";
 
 const mockThunkCancelMarkerMapDirective = vi.fn();
 vi.mock("store/thunk/thunkMap", async () => {
   const actual = await vi.importActual("store/thunk/thunkMap");
   return {
-    ...actual,
+    ...(actual as object),
     thunkCancelMarkerMapDirective: () => mockThunkCancelMarkerMapDirective,
   };
 });
 
-const mockThunkSaveActions = vi.fn();
-const mockThunkDuplicateActions = vi.fn();
-vi.mock("store/thunk/thunkAction", async () => ({
-  ...(await vi.importActual("store/thunk/thunkAction")),
-  thunkSaveActions: () => mockThunkSaveActions,
-  thunkDuplicateActions: () => mockThunkDuplicateActions,
-}));
-
-const mockThunkGetElevation = vi.fn().mockReturnValue({
+const mockThunkFetchElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
 vi.mock("store/thunk/thunkElevation", () => ({
-  thunkGetElevation: () => mockThunkGetElevation,
+  thunkFetchElevation: () => mockThunkFetchElevation,
 }));
 
-const mockThunkUpdateTraversesAroundStation = vi.fn();
+const mockThunkDocUpdateTraversesAroundStation = vi.fn();
+const mockThunkDocUpdateTraverse = vi.fn();
 vi.mock("store/thunk/thunkTraverse", () => ({
-  thunkUpdateTraversesAroundStation: () => mockThunkUpdateTraversesAroundStation,
+  thunkDocUpdateTraversesAroundStation: () => mockThunkDocUpdateTraversesAroundStation,
+  thunkDocUpdateTraverse: () => mockThunkDocUpdateTraverse,
 }));
+
+const getMission = (): Mission => getMissionDocHandle().doc();
 
 beforeAll(() => {
-  /**
-   * Init the mission automerge doc. In the app this is handled in the component.
-   * Pass in null because this function is being mocked so we don't
-   * have to pass in a real value.
-   */
+  // mocked by vitest setup; creates a blank mission doc on first call
   setMissionAutomergeDocHandle(null);
 });
 
-beforeEach(async () => {
-  vi.clearAllMocks(); // clear call count
+beforeEach(() => {
+  vi.clearAllMocks();
+  // wipe the mission doc back to a known-empty state between tests
+  getMissionDocHandle().change((m) => {
+    m.stations = {};
+    m.traverses = {};
+    m.evas = {};
+    m.actions = {};
+    m.pois = {};
+    m.rexes = {};
+  });
 });
 
 afterAll(() => {
-  // restoreAllMocks() only restores mocks with .spyOn(). All others must be called manually
-  // Modules mocked with vi.mock are only mocked for the file
   vi.restoreAllMocks();
 });
 
 describe("Thunk Station Tests", () => {
-  test("thunkUpdateStationLocation()", async () => {
-    //populate the station state in the store
-    const newStation: Station = generateBlankStation({ name: "Vitest Station-1" });
-    const store = createCustomTestStore({
-      station: { ...stationInitialState, stations: [newStation] },
-      mission: {
-        ...missionInitialState,
-      },
+  describe("thunkDocUpdateStationLocation", () => {
+    test("updates location on the automerge doc", async () => {
+      const newStation: Station = generateBlankStation({ name: "Vitest Station-1" });
+      getMissionDocHandle().change((m) => {
+        m.stations[newStation.uuid] = newStation;
+      });
+
+      const store = createCustomTestStore({});
+
+      expect(getMission().stations[newStation.uuid].location).toBeNull();
+      const newLocation: AEGISPoint = { lat: 1, lng: 2 };
+      await store.dispatch(
+        thunkStation.thunkDocUpdateStationLocation({
+          location: newLocation,
+          stationUuid: newStation.uuid,
+        })
+      );
+      expect(getMission().stations[newStation.uuid].location).toEqual(newLocation);
+      expect(mockThunkFetchElevation).toHaveBeenCalled();
     });
 
-    //call the thunk
-    expect(store.getState().station.stations[0].location).toBeNull();
-    const newLocation: AEGISPoint = { lat: 1, lng: 2 };
-    await store.dispatch(
-      thunkStation.thunkUpdateStationLocation({
-        location: newLocation,
-        stationUuid: newStation.uuid,
-      })
-    );
-    expect(store.getState().station.stations[0].location).toEqual(newLocation);
-    expect(mockThunkGetElevation).toHaveBeenCalled();
-    expect(mockThunkUpdateTraversesAroundStation).toHaveBeenCalledTimes(1);
+    test("also writes elevation when elevation is fulfilled", async () => {
+      const elevationValue = 42;
+      mockThunkFetchElevation.mockReturnValueOnce({
+        meta: { requestStatus: "fulfilled" },
+        payload: elevationValue,
+      });
+
+      const station: Station = generateBlankStation({
+        name: "Vitest Station-Elev",
+        location: { lat: 5, lng: 6 },
+      });
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+      });
+      const store = createCustomTestStore({});
+      const newLocation: AEGISPoint = { lat: 7, lng: 8 };
+
+      await store.dispatch(
+        thunkStation.thunkDocUpdateStationLocation({
+          location: newLocation,
+          stationUuid: station.uuid,
+        })
+      );
+
+      expect(getMission().stations[station.uuid].location).toEqual(newLocation);
+      expect(getMission().stations[station.uuid].elevation).toEqual(elevationValue);
+    });
   });
 
-  test("thunkUpdateWalkbackPath()", async () => {
-    //populate the station state in the store
-    const newStation: Station = generateBlankStation({ name: "Vitest Station-1" });
-    const store = createCustomTestStore({
-      station: { ...stationInitialState, stations: [newStation] },
-      mission: { ...missionInitialState },
-    });
-    expect(store.getState().station.stations[0].walkbackPath).toBeNull();
+  describe("thunkDocUpdateWalkback", () => {
+    test("snaps endpoints and writes to automerge", async () => {
+      const newStation: Station = generateBlankStation({
+        name: "Vitest Station-1",
+        location: { lat: 1.3, lng: 2.3 },
+      });
+      getMissionDocHandle().change((m) => {
+        m.stations[newStation.uuid] = newStation;
+      });
 
-    //path with 3 points
-    const newPath: AEGISPoint[] = [
-      { lat: 1, lng: 2 },
-      { lat: 1, lng: 2.3 },
-      { lat: 1, lng: 2.6 },
-    ];
-    await store.dispatch(
-      thunkStation.thunkUpdateWalkbackPath({ path: newPath, stationUuid: newStation.uuid })
-    );
-    expect(store.getState().station.stations[0].walkbackPath).toEqual(newPath);
-    expect(store.getState().station.stations[0].walkbackPathSegmentDistances.length).toEqual(2);
-    expect(store.getState().station.stations[0].walkbackPathSegmentElevations).toBeNull();
+      const store = createCustomTestStore({});
+      expect(getMission().stations[newStation.uuid].walkbackPath).toBeNull();
 
-    //empty path
-    await store.dispatch(
-      thunkStation.thunkUpdateWalkbackPath({ path: [], stationUuid: newStation.uuid })
-    );
-    expect(store.getState().station.stations[0].walkbackPath).toEqual([]);
-    expect(store.getState().station.stations[0].walkbackPathSegmentDistances.length).toEqual(0);
-    expect(store.getState().station.stations[0].walkbackPathSegmentElevations).toBeNull();
-  });
-
-  test("thunkFullUpdateWalkback()", async () => {
-    //populate the station state in the store
-    const newStation: Station = generateBlankStation({
-      name: "Vitest Station-1",
-      location: { lat: 1.3, lng: 2.3 },
-    });
-    const store = createCustomTestStore({
-      station: {
-        ...stationInitialState,
-        stations: [newStation],
-      },
-      mission: {
-        ...missionInitialState,
-      },
-    });
-    expect(store.getState().station.stations[0].walkbackPath).toBeNull();
-
-    //path with 3 points
-    const newPath: AEGISPoint[] = [
-      { lat: 1, lng: 2 },
-      { lat: 1, lng: 2.3 },
-      { lat: 1, lng: 2.6 },
-    ];
-    let expectedPath: AEGISPoint[] = [
-      { lat: 1.3, lng: 2.3 },
-      { lat: 1, lng: 2.3 },
-      { lat: 3, lng: 3 }, // lander location
-    ];
-    let response = await store.dispatch(
-      thunkStation.thunkFullUpdateWalkback({ path: newPath, stationUuid: newStation.uuid })
-    );
-    expect(store.getState().station.stations[0].walkbackPath).toEqual(expectedPath);
-    expect(store.getState().station.stations[0].walkbackPathSegmentDistances.length).toEqual(2);
-    expect(store.getState().station.stations[0].walkbackPathSegmentElevations).toBeNull();
-    expect(response.payload).toEqual(expectedPath);
-    expect(mockThunkGetElevation).toHaveBeenCalled();
-
-    //empty path
-    expectedPath = [
-      { lat: 1.3, lng: 2.3 },
-      { lat: 3, lng: 3 }, // lander location
-    ];
-    response = await store.dispatch(
-      thunkStation.thunkFullUpdateWalkback({ path: [], stationUuid: newStation.uuid })
-    );
-    expect(store.getState().station.stations[0].walkbackPath).toEqual(expectedPath);
-    expect(store.getState().station.stations[0].walkbackPathSegmentDistances.length).toEqual(1);
-    expect(store.getState().station.stations[0].walkbackPathSegmentElevations).toBeNull();
-    expect(response.payload).toEqual(expectedPath);
-    expect(mockThunkGetElevation).toHaveBeenCalled();
-  });
-
-  test("thunkResetWalkback()", async () => {
-    //populate the station state in the store
-    const newStation: Station = generateBlankStation({
-      name: "Vitest Station-1",
-      location: { lat: 1.3, lng: 2.3 },
-      walkbackPath: [
+      //path with 3 points -> endpoints snap to station/lander
+      const newPath: AEGISPoint[] = [
         { lat: 1, lng: 2 },
         { lat: 1, lng: 2.3 },
         { lat: 1, lng: 2.6 },
-      ],
-    });
-    const store = createCustomTestStore({
-      station: {
-        ...stationInitialState,
-        stations: [newStation],
-      },
-      mission: {
-        ...missionInitialState,
-      },
-    });
-    expect(store.getState().station.stations[0].walkbackPath.length).toEqual(3);
+      ];
+      let expectedPath: AEGISPoint[] = [
+        { lat: 1.3, lng: 2.3 },
+        { lat: 1, lng: 2.3 },
+        { lat: 3, lng: 3 }, // lander location from generateBlankMission
+      ];
+      let response = await store.dispatch(
+        thunkStation.thunkDocUpdateWalkback({ path: newPath, stationUuid: newStation.uuid })
+      );
+      const stationAfter1 = getMission().stations[newStation.uuid];
+      expect(stationAfter1.walkbackPath).toEqual(expectedPath);
+      expect(stationAfter1.walkbackPathSegmentDistances.length).toEqual(2);
+      expect(stationAfter1.walkbackPathSegmentElevations).toBeNull();
+      expect(response.payload).toEqual(expectedPath);
+      expect(mockThunkFetchElevation).toHaveBeenCalled();
 
-    const expectedPath: AEGISPoint[] = [
-      { lat: 1.3, lng: 2.3 },
-      { lat: 3, lng: 3 }, // lander location
-    ];
-    await store.dispatch(thunkStation.thunkResetWalkback({ stationUuid: newStation.uuid }));
-    expect(store.getState().station.stations[0].walkbackPath).toEqual(expectedPath);
-    expect(store.getState().station.stations[0].walkbackPathSegmentDistances.length).toEqual(1);
-    expect(store.getState().station.stations[0].walkbackPathSegmentElevations).toBeNull();
-    expect(mockThunkGetElevation).toHaveBeenCalled();
+      //empty path -> just station + lander
+      expectedPath = [
+        { lat: 1.3, lng: 2.3 },
+        { lat: 3, lng: 3 },
+      ];
+      response = await store.dispatch(
+        thunkStation.thunkDocUpdateWalkback({ path: [], stationUuid: newStation.uuid })
+      );
+      const stationAfter2 = getMission().stations[newStation.uuid];
+      expect(stationAfter2.walkbackPath).toEqual(expectedPath);
+      expect(stationAfter2.walkbackPathSegmentDistances.length).toEqual(1);
+      expect(stationAfter2.walkbackPathSegmentElevations).toBeNull();
+      expect(response.payload).toEqual(expectedPath);
+      expect(mockThunkFetchElevation).toHaveBeenCalled();
+    });
+
+    test("stores elevation profile when elevation is fulfilled", async () => {
+      const fakeElevationProfile = [[0, 100, 200]];
+      mockThunkFetchElevation.mockReturnValueOnce({
+        meta: { requestStatus: "fulfilled" },
+        payload: fakeElevationProfile,
+      });
+
+      const station: Station = generateBlankStation({
+        name: "Vitest Station-WalkbackElev",
+        location: { lat: 1, lng: 2 },
+      });
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+      });
+      const store = createCustomTestStore({});
+
+      await store.dispatch(
+        thunkStation.thunkDocUpdateWalkback({
+          path: [
+            { lat: 1, lng: 2 },
+            { lat: 2, lng: 3 },
+          ],
+          stationUuid: station.uuid,
+        })
+      );
+
+      expect(getMission().stations[station.uuid].walkbackPathSegmentElevations).toEqual(
+        fakeElevationProfile
+      );
+    });
   });
 
-  test("thunkSaveStation() - no modified actions", async () => {
-    //populate the station state in the store
-    const station: Station = generateBlankStation({ name: "Vitest Station-1" });
-    const stationModified = {
-      ...station,
-      name: "Vitest Station-1 Modified",
-      description: "modified description",
-      updatedAt: new Date().toISOString(),
-    };
-    const newStationAction: Action = generateBlankAction({
-      name: "Vitest Action-1",
-      stationUuid: station.uuid,
-    });
-    const eva: Eva = generateBlankEVA({ name: "Vitest Eva-1" });
-    eva.sequence = [{ type: "station", uuid: station.uuid }];
-    const store = createCustomTestStore({
-      station: {
-        ...stationInitialState,
-        stations: [stationModified],
-        stationsFromDb: [station],
-        stationsEditing: [station.uuid],
-      },
-      action: {
-        ...actionInitialState,
-        actions: [newStationAction],
-        actionsFromDb: [newStationAction],
-      },
-      eva: { ...evaInitialState, evas: [eva], evasFromDb: [eva] },
-      map: {
-        ...mapInitialState,
-        mapDirective: { uuid: station.uuid, mapAction: "editPolyline", mapItemType: "walkback" },
-      },
+  describe("thunkDocResetWalkback", () => {
+    test("resets path to just station + lander", async () => {
+      const newStation: Station = generateBlankStation({
+        name: "Vitest Station-1",
+        location: { lat: 1.3, lng: 2.3 },
+        walkbackPath: [
+          { lat: 1, lng: 2 },
+          { lat: 1, lng: 2.3 },
+          { lat: 1, lng: 2.6 },
+        ],
+      });
+      getMissionDocHandle().change((m) => {
+        m.stations[newStation.uuid] = newStation;
+      });
+      const store = createCustomTestStore({});
+      expect(getMission().stations[newStation.uuid].walkbackPath.length).toEqual(3);
+
+      const expectedPath: AEGISPoint[] = [
+        { lat: 1.3, lng: 2.3 },
+        { lat: 3, lng: 3 },
+      ];
+      await store.dispatch(thunkStation.thunkDocResetWalkback({ stationUuid: newStation.uuid }));
+      const stationAfter = getMission().stations[newStation.uuid];
+      expect(stationAfter.walkbackPath).toEqual(expectedPath);
+      expect(stationAfter.walkbackPathSegmentDistances.length).toEqual(1);
+      expect(stationAfter.walkbackPathSegmentElevations).toBeNull();
+      expect(mockThunkFetchElevation).toHaveBeenCalled();
     });
 
-    //call the thunk
-    await store.dispatch(
-      thunkStation.thunkSaveStation({
-        stationUuid: stationModified.uuid,
-      })
-    );
-    const storeState = store.getState(); //get the new state (always has to be called when state changes)
-    expect(storeState.station.stations[0].description).toEqual("modified description");
-    expect(storeState.station.stationsFromDb[0].description).toEqual("modified description");
-    expect(storeState.station.stationsEditing.length).toEqual(0);
-    expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(1); //check the db call was made
-    expect(mockThunkSaveActions).toHaveBeenCalledTimes(0);
-    expect(storeState.action.actions[0]).toEqual(storeState.action.actionsFromDb[0]); //no actions were modified
-    expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalledTimes(1);
-    expect(storeState.map.mapDirective.mapAction).toEqual("saveEditPolyline");
+    test("stores elevation profile when elevation is fulfilled", async () => {
+      const fakeElevationProfile = [[0, 50, 100]];
+      mockThunkFetchElevation.mockReturnValueOnce({
+        meta: { requestStatus: "fulfilled" },
+        payload: fakeElevationProfile,
+      });
+
+      const station: Station = generateBlankStation({
+        name: "Vitest Station-ResetElev",
+        location: { lat: 2, lng: 3 },
+        walkbackPath: [
+          { lat: 2, lng: 3 },
+          { lat: 3, lng: 3 },
+        ],
+      });
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+      });
+      const store = createCustomTestStore({});
+
+      await store.dispatch(thunkStation.thunkDocResetWalkback({ stationUuid: station.uuid }));
+
+      expect(getMission().stations[station.uuid].walkbackPathSegmentElevations).toEqual(
+        fakeElevationProfile
+      );
+    });
   });
 
-  test("thunkSaveStation() - saves actions", async () => {
-    //populate the station state in the store
-    const station: Station = generateBlankStation({ name: "Vitest Station-1" });
-    const stationAction: Action = generateBlankAction({
-      name: "Vitest Action-1",
-      stationUuid: station.uuid,
-    });
-    const stationActionModified: Action = {
-      ...stationAction,
-      description: "modified description",
-      updatedAt: new Date().getTime() + 1,
-    };
-    const store = createCustomTestStore({
-      station: {
-        ...stationInitialState,
-        stations: [station],
-        stationsFromDb: [station],
-        stationsEditing: [station.uuid],
-      },
-      action: {
-        ...actionInitialState,
-        actions: [stationActionModified],
-        actionsFromDb: [stationAction],
-      },
+  describe("thunkDocDeleteStations", () => {
+    test("deletes a station and its actions, validates EVA sequence usage", async () => {
+      const mockAlert = vi.spyOn(window, "alert").mockImplementation(vi.fn());
+
+      const station: Station = generateBlankStation({ name: "Vitest Station-1" });
+      const stationAction: Action = generateBlankAction({
+        name: "Vitest Action-1",
+        stationUuid: station.uuid,
+      });
+      const stationInEva: Station = generateBlankStation({ name: "Vitest Station-3" });
+      const eva: Eva = generateBlankEVA({
+        name: "Vitest Eva-1",
+        sequence: [{ type: "station", uuid: stationInEva.uuid }],
+      });
+
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+        m.stations[stationInEva.uuid] = stationInEva;
+        m.actions[stationAction.uuid] = stationAction;
+        m.evas[eva.uuid] = eva;
+      });
+
+      const store = createCustomTestStore({
+        station: {
+          ...stationInitialState,
+          selectedStationUuid: station.uuid,
+          selectedRightNavItem: "info_panel",
+        },
+      });
+
+      // delete a station
+      await store.dispatch(thunkStation.thunkDocDeleteStations({ stationUuids: [station.uuid] }));
+      expect(getMission().stations[station.uuid]).toBeUndefined();
+      expect(getMission().actions[stationAction.uuid]).toBeUndefined();
+      expect(store.getState().station.selectedStationUuid).toBeFalsy();
+      expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalled();
+
+      // try to delete a station being used in eva sequence -> alert + no-op
+      await store.dispatch(
+        thunkStation.thunkDocDeleteStations({ stationUuids: [stationInEva.uuid] })
+      );
+      expect(getMission().stations[stationInEva.uuid]).toBeDefined();
+      expect(mockAlert).toHaveBeenCalled();
+
+      mockAlert.mockRestore();
     });
 
-    //check init values in store
-    let storeState = store.getState();
-    expect(storeState.action.actions[0]).not.toEqual(storeState.action.actionsFromDb[0]);
+    test("alerts and aborts when station is used as EVA ingress", async () => {
+      const mockAlert = vi.spyOn(window, "alert").mockImplementation(vi.fn());
 
-    //call the thunk
-    await store.dispatch(thunkStation.thunkSaveStation({ stationUuid: station.uuid }));
-    storeState = store.getState();
-    //station db call not made because station itself was not modified, only actions
-    expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(0);
-    expect(mockThunkSaveActions).toHaveBeenCalledTimes(1);
-    expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalledTimes(1);
-    expect(storeState.station.stationsEditing.length).toEqual(0);
+      const station: Station = generateBlankStation({ name: "Vitest Ingress Station" });
+      const eva: Eva = generateBlankEVA({
+        name: "Vitest EVA-Ingress",
+        ingressLocationUuid: station.uuid,
+      });
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+        m.evas[eva.uuid] = eva;
+      });
+      const store = createCustomTestStore({});
+
+      await store.dispatch(thunkStation.thunkDocDeleteStations({ stationUuids: [station.uuid] }));
+
+      // Station must NOT have been deleted
+      expect(getMission().stations[station.uuid]).toBeDefined();
+      expect(mockAlert).toHaveBeenCalledTimes(1);
+      expect(mockAlert.mock.calls[0][0]).toContain("ingress");
+
+      mockAlert.mockRestore();
+    });
+
+    test("alerts and aborts when station is used as EVA egress", async () => {
+      const mockAlert = vi.spyOn(window, "alert").mockImplementation(vi.fn());
+
+      const station: Station = generateBlankStation({ name: "Vitest Egress Station" });
+      const eva: Eva = generateBlankEVA({
+        name: "Vitest EVA-Egress",
+        egressLocationUuid: station.uuid,
+      });
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+        m.evas[eva.uuid] = eva;
+      });
+      const store = createCustomTestStore({});
+
+      await store.dispatch(thunkStation.thunkDocDeleteStations({ stationUuids: [station.uuid] }));
+
+      expect(getMission().stations[station.uuid]).toBeDefined();
+      expect(mockAlert).toHaveBeenCalledTimes(1);
+      expect(mockAlert.mock.calls[0][0]).toContain("egress");
+
+      mockAlert.mockRestore();
+    });
   });
 
-  test("thunkStationCancel()", async () => {
-    //populate the station state in the store
-    const station: Station = generateBlankStation({ name: "Vitest Station-1" });
-    const stationModified = {
-      ...station,
-      description: "modified description",
-      updatedAt: new Date().toISOString(),
-      location: { lat: 1, lng: 2 },
-    };
-    const unsavedStation: Station = generateBlankStation({ name: "Vitest Station-1" });
-    const unsavedStationAction: Action = generateBlankAction({
-      name: "Vitest Action-1",
-      stationUuid: unsavedStation.uuid,
-    });
-    const stationAction: Action = generateBlankAction({
-      name: "Vitest Action-1",
-      stationUuid: station.uuid,
-    });
-    const stationActionModified = {
-      ...stationAction,
-      description: "modified description",
-      updatedAt: new Date().getTime() + 1,
-    };
-    const newStationAction: Action = generateBlankAction({
-      name: "Vitest Action-1",
-      stationUuid: station.uuid,
-    });
-    const store = createCustomTestStore({
-      station: {
-        ...stationInitialState,
-        stations: [stationModified, unsavedStation],
-        stationsFromDb: [station],
-        stationsEditing: [station.uuid, unsavedStation.uuid],
-      },
-      action: {
-        ...actionInitialState,
-        actions: [stationActionModified, unsavedStationAction, newStationAction],
-        actionsFromDb: [stationAction],
-      },
-      map: {
-        ...mapInitialState,
-        mapDirective: { uuid: station.uuid, mapAction: "editPolyline", mapItemType: "walkback" },
-      },
+  describe("thunkDocCreateStation", () => {
+    test("upsert a new station into automerge", async () => {
+      const store = createCustomTestStore({ station: { ...stationInitialState } });
+      expect(Object.keys(getMission().stations).length).toEqual(0);
+
+      await store.dispatch(thunkStation.thunkDocCreateStation());
+
+      expect(Object.keys(getMission().stations).length).toEqual(1);
+      const storeState = store.getState();
+      expect(storeState.station.selectedStationUuid).toBeTruthy();
+      expect(storeState.station.selectedRightNavItem).toEqual("info_panel");
     });
 
-    //cancel a station that has changes pending
-    await store.dispatch(thunkStation.thunkStationCancel({ station: stationModified }));
-    let storeState = store.getState();
-    const cancelledStation = storeState.station.stations.find((p) => p.uuid === station.uuid);
-    expect(cancelledStation.updatedAt).toEqual(station.updatedAt);
-    expect(cancelledStation.description).toEqual("");
-    expect(cancelledStation).toEqual(storeState.station.stationsFromDb[0]);
-    expect(storeState.station.stationsEditing.includes(station.uuid)).toBeFalsy();
-    expect(storeState.action.actions.find((a) => a.stationUuid === station.uuid)).toEqual(
-      storeState.action.actionsFromDb[0]
-    );
-    expect(storeState.action.actions.filter((a) => a.stationUuid === station.uuid).length).toEqual(
-      1
-    );
-    expect(mockThunkUpdateTraversesAroundStation).toHaveBeenCalled();
-    expect(storeState.map.mapDirective.mapAction).toEqual("cancelEditPolyline");
-    expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalled();
+    test("initializes mapCircleControls and circleUIStates from mission circleDefinitions", async () => {
+      const circleDefUuid = "circle-def-uuid-1";
+      getMissionDocHandle().change((m) => {
+        m.circleDefinitions = {
+          [circleDefUuid]: { name: "Vitest Test Circle", radius: 50 },
+        };
+      });
 
-    //cancel a station that hasn't been saved to the db
-    expect(storeState.station.stations.length).toEqual(2);
-    await store.dispatch(thunkStation.thunkStationCancel({ station: unsavedStation }));
-    storeState = store.getState();
-    expect(storeState.station.stationsEditing.includes(station.uuid)).toBeFalsy();
-    expect(storeState.station.stations.length).toEqual(1);
-    expect(storeState.station.stationsFromDb.length).toEqual(1);
-    expect(storeState.station.selectedStationUuid).toBeNull();
-    expect(storeState.action.actions.length).toEqual(1);
-    expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalled();
+      const store = createCustomTestStore({ station: { ...stationInitialState } });
+
+      await store.dispatch(thunkStation.thunkDocCreateStation());
+
+      const stations = Object.values(getMission().stations);
+      expect(stations.length).toEqual(1);
+      const newStation = stations[0];
+
+      // mapCircleControls should contain an entry for the circle definition
+      expect(newStation.mapCircleControls[circleDefUuid]).toBeDefined();
+      expect(newStation.mapCircleControls[circleDefUuid].uuid).toEqual(circleDefUuid);
+      expect(newStation.mapCircleControls[circleDefUuid].visible).toEqual(false);
+
+      // Redux slice should also have circleUIStates for the new station
+      const newStationUuid = newStation.uuid;
+      const uiStates = store.getState().station.stationCirclesUIStates[newStationUuid];
+      expect(uiStates).toBeDefined();
+      expect(uiStates[circleDefUuid]).toBeDefined();
+      expect(uiStates[circleDefUuid].slidersSelected).toEqual(false);
+    });
   });
 
-  test("thunkDeleteStation()", async () => {
-    const mockAlert = vi.spyOn(window, "alert").mockImplementation(vi.fn());
+  describe("thunkDocDuplicateStation", () => {
+    test("clones a station and its actions", async () => {
+      const station: Station = generateBlankStation({ name: "Vitest Station-1" });
+      const stationAction1: Action = generateBlankAction({
+        name: "Vitest Action-1",
+        stationUuid: station.uuid,
+      });
+      const stationAction2: Action = generateBlankAction({
+        name: "Vitest Action-2",
+        stationUuid: station.uuid,
+      });
+      station.actionOrderUuids = [stationAction1.uuid, stationAction2.uuid];
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+        m.actions[stationAction1.uuid] = stationAction1;
+        m.actions[stationAction2.uuid] = stationAction2;
+      });
+      const store = createCustomTestStore({ station: { ...stationInitialState } });
 
-    //populate the station state in the store
-    const station: Station = generateBlankStation({ name: "Vitest Station-1" });
-    const stationAction: Action = generateBlankAction({
-      name: "Vitest Action-1",
-      stationUuid: station.uuid,
-    });
-    const unsavedStation: Station = generateBlankStation({ name: "Vitest Station-1" });
-    const unsavedStationAction: Action = generateBlankAction({
-      name: "Vitest Action-1",
-      stationUuid: unsavedStation.uuid,
-    });
-    const stationInEva: Station = generateBlankStation({ name: "Vitest Station-1" });
-    const eva: Eva = generateBlankEVA({ name: "Vitest Eva-1" });
-    const store = createCustomTestStore({
-      station: {
-        ...stationInitialState,
-        stations: [station, unsavedStation, stationInEva],
-        stationsFromDb: [station],
-        selectedStationUuid: station.uuid,
-        selectedRightNavItem: "info_panel",
-        stationsEditing: [station.uuid, unsavedStation.uuid],
-      },
-      action: {
-        ...actionInitialState,
-        actions: [stationAction, unsavedStationAction],
-        actionsFromDb: [stationAction],
-      },
-      eva: {
-        ...evaInitialState,
-        evas: [{ ...eva, sequence: [{ type: "station", uuid: stationInEva.uuid }] }],
-      },
+      await store.dispatch(
+        thunkStation.thunkDocDuplicateStation({ stationUuid: station.uuid, preserveRefUuid: false })
+      );
+
+      expect(Object.keys(getMission().stations).length).toEqual(2);
+      expect(store.getState().station.selectedStationUuid).toBeTruthy();
+      expect(store.getState().station.selectedRightNavItem).toEqual("info_panel");
+      // The two original actions plus two duplicated actions should all be in the doc.
+      expect(Object.keys(getMission().actions).length).toEqual(4);
+      // The new (duplicate) station should reference 2 cloned action uuids.
+      const newStationUuid = store.getState().station.selectedStationUuid;
+      expect(getMission().stations[newStationUuid].actionOrderUuids).toHaveLength(2);
     });
 
-    //delete a saved station
-    await store.dispatch(thunkStation.thunkDeleteStations({ stationUuids: [station.uuid] }));
-    let storeState = store.getState();
-    expect(storeState.station.stations.find((p) => p.uuid === station.uuid)).toBeFalsy();
-    expect(storeState.station.stationsFromDb.find((p) => p.uuid === station.uuid)).toBeFalsy();
-    expect(storeState.station.stationsEditing.includes(station.uuid)).toBeFalsy();
-    expect(storeState.action.actionsFromDb.find((a) => a.uuid === stationAction.uuid)).toBeFalsy();
-    expect(storeState.action.actions.find((a) => a.uuid === stationAction.uuid)).toBeFalsy();
-    expect(storeState.station.selectedStationUuid).toBeFalsy();
-    expect(httpClient_station.deleteStations).toHaveBeenCalledTimes(1);
-    expect(httpClient_action.deleteActions).toHaveBeenCalledTimes(1);
-    expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalled();
+    test("copies circleUIStates from original station to duplicate", async () => {
+      const circleDefUuid = "circle-def-uuid-2";
+      const station: Station = generateBlankStation({ name: "Vitest Station-CircleDup" });
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+        m.circleDefinitions = {
+          [circleDefUuid]: { name: "Vitest Test Circle", radius: 30 },
+        };
+      });
 
-    //delete an unsaved station
-    await store.dispatch(thunkStation.thunkDeleteStations({ stationUuids: [unsavedStation.uuid] }));
-    storeState = store.getState();
-    expect(storeState.station.stations.find((p) => p.uuid === unsavedStation.uuid)).toBeFalsy();
-    expect(storeState.station.stationsEditing.includes(unsavedStation.uuid)).toBeFalsy();
-    expect(storeState.action.actions.find((a) => a.uuid === unsavedStationAction.uuid)).toBeFalsy();
-    expect(httpClient_station.deleteStations).toHaveBeenCalledTimes(1); //no additional calls should have been made from the earlier call
-    expect(mockThunkCancelMarkerMapDirective).toHaveBeenCalled();
+      // Pre-populate the Redux slice with circle UI states for the original station
+      const store = createCustomTestStore({
+        station: {
+          ...stationInitialState,
+          stationCirclesUIStates: {
+            [station.uuid]: {
+              [circleDefUuid]: { slidersSelected: true },
+            },
+          },
+        },
+      });
 
-    //try to delete a station being used in eva
-    await store.dispatch(thunkStation.thunkDeleteStations({ stationUuids: [stationInEva.uuid] }));
-    storeState = store.getState();
-    expect(storeState.station.stations.find((p) => p.uuid === stationInEva.uuid)).toBeTruthy();
-    expect(mockAlert).toHaveBeenCalled();
+      await store.dispatch(
+        thunkStation.thunkDocDuplicateStation({ stationUuid: station.uuid, preserveRefUuid: false })
+      );
 
-    //reset the mock back to normal
-    mockAlert.mockRestore();
+      const stations = Object.values(getMission().stations);
+      expect(stations.length).toEqual(2);
+
+      // Find the new station (not the original)
+      const dupStation = stations.find((s) => s.uuid !== station.uuid);
+      expect(dupStation).toBeDefined();
+
+      // The duplicate's circleUIStates should mirror the original's
+      const dupUIStates = store.getState().station.stationCirclesUIStates[dupStation.uuid];
+      expect(dupUIStates).toBeDefined();
+      expect(dupUIStates[circleDefUuid]).toBeDefined();
+      expect(dupUIStates[circleDefUuid].slidersSelected).toEqual(true);
+    });
+
+    test("with preserveRefUuid=true does not select new station", async () => {
+      const station: Station = generateBlankStation({ name: "Vitest Station-PreserveRef" });
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+      });
+      const store = createCustomTestStore({ station: { ...stationInitialState } });
+
+      await store.dispatch(
+        thunkStation.thunkDocDuplicateStation({ stationUuid: station.uuid, preserveRefUuid: true })
+      );
+
+      // Station is duplicated but selectedStationUuid stays null (not changed)
+      expect(Object.keys(getMission().stations).length).toEqual(2);
+      expect(store.getState().station.selectedStationUuid).toBeNull();
+    });
   });
 
-  test("thunkCreateStation()", async () => {
-    //populate the station state in the store
-    const store = createCustomTestStore({
-      station: stationInitialState,
+  describe("thunkDocSyncStationsWithMission", () => {
+    test("adds circle UI states and mapCircleControls for new circle definitions", async () => {
+      const circleDefUuid = "sync-circle-def-1";
+      const station: Station = generateBlankStation({
+        name: "Vitest Station-Sync",
+        // station has no circle controls yet
+        mapCircleControls: {},
+      });
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+        m.circleDefinitions = {
+          [circleDefUuid]: { name: "Vitest Sync Circle", radius: 20 },
+        };
+      });
+
+      const store = createCustomTestStore({
+        station: {
+          ...stationInitialState,
+          // no existing circleUIStates for this station
+          stationCirclesUIStates: {},
+        },
+      });
+
+      await store.dispatch(thunkStation.thunkDocSyncStationsWithMission());
+
+      // mapCircleControls in automerge should now contain the new circle definition
+      const updatedStation = getMission().stations[station.uuid];
+      expect(updatedStation.mapCircleControls[circleDefUuid]).toBeDefined();
+      expect(updatedStation.mapCircleControls[circleDefUuid].uuid).toEqual(circleDefUuid);
+
+      // Redux slice should have the circle UI state
+      const uiStates = store.getState().station.stationCirclesUIStates[station.uuid];
+      expect(uiStates).toBeDefined();
+      expect(uiStates[circleDefUuid]).toBeDefined();
+      expect(uiStates[circleDefUuid].slidersSelected).toEqual(false);
     });
 
-    await store.dispatch(thunkStation.thunkCreateStation());
-    const storeState = store.getState();
-    expect(storeState.station.stations.length).toEqual(1);
-    expect(storeState.station.stationsEditing.length).toEqual(1);
-    expect(storeState.station.selectedStationUuid).toBeTruthy();
-    expect(storeState.station.selectedRightNavItem).toEqual("info_panel");
-  });
+    test("removes stale circle UI states and mapCircleControls for deleted circle definitions", async () => {
+      const staleCircleUuid = "stale-circle-uuid";
+      const station: Station = generateBlankStation({
+        name: "Vitest Station-SyncRemove",
+        mapCircleControls: {
+          [staleCircleUuid]: { uuid: staleCircleUuid, visible: true, style: null },
+        },
+      });
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+        // no circleDefinitions — all existing station entries should be pruned
+        m.circleDefinitions = {};
+      });
 
-  test("thunkDuplicateStation()", async () => {
-    //populate the station state in the store
-    const station: Station = generateBlankStation({ name: "Vitest Station-1" });
-    const stationAction1: Action = generateBlankAction({
-      name: "Vitest Action-1",
-      stationUuid: station.uuid,
-    });
-    const stationAction2: Action = generateBlankAction({
-      name: "Vitest Action-1",
-      stationUuid: station.uuid,
-    });
-    station.actionOrderUuids = [stationAction1.uuid, stationAction2.uuid];
-    const store = createCustomTestStore({
-      station: { ...stationInitialState, stations: [station], stationsFromDb: [station] },
-      action: {
-        ...actionInitialState,
-        actions: [stationAction1, stationAction2],
-        actionsFromDb: [stationAction1, stationAction2],
-      },
+      const store = createCustomTestStore({
+        station: {
+          ...stationInitialState,
+          stationCirclesUIStates: {
+            [station.uuid]: {
+              [staleCircleUuid]: { slidersSelected: false },
+            },
+          },
+        },
+      });
+
+      await store.dispatch(thunkStation.thunkDocSyncStationsWithMission());
+
+      // stale circle removed from automerge
+      const updatedStation = getMission().stations[station.uuid];
+      expect(updatedStation.mapCircleControls[staleCircleUuid]).toBeUndefined();
+
+      // stale circle removed from Redux
+      const uiStates = store.getState().station.stationCirclesUIStates[station.uuid];
+      expect(uiStates[staleCircleUuid]).toBeUndefined();
     });
 
-    await store.dispatch(
-      thunkStation.thunkDuplicateStation({ stationUuid: station.uuid, preserveRefUuid: false })
-    );
-    const storeState = store.getState();
-    expect(storeState.station.stations.length).toEqual(2);
-    expect(storeState.station.selectedStationUuid).toBeTruthy();
-    expect(storeState.station.selectedRightNavItem).toEqual("info_panel");
-    // should have saved to db
-    expect(storeState.station.stationsFromDb.length).toEqual(2);
-    expect(httpClient_station.upsertStations).toHaveBeenCalledTimes(1);
-    //we mocked the thunk duplicate action, so no further conditions will be tested here
-    expect(mockThunkDuplicateActions).toHaveBeenCalledTimes(1);
+    test("with no stations is a no-op", async () => {
+      // empty stations already set in beforeEach
+      const store = createCustomTestStore({ station: { ...stationInitialState } });
+
+      await expect(
+        store.dispatch(thunkStation.thunkDocSyncStationsWithMission())
+      ).resolves.not.toThrow();
+
+      // stationCirclesUIStates stays empty
+      expect(store.getState().station.stationCirclesUIStates).toEqual({});
+    });
+
+    test("preserves existing circle UI states that still exist in mission", async () => {
+      const circleDefUuid = "existing-circle-def";
+      const station: Station = generateBlankStation({
+        name: "Vitest Station-SyncPreserve",
+        mapCircleControls: {
+          [circleDefUuid]: { uuid: circleDefUuid, visible: true, style: null },
+        },
+      });
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+        m.circleDefinitions = {
+          [circleDefUuid]: { name: "Vitest Existing Circle", radius: 10 },
+        };
+      });
+
+      const store = createCustomTestStore({
+        station: {
+          ...stationInitialState,
+          stationCirclesUIStates: {
+            [station.uuid]: {
+              [circleDefUuid]: { slidersSelected: true },
+            },
+          },
+        },
+      });
+
+      await store.dispatch(thunkStation.thunkDocSyncStationsWithMission());
+
+      // Existing UI state should be preserved
+      const uiStates = store.getState().station.stationCirclesUIStates[station.uuid];
+      expect(uiStates[circleDefUuid].slidersSelected).toEqual(true);
+
+      // mapCircleControls in automerge should still have the circle (preserved)
+      const updatedStation = getMission().stations[station.uuid];
+      expect(updatedStation.mapCircleControls[circleDefUuid]).toBeDefined();
+    });
   });
 });

@@ -6,6 +6,8 @@ import {
   getCalculatedFieldsByStation,
   getCalculatedFieldsByTraverse,
 } from "store/processing/calculatedFields";
+import { globalGrid } from "./mapping/grid";
+import * as jsonKeysSort from "json-keys-sort";
 
 export const makeEquipmentReadable = (params: {
   equipmentItems: EquipmentItemUsages;
@@ -28,41 +30,39 @@ export const makeEquipmentReadable = (params: {
 
 export const makeExportActions = (params: {
   actions: Action[];
-  allData: AllDataForExport;
+  mission: Mission;
   missionGrid: MissionGridPoint[][];
 }): ExportAction[] => {
-  const { actions, allData, missionGrid } = params;
+  const { actions, mission, missionGrid } = params;
   if (!actions || actions.length === 0) return [];
-  const actionDefinitions: ActionDefinitions = allData.mission.actionDefinitions;
+  const actionDefinitions: ActionDefinitions = mission.actionDefinitions;
+  const evaUuidToRexUuid = Object.fromEntries(
+    Object.values(mission.rexes).map((r) => [r.evaUuid, r.uuid])
+  );
 
   const exportActions: ExportAction[] = actions.map((action) => {
     let rexUuid = null;
-    const actionStation = action.stationUuid
-      ? allData.stations.find((s) => s.uuid === action.stationUuid)
-      : null;
-    const actionTraverse = action.traverseUuid
-      ? allData.traverses.find((t) => t.uuid === action.traverseUuid)
-      : null;
+    const actionStation = action.stationUuid ? mission.stations[action.stationUuid] : null;
+    const actionTraverse = action.traverseUuid ? mission.traverses[action.traverseUuid] : null;
     if (actionStation || actionTraverse) {
       // Use a "find" instead of "filter" because if this station is in more than one EVA
       //  then we know it's an as-planned station and it will fail when it tries to find the rex
       // Traverses can only be in one EVA
-      const evaThisStationOrTraverseIsIn = allData.evas.find((eva) =>
+      const evaThisStationOrTraverseIsIn = Object.values(mission.evas).find((eva) =>
         eva.sequence.some(
           (seqItem) => seqItem.uuid === (actionStation?.uuid || actionTraverse?.uuid)
         )
       );
       if (evaThisStationOrTraverseIsIn) {
-        // check if this eva is in a rex
-        const rex = allData.rexes.find((r) => r.evaUuid === evaThisStationOrTraverseIsIn.uuid);
-        if (rex) rexUuid = rex.uuid;
+        // Check if this eva is in a rex
+        rexUuid = evaUuidToRexUuid[evaThisStationOrTraverseIsIn.uuid] ?? null;
       }
     }
 
     const exportAction: ExportAction = {
       ...action,
       _itemType: "Action",
-      parentPoiName: allData.pois.find((p) => p.uuid === action.poiUuid)?.name,
+      parentPoiName: mission.pois[action.poiUuid]?.name,
       parentStationName: actionStation?.name,
       parentTraverseName: actionTraverse?.name,
       stationRefUuid: actionStation?.refUuid,
@@ -70,11 +70,11 @@ export const makeExportActions = (params: {
       iconEmojiDecoded: decodeEmoji(action.icon),
       equipmentItemsUsageReadable: makeEquipmentReadable({
         equipmentItems: action.equipmentItemsUsage,
-        mission: allData.mission,
+        mission,
       }),
       geographicalUnitsReadable: action.geographicUnitsUsage
         ? [...action.geographicUnitsUsage].map((geographicUnitUsageUuid) => {
-            return allData.mission.geographicUnits?.[geographicUnitUsageUuid]?.name;
+            return mission.geographicUnits?.[geographicUnitUsageUuid]?.name;
           })
         : null,
       //Verb of noun in adjective
@@ -90,8 +90,8 @@ export const makeExportActions = (params: {
         : null,
       gridCoordinates: getGridCoordinatesFromPoint(
         action.location,
-        allData.mission.planetRadius,
-        allData.mission.usingLGRSCoordinates,
+        mission.planetRadius,
+        mission.usingLGRSCoordinates,
         missionGrid
       ),
       rexUuid,
@@ -105,17 +105,19 @@ export const makeExportActions = (params: {
 export const makeExportPois = (params: {
   pois: POI[];
   missionGrid: MissionGridPoint[][];
-  allData: AllDataForExport;
+  mission: Mission;
 }): ExportPOI[] => {
-  const { pois, allData, missionGrid } = params;
+  const { pois, mission, missionGrid } = params;
   if (!pois || pois.length === 0) return [];
   const exportPois: ExportPOI[] = pois.map((poi) => {
     const actionsReadable: ExportAction[] = makeExportActions({
-      actions: allData.actions.filter((a) => poi.actionOrderUuids?.includes(a.uuid)),
-      allData,
+      actions: Object.values(mission.actions).filter((a) => poi.actionOrderUuids?.includes(a.uuid)),
+      mission,
       missionGrid,
     });
-    const poiActions = allData.actions.filter((a) => a.poiUuid === poi.uuid && a.enabled);
+    const poiActions = Object.values(mission.actions).filter(
+      (a) => a.poiUuid === poi.uuid && a.enabled
+    );
     const poiCalculatedFields = getCalculatedFieldsByPoi({
       poiUuid: poi.uuid,
       poiActions,
@@ -125,12 +127,12 @@ export const makeExportPois = (params: {
       _itemType: "POI",
       actionsReadable,
       calculatedFields: poiCalculatedFields,
-      elevationRelative: poi.elevation - allData.mission.landerElevationMeters,
+      elevationRelative: poi.elevation - mission.landerElevationMeters,
       iconEmojiDecoded: decodeEmoji(poi.icon),
       gridCoordinates: getGridCoordinatesFromPoint(
         poi.location,
-        allData.mission.planetRadius,
-        allData.mission.usingLGRSCoordinates,
+        mission.planetRadius,
+        mission.usingLGRSCoordinates,
         missionGrid
       ),
     };
@@ -142,38 +144,42 @@ export const makeExportPois = (params: {
 export const makeExportStations = (params: {
   stations: Station[];
   missionGrid: MissionGridPoint[][];
-  allData: AllDataForExport;
+  mission: Mission;
   exportActions?: boolean;
 }): ExportStation[] => {
-  const { stations, allData, missionGrid, exportActions = true } = params;
+  const { stations, mission, missionGrid, exportActions = true } = params;
   if (!stations || stations.length === 0) return [];
+  const evaUuidToRexUuid = Object.fromEntries(
+    Object.values(mission.rexes).map((r) => [r.evaUuid, r.uuid])
+  );
   const exportStations: ExportStation[] = stations.map((station) => {
-    const stationActions = allData.actions.filter(
+    const stationActions = Object.values(mission.actions).filter(
       (a) => a.stationUuid === station.uuid && a.enabled
     );
     const stationCalculatedFields = getCalculatedFieldsByStation({
       station,
-      missionWalkbackRate: allData.mission.walkbackRate,
+      missionWalkbackRate: mission.walkbackRate,
       stationActions,
     });
     let actionsReadable: ExportAction[] = null;
     if (exportActions) {
       actionsReadable = makeExportActions({
-        actions: allData.actions.filter((a) => station.actionOrderUuids?.includes(a.uuid)),
-        allData,
+        actions: Object.values(mission.actions).filter((a) =>
+          station.actionOrderUuids?.includes(a.uuid)
+        ),
+        mission,
         missionGrid,
       });
     }
     let rexUuid = null;
     // Use a "find" instead of "filter" because if this station is in more than one EVA
     //  then we know it's an as-planned station and it will fail when it tries to find the rex
-    const evaThisStationIsIn = allData.evas.find((eva) =>
+    const evaThisStationIsIn = Object.values(mission.evas).find((eva) =>
       eva.sequence.some((seqItem) => seqItem.type === "station" && seqItem.uuid === station.uuid)
     );
     if (evaThisStationIsIn) {
       // Check if this eva is in a rex
-      const rex = allData.rexes.find((r) => r.evaUuid === evaThisStationIsIn.uuid);
-      if (rex) rexUuid = rex.uuid;
+      rexUuid = evaUuidToRexUuid[evaThisStationIsIn.uuid] ?? null;
     }
 
     const ExportStation: ExportStation = {
@@ -184,13 +190,13 @@ export const makeExportStations = (params: {
         ...stationCalculatedFields,
         equipmentItemsReadable: makeEquipmentReadable({
           equipmentItems: stationCalculatedFields.equipmentItems,
-          mission: allData.mission,
+          mission,
         }),
       } as ExportStationCalculatedFields,
-      elevationRelative: station.elevation - allData.mission.landerElevationMeters,
+      elevationRelative: station.elevation - mission.landerElevationMeters,
       iconEmojiDecoded: decodeEmoji(station.icon),
       poisAssociatedReadable: station.poiUuids?.map((poiUuid) => {
-        const poi = allData.pois.find((p) => p.uuid === poiUuid);
+        const poi = mission.pois[poiUuid];
         if (poi) {
           return {
             name: poi.name,
@@ -200,12 +206,12 @@ export const makeExportStations = (params: {
       }),
       gridCoordinates: getGridCoordinatesFromPoint(
         station.location,
-        allData.mission.planetRadius,
-        allData.mission.usingLGRSCoordinates,
+        mission.planetRadius,
+        mission.usingLGRSCoordinates,
         missionGrid
       ),
       actionOrderRefUuids: station.actionOrderUuids?.map(
-        (actionOrderUuid) => allData.actions.find((a) => a.uuid === actionOrderUuid)?.refUuid
+        (actionOrderUuid) => mission.actions[actionOrderUuid]?.refUuid
       ),
       rexUuid,
     };
@@ -217,40 +223,44 @@ export const makeExportStations = (params: {
 export const makeExportTraverses = (params: {
   traverses: Traverse[];
   missionGrid: MissionGridPoint[][];
-  allData: AllDataForExport;
+  mission: Mission;
   exportActions?: boolean;
 }): ExportTraverse[] => {
-  const { traverses, allData, missionGrid, exportActions = true } = params;
+  const { traverses, mission, missionGrid, exportActions = true } = params;
   if (!traverses || traverses.length === 0) return [];
+  const evaUuidToRexUuid = Object.fromEntries(
+    Object.values(mission.rexes).map((r) => [r.evaUuid, r.uuid])
+  );
   const exportTraverses: ExportTraverse[] = traverses.map((traverse) => {
-    const traverseEva = allData.evas.find((eva) =>
+    const traverseEva = Object.values(mission.evas).find((eva) =>
       eva.sequence.some((seqItem) => seqItem.uuid === traverse.uuid)
     );
-    const traverseActions = allData.actions.filter(
+    const traverseActions = Object.values(mission.actions).filter(
       (a) => a.traverseUuid === traverse.uuid && a.enabled
     );
     const traverseCalculatedFields = getCalculatedFieldsByTraverse({
       traverse: traverse,
-      missionTraverseRate: allData.mission.traverseRate,
+      missionTraverseRate: mission.traverseRate,
       evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
     });
     let actionsReadable: ExportAction[] = null;
     if (exportActions) {
       actionsReadable = makeExportActions({
-        actions: allData.actions.filter((a) => traverse.actionOrderUuids?.includes(a.uuid)),
-        allData,
+        actions: Object.values(mission.actions).filter((a) =>
+          traverse.actionOrderUuids?.includes(a.uuid)
+        ),
+        mission,
         missionGrid,
       });
     }
     let rexUuid = null;
-    const evaThisTraverseIsIn = allData.evas.find((eva) =>
+    const evaThisTraverseIsIn = Object.values(mission.evas).find((eva) =>
       eva.sequence.some((seqItem) => seqItem.type === "traverse" && seqItem.uuid === traverse.uuid)
     );
     if (evaThisTraverseIsIn) {
       // Check if this eva is in a rex
-      const rex = allData.rexes.find((r) => r.evaUuid === evaThisTraverseIsIn.uuid);
-      if (rex) rexUuid = rex.uuid;
+      rexUuid = evaUuidToRexUuid[evaThisTraverseIsIn.uuid] ?? null;
     }
 
     return {
@@ -259,7 +269,7 @@ export const makeExportTraverses = (params: {
       calculatedFields: traverseCalculatedFields,
       actionsReadable: actionsReadable,
       actionOrderRefUuids: traverse.actionOrderUuids?.map(
-        (actionOrderUuid) => allData.actions.find((a) => a.uuid === actionOrderUuid)?.refUuid
+        (actionOrderUuid) => mission.actions[actionOrderUuid]?.refUuid
       ),
       rexUuid,
     };
@@ -270,24 +280,33 @@ export const makeExportTraverses = (params: {
 export const makeExportEvas = (params: {
   evas: Eva[];
   missionGrid: MissionGridPoint[][];
-  allData: AllDataForExport;
+  mission: Mission;
   exportStations?: boolean;
   exportTraverses?: boolean;
 }): ExportEva[] => {
-  const { evas, allData, missionGrid, exportStations = true, exportTraverses = true } = params;
+  const { evas, mission, missionGrid, exportStations = true, exportTraverses = true } = params;
   if (!evas || evas.length === 0) return [];
+  const evaUuidToRexUuid = Object.fromEntries(
+    Object.values(mission.rexes).map((r) => [r.evaUuid, r.uuid])
+  );
   const exportEvas: ExportEva[] = evas.map((eva) => {
+    const seqStationUuids = new Set(
+      eva.sequence.filter((s) => s.type === "station").map((s) => s.uuid)
+    );
+    const seqTraverseUuids = new Set(
+      eva.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid)
+    );
     const evaCalculatedFields = getCalculatedFieldsByEva({
       eva,
-      evaStations: allData.stations,
-      missionTraverseRate: allData.mission.traverseRate,
-      missionWalkbackRate: allData.mission.walkbackRate,
-      evaActions: allData.actions,
-      evaTraverses: allData.traverses,
+      evaStations: Object.values(mission.stations).filter((s) => seqStationUuids.has(s.uuid)),
+      missionTraverseRate: mission.traverseRate,
+      missionWalkbackRate: mission.walkbackRate,
+      evaActions: Object.values(mission.actions).filter(
+        (a) => seqStationUuids.has(a.stationUuid) || seqTraverseUuids.has(a.traverseUuid)
+      ),
+      evaTraverses: Object.values(mission.traverses).filter((t) => seqTraverseUuids.has(t.uuid)),
     });
-    let rexUuid = null;
-    const rex = allData.rexes.find((r) => r.evaUuid === eva.uuid);
-    if (rex) rexUuid = rex.uuid;
+    const rexUuid = evaUuidToRexUuid[eva.uuid] ?? null;
 
     const exportEva: ExportEva = {
       ...eva,
@@ -295,14 +314,15 @@ export const makeExportEvas = (params: {
       sequenceReadable: eva.sequence.map((sequenceItem) => {
         if (sequenceItem.type === "station" && exportStations) {
           return makeExportStations({
-            stations: allData.stations.filter((s) => s.uuid === sequenceItem.uuid),
-            allData,
+            // Use filter(Boolean) to filter out nulls in case the station is missing (shouldn't happen but just in case)
+            stations: [mission.stations[sequenceItem.uuid]].filter(Boolean) as Station[],
+            mission,
             missionGrid,
           })[0];
         } else if (sequenceItem.type === "traverse" && exportTraverses) {
           return makeExportTraverses({
-            traverses: allData.traverses.filter((t) => t.uuid === sequenceItem.uuid),
-            allData,
+            traverses: [mission.traverses[sequenceItem.uuid]].filter(Boolean) as Traverse[],
+            mission,
             missionGrid,
           })[0];
         } else {
@@ -312,9 +332,9 @@ export const makeExportEvas = (params: {
       sequenceRefUuids: eva.sequence.map((sequenceItem) => {
         let refUuid = "";
         if (sequenceItem.type === "station") {
-          refUuid = allData.stations.find((s) => s.uuid === sequenceItem.uuid)?.refUuid;
+          refUuid = mission.stations[sequenceItem.uuid]?.refUuid;
         } else if (sequenceItem.type === "traverse") {
-          refUuid = allData.traverses.find((t) => t.uuid === sequenceItem.uuid)?.refUuid;
+          refUuid = mission.traverses[sequenceItem.uuid]?.refUuid;
         }
         const sequenceRefUuid: EvaSequenceItemRefUuid = {
           ...sequenceItem,
@@ -325,16 +345,16 @@ export const makeExportEvas = (params: {
       egressLocationRefUuid:
         eva.egressLocationUuid === "lander"
           ? "lander"
-          : allData.stations.find((s) => s.uuid === eva.egressLocationUuid)?.refUuid,
+          : mission.stations[eva.egressLocationUuid]?.refUuid,
       ingressLocationRefUuid:
         eva.ingressLocationUuid === "lander"
           ? "lander"
-          : allData.stations.find((s) => s.uuid === eva.ingressLocationUuid)?.refUuid,
+          : mission.stations[eva.ingressLocationUuid]?.refUuid,
       calculatedFields: {
         ...evaCalculatedFields,
         equipmentItemsReadable: makeEquipmentReadable({
           equipmentItems: evaCalculatedFields.equipmentItems,
-          mission: allData.mission,
+          mission,
         }),
       },
       rexUuid,
@@ -343,6 +363,16 @@ export const makeExportEvas = (params: {
   });
 
   return exportEvas;
+};
+
+export const makeExportRexString = ({ rex }: { rex: Rex }): string => {
+  // Build the full export object for the rex
+  const exportRex: ExportRex[] = makeExportRexes({ rexes: [rex] });
+  const selectedExportedData = { rex: exportRex };
+  // Convert object to readable string
+  const sortedJson = jsonKeysSort.sort(selectedExportedData);
+  const dataStr = JSON.stringify(sortedJson, null, 2);
+  return dataStr;
 };
 
 export const makeExportRexes = (params: { rexes: Rex[] }): ExportRex[] => {
@@ -401,4 +431,109 @@ export const makeReadableActionDefinition = (params: {
     adjective: adjective,
   };
   return readableActionDefinition;
+};
+
+export const makeExportString = ({
+  mission,
+  selectEvas,
+  selectMission,
+  selectPois,
+  selectStations,
+  selectActions,
+  selectTraverses,
+  selectRexes,
+}: {
+  mission: Mission;
+  selectEvas: boolean;
+  selectMission: boolean;
+  selectPois: boolean;
+  selectStations: boolean;
+  selectActions: boolean;
+  selectTraverses: boolean;
+  selectRexes: boolean;
+}): string => {
+  if (!mission) return "";
+  let selectedExportedData = {};
+
+  /**
+   * Mission
+   */
+  if (selectMission) {
+    const exportMission = makeExportMission({
+      mission,
+      missionGrid: globalGrid?.coordinates,
+    });
+    selectedExportedData = { ...selectedExportedData, exportMission };
+  }
+
+  /**
+   * Actions
+   */
+  if (selectActions) {
+    const actions: ExportAction[] = makeExportActions({
+      actions: Object.values(mission?.actions ?? {}),
+      mission,
+      missionGrid: globalGrid?.coordinates,
+    });
+    selectedExportedData = { ...selectedExportedData, actions };
+  }
+  /**
+   * POIs
+   */
+  if (selectPois) {
+    const pois: ExportPOI[] = makeExportPois({
+      pois: Object.values(mission?.pois ?? {}),
+      missionGrid: globalGrid?.coordinates,
+      mission,
+    });
+    selectedExportedData = { ...selectedExportedData, pois };
+  }
+  /**
+   * Stations
+   */
+  if (selectStations) {
+    const stations: ExportStation[] = makeExportStations({
+      stations: Object.values(mission?.stations ?? {}),
+      missionGrid: globalGrid?.coordinates,
+      mission,
+    });
+    selectedExportedData = { ...selectedExportedData, stations };
+  }
+  /**
+   * Traverses
+   */
+  if (selectTraverses) {
+    const traverses: ExportTraverse[] = makeExportTraverses({
+      traverses: Object.values(mission?.traverses ?? {}),
+      missionGrid: globalGrid?.coordinates,
+      mission,
+    });
+    selectedExportedData = { ...selectedExportedData, traverses };
+  }
+  /**
+   * EVAs
+   */
+  if (selectEvas) {
+    const evas: ExportEva[] = makeExportEvas({
+      evas: Object.values(mission?.evas ?? {}),
+      missionGrid: globalGrid?.coordinates,
+      mission,
+    });
+    selectedExportedData = { ...selectedExportedData, evas };
+  }
+  /**
+   * REXes
+   */
+  if (selectRexes) {
+    const rexes: ExportRex[] = makeExportRexes({
+      rexes: Object.values(mission?.rexes ?? {}),
+    });
+    selectedExportedData = { ...selectedExportedData, rexes };
+  }
+
+  // convert object to readable string
+  const sortedJson = jsonKeysSort.sort(selectedExportedData);
+  const dataStr = JSON.stringify(sortedJson, null, 2);
+
+  return dataStr;
 };

@@ -6,71 +6,88 @@ import {
   faRoute,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
+import { Button, PathColorPickerMenu } from "components/interface/form/globalFields";
 import {
-  Button,
-  InLineEditInput,
-  PathColorPickerMenu,
-  TextArea,
-} from "components/interface/form/globalFields";
+  ValidatedInputField,
+  ValidatedTextArea,
+} from "components/interface/form/globalFieldsAutomerge";
 import type { FunctionComponent } from "react";
-import { setSelectedTraverseRightNavItem, upsertTraverseByField } from "store/traverse";
-import { refEqual, shallowEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
+import { useMemo } from "react";
+import { setSelectedTraverseRightNavItem } from "store/traverse";
+import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import traverseStyles from "./traverse.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkResetTraverse } from "store/thunk/thunkTraverse";
+import { thunkDocResetTraverse } from "store/thunk/thunkTraverse";
 import { formatNumberWithCommas, isNotNumber, toDecimal } from "utils/formatting";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
+import { setOriginalPoints, updateMapDirective } from "store/map";
 import { makeTraverseRateString } from "utils/component-helpers";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdateTraverseByField } from "client/automerge/apply/apply-traverse";
 import CalculatedDwell from "../calculated-dwell";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const missionTraverseRate = useMissionDocSelector((doc) => doc.traverseRate, refEqual);
+  const missionTraverseRate = useMissionDocSelector((mission) => mission.traverseRate, refEqual);
 
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const selectedTraverse = useAppSelector(
-    (state) =>
-      state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
-    deepEqual
+  const docMaps = useMissionDocSelector(
+    (mission) => ({ traverses: mission.traverses, actions: mission.actions }),
+    shallowEqual
   );
-  const selectedEvaTraverseRate = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid)?.traverseRate,
+  const selectedTraverse = useMemo(
+    () => docMaps?.traverses[selectedEvaSequenceItemUuid],
+    [docMaps, selectedEvaSequenceItemUuid]
+  );
+  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
+  const selectedEvaTraverseRate = useMissionDocSelector(
+    (mission) => mission.evas?.[selectedEvaUuid]?.traverseRate,
     refEqual
   );
-  const selectedEvaTraverseColor = useAppSelector(
-    (state) => state.eva.evas.find((e) => e.uuid === state.eva.selectedEvaUuid)?.traverseColor,
+  const selectedEvaTraverseColor = useMissionDocSelector(
+    (mission) => mission.evas?.[selectedEvaUuid]?.traverseColor,
     refEqual
   );
   const elevationPendingIndex = useAppSelector(
     (state) =>
-      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedTraverse.uuid),
+      state.interface.elevationPendingItemUuids.findIndex(
+        (uuid) => uuid === selectedEvaSequenceItemUuid
+      ),
     refEqual
   );
-  const calculatedFields = useAppSelector((state) => {
-    const traverseEva = state.eva.evas.find((eva) =>
-      eva.sequence.some((seqItem) => seqItem.uuid === selectedTraverse?.uuid)
+  const traverseEvaTraverseRate = useMissionDocSelector((mission) => {
+    if (!mission?.evas) return null;
+    return (
+      Object.values(mission.evas).find((eva) =>
+        eva.sequence.some((seqItem) => seqItem.uuid === selectedEvaSequenceItemUuid)
+      )?.traverseRate ?? null
     );
-    const traverseActions = state.action.actions.filter(
+  }, refEqual);
+  const calculatedFields = useMemo(() => {
+    if (!docMaps) return undefined;
+    const traverseActions = Object.values(docMaps.actions).filter(
       (a) => a.traverseUuid === selectedTraverse?.uuid && a.enabled
     );
     return getCalculatedFieldsByTraverse({
       traverse: selectedTraverse,
       missionTraverseRate,
-      evaTraverseRate: traverseEva?.traverseRate,
+      evaTraverseRate: traverseEvaTraverseRate,
       traverseActions,
     });
-  }, deepEqual);
-  const thisMapDirective = useAppSelector((state) => {
-    return state.map.mapDirective?.uuid === selectedTraverse.uuid ? state.map.mapDirective : null;
-  }, shallowEqual);
+  }, [docMaps, selectedTraverse, missionTraverseRate, traverseEvaTraverseRate]);
+  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
+  const thisMapDirective = useMemo(
+    () => (mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null),
+    [mapDirective, selectedEvaSequenceItemUuid]
+  );
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   let saveButtonState: saveButtonState = "disabled";
@@ -81,6 +98,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   }
 
   const handlePathEdit = async () => {
+    dispatch(setOriginalPoints(selectedTraverse.path));
     dispatch(
       thunkUpdateMapDirective({
         uuid: selectedTraverse.uuid,
@@ -101,8 +119,11 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   };
 
   const handleCancelPathEdit = () => {
+    // Dispatched synchronously instead of via thunkUpdateMapDirective so the
+    // 200ms delay can't let a trailing throttled drag write the edited path
+    // to Automerge after the user already clicked Cancel.
     dispatch(
-      thunkUpdateMapDirective({
+      updateMapDirective({
         uuid: selectedTraverse.uuid,
         mapItemType: "traverse",
         mapAction: "cancelEditPolyline",
@@ -112,11 +133,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
   const handlePathReset = async () => {
     //reset path to stations endpoints
-    dispatch(thunkResetTraverse({ traverseUuid: selectedTraverse.uuid }));
+    dispatch(thunkDocResetTraverse({ traverseUuid: selectedTraverse.uuid }));
   };
 
   const handleResetPathColor = async () => {
-    dispatch(upsertTraverseByField(selectedTraverse.uuid, "color", null));
+    withMissionChange((m) =>
+      applyUpdateTraverseByField(m, {
+        traverseUuid: selectedTraverse.uuid,
+        fieldName: "color",
+        value: null,
+      })
+    );
   };
 
   return (
@@ -128,14 +155,18 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
             <div className={paneStyles.panelSectionTitle}>
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
-            <div className={paneStyles.descriptionContainer}>
-              <TextArea
+            <div className={paneStyles.fieldContainerAutomerge}>
+              <ValidatedTextArea
                 key={selectedTraverse.uuid}
                 value={selectedTraverse.description || ""}
-                editing={editMode}
+                editMode={editMode}
                 onSubmit={(value: string) => {
-                  dispatch(
-                    upsertTraverseByField(selectedTraverse.uuid, "description", value || "")
+                  withMissionChange((m) =>
+                    applyUpdateTraverseByField(m, {
+                      traverseUuid: selectedTraverse.uuid,
+                      fieldName: "description",
+                      value: value || "",
+                    })
                   );
                 }}
                 fieldProps={{ name: "traverseDescription", ariaLabel: "Traverse Description" }}
@@ -155,13 +186,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
+                        <ValidatedInputField
                           value={selectedTraverse.duration?.toString()}
-                          editing={editMode}
+                          editMode={editMode}
                           fieldProps={{
                             name: "duration",
                             ariaLabel: "Duration",
-                            style: { width: "55px" },
                             validators: [
                               validators.mustBeNumber,
                               validators.maxLength(4),
@@ -175,13 +205,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               );
                             },
                           }}
-                          onSubmit={(val) => {
-                            dispatch(
-                              upsertTraverseByField(
-                                selectedTraverse.uuid,
-                                "duration",
-                                toDecimal(val)
-                              )
+                          onSubmit={(val: string) => {
+                            withMissionChange((m) =>
+                              applyUpdateTraverseByField(m, {
+                                traverseUuid: selectedTraverse.uuid,
+                                fieldName: "duration",
+                                value: toDecimal(val),
+                              })
                             );
                           }}
                           key={`${selectedTraverse.uuid}-duration`}
@@ -207,13 +237,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
+                        <ValidatedInputField
                           value={selectedTraverse.traverseRate?.toString()}
-                          editing={editMode}
+                          editMode={editMode}
                           fieldProps={{
                             name: "traverseRate",
                             ariaLabel: "Average Traverse Rate",
-                            style: { width: "55px" },
                             validators: [validators.mustBeNumber, validators.maxLength(4)],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
@@ -223,12 +252,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             },
                           }}
                           onSubmit={(val: string) => {
-                            dispatch(
-                              upsertTraverseByField(
-                                selectedTraverse.uuid,
-                                "traverseRate",
-                                toDecimal(val)
-                              )
+                            withMissionChange((m) =>
+                              applyUpdateTraverseByField(m, {
+                                traverseUuid: selectedTraverse.uuid,
+                                fieldName: "traverseRate",
+                                value: toDecimal(val),
+                              })
                             );
                           }}
                           key={`${selectedTraverse.uuid}-traverseRate`}
@@ -354,7 +383,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           }
                           editMode={editMode}
                           updateColor={(val) => {
-                            dispatch(upsertTraverseByField(selectedTraverse.uuid, "color", val));
+                            withMissionChange((m) =>
+                              applyUpdateTraverseByField(m, {
+                                traverseUuid: selectedTraverse.uuid,
+                                fieldName: "color",
+                                value: val,
+                              })
+                            );
                           }}
                           styleContainer={{
                             padding: "0px 5px 0px 5px",
@@ -517,10 +552,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldValue}>
-                      <LastEdited
+                      <LastEditedNumeric
                         updatedAt={selectedTraverse?.updatedAt}
                         createdAt={selectedTraverse?.createdAt}
-                        infoString={`Traverse UUID: ${selectedTraverse?.uuid}`}
+                        infoString={`Traverse UUID: ${selectedTraverse?.uuid}<br />Traverse RefUUID: ${selectedTraverse?.refUuid}`}
                       />
                     </div>
                   </div>

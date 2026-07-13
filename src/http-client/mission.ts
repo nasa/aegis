@@ -1,3 +1,19 @@
+export async function getMissions(): Promise<WrappedResponse<Mission[]>> {
+  const res = await fetch(`/api/v1/missionAutomerge`);
+  if (res.status !== 200) {
+    let errorMessage = `${res.status} ${res.statusText}`;
+    try {
+      const errorBody = await res.json();
+      if (errorBody?.message) errorMessage = errorBody.message;
+    } catch {
+      /* response body is not JSON */
+    }
+    return { status: "error", message: errorMessage };
+  }
+  const response: WrappedResponse<Mission[]> = await res.json();
+  return response;
+}
+
 export async function getMissionBackup(missionId: number): Promise<WrappedResponse<Mission[]>> {
   const res = await fetch(`/api/v1/mission?missionId=${missionId}`);
   if (res.status !== 200) {

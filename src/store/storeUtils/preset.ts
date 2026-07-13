@@ -28,7 +28,7 @@ export const generateBlankPreset = (partialPreset?: Partial<Preset>): Preset => 
     earthEnabled: false,
     earthAsMoon: false,
     createdAt: getAccurateNow().toISOString(),
-    updatedAt: null,
+    updatedAt: getAccurateNow().toISOString(),
   };
   return { ...defaultNewPreset, ...partialPreset };
 };

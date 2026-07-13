@@ -40,13 +40,14 @@ import { ActionTemplateMenu } from "./mission-actionTemplates-menu";
 import capitalize from "lodash/capitalize";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import {
-  crudCreateActionTemplate,
-  crudUpdateActionTemplateActionDefinition,
-  crudUpdateActionTemplateByField,
-} from "client/crud/crud-mission-actionTemplate";
+  applyCreateActionTemplate,
+  applyUpdateActionTemplateActionDefinition,
+  applyUpdateActionTemplateByField,
+} from "client/automerge/apply/apply-mission-actionTemplate";
+import { withMissionChange } from "client/automergeDocHandles";
 
 const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const actionTemplates = useMissionDocSelector((doc) => doc.actionTemplates, deepEqual);
+  const actionTemplates = useMissionDocSelector((mission) => mission.actionTemplates, deepEqual);
 
   const sortedActionTemplates: [string, ActionTemplate][] = actionTemplates
     ? Object.entries(actionTemplates).sort(([, a], [, b]) =>
@@ -94,7 +95,7 @@ const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
               style={{ width: "120px" }}
               ariaLabel="addNewTemplateButton"
               onClick={async () => {
-                crudCreateActionTemplate();
+                withMissionChange((m) => applyCreateActionTemplate(m));
               }}
             />
           )}
@@ -114,9 +115,9 @@ const ActionTemplateItem: FunctionComponent<{
   const dispatch = useAppDispatch();
   const divRef = useRef<HTMLDivElement>(null);
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      actionSystemVersion: doc.actionSystemVersion,
-      actionDefinitions: doc.actionDefinitions,
+    (mission) => ({
+      actionSystemVersion: mission.actionSystemVersion,
+      actionDefinitions: mission.actionDefinitions,
     }),
     deepEqual
   );
@@ -189,7 +190,7 @@ const ActionTemplateItem: FunctionComponent<{
                 <EmojiRenderer iconValue={actionTemplate.icon ? actionTemplate.icon : "2754"} />
               </div>
             </div>
-            <div className={actionStyles.verticalCenter}>
+            <div className={actionStyles.verticalCenter} style={{ flexGrow: "2" }}>
               <ValidatedInputField
                 value={actionTemplate.templateName ?? ""}
                 editMode={editMode}
@@ -199,7 +200,13 @@ const ActionTemplateItem: FunctionComponent<{
                   validators: [validators.maxLength(255), validators.required],
                 }}
                 onSubmit={(value: string) => {
-                  crudUpdateActionTemplateByField(actionTemplateUuid, "templateName", value || "");
+                  withMissionChange((m) =>
+                    applyUpdateActionTemplateByField(m, {
+                      actionTemplateUuid,
+                      fieldName: "templateName",
+                      value: value || "",
+                    })
+                  );
                 }}
                 key={`${actionTemplateUuid}-templateName`}
               />
@@ -207,7 +214,7 @@ const ActionTemplateItem: FunctionComponent<{
           </>
         )}
         <div className={actionStyles.actionsHeadingTitle}></div>
-        <div className={actionStyles.actionHeadingRight}>
+        <div className={actionStyles.actionHeadingRight} style={{ cursor: "pointer" }}>
           {editMode && <ActionTemplateMenu uuid={actionTemplateUuid} />}
         </div>
       </div>
@@ -231,7 +238,13 @@ const ActionTemplateItem: FunctionComponent<{
                           validators: [validators.maxLength(255)],
                         }}
                         onSubmit={(value: string) => {
-                          crudUpdateActionTemplateByField(actionTemplateUuid, "name", value || "");
+                          withMissionChange((m) =>
+                            applyUpdateActionTemplateByField(m, {
+                              actionTemplateUuid,
+                              fieldName: "name",
+                              value: value || "",
+                            })
+                          );
                         }}
                         key={`${actionTemplateUuid}-name`}
                       />
@@ -283,7 +296,13 @@ const ActionTemplateItem: FunctionComponent<{
                         className={`${actionStyles.actionDualButtonsLeft} ${actionTemplate.stmAction ? actionStyles.actionDualButtonsSelected : undefined}`}
                         onClick={() => {
                           if (editMode) {
-                            crudUpdateActionTemplateByField(actionTemplateUuid, "stmAction", true);
+                            withMissionChange((m) =>
+                              applyUpdateActionTemplateByField(m, {
+                                actionTemplateUuid,
+                                fieldName: "stmAction",
+                                value: true,
+                              })
+                            );
                           }
                         }}
                       >
@@ -294,7 +313,13 @@ const ActionTemplateItem: FunctionComponent<{
                         className={`${actionStyles.actionDualButtonsRight} ${!actionTemplate.stmAction ? actionStyles.actionDualButtonsSelected : undefined}`}
                         onClick={() => {
                           if (editMode) {
-                            crudUpdateActionTemplateByField(actionTemplateUuid, "stmAction", false);
+                            withMissionChange((m) =>
+                              applyUpdateActionTemplateByField(m, {
+                                actionTemplateUuid,
+                                fieldName: "stmAction",
+                                value: false,
+                              })
+                            );
                           }
                         }}
                       >
@@ -319,7 +344,13 @@ const ActionTemplateItem: FunctionComponent<{
                   value={actionTemplate.description || ""}
                   editMode={editMode}
                   onSubmit={(value: string) => {
-                    crudUpdateActionTemplateByField(actionTemplateUuid, "description", value || "");
+                    withMissionChange((m) =>
+                      applyUpdateActionTemplateByField(m, {
+                        actionTemplateUuid,
+                        fieldName: "description",
+                        value: value || "",
+                      })
+                    );
                   }}
                   fieldProps={{
                     name: "templateDescription",
@@ -360,10 +391,12 @@ const ActionTemplateItem: FunctionComponent<{
                               );
                             }}
                             onSubmit={(value: string) => {
-                              crudUpdateActionTemplateByField(
-                                actionTemplateUuid,
-                                "duration",
-                                toDecimal(value)
+                              withMissionChange((m) =>
+                                applyUpdateActionTemplateByField(m, {
+                                  actionTemplateUuid,
+                                  fieldName: "duration",
+                                  value: toDecimal(value),
+                                })
                               );
                             }}
                             key={`${actionTemplateUuid}-duration`}
@@ -407,10 +440,12 @@ const ActionTemplateItem: FunctionComponent<{
                               );
                             }}
                             onSubmit={(value: string) => {
-                              crudUpdateActionTemplateByField(
-                                actionTemplateUuid,
-                                "mass",
-                                toDecimal(value)
+                              withMissionChange((m) =>
+                                applyUpdateActionTemplateByField(m, {
+                                  actionTemplateUuid,
+                                  fieldName: "mass",
+                                  value: toDecimal(value),
+                                })
                               );
                             }}
                             key={`${actionTemplateUuid}-mass`}
@@ -481,10 +516,12 @@ const ActionTemplateItem: FunctionComponent<{
                             onEmojiSelect={(e) => {
                               // Handle both standard emojis (unified) and custom emojis (id)
                               const iconValue = e.unified || e.id;
-                              crudUpdateActionTemplateByField(
-                                actionTemplateUuid,
-                                "icon",
-                                iconValue
+                              withMissionChange((m) =>
+                                applyUpdateActionTemplateByField(m, {
+                                  actionTemplateUuid,
+                                  fieldName: "icon",
+                                  value: iconValue,
+                                })
                               );
                               setShowEmojiPicker(false);
                             }}
@@ -542,10 +579,12 @@ const ActionDefType: FunctionComponent<{
           type={type}
           selectedUuid={actionDefinitionUuid}
           onSelect={(uuid) => {
-            crudUpdateActionTemplateActionDefinition(
-              actionTemplateUuid,
-              `${type.slice(0, -1)}Uuid` as keyof ActionDefinition,
-              uuid
+            withMissionChange((m) =>
+              applyUpdateActionTemplateActionDefinition(m, {
+                actionTemplateUuid,
+                type: `${type.slice(0, -1)}Uuid` as keyof ActionDefinition,
+                uuid,
+              })
             );
           }}
         />

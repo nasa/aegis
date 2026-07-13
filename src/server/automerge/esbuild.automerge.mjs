@@ -7,14 +7,16 @@ import * as esbuild from "esbuild";
 // Remove the previous build directory
 rmSync("./.local/automerge/dist", { recursive: true, force: true });
 
-// Build the migration script via ESBuild
-const context = await esbuild.context({
-  entryPoints: ["src/server/automerge/migration.ts"],
+// Shared esbuild options for all automerge entry points
+const sharedOptions = {
   bundle: true,
   sourcemap: true,
-  format: "cjs",
+  format: "esm",
   platform: "node",
-  target: "node20",
+  target: "node22",
+  banner: {
+    js: "import { createRequire as _importRequire } from 'module'; const require = _importRequire(import.meta.url);",
+  },
   // esbuild will not bundle the following packages due to an esm/cjs conflict. This sets them as external to the bundler.
   external: [
     "@mikro-orm/mongodb",
@@ -33,9 +35,25 @@ const context = await esbuild.context({
     "libsql",
     "tedious",
   ],
-  outfile: "./.local/automerge/dist/migration.js",
   tsconfig: "./tsconfig.json",
+};
+
+// Build the migration script
+const migrationCtx = await esbuild.context({
+  ...sharedOptions,
+  entryPoints: ["src/server/automerge/migration.ts"],
+  outfile: "./.local/automerge/dist/migration.js",
 });
 
-await context.rebuild();
-await context.dispose();
+// Build the standalone integrity-check runner
+const integrityCtx = await esbuild.context({
+  ...sharedOptions,
+  entryPoints: ["src/server/automerge/integrityCheck.ts"],
+  outfile: "./.local/automerge/dist/integrityCheck.js",
+});
+
+await migrationCtx.rebuild();
+await migrationCtx.dispose();
+
+await integrityCtx.rebuild();
+await integrityCtx.dispose();

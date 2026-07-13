@@ -13,7 +13,10 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const circleDefinitions = useMissionDocSelector((doc) => doc.circleDefinitions, deepEqual);
+  const circleDefinitions = useMissionDocSelector(
+    (mission) => mission.circleDefinitions,
+    deepEqual
+  );
 
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const mapCircleControls = useAppSelector(

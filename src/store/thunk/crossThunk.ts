@@ -1,6 +1,5 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import type { RootState } from "store";
-import { actionSlice } from "store/action";
 import {
   evaSlice,
   upsertExpandedEvaUuids,
@@ -19,13 +18,13 @@ import { expandActions } from "store/action";
 import { obliterateState as mapObliterateState } from "store/map";
 import { obliterateState as missionObliterateState } from "store/mission";
 import { obliterateState as poiObliterateState } from "store/poi";
+import { getMissionDocHandle } from "client/automergeDocHandles";
 import { obliterateState as presetObliterateState } from "store/preset";
 import { obliterateState as rexObliterateState } from "store/rex";
 import { obliterateState as stationObliterateState } from "store/station";
 import { obliterateState as stmObliterateState } from "store/stm";
 import { obliterateState as traverseObliterateState } from "store/traverse";
 import { obliterateState as measurementObliterateState } from "store/measure";
-import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { clientLogger } from "utils/logging/clientLogger";
 
 export const thunkSelectEVASequenceItem = appCreateAsyncThunk<{
@@ -37,27 +36,13 @@ export const thunkSelectEVASequenceItem = appCreateAsyncThunk<{
   if (!sequenceItemUuid) return; // Exit if sequenceItemUuid is null
 
   const state = getState() as RootState;
-  const selectedEva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
+  const selectedEva = getMissionDocHandle()?.doc()?.evas?.[state.eva.selectedEvaUuid];
   const sequenceItem = selectedEva?.sequence.find((seqItem) => seqItem.uuid === sequenceItemUuid);
 
   if (sequenceItem?.type === "station") {
     dispatch(stationSlice.actions.setSelectedStationUuid(sequenceItemUuid));
   }
 });
-
-// Thunk for obliteratePoi
-export const thunkDeletePoiAndActionsFromStore = appCreateAsyncThunk<{ poiUuid: string }>(
-  "cross/thunkDeletePoiAndActionsFromStore",
-  async ({ poiUuid }, { dispatch, getState }) => {
-    const actions = getState().action.actions.filter(
-      (storeAction: Action) => storeAction.poiUuid === poiUuid
-    );
-    dispatch(poiSlice.actions.deletePoisByUuid([poiUuid]));
-    dispatch(poiSlice.actions.setSelectedPoiUuid(null));
-    dispatch(actionSlice.actions.deleteActionsByUuid(actions.map((action) => action.uuid)));
-    dispatch(thunkSetRightPanelIsOpenIfAuto(false));
-  }
-);
 
 // Dispatch actions to reset each slice to its initial state
 // This does not reset ALL slices (ex: user and connection)
@@ -94,107 +79,106 @@ export const thunkSelectEvaAction = appCreateAsyncThunk<{
   evaRefUuid: string;
   actionRefUuid: string;
   rexUuid: string | null;
-}>(
-  "cross/selectEvaAction",
-  async ({ evaRefUuid, actionRefUuid, rexUuid }, { dispatch, getState }) => {
-    // Skip if either UUID is not provided
-    if (!evaRefUuid || !actionRefUuid) return;
+}>("cross/selectEvaAction", async ({ evaRefUuid, actionRefUuid, rexUuid }, { dispatch }) => {
+  // Skip if either UUID is not provided
+  if (!evaRefUuid || !actionRefUuid) return;
 
-    // Validate UUIDs format (basic validation)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(evaRefUuid) || !uuidRegex.test(actionRefUuid)) {
-      clientLogger.warning({
-        logId: "deepLink",
-        logValue: "Invalid UUID format provided for EVA or action",
-      });
-      return;
-    }
-    if (rexUuid && !uuidRegex.test(rexUuid)) {
-      clientLogger.warning({
-        logId: "deepLink",
-        logValue: "Invalid UUID format provided for REX",
-      });
-      return;
-    }
-
-    // Validate EVA exists in store
-    const evaExists = getState().eva.evas.some((eva) => eva.refUuid === evaRefUuid);
-    if (!evaExists) {
-      clientLogger.warning({
-        logId: "deepLink",
-        logValue: `EVA with refUUID ${evaRefUuid} not found in store`,
-      });
-      return;
-    }
-    // Validate action exists in store
-    const actionExists = getState().action.actions.some(
-      (action) => action.refUuid === actionRefUuid
-    );
-    if (!actionExists) {
-      clientLogger.warning({
-        logId: "deepLink",
-        logValue: `Action with refUUID ${actionRefUuid} not found in store`,
-      });
-      return;
-    }
-    // Validate REX exists in store if provided
-    if (rexUuid) {
-      const rexExists = getState().rex.rexes.some((rex) => rex.uuid === rexUuid);
-      if (!rexExists) {
-        clientLogger.warning({
-          logId: "deepLink",
-          logValue: `REX with UUID ${rexUuid} not found in store`,
-        });
-        return;
-      }
-    }
-
-    // go to eva section
-    dispatch(setSectionSelected("evas"));
-    let eva: Eva = null;
-    if (rexUuid) {
-      // get rex's eva
-      const evaUuid = getState().rex.rexes.find((rex) => rex.uuid === rexUuid)?.evaUuid;
-      eva = getState().eva.evas.find((eva) => eva.refUuid === evaRefUuid && eva.uuid === evaUuid);
-
-      // also select the rex
-      dispatch(rexSlice.actions.setSelectedRexUuid(rexUuid));
-      // get the as-planned EVA to set the dropdown state
-      const asPlannedEva = getState().eva.evas.find(
-        (eva) =>
-          eva.refUuid === evaRefUuid &&
-          !getState().rex.rexes.some((rex) => rex.evaUuid === eva.uuid)
-      );
-      dispatch(
-        evaSlice.actions.setEvaDropdownUIState({
-          asPlannedEvaUuid: asPlannedEva?.uuid,
-          dropdownEvaUuid: evaUuid,
-        })
-      );
-      // expand the as-planned eva
-      dispatch(upsertExpandedEvaUuids([asPlannedEva.uuid]));
-    } else {
-      // get as-planned eva
-      const allRexEvaUuids = getState().rex.rexes.map((rex) => rex.evaUuid);
-      eva = getState().eva.evas.find(
-        (eva) => eva.refUuid === evaRefUuid && !allRexEvaUuids.includes(eva.uuid)
-      );
-      // expand the eva
-      dispatch(upsertExpandedEvaUuids([eva.uuid]));
-    }
-    // select the eva
-    dispatch(setSelectedEvaUuid(eva.uuid));
-
-    // get the action uuid by checking it against the eva's sequence items
-    const sequenceItemUuids = eva.sequence.map((stationSeqItem) => stationSeqItem.uuid);
-    const action = getState().action.actions.find(
-      (action) =>
-        action.refUuid === actionRefUuid &&
-        (sequenceItemUuids.includes(action.stationUuid) ||
-          sequenceItemUuids.includes(action.traverseUuid))
-    );
-    // select the action panel and expand the specific action
-    dispatch(setSelectedEvaRightNavItem("actions_panel"));
-    dispatch(expandActions([action.uuid]));
+  // Validate UUIDs format (basic validation)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(evaRefUuid) || !uuidRegex.test(actionRefUuid)) {
+    clientLogger.warning({
+      logId: "deepLink",
+      logValue: "Invalid UUID format provided for EVA or action",
+    });
+    return;
   }
-);
+  if (rexUuid && !uuidRegex.test(rexUuid)) {
+    clientLogger.warning({
+      logId: "deepLink",
+      logValue: "Invalid UUID format provided for REX",
+    });
+    return;
+  }
+
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return;
+  const mission = missionDocHandle.doc();
+  const allEvas = Object.values(mission?.evas ?? {});
+  const allRexes = Object.values(mission?.rexes ?? {});
+
+  // Validate EVA exists in store
+  const evaExists = allEvas.some((eva) => eva.refUuid === evaRefUuid);
+  if (!evaExists) {
+    clientLogger.warning({
+      logId: "deepLink",
+      logValue: `EVA with refUUID ${evaRefUuid} not found`,
+    });
+    return;
+  }
+  // Validate action exists
+  const actionExists = Object.values(mission?.actions ?? {}).some(
+    (action) => action.refUuid === actionRefUuid
+  );
+  if (!actionExists) {
+    clientLogger.warning({
+      logId: "deepLink",
+      logValue: `Action with refUUID ${actionRefUuid} not found`,
+    });
+    return;
+  }
+  // Validate REX exists if provided
+  if (rexUuid) {
+    const rexExists = allRexes.some((rex) => rex.uuid === rexUuid);
+    if (!rexExists) {
+      clientLogger.warning({
+        logId: "deepLink",
+        logValue: `REX with UUID ${rexUuid} not found`,
+      });
+      return;
+    }
+  }
+
+  // Go to eva section
+  dispatch(setSectionSelected("evas"));
+  let eva: Eva = null;
+  if (rexUuid) {
+    const evaUuid = mission.rexes[rexUuid]?.evaUuid;
+    eva = mission.evas[evaUuid];
+
+    // Also select the rex
+    dispatch(rexSlice.actions.setSelectedRexUuid(rexUuid));
+    // Get the as-planned EVA to set the dropdown state
+    const allRexEvaUuids = allRexes.map((rex) => rex.evaUuid);
+    const asPlannedEva = allEvas.find(
+      (e) => e.refUuid === evaRefUuid && !allRexEvaUuids.includes(e.uuid)
+    );
+    dispatch(
+      evaSlice.actions.setEvaDropdownUIState({
+        asPlannedEvaUuid: asPlannedEva?.uuid,
+        dropdownEvaUuid: evaUuid,
+      })
+    );
+    // Expand the as-planned eva
+    dispatch(upsertExpandedEvaUuids([asPlannedEva.uuid]));
+  } else {
+    // Get as-planned eva
+    const allRexEvaUuids = allRexes.map((rex) => rex.evaUuid);
+    eva = allEvas.find((e) => e.refUuid === evaRefUuid && !allRexEvaUuids.includes(e.uuid));
+    // Expand the eva
+    dispatch(upsertExpandedEvaUuids([eva.uuid]));
+  }
+  // Select the eva
+  dispatch(setSelectedEvaUuid(eva.uuid));
+
+  // Get the action uuid by checking it against the eva's sequence items
+  const sequenceItemUuids = eva.sequence.map((stationSeqItem) => stationSeqItem.uuid);
+  const action = Object.values(mission?.actions ?? {}).find(
+    (action) =>
+      action.refUuid === actionRefUuid &&
+      (sequenceItemUuids.includes(action.stationUuid) ||
+        sequenceItemUuids.includes(action.traverseUuid))
+  );
+  // Select the action panel and expand the specific action
+  dispatch(setSelectedEvaRightNavItem("actions_panel"));
+  dispatch(expandActions([action.uuid]));
+});

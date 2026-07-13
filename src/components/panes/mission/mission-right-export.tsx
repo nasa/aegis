@@ -5,14 +5,13 @@ import missionStyles from "./mission.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faFileExport } from "@fortawesome/free-solid-svg-icons";
 import { Button, Checkbox } from "components/interface/form/globalFields";
-import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkMakeExportString } from "store/thunk/thunkMission";
 import { refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { makeExportString } from "utils/export";
 
 const Export_panel: FunctionComponent = () => {
-  const dispatch = useAppDispatch();
-  const missionName = useMissionDocSelector((doc) => doc.name, refEqual);
+  const missionName = useMissionDocSelector((mission) => mission.name, refEqual);
+  const mission = useMissionDocSelector((mission) => mission, refEqual);
 
   const [selectEvas, setSelectEvas] = useState(true);
   const [selectMission, setSelectMission] = useState(false);
@@ -23,20 +22,19 @@ const Export_panel: FunctionComponent = () => {
   const [selectRexes, setSelectRexes] = useState(false);
 
   const exportFile = async () => {
-    const output = await dispatch(
-      thunkMakeExportString({
-        selectEvas,
-        selectMission,
-        selectPois,
-        selectStations,
-        selectActions,
-        selectTraverses,
-        selectRexes,
-      })
-    );
+    const output = makeExportString({
+      mission,
+      selectEvas,
+      selectMission,
+      selectPois,
+      selectStations,
+      selectActions,
+      selectTraverses,
+      selectRexes,
+    });
 
     const element = document.createElement("a");
-    const file = new Blob([output.payload as string], { type: "text/json" });
+    const file = new Blob([output], { type: "text/json" });
     element.href = URL.createObjectURL(file);
     let filename = `${missionName}_`;
     if (selectEvas) filename += "evas_";

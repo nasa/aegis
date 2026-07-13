@@ -80,7 +80,10 @@ export const STMRuleSet: FunctionComponent<{
   type: ActionDefinitionType;
 }> = ({ isEditing, stmRule, type }) => {
   const dispatch = useAppDispatch();
-  const actionDefinitions = useMissionDocSelector((doc) => doc.actionDefinitions, deepEqual);
+  const actionDefinitions = useMissionDocSelector(
+    (mission) => mission.actionDefinitions,
+    deepEqual
+  );
 
   const actionDefinitionItemsToDisplay: { uuid: string; name: string; abbr: string }[] = [];
   const ruleItemUuidsKeyString = `${type.slice(0, -1)}Uuids` as

@@ -1,14 +1,13 @@
 import type { FunctionComponent } from "react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faFileExport } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "components/interface/form/globalFields";
-import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
+import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import type { FeatureCollection, LineString, Feature } from "geojson";
-import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkMakeExportRexString } from "store/thunk/thunkRex";
-import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+import { makeExportRexString } from "utils/export";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 interface MarkerPoint {
   name: string;
@@ -24,92 +23,108 @@ interface PosEntryPoint {
 }
 
 const Export_Panel: FunctionComponent = () => {
-  const dispatch = useAppDispatch();
-  const selectedEva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
-    deepEqual
-  );
+  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
-  const selectedRexName = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.uuid === state.rex.selectedRexUuid)?.name,
-    refEqual
-  );
-  const selectedAsPlannedEvaName = useAppSelector((state) => {
-    const asPlannedEva = getAsPlannedEvaFromRefUuid(state, selectedEva.refUuid);
-    return asPlannedEva ? asPlannedEva.name : null;
-  }, refEqual);
 
-  // traverse coordinates as nested [lng, lat] arrays
-  const fullTraverseCoordinates: number[][] = useAppSelector((state) => {
+  const docMaps = useMissionDocSelector(
+    (mission) => ({
+      evas: mission.evas,
+      rexes: mission.rexes,
+      stations: mission.stations,
+      actions: mission.actions,
+      traverses: mission.traverses,
+    }),
+    shallowEqual
+  );
+
+  const selectedEva = useMemo(
+    () => (selectedEvaUuid ? docMaps?.evas?.[selectedEvaUuid] : undefined),
+    [docMaps, selectedEvaUuid]
+  );
+  const selectedRex = useMemo(
+    () => (selectedRexUuid ? docMaps?.rexes?.[selectedRexUuid] : undefined),
+    [docMaps, selectedRexUuid]
+  );
+
+  const selectedAsPlannedEvaName = useMemo(() => {
+    if (!selectedEva || !docMaps?.evas || !docMaps?.rexes) return null;
+    const allRexEvaUuids = Object.values(docMaps.rexes).map((r) => r.evaUuid);
+    const asPlannedEva = Object.values(docMaps.evas).find(
+      (e) => e.refUuid === selectedEva.refUuid && !allRexEvaUuids.includes(e.uuid)
+    );
+    return asPlannedEva?.name ?? null;
+  }, [selectedEva, docMaps]);
+
+  // Traverse coordinates as nested [lng, lat] arrays
+  const fullTraverseCoordinates: number[][] = useMemo(() => {
+    if (!docMaps || !selectedEva) return [];
     const traverseUuids = selectedEva.sequence
       .filter((sequence) => sequence.type === "traverse")
       .map((sequence) => sequence.uuid);
 
-    const fullTraverseCoordinates: number[][] = [];
+    const coords: number[][] = [];
     for (const traverseUuid of traverseUuids) {
-      const traverse = state.traverse.traversesFromDb.find(
-        (traverse) => traverse.uuid === traverseUuid
-      );
+      const traverse = docMaps.traverses?.[traverseUuid];
       if (!traverse) continue;
       for (const pathItem of traverse.path) {
-        // push the coordinate if it's not the same as the last one
+        // Push the coordinate if it's not the same as the last one
         if (
-          fullTraverseCoordinates.length === 0 ||
-          fullTraverseCoordinates[fullTraverseCoordinates.length - 1][0] !== pathItem.lng ||
-          fullTraverseCoordinates[fullTraverseCoordinates.length - 1][1] !== pathItem.lat
+          coords.length === 0 ||
+          coords[coords.length - 1][0] !== pathItem.lng ||
+          coords[coords.length - 1][1] !== pathItem.lat
         )
-          fullTraverseCoordinates.push([pathItem.lng, pathItem.lat]);
+          coords.push([pathItem.lng, pathItem.lat]);
       }
     }
-    return fullTraverseCoordinates;
-  }, deepEqual);
+    return coords;
+  }, [docMaps, selectedEva]);
 
-  // all station coordinates
-  const allStationPoints: MarkerPoint[] = useAppSelector((state) => {
+  // All station coordinates
+  const allStationPoints: MarkerPoint[] = useMemo(() => {
+    if (!docMaps || !selectedEva) return [];
     const stationUuids = selectedEva.sequence
       .filter((sequence) => sequence.type === "station")
       .map((sequence) => sequence.uuid);
 
-    const allStationPoints: MarkerPoint[] = [];
+    const points: MarkerPoint[] = [];
     for (const stationUuid of stationUuids) {
-      const station = state.station.stationsFromDb.find((station) => station.uuid === stationUuid);
+      const station = docMaps.stations?.[stationUuid];
       if (!station) continue;
-      allStationPoints.push({
+      points.push({
         name: station.name,
         icon: station.icon,
         coordinates: [station.location.lng, station.location.lat],
       } as MarkerPoint);
     }
-    return allStationPoints;
-  }, deepEqual);
+    return points;
+  }, [docMaps, selectedEva]);
 
-  // all station actions
-  const allStationActionPoints: MarkerPoint[] = useAppSelector((state) => {
+  // All station actions
+  const allStationActionPoints: MarkerPoint[] = useMemo(() => {
+    if (!docMaps || !selectedEva) return [];
     const stationUuids = selectedEva.sequence
       .filter((sequence) => sequence.type === "station")
       .map((sequence) => sequence.uuid);
 
-    const allStationActions: Action[] = state.action.actionsFromDb.filter((action) =>
+    const allStationActions: Action[] = Object.values(docMaps.actions ?? {}).filter((action) =>
       stationUuids.includes(action.stationUuid)
     );
 
-    const allStationActionPoints: MarkerPoint[] = [];
+    const points: MarkerPoint[] = [];
     for (const action of allStationActions) {
       if (!action.location) continue;
-      allStationActionPoints.push({
+      points.push({
         name: action.name,
         icon: action.icon,
         coordinates: [action.location.lng, action.location.lat],
       } as MarkerPoint);
     }
-    return allStationActionPoints;
-  }, deepEqual);
+    return points;
+  }, [docMaps, selectedEva]);
 
-  // all position entries
-  const allPositionEntries: PosEntryPoint[] = useAppSelector((state) => {
-    const selectedRex = state.rex.rexesFromDb.find((rex) => rex.uuid === selectedRexUuid);
+  // All position entries
+  const allPositionEntries: PosEntryPoint[] = useMemo(() => {
     if (!selectedRex || !selectedRex.posEntries) return [];
-
     const posEntryPoints: PosEntryPoint[] = [];
     for (const posEntry of selectedRex.posEntries) {
       if (!posEntry.location) continue;
@@ -124,31 +139,26 @@ const Export_Panel: FunctionComponent = () => {
         coordinates: [posEntry.location.lng, posEntry.location.lat],
       } as PosEntryPoint);
     }
-
     return posEntryPoints;
-  }, deepEqual);
+  }, [selectedRex]);
 
-  const exportRex = useCallback(async () => {
-    const output = await dispatch(
-      thunkMakeExportRexString({
-        rexUuid: selectedRexUuid,
-      })
-    );
-
+  const exportRex = useCallback(() => {
+    const rex = docMaps?.rexes?.[selectedRexUuid];
+    const output = makeExportRexString({ rex });
     const element = document.createElement("a");
-    const file = new Blob([output.payload as string], { type: "text/json" });
+    const file = new Blob([output], { type: "text/json" });
     element.href = URL.createObjectURL(file);
-    let filename = `${selectedRexName}_rex_`;
+    let filename = `${selectedRex?.name}_rex_`;
     filename += "export.json";
     element.download = filename;
-    document.body.appendChild(element); // Required for this to work in FireFox
+    document.body.appendChild(element);
     element.click();
-  }, [dispatch, selectedRexUuid, selectedRexName]);
+  }, [selectedRexUuid, selectedRex?.name, docMaps]);
 
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle}>
-        Export EVA Data ({selectedRexName ? `${selectedRexName}` : "As Planned"})
+        Export EVA Data ({selectedRex?.name ? `${selectedRex.name}` : "As Planned"})
       </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
@@ -164,17 +174,15 @@ const Export_Panel: FunctionComponent = () => {
                 onClick={() => {
                   const traversesGeoJson = {
                     type: "FeatureCollection",
-                    start_datetime: selectedEva.datetime,
+                    start_datetime:
+                      selectedEva?.datetime != null
+                        ? new Date(selectedEva.datetime).toISOString()
+                        : undefined,
                     features: [
                       {
                         type: "Feature",
-                        geometry: {
-                          type: "LineString",
-                          coordinates: fullTraverseCoordinates,
-                        },
-                        properties: {
-                          name: `Traverse for EVA: ${selectedAsPlannedEvaName} `,
-                        },
+                        geometry: { type: "LineString", coordinates: fullTraverseCoordinates },
+                        properties: { name: `Traverse for EVA: ${selectedAsPlannedEvaName} ` },
                       },
                     ],
                   } as unknown as FeatureCollection<LineString>;
@@ -186,19 +194,11 @@ const Export_Panel: FunctionComponent = () => {
                 label="Export Stations as GeoJSON"
                 style={{ width: "200px", marginLeft: "18px", marginTop: "8px" }}
                 onClick={() => {
-                  const stationFeatures: Feature[] = allStationPoints.map((markerPoint) => {
-                    return {
-                      type: "Feature",
-                      geometry: {
-                        type: "Point",
-                        coordinates: markerPoint.coordinates,
-                      },
-                      properties: {
-                        name: markerPoint.name,
-                        icon: markerPoint.icon,
-                      },
-                    };
-                  });
+                  const stationFeatures: Feature[] = allStationPoints.map((markerPoint) => ({
+                    type: "Feature",
+                    geometry: { type: "Point", coordinates: markerPoint.coordinates },
+                    properties: { name: markerPoint.name, icon: markerPoint.icon },
+                  }));
                   //eslint-disable-next-line
                   const stationsGeoJson: FeatureCollection<any> = {
                     type: "FeatureCollection",
@@ -213,19 +213,11 @@ const Export_Panel: FunctionComponent = () => {
                 style={{ width: "240px", marginLeft: "18px", marginTop: "8px" }}
                 onClick={() => {
                   const stationActionFeatures: Feature[] = allStationActionPoints.map(
-                    (markerPoint) => {
-                      return {
-                        type: "Feature",
-                        geometry: {
-                          type: "Point",
-                          coordinates: markerPoint.coordinates,
-                        },
-                        properties: {
-                          name: markerPoint.name,
-                          icon: markerPoint.icon,
-                        },
-                      };
-                    }
+                    (markerPoint) => ({
+                      type: "Feature",
+                      geometry: { type: "Point", coordinates: markerPoint.coordinates },
+                      properties: { name: markerPoint.name, icon: markerPoint.icon },
+                    })
                   );
                   //eslint-disable-next-line
                   const stationActionsGeoJson: FeatureCollection<any> = {
@@ -252,29 +244,22 @@ const Export_Panel: FunctionComponent = () => {
                   icon={faFileExport}
                   label="Export REX as JSON"
                   style={{ width: "154px", marginLeft: "18px", marginTop: "8px" }}
-                  onClick={() => {
-                    exportRex();
-                  }}
+                  onClick={() => exportRex()}
                 />
                 <Button
                   icon={faFileExport}
                   label="Export Position Entries as GeoJSON"
                   style={{ width: "243px", marginLeft: "18px", marginTop: "8px" }}
                   onClick={() => {
-                    const posEntryFeatures: Feature[] = allPositionEntries.map((posEntryPoint) => {
-                      return {
-                        type: "Feature",
-                        geometry: {
-                          type: "Point",
-                          coordinates: posEntryPoint.coordinates,
-                        },
-                        properties: {
-                          types: posEntryPoint.types,
-                          petSeconds: posEntryPoint.petSeconds,
-                          source: posEntryPoint.source,
-                        },
-                      };
-                    });
+                    const posEntryFeatures: Feature[] = allPositionEntries.map((posEntryPoint) => ({
+                      type: "Feature",
+                      geometry: { type: "Point", coordinates: posEntryPoint.coordinates },
+                      properties: {
+                        types: posEntryPoint.types,
+                        petSeconds: posEntryPoint.petSeconds,
+                        source: posEntryPoint.source,
+                      },
+                    }));
                     //eslint-disable-next-line
                     const posEntriesGeoJson: FeatureCollection<any> = {
                       type: "FeatureCollection",
@@ -297,9 +282,7 @@ const Export_Panel: FunctionComponent = () => {
 
 const downloadGeoJson = (geoJson: FeatureCollection, fileName: string) => {
   const element = document.createElement("a");
-  const file = new Blob([JSON.stringify(geoJson)], {
-    type: "application/json",
-  });
+  const file = new Blob([JSON.stringify(geoJson)], { type: "application/json" });
   element.href = URL.createObjectURL(file);
   element.download = fileName;
   document.body.appendChild(element);

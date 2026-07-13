@@ -3,28 +3,23 @@ import express from "express";
 import cookieSession from "cookie-session";
 import cors from "cors";
 import { globalValues } from "./global";
-import path from "path";
+import path from "node:path";
+import { fileURLToPath } from "url";
 import { RequestContext } from "@mikro-orm/postgresql";
 
 import authRoutes from "./routes/auth";
-import actionRoutes from "./routes/action";
 import allRoutes from "./routes/all";
 import elevation from "./routes/elevation";
-import evaRoutes from "./routes/eva";
 import layerRoutes from "./routes/layer";
 import missionRoutes from "./routes/mission";
 import missionHomepageItemsRoutes from "./routes/missionHomepageItems";
 import missionDup from "./routes/missionDup";
 import missionDump from "./routes/missionDump";
-import poiRoutes from "./routes/poi";
 import presetRoutes from "./routes/preset";
-import rexRoutes from "./routes/rex";
-import stationRoutes from "./routes/station";
 import gridRoutes from "./routes/grid";
 import stmRoutes from "./routes/stm";
 import stmRulesRoutes from "./routes/stmRules";
 import sublayerRoutes from "./routes/sublayer";
-import traverseRoutes from "./routes/traverse";
 import appUsersRoutes from "./routes/appUsers";
 import timeRoutes from "./routes/time";
 import folderRoutes from "./routes/folder";
@@ -51,11 +46,18 @@ import { getUser } from "packages/getUser";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 
 import docListingRoute from "./routes/docListing";
+import environmentConfigRoute from "./routes/environmentConfig";
 import missionAutomergeRoutes from "./routes/missionAutomerge";
+import maestroRoutes from "./routes/maestro";
 
 import readableActionRoutes from "./routes/readable/action";
 import readableEvaRoutes from "./routes/readable/eva";
 import readableMissionRoutes from "./routes/readable/mission";
+
+import dustRoute from "./routes/external/dust";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app: Application = express();
 
@@ -104,10 +106,8 @@ app.get("/api/v1/version", (req, res) => {
 });
 
 app.use("/api/v1/auth/", authRoutes);
-app.use("/api/v1/action", actionRoutes);
 app.use("/api/v1/all", allRoutes);
 app.use("/api/v1/elevation", elevation);
-app.use("/api/v1/eva", evaRoutes);
 app.use("/api/v1/grid", gridRoutes);
 app.use("/api/v1/layer", layerRoutes);
 app.use("/api/v1/mission", missionRoutes);
@@ -115,14 +115,10 @@ app.use("/api/v1/missionAutomerge", missionAutomergeRoutes);
 app.use("/api/v1/missionHomepageItems", missionHomepageItemsRoutes);
 app.use("/api/v1/missionDup", missionDup);
 app.use("/api/v1/missionDump", missionDump);
-app.use("/api/v1/poi", poiRoutes);
 app.use("/api/v1/preset", presetRoutes);
-app.use("/api/v1/rex", rexRoutes);
-app.use("/api/v1/station", stationRoutes);
 app.use("/api/v1/stm", stmRoutes);
 app.use("/api/v1/stmRules", stmRulesRoutes);
 app.use("/api/v1/sublayer", sublayerRoutes);
-app.use("/api/v1/traverse", traverseRoutes);
 app.use("/api/v1/appUsers", appUsersRoutes);
 app.use("/api/v1/time", timeRoutes); // Added route
 app.use("/api/v1/file/boxDownloadFile", boxDownloadFileRoute);
@@ -134,6 +130,8 @@ app.use("/api/v1/file/delete", fileDeleteRoute);
 app.use("/api/v1/log/from-client", logFromClient);
 app.use("/api/v1/folder", folderRoutes);
 app.use("/api/v1/docListing", docListingRoute);
+app.use("/api/v1/environmentConfig", environmentConfigRoute);
+app.use("/api/v1/maestro", maestroRoutes);
 
 // readable endpoints
 app.use("/api/v1/readable/action", readableActionRoutes);
@@ -146,5 +144,8 @@ app.use("/api/v1/emss/getRexesByEvaRef", rexByEvaRef);
 app.use("/api/v1/emss/getMissions", getMissions);
 app.use("/api/v1/emss/enableEmssApi", enableEmssApi);
 app.use("/api/v1/emss/rexOverwrite", rexOverwrite);
+
+// external endpoints used by other stakeholders
+app.use("/api/v1/external/dust", dustRoute);
 
 export default app;

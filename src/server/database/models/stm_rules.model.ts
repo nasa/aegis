@@ -1,4 +1,5 @@
-import { Entity, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/postgresql";
+import { Entity, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
+import { types as MikroTypes } from "@mikro-orm/postgresql";
 
 @Entity()
 export class STM_Rule_db implements STMRule_db_type {

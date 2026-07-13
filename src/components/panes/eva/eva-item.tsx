@@ -1,8 +1,8 @@
-import { LoadingOverlay, ModifiedIndicator } from "components/interface/_global-elements";
+import { LoadingOverlay } from "components/interface/_global-elements";
 import { Button, Dropdown } from "components/interface/form/globalFields";
 import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
-import { useAppSelector, refEqual, deepEqual, shallowEqual } from "utils/useAppSelector";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import {
   upsertExpandedEvaUuids,
   setSelectedEvaUuid,
@@ -19,112 +19,90 @@ import {
   faPlusCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkChangeEvaDropdown } from "store/thunk/thunkEva";
+import { thunkUIChangeEvaDropdown } from "store/thunk/thunkEva";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
-import { thunkCreateRex } from "store/thunk/thunkRex";
+import { thunkDocCreateRex } from "store/thunk/thunkRex";
 import { setSelectedRexUuid } from "store/rex";
 import { EvaSequence } from "./eva-item-sequence";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
-const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
-  evaUuid,
+const EvaItem: FunctionComponent<{ asPlannedEvaUuid: string; first?: boolean }> = ({
+  asPlannedEvaUuid,
   first = false,
 }) => {
   const dispatch = useAppDispatch();
 
-  const asPlannedEva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === evaUuid),
-    deepEqual
+  const asPlannedEva = useMissionDocSelector(
+    (mission) => mission.evas?.[asPlannedEvaUuid] ?? null,
+    refEqual
   );
 
-  // for the dropdown, get the list of rexes for the as-planned eva
-  const evaRexesPartialForDropdown = useAppSelector((state) => {
-    const evasUuidsWithSameRefUuid = state.eva.evas
-      .filter((e) => e.refUuid === asPlannedEva.refUuid)
+  // For the dropdown, get the list of rexes for the as-planned eva
+  const evaRexesPartialForDropdown = useMissionDocSelector((mission) => {
+    const eva = mission.evas?.[asPlannedEvaUuid];
+    if (!eva || !mission.evas || !mission.rexes) return [];
+    const evaUuidsWithSameRefUuid = Object.values(mission.evas)
+      .filter((e) => e.refUuid === eva.refUuid)
       .map((e) => e.uuid);
-    const rexes = state.rex.rexesFromDb.filter(
-      (rex) => evasUuidsWithSameRefUuid.includes(rex.evaUuid) && rex.evaUuid !== asPlannedEva.uuid
+    const rexes = Object.values(mission.rexes).filter(
+      (rex) => evaUuidsWithSameRefUuid.includes(rex.evaUuid) && rex.evaUuid !== eva.uuid
     );
-    if (state.eva.showRunningRexOnly) {
-      // only show rex that is running
-      return rexes.filter((rex) => rex.isRunning);
-    }
-    const unsortedRexes = rexes.map((r) => {
-      return {
-        uuid: r.uuid,
-        name: r.name,
-        isRunning: r.isRunning,
-        evaUuid: r.evaUuid,
-      };
-    });
-    return unsortedRexes.sort((a, b) => a.name.localeCompare(b.name)); // sort by name
+    const unsortedRexes = rexes.map((r) => ({
+      uuid: r.uuid,
+      name: r.name,
+      isRunning: r.isRunning,
+      evaUuid: r.evaUuid,
+    }));
+    return unsortedRexes.sort((a, b) => a.name.localeCompare(b.name));
   }, deepEqual);
-  const dropdownEvaUuid = useAppSelector(
-    (state) => state.eva.evaDropdownUIStates[asPlannedEva.uuid] || asPlannedEva.uuid,
-    refEqual
-  );
-  const dropdownRexUuid = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.evaUuid === dropdownEvaUuid)?.uuid || null,
-    refEqual
-  );
-  const isDropdownRexUuidRunning = useAppSelector(
-    (state) =>
-      state.rex.rexesFromDb.find((rex) => rex.uuid === dropdownRexUuid)?.isRunning || false,
-    refEqual
-  );
+
   const showRunningRexOnly = useAppSelector((state) => state.eva.showRunningRexOnly, refEqual);
+  const filteredEvaRexesPartialForDropdown = useMemo(() => {
+    if (showRunningRexOnly) return evaRexesPartialForDropdown?.filter((r) => r.isRunning) ?? [];
+    return evaRexesPartialForDropdown ?? [];
+  }, [evaRexesPartialForDropdown, showRunningRexOnly]);
 
-  // this eva is the one in the dropdown. It may be different than the component prop asPlannedEva.
-  const thisEva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === dropdownEvaUuid),
-    deepEqual
+  const dropdownEvaUuid = useAppSelector(
+    (state) => state.eva.evaDropdownUIStates[asPlannedEvaUuid] || asPlannedEvaUuid,
+    refEqual
   );
-  const thisEvaFromDb = useAppSelector(
-    (state) => state.eva.evasFromDb.find((evaItem) => evaItem.uuid === dropdownEvaUuid),
-    deepEqual
+  const dropdownRexUuid = useMissionDocSelector(
+    (mission) =>
+      Object.values(mission.rexes ?? {}).find((rex) => rex.evaUuid === dropdownEvaUuid)?.uuid ??
+      null,
+    refEqual
   );
-  const evaTraversesForModified = useAppSelector((state) => {
-    const traverseUuidInEva = thisEva?.sequence.filter((item) => item.type === "traverse");
-    const traverseSubset = state.traverse.traverses.filter((traverse) =>
-      traverseUuidInEva?.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
-    );
-    return traverseSubset.map((traverse) => {
-      return { uuid: traverse.uuid, updatedAt: traverse.updatedAt };
-    });
-  }, deepEqual);
-  const evaTraversesFromDbForModified = useAppSelector((state) => {
-    const traverseUuidInEva = thisEvaFromDb?.sequence.filter((item) => item.type === "traverse");
-    const traverseSubset = state.traverse.traverses.filter((traverse) =>
-      traverseUuidInEva?.find((traverseUuid) => traverseUuid.uuid === traverse.uuid)
-    );
-    return traverseSubset.map((traverse) => {
-      return { uuid: traverse.uuid, updatedAt: traverse.updatedAt };
-    });
-  }, deepEqual);
 
-  // interface stuff
+  const isDropdownRexUuidRunning = useMissionDocSelector(
+    (mission) => (dropdownRexUuid ? (mission.rexes?.[dropdownRexUuid]?.isRunning ?? false) : false),
+    refEqual
+  );
+
+  // Interface stuff
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
-  // tracking the expand/collapse state is off of the as-planned eva uuid
+  // Tracking the expand/collapse state is off of the as-planned eva uuid
   const isExpanded = useAppSelector(
-    (state) => state.eva.expandedEvaUuids.includes(asPlannedEva.uuid),
+    (state) => state.eva.expandedEvaUuids.includes(asPlannedEvaUuid),
     shallowEqual
   );
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const showAddRexButton = useAppSelector(
+    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
+    refEqual
+  );
 
-  // set styles. if this eva is selected, highlight it. if the sequence item is selected, emphasize it
-  const selectedStyleState: null | "highlight" = useMemo(() => {
-    if (dropdownEvaUuid === selectedEvaUuid && selectedEvaSequenceItemUuid === null) {
-      return "highlight";
-    }
-    return null;
-  }, [dropdownEvaUuid, selectedEvaUuid, selectedEvaSequenceItemUuid]);
+  // Set styles. if this eva is selected, highlight it. if the sequence item is selected, emphasize it
+  const selectedStyleState: null | "highlight" =
+    dropdownEvaUuid === selectedEvaUuid && selectedEvaSequenceItemUuid === null
+      ? "highlight"
+      : null;
 
   const handleClickOnEvaName = useCallback(() => {
     if (selectedEvaUuid === dropdownEvaUuid && selectedEvaSequenceItemUuid === null) {
-      // re-selecting the currently selected item. Deselect it
+      // Re-selecting the currently selected item. Deselect it
       dispatch(setSelectedEvaUuid(null));
       dispatch(setSelectedRexUuid(null));
       dispatch(thunkSetRightPanelIsOpenIfAuto(false));
@@ -132,7 +110,7 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
       dispatch(setSelectedEvaUuid(dropdownEvaUuid));
       dispatch(setSelectedRexUuid(dropdownRexUuid));
       dispatch(thunkSetRightPanelIsOpenIfAuto(true));
-      dispatch(upsertExpandedEvaUuids([asPlannedEva.uuid]));
+      dispatch(upsertExpandedEvaUuids([asPlannedEvaUuid]));
     }
     dispatch(setSelectedEvaSequenceItemUuid(null));
   }, [
@@ -141,14 +119,25 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
     selectedEvaSequenceItemUuid,
     dispatch,
     dropdownRexUuid,
-    asPlannedEva.uuid,
+    asPlannedEvaUuid,
   ]);
 
-  // used for the loading overlay when creating a new REX
+  // Scroll into view when this EVA becomes selected (e.g. after add/duplicate)
+  const itemRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (selectedStyleState === "highlight") {
+      itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [selectedStyleState]);
+
+  // Used for the loading overlay when creating a new REX
   const [isCreatingRex, setIsCreatingRex] = useState(false);
+
+  if (!asPlannedEva) return null;
 
   return (
     <div
+      ref={itemRef}
       className={evaStyles.evaContainer}
       style={{ borderTop: first ? null : "1px var(--grey3) solid" }}
     >
@@ -156,12 +145,12 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
         <div
           className={`${evaStyles.nameCaret}`}
           onClick={() => {
-            // toggle the expansion of this eva item
-            // expand/collapse is based off the as-planned eva
+            // Toggle the expansion of this eva item
+            // Expand/collapse is based off the as-planned eva
             if (isExpanded) {
-              dispatch(deleteExpandedEvaUuids([asPlannedEva.uuid]));
+              dispatch(deleteExpandedEvaUuids([asPlannedEvaUuid]));
             } else {
-              dispatch(upsertExpandedEvaUuids([asPlannedEva.uuid]));
+              dispatch(upsertExpandedEvaUuids([asPlannedEvaUuid]));
             }
           }}
         >
@@ -178,11 +167,6 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
         >
           <div className={evaStyles.nameTopRow}>
             <div className={evaStyles.nameText}>{asPlannedEva.name}</div>
-            <ModifiedIndicator
-              obj1={[thisEva, ...evaTraversesForModified]}
-              obj2={[thisEvaFromDb, ...evaTraversesFromDbForModified]}
-            />
-
             <div className={evaStyles.nameSpacer} />
             {isDropdownRexUuidRunning && (
               <FontAwesomeIcon
@@ -194,17 +178,17 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
             )}
           </div>
           <div className={evaStyles.nameBottomRow}>
-            {evaRexesPartialForDropdown.length > 0 ? (
+            {filteredEvaRexesPartialForDropdown.length > 0 ? (
               <Dropdown
                 selected={dropdownEvaUuid}
                 arrowClassName={evaStyles.dropdownArrow}
                 selectClassName={`${evaStyles.dropdownSelector}`}
                 onChange={async (val) => {
-                  dispatch(upsertExpandedEvaUuids([asPlannedEva.uuid]));
+                  dispatch(upsertExpandedEvaUuids([asPlannedEvaUuid]));
                   dispatch(
-                    thunkChangeEvaDropdown({
+                    thunkUIChangeEvaDropdown({
                       dropdownEvaUuid: val,
-                      asPlanedEvaUuid: asPlannedEva.uuid,
+                      asPlanedEvaUuid: asPlannedEvaUuid,
                     })
                   );
                 }}
@@ -214,7 +198,7 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
                     As Planned
                   </option>
                 )}
-                {evaRexesPartialForDropdown.map((rexPartial) => (
+                {filteredEvaRexesPartialForDropdown.map((rexPartial) => (
                   <option key={rexPartial.uuid} value={rexPartial.evaUuid}>
                     {rexPartial.name}
                   </option>
@@ -224,14 +208,14 @@ const EvaItem: FunctionComponent<{ evaUuid: string; first?: boolean }> = ({
               <div className={evaStyles.noRexes}>As Planned</div>
             )}
 
-            {editPerms && (
+            {showAddRexButton && (
               <Button
-                onClick={async () => {
-                  setIsCreatingRex(true); // Show loading overlay
+                onClick={async (e) => {
+                  e.stopPropagation(); // Prevent click from bubbling to the EVA name div and triggering deselection
+                  setIsCreatingRex(true);
                   try {
-                    await dispatch(thunkCreateRex({ asPlannedEvaUuid: asPlannedEva.uuid }));
+                    await dispatch(thunkDocCreateRex({ asPlannedEvaUuid: asPlannedEva.uuid }));
                   } finally {
-                    // Hide loading overlay when operation completes (success or failure)
                     setIsCreatingRex(false);
                   }
                 }}

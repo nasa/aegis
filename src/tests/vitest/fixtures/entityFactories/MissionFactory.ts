@@ -1,16 +1,26 @@
-import type { EntityData } from "@mikro-orm/postgresql";
+import type { EntityManager } from "@mikro-orm/postgresql";
 
-import { Factory } from "@mikro-orm/seeder";
-
-import { Mission_db } from "server/database/models/_allModels";
+import { MissionBackup_db } from "server/database/models/_allModels";
 import { generateBlankMission } from "store/storeUtils/mission";
+import DocListingFactory from "./DocListingFactory";
 
-export default class MissionFactory extends Factory<Mission_db> {
-  model = Mission_db;
-  // use Partial in order to skip the "id" field
-  definition(): Partial<EntityData<Mission_db>> {
-    const mission = generateBlankMission({ name: "Vitest Mission-1" });
-    delete mission.id; // remove id in order to upsert
-    return mission;
+export default class MissionFactory {
+  constructor(private em: EntityManager) {}
+
+  async createOne(): Promise<MissionBackup_db> {
+    const docListing = await new DocListingFactory(this.em).createOne();
+    const missionId = docListing.missionId;
+    const data = generateBlankMission({ name: "Vitest Mission-1", id: missionId });
+    const backup = this.em.create(MissionBackup_db, { missionId, data });
+    await this.em.persist(backup).flush();
+    return backup;
+  }
+
+  async create(count: number): Promise<MissionBackup_db[]> {
+    const results: MissionBackup_db[] = [];
+    for (let i = 0; i < count; i++) {
+      results.push(await this.createOne());
+    }
+    return results;
   }
 }

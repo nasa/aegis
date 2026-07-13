@@ -11,10 +11,18 @@ import { getAutomergeDocListing } from "server/express/routes/docListing";
 import { missionValidator } from "utils/validateSchemaServer";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
-import { getBackupDbMissions, upsertBackupDbMissions } from "server/express/routes/mission";
-import { Doc_Listing_db } from "server/database/models/_allModels";
+import { upsertBackupDbMissions } from "server/express/routes/mission";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
+import { QueryOrder } from "@mikro-orm/postgresql";
+import {
+  Poi_db,
+  Action_db,
+  Station_db,
+  Traverse_db,
+  Eva_db,
+  Rex_db,
+} from "server/database/models/_allModels";
 
 // This is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
 initializeBase64Wasm(automergeWasmBase64);
@@ -38,174 +46,481 @@ const getORM = async () => {
 };
 
 // DB must be ready first
-getORM().then(async () => {
-  serverLogger.info({
-    logId: "automerge-migration",
-    logValue: "Starting automerge migration script...",
-  });
-  const allMissions: Mission[] = await getBackupDbMissions();
-  let allDocListings: AutomergeDocListing[] = await getAutomergeDocListing();
-  const allDocHandles: DocHandle<Mission>[] = [];
+getORM()
+  .then(async () => {
+    serverLogger.info({
+      logId: "automerge-migration",
+      logValue: "Starting automerge migration script...",
+    });
+    const allDocListings: AutomergeDocListing[] = await getAutomergeDocListing();
 
-  // Initial conversion from DB records to automerge records
-  // This only needs to be run once per environment and //TODO should be removed in a subsequent MR
-  // Loop through every mission and see if we already have an automerge doc listing for it
-  const docListingsToAdd: AutomergeDocListing[] = [];
-  serverLogger.info({
-    logId: "automerge-migration",
-    logValue: "Checking for missions with no automerge document...",
-  });
-  for (const mission of allMissions) {
-    const hasListing = allDocListings.map((d) => d.missionId).includes(mission.id);
-    if (!hasListing) {
-      const missionDocHandle = automergeRepo.create<Mission>(mission);
-      const newDocListing: AutomergeDocListing = {
-        missionId: mission.id,
-        automergeUrl: missionDocHandle.url,
-      };
-      docListingsToAdd.push(newDocListing);
-      serverLogger.info({
-        logId: "automerge-migration",
-        logValue: `New automerge doc created for: ${mission.id} - ${mission.name}`,
-      });
-    }
-  }
-  if (docListingsToAdd.length > 0) {
-    try {
-      // Must manually fork because this call is outside normal http request context (what we do in routes)
-      const em = globalValues.orm.em.fork();
-      // Add new automerge doc listings to the database
-      for (const docListing of docListingsToAdd) {
-        const dbRes = await em.upsert(Doc_Listing_db, docListing);
-        em.persist(dbRes);
+    // Validate doc-listing URLs up front so we can fail fast before doing any expensive
+    // Automerge loads. Invalid URLs are a hard error.
+    for (const docListing of allDocListings) {
+      if (!isValidAutomergeUrl(docListing.automergeUrl)) {
+        const errorMessage = `Invalid automerge URL in doc listing. MissionId: ${docListing.missionId} AutomergeUrl: ${docListing.automergeUrl}`;
+        serverLogger.error(
+          { logId: "automerge-migration", logValue: errorMessage },
+          new Error(errorMessage)
+        );
+        process.exitCode = 1; // error
+        process.exit();
       }
-      await em.flush();
-      serverLogger.info({
-        logId: "automerge-migration",
-        logValue: `Added ${docListingsToAdd.length} new automerge doc listing(s) to the database`,
-      });
-      // re-query full list of doc listings after adding new ones
-      allDocListings = await getAutomergeDocListing();
-    } catch (e) {
-      serverLogger.error(
-        { logId: "automerge-migration", logValue: "Error adding new automerge doc listings" },
-        e instanceof Error ? e : new Error(String(e))
-      );
-      process.exitCode = 1; // error
-      process.exit();
     }
-  } else {
-    serverLogger.info({
+
+    // Load every Automerge doc handle in parallel up front.
+    //
+    // (Note: the `(node:NNNN) TimeoutNegativeWarning: -NNN is a negative number.` warning
+    // sometimes printed around this point comes from `@automerge/automerge-repo`'s
+    // `DocSynchronizer` (and `Repo`) `throttle` helper. The throttle records
+    // `lastCall = Date.now()` at *construction* time but only updates it after the timer
+    // fires; if the gap between construction and the first invocation exceeds the throttle
+    // delay (100 ms for the save throttle, 30 ms for the sync throttle), `wait` becomes
+    // negative on the first call. Node clamps the delay to 1 ms and the save/sync still
+    // happens — it is harmless and is NOT the cause of any perceived hang. The magnitude
+    // of the negative number simply reflects how long it took to get from "Repo registered
+    // the handle" to "the first change event fired on it" (≈ doc load time).)
+    serverLogger.debug({
       logId: "automerge-migration",
-      logValue: "No new automerge documents created",
+      logValue: `Loading ${allDocListings.length} automerge document(s) in parallel...`,
     });
-  }
-  serverLogger.info({ logId: "automerge-migration", logValue: "Check complete." });
+    const loadStartMs = Date.now();
+    let loadedCount = 0;
+    const allDocHandles: DocHandle<Mission>[] = await Promise.all(
+      allDocListings.map(async (docListing) => {
+        // Type guard inline so TS narrows automergeUrl to AnyDocumentId for find().
+        // The up-front validation loop above guarantees this never throws in practice.
+        if (!isValidAutomergeUrl(docListing.automergeUrl)) {
+          throw new Error(
+            `Invalid automerge URL slipped past pre-validation. MissionId: ${docListing.missionId}`
+          );
+        }
+        const handle: DocHandle<Mission> = await automergeRepo.find(docListing.automergeUrl);
+        await handle.whenReady();
+        loadedCount += 1;
+        // Log progress every 10 docs so the user can see forward progress on large DBs.
+        if (loadedCount % 10 === 0 || loadedCount === allDocListings.length) {
+          serverLogger.debug({
+            logId: "automerge-migration",
+            logValue: `  loaded ${loadedCount}/${allDocListings.length} doc(s)`,
+          });
+        }
+        return handle;
+      })
+    );
+    serverLogger.debug({
+      logId: "automerge-migration",
+      logValue: `Loaded ${allDocHandles.length} doc handle(s) in ${Date.now() - loadStartMs} ms`,
+    });
 
-  // Get docHandles for all the doc listings in the database so we can use them below on the migrations and validation
-  serverLogger.info({
-    logId: "automerge-migration",
-    logValue: "Getting doc handles for all automerge documents...",
-  });
-  for (const docInfo of allDocListings) {
-    if (!isValidAutomergeUrl(docInfo.automergeUrl)) return;
-    // Get docHandle for each document/mission and add listeners
-    const missionDocHandle: DocHandle<Mission> = await automergeRepo.find(docInfo.automergeUrl);
-    // Wait till handler is ready in-case it has to get the doc for the first time
-    await missionDocHandle.whenReady();
-    allDocHandles.push(missionDocHandle);
-  }
-  serverLogger.info({
-    logId: "automerge-migration",
-    logValue: `Found ${allDocListings.length} automerge listing(s) and ${allDocHandles.length} doc handles`,
-  });
+    // Migrate existing docs to include entities as properties of Mission.
+    // All DB fetches for a given mission are performed before any docHandle.change() call so
+    // that a single atomic Automerge change is applied only when every fetch succeeds. This
+    // prevents a half-migrated doc state: if any fetch throws, no change is written for that
+    // mission and it will be retried on the next run.
+    serverLogger.debug({
+      logId: "automerge-migration",
+      logValue: "Checking for documents that need migration to include entities in Mission...",
+    });
+    for (let i = 0; i < allDocListings.length; i++) {
+      const docListing = allDocListings[i];
+      const docHandle = allDocHandles[i];
+      const doc = docHandle.doc();
 
-  /**
-   * MIGRATION FUNCTIONS - ADD NEW ONES HERE
-   *  All functions should be able to be run multiple times without breaking anything.
-   *  Essentially, if the migration has already occurred, it should be able to detect that and skip
-   * @param docHandle
-   */
-  // EXAMPLE MIGRATION FUNCTION
-  // const automergeMigration20250203 = async (docHandle: DocHandle<Mission>) => {
-  //   // Migration Example. Make document changes via the docHandle.change function
-  //   docHandle.change((doc: Mission) => {
-  //     // change a field
-  //     const newBannerMessage = "TEST BANNER FOR MIGRATION SCRIPT 123";
-  //     if (doc.missionBanner !== newBannerMessage) doc.missionBanner = newBannerMessage;
-  //     // remove the "description" property
-  //     if ("description" in doc) delete doc.description;
-  //     // add a new field with a default value
-  //     if (!("newField" in doc)) doc["newField"] = "default value";
-  //   });
-  // };
+      if (!doc) {
+        serverLogger.error(
+          {
+            logId: "automerge-migration",
+            logValue: `Error retrieving automerge doc for listing ${docListing}`,
+          },
+          new Error(`Error retrieving automerge doc for listing ${docListing}`)
+        );
+        process.exitCode = 1; // error
+        process.exit();
+      }
 
-  serverLogger.info({ logId: "automerge-migration", logValue: "Starting migrations..." });
-  // Add migration functions to the list and run all the migrations on every doc
-  // const migrationFunctions = [automergeMigration20250203];
-  const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [];
-  // Run all the migrations in the list above
-  for (const func of migrationFunctions) {
-    serverLogger.info({ logId: "automerge-migration", logValue: `Running migration ${func.name}` });
+      // Determine which entities still need to be migrated for this mission.
+      const needsPois = !("pois" in doc);
+      const needsActions = !("actions" in doc);
+      const needsStations = !("stations" in doc);
+      const needsTraverses = !("traverses" in doc);
+      const needsEvas = !("evas" in doc);
+      const needsRexes = !("rexes" in doc);
+
+      const anyNeedsMigration =
+        needsPois || needsActions || needsStations || needsTraverses || needsEvas || needsRexes;
+
+      if (!anyNeedsMigration) continue;
+
+      // One fork per mission covers all entity fetches for this loop iteration
+      const em = globalValues.orm.em.fork();
+
+      // Fetch all required data from the DB first
+      let poisRecord: Record<string, POI> | undefined;
+      if (needsPois) {
+        const dbPois = await em.find(
+          Poi_db,
+          { missionId: docListing.missionId },
+          { orderBy: { name: QueryOrder.ASC } }
+        );
+        poisRecord = {};
+        for (const dbPoi of dbPois) {
+          const convertedPoi: POI = {
+            uuid: dbPoi.uuid,
+            missionId: dbPoi.missionId,
+            ownerId: dbPoi.ownerId,
+            actionOrderUuids: dbPoi.actionOrderUuids,
+            name: dbPoi.name,
+            description: dbPoi.description,
+            priorityOverride: dbPoi.priorityOverride,
+            radius: dbPoi.radius,
+            location: dbPoi.location,
+            elevation: dbPoi.elevation,
+            icon: dbPoi.icon,
+            tags: dbPoi.tags,
+            status: dbPoi.status,
+            createdAt: dbPoi.createdAt.getTime(), // Make dates numeric
+            updatedAt: dbPoi.updatedAt.getTime(), // Make dates numeric
+          };
+          poisRecord[convertedPoi.uuid] = convertedPoi;
+        }
+      }
+
+      let allActionRecords: Record<string, Action> | undefined;
+      if (needsActions) {
+        const dbActions = await em.find(
+          Action_db,
+          { missionId: docListing.missionId },
+          {
+            populate: ["poi", "station", "traverse", "parentAction"],
+            orderBy: { name: QueryOrder.ASC },
+          }
+        );
+        allActionRecords = {};
+        for (const dbAction of dbActions) {
+          const convertedAction: Action = {
+            uuid: dbAction.uuid,
+            refUuid: dbAction.refUuid,
+            name: dbAction.name,
+            missionId: dbAction.missionId,
+            poiUuid: dbAction.poi?.uuid || null,
+            stationUuid: dbAction.station?.uuid || null,
+            traverseUuid: dbAction.traverse?.uuid || null,
+            parentActionUuid: dbAction.parentAction?.uuid || null,
+            parentCopyDate: dbAction.parentCopyDate,
+            priority: dbAction.priority,
+            stmPriorities: dbAction.stmPriorities,
+            type: dbAction.type,
+            description: dbAction.description,
+            descriptionTask: dbAction.descriptionTask,
+            stmAction: dbAction.stmAction,
+            actionDefinition: dbAction.actionDefinition,
+            icon: dbAction.icon,
+            location: dbAction.location,
+            elevation: dbAction.elevation,
+            duration: dbAction.duration,
+            equipmentItemsUsage: dbAction.equipmentItemsUsage,
+            geographicUnitsUsage: dbAction.geographicUnitsUsage,
+            mass: dbAction.mass,
+            status: dbAction.status,
+            enabled: dbAction.enabled,
+            crewAssigned: dbAction.crewAssigned ?? [],
+            createdAt: dbAction.createdAt,
+            updatedAt: dbAction.updatedAt,
+          };
+          allActionRecords[convertedAction.uuid] = convertedAction;
+        }
+      }
+
+      let stationsRecord: Record<string, Station> | undefined;
+      if (needsStations) {
+        const dbStations = await em.find(
+          Station_db,
+          { missionId: docListing.missionId },
+          { populate: ["poi"], orderBy: { name: QueryOrder.ASC } }
+        );
+        stationsRecord = {};
+        for (const dbStation of dbStations) {
+          const convertedStation: Station = {
+            uuid: dbStation.uuid,
+            refUuid: dbStation.refUuid,
+            ownerId: dbStation.ownerId,
+            missionId: dbStation.missionId,
+            actionOrderUuids: dbStation.actionOrderUuids,
+            name: dbStation.name,
+            status: dbStation.status,
+            description: dbStation.description,
+            radius: dbStation.radius,
+            location: dbStation.location,
+            elevation: dbStation.elevation,
+            walkbackPath: dbStation.walkbackPath,
+            walkbackPathSegmentDistances: dbStation.walkbackPathSegmentDistances,
+            walkbackPathSegmentElevations: dbStation.walkbackPathSegmentElevations,
+            walkbackTraverseRate: dbStation.walkbackTraverseRate,
+            duration: dbStation.duration,
+            icon: dbStation.icon,
+            mapCircleControls: dbStation.mapCircleControls,
+            poiUuids: dbStation.poi.map((p: Poi_db) => p.uuid),
+            createdAt: dbStation.createdAt.getTime(), // Make dates numeric
+            updatedAt: dbStation.updatedAt.getTime(), // Make dates numeric
+          };
+          stationsRecord[convertedStation.uuid] = convertedStation;
+        }
+      }
+
+      let traversesRecord: Record<string, Traverse> | undefined;
+      if (needsTraverses) {
+        const dbTraverses = await em.find(
+          Traverse_db,
+          { missionId: docListing.missionId },
+          { orderBy: { name: QueryOrder.ASC } }
+        );
+        traversesRecord = {};
+        for (const dbTraverse of dbTraverses) {
+          const convertedTraverse: Traverse = {
+            uuid: dbTraverse.uuid,
+            refUuid: dbTraverse.refUuid,
+            missionId: dbTraverse.missionId,
+            name: dbTraverse.name,
+            path: dbTraverse.path,
+            pathSegmentDistances: dbTraverse.pathSegmentDistances,
+            pathSegmentElevations: dbTraverse.pathSegmentElevations,
+            status: dbTraverse.status,
+            duration: dbTraverse.duration,
+            description: dbTraverse.description,
+            traverseRate: dbTraverse.traverseRate,
+            color: dbTraverse.color,
+            actionOrderUuids: dbTraverse.actionOrderUuids,
+            createdAt: dbTraverse.createdAt.getTime(), // Make dates numeric
+            updatedAt: dbTraverse.updatedAt.getTime(), // Make dates numeric
+          };
+          traversesRecord[convertedTraverse.uuid] = convertedTraverse;
+        }
+      }
+
+      let evasRecord: Record<string, Eva> | undefined;
+      if (needsEvas) {
+        const dbEvas = await em.find(
+          Eva_db,
+          { missionId: docListing.missionId },
+          { orderBy: { name: QueryOrder.ASC } }
+        );
+        evasRecord = {};
+        for (const dbEva of dbEvas) {
+          const convertedEva: Eva = {
+            uuid: dbEva.uuid,
+            refUuid: dbEva.refUuid,
+            missionId: dbEva.missionId,
+            ownerId: dbEva.ownerId,
+            name: dbEva.name,
+            status: dbEva.status,
+            sequence: dbEva.sequence,
+            description: dbEva.description,
+            duration: dbEva.duration,
+            traverseRate: dbEva.traverseRate,
+            egressDuration: dbEva.egressDuration,
+            ingressDuration: dbEva.ingressDuration,
+            egressLocationUuid: dbEva.egressLocationUuid,
+            ingressLocationUuid: dbEva.ingressLocationUuid,
+            traverseColor: dbEva.traverseColor,
+            datetime: dbEva.datetime ? new Date(dbEva.datetime).getTime() : null, // Make datetime numeric
+            createdAt: dbEva.createdAt.getTime(), // Make dates numeric
+            updatedAt: dbEva.updatedAt.getTime(), // Make dates numeric
+          };
+          evasRecord[convertedEva.uuid] = convertedEva;
+        }
+      }
+
+      let rexesRecord: Record<string, Rex> | undefined;
+      if (needsRexes) {
+        const dbRexes = await em.find(Rex_db, { missionId: docListing.missionId });
+        rexesRecord = {};
+        for (const dbRex of dbRexes) {
+          const convertedRex: Rex = {
+            uuid: dbRex.uuid,
+            ownerId: dbRex.ownerId,
+            missionId: dbRex.missionId,
+            name: dbRex.name,
+            description: dbRex.description,
+            petStartStopTimestamp: dbRex.petStartStopTimestamp,
+            petValueAtStartStop: dbRex.petValueAtStartStop,
+            petRunning: dbRex.petRunning,
+            evaUuid: dbRex.evaUuid,
+            isRunning: dbRex.isRunning,
+            posEntries: structuredClone(dbRex.posEntries ?? []), // we mutate this below so clone it
+            posTypes: dbRex.posTypes,
+            posSources: dbRex.posSources,
+            stationEntries: dbRex.stationEntries,
+            traverseEntries: dbRex.traverseEntries,
+            actionEntries: dbRex.actionEntries,
+            xgressEntries: dbRex.xgressEntries,
+            maestroControlled: dbRex.maestroControlled,
+            maestroEventId: dbRex.maestroEventId,
+            maestroEventUrl: dbRex.maestroEventUrl,
+            maestroActivityPropertiesByRefUuid: dbRex.maestroActivityPropertiesByRefUuid,
+            createdAt: dbRex.createdAt.getTime(), // Make dates numeric
+            updatedAt: dbRex.updatedAt.getTime(), // Make dates numeric
+          };
+          // Loop through the PosEntries and convert the dates to numeric as well
+          for (const posEntry of convertedRex.posEntries) {
+            if (posEntry.createdAt != null) {
+              posEntry.createdAt = new Date(posEntry.createdAt).getTime(); // Make dates numeric
+            }
+            if (posEntry.updatedAt != null) {
+              posEntry.updatedAt = new Date(posEntry.updatedAt).getTime(); // Make dates numeric
+            }
+          }
+          rexesRecord[convertedRex.uuid] = convertedRex;
+        }
+      }
+
+      // Apply all needed changes in a single atomic change() call ---
+      docHandle.change((m: Mission) => {
+        if (poisRecord !== undefined) m.pois = poisRecord;
+        if (allActionRecords !== undefined) m.actions = allActionRecords;
+        if (stationsRecord !== undefined) m.stations = stationsRecord;
+        if (traversesRecord !== undefined) m.traverses = traversesRecord;
+        if (evasRecord !== undefined) m.evas = evasRecord;
+        if (rexesRecord !== undefined) m.rexes = rexesRecord;
+      });
+
+      serverLogger.debug({
+        logId: "automerge-migration",
+        logValue:
+          `Mission ${docListing.missionId} entity migration applied:` +
+          (poisRecord !== undefined ? ` ${Object.keys(poisRecord).length} POI(s)` : "") +
+          (allActionRecords !== undefined
+            ? ` ${Object.keys(allActionRecords).length} action(s)`
+            : "") +
+          (stationsRecord !== undefined
+            ? ` ${Object.keys(stationsRecord).length} station(s)`
+            : "") +
+          (traversesRecord !== undefined
+            ? ` ${Object.keys(traversesRecord).length} traverse(s)`
+            : "") +
+          (evasRecord !== undefined ? ` ${Object.keys(evasRecord).length} EVA(s)` : "") +
+          (rexesRecord !== undefined ? ` ${Object.keys(rexesRecord).length} REX(es)` : ""),
+      });
+    }
+
+    /**
+     * MIGRATION FUNCTIONS - ADD NEW ONES HERE
+     *  All functions should be able to be run multiple times without breaking anything.
+     *  Essentially, if the migration has already occurred, it should be able to detect that and skip
+     */
+    // EXAMPLE MIGRATION FUNCTION
+    // const automergeMigration20250203 = async (docHandle: DocHandle<Mission>) => {
+    //   // Migration Example. Make document changes via the docHandle.change function
+    //   docHandle.change((doc: Mission) => {
+    //     // change a field
+    //     const newBannerMessage = "TEST BANNER FOR MIGRATION SCRIPT 123";
+    //     if (doc.missionBanner !== newBannerMessage) doc.missionBanner = newBannerMessage;
+    //     // remove the "description" property
+    //     if ("description" in doc) delete doc.description;
+    //     // add a new field with a default value
+    //     if (!("newField" in doc)) doc["newField"] = "default value";
+    //   });
+    // };
+
+    // Migration: Add maestroDocId field (null by default) to all mission docs
+    const automergeMigration20260528AddMaestroDocId = async (docHandle: DocHandle<Mission>) => {
+      docHandle.change((mission: Mission) => {
+        if (!("maestroDocId" in mission)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (mission as any).maestroDocId = null;
+        }
+      });
+    };
+
+    serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
+    // Add migration functions to the list and run all the migrations on every doc
+    const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
+      automergeMigration20260528AddMaestroDocId,
+    ];
+    // Run all the migrations in the list above
+    for (const func of migrationFunctions) {
+      serverLogger.debug({
+        logId: "automerge-migration",
+        logValue: `Running migration ${func.name}`,
+      });
+      for (const docHandle of allDocHandles) {
+        await func(docHandle);
+      }
+    }
+    serverLogger.debug({ logId: "automerge-migration", logValue: "Migrations complete." });
+
+    // Migrations are done.
+    // Validate schema against all automerge docs
+    serverLogger.debug({ logId: "automerge-migration", logValue: "Running validator" });
     for (const docHandle of allDocHandles) {
-      await func(docHandle);
+      const mission = docHandle.doc();
+      // Use structuredClone instead of cloneDeep so we don't need an extra dependency
+      // when this file is built
+      const isValid = missionValidator(structuredClone(mission));
+      if (!isValid && missionValidator.errors?.length > 0) {
+        serverLogger.error(
+          { logId: "automerge-migration", logValue: JSON.stringify(missionValidator.errors) },
+          new Error(`${mission.id} - ${mission.name} is invalid`)
+        );
+        process.exitCode = 1; // error
+        process.exit();
+      } else {
+        serverLogger.debug({
+          logId: "automerge-migration",
+          logValue: `${mission.id} - ${mission.name} is valid`,
+        });
+      }
     }
-  }
-  serverLogger.info({ logId: "automerge-migration", logValue: "Migrations complete." });
+    serverLogger.debug({ logId: "automerge-migration", logValue: "Validation complete." });
+    // Flush all Automerge documents to the storage adapter before proceeding.
+    // After docHandle.change(), the Repo schedules saves via a debounced/throttled timer
+    // (saveDebounceRate) rather than writing synchronously. Calling process.exit() before
+    // that timer fires would lose the changes. automergeRepo.flush() bypasses the debounce
+    // and directly awaits storageSubsystem.saveDoc() for every cached document handle,
+    // guaranteeing all changes are persisted to Postgres before we continue.
+    // Note: flush() is marked @experimental in automerge-repo but is the correct mechanism
+    // and is also used internally by Repo.shutdown().
+    await automergeRepo.flush();
 
-  // Migrations are done.
-  // Validate schema against all automerge docs
-  serverLogger.info({ logId: "automerge-migration", logValue: "Running validator" });
-  for (const docHandle of allDocHandles) {
-    const mission: Mission = docHandle.doc();
-    const isValid = missionValidator(mission);
-    if (!isValid && missionValidator.errors?.length > 0) {
-      serverLogger.error(
-        { logId: "automerge-migration", logValue: JSON.stringify(missionValidator.errors) },
-        new Error(`${(mission as Mission).id} - ${(mission as Mission).name} is invalid`)
-      );
-      process.exitCode = 1; // error
-      process.exit();
-    } else {
-      serverLogger.info({
+    // Save a copy of each automerge doc back to the backup missions table
+    serverLogger.debug({
+      logId: "automerge-migration",
+      logValue: "Saving updated automerge docs to the backup db table",
+    });
+    for (const docHandle of allDocHandles) {
+      const mission: Mission = docHandle.doc();
+      try {
+        await upsertBackupDbMissions([mission]);
+      } catch (e) {
+        serverLogger.error(
+          {
+            logId: "automerge-migration",
+            logValue: `Error saving mission ${mission.id} to the backup db table`,
+          },
+          e instanceof Error ? e : new Error(String(e))
+        );
+        process.exitCode = 1; // error
+        process.exit();
+      }
+      serverLogger.debug({
         logId: "automerge-migration",
-        logValue: `${(mission as Mission).id} - ${(mission as Mission).name} is valid`,
+        logValue: `${mission.id} - ${mission.name} backed up to the db`,
       });
     }
-  }
-  serverLogger.info({ logId: "automerge-migration", logValue: "Validation complete." });
-  // Wait 1 second for automerge to save to the storage adapter
-  //  TODO kind hacky and this should smartly check when save is done.
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+    serverLogger.debug({ logId: "automerge-migration", logValue: "Backups complete." });
 
-  // Save a copy of each automerge doc back to the backup missions table
-  serverLogger.info({
-    logId: "automerge-migration",
-    logValue: "Saving updated automerge docs to the backup db table",
-  });
-  for (const docHandle of allDocHandles) {
-    const mission: Mission = docHandle.doc();
-    try {
-      await upsertBackupDbMissions([mission]);
-    } catch (e) {
-      serverLogger.error(
-        {
-          logId: "automerge-migration",
-          logValue: `Error saving mission ${mission.id} to the backup db table`,
-        },
-        e instanceof Error ? e : new Error(String(e))
-      );
-      process.exitCode = 1; // error
-      process.exit();
-    }
     serverLogger.info({
       logId: "automerge-migration",
-      logValue: `${mission.id} - ${mission.name} backed up to the db`,
+      logValue: "All processes complete. Exiting.",
     });
-  }
-  serverLogger.info({ logId: "automerge-migration", logValue: "Backups complete." });
-
-  serverLogger.info({ logId: "automerge-migration", logValue: "All processes complete. Exiting." });
-  process.exitCode = 0; // success
-  process.exit();
-});
+    process.exitCode = 0; // success
+    process.exit();
+  })
+  .catch((err: unknown) => {
+    serverLogger.error(
+      { logId: "automerge-migration", logValue: "Unhandled error in migration" },
+      err instanceof Error ? err : new Error(String(err))
+    );
+    process.exitCode = 1;
+    process.exit();
+  });

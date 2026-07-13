@@ -1,5 +1,5 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { thunkGetElevation } from "./thunkElevation";
+import { thunkFetchElevation } from "./thunkElevation";
 import { getTotalDistance } from "utils/mapping/geoMath";
 import { removeMeasurement, setSelectedMeasurementUuid, upsertMeasurement } from "store/measure";
 import { v4 as uuidv4 } from "uuid";
@@ -7,7 +7,7 @@ import { updateMapDirective } from "store/map";
 import { thunkClearAllMapSelections } from "./crossThunk";
 import { getAccurateNow } from "utils/formatting";
 import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
-import { getAutomergeDocHandles } from "client/automergeDocHandles";
+import { getMissionDocHandle } from "client/automergeDocHandles";
 
 export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   {
@@ -17,7 +17,8 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   void,
   false
 >("updateMeasurementPath", async ({ path, measurementUuid }, { dispatch, getState }) => {
-  const missionDocHandle = getAutomergeDocHandles().mission;
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return;
   const mission = missionDocHandle.doc();
 
   const measurement = getState().measure.measurements.find((t) => t.uuid === measurementUuid);
@@ -30,7 +31,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
 
   //get elevation of path
   const elevationResponse = await dispatch(
-    thunkGetElevation({
+    thunkFetchElevation({
       path,
       pathSegmentDistances: pathSegmentDistances,
       uuid: measurementUuid,
@@ -70,7 +71,8 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
 export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
   "addNewMeasurement",
   async (__, { dispatch, getState }) => {
-    const missionDocHandle = getAutomergeDocHandles().mission;
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
     const mission = missionDocHandle.doc();
 
     const measurementUuid = uuidv4();
@@ -79,7 +81,7 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
 
     //get elevation traverse
     const elevationResponse = await dispatch(
-      thunkGetElevation({
+      thunkFetchElevation({
         path,
         pathSegmentDistances: [distance],
         uuid: measurementUuid,
@@ -87,7 +89,7 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
     );
 
     /**
-     * The response from thunkGetElevation is a PayloadAction.
+     * The response from thunkFetchElevation is a PayloadAction.
      *  get the value by using .payload which will be either the return value
      *  or false if the thunk was unfulfilled.
      */

@@ -1,27 +1,3 @@
-type ActionUpsertRequest = {
-  socketId: string;
-  missionId: number;
-  actions: Action[];
-};
-
-type ActionDeleteRequest = {
-  socketId: string;
-  missionId: number;
-  actionUuids: string[];
-};
-
-type EvaUpsertRequest = {
-  socketId: string;
-  missionId: number;
-  evas: Eva[];
-};
-
-type EvaDeleteRequest = {
-  socketId: string;
-  missionId: number;
-  evaUuids: string[];
-};
-
 type GridUpsertRequest = {
   grids: MissionGrid[];
   missionId: number;
@@ -43,24 +19,8 @@ type LayerDeleteRequest = {
   layerUuids: string[];
 };
 
-type MissionUpsertRequest = {
-  missions: Mission[];
-};
-
 type MissionDeleteRequest = {
   missionIds: number[];
-};
-
-type POIUpsertRequest = {
-  missionId: number;
-  socketId: string;
-  pois: POI[];
-};
-
-type POIDeleteRequest = {
-  missionId: number;
-  socketId: string;
-  poiUuids: string[];
 };
 
 type PresetUpsertRequest = {
@@ -73,30 +33,6 @@ type PresetDeleteRequest = {
   missionId: number;
   socketId: string;
   presetUuids: string[];
-};
-
-type RexUpsertRequest = {
-  missionId: number;
-  socketId: string;
-  rexes: Rex[];
-};
-
-type RexDeleteRequest = {
-  missionId: number;
-  socketId: string;
-  uuids: string[];
-};
-
-type StationUpsertRequest = {
-  missionId: number;
-  socketId: string;
-  stations: Station[];
-};
-
-type StationDeleteRequest = {
-  missionId: number;
-  socketId: string;
-  stationUuids: string[];
 };
 
 type STMUpsertRequest = {
@@ -132,18 +68,6 @@ type SublayerDeleteRequest = {
   sublayerUuids: string[];
 };
 
-type TraverseUpsertRequest = {
-  missionId: number;
-  socketId: string;
-  traverses: Traverse[];
-};
-
-type TraverseDeleteRequest = {
-  missionId: number;
-  socketId: string;
-  traverseUuids: string[];
-};
-
 type UserUpsertRequest = {
   users: AppUser[];
 };
@@ -162,6 +86,13 @@ type FolderDeleteRequest = {
   missionId: number;
   socketId?: string;
   folderUuids: string[];
+};
+
+type EnvironmentConfigData = {
+  defaultUrl: string;
+  urlOverride: string | null;
+  effectiveUrl: string;
+  isOverridden: boolean;
 };
 
 type AutomergeUpsertRequest = {

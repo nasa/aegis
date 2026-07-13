@@ -1,6 +1,7 @@
+/* eslint-disable no-restricted-syntax -- TODO (Phase 2): Migrate automergeRepo.find().change() pattern to withMissionChange */
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { createMission, deleteMissions } from "http-client/mission";
+import { createMission, deleteMissions, getMissions } from "http-client/mission";
 import { isLoggedIn } from "http-client/login";
 import { Tooltip } from "react-tooltip";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -8,7 +9,7 @@ import { initialState as wholeStoreInitialState } from "store/index";
 import { setAllSliceStores } from "store/crossActions";
 import { getAutomergeDocListing } from "http-client/docListing";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import type { AutomergeUrl, Repo } from "@automerge/automerge-repo";
+import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight, faRocket } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
@@ -17,26 +18,32 @@ import styles from "./missions.module.css";
 const Missions: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const automergeRepo = useRepo();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [automergeDocListings, setAutomergeDocListings] = useState<AutomergeDocListing[]>([]);
   const [user, setUser] = useState<AppUser | null>(null);
 
   const loadMissions = useCallback(async () => {
-    // get missions from automerge db table
-    const docListings = (await getAutomergeDocListing()).data;
-    if (docListings) setAutomergeDocListings(docListings);
+    // Load doc listings and missions in parallel
+    // Grab the missions from the server because it already has the documents loaded into
+    // memory, so we don't have to load/replay the document on the client side.
+    // This replay is the major slow down, and we only need a few fields from the doc.
+    const [docListingsRes, missionsRes] = await Promise.all([
+      getAutomergeDocListing(),
+      getMissions(),
+    ]);
 
-    // get missions from automerge
-    const missionPromises = docListings.map(async (listing) => {
-      const missionDocHandle: DocHandle<Mission> = await automergeRepo.find(
-        listing.automergeUrl as AutomergeUrl
-      );
-      await missionDocHandle.whenReady();
-      return missionDocHandle.doc();
-    });
-    const allMissions = await Promise.all(missionPromises);
-    if (!allMissions) return;
+    if (!docListingsRes.data) {
+      console.error("Failed to load automerge doc listings:", docListingsRes);
+      return;
+    }
+    setAutomergeDocListings(docListingsRes.data);
+
+    if (!missionsRes.data) {
+      console.error("Failed to load missions:", missionsRes);
+      return;
+    }
+
+    const allMissions = [...missionsRes.data];
 
     //Sort by name
     allMissions.sort((a, b) => {
@@ -49,7 +56,7 @@ const Missions: React.FunctionComponent = () => {
       }
     });
     setMissions(allMissions);
-  }, [automergeRepo]);
+  }, []);
 
   //on load check login and mission id
   useEffect(() => {
@@ -126,7 +133,6 @@ const Missions: React.FunctionComponent = () => {
           automergeDocListings={automergeDocListings}
           user={user}
           loadMissions={loadMissions}
-          automergeRepo={automergeRepo}
         />
       </div>
     </main>
@@ -178,14 +184,13 @@ const MissionList = ({
   automergeDocListings,
   user,
   loadMissions,
-  automergeRepo,
 }: {
   missions: Mission[];
   automergeDocListings: AutomergeDocListing[];
   user: AppUser | null;
   loadMissions: Function;
-  automergeRepo: Repo;
 }) => {
+  const automergeRepo = useRepo();
   const navigate = useNavigate();
   const permissionList = user?.permissionList;
 

@@ -47,7 +47,7 @@ describe("Login functions", () => {
         username: testAdmin.username,
         isAdmin: true,
         isSuperAdmin: false,
-        permissionList: null,
+        permissionList: [],
       },
     });
     aegisSessionCookie = response.header["set-cookie"][0];
@@ -66,7 +66,7 @@ describe("Login functions", () => {
         username: testAdmin.username,
         isAdmin: true,
         isSuperAdmin: false,
-        permissionList: null,
+        permissionList: [],
       },
     });
   });

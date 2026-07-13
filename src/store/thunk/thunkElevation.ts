@@ -1,7 +1,7 @@
 import { insertElevationPending, removeElevationPending } from "store/interface";
 import appCreateAsyncThunk from "./thunkUtil";
 import { getElevationProfile, getElevationSinglePoint } from "http-client/elevation";
-import { getAutomergeDocHandles } from "client/automergeDocHandles";
+import { getMissionDocHandle } from "client/automergeDocHandles";
 
 /**
  * Gets elevation fom API endpoint
@@ -10,7 +10,7 @@ import { getAutomergeDocHandles } from "client/automergeDocHandles";
  * @Returns the new elevation (single point, or path array)
  *  returns false and throws error if the API errored
  */
-export const thunkGetElevation = appCreateAsyncThunk<
+export const thunkFetchElevation = appCreateAsyncThunk<
   {
     path: AEGISPoint[];
     pathSegmentDistances: number[];
@@ -18,9 +18,10 @@ export const thunkGetElevation = appCreateAsyncThunk<
   },
   number | number[][],
   false
->("getElevation", async ({ path, pathSegmentDistances, uuid }, { dispatch }) => {
+>("getElevation", async ({ path, pathSegmentDistances, uuid }, { dispatch, rejectWithValue }) => {
   //get elevation for a single point or a path
-  const missionDocHandle = getAutomergeDocHandles().mission;
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return rejectWithValue(false);
   const mission = missionDocHandle.doc();
   if (!mission.demFilePath) {
     throw new Error("No DEM file path found");

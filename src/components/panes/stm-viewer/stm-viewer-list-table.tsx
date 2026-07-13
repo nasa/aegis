@@ -41,7 +41,7 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
     (state: RootState) => state.stm.stmViewExpandTopTiers,
     refEqual
   );
-  const stmLevel1Enabled = useMissionDocSelector((doc) => doc.stmLevel1Enabled, deepEqual);
+  const stmLevel1Enabled = useMissionDocSelector((mission) => mission.stmLevel1Enabled, deepEqual);
 
   const numLines = numLevel3s;
   const maxHeightEm = 1.2 * numLines;
@@ -171,6 +171,7 @@ const STMLevel3: FunctionComponent<{
   level3: STMLevel3;
 }> = ({ level3 }) => {
   const dispatch = useAppDispatch();
+  const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual) ?? {};
   const level1Numbering = useAppSelector((state: RootState) => {
     const level2 = state.stm.level2s.find((level2) => level2.uuid === level3.level2Uuid);
     return state.stm.level1s.find((level1) => level1.uuid === level2?.level1Uuid)?.numbering || "";
@@ -187,7 +188,7 @@ const STMLevel3: FunctionComponent<{
   }, refEqual);
 
   const numberOfActionsThatHaveThisLevel3 = useAppSelector((state: RootState) => {
-    return state.action.actions.filter(
+    return Object.values(allActionRecords).filter(
       (action) =>
         action.stmPriorities &&
         Object.keys(action.stmPriorities).includes(level3.uuid) &&
@@ -251,9 +252,10 @@ const STMLevel3: FunctionComponent<{
 };
 
 const Level3ActionTypes: FunctionComponent<{ level3Uuid: string }> = ({ level3Uuid }) => {
+  const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual) ?? {};
   const level3ActionTypes = useAppSelector((state: RootState) => {
     const actionsWithThisLevel3: Action[] = [];
-    for (const action of state.action.actions) {
+    for (const action of Object.values(allActionRecords)) {
       if (
         action.stmPriorities &&
         Object.keys(action.stmPriorities).includes(level3Uuid) &&
@@ -293,9 +295,9 @@ const Level3ActionType: FunctionComponent<{
   level3Uuid: string;
 }> = ({ actionType, level3Uuid }) => {
   const dispatch = useAppDispatch();
-  const actions = useAppSelector((state: RootState) => {
+  const actions = useMissionDocSelector((mission) => {
     return (
-      state.action.actions.filter(
+      Object.values(mission.actions).filter(
         (action) =>
           action.type === actionType &&
           action.stmPriorities &&
@@ -374,9 +376,10 @@ const Level3Action: FunctionComponent<{
       state.stm.stmViewShowCrosshairs ? state.stm.stmViewHoveredLeftItem : null,
     refEqual
   );
-  const actionTooltipTitle = useAppSelector((state: RootState) => {
-    return `${action.name} (${state.station.stations.find((station) => station.uuid === action.stationUuid)?.name})`;
-  }, refEqual);
+  const actionTooltipTitle = useMissionDocSelector(
+    (mission) => `${action.name} (${mission.stations[action.stationUuid]?.name})`,
+    refEqual
+  );
   return (
     <>
       <div

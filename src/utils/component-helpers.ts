@@ -2,6 +2,7 @@ import sortBy from "lodash/sortBy";
 import type { IconDefinition } from "@fortawesome/free-regular-svg-icons";
 import { faSquare, faSquareCheck } from "@fortawesome/free-regular-svg-icons";
 import rexStyles from "components/panes/rex/rex.module.css";
+import evaStyles from "components/panes/eva/eva.module.css";
 
 export const getAlertColor = (
   reportItems: ReportItem[],
@@ -144,6 +145,60 @@ export const getRexStatusDisplayProperties = (
         customTextClassName: rexStyles.headingSkipped,
       };
   }
+};
+
+/**
+ * Compute the CSS class names for an EVA sequence item row (station, traverse,
+ * or egress/ingress). The parent `evaItem` div owns the background color
+ * (selected / hover / rex-state), and the inner `evaItemName` div only carries
+ * text-color / font-weight overrides that need to sit on top of that background.
+ *
+ * Priority for the row background:
+ *   selected > rex state > hover > none
+ *
+ * Egress/ingress rows have no "selected" state — pass `isSelected: false`.
+ */
+export const getSequenceItemRowStyles = ({
+  rexStatus,
+  isSelected,
+  isHovered,
+  isRexEva,
+}: {
+  rexStatus: RexStatus | null;
+  isSelected: boolean;
+  isHovered: boolean;
+  isRexEva: boolean;
+}): { rowClassName: string; nameClassName: string } => {
+  let rowClassName = "";
+  let nameClassName = "";
+
+  if (isSelected) {
+    rowClassName = evaStyles.evaItemSelected;
+    nameClassName = evaStyles.evaItemNameSelected;
+    if (isRexEva) {
+      if (rexStatus === "in-progress") {
+        rowClassName = evaStyles.evaItemRexInProgressSelected;
+        nameClassName = evaStyles.evaItemNameRexInProgressSelected;
+      } else if (rexStatus === "skipped") {
+        rowClassName = evaStyles.evaItemRexSkippedSelected;
+        nameClassName = evaStyles.evaItemNameRexSkippedSelected;
+      }
+      // "complete" + selected falls through to the normal selected styling
+    }
+  } else if (isRexEva && rexStatus === "in-progress") {
+    rowClassName = evaStyles.evaItemRexInProgress;
+    nameClassName = evaStyles.evaItemNameRexInProgress;
+  } else if (isRexEva && rexStatus === "complete") {
+    rowClassName = evaStyles.evaItemRexComplete;
+    // text color provided by customTextClassName (headingCompleted)
+  } else if (isRexEva && rexStatus === "skipped") {
+    rowClassName = evaStyles.evaItemRexSkipped;
+    // text color provided by customTextClassName (headingSkipped)
+  } else if (isHovered) {
+    rowClassName = evaStyles.evaItemHover;
+  }
+
+  return { rowClassName, nameClassName };
 };
 
 export const getStmActionName = ({

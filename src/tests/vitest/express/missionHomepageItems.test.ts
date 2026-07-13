@@ -1,9 +1,8 @@
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import { App_User_db, Rex_db, Doc_Listing_db } from "server/database/models/_allModels";
+import { App_User_db, Doc_Listing_db } from "server/database/models/_allModels";
 import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
-import RexFactory from "../fixtures/entityFactories/RexFactory";
 import DocListingFactory from "../fixtures/entityFactories/DocListingFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
@@ -22,7 +21,6 @@ vi.mock("server/express/sockets", async () => {
 let testAppUserNoPerms: App_User_db;
 let testAppUser: App_User_db;
 let testSuperAdmin: App_User_db;
-let testRexes: Rex_db[];
 let testAutomergeDocListings: Doc_Listing_db[];
 let testMissionsPartial: Partial<Mission>[];
 
@@ -85,12 +83,6 @@ beforeAll(async () => {
     username: "Vitest testSuperAdminForHomePageItems",
     isSuperAdmin: true,
   });
-
-  testRexes = await new RexFactory(em)
-    .each((rex) => {
-      rex.missionId = testMissionsPartial[0].id;
-    })
-    .create(2);
 });
 
 describe("REX API Endpoint", () => {
@@ -176,9 +168,6 @@ describe("REX API Endpoint", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = globalValues.orm.em.fork();
-  for (let i = 0; i < testRexes.length; i++) {
-    await em.nativeDelete(Rex_db, { uuid: testRexes[i].uuid });
-  }
   for (let i = 0; i < testAutomergeDocListings.length; i++) {
     await em.nativeDelete(Doc_Listing_db, { missionId: testAutomergeDocListings[i].missionId });
   }

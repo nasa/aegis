@@ -1,5 +1,6 @@
 import { ModifiedIndicator } from "components/interface/_global-elements";
 import type { FunctionComponent } from "react";
+import { useEffect, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import styles from "./preset.module.css";
@@ -37,6 +38,14 @@ const PresetItem: FunctionComponent<{
     isSelectedOrHoveredStyle = styles.presetItemHovered;
   }
 
+  // Scroll into view when this preset becomes selected (e.g. after add/duplicate)
+  const itemRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (preset.uuid === selectedPresetUuid) {
+      itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [preset.uuid, selectedPresetUuid]);
+
   const handleClick = () => {
     if (preset.uuid === selectedPresetUuid) return;
 
@@ -46,7 +55,11 @@ const PresetItem: FunctionComponent<{
   };
 
   return (
-    <div className={`${styles.presetItem} ${isSelectedOrHoveredStyle}`} aria-label="mapPreset">
+    <div
+      ref={itemRef}
+      className={`${styles.presetItem} ${isSelectedOrHoveredStyle}`}
+      aria-label="mapPreset"
+    >
       <div className={styles.itemIcon}>
         <FontAwesomeIcon icon={faGlobe} size="sm" />{" "}
       </div>

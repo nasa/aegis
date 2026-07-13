@@ -1,33 +1,43 @@
 import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import Actions from "../actions";
-import { setStationEditMode, upsertStationByField } from "store/station";
-import { useAppDispatch } from "utils/useAppDispatch";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdateStationByField } from "client/automerge/apply/apply-station";
 
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
-  const dispatch = useAppDispatch();
-  const missionWalkbackRate = useMissionDocSelector((doc) => doc.walkbackRate, refEqual);
+  const missionWalkbackRate = useMissionDocSelector((mission) => mission.walkbackRate, refEqual);
 
-  const selectedStation = useAppSelector(
-    (state) =>
-      state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
-    deepEqual
+  const selectedStationUuid = useAppSelector(
+    (state) => state.station.selectedStationUuid,
+    refEqual
   );
-  const stationActionUuids = useAppSelector(
-    (state) =>
-      state.action.actions
-        .filter((a) => a.stationUuid === selectedStation.uuid)
-        ?.map((a) => a.uuid),
-    deepEqual
+  const docMaps = useMissionDocSelector(
+    (mission) => ({
+      stations: mission.stations,
+      actions: mission.actions,
+    }),
+    shallowEqual
   );
-  const actionsCalculatedFields = useAppSelector((state) => {
-    const stationActions = state.action.actions.filter(
+  const selectedStation = useMemo(
+    () => docMaps?.stations[selectedStationUuid],
+    [docMaps, selectedStationUuid]
+  );
+  const stationActionUuids = useMemo(() => {
+    if (!docMaps || !selectedStation) return [];
+    return Object.values(docMaps.actions)
+      .filter((a) => a.stationUuid === selectedStation.uuid)
+      ?.map((a) => a.uuid);
+  }, [docMaps, selectedStation]);
+  const actionsCalculatedFields = useMemo<ActionsCalculatedFields>(() => {
+    if (!docMaps) return undefined;
+    const stationActions = Object.values(docMaps.actions).filter(
       (a) => a.stationUuid === selectedStation?.uuid && a.enabled
     );
     const calculatedFields = getCalculatedFieldsByStation({
@@ -35,7 +45,7 @@ const Actions_Panel: FunctionComponent<{
       missionWalkbackRate,
       stationActions,
     });
-    const newActionsCalculatedFields: ActionsCalculatedFields = {
+    return {
       actionCount: calculatedFields.actionCount,
       totalActionTime: calculatedFields.totalActionTime,
       totalEv1Time: calculatedFields.totalEv1Time,
@@ -44,24 +54,20 @@ const Actions_Panel: FunctionComponent<{
       totalDwellTime: calculatedFields.totalDwellTime,
       totalMass: calculatedFields.totalMass,
     };
-    return newActionsCalculatedFields;
-  }, deepEqual);
+  }, [docMaps, selectedStation, missionWalkbackRate]);
 
-  const stationInRunningRex: boolean = useAppSelector((state) => {
-    const runningRexEvaUuid = state.rex.rexes.find((rex) => rex.isRunning)?.evaUuid;
-    if (!runningRexEvaUuid) return false;
-    const runningRexEva = state.eva.evas.find((eva) => eva.uuid === runningRexEvaUuid);
-    const sequenceItem = runningRexEva.sequence.find(
-      (sequenceItem) => sequenceItem.uuid === selectedStation.uuid
-    );
-    if (!sequenceItem) return false;
-    return true;
+  const stationInRunningRex: boolean = useMissionDocSelector((mission) => {
+    if (!mission?.rexes || !mission?.evas) return false;
+    const runningRex = Object.values(mission.rexes).find((rex) => rex.isRunning);
+    if (!runningRex) return false;
+    const runningRexEva = mission.evas[runningRex.evaUuid];
+    return runningRexEva?.sequence.some((s) => s.uuid === selectedStation?.uuid) ?? false;
   }, refEqual);
 
-  const runningRexUuid = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.isRunning)?.uuid,
-    refEqual
-  );
+  const runningRexUuid = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return null;
+    return Object.values(mission.rexes).find((rex) => rex.isRunning)?.uuid ?? null;
+  }, refEqual);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -72,15 +78,14 @@ const Actions_Panel: FunctionComponent<{
       <div className={paneStyles.rightBodyBody} style={{ overflowY: "hidden" }}>
         <Actions
           editMode={editMode}
-          setEditMode={(newEditMode: boolean) => {
-            dispatch(
-              setStationEditMode({ stationUuid: selectedStation.uuid, editMode: newEditMode })
-            );
-          }}
           actionOrderUuids={selectedStation.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {
-            dispatch(
-              upsertStationByField(selectedStation.uuid, "actionOrderUuids", actionOrderUuids)
+            withMissionChange((m) =>
+              applyUpdateStationByField(m, {
+                stationUuid: selectedStation.uuid,
+                fieldName: "actionOrderUuids",
+                value: actionOrderUuids,
+              })
             );
           }}
           actionParentUuid={{ stationUuid: selectedStation.uuid }}

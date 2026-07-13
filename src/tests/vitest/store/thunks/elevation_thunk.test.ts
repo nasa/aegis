@@ -1,5 +1,5 @@
 import type { StoreType } from "store";
-import { createFullTestStore } from "tests/vitest/fixtures/redux/makeTestStore";
+import { createTestStoreWithAutomergeMission } from "tests/vitest/fixtures/store";
 import { v4 as uuidv4 } from "uuid";
 
 let store: StoreType;
@@ -8,11 +8,11 @@ let store: StoreType;
 // CAUTION, the import line must be below the vi.mock
 vi.mock("http-client/elevation");
 import * as httpClient_elevation from "http-client/elevation";
-import { thunkGetElevation } from "store/thunk/thunkElevation";
-import { getAutomergeDocHandles, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
+import { thunkFetchElevation } from "store/thunk/thunkElevation";
+import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 beforeAll(() => {
-  store = createFullTestStore();
+  store = createTestStoreWithAutomergeMission();
 
   /**
    * Init the mission automerge doc. In the app this is handled in the component.
@@ -31,31 +31,31 @@ afterAll(() => {
 });
 
 describe("Thunk Elevation Tests", () => {
-  it("thunkGetElevation rejects with no DEM", async () => {
+  it("thunkFetchElevation rejects with no DEM", async () => {
     const dummyUuid = uuidv4();
     const point: AEGISPoint = { lat: 1, lng: 1 };
     const thunkRes = await store.dispatch(
-      thunkGetElevation({ path: [point], pathSegmentDistances: [0], uuid: dummyUuid })
+      thunkFetchElevation({ path: [point], pathSegmentDistances: [0], uuid: dummyUuid })
     );
     expect(httpClient_elevation.getElevationSinglePoint).toHaveBeenCalledTimes(0);
     expect(thunkRes.meta.requestStatus).toBe("rejected");
     expect(thunkRes.payload).toBeFalsy();
   });
-  it("thunkGetElevation for single point", async () => {
-    const missionDocHandle = getAutomergeDocHandles().mission;
+  it("thunkFetchElevation for single point", async () => {
+    const missionDocHandle = getMissionDocHandle();
     missionDocHandle.change((mission) => {
       mission.demFilePath = "somefake/path/here.TIF";
     });
     const dummyUuid = uuidv4();
     const point: AEGISPoint = { lat: 1, lng: 1 };
     await store.dispatch(
-      thunkGetElevation({ path: [point], pathSegmentDistances: [0], uuid: dummyUuid })
+      thunkFetchElevation({ path: [point], pathSegmentDistances: [0], uuid: dummyUuid })
     );
     expect(httpClient_elevation.getElevationSinglePoint).toHaveBeenCalledTimes(1);
     expect(store.getState().interface.elevationPendingItemUuids.includes(dummyUuid)).toBeFalsy();
   });
-  it("thunkGetElevation for path", async () => {
-    const missionDocHandle = getAutomergeDocHandles().mission;
+  it("thunkFetchElevation for path", async () => {
+    const missionDocHandle = getMissionDocHandle();
     missionDocHandle.change((mission) => {
       mission.demFilePath = "somefake/path/here.TIF";
     });
@@ -65,7 +65,7 @@ describe("Thunk Elevation Tests", () => {
       { lat: 2, lng: 2 },
     ];
     await store.dispatch(
-      thunkGetElevation({ path: path, pathSegmentDistances: [0], uuid: dummyUuid })
+      thunkFetchElevation({ path: path, pathSegmentDistances: [0], uuid: dummyUuid })
     );
     expect(httpClient_elevation.getElevationProfile).toHaveBeenCalledTimes(1);
     expect(store.getState().interface.elevationPendingItemUuids.includes(dummyUuid)).toBeFalsy();

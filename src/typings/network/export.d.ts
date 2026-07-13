@@ -95,15 +95,20 @@ type EquipmentItemUsageReadable = {
   quantityUsed: number;
 };
 
-type AllDataForExport = {
+type MissionDump = {
+  exportDate: string;
+  missionData: MissionSourceData;
+};
+
+type MissionSourceData = {
   mission: Mission;
-  actions: Action[];
-  pois: POI[];
-  stations: Station[];
-  evas: Eva[];
-  traverses: Traverse[];
-  rexes: Rex[];
-  level1s: STMLevel1[];
-  level2s: STMLevel2[];
-  level3s: STMLevel3[];
+  layers: Layer_db[];
+  sublayers: Sublayer_db[];
+  presets: Preset_db[];
+  stmLevel1s?: STM_Level1_db[];
+  stmLevel2s?: STM_Level2_db[];
+  stmLevel3s?: STM_Level3_db[];
+  stmRules?: STM_Rule_db[];
+  grids: Grid_db[];
+  folders: Folder_db[];
 };

@@ -118,7 +118,6 @@
   background: rgb(96 165 250 / 8%);
   color: #cbd5e1;
   font-size: 0.875rem;
-  font-style: italic;
 }
 
 /* Connection Status Colors */
@@ -404,6 +403,17 @@
   opacity: 0.4;
   cursor: not-allowed;
   color: #64748b;
+}
+
+/* Hide number input spinner arrows (they appear as a scrollbar on focus) */
+.formInput[type="number"] {
+  appearance: textfield;
+}
+
+.formInput[type="number"]::-webkit-inner-spin-button,
+.formInput[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
 }
 
 /* Table Styles */

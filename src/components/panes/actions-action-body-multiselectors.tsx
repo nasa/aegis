@@ -6,22 +6,25 @@ import { useCallback } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
+import { deepEqual } from "utils/useAppSelector";
 import { collapseActions, expandActions } from "store/action";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
+import { withMissionChange } from "client/automergeDocHandles";
+import {
+  applyAddEquipmentItem,
+  applyRemoveEquipmentItem,
+  applyAddGeographicUnit,
+  applyRemoveGeographicUnit,
+} from "client/automerge/apply/apply-action";
 
 export const EquipmentSelector: FunctionComponent<{
   equipmentItemsUsage: EquipmentItemUsages | null;
   editMode: boolean;
-  onChange?: (value: EquipmentItemUsages) => void; // onChange to execute when NOT using automerge
-  actionTemplateUuid?: string; // for automerge. used if this component is being rendered in a mission actionTemplate
+  actionUuid?: string; // component is being rendered in the action body of an action
+  actionTemplateUuid?: string; // component is being rendered in a mission actionTemplate
   uniqueId: string;
-}> = ({ equipmentItemsUsage, editMode, onChange, actionTemplateUuid, uniqueId }) => {
-  const automergeUrl = useAppSelector((state) => state.mission.automergeUrl, refEqual);
-  const missionDocHandle = useDocHandle<Mission>(automergeUrl as AutomergeUrl);
-  const equipmentItems = useMissionDocSelector((doc) => doc.equipmentItems, deepEqual);
+}> = ({ equipmentItemsUsage, editMode, actionUuid, actionTemplateUuid, uniqueId }) => {
+  const equipmentItems = useMissionDocSelector((mission) => mission.equipmentItems, deepEqual);
 
   const sortedEquipmentItems: [string, EquipmentItem][] = !equipmentItems
     ? []
@@ -41,47 +44,22 @@ export const EquipmentSelector: FunctionComponent<{
     }
   );
 
-  const addEquipmentItem = (equipmentItemUuid: string, quantity: number) => {
-    if (actionTemplateUuid) {
-      // Direct mutation approach for Automerge
-      missionDocHandle.change((m: Mission) => {
-        const template = m.actionTemplates[actionTemplateUuid];
-        if (!template) return;
-        if (!template.equipmentItemsUsage) template.equipmentItemsUsage = {};
-        // if it already exists, do nothing, otherwise add it
-        if (template.equipmentItemsUsage[equipmentItemUuid]) return;
-        // Add new item
-        template.equipmentItemsUsage[equipmentItemUuid] = { quantityUsed: quantity };
-      });
-    } else if (onChange) {
-      // Fallback for non-Automerge usage
-      const newEquipmentItemsUsage: EquipmentItemUsages = {
-        ...equipmentItemsUsage,
-        [equipmentItemUuid]: { quantityUsed: quantity },
-      };
-      onChange(newEquipmentItemsUsage);
-    }
-  };
+  const addEquipmentItem = useCallback(
+    (equipmentItemUuid: string, quantity: number) => {
+      withMissionChange((m) =>
+        applyAddEquipmentItem(m, { actionUuid, actionTemplateUuid, equipmentItemUuid, quantity })
+      );
+    },
+    [actionTemplateUuid, actionUuid]
+  );
 
   const removeEquipmentItem = useCallback(
     (equipmentItemUuid: string) => {
-      if (actionTemplateUuid) {
-        // Direct mutation approach for Automerge
-        missionDocHandle.change((m: Mission) => {
-          const template = m.actionTemplates[actionTemplateUuid];
-          if (!template) return;
-          if (template.equipmentItemsUsage[equipmentItemUuid]) {
-            delete template.equipmentItemsUsage[equipmentItemUuid];
-          }
-        });
-      } else if (onChange && equipmentItemsUsage) {
-        // Fallback for non-Automerge usage
-        const updatedEquipmentItemsUsage = { ...equipmentItemsUsage };
-        delete updatedEquipmentItemsUsage?.[equipmentItemUuid];
-        onChange(updatedEquipmentItemsUsage);
-      }
+      withMissionChange((m) =>
+        applyRemoveEquipmentItem(m, { actionUuid, actionTemplateUuid, equipmentItemUuid })
+      );
     },
-    [actionTemplateUuid, missionDocHandle, onChange, equipmentItemsUsage]
+    [actionTemplateUuid, actionUuid]
   );
 
   if (editMode) {
@@ -190,13 +168,11 @@ const EquipmentCheckbox: FunctionComponent<{
 export const GeographicUnitSelector: FunctionComponent<{
   geographicUnitsUsage: string[] | null;
   editMode: boolean;
-  onChange?: (value: string[]) => void; // onChange to execute when not using automerge
-  actionTemplateUuid?: string; // for automerge. used if this component is being rendered in a mission actionTemplate
+  actionUuid?: string; // component is being rendered in the action body of an action
+  actionTemplateUuid?: string; // component is being rendered in a mission actionTemplate
   uniqueId: string;
-}> = ({ geographicUnitsUsage, editMode, onChange, actionTemplateUuid, uniqueId }) => {
-  const automergeUrl = useAppSelector((state) => state.mission.automergeUrl, refEqual);
-  const missionDocHandle = useDocHandle<Mission>(automergeUrl as AutomergeUrl);
-  const geographicUnits = useMissionDocSelector((doc) => doc.geographicUnits, deepEqual);
+}> = ({ geographicUnitsUsage, editMode, actionUuid, actionTemplateUuid, uniqueId }) => {
+  const geographicUnits = useMissionDocSelector((mission) => mission.geographicUnits, deepEqual);
 
   const sortedGeographicUnits: [string, GeographicUnit][] = !geographicUnits
     ? []
@@ -213,63 +189,22 @@ export const GeographicUnitSelector: FunctionComponent<{
     }
   );
 
-  const addGeographicUnit = (geographicUnitUuid: string) => {
-    if (actionTemplateUuid) {
-      // Direct mutation approach for Automerge
-      missionDocHandle.change((m: Mission) => {
-        const template = m.actionTemplates[actionTemplateUuid];
-        if (!template) return;
-        if (geographicUnitsUsage) {
-          // if it already exists, do nothing, otherwise add it
-          const exists = geographicUnitsUsage.some(
-            (geoUnitUuid) => geoUnitUuid === geographicUnitUuid
-          );
-          if (exists) return;
-          template.geographicUnitsUsage.push(geographicUnitUuid); // Add new uuid
-        } else {
-          template.geographicUnitsUsage = [geographicUnitUuid];
-        }
-      });
-    } else if (onChange) {
-      // Fallback for non-Automerge usage
-      let newGeographicUnitsUsage: string[] = [];
-      if (geographicUnitsUsage) {
-        // remove any existing geographic unit with the same uuid
-        newGeographicUnitsUsage = geographicUnitsUsage.filter(
-          (uuid) => uuid !== geographicUnitUuid
-        );
-
-        newGeographicUnitsUsage = [...newGeographicUnitsUsage, geographicUnitUuid];
-      } else {
-        newGeographicUnitsUsage = [geographicUnitUuid];
-      }
-      onChange(newGeographicUnitsUsage);
-    }
-  };
+  const addGeographicUnit = useCallback(
+    (geographicUnitUuid: string) => {
+      withMissionChange((m) =>
+        applyAddGeographicUnit(m, { actionUuid, actionTemplateUuid, geographicUnitUuid })
+      );
+    },
+    [actionTemplateUuid, actionUuid]
+  );
 
   const removeNewGeographicUnit = useCallback(
     (geographicUnitUuid: string) => {
-      if (actionTemplateUuid) {
-        // Direct mutation approach for Automerge
-        missionDocHandle.change((m: Mission) => {
-          const template = m.actionTemplates[actionTemplateUuid];
-          if (!template) return;
-          const indexToRemove = template.geographicUnitsUsage.findIndex(
-            (uuid) => uuid === geographicUnitUuid
-          );
-          if (indexToRemove >= 0) {
-            template.geographicUnitsUsage.splice(indexToRemove, 1);
-          }
-        });
-      } else if (onChange && geographicUnitsUsage) {
-        // Fallback for non-Automerge usage
-        const newGeographicUnitsUsage = geographicUnitsUsage.filter(
-          (geographicUnitUsage) => geographicUnitUsage !== geographicUnitUuid
-        );
-        onChange(newGeographicUnitsUsage);
-      }
+      withMissionChange((m) =>
+        applyRemoveGeographicUnit(m, { actionUuid, actionTemplateUuid, geographicUnitUuid })
+      );
     },
-    [actionTemplateUuid, missionDocHandle, onChange, geographicUnitsUsage]
+    [actionTemplateUuid, actionUuid]
   );
 
   if (editMode) {

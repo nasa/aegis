@@ -2,39 +2,36 @@ import type { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import Actions from "../actions";
-import { useAppDispatch } from "utils/useAppDispatch";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
-import { setTraversesEditMode, upsertTraverseByField } from "store/traverse";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdateTraverseByField } from "client/automerge/apply/apply-traverse";
 
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
-  const dispatch = useAppDispatch();
-  const missionTraverseRate = useMissionDocSelector((doc) => doc.traverseRate, refEqual);
+  const missionTraverseRate = useMissionDocSelector((mission) => mission.traverseRate, refEqual);
+  const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual) ?? {};
 
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const selectedTraverse = useAppSelector(
-    (state) =>
-      state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
+  const selectedTraverse = useMissionDocSelector(
+    (mission) => mission.traverses[selectedEvaSequenceItemUuid],
     deepEqual
   );
-  const traverseActionUuids = useAppSelector(
-    (state) =>
-      state.action.actions
-        .filter((a) => a.traverseUuid === selectedTraverse.uuid)
-        ?.map((a) => a.uuid),
-    deepEqual
-  );
-  const actionsCalculatedFields = useAppSelector((state) => {
-    const traverseEva = state.eva.evas.find((eva) =>
+  const traverseActionUuids = useMissionDocSelector((mission) => {
+    return Object.values(mission.actions)
+      .filter((a) => a.traverseUuid === selectedTraverse.uuid)
+      ?.map((a) => a.uuid);
+  }, deepEqual);
+  const actionsCalculatedFields = useMissionDocSelector((mission) => {
+    const traverseEva = Object.values(mission?.evas ?? {}).find((eva) =>
       eva.sequence.some((seqItem) => seqItem.uuid === selectedTraverse?.uuid)
     );
-    const traverseActions = state.action.actions.filter(
+    const traverseActions = Object.values(allActionRecords).filter(
       (a) => a.traverseUuid === selectedTraverse?.uuid && a.enabled
     );
     const calculatedFields = getCalculatedFieldsByTraverse({
@@ -43,7 +40,7 @@ const Actions_Panel: FunctionComponent<{
       evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
     });
-    const newActionsCalculatedFields: ActionsCalculatedFields = {
+    return {
       actionCount: calculatedFields.actionCount,
       totalActionTime: calculatedFields.totalActionTime,
       totalEv1Time: calculatedFields.totalEv1Time,
@@ -52,24 +49,20 @@ const Actions_Panel: FunctionComponent<{
       totalDwellTime: calculatedFields.totalDwellTime,
       totalMass: calculatedFields.totalMass,
     };
-    return newActionsCalculatedFields;
   }, deepEqual);
 
-  const traverseInRunningRex: boolean = useAppSelector((state) => {
-    const runningRexEvaUuid = state.rex.rexes.find((rex) => rex.isRunning)?.evaUuid;
-    if (!runningRexEvaUuid) return false;
-    const runningRexEva = state.eva.evas.find((eva) => eva.uuid === runningRexEvaUuid);
-    const sequenceItem = runningRexEva.sequence.find(
-      (sequenceItem) => sequenceItem.uuid === selectedTraverse.uuid
-    );
-    if (!sequenceItem) return false;
-    return true;
+  const traverseInRunningRex: boolean = useMissionDocSelector((mission) => {
+    if (!mission?.rexes || !mission?.evas) return false;
+    const runningRex = Object.values(mission.rexes).find((rex) => rex.isRunning);
+    if (!runningRex) return false;
+    const runningRexEva = mission.evas[runningRex.evaUuid];
+    return runningRexEva?.sequence.some((s) => s.uuid === selectedTraverse?.uuid) ?? false;
   }, refEqual);
 
-  const runningRexUuid = useAppSelector(
-    (state) => state.rex.rexes.find((rex) => rex.isRunning)?.uuid,
-    refEqual
-  );
+  const runningRexUuid = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return null;
+    return Object.values(mission.rexes).find((rex) => rex.isRunning)?.uuid ?? null;
+  }, refEqual);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -80,15 +73,14 @@ const Actions_Panel: FunctionComponent<{
       <div className={paneStyles.rightBodyBody} style={{ overflowY: "hidden" }}>
         <Actions
           editMode={editMode}
-          setEditMode={(newEditMode: boolean) => {
-            dispatch(
-              setTraversesEditMode({ uuids: [selectedTraverse.uuid], editMode: newEditMode })
-            );
-          }}
           actionOrderUuids={selectedTraverse.actionOrderUuids}
           setActionOrderUuids={(actionOrderUuids) => {
-            dispatch(
-              upsertTraverseByField(selectedTraverse.uuid, "actionOrderUuids", actionOrderUuids)
+            withMissionChange((m) =>
+              applyUpdateTraverseByField(m, {
+                traverseUuid: selectedTraverse.uuid,
+                fieldName: "actionOrderUuids",
+                value: actionOrderUuids,
+              })
             );
           }}
           actionParentUuid={{ traverseUuid: selectedTraverse.uuid }}

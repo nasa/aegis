@@ -1,6 +1,4 @@
-import uniq from "lodash/uniq";
 import isNil from "lodash/isNil";
-import flatten from "lodash/flatten";
 import styles from "./side-controls.module.css";
 import type { FunctionComponent } from "react";
 import { useEffect } from "react";
@@ -45,7 +43,10 @@ export const LeftControlPanel: FunctionComponent = () => {
     refEqual
   );
 
-  const actionSystemVersion = useMissionDocSelector((doc) => doc.actionSystemVersion, refEqual);
+  const actionSystemVersion = useMissionDocSelector(
+    (mission) => mission.actionSystemVersion,
+    refEqual
+  );
 
   const paneTypes = getPaneTypes(actionSystemVersion);
 
@@ -156,7 +157,10 @@ export const RightControlPanel: FunctionComponent = () => {
   const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
 
   // get the mission automerge document so we can get actionSystemVersion
-  const actionSystemVersion = useMissionDocSelector((doc) => doc.actionSystemVersion, refEqual);
+  const actionSystemVersion = useMissionDocSelector(
+    (mission) => mission.actionSystemVersion,
+    refEqual
+  );
 
   const paneTypes = getPaneTypes(actionSystemVersion);
 
@@ -261,20 +265,6 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
 }) => {
   const dispatch = useAppDispatch();
   const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
-  const pois = useAppSelector(
-    (state) =>
-      state.poi.pois.map((p) => {
-        return { uuid: p.uuid, updatedAt: p.updatedAt };
-      }),
-    deepEqual
-  );
-  const poisFromDb = useAppSelector(
-    (state) =>
-      state.poi.poisFromDb.map((p) => {
-        return { uuid: p.uuid, updatedAt: p.updatedAt };
-      }),
-    deepEqual
-  );
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const presets = useAppSelector(
     (state) =>
@@ -291,76 +281,12 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
     deepEqual
   );
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const stations = useAppSelector(
-    (state) =>
-      state.station.stations.map((s) => {
-        return { uuid: s.uuid, updatedAt: s.updatedAt };
-      }),
-    deepEqual
-  );
-  const stationsFromDb = useAppSelector(
-    (state) =>
-      state.station.stationsFromDb.map((s) => {
-        return { uuid: s.uuid, updatedAt: s.updatedAt };
-      }),
-    deepEqual
-  );
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
     refEqual
   );
-  const asPlannedStationUuids = useAppSelector(
-    (state) => selectAsPlannedStations(state).map((s) => s.uuid),
-    deepEqual
-  );
-  const poiActions = useAppSelector(
-    (state) =>
-      state.action.actions
-        .filter((storeAction) => storeAction.poiUuid)
-        .map((a) => {
-          return { uuid: a.uuid, updatedAt: a.updatedAt };
-        }),
-    deepEqual
-  );
-  const poiActionsFromDb = useAppSelector(
-    (state) =>
-      state.action.actionsFromDb
-        .filter((storeAction) => storeAction.poiUuid)
-        .map((a) => {
-          return { uuid: a.uuid, updatedAt: a.updatedAt };
-        }),
-    deepEqual
-  );
-  const stationActions = useAppSelector(
-    (state) =>
-      state.action.actions
-        .filter((storeAction) => storeAction.stationUuid)
-        .map((sa) => {
-          return { uuid: sa.uuid, updatedAt: sa.updatedAt };
-        }),
-    deepEqual
-  );
-  const stationActionsFromDb = useAppSelector(
-    (state) =>
-      state.action.actionsFromDb
-        .filter((storeAction) => storeAction.stationUuid)
-        .map((sa) => {
-          return { uuid: sa.uuid, updatedAt: sa.updatedAt };
-        }),
-    deepEqual
-  );
-  const evas = useAppSelector(
-    (state) =>
-      state.eva.evas.map((e) => {
-        return { uuid: e.uuid, updatedAt: e.updatedAt, sequence: e.sequence };
-      }),
-    deepEqual
-  );
-  const evasFromDb = useAppSelector(
-    (state) =>
-      state.eva.evasFromDb.map((e) => {
-        return { uuid: e.uuid, updatedAt: e.updatedAt };
-      }),
+  const asPlannedStationUuids = useMissionDocSelector(
+    (mission) => selectAsPlannedStations(mission).map((s) => s.uuid),
     deepEqual
   );
   const selectedEvaSequenceItemUuid = useAppSelector(
@@ -368,21 +294,10 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
     refEqual
   );
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
-  const traverses = useAppSelector(
-    (state) =>
-      state.traverse.traverses.map((t) => {
-        return { uuid: t.uuid, updatedAt: t.updatedAt };
-      }),
-    deepEqual
+  const actionSystemVersion = useMissionDocSelector(
+    (mission) => mission.actionSystemVersion,
+    refEqual
   );
-  const traversesFromDb = useAppSelector(
-    (state) =>
-      state.traverse.traversesFromDb.map((t) => {
-        return { uuid: t.uuid, updatedAt: t.updatedAt };
-      }),
-    deepEqual
-  );
-  const actionSystemVersion = useMissionDocSelector((doc) => doc.actionSystemVersion, refEqual);
 
   const paneTypes = getPaneTypes(actionSystemVersion);
 
@@ -394,42 +309,8 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
         {/* Loop through all of the paneTypes and draw them on the gutter */}
         {Object.keys(paneTypes).map((interfaceSection: InterfaceSection) => {
           let itemModified = false;
-          switch (interfaceSection) {
-            case "mission":
-              break;
-            case "preset":
-              itemModified = isModified(presets, presetsFromDb);
-              break;
-            case "poi":
-              const poiModified = isModified(pois, poisFromDb);
-              const poiActionModified = isModified(poiActions, poiActionsFromDb);
-              itemModified = poiModified || poiActionModified;
-              break;
-            case "station":
-              const stationsModified = isModified(stations, stationsFromDb);
-              const stationActionModified = isModified(stationActions, stationActionsFromDb);
-              itemModified = stationsModified || stationActionModified;
-              break;
-            case "evas":
-              const evasModified = isModified(evas, evasFromDb);
-              const traversesModified = isModified(traverses, traversesFromDb);
-              const evaStationUuids = uniq(
-                flatten(
-                  evas.map((eva) => {
-                    const stationSeqItems = eva.sequence.filter(
-                      (seqItem) => seqItem.type === "station"
-                    );
-                    return stationSeqItems.map((s) => s.uuid);
-                  })
-                )
-              );
-              const evaStations = stations.filter((s) => evaStationUuids.includes(s.uuid));
-              const evaStationsFromDb = stationsFromDb.filter((s) =>
-                evaStationUuids.includes(s.uuid)
-              );
-              const evaStationsModified = isModified(evaStations, evaStationsFromDb);
-              itemModified = evasModified || traversesModified || evaStationsModified;
-              break;
+          if (interfaceSection === "preset") {
+            itemModified = isModified(presets, presetsFromDb);
           }
 
           const pane: PaneType = paneTypes[interfaceSection as keyof PaneTypes];
@@ -480,10 +361,7 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
                       );
                       // scenario: as-planned station is selected in station section. tab to eva section where a executed-station was previously selected
                       //  need to update right station panel to show sequence item station
-                      if (
-                        selectedEvaSequenceItemUuid &&
-                        stations.some((s) => s.uuid === selectedEvaSequenceItemUuid)
-                      ) {
+                      if (selectedEvaSequenceItemUuid) {
                         dispatch(setSelectedStationUuid(selectedEvaSequenceItemUuid));
                       }
                       break;

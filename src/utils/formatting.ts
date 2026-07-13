@@ -352,6 +352,27 @@ export const isISOString = (isoString: string): boolean => {
   return !isNaN(testDate.getTime()) && testDate.toISOString() === normalizedISOString;
 };
 
+/**
+ * Converts a numeric Unix timestamp (ms) to an ISO string.
+ * Returns null if the value is null/undefined.
+ */
+export const numericDatetimeToISO = (datetime: number | null | undefined): string | null => {
+  if (datetime == null) return null;
+  return new Date(datetime).toISOString();
+};
+
+/**
+ * Converts a string or number datetime to a numeric Unix timestamp (ms).
+ * Accepts ISO strings (legacy) or numeric values (current format).
+ * Returns null for empty string, null, or undefined.
+ */
+export const toNumericDatetime = (datetime: string | number | null | undefined): number | null => {
+  if (datetime == null || datetime === "") return null;
+  if (typeof datetime === "number") return datetime;
+  const ms = new Date(datetime).getTime();
+  return isNaN(ms) ? null : ms;
+};
+
 export const isNotNumber = (value: unknown): boolean => {
   return value === null || value === undefined || isNaN(Number(value)) || typeof value !== "number";
 };

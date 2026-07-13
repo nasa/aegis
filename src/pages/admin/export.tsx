@@ -6,11 +6,11 @@ import { refEqual } from "utils/useAppSelector";
 import { isLoggedIn } from "http-client/login";
 import { dumpMission } from "http-client/mission";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkMakeExportString } from "store/thunk/thunkMission";
 import { setAllSliceStores } from "store/crossActions";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import adminCommon from "./adminCommon.module.css";
+import { makeExportString } from "utils/export";
 
 type RouteParams = {
   id: string;
@@ -25,7 +25,8 @@ const ExportPage: React.FunctionComponent = () => {
   const slug = params.id;
   const intMissionId = parseInt(slug);
 
-  const missionName = useMissionDocSelector((doc) => doc.name, refEqual);
+  const missionName = useMissionDocSelector((mission) => mission.name, refEqual);
+  const mission = useMissionDocSelector((mission) => mission, refEqual);
 
   const [selectedOutput, setSelectedOutput] = useState("");
   const [selectEvas, setSelectEvas] = useState(true);
@@ -70,7 +71,7 @@ const ExportPage: React.FunctionComponent = () => {
     <main className={adminCommon.page}>
       <div className={adminCommon.container}>
         <Link to="/admin/missions" className={adminCommon.backLink}>
-          ← Missions
+          â† Missions
         </Link>
         <h1 className={adminCommon.pageTitle}>Export Mission</h1>
         {missionName && (
@@ -154,18 +155,17 @@ const ExportPage: React.FunctionComponent = () => {
                 className={adminCommon.button}
                 onClick={() => {
                   const makeExportStringAsync = async () => {
-                    const output = await dispatch(
-                      thunkMakeExportString({
-                        selectEvas,
-                        selectMission,
-                        selectPois,
-                        selectStations,
-                        selectActions,
-                        selectTraverses,
-                        selectRexes,
-                      })
-                    );
-                    setSelectedOutput(output.payload as string);
+                    const output = makeExportString({
+                      mission,
+                      selectEvas,
+                      selectMission,
+                      selectPois,
+                      selectStations,
+                      selectActions,
+                      selectTraverses,
+                      selectRexes,
+                    });
+                    setSelectedOutput(output);
                   };
                   makeExportStringAsync();
                 }}
@@ -176,21 +176,20 @@ const ExportPage: React.FunctionComponent = () => {
                 className={adminCommon.button}
                 onClick={() => {
                   const makeExportStringAsync = async () => {
-                    const output = await dispatch(
-                      thunkMakeExportString({
-                        selectEvas,
-                        selectMission,
-                        selectPois,
-                        selectStations,
-                        selectActions,
-                        selectTraverses,
-                        selectRexes,
-                      })
-                    );
-                    setSelectedOutput(output.payload as string);
+                    const output = makeExportString({
+                      mission,
+                      selectEvas,
+                      selectMission,
+                      selectPois,
+                      selectStations,
+                      selectActions,
+                      selectTraverses,
+                      selectRexes,
+                    });
+                    setSelectedOutput(output);
 
                     const element = document.createElement("a");
-                    const file = new Blob([output.payload as string], { type: "text/json" });
+                    const file = new Blob([output], { type: "text/json" });
                     element.href = URL.createObjectURL(file);
                     let filename = `${missionName}_`;
                     if (selectEvas) filename += "evas_";

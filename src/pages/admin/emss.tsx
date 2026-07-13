@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { isLoggedIn } from "http-client/login";
 import React from "react";
 import type { Socket } from "socket.io-client";
-import { createSocket } from "utils/socketStuff";
+import { createClientSocket } from "utils/clientSocketHelpers";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlug } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
@@ -43,7 +43,7 @@ const Emss: React.FunctionComponent = () => {
       // Create a socket connection to the server.
       // On handshake, the server will generate an socket id for the client
       if (!socket.current || (socket.current && !socket.current.connected)) {
-        socket.current = createSocket(window.location.origin);
+        socket.current = createClientSocket(window.location.origin);
       }
 
       socket.current.on("connect", () => {
@@ -188,6 +188,9 @@ const Emss: React.FunctionComponent = () => {
         <section className={adminCommon.section}>
           <h2>Clear REX Properties</h2>
           <div className={adminCommon.details}>
+            <p className={adminCommon.descriptionText}>
+              Essentially hits the api/v1/emss/rexControl endpoint manually
+            </p>
             <div className={adminCommon.definitionList}>
               <div className={adminCommon.definitionRow}>
                 <dt>Rex UUID</dt>
@@ -259,7 +262,7 @@ const Emss: React.FunctionComponent = () => {
         </section>
 
         <section className={adminCommon.section}>
-          <h2>Maestro Connections</h2>
+          <h2>Maestro Connections (Deprecated)</h2>
           <div className={adminCommon.details}>
             <p className={adminCommon.descriptionText}>
               This page is also connected to the Maestro socket room. Open browser console to

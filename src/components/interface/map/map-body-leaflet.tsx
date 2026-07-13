@@ -1,4 +1,8 @@
-import * as L from "leaflet";
+// IMPORTANT: use `import L from "leaflet"`, NOT `import * as L from "leaflet"`.
+// The leaflet plugins below are CJS and patch `L` via `require("leaflet")`. In prod builds
+// the namespace-import form resolves to a different interop wrapper, so plugin additions
+// like `L.Proj` end up undefined at runtime if you don't do it correctly.
+import L from "leaflet";
 L.Icon.Default.imagePath = "/leaflet/images/";
 // Import the plugin libraries so they will modify L
 import "leaflet.tilelayer.colorfilter";
@@ -9,7 +13,7 @@ import DraggableLines from "leaflet-draggable-lines";
 import styles from "components/interface/map/map-body.module.css";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import type { MutableRefObject, FunctionComponent } from "react";
-import { useEffect, useRef, useState, useCallback, useLayoutEffect } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from "react";
 import isEqual from "lodash/isEqual";
 import reverse from "lodash/reverse";
 import uniqBy from "lodash/uniqBy";
@@ -25,13 +29,12 @@ import {
   getGridCoordinatesFromPoint,
   getMidpoint,
 } from "utils/mapping/geoMath";
-import { secondsFromhhmmss, hhmmssFromSeconds, titleCase, isISOString } from "utils/formatting";
+import { secondsFromhhmmss, hhmmssFromSeconds, titleCase } from "utils/formatting";
 import { EmojiRenderer } from "components/interface/emojis";
 import { clearMapItemHover, setHoverUuidsForSequence, setHoverUuidsForPosEntry } from "store/hover";
 
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
-import { thunkGetStationOrTraverse } from "store/thunk/thunkEva";
 import { MapViewMenu } from "./map-menu-view";
 import { MapPositionMenu } from "./map-menu-pos";
 import MapPresetMenu from "./map-menu-preset";
@@ -71,6 +74,7 @@ import { getCalculatedTimeOfSequenceItem } from "store/processing/calculatedFiel
 import { addTimeToDateTime } from "utils/mapping/timeLayers";
 import { EARTH_RADIUS } from "utils/consts";
 import { globalGrid } from "utils/mapping/grid";
+
 import { selectAsPlannedStations } from "store/selectors";
 import { LoadingOverlay } from "../_global-elements";
 import { getStmActionName } from "utils/component-helpers";
@@ -91,28 +95,28 @@ const MapBody: FunctionComponent<{}> = () => {
   const hoverFeatureGroup = useRef<L.FeatureGroup>(null);
   const hoverAstronautFeatureGroup = useRef<L.FeatureGroup>(null);
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      id: doc.id,
-      landerLocation: doc.landerLocation,
-      projIsCustom: doc.projIsCustom,
-      projResUnitsPerPixel: doc.projResUnitsPerPixel,
-      projResZoomLevel: doc.projResZoomLevel,
-      projEpsg: doc.projEpsg,
-      projProj4String: doc.projProj4String,
-      projOriginX: doc.projOriginX,
-      projOriginY: doc.projOriginY,
-      projBoundsMinX: doc.projBoundsMinX,
-      projBoundsMinY: doc.projBoundsMinY,
-      projBoundsMaxX: doc.projBoundsMaxX,
-      projBoundsMaxY: doc.projBoundsMaxY,
-      initialZoom: doc.initialZoom,
-      planetRadius: doc.planetRadius,
-      usingLGRSCoordinates: doc.usingLGRSCoordinates,
-      circleDefinitions: doc.circleDefinitions,
-      actionDefinitions: doc.actionDefinitions,
-      activeGridUuid: doc.activeGridUuid,
-      walkbackRate: doc.walkbackRate,
-      traverseRate: doc.traverseRate,
+    (mission) => ({
+      id: mission.id,
+      landerLocation: mission.landerLocation,
+      projIsCustom: mission.projIsCustom,
+      projResUnitsPerPixel: mission.projResUnitsPerPixel,
+      projResZoomLevel: mission.projResZoomLevel,
+      projEpsg: mission.projEpsg,
+      projProj4String: mission.projProj4String,
+      projOriginX: mission.projOriginX,
+      projOriginY: mission.projOriginY,
+      projBoundsMinX: mission.projBoundsMinX,
+      projBoundsMinY: mission.projBoundsMinY,
+      projBoundsMaxX: mission.projBoundsMaxX,
+      projBoundsMaxY: mission.projBoundsMaxY,
+      initialZoom: mission.initialZoom,
+      planetRadius: mission.planetRadius,
+      usingLGRSCoordinates: mission.usingLGRSCoordinates,
+      circleDefinitions: mission.circleDefinitions,
+      actionDefinitions: mission.actionDefinitions,
+      activeGridUuid: mission.activeGridUuid,
+      walkbackRate: mission.walkbackRate,
+      traverseRate: mission.traverseRate,
     }),
     deepEqual
   );
@@ -120,7 +124,8 @@ const MapBody: FunctionComponent<{}> = () => {
   const missionLayers = useAppSelector((state) => state.mission.layers, deepEqual);
   const missionSublayers = useAppSelector((state) => state.mission.sublayers, deepEqual);
   const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
-  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
+  const mapDirective = useAppSelector((state) => state.map.mapDirective, deepEqual);
+  const originalPoints = useAppSelector((state) => state.map.originalPoints, refEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset = useAppSelector(
     (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
@@ -128,48 +133,59 @@ const MapBody: FunctionComponent<{}> = () => {
   );
   const presetsFromDb = useAppSelector((state) => state.preset.presets, deepEqual);
 
-  const pois = useAppSelector((state) => state.poi.pois, deepEqual);
-  const asPlannedStationUuids = useAppSelector(
-    (state) => selectAsPlannedStations(state).map((s) => s.uuid),
+  const pois = useMissionDocSelector((mission) => Object.values(mission?.pois ?? {}), deepEqual);
+  const asPlannedStationUuids = useMissionDocSelector(
+    (mission) => selectAsPlannedStations(mission).map((s) => s.uuid),
     deepEqual
   );
-  const allStations = useAppSelector((state) => state.station.stations, deepEqual);
-  const actions = useAppSelector((state) => state.action.actions, deepEqual);
-  const selectedPoi = useAppSelector(
-    (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
+  const allStations = useMissionDocSelector(
+    (mission) => Object.values(mission.stations),
     deepEqual
   );
-  const selectedStation = useAppSelector(
-    (state) =>
-      state.station.stations.find((station) => station.uuid === state.station.selectedStationUuid),
+  const selectedStationUuid = useAppSelector(
+    (state) => state.station.selectedStationUuid,
+    refEqual
+  );
+  const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual);
+  const actions = Object.values(allActionRecords);
+  const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
+  const selectedPoi = useMissionDocSelector(
+    (mission) => (selectedPoiUuid ? mission.pois[selectedPoiUuid] : undefined),
     deepEqual
   );
-  const selectedEva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid),
+  const selectedStation = useMissionDocSelector(
+    (mission) => mission.stations[selectedStationUuid],
+    deepEqual
+  );
+  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
+  const selectedEva = useMissionDocSelector(
+    (mission) => (selectedEvaUuid ? mission.evas?.[selectedEvaUuid] : null),
     deepEqual
   );
   const presetPreviewTime = useAppSelector((state) => state.preset.presetPreviewTime, refEqual);
-  const selectedRex = useAppSelector((state) => {
-    return state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid);
-  }, deepEqual);
-
-  // Extract posTypes, posSources, and posEntries directly with selectors that use deepEqual to prevent unnecessary re-renders
-  const posTypes = useAppSelector(
-    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid)?.posTypes || [],
-    deepEqual
-  );
-  const posSources = useAppSelector(
-    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid)?.posSources || [],
-    deepEqual
-  );
-  const posEntries = useAppSelector(
-    (state) => state.rex.rexes.find((r) => r.uuid === state.rex.selectedRexUuid)?.posEntries || [],
+  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
+  const selectedRex = useMissionDocSelector(
+    (mission) => (selectedRexUuid ? mission.rexes?.[selectedRexUuid] : null),
     deepEqual
   );
 
-  const runningRexEvaDatetime = useAppSelector((state) => {
-    const runningRexEva = state.eva.evas.find((eva) => eva.uuid === selectedRex?.evaUuid);
-    return runningRexEva ? runningRexEva.datetime : null;
+  // Extract posTypes, posEntries, and posSources directly to prevent unnecessary re-renders in useEffects
+  const posTypes = useMissionDocSelector(
+    (mission) => (selectedRexUuid ? mission.rexes?.[selectedRexUuid]?.posTypes : null) ?? [],
+    deepEqual
+  );
+  const posSources = useMissionDocSelector(
+    (mission) => (selectedRexUuid ? mission.rexes?.[selectedRexUuid]?.posSources : null) ?? [],
+    deepEqual
+  );
+  const posEntries = useMissionDocSelector(
+    (mission) => (selectedRexUuid ? mission.rexes?.[selectedRexUuid]?.posEntries : null) ?? [],
+    deepEqual
+  );
+
+  const runningRexEvaDatetime = useMissionDocSelector((mission) => {
+    if (!mission?.evas || !selectedRex) return null;
+    return mission.evas[selectedRex.evaUuid]?.datetime ?? null;
   }, deepEqual);
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -178,10 +194,9 @@ const MapBody: FunctionComponent<{}> = () => {
   const hover = useAppSelector((state) => state.hover, shallowEqual); //astronaut hover timeline
 
   const selectedPosEntryUuid = useAppSelector((state) => state.rex.selectedPosEntryUuid, refEqual);
-  const traverses = useAppSelector((state) => state.traverse.traverses, deepEqual);
-  const selectedTraverse = useAppSelector(
-    (state) =>
-      state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
+  const traverses = useMissionDocSelector((mission) => Object.values(mission.traverses), deepEqual);
+  const selectedTraverse = useMissionDocSelector(
+    (mission) => mission.traverses[selectedEvaSequenceItemUuid],
     deepEqual
   );
 
@@ -190,37 +205,40 @@ const MapBody: FunctionComponent<{}> = () => {
     (state) => state.measure.selectedMeasurementUuid,
     refEqual
   );
-  const sequenceTime = useAppSelector(
-    (state) =>
+  const allEvas = useMissionDocSelector((mission) => mission.evas ?? {}, deepEqual);
+  const sequenceTime = useMemo(
+    () =>
       getCalculatedTimeOfSequenceItem({
-        evaUuid: state.eva.selectedEvaUuid,
-        sequenceItemUuid: state.eva.selectedEvaSequenceItemUuid,
-        evas: state.eva.evas,
-        stations: state.station.stations,
-        actions: state.action.actions,
-        traverses: state.traverse.traverses,
+        evaUuid: selectedEvaUuid,
+        sequenceItemUuid: selectedEvaSequenceItemUuid,
+        evas: Object.values(allEvas ?? {}),
+        stations: allStations,
+        actions: Object.values(allActionRecords),
+        traverses: traverses,
         missionWalkbackRate: partialMission.walkbackRate,
         missionTraverseRate: partialMission.traverseRate,
       }),
-    deepEqual
+    [
+      selectedEvaUuid,
+      selectedEvaSequenceItemUuid,
+      allEvas,
+      allStations,
+      allActionRecords,
+      traverses,
+      partialMission.walkbackRate,
+      partialMission.traverseRate,
+    ]
   );
 
   const mapHoverItemUuid = useAppSelector((state) => state.hover.mapItemUuid, refEqual);
   const mapHoverItemType = useAppSelector((state) => state.hover.mapItemType, refEqual);
-  const egressLocation = useAppSelector(
-    (state) => {
-      if (isEqual(selectedEva?.egressLocationUuid, "lander")) {
-        return partialMission.landerLocation;
-      } else {
-        const foundStation = state.station.stations.find(
-          (station) => station.uuid === selectedEva?.egressLocationUuid
-        );
-        return foundStation ? foundStation.location : null;
-      }
-    },
-
+  const egressStation = useMissionDocSelector(
+    (mission) => mission.stations[selectedEva?.egressLocationUuid],
     deepEqual
   );
+  const egressLocation = isEqual(selectedEva?.egressLocationUuid, "lander")
+    ? partialMission.landerLocation
+    : (egressStation?.location ?? null);
 
   const folders = useAppSelector(
     (state) =>
@@ -439,10 +457,14 @@ const MapBody: FunctionComponent<{}> = () => {
     if (!hoverAstronautFeatureGroup.current) {
       hoverAstronautFeatureGroup.current = L.featureGroup().addTo(map.current);
     }
+
+    // Init coords for the measure tool
+    setMeasureStartingCoords(map, dispatch);
   }, [
     mapRef,
     map,
     draggableLines,
+    dispatch,
     partialMission.landerLocation,
     partialMission.projIsCustom,
     partialMission.projResUnitsPerPixel,
@@ -661,7 +683,7 @@ const MapBody: FunctionComponent<{}> = () => {
   useEffect(() => {
     if (!map.current || !draggableLines || !mapDirective) return;
 
-    handleMapDirective({ map, mapDirective, draggableLines, dispatch });
+    handleMapDirective({ map, mapDirective, originalPoints, draggableLines, dispatch });
     if (
       mapDirective.mapAction === "editMarker" ||
       mapDirective.mapAction === "createMarker" ||
@@ -694,7 +716,7 @@ const MapBody: FunctionComponent<{}> = () => {
         draggableLines.current.off("drag");
       }
     };
-  }, [map, draggableLines, mapDirective, dispatch]);
+  }, [map, draggableLines, mapDirective, originalPoints, dispatch]);
 
   /**
    * Determine stations to show and draw them on map when stations or selections change
@@ -897,9 +919,8 @@ const MapBody: FunctionComponent<{}> = () => {
       setMapDateTime(selectedRexDateTime);
     } else if (sequenceTime) {
       setMapDateTime(sequenceTime);
-    } else if (selectedEva?.datetime && isISOString(selectedEva?.datetime)) {
-      const datetime = selectedEva.datetime;
-      setMapDateTime(datetime);
+    } else if (selectedEva?.datetime != null) {
+      setMapDateTime(new Date(selectedEva.datetime).toISOString());
     } else if (missionSublayers) {
       setMapDateTime(
         missionSublayers.find((sublayer) => sublayer.isTimeBased)?.timeLayerManifest[0].datetime
@@ -932,7 +953,9 @@ const MapBody: FunctionComponent<{}> = () => {
 
         // If the REX is not running but you are viewing it, show the REX start time
       } else if (!selectedRex.isRunning && sectionSelected === "evas") {
-        setSelectedRexDateTime(runningRexEvaDatetime);
+        setSelectedRexDateTime(
+          runningRexEvaDatetime != null ? new Date(runningRexEvaDatetime).toISOString() : null
+        );
 
         // Otherwise, don't display a REX time
       } else {
@@ -1909,13 +1932,14 @@ const MapBody: FunctionComponent<{}> = () => {
       );
       if (sequenceItem) {
         let location: AEGISPoint = { lat: 0, lng: 0 };
-        const seqItemRes = await dispatch(thunkGetStationOrTraverse({ uuid: sequenceItem.uuid }));
-        if (!seqItemRes.payload) return location;
+        const matchedStation = allStations.find((s) => s.uuid === sequenceItem.uuid);
+        const matchedTraverse = traverses.find((t) => t.uuid === sequenceItem.uuid);
+        if (!matchedStation && !matchedTraverse) return location;
 
-        if (seqItemRes.payload.type === "station") {
-          location = (seqItemRes.payload.item as Station).location;
-        } else if (seqItemRes.payload.type === "traverse") {
-          const traverse = seqItemRes.payload.item as Traverse;
+        if (matchedStation) {
+          location = matchedStation.location;
+        } else if (matchedTraverse) {
+          const traverse = matchedTraverse as Traverse;
 
           //how far (in distance) are we along the entire traverse. Ex: 5m into a 25m traverse
           const cumulativeCurrentDistance =
@@ -2017,7 +2041,7 @@ const MapBody: FunctionComponent<{}> = () => {
       }
     };
     updateHoverTimelineMarkerAsync();
-  }, [hover, selectedEva, dispatch, partialMission.planetRadius, isWin10]);
+  }, [hover, selectedEva, dispatch, partialMission.planetRadius, isWin10, allStations, traverses]);
 
   /**
    * Draw or update hover measure marker (cross mark) on the map when the hover x value changes.
@@ -2159,18 +2183,13 @@ const MapBody: FunctionComponent<{}> = () => {
           panMapToLocation = posLocation;
         } else if (selectedEvaSequenceItemUuid) {
           // if a sequence item is selected. highlight and pan over there
-          const seqItemRes = await dispatch(
-            thunkGetStationOrTraverse({ uuid: selectedEvaSequenceItemUuid })
-          );
-          if (seqItemRes.payload) {
-            const seqItem = seqItemRes.payload;
-            if (seqItem.type === "traverse") {
-              panMapToLocation = getMidpoint((seqItem.item as Traverse).path);
-            } else if (seqItem.type === "station") {
-              const selectedStation = seqItem.item as Station;
-              highlightLocation = selectedStation.location;
-              panMapToLocation = selectedStation.location;
-            }
+          const matchedStation = allStations.find((s) => s.uuid === selectedEvaSequenceItemUuid);
+          const matchedTraverse = traverses.find((t) => t.uuid === selectedEvaSequenceItemUuid);
+          if (matchedTraverse) {
+            panMapToLocation = getMidpoint(matchedTraverse.path);
+          } else if (matchedStation) {
+            highlightLocation = matchedStation.location;
+            panMapToLocation = matchedStation.location;
           }
         } else if (selectedEva) {
           // if eva title is selected, pan to the midpoint of all stations in the eva
@@ -2216,6 +2235,8 @@ const MapBody: FunctionComponent<{}> = () => {
     selectedMeasurementUuid,
     measurements,
     selectedEva?.sequence,
+    allStations,
+    traverses,
   ]);
 
   /**
@@ -2344,6 +2365,8 @@ const MapBody: FunctionComponent<{}> = () => {
             presetsFromDb={presetsFromDb}
           />
         </div>
+        {/* TODO #920*/}
+        {/* eslint-disable-next-line react-hooks/refs */}
         <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
         <div className={styles.mapPositionDisplay}>
           {showMouseLatLon && mouseLatLng && latLngDiv(mouseLatLng)}

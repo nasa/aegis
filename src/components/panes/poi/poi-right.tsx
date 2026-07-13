@@ -1,87 +1,73 @@
 import type { FunctionComponent } from "react";
-import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
+import { useMemo } from "react";
+import { useAppSelector, shallowEqual, refEqual } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import {
   faCircleInfo,
   faPersonDigging,
-  faBan,
-  faFloppyDisk,
   faTrashAlt,
-  faEdit,
   faTriangleExclamation,
   faCheck,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button, IconDropdown, InLineEditInput } from "components/interface/form/globalFields";
-import { setSelectedPOIRightNavItem, setPoiEditMode, upsertPoiByField } from "store/poi";
+import { Button, IconDropdown } from "components/interface/form/globalFields";
+import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
+import { setSelectedPOIRightNavItem } from "store/poi";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdatePoiByField } from "client/automerge/apply/apply-poi";
 import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkSavePoi, thunkDeletePoi, thunkPoiCancel } from "store/thunk/thunkPoi";
+import { thunkDocDeletePoi } from "store/thunk/thunkPoi";
 import Report_Panel from "../report";
-import { getAlertColor, isModified } from "utils/component-helpers";
+import { getAlertColor } from "utils/component-helpers";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 import isNull from "lodash/isNull";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
-  const selectedPoi = useAppSelector(
-    (state) => state.poi.pois.find((poi) => poi.uuid === selectedPoiUuid),
-    deepEqual
+  const docMaps = useMissionDocSelector(
+    (mission) => ({
+      pois: mission.pois,
+      actions: mission.actions,
+      stations: mission.stations,
+    }),
+    shallowEqual
   );
-  const poisEditing = useAppSelector((state) => state.poi.poisEditing, shallowEqual);
-  const calculatedFieldsReportItems = useAppSelector((state) => {
-    const poiActions = state.action.actions.filter(
+  const selectedPoi = useMemo(
+    () => (selectedPoiUuid ? docMaps?.pois[selectedPoiUuid] : undefined),
+    [docMaps, selectedPoiUuid]
+  );
+  const isInEditMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
+  const calculatedFieldsReportItems = useMemo(() => {
+    if (!docMaps) return [];
+    const poiActions = Object.values(docMaps.actions).filter(
       (a) => a.poiUuid === selectedPoiUuid && a.enabled
     );
-    return getCalculatedFieldsByPoi({ poiUuid: selectedPoiUuid, poiActions })?.reportItems;
-  }, deepEqual);
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
-
-  //these selectors from the store are only used to calculate modified. refactor?
-  const poiActions = useAppSelector(
-    (state) =>
-      state.action.actions
-        .filter((storeAction) => storeAction.poiUuid === selectedPoiUuid)
-        .map((a) => {
-          return { uuid: a.uuid, updatedAt: a.updatedAt };
-        }),
-    deepEqual
+    return getCalculatedFieldsByPoi({ poiUuid: selectedPoiUuid, poiActions })?.reportItems ?? [];
+  }, [docMaps, selectedPoiUuid]);
+  const otherPoiNames = useMemo(
+    () =>
+      docMaps
+        ? Object.values(docMaps.pois)
+            .filter((poi) => poi.uuid !== selectedPoiUuid)
+            .map((poi) => poi.name)
+        : [],
+    [docMaps, selectedPoiUuid]
   );
-  const poiActionsFromDb = useAppSelector(
-    (state) =>
-      state.action.actionsFromDb
-        .filter((storeAction) => storeAction.poiUuid === selectedPoiUuid)
-        .map((a) => {
-          return { uuid: a.uuid, updatedAt: a.updatedAt };
-        }),
-    deepEqual
+  const stationNamesAssociatedWithPoi = useMemo(
+    () =>
+      docMaps
+        ? Object.values(docMaps.stations)
+            .filter((station) => station.poiUuids?.includes(selectedPoiUuid))
+            .map((s) => s.name)
+        : [],
+    [docMaps, selectedPoiUuid]
   );
-  const selectedPoiFromDb = useAppSelector(
-    (state) => state.poi.poisFromDb.find((poi) => poi.uuid === selectedPoiUuid),
-    deepEqual
-  );
-  const otherPoiNames = useAppSelector(
-    (state) =>
-      state.poi.pois.map(({ name, uuid }) => {
-        if (uuid !== selectedPoiUuid) {
-          return name;
-        }
-      }),
-    deepEqual
-  );
-  const stationNamesAssociatedWithPoi = useAppSelector((state) => {
-    return state.station.stations
-      .filter((station) => station.poiUuids?.includes(selectedPoiUuid))
-      .map((s) => s.name);
-  }, shallowEqual);
-
-  const poiModified = isModified([selectedPoi], [selectedPoiFromDb]);
-  const actionModified = isModified(poiActions, poiActionsFromDb);
-  const modified = poiModified || actionModified;
 
   const reportsTabIconColor = getAlertColor(calculatedFieldsReportItems) || "var(--station)";
 
@@ -90,7 +76,7 @@ const PoiEditorRight: FunctionComponent = () => {
       title: "POI Information",
       panel: Info_Panel,
       panelProps: {
-        editMode: poisEditing.includes(selectedPoiUuid),
+        editMode: isInEditMode,
       },
       selectedColor: "white",
       icon: faCircleInfo,
@@ -99,7 +85,7 @@ const PoiEditorRight: FunctionComponent = () => {
       title: "POI Actions",
       panel: Actions_Panel,
       panelProps: {
-        editMode: poisEditing.includes(selectedPoiUuid),
+        editMode: isInEditMode,
       },
       selectedColor: "white",
       icon: faPersonDigging,
@@ -126,9 +112,15 @@ const PoiEditorRight: FunctionComponent = () => {
         <div className={paneStyles.rightTopTitle}>
           <IconDropdown
             selected={selectedPoi.icon}
-            editing={poisEditing.includes(selectedPoiUuid)}
+            editing={isInEditMode}
             setSelected={(value: string) => {
-              dispatch(upsertPoiByField(selectedPoi.uuid, "icon", value));
+              withMissionChange((m) =>
+                applyUpdatePoiByField(m, {
+                  poiUuid: selectedPoi.uuid,
+                  fieldName: "icon",
+                  value,
+                })
+              );
             }}
             items={[
               "1F534",
@@ -156,31 +148,31 @@ const PoiEditorRight: FunctionComponent = () => {
             ]}
           />
 
-          <div className={paneStyles.rightTopTitleText} style={{ color: "var(--poi)" }}>
-            <InLineEditInput
+          <div className={paneStyles.rightTopTitleText}>
+            <ValidatedInputField
               value={selectedPoi.name}
-              editing={poisEditing.includes(selectedPoiUuid)}
+              editMode={isInEditMode}
               fieldProps={{
                 name: "name",
                 ariaLabel: "POI",
-                style: {
-                  width: "100%",
-                  color: "var(--poi)",
-                  fontSize: "1em",
-                },
                 validators: [
                   validators.required,
                   validators.maxLength(255),
                   validators.mustBeUnique(otherPoiNames),
                 ],
               }}
-              styleValue={{ padding: 0, height: "auto" }}
               styleContainer={{ paddingRight: "10px" }}
+              displayStyle={{ fontSize: "1.1em", color: "var(--poi)" }}
               onSubmit={(val: string) => {
-                dispatch(upsertPoiByField(selectedPoi.uuid, "name", val || ""));
+                withMissionChange((m) =>
+                  applyUpdatePoiByField(m, {
+                    poiUuid: selectedPoi.uuid,
+                    fieldName: "name",
+                    value: val || "",
+                  })
+                );
               }}
               key={`${selectedPoi.uuid}-name`}
-              toFocus={selectedPoi.createdAt === selectedPoi.updatedAt}
             />
           </div>
         </div>
@@ -191,7 +183,7 @@ const PoiEditorRight: FunctionComponent = () => {
             dispatchFunction={setSelectedPOIRightNavItem}
           />
           <div className={paneStyles.saveCancelContainer}>
-            {poisEditing.includes(selectedPoiUuid) && (
+            {isInEditMode && (
               <Button
                 ariaLabel="deletePoi"
                 icon={faTrashAlt}
@@ -205,8 +197,8 @@ const PoiEditorRight: FunctionComponent = () => {
                     }
                     if (window.confirm(confirmMsg)) {
                       dispatch(
-                        thunkDeletePoi({
-                          poi: selectedPoi,
+                        thunkDocDeletePoi({
+                          poiUuid: selectedPoi.uuid,
                         })
                       );
                     }
@@ -215,59 +207,6 @@ const PoiEditorRight: FunctionComponent = () => {
                 toolTip="Delete POI"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "9px" }}
               />
-            )}
-            {!poisEditing.includes(selectedPoiUuid) && editPerms && (
-              <Button
-                ariaLabel="editPoi"
-                icon={faEdit}
-                onClick={() => {
-                  dispatch(setPoiEditMode({ poiUuid: selectedPoiUuid, editMode: true }));
-                }}
-                label="Edit"
-                toolTip="Edit POI"
-                style={{ width: "60px", fontSize: "0.9em" }}
-                labelStyle={{ marginTop: "2px" }}
-              />
-            )}
-
-            {poisEditing.includes(selectedPoiUuid) && (
-              <>
-                <Button
-                  ariaLabel="savePoi"
-                  onClick={() => {
-                    if (selectedPoi && modified) {
-                      dispatch(
-                        thunkSavePoi({
-                          poi: selectedPoi,
-                        })
-                      );
-                    }
-                  }}
-                  icon={faFloppyDisk}
-                  toolTip={`Save POI${modified ? "" : " (nothing to save)"}`}
-                  enabled={modified}
-                  style={{
-                    width: "30px",
-                    backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
-                    color: modified ? "white" : "var(--grey4)",
-                    fontSize: "0.9em",
-                    paddingLeft: "9px",
-                  }}
-                />
-                <Button
-                  ariaLabel="cancelPoi"
-                  onClick={() => {
-                    dispatch(
-                      thunkPoiCancel({
-                        poi: selectedPoi,
-                      })
-                    );
-                  }}
-                  icon={faBan}
-                  toolTip="Cancel Edit"
-                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "8px" }}
-                />
-              </>
             )}
           </div>
         </div>

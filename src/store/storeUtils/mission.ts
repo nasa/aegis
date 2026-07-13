@@ -1,5 +1,3 @@
-import type { Mission_db } from "server/database/models/_allModels";
-
 import { v4 as uuidv4 } from "uuid";
 
 import { getAccurateNow } from "utils/formatting";
@@ -13,6 +11,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
   const defaultNewMission: Mission = {
     id: null,
     name: "",
+    maestroDocId: null,
     isArchived: false,
     usingLGRSCoordinates: false,
     description: "",
@@ -44,6 +43,12 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     projResUnitsPerPixel: 0,
     circleDefinitions: {},
     actionTemplates: {},
+    pois: {},
+    actions: {},
+    stations: {},
+    traverses: {},
+    evas: {},
+    rexes: {},
     stmLevel1Enabled: true,
     stmLevel1Name: "Goal",
     stmLevel2Name: "Objective",
@@ -84,18 +89,6 @@ export const generateBlankActionTemplate = (
   };
   return { ...defaultNewActionTemplate, ...partialActionTemplate };
 };
-
-/**
- * Converts db mission to store mission type
- * @param dbMissions an array of missions in mikro db format
- * @returns an a converted array of missions or a single mission
- */
-export function convertMissionsTypeDbToStore(dbMissions: Mission_db[]): Mission[] {
-  // remove version field from mikro orm using destructuring
-  return dbMissions.map(({ version: _version, ...mission }) => ({
-    ...mission,
-  }));
-}
 
 export const generateDefaultActionDefinitions = (
   partialActionDefinitions?: Partial<ActionDefinitions>

@@ -1,18 +1,12 @@
 import { serverLogger } from "utils/logging/serverLogger";
 import type { EntityManager } from "@mikro-orm/postgresql";
 import {
-  Station_db,
-  Poi_db,
-  Action_db,
-  Eva_db,
   Layer_db,
   Preset_db,
-  Rex_db,
   STM_Level1_db,
   STM_Level2_db,
   STM_Level3_db,
   Sublayer_db,
-  Traverse_db,
   Grid_db,
   STM_Rule_db,
   Folder_db,
@@ -20,328 +14,6 @@ import {
 import { getAccurateNow } from "utils/formatting";
 
 import { createUuidMapping } from "./helpers";
-
-// Duplicate/Restore Stations
-export const processStations = (
-  em: EntityManager,
-  stations: Station_db[],
-  missionId: number,
-  uuidMaps: EntityMaps
-): void => {
-  for (const station of stations) {
-    if (!station || !station.uuid) continue;
-
-    const newUuid = createUuidMapping(station.uuid, uuidMaps.stations);
-
-    const stationData = {
-      ...station,
-      uuid: newUuid,
-      missionId,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
-    };
-
-    delete stationData.action;
-    delete stationData.poi;
-
-    const newStation = em.create(Station_db, stationData);
-    em.persist(newStation);
-  }
-};
-
-// Duplicate/Restore POIs
-export const processPois = (
-  em: EntityManager,
-  pois: Poi_db[],
-  missionId: number,
-  uuidMaps: EntityMaps
-): void => {
-  for (const poi of pois) {
-    if (!poi || !poi.uuid) continue;
-
-    const newUuid = createUuidMapping(poi.uuid, uuidMaps.pois);
-
-    const poiData = {
-      ...poi,
-      uuid: newUuid,
-      missionId,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
-    };
-
-    delete poiData.station;
-
-    const newPoi = em.create(Poi_db, poiData);
-    em.persist(newPoi);
-  }
-};
-
-// Update POI action order UUIDs
-export const updatePoiActionOrder = async (
-  em: EntityManager,
-  pois: Poi_db[],
-  uuidMaps: EntityMaps
-): Promise<void> => {
-  for (const poi of pois) {
-    if (!poi || !poi.uuid || !poi.actionOrderUuids || !poi.actionOrderUuids.length) continue;
-
-    const newPoiUuid = uuidMaps.pois.get(poi.uuid);
-    if (!newPoiUuid) continue;
-
-    const newPoi = await em.findOne(Poi_db, { uuid: newPoiUuid });
-    if (!newPoi) continue;
-
-    // Map the action UUIDs to their new values
-    newPoi.actionOrderUuids = poi.actionOrderUuids.map(
-      (actionUuid) => uuidMaps.actions.get(actionUuid) || actionUuid
-    );
-
-    em.persist(newPoi);
-  }
-};
-
-// Duplicate/Restore Traverses
-export const processTraverses = (
-  em: EntityManager,
-  traverses: Traverse_db[],
-  missionId: number,
-  uuidMaps: EntityMaps
-): void => {
-  for (const traverse of traverses) {
-    if (!traverse || !traverse.uuid) continue;
-
-    const newUuid = createUuidMapping(traverse.uuid, uuidMaps.traverses);
-
-    const traverseData = {
-      ...traverse,
-      uuid: newUuid,
-      missionId,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
-    };
-
-    delete traverseData.action;
-
-    const newTraverse = em.create(Traverse_db, traverseData);
-    em.persist(newTraverse);
-  }
-};
-
-// Update traverse action order UUIDs
-export const updateTraverseActionOrder = async (
-  em: EntityManager,
-  traverses: Traverse_db[],
-  uuidMaps: EntityMaps
-): Promise<void> => {
-  for (const traverse of traverses) {
-    if (
-      !traverse ||
-      !traverse.uuid ||
-      !traverse.actionOrderUuids ||
-      !traverse.actionOrderUuids.length
-    )
-      continue;
-
-    const newTraverseUuid = uuidMaps.traverses.get(traverse.uuid);
-    if (!newTraverseUuid) continue;
-
-    const newTraverse = await em.findOne(Traverse_db, { uuid: newTraverseUuid });
-    if (!newTraverse) continue;
-
-    // Map the action UUIDs to their new values
-    newTraverse.actionOrderUuids = traverse.actionOrderUuids.map(
-      (actionUuid) => uuidMaps.actions.get(actionUuid) || actionUuid
-    );
-
-    em.persist(newTraverse);
-  }
-};
-
-// Update station action order UUIDs
-export const updateStationActionOrder = async (
-  em: EntityManager,
-  stations: Station_db[],
-  uuidMaps: EntityMaps
-): Promise<void> => {
-  for (const station of stations) {
-    if (!station || !station.uuid || !station.actionOrderUuids || !station.actionOrderUuids.length)
-      continue;
-
-    const newStationUuid = uuidMaps.stations.get(station.uuid);
-    if (!newStationUuid) continue;
-
-    const newStation = await em.findOne(Station_db, { uuid: newStationUuid });
-    if (!newStation) continue;
-
-    // Map the action UUIDs to their new values
-    newStation.actionOrderUuids = station.actionOrderUuids.map(
-      (actionUuid) => uuidMaps.actions.get(actionUuid) || actionUuid
-    );
-
-    em.persist(newStation);
-  }
-};
-
-// Duplicate/Restore Actions
-export const processActions = (
-  em: EntityManager,
-  actions: Action_db[],
-  missionId: number,
-  uuidMaps: EntityMaps
-): void => {
-  for (const action of actions) {
-    if (!action || !action.uuid) continue;
-
-    const newUuid = createUuidMapping(action.uuid, uuidMaps.actions);
-
-    // Create action with only the basic data, not attempting to set references yet
-    const newAction = em.create(Action_db, {
-      ...action,
-      uuid: newUuid,
-      missionId,
-      // Remove relationship fields - we'll update these in updateActionRelationships
-      poi: null,
-      station: null,
-      traverse: null,
-      parentAction: null, // Handle parent action relationship
-      createdAt: getAccurateNow().getTime(),
-      updatedAt: getAccurateNow().getTime(),
-    });
-    em.persist(newAction);
-  }
-};
-
-// Connect POIs to their stations
-export const connectPoisToStations = async (
-  em: EntityManager,
-  originalPois: Poi_db[],
-  uuidMaps: EntityMaps
-): Promise<void> => {
-  for (const poi of originalPois) {
-    if (!poi || !poi.uuid) continue;
-
-    const newPoiUuid = uuidMaps.pois.get(poi.uuid);
-    if (!newPoiUuid) continue;
-
-    const newPoiEntity = await em.findOne(Poi_db, { uuid: newPoiUuid });
-    if (!newPoiEntity) continue;
-
-    // Handle MikroORM Collection
-    // First check if station collection exists and is initialized properly
-    if (
-      poi.station &&
-      typeof poi.station === "object" &&
-      typeof poi.station.isInitialized === "function" &&
-      poi.station.isInitialized()
-    ) {
-      try {
-        const stations = poi.station.getItems();
-        for (const station of stations) {
-          if (!station || !station.uuid) continue;
-
-          const newStationUuid = uuidMaps.stations.get(station.uuid);
-          if (newStationUuid) {
-            const newStation = await em.findOne(Station_db, { uuid: newStationUuid });
-            if (newStation) {
-              newStation.poi.add(newPoiEntity);
-              em.persist(newStation);
-            }
-          }
-        }
-      } catch (error) {
-        serverLogger.warning({
-          logId: "duplicate-entity",
-          logValue: `Error processing collection for POI ${poi.uuid}: ${error}`,
-        });
-      }
-    }
-    // Handle array of stations (from restore JSON)
-    else if (poi.station && Array.isArray(poi.station)) {
-      for (const stationInfo of poi.station) {
-        if (!stationInfo || !stationInfo.uuid) continue;
-
-        const newStationUuid = uuidMaps.stations.get(stationInfo.uuid);
-        if (newStationUuid) {
-          const newStation = await em.findOne(Station_db, { uuid: newStationUuid });
-          if (newStation) {
-            newStation.poi.add(newPoiEntity);
-            em.persist(newStation);
-          }
-        }
-      }
-    }
-    // Station collection not properly initialized
-    else if (poi.station) {
-      serverLogger.warning({
-        logId: "duplicate-entity",
-        logValue: `POI ${poi.uuid} has station reference but it's not properly initialized or accessible`,
-      });
-    }
-  }
-};
-
-// Update Action Relationships
-export const updateActionRelationships = async (
-  em: EntityManager,
-  originalActions: Action_db[],
-  uuidMaps: EntityMaps
-): Promise<void> => {
-  for (const action of originalActions) {
-    if (!action || !action.uuid) continue;
-
-    const newActionUuid = uuidMaps.actions.get(action.uuid);
-    if (!newActionUuid) continue;
-
-    const newActionEntity = await em.findOne(Action_db, { uuid: newActionUuid });
-    if (!newActionEntity) continue;
-
-    // Handle station relationship
-    if (action.station?.uuid) {
-      const newStationUuid = uuidMaps.stations.get(action.station.uuid);
-      if (newStationUuid) {
-        const newStation = await em.findOne(Station_db, { uuid: newStationUuid });
-        if (newStation) {
-          newActionEntity.station = newStation;
-        }
-      }
-    }
-
-    // Handle POI relationship
-    if (action.poi?.uuid) {
-      const newPoiUuid = uuidMaps.pois.get(action.poi.uuid);
-      if (newPoiUuid) {
-        const newPoi = await em.findOne(Poi_db, { uuid: newPoiUuid });
-        if (newPoi) {
-          newActionEntity.poi = newPoi;
-        }
-      }
-    }
-
-    // Handle traverse relationship
-    if (action.traverse?.uuid) {
-      const newTraverseUuid = uuidMaps.traverses.get(action.traverse.uuid);
-      if (newTraverseUuid) {
-        const newTraverse = await em.findOne(Traverse_db, { uuid: newTraverseUuid });
-        if (newTraverse) {
-          newActionEntity.traverse = newTraverse;
-        }
-      }
-    }
-
-    // Handle parentAction relationship
-    if (action.parentAction?.uuid) {
-      const newParentActionUuid = uuidMaps.actions.get(action.parentAction.uuid);
-      if (newParentActionUuid) {
-        const newParentAction = await em.findOne(Action_db, { uuid: newParentActionUuid });
-        if (newParentAction) {
-          newActionEntity.parentAction = newParentAction;
-        }
-      }
-    }
-
-    em.persist(newActionEntity);
-  }
-};
 
 // Duplicate/Restore Layers
 export const processLayers = (
@@ -453,69 +125,6 @@ export const updateSublayerToLayerRelationships = async (
   }
 };
 
-// Duplicate/Restore EVAs with updated references
-export const processEvas = (
-  em: EntityManager,
-  evas: Eva_db[],
-  missionId: number,
-  uuidMaps: EntityMaps
-): void => {
-  for (const eva of evas) {
-    if (!eva || !eva.uuid) continue;
-
-    const newUuid = createUuidMapping(eva.uuid, uuidMaps.evas);
-
-    // Update sequence items to point to the new UUIDs
-    const newSequence = eva.sequence?.map((item) => {
-      if (!item || !item.uuid) {
-        return item; // Return unchanged if UUID is missing
-      }
-
-      if (item.type === "station") {
-        const newStationUuid = uuidMaps.stations.get(item.uuid);
-        return {
-          ...item,
-          uuid: newStationUuid || item.uuid,
-        };
-      } else if (item.type === "traverse") {
-        const newTraverseUuid = uuidMaps.traverses.get(item.uuid);
-        return {
-          ...item,
-          uuid: newTraverseUuid || item.uuid,
-        };
-      }
-      return item;
-    });
-
-    // Handle egress location UUID
-    let newEgressLocationUuid = eva.egressLocationUuid;
-    if (eva.egressLocationUuid && eva.egressLocationUuid !== "lander") {
-      newEgressLocationUuid =
-        uuidMaps.stations.get(eva.egressLocationUuid) || eva.egressLocationUuid;
-    }
-
-    // Handle ingress location UUID
-    let newIngressLocationUuid = eva.ingressLocationUuid;
-    if (eva.ingressLocationUuid && eva.ingressLocationUuid !== "lander") {
-      newIngressLocationUuid =
-        uuidMaps.stations.get(eva.ingressLocationUuid) || eva.ingressLocationUuid;
-    }
-
-    const newEva = em.create(Eva_db, {
-      ...eva,
-      uuid: newUuid,
-      missionId,
-      sequence: newSequence,
-      egressLocationUuid: newEgressLocationUuid,
-      ingressLocationUuid: newIngressLocationUuid,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
-    });
-
-    em.persist(newEva);
-  }
-};
-
 // Duplicate/Restore Presets with updated references
 export const processPresets = (
   em: EntityManager,
@@ -601,75 +210,6 @@ export const processPresets = (
     });
 
     em.persist(newPreset);
-  }
-};
-
-// Duplicate/Restore REXes with updated references
-export const processRexes = (
-  em: EntityManager,
-  rexes: Rex_db[],
-  missionId: number,
-  uuidMaps: EntityMaps
-): void => {
-  for (const rex of rexes) {
-    if (!rex || !rex.uuid) continue;
-
-    const newUuid = createUuidMapping(rex.uuid, uuidMaps.rexes);
-
-    const rexData = {
-      ...rex,
-      uuid: newUuid,
-      missionId,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
-    };
-
-    // Update eva UUID reference
-    if (rex.evaUuid) {
-      const newEvaUuid = uuidMaps.evas.get(rex.evaUuid);
-      if (newEvaUuid) {
-        rexData.evaUuid = newEvaUuid;
-      }
-    }
-
-    // Update stationEntries
-    if (rex.stationEntries) {
-      const newStationEntries: DupStationEntries = {};
-      for (const [stationUuid, entry] of Object.entries(rex.stationEntries)) {
-        const newStationUuid = uuidMaps.stations.get(stationUuid);
-        if (newStationUuid) {
-          newStationEntries[newStationUuid] = entry;
-        }
-      }
-      rexData.stationEntries = newStationEntries;
-    }
-
-    // Update traverseEntries
-    if (rex.traverseEntries) {
-      const newTraverseEntries: DupTraverseEntries = {};
-      for (const [traverseUuid, entry] of Object.entries(rex.traverseEntries)) {
-        const newTraverseUuid = uuidMaps.traverses.get(traverseUuid);
-        if (newTraverseUuid) {
-          newTraverseEntries[newTraverseUuid] = entry;
-        }
-      }
-      rexData.traverseEntries = newTraverseEntries;
-    }
-
-    // Update actionEntries
-    if (rex.actionEntries) {
-      const newActionEntries: DupActionEntries = {};
-      for (const [actionUuid, entry] of Object.entries(rex.actionEntries)) {
-        const newActionUuid = uuidMaps.actions.get(actionUuid);
-        if (newActionUuid) {
-          newActionEntries[newActionUuid] = entry;
-        }
-      }
-      rexData.actionEntries = newActionEntries;
-    }
-
-    const newRex = em.create(Rex_db, rexData);
-    em.persist(newRex);
   }
 };
 
@@ -893,35 +433,33 @@ export const processFolders = (
 
     const newUuid = createUuidMapping(folder.uuid, uuidMaps.folders);
 
-    // Map item UUIDs based on folder type
+    // Map item UUIDs based on folder type. For folder types whose target
+    // entities live on the Automerge mission doc (poi/station/eva), uuids are
+    // preserved 1:1 during duplication — the duplicated mission inherits the
+    // entire entity collection with the same uuids. For DB-backed types
+    // (preset/layer) we still need to consult uuidMaps because those entities
+    // get fresh uuids when duplicated.
     let newItems: string[] = [];
     if (folder.items && Array.isArray(folder.items)) {
       newItems = folder.items
         .map((itemUuid) => {
-          let mappedUuid;
           switch (folder.type) {
             case "poi":
-              mappedUuid = uuidMaps.pois.get(itemUuid);
-              break;
             case "station":
-              mappedUuid = uuidMaps.stations.get(itemUuid);
-              break;
             case "eva":
-              mappedUuid = uuidMaps.evas.get(itemUuid);
-              break;
+              // Automerge entity — uuid unchanged in the duplicated mission
+              return itemUuid;
             case "preset":
-              mappedUuid = uuidMaps.presets.get(itemUuid);
-              break;
+              return uuidMaps.presets.get(itemUuid);
             case "layer":
-              mappedUuid = uuidMaps.layers.get(itemUuid);
-              break;
+              return uuidMaps.layers.get(itemUuid);
             default:
               serverLogger.warning({
                 logId: "dup-entity",
                 logValue: `Unknown folder type: ${folder.type}`,
               });
+              return undefined;
           }
-          return mappedUuid;
         })
         .filter(Boolean) as string[];
     }

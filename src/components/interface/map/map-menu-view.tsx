@@ -4,6 +4,7 @@ import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 import styles from "./map-menu-view.module.css";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 export const MapViewMenu: FunctionComponent<{
   mapDisplayPois: MapDisplayMarkers;
@@ -46,10 +47,11 @@ export const MapViewMenu: FunctionComponent<{
     (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
     deepEqual
   );
-  const selectedRexPosSourcesFromDb = useAppSelector((state) => {
-    // Try to get the selected rex first, then fall back to running rex if no selection
-    const selectedRex = state.rex.rexesFromDb.find((r) => r.uuid === state.rex.selectedRexUuid);
-    const runningRex = state.rex.rexesFromDb.find((r) => r.isRunning);
+  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
+  const selectedRexPosSources = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return undefined;
+    const selectedRex = mission.rexes[selectedRexUuid];
+    const runningRex = Object.values(mission.rexes).find((r) => r.isRunning);
     return selectedRex?.posSources || runningRex?.posSources;
   }, deepEqual);
   const earthMoonName = selectedPreset?.earthAsMoon ? "Moon" : "Earth";
@@ -58,11 +60,9 @@ export const MapViewMenu: FunctionComponent<{
   //if the selected pos source list contains a uuid that isn't in selected rex's pos sources list this means that the selected rex has changed.
   //If this is true, set default pos sources to task and crew
   useEffect(() => {
-    if (selectedRexPosSourcesFromDb) {
-      const taskPosSourceUuid =
-        selectedRexPosSourcesFromDb.find((s) => s.abbr === "T")?.uuid || null;
-      const crewPosSourceUuid =
-        selectedRexPosSourcesFromDb.find((s) => s.abbr === "C")?.uuid || null;
+    if (selectedRexPosSources) {
+      const taskPosSourceUuid = selectedRexPosSources.find((s) => s.abbr === "T")?.uuid || null;
+      const crewPosSourceUuid = selectedRexPosSources.find((s) => s.abbr === "C")?.uuid || null;
       if (taskPosSourceUuid || crewPosSourceUuid) {
         setMapDisplayPos({
           ...mapDisplayPos,
@@ -77,7 +77,7 @@ export const MapViewMenu: FunctionComponent<{
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRexPosSourcesFromDb, setMapDisplayPos]);
+  }, [selectedRexPosSources, setMapDisplayPos]);
 
   return (
     <div className={styles.menuContainer}>
@@ -276,9 +276,9 @@ export const MapViewMenu: FunctionComponent<{
                 >
                   All
                 </div>
-                {selectedRexPosSourcesFromDb?.map((posSource, index) => {
+                {selectedRexPosSources?.map((posSource, index) => {
                   let toggleStyle = styles.toggleMiddle;
-                  if (index === selectedRexPosSourcesFromDb.length - 1) {
+                  if (index === selectedRexPosSources.length - 1) {
                     toggleStyle = styles.toggleRight;
                   }
                   return (

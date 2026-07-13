@@ -10,6 +10,7 @@ import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket
 import app from "./restApi";
 
 import { setupSocketIO } from "./sockets";
+import { setupMaestroNamespace } from "./sockets-maestro";
 import { globalValues } from "./global";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
@@ -34,7 +35,7 @@ initializeBase64Wasm(automergeWasmBase64);
   const server: NetServer = createServer();
 
   // socket.io socket handler
-  serverLogger.info({ logId: "server", logValue: "Starting Socket.IO" });
+  serverLogger.debug({ logId: "server", logValue: "Starting Socket.IO" });
   globalValues.socketio = new SocketServer<
     ClientToServerEvents,
     ServerToClientEvents,
@@ -56,12 +57,13 @@ initializeBase64Wasm(automergeWasmBase64);
   };
 
   setupSocketIO();
+  setupMaestroNamespace(globalValues.socketio);
 
   // express request handler
   server.on("request", app);
 
   server.listen(4001, () => {
-    serverLogger.info({ logId: "api-restart" });
+    serverLogger.info({ logId: "server", logValue: "Server listening on port 4001" });
   });
 
   // setup autoMerge sync server
@@ -101,13 +103,13 @@ initializeBase64Wasm(automergeWasmBase64);
 
   // clg peers as they come and go
   globalValues.automergeRepo.networkSubsystem.on("peer", (peerPayload) => {
-    serverLogger.info({
+    serverLogger.debug({
       logId: "server",
       logValue: "automerge peer connected: " + peerPayload.peerId,
     });
   });
   globalValues.automergeRepo.networkSubsystem.on("peer-disconnected", (peerPayload) => {
-    serverLogger.info({
+    serverLogger.debug({
       logId: "server",
       logValue: "automerge peer disconnected: " + peerPayload.peerId,
     });
@@ -122,15 +124,22 @@ initializeBase64Wasm(automergeWasmBase64);
       const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
         docInfo.automergeUrl
       );
-      // wait till handler is ready in-case it has to get the doc for the first time
+      // Wait till handler is ready in-case it has to get the doc for the first time
+      // This will load the full WASM and replay operations. It will be slower, but
+      // subsequent calls will be faster. Do this work upfront on server startup
+      // Even if we do not need to add a backup listener in the future, this may be worth
+      // keeping so the server already has the doc replayed in memory
       await missionDocHandle.whenReady();
-      const mission: Mission = missionDocHandle.doc();
-      serverLogger.info({
-        logId: "server",
-        logValue: `attaching db backup listeners for ${mission.id}`,
-      });
       addDbBackupListener(missionDocHandle);
+      serverLogger.debug({
+        logId: "server",
+        logValue: `attached db backup listeners for ${docInfo.missionId}`,
+      });
     }
+    serverLogger.info({
+      logId: "server",
+      logValue: `all db backup listeners attached`,
+    });
   });
 
   const gracefulShutdown = async () => {
@@ -155,7 +164,7 @@ initializeBase64Wasm(automergeWasmBase64);
     if (globalValues.automergeRepo) {
       try {
         await globalValues.automergeRepo.shutdown();
-        serverLogger.info({ logId: "server", logValue: "Automerge repo shut down" });
+        serverLogger.debug({ logId: "server", logValue: "Automerge repo shut down" });
       } catch (err) {
         serverLogger.error(
           { logId: "server", logValue: "Error shutting down automerge repo" },
@@ -169,7 +178,7 @@ initializeBase64Wasm(automergeWasmBase64);
     if (globalValues.socketInterval) {
       clearInterval(globalValues.socketInterval);
       globalValues.socketInterval = null;
-      serverLogger.info({ logId: "server", logValue: "Global socket status interval stopped" });
+      serverLogger.debug({ logId: "server", logValue: "Global socket status interval stopped" });
     }
 
     // Close Socket.IO connections
@@ -177,7 +186,7 @@ initializeBase64Wasm(automergeWasmBase64);
       try {
         await new Promise<void>((resolve) => {
           globalValues.socketio.close(() => {
-            serverLogger.info({ logId: "server", logValue: "Socket.IO server closed" });
+            serverLogger.debug({ logId: "server", logValue: "Socket.IO server closed" });
             resolve();
           });
         });
@@ -192,14 +201,14 @@ initializeBase64Wasm(automergeWasmBase64);
 
     // Close HTTP server (if Socket.IO didn't already close it)
     if (server.listening) {
-      serverLogger.info({ logId: "server", logValue: "Closing HTTP server..." });
+      serverLogger.debug({ logId: "server", logValue: "Closing HTTP server..." });
       try {
         await new Promise<void>((resolve, reject) => {
           server.close((err) => {
             if (err) {
               reject(err);
             } else {
-              serverLogger.info({ logId: "server", logValue: "HTTP server closed" });
+              serverLogger.debug({ logId: "server", logValue: "HTTP server closed" });
               resolve();
             }
           });
@@ -212,14 +221,17 @@ initializeBase64Wasm(automergeWasmBase64);
         hasErrors = true;
       }
     } else {
-      serverLogger.info({ logId: "server", logValue: "HTTP server already closed (by Socket.IO)" });
+      serverLogger.debug({
+        logId: "server",
+        logValue: "HTTP server already closed (by Socket.IO)",
+      });
     }
 
     // Close database connections
     try {
       if (globalValues.orm) {
         await globalValues.orm.close();
-        serverLogger.info({ logId: "server", logValue: "Database connections closed" });
+        serverLogger.debug({ logId: "server", logValue: "Database connections closed" });
       }
     } catch (err) {
       serverLogger.error(

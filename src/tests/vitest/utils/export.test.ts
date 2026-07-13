@@ -6,7 +6,7 @@ describe("Export tests", () => {
   test("makeEquipmentReadable", () => {
     const equipmentItemUuid = uuidv4();
     const equipmentItem = {
-      name: "test equipment",
+      name: "Vitest test equipment",
       quantity: 99,
       singleUse: false,
     };
@@ -23,7 +23,11 @@ describe("Export tests", () => {
       equipmentItems: equipmentItemsUsage,
       mission: mission,
     });
-    expect(readable[0]).toEqual({ name: "test equipment", singleUse: false, quantityUsed: 5 });
+    expect(readable[0]).toEqual({
+      name: "Vitest test equipment",
+      singleUse: false,
+      quantityUsed: 5,
+    });
     expect(readable[1]).toEqual({ name: undefined, singleUse: undefined, quantityUsed: 3 });
   });
 });

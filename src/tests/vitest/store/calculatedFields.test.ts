@@ -1,4 +1,3 @@
-import { initialState as wholeStoreInitialState } from "store/index";
 import {
   getCalculatedFieldsByPoi,
   getCalculatedFieldsByTraverse,
@@ -6,7 +5,6 @@ import {
   getCalculatedFieldsByEva,
 } from "store/processing/calculatedFields";
 import isEqual from "lodash/isEqual";
-import cloneDeep from "lodash/cloneDeep";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
@@ -16,7 +14,6 @@ import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 describe("Calculated fields", () => {
   it("getCalculatedFieldsByPoi()", async () => {
-    const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
     //populate the poi state in the store
     const poi: POI = generateBlankPoi({ name: "Vitest Poi-1" });
     const poiNoActions: POI = generateBlankPoi({ name: "Vitest Poi-1" });
@@ -34,16 +31,14 @@ describe("Calculated fields", () => {
       ...generateBlankAction({ name: "Vitest Test Action-1", poiUuid: poi.uuid }),
       duration: 1,
     };
-    wholeStoreState.poi.pois = [poi, poiNoActions];
-    wholeStoreState.poi.poisFromDb = [poi, poiNoActions];
-    wholeStoreState.action.actions = [poiAction1, poiAction2, poiAction3];
-    wholeStoreState.action.actionsFromDb = [poiAction1, poiAction2, poiAction3];
+    const poiActions_all = [poiAction1, poiAction2, poiAction3];
 
+    const pois = [poi, poiNoActions];
     const allCalculatedFields: PoiCalculatedFields[] = [];
-    for (const poi of wholeStoreState.poi.pois) {
-      const actions = wholeStoreState.action.actions;
-      const poiActions = actions.filter((a) => a.poiUuid === poi.uuid && a.enabled);
-      allCalculatedFields.push(getCalculatedFieldsByPoi({ poiActions, poiUuid: poi.uuid }));
+    for (const p of pois) {
+      const actions = poiActions_all;
+      const poiActions = actions.filter((a) => a.poiUuid === p.uuid && a.enabled);
+      allCalculatedFields.push(getCalculatedFieldsByPoi({ poiActions, poiUuid: p.uuid }));
     }
 
     //check poi that has no actions
@@ -67,9 +62,8 @@ describe("Calculated fields", () => {
   });
 
   test("getCalculatedFieldsByStation()", async () => {
-    const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
-
-    //populate the station state in the store
+    //populate the station list (entity collections live on Automerge now;
+    //these tests just need plain local arrays to drive the calculator)
     const station: Station = generateBlankStation({ name: "Vitest Station-1", duration: 10 });
     const blankMission: Mission = generateBlankMission({ name: "Vitest Mission-1" });
     const stationNoActions: Station = generateBlankStation({ name: "Vitest Station-1" });
@@ -88,20 +82,17 @@ describe("Calculated fields", () => {
       duration: 1,
     };
 
-    wholeStoreState.station.stations = [station, stationNoActions];
-    wholeStoreState.station.stationsFromDb = [station, stationNoActions];
-
-    wholeStoreState.action.actions = [stationAction1, stationAction2, stationAction3];
-    wholeStoreState.action.actionsFromDb = [stationAction1, stationAction2, stationAction3];
+    const stations: Station[] = [station, stationNoActions];
+    const stationActions_all = [stationAction1, stationAction2, stationAction3];
 
     const allCalculatedFields: StationCalculatedFields[] = [];
-    for (const station of wholeStoreState.station.stations) {
-      const stationActions = wholeStoreState.action.actions.filter(
-        (a) => a.stationUuid === station.uuid && a.enabled
+    for (const s of stations) {
+      const stationActions = stationActions_all.filter(
+        (a) => a.stationUuid === s.uuid && a.enabled
       );
       allCalculatedFields.push(
         getCalculatedFieldsByStation({
-          station,
+          station: s,
           missionWalkbackRate: blankMission.walkbackRate,
           stationActions,
         })
@@ -153,8 +144,6 @@ describe("Calculated fields", () => {
   });
 
   test("getCalculatedFieldsByTraverse", async () => {
-    const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
-
     const mission = generateBlankMission({ name: "Vitest Mission-1", traverseRate: 3 });
     const traverse1 = generateBlankTraverse({
       name: "Vitest Traverse-1",
@@ -191,16 +180,16 @@ describe("Calculated fields", () => {
       { uuid: station3.uuid, type: "station" },
     ];
 
-    wholeStoreState.traverse.traverses = [traverse1, traverse2, traverse3];
-    wholeStoreState.station.stations = [station1, station2, station3];
-    wholeStoreState.eva.evas = [eva1, eva2];
+    const traverses = [traverse1, traverse2, traverse3];
+    const evas = [eva1, eva2];
 
+    const traverseActions_all: Action[] = [];
     const allCalculatedFields: TraverseCalculatedFields[] = [];
-    for (const traverse of wholeStoreState.traverse.traverses) {
-      const traverseEva = wholeStoreState.eva.evas.find((eva) =>
+    for (const traverse of traverses) {
+      const traverseEva = evas.find((eva: Eva) =>
         eva.sequence.some((seqItem) => seqItem.uuid === traverse.uuid)
       );
-      const traverseActions = wholeStoreState.action.actions.filter(
+      const traverseActions = traverseActions_all.filter(
         (a) => a.traverseUuid === traverse.uuid && a.enabled
       );
       allCalculatedFields.push(
@@ -236,8 +225,6 @@ describe("Calculated fields", () => {
   });
 
   test("getCalculatedFieldsByEva", async () => {
-    const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
-
     const mission = generateBlankMission({ name: "Vitest Mission-1", traverseRate: 3 });
     const traverse = generateBlankTraverse({
       name: "Vitest Traverse-1",
@@ -256,20 +243,21 @@ describe("Calculated fields", () => {
       { uuid: traverse.uuid, type: "traverse" },
       { uuid: station2.uuid, type: "station" },
     ];
-    wholeStoreState.traverse.traverses = [traverse];
-    wholeStoreState.station.stations = [station1, station2];
-    wholeStoreState.eva.evas = [eva];
+    const traverses = [traverse];
+    const stations = [station1, station2];
+    const evas = [eva];
 
+    const evaActions_all: Action[] = [];
     const allEvaCalculatedFields: EvaCalculatedFields[] = [];
-    for (const eva of wholeStoreState.eva.evas) {
+    for (const e of evas) {
       allEvaCalculatedFields.push(
         getCalculatedFieldsByEva({
-          eva,
-          evaStations: wholeStoreState.station.stations,
+          eva: e,
+          evaStations: stations,
           missionWalkbackRate: mission.walkbackRate,
           missionTraverseRate: mission.traverseRate,
-          evaActions: wholeStoreState.action.actions,
-          evaTraverses: wholeStoreState.traverse.traverses,
+          evaActions: evaActions_all,
+          evaTraverses: traverses,
         })
       );
     }

@@ -1,17 +1,14 @@
-import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
+import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import {
-  Checkbox,
-  Dropdown,
-  InLineEditInput,
-  PathColorPickerMenu,
-  TextArea,
-} from "components/interface/form/globalFields";
+  ValidatedTextArea,
+  ValidatedInputField,
+} from "components/interface/form/globalFieldsAutomerge";
+import { Dropdown, PathColorPickerMenu } from "components/interface/form/globalFields";
 import type { FunctionComponent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
-import { upsertEvaByField } from "store/eva";
-import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
+import { useAppSelector, deepEqual, refEqual, shallowEqual } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import { makeTraverseRateString } from "utils/component-helpers";
@@ -19,8 +16,10 @@ import {
   formatNumberWithCommas,
   getDateAndTimeFromISOString,
   getISOStringFromDateAndTime,
-  isISOString as isISOString,
+  isISOString,
+  numericDatetimeToISO,
   toDecimal,
+  toNumericDatetime,
 } from "utils/formatting";
 import {
   faCalculator,
@@ -29,17 +28,19 @@ import {
   faQuestionCircle,
   faToolbox,
   faRoute,
-  faLock,
 } from "@fortawesome/free-solid-svg-icons";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
 import { EmojiRenderer } from "components/interface/emojis";
 import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 import { faClock } from "@fortawesome/free-regular-svg-icons";
-import { thunkChangeIngressEgress } from "store/thunk/thunkEva";
-import { getAsPlannedEvaFromRefUuid, selectAsPlannedStations } from "store/selectors";
+import { thunkDocChangeIngressEgress } from "store/thunk/thunkEva";
+
+import { selectAsPlannedStations } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdateEvaByField } from "client/automerge/apply/apply-eva";
 
 type XgressData = {
   uuid: string; // uuid of the xgress station or "lander"
@@ -50,177 +51,182 @@ type XgressData = {
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      walkbackRate: doc.walkbackRate,
-      traverseRate: doc.traverseRate,
-      equipmentItems: doc.equipmentItems,
+    (mission) => ({
+      walkbackRate: mission.walkbackRate,
+      traverseRate: mission.traverseRate,
+      equipmentItems: mission.equipmentItems,
     }),
     deepEqual
   );
 
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
-  const selectedEva = useAppSelector(
-    (state) => state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid),
-    deepEqual
-  );
-  // The as-planned eva edit settings
-  const editWarning: { showEditWarning: boolean; editWarningMsg: string } = useAppSelector(
-    (state) => {
-      const selectedEva = state.eva.evas.find((eva) => eva.uuid === state.eva.selectedEvaUuid);
-      const asPlannedEva = getAsPlannedEvaFromRefUuid(state, selectedEva.refUuid);
-      return {
-        showEditWarning: asPlannedEva?.showEditWarning,
-        editWarningMsg: asPlannedEva?.editWarningMsg,
-      };
-    },
-    deepEqual
-  );
-  // returns rex name if this is a rex eva, else returns null
-  const rexEvaName = useAppSelector((state) => {
-    const rexEvas = state.rex.rexes.map((rex) => rex.evaUuid);
-    if (rexEvas.includes(selectedEvaUuid)) {
-      return state.rex.rexes.find((rex) => rex.evaUuid === selectedEvaUuid)?.name || null;
-    } else {
-      return null;
-    }
-  }, refEqual);
 
-  const evaCalculatedFields = useAppSelector((state) => {
-    const eva = state.eva.evas.find((eva) => eva.uuid === selectedEvaUuid);
+  const docMaps = useMissionDocSelector(
+    (mission) => ({
+      evas: mission.evas,
+      rexes: mission.rexes,
+      stations: mission.stations,
+      actions: mission.actions,
+      traverses: mission.traverses,
+    }),
+    shallowEqual
+  );
+
+  const selectedEva = useMemo(
+    () => (selectedEvaUuid ? docMaps?.evas?.[selectedEvaUuid] : undefined),
+    [docMaps, selectedEvaUuid]
+  );
+
+  // Returns rex name if this is a rex eva, else returns null
+  const rexEvaName = useMemo(() => {
+    if (!docMaps?.rexes || !selectedEvaUuid) return null;
+    const rex = Object.values(docMaps.rexes).find((r) => r.evaUuid === selectedEvaUuid);
+    return rex?.name ?? null;
+  }, [docMaps, selectedEvaUuid]);
+
+  const evaCalculatedFields = useMemo(() => {
+    if (!docMaps || !selectedEva) return undefined;
+    const seqStationUuids = new Set(
+      selectedEva.sequence.filter((s) => s.type === "station").map((s) => s.uuid)
+    );
+    const seqTraverseUuids = new Set(
+      selectedEva.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid)
+    );
     return getCalculatedFieldsByEva({
-      eva,
-      evaStations: state.station.stations,
+      eva: selectedEva,
+      evaStations: Object.values(docMaps.stations ?? {}).filter((s) => seqStationUuids.has(s.uuid)),
       missionWalkbackRate: partialMission.walkbackRate,
       missionTraverseRate: partialMission.traverseRate,
-      evaActions: state.action.actions,
-      evaTraverses: state.traverse.traverses,
+      evaActions: Object.values(docMaps.actions ?? {}).filter(
+        (a) => seqStationUuids.has(a.stationUuid) || seqTraverseUuids.has(a.traverseUuid)
+      ),
+      evaTraverses: Object.values(docMaps.traverses ?? {}).filter((t) =>
+        seqTraverseUuids.has(t.uuid)
+      ),
     });
-  }, deepEqual);
-  const stationListForXgressDropdown = useAppSelector(
-    (state) =>
-      selectAsPlannedStations(state)
-        .filter((station) => station.location) // only show stations with locations
-        .map((s) => {
-          return {
-            uuid: s.uuid,
-            name: s.name,
-          };
-        }),
+  }, [selectedEva, docMaps, partialMission.walkbackRate, partialMission.traverseRate]);
+
+  const stationListForXgressDropdown = useMissionDocSelector(
+    (mission) =>
+      selectAsPlannedStations(mission)
+        .filter((station) => station.location)
+        .map((s) => ({ uuid: s.uuid, name: s.name })),
     deepEqual
   );
 
-  // Get folder data for stations
   const folders = useAppSelector(
     (state) => state.interface.folders.filter((f) => f.type === "station"),
     deepEqual
   );
-
-  // Create a mapping from station UUIDs to their folder UUIDs
   const itemsToFolders = folders.reduce<Record<string, string>>((map, folder) => {
     folder.items?.forEach((itemUuid) => {
       map[itemUuid] = folder.uuid;
     });
     return map;
   }, {});
-
-  // Generate organized station dropdown options
   const stationDropdownOptions = createFolderOrganizedDropdownOptions({
     items: stationListForXgressDropdown,
     folders,
     itemsToFolders,
   });
 
-  const egressData: XgressData = useAppSelector((state) => {
-    const station = state.station.stations.find(
-      (station) => station.uuid === selectedEva.egressLocationUuid
-    );
-    const egress: XgressData = {
+  const egressData: XgressData = useMemo(() => {
+    if (!docMaps || !selectedEva) return { uuid: undefined, icon: "1f680", name: "Lander" };
+    const station = docMaps.stations?.[selectedEva.egressLocationUuid];
+    return {
       uuid: selectedEva.egressLocationUuid,
-      icon: station ? station.icon : "1f680", //rocket
+      icon: station ? station.icon : "1f680", // Rocket
       name: station ? station.name : "Lander",
     };
-    return egress;
-  }, deepEqual);
+  }, [docMaps, selectedEva]);
 
-  const ingressData: XgressData = useAppSelector((state) => {
-    const station = state.station.stations.find(
-      (station) => station.uuid === selectedEva.ingressLocationUuid
-    );
-    const ingress: XgressData = {
+  const ingressData: XgressData = useMemo(() => {
+    if (!docMaps || !selectedEva) return { uuid: undefined, icon: "1f680", name: "Lander" };
+    const station = docMaps.stations?.[selectedEva.ingressLocationUuid];
+    return {
       uuid: selectedEva.ingressLocationUuid,
-      icon: station ? station.icon : "1f680", //rocket
+      icon: station ? station.icon : "1f680", // Rocket
       name: station ? station.name : "Lander",
     };
-    return ingress;
-  }, deepEqual);
+  }, [docMaps, selectedEva]);
 
-  const [evaDate, setEvaDate] = useState(
-    selectedEva.datetime?.length > 0 ? selectedEva.datetime?.split(/[T.Z]/)[0] : ""
-  );
-  const [evaTime, setEvaTime] = useState(
-    selectedEva.datetime?.length > 0 ? selectedEva.datetime?.split(/[T.Z]/)[1] : ""
-  );
+  const [evaDate, setEvaDate] = useState(() => {
+    const iso = numericDatetimeToISO(selectedEva?.datetime);
+    return iso ? iso.split("T")[0] : "";
+  });
+  const [evaTime, setEvaTime] = useState(() => {
+    const iso = numericDatetimeToISO(selectedEva?.datetime);
+    return iso ? iso.split("T")[1].replace("Z", "") : "";
+  });
   const [currentEvaUuid, setCurrentEvaUuid] = useState("");
 
   useEffect(() => {
-    if (currentEvaUuid !== selectedEva.uuid || !editMode) {
+    if (currentEvaUuid !== selectedEva?.uuid || !editMode) {
       let parsedEvaDate = "";
       let parsedEvaTime = "";
-      if (selectedEva.datetime && isISOString(selectedEva.datetime)) {
-        const [date, time] = getDateAndTimeFromISOString(selectedEva.datetime);
+      const isoDatetime = numericDatetimeToISO(selectedEva?.datetime);
+      if (isoDatetime && isISOString(isoDatetime)) {
+        const [date, time] = getDateAndTimeFromISOString(isoDatetime);
         parsedEvaDate = date;
         parsedEvaTime = time;
       }
       setEvaDate(parsedEvaDate);
       setEvaTime(parsedEvaTime);
-      setCurrentEvaUuid(selectedEva.uuid);
+      setCurrentEvaUuid(selectedEva?.uuid);
     } else {
-      const newDatetime =
-        evaDate?.length > 0 && evaTime?.length > 0 ? `${evaDate}T${evaTime}Z` : "";
-      if (newDatetime !== selectedEva.datetime) {
-        dispatch(upsertEvaByField(selectedEva.uuid, "datetime", newDatetime));
+      const newIso = evaDate?.length > 0 && evaTime?.length > 0 ? `${evaDate}T${evaTime}Z` : null;
+      const newDatetime = toNumericDatetime(newIso);
+      if (newDatetime !== selectedEva?.datetime) {
+        withMissionChange((m) =>
+          applyUpdateEvaByField(m, {
+            evaUuid: selectedEvaUuid,
+            fieldName: "datetime",
+            value: newDatetime,
+          })
+        );
       }
     }
   }, [
     currentEvaUuid,
-    dispatch,
     editMode,
     evaDate,
     evaTime,
-    selectedEva.datetime,
-    selectedEva.uuid,
+    selectedEva?.datetime,
+    selectedEva?.uuid,
+    selectedEvaUuid,
   ]);
 
   function handleDatetimeSubmit() {
-    let newDatetime = "";
-    if (isISOString(`${evaDate}T${evaTime}Z`)) {
-      newDatetime = getISOStringFromDateAndTime(evaDate, evaTime);
-    }
-    dispatch(upsertEvaByField(selectedEva.uuid, "datetime", newDatetime));
+    const isoString = `${evaDate}T${evaTime}Z`;
+    const newDatetime = isISOString(isoString)
+      ? toNumericDatetime(getISOStringFromDateAndTime(evaDate, evaTime))
+      : null;
+    withMissionChange((m) =>
+      applyUpdateEvaByField(m, {
+        evaUuid: selectedEvaUuid,
+        fieldName: "datetime",
+        value: newDatetime,
+      })
+    );
   }
 
-  //split, sort, and pull names for each equipment item
-  //get names
+  // Split, sort, and pull names for each equipment item
+  // Get names
   const consumablesDisplay: EquipmentItemDisplay[] = [];
-  Object.entries(evaCalculatedFields?.equipmentItems)?.forEach(([uuid, equipItem]) => {
-    //find item in mission
-    const missionEquipItem = partialMission.equipmentItems[uuid];
-    if (missionEquipItem.singleUse) {
+  Object.entries(evaCalculatedFields?.equipmentItems ?? {})?.forEach(([uuid, equipItem]) => {
+    const missionEquipItem = partialMission.equipmentItems?.[uuid];
+    if (missionEquipItem?.singleUse) {
       consumablesDisplay.push({
         name: missionEquipItem.name,
         quantityUsed: equipItem.quantityUsed,
       });
     }
   });
-
-  //sort by name
-  consumablesDisplay.sort((a, b) => {
-    return a.name.localeCompare(b.name);
-  });
-
-  //split
+  consumablesDisplay.sort((a, b) => a.name.localeCompare(b.name));
   const consumablesCol1 = consumablesDisplay.slice(0, Math.ceil(consumablesDisplay.length / 2));
   const consumablesCol2 = consumablesDisplay.slice(Math.ceil(consumablesDisplay.length / 2));
+
+  if (!selectedEva) return null;
 
   return (
     <div className={paneStyles.rightBody}>
@@ -231,99 +237,21 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
         <div className={paneStyles.panelContainer}>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>
-              <SubpanelHeading
-                icon={faLock}
-                helpCopy={`Show popup warning if a user tries to edit this EVA, or any station used in this EVA, or any executions created from this EVA.
-                        <br /><br />This is intended to be turned on when this EVA's linked Maestro procedure is finalized and submitted in a flight note
-                        to deter editors from changing things after this point. Turning this on will not actually prevent any edits from happening.
-                        It will simply show a warning when an edit is initiated.`}
-              >
-                Deter Editing
-              </SubpanelHeading>
-            </div>
-            <div className={paneStyles.panelSection2Column} style={{ paddingTop: "5px" }}>
-              <div className={paneStyles.panelColumnTable}>
-                {rexEvaName && (
-                  <div className={paneStyles.panelDisplayVal} style={{ paddingBottom: "5px" }}>
-                    These fields are controlled by the as-planned EVA
-                  </div>
-                )}
-
-                <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCell} style={{ minWidth: "120px" }}>
-                    <div className={paneStyles.displayFieldLabel}>Display Edit Warning:</div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableCell}>
-                    <div className={paneStyles.displayFieldValue}>
-                      {editMode && !rexEvaName ? (
-                        <div className={evaStyles.evaCheckboxContainer}>
-                          <Checkbox
-                            checked={editWarning.showEditWarning}
-                            editable={editMode}
-                            onChange={(e) => {
-                              dispatch(
-                                upsertEvaByField(
-                                  selectedEva.uuid,
-                                  "showEditWarning",
-                                  e.target.checked
-                                )
-                              );
-                            }}
-                            label=""
-                            labelStyle={null}
-                            labelPlacement="left"
-                            uniqueId="showEditWarning"
-                          />
-                        </div>
-                      ) : (
-                        <div>{editWarning.showEditWarning ? "Yes" : "No"}</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCell} style={{ verticalAlign: "top" }}>
-                    <div
-                      className={paneStyles.displayFieldLabel}
-                      data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html="Optional warning message to display. If left blank, a generic message will be shown."
-                    >
-                      Warning Message:
-                    </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableCell} style={{ width: "100%" }}>
-                    <div className={paneStyles.inputFieldValue}>
-                      <TextArea
-                        value={editWarning.editWarningMsg || ""}
-                        editing={editMode && !rexEvaName}
-                        fieldProps={{
-                          name: "editWarningMsg",
-                          ariaLabel: "Edit Warning Message",
-                          validators: [validators.maxLength(1024)],
-                        }}
-                        onSubmit={(val: string) => {
-                          dispatch(upsertEvaByField(selectedEva.uuid, "editWarningMsg", val || ""));
-                        }}
-                        key={`${selectedEva.uuid}-editWarningMsg`}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
             <div className={paneStyles.descriptionContainer}>
-              <TextArea
+              <ValidatedTextArea
                 key={selectedEva.uuid}
                 value={selectedEva.description || ""}
-                editing={editMode}
+                editMode={editMode}
                 onSubmit={(value: string) => {
-                  dispatch(upsertEvaByField(selectedEva.uuid, "description", value || ""));
+                  withMissionChange((m) =>
+                    applyUpdateEvaByField(m, {
+                      evaUuid: selectedEvaUuid,
+                      fieldName: "description",
+                      value: value || "",
+                    })
+                  );
                 }}
                 fieldProps={{ name: "evaDescription", ariaLabel: "EVA Description" }}
               />
@@ -347,7 +275,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         currentColor={selectedEva.traverseColor || "#03adfc"}
                         editMode={editMode}
                         updateColor={(val) => {
-                          dispatch(upsertEvaByField(selectedEva.uuid, "traverseColor", val));
+                          withMissionChange((m) =>
+                            applyUpdateEvaByField(m, {
+                              evaUuid: selectedEvaUuid,
+                              fieldName: "traverseColor",
+                              value: val,
+                            })
+                          );
                         }}
                         styleContainer={{ padding: "0px 5px 0px 5px" }}
                       />
@@ -398,10 +332,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             selectStyle={{ width: "100%" }}
                             onChange={(val) => {
                               dispatch(
-                                thunkChangeIngressEgress({
+                                thunkDocChangeIngressEgress({
                                   type: "egress",
-                                  evaUuid: selectedEva.uuid,
+                                  evaUuid: selectedEvaUuid,
                                   newStationUuidOrLander: val,
+                                  oldStationUuidOrLander: egressData.uuid,
+                                  isRexEva: !!rexEvaName,
                                 })
                               );
                             }}
@@ -445,10 +381,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             selectStyle={{ width: "100%" }}
                             onChange={(val) => {
                               dispatch(
-                                thunkChangeIngressEgress({
+                                thunkDocChangeIngressEgress({
                                   type: "ingress",
-                                  evaUuid: selectedEva.uuid,
+                                  evaUuid: selectedEvaUuid,
                                   newStationUuidOrLander: val,
+                                  oldStationUuidOrLander: ingressData.uuid,
+                                  isRexEva: !!rexEvaName,
                                 })
                               );
                             }}
@@ -487,13 +425,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
+                        <ValidatedInputField
                           value={selectedEva.egressDuration?.toString()}
-                          editing={editMode}
+                          editMode={editMode}
                           fieldProps={{
                             name: "egressDuration",
                             ariaLabel: "Egress Duration",
-                            style: { width: "55px" },
                             validators: [
                               validators.mustBeNumber,
                               validators.maxLength(3),
@@ -507,8 +444,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             },
                           }}
                           onSubmit={(val: string) => {
-                            dispatch(
-                              upsertEvaByField(selectedEva.uuid, "egressDuration", toDecimal(val))
+                            withMissionChange((m) =>
+                              applyUpdateEvaByField(m, {
+                                evaUuid: selectedEvaUuid,
+                                fieldName: "egressDuration",
+                                value: toDecimal(val),
+                              })
                             );
                           }}
                           key={`${selectedEva.uuid}-egressDuration`}
@@ -524,13 +465,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
+                        <ValidatedInputField
                           value={selectedEva.ingressDuration?.toString()}
-                          editing={editMode}
+                          editMode={editMode}
                           fieldProps={{
                             name: "ingressDuration",
                             ariaLabel: "Ingress Duration",
-                            style: { width: "55px" },
                             validators: [
                               validators.mustBeNumber,
                               validators.maxLength(3),
@@ -544,8 +484,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             },
                           }}
                           onSubmit={(val: string) => {
-                            dispatch(
-                              upsertEvaByField(selectedEva.uuid, "ingressDuration", toDecimal(val))
+                            withMissionChange((m) =>
+                              applyUpdateEvaByField(m, {
+                                evaUuid: selectedEvaUuid,
+                                fieldName: "ingressDuration",
+                                value: toDecimal(val),
+                              })
                             );
                           }}
                           key={`${selectedEva.uuid}-ingressDuration`}
@@ -569,19 +513,16 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     <div className={paneStyles.panelColumnTableCell}></div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
+                        <ValidatedInputField
                           value={evaDate}
-                          editing={editMode}
+                          editMode={editMode}
                           fieldProps={{
                             name: "evaDate",
                             ariaLabel: "evaDate",
                             validators: [validators.mustBeYYYYMMDD],
-                            style: { width: "100px", marginRight: "5px" },
                           }}
-                          styleValue={{ width: "100px" }}
-                          onSubmit={(val: string) => {
-                            setEvaDate(val);
-                          }}
+                          styleContainer={{ width: "100px", marginRight: "5px" }}
+                          onSubmit={(val: string) => setEvaDate(val)}
                           key={`${selectedEva.uuid}-date`}
                         />
                       </div>
@@ -591,19 +532,16 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
+                        <ValidatedInputField
                           value={evaTime}
-                          editing={editMode}
+                          editMode={editMode}
                           fieldProps={{
                             name: "evaTime",
                             ariaLabel: "evaTime",
                             validators: [validators.mustBeHHMMSS],
-                            style: { width: "100px", marginLeft: "5px", marginRight: "5px" },
                           }}
-                          styleValue={{ width: "100px", marginLeft: "5px", marginRight: "5px" }}
-                          onSubmit={(val: string) => {
-                            setEvaTime(val);
-                          }}
+                          styleContainer={{ width: "115px", marginLeft: "5px", marginRight: "5px" }}
+                          onSubmit={(val: string) => setEvaTime(val)}
                           key={`${selectedEva.uuid}-time`}
                         />
                       </div>
@@ -630,13 +568,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
+                        <ValidatedInputField
                           value={selectedEva.duration?.toString()}
-                          editing={editMode}
+                          editMode={editMode}
                           fieldProps={{
                             name: "Duration",
                             ariaLabel: "Duration",
-                            style: { width: "55px" },
                             validators: [
                               validators.mustBeNumber,
                               validators.maxLength(5),
@@ -650,8 +587,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             },
                           }}
                           onSubmit={(val: string) => {
-                            dispatch(
-                              upsertEvaByField(selectedEva.uuid, "duration", toDecimal(val))
+                            withMissionChange((m) =>
+                              applyUpdateEvaByField(m, {
+                                evaUuid: selectedEvaUuid,
+                                fieldName: "duration",
+                                value: toDecimal(val),
+                              })
                             );
                           }}
                           key={`${selectedEva.uuid}-duration`}
@@ -667,13 +608,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
-                        <InLineEditInput
+                        <ValidatedInputField
                           value={selectedEva.traverseRate?.toString()}
-                          editing={editMode}
+                          editMode={editMode}
                           fieldProps={{
                             name: "traverseRate",
                             ariaLabel: "Average Traverse Rate",
-                            style: { width: "55px" },
                             validators: [validators.mustBeNumber, validators.maxLength(4)],
                             onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                               e.target.value = e.target.value.replace(
@@ -683,8 +623,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             },
                           }}
                           onSubmit={(val: string) => {
-                            dispatch(
-                              upsertEvaByField(selectedEva.uuid, "traverseRate", toDecimal(val))
+                            withMissionChange((m) =>
+                              applyUpdateEvaByField(m, {
+                                evaUuid: selectedEvaUuid,
+                                fieldName: "traverseRate",
+                                value: toDecimal(val),
+                              })
                             );
                           }}
                           key={`${selectedEva.uuid}-traverseRate`}
@@ -850,44 +794,39 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
                   {consumablesCol1 &&
-                    consumablesCol1.map((equipmentItem, index) => {
-                      return (
-                        <div
-                          className={paneStyles.panelColumnTableRow}
-                          key={`${equipmentItem.name}${index}`}
-                        >
-                          <div className={paneStyles.panelColumnTableCell}>
-                            <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
-                          </div>
-                          <div className={paneStyles.panelColumnTableCell}>
-                            <div className={paneStyles.displayFieldValue}>
-                              {equipmentItem.quantityUsed ? `${equipmentItem.quantityUsed}` : null}
-                            </div>
+                    consumablesCol1.map((equipmentItem, index) => (
+                      <div
+                        className={paneStyles.panelColumnTableRow}
+                        key={`${equipmentItem.name}${index}`}
+                      >
+                        <div className={paneStyles.panelColumnTableCell}>
+                          <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
+                        </div>
+                        <div className={paneStyles.panelColumnTableCell}>
+                          <div className={paneStyles.displayFieldValue}>
+                            {equipmentItem.quantityUsed ? `${equipmentItem.quantityUsed}` : null}
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                 </div>
-
                 <div className={paneStyles.panelColumnTable}>
                   {consumablesCol2 &&
-                    consumablesCol2.map((equipmentItem, index) => {
-                      return (
-                        <div
-                          className={paneStyles.panelColumnTableRow}
-                          key={`${equipmentItem.name}${index}`}
-                        >
-                          <div className={paneStyles.panelColumnTableCell}>
-                            <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
-                          </div>
-                          <div className={paneStyles.panelColumnTableCell}>
-                            <div className={paneStyles.displayFieldValue}>
-                              {equipmentItem.quantityUsed ? `${equipmentItem.quantityUsed}` : null}
-                            </div>
+                    consumablesCol2.map((equipmentItem, index) => (
+                      <div
+                        className={paneStyles.panelColumnTableRow}
+                        key={`${equipmentItem.name}${index}`}
+                      >
+                        <div className={paneStyles.panelColumnTableCell}>
+                          <div className={paneStyles.displayFieldLabel}>{equipmentItem.name}</div>
+                        </div>
+                        <div className={paneStyles.panelColumnTableCell}>
+                          <div className={paneStyles.displayFieldValue}>
+                            {equipmentItem.quantityUsed ? `${equipmentItem.quantityUsed}` : null}
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                 </div>
               </div>
             </div>
@@ -902,10 +841,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldValue}>
-                      <LastEdited
+                      <LastEditedNumeric
                         updatedAt={selectedEva?.updatedAt}
                         createdAt={selectedEva?.createdAt}
-                        infoString={`EVA UUID: ${selectedEva?.uuid}`}
+                        infoString={`EVA UUID: ${selectedEva?.uuid}<br />EVA RefUUID: ${selectedEva?.refUuid}`}
                       />
                     </div>
                   </div>

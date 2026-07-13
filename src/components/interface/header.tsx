@@ -8,15 +8,18 @@ import type { FunctionComponent } from "react";
 import { useState } from "react";
 import PetInterval from "../page/petInterval";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkJumpToRunningRex } from "store/thunk/thunkRex";
-import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+import { thunkUIJumpToRunningRex } from "store/thunk/thunkRex";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { getAsPlannedEvaFromRefUuid, isConnected } from "store/selectors";
+import { ToggleButton } from "components/interface/form/globalFieldsAutomerge";
+import { setIsInEditMode } from "store/mission";
+import { thunkCancelMarkerMapDirective } from "store/thunk/thunkMap";
 
 const Header: FunctionComponent = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
-    (doc) => ({ name: doc.name, missionBanner: doc.missionBanner }),
+    (mission) => ({ name: mission.name, missionBanner: mission.missionBanner }),
     deepEqual
   );
 
@@ -28,15 +31,28 @@ const Header: FunctionComponent = () => {
     (state) => state.connection.socketStatus.lastStatusFromServer.visitorCounts,
     shallowEqual
   );
-  const runningRex = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning),
-    deepEqual
-  );
-  const runningAsPlannedEvaName = useAppSelector((state) => {
-    const runningEva = state.eva.evas.find((eva) => eva.uuid === runningRex?.evaUuid);
+  const runningRex = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return null;
+    return Object.values(mission.rexes).find((rex) => rex.isRunning) ?? null;
+  }, deepEqual);
+  const runningAsPlannedEvaName = useMissionDocSelector((mission) => {
+    if (!mission?.evas || !mission?.rexes) return "";
+    const runningRex = Object.values(mission.rexes).find((rex) => rex.isRunning);
+    if (!runningRex) return "";
+    const runningEva = mission.evas[runningRex.evaUuid];
     if (!runningEva) return "";
-    return getAsPlannedEvaFromRefUuid(state, runningEva.refUuid)?.name;
+    const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, runningEva.refUuid);
+    return asPlannedEva?.name;
   }, refEqual);
+
+  const isInEditMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
+  const editPerms = useAppSelector(
+    (state) =>
+      (state.user.missionPerms.permissions.edit && state.user.appUser.isAdmin) ||
+      state.user.appUser.isSuperAdmin,
+    refEqual
+  );
+  const isOnline = useAppSelector(isConnected, refEqual);
 
   // used to update the PET value via the PetInterval component
   const [rexPetTime, setRexPetTime] = useState("");
@@ -70,7 +86,7 @@ const Header: FunctionComponent = () => {
           <div className={headerStyles.item}>
             <div
               className={headerStyles.rexContainer}
-              onClick={() => dispatch(thunkJumpToRunningRex())}
+              onClick={() => dispatch(thunkUIJumpToRunningRex())}
             >
               <FontAwesomeIcon
                 icon={faPersonWalkingArrowRight}
@@ -97,6 +113,26 @@ const Header: FunctionComponent = () => {
       )}
 
       <div className={headerStyles.right}>
+        {partialMission?.name && editPerms && (
+          <ToggleButton
+            toggled={isInEditMode}
+            isDisabled={!isOnline}
+            onClick={() => {
+              if (!isOnline) return;
+              if (isInEditMode) {
+                dispatch(thunkCancelMarkerMapDirective());
+              }
+              dispatch(setIsInEditMode(!isInEditMode));
+            }}
+            toolTip={
+              isOnline
+                ? `Turn ${isInEditMode ? "Off" : "On"} Edit Mode`
+                : "Offline: Editing Disabled"
+            }
+            label="Edit"
+            toggleAriaLabel="globalEditToggle"
+          />
+        )}
         <div
           className={headerStyles.userCount}
           data-tooltip-id="aegis-tooltip"

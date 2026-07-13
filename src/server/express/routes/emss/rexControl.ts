@@ -1,20 +1,15 @@
 import type { Request, Response } from "express";
 import express from "express";
 
-import { convertRexesTypeDbToStore } from "store/storeUtils/rex";
-import { globalValues } from "../../global";
-
-import { Eva_db, Rex_db, Station_db } from "../../../database/models/_allModels";
-import { emitStoreUpsert } from "../../sockets";
 import { hasPerms } from "utils/permissions";
-import { upsertDatabaseRetry } from "utils/database";
-import { v4 as uuidv4 } from "uuid";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
-import { getAutomergeMissions } from "../missionAutomerge";
+import { v4 as uuidv4 } from "uuid";
+import { getAutomergeMissions, getAutomergeMissionHandle } from "../missionAutomerge";
+
+// NOT USED BY MAESTRO - Only used by our AEGIS admin page
 
 const router = express.Router();
-
 interface RexControlUpdateRequest {
   rexUuid: string;
   maestroControlled?: boolean;
@@ -186,42 +181,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const updatedRexes: Rex[] = await upsertDatabaseRetry(() =>
-      updateRexControl({
-        rexUuid: rexUuid,
-        maestroControlled: maestroControlled,
-        startStopExecution: startStopExecution,
-        maestroEventId: maestroEventId,
-        maestroEventUrl: maestroEventUrl,
-        maestroActivityProperties: maestroActivityProperties,
-      })
-    );
-
-    if (!updatedRexes || updatedRexes.length === 0) {
-      serverLogger.apiRoute({
-        logLevel: "error",
-        httpMethod: "POST",
-        responseStatus: 500,
-        routeName: "emss/rexControl",
-        appUsername: req.session?.appUser?.username,
-        uuids: [rexUuid],
-        message: "Failed to update rex after multiple tries due to optimistic locking",
-        error: new Error("Failed to update rex after multiple tries due to optimistic locking"),
-      });
-      res.status(500).json({
-        status: "error",
-        message: "Failed to update rex after multiple tries due to optimistic locking",
-        data: null,
-      });
-      return;
-    }
-
-    emitStoreUpsert({
-      missionId: updatedRexes[0].missionId,
-      socketId: "maestroApi",
-      type: "rex",
-      data: updatedRexes,
-    } as StoreUpsert);
+    const updatedRexes: Rex[] = await updateRexControl({
+      rexUuid,
+      maestroControlled,
+      startStopExecution,
+      maestroEventId,
+      maestroEventUrl,
+      maestroActivityProperties,
+    });
 
     res.status(200).json({
       status: "success",
@@ -267,8 +234,9 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * Updates the control settings for a specific REX item.
- * When starting execution (startStopExecution = "start"), all other running REX items will be automatically stopped to ensure only one REX runs at a time.
+ * Updates the control settings for a specific REX item in the automerge mission document.
+ * When starting execution (startStopExecution = "start"), all other running REX items will be
+ * automatically stopped to ensure only one REX runs at a time.
  */
 export async function updateRexControl({
   rexUuid,
@@ -278,91 +246,91 @@ export async function updateRexControl({
   maestroEventUrl,
   maestroActivityProperties,
 }: RexControlUpdateRequest): Promise<Rex[]> {
-  const em = globalValues.orm.em;
-  await em.begin(); // start a transaction
+  // Find the mission containing this rex
+  const allMissions = await getAutomergeMissions();
+  const missionWithRex = allMissions.find((m) => m.rexes?.[rexUuid]);
+  if (!missionWithRex) {
+    throw new Error(`Rex with uuid ${rexUuid} not found.`);
+  }
 
-  let rexEntity = null;
-  let allRunningRexesBeforeUpdate: Rex_db[] = [];
-  try {
-    // Find and validate the REX entity by its UUID
-    rexEntity = await em.findOne(Rex_db, { uuid: rexUuid });
-    if (!rexEntity) {
-      throw new Error(`Rex with uuid ${rexUuid} not found.`);
-    }
-
-    if (startStopExecution === "start") {
-      // Check if we need to stop other running rex records
-      allRunningRexesBeforeUpdate = await em.find(Rex_db, {
-        missionId: rexEntity.missionId,
-        isRunning: true,
-        uuid: { $ne: rexUuid },
-      });
-
-      // Stop all other running REX records - only one can run at a time
-      if (allRunningRexesBeforeUpdate.length > 0) {
-        for (const runningRex of allRunningRexesBeforeUpdate) {
-          runningRex.isRunning = false;
-          runningRex.updatedAt = new Date();
-          em.persist(runningRex);
-        }
+  // Determine which other rexes need to be stopped before applying changes
+  const rexUuidsToStop: string[] = [];
+  if (startStopExecution === "start") {
+    for (const uuid in missionWithRex.rexes) {
+      if (uuid !== rexUuid && missionWithRex.rexes[uuid].isRunning) {
+        rexUuidsToStop.push(uuid);
       }
+    }
+  }
 
-      // Check if initial crew positions need to be generated
-      if (!rexEntity.posEntries || rexEntity.posEntries.length === 0) {
-        // Get egress location
-        let egressLocation: AEGISPoint | null = null;
-        const rexEva = await em.findOne(Eva_db, { uuid: rexEntity.evaUuid });
-        if (rexEva?.egressLocationUuid === "lander") {
-          // get lander location from the mission automerge document
-          const mission = (await getAutomergeMissions([rexEva.missionId]))[0];
-          if (mission?.landerLocation) egressLocation = mission.landerLocation;
-        } else {
-          const stationRecord = await em.findOne(Station_db, { uuid: rexEva?.egressLocationUuid });
-          if (stationRecord?.location) egressLocation = stationRecord.location;
-        }
+  const missionDocHandle = await getAutomergeMissionHandle(missionWithRex.id);
 
-        // Add pos entries for each pos source. Each entry will include all pos types
-        if (egressLocation) {
-          if (!rexEntity.posEntries) rexEntity.posEntries = [];
-          for (const posSource of rexEntity.posSources) {
-            const newPosEntry: PosEntry = {
-              uuid: uuidv4(),
-              location: egressLocation,
-              elevation: null,
-              petSeconds: 0,
-              posTypeUuids: rexEntity.posTypes.map((posType) => posType.uuid),
-              posSourceUuid: posSource.uuid,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-            rexEntity.posEntries.push(newPosEntry);
-          }
-        }
+  missionDocHandle.change((mission: Mission) => {
+    const rexEntity = mission.rexes[rexUuid];
+    if (!rexEntity) return;
+
+    // Stop all other running rexes – only one can run at a time
+    for (const uuid of rexUuidsToStop) {
+      if (mission.rexes[uuid]) {
+        mission.rexes[uuid].isRunning = false;
+        mission.rexes[uuid].updatedAt = Date.now();
       }
     }
 
-    // Update the target REX entity directly - only update fields that are explicitly provided
+    // Generate initial crew position entries if starting with none
+    if (
+      startStopExecution === "start" &&
+      (!rexEntity.posEntries || rexEntity.posEntries.length === 0)
+    ) {
+      let egressLocation: AEGISPoint | null = null;
+      const rexEva = mission.evas?.[rexEntity.evaUuid];
+      // Spread location (same as cloning in this case) so we remove the automerge proxy ref
+      if (rexEva?.egressLocationUuid === "lander") {
+        egressLocation = mission.landerLocation ? { ...mission.landerLocation } : null;
+      } else if (rexEva?.egressLocationUuid) {
+        const loc = mission.stations?.[rexEva.egressLocationUuid]?.location;
+        egressLocation = loc ? { ...loc } : null;
+      }
+
+      if (egressLocation) {
+        rexEntity.posEntries = [];
+        for (const posSource of rexEntity.posSources) {
+          const newPosEntry: PosEntry = {
+            uuid: uuidv4(),
+            location: egressLocation,
+            elevation: null,
+            petSeconds: 0,
+            posTypeUuids: rexEntity.posTypes.map((posType) => posType.uuid),
+            posSourceUuid: posSource.uuid,
+            createdAt: new Date().getTime(),
+            updatedAt: new Date().getTime(),
+          };
+          rexEntity.posEntries.push(newPosEntry);
+        }
+      }
+    }
+
+    // Apply only the fields that were explicitly provided
     if (maestroControlled !== undefined) rexEntity.maestroControlled = maestroControlled;
     if (maestroEventId !== undefined) {
       rexEntity.maestroEventId = maestroEventId === "" ? null : maestroEventId;
     }
     if (startStopExecution !== undefined) rexEntity.isRunning = startStopExecution === "start";
     if (maestroEventUrl !== undefined) rexEntity.maestroEventUrl = maestroEventUrl;
-    if (maestroActivityProperties !== undefined)
+    if (maestroActivityProperties !== undefined) {
       rexEntity.maestroActivityPropertiesByRefUuid = maestroActivityProperties;
-    rexEntity.updatedAt = new Date();
+    }
+    rexEntity.updatedAt = Date.now();
+  });
 
-    em.persist(rexEntity);
-    await em.commit(); // commit the transaction. will also flush
-  } catch (error) {
-    await em.rollback();
-    throw error; // re-throw the error to be handled by the caller
-  }
+  // Read the updated rexes back from the doc
+  const updatedMission = missionDocHandle.doc();
+  const updatedRexes = [
+    updatedMission.rexes[rexUuid],
+    ...rexUuidsToStop.map((uuid) => updatedMission.rexes[uuid]),
+  ].filter(Boolean);
 
-  return [
-    convertRexesTypeDbToStore([rexEntity])[0],
-    ...convertRexesTypeDbToStore(allRunningRexesBeforeUpdate),
-  ];
+  return updatedRexes;
 }
 
 export default router;

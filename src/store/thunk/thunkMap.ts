@@ -8,13 +8,12 @@ import { thunkSelectEVASequenceItem } from "./crossThunk";
 import { setSelectedPosEntryUuid } from "store/rex";
 import { setSelectedMeasurementUuid } from "store/measure";
 import { setSelectedEvaSequenceItemUuid } from "store/eva";
+import { getMissionDocHandle } from "client/automergeDocHandles";
 
-export const thunkCancelMarkerMapDirective = appCreateAsyncThunk<{ uuid: string }>(
+export const thunkCancelMarkerMapDirective = appCreateAsyncThunk<void>(
   "mapCancelMarkerMapDirective",
-  async ({ uuid }, { dispatch, getState }) => {
-    const thisMapDirective =
-      getState().map.mapDirective?.uuid === uuid ? getState().map.mapDirective : null;
-
+  async (__, { dispatch, getState }) => {
+    const thisMapDirective = getState().map.mapDirective;
     if (!thisMapDirective) return;
 
     // if there's an active create or edit action, cancel it
@@ -30,6 +29,13 @@ export const thunkCancelMarkerMapDirective = appCreateAsyncThunk<{ uuid: string 
         updateMapDirective({
           ...thisMapDirective,
           mapAction: "cancelEditMarker",
+        })
+      );
+    } else if (thisMapDirective?.mapAction === "editPolyline") {
+      dispatch(
+        updateMapDirective({
+          ...thisMapDirective,
+          mapAction: "cancelEditPolyline",
         })
       );
     }
@@ -53,11 +59,11 @@ export const thunkMarkerOnClick = appCreateAsyncThunk<{
   mapItemType: MapItemType;
 }>("thunkMarkerOnClick", async ({ markerUuid, mapItemType }, { dispatch, getState }) => {
   if (mapItemType === "station") {
-    const runningRex = getState().rex.rexes.find((r) => r.isRunning);
+    const mission = getMissionDocHandle()?.doc();
+    const runningRex = Object.values(mission?.rexes ?? {}).find((r) => r.isRunning);
     if (runningRex && getState().interface.sectionSelectedLabel === "evas") {
-      const rexEvaStationUuids = getState()
-        .eva.evas.find((e) => e.uuid === runningRex.evaUuid)
-        ?.sequence.filter((s) => s.type === "station")
+      const rexEvaStationUuids = mission?.evas?.[runningRex.evaUuid]?.sequence
+        .filter((s) => s.type === "station")
         .map((s) => s.uuid);
       if (rexEvaStationUuids.includes(markerUuid)) {
         // selected a station in the running rex
@@ -91,11 +97,11 @@ export const thunkPolylineOnClick = appCreateAsyncThunk<{
 }>("thunkPolylineOnClick", async ({ polylineUuid, mapItemType }, { dispatch, getState }) => {
   if (mapItemType === "traverse") {
     // do not go to the traverse section if this is a traverse in a running rex
-    const runningRex = getState().rex.rexes.find((r) => r.isRunning);
+    const mission = getMissionDocHandle()?.doc();
+    const runningRex = Object.values(mission?.rexes ?? {}).find((r) => r.isRunning);
     if (runningRex && getState().interface.sectionSelectedLabel === "evas") {
-      const rexEvaTraverseUuids = getState()
-        .eva.evas.find((e) => e.uuid === runningRex.evaUuid)
-        ?.sequence.filter((s) => s.type === "traverse")
+      const rexEvaTraverseUuids = mission?.evas?.[runningRex.evaUuid]?.sequence
+        .filter((s) => s.type === "traverse")
         .map((s) => s.uuid);
       if (rexEvaTraverseUuids.includes(polylineUuid)) {
         // selected a traverse in the running rex

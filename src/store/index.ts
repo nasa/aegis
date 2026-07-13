@@ -61,9 +61,10 @@ export type StoreType = ReturnType<typeof configureStore<RootState>>;
 // Add middleware to log rejected thunks to the browser console
 const rejectedActionLogger: Middleware<{}, RootState> = () => (next) => (action) => {
   if (isRejected(action)) {
+    const reason = action.payload ?? action.error?.message ?? action.error?.name ?? "Unknown error";
     clientLogger.error(
-      { logId: "redux", logValue: `Rejected action: ${action.type}` },
-      new Error("Rejected async thunk")
+      { logId: "redux", logValue: `Rejected action: ${action.type} — ${reason}` },
+      new Error(action.error?.message ?? "Rejected async thunk")
     );
   }
   return next(action);

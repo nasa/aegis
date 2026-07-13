@@ -1,19 +1,14 @@
+import "reflect-metadata"; // required by @mikro-orm/decorators/legacy
 import dotenv from "dotenv"; //needed to allow vitest to init Mikro in globalTeardown
 dotenv.config({ override: true, quiet: true });
-
-// The following 3 lines are needed to make the MikroORM 6.0.x import for the PostgreSqlDriver work in vitest.
-import { TextEncoder, TextDecoder } from "util";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-global.TextEncoder = TextEncoder as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-global.TextDecoder = TextDecoder as any;
 
 import { PostgreSqlDriver, defineConfig } from "@mikro-orm/postgresql";
 import { Migrator } from "@mikro-orm/migrations";
 import { SeedManager } from "@mikro-orm/seeder";
+import { ReflectMetadataProvider } from "@mikro-orm/decorators/legacy";
 import {
   App_User_db,
-  Mission_db,
+  MissionBackup_db,
   Station_db,
   Poi_db,
   Action_db,
@@ -31,8 +26,13 @@ import {
   Folder_db,
   Doc_Listing_db,
   Automerge_Native_db,
+  EnvironmentConfig_db,
 } from "./models/_allModels";
-import path from "path";
+import path from "node:path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export default defineConfig({
   dbName: process.env.DB_NAME,
@@ -49,7 +49,7 @@ export default defineConfig({
   },
   entitiesTs: [
     App_User_db,
-    Mission_db,
+    MissionBackup_db,
     Station_db,
     Poi_db,
     Action_db,
@@ -67,10 +67,11 @@ export default defineConfig({
     Folder_db,
     Doc_Listing_db,
     Automerge_Native_db,
+    EnvironmentConfig_db,
   ],
   entities: [
     App_User_db,
-    Mission_db,
+    MissionBackup_db,
     Station_db,
     Poi_db,
     Action_db,
@@ -88,7 +89,9 @@ export default defineConfig({
     Folder_db,
     Doc_Listing_db,
     Automerge_Native_db,
+    EnvironmentConfig_db,
   ],
+  metadataProvider: ReflectMetadataProvider,
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
   extensions: [Migrator, SeedManager],
 });

@@ -1,5 +1,5 @@
-import { ModifiedIndicator } from "components/interface/_global-elements";
 import type { FunctionComponent } from "react";
+import { useEffect, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
@@ -8,37 +8,26 @@ import { setSelectedPoiUuid, setSelectedPOIRightNavItem } from "store/poi";
 import { EmojiRenderer } from "components/interface/emojis";
 import { setHoverUuidsForSequence } from "store/hover";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
-import sortBy from "lodash/sortBy";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const PoiItem: FunctionComponent<{
   poiUuid: string;
 }> = ({ poiUuid }) => {
   const dispatch = useAppDispatch();
-  const poi = useAppSelector(
-    (state) => state.poi.pois.find((poi) => poi.uuid === poiUuid),
-    deepEqual
-  );
-  const poiFromDb = useAppSelector(
-    (state) => state.poi.poisFromDb.find((poi) => poi.uuid === poiUuid),
-    deepEqual
-  );
+  const poi = useMissionDocSelector((mission) => mission.pois[poiUuid], deepEqual);
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
   const selectedRightNavItem = useAppSelector((state) => state.poi.selectedRightNavItem, refEqual);
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
-  const poiActions = useAppSelector((state) => {
-    const filteredactions = sortBy(
-      state.action.actions.filter((storeAction: Action) => storeAction.poiUuid === poi.uuid),
-      ["createdAt"]
-    );
-    return filteredactions;
-  }, deepEqual);
-  const poiActionsFromDb = useAppSelector((state) => {
-    const filteredactions = sortBy(
-      state.action.actionsFromDb.filter((storeAction: Action) => storeAction.poiUuid === poi.uuid),
-      ["createdAt"]
-    );
-    return filteredactions;
-  }, deepEqual);
+
+  // Scroll into view when this POI becomes selected (e.g. after add/duplicate)
+  const itemRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (poi?.uuid === selectedPoiUuid) {
+      itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [poi?.uuid, selectedPoiUuid]);
+
+  if (!poi) return null;
 
   let isPoiSelectedOrHoveredStyle = null;
   if (poi.uuid === selectedPoiUuid) {
@@ -49,6 +38,7 @@ const PoiItem: FunctionComponent<{
 
   return (
     <div
+      ref={itemRef}
       aria-label="poiList-item"
       className={poiStyles.poiItem}
       key={poi.uuid}
@@ -74,7 +64,6 @@ const PoiItem: FunctionComponent<{
       </div>
       <div className={`${poiStyles.name} ${isPoiSelectedOrHoveredStyle}`}>
         <div>{poi.name}</div>
-        <ModifiedIndicator obj1={[poi, ...poiActions]} obj2={[poiFromDb, ...poiActionsFromDb]} />
         <div className={poiStyles.poiRightSpacer} />
       </div>
     </div>

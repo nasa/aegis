@@ -86,6 +86,9 @@ setup-load-test:oxygen:
   variables:
     GIT_COMMIT: ${CI_COMMIT_SHORT_SHA}
   script:
+    # node_modules is shipped as a tarball artifact (see install_dependencies)
+    - tar -xf node_modules.tar
+
     # Load environment variables from the .env artifact so we can read
     # the LOADTEST_PASSWORD variable at runtime
     - source .env

@@ -128,15 +128,18 @@ Setup local environment using the instructions above before performing the follo
 You've made code changes and you want to make sure the application still acts as expected. Make sure you add / update tests to reflect the new behavior(s) that you've coded.
 
 ```sh
-npm run test
+npm run test:all
 ```
 
-**Apply local migrations**
+**Apply migrations**
 
-You've made changes to the database schema and now you want to apply them.
+You've made changes to the database schema or automerge schema and now you want to apply them.
 
 ```sh
 npm run migration:up
+npm run schema:create
+npm run automerge:migration:build
+npm run automerge:migration
 ```
 
 **Create or reset to a fresh database (with prod data)**
@@ -162,6 +165,29 @@ npm run docker:services
 # run local migrations if necessary
 npm run migration:up
 ```
+
+### Postgres Version Upgrades
+
+When the Postgres version is updated in `docker-compose.yml`, the database must be migrated. The procedure differs by environment.
+
+> **Note on PostGIS:** AEGIS previously ran on a `postgis/postgis` image. It has been migrated to plain `postgres:17`. Historical database dumps may contain PostGIS extension DDL (`CREATE EXTENSION postgis`, etc.) that plain Postgres cannot execute. All dump/import tooling (CI scripts, `upgrade-db.sh`, and `load-sql-dump.mjs`) automatically strips this DDL before importing. Note that the strip only removes `CREATE/COMMENT EXTENSION` lines. A dump produced before `--exclude-schema=tiger/topology` was added to the export job may still contain PostGIS schema or function DDL that plain Postgres cannot execute — use a current export from `z:db-export:prod` rather than a cached historical artifact when possible.
+
+**For Dev Environments (e.g., gold, iron, etc.):**
+Dev environments are upgraded manually via CI jobs because we cannot guarantee AEGIS is deployed on every dev server (making an automated in-place upgrade unreliable).
+
+1. Deploy to the dev environment (e.g., gold)
+2. Run the manual CI job `z:db-export:prod` to export the production database (PostGIS DDL is stripped automatically during export)
+3. Run the manual CI job `z:db-import:<env>` to import the database into the dev environment
+
+To test the upgrade script itself on gold without a full deploy, un-comment and use the manual CI job `test-db-upgrade:gold`.
+
+**For Integration and Production:**
+Upgrades run automatically on every deployment via [`scripts/upgrade-db.sh`](./scripts/upgrade-db.sh). The script:
+
+1. Reads the target Postgres major version from `docker-compose.yml`
+2. Checks the version currently running in the database container
+3. If an upgrade is needed: dumps the database (stripping PostGIS DDL), stops and removes the old container, removes the old data directory, and places the dump in the init directory so the new container imports it on first boot
+4. If no upgrade is needed: exits immediately with no changes
 
 **Create a blank database (no data)**
 

@@ -1,4 +1,5 @@
-import { Entity, PrimaryKey, Property, types as MikroTypes } from "@mikro-orm/core";
+import { Entity, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
+import { types as MikroTypes } from "@mikro-orm/core";
 
 @Entity()
 export class Automerge_Native_db {

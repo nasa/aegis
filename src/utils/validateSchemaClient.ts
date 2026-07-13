@@ -1,6 +1,6 @@
 import type { DefinedError, ErrorObject } from "ajv";
 import Ajv from "ajv";
-import geojsonSchema from "./geojson-schema.json";
+import geojsonSchema from "./geojson-schema.json" with { type: "json" };
 
 // instantiate with options
 const ajv = new Ajv({ verbose: true, allowUnionTypes: true, allErrors: true });

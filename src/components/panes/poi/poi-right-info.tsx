@@ -1,15 +1,21 @@
 import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { faCalculator, faLocationDot, faMessage, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { LastEdited, SubpanelHeading } from "components/interface/_global-elements";
-import { Button, InLineEditInput, TextArea } from "components/interface/form/globalFields";
+import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
+import { Button } from "components/interface/form/globalFields";
+import {
+  ValidatedTextArea,
+  ValidatedLatLngField,
+} from "components/interface/form/globalFieldsAutomerge";
 import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
-import { setSelectedPOIRightNavItem, upsertPoiByField } from "store/poi";
-import round from "lodash/round";
+import { setSelectedPOIRightNavItem } from "store/poi";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdatePoiByField } from "client/automerge/apply/apply-poi";
 import { validators } from "components/interface/form/formValidators";
-import { thunkUpdatePoiLatLngField } from "store/thunk/thunkPoi";
+import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 import { globalGrid } from "utils/mapping/grid";
@@ -22,47 +28,63 @@ const Info_Panel: FunctionComponent<{
 }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      usingLGRSCoordinates: doc.usingLGRSCoordinates,
-      planetRadius: doc.planetRadius,
-      projBoundsMinY: doc.projBoundsMinY,
-      projBoundsMaxY: doc.projBoundsMaxY,
-      projBoundsMinX: doc.projBoundsMinX,
-      projBoundsMaxX: doc.projBoundsMaxX,
-      landerElevationMeters: doc.landerElevationMeters,
+    (mission) => ({
+      usingLGRSCoordinates: mission.usingLGRSCoordinates,
+      planetRadius: mission.planetRadius,
+      projBoundsMinY: mission.projBoundsMinY,
+      projBoundsMaxY: mission.projBoundsMaxY,
+      projBoundsMinX: mission.projBoundsMinX,
+      projBoundsMaxX: mission.projBoundsMaxX,
+      landerElevationMeters: mission.landerElevationMeters,
     }),
     deepEqual
   );
 
-  const selectedPoi = useAppSelector(
-    (state) => state.poi.pois.find((poi) => poi.uuid === state.poi.selectedPoiUuid),
-    deepEqual
+  const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
+  const docMaps = useMissionDocSelector(
+    (mission) => ({
+      pois: mission.pois,
+      stations: mission.stations,
+      actions: mission.actions,
+    }),
+    shallowEqual
   );
-  const numStationsUsingPoi = useAppSelector(
-    (state) =>
-      state.station.stations.filter((station) => station.poiUuids.includes(selectedPoi.uuid))
-        .length,
-    refEqual
+  const selectedPoi = useMemo(
+    () => (selectedPoiUuid ? docMaps?.pois[selectedPoiUuid] : undefined),
+    [docMaps, selectedPoiUuid]
+  );
+  const numStationsUsingPoi = useMemo(
+    () =>
+      selectedPoi && docMaps
+        ? Object.values(docMaps.stations).filter((station) =>
+            station.poiUuids.includes(selectedPoi.uuid)
+          ).length
+        : 0,
+    [docMaps, selectedPoi]
   );
 
-  const poiCalcFields = useAppSelector((state) => {
-    const poiActions = state.action.actions.filter(
+  const poiCalcFields = useMemo(() => {
+    if (!docMaps || !selectedPoi) return undefined;
+    const poiActions = Object.values(docMaps.actions).filter(
       (a) => a.poiUuid === selectedPoi.uuid && a.enabled
     );
     return getCalculatedFieldsByPoi({
       poiUuid: selectedPoi.uuid,
       poiActions,
     });
-  }, deepEqual);
+  }, [docMaps, selectedPoi]);
 
-  const thisMapDirective = useAppSelector((state) => {
-    return state.map.mapDirective?.uuid === selectedPoi.uuid ? state.map.mapDirective : null;
-  }, shallowEqual);
+  const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
+  const thisMapDirective = useMemo(
+    () => (mapDirective?.uuid === selectedPoiUuid ? mapDirective : null),
+    [mapDirective, selectedPoiUuid]
+  );
 
-  const poiGridCoordinates = useAppSelector((state) => {
-    if (selectedPoi.location && partialMission.usingLGRSCoordinates) {
+  const gridCornerPoint = useAppSelector((state) => state.map.gridCornerPoint, refEqual);
+  const poiGridCoordinates = useMemo(() => {
+    if (selectedPoi?.location && partialMission.usingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(selectedPoi.location.lat, selectedPoi.location.lng);
-    } else if (selectedPoi.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
+    } else if (selectedPoi?.location && globalGrid?.coordinates && gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
         globalGrid.coordinates,
         selectedPoi.location,
@@ -71,7 +93,12 @@ const Info_Panel: FunctionComponent<{
     } else {
       return "Not set";
     }
-  }, deepEqual);
+  }, [
+    selectedPoi,
+    partialMission.usingLGRSCoordinates,
+    partialMission.planetRadius,
+    gridCornerPoint,
+  ]);
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
@@ -109,12 +136,18 @@ const Info_Panel: FunctionComponent<{
             <div className={paneStyles.panelSectionTitle}>
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
             </div>
-            <div className={paneStyles.descriptionContainer}>
-              <TextArea
+            <div className={paneStyles.fieldContainerAutomerge}>
+              <ValidatedTextArea
                 value={selectedPoi.description || ""}
-                editing={editMode}
+                editMode={editMode}
                 onSubmit={(value: string) => {
-                  dispatch(upsertPoiByField(selectedPoi.uuid, "description", value || ""));
+                  withMissionChange((m) =>
+                    applyUpdatePoiByField(m, {
+                      poiUuid: selectedPoi.uuid,
+                      fieldName: "description",
+                      value: value || "",
+                    })
+                  );
                 }}
                 fieldProps={{
                   name: "poiDescription",
@@ -249,88 +282,40 @@ const Info_Panel: FunctionComponent<{
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Lat:</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {!selectedPoi.location ? (
-                          <>Not set</>
-                        ) : (
-                          <InLineEditInput
-                            value={round(selectedPoi.location.lat, 6).toString()}
-                            editing={editMode}
-                            fieldProps={{
-                              name: "lat",
-                              ariaLabel: "Latitude",
-                              style: { width: "100px" },
-                              validators: [
-                                validators.mustBeNumber,
-                                validators.required,
-                                validators.withinBoundary(
-                                  partialMission.projBoundsMinY,
-                                  partialMission.projBoundsMaxY
-                                ),
-                              ],
-                            }}
-                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
-                            onSubmit={(val: string) => {
-                              dispatch(
-                                thunkUpdatePoiLatLngField({
-                                  poiUuid: selectedPoi.uuid,
-                                  type: "lat",
-                                  value: parseFloat(val),
-                                })
-                              );
-                            }}
-                            key={`${selectedPoi.uuid}-lat`}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Lng:</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {!selectedPoi.location ? (
-                          <>Not set</>
-                        ) : (
-                          <InLineEditInput
-                            value={round(selectedPoi.location.lng, 6).toString()}
-                            editing={editMode}
-                            fieldProps={{
-                              name: "Lng",
-                              ariaLabel: "Longitude",
-                              style: { width: "100px" },
-                              validators: [
-                                validators.mustBeNumber,
-                                validators.required,
-                                validators.withinBoundary(
-                                  partialMission.projBoundsMinX,
-                                  partialMission.projBoundsMaxX
-                                ),
-                              ],
-                            }}
-                            styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
-                            onSubmit={(val: string) => {
-                              dispatch(
-                                thunkUpdatePoiLatLngField({
-                                  poiUuid: selectedPoi.uuid,
-                                  type: "lng",
-                                  value: parseFloat(val),
-                                })
-                              );
-                            }}
-                            key={`${selectedPoi.uuid}-lng`}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <ValidatedLatLngField
+                    value={selectedPoi.location}
+                    editMode={editMode}
+                    fieldPropsLat={{
+                      name: "lat",
+                      ariaLabel: "LatitudePoi",
+                      validators: [
+                        validators.mustBeNumber,
+                        validators.required,
+                        validators.withinBoundary(
+                          partialMission.projBoundsMinY,
+                          partialMission.projBoundsMaxY
+                        ),
+                      ],
+                    }}
+                    fieldPropsLng={{
+                      name: "Lng",
+                      ariaLabel: "LongitudePoi",
+                      validators: [
+                        validators.mustBeNumber,
+                        validators.required,
+                        validators.withinBoundary(
+                          partialMission.projBoundsMinX,
+                          partialMission.projBoundsMaxX
+                        ),
+                      ],
+                    }}
+                    onSubmit={(val: AEGISPoint) => {
+                      dispatch(
+                        thunkDocUpdatePoiLocation({ location: val, poiUuid: selectedPoi.uuid })
+                      );
+                    }}
+                    key={`${selectedPoi.uuid}-latlng`}
+                  />
                 </div>
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
@@ -368,7 +353,7 @@ const Info_Panel: FunctionComponent<{
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.displayFieldValue}>
-                      <LastEdited
+                      <LastEditedNumeric
                         updatedAt={selectedPoi?.updatedAt}
                         createdAt={selectedPoi?.createdAt}
                         infoString={`POI UUID: ${selectedPoi?.uuid}`}

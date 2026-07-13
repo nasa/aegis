@@ -56,11 +56,11 @@ const Main: React.FunctionComponent = () => {
   const slug = params.id;
   const intMissionId = parseInt(slug);
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      actionSystemVersion: doc.actionSystemVersion,
-      isArchived: doc.isArchived,
-      name: doc.name,
-      activeGridUuid: doc.activeGridUuid,
+    (mission) => ({
+      actionSystemVersion: mission.actionSystemVersion,
+      isArchived: mission.isArchived,
+      name: mission.name,
+      activeGridUuid: mission.activeGridUuid,
     }),
     deepEqual
   );

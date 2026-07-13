@@ -112,8 +112,20 @@ const Index: React.FunctionComponent = () => {
                 enabled={!!user?.isSuperAdmin}
               />
               <NavCard
+                to="/admin/environmentConfig"
+                title="Environment Configuration"
+                description="Configure server / environment settings that apply to all missions running on this instance."
+                enabled={!!user?.isSuperAdmin}
+              />
+              <NavCard
+                to="/admin/maestro"
+                title="Maestro Monitor"
+                description="Monitor Maestro connections."
+                enabled={!!user?.isSuperAdmin}
+              />
+              <NavCard
                 to="/admin/emss"
-                title="EMSS / Maestro"
+                title="EMSS / Maestro (Deprecated)"
                 description="Manage EMSS API integration, clear REX properties, and monitor Maestro connections."
                 enabled={!!user?.isSuperAdmin}
               />

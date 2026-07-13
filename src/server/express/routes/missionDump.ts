@@ -5,18 +5,12 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 
 import {
-  Station_db,
-  Poi_db,
-  Action_db,
-  Eva_db,
   Layer_db,
   Preset_db,
-  Rex_db,
   STM_Level1_db,
   STM_Level2_db,
   STM_Level3_db,
   Sublayer_db,
-  Traverse_db,
   Grid_db,
   STM_Rule_db,
   Folder_db,
@@ -106,22 +100,31 @@ const dumpMissionData = async (missionId: number): Promise<MissionDump> => {
   const mission = (await getAutomergeMissions([missionId]))[0];
 
   // Fetch all related entities
-  const data = await fetchAllMissionEntities(em, missionId);
+  const baseEntities = {
+    layers: await em.find(Layer_db, { missionId }),
+    sublayers: await em.find(Sublayer_db, { missionId }),
+    presets: await em.find(Preset_db, { missionId }),
+    grids: await em.find(Grid_db, { missionId }),
+    folders: await em.find(Folder_db, { missionId }),
+  };
+
+  // Fetch STM entities with proper population
+  const stmEntities = await fetchStmEntities(em, missionId);
+
+  // Return combined results
+  const data = {
+    ...baseEntities,
+    ...stmEntities,
+  };
 
   // Structure the data for export
   return {
     exportDate: new Date().toISOString(),
     missionData: {
       mission: mission,
-      stations: data.stations,
-      pois: data.pois,
-      actions: data.actions,
-      evas: data.evas,
       layers: data.layers,
       sublayers: data.sublayers,
-      traverses: data.traverses,
       presets: data.presets,
-      rexes: data.rexes,
       stmLevel1s: data.stmLevel1s,
       stmLevel2s: data.stmLevel2s,
       stmLevel3s: data.stmLevel3s,
@@ -129,42 +132,6 @@ const dumpMissionData = async (missionId: number): Promise<MissionDump> => {
       grids: data.grids,
       folders: data.folders,
     },
-  };
-};
-
-/**
- * Fetches all entities related to a mission
- */
-const fetchAllMissionEntities = async (em: EntityManager, missionId: number) => {
-  // Fetch base entities
-  const baseEntities = await fetchMissionEntities(em, missionId);
-
-  // Fetch STM entities with proper population
-  const stmEntities = await fetchStmEntities(em, missionId);
-
-  // Return combined results
-  return {
-    ...baseEntities,
-    ...stmEntities,
-  };
-};
-
-/**
- * Fetches entities for a given mission
- */
-const fetchMissionEntities = async (em: EntityManager, missionId: number) => {
-  return {
-    stations: await em.find(Station_db, { missionId }),
-    pois: await em.find(Poi_db, { missionId }),
-    actions: await em.find(Action_db, { missionId }),
-    evas: await em.find(Eva_db, { missionId }),
-    layers: await em.find(Layer_db, { missionId }),
-    sublayers: await em.find(Sublayer_db, { missionId }),
-    traverses: await em.find(Traverse_db, { missionId }),
-    presets: await em.find(Preset_db, { missionId }),
-    rexes: await em.find(Rex_db, { missionId }),
-    grids: await em.find(Grid_db, { missionId }),
-    folders: await em.find(Folder_db, { missionId }),
   };
 };
 

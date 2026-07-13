@@ -27,7 +27,7 @@ import { clientLogger } from "utils/logging/clientLogger";
 import { generateBlankPreset } from "store/storeUtils/preset";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
-import { getAutomergeDocHandles } from "client/automergeDocHandles";
+import { getMissionDocHandle } from "client/automergeDocHandles";
 
 export const thunkSavePreset = appCreateAsyncThunk<{
   presetUuid: string;
@@ -173,7 +173,8 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
     }
 
     // build circle controls
-    const missionDocHandle = getAutomergeDocHandles().mission;
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
     const mission = missionDocHandle.doc();
 
     const blankMapCircleControls: MapCircleControls = {};
@@ -303,7 +304,8 @@ export const thunkDuplicatePreset = appCreateAsyncThunk<{ presetUuid: string }>(
 export const thunkSyncPresetsWithMission = appCreateAsyncThunk<void>(
   "presetSyncWithMission",
   async (_, { dispatch, getState }) => {
-    const missionDocHandle = getAutomergeDocHandles().mission;
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
     const mission = missionDocHandle.doc();
 
     //sync up presets circle layers

@@ -1,10 +1,15 @@
-import * as L from "leaflet";
+// IMPORTANT: use `import L from "leaflet"`, NOT `import * as L from "leaflet"`.
+// The leaflet plugins below are CJS and patch `L` via `require("leaflet")`. In prod builds
+// the namespace-import form resolves to a different interop wrapper, so plugin additions
+// like `L.Proj` end up undefined at runtime if you don't do it correctly.
+import L from "leaflet";
 L.Icon.Default.imagePath = "/leaflet/images/";
 // Import the plugin libraries so they will modify L
 import "leaflet.tilelayer.colorfilter";
 import "proj4leaflet";
 import styles from "components/dashboard/miniMap.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState, useLayoutEffect, useCallback } from "react";
@@ -28,7 +33,6 @@ import PetInterval from "components/page/petInterval";
 import { EARTH_RADIUS } from "utils/consts";
 import isEqual from "lodash/isEqual";
 import { selectEvaStations, selectEvaTraverses } from "store/selectors";
-import { useMissionDocSelector } from "utils/useDocSelector";
 
 const MiniMap: FunctionComponent<{
   bigMapBounds: L.LatLngBoundsLiteral;
@@ -46,23 +50,23 @@ const MiniMap: FunctionComponent<{
   const posEntryFeatureGroup = useRef<L.FeatureGroup>(null);
   const bigMapBoxFeatureGroup = useRef<L.FeatureGroup>(null);
   const partialMission = useMissionDocSelector(
-    (doc) => ({
-      id: doc.id,
-      landerLocation: doc.landerLocation,
-      projIsCustom: doc.projIsCustom,
-      projResUnitsPerPixel: doc.projResUnitsPerPixel,
-      projResZoomLevel: doc.projResZoomLevel,
-      projEpsg: doc.projEpsg,
-      projProj4String: doc.projProj4String,
-      projOriginX: doc.projOriginX,
-      projOriginY: doc.projOriginY,
-      projBoundsMinX: doc.projBoundsMinX,
-      projBoundsMinY: doc.projBoundsMinY,
-      projBoundsMaxX: doc.projBoundsMaxX,
-      projBoundsMaxY: doc.projBoundsMaxY,
-      initialZoom: doc.initialZoom,
-      planetRadius: doc.planetRadius,
-      circleDefinitions: doc.circleDefinitions,
+    (mission) => ({
+      id: mission.id,
+      landerLocation: mission.landerLocation,
+      projIsCustom: mission.projIsCustom,
+      projResUnitsPerPixel: mission.projResUnitsPerPixel,
+      projResZoomLevel: mission.projResZoomLevel,
+      projEpsg: mission.projEpsg,
+      projProj4String: mission.projProj4String,
+      projOriginX: mission.projOriginX,
+      projOriginY: mission.projOriginY,
+      projBoundsMinX: mission.projBoundsMinX,
+      projBoundsMinY: mission.projBoundsMinY,
+      projBoundsMaxX: mission.projBoundsMaxX,
+      projBoundsMaxY: mission.projBoundsMaxY,
+      initialZoom: mission.initialZoom,
+      planetRadius: mission.planetRadius,
+      circleDefinitions: mission.circleDefinitions,
     }),
     deepEqual
   );
@@ -70,31 +74,27 @@ const MiniMap: FunctionComponent<{
   const missionLayers = useAppSelector((state) => state.mission.layers, deepEqual);
   const missionSublayers = useAppSelector((state) => state.mission.sublayers, deepEqual);
 
-  const runningRexFromDb = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((r) => r.isRunning),
+  const runningRex = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return null;
+    return Object.values(mission.rexes).find((r) => r.isRunning) ?? null;
+  }, deepEqual);
+  const runningEva = useMissionDocSelector((mission) => {
+    if (!mission?.evas || !runningRex) return null;
+    return mission.evas[runningRex.evaUuid] ?? null;
+  }, deepEqual);
+  const stationsToShow = useMissionDocSelector(
+    (mission) => (runningEva ? selectEvaStations(mission, runningEva.uuid) : []),
     deepEqual
   );
-  const runningEvaFromDb = useAppSelector(
-    (state) => state.eva.evasFromDb.find((eva) => eva.uuid === runningRexFromDb?.evaUuid),
+  const traversesToShow = useMissionDocSelector(
+    (mission) => (runningEva ? selectEvaTraverses(mission, runningEva.uuid) : []),
     deepEqual
   );
-  const stationsToShow = useAppSelector((state) => {
-    if (!runningEvaFromDb) return [];
-    return selectEvaStations(runningEvaFromDb.uuid)(state);
-  }, deepEqual);
-  const traversesToShow = useAppSelector((state) => {
-    if (!runningEvaFromDb) return [];
-    return selectEvaTraverses(runningEvaFromDb.uuid)(state);
-  }, deepEqual);
-  const egressLocation = useAppSelector((state) => {
-    if (runningEvaFromDb?.egressLocationUuid === "lander") {
-      return partialMission.landerLocation;
-    } else {
-      const foundStation = state.station.stations.find(
-        (station) => station.uuid === runningEvaFromDb?.egressLocationUuid
-      );
-      return foundStation ? foundStation.location : null;
-    }
+  const egressLocation = useMissionDocSelector((mission) => {
+    const egressStation = mission.stations[runningEva?.egressLocationUuid];
+    return runningEva?.egressLocationUuid === "lander"
+      ? partialMission.landerLocation
+      : (egressStation?.location ?? null);
   }, deepEqual);
 
   const [latestPosEntriesByType, setLatestPosEntriesByType] = useState<{
@@ -447,18 +447,18 @@ const MiniMap: FunctionComponent<{
 
   /** Determine time assosiated with currently running rex time */
   useEffect(() => {
-    if (runningEvaFromDb?.datetime) {
-      if (runningRexFromDb.petRunning && rexPetTime.endsWith("0")) {
-        setSelectedRexDateTime(addTimeToDateTime(runningEvaFromDb.datetime, rexPetTime));
-      } else if (runningRexFromDb) {
-        setSelectedRexDateTime(runningEvaFromDb.datetime);
+    if (runningEva?.datetime) {
+      if (runningRex.petRunning && rexPetTime.endsWith("0")) {
+        setSelectedRexDateTime(addTimeToDateTime(runningEva.datetime, rexPetTime));
+      } else if (runningRex) {
+        setSelectedRexDateTime(new Date(runningEva.datetime).toISOString());
       } else {
         setSelectedRexDateTime(null);
       }
     } else {
       setSelectedRexDateTime(null);
     }
-  }, [rexPetTime, runningEvaFromDb?.datetime, runningRexFromDb]);
+  }, [rexPetTime, runningEva?.datetime, runningRex]);
 
   /**
    * Determine traverses to show and draw them on map when traverses or selections change
@@ -476,7 +476,7 @@ const MiniMap: FunctionComponent<{
     traversesToShow.forEach((traverse) => {
       if (!traverse) return;
 
-      const baseColor = traverse.color || runningEvaFromDb?.traverseColor || "#03adfc";
+      const baseColor = traverse.color || runningEva?.traverseColor || "#03adfc";
 
       drawPolylineOnMap({
         map,
@@ -496,7 +496,7 @@ const MiniMap: FunctionComponent<{
         },
       });
     });
-  }, [runningEvaFromDb, traversesToShow, showArrows]);
+  }, [runningEva, traversesToShow, showArrows]);
 
   /**
    * Draw lander circles
@@ -625,11 +625,11 @@ const MiniMap: FunctionComponent<{
       // Filter out any undefined values from sourceUuids before checking length
       const validSourceUuids = mapDisplayPos.sourceUuids.filter((uuid) => uuid != null);
       if (validSourceUuids.length > 0) {
-        filteredPosEntries = runningRexFromDb?.posEntries?.filter((posEntry) =>
+        filteredPosEntries = runningRex?.posEntries?.filter((posEntry) =>
           validSourceUuids.includes(posEntry.posSourceUuid)
         );
       } else {
-        filteredPosEntries = runningRexFromDb?.posEntries;
+        filteredPosEntries = runningRex?.posEntries;
       }
       posEntriesToShow = orderBy(filteredPosEntries, ["createdAt"], "desc");
       // gather the latest 2 pos entries (need 2 in order to draw a polyline) for each type.
@@ -664,7 +664,7 @@ const MiniMap: FunctionComponent<{
           map,
           posEntry: posEntry,
           posEntryFeatureGroup,
-          selectedOrRunningRex: runningRexFromDb,
+          selectedOrRunningRex: runningRex,
           overridePosTypesUuidsToDraw:
             overridePosTypesUuidsToDraw.length > 0 ? overridePosTypesUuidsToDraw : null,
           isWin10,
@@ -687,16 +687,14 @@ const MiniMap: FunctionComponent<{
     }
     //set in local state to be used in other use effects. Do this last so markers exist
     setLatestPosEntriesByType(posTypeLatestEntries);
-  }, [map, runningRexFromDb, isWin10, mapDisplayPos, egressLocation]);
+  }, [map, runningRex, isWin10, mapDisplayPos, egressLocation]);
 
   return (
     <div className={styles.mapContainer} ref={mapContainerRef}>
-      <PetInterval
-        runningRex={runningRexFromDb}
-        rexPetTime={rexPetTime}
-        setRexPetTime={setRexPetTime}
-      />
+      <PetInterval runningRex={runningRex} rexPetTime={rexPetTime} setRexPetTime={setRexPetTime} />
       <div className={styles.map} ref={mapRef} />
+      {/* TODO #920*/}
+      {/* eslint-disable-next-line react-hooks/refs */}
       <div className={styles.mapScaleDisplay}>{showScaleBar && drawScaleBar()}</div>
     </div>
   );

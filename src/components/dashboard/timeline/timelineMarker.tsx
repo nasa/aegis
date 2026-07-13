@@ -1,5 +1,6 @@
 import type { FunctionComponent } from "react";
-import { shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { shallowEqual } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
 import { secondsFromhhmmss } from "utils/formatting";
 import PetInterval from "components/page/petInterval";
 import styles from "./timelineMarker.module.css";
@@ -9,10 +10,10 @@ export const PetTimeLine: FunctionComponent<{
   rexPetTime: string;
   setRexPetTime: (time: string) => void;
 }> = ({ pixelsPerSecondY, rexPetTime, setRexPetTime }) => {
-  const runningRex = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((r) => r.isRunning),
-    shallowEqual
-  );
+  const runningRex = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return null;
+    return Object.values(mission.rexes).find((r) => r.isRunning) ?? null;
+  }, shallowEqual);
 
   const styleFilter =
     !runningRex || secondsFromhhmmss(rexPetTime) % 2 === 0 ? "opacity(1)" : "opacity(0.5)";

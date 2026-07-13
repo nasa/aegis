@@ -1,13 +1,11 @@
-import type { EntityData, RequiredEntityData } from "@mikro-orm/postgresql";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
 import express from "express";
-import cloneDeep from "lodash/cloneDeep";
 
 import { emssTokenIsValid, hasPerms } from "utils/permissions";
 import {
-  Mission_db,
+  MissionBackup_db,
   STM_Level1_db,
   STM_Level2_db,
   STM_Level3_db,
@@ -24,12 +22,11 @@ import {
   Grid_db,
   Folder_db,
 } from "server/database/models/_allModels";
-import { convertMissionsTypeDbToStore } from "store/storeUtils/mission";
 import { globalValues } from "../global";
 
 import type { DocHandle, DocHandleChangePayload } from "@automerge/automerge-repo";
 import throttle from "lodash/throttle";
-import path from "path";
+import path from "node:path";
 import fs from "fs";
 import { missionValidator, SCHEMA_DIR } from "utils/validateSchemaServer";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -143,8 +140,8 @@ router.get("/schema", async (req: Request, res: Response): Promise<void> => {
 export default router;
 
 /**
- * get mission(s) from the database
- * @returns a mission
+ * get mission(s) from the database backup
+ * @returns an array of missions
  * @param missionIdList
  */
 export async function getBackupDbMissions(
@@ -152,47 +149,37 @@ export async function getBackupDbMissions(
 ): Promise<Mission[]> {
   // must manually fork because sometimes this call is outside normal http request context (what we do in routes)
   const em = globalValues.orm.em.fork();
-  let missions: Mission_db[];
+  let backups: MissionBackup_db[];
   if (!missionIdList) {
-    missions = await em.find(Mission_db, {});
+    backups = await em.find(MissionBackup_db, {});
   } else {
-    missions = await em.find(Mission_db, { id: missionIdList });
+    backups = await em.find(MissionBackup_db, { missionId: missionIdList });
   }
 
-  return convertMissionsTypeDbToStore(missions);
+  return backups.map((b) => b.data as Mission);
 }
 
 /**
- * Inserts or Updates missions into the database
+ * Inserts or Updates missions into the backup database
  * @param missions the mission objects to upsert
- * @returns a copy of the mission objects that was upserted
+ * @returns the mission objects that were upserted
  */
 export async function upsertBackupDbMissions(missions: Mission[]): Promise<Mission[]> {
   // must manually fork because sometimes this call is outside normal http request context (what we do in routes)
   const em = globalValues.orm.em.fork();
   await em.begin(); // Start a transaction
 
-  const missionsCopy: Mission[] = cloneDeep(missions);
-  const missionsUpsertedToDb = [];
-
   try {
-    for (const missionCopy of missionsCopy) {
-      const upsertRecord: EntityData<Mission_db> = missionCopy;
-
-      let dbReference: Mission_db;
-      if (missionCopy.id) {
-        // Update record
-        dbReference = await em.upsert(Mission_db, upsertRecord);
-      } else {
-        // Insert record.
-        // Can't use "upsert" to insert a new record if there's no other unique column in the table
-        delete upsertRecord.id; // Attempting to insert with an id of null will throw a mikro error. remove the property completely so mikro can give us a new id.
-        dbReference = em.create(Mission_db, upsertRecord as RequiredEntityData<Mission_db>);
+    for (const mission of missions) {
+      if (!mission.id) {
+        serverLogger.warning({
+          logId: "mission",
+          logValue: "upsertBackupDbMissions: mission has no id, skipping backup",
+        });
+        continue;
       }
-
-      //have to both persist and flush in order to get the new mission id back
-      await em.persist(dbReference).flush();
-      missionsUpsertedToDb.push(dbReference);
+      await em.upsert(MissionBackup_db, { missionId: mission.id, data: mission });
+      await em.flush();
     }
     await em.commit();
   } catch (e) {
@@ -200,7 +187,7 @@ export async function upsertBackupDbMissions(missions: Mission[]): Promise<Missi
     throw e; // re-throw the error to be handled by the caller
   }
 
-  return convertMissionsTypeDbToStore(missionsUpsertedToDb);
+  return missions;
 }
 
 /**
@@ -216,9 +203,9 @@ export async function deleteBackupDbMissionAndRelatedEntities(
   const deletedMissionIds = [];
 
   for (const missionId of missionIds) {
-    // First check if the mission exists
-    const mission = await em.findOne(Mission_db, missionId);
-    if (!mission) {
+    // First check if the mission exists in the backup table
+    const backup = await em.findOne(MissionBackup_db, { missionId });
+    if (!backup) {
       continue;
     }
 
@@ -283,8 +270,8 @@ export async function deleteBackupDbMissionAndRelatedEntities(
       await em.nativeDelete(Poi_db, { missionId });
       await em.nativeDelete(Station_db, { missionId });
 
-      // Finally delete the mission itself
-      await em.nativeDelete(Mission_db, { id: missionId });
+      // Finally delete the mission backup record
+      await em.nativeDelete(MissionBackup_db, { missionId });
 
       deletedMissionIds.push(missionId);
     } catch (error) {
@@ -315,7 +302,7 @@ const throttledDbBackup = throttle(
     const missionToSave = payload.doc;
     // console.log(diff(payload.patchInfo.before, payload.patchInfo.after));
     // validate contents before saving to the DB
-    const isValid = missionValidator(missionToSave);
+    const isValid = missionValidator(structuredClone(missionToSave));
     if (!isValid && missionValidator.errors?.length > 0) {
       // log the validation errors
       serverLogger.error(

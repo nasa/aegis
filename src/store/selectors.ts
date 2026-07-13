@@ -3,117 +3,111 @@ import concat from "lodash/concat";
 import type { RootState } from "store";
 
 /**
- * Gets all Stations for an EVA. If no EVA uuid is provided, use the selectedEvaUuid
+ * Gets all Stations for an EVA.
  * Also includes ingress and egress stations if they are not "lander"
  */
-export const selectEvaStations =
-  (evaUuid?: string) =>
-  (state: RootState): Station[] => {
-    const evaStations: Station[] = [];
-    const eva = state.eva.evas.find((e) => e.uuid === (evaUuid || state.eva.selectedEvaUuid));
-    if (!eva) return [];
-    if (eva.sequence) {
-      const sequenceStations = eva.sequence
-        .filter((seqItem) => seqItem.type === "station" && seqItem.uuid) // if a station hasn't be selected yet, uuid will be blank
-        .map((stationSeqItem) =>
-          state.station.stations.find((s) => s.uuid === stationSeqItem.uuid)
-        );
-      evaStations.push(...sequenceStations);
-    }
-    if (eva.ingressLocationUuid !== "lander") {
-      const ingressStation = state.station.stations.find((s) => s.uuid === eva.ingressLocationUuid);
-      if (ingressStation) evaStations.push(ingressStation);
-    }
-    if (eva.egressLocationUuid !== "lander") {
-      const egressStation = state.station.stations.find((s) => s.uuid === eva.egressLocationUuid);
-      if (egressStation) evaStations.push(egressStation);
-    }
-    return evaStations;
-  };
+export const selectEvaStations = (mission: Mission, evaUuid: string): Station[] => {
+  const allStations = mission?.stations ?? {};
+  const evaStations: Station[] = [];
+  const eva = mission?.evas?.[evaUuid];
+  if (!eva) return [];
+  if (eva.sequence) {
+    const sequenceStations = eva.sequence
+      .filter((seqItem) => seqItem.type === "station" && seqItem.uuid)
+      .map((stationSeqItem) => allStations[stationSeqItem.uuid])
+      .filter(Boolean) as Station[];
+    evaStations.push(...sequenceStations);
+  }
+  if (eva.ingressLocationUuid !== "lander") {
+    const ingressStation = allStations[eva.ingressLocationUuid];
+    if (ingressStation) evaStations.push(ingressStation);
+  }
+  if (eva.egressLocationUuid !== "lander") {
+    const egressStation = allStations[eva.egressLocationUuid];
+    if (egressStation) evaStations.push(egressStation);
+  }
+  return evaStations;
+};
 
 /**
- * Gets all Traverses for an EVA. If no EVA uuid is provided, use the selectedEvaUuid
+ * Gets all Traverses for an EVA.
  */
-export const selectEvaTraverses =
-  (evaUuid?: string) =>
-  (state: RootState): Traverse[] => {
-    const eva = state.eva.evas.find((e) => e.uuid === (evaUuid || state.eva.selectedEvaUuid));
-    if (!eva?.sequence) return [];
+export const selectEvaTraverses = (mission: Mission, evaUuid: string): Traverse[] => {
+  const allTraverses = mission?.traverses ?? {};
+  const eva = mission?.evas?.[evaUuid];
+  if (!eva?.sequence) return [];
 
-    const traverseSeqItems = eva.sequence.filter((seqItem) => seqItem.type === "traverse");
-    const traverses = traverseSeqItems.map((traverseSeqItem) =>
-      state.traverse.traverses.find((t) => t.uuid === traverseSeqItem.uuid)
-    );
+  const traverseSeqItems = eva.sequence.filter((seqItem) => seqItem.type === "traverse");
+  const traverses = traverseSeqItems
+    .map((traverseSeqItem) => allTraverses[traverseSeqItem.uuid])
+    .filter(Boolean) as Traverse[];
 
-    return traverses;
-  };
+  return traverses;
+};
 
 /**
- * Gets all Actions for an EVA. If no EVA uuid is provided, use the selectedEvaUuid
+ * Gets all Actions for an EVA.
+ * Accepts an actions record and eva from automerge as parameters.
  */
-export const selectEvaActions =
-  (evaUuid?: string) =>
-  (state: RootState): Action[] => {
-    const eva = state.eva.evas.find((e) => e.uuid === (evaUuid || state.eva.selectedEvaUuid));
-    if (!eva?.sequence) return [];
+export const selectEvaActions = (
+  allActionRecords: Record<string, Action>,
+  eva: Eva | null | undefined
+): Action[] => {
+  if (!eva?.sequence) return [];
 
-    const stationSeqItems = eva.sequence.filter((seqItem) => seqItem.type === "station");
-    const actionArrays = stationSeqItems.map((stationSeqItem) =>
-      state.action.actions.filter((a) => a.stationUuid === stationSeqItem.uuid)
-    );
-    const allActions = actionArrays.flat();
-
-    return allActions;
-  };
+  const stationSeqItems = eva.sequence.filter((seqItem) => seqItem.type === "station");
+  const actionArrays = stationSeqItems.map((stationSeqItem) =>
+    Object.values(allActionRecords).filter((a) => a.stationUuid === stationSeqItem.uuid)
+  );
+  return actionArrays.flat();
+};
 
 /**
  * Gets all stations that are not in a REX EVA or ingress/egress locations and returns them sorted by name.
- * This includes stations that are not in any EVA, and any unsaved draft stations.
- * Since sequence stations and ingress/egress stations are not duplicated until the EVA is saved,
- *     only filter out using the fromDB copies in the store.
  */
-export const selectAsPlannedStations = (state: RootState): Station[] => {
-  // First get all the stations we want to filter out
-  const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
-  // Get all stations that are in a REX's EVA.
-  const allRexEvaStationUuids = state.eva.evasFromDb
-    .filter((e) => allRexEvasUuids.includes(e.uuid))
+export const selectAsPlannedStations = (mission: Mission): Station[] => {
+  const allRexEvaUuids = Object.values(mission?.rexes ?? {}).map((rex) => rex.evaUuid);
+  const allEvas = Object.values(mission?.evas ?? {});
+
+  const allRexEvaStationUuids = allEvas
+    .filter((e) => allRexEvaUuids.includes(e.uuid))
     .flatMap((eva) => eva.sequence?.filter((seq) => seq.type === "station").map((seq) => seq.uuid));
-  // Get all stations that are ingress/egress in REX's EVAs
-  const allIngressEgressStationUuids = state.eva.evasFromDb
-    .filter((e) => allRexEvasUuids.includes(e.uuid))
+  const allIngressEgressStationUuids = allEvas
+    .filter((e) => allRexEvaUuids.includes(e.uuid))
     .flatMap((eva) => {
       const xgressStationUuids = [];
       if (eva.ingressLocationUuid !== "lander") xgressStationUuids.push(eva.ingressLocationUuid);
       if (eva.egressLocationUuid !== "lander") xgressStationUuids.push(eva.egressLocationUuid);
       return xgressStationUuids;
     });
-  // combine all uuids get stations that we need to filter out
-  // use the regular store (not the fromDB copy) to include unsaved stations
+  // Combine all uuids get stations that we need to filter out
   const allStationUuids = concat(allRexEvaStationUuids, allIngressEgressStationUuids);
-  const stationList = state.station.stations.filter(
+  const stationList = Object.values(mission?.stations ?? {}).filter(
     (station) => !allStationUuids.includes(station.uuid)
   );
   return sortBy(stationList, (station) => station.name.toLowerCase());
 };
 
 /**
- * This selector takes maestroActivityPropertiesByRefUuid and returns a new object where the keys are
- * converted from station/traverse refUuids to their corresponding regular UUIDs.
+ * This selector takes maestroActivityPropertiesByRefUuid that are keyed by station/traverse
+ * refUuids and returns a new object where the keys are regular UUIDs.
  */
 export const selectConvertMaestroActivityPropertiesByRefUuidToUuid = (
-  state: RootState,
+  mission: Mission,
   {
     maestroActivityPropertiesByRefUuid,
     rexUuid,
-  }: { maestroActivityPropertiesByRefUuid: MaestroActivityPropertiesByRefUuid; rexUuid: string }
+  }: {
+    maestroActivityPropertiesByRefUuid: MaestroActivityPropertiesByRefUuid;
+    rexUuid: string | null;
+  }
 ): MaestroActivityProperties => {
   if (!maestroActivityPropertiesByRefUuid) return {};
-  // loop through the maestroActivityProperty keys which are refUuids for stations and traverses,
-  // and create an object that keys to the non-ref uuids
+  // Loop through the maestroActivityProperty keys which are refUuids for stations and traverses,
+  // and create an object that keys to the uuids
   const activityProperties: MaestroActivityProperties = {};
   for (const [key, value] of Object.entries(maestroActivityPropertiesByRefUuid)) {
-    const uuid = getSequenceUuidByRefUuidAndRexUuid(state, {
+    const uuid = getSequenceUuidByRefUuidAndRexUuid(mission, {
       refUuid: key,
       rexUuid,
     });
@@ -122,74 +116,56 @@ export const selectConvertMaestroActivityPropertiesByRefUuidToUuid = (
     }
   }
 
-  // handle xgress entries
+  // Handle xgress entries
   for (const [key, value] of Object.entries(maestroActivityPropertiesByRefUuid)) {
     if (key.endsWith("gress")) {
       activityProperties[key] = { ...value };
     }
   }
 
-  // return the new object with non-ref keys
+  // Return the new object with uuid keys
   return activityProperties;
 };
 
 /**
- * Get non-ref sequence item (station or traverse) by refUuid and rexUuid
- * Returns the UUID of the non-ref sequence item or undefined if not found
- * If refUuid is null, returns the as-planned sequence uuid
+ * Get sequence item (station or traverse) from a refUuid and rexUuid
+ * Returns the UUID of the sequence item or undefined if not found
+ * If rexUuid is null, returns the as-planned sequence uuid
  */
 export const getSequenceUuidByRefUuidAndRexUuid = (
-  state: RootState,
-  { refUuid, rexUuid }: { refUuid: string | null; rexUuid: string }
+  mission: Mission,
+  { refUuid, rexUuid }: { refUuid: string | null; rexUuid: string | null }
 ): string | undefined => {
-  // Find all the station or traverse records that have this refUuid
-  const allStationUuidsWithRefUuid = state.station?.stations
-    .filter((station) => station.refUuid === refUuid)
-    .map((station) => station.uuid);
-  const allTraverseUuidsWithRefUuid = state.traverse?.traverses
-    .filter((traverse) => traverse.refUuid === refUuid)
-    .map((traverse) => traverse.uuid);
-  const combinedUuids = [...allStationUuidsWithRefUuid, ...allTraverseUuidsWithRefUuid];
+  const matchesRefUuid = (seq: EvaSequenceItem): boolean => {
+    if (seq.type === "station") return mission.stations[seq.uuid]?.refUuid === refUuid;
+    if (seq.type === "traverse") return mission.traverses[seq.uuid]?.refUuid === refUuid;
+    return false;
+  };
 
-  let arrayOfUuidsFromSequence = [];
-  // If refUuid is null, find EVAs that are not referenced by any REX records
-  if (refUuid === null) {
-    // Get all REX EVA UUIDs to filter out
-    const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
-
-    // Find EVAs that are not referenced by any REX
-    const nonRexEvas = state.eva.evasFromDb.filter((eva) => !allRexEvasUuids.includes(eva.uuid));
-
-    // Check if we have any non-REX EVAs. This should never happen since a rex eva can't exist without and as-planned eva existing
-    if (!nonRexEvas || nonRexEvas.length === 0) {
-      return undefined;
+  if (rexUuid === null) {
+    // Use all as-planned EVAs (not referenced by any REX)
+    // Use a Set for O(1) rex EVA uuid lookups instead of O(n) array.includes
+    const rexEvaUuidSet = new Set(Object.values(mission?.rexes ?? {}).map((rex) => rex.evaUuid));
+    for (const eva of Object.values(mission?.evas ?? {})) {
+      if (rexEvaUuidSet.has(eva.uuid)) continue;
+      // Iterate each EVA's sequence directly to short-circuit as soon as a match is found,
+      // avoiding the cost of flatMap materializing the full combined sequence array upfront
+      const match = eva.sequence?.find(matchesRefUuid);
+      if (match) return match.uuid;
     }
-
-    // Find the as-planned EVA (should be the first non-REX EVA)
-    const targetEva = nonRexEvas[0];
-    arrayOfUuidsFromSequence = targetEva?.sequence?.map((seq) => seq.uuid);
+    return undefined;
   } else {
-    // rexUuids isn't null, so we need to find using the eva from the provided rexUuid
-
-    // Find the EVA sequence from the rexUuid
-    const evaUuidFromRex = state.rex.rexesFromDb.find((rex) => rex.uuid === rexUuid)?.evaUuid;
-    const evaSequenceFromRexEva = state.eva.evasFromDb.find(
-      (eva) => eva.uuid === evaUuidFromRex
-    )?.sequence;
-    arrayOfUuidsFromSequence = evaSequenceFromRexEva?.map((seq) => seq.uuid);
+    const evaUuid = mission.rexes[rexUuid]?.evaUuid;
+    const sequence = mission.evas[evaUuid]?.sequence ?? [];
+    return sequence.find(matchesRefUuid)?.uuid;
   }
-
-  // Return the uuid in the eva sequence that is in combinedUuids
-  return arrayOfUuidsFromSequence?.find((uuid) => combinedUuids.includes(uuid));
 };
 
 /** Returns the as planned eva given an eva refUuid */
-export const getAsPlannedEvaFromRefUuid = (state: RootState, refUuid: string): Eva | undefined => {
-  if (!refUuid || !state) return undefined;
-  // get all rex eva uuids
-  const allRexEvasUuids = state.rex.rexesFromDb.map((rex) => rex.evaUuid);
-  // the as-planned eva is the one with a matching refUuid, but is not in any rex
-  const asPlannedEva = state.eva.evas.find(
+export const getAsPlannedEvaFromRefUuid = (mission: Mission, refUuid: string): Eva | undefined => {
+  if (!refUuid) return undefined;
+  const allRexEvasUuids = Object.values(mission?.rexes ?? {}).map((rex) => rex.evaUuid);
+  const asPlannedEva = Object.values(mission?.evas ?? {}).find(
     (eva) => !allRexEvasUuids.includes(eva.uuid) && eva.refUuid === refUuid
   );
   if (!asPlannedEva) return undefined;
@@ -205,3 +181,32 @@ export const isConnected = (state: RootState): boolean => {
     state.connection.socketStatus.connectionStatus === "connected"
   );
 };
+
+/**
+ * Returns highlight flags for a list of action uuids, based on STM priority membership.
+ * Pure derivation from action data — accepts an actions record as a parameter.
+ */
+export function getHighlightedActions({
+  actionUuids,
+  stmUuid,
+  actions,
+}: {
+  actionUuids: string[];
+  stmUuid: string;
+  actions: Record<string, Action>;
+}): ActionHighlight[] {
+  const matchingActions = Object.values(actions).filter((a) => actionUuids.includes(a.uuid));
+  const actionHighlights: ActionHighlight[] = [];
+  for (const action of matchingActions) {
+    const highlight: ActionHighlight = { uuid: action.uuid, highlight: false };
+    if (action.stmPriorities && stmUuid) {
+      for (const actionSTMUuid of Object.keys(action.stmPriorities)) {
+        if (actionSTMUuid === stmUuid) {
+          highlight.highlight = true;
+        }
+      }
+    }
+    actionHighlights.push(highlight);
+  }
+  return actionHighlights;
+}

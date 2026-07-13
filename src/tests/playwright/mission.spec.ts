@@ -1,4 +1,4 @@
-import { test } from "./testSetup";
+import { test } from "@playwright/test";
 import { actionTemplatesTest } from "./mission/actionTemplateTest";
 import { missionConfigTest } from "./mission/missionConfigurationTest";
 import { circleDefinitionsTest } from "./mission/circleDefinitionsTest";
@@ -8,27 +8,27 @@ import { geographicUnitsTest } from "./mission/geographicUnitsTest";
 import { actionDefinitionsTest } from "./mission/actionDefinitionsTest";
 import { exportTest } from "./mission/exportTest";
 
-test("CRUD mission preferences", async ({ page }) => {
+test("Mission preferences", async ({ page }) => {
   await missionConfigTest(page);
 });
 
-test("CRUD circle definitions", async ({ page }) => {
+test("Circle definitions", async ({ page }) => {
   await circleDefinitionsTest(page);
 });
 
-test("CRUD actionTemplates", async ({ page }) => {
+test("Action templates", async ({ page }) => {
   await actionTemplatesTest(page);
 });
 
-test("CRUD equipment", async ({ page }) => {
+test("Equipment", async ({ page }) => {
   await missionEquipmentTest(page);
 });
 
-test("CRUD geographic units", async ({ page }) => {
+test("Geographic units", async ({ page }) => {
   await geographicUnitsTest(page);
 });
 
-test("CRUD action definitions", async ({ page }) => {
+test("Action definitions", async ({ page }) => {
   await actionDefinitionsTest(page);
 });
 
@@ -37,6 +37,6 @@ test("Export data", async ({ page }) => {
 });
 
 // Preset test included here, as running preset test parallel to mission tests breaks the tests
-test("CRUD preset", async ({ page }) => {
+test("Preset", async ({ page }) => {
   await presetTest(page);
 });

@@ -1,32 +1,23 @@
 import {
-  faBan,
   faCheck,
   faCircleInfo,
-  faEdit,
-  faFloppyDisk,
   faPersonDigging,
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
-import { Button } from "components/interface/form/globalFields";
 import type { FunctionComponent } from "react";
-import { useAppDispatch } from "utils/useAppDispatch";
-import { setSelectedTraverseRightNavItem, setTraversesEditMode } from "store/traverse";
-import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { setSelectedTraverseRightNavItem } from "store/traverse";
+import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
-import traverseStyles from "./traverse.module.css";
 import Info_Panel from "./traverse-right-info";
 import Report_Panel from "../report";
 import Actions_Panel from "./traverse-right-actions";
-import { getAlertColor, isModified } from "utils/component-helpers";
+import { getAlertColor } from "utils/component-helpers";
 import { RightTabs } from "components/interface/side-controls";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import isNull from "lodash/isNull";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { thunkCancelTraverse, thunkSaveTraverse } from "store/thunk/thunkTraverse";
-import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
 const TraverseEditorRight: FunctionComponent = () => {
-  const dispatch = useAppDispatch();
   const selectedRightNavItem = useAppSelector(
     (state) => state.traverse.selectedTraverseRightNavItem,
     refEqual
@@ -35,97 +26,34 @@ const TraverseEditorRight: FunctionComponent = () => {
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const traversesEditing = useAppSelector((state) => state.traverse.traversesEditing, shallowEqual);
-  const selectedTraverse = useAppSelector(
-    (state) =>
-      state.traverse.traverses.find((traverse) => traverse.uuid === selectedEvaSequenceItemUuid),
-    deepEqual
-  );
-  const selectedTraverseFromDb = useAppSelector(
-    (state) =>
-      state.traverse.traversesFromDb.find(
-        (traverse) => traverse.uuid === selectedEvaSequenceItemUuid
-      ),
-    deepEqual
-  );
-
-  const traverseActions = useAppSelector(
-    (state) =>
-      state.action.actions
-        .filter((storeAction) => storeAction.traverseUuid === selectedTraverse.uuid)
-        .map((sa) => {
-          return { uuid: sa.uuid, updatedAt: sa.updatedAt };
-        }),
-    deepEqual
-  );
-  const traverseActionsFromDb = useAppSelector(
-    (state) =>
-      state.action.actionsFromDb
-        .filter((storeAction) => storeAction.traverseUuid === selectedTraverse.uuid)
-        .map((sa) => {
-          return { uuid: sa.uuid, updatedAt: sa.updatedAt };
-        }),
-    deepEqual
-  );
-
-  const elevationPendingIndex = useAppSelector(
-    (state) =>
-      state.interface.elevationPendingItemUuids.findIndex((uuid) => uuid === selectedTraverse.uuid),
+  const isInEditMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
+  const selectedTraverseName = useMissionDocSelector(
+    (mission) => mission.traverses[selectedEvaSequenceItemUuid]?.name,
     refEqual
   );
 
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const missionTraverseRate = useMissionDocSelector((mission) => mission.traverseRate, refEqual);
 
-  const missionTraverseRate = useMissionDocSelector((doc) => doc.traverseRate, refEqual);
-
-  const calculatedFields = useAppSelector((state) => {
-    const traverse = state.traverse.traverses.find(
-      (traverse) => traverse.uuid === selectedEvaSequenceItemUuid
+  const traverseEvaTraverseRate = useMissionDocSelector((mission) => {
+    if (!mission?.evas) return null;
+    return (
+      Object.values(mission.evas).find((eva) =>
+        eva.sequence.some((seqItem) => seqItem.uuid === selectedEvaSequenceItemUuid)
+      )?.traverseRate ?? null
     );
-    const traverseEva = state.eva.evas.find((eva) =>
-      eva.sequence.some((seqItem) => seqItem.uuid === traverse?.uuid)
-    );
-    const traverseActions = state.action.actions.filter(
+  }, deepEqual);
+  const calculatedFields = useMissionDocSelector((mission) => {
+    const traverse = mission.traverses[selectedEvaSequenceItemUuid];
+    const traverseActions = Object.values(mission.actions).filter(
       (a) => a.traverseUuid === traverse?.uuid && a.enabled
     );
     return getCalculatedFieldsByTraverse({
       traverse,
       missionTraverseRate,
-      evaTraverseRate: traverseEva?.traverseRate,
+      evaTraverseRate: traverseEvaTraverseRate,
       traverseActions,
     });
   }, deepEqual);
-
-  // Return the traverse as-planned eva's edit warning settings
-  const evaEditWarning: {
-    showEditWarning: boolean;
-    editWarningMsg: string;
-    evaName: string;
-    evaRexIsRunning: boolean;
-  } = useAppSelector((state) => {
-    const traverseEva = state.eva.evas.find((eva) =>
-      eva.sequence.some((seqItem) => seqItem.uuid === selectedTraverse.uuid)
-    );
-    const asPlannedEva = getAsPlannedEvaFromRefUuid(state, traverseEva.refUuid);
-    const selectedRex = state.rex.rexesFromDb.find((rex) => rex.evaUuid === traverseEva?.uuid);
-    return {
-      showEditWarning: asPlannedEva?.showEditWarning,
-      editWarningMsg: asPlannedEva?.editWarningMsg,
-      evaName: asPlannedEva?.name,
-      evaRexIsRunning: selectedRex?.isRunning,
-    };
-  }, deepEqual);
-
-  //track modified
-  let saveButtonState: saveButtonState = "disabled";
-  if (elevationPendingIndex > -1) {
-    saveButtonState = "pending";
-  } else {
-    const traverseModified = isModified([selectedTraverse], [selectedTraverseFromDb]);
-    const actionModified = isModified(traverseActions, traverseActionsFromDb);
-    const modified = traverseModified || actionModified;
-    saveButtonState = modified ? "enabled" : "disabled";
-  }
 
   // set reports tab icon color
   const reportsTabIconColor = getAlertColor(calculatedFields?.reportItems) || "white";
@@ -135,7 +63,7 @@ const TraverseEditorRight: FunctionComponent = () => {
       title: "Traverse Information",
       panel: Info_Panel,
       panelProps: {
-        editMode: traversesEditing.includes(selectedEvaSequenceItemUuid),
+        editMode: isInEditMode,
       },
       selectedColor: "white",
       icon: faCircleInfo,
@@ -144,7 +72,7 @@ const TraverseEditorRight: FunctionComponent = () => {
       title: "Traverse Actions",
       panel: Actions_Panel,
       panelProps: {
-        editMode: traversesEditing.includes(selectedEvaSequenceItemUuid),
+        editMode: isInEditMode,
       },
       selectedColor: "white",
       icon: faPersonDigging,
@@ -166,11 +94,11 @@ const TraverseEditorRight: FunctionComponent = () => {
   const ActiveComponent: FunctionComponent<any> = panelTypes[selectedRightNavItem]?.panel;
 
   return (
-    selectedTraverse && (
+    selectedTraverseName && (
       <>
         <div className={paneStyles.rightTopTitle}>
           <div className={paneStyles.rightTopTitleText} style={{ color: "var(--eva)" }}>
-            {selectedTraverse.name}
+            {selectedTraverseName}
           </div>
         </div>
         <div className={paneStyles.rightSubTray}>
@@ -179,73 +107,6 @@ const TraverseEditorRight: FunctionComponent = () => {
             panelTypes={panelTypes}
             dispatchFunction={setSelectedTraverseRightNavItem}
           />
-          <div className={paneStyles.saveCancelContainer}>
-            {!traversesEditing.includes(selectedEvaSequenceItemUuid) && editPerms && (
-              <Button
-                icon={faEdit}
-                onClick={() => {
-                  if (evaEditWarning?.showEditWarning && !evaEditWarning?.evaRexIsRunning) {
-                    window.alert(
-                      `Edit Warning: This traverse is part of EVA ${evaEditWarning?.evaName} that has the following edit warning:
-                      \n${evaEditWarning?.editWarningMsg || "Default warning message: Do not edit this Traverse."}`
-                    );
-                  }
-                  dispatch(
-                    setTraversesEditMode({ uuids: [selectedEvaSequenceItemUuid], editMode: true })
-                  );
-                }}
-                label="Edit"
-                toolTip="Edit Traverse"
-                style={{ width: "60px", fontSize: "0.9em" }}
-                labelStyle={{ marginTop: "2px" }}
-              />
-            )}
-
-            {traversesEditing.includes(selectedEvaSequenceItemUuid) ? (
-              saveButtonState === "pending" ? (
-                <>
-                  <span className={traverseStyles.statusLoading} />
-                </>
-              ) : (
-                <>
-                  <Button
-                    onClick={() => {
-                      if (saveButtonState === "enabled") {
-                        dispatch(
-                          thunkSaveTraverse({
-                            traverseUuid: selectedTraverse.uuid,
-                          })
-                        );
-                      }
-                    }}
-                    icon={faFloppyDisk}
-                    toolTip={`Save Traverse${
-                      saveButtonState === "enabled" ? "" : " (nothing to save)"
-                    }`}
-                    enabled={saveButtonState === "enabled"}
-                    style={{
-                      width: "30px",
-                      backgroundColor:
-                        saveButtonState === "enabled" ? "var(--alert)" : "var(--alert-disabled)",
-                      color: saveButtonState === "enabled" ? "white" : "var(--grey4)",
-                      fontSize: "0.9em",
-                      paddingLeft: "10px",
-                    }}
-                  />
-                  <Button
-                    onClick={() => {
-                      dispatch(thunkCancelTraverse({ traverseUuid: selectedTraverse.uuid }));
-                    }}
-                    icon={faBan}
-                    toolTip="Cancel Edit"
-                    style={{ width: "30px", fontSize: "0.9em", paddingLeft: "9px" }}
-                  />
-                </>
-              )
-            ) : (
-              <></>
-            )}
-          </div>
         </div>
 
         <ActiveComponent {...panelTypes[selectedRightNavItem]?.panelProps} />

@@ -1,5 +1,4 @@
 import * as httpClient_preset from "http-client/preset";
-import * as httpClient_action from "http-client/action";
 import * as httpClient_folder from "http-client/folder";
 
 import cloneDeep from "lodash/cloneDeep";
@@ -10,6 +9,7 @@ import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import type { DocHandle } from "@automerge/automerge-repo";
 import { clientLogger } from "utils/logging/clientLogger";
+import { withMissionChange } from "client/automergeDocHandles";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
@@ -128,11 +128,14 @@ export const auditPresetsAgainstLayers = async ({
 
 export const auditActions = async ({
   wholeStoreState,
+  missionDocHandle,
 }: {
   wholeStoreState: WholeStoreState;
+  missionDocHandle: DocHandle<Mission>;
 }): Promise<void> => {
-  // new stores to hold the updated values to be persisted at the end of all the audits
-  const newActions = cloneDeep(wholeStoreState.action.actions);
+  // Get actions from automerge doc
+  const allActionRecords = missionDocHandle.doc()?.actions ?? {};
+  const newActions = cloneDeep(Object.values(allActionRecords));
 
   /**
    * Action STM UUID Audit
@@ -156,18 +159,14 @@ export const auditActions = async ({
     }
   }
 
-  // update the store and db with the new values
-  const actionsToSaveToDb: Action[] = [];
-  for (const [index, action] of newActions.entries()) {
-    if (!isEqual(action, wholeStoreState.action.actions[index])) {
-      actionsToSaveToDb.push(action);
-      // update the db copy of the action in the store as well
-      wholeStoreState.action.actions[index] = action;
-      wholeStoreState.action.actionsFromDb[index] = action;
+  // update automerge doc with changed actions
+  for (const action of newActions) {
+    const original = allActionRecords[action.uuid];
+    if (!isEqual(action, original)) {
+      withMissionChange((m: Mission) => {
+        m.actions[action.uuid] = action;
+      });
     }
-  }
-  if (actionsToSaveToDb.length > 0) {
-    await httpClient_action.upsertActions(actionsToSaveToDb);
   }
 
   /**
@@ -179,13 +178,13 @@ export const auditActions = async ({
   const allActionUuidsOnParents: string[] = [];
 
   // put all action uuids from parents into a single array for easy checking
-  for (const poi of wholeStoreState.poi.pois) {
+  for (const poi of Object.values(missionDocHandle.doc()?.pois ?? {})) {
     if (poi.actionOrderUuids) allActionUuidsOnParents.push(...poi.actionOrderUuids);
   }
-  for (const station of wholeStoreState.station.stations) {
+  for (const station of Object.values(missionDocHandle.doc()?.stations ?? {})) {
     if (station.actionOrderUuids) allActionUuidsOnParents.push(...station.actionOrderUuids);
   }
-  for (const traverse of wholeStoreState.traverse.traverses) {
+  for (const traverse of Object.values(missionDocHandle.doc()?.traverses ?? {})) {
     if (traverse.actionOrderUuids) allActionUuidsOnParents.push(...traverse.actionOrderUuids);
   }
   // check each action to see if it exists on a parent
@@ -200,26 +199,17 @@ export const auditActions = async ({
       logValue: `Found orphaned action: ${action.uuid} - poiUuid: ${action.poiUuid} stationUuid: ${action.stationUuid} traverseUuid: ${action.traverseUuid}`,
     });
   }
-  // delete from database and store
+  // delete from automerge doc
   if (actionUuidsToDelete.length > 0) {
     clientLogger.debug({
       logId: "audit",
       logValue: `Deleting orphaned actions: ${actionUuidsToDelete.join(", ")}`,
     });
-    // delete from store
-    for (const actionUuid of actionUuidsToDelete) {
-      const indexInActions = newActions.findIndex((a) => a.uuid === actionUuid);
-      if (indexInActions >= 0) {
-        newActions.splice(indexInActions, 1);
+    withMissionChange((m: Mission) => {
+      for (const actionUuid of actionUuidsToDelete) {
+        delete m.actions[actionUuid];
       }
-    }
-    wholeStoreState.action.actions = newActions;
-
-    // delete from db
-    const deleteResponse = await httpClient_action.deleteActions(actionUuidsToDelete);
-    if (deleteResponse.status !== "success") {
-      // handle the error
-    }
+    });
   }
 };
 
@@ -234,7 +224,7 @@ export const auditActionDefinitions = async ({
   // If action system v2 is enabled and the action definitions are blank, create a default set
   if (mission.actionSystemVersion === 2 && !mission.actionDefinitions) {
     // save the changes to the mission automerge doc
-    missionDocHandle.change((m: Mission) => {
+    withMissionChange((m: Mission) => {
       m.actionDefinitions = generateDefaultActionDefinitions();
       m.updatedAt = getAccurateNow().getTime();
     });
@@ -243,12 +233,15 @@ export const auditActionDefinitions = async ({
 
 export const auditFolders = async ({
   wholeStoreState,
+  missionDocHandle,
 }: {
   wholeStoreState: WholeStoreState;
+  missionDocHandle: DocHandle<Mission>;
 }): Promise<void> => {
   // remove any folder items that don't exist in the store
   const newFolders = cloneDeep(wholeStoreState.interface.folders);
   const foldersToSaveToDb: Folder[] = [];
+  const mission = missionDocHandle.doc();
 
   for (const folder of newFolders) {
     let isModified = false;
@@ -264,19 +257,22 @@ export const auditFolders = async ({
           );
           break;
         case "poi":
-          folder.items = folder.items.filter((itemUuid) =>
-            wholeStoreState.poi.pois.some((poi) => poi.uuid === itemUuid)
-          );
+          folder.items = folder.items.filter((itemUuid) => {
+            const pois = mission?.pois ?? {};
+            return itemUuid in pois;
+          });
           break;
         case "station":
-          folder.items = folder.items.filter((itemUuid) =>
-            wholeStoreState.station.stations.some((station) => station.uuid === itemUuid)
-          );
+          folder.items = folder.items.filter((itemUuid) => {
+            const stations = mission?.stations ?? {};
+            return itemUuid in stations;
+          });
           break;
         case "eva":
-          folder.items = folder.items.filter((itemUuid) =>
-            wholeStoreState.eva.evas.some((eva) => eva.uuid === itemUuid)
-          );
+          folder.items = folder.items.filter((itemUuid) => {
+            const evas = mission?.evas ?? {};
+            return itemUuid in evas;
+          });
           break;
         case "layer":
           folder.items = folder.items.filter((itemUuid) =>

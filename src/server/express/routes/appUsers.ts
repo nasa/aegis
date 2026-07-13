@@ -245,7 +245,7 @@ export async function upsertAppUsers(users: AppUser[]): Promise<AppUser[]> {
         // Encrypt new password
         if (convertedUser.password !== userInDb.password) {
           const salt = await bcrypt.genSalt();
-          convertedUser.password = await bcrypt.hash(convertedUser.password, salt);
+          convertedUser.password = await bcrypt.hash(convertedUser.password as string, salt);
         }
         const updatedUser = em.assign(userInDb, convertedUser);
         em.persist(updatedUser);

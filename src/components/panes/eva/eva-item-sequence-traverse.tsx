@@ -1,4 +1,3 @@
-import { ModifiedIndicator } from "components/interface/_global-elements";
 import type { FunctionComponent } from "react";
 import { useCallback } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
@@ -8,7 +7,7 @@ import { hmmFromMinutes, isNotNumber } from "utils/formatting";
 import { setHoverUuidsForSequence } from "store/hover";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
-import { getRexStatusDisplayProperties } from "../../../utils/component-helpers";
+import { getRexStatusDisplayProperties, getSequenceItemRowStyles } from "utils/component-helpers";
 import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
@@ -20,47 +19,46 @@ const SequenceItemTraverse: FunctionComponent<{
   isRexRunning: boolean;
 }> = ({ evaUuid, traverseUuid }) => {
   const dispatch = useAppDispatch();
-  const missionTraverseRate = useMissionDocSelector((doc) => doc.traverseRate, refEqual);
+  const missionTraverseRate = useMissionDocSelector((mission) => mission.traverseRate, refEqual);
 
-  const isRexEva = useAppSelector((state) => {
-    const rexEvaUuids = state.rex.rexes.map((rex) => rex.evaUuid);
-    return rexEvaUuids.includes(evaUuid);
+  const isRexEva = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return false;
+    return Object.values(mission.rexes).some((rex) => rex.evaUuid === evaUuid);
   }, refEqual);
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
-  const editMode = useAppSelector((state) => state.eva.evasEditing.includes(evaUuid), refEqual);
-  const traverseName = useAppSelector(
-    (state) => state.traverse.traverses.find((traverse) => traverse.uuid === traverseUuid)?.name,
-    refEqual
+  const traverseDurationAndName: { name: string; duration: number } = useMissionDocSelector(
+    (mission) => {
+      return {
+        name: mission.traverses[traverseUuid]?.name,
+        duration: mission.traverses[traverseUuid]?.duration,
+      };
+    },
+    deepEqual
   );
 
-  const thisTraverseForModified = useAppSelector((state) => {
-    const traverse = state.traverse.traverses.find((traverse) => traverse.uuid === traverseUuid);
-    return { uuid: traverse?.uuid, duration: traverse?.duration, updatedAt: traverse?.updatedAt };
-  }, deepEqual);
-  const thisTraverseFromDbForModified = useAppSelector((state) => {
-    const traverse = state.traverse.traversesFromDb.find(
-      (traverse) => traverse.uuid === traverseUuid
+  const traverseEvaTraverseRate = useMissionDocSelector((mission) => {
+    if (!mission?.evas) return null;
+    return (
+      Object.values(mission.evas).find((eva) =>
+        eva.sequence.some((seqItem) => seqItem.uuid === traverseUuid)
+      )?.traverseRate ?? null
     );
-    return { uuid: traverse?.uuid, duration: traverse?.duration, updatedAt: traverse?.updatedAt };
   }, deepEqual);
-  const thisTraverseCalculatedFields = useAppSelector((state) => {
-    const traverse = state.traverse.traverses.find((traverse) => traverse.uuid === traverseUuid);
-    const traverseEva = state.eva.evas.find((eva) =>
-      eva.sequence.some((seqItem) => seqItem.uuid === traverse?.uuid)
-    );
-    const traverseActions = state.action.actions.filter(
-      (a) => a.traverseUuid === traverse?.uuid && a.enabled
+  const thisTraverseCalculatedFields = useMissionDocSelector((mission) => {
+    const traverseActions = Object.values(mission.actions ?? {}).filter(
+      (a) => a.traverseUuid === traverseUuid && a.enabled
     );
     return getCalculatedFieldsByTraverse({
-      traverse,
+      traverse: mission.traverses ? mission.traverses[traverseUuid] : undefined,
       missionTraverseRate,
-      evaTraverseRate: traverseEva?.traverseRate,
+      evaTraverseRate: traverseEvaTraverseRate,
       traverseActions,
     });
   }, deepEqual);
 
-  const traverseRexStatus = useAppSelector((state) => {
-    const rex = state.rex.rexesFromDb.find((rex) => rex.evaUuid === evaUuid);
+  const traverseRexStatus = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return null;
+    const rex = Object.values(mission.rexes).find((rex) => rex.evaUuid === evaUuid);
     if (!rex || !rex.traverseEntries) return null;
     return rex.traverseEntries[traverseUuid]?.rexStatus;
   }, shallowEqual);
@@ -69,53 +67,29 @@ const SequenceItemTraverse: FunctionComponent<{
     refEqual
   );
 
-  const rexMaestroControlled = useAppSelector(
-    (state) => state.rex.rexesFromDb.find((rex) => rex.isRunning)?.maestroControlled,
-    refEqual
-  );
+  const rexMaestroControlled = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return false;
+    return Object.values(mission.rexes).find((rex) => rex.isRunning)?.maestroControlled ?? false;
+  }, refEqual);
 
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
   // returns the rex from db object if this is a rex eva and is executing
-  const rexFromDbIfExecuting = useAppSelector((state) => {
-    if (!isRexEva) return null;
-    return state.rex.rexesFromDb.find((rex) => rex.isRunning && rex.evaUuid === evaUuid);
+  const rexIfExecuting = useMissionDocSelector((mission) => {
+    if (!isRexEva || !mission?.rexes) return null;
+    return (
+      Object.values(mission.rexes).find((rex) => rex.isRunning && rex.evaUuid === evaUuid) ?? null
+    );
   }, deepEqual);
-
-  // determine styling
-  let evaSequenceStyle = null;
-  if (traverseUuid === selectedEvaSequenceItemUuid) {
-    evaSequenceStyle = evaStyles.evaItemNameSelected;
-  } else if (traverseUuid === hoverItemUuid) {
-    evaSequenceStyle = evaStyles.evaItemNameHoverMode;
-  }
-  if (isRexEva) {
-    if (traverseRexStatus === "in-progress") {
-      evaSequenceStyle = evaStyles.evaItemNameRexInProgress;
-      if (traverseUuid === selectedEvaSequenceItemUuid) {
-        evaSequenceStyle = evaStyles.evaItemNameRexInProgressSelected;
-      }
-    } else if (traverseRexStatus === "complete") {
-      evaSequenceStyle = evaStyles.evaItemNameRexComplete;
-      if (traverseUuid === selectedEvaSequenceItemUuid) {
-        evaSequenceStyle = evaStyles.evaItemNameSelected;
-      }
-    } else if (traverseRexStatus === "skipped") {
-      evaSequenceStyle = evaStyles.evaItemNameRexSkipped;
-      if (traverseUuid === selectedEvaSequenceItemUuid) {
-        evaSequenceStyle = evaStyles.evaItemNameRexSkippedSelected;
-      }
-    }
-  }
 
   const displayTraverseDuration = useCallback(() => {
     const traverseCalculatedTime = thisTraverseCalculatedFields
       ? thisTraverseCalculatedFields.durationMinutes + thisTraverseCalculatedFields.totalActionTime
       : null;
-    const durationMinutes = isNotNumber(thisTraverseForModified?.duration)
+    const durationMinutes = isNotNumber(traverseDurationAndName?.duration)
       ? traverseCalculatedTime
-      : thisTraverseForModified.duration;
+      : traverseDurationAndName?.duration;
     return isNotNumber(durationMinutes) ? "N/A" : hmmFromMinutes(durationMinutes);
-  }, [thisTraverseCalculatedFields, thisTraverseForModified.duration]);
+  }, [thisTraverseCalculatedFields, traverseDurationAndName?.duration]);
 
   const getTraverseDisplay = (name: string) => {
     if (!name) {
@@ -153,10 +127,17 @@ const SequenceItemTraverse: FunctionComponent<{
     [dispatch, evaUuid, selectedEvaSequenceItemUuid]
   );
 
+  const { rowClassName, nameClassName } = getSequenceItemRowStyles({
+    rexStatus: traverseRexStatus,
+    isSelected: traverseUuid === selectedEvaSequenceItemUuid,
+    isHovered: traverseUuid === hoverItemUuid,
+    isRexEva,
+  });
+
   return (
     <div className={evaStyles.evaSequence}>
       <div
-        className={evaStyles.evaItem}
+        className={`${evaStyles.evaItem} ${rowClassName}`}
         key={`${traverseUuid}`}
         onMouseEnter={() => {
           dispatch(
@@ -166,6 +147,8 @@ const SequenceItemTraverse: FunctionComponent<{
         onMouseLeave={() => {
           dispatch(setHoverUuidsForSequence({ sequenceUuid: null, mapItemType: null }));
         }}
+        onClick={() => handleSequenceItemClick(traverseUuid)}
+        style={{ cursor: "pointer" }}
       >
         <div className={evaStyles.evaTraverseIndicator}>
           <div className={evaStyles.iconTraverseDotsContainer}>
@@ -179,30 +162,19 @@ const SequenceItemTraverse: FunctionComponent<{
             divClassName={evaStyles.rexStatusWrapper}
             entryType="traverse"
             uuid={traverseUuid}
-            editPerms={!!(editPerms && rexFromDbIfExecuting)} // the !! converts result into boolean
+            editPerms={!!(editPerms && rexIfExecuting)} // the !! converts result into boolean
             maestroControlled={rexMaestroControlled}
           />
         )}
         <div
-          className={`${evaStyles.evaItemName} ${
-            editMode && evaStyles.editMode
-          }  ${evaSequenceStyle} ${
-            getRexStatusDisplayProperties(traverseRexStatus).customTextClassName
+          className={`${evaStyles.evaItemName} ${nameClassName} ${
+            getRexStatusDisplayProperties(traverseRexStatus).customTextClassName ?? ""
           }`}
-          onClick={() => {
-            if (editMode) return;
-
-            handleSequenceItemClick(traverseUuid);
-          }}
         >
           <div className={evaStyles.evaItemLeft}>
             <div className={`${evaStyles.evaTraverseNameText}`}>
-              {getTraverseDisplay(traverseName)}
+              {getTraverseDisplay(traverseDurationAndName?.name)}
             </div>
-            <ModifiedIndicator
-              obj1={[thisTraverseForModified]}
-              obj2={[thisTraverseFromDbForModified]}
-            />
           </div>
           <div className={evaStyles.evaItemRight}>
             <div
