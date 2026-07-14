@@ -63,7 +63,7 @@ const StationEditorRight: FunctionComponent = () => {
 
   const otherStationNames = useMissionDocSelector(
     (mission) =>
-      Object.values(mission.stations).map(({ name, uuid }) => {
+      selectAsPlannedStations(mission).map(({ name, uuid }) => {
         if (uuid !== selectedStationUuid) {
           return name;
         }
