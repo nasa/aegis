@@ -25,7 +25,7 @@
     # COPY blocks are also stripped as defense-in-depth: --exclude-schema removes contents
     # but pg_dump can still emit the empty schema shell. Import jobs also strip (defense-
     # in-depth for old cached dumps that predate --exclude-schema on the export side).
-    # IMPORTANT: Keep pattern synchronized with .gitlab/scripts/load-sql-dump.mjs,
+    # IMPORTANT: Keep the PostGIS pattern synchronized with .gitlab/scripts/load-sql-dump.mjs,
     # scripts/upgrade-db.sh, and .gitlab/includes/db-import.yml
     - sudo docker compose exec database pg_dump -U postgres aegis
       --exclude-schema=tiger

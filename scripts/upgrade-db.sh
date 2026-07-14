@@ -96,7 +96,7 @@ if [ "$RUNNING_MAJOR_VERSION" -lt "$TARGET_MAJOR_VERSION" ]; then
   # have these extensions, so any surviving PostGIS statements must be removed before postgres
   # tries to import the file on first boot via /docker-entrypoint-initdb.d/ (psql aborts on the
   # first error and silently drops all subsequent statements, leaving the DB in a broken state).
-  # IMPORTANT: Keep pattern synchronized with .gitlab/scripts/load-sql-dump.mjs,
+  # IMPORTANT: Keep the PostGIS pattern synchronized with .gitlab/scripts/load-sql-dump.mjs,
   # .gitlab/includes/db-import.yml, and .gitlab/includes/server-jobs.yml
   sed -E \
     '/^CREATE EXTENSION.*(postgis|tiger|topology|fuzzystrmatch).*;$/d;
