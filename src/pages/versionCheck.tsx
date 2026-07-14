@@ -3,6 +3,16 @@ import { useSearchParams } from "react-router";
 import { Button } from "components/interface/form/globalFields";
 import { clientLogger } from "utils/logging/clientLogger";
 
+/**
+ * Append a unique timestamp query parameter to a same-origin URL.
+ * So browser cannot serve the response cache and must revalidate against the
+ * server.
+ */
+const withRevalidationParam = (url: string): string => {
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}_revalidate=${Date.now()}`;
+};
+
 const VersionCheck: React.FunctionComponent = () => {
   const [searchParams] = useSearchParams();
   const [serverVersion, setServerVersion] = useState<AppVersion | null>(null);
@@ -37,11 +47,14 @@ const VersionCheck: React.FunctionComponent = () => {
   };
   const returnUrl = getValidatedReturnUrl(searchParams.get("returnUrl"));
 
-  // Fetch server version on load
+  // Fetch server version on load.
   useEffect(() => {
     const fetchServerVersion = async () => {
       try {
-        const res = await fetch(`/api/v1/version`);
+        const res = await fetch(`/api/v1/version?_=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        });
         const version: AppVersion = await res.json();
         setServerVersion(version);
       } catch (error) {
@@ -71,8 +84,8 @@ const VersionCheck: React.FunctionComponent = () => {
       }, 1000);
       return () => clearTimeout(timer);
     } else if (versionsMatch && countdown === 0) {
-      // Redirect when countdown reaches 0
-      window.location.href = returnUrl;
+      // Redirect when countdown reaches 0.
+      window.location.href = withRevalidationParam(returnUrl);
     }
   }, [versionsMatch, countdown, returnUrl]);
 
@@ -112,7 +125,7 @@ const VersionCheck: React.FunctionComponent = () => {
         <br />
         <Button
           onClick={() => {
-            window.location.href = returnUrl;
+            window.location.href = withRevalidationParam(returnUrl);
           }}
           label="Redirect Now"
         />
@@ -131,8 +144,8 @@ const VersionCheck: React.FunctionComponent = () => {
     >
       <h1>Version Update Required</h1>
       <p>
-        Your version of AEGIS is out of date. Please perform a hard refresh (Ctrl+F5 or Cmd+Shift+R)
-        to update to the latest version.
+        Your version of AEGIS is out of date. Click the button below to fetch the latest version. If
+        that does not work, perform a hard refresh (Ctrl+F5 or Cmd+Shift+R).
       </p>
 
       <div>
@@ -145,9 +158,11 @@ const VersionCheck: React.FunctionComponent = () => {
       <br />
       <Button
         onClick={() => {
-          window.location.reload();
+          // Force a fresh load from the server with a unique query parameter
+          // to make sure a fresh index.html + bundle are fetched.
+          window.location.href = withRevalidationParam(returnUrl);
         }}
-        label="Refresh Page Now"
+        label="Get Latest Version"
       />
     </div>
   );
