@@ -119,6 +119,14 @@ try {
       await flushSql();
       copyCmd = line.replace(/;\s*$/, "");
       inCopy = true;
+    } else if (/^\\(?:un)?restrict\s+[A-Za-z0-9]+\s*$/.test(line)) {
+      // psql client meta-commands (not SQL) that pg_dump >= 17.6 / 18.0 wraps around
+      // every plain-text dump for CVE-2025-8714. psql handles them client-side; this
+      // loader is a psql substitute, so it skips them the same way rather than sending
+      // the leading backslash to the server (which would error). The pattern matches only
+      // the exact `\restrict <key>` / `\unrestrict <key>` form, so it won't touch a
+      // backslash line inside a dollar-quoted function body.
+      continue;
     } else {
       sqlBuffer += line + "\n";
     }

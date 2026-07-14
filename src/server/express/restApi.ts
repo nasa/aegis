@@ -97,11 +97,15 @@ app.get("/api/v1/user/current", (req, res) => {
 
 // Serve a successful response. For use with wait-on
 app.get("/api/v1/health", (req, res) => {
+  res.set("Cache-Control", "no-store");
   res.send({ status: "ok" });
 });
 
 // get app version
 app.get("/api/v1/version", (req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
   res.send(globalValues.appVersion);
 });
 
