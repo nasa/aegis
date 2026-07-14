@@ -478,7 +478,10 @@ const Home: React.FunctionComponent = () => {
   const clientAppVersion = useAppSelector((state) => state.connection.clientAppVersion, deepEqual);
   useEffect(() => {
     const checkVersion = async () => {
-      const res = await fetch("/api/v1/version");
+      const res = await fetch(`/api/v1/version?_=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       if (res.status !== 200) {
         console.warn(`Unable to check app version: ${res.status} ${res.statusText}`);
         return;
