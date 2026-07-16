@@ -47,9 +47,7 @@ const Header: FunctionComponent = () => {
 
   const isInEditMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
   const editPerms = useAppSelector(
-    (state) =>
-      (state.user.missionPerms.permissions.edit && state.user.appUser.isAdmin) ||
-      state.user.appUser.isSuperAdmin,
+    (state) => state.user.missionPerms.permissions.edit || state.user.appUser.isSuperAdmin,
     refEqual
   );
   const isOnline = useAppSelector(isConnected, refEqual);
