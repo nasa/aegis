@@ -181,12 +181,18 @@ class BoxClient:
 
 
 def _zip_dir(src_dir: Path, zip_path: Path) -> Path:
-    """Zip the entire contents of src_dir into zip_path (paths relative to src_dir)."""
+    """Zip the contents of src_dir into zip_path under a single top-level folder.
+
+    The top-level folder is named after the zip file (its stem), so ``Data.zip``
+    contains ``Data/...`` and ``<layer>.zip`` contains ``<layer>/...`` rather than
+    exploding files at the archive root.
+    """
     zip_path.parent.mkdir(parents=True, exist_ok=True)
+    root = zip_path.stem
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         for file in sorted(src_dir.rglob("*")):
             if file.is_file():
-                zf.write(file, file.relative_to(src_dir))
+                zf.write(file, Path(root) / file.relative_to(src_dir))
     return zip_path
 
 
