@@ -9,6 +9,16 @@ It **complements** [`leaflet-notes.md`](./leaflet-notes.md), which is the *refer
 parts of the pipeline output exist only because of Leaflet. That doc answers "what is
 Leaflet-specific?"; this doc answers "given that both eras coexist forever, what do we build?"
 
+For **vector tiles** specifically — the one OpenLayers-era output this pipeline does **not**
+produce yet — see the dedicated reference [`PMTILES-VECTOR-TILES.md`](./PMTILES-VECTOR-TILES.md).
+§8 below is its task-list entry; that doc is the technical reference (source format, the
+converter to port, the `esri_tile_info` contract, the tile grid, app-side consumption).
+
+> **Scope note.** This doc (and §8) was written on the `MS3-import` branch **before** the
+> OpenLayers app was merged. The app-side details it cites (COG-by-type routing, `ol-pmtiles`
+> consumption, `parseEsriPmtilesMetadata`) currently live on the `map-prototype` branch. Treat
+> them as the target to reconcile against once OpenLayers lands here and this branch is rebased.
+
 Distilled from the early OpenLayers investigation notes in `D:/tempD/GIS-data-pipelines`
 (`CURRENT_MISSION-GIS-ANALYSIS.md §15-16`, `V2_TILESET-MIGRATION-STRATEGY.md`,
 `V2_COG-SERVING-STRATEGY.md`, `V2_ELEVATION-STRATEGY.md`,
@@ -50,6 +60,7 @@ gain a brand-new layer:
 | ------------------ | --------------------------------------------------- | ------------------ |
 | Tile order         | `sublayer.tileFormat` (`"tms"` vs `"xyz"`)          | No — set it correctly per layer |
 | Raster vs COG      | `sublayer.type` (`"tile"` vs new `"cog"`/`"dem"`)   | No — new type is unambiguous |
+| Vector: file vs tiled | `sublayer.type` (`"vector"` GeoJSON vs `"vector-tile"` PMTiles) | No — both types already exist in the schema (§8) |
 | BoundingBox units  | value range is self-evident (±180/±90° vs ±931100 m)| No — auto-detect (`getBoundsUnits`) |
 | Per-layer zoom     | `sublayer.minNativeZoom`/`maxNativeZoom`            | No — already per layer |
 | Trust layer grid vs mission pyramid | *(none — see §2)*                  | **Yes** — legacy-broken tilesets need a fallback flag |
@@ -241,10 +252,76 @@ It cannot and should not touch legacy missions.
 
 ---
 
+## 8. Vector tiles as PMTiles — the one OL-era output the pipeline dropped
+
+Everything §1–§7 is about **raster**. Vector is a separate story, and there are **two tiers**:
+
+- **Small vectors → GeoJSON (unchanged).** The landing ellipse and similar low-feature-count
+  layers are emitted by [`../vector/shp_to_geojson.py`](../vector/shp_to_geojson.py) as lon/lat
+  (EPSG:4326) GeoJSON and reprojected client-side (`new GeoJSON({ dataProjection: "EPSG:4326",
+  featureProjection: "IAU2000:30166" })`). This is already renderer-agnostic and needs **no
+  change** for OpenLayers — keep it.
+- **Large / dense vectors → PMTiles vector tiles (new, additive).** Datasets like the
+  aggregated **contours** (~286 k line features across z0–z14) are far too heavy to ship as one
+  GeoJSON. They must be **vector-tiled** and served as a single `.pmtiles` archive that
+  OpenLayers renders via `ol-pmtiles` + `ol/format/MVT`. **The pipeline produces none of this
+  today.**
+
+**The gap has history.** A working converter, `arcgis_compact_cache_v2_to_pmtiles.py`, exists on
+the **`map-prototype`** branch (`data_conversion_scripts/` root, from the flat prototype era) but
+was **not carried over** when those scripts were restructured into
+`esri-to-aegis-lunar-southpole/`. It is the piece to port back in. Full detail in
+[`PMTILES-VECTOR-TILES.md`](./PMTILES-VECTOR-TILES.md); the essentials:
+
+- **Source format.** ArcGIS **Vector Tile Package / Compact Cache V2** — pre-tiled `.bundle`
+  files + a `root.json` that carries the tile grid (`tileInfo.lods`, `origin`, `rows/cols`,
+  `spatialReference`, `fullExtent`). Example delivery: `aegis_static/test/AggregatedContour/`
+  (`p12/` = raw compact cache, `extracted/contours.pmtiles` = prototype converter output). The
+  GIS team tiles in ArcGIS; we do **not** re-tile from raw shapefiles (standard vector-tile
+  tooling like tippecanoe is Web-Mercator-only and can't target the lunar polar grid).
+- **Producer→consumer contract = the `esri_tile_info` metadata block** embedded in the
+  `.pmtiles` (copied from `root.json`) plus `vector_layers`. The OpenLayers side builds the
+  vector tile grid **entirely** from `esri_tile_info` (resolutions, origin, extent, tileSize,
+  wkid); if it's missing the layer renders blank. The converter must always emit it.
+- **Independent tile grid, shared projection.** The vector grid (origin ±8388908.79, 512-px
+  tiles, its own ~20 LODs) is **not** the raster cap grid (origin ±931100, 256-px, 12800 m/px,
+  z0–z13). OpenLayers lets them coexist because they share the **same projection**: the cache
+  declares ESRI `wkid 103878` (Moon South Pole Stereographic), geometrically the same lunar
+  south-polar stereographic as AEGIS's `IAU2000:30166`, so the app registers `IAU2000:30166` and
+  consumes the tiles with **zero reprojection**. (Verify 103878's sphere radius = 1 737 400 m —
+  see the reference doc.)
+- **Registration is self-identifying — no new flag.** Emit a `"vector-tile"` sublayer whose
+  `path` points at the `.pmtiles`. That `SublayerType` **already exists** in the app schema
+  (`src/typings/layer.d.ts`), and `register.py` today emits only `"tile"`/`"vector"` — so adding
+  the `"vector-tile"` path is purely additive and legacy layers never have it.
+- **Serving.** The single `.pmtiles` archive is read over HTTP **Range** — same Range + CORS +
+  nginx slice-cache contract as the COG path (§3–§4).
+
+**Pipeline TODO (new missions / shared catalog):**
+
+1. **Port the converter** into the pipeline as a run-by-path geo sub-script (a `vectortile/`
+   concern folder), following the subprocess convention in
+   [`../pipeline/steps.py`](../pipeline/steps.py) and `data_conversion_scripts/CLAUDE.md`.
+2. **Add a `vectortiles` step** that runs it on any delivered ArcGIS vector-tile cache and lands
+   `Data/<name>.pmtiles`.
+3. **Register a `"vector-tile"` sublayer** in [`../register.py`](../register.py) (`path` →
+   `.pmtiles`; no `tilePattern`/`tileFormat`/bbox — the archive's `esri_tile_info` is
+   self-describing, exactly like `"cog"` in §3).
+4. Because contours cover the whole cap, treat this as a strong candidate for the **shared
+   cross-mission catalog** (§6): publish once to a Range-served URL and reference by many
+   missions rather than copying per `missionFiles/<id>/`.
+
+*(App-side, for reference — arrives with the OpenLayers merge, currently only on `map-prototype`:
+`ol-pmtiles` `PMTilesVectorSource`, `pmtiles` `PMTiles.getMetadata()`, `parseEsriPmtilesMetadata`
+→ `buildTileGrid`, and per-feature styling off the `_symbol` attribute in `contours.ts`.)*
+
+---
+
 ## Priority summary
 
 | # | Item                                                  | Kind                 | Effort | Priority |
 | - | ----------------------------------------------------- | -------------------- | ------ | -------- |
+| 8 | PMTiles vector-tile step + `"vector-tile"` registration (port `map-prototype` converter) | Additive | Med | **High** |
 | 3 | COG sublayer output/registration path                 | Additive             | Med    | **High** |
 | 2 | `tileGridVersion` + drop per-layer `CAP_MAX_ZOOM` clamp| Version marker       | Low–Med| **High** |
 | 1 | New-layer projected `<BoundingBox>` (+ maybe XYZ)      | Self-identifying     | Low    | Medium   |
@@ -262,5 +339,8 @@ Note there is **no** "deprecate mission fields" item — see §5.
 - [`../common/geotiff_to_cog.py`](../common/geotiff_to_cog.py) — already emits internally-tiled
   COGs with overviews for range serving (only the noData tag in §4 is outstanding).
 - The DEM COG re-emit (`step_dem`).
+- **Small-vector GeoJSON output** ([`../vector/shp_to_geojson.py`](../vector/shp_to_geojson.py)) —
+  lon/lat, reprojected client-side; renderer-agnostic. (Large/dense vectors are a *new* output,
+  not a no-op — see §8.)
 - `projEpsg` / `projProj4String` / `planetRadius` registration — how *both* renderers, and both
   eras, model the custom CRS.
