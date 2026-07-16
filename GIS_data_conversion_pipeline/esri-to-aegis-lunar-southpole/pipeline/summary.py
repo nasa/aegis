@@ -22,14 +22,11 @@ def _trim(raw: str | None, fallback: str = _TBD) -> str:
 
 
 def _first_built_tmr(p: config.PipelinePaths) -> Path | None:
-    product_layers = [
-        p.layer_path(n)
-        for n in (
-            config.OUT_HILLSHADE_LAYER_NAME,
-            config.OUT_ASPECT_LAYER_NAME,
-            config.OUT_TRI_LAYER_NAME,
-        )
-    ]
+    product_layers = [p.layers / n for n in (
+        config.OUT_HILLSHADE_LAYER_NAME,
+        config.OUT_ASPECT_LAYER_NAME,
+        config.OUT_TRI_LAYER_NAME,
+    )]
     for layer in (p.nac_layer, p.slope_layer, *product_layers):
         tmr = layer / "tilemapresource.xml"
         if tmr.exists():
@@ -65,12 +62,8 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
         tee(f"  {label:<{W}} {value}")
 
     origin_x, origin_y, z0_res = _parse_origin_and_res(_first_built_tmr(p))
-    lander_lat = (
-        args.lander_lat if args.lander_lat is not None else config.DEFAULT_LANDER_LAT
-    )
-    lander_lng = (
-        args.lander_lng if args.lander_lng is not None else config.DEFAULT_LANDER_LNG
-    )
+    lander_lat = args.lander_lat if args.lander_lat is not None else config.DEFAULT_LANDER_LAT
+    lander_lng = args.lander_lng if args.lander_lng is not None else config.DEFAULT_LANDER_LNG
 
     tee("\n  ┌─ Mission (top-level fields) ──────────────────────────────────┐")
     row("name", args.mission_name or "(unset)")
@@ -97,32 +90,11 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
     tee("\n  ┌─ Products ────────────────────────────────────────────────────┐")
     row("DEM (demFilePath)", f"Data/{p.dem_out.name}  {mark(p.dem_out)}")
     row("demResolution", str(args.dem_resolution))
-    if p.layer_prefix:
-        row("layer prefix", f"{p.layer_prefix}_  (folders + AEGIS layer names)")
-    row(
-        "NAC tile layer",
-        f"Layers/{p.layer_name(config.OUT_NAC_LAYER_NAME)}/  {mark(p.nac_layer)}",
-    )
-    row(
-        "Slope tile layer",
-        f"Layers/{p.layer_name(config.OUT_SLOPE_LAYER_NAME)}/  {mark(p.slope_layer)}",
-    )
-    for name in (
-        config.OUT_HILLSHADE_LAYER_NAME,
-        config.OUT_ASPECT_LAYER_NAME,
-        config.OUT_TRI_LAYER_NAME,
-    ):
-        row(
-            f"{name.capitalize()} tile layer",
-            f"Layers/{p.layer_name(name)}/  {mark(p.layer_path(name))}",
-        )
-    row(
-        "Landing ellipse (vector)",
-        f"Data/{config.OUT_ELLIPSE_NAME}  {mark(p.ellipse_out)}",
-    )
-    row(
-        "Mission grid (LGRS)",
-        f"{config.OUT_GRID_SOURCE_NAME}  {mark(p.out / config.OUT_GRID_SOURCE_NAME)}",
-    )
+    row("NAC tile layer", f"Layers/{config.OUT_NAC_LAYER_NAME}/  {mark(p.nac_layer)}")
+    row("Slope tile layer", f"Layers/{config.OUT_SLOPE_LAYER_NAME}/  {mark(p.slope_layer)}")
+    for name in (config.OUT_HILLSHADE_LAYER_NAME, config.OUT_ASPECT_LAYER_NAME, config.OUT_TRI_LAYER_NAME):
+        row(f"{name.capitalize()} tile layer", f"Layers/{name}/  {mark(p.layers / name)}")
+    row("Landing ellipse (vector)", f"Data/{config.OUT_ELLIPSE_NAME}  {mark(p.ellipse_out)}")
+    row("Mission grid (LGRS)", f"{config.OUT_GRID_SOURCE_NAME}  {mark(p.out / config.OUT_GRID_SOURCE_NAME)}")
     tee("  └───────────────────────────────────────────────────────────────┘")
     tee(f"\n  Output root: {p.out}\n")

@@ -15,7 +15,7 @@ The script:
   5. POSTs new sublayers for the missing frames, all attached to the existing
      parent layer UUID (discovered from the GET /layer response by name).
 
-Usage (from GIS_data_conversion_pipeline/):
+Usage (from data_conversion_scripts/):
     pixi run python esri-to-aegis-lunar-southpole/nac/examples/per_frame_layers/insert_nac_layers_into_aegis_db.py \
         --mission-id <id> --layers-dir <output-root>/Layers --layer-name <parent-layer> --dry-run
 """
@@ -143,7 +143,8 @@ def find_built_nac_frames(layers_dir: Path) -> list[Path]:
         for d in layers_dir.iterdir()
         if d.is_dir() and (d / "tilemapresource.xml").exists()
         # NAC frames start with M followed by digits (not 'slope' etc.)
-        and d.name[0] == "M" and not d.name.startswith("mm2-")
+        and d.name[0] == "M"
+        and not d.name.startswith("mm2-")
     )
 
 

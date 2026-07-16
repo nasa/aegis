@@ -13,7 +13,7 @@ then tiled onto the shared lunar south-pole cap grid used by Leaflet production
 (origin -931100, z0 units-per-pixel 12800). The output is one layer directory
 per frame, named after the source stem, e.g. `M1409412744RE-tile.5.2-map`.
 
-Run from `GIS_data_conversion_pipeline/` via pixi so GDAL CLIs are on PATH:
+Run from `data_conversion_scripts/` via pixi so GDAL CLIs are on PATH:
 
     pixi run python esri-to-aegis-lunar-southpole/nac/examples/per_frame_layers/build_nac_layer_pyramids.py \
         F:/_repos/aegis_static/MS3/A03MP026_SFS_1mpp_orthoimages \

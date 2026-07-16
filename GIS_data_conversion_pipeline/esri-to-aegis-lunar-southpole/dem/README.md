@@ -4,17 +4,16 @@ DEM processing has no special-case script — it is simply a **clean Cloud-Optim
 GeoTIFF re-emit** of the delivered DEM, so it reuses the general raster tool in
 [`../common/geotiff_to_cog.py`](../common/geotiff_to_cog.py).
 
-The output keeps the source filename with a compression + `_cog` suffix (e.g.
-`<out>/Data/mp2-sfs-dem_MoonSP_COG_deflate_cog.tif`) so the mission **`demFilePath`** is
-self-describing. It is the elevation source — *not* a tile layer. It uses **deflate**
-(browser-decodable), not zstd, so it can also be read client-side over HTTP Range.
+The output keeps the source filename with a `_zstd` suffix (e.g.
+`<out>/Data/mp2-sfs-dem_MoonSP_COG_zstd.tif`) so the mission **`demFilePath`** is
+self-describing. It is the elevation source — *not* a tile layer.
 
 Driven by the `dem` step in [`../main.py`](../main.py):
 
 ```bash
-pixi run python ../common/geotiff_to_cog.py <dem_in>.tif --compress deflate -o <out>/Data/<dem_in>_deflate_cog.tif
+pixi run python ../common/geotiff_to_cog.py <dem_in>.tif --compress zstd -o <out>/Data/<dem_in>_zstd.tif
 ```
 
 For the A03MP026 drop the input is `A03MP026/SFS_1mpp_DEM/mp2-sfs-dem_MoonSP_COG.tif`
-at 1 m/px (`demResolution = 1.0`). Override the input with `main.py --in-dem <path>`. The
+at 1 m/px (`demResolution = 1.0`). Override the input with `main.py --dem <path>`. The
 `register` step sets `demFilePath` to the actual file written under `Data/`.

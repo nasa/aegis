@@ -28,7 +28,7 @@ Usage
 -----
 ::
 
-    cd GIS_data_conversion_pipeline
+    cd data_conversion_scripts
     pixi run python esri-to-aegis-lunar-southpole/products/dem_products.py \\
         --dem /path/to/dem.tif --out /path/to/products \\
         --products slope hillshade aspect tri
@@ -42,10 +42,8 @@ Then tile each product, e.g.::
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 import time
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 from osgeo import gdal
@@ -95,7 +93,7 @@ def _progress(label: str):
     return cb
 
 
-def _colorize(processed: str, ramp: Path, out_path: Path, label: str = "colorize") -> None:
+def _colorize(processed: str, ramp: Path, out_path: Path) -> None:
     """gdaldem color-relief a single-band raster → 8-bit RGBA GeoTIFF (nodata transparent)."""
     gdal.DEMProcessing(
         destName=str(out_path),
@@ -106,7 +104,7 @@ def _colorize(processed: str, ramp: Path, out_path: Path, label: str = "colorize
         format="GTiff",
         creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
         computeEdges=True,
-        callback=_progress(label),
+        callback=_progress("colorize"),
     )
 
 
@@ -146,7 +144,7 @@ def make_product(dem: Path, product: str, ramp: Path | None, out_dir: Path) -> P
             creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
             callback=_progress(mode),
         )
-        _colorize(str(processed), ramp, out_path, f"colorize {product}")  # type: ignore[arg-type]
+        _colorize(str(processed), ramp, out_path)  # type: ignore[arg-type]
     finally:
         processed.unlink(missing_ok=True)
 
@@ -160,9 +158,7 @@ def make_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--dem", type=Path, required=True, help="Input DEM GeoTIFF.")
-    p.add_argument(
-        "--out", type=Path, required=True, help="Output directory for the products."
-    )
+    p.add_argument("--out", type=Path, required=True, help="Output directory for the products.")
     p.add_argument(
         "--products",
         nargs="+",
@@ -170,12 +166,8 @@ def make_parser() -> argparse.ArgumentParser:
         choices=ALL_PRODUCTS,
         help=f"Which products to generate (default: {ALL_PRODUCTS}).",
     )
-    p.add_argument(
-        "--slope-ramp", type=Path, default=None, help="Override slope colour ramp."
-    )
-    p.add_argument(
-        "--aspect-ramp", type=Path, default=None, help="Override aspect colour ramp."
-    )
+    p.add_argument("--slope-ramp", type=Path, default=None, help="Override slope colour ramp.")
+    p.add_argument("--aspect-ramp", type=Path, default=None, help="Override aspect colour ramp.")
     p.add_argument(
         "--tri-ramp",
         type=Path,
@@ -184,30 +176,13 @@ def make_parser() -> argparse.ArgumentParser:
     )
     # GIS-delivered ArcGIS symbology per product. Converted to a gdaldem ramp and used
     # INSTEAD OF the default/--*-ramp (precedence: --*-lyrx > --*-ramp > default).
-    p.add_argument(
-        "--slope-lyrx",
-        type=Path,
-        default=None,
-        help="ArcGIS .lyrx slope symbology to use instead of the slope ramp.",
-    )
-    p.add_argument(
-        "--aspect-lyrx",
-        type=Path,
-        default=None,
-        help="ArcGIS .lyrx aspect symbology to use instead of the aspect ramp.",
-    )
-    p.add_argument(
-        "--tri-lyrx",
-        type=Path,
-        default=None,
-        help="ArcGIS .lyrx TRI symbology to use instead of the TRI ramp.",
-    )
+    p.add_argument("--slope-lyrx", type=Path, default=None, help="ArcGIS .lyrx slope symbology to use instead of the slope ramp.")
+    p.add_argument("--aspect-lyrx", type=Path, default=None, help="ArcGIS .lyrx aspect symbology to use instead of the aspect ramp.")
+    p.add_argument("--tri-lyrx", type=Path, default=None, help="ArcGIS .lyrx TRI symbology to use instead of the TRI ramp.")
     return p
 
 
-def _resolve_ramp(
-    product: str, lyrx: Path | None, override: Path | None, out_dir: Path
-) -> Path | None:
+def _resolve_ramp(product: str, lyrx: Path | None, override: Path | None, out_dir: Path) -> Path | None:
     """Pick a product's colour ramp: provided .lyrx (converted) > --*-ramp > default."""
     if lyrx is not None:
         lyrx = lyrx.resolve()
@@ -223,9 +198,7 @@ def _resolve_ramp(
     if ramp is not None:
         ramp = Path(ramp).resolve()
         if not ramp.exists():
-            print(
-                f"ERROR: colour ramp not found for {product}: {ramp}", file=sys.stderr
-            )
+            print(f"ERROR: colour ramp not found for {product}: {ramp}", file=sys.stderr)
             sys.exit(1)
     return ramp
 
@@ -241,51 +214,19 @@ def main() -> None:
     out_dir: Path = args.out.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    overrides = {
-        "slope": args.slope_ramp,
-        "aspect": args.aspect_ramp,
-        "tri": args.tri_ramp,
-    }
-    lyrxes = {
-        "slope": args.slope_lyrx,
-        "aspect": args.aspect_lyrx,
-        "tri": args.tri_lyrx,
-    }
+    overrides = {"slope": args.slope_ramp, "aspect": args.aspect_ramp, "tri": args.tri_ramp}
+    lyrxes = {"slope": args.slope_lyrx, "aspect": args.aspect_lyrx, "tri": args.tri_lyrx}
 
     print("=" * 64)
     print("DEM → standardized AEGIS products")
     print("=" * 64)
 
-    # Resolve every product's colour ramp up front (sequential + cheap; a .lyrx conversion
-    # writes a ramp file, so it must finish before the products fan out).
-    ramps = {
-        product: (
-            None
-            if product == "hillshade"
-            else _resolve_ramp(
-                product, lyrxes.get(product), overrides.get(product), out_dir
-            )
+    for product in args.products:
+        # hillshade has no ramp; everything else resolves lyrx > --*-ramp > default.
+        ramp = None if product == "hillshade" else _resolve_ramp(
+            product, lyrxes.get(product), overrides.get(product), out_dir
         )
-        for product in args.products
-    }
-
-    # Each gdal.DEMProcessing call is single-threaded, and the products are independent (each
-    # re-reads the DEM and computes on its own). So the CPU win is running the products in
-    # PARALLEL PROCESSES, one per core, instead of one-after-another. Falls back to serial for
-    # a single product (no pool overhead).
-    workers = min(len(args.products), os.cpu_count() or 1)
-    if workers <= 1:
-        for product in args.products:
-            make_product(dem, product, ramps[product], out_dir)
-    else:
-        print(f"\n  deriving {len(args.products)} products in parallel ({workers} workers)")
-        with ProcessPoolExecutor(max_workers=workers) as ex:
-            futures = {
-                ex.submit(make_product, dem, product, ramps[product], out_dir): product
-                for product in args.products
-            }
-            for fut in as_completed(futures):
-                fut.result()  # re-raise any worker exception
+        make_product(dem, product, ramp, out_dir)
 
     print(f"\nDone. Products in {out_dir}")
 

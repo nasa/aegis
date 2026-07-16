@@ -16,7 +16,7 @@ lander coords ──▶ generate_lgrs.py ──▶ raw GeoJSON ──▶ convert
 ## Quick start
 
 ```bash
-cd GIS_data_conversion_pipeline
+cd data_conversion_scripts
 
 # 1. Generate the raw LGRS grid from lander coordinates.
 pixi run python esri-to-aegis-lunar-southpole/grid/generate_lgrs.py \

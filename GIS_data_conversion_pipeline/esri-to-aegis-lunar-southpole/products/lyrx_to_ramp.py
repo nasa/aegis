@@ -18,7 +18,7 @@ Usage
 -----
 ::
 
-    cd GIS_data_conversion_pipeline
+    cd data_conversion_scripts
     pixi run python esri-to-aegis-lunar-southpole/products/lyrx_to_ramp.py \\
         "F:/drop/A03MP026/AMPES_Slope 1.lyrx" -o slope_from_lyrx.txt
 
@@ -114,10 +114,7 @@ def build_color_table(
 
 
 def lyrx_to_ramp(
-    lyrx_path: Path,
-    out_path: Path,
-    floor: float = DEFAULT_FLOOR,
-    cap: float = DEFAULT_CAP,
+    lyrx_path: Path, out_path: Path, floor: float = DEFAULT_FLOOR, cap: float = DEFAULT_CAP
 ) -> Path:
     """Parse a .lyrx and write a gdaldem color-relief ramp .txt. Returns the output path."""
     breaks = parse_lyrx(lyrx_path)
@@ -128,31 +125,11 @@ def lyrx_to_ramp(
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    p.add_argument(
-        "lyrx", type=Path, help="ArcGIS .lyrx layer file (CIMRasterClassifyColorizer)."
-    )
-    p.add_argument(
-        "-o",
-        "--out",
-        type=Path,
-        required=True,
-        help="Output gdaldem color-relief .txt.",
-    )
-    p.add_argument(
-        "--floor",
-        type=float,
-        default=DEFAULT_FLOOR,
-        help=f"First-class lower anchor (default: {DEFAULT_FLOOR}).",
-    )
-    p.add_argument(
-        "--cap",
-        type=float,
-        default=DEFAULT_CAP,
-        help=f"Last-class upper extent (default: {DEFAULT_CAP}).",
-    )
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("lyrx", type=Path, help="ArcGIS .lyrx layer file (CIMRasterClassifyColorizer).")
+    p.add_argument("-o", "--out", type=Path, required=True, help="Output gdaldem color-relief .txt.")
+    p.add_argument("--floor", type=float, default=DEFAULT_FLOOR, help=f"First-class lower anchor (default: {DEFAULT_FLOOR}).")
+    p.add_argument("--cap", type=float, default=DEFAULT_CAP, help=f"Last-class upper extent (default: {DEFAULT_CAP}).")
     args = p.parse_args()
 
     lyrx = args.lyrx.resolve()
@@ -162,9 +139,7 @@ def main() -> None:
 
     breaks = parse_lyrx(lyrx)
     out = lyrx_to_ramp(lyrx, args.out.resolve(), floor=args.floor, cap=args.cap)
-    print(
-        f"Wrote {out}  ({len(breaks)} class breaks, floor={args.floor}, cap={args.cap})"
-    )
+    print(f"Wrote {out}  ({len(breaks)} class breaks, floor={args.floor}, cap={args.cap})")
     for ub, r, g, b in breaks:
         print(f"    ≤ {ub:>8.3f}  →  RGB({r:3d}, {g:3d}, {b:3d})")
 

@@ -20,7 +20,7 @@ Because it uses rasterio (which bundles its own GDAL), this script runs fine
 under either ``uv run`` or ``pixi run``; it needs no GDAL CLI on PATH.
 
 Usage:
-    cd GIS_data_conversion_pipeline
+    cd data_conversion_scripts
 
     # Stretch one NAC frame to an 8-bit grayscale GeoTIFF, 2–98% stretch
     uv run python esri-to-aegis-lunar-southpole/nac/stretch_to_8bit.py \\
@@ -178,9 +178,9 @@ def stretch(
 
         t0 = time.time()
         n_blocks = 0
-        total_blocks = -(-src.height // blocksize) * -(
-            -src.width // blocksize
-        )  # ceil-div
+        total_blocks = (
+            -(-src.height // blocksize) * -(-src.width // blocksize)  # ceil-div
+        )
         next_pct = 10
         with rasterio.open(dst_path, "w", **profile) as dst:
             # Iterate the output's block windows for cache-friendly I/O.

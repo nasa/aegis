@@ -1,7 +1,7 @@
 # Preserved example — per-frame NAC layers
 
 > ⚠️ **This is a kept example, not the shipping pipeline.** The production NAC
-> process tiles a _single_ GIS-provided mosaic into **one** `nac` layer (see
+> process tiles a *single* GIS-provided mosaic into **one** `nac` layer (see
 > [`../../stretch_to_8bit.py`](../../stretch_to_8bit.py) +
 > [`../../../common/tile_to_cap_grid.py`](../../../common/tile_to_cap_grid.py),
 > driven by [`../../../main.py`](../../../main.py)). Nothing here is invoked by
@@ -26,7 +26,7 @@ Per-frame flow:
 
 ## Running it (standalone)
 
-From `GIS_data_conversion_pipeline/`, via pixi:
+From `data_conversion_scripts/`, via pixi:
 
 ```bash
 # Build one tile pyramid per NAC frame

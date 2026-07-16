@@ -12,13 +12,13 @@ Two things live in this file:
    never drift apart) and printed by ``main.py --summary``. This pipeline targets
    the lunar south pole only; there is intentionally no Earth/Web-Mercator profile.
 
-2. **Path resolution** — :func:`resolve_paths` turns an input root (``--in-root``) and
-   an output root (``--out-dir``) into the concrete input/output file paths. There are
+2. **Path resolution** — :func:`resolve_paths` turns an input root (``--src``) and
+   an output root (``--out``) into the concrete input/output file paths. There are
    **no mission numbers** anywhere; the output root *is* the per-environment knob.
 
 The default input layout matches the A03MP026 (Mons Mouton Plateau) data drop, but
 every input can be overridden on the command line, so a different drop only needs
-different ``--in-root`` / per-input flags.
+different ``--src`` / per-input flags.
 """
 
 from __future__ import annotations
@@ -33,19 +33,15 @@ from aegis_api import DEFAULT_ENV_FILE, REPO_ROOT, load_env_value
 # ---------------------------------------------------------------------------
 # The shared map definition used by the production NAC_POLE_SOUTH_CM_AVG_MERGE
 # basemap. Every layer tiled on this grid overlays that basemap pixel-for-pixel
-# in OpenLayers. CAP_Z0_RES MUST equal the mission's projResUnitsPerPixel (with
-# projResZoomLevel = 0): OpenLayers builds its resolution pyramid as
-# CAP_Z0_RES / 2**z, so every layer must be cut on this same z0. Each layer's
-# DEPTH (max zoom) is per-layer, derived from its native resolution by the tiler
-# (an OpenLayers per-layer pyramid) — there is no shared zoom clamp.
+# in Leaflet. CAP_Z0_RES MUST equal the mission's projResUnitsPerPixel (with
+# projResZoomLevel = 0): Leaflet builds its resolution pyramid as
+# CAP_Z0_RES / 2**z, so every layer must be cut on this same z0.
 
 CAP_MIN = -931100.0  # cap bottom-left (both axes), == projOriginX/Y
 CAP_MAX = 931100.0  # cap top-right (both axes)
 TILE = 256  # tile size in pixels
 CAP_Z0_RES = 12800.0  # z0 units-per-pixel == mission projResUnitsPerPixel
-# Zoom range of the external NAC basemap ONLY (its published S3 tiles are z0..z13). New
-# layers cut by tile_to_cap_grid.py are NOT clamped to this — each cuts to its native depth.
-CAP_EXTERNAL_NAC_MAX_ZOOM = 13
+CAP_MAX_ZOOM = 13  # z13 = 1.5625 m/px (14 levels, TMS y-from-bottom)
 
 PLANET_RADIUS = 1737400  # lunar sphere radius (m)
 PROJ_EPSG = "IAU2000:30166"
@@ -53,6 +49,11 @@ PROJ_PROJ4 = (
     "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 "
     "+a=1737400 +b=1737400 +units=m +no_defs"
 )
+# Geographic (lon/lat) counterpart of PROJ_PROJ4 — same lunar sphere. The tiler reprojects
+# each layer's tight cap-grid extent into these degrees before writing the tilemapresource
+# <BoundingBox>, because AEGIS/Leaflet clips tile requests in geographic lat/lng (see the
+# BoundingBox note in common/tile_to_cap_grid.py).
+PROJ_GEOGRAPHIC_PROJ4 = "+proj=longlat +a=1737400 +b=1737400 +no_defs"
 
 # Full WKT SRS written into each layer's tilemapresource.xml.
 CAP_SRS = (
@@ -72,15 +73,15 @@ CAP_SRS = (
 DEFAULT_LANDER_LAT = -84.223397
 DEFAULT_LANDER_LNG = 33.5021945
 
-# Default input root (the unpacked GIS data drop). Override with --in-root.
+# Default input root (the unpacked GIS data drop). Override with --src.
 DEFAULT_SRC = Path("F:/_repos/aegis_static/MS3")
 
-# Input file paths relative to --in-root (A03MP026 layout). Override per-input on the CLI.
+# Input file paths relative to --src (A03MP026 layout). Override per-input on the CLI.
 REL_DEM = Path("A03MP026/SFS_1mpp_DEM/mp2-sfs-dem_MoonSP_COG.tif")
 REL_SLOPE = Path("A03MP026/Slope/SiteUD1_final_adj_5mpp_slp.tif")
 REL_LYRX = Path("A03MP026/Slope/AMPES_Slope 1.lyrx")  # slope colour standard
 REL_ELLIPSE = Path("A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp")
-# Single NAC mosaic delivered by the GIS team. No fixed name yet — pass --in-nac.
+# Single NAC mosaic delivered by the GIS team. No fixed name yet — pass --nac-mosaic.
 REL_NAC_MOSAIC = Path("A03MP026_NAC_mosaic/nac_mosaic.tif")
 # Per-frame NAC ortho directory — used ONLY by the preserved example under nac/examples/.
 REL_NAC_FRAMES = Path("A03MP026_SFS_1mpp_orthoimages")
@@ -88,34 +89,16 @@ REL_NAC_FRAMES = Path("A03MP026_SFS_1mpp_orthoimages")
 # Output file/dir names under --out (generic; the pipeline is mission-agnostic).
 OUT_LAYERS_DIRNAME = "Layers"
 OUT_DATA_DIRNAME = "Data"
-# Compression for every COG the browser may read (OL-rendered sublayers via
-# products-as-cog/--cog, AND the mission DEM, which we may hit directly from the browser).
-# Must be a codec the browser GeoTIFF decoder (geotiff.js, used by ol/source/GeoTIFF) can
-# decode: raw, LZW, JPEG, Deflate, PackBits, LERC. ZSTD (TIFF tag 50000) is NOT supported by
-# geotiff.js and renders blank in the browser — GDAL/rasterio decode it server-side, but the
-# browser cannot, so do not use it for anything that might be fetched client-side.
-COG_COMPRESS = "deflate"
-# The DEM keeps its source filename with a compression + _cog suffix (e.g.
-# mp2-sfs-dem_MoonSP_COG.tif → mp2-sfs-dem_MoonSP_COG_deflate_cog.tif) so the mission's
+# The DEM keeps its source filename with a compression suffix (e.g.
+# mp2-sfs-dem_MoonSP_COG.tif → mp2-sfs-dem_MoonSP_COG_zstd.tif) so the mission's
 # demFilePath is self-describing rather than an opaque "dem.tif".
-DEM_COMPRESS = COG_COMPRESS
+DEM_COMPRESS = "zstd"
 OUT_ELLIPSE_NAME = "ellipse.geojson"
 
 
-def cog_layer_filename(name: str) -> str:
-    """Filename for an OL-rendered COG sublayer inside its ``Layers/<name>/`` folder.
-
-    Every COG we generate carries a ``_cog`` marker so a ``.tif`` in a build tree is
-    recognisably a Cloud-Optimised GeoTIFF (the app still routes on the ``.tif`` extension).
-    """
-    return f"{name}_cog.tif"
-
-
 def dem_output_name(dem_in: Path) -> str:
-    """COG output filename for a DEM input: ``<source-stem>_<compress>_cog.tif``."""
-    return f"{dem_in.stem}_{DEM_COMPRESS}_cog.tif"
-
-
+    """COG output filename for a DEM input: ``<source-stem>_<compress>.tif``."""
+    return f"{dem_in.stem}_{DEM_COMPRESS}.tif"
 OUT_NAC_LAYER_NAME = "nac"
 OUT_SLOPE_LAYER_NAME = "slope"
 OUT_SLOPE_RGBA_NAME = "slope_rgba.tif"  # scratch, removed after tiling
@@ -132,13 +115,11 @@ PRODUCTS_DEFAULT = ["hillshade", "aspect", "tri"]
 # Built-in (fallback) colour ramps. Used when the GIS team does not deliver product
 # symbology as a .lyrx; a delivered .lyrx is converted (products/lyrx_to_ramp.py) and used
 # instead. slope.txt encodes the same standard as the MS3 AMPES_Slope 1.lyrx.
-DEFAULT_COLOR_RAMPS_DIR = (
-    Path(__file__).resolve().parent / "products" / "default_color_ramps"
-)
+DEFAULT_COLOR_RAMPS_DIR = Path(__file__).resolve().parent / "products" / "default_color_ramps"
 # Legend units per colorized product (passed to properties/write_properties.py).
 PRODUCT_UNITS = {"slope": "deg", "aspect": "", "tri": "m"}
 
-# TRI colour treatment is resolution-dependent (see the gotcha in GIS_data_conversion_pipeline/
+# TRI colour treatment is resolution-dependent (see the gotcha in data_conversion_scripts/
 # CLAUDE.md): a matching ramp from default_color_ramps/ARCHIVE/ must be used per DEM resolution,
 # otherwise the legend bins (and colours) are wrong. Falls back to the legacy tri.txt.
 TRI_RAMP_BY_RESOLUTION = {
@@ -163,42 +144,23 @@ OUT_GRID_SOURCE_NAME = "grid_source.geojson"
 
 def tri_ramp_for_resolution(resolution: float | None) -> Path:
     """Return the TRI colour ramp matching the DEM resolution (legacy tri.txt fallback)."""
-    name = (
-        TRI_RAMP_BY_RESOLUTION.get(float(resolution))
-        if resolution is not None
-        else None
-    )
+    name = TRI_RAMP_BY_RESOLUTION.get(float(resolution)) if resolution is not None else None
     if name:
         candidate = DEFAULT_COLOR_RAMPS_DIR / "ARCHIVE" / name
         if candidate.exists():
             return candidate
     return DEFAULT_COLOR_RAMPS_DIR / "tri.txt"
 
-
 # Default DEM native resolution (m/px) written to the mission demResolution.
 DEFAULT_DEM_RESOLUTION = 1.0
 
 # ---------------------------------------------------------------------------
-# Contours (DEM → vector-tile PMTiles)
-# ---------------------------------------------------------------------------
-# Two contour sublayers are generated from the DEM so majors/minors can be styled
-# independently: a coarse "major" set and a fine "minor" set (which excludes the major
-# lines so coincident intervals aren't double-drawn). Layer folders are named
-# contours_<interval>m. Intervals are in metres.
-CONTOUR_MAJOR_INTERVAL_DEFAULT = 100
-CONTOUR_MINOR_INTERVAL_DEFAULT = 20
-
-
-def contour_layer_name(interval: int) -> str:
-    """Layer folder / archive base name for a contour interval (e.g. 100 → ``contours_100m``)."""
-    return f"contours_{interval}m"
-
-
-# ---------------------------------------------------------------------------
 # AEGIS registration: header layers + the shared external NAC basemap
 # ---------------------------------------------------------------------------
-# Header (parent) layer name all pipeline-generated sublayers group under.
-HEADER_ALL_LAYERS = "All Layers"
+# Header (parent) layer names the `register` step groups sublayers under.
+HEADER_COMMON_LSP = "Common_LSP"  # external lunar south-pole basemap(s) only
+HEADER_RASTER = "Raster"  # all generated/custom tile layers
+HEADER_VECTOR = "Vector"  # all GeoJSON vector layers
 
 # The shared lunar south-pole NAC mosaic, hosted externally and reused by every LSP
 # mission. Registered as an "external" tile sublayer: path = base URL, final tile URL
@@ -210,7 +172,7 @@ EXTERNAL_NAC = {
     "tile_pattern": "{z}/{x}/{y}.png",
     "bounding_box": [CAP_MIN, CAP_MIN, CAP_MAX, CAP_MAX],
     "min_native_zoom": 0,
-    "max_native_zoom": CAP_EXTERNAL_NAC_MAX_ZOOM,
+    "max_native_zoom": CAP_MAX_ZOOM,
     "tile_format": "tms",
     "description": (
         "Lunar Reconnaissance Orbiter Camera (LROC) Narrow Angle Camera (NAC) "
@@ -259,17 +221,6 @@ class PipelinePaths:
     nac_layer: Path
     slope_layer: Path
     slope_rgba: Path
-    # Optional prefix applied to every generated layer FOLDER + its AEGIS layer name
-    # (e.g. "LOLA" → Layers/LOLA_hillshade, name "LOLA_hillshade"). Empty = no prefix.
-    layer_prefix: str = ""
-
-    def layer_name(self, base: str) -> str:
-        """Prefix a base layer name with ``<prefix>_`` when a layer_prefix is set."""
-        return f"{self.layer_prefix}_{base}" if self.layer_prefix else base
-
-    def layer_path(self, base: str) -> Path:
-        """Layers/ subdirectory for a base layer name, honouring the layer_prefix."""
-        return self.layers / self.layer_name(base)
 
 
 def resolve_paths(
@@ -282,29 +233,20 @@ def resolve_paths(
     ellipse: Path | None = None,
     nac_mosaic: Path | None = None,
     nac_frames: Path | None = None,
-    layer_prefix: str | None = None,
 ) -> PipelinePaths:
     """Build the concrete path set from an output root and an input root.
 
     ``out`` is required (replaces the old hardcoded ``missionFiles/<id>``). ``src``
     defaults to :data:`DEFAULT_SRC`. Any individual input may be overridden; an
     override that is absolute is used as-is, otherwise it is resolved under ``src``.
-
-    ``layer_prefix`` (from ``--layer-prefix``) namespaces every generated layer
-    folder and its AEGIS layer name (e.g. ``LOLA`` → ``Layers/LOLA_hillshade``), so
-    multiple DEM runs can coexist in one mission.
     """
     src = (src or DEFAULT_SRC).resolve()
     out = out.resolve()
-    prefix = (layer_prefix or "").strip().strip("_")
 
     def under_src(override: Path | None, default_rel: Path) -> Path:
         if override is None:
             return src / default_rel
         return override if override.is_absolute() else src / override
-
-    def prefixed(base: str) -> str:
-        return f"{prefix}_{base}" if prefix else base
 
     layers = out / OUT_LAYERS_DIRNAME
     data = out / OUT_DATA_DIRNAME
@@ -323,8 +265,7 @@ def resolve_paths(
         data=data,
         dem_out=data / dem_output_name(dem_in_resolved),
         ellipse_out=data / OUT_ELLIPSE_NAME,
-        nac_layer=layers / prefixed(OUT_NAC_LAYER_NAME),
-        slope_layer=layers / prefixed(OUT_SLOPE_LAYER_NAME),
+        nac_layer=layers / OUT_NAC_LAYER_NAME,
+        slope_layer=layers / OUT_SLOPE_LAYER_NAME,
         slope_rgba=out / OUT_SLOPE_RGBA_NAME,
-        layer_prefix=prefix,
     )

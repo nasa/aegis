@@ -5,10 +5,10 @@ It produces a self-consistent tile directory with a correct tilemapresource.xml.
 
 Prerequisites:
     - gdal2tiles.py on PATH — provided by the pixi env (conda-forge GDAL), so run
-      under ``pixi run`` from GIS_data_conversion_pipeline/
+      under ``pixi run`` from data_conversion_scripts/
 
 Usage:
-    cd GIS_data_conversion_pipeline
+    cd data_conversion_scripts
     pixi run python esri-to-aegis-lunar-southpole/common/raster_to_tiles.py <input.tif> <output_dir>
     pixi run python esri-to-aegis-lunar-southpole/common/raster_to_tiles.py <input.tif> <output_dir> --profile mercator --zoom 0-17
 
@@ -150,7 +150,7 @@ def main() -> None:
             "             Bounds in projection units (meters). Use with tile_grid_version=2.\n"
             "  mercator — for EPSG:3857 Web Mercator rasters (Earth missions)\n"
             "             Bounds in degrees. Standard web map tiles.\n\n"
-            "Examples (from GIS_data_conversion_pipeline/):\n"
+            "Examples (from data_conversion_scripts/):\n"
             "  pixi run python esri-to-aegis-lunar-southpole/common/raster_to_tiles.py input.tif output_tiles/ --profile raster\n"
             "  pixi run python esri-to-aegis-lunar-southpole/common/raster_to_tiles.py input.tif output_tiles/ --profile mercator --zoom 0-17\n"
         ),

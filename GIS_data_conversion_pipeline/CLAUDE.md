@@ -1,6 +1,6 @@
-# CLAUDE.md — GIS_data_conversion_pipeline
+# CLAUDE.md — data_conversion_scripts
 
-Guidance for Claude Code when working in `GIS_data_conversion_pipeline/`. This is a **standalone
+Guidance for Claude Code when working in `data_conversion_scripts/`. This is a **standalone
 Python toolset** (its own pixi/uv environment), separate from the TypeScript app one level up.
 
 ## What this is
@@ -19,7 +19,7 @@ The geospatial stack is provided as **conda-forge binaries via pixi** — no sys
 source builds. Run everything from this directory:
 
 ```bash
-cd GIS_data_conversion_pipeline
+cd data_conversion_scripts
 pixi install
 pixi run python esri-to-aegis-lunar-southpole/main.py --list
 pixi run python <script>.py ...
@@ -40,17 +40,8 @@ pixi run python <script>.py ...
   (`reporting` output-capture, `steps`, `summary`); `config.py` holds the cap-grid projection
   profile + path resolution + header/external-NAC/grid constants; `aegis_api.py` /
   `register.py` / `box_publish.py` do the HTTP registration + Box upload; `common/` shared
-  raster tools; one folder per concern (`dem nac slope products vector vectortile grid
-timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivered ArcGIS
-  vector-tile cache (Compact Cache V2) into a single `.pmtiles` (pure-Python `pmtiles`, no GDAL),
-  emitted inside its own `Layers/<name>/` folder; `vectortile/dem_to_contours_pmtiles.py` instead
-  _tiles from scratch_ — `gdal_contour` on the DEM → GDAL MVT-dir driver (custom cap-grid
-  `TILING_SCHEME`) → PMTiles with synthesized `esri_tile_info` — producing labelled contour
-  vector-tile layers. Every produced sublayer (raster tiles, PMTiles,
-  COG) is a folder under `Layers/`; AEGIS infers the type from the folder contents (no `isCog`
-  flag), and the mission DEM COG stays in `Data/` as `demFilePath`. See
-  [`esri-to-aegis-lunar-southpole/CLAUDE.md`](esri-to-aegis-lunar-southpole/CLAUDE.md).
-  `products/lyrx_to_ramp.py` converts GIS-delivered ArcGIS `.lyrx` symbology to
+  raster tools; one folder per concern (`dem nac slope products vector grid timeaware
+  properties`). `products/lyrx_to_ramp.py` converts GIS-delivered ArcGIS `.lyrx` symbology to
   gdaldem ramps; `products/default_color_ramps/` are the built-in fallback ramps.
 - [`mercator/`](mercator/) — Mercator/global tiling for **non-polar / Earth** data.
 
@@ -83,20 +74,14 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
 - **Mission grid GeoJSON**: top-level `row_total`/`column_total`/`name`/`crs` + Point features
   with `id, LGRS_ACC, L_coord, R_coord, row, column` (see `grid/convert_lgrs.py`).
 - **DEM** is registered as the mission `demFilePath`/`demResolution`, not a sublayer. The COG
-  keeps its source filename with a compression + `_cog` suffix (e.g.
-  `Data/mp2-sfs-dem_MoonSP_COG_deflate_cog.tif`). All generated COGs use **deflate**, never
-  **zstd** — geotiff.js/OpenLayers can't decode zstd (TIFF tag 50000), so a zstd COG is blank
-  in the browser.
+  keeps its source filename with a `_zstd` suffix (e.g. `Data/mp2-sfs-dem_MoonSP_COG_zstd.tif`).
 - **HTTP registration** (the `register` step, `register.py` + `aegis_api.py`) replaces admin
   clicking: `POST /api/v1/missionAutomerge/fields` (projection/DEM/lander/`actionSystemVersion=2`/
   `usingLGRSCoordinates=true`), `POST /api/v1/layer` (Common_LSP/Raster/Vector header layers),
   `POST /api/v1/sublayer`, and `POST /api/v1/grid` (active grid → `Data/<name>.json`). The
   server-side endpoint `POST /api/v1/missionAutomerge/fields` exists specifically for this (the
-  app otherwise mutates the mission only via the Automerge websocket) and requires the EMSS API
-  token. Changed lander coordinates are rejected when affected mission assets already exist,
-  because the browser-only lander-location workflow must update station walkbacks and
-  lander-connected EVA traverses. Each run also writes a `Data/conversion_report.md` (full
-  console log + per-step timings).
+  app otherwise mutates the mission only via the Automerge websocket). Each run also writes a
+  `Data/conversion_report.md` (full console log + per-step timings).
 
 ## Gotchas
 
@@ -106,7 +91,7 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
   and the legend — so there is no longer a `slope.txt`↔`.lyrx` "keep in sync" burden (the
   fallback `slope.txt` still matches the MS3 `AMPES_Slope 1.lyrx`). **TRI is
   resolution-dependent** — the `products` step auto-selects `default_color_ramps/ARCHIVE/
-TRIColors_{1m,5m,10m}_DEM.txt` to match `--dem-resolution`.
+  TRIColors_{1m,5m,10m}_DEM.txt` to match `--dem-resolution`.
 - `tile_to_cap_grid.py` honours a real alpha band when input is RGBA; for ≤3-band input it
   infers transparency from band 0 == nodata/0. Colorized products should be RGBA so colours
   with red=0 (e.g. darkest TRI `rgb(0,38,115)`) aren't clipped.

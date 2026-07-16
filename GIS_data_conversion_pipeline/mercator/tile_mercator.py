@@ -25,7 +25,7 @@ Usage
 -----
 ::
 
-    cd GIS_data_conversion_pipeline
+    cd data_conversion_scripts
     pixi run python mercator/tile_mercator.py imagery.tif out_tiles --body earth
     pixi run python mercator/tile_mercator.py moon_global.tif out_tiles --body moon --zoom 0-7
 """
@@ -58,19 +58,9 @@ for _s in (sys.stdout, sys.stderr):
         pass
 
 
-def _run_tiler(
-    src: Path, out_dir: Path, profile: str, zoom: str | None, resampling: str
-) -> int:
-    cmd = [
-        PYTHON,
-        str(RASTER_TO_TILES),
-        str(src),
-        str(out_dir),
-        "--profile",
-        profile,
-        "--resampling",
-        resampling,
-    ]
+def _run_tiler(src: Path, out_dir: Path, profile: str, zoom: str | None, resampling: str) -> int:
+    cmd = [PYTHON, str(RASTER_TO_TILES), str(src), str(out_dir), "--profile", profile,
+           "--resampling", resampling]
     if zoom:
         cmd += ["--zoom", zoom]
     env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
@@ -107,10 +97,7 @@ def tile_mercator(
             src8 = _to_byte(src, scratch)
             rc = _run_tiler(src8, output_dir, profile, zoom, resampling)
             if rc != 0:
-                print(
-                    f"ERROR: gdal2tiles failed (exit {rc}) even after 8-bit rescale.",
-                    file=sys.stderr,
-                )
+                print(f"ERROR: gdal2tiles failed (exit {rc}) even after 8-bit rescale.", file=sys.stderr)
                 sys.exit(rc)
 
 
@@ -127,9 +114,7 @@ def make_parser() -> argparse.ArgumentParser:
         choices=["earth", "moon"],
         help="earth → EPSG:3857 mercator tiles; moon → geodetic (lon/lat) tiles. Default: earth.",
     )
-    p.add_argument(
-        "--zoom", default=None, help="Zoom range e.g. '0-13' (default: auto)."
-    )
+    p.add_argument("--zoom", default=None, help="Zoom range e.g. '0-13' (default: auto).")
     p.add_argument(
         "--resampling",
         default="average",
@@ -149,9 +134,7 @@ def main() -> None:
     print("=" * 60)
     print(f"Mercator/global tiling — body={args.body}")
     print("=" * 60)
-    tile_mercator(
-        in_path, args.output_dir.resolve(), args.body, args.zoom, args.resampling
-    )
+    tile_mercator(in_path, args.output_dir.resolve(), args.body, args.zoom, args.resampling)
     print("\nDone.")
 
 

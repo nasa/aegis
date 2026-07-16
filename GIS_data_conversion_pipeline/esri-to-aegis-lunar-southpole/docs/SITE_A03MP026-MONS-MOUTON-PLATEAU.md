@@ -19,8 +19,8 @@ pipeline README "AEGIS import" section).
 Each data type is handled by the pipeline (`main.py`) as follows:
 
 - **DEM** — re-emit the 1 mpp DEM as a clean COG (keeps the source name, e.g.
-  `Data/mp2-sfs-dem_MoonSP_COG_deflate_cog.tif`), used as `demFilePath`. Not a tile layer.
-- **Products** — derive hillshade/slope/aspect/TRI from the DEM (`--dem-products`), colorized;
+  `Data/mp2-sfs-dem_MoonSP_COG_zstd.tif`), used as `demFilePath`. Not a tile layer.
+- **Products** — derive hillshade/slope/aspect/TRI from the DEM (`--products`), colorized;
   slope honours the GIS `.lyrx` symbology when provided.
 - **Grid** — generate the LGRS mission grid from the lander location (default 10 km) and
   register it as the active grid.
@@ -64,7 +64,7 @@ is single-band float32 radiance, already orthorectified, already in the correct
 south-pole stereographic CRS, nodata-aware with `-3.4e38`.
 
 For the shipping pipeline these frames are **not** consumed directly — the GIS team
-delivers a single merged NAC mosaic which is what `main.py --in-nac` tiles. The
+delivers a single merged NAC mosaic which is what `main.py --nac-mosaic` tiles. The
 per-frame directory is used only by the preserved example in
 `nac/examples/per_frame_layers/`.
 
@@ -106,24 +106,24 @@ mission declares (`common/tile_to_cap_grid.py` enforces this).
 
 ## 4. Commands
 
-Run from `GIS_data_conversion_pipeline/` via pixi:
+Run from `data_conversion_scripts/` via pixi:
 
 ```bash
 # Full pipeline for this site (output → <static>/missionFiles/<mission-id>)
 pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id <id> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --in-root F:/tempF/MS3_data_drop \
-    --dem-products hillshade slope aspect tri \
+    --src F:/tempF/MS3_data_drop \
+    --products hillshade slope aspect tri \
     --register
 
 # Individual steps
-pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id <id> --in-root <drop> --steps dem
-pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id <id> --in-root <drop> --steps vector
-pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id <id> --in-root <drop> --steps slope
+pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id <id> --src <drop> --steps dem
+pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id <id> --src <drop> --steps vector
+pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id <id> --src <drop> --steps slope
 ```
 
-Inputs default to the A03MP026 layout under `--in-root`; the DEM, slope, `.lyrx`, and
+Inputs default to the A03MP026 layout under `--src`; the DEM, slope, `.lyrx`, and
 ellipse paths can each be overridden on the CLI.
 
 ---
@@ -134,7 +134,7 @@ ellipse paths can each be overridden on the CLI.
 <out>/                                  # <static>/missionFiles/<mission-id>/
 ├── grid_source.geojson                # AEGIS mission-grid GeoJSON (register POSTs it)
 ├── Data/
-│   ├── mp2-sfs-dem_MoonSP_COG_deflate_cog.tif # demFilePath (keeps source name)
+│   ├── mp2-sfs-dem_MoonSP_COG_zstd.tif # demFilePath (keeps source name)
 │   ├── ellipse.geojson
 │   ├── <grid>.json                    # active grid coordinates (written by the grid API)
 │   └── conversion_report.md           # captured run log + per-step timings
@@ -156,7 +156,7 @@ are what it sets:
   the `Common_LSP` header.
 - Ellipse + custom vectors → `vector` sublayers under the `Vector` header
   (`dataProjection EPSG:4326`, `featureProjection IAU2000:30166`).
-- DEM → `demFilePath` (`Data/mp2-sfs-dem_MoonSP_COG_deflate_cog.tif`, `demResolution = 1.0`).
+- DEM → `demFilePath` (`Data/mp2-sfs-dem_MoonSP_COG_zstd.tif`, `demResolution = 1.0`).
 - Mission projection on the `12800` cap grid (origin unchanged); `actionSystemVersion = 2`,
   `usingLGRSCoordinates = true`; the LGRS grid set active.
 
@@ -171,4 +171,4 @@ from the GIS team on 2026-06-16; later drops include it alongside the slope rast
 `slope/colorize_slope.py` parses it directly, and `products/lyrx_to_ramp.py` converts it to a
 `gdaldem color-relief` ramp so the `slope`/`products` steps use the delivered symbology
 instead of the built-in `default_color_ramps/slope.txt` (which matches it). Pass it with
-`--in-lyrx`.
+`--lyrx`.

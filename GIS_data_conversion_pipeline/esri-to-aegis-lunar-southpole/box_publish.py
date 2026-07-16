@@ -4,17 +4,15 @@
 Layout produced on Box (under ``BOX_INITIAL_FOLDER_ID``):
 
     <mission name>/
-      Data/   Data.zip            (one zip of everything in <out>/Data, files at root)
-      Layers/ <layer>.zip ...     (one zip per <out>/Layers/<layer> directory — raster tiles,
-                                   PMTiles, or COG; PMTiles/COG folders are stored uncompressed;
-                                   each zip contains a single top-level folder named after the layer)
+      Data/   Data.zip            (one zip of everything in <out>/Data)
+      Layers/ <layer>.zip ...     (one zip per <out>/Layers/<layer> directory)
 
 The Box client (CCG auth + chunked upload + ``mkdir -p``) is a trimmed port of
 ``lunar_utils/lunar_utils/box_client.py``. Credentials come from the repo-root ``.env``
 (``BOX_CLIENT_ID``/``BOX_CLIENT_SECRET``/``BOX_ENTERPRISE_ID``/``BOX_USER_ID`` and
 ``BOX_INITIAL_FOLDER_ID``) unless overridden on the CLI.
 
-Run from GIS_data_conversion_pipeline/ (boxsdk/tqdm are pure-Python PyPI deps):
+Run from data_conversion_scripts/ (boxsdk/tqdm are pure-Python PyPI deps):
     pixi run python esri-to-aegis-lunar-southpole/box_publish.py \\
         --out F:/_repos/aegis_static/missionFiles/123 \\
         --mission-name "A03MP026 - ART3 Surface EVA MS 3"
@@ -118,13 +116,7 @@ class BoxClient:
                 return e.context_info["conflicts"]["id"]
         return None
 
-    def upload(
-        self,
-        local_path: Path,
-        folder_id: str,
-        overwrite: bool = True,
-        show_progress: bool = True,
-    ):
+    def upload(self, local_path: Path, folder_id: str, overwrite: bool = True, show_progress: bool = True):
         """Upload one file, creating a new version if a same-name file exists."""
         size = os.stat(local_path).st_size
         existing_id = self._existing_file_id(local_path.name, folder_id, size)
@@ -139,9 +131,7 @@ class BoxClient:
             return self.client.folder(folder_id).upload(str(local_path))
 
         if existing_id:
-            session = self.client.file(existing_id).create_upload_session(
-                file_size=size
-            )
+            session = self.client.file(existing_id).create_upload_session(file_size=size)
         else:
             session = self.client.folder(folder_id).create_upload_session(
                 file_size=size, file_name=local_path.name
@@ -152,9 +142,7 @@ class BoxClient:
             session.abort()
             raise
 
-    def _chunked_upload(
-        self, session, local_path: Path, size: int, show_progress: bool = True
-    ):
+    def _chunked_upload(self, session, local_path: Path, size: int, show_progress: bool = True):
         sha1 = hashlib.sha1()
         parts = []
         pbar = None
@@ -168,9 +156,7 @@ class BoxClient:
             with open(local_path, "rb") as stream:
                 for part_num in range(session.total_parts):
                     chunk = stream.read(session.part_size)
-                    part = session.upload_part_bytes(
-                        chunk, part_num * session.part_size, size
-                    )
+                    part = session.upload_part_bytes(chunk, part_num * session.part_size, size)
                     parts.append(part)
                     sha1.update(chunk)
                     uploaded += len(chunk)
@@ -194,39 +180,19 @@ class BoxClient:
 # ---------------------------------------------------------------------------
 
 
-def _dir_is_precompressed(src_dir: Path) -> bool:
-    """True if the folder holds an already-compressed self-describing artifact (PMTiles or COG).
+def _zip_dir(src_dir: Path, zip_path: Path) -> Path:
+    """Zip the contents of src_dir into zip_path under a single top-level folder.
 
-    Such archives gain nothing from DEFLATE and are range-requested by the client, so they are
-    stored uncompressed (0 compression) — this is what lets the extracted PMTiles/COG be managed
-    like any other Layers/ folder without paying to re-compress already-compressed bytes.
-    """
-    for f in src_dir.rglob("*"):
-        if f.is_file() and f.suffix.lower() in (".pmtiles", ".tif", ".tiff"):
-            return True
-    return False
-
-
-def _zip_dir(
-    src_dir: Path,
-    zip_path: Path,
-    compression: int = zipfile.ZIP_DEFLATED,
-    top_level_folder: str | None = None,
-) -> Path:
-    """Zip the contents of src_dir into zip_path.
-
-    If ``top_level_folder`` is given, all files are placed under that folder name
-    inside the archive (e.g. ``<layer>/...``). If ``None``, files are written at
-    the archive root. ``compression`` defaults to DEFLATE; pass
-    ``zipfile.ZIP_STORED`` (0 compression) for already-compressed contents.
+    The top-level folder is named after the zip file (its stem), so ``Data.zip``
+    contains ``Data/...`` and ``<layer>.zip`` contains ``<layer>/...`` rather than
+    exploding files at the archive root.
     """
     zip_path.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(zip_path, "w", compression) as zf:
+    root = zip_path.stem
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         for file in sorted(src_dir.rglob("*")):
             if file.is_file():
-                rel = file.relative_to(src_dir)
-                arc_name = Path(top_level_folder) / rel if top_level_folder else rel
-                zf.write(file, arc_name)
+                zf.write(file, Path(root) / file.relative_to(src_dir))
     return zip_path
 
 
@@ -251,22 +217,15 @@ def upload_mission_folder(
     scratch.mkdir(parents=True, exist_ok=True)
 
     config = box_config_from_env(env_path)
-    box = BoxClient(
-        config, verbose=verbose
-    )  # used only to create the destination folders
+    box = BoxClient(config, verbose=verbose)  # used only to create the destination folders
 
-    # Build the task list: (src_dir, zip_path, box_subfolder). Each Data/ and each Layers/<dir>
-    # (raster tiles, PMTiles, or COG — all folders now) is zipped then uploaded.
+    # Build the task list: (src_dir, zip_path, box_subfolder).
     tasks: list[tuple[Path, Path, str]] = []
     if data_dir.exists() and any(data_dir.iterdir()):
         tasks.append((data_dir, scratch / "Data.zip", "Data"))
     else:
         print("  (no Data/ contents to upload)")
-    layer_dirs = (
-        sorted(d for d in layers_dir.iterdir() if d.is_dir())
-        if layers_dir.exists()
-        else []
-    )
+    layer_dirs = sorted(d for d in layers_dir.iterdir() if d.is_dir()) if layers_dir.exists() else []
     for d in layer_dirs:
         tasks.append((d, scratch / f"{d.name}.zip", "Layers"))
     if not layer_dirs:
@@ -278,44 +237,26 @@ def upload_mission_folder(
 
     # Create the destination subfolders once (sequential — mkdirp is not concurrency-safe).
     subfolder_ids = {
-        sub: box.mkdirp(Path(mission_name) / sub)
-        for sub in sorted({t[2] for t in tasks})
+        sub: box.mkdirp(Path(mission_name) / sub) for sub in sorted({t[2] for t in tasks})
     }
 
     # Suppress per-file tqdm when running several uploads at once (the bars would interleave).
     show_progress = max_workers == 1 or len(tasks) == 1
 
     def _zip_and_upload(task: tuple[Path, Path, str]) -> str:
-        src, zip_path, sub = task
+        src_dir, zip_path, sub = task
         t0 = time.monotonic()
-        # Already-compressed folders (PMTiles/COG) are stored (0 compression); everything else
-        # is DEFLATEd. Re-compressing already-compressed bytes just burns CPU for no size win.
-        compression = (
-            zipfile.ZIP_STORED if _dir_is_precompressed(src) else zipfile.ZIP_DEFLATED
-        )
-        print(f"  [{src.name}] zipping → {zip_path.name} ...", flush=True)
-        # Data.zip: files at root. Layer zips: files under a top-level folder named after the layer.
-        top_level = None if sub == "Data" else src.name
-        _zip_dir(src, zip_path, compression, top_level_folder=top_level)
-        upload_path = zip_path
-        mb = upload_path.stat().st_size / 1e6
-        print(
-            f"  [{src.name}] uploading {upload_path.name} ({mb:.0f} MB) → {sub}/ ...",
-            flush=True,
-        )
+        print(f"  [{src_dir.name}] zipping → {zip_path.name} ...", flush=True)
+        _zip_dir(src_dir, zip_path)
+        mb = zip_path.stat().st_size / 1e6
+        print(f"  [{src_dir.name}] uploading {zip_path.name} ({mb:.0f} MB) → {sub}/ ...", flush=True)
         # Fresh client per thread: boxsdk's requests session is not safe to share across threads.
         BoxClient(config, verbose=verbose).upload(
-            upload_path,
-            subfolder_ids[sub],
-            overwrite=overwrite,
-            show_progress=show_progress,
+            zip_path, subfolder_ids[sub], overwrite=overwrite, show_progress=show_progress
         )
-        return f"  [{src.name}] done {upload_path.name} ({mb:.0f} MB) in {time.monotonic() - t0:.0f}s"
+        return f"  [{src_dir.name}] done {zip_path.name} ({mb:.0f} MB) in {time.monotonic() - t0:.0f}s"
 
-    print(
-        f"Zipping + uploading {len(tasks)} item(s) with up to {max_workers} parallel worker(s) ...",
-        flush=True,
-    )
+    print(f"Zipping + uploading {len(tasks)} item(s) with up to {max_workers} parallel worker(s) ...", flush=True)
     try:
         with ThreadPoolExecutor(max_workers=max_workers) as ex:
             for result in ex.map(_zip_and_upload, tasks):
@@ -328,44 +269,17 @@ def upload_mission_folder(
         except OSError:
             pass
 
-    print(
-        f"\nBox upload complete → '{mission_name}' under folder {config['BOX_ROOT_FOLDER_ID']}"
-    )
+    print(f"\nBox upload complete → '{mission_name}' under folder {config['BOX_ROOT_FOLDER_ID']}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Zip a mission folder and upload it to Box."
-    )
-    parser.add_argument(
-        "--out",
-        type=Path,
-        required=True,
-        help="Built mission folder (has Data/ and Layers/).",
-    )
-    parser.add_argument(
-        "--mission-name", required=True, help="Box subfolder name (e.g. mission name)."
-    )
-    parser.add_argument(
-        "--env",
-        type=Path,
-        default=DEFAULT_ENV_FILE,
-        help="Path to .env with Box creds.",
-    )
-    parser.add_argument(
-        "--no-overwrite",
-        action="store_true",
-        help="Fail instead of versioning existing files.",
-    )
-    parser.add_argument(
-        "--max-workers",
-        type=int,
-        default=4,
-        help="Parallel zip/upload workers (default: 4).",
-    )
-    parser.add_argument(
-        "--verbose", action="store_true", help="Show Box preflight output."
-    )
+    parser = argparse.ArgumentParser(description="Zip a mission folder and upload it to Box.")
+    parser.add_argument("--out", type=Path, required=True, help="Built mission folder (has Data/ and Layers/).")
+    parser.add_argument("--mission-name", required=True, help="Box subfolder name (e.g. mission name).")
+    parser.add_argument("--env", type=Path, default=DEFAULT_ENV_FILE, help="Path to .env with Box creds.")
+    parser.add_argument("--no-overwrite", action="store_true", help="Fail instead of versioning existing files.")
+    parser.add_argument("--max-workers", type=int, default=4, help="Parallel zip/upload workers (default: 4).")
+    parser.add_argument("--verbose", action="store_true", help="Show Box preflight output.")
     args = parser.parse_args()
 
     upload_mission_folder(

@@ -7,11 +7,11 @@ and an existing mission id, this:
   1. Updates the mission's GIS/setup fields (projection cap-grid profile, lander location,
      demFilePath/demResolution, name, actionSystemVersion=2, usingLGRSCoordinates=true) via
      ``POST /api/v1/missionAutomerge/fields``.
-  2. Ensures the header layer exists: ``All Layers`` (all pipeline-generated sublayers).
-  3. Builds one sublayer per built ``Layers/<dir>``, classified by folder contents: a raster tile
-     pyramid (``tilemapresource.xml`` → boundingBox/zoom; name/description/legend/tilePattern from
-     ``properties.json``), a COG (``.tif``/``.tiff``), or a PMTiles archive (``.pmtiles``); plus one
-     per ``Data/*.geojson`` and the shared external NAC tile layer.
+  2. Ensures the header layers exist: ``Common_LSP`` (external NAC basemap only),
+     ``Raster`` (all tiled layers), ``Vector`` (all GeoJSON layers).
+  3. Builds one sublayer per built ``Layers/<dir>`` (boundingBox/zoom from each
+     ``tilemapresource.xml``; name/description/legend/tilePattern from ``properties.json``
+     if present), one per ``Data/*.geojson``, and the shared external NAC tile layer.
   4. Skips any sublayer whose (header, path) already exists, then POSTs the rest.
   5. If a grid GeoJSON is present, POSTs it as the **active** mission grid via
      ``POST /api/v1/grid`` (the server writes its coordinates to ``Data/<name>.json``).
@@ -190,61 +190,13 @@ def build_vector_sublayer(mission_id: int, layer_uuid: str, geojson_file: Path) 
     return sub
 
 
-def build_vector_tile_sublayer(
-    mission_id: int, layer_uuid: str, layer_dir: Path, pmtiles_file: Path
-) -> dict:
-    """A vector-tile (PMTiles) sublayer for a Layers/<name>/<name>.pmtiles archive.
-
-    Self-describing: the archive's embedded esri_tile_info carries the tile grid, so no
-    tilePattern/tileFormat/boundingBox is set. The path is ``<folder>/<file>.pmtiles`` (AEGIS
-    resolves it under the mission's Layers/ dir). name/description/legend come from an optional
-    properties.json in the folder.
-    """
-    sub = _blank_sublayer(mission_id, layer_uuid)
-    sub["type"] = "vector-tile"
-    sub["name"] = layer_dir.name
-    sub["path"] = f"{layer_dir.name}/{pmtiles_file.name}"
-    sub["tilePattern"] = ""
-    _apply_properties(sub, layer_dir)
-    return sub
-
-
-def build_cog_sublayer(
-    mission_id: int, layer_uuid: str, layer_dir: Path, cog_file: Path
-) -> dict:
-    """A COG raster sublayer for a Layers/<stem>/<stem>_cog.tif.
-
-    Self-describing: OpenLayers reads the GeoTIFF directly over HTTP Range, so no
-    tilePattern/tileFormat/boundingBox/zoom is set. The app routes it to the WebGLTile/GeoTIFF path
-    from the ``.tif`` extension in the path (``<folder>/<file>.tif``, resolved under Layers/).
-    name/description/legend come from an optional properties.json in the folder.
-    """
-    sub = _blank_sublayer(mission_id, layer_uuid)
-    sub["type"] = "tile"
-    sub["name"] = layer_dir.name
-    sub["path"] = f"{layer_dir.name}/{cog_file.name}"
-    sub["tilePattern"] = ""
-    _apply_properties(sub, layer_dir)
-    return sub
-
-
-def _apply_properties(sub: dict, layer_dir: Path) -> None:
-    """Overlay an optional properties.json (name/description/legend) onto a self-describing sublayer."""
-    props = read_properties(layer_dir / "properties.json")
-    for key in ("name", "description", "legend"):
-        if key in props:
-            sub[key] = props[key]
-
-
 def build_external_nac_sublayer(mission_id: int, layer_uuid: str) -> dict:
     """The shared external lunar south-pole NAC basemap tile sublayer."""
     nac = config.EXTERNAL_NAC
     sub = _blank_sublayer(mission_id, layer_uuid)
     sub["name"] = nac["name"]
     sub["description"] = nac["description"]
-    sub["path"] = nac[
-        "base_url"
-    ]  # external: full base URL; final = path + "/" + tilePattern
+    sub["path"] = nac["base_url"]  # external: full base URL; final = path + "/" + tilePattern
     sub["tilePattern"] = nac["tile_pattern"]
     sub["boundingBox"] = list(nac["bounding_box"])
     sub["tileFormat"] = nac["tile_format"]
@@ -291,55 +243,27 @@ def ensure_header_layers(
     return name_to_uuid
 
 
-def classify_layer_dir(layer_dir: Path) -> tuple[str, Path] | None:
-    """Classify a built Layers/<dir> by what it contains.
-
-    Returns ``(kind, artifact)`` where kind is one of:
-      - ``"vector-tile"`` → the ``.pmtiles`` archive inside the folder
-      - ``"cog"``         → the ``.tif``/``.tiff`` GeoTIFF inside the folder
-      - ``"raster"``      → the folder itself (a ``tilemapresource.xml`` tile pyramid)
-    Returns ``None`` if the folder matches none of these (skipped). This mirrors the AEGIS admin,
-    which infers a layer's type from its folder contents rather than a stored flag.
-    """
-    pmtiles = sorted(layer_dir.glob("*.pmtiles"))
-    if pmtiles:
-        return ("vector-tile", pmtiles[0])
-    tifs = sorted(
-        f
-        for f in layer_dir.iterdir()
-        if f.is_file() and f.suffix.lower() in (".tif", ".tiff")
+def find_raster_layer_dirs(layers_dir: Path) -> list[Path]:
+    """Built tile-layer dirs (those with a tilemapresource.xml)."""
+    if not layers_dir.exists():
+        return []
+    return sorted(
+        d for d in layers_dir.iterdir() if d.is_dir() and (d / "tilemapresource.xml").exists()
     )
-    if tifs:
-        return ("cog", tifs[0])
-    if (layer_dir / "tilemapresource.xml").exists():
-        return ("raster", layer_dir)
-    return None
 
 
 def find_vector_files(data_dir: Path) -> list[Path]:
     """GeoJSON files under Data/ (the grid's coordinate JSON is .json, so it is excluded)."""
     if not data_dir.exists():
         return []
-    return sorted(
-        f for f in data_dir.iterdir() if f.is_file() and f.suffix.lower() == ".geojson"
-    )
+    return sorted(f for f in data_dir.iterdir() if f.is_file() and f.suffix.lower() == ".geojson")
 
 
 def find_dem_file(data_dir: Path) -> Path | None:
-    """The mission DEM COG under Data/ (the ``*_cog.tif`` GeoTIFF). Used for the demFilePath.
-
-    Custom COG *sublayers* live under Layers/ (not Data/), so Data/ holds only the DEM COG,
-    which — like every COG we generate — carries the ``_cog`` marker (see config.dem_output_name).
-    """
+    """The mission DEM COG under Data/ (first *.tif). Used for the demFilePath field."""
     if not data_dir.exists():
         return None
-    tifs = sorted(
-        f
-        for f in data_dir.iterdir()
-        if f.is_file()
-        and f.suffix.lower() in (".tif", ".tiff")
-        and f.stem.endswith("_cog")
-    )
+    tifs = sorted(f for f in data_dir.iterdir() if f.is_file() and f.suffix.lower() == ".tif")
     return tifs[0] if tifs else None
 
 
@@ -368,10 +292,7 @@ def build_mission_grid(
     coordinates: list[list[dict]] = [[None] * col_total for _ in range(row_total)]  # type: ignore[list-item]
     for feat in fc["features"]:
         props = feat["properties"]
-        lon, lat = (
-            feat["geometry"]["coordinates"][0],
-            feat["geometry"]["coordinates"][1],
-        )
+        lon, lat = feat["geometry"]["coordinates"][0], feat["geometry"]["coordinates"][1]
         row, col = int(props["row"]), int(props["column"])
         inv_row = row_total - row - 1
         label = f"{props.get('L_coord', '')} {props.get('R_coord', '')}".strip()
@@ -382,14 +303,8 @@ def build_mission_grid(
             "name": label,
         }
 
-    prior = next(
-        (
-            g["gridInformation"]
-            for g in existing_grids
-            if g.get("gridInformation", {}).get("name") == name
-        ),
-        None,
-    )
+    prior = next((g["gridInformation"] for g in existing_grids
+                  if g.get("gridInformation", {}).get("name") == name), None)
     grid_uuid = prior["uuid"] if prior else str(uuidlib.uuid4())
     file_name = prior["fileName"] if prior else f"{name}.json"
 
@@ -431,84 +346,49 @@ def register_mission(
     # ── 1. mission fields ──────────────────────────────────────────────────
     if mission_fields:
         if dry_run:
-            print(
-                f"  [dry-run] would update mission {mission_id} fields: {sorted(mission_fields)}"
-            )
+            print(f"  [dry-run] would update mission {mission_id} fields: {sorted(mission_fields)}")
         else:
             client.update_mission_fields(mission_id, mission_fields)
             print(f"  updated mission {mission_id} fields: {sorted(mission_fields)}")
 
     # ── 2. header layers ───────────────────────────────────────────────────
-    # Every built layer is a folder under Layers/; classify each by its contents (raster tile
-    # pyramid, COG GeoTIFF, or PMTiles archive). Vectors are GeoJSON files under Data/.
-    layer_dirs = (
-        sorted(d for d in layers_dir.iterdir() if d.is_dir())
-        if layers_dir.exists()
-        else []
-    )
-    raster_dirs: list[Path] = []
-    cog_layers: list[tuple[Path, Path]] = []
-    vector_tile_layers: list[tuple[Path, Path]] = []
-    for d in layer_dirs:
-        kind = classify_layer_dir(d)
-        if kind is None:
-            continue
-        if kind[0] == "raster":
-            raster_dirs.append(d)
-        elif kind[0] == "cog":
-            cog_layers.append((d, kind[1]))
-        elif kind[0] == "vector-tile":
-            vector_tile_layers.append((d, kind[1]))
+    raster_dirs = find_raster_layer_dirs(layers_dir)
     vector_files = find_vector_files(data_dir)
 
-    if not (raster_dirs or vector_files or vector_tile_layers or cog_layers):
+    if not raster_dirs and not vector_files:
         print(
-            f"  [warn] no tile/COG/PMTiles layers under {layers_dir} or vectors under {data_dir}.\n"
+            f"  [warn] no tile layers under {layers_dir} or vectors under {data_dir}.\n"
             "         For a register-only run, pass --out pointing at the locally-built "
             "mission folder (its Layers/ + Data/).",
             file=sys.stderr,
         )
 
-    has_any = bool(
-        raster_dirs
-        or cog_layers
-        or vector_files
-        or vector_tile_layers
-        or include_external_nac
-    )
-    needed_headers: list[str] = [config.HEADER_ALL_LAYERS] if has_any else []
+    needed_headers: list[str] = []
+    if include_external_nac:
+        needed_headers.append(config.HEADER_COMMON_LSP)
+    if raster_dirs:
+        needed_headers.append(config.HEADER_RASTER)
+    if vector_files:
+        needed_headers.append(config.HEADER_VECTOR)
 
     headers = ensure_header_layers(client, mission_id, needed_headers, dry_run=dry_run)
 
     # ── 3. build sublayers ─────────────────────────────────────────────────
-    all_layers_uuid = headers.get(config.HEADER_ALL_LAYERS)
     sublayers: list[dict] = []
     if include_external_nac:
-        sublayers.append(build_external_nac_sublayer(mission_id, all_layers_uuid))
-    for layer_dir in raster_dirs:
-        sublayers.append(build_raster_sublayer(mission_id, all_layers_uuid, layer_dir))
-    for layer_dir, cog_file in cog_layers:
         sublayers.append(
-            build_cog_sublayer(mission_id, all_layers_uuid, layer_dir, cog_file)
+            build_external_nac_sublayer(mission_id, headers[config.HEADER_COMMON_LSP])
         )
+    for layer_dir in raster_dirs:
+        sublayers.append(build_raster_sublayer(mission_id, headers[config.HEADER_RASTER], layer_dir))
     for geojson_file in vector_files:
         sublayers.append(
-            build_vector_sublayer(mission_id, all_layers_uuid, geojson_file)
-        )
-    for layer_dir, pmtiles_file in vector_tile_layers:
-        sublayers.append(
-            build_vector_tile_sublayer(
-                mission_id, all_layers_uuid, layer_dir, pmtiles_file
-            )
+            build_vector_sublayer(mission_id, headers[config.HEADER_VECTOR], geojson_file)
         )
 
     # ── 4. skip already-registered (header, path) pairs ────────────────────
-    existing_pairs = {
-        (s["layerUuid"], s["path"]) for s in client.get_sublayers(mission_id)
-    }
-    to_insert = [
-        s for s in sublayers if (s["layerUuid"], s["path"]) not in existing_pairs
-    ]
+    existing_pairs = {(s["layerUuid"], s["path"]) for s in client.get_sublayers(mission_id)}
+    to_insert = [s for s in sublayers if (s["layerUuid"], s["path"]) not in existing_pairs]
     skipped = len(sublayers) - len(to_insert)
     if skipped:
         print(f"  skipping {skipped} sublayer(s) already registered")
@@ -543,53 +423,24 @@ def register_mission(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    parser.add_argument(
-        "--aegis-url", default="http://localhost:4000", help="AEGIS base URL."
-    )
-    parser.add_argument(
-        "--mission-id", type=int, required=True, help="Existing mission id."
-    )
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--aegis-url", default="http://localhost:4000", help="AEGIS base URL.")
+    parser.add_argument("--mission-id", type=int, required=True, help="Existing mission id.")
     parser.add_argument("--mission-name", default=None, help="Mission name to set.")
-    parser.add_argument(
-        "--lander-lat", type=float, default=None, help="Lander latitude."
-    )
-    parser.add_argument(
-        "--lander-lng", type=float, default=None, help="Lander longitude."
-    )
-    parser.add_argument(
-        "--out", type=Path, required=True, help="Built mission folder (Data/, Layers/)."
-    )
-    parser.add_argument(
-        "--dem-resolution", type=float, default=None, help="DEM resolution (m/px)."
-    )
-    parser.add_argument(
-        "--token", default=None, help="EMSS token (default: EMSS_TOKEN from .env)."
-    )
-    parser.add_argument(
-        "--no-external-nac",
-        action="store_true",
-        help="Do not add the external NAC layer.",
-    )
-    parser.add_argument(
-        "--no-mission-fields", action="store_true", help="Do not update mission fields."
-    )
-    parser.add_argument(
-        "--grid", action="store_true", help="Register the mission grid."
-    )
-    parser.add_argument(
-        "--dry-run", action="store_true", help="Print actions without calling the API."
-    )
+    parser.add_argument("--lander-lat", type=float, default=None, help="Lander latitude.")
+    parser.add_argument("--lander-lng", type=float, default=None, help="Lander longitude.")
+    parser.add_argument("--out", type=Path, required=True, help="Built mission folder (Data/, Layers/).")
+    parser.add_argument("--dem-resolution", type=float, default=None, help="DEM resolution (m/px).")
+    parser.add_argument("--token", default=None, help="EMSS token (default: EMSS_TOKEN from .env).")
+    parser.add_argument("--no-external-nac", action="store_true", help="Do not add the Common_LSP NAC layer.")
+    parser.add_argument("--no-mission-fields", action="store_true", help="Do not update mission fields.")
+    parser.add_argument("--no-grid", action="store_true", help="Do not register the mission grid.")
+    parser.add_argument("--dry-run", action="store_true", help="Print actions without calling the API.")
     args = parser.parse_args()
 
     token = args.token or load_token()
     if not token:
-        print(
-            "ERROR: no EMSS token (pass --token or set EMSS_TOKEN in .env)",
-            file=sys.stderr,
-        )
+        print("ERROR: no EMSS token (pass --token or set EMSS_TOKEN in .env)", file=sys.stderr)
         sys.exit(1)
 
     dem_file = find_dem_file(args.out / config.OUT_DATA_DIRNAME)
@@ -605,7 +456,7 @@ def main() -> None:
             dem_resolution=args.dem_resolution,
         )
 
-    grid_geojson = None if not args.grid else (args.out / config.OUT_GRID_SOURCE_NAME)
+    grid_geojson = None if args.no_grid else (args.out / config.OUT_GRID_SOURCE_NAME)
 
     client = AegisApiClient(args.aegis_url, token)
     register_mission(
