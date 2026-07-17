@@ -79,15 +79,6 @@ export const config: UserConfig = {
               "@reduxjs/toolkit",
               "@fortawesome/react-fontawesome", // needs to be here to prevent circular chunking issues
             ],
-            leaflet: [
-              "leaflet",
-              "leaflet-ant-path",
-              "leaflet-draggable-lines",
-              "leaflet-highlightable-layers",
-              "leaflet-polylinedecorator",
-              "leaflet.tilelayer.colorfilter",
-              "proj4leaflet",
-            ],
             emojis: ["@emoji-mart/data", "@emoji-mart/react"],
             fonts: [
               "@fortawesome/fontawesome-svg-core",

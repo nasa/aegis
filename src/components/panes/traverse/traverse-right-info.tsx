@@ -34,6 +34,10 @@ import CalculatedDwell from "../calculated-dwell";
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const missionTraverseRate = useMissionDocSelector((mission) => mission.traverseRate, refEqual);
+  const usingLGRSCoordinates = useMissionDocSelector(
+    (mission) => mission.usingLGRSCoordinates,
+    refEqual
+  );
 
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -81,8 +85,15 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       missionTraverseRate,
       evaTraverseRate: traverseEvaTraverseRate,
       traverseActions,
+      usingLGRSCoordinates,
     });
-  }, [docMaps, selectedTraverse, missionTraverseRate, traverseEvaTraverseRate]);
+  }, [
+    docMaps,
+    selectedTraverse,
+    missionTraverseRate,
+    traverseEvaTraverseRate,
+    usingLGRSCoordinates,
+  ]);
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = useMemo(
     () => (mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null),

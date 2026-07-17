@@ -48,6 +48,20 @@
   border-bottom-right-radius: var(--panelRadius);
 }
 
+.minimapWrapper {
+  position: absolute;
+  width: 25%;
+  height: 35%;
+  bottom: 4px;
+  right: 4px;
+  z-index: 10;
+  border-radius: var(--panelRadius);
+  overflow: hidden;
+  border: 2px solid black;
+  box-sizing: border-box;
+  background-color: black;
+}
+
 .page .tooltip {
   z-index: 900;
   background-color: white;
