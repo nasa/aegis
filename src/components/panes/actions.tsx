@@ -327,7 +327,7 @@ export const ActionsTopSection: FunctionComponent<{
                   <div
                     className={paneStyles.displayFieldLabel}
                     data-tooltip-id="aegis-tooltip"
-                    data-tooltip-html="Sum of all action durations, nominal to max"
+                    data-tooltip-content="Sum of all action durations, nominal to max"
                   >
                     Total Action Time (mins):
                   </div>

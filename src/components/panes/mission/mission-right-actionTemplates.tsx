@@ -542,7 +542,7 @@ const ActionTemplateItem: FunctionComponent<{
                 <LastEditedNumeric
                   updatedAt={actionTemplate?.updatedAt}
                   createdAt={actionTemplate?.createdAt}
-                  infoString={`Action Template UUID: ${actionTemplateUuid}`}
+                  info={[["Action Template UUID", actionTemplateUuid]]}
                 />
               </div>
             </div>

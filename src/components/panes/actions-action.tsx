@@ -306,7 +306,7 @@ const RightAction: FunctionComponent<{
                     className={actionStyles.actionHeadingRightItem}
                     style={{ marginRight: "0", cursor: "pointer", marginTop: "3px" }}
                     data-tooltip-id="aegis-tooltip"
-                    data-tooltip-html={"Copied from POI: " + actionParentPoiName}
+                    data-tooltip-content={"Copied from POI: " + actionParentPoiName}
                   >
                     <FontAwesomeIcon icon={faCircle} />
                   </div>
@@ -314,7 +314,7 @@ const RightAction: FunctionComponent<{
                 <div
                   className={actionStyles.actionHeadingRightItem}
                   data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html={"Duration (h:mm)"}
+                  data-tooltip-content={"Duration (h:mm)"}
                   style={{
                     color: action.duration < 0 ? "var(--warning)" : "inherit",
                     marginTop: "2px",

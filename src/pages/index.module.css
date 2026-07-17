@@ -301,13 +301,3 @@
 .selectButton {
   width: 60px;
 }
-
-.main .tooltip {
-  z-index: 900;
-  background-color: white;
-  color: black;
-  max-width: 300px;
-  font-size: 0.8rem;
-  padding: 6px;
-  position: absolute;
-}

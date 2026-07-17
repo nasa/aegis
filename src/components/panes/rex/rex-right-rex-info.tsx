@@ -189,7 +189,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 <FontAwesomeIcon
                   icon={faHexagonNodes}
                   data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html="Fields in this section are Maestro controlled"
+                  data-tooltip-content="Fields in this section are Maestro controlled"
                 />
               </div>
             )}
@@ -326,7 +326,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     <LastEditedNumeric
                       updatedAt={selectedRex?.updatedAt}
                       createdAt={selectedRex?.createdAt}
-                      infoString={`REX UUID: ${selectedRex?.uuid}`}
+                      info={[["REX UUID", selectedRex?.uuid]]}
                     />
                   </div>
                 </div>

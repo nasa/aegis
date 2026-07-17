@@ -4,11 +4,14 @@ import type { IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { FunctionComponent, ReactNode } from "react";
 import styles from "./_global-elements.module.css";
-import { longDateFromDateNumeric, longDateFromDateString } from "utils/formatting";
+import { longDateFromDateNumeric } from "utils/formatting";
 import { isModified } from "utils/component-helpers";
 import { faInfoCircle } from "@fortawesome/free-solid-svg-icons";
 
 dayjs.extend(relativeTime);
+
+/** Extra `[label, value]` rows shown under Updated At / Created At. */
+export type LastEditedInfoLine = [label: string, value: string];
 
 export const ModifiedIndicator: FunctionComponent<{
   obj1: MustContainIsModified[];
@@ -34,7 +37,7 @@ export const ModifiedIndicator: FunctionComponent<{
     return (
       <span
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html="Unsaved changes"
+        data-tooltip-content="Unsaved changes"
         className={styles.modifiedSpan}
         aria-label="Unsaved changes"
       >
@@ -49,47 +52,17 @@ export const ModifiedIndicator: FunctionComponent<{
 export const LastEditedNumeric: FunctionComponent<{
   updatedAt: number;
   createdAt: number;
-  infoString?: string;
-}> = ({ updatedAt, createdAt, infoString }) => {
-  const returnDivContent = (updatedAt: number) => {
-    if (!updatedAt) return <>N/A</>;
-    const timeAgo = dayjs(updatedAt).fromNow();
-    return <>{timeAgo}</>;
-  };
-
+  info?: LastEditedInfoLine[];
+}> = ({ updatedAt, createdAt, info }) => {
   return (
     <div
       className={styles.updatedAt}
-      data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={`Updated At: ${longDateFromDateNumeric(updatedAt)} Z
-      <br />Created At: ${longDateFromDateNumeric(createdAt)} Z
-      ${infoString ? `<br />${infoString}` : ""}`}
+      data-tooltip-id={"aegis-last-edited"}
+      data-le-updated={longDateFromDateNumeric(updatedAt)}
+      data-le-created={longDateFromDateNumeric(createdAt)}
+      data-le-info={info ? JSON.stringify(info) : undefined}
     >
-      {<>{returnDivContent(updatedAt)}</>}
-    </div>
-  );
-};
-
-export const LastEdited: FunctionComponent<{
-  updatedAt: string;
-  createdAt: string;
-  infoString?: string;
-}> = ({ updatedAt, createdAt, infoString }) => {
-  const returnDivContent = (updatedAt: string) => {
-    if (!updatedAt) return <>N/A</>;
-    const timeAgo = dayjs(updatedAt).fromNow();
-    return <>{timeAgo}</>;
-  };
-
-  return (
-    <div
-      className={styles.updatedAt}
-      data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={`Updated At: ${longDateFromDateString(updatedAt)} Z
-      <br />Created At: ${longDateFromDateString(createdAt)} Z
-      ${infoString ? `<br />${infoString}` : ""}`}
-    >
-      {<>{returnDivContent(updatedAt)}</>}
+      {updatedAt ? dayjs(updatedAt).fromNow() : "N/A"}
     </div>
   );
 };
@@ -108,7 +81,7 @@ export const SubpanelHeading: FunctionComponent<{
           icon={faInfoCircle}
           className={styles.helpInfoIcon}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={helpCopy}
+          data-tooltip-content={helpCopy}
         />
       )}
     </div>

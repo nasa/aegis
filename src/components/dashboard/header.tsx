@@ -9,8 +9,9 @@ import {
   faBars,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from "react-tooltip";
+import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import DashboardPETClock from "./headerPetClock";
-import ReactDOMServer from "react-dom/server";
 import { longDateFromDateString } from "utils/formatting";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
@@ -82,25 +83,29 @@ const DashboardHeader: FunctionComponent = () => {
                 ? styles.connectionIcon
                 : styles.connectionIconBroken
             }
-            data-tooltip-id="aegis-tooltip"
-            data-tooltip-html={ReactDOMServer.renderToStaticMarkup(
-              <>
-                Connected to server
-                <br />
-                Last Server Status:{" "}
-                {longDateFromDateString(
-                  new Date(socketStatus.lastStatusFromServer.timestamp).toISOString()
-                ) || "None"}
-                <br />
-                Last Edit Event:{" "}
-                {longDateFromDateString(socketStatus.lastEditEvent?.datestamp) || "None"}
-                <br />
-                Editors: {socketStatus.lastStatusFromServer.visitorCounts.editors}
-                <br />
-                Viewers: {socketStatus.lastStatusFromServer.visitorCounts.viewers}
-              </>
-            )}
+            data-tooltip-id="dashboard-header-connection"
           />
+          <Tooltip
+            id="dashboard-header-connection"
+            className={aegisTooltipStyles.tooltip}
+            clickable={true}
+            delayShow={1000}
+            delayHide={500}
+          >
+            <div>Connected to server</div>
+            <div>
+              Last Server Status:{" "}
+              {longDateFromDateString(
+                new Date(socketStatus.lastStatusFromServer.timestamp).toISOString()
+              ) || "None"}
+            </div>
+            <div>
+              Last Edit Event:{" "}
+              {longDateFromDateString(socketStatus.lastEditEvent?.datestamp) || "None"}
+            </div>
+            <div>Editors: {socketStatus.lastStatusFromServer.visitorCounts.editors}</div>
+            <div>Viewers: {socketStatus.lastStatusFromServer.visitorCounts.viewers}</div>
+          </Tooltip>
         </div>
         <div className={styles.item}>
           <div className={styles.logoRight}>
@@ -116,7 +121,7 @@ const DashboardHeader: FunctionComponent = () => {
                 );
               }}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html="More info about EVA Mission System Software (EMSS)"
+              data-tooltip-content="More info about EVA Mission System Software (EMSS)"
             >
               <span className={styles.logoEmss} />
             </div>

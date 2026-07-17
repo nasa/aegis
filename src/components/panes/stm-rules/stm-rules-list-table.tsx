@@ -54,7 +54,7 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
           <div
             className={styles.gridCellLevel1Ordinal}
             data-tooltip-id="aegis-tooltip"
-            data-tooltip-html={`${level1.name}`}
+            data-tooltip-content={`${level1.name}`}
             data-tooltip-place="top-start"
           >
             {`${level1.numbering}.`}
@@ -112,7 +112,7 @@ const STMLevel2s: FunctionComponent<{ level1Uuid: string; stmLevel1Enabled: bool
             <div
               className={styles.gridCellLevel2Ordinal}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={level2.name}
+              data-tooltip-content={level2.name}
               data-tooltip-place="top-start"
             >
               {level2.numbering.toLocaleUpperCase()}.

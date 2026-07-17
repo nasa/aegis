@@ -119,7 +119,7 @@ const EvaRunningRex: FunctionComponent = () => {
               icon={faPersonWalkingArrowRight}
               className={styles.rexIconWrapper}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={"Execution in Progress"}
+              data-tooltip-content={"Execution in Progress"}
             />
           </div>
           <div className={styles.nameBottomRow}>

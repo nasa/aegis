@@ -4,6 +4,8 @@ import { useNavigate } from "react-router";
 
 import { faBars, faEye, faPen, faPersonWalkingArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from "react-tooltip";
+import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import type { FunctionComponent } from "react";
 import { useState } from "react";
 import PetInterval from "../page/petInterval";
@@ -133,15 +135,7 @@ const Header: FunctionComponent = () => {
         )}
         <div
           className={headerStyles.userCount}
-          data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={
-            setSocketConnectionStatus === "connected"
-              ? `Users active in this Mission:<br>` +
-                `Editors: ${visitorCounts.editors || 0}<br>` +
-                `Visitors: ${visitorCounts.viewers || 0}<br>` +
-                `These numbers include you`
-              : "Connection to server lost"
-          }
+          data-tooltip-id="interface-header-usercount"
           style={
             setSocketConnectionStatus === "connected"
               ? { color: "var(--grey5)" }
@@ -153,6 +147,24 @@ const Header: FunctionComponent = () => {
           <FontAwesomeIcon icon={faEye} style={{ marginLeft: "6px" }} />
           <div className={headerStyles.userCountText}>{visitorCounts?.viewers || 0}</div>
         </div>
+        <Tooltip
+          id="interface-header-usercount"
+          className={aegisTooltipStyles.tooltip}
+          clickable={true}
+          delayShow={1000}
+          delayHide={500}
+        >
+          {setSocketConnectionStatus === "connected" ? (
+            <>
+              <div>Users active in this Mission:</div>
+              <div>Editors: {visitorCounts.editors || 0}</div>
+              <div>Visitors: {visitorCounts.viewers || 0}</div>
+              <div>These numbers include you</div>
+            </>
+          ) : (
+            <div>Connection to server lost</div>
+          )}
+        </Tooltip>
         <div className={headerStyles.verticalCenter}>
           <span className={headerStyles.wordMark}>AEGIS</span>
         </div>
@@ -173,7 +185,7 @@ const Header: FunctionComponent = () => {
               );
             }}
             data-tooltip-id="aegis-tooltip"
-            data-tooltip-html="More info about EVA Mission System Software (EMSS)"
+            data-tooltip-content="More info about EVA Mission System Software (EMSS)"
           >
             <span className={headerStyles.logoEmss} />
           </div>

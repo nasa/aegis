@@ -54,7 +54,7 @@ const RulesEngineSummary: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
     <div
       className={styles.matchingActionStats}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={`Sequence items: ${Object.keys(satisfiedSequenceActions).join(", ")}`}
+      data-tooltip-content={`Sequence items: ${Object.keys(satisfiedSequenceActions).join(", ")}`}
       data-tooltip-place="left"
     >
       {numberOfSequenceActions > 0 ? (

@@ -674,7 +674,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                                 : undefined,
                           }}
                           data-tooltip-id="aegis-tooltip"
-                          data-tooltip-html={
+                          data-tooltip-content={
                             evaCalculatedFields.totalUnassignedTime > 0
                               ? "Crew assignments incomplete"
                               : undefined
@@ -844,7 +844,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       <LastEditedNumeric
                         updatedAt={selectedEva?.updatedAt}
                         createdAt={selectedEva?.createdAt}
-                        infoString={`EVA UUID: ${selectedEva?.uuid}<br />EVA RefUUID: ${selectedEva?.refUuid}`}
+                        info={[
+                          ["EVA UUID", selectedEva?.uuid],
+                          ["EVA RefUUID", selectedEva?.refUuid],
+                        ]}
                       />
                     </div>
                   </div>

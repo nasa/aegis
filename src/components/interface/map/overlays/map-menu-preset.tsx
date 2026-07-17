@@ -37,7 +37,7 @@ const MapPresetMenu: React.FC<{
     <div
       className={styles.presetMenu}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html="Select Map Preset"
+      data-tooltip-content="Select Map Preset"
     >
       <div className={styles.presetIcon}>
         <FontAwesomeIcon icon={faGlobe} size="sm" />

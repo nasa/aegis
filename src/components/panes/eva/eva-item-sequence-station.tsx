@@ -228,7 +228,7 @@ const SequenceItemStation: FunctionComponent<{
               <div
                 className={evaStyles.evaItemRightItem}
                 data-tooltip-id="aegis-tooltip"
-                data-tooltip-html={"Total dwell time (h:mm)"}
+                data-tooltip-content={"Total dwell time (h:mm)"}
                 data-tooltip-place="right"
               >
                 {displayedStationDwellTime}

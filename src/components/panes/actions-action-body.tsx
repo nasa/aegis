@@ -434,7 +434,7 @@ const RightActionBody: FunctionComponent<{
               <FontAwesomeIcon
                 icon={faHexagonNodes}
                 data-tooltip-id="aegis-tooltip"
-                data-tooltip-html="Fields in this section are Maestro controlled"
+                data-tooltip-content="Fields in this section are Maestro controlled"
               />
             </div>
           )}
@@ -879,7 +879,10 @@ const RightActionBody: FunctionComponent<{
           <LastEditedNumeric
             updatedAt={action?.updatedAt}
             createdAt={action?.createdAt}
-            infoString={`Action UUID: ${action?.uuid}<br />Action RefUUID: ${action?.refUuid}`}
+            info={[
+              ["Action UUID", action?.uuid],
+              ["Action RefUUID", action?.refUuid],
+            ]}
           />
         </div>
       </div>

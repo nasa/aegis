@@ -56,7 +56,7 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
           <div
             className={styles.gridCellLevel1Ordinal}
             data-tooltip-id="aegis-tooltip"
-            data-tooltip-html={`${level1.name}`}
+            data-tooltip-content={`${level1.name}`}
             data-tooltip-place="top-start"
           >
             {`${level1.numbering}.`}
@@ -123,7 +123,7 @@ const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) =
             <div
               className={styles.gridCellLevel2Ordinal}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={level2.name}
+              data-tooltip-content={level2.name}
               data-tooltip-place="top-start"
             >
               {level2.numbering.toLocaleUpperCase()}.
@@ -236,7 +236,7 @@ const STMLevel3: FunctionComponent<{
         <div
           className={`${styles.truncate1Line} ${styles.gridCellLevel3Name}`}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={`${level3.name} (${numberOfActionsThatHaveThisLevel3} actions)`}
+          data-tooltip-content={`${level3.name} (${numberOfActionsThatHaveThisLevel3} actions)`}
         >
           {level3.name}
         </div>
@@ -394,7 +394,7 @@ const Level3Action: FunctionComponent<{
             : null
         }
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html={actionTooltipTitle}
+        data-tooltip-content={actionTooltipTitle}
         data-tooltip-place="top-start"
       >
         <div></div>

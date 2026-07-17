@@ -204,7 +204,7 @@ const Assoc_POIAction: FunctionComponent<{
                 <div
                   className={actionStyles.actionHeadingRightItem}
                   data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html={"Duration (h:mm)"}
+                  data-tooltip-content={"Duration (h:mm)"}
                   style={{
                     color: action.duration < 0 ? "var(--warning)" : "inherit",
                     marginTop: "2px",
@@ -248,7 +248,7 @@ const Assoc_POIAction: FunctionComponent<{
                 <div
                   className={actionStyles.actionHeadingRightItem}
                   data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html={"Duration (h:mm)"}
+                  data-tooltip-content={"Duration (h:mm)"}
                   style={{ color: action.duration < 0 ? "var(--warning)" : "inherit" }}
                 >
                   {hmmFromMinutes(action.duration)}
@@ -265,7 +265,7 @@ const Assoc_POIAction: FunctionComponent<{
             size="xs"
             className={assocPoisStyles.copyIcon}
             data-tooltip-id="aegis-tooltip"
-            data-tooltip-html={"Action copied to station"}
+            data-tooltip-content={"Action copied to station"}
           />
         ) : (
           <>
@@ -286,7 +286,7 @@ const Assoc_POIAction: FunctionComponent<{
                   e.stopPropagation();
                 }}
                 data-tooltip-id="aegis-tooltip"
-                data-tooltip-html="Copy this action to station"
+                data-tooltip-content="Copy this action to station"
                 style={{ cursor: "pointer" }}
               />
             ) : (
