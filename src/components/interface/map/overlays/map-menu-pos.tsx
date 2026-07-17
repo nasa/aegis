@@ -144,7 +144,7 @@ export const MapPositionMenu: FunctionComponent = () => {
               e.stopPropagation();
             }}
             data-tooltip-id="aegis-tooltip"
-            data-tooltip-html="Map View Settings"
+            data-tooltip-content="Map View Settings"
           >
             <FontAwesomeIcon
               icon={faCrosshairs}
@@ -166,7 +166,7 @@ export const MapPositionMenu: FunctionComponent = () => {
                 e.stopPropagation();
               }}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html="Map View Settings"
+              data-tooltip-content="Map View Settings"
             >
               <FontAwesomeIcon
                 icon={showMenu ? faXmark : faCrosshairs}
@@ -227,7 +227,7 @@ export const MapPositionMenu: FunctionComponent = () => {
                           }
                         }}
                         data-tooltip-id="aegis-tooltip"
-                        data-tooltip-html={posType.name}
+                        data-tooltip-content={posType.name}
                         style={{
                           cursor: selectedRex.isRunning ? "pointer" : "default",
                           // if rex is running, use color from the className
@@ -373,7 +373,7 @@ export const MapPositionMenu: FunctionComponent = () => {
                           );
                         }}
                         data-tooltip-id="aegis-tooltip"
-                        data-tooltip-html={posSource.name}
+                        data-tooltip-content={posSource.name}
                         style={{
                           cursor: selectedRex.isRunning ? "pointer" : "default",
                           // if rex is running, use color from the className

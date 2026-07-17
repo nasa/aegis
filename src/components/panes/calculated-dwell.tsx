@@ -14,7 +14,7 @@ const CalculatedDwell: FunctionComponent<{
             <div
               className={paneStyles.displayFieldLabel}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html="Time spent at station(s)"
+              data-tooltip-content="Time spent at station(s)"
             >
               Total Dwell Time (mins):
             </div>
@@ -29,7 +29,7 @@ const CalculatedDwell: FunctionComponent<{
                   actionsCalculatedFields.totalUnassignedTime > 0 ? "var(--warning)" : undefined,
               }}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={
+              data-tooltip-content={
                 actionsCalculatedFields.totalUnassignedTime > 0
                   ? "Crew assignments incomplete"
                   : undefined
@@ -50,7 +50,7 @@ const CalculatedDwell: FunctionComponent<{
               className={paneStyles.displayFieldLabel}
               style={{ paddingLeft: "10px" }}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html="Total time EV1 assigned on actions"
+              data-tooltip-content="Total time EV1 assigned on actions"
             >
               Total EV1 Time (mins):
             </div>
@@ -72,7 +72,7 @@ const CalculatedDwell: FunctionComponent<{
               className={paneStyles.displayFieldLabel}
               style={{ paddingLeft: "10px" }}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html="Total time EV2 assigned on actions"
+              data-tooltip-content="Total time EV2 assigned on actions"
             >
               Total EV2 Time (mins):
             </div>

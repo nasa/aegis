@@ -118,7 +118,7 @@ export const RexStatusMenu: FunctionComponent<{
           e.stopPropagation();
         }}
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html={rexStatusDisplayProperties.tooltip}
+        data-tooltip-content={rexStatusDisplayProperties.tooltip}
       >
         {rexStatus !== "skipped" ? (
           <FontAwesomeIcon

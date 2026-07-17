@@ -233,7 +233,7 @@ const BottomGutter: FunctionComponent = () => {
           className={styles.icon}
           style={{ color: "var(--grey5)" }}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={"Timeline"}
+          data-tooltip-content={"Timeline"}
           onClick={() => {
             if (!bottomPanelOpen) dispatch(setBottomPanelIsOpen(true));
             dispatch(setBottomSectionSelected("timeline"));
@@ -247,7 +247,7 @@ const BottomGutter: FunctionComponent = () => {
           className={styles.icon}
           style={{ color: "var(--grey5)" }}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={"Measurements"}
+          data-tooltip-content={"Measurements"}
           onClick={() => {
             if (!bottomPanelOpen) dispatch(setBottomPanelIsOpen(true));
             dispatch(setBottomSectionSelected("measure"));
@@ -328,7 +328,7 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
                 className={styles.icon}
                 style={{ color: pane.color }}
                 data-tooltip-id="aegis-tooltip"
-                data-tooltip-html={pane.title}
+                data-tooltip-content={pane.title}
                 onClick={() => {
                   dispatch(setLeftPanelIsOpen(true));
                   dispatch(setSectionSelected(interfaceSection));
@@ -431,7 +431,7 @@ export const RightTabs: FunctionComponent<{
                     : panelTypes[panelType].unselectedColor || "white",
               }}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={panelTypes[panelType].title}
+              data-tooltip-content={panelTypes[panelType].title}
             >
               {panelTypes[panelType].icon && (
                 <FontAwesomeIcon icon={panelTypes[panelType].icon} size="lg" />

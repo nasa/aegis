@@ -3,6 +3,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { useParams } from "react-router";
 
 import styles from "./dashboard.module.css";
+import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import { setAppUser } from "store/user";
 import { Tooltip } from "react-tooltip";
 import { isLoggedIn } from "http-client/login";
@@ -164,7 +165,7 @@ const Main = (): JSX.Element => {
       <div className={styles.page}>
         <Tooltip
           id="aegis-tooltip"
-          className={styles.tooltip}
+          className={aegisTooltipStyles.tooltip}
           clickable={true}
           delayShow={1000}
           delayHide={500}

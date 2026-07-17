@@ -356,7 +356,7 @@ const Info_Panel: FunctionComponent<{
                       <LastEditedNumeric
                         updatedAt={selectedPoi?.updatedAt}
                         createdAt={selectedPoi?.createdAt}
-                        infoString={`POI UUID: ${selectedPoi?.uuid}`}
+                        info={[["POI UUID", selectedPoi?.uuid]]}
                       />
                     </div>
                   </div>

@@ -566,7 +566,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <LastEditedNumeric
                         updatedAt={selectedTraverse?.updatedAt}
                         createdAt={selectedTraverse?.createdAt}
-                        infoString={`Traverse UUID: ${selectedTraverse?.uuid}<br />Traverse RefUUID: ${selectedTraverse?.refUuid}`}
+                        info={[
+                          ["Traverse UUID", selectedTraverse?.uuid],
+                          ["Traverse RefUUID", selectedTraverse?.refUuid],
+                        ]}
                       />
                     </div>
                   </div>

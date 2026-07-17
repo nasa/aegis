@@ -180,7 +180,7 @@ const SequenceItemTraverse: FunctionComponent<{
             <div
               className={evaStyles.evaItemRightItem}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={"Est traverse time"}
+              data-tooltip-content={"Est traverse time"}
               data-tooltip-place="right"
             >
               {displayTraverseDuration()}
