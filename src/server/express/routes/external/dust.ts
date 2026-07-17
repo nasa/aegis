@@ -10,13 +10,19 @@ import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "../missionAutomerge";
 import type { FeatureCollection, LineString, Feature } from "geojson";
 
+type DustDataEva = {
+  evaName: string;
+  rexUuid: string; // null if this is an as-planned eva
+  rexName: string; // null if this is an as-planned eva
+  fullTraverse: FeatureCollection<LineString>;
+};
+
 type DustData = {
   missionId: number;
-  name: string;
-  evas: { [uuid: string]: Eva };
-  rexes: { [uuid: string]: Rex };
-  traverses: { [uuid: string]: Traverse };
-  traversesGeoJson: { [uuid: string]: FeatureCollection<LineString> };
+  name: string; // mission name
+  traversesGeoJson: {
+    [evaUuid: string]: DustDataEva;
+  };
 };
 
 const router = express.Router();
@@ -92,59 +98,67 @@ export async function getDustData(missionId: number): Promise<DustData> {
     throw new Error(`Mission ${missionId} not found`);
   }
 
-  const traversesGeoJson: { [uuid: string]: FeatureCollection<LineString> } = {};
+  const dustData: DustData = {
+    missionId: mission.id,
+    name: mission.name,
+    traversesGeoJson: {},
+  };
 
-  // Build a map from traverseUuid -> EVA so we can use the EVA's datetime per the export component
-  const traverseUuidToEva: { [traverseUuid: string]: Eva } = {};
   for (const eva of Object.values(mission.evas ?? {})) {
-    for (const sequenceItem of eva.sequence ?? []) {
-      if (sequenceItem.type === "traverse") {
-        traverseUuidToEva[sequenceItem.uuid] = eva;
-      }
-    }
-  }
+    const rex = Object.values(mission.rexes ?? {}).find((r) => r.evaUuid === eva.uuid);
+    const dustDataEva: DustDataEva = {
+      evaName: eva.name,
+      rexUuid: rex?.uuid ?? null,
+      rexName: rex?.name ?? null,
+      fullTraverse: { type: "FeatureCollection", features: [] },
+    };
 
-  // Build a GeoJSON FeatureCollection<LineString> for each traverse, mirroring the
-  // "Export Full Traverse as GeoJSON" button in eva-right-eva-export.tsx.
-  // Each traverse gets its own FeatureCollection with a single LineString feature.
-  for (const traverse of Object.values(mission.traverses ?? {})) {
-    const coords: number[][] = [];
-    for (const pathItem of traverse.path ?? []) {
-      if (
-        coords.length === 0 ||
-        coords[coords.length - 1][0] !== pathItem.lng ||
-        coords[coords.length - 1][1] !== pathItem.lat
-      ) {
-        coords.push([pathItem.lng, pathItem.lat]);
-      }
+    if (!eva.name && rex) {
+      // Get name from as-planned EVA
+      const allRexEvaUuids = Object.values(mission.rexes ?? {}).map((r) => r.evaUuid);
+      const asPlannedEva = Object.values(mission.evas ?? {}).find(
+        (e) => e.refUuid === eva.refUuid && !allRexEvaUuids.includes(e.uuid)
+      );
+      dustDataEva.evaName = asPlannedEva?.name || "";
     }
 
-    const eva = traverseUuidToEva[traverse.uuid];
-    const startDatetime = eva?.datetime != null ? new Date(eva.datetime).toISOString() : undefined;
+    // Build one full path of the EVA traverses
+    const traverseUuids = eva.sequence
+      .filter((sequence) => sequence.type === "traverse")
+      .map((sequence) => sequence.uuid);
+
+    const fullPathCoords: number[][] = [];
+    for (const traverseUuid of traverseUuids) {
+      const traverse = mission.traverses?.[traverseUuid];
+      if (!traverse) continue;
+      for (const pathItem of traverse.path) {
+        // Push the coordinate if it's not the same as the last one
+        if (
+          fullPathCoords.length === 0 ||
+          fullPathCoords[fullPathCoords.length - 1][0] !== pathItem.lng ||
+          fullPathCoords[fullPathCoords.length - 1][1] !== pathItem.lat
+        )
+          fullPathCoords.push([pathItem.lng, pathItem.lat]);
+      }
+    }
 
     const featureCollection: FeatureCollection<LineString> & { start_datetime?: string } = {
       type: "FeatureCollection",
-      ...(startDatetime ? { start_datetime: startDatetime } : {}),
+      start_datetime: eva?.datetime != null ? new Date(eva.datetime).toISOString() : undefined,
       features: [
         {
           type: "Feature",
-          geometry: { type: "LineString", coordinates: coords },
-          properties: { name: `Traverse: ${traverse.name}` },
+          geometry: { type: "LineString", coordinates: fullPathCoords },
+          properties: { name: `Traverse for EVA: ${dustDataEva.evaName}` },
         } as Feature<LineString>,
       ],
     };
+    dustDataEva.fullTraverse = featureCollection;
 
-    traversesGeoJson[traverse.uuid] = featureCollection;
+    dustData.traversesGeoJson[eva.uuid] = dustDataEva;
   }
 
-  return {
-    missionId: mission.id,
-    name: mission.name,
-    evas: mission.evas ?? {},
-    rexes: mission.rexes ?? {},
-    traverses: mission.traverses ?? {},
-    traversesGeoJson,
-  };
+  return dustData;
 }
 
 export default router;
