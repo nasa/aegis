@@ -46,18 +46,24 @@ const SequenceItemStation: FunctionComponent<{
   );
   const sequenceIndex = evaSequence.findIndex((s) => s.uuid === stationUuid);
 
-  // get a list of stations for the dropdown menu when selecting a station for the eva sequence
-  // only return some of the properties in station to reduce re-renders
+  // Get a list of as-planned stations for the dropdown menu when selecting a station for the eva sequence
+  // Only return some of the properties in station to reduce re-renders
+  // Filter out stations already in the sequence and stations without locations
   const partialStationsForDropdown = useMissionDocSelector((mission) => {
-    const asPlannedStations = selectAsPlannedStations(mission).map((s) => {
-      return { name: s.name, uuid: s.uuid, location: s.location };
-    });
-    // add on the current station if it is not already in the list (this will occur in a rex's eva)
+    const sequenceRefUuids = (mission.evas?.[evaUuid]?.sequence ?? [])
+      .map((s) => mission.stations[s.uuid]?.refUuid)
+      .filter(Boolean);
+    const asPlannedStations = selectAsPlannedStations(mission)
+      .map((s) => ({ name: s.name, uuid: s.uuid, refUuid: s.refUuid, location: s.location }))
+      .filter((s) => !sequenceRefUuids.includes(s.refUuid) && !!s.location)
+      .map(({ refUuid: _refUuid, ...rest }) => rest);
+
+    // add on the current station
     if (!asPlannedStations.map((s) => s.uuid).includes(stationUuid)) {
       const station = thisStation;
       if (station) {
         asPlannedStations.unshift({
-          name: `${station?.name} (As Executed)`,
+          name: isRexEva ? `${station?.name} (As Executed)` : station?.name,
           uuid: station?.uuid,
           location: station?.location,
         });
@@ -80,19 +86,11 @@ const SequenceItemStation: FunctionComponent<{
     return map;
   }, {});
 
-  // Generate organized station dropdown options with custom filtering
+  // Generate folder organized station dropdown options
   const stationDropdownOptions = createFolderOrganizedDropdownOptions({
     items: partialStationsForDropdown,
     folders,
     itemsToFolders,
-    filterFn: (partialStation) => {
-      // filter out stations that are already in the sequence and stations that don't have locations
-      // for rex, all the stations are duplicated so we need to get the as-planned copies.
-      const isStationInSequence = evaSequence.map((s) => s.uuid).includes(partialStation.uuid);
-      return (
-        !(isStationInSequence && partialStation.uuid !== stationUuid) && !!partialStation.location
-      );
-    },
   });
 
   const thisStationCalculatedFields = useMissionDocSelector((mission) => {
