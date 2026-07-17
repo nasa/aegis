@@ -10,10 +10,10 @@ import { PathColorPickerMenu, Button } from "../form/globalFields";
 import { upsertMeasurementByField } from "store/measure";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
+import { updateMapDirective } from "store/map";
 import throttle from "lodash/throttle";
 import isNil from "lodash/isNil";
 import { clearMapItemHover } from "store/hover";
-import { thunkClearAllMapSelections } from "store/thunk/crossThunk";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const initHoverValues: MeasureHoverValues = {
@@ -149,17 +149,14 @@ const Measure: FunctionComponent = () => {
     //eslint-disable-next-line
   }, [drawMeasurement]);
 
-  const handlePathEdit = async () => {
-    dispatch(thunkClearAllMapSelections());
-    setTimeout(() => {
-      dispatch(
-        thunkUpdateMapDirective({
-          uuid: selectedMeasurement.uuid,
-          mapItemType: "measurement",
-          mapAction: "editPolyline",
-        })
-      );
-    }, 100);
+  const handlePathEdit = () => {
+    dispatch(
+      updateMapDirective({
+        uuid: selectedMeasurement.uuid,
+        mapItemType: "measurement",
+        mapAction: "editPolyline",
+      })
+    );
   };
 
   const handlePathFinished = async () => {
@@ -276,8 +273,10 @@ function initMeasurePaperRefs(
 
   // calculate derived values
   // make elevations relative to the start elevation
-  const startElevation = pathSegmentElevations?.length > 0 ? pathSegmentElevations[0][0] : 0;
-  measureDerivedValuesRef.current.relativeElevationsMeters = pathSegmentElevations.map((segment) =>
+  // Guard against null/undefined elevations (e.g. during drag before elevation fetch completes)
+  const safeElevations = pathSegmentElevations ?? [];
+  const startElevation = safeElevations.length > 0 ? safeElevations[0][0] : 0;
+  measureDerivedValuesRef.current.relativeElevationsMeters = safeElevations.map((segment) =>
     segment.map((elevation) => elevation - startElevation)
   );
 
@@ -303,10 +302,8 @@ function initMeasurePaperRefs(
     }
   }
 
-  measureDerivedValuesRef.current.totalDistanceMeters = pathSegmentDistances.reduce(
-    (a, b) => a + b,
-    0
-  );
+  measureDerivedValuesRef.current.totalDistanceMeters =
+    pathSegmentDistances?.reduce((a, b) => a + b, 0) ?? 0;
 
   //calculate paper vars. These are pixel and spacing variables that help determine where to draw things
   const paperVars = measurePaperDataRef.current.paperVars; //save this to a shorter reference so it reduces the variable name when used below
@@ -318,14 +315,17 @@ function initMeasurePaperRefs(
   paperVars.drawingLeft = 10;
   paperVars.graphHeight = paperVars.drawingHeight - paperVars.drawingTop;
   paperVars.pixelsPerMeterDistanceX =
-    paperVars.drawingWidth / measureDerivedValuesRef.current.totalDistanceMeters;
+    measureDerivedValuesRef.current.totalDistanceMeters > 0
+      ? paperVars.drawingWidth / measureDerivedValuesRef.current.totalDistanceMeters
+      : 1;
+  const elevationRange =
+    (measureDerivedValuesRef.current.maxElevationMeters ?? 0) -
+    (measureDerivedValuesRef.current.minElevationMeters ?? 0);
   paperVars.pixelsPerMeterElevationY =
-    paperVars.graphHeight /
-    (measureDerivedValuesRef.current.maxElevationMeters -
-      measureDerivedValuesRef.current.minElevationMeters);
+    elevationRange > 0 ? paperVars.graphHeight / elevationRange : 1;
 
   paperVars.startElevationFromGraphTop =
-    (measureDerivedValuesRef.current.maxElevationMeters -
+    ((measureDerivedValuesRef.current.maxElevationMeters ?? 0) -
       measureDerivedValuesRef.current.startElevationMeters) *
     paperVars.pixelsPerMeterElevationY;
 
@@ -344,12 +344,14 @@ function calcElevationGraphValues(
   const paperVars = measurePaperDataRef.current.paperVars;
   const pathSegmentElevations = measureDerivedValuesRef.current.relativeElevationsMeters;
   const graphData_elevation: GraphDataItem[] = [];
+  if (!pathSegmentElevations || pathSegmentElevations.length === 0) return graphData_elevation;
   let xLoc = xLocStart;
   let prevXLoc = null;
   // pixels per elevation entry across all segment elevations
   //loop through elevations
-  const pixelsXPerElevationEntry =
-    paperVars.drawingWidth / (pathSegmentElevations.flat(Infinity).length - 1);
+  const flatLength = pathSegmentElevations.flat(Infinity).length;
+  if (flatLength <= 1) return graphData_elevation;
+  const pixelsXPerElevationEntry = paperVars.drawingWidth / (flatLength - 1);
   //loop through path segments
   for (const [segmentIndex, _segment] of pathSegmentElevations.entries()) {
     for (const elevation of pathSegmentElevations[segmentIndex]) {

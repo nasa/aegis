@@ -1,21 +1,21 @@
 import {
   addPointsAtMeters,
   calcCentroidofCoordinates,
-  convertLeafletLatLngToAegisPoint,
   getDistanceBetweenTwoCoordinates,
+  getSegmentBearing,
   getSlope,
   getTotalDistance,
+  getTrueBearingFromLatLngPoints,
   calcPathDurationMins,
 } from "utils/mapping/geoMath";
-import { LatLng } from "leaflet";
+import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
 
 describe("Geomath Functions", () => {
   const earthRadius = 6371000; //6378137;
-  const latLng1: LatLng = new LatLng(0, 0);
-  const latLng2: LatLng = new LatLng(0, 0);
 
   test("Returns 0 distance between two identical coordinates", () => {
-    expect(getDistanceBetweenTwoCoordinates(latLng1, latLng2, 0)).toBe(0);
+    const point: AEGISPoint = { lat: 0, lng: 0 };
+    expect(getDistanceBetweenTwoCoordinates(point, point, 0)).toBe(0);
   });
 
   describe("getDistanceBetweenTwoCoordinates", () => {
@@ -74,13 +74,6 @@ describe("Geomath Functions", () => {
 
       expect(distance).toBeCloseTo(0.0000001, 6);
     });
-  });
-
-  test("Convert leaflet latlng to aegispoint", () => {
-    const latlng = new LatLng(0, 0);
-    const aegispoint = convertLeafletLatLngToAegisPoint(latlng);
-    expect(aegispoint.lat).toBe(0);
-    expect(aegispoint.lng).toBe(0);
   });
 
   test("Returns 0 distance between three identical coordinates", () => {
@@ -161,6 +154,83 @@ describe("Geomath Functions", () => {
       const newPath = addPointsAtMeters(path, 10, earthRadius);
       expect(path).toEqual(newPath);
     });
+  });
+});
+
+describe("getTrueBearingFromLatLngPoints()", () => {
+  test("returns 0 for a due-north segment", () => {
+    expect(getTrueBearingFromLatLngPoints({ lat: 0, lng: 0 }, { lat: 1, lng: 0 })).toBeCloseTo(
+      0,
+      6
+    );
+  });
+
+  test("returns 90 for a due-east segment", () => {
+    expect(getTrueBearingFromLatLngPoints({ lat: 0, lng: 0 }, { lat: 0, lng: 1 })).toBeCloseTo(
+      90,
+      6
+    );
+  });
+
+  test("returns 180 for a due-south segment", () => {
+    expect(getTrueBearingFromLatLngPoints({ lat: 0, lng: 0 }, { lat: -1, lng: 0 })).toBeCloseTo(
+      180,
+      6
+    );
+  });
+
+  test("returns 270 for a due-west segment (normalised to [0, 360))", () => {
+    expect(getTrueBearingFromLatLngPoints({ lat: 0, lng: 0 }, { lat: 0, lng: -1 })).toBeCloseTo(
+      270,
+      6
+    );
+  });
+
+  test("matches a known great-circle azimuth (Kansas City → St Louis)", () => {
+    const bearing = getTrueBearingFromLatLngPoints(
+      { lat: 39.099912, lng: -94.581213 },
+      { lat: 38.627089, lng: -90.200203 }
+    );
+    expect(bearing).toBeCloseTo(96.5126, 3);
+  });
+});
+
+describe("getSegmentBearing()", () => {
+  // An east-west segment at mission-4's latitude (Earth / Web Mercator, ~35.5°N).
+  const horizontalWest: AEGISPoint = { lat: 35.5, lng: -111.727 };
+  const horizontalEast: AEGISPoint = { lat: 35.5, lng: -111.717 };
+
+  describe("Mercator / non-LGRS missions (true-north azimuth)", () => {
+    test("a horizontal east-west line reads ~90°", () => {
+      expect(getSegmentBearing(horizontalWest, horizontalEast, false)).toBeCloseTo(90, 1);
+    });
+
+    test("delegates to getTrueBearingFromLatLngPoints", () => {
+      expect(getSegmentBearing(horizontalWest, horizontalEast, false)).toBe(
+        getTrueBearingFromLatLngPoints(horizontalWest, horizontalEast)
+      );
+    });
+  });
+
+  describe("LGRS / lunar missions (LPS grid bearing)", () => {
+    test("uses the lunar LPS frame, so an Earth horizontal line does NOT read ~90°", () => {
+      const bearing = getSegmentBearing(horizontalWest, horizontalEast, true);
+      // Same points through the LPS south-pole projection → ~338°, not 90°.
+      expect(bearing).toBeCloseTo(338.278, 2);
+      expect(bearing).not.toBeCloseTo(90, 0);
+    });
+
+    test("delegates to getBearingFromLatLngPoints", () => {
+      expect(getSegmentBearing(horizontalWest, horizontalEast, true)).toBe(
+        getBearingFromLatLngPoints(horizontalWest, horizontalEast)
+      );
+    });
+  });
+
+  test("LGRS and Mercator disagree for the same Earth segment", () => {
+    const lgrs = getSegmentBearing(horizontalWest, horizontalEast, true);
+    const mercator = getSegmentBearing(horizontalWest, horizontalEast, false);
+    expect(Math.abs(lgrs - mercator)).toBeGreaterThan(1);
   });
 });
 

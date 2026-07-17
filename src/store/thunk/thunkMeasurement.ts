@@ -1,12 +1,11 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkFetchElevation } from "./thunkElevation";
-import { getTotalDistance } from "utils/mapping/geoMath";
+import { getSegmentBearing, getTotalDistance } from "utils/mapping/geoMath";
 import { removeMeasurement, setSelectedMeasurementUuid, upsertMeasurement } from "store/measure";
 import { v4 as uuidv4 } from "uuid";
 import { updateMapDirective } from "store/map";
 import { thunkClearAllMapSelections } from "./crossThunk";
 import { getAccurateNow } from "utils/formatting";
-import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 
 export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
@@ -41,7 +40,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   //calculate new path bearings
   const pathSegmentBearings: number[] = [];
   for (let i = 1; i < path.length; i++) {
-    const bearing = getBearingFromLatLngPoints(path[i - 1], path[i]);
+    const bearing = getSegmentBearing(path[i - 1], path[i], mission.usingLGRSCoordinates);
     pathSegmentBearings.push(bearing);
   }
 
@@ -50,8 +49,8 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
    *  get the value by using .payload which will be either the return value
    *  or false if the thunk was unfulfilled.
    */
-  let newElevationProfile = null;
-  if (elevationResponse && elevationResponse.payload !== false) {
+  let newElevationProfile = measurement.pathSegmentElevations ?? null;
+  if (elevationResponse?.meta?.requestStatus === "fulfilled") {
     //good response from the thunk, cast as our number type
     newElevationProfile = elevationResponse.payload as number[][];
   }
@@ -71,12 +70,42 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
 export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
   "addNewMeasurement",
   async (__, { dispatch, getState }) => {
+    // Tear down any in-progress edit first. Otherwise the newly-created
+    // measurement swaps the source feature out from under a live OL Modify
+    // interaction, which freezes the map. Path edits persist live during drag,
+    // so clearing here loses nothing.
+    if (getState().map.mapDirective) {
+      dispatch(updateMapDirective(null));
+    }
+
     const missionDocHandle = getMissionDocHandle();
     if (!missionDocHandle) return;
     const mission = missionDocHandle.doc();
 
     const measurementUuid = uuidv4();
-    const path: AEGISPoint[] = getState().map.measureInitialCoords;
+    let path: AEGISPoint[] = getState().map.measureInitialCoords;
+
+    // Fallback: if measureInitialCoords is empty or invalid, create a default path near the lander
+    if (!path || path.length < 2) {
+      const lander = mission.landerLocation;
+      if (lander?.lat != null && lander?.lng != null) {
+        // Create a short fallback line near the lander in geographic degrees.
+        // This path is only reachable if measureInitialCoords was never set
+        // (defensive dead code — MeasurementLines always populates it first).
+        const offset = 0.003;
+        path = [
+          { lat: lander.lat, lng: lander.lng - offset },
+          { lat: lander.lat, lng: lander.lng + offset },
+        ];
+      } else {
+        // Last resort: use a default position
+        path = [
+          { lat: 0, lng: -0.003 },
+          { lat: 0, lng: 0.003 },
+        ];
+      }
+    }
+
     const distance = getTotalDistance(path, mission.planetRadius);
 
     //get elevation traverse
@@ -101,7 +130,7 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
 
     const pathSegmentBearings: number[] = [];
     for (let i = 1; i < path.length; i++) {
-      const bearing = getBearingFromLatLngPoints(path[i - 1], path[i]);
+      const bearing = getSegmentBearing(path[i - 1], path[i], mission.usingLGRSCoordinates);
       pathSegmentBearings.push(bearing);
     }
 

@@ -6,6 +6,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const storageStatePath = path.resolve(__dirname, "../../../.local/playwright/auth.json");
 
+// Smoke tests are read-only and parallelize cleanly.
+const SMOKE_TESTS = /(mapOl|dashboardOl)\.spec\.ts/;
+
 export default defineConfig({
   // Look for test files in the "tests" directory, relative to this configuration file.
   testDir: "./",
@@ -14,8 +17,9 @@ export default defineConfig({
   // Set the timeout for each test.
   timeout: 120000,
 
-  // Run all tests in parallel.
-  fullyParallel: false,
+  // Tests within a single file may run in parallel; whether they actually do
+  // depends on each file's `test.describe.configure({ mode })`.
+  fullyParallel: true,
 
   // Fail the build on CI if you accidentally left test.only in the source code.
   forbidOnly: !!process.env.CI,
@@ -23,8 +27,8 @@ export default defineConfig({
   // Retry on CI only.
   retries: process.env.CI ? 2 : 0,
 
-  // Opt out of parallel tests on CI.
-  workers: 1,
+  // Let Playwright pick worker count based on CPU.
+  workers: undefined,
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [["list"], ["html"]],
@@ -41,6 +45,7 @@ export default defineConfig({
   },
 
   // Configure projects for major browsers.
+  // chromium runs everything; firefox/webkit run smoke only
   projects: [
     { name: "auth", testMatch: /.*\.auth\.ts/ },
     {
@@ -49,23 +54,25 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         storageState: storageStatePath,
       },
-      dependencies: ["auth"], // make sure to run the auth project first.
+      dependencies: ["auth"],
     },
     {
       name: "firefox",
+      testMatch: SMOKE_TESTS,
       use: {
         ...devices["Desktop Firefox"],
         storageState: storageStatePath,
       },
-      dependencies: ["auth"], // make sure to run the auth project first.
+      dependencies: ["auth"],
     },
     {
       name: "webkit",
+      testMatch: SMOKE_TESTS,
       use: {
         ...devices["Desktop Safari"],
         storageState: storageStatePath,
       },
-      dependencies: ["auth"], // make sure to run the auth project first.
+      dependencies: ["auth"],
     },
   ],
   // Run dev server before starting the tests.

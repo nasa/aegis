@@ -34,8 +34,9 @@ export const thunkSavePreset = appCreateAsyncThunk<{
 }>("presetSave", async ({ presetUuid }, { dispatch, getState }) => {
   if (!presetUuid) return;
   const preset = getState().preset.presets.find((p) => p.uuid === presetUuid);
+  if (!preset) return;
 
-  // upsert the changed Preset to the DB
+  // Snapshot the preset and persist it to the DB.
   const updatedPreset = {
     ...preset,
     updatedAt: getAccurateNow().toISOString(),
@@ -46,13 +47,23 @@ export const thunkSavePreset = appCreateAsyncThunk<{
     throw new Error("Error upserting Presets: " + upsertResponse.message);
   }
 
-  // upsert the changed preset to the store
-  dispatch(upsertPresets([updatedPreset], true));
-  // update the preset in the store from the DB
+  // Mirror what was actually written to the DB.
   dispatch(upsertPresetsFromDb([updatedPreset]));
-  dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
-  dispatch(resetAllPresetLayersUIStates({ presetUuid: preset.uuid }));
-  dispatch(resetAllPresetCirclesUIStates({ presetUuid: preset.uuid }));
+
+  // Re-read the working copy: an edit may have landed while the request was in
+  // flight. Only stamp the saved timestamp onto it when it is untouched since we
+  // snapshotted it — otherwise dispatching the pre-await snapshot would clobber
+  // the newer edit (which should legitimately still read as modified). Immer
+  // preserves the object reference for untouched entities, so any intervening
+  // edit shows up as a changed reference.
+  const currentPreset = getState().preset.presets.find((p) => p.uuid === presetUuid);
+  if (currentPreset === preset) {
+    dispatch(upsertPresets([updatedPreset], true));
+  }
+
+  dispatch(setPresetEditMode({ presetUuid, editMode: false }));
+  dispatch(resetAllPresetLayersUIStates({ presetUuid }));
+  dispatch(resetAllPresetCirclesUIStates({ presetUuid }));
 });
 
 export const thunkPresetCancel = appCreateAsyncThunk<{

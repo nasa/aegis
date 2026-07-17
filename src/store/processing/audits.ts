@@ -68,28 +68,20 @@ export const auditPresetsAgainstLayers = async ({
     //loop through sublayers, add any sublayers that are missing from preset map controls
     //  this happens when sublayers are added in mission after the preset was created
     for (const sublayer of wholeStoreState.mission.sublayers) {
+      const existingControl = preset.mapSublayerControls[sublayer.uuid];
       //add to sublayer control
-      if (!Object.keys(preset.mapSublayerControls).includes(sublayer.uuid)) {
+      if (!existingControl) {
         preset.mapSublayerControls[sublayer.uuid] = {
           name: sublayer.name,
           sublayerUuid: sublayer.uuid,
           visible: false,
-          style: {
-            opacity: defaultSublayerStyle.opacity,
-            contrast: defaultSublayerStyle.contrast,
-            brightness: defaultSublayerStyle.brightness,
-            saturation: defaultSublayerStyle.saturation,
-            blendMode: defaultSublayerStyle.blendMode,
-            color: defaultSublayerStyle.color,
-            weight: defaultSublayerStyle.weight,
-            fillColor: defaultSublayerStyle.fillColor,
-            fillOpacity: defaultSublayerStyle.fillOpacity,
-            isDashed: defaultSublayerStyle.isDashed,
-            dashLen: defaultSublayerStyle.dashLen,
-            altColor: defaultSublayerStyle.altColor,
-            altOpacity: defaultSublayerStyle.altOpacity,
-          },
+          style: { ...defaultSublayerStyle },
         };
+      } else if (!existingControl.style) {
+        //partially-migrated preset: the control exists but has no style. Backfill
+        //  defaults at the source so the map never has to guard against an absent
+        //  style at render time.
+        existingControl.style = { ...defaultSublayerStyle };
       }
     }
 

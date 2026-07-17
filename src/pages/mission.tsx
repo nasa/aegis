@@ -11,7 +11,7 @@ import { LeftControlPanel, NavGutter } from "components/interface/side-controls"
 import { RightControlPanel } from "components/interface/side-controls";
 import { BottomControlPanel } from "components/interface/side-controls";
 import SocketClient from "components/page/socketClient";
-import MapBody from "components/interface/map/map-body-leaflet"; // Adjust import as needed
+import { AegisMapEditor } from "components/interface/map/AegisMapEditor";
 import { setAllSliceStores } from "store/crossActions";
 import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
@@ -220,7 +220,7 @@ const Main: React.FunctionComponent = () => {
                         <NavGutter selectedNavItem={interfaceStateLabel} />
                         <LeftControlPanel />
                       </div>
-                      <div className={styles.mapBody}>{hasMissionLayers && <MapBody />}</div>
+                      <div className={styles.mapBody}>{hasMissionLayers && <AegisMapEditor />}</div>
                     </div>
                     <BottomControlPanel />
                   </div>

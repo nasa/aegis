@@ -74,6 +74,34 @@ describe("Thunk Preset Tests", () => {
       expect(vi.mocked(httpClient_preset.upsertPresets).mock.calls.length).toBe(before);
     });
 
+    it("does not clobber an edit that lands while the save request is in flight", async () => {
+      // Use a dedicated preset so we don't perturb the shared store's presets[0],
+      // which later order-coupled tests rely on.
+      const preset = generateBlankPreset({ name: "Saved Name" });
+      store.dispatch(upsertPresets([preset]));
+      store.dispatch(upsertPresetsFromDb([preset]));
+      store.dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: true }));
+
+      // Simulate a rename landing during the network round-trip (e.g. a debounced
+      // inline-edit commit firing while the upsert is awaited).
+      const inFlightName = "Edited While Saving";
+      vi.mocked(httpClient_preset.upsertPresets).mockImplementationOnce(async (presets) => {
+        store.dispatch(upsertPresetByField(preset.uuid, "name", inFlightName));
+        return { status: "success", message: "Preset upserted", data: presets };
+      });
+
+      await store.dispatch(thunkSavePreset({ presetUuid: preset.uuid }));
+
+      // The in-flight edit survives in the working copy...
+      expect(store.getState().preset.presets.find((p) => p.uuid === preset.uuid).name).toEqual(
+        inFlightName
+      );
+      // ...while the DB mirror reflects exactly what was persisted.
+      expect(
+        store.getState().preset.presetsFromDb.find((p) => p.uuid === preset.uuid).name
+      ).toEqual("Saved Name");
+    });
+
     it("throws when upsertPresets returns a non-success status", async () => {
       vi.mocked(httpClient_preset.upsertPresets).mockResolvedValueOnce({
         status: "error",
@@ -239,7 +267,7 @@ describe("Thunk Preset Tests", () => {
       // circle-control branches are exercised.
       const circleUuid = "circle-create-test";
       getMissionDocHandle().change((m) => {
-        // generateBlankMission always initialises circleDefinitions to {}, so
+        // generateBlankMission always Initializes circleDefinitions to {}, so
         // the ?? {} branch is dead. The self-assignment of an existing proxy
         // throws "cannot create a reference to an existing document object".
         m.circleDefinitions[circleUuid] = {
@@ -350,7 +378,7 @@ describe("Thunk Preset Tests", () => {
       const circleUuid = "circle-1";
       const { getMissionDocHandle } = await import("client/automergeDocHandles");
       getMissionDocHandle().change((m) => {
-        // generateBlankMission always initialises circleDefinitions to {}, so
+        // generateBlankMission always Initializes circleDefinitions to {}, so
         // the ?? {} branch is dead. The self-assignment of an existing proxy
         // throws "cannot create a reference to an existing document object".
         m.circleDefinitions[circleUuid] = {
@@ -392,7 +420,7 @@ describe("Thunk Preset Tests", () => {
       const circleUuid = "circle-stale";
       const { getMissionDocHandle } = await import("client/automergeDocHandles");
       getMissionDocHandle().change((m) => {
-        // generateBlankMission always initialises circleDefinitions to {}, so
+        // generateBlankMission always Initializes circleDefinitions to {}, so
         // the ?? {} branch is dead. The self-assignment of an existing proxy
         // throws "cannot create a reference to an existing document object".
         m.circleDefinitions[circleUuid] = {
@@ -463,7 +491,7 @@ describe("Thunk Preset Tests", () => {
       // Add a circle so the forEach branches inside the sync are reached.
       const syncCircleUuid = "circle-sync-fallback";
       getMissionDocHandle().change((m) => {
-        // generateBlankMission always initialises circleDefinitions to {}, so
+        // generateBlankMission always Initializes circleDefinitions to {}, so
         // the ?? {} branch is dead. The self-assignment of an existing proxy
         // throws "cannot create a reference to an existing document object".
         m.circleDefinitions[syncCircleUuid] = {

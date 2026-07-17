@@ -1,6 +1,6 @@
 import meanBy from "lodash/meanBy";
 import isEqual from "lodash/isEqual";
-import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { getBearingFromLatLngPoints, getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 
 /**
  * This uses the 'haversine' formula to calculate the great-circle distance between two points
@@ -239,6 +239,43 @@ function rad2deg(angle: number) {
 }
 
 /**
+ * Great-circle initial bearing (true-north azimuth) between two lat/lng points.
+ * Degrees clockwise from north, normalised to [0, 360).
+ * @reference http://www.movable-type.co.uk/scripts/latlong.html
+ */
+export function getTrueBearingFromLatLngPoints(
+  origin: AEGISPoint,
+  destination: AEGISPoint
+): number {
+  const lat1 = deg2rad(origin.lat);
+  const lat2 = deg2rad(destination.lat);
+  const dLon = deg2rad(destination.lng - origin.lng);
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+  return (rad2deg(Math.atan2(y, x)) + 360) % 360;
+}
+
+/**
+ * Segment bearing appropriate to the mission's coordinate frame.
+ *
+ * LGRS/lunar missions use the LPS grid-north bearing: near the projection's
+ * south-pole origin true north is degenerate, so bearings are given relative to
+ * the lunar polar grid. Every other mission (e.g. Earth / Web Mercator) uses a
+ * true-north great-circle azimuth — running those through the lunar LPS
+ * projection rotates the frame by roughly the point's longitude, which is why an
+ * east-west line otherwise reports a bogus bearing.
+ */
+export function getSegmentBearing(
+  origin: AEGISPoint,
+  destination: AEGISPoint,
+  usingLGRSCoordinates: boolean
+): number {
+  return usingLGRSCoordinates
+    ? getBearingFromLatLngPoints(origin, destination)
+    : getTrueBearingFromLatLngPoints(origin, destination);
+}
+
+/**
  * Calculate the total distance of a path (array of points)
  * @param points AEGISPoint array
  * @param radius The radius of the planet in question
@@ -288,27 +325,6 @@ export function calcCentroidofCoordinates(coords: AEGISPoint[]): AEGISPoint {
     lng: (centralLongitude * 180) / Math.PI,
   };
 }
-
-/**
- * Convert a Leaflet LatLng to an AEGISPoint
- * @param {L.LatLng} latLng - the Leaflet LatLng
- * @returns {AEGISPoint} the AEGISPoint
- */
-export const convertLeafletLatLngToAegisPoint = (latLng: L.LatLng): AEGISPoint => {
-  return {
-    lat: latLng.lat,
-    lng: latLng.lng,
-  };
-};
-
-/**
- * Convert an array of Leaflet LatLngs to an array of AEGISPoints
- * @param {L.LatLng[]} latLngs - the Leaflet LatLngs
- * @returns {AEGISPoint[]} the AEGISPoints
- */
-export const convertLeafletLatLngsToAegisPoints = (latLngs: L.LatLng[]): AEGISPoint[] => {
-  return latLngs.map((latLng) => convertLeafletLatLngToAegisPoint(latLng));
-};
 
 /**
  * Adds points along a path every x meters. Preserves the original points passed in.
@@ -449,54 +465,3 @@ export const calcPathDurationMins = (segmentDistances: number[], traverseRate: n
   const durationMinutes = durationHours * 60;
   return durationMinutes;
 };
-
-const getNPointsBetweenTwoPixelCoords = (
-  mapRef: React.MutableRefObject<L.Map>,
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-  n: number
-): L.LatLng[] => {
-  const map = mapRef.current;
-  const points: L.LatLng[] = [];
-  const xStep = (x2 - x1) / (n + 1);
-  const yStep = (y2 - y1) / (n + 1);
-  for (let i = 1; i <= n; i++) {
-    points.push(map.containerPointToLatLng([x1 + i * xStep, y1 + i * yStep]));
-  }
-  return points;
-};
-
-/**
- * Get map bounds from viewport using x/y coordinates
- * @returns {L.LatLngBounds}
- */
-export function getBoundsFromMapViewport(mapRef: React.MutableRefObject<L.Map>): L.LatLng[] {
-  const map = mapRef.current;
-  const size = map.getSize();
-
-  const topLeft = map.containerPointToLatLng([0, 0]);
-  // 10 points from topLeft to topRight
-  const topLeftToRight = getNPointsBetweenTwoPixelCoords(mapRef, 0, 0, size.x, 0, 10);
-  const topRight = map.containerPointToLatLng([size.x, 0]);
-  // 10 points from topRight to bottomRight
-  const topRightToBottom = getNPointsBetweenTwoPixelCoords(mapRef, size.x, 0, size.x, size.y, 10);
-  const bottomRight = map.containerPointToLatLng([size.x, size.y]);
-  // 10 points from bottomRight to bottomLeft
-  const bottomRightToLeft = getNPointsBetweenTwoPixelCoords(mapRef, size.x, size.y, 0, size.y, 10);
-  const bottomLeft = map.containerPointToLatLng([0, size.y]);
-  // 10 points from bottomLeft to topLeft
-  const bottomLeftToTop = getNPointsBetweenTwoPixelCoords(mapRef, 0, size.y, 0, 0, 10);
-  const perimeter = [
-    topLeft,
-    ...topLeftToRight,
-    topRight,
-    ...topRightToBottom,
-    bottomRight,
-    ...bottomRightToLeft,
-    bottomLeft,
-    ...bottomLeftToTop,
-  ];
-  return perimeter;
-}

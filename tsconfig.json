@@ -16,7 +16,7 @@
       "@fseehawer/react-circular-slider": ["typings/react-circular-slider.d.ts"], // This is an override for the react-circular-slider package because it throws a tsc error.
       "@automerge/automerge/automerge.wasm.base64.js": [
         "../node_modules/@automerge/automerge/dist/mjs/wasm_bindgen_output/web/automerge_wasm_bg_base64.js"
-      ],
+      ]
     },
     "forceConsistentCasingInFileNames": true,
     "strict": false,
