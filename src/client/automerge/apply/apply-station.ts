@@ -33,10 +33,24 @@ export function applyUpdateStationByField<K extends keyof Station>(
   }
 }
 
-/** Delete a list of stations from the doc. */
+/**
+ * Delete a list of stations from the doc.
+ *
+ * Also cleans up any matching entries from every REX's `stationEntries` map so
+ * we don't leave orphaned rex entries pointing at deleted stations.
+ */
 export function applyDeleteStations(m: Mission, stationUuids: string[]): void {
+  if (stationUuids.length === 0) return;
   for (const uuid of stationUuids) {
     delete m.stations[uuid];
+  }
+  for (const rex of Object.values(m.rexes ?? {})) {
+    if (!rex.stationEntries) continue;
+    for (const uuid of stationUuids) {
+      if (uuid in rex.stationEntries) {
+        delete rex.stationEntries[uuid];
+      }
+    }
   }
 }
 

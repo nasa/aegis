@@ -4,10 +4,12 @@ import {
   withMissionChange,
 } from "client/automergeDocHandles";
 import {
+  applyDeleteStations,
   applyToggleStationCircleVisible,
   applyUpdateStationByField,
   applyUpdateStationCircleStyle,
 } from "client/automerge/apply/apply-station";
+import { generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankStation } from "store/storeUtils/station";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import cloneDeep from "lodash/cloneDeep";
@@ -23,6 +25,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   getMissionDocHandle().change((m) => {
     m.stations = {};
+    m.rexes = {};
   });
 });
 
@@ -191,6 +194,73 @@ describe("apply-station", () => {
         })
       );
       expect(Object.keys(getMission().stations).length).toBe(before);
+    });
+  });
+
+  describe("applyDeleteStations()", () => {
+    describe("REX entries cleanup", () => {
+      it("removes matching entries from rex.stationEntries and leaves other entries intact", () => {
+        const stationA = generateBlankStation({ name: "Vitest Station A" });
+        const stationB = generateBlankStation({ name: "Vitest Station B" });
+        const traverseUuid = uuidv4();
+        const actionUuid = uuidv4();
+        const rex = generateBlankRex({ evaUuid: uuidv4() });
+        rex.stationEntries = {
+          [stationA.uuid]: { rexStatus: "in-progress" },
+          [stationB.uuid]: { rexStatus: "pending" },
+        };
+        rex.traverseEntries = { [traverseUuid]: { rexStatus: "pending" } };
+        rex.actionEntries = { [actionUuid]: { rexStatus: "complete", mass: 5 } };
+        getMissionDocHandle().change((m) => {
+          m.stations[stationA.uuid] = stationA;
+          m.stations[stationB.uuid] = stationB;
+          m.rexes[rex.uuid] = rex;
+        });
+
+        withMissionChange((m) => applyDeleteStations(m, [stationA.uuid]));
+
+        const updatedRex = getMission().rexes[rex.uuid];
+        expect(updatedRex.stationEntries?.[stationA.uuid]).toBeUndefined();
+        expect(updatedRex.stationEntries?.[stationB.uuid]).toBeDefined();
+        expect(updatedRex.stationEntries?.[stationB.uuid].rexStatus).toBe("pending");
+        // unrelated entries untouched
+        expect(updatedRex.traverseEntries?.[traverseUuid]).toBeDefined();
+        expect(updatedRex.actionEntries?.[actionUuid]).toBeDefined();
+      });
+
+      it("cleans up matching stationEntries across multiple rexes", () => {
+        const stationA = generateBlankStation({ name: "Vitest Station A" });
+        const rex1 = generateBlankRex({ evaUuid: uuidv4() });
+        rex1.stationEntries = { [stationA.uuid]: { rexStatus: "in-progress" } };
+        const rex2 = generateBlankRex({ evaUuid: uuidv4() });
+        rex2.stationEntries = { [stationA.uuid]: { rexStatus: "pending" } };
+        getMissionDocHandle().change((m) => {
+          m.stations[stationA.uuid] = stationA;
+          m.rexes[rex1.uuid] = rex1;
+          m.rexes[rex2.uuid] = rex2;
+        });
+
+        withMissionChange((m) => applyDeleteStations(m, [stationA.uuid]));
+
+        expect(getMission().rexes[rex1.uuid].stationEntries?.[stationA.uuid]).toBeUndefined();
+        expect(getMission().rexes[rex2.uuid].stationEntries?.[stationA.uuid]).toBeUndefined();
+      });
+
+      it("does not throw when rex.stationEntries is null", () => {
+        const stationA = generateBlankStation({ name: "Vitest Station A" });
+        const rex = generateBlankRex({ evaUuid: uuidv4() });
+        rex.stationEntries = null;
+        getMissionDocHandle().change((m) => {
+          m.stations[stationA.uuid] = stationA;
+          m.rexes[rex.uuid] = rex;
+        });
+
+        expect(() =>
+          withMissionChange((m) => applyDeleteStations(m, [stationA.uuid]))
+        ).not.toThrow();
+        expect(getMission().stations[stationA.uuid]).toBeUndefined();
+        expect(getMission().rexes[rex.uuid].stationEntries).toBeNull();
+      });
     });
   });
 });
