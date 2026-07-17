@@ -363,7 +363,7 @@ describe("Thunk Rex Tests", () => {
       });
 
       const store = createCustomTestStore({});
-      await store.dispatch(thunkDocCreateInitialPosEntries());
+      await store.dispatch(thunkDocCreateInitialPosEntries({ rexUuid: rex.uuid }));
 
       const entries = getMission().rexes[rex.uuid].posEntries;
       // generateBlankRex creates 3 posSources, so we get 3 entries
@@ -384,7 +384,7 @@ describe("Thunk Rex Tests", () => {
       });
 
       const store = createCustomTestStore({});
-      await store.dispatch(thunkDocCreateInitialPosEntries());
+      await store.dispatch(thunkDocCreateInitialPosEntries({ rexUuid: rex.uuid }));
 
       const entries = getMission().rexes[rex.uuid].posEntries;
       expect(entries[0].location).toEqual({ lat: 1, lng: 2 });
@@ -402,24 +402,11 @@ describe("Thunk Rex Tests", () => {
       });
 
       const store = createCustomTestStore({});
-      await store.dispatch(thunkDocCreateInitialPosEntries());
+      await store.dispatch(thunkDocCreateInitialPosEntries({ rexUuid: rex.uuid }));
 
       const entries = getMission().rexes[rex.uuid].posEntries;
       expect(entries.length).toBe(1 + rex.posSources.length);
       expect(entries[0].uuid).toBe(preExisting.uuid);
-    });
-
-    it("is a no-op when there is no running rex", async () => {
-      const rex = generateBlankRex({ name: "Vitest Not running", evaUuid: uuidv4() });
-      getMissionDocHandle().change((m) => {
-        m.rexes[rex.uuid] = rex;
-      });
-
-      const store = createCustomTestStore({});
-      await store.dispatch(thunkDocCreateInitialPosEntries());
-
-      // posEntries on the non-running rex should be untouched
-      expect(getMission().rexes[rex.uuid].posEntries ?? []).toEqual([]);
     });
   });
 });
