@@ -6,7 +6,9 @@ the DB, or generated files, so it's deferred to its own pass. Nothing here is re
 pipeline to work today.
 
 > Written after the pipeline went OpenLayers-first (per-layer native pyramids, projected-metre
-> bounds, PMTiles vector tiles, first-class `isCog` COG sublayers). See
+> bounds, PMTiles vector tiles, COG sublayers). Note: the `isCog` field has since been **removed** —
+> every layer is a folder under `Layers/` and its type (raster tile / PMTiles / COG) is inferred
+> from the folder contents (`.tif` → COG). See
 > [`OPENLAYERS-MIGRATION-TODO.md`](./OPENLAYERS-MIGRATION-TODO.md) and
 > [`leaflet-notes.md`](./leaflet-notes.md).
 

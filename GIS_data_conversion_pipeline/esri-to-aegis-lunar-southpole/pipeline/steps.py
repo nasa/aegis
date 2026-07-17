@@ -371,41 +371,48 @@ def _pmtiles_name(cache_dir: Path) -> str:
 
 
 def step_vectortiles(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """ArcGIS vector-tile caches (--vector-tile-cache) → one Layers/<name>.pmtiles each.
+    """ArcGIS vector-tile caches (--vector-tile-cache) → one Layers/<name>/<name>.pmtiles each.
 
-    The archive lands under Layers/ (not Data/) because AEGIS resolves a "vector-tile" sublayer's
+    Each archive lands inside its own folder under Layers/ so it is managed exactly like a raster
+    tile-layer folder (upload/rename/delete as a unit). AEGIS resolves the "vector-tile" sublayer's
     PMTiles URL via the Layers/ subdir. The converter copies the cache's esri_tile_info into the
     archive so OpenLayers can build the vector tile grid with no reprojection.
     """
-    banner("vectortiles — ArcGIS vector-tile cache → PMTiles (Layers/<name>.pmtiles)")
+    banner("vectortiles — ArcGIS vector-tile cache → PMTiles (Layers/<name>/<name>.pmtiles)")
     p.layers.mkdir(parents=True, exist_ok=True)
     for cache in args.vector_tile_cache:
         cache = Path(cache)
         require_input(cache / "root.json", "ArcGIS vector-tile cache (root.json)", "--vector-tile-cache")
         name = _pmtiles_name(cache)
-        out_pmtiles = p.layers / f"{name}.pmtiles"
+        layer_dir = p.layers / name
+        out_pmtiles = layer_dir / f"{name}.pmtiles"
         if out_pmtiles.exists() and not args.overwrite:
             tee(f"  [skip] {out_pmtiles} already built (use --overwrite to rebuild)")
             continue
+        layer_dir.mkdir(parents=True, exist_ok=True)
         tee(f"\n  cache: {cache}  → {out_pmtiles}")
-        run([PYTHON, ARCGIS_CACHE_TO_PMTILES, cache, p.layers, "--name", name])
+        run([PYTHON, ARCGIS_CACHE_TO_PMTILES, cache, layer_dir, "--name", name])
 
 
 def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """Custom rasters (--cog) → one Cloud-Optimised GeoTIFF each in Data/<stem>_cog.tif.
+    """Custom rasters (--cog) → one Cloud-Optimised GeoTIFF each in Layers/<stem>/<stem>.tif.
 
     Additive OpenLayers-first output: OL renders a COG directly (WebGLTile + GeoTIFF over HTTP
-    Range) with no tile pyramid. Registered as an isCog raster sublayer by the register step.
+    Range) with no tile pyramid. Each COG lands inside its own Layers/ folder so it is managed like
+    any other layer; the register step detects it as a COG raster sublayer from the .tif inside.
+    (The mission DEM COG is separate — it stays in Data/ as demFilePath, see step_dem.)
     """
-    banner("cogs — custom rasters → Cloud-Optimised GeoTIFF (Data/<stem>_cog.tif)")
-    p.data.mkdir(parents=True, exist_ok=True)
+    banner("cogs — custom rasters → Cloud-Optimised GeoTIFF (Layers/<stem>/<stem>.tif)")
+    p.layers.mkdir(parents=True, exist_ok=True)
     for raster in args.cog:
         raster = Path(raster)
         require_input(raster, "COG source raster", "--cog")
-        out_cog = p.data / f"{raster.stem}_cog.tif"
+        layer_dir = p.layers / raster.stem
+        out_cog = layer_dir / f"{raster.stem}.tif"
         if out_cog.exists() and not args.overwrite:
             tee(f"  [skip] {out_cog} already built (use --overwrite to rebuild)")
             continue
+        layer_dir.mkdir(parents=True, exist_ok=True)
         tee(f"\n  raster: {raster}  → {out_cog}")
         cmd: list[str | Path] = [PYTHON, GEOTIFF_TO_COG, raster, "-o", out_cog]
         if args.cog_nodata is not None:
@@ -485,7 +492,7 @@ STEPS: list[tuple[str, str]] = [
     ("vector", "Landing-ellipse shapefile → GeoJSON"),
     ("rasters", "Custom rasters (--raster) → tile to one cap-grid layer each"),
     ("vectors", "Custom vectors (--vector, shp/geojson) → GeoJSON in Data/"),
-    ("vectortiles", "ArcGIS vector-tile caches (--vector-tile-cache) → Layers/<name>.pmtiles"),
+    ("vectortiles", "ArcGIS vector-tile caches (--vector-tile-cache) → Layers/<name>/<name>.pmtiles"),
     ("cogs", "Custom rasters (--cog) → Cloud-Optimised GeoTIFF in Data/"),
     ("grid", "Lander location → LGRS mission grid GeoJSON (default 10km)"),
     ("register", "Set mission fields + header layers/sublayers + active grid via AEGIS API"),

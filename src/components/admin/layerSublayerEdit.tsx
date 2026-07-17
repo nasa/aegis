@@ -21,6 +21,13 @@ interface SublayerProps {
 
 export type SublayerEditHandle = { save: () => Promise<boolean> };
 
+/** A COG sublayer is a self-describing GeoTIFF, identified by a `.tif`/`.tiff` path. */
+function isCogPath(path: string): boolean {
+  if (!path) return false;
+  const lower = path.toLowerCase();
+  return lower.endsWith(".tif") || lower.endsWith(".tiff");
+}
+
 /** Render a single sublayer record from the DB */
 function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditHandle>) {
   const [sublayer, setSublayer] = useState<Sublayer>(props.sublayer);
@@ -32,8 +39,6 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
   const [refreshDirectoryListing, setRefreshDirectoryListing] = useState(true);
   // geoJSON file names
   const [dataDirGeoJSONs, setDataDirGeoJSONs] = useState<string[]>([]);
-  // COG (.tif/.tiff) file names under Data/ (for the isCog path dropdown)
-  const [dataDirCogs, setDataDirCogs] = useState<string[]>([]);
   const [propertiesErrs, setPropertiesErrs] = useState<ErrorObject[]>([]);
 
   useImperativeHandle(
@@ -81,21 +86,15 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
 
       if (!fileList) {
         setDataDirGeoJSONs([]);
-        setDataDirCogs([]);
         return;
       }
 
-      const filesByExt = (exts: string[]): string[] =>
+      setDataDirGeoJSONs(
         fileList
           .filter((file) => !file.isDir)
-          .filter((file) => {
-            const lastDot = file.name.lastIndexOf(".");
-            return lastDot !== -1 && exts.includes(file.name.slice(lastDot).toLowerCase());
-          })
-          .map((file) => file.name);
-
-      setDataDirGeoJSONs(filesByExt([".geojson"]));
-      setDataDirCogs(filesByExt([".tif", ".tiff"]));
+          .filter((file) => file.name.toLowerCase().endsWith(".geojson"))
+          .map((file) => file.name)
+      );
     })();
 
     setRefreshDirectoryListing(false);
@@ -275,6 +274,58 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
     }
   }
 
+  /**
+   * A user picked an internal folder from Layers/. Inspect its contents to determine the layer
+   * type (a `.pmtiles` → vector-tile, a `.tif`/`.tiff` → COG raster, otherwise a raster tile
+   * pyramid), set the path accordingly, and preload metadata sidecars.
+   */
+  async function selectInternalFolder(folder: string) {
+    if (folder === "") {
+      setSublayer((state) => ({ ...state, name: "", path: "", tilePattern: "" }));
+      return;
+    }
+
+    const files: GISfile[] | void = await listFiles(
+      `missionFiles/${props.missionId}/Layers/${folder}`
+    ).catch(console.error);
+    const fileNames: string[] = files ? files.filter((f) => !f.isDir).map((f) => f.name) : [];
+    const pmtiles = fileNames.find((n) => n.toLowerCase().endsWith(".pmtiles"));
+    const tif = fileNames.find((n) => isCogPath(n));
+
+    if (pmtiles) {
+      // PMTiles vector-tile layer — self-describing, no tile pattern.
+      setSublayer((state) => ({
+        ...state,
+        type: "vector-tile",
+        name: folder,
+        path: `${folder}/${pmtiles}`,
+        tilePattern: "",
+      }));
+    } else if (tif) {
+      // COG raster layer — self-describing GeoTIFF, no tile pattern.
+      setSublayer((state) => ({
+        ...state,
+        type: "tile",
+        name: folder,
+        path: `${folder}/${tif}`,
+        tilePattern: "",
+      }));
+    } else {
+      // Raster tile pyramid — path is the folder; tilePattern is read from properties.json below.
+      setSublayer((state) => ({
+        ...state,
+        type: "tile",
+        name: folder,
+        path: folder,
+        tilePattern: state.tilePattern || "{z}/{x}/{y}.png",
+      }));
+    }
+
+    // Pull bounding box / zoom / manifest / name / description / legend from the folder's
+    // sidecar files (tilemapresource.xml / manifest.json / properties.json) where present.
+    await preloadDataFromFiles(folder);
+  }
+
   function clearAllFields(type: SublayerType) {
     // get default values and set them to the sublayer to clear them back to defaults
     // preserve the type field
@@ -292,7 +343,6 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
       minNativeZoom: tempBlankSublayer.minNativeZoom,
       maxNativeZoom: tempBlankSublayer.maxNativeZoom,
       maxZoom: tempBlankSublayer.maxZoom,
-      isCog: tempBlankSublayer.isCog,
       isTimeBased: tempBlankSublayer.isTimeBased,
       timeLayerManifest: tempBlankSublayer.timeLayerManifest,
     });
@@ -350,6 +400,12 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
 
     return "";
   }
+
+  // A COG raster layer is a self-describing GeoTIFF (path ends in .tif/.tiff); it hides the
+  // tile-pyramid fields. The folder dropdown selects by the first path segment, since COG and
+  // PMTiles paths are `<folder>/<file>` while raster-tile paths are just `<folder>`.
+  const isCogLayer = sublayer.type === "tile" && isCogPath(sublayer.path);
+  const selectedFolder = sublayer.path ? sublayer.path.split("/")[0] : "";
 
   return (
     <div className={styles.sublayerEditBoxes}>
@@ -420,34 +476,6 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
                       />
                     </div>
                   </>
-                ) : sublayer.isCog ? (
-                  <>
-                    <label htmlFor="cogPath">COG file (Data/….tif)</label>
-                    <select
-                      id="cogPath"
-                      title="COG file"
-                      onChange={(e) => {
-                        setSublayer({ ...sublayer, path: e.target.value });
-                      }}
-                      value={sublayer.path || ""}
-                    >
-                      <option value="" key="">
-                        None
-                      </option>
-                      {/* Always show the current value as an option even if the .tif is not on
-                          disk (e.g. a dev DB imported from prod without the mission files). */}
-                      {sublayer.path && !dataDirCogs.includes(sublayer.path) && (
-                        <option value={sublayer.path} key={sublayer.path}>
-                          {sublayer.path} (missing on disk)
-                        </option>
-                      )}
-                      {dataDirCogs.map((name) => (
-                        <option value={name} key={name}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                  </>
                 ) : (
                   <>
                     <label htmlFor="folderNames">Internal Folder </label>
@@ -455,20 +483,9 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
                       id="folderNames"
                       title="folder names"
                       onChange={(e) => {
-                        setSublayer((state) => {
-                          return {
-                            ...state,
-                            name: e.target.value,
-                            path: e.target.value,
-                          };
-                        });
-
-                        //attempt to pre-load all other fields
-                        if (e.target.value !== "") {
-                          preloadDataFromFiles(e.target.value);
-                        }
+                        selectInternalFolder(e.target.value);
                       }}
-                      value={sublayer.path || ""}
+                      value={selectedFolder}
                     >
                       <option value="" key="">
                         None
@@ -481,11 +498,14 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
                         );
                       })}
                     </select>
+                    <br />
+                    Layer type is detected from the folder contents (tiles, PMTiles, or COG).
                   </>
                 )}
 
-                {/* A COG is self-describing — no {z}/{x}/{y} tile pattern. */}
-                {!sublayer.isCog && (
+                {/* Only a raster tile pyramid uses a {z}/{x}/{y} tile pattern; COG and
+                    vector-tile (PMTiles) layers are self-describing. */}
+                {sublayer.type === "tile" && !isCogLayer && (
                   <div className={styles.editDiv}>
                     <label htmlFor="aegisUrl">Tile Pattern {`(eg. {z}/{x}/{y}.png)`}</label>
                     <input
@@ -554,7 +574,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
           )}
           <div className={styles.editDiv}>
             Path:{" "}
-            {`${sublayer.path}${sublayer.type === "vector" || sublayer.isCog ? "" : "/" + sublayer.tilePattern}`}
+            {`${sublayer.path}${sublayer.type === "tile" && !isCogLayer ? "/" + sublayer.tilePattern : ""}`}
           </div>
         </div>
         {propertiesErrs.length > 0 && (
@@ -646,24 +666,14 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
         </div>
         {sublayer.type === "tile" && (
           <>
-            <div id="cogDiv">
-              <div className={styles.editDiv}>
-                <label htmlFor="isCog">
-                  <input
-                    id="isCog"
-                    type="checkbox"
-                    checked={sublayer.isCog ?? false}
-                    onChange={(e) => {
-                      setSublayer({ ...sublayer, isCog: e.target.checked });
-                    }}
-                  />{" "}
-                  COG (Cloud-Optimized GeoTIFF — self-describing, rendered directly; no tiles)
-                </label>
+            {isCogLayer && (
+              <div id="cogNoticeDiv" className={styles.editDiv}>
+                COG (Cloud-Optimized GeoTIFF) — self-describing, rendered directly; no tile fields.
               </div>
-            </div>
+            )}
             {/* A COG is self-describing (extent/resolutions read from the GeoTIFF), so the
                 tile-pyramid fields below don't apply. */}
-            {!sublayer.isCog && (
+            {!isCogLayer && (
               <>
                 <div id="boundingDiv">
                   <div className={styles.editDiv}>

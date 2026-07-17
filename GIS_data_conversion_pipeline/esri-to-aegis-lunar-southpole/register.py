@@ -9,9 +9,10 @@ and an existing mission id, this:
      ``POST /api/v1/missionAutomerge/fields``.
   2. Ensures the header layers exist: ``Common_LSP`` (external NAC basemap only),
      ``Raster`` (all tiled layers), ``Vector`` (all GeoJSON layers).
-  3. Builds one sublayer per built ``Layers/<dir>`` (boundingBox/zoom from each
-     ``tilemapresource.xml``; name/description/legend/tilePattern from ``properties.json``
-     if present), one per ``Data/*.geojson``, and the shared external NAC tile layer.
+  3. Builds one sublayer per built ``Layers/<dir>``, classified by folder contents: a raster tile
+     pyramid (``tilemapresource.xml`` → boundingBox/zoom; name/description/legend/tilePattern from
+     ``properties.json``), a COG (``.tif``/``.tiff``), or a PMTiles archive (``.pmtiles``); plus one
+     per ``Data/*.geojson`` and the shared external NAC tile layer.
   4. Skips any sublayer whose (header, path) already exists, then POSTs the rest.
   5. If a grid GeoJSON is present, POSTs it as the **active** mission grid via
      ``POST /api/v1/grid`` (the server writes its coordinates to ``Data/<name>.json``).
@@ -155,7 +156,6 @@ def _blank_sublayer(mission_id: int, layer_uuid: str) -> dict:
         "minNativeZoom": 0,
         "maxNativeZoom": 0,
         "maxZoom": 30,
-        "isCog": False,
         "isTimeBased": False,
         "timeLayerManifest": [],
         "createdAt": now_iso(),
@@ -173,9 +173,9 @@ def build_raster_sublayer(mission_id: int, layer_uuid: str, layer_dir: Path) -> 
     if tmr.exists():
         sub.update(parse_tilemapresource(tmr))
 
-    # properties.json overrides name/description/legend/tilePattern/tileFormat/type/isCog.
+    # properties.json overrides name/description/legend/tilePattern/tileFormat/type.
     props = read_properties(layer_dir / "properties.json")
-    for key in ("type", "name", "description", "legend", "tilePattern", "tileFormat", "isCog"):
+    for key in ("type", "name", "description", "legend", "tilePattern", "tileFormat"):
         if key in props:
             sub[key] = props[key]
     return sub
@@ -191,34 +191,50 @@ def build_vector_sublayer(mission_id: int, layer_uuid: str, geojson_file: Path) 
     return sub
 
 
-def build_vector_tile_sublayer(mission_id: int, layer_uuid: str, pmtiles_file: Path) -> dict:
-    """A vector-tile (PMTiles) sublayer for a Layers/<name>.pmtiles archive.
+def build_vector_tile_sublayer(
+    mission_id: int, layer_uuid: str, layer_dir: Path, pmtiles_file: Path
+) -> dict:
+    """A vector-tile (PMTiles) sublayer for a Layers/<name>/<name>.pmtiles archive.
 
     Self-describing: the archive's embedded esri_tile_info carries the tile grid, so no
-    tilePattern/tileFormat/boundingBox is set. The path is the .pmtiles filename (AEGIS resolves
-    it under the mission's Layers/ dir).
+    tilePattern/tileFormat/boundingBox is set. The path is ``<folder>/<file>.pmtiles`` (AEGIS
+    resolves it under the mission's Layers/ dir). name/description/legend come from an optional
+    properties.json in the folder.
     """
     sub = _blank_sublayer(mission_id, layer_uuid)
     sub["type"] = "vector-tile"
-    sub["name"] = pmtiles_file.stem
-    sub["path"] = pmtiles_file.name
+    sub["name"] = layer_dir.name
+    sub["path"] = f"{layer_dir.name}/{pmtiles_file.name}"
     sub["tilePattern"] = ""
+    _apply_properties(sub, layer_dir)
     return sub
 
 
-def build_cog_sublayer(mission_id: int, layer_uuid: str, cog_file: Path) -> dict:
-    """A COG raster sublayer for a Data/<stem>_cog.tif.
+def build_cog_sublayer(
+    mission_id: int, layer_uuid: str, layer_dir: Path, cog_file: Path
+) -> dict:
+    """A COG raster sublayer for a Layers/<stem>/<stem>.tif.
 
     Self-describing: OpenLayers reads the GeoTIFF directly over HTTP Range, so no
-    tilePattern/tileFormat/boundingBox/zoom is set. Marked isCog so the app routes it to the
-    WebGLTile/GeoTIFF path; the path is the .tif filename (AEGIS resolves it under Data/).
+    tilePattern/tileFormat/boundingBox/zoom is set. The app routes it to the WebGLTile/GeoTIFF path
+    from the ``.tif`` extension in the path (``<folder>/<file>.tif``, resolved under Layers/).
+    name/description/legend come from an optional properties.json in the folder.
     """
     sub = _blank_sublayer(mission_id, layer_uuid)
-    sub["name"] = cog_file.stem
-    sub["path"] = cog_file.name
+    sub["type"] = "tile"
+    sub["name"] = layer_dir.name
+    sub["path"] = f"{layer_dir.name}/{cog_file.name}"
     sub["tilePattern"] = ""
-    sub["isCog"] = True
+    _apply_properties(sub, layer_dir)
     return sub
+
+
+def _apply_properties(sub: dict, layer_dir: Path) -> None:
+    """Overlay an optional properties.json (name/description/legend) onto a self-describing sublayer."""
+    props = read_properties(layer_dir / "properties.json")
+    for key in ("name", "description", "legend"):
+        if key in props:
+            sub[key] = props[key]
 
 
 def build_external_nac_sublayer(mission_id: int, layer_uuid: str) -> dict:
@@ -274,13 +290,28 @@ def ensure_header_layers(
     return name_to_uuid
 
 
-def find_raster_layer_dirs(layers_dir: Path) -> list[Path]:
-    """Built tile-layer dirs (those with a tilemapresource.xml)."""
-    if not layers_dir.exists():
-        return []
-    return sorted(
-        d for d in layers_dir.iterdir() if d.is_dir() and (d / "tilemapresource.xml").exists()
+def classify_layer_dir(layer_dir: Path) -> tuple[str, Path] | None:
+    """Classify a built Layers/<dir> by what it contains.
+
+    Returns ``(kind, artifact)`` where kind is one of:
+      - ``"vector-tile"`` → the ``.pmtiles`` archive inside the folder
+      - ``"cog"``         → the ``.tif``/``.tiff`` GeoTIFF inside the folder
+      - ``"raster"``      → the folder itself (a ``tilemapresource.xml`` tile pyramid)
+    Returns ``None`` if the folder matches none of these (skipped). This mirrors the AEGIS admin,
+    which infers a layer's type from its folder contents rather than a stored flag.
+    """
+    pmtiles = sorted(layer_dir.glob("*.pmtiles"))
+    if pmtiles:
+        return ("vector-tile", pmtiles[0])
+    tifs = sorted(
+        f for f in layer_dir.iterdir()
+        if f.is_file() and f.suffix.lower() in (".tif", ".tiff")
     )
+    if tifs:
+        return ("cog", tifs[0])
+    if (layer_dir / "tilemapresource.xml").exists():
+        return ("raster", layer_dir)
+    return None
 
 
 def find_vector_files(data_dir: Path) -> list[Path]:
@@ -293,8 +324,8 @@ def find_vector_files(data_dir: Path) -> list[Path]:
 def find_dem_file(data_dir: Path) -> Path | None:
     """The mission DEM COG under Data/ (first non-``_cog.tif`` *.tif). Used for the demFilePath.
 
-    ``--cog`` outputs use a ``_cog.tif`` suffix and are registered as their own COG sublayers,
-    so they must not be picked up as the mission DEM.
+    Custom COG *sublayers* now live under Layers/ (not Data/), so Data/ should hold only the DEM.
+    The ``_cog`` exclusion is kept as a harmless safety net for any legacy ``_cog.tif`` in Data/.
     """
     if not data_dir.exists():
         return None
@@ -304,27 +335,6 @@ def find_dem_file(data_dir: Path) -> Path | None:
         if f.is_file() and f.suffix.lower() == ".tif" and not f.stem.endswith("_cog")
     )
     return tifs[0] if tifs else None
-
-
-def find_pmtiles_files(layers_dir: Path) -> list[Path]:
-    """PMTiles vector-tile archives under Layers/ (single .pmtiles files, not tile dirs)."""
-    if not layers_dir.exists():
-        return []
-    return sorted(f for f in layers_dir.iterdir() if f.is_file() and f.suffix.lower() == ".pmtiles")
-
-
-def find_cog_files(data_dir: Path) -> list[Path]:
-    """COG rasters under Data/ (``*_cog.tif``), registered as isCog raster sublayers.
-
-    Uses the ``_cog`` suffix so the mission DEM COG (see :func:`find_dem_file`) is excluded.
-    """
-    if not data_dir.exists():
-        return []
-    return sorted(
-        f
-        for f in data_dir.iterdir()
-        if f.is_file() and f.suffix.lower() == ".tif" and f.stem.endswith("_cog")
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -412,21 +422,36 @@ def register_mission(
             print(f"  updated mission {mission_id} fields: {sorted(mission_fields)}")
 
     # ── 2. header layers ───────────────────────────────────────────────────
-    raster_dirs = find_raster_layer_dirs(layers_dir)
+    # Every built layer is a folder under Layers/; classify each by its contents (raster tile
+    # pyramid, COG GeoTIFF, or PMTiles archive). Vectors are GeoJSON files under Data/.
+    layer_dirs = (
+        sorted(d for d in layers_dir.iterdir() if d.is_dir()) if layers_dir.exists() else []
+    )
+    raster_dirs: list[Path] = []
+    cog_layers: list[tuple[Path, Path]] = []
+    vector_tile_layers: list[tuple[Path, Path]] = []
+    for d in layer_dirs:
+        kind = classify_layer_dir(d)
+        if kind is None:
+            continue
+        if kind[0] == "raster":
+            raster_dirs.append(d)
+        elif kind[0] == "cog":
+            cog_layers.append((d, kind[1]))
+        elif kind[0] == "vector-tile":
+            vector_tile_layers.append((d, kind[1]))
     vector_files = find_vector_files(data_dir)
-    pmtiles_files = find_pmtiles_files(layers_dir)
-    cog_files = find_cog_files(data_dir)
 
-    if not (raster_dirs or vector_files or pmtiles_files or cog_files):
+    if not (raster_dirs or vector_files or vector_tile_layers or cog_layers):
         print(
-            f"  [warn] no tile/COG layers under {layers_dir}/{data_dir} or vectors/PMTiles.\n"
+            f"  [warn] no tile/COG/PMTiles layers under {layers_dir} or vectors under {data_dir}.\n"
             "         For a register-only run, pass --out pointing at the locally-built "
             "mission folder (its Layers/ + Data/).",
             file=sys.stderr,
         )
 
-    has_raster = bool(raster_dirs or cog_files)
-    has_vector = bool(vector_files or pmtiles_files)
+    has_raster = bool(raster_dirs or cog_layers)
+    has_vector = bool(vector_files or vector_tile_layers)
     needed_headers: list[str] = []
     if include_external_nac:
         needed_headers.append(config.HEADER_COMMON_LSP)
@@ -445,15 +470,19 @@ def register_mission(
         )
     for layer_dir in raster_dirs:
         sublayers.append(build_raster_sublayer(mission_id, headers[config.HEADER_RASTER], layer_dir))
-    for cog_file in cog_files:
-        sublayers.append(build_cog_sublayer(mission_id, headers[config.HEADER_RASTER], cog_file))
+    for layer_dir, cog_file in cog_layers:
+        sublayers.append(
+            build_cog_sublayer(mission_id, headers[config.HEADER_RASTER], layer_dir, cog_file)
+        )
     for geojson_file in vector_files:
         sublayers.append(
             build_vector_sublayer(mission_id, headers[config.HEADER_VECTOR], geojson_file)
         )
-    for pmtiles_file in pmtiles_files:
+    for layer_dir, pmtiles_file in vector_tile_layers:
         sublayers.append(
-            build_vector_tile_sublayer(mission_id, headers[config.HEADER_VECTOR], pmtiles_file)
+            build_vector_tile_sublayer(
+                mission_id, headers[config.HEADER_VECTOR], layer_dir, pmtiles_file
+            )
         )
 
     # ── 4. skip already-registered (header, path) pairs ────────────────────

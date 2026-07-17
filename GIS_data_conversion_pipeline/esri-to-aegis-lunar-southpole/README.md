@@ -7,9 +7,10 @@ Turns a GIS data drop into AEGIS-ready map products for a **lunar south-pole** m
   `projResUnitsPerPixel = 12800`), each cut to its **own native resolution** (independent
   per-layer pyramid — no shared z13 clamp), with a **projected-metre** `<BoundingBox>`.
 - **COG** raster sublayers (`--cog`) — a self-describing Cloud-Optimised GeoTIFF OpenLayers
-  renders directly (registered with `isCog`).
+  renders directly, emitted as its own `Layers/<stem>/<stem>.tif` folder (type inferred from the
+  `.tif`; no `isCog` flag).
 - **PMTiles** vector-tile layers (`--vector-tile-cache`) — a delivered ArcGIS vector-tile cache
-  packed into one `.pmtiles` archive (registered as a `"vector-tile"` sublayer).
+  packed into one `Layers/<name>/<name>.pmtiles` folder (registered as a `"vector-tile"` sublayer).
 
 (OpenLayers consumes the TMS tiles natively via a y-flip; legacy Leaflet-era missions keep
 rendering through the app's compatibility shim and are never regenerated.)
@@ -39,8 +40,8 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **vector**   | landing-ellipse shapefile                | `Data/ellipse.geojson`              | reproject to EPSG:4326                  |
 | **rasters**  | custom rasters (`--raster`, repeatable)  | `Layers/<stem>/` tile pyramid each  | stretch (if float) → tile               |
 | **vectors**  | custom vectors (`--vector`, repeatable)  | `Data/<stem>.geojson` each          | shp → reproject; geojson copied         |
-| **vectortiles** | ArcGIS vector-tile cache (`--vector-tile-cache`, repeatable) | `Layers/<name>.pmtiles` each | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`) |
-| **cogs**     | custom rasters (`--cog`, repeatable)     | `Data/<stem>_cog.tif` each          | GeoTIFF → COG (registered `isCog`)      |
+| **vectortiles** | ArcGIS vector-tile cache (`--vector-tile-cache`, repeatable) | `Layers/<name>/<name>.pmtiles` each | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`) |
+| **cogs**     | custom rasters (`--cog`, repeatable)     | `Layers/<stem>/<stem>.tif` each     | GeoTIFF → COG (type inferred from `.tif`) |
 | **grid**     | lander `--lander-lat/--lander-lng`       | `grid_source.geojson` (10 km dflt)  | LGRS grid → AEGIS mission-grid GeoJSON  |
 | **register** | the built `<out>` + `--mission-id`       | mission fields + sublayers + active grid | POST fields + layers/sublayers + grid |
 | **box**      | the built `<out>` + `--mission-name`     | zips uploaded to Box (parallel)     | zip `Data/` + each layer → upload       |
@@ -243,7 +244,6 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
 ├── grid_source.geojson           # AEGIS mission-grid GeoJSON (register POSTs it; not in Data/)
 ├── Data/
 │   ├── <source>_zstd.tif         # demFilePath (keeps the source filename, e.g. mp2-sfs-dem_MoonSP_COG_zstd.tif)
-│   ├── <stem>_cog.tif            # COG raster sublayer (if a --cog step ran; registered isCog)
 │   ├── ellipse.geojson           # vector sublayer (if a vector step ran)
 │   ├── LGRS.json                 # active grid coordinates (written by the grid API on register)
 │   └── conversion_report.md      # captured run log + per-step timings
@@ -253,12 +253,16 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
     ├── hillshade/                # tile sublayer  (no legend)
     ├── aspect/                   # tile sublayer  (+ properties.json with legend)
     ├── tri/                      # tile sublayer  (+ properties.json with legend)
-    └── <name>.pmtiles            # vector-tile sublayer (if a --vector-tile-cache step ran)
+    ├── <name>/<name>.pmtiles     # vector-tile sublayer (if a --vector-tile-cache step ran)
+    └── <stem>/<stem>.tif         # COG raster sublayer (if a --cog step ran; type inferred from .tif)
 ```
 
-Each `Layers/<name>/` also contains a `tilemapresource.xml` (bbox + zoom) and a
-`properties.json` (name/description/legend) — both auto-imported by the admin. The DEM COG
-keeps its source filename (with a `_zstd` suffix) so `demFilePath` is self-describing.
+Every produced sublayer is a **folder** under `Layers/`; AEGIS infers its type from the folder
+contents (`{z}/{x}/{y}` tiles → raster tile, `.pmtiles` → vector-tile, `.tif` → COG). Raster tile
+folders also contain a `tilemapresource.xml` (bbox + zoom) and a `properties.json`
+(name/description/legend), both auto-imported by the admin. The mission DEM COG is the exception —
+it stays in `Data/` (keeping its source filename with a `_zstd` suffix) as the self-describing
+`demFilePath`, not a sublayer.
 
 ---
 
@@ -276,10 +280,11 @@ already-registered `(header, path)` pairs):
   otherwise live only in the Automerge doc; see `src/server/express/routes/missionAutomerge.ts`.)
 - **Header layers** — `POST /api/v1/layer` creates `Common_LSP` (external NAC only),
   `Raster` (all tile layers), and `Vector` (all GeoJSON), as needed.
-- **Sublayers** — `POST /api/v1/sublayer`: each `tile` sublayer
-  (`path = <folder>`, `tilePattern "{z}/{x}/{y}.png"`, `tileFormat "tms"`), the ellipse +
-  custom GeoJSON as `vector` sublayers (`path = <file>.geojson`), and the shared external
-  NAC (`path = <S3 base URL>`). bbox/zoom come from each `tilemapresource.xml`;
+- **Sublayers** — `POST /api/v1/sublayer`, one per `Layers/<dir>` classified by its contents:
+  a raster `tile` (`path = <folder>`, `tilePattern "{z}/{x}/{y}.png"`, `tileFormat "tms"`), a COG
+  `tile` (`path = <folder>/<file>.tif`), or a `vector-tile` (`path = <folder>/<file>.pmtiles`);
+  plus the ellipse + custom GeoJSON as `vector` sublayers (`path = <file>.geojson`) and the shared
+  external NAC (`path = <S3 base URL>`). bbox/zoom come from each `tilemapresource.xml`;
   name/description/legend from each `properties.json`.
 - **Mission grid** — `POST /api/v1/grid` (with `upsertFullGrid`) uploads `grid_source.geojson`
   as the **active** grid: the server writes its coordinates to `Data/LGRS.json` and sets the
@@ -346,8 +351,8 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 `Vector` header layers and their sublayers appear and draw. Re-running `register` is safe —
 it skips `(header, path)` pairs that already exist.
 
-**Why it works across servers:** internal sublayer `path`s are just **folder names** (e.g.
-`slope`), and bbox/zoom/legend come from the built sidecars — none depend on the mission id.
+**Why it works across servers:** internal sublayer `path`s are folder-relative (e.g. `slope`, or
+`contours/contours.pmtiles`), and bbox/zoom/legend come from the built sidecars — none depend on the mission id.
 So the only prod-specific values are `--aegis-url`, `--token`, and `--mission-id`. `--out`
 points at the **local** build (whose id differs from prod's) so the script knows which layers
 to register; the `missionId` written into every payload is `<PROD_ID>`. (If you instead run

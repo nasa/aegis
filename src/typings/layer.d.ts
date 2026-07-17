@@ -30,12 +30,6 @@ interface Sublayer {
   minNativeZoom: number;
   maxNativeZoom: number;
   maxZoom: number;
-  /**
-   * True when this raster (type "tile") sublayer's `path` points at a self-describing
-   * Cloud-Optimized GeoTIFF (COG), rendered directly via WebGLTile + GeoTIFF over HTTP Range.
-   * When true, tilePattern/tileFormat/boundingBox/native-zoom are unused.
-   */
-  isCog: boolean;
   isTimeBased: boolean;
   timeLayerManifest: TimeLayerInfo[];
   createdAt: string;
@@ -56,7 +50,6 @@ type SublayerImportable = Partial<
     | "minNativeZoom"
     | "maxNativeZoom"
     | "maxZoom"
-    | "isCog"
   >
 >;
 

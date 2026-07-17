@@ -142,16 +142,15 @@ function makeTileSublayer(uuid: string, name = `Layer ${uuid.slice(-1)}`): Subla
   });
 }
 
-// A COG sublayer: type "tile" + isCog. The path deliberately has no .tif extension so the test
-// proves routing is driven by the isCog flag, not the legacy path-extension fallback.
+// A COG sublayer: type "tile" whose path points at a `.tif` inside its Layers/ folder. Routing to
+// the WebGLTile/GeoTIFF path is driven by the `.tif` extension (there is no isCog flag).
 function makeCogSublayer(uuid: string): Sublayer {
   return generateBlankSublayer({
     uuid,
     name: "COG Sublayer",
     layerUuid: LAYER_UUID,
     type: "tile",
-    path: `data/${uuid}-elevation`,
-    isCog: true,
+    path: `${uuid}-elevation/${uuid}-elevation.tif`,
     missionId: 42,
   });
 }
@@ -312,7 +311,7 @@ describe("TileLayers", () => {
     expect(layers[0].get("uuid")).toBe(SUBLAYER_A_UUID);
   });
 
-  it("creates a WebGLTile (COG) layer for an isCog sublayer", () => {
+  it("creates a WebGLTile (COG) layer for a sublayer with a .tif path", () => {
     // Stub fetch so the GeoTIFF source's eager remote read doesn't spam the console.
     const fetchStub = vi
       .spyOn(globalThis, "fetch")

@@ -231,10 +231,10 @@ function createLayerForSublayer(
     projConfig,
   };
 
-  // COG raster sublayers are flagged with `isCog` (a self-describing GeoTIFF rendered via
-  // WebGLTile + GeoTIFF). The `.tif`/`.tiff` path check is a defensive fallback for any COG
-  // injected before the flag existed.
-  if (sublayer.isCog || isCogPath(sublayer.path)) {
+  // COG raster sublayers are self-describing GeoTIFFs rendered via WebGLTile + GeoTIFF,
+  // identified by a `.tif`/`.tiff` path (a file inside the layer's Layers/ folder).
+  // A `.pmtiles` path is not matched here, so vector-tile layers still route to createOlLayer.
+  if (isCogPath(sublayer.path)) {
     return createCogLayer(input);
   }
 
