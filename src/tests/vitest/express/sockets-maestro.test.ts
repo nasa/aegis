@@ -8,10 +8,6 @@ import { v4 as uuidv4 } from "uuid";
 const {
   mockAddMaestroDocListenerForMission,
   mockBuildAegisEntityForMaestro,
-  mockGetBackupDbMissions,
-  mockGetReadableEvaData,
-  mockGetMissionsData,
-  mockGetRexesByEvaRefData,
   mockOverwriteRex,
   mockValidateRexOverwrite,
   mockGetAutomergeDocListing,
@@ -19,10 +15,6 @@ const {
 } = vi.hoisted(() => ({
   mockAddMaestroDocListenerForMission: vi.fn().mockResolvedValue(undefined),
   mockBuildAegisEntityForMaestro: vi.fn(),
-  mockGetBackupDbMissions: vi.fn(),
-  mockGetReadableEvaData: vi.fn(),
-  mockGetMissionsData: vi.fn(),
-  mockGetRexesByEvaRefData: vi.fn(),
   mockOverwriteRex: vi.fn(),
   mockValidateRexOverwrite: vi.fn().mockReturnValue(null),
   mockGetAutomergeDocListing: vi.fn(),
@@ -49,26 +41,6 @@ vi.mock("server/express/sockets-maestro-emitters", async () => {
 vi.mock("utils/maestro", async () => {
   const actual = await vi.importActual("utils/maestro");
   return { ...actual, buildAegisEntityForMaestro: mockBuildAegisEntityForMaestro };
-});
-
-vi.mock("server/express/routes/mission", async () => {
-  const actual = await vi.importActual("server/express/routes/mission");
-  return { ...actual, getBackupDbMissions: mockGetBackupDbMissions };
-});
-
-vi.mock("server/express/routes/readable/eva", async () => {
-  const actual = await vi.importActual("server/express/routes/readable/eva");
-  return { ...actual, getReadableEvaData: mockGetReadableEvaData };
-});
-
-vi.mock("server/express/routes/emss/getMissions", async () => {
-  const actual = await vi.importActual("server/express/routes/emss/getMissions");
-  return { ...actual, getMissionsData: mockGetMissionsData };
-});
-
-vi.mock("server/express/routes/emss/getRexesByEvaRef", async () => {
-  const actual = await vi.importActual("server/express/routes/emss/getRexesByEvaRef");
-  return { ...actual, getRexesByEvaRefData: mockGetRexesByEvaRefData };
 });
 
 vi.mock("server/express/routes/emss/rexOverwrite", async () => {
@@ -597,120 +569,6 @@ describe("maestro namespace socket handlers", () => {
           message: expect.stringContaining("build error"),
         })
       );
-    });
-  });
-
-  // ─── getMission ───────────────────────────────────────────────────────────
-
-  describe("getMission", () => {
-    it("calls callback with success when data is retrieved", async () => {
-      const missions = [{ id: MISSION_ID }];
-      mockGetBackupDbMissions.mockResolvedValue(missions);
-      const callback = vi.fn();
-      await mockSocket._handlers["getMission"](MISSION_ID, callback);
-      expect(callback).toHaveBeenCalledWith({
-        status: "success",
-        message: "Mission retrieved",
-        data: missions,
-      });
-    });
-
-    it("calls callback with error when retrieval fails", async () => {
-      mockGetBackupDbMissions.mockRejectedValue(new Error("db error"));
-      const callback = vi.fn();
-      await mockSocket._handlers["getMission"](MISSION_ID, callback);
-      expect(callback).toHaveBeenCalledWith(
-        expect.objectContaining({ status: "error", message: expect.stringContaining("db error") })
-      );
-    });
-  });
-
-  // ─── getReadableEva ───────────────────────────────────────────────────────
-
-  describe("getReadableEva", () => {
-    it("returns failure for null missionId", async () => {
-      const callback = vi.fn();
-      await mockSocket._handlers["getReadableEva"]({ missionId: null }, callback);
-      expect(callback).toHaveBeenCalledWith({ status: "failure", message: "Invalid mission ID" });
-    });
-
-    it("returns failure for NaN missionId", async () => {
-      const callback = vi.fn();
-      await mockSocket._handlers["getReadableEva"]({ missionId: NaN }, callback);
-      expect(callback).toHaveBeenCalledWith({ status: "failure", message: "Invalid mission ID" });
-    });
-
-    it("calls callback with success when data is retrieved", async () => {
-      const evaData = [{ id: 1 }];
-      mockGetReadableEvaData.mockResolvedValue(evaData);
-      const callback = vi.fn();
-      await mockSocket._handlers["getReadableEva"]({ missionId: MISSION_ID }, callback);
-      expect(callback).toHaveBeenCalledWith({
-        status: "success",
-        message: "Readable EVAs retrieved",
-        data: evaData,
-      });
-    });
-
-    it("calls callback with error when retrieval fails", async () => {
-      mockGetReadableEvaData.mockRejectedValue(new Error("eva error"));
-      const callback = vi.fn();
-      await mockSocket._handlers["getReadableEva"]({ missionId: MISSION_ID }, callback);
-      expect(callback).toHaveBeenCalledWith(
-        expect.objectContaining({ status: "error", message: expect.stringContaining("eva error") })
-      );
-    });
-  });
-
-  // ─── getMissions ──────────────────────────────────────────────────────────
-
-  describe("getMissions", () => {
-    it("calls callback with success when data is retrieved", async () => {
-      const data = [{ id: 1 }];
-      mockGetMissionsData.mockResolvedValue(data);
-      const callback = vi.fn();
-      await mockSocket._handlers["getMissions"](callback);
-      expect(callback).toHaveBeenCalledWith({
-        status: "success",
-        message: "Missions and their EVAs retrieved",
-        data,
-      });
-    });
-
-    it("calls callback with error when retrieval fails", async () => {
-      mockGetMissionsData.mockRejectedValue(new Error("missions error"));
-      const callback = vi.fn();
-      await mockSocket._handlers["getMissions"](callback);
-      expect(callback).toHaveBeenCalledWith(expect.objectContaining({ status: "error" }));
-    });
-  });
-
-  // ─── getRexesByEvaRef ─────────────────────────────────────────────────────
-
-  describe("getRexesByEvaRef", () => {
-    it("returns failure when evaRefUuid is missing", async () => {
-      const callback = vi.fn();
-      await mockSocket._handlers["getRexesByEvaRef"]("", callback);
-      expect(callback).toHaveBeenCalledWith({ status: "failure", message: "No EVA Ref given" });
-    });
-
-    it("calls callback with success when data is retrieved", async () => {
-      const data = [{ uuid: "rex-1" }];
-      mockGetRexesByEvaRefData.mockResolvedValue(data);
-      const callback = vi.fn();
-      await mockSocket._handlers["getRexesByEvaRef"]("some-ref-uuid", callback);
-      expect(callback).toHaveBeenCalledWith({
-        status: "success",
-        message: "Rexes retrieved",
-        data,
-      });
-    });
-
-    it("calls callback with error when retrieval fails", async () => {
-      mockGetRexesByEvaRefData.mockRejectedValue(new Error("rex error"));
-      const callback = vi.fn();
-      await mockSocket._handlers["getRexesByEvaRef"]("some-ref-uuid", callback);
-      expect(callback).toHaveBeenCalledWith(expect.objectContaining({ status: "error" }));
     });
   });
 

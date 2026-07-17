@@ -12,14 +12,11 @@ import { globalValues } from "./global";
 import {
   addMaestroDocListenerForMission,
   applyMdauStationsToDoc,
-  cleanupSocketRoom,
+  cleanupMaestro,
+  removeEvaFromSubscriptions,
 } from "server/express/sockets-maestro-emitters";
 import { emssTokenIsValid } from "utils/permissions";
 import { asError } from "@emss/utils";
-import { getBackupDbMissions } from "server/express/routes/mission";
-import { getReadableEvaData } from "server/express/routes/readable/eva";
-import { getMissionsData } from "server/express/routes/emss/getMissions";
-import { getRexesByEvaRefData } from "server/express/routes/emss/getRexesByEvaRef";
 import { overwriteRex } from "server/express/routes/emss/rexOverwrite";
 import { validateRexOverwrite } from "utils/rexOverwriteValidator";
 import { buildAegisEntityForMaestro } from "utils/maestro";
@@ -104,7 +101,12 @@ export const setupMaestroNamespace = (
           const subscriptions = globalValues.maestro.evaSubscriptions.get(missionId) ?? [];
           // Resolve the eva uuid:
           const evaUuid = await getEvaUuid(missionId, evaRefUuid, rexUuid);
-          if (!evaUuid) return;
+          if (!evaUuid) {
+            serverLogger.warning({
+              logId: "socket-maestro",
+              logValue: `subscribeToEva - could not get evaUuid from missionId ${missionId}, evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
+            });
+          }
           if (!subscriptions.includes(evaUuid)) {
             subscriptions.push(evaUuid);
             globalValues.maestro.evaSubscriptions.set(missionId, subscriptions);
@@ -115,16 +117,14 @@ export const setupMaestroNamespace = (
       socket.on(
         "unsubscribeToEva",
         async (missionId: number, evaRefUuid: string, rexUuid: string | null) => {
-          const subscriptions = globalValues.maestro.evaSubscriptions.get(missionId);
-          if (subscriptions) {
-            // Convert eva refUuid to uuid
-            const evaUuid = await getEvaUuid(missionId, evaRefUuid, rexUuid);
-            if (!evaUuid) return;
-            remove(subscriptions, (uuid) => uuid === evaUuid);
-            if (subscriptions.length === 0) {
-              globalValues.maestro.evaSubscriptions.delete(missionId);
-            }
+          const evaUuid = await getEvaUuid(missionId, evaRefUuid, rexUuid);
+          if (!evaUuid) {
+            serverLogger.warning({
+              logId: "socket-maestro",
+              logValue: `unsubscribeToEva - could not get evaUuid from missionId ${missionId}, evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
+            });
           }
+          removeEvaFromSubscriptions(missionId, evaUuid ? [evaUuid] : []);
         }
       );
 
@@ -139,7 +139,7 @@ export const setupMaestroNamespace = (
           });
           // If the room is now empty
           if (globalValues.serverSocketStatus.maestroMissionVisitors[roomName].length === 0) {
-            cleanupSocketRoom(missionId);
+            cleanupMaestro(missionId);
           }
         }
 
@@ -157,8 +157,8 @@ export const setupMaestroNamespace = (
           });
           // If the room is now empty
           if (globalValues.serverSocketStatus.maestroMissionVisitors[roomName].length === 0) {
-            const missionIdForRoom = getMissionIdFromSocketRoomName(roomName);
-            if (missionIdForRoom != null) cleanupSocketRoom(missionIdForRoom);
+            const missionId = getMissionIdFromSocketRoomName(roomName);
+            if (missionId != null) cleanupMaestro(missionId);
           }
         }
 
@@ -212,74 +212,6 @@ export const setupMaestroNamespace = (
             { logId: "socket-maestro", logValue: "SocketIO - sendMDAU" },
             error instanceof Error ? error : new Error(String(error))
           );
-        }
-      });
-
-      // Mimics the api/v1/mission route
-      socket.on("getMission", async (missionId: number, callback) => {
-        try {
-          const data = await RequestContext.create(globalValues.orm.em, () =>
-            getBackupDbMissions([missionId])
-          );
-          callback({ status: "success", message: "Mission retrieved", data });
-        } catch (error) {
-          serverLogger.error(
-            { logId: "socket-maestro", logValue: "SocketIO - getMission" },
-            error instanceof Error ? error : new Error(String(error))
-          );
-          callback({ status: "error", message: `Error getting mission ${error}` });
-        }
-      });
-
-      // Mimics the api/v1/readable/eva route
-      socket.on("getReadableEva", async (params: ReadableEvaParams, callback) => {
-        if (!params.missionId || isNaN(params.missionId)) {
-          callback({ status: "failure", message: "Invalid mission ID" });
-          return;
-        }
-        try {
-          const data = await RequestContext.create(globalValues.orm.em, () =>
-            getReadableEvaData(params)
-          );
-          callback({ status: "success", message: "Readable EVAs retrieved", data });
-        } catch (error) {
-          serverLogger.error(
-            { logId: "socket-maestro", logValue: "SocketIO - getReadableEva" },
-            error instanceof Error ? error : new Error(String(error))
-          );
-          callback({ status: "error", message: `Error getting readable EVAs ${error}` });
-        }
-      });
-
-      // Mimics the emss/getMissions route
-      socket.on("getMissions", async (callback) => {
-        try {
-          const data = await RequestContext.create(globalValues.orm.em, () => getMissionsData());
-          callback({ status: "success", message: "Missions and their EVAs retrieved", data });
-        } catch (error) {
-          serverLogger.error(
-            { logId: "socket-maestro", logValue: "SocketIO - getMissions" },
-            error instanceof Error ? error : new Error(String(error))
-          );
-          callback({ status: "error", message: `Error getting missions and their evas ${error}` });
-        }
-      });
-
-      // Mimics the emss/getRexesByEvaRef route
-      socket.on("getRexesByEvaRef", async (evaRefUuid: string, callback) => {
-        if (!evaRefUuid) {
-          callback({ status: "failure", message: "No EVA Ref given" });
-          return;
-        }
-        try {
-          const data = await getRexesByEvaRefData(evaRefUuid);
-          callback({ status: "success", message: "Rexes retrieved", data });
-        } catch (error) {
-          serverLogger.error(
-            { logId: "socket-maestro", logValue: "SocketIO - getRexesByEvaRef" },
-            error instanceof Error ? error : new Error(String(error))
-          );
-          callback({ status: "error", message: `Error getting rexes ${error}` });
         }
       });
 
