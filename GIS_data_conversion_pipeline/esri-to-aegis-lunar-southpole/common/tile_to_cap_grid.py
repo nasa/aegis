@@ -28,7 +28,7 @@ the y index in a ``tileUrlFunction`` (the app keeps this for both legacy and new
 
 Usage
 -----
-    cd data_conversion_scripts
+    cd GIS_data_conversion_pipeline
     uv run python esri-to-aegis-lunar-southpole/common/tile_to_cap_grid.py <input_8bit.tif> <output_dir>
 
 The cap-grid / projection constants live in ``config.py`` at the pipeline root, so
@@ -88,7 +88,9 @@ def write_tilemapresource(
     / ``<Origin>`` / ``<TileSet units-per-pixel>`` are projected metres too, so the whole
     document is in one unit system.  When ``bbox`` is ``None`` it falls back to the full cap.
     """
-    minx, miny, maxx, maxy = bbox if bbox is not None else (CAP_MIN, CAP_MIN, CAP_MAX, CAP_MAX)
+    minx, miny, maxx, maxy = (
+        bbox if bbox is not None else (CAP_MIN, CAP_MIN, CAP_MAX, CAP_MAX)
+    )
     tilesets = "\n".join(
         f'        <TileSet href="{z}" units-per-pixel="{z0_res / 2 ** z:.14f}" order="{z}"/>'
         for z in range(max_zoom + 1)
@@ -266,7 +268,10 @@ def tile_raster(
             z_dir = output_dir / str(z)
 
             n_z = (tx1 - tx0 + 1) * (ty1 - ty0 + 1)
-            print(f"  z{z:<2}  {tx1 - tx0 + 1} x {ty1 - ty0 + 1} = {n_z:,} candidate tile(s)", flush=True)
+            print(
+                f"  z{z:<2}  {tx1 - tx0 + 1} x {ty1 - ty0 + 1} = {n_z:,} candidate tile(s)",
+                flush=True,
+            )
 
             for tx in range(tx0, tx1 + 1):
                 x_dir = z_dir / str(tx)
@@ -386,7 +391,9 @@ def tile_raster(
                     else:
                         luma = patch_scaled[0, :src_row1c, :src_col1c]
                         if nodata is not None:
-                            alpha = np.where(luma == int(nodata), 0, 255).astype(np.uint8)
+                            alpha = np.where(luma == int(nodata), 0, 255).astype(
+                                np.uint8
+                            )
                         else:
                             alpha = np.where(luma == 0, 0, 255).astype(np.uint8)
                     tile_arr[dst_px_top:dst_row1c, dst_px_left:dst_col1c, 3] = alpha

@@ -24,7 +24,7 @@ Usage
 -----
 ::
 
-    cd data_conversion_scripts
+    cd GIS_data_conversion_pipeline
 
     # Slope (degrees) legend from the standard ramp
     pixi run python esri-to-aegis-lunar-southpole/properties/write_properties.py \\
@@ -134,7 +134,9 @@ def parse_line(line: str) -> tuple[str, str]:
 def get_ordinal_direction(lower_bound: float, upper_bound: float) -> str:
     """Return one of the 8 ordinal directions for a degree range (aspect legend)."""
     if not (0 <= lower_bound <= 360 and 0 <= upper_bound <= 360):
-        raise ValueError(f"All bounds should be between 0 and 360: {(lower_bound, upper_bound)}")
+        raise ValueError(
+            f"All bounds should be between 0 and 360: {(lower_bound, upper_bound)}"
+        )
 
     # North wraps (lower > upper), so rotate by 22.5°, take the midpoint, rotate back.
     if lower_bound > upper_bound:
@@ -145,11 +147,22 @@ def get_ordinal_direction(lower_bound: float, upper_bound: float) -> str:
 
     # Snap to the nearest 45° sector: ramps mark bin edges with epsilon offsets
     # (e.g. 22.499/22.5), so midpoints land near — not exactly on — the sector centre.
-    by_mid = {0: "N", 45: "NE", 90: "E", 135: "SE", 180: "S", 225: "SW", 270: "W", 315: "NW"}
+    by_mid = {
+        0: "N",
+        45: "NE",
+        90: "E",
+        135: "SE",
+        180: "S",
+        225: "SW",
+        270: "W",
+        315: "NW",
+    }
     snapped = round(mid / 45) * 45 % 360
     if abs(mid - round(mid / 45) * 45) <= 2:
         return by_mid[snapped]
-    raise ValueError(f"Bad inputs for ordinal direction: {(lower_bound, upper_bound)}, midpoint={mid}")
+    raise ValueError(
+        f"Bad inputs for ordinal direction: {(lower_bound, upper_bound)}, midpoint={mid}"
+    )
 
 
 def fmt_bound(v: float) -> str:
@@ -229,7 +242,11 @@ def color_ramp_to_legend(ramp_path: Path, processing: str, units_abbr: str) -> d
         if not stripped or stripped.startswith("#"):
             continue
         rows.append(parse_line(stripped))
-    return {"version": "2", "unitsAbbr": units_abbr, "legend": compactify_rows(rows, processing)}
+    return {
+        "version": "2",
+        "unitsAbbr": units_abbr,
+        "legend": compactify_rows(rows, processing),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -253,7 +270,9 @@ def build_properties(
     }
     # Hillshade has no legend; an imagery layer (nac/wac/source) usually has none either.
     if ramp_path is not None:
-        units = units_abbr if units_abbr is not None else DEFAULT_UNITS.get(processing, "")
+        units = (
+            units_abbr if units_abbr is not None else DEFAULT_UNITS.get(processing, "")
+        )
         props["legend"] = color_ramp_to_legend(ramp_path, processing, units)
     return props
 
@@ -274,20 +293,26 @@ def make_parser() -> argparse.ArgumentParser:
         choices=sorted(DEFAULT_DESCRIPTIONS.keys()),
         help="Layer kind — selects the default description (and legend units).",
     )
-    p.add_argument("--out", type=Path, required=True, help="Output properties.json path.")
+    p.add_argument(
+        "--out", type=Path, required=True, help="Output properties.json path."
+    )
     p.add_argument(
         "--ramp",
         type=Path,
         default=None,
         help="GDAL color-relief ramp .txt to build the legend from. Omit for hillshade / plain imagery.",
     )
-    p.add_argument("--name", default=None, help="Layer name (default: --processing value).")
+    p.add_argument(
+        "--name", default=None, help="Layer name (default: --processing value)."
+    )
     p.add_argument(
         "--units",
         default=None,
         help="Legend units abbreviation (default per processing: slope=deg, tri=m).",
     )
-    p.add_argument("--description", default=None, help="Override the default description.")
+    p.add_argument(
+        "--description", default=None, help="Override the default description."
+    )
     return p
 
 
@@ -313,7 +338,9 @@ def main() -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(props, indent=2) + "\n", encoding="utf-8")
 
-    n_legend = len(props.get("legend", {}).get("legend", [])) if "legend" in props else 0
+    n_legend = (
+        len(props.get("legend", {}).get("legend", [])) if "legend" in props else 0
+    )
     print(f"Wrote {out}")
     print(f"  type={props['type']}  name={props['name']}  legend items={n_legend}")
 

@@ -19,7 +19,7 @@ Pure-Python (only the ``pmtiles`` writer, no GDAL), so it runs under ``.venv`` o
 
 Usage
 -----
-    cd data_conversion_scripts
+    cd GIS_data_conversion_pipeline
     pixi run python esri-to-aegis-lunar-southpole/vectortile/arcgis_cache_to_pmtiles.py \\
         <cache_dir_with_root.json> <output_dir> [--name contours] [--keep-gzip]
 
@@ -127,7 +127,10 @@ def build_pmtiles_metadata(input_dir: Path) -> dict:
     metadata: dict = {}
     root_json = input_dir / "root.json"
     if not root_json.exists():
-        print(f"  [warn] no root.json at {root_json} — esri_tile_info will be MISSING", file=sys.stderr)
+        print(
+            f"  [warn] no root.json at {root_json} — esri_tile_info will be MISSING",
+            file=sys.stderr,
+        )
         return metadata
 
     root_data = json.loads(root_json.read_text(encoding="utf-8"))
@@ -225,7 +228,9 @@ def main() -> None:
         type=Path,
         help="ArcGIS Compact Cache V2 dir (contains root.json and tile/).",
     )
-    parser.add_argument("output_dir", type=Path, help="Output directory for the .pmtiles archive.")
+    parser.add_argument(
+        "output_dir", type=Path, help="Output directory for the .pmtiles archive."
+    )
     parser.add_argument(
         "--name",
         default="contours",

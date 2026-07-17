@@ -28,7 +28,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-# repo root holding .env — three levels up: esri-to-aegis-lunar-southpole/ -> data_conversion_scripts/ -> aegis/
+# repo root holding .env — three levels up: esri-to-aegis-lunar-southpole/ -> GIS_data_conversion_pipeline/ -> aegis/
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ENV_FILE = REPO_ROOT / ".env"
 
@@ -117,7 +117,9 @@ class AegisApiClient:
 
     def upsert_sublayers(self, mission_id: int, sublayers: list[dict]) -> list[dict]:
         resp = self._request(
-            "POST", "/api/v1/sublayer", {"missionId": mission_id, "sublayers": sublayers}
+            "POST",
+            "/api/v1/sublayer",
+            {"missionId": mission_id, "sublayers": sublayers},
         )
         return self._unwrap(resp, "upsert sublayers") or []  # type: ignore[return-value]
 
@@ -136,6 +138,10 @@ class AegisApiClient:
         resp = self._request(
             "POST",
             "/api/v1/grid",
-            {"missionId": mission_id, "grids": grids, "upsertFullGrid": upsert_full_grid},
+            {
+                "missionId": mission_id,
+                "grids": grids,
+                "upsertFullGrid": upsert_full_grid,
+            },
         )
         return self._unwrap(resp, "upsert grids") or []  # type: ignore[return-value]

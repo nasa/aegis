@@ -106,7 +106,7 @@ mission declares (`common/tile_to_cap_grid.py` enforces this).
 
 ## 4. Commands
 
-Run from `data_conversion_scripts/` via pixi:
+Run from `GIS_data_conversion_pipeline/` via pixi:
 
 ```bash
 # Full pipeline for this site (output → <static>/missionFiles/<mission-id>)

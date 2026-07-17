@@ -31,20 +31,20 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 
 ## Pipeline data types (`main.py` steps)
 
-| Type         | Input                                    | Output                              | Process                                 |
-| ------------ | ---------------------------------------- | ----------------------------------- | --------------------------------------- |
-| **dem**      | DEM GeoTIFF                              | `Data/<source>_zstd.tif` (COG)      | re-emit as clean COG (keeps source name) |
-| **nac**      | single NAC mosaic raster (from GIS team) | `Layers/nac/` tile pyramid          | stretch (if float) → tile               |
-| **slope**    | slope float raster (°) + `.lyrx` ramp    | `Layers/slope/` tile pyramid        | colorize → tile                         |
-| **products** | the DEM (`--dem`)                        | `Layers/{hillshade,aspect,tri[,slope]}/` | derive from DEM → colorize → tile (`--products`) |
-| **vector**   | landing-ellipse shapefile                | `Data/ellipse.geojson`              | reproject to EPSG:4326                  |
-| **rasters**  | custom rasters (`--raster`, repeatable)  | `Layers/<stem>/` tile pyramid each  | stretch (if float) → tile               |
-| **vectors**  | custom vectors (`--vector`, repeatable)  | `Data/<stem>.geojson` each          | shp → reproject; geojson copied         |
-| **vectortiles** | ArcGIS vector-tile cache (`--vector-tile-cache`, repeatable) | `Layers/<name>/<name>.pmtiles` each | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`) |
-| **cogs**     | custom rasters (`--cog`, repeatable)     | `Layers/<stem>/<stem>.tif` each     | GeoTIFF → COG (type inferred from `.tif`) |
-| **grid**     | lander `--lander-lat/--lander-lng`       | `grid_source.geojson` (10 km dflt)  | LGRS grid → AEGIS mission-grid GeoJSON  |
-| **register** | the built `<out>` + `--mission-id`       | mission fields + sublayers + active grid | POST fields + layers/sublayers + grid |
-| **box**      | the built `<out>` + `--mission-name`     | zips uploaded to Box (parallel)     | zip `Data/` + each layer → upload       |
+| Type            | Input                                                        | Output                                   | Process                                                            |
+| --------------- | ------------------------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------ |
+| **dem**         | DEM GeoTIFF                                                  | `Data/<source>_zstd.tif` (COG)           | re-emit as clean COG (keeps source name)                           |
+| **nac**         | single NAC mosaic raster (from GIS team)                     | `Layers/nac/` tile pyramid               | stretch (if float) → tile                                          |
+| **slope**       | slope float raster (°) + `.lyrx` ramp                        | `Layers/slope/` tile pyramid             | colorize → tile                                                    |
+| **products**    | the DEM (`--dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/` | derive from DEM → colorize → tile (`--products`)                   |
+| **vector**      | landing-ellipse shapefile                                    | `Data/ellipse.geojson`                   | reproject to EPSG:4326                                             |
+| **rasters**     | custom rasters (`--raster`, repeatable)                      | `Layers/<stem>/` tile pyramid each       | stretch (if float) → tile                                          |
+| **vectors**     | custom vectors (`--vector`, repeatable)                      | `Data/<stem>.geojson` each               | shp → reproject; geojson copied                                    |
+| **vectortiles** | ArcGIS vector-tile cache (`--vector-tile-cache`, repeatable) | `Layers/<name>/<name>.pmtiles` each      | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`) |
+| **cogs**        | custom rasters (`--cog`, repeatable)                         | `Layers/<stem>/<stem>.tif` each          | GeoTIFF → COG (type inferred from `.tif`)                          |
+| **grid**        | lander `--lander-lat/--lander-lng`                           | `grid_source.geojson` (10 km dflt)       | LGRS grid → AEGIS mission-grid GeoJSON                             |
+| **register**    | the built `<out>` + `--mission-id`                           | mission fields + sublayers + active grid | POST fields + layers/sublayers + grid                              |
+| **box**         | the built `<out>` + `--mission-name`                         | zips uploaded to Box (parallel)          | zip `Data/` + each layer → upload                                  |
 
 Every tile layer also gets a `properties.json` (name/description/legend) that the AEGIS
 admin auto-imports — see [`properties/`](properties/). The **register** step reads those
@@ -57,12 +57,12 @@ are present (default), or pick explicitly with `--steps`. Each run writes a
 
 ## Standalone converters (inputs not part of the ESRI drop)
 
-| Tool                                          | Input                              | Output                                              |
-| --------------------------------------------- | ---------------------------------- | --------------------------------------------------- |
-| [`grid/generate_lgrs.py`](grid/)              | lander `--lat/--lng` + `--extent`  | raw LGRS grid GeoJSON (feeds `convert_lgrs.py`)     |
-| [`grid/convert_lgrs.py`](grid/)               | raw LGRS GeoJSON (generated or ESRI) | AEGIS mission-grid GeoJSON (`Cleaned_*.geojson`)  |
-| [`timeaware/singleband_timeaware.py`](timeaware/) | dir of single-band time rasters | tiled time layers + `manifest.json`                 |
-| [`../mercator/tile_mercator.py`](../mercator/) | Earth/Moon non-polar raster        | Web-Mercator / geodetic tile pyramid                |
+| Tool                                              | Input                                | Output                                           |
+| ------------------------------------------------- | ------------------------------------ | ------------------------------------------------ |
+| [`grid/generate_lgrs.py`](grid/)                  | lander `--lat/--lng` + `--extent`    | raw LGRS grid GeoJSON (feeds `convert_lgrs.py`)  |
+| [`grid/convert_lgrs.py`](grid/)                   | raw LGRS GeoJSON (generated or ESRI) | AEGIS mission-grid GeoJSON (`Cleaned_*.geojson`) |
+| [`timeaware/singleband_timeaware.py`](timeaware/) | dir of single-band time rasters      | tiled time layers + `manifest.json`              |
+| [`../mercator/tile_mercator.py`](../mercator/)    | Earth/Moon non-polar raster          | Web-Mercator / geodetic tile pyramid             |
 
 ---
 
@@ -119,11 +119,11 @@ mission/site/environment-specific.
 
 ## Running it
 
-Run from the parent `data_conversion_scripts/` directory via **pixi** so the GDAL /
+Run from the parent `GIS_data_conversion_pipeline/` directory via **pixi** so the GDAL /
 rasterio / fiona stack is on PATH:
 
 ```bash
-cd data_conversion_scripts
+cd GIS_data_conversion_pipeline
 
 # Full pipeline for an existing mission: build products, register, and upload to Box.
 # Output folder is <static>/missionFiles/<mission-id> (STATIC_DIR from the repo .env).
@@ -169,7 +169,7 @@ so a publish-only run is just `--steps register` or `--steps box` (don't also pa
 `<static>/missionFiles/<mission-id>`; if your build lives elsewhere, point at it with `--out`.
 
 ```bash
-cd data_conversion_scripts
+cd GIS_data_conversion_pipeline
 
 # 1. Build everything locally, no publishing. Omit --register/--box so only the data
 #    steps run; the folder <static>/missionFiles/123 now holds Data/ + Layers/.
@@ -314,7 +314,7 @@ Promote a locally-built mission to a different AEGIS server (e.g.
 **Step 1 — local: build, register on localhost, upload to Box**
 
 ```bash
-cd data_conversion_scripts
+cd GIS_data_conversion_pipeline
 pixi run python esri-to-aegis-lunar-southpole/main.py \
     --aegis-url http://localhost:4000 \
     --mission-id <LOCAL_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
@@ -356,7 +356,7 @@ it skips `(header, path)` pairs that already exist.
 So the only prod-specific values are `--aegis-url`, `--token`, and `--mission-id`. `--out`
 points at the **local** build (whose id differs from prod's) so the script knows which layers
 to register; the `missionId` written into every payload is `<PROD_ID>`. (If you instead run
-the script *on* the prod host after unzipping, `missionFiles/<PROD_ID>` already exists, so
+the script _on_ the prod host after unzipping, `missionFiles/<PROD_ID>` already exists, so
 you can drop `--out`.)
 
 Other AEGIS import targets produced by the standalone converters:
@@ -372,6 +372,6 @@ Other AEGIS import targets produced by the standalone converters:
 ## Preserved example: per-frame NAC layers
 
 `nac/examples/per_frame_layers/` is a kept **example** of an earlier test
-configuration that tiled *each* NAC frame into its own AEGIS sublayer (100+
+configuration that tiled _each_ NAC frame into its own AEGIS sublayer (100+
 sublayers). It is **not** part of the shipping pipeline (which tiles a single mosaic
 into one `nac` layer) but is retained as a worked reference. See that folder's README.

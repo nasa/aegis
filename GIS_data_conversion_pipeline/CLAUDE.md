@@ -1,6 +1,6 @@
-# CLAUDE.md — data_conversion_scripts
+# CLAUDE.md — GIS_data_conversion_pipeline
 
-Guidance for Claude Code when working in `data_conversion_scripts/`. This is a **standalone
+Guidance for Claude Code when working in `GIS_data_conversion_pipeline/`. This is a **standalone
 Python toolset** (its own pixi/uv environment), separate from the TypeScript app one level up.
 
 ## What this is
@@ -19,7 +19,7 @@ The geospatial stack is provided as **conda-forge binaries via pixi** — no sys
 source builds. Run everything from this directory:
 
 ```bash
-cd data_conversion_scripts
+cd GIS_data_conversion_pipeline
 pixi install
 pixi run python esri-to-aegis-lunar-southpole/main.py --list
 pixi run python <script>.py ...
@@ -41,7 +41,7 @@ pixi run python <script>.py ...
   profile + path resolution + header/external-NAC/grid constants; `aegis_api.py` /
   `register.py` / `box_publish.py` do the HTTP registration + Box upload; `common/` shared
   raster tools; one folder per concern (`dem nac slope products vector vectortile grid
-  timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivered ArcGIS
+timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivered ArcGIS
   vector-tile cache (Compact Cache V2) into a single `.pmtiles` (pure-Python `pmtiles`, no GDAL),
   emitted inside its own `Layers/<name>/` folder. Every produced sublayer (raster tiles, PMTiles,
   COG) is a folder under `Layers/`; AEGIS infers the type from the folder contents (no `isCog`
@@ -97,7 +97,7 @@ pixi run python <script>.py ...
   and the legend — so there is no longer a `slope.txt`↔`.lyrx` "keep in sync" burden (the
   fallback `slope.txt` still matches the MS3 `AMPES_Slope 1.lyrx`). **TRI is
   resolution-dependent** — the `products` step auto-selects `default_color_ramps/ARCHIVE/
-  TRIColors_{1m,5m,10m}_DEM.txt` to match `--dem-resolution`.
+TRIColors_{1m,5m,10m}_DEM.txt` to match `--dem-resolution`.
 - `tile_to_cap_grid.py` honours a real alpha band when input is RGBA; for ≤3-band input it
   infers transparency from band 0 == nodata/0. Colorized products should be RGBA so colours
   with red=0 (e.g. darkest TRI `rgb(0,38,115)`) aren't clipped.

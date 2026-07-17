@@ -16,7 +16,7 @@ Compression options (--compress):
     lerc    — lossy with controlled error bounds
 
 Usage:
-    cd data_conversion_scripts
+    cd GIS_data_conversion_pipeline
 
     # Default (ZSTD lossless):
     pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py <input.tif>
@@ -175,7 +175,7 @@ def main() -> None:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "Examples (from data_conversion_scripts/):\n"
+            "Examples (from GIS_data_conversion_pipeline/):\n"
             "  # ZSTD (default, lossless):\n"
             "  pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py input.tif\n\n"
             "  # JPEG (lossy, smallest file):\n"
