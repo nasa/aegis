@@ -143,7 +143,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           } else {
                             // If this is the first time we're starting this rex, add the initial pos entries
                             if (!selectedRex.posEntries || selectedRex.posEntries.length === 0) {
-                              dispatch(thunkDocCreateInitialPosEntries());
+                              dispatch(
+                                thunkDocCreateInitialPosEntries({ rexUuid: selectedRex.uuid })
+                              );
                             }
                           }
 
