@@ -29,6 +29,11 @@ export default [
       "**/.local",
       "playwright-report/**",
       "test-results/**",
+      // Standalone Python toolset — its conda/venv envs + build artifacts (created by
+      // `pixi install`) are not JS/TS and must never be linted.
+      "**/.pixi/**",
+      "**/.venv/**",
+      "**/*.egg-info/**",
     ],
   },
   ...fixupConfigRules(compat.extends("prettier", "plugin:react-hooks/recommended")),

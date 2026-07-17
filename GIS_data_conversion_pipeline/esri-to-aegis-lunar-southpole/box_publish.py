@@ -4,8 +4,9 @@
 Layout produced on Box (under ``BOX_INITIAL_FOLDER_ID``):
 
     <mission name>/
-      Data/   Data.zip            (one zip of everything in <out>/Data)
+      Data/   Data.zip            (one zip of everything in <out>/Data, incl. any *_cog.tif)
       Layers/ <layer>.zip ...     (one zip per <out>/Layers/<layer> directory)
+              <name>.pmtiles ...  (each loose PMTiles archive uploaded as-is, not zipped)
 
 The Box client (CCG auth + chunked upload + ``mkdir -p``) is a trimmed port of
 ``lunar_utils/lunar_utils/box_client.py``. Credentials come from the repo-root ``.env``
@@ -219,8 +220,9 @@ def upload_mission_folder(
     config = box_config_from_env(env_path)
     box = BoxClient(config, verbose=verbose)  # used only to create the destination folders
 
-    # Build the task list: (src_dir, zip_path, box_subfolder).
-    tasks: list[tuple[Path, Path, str]] = []
+    # Build the task list: (src, zip_path_or_None, box_subfolder). zip_path=None means src is a
+    # single file uploaded as-is (a PMTiles archive); otherwise src is a dir zipped to zip_path.
+    tasks: list[tuple[Path, Path | None, str]] = []
     if data_dir.exists() and any(data_dir.iterdir()):
         tasks.append((data_dir, scratch / "Data.zip", "Data"))
     else:
@@ -228,8 +230,16 @@ def upload_mission_folder(
     layer_dirs = sorted(d for d in layers_dir.iterdir() if d.is_dir()) if layers_dir.exists() else []
     for d in layer_dirs:
         tasks.append((d, scratch / f"{d.name}.zip", "Layers"))
-    if not layer_dirs:
-        print("  (no Layers/ directories to upload)")
+    # Loose PMTiles archives live directly under Layers/ (not subdirs) — upload each as-is.
+    pmtiles_files = (
+        sorted(f for f in layers_dir.iterdir() if f.is_file() and f.suffix.lower() == ".pmtiles")
+        if layers_dir.exists()
+        else []
+    )
+    for f in pmtiles_files:
+        tasks.append((f, None, "Layers"))
+    if not layer_dirs and not pmtiles_files:
+        print("  (no Layers/ directories or PMTiles to upload)")
 
     if not tasks:
         print("Nothing to upload.")
@@ -243,18 +253,22 @@ def upload_mission_folder(
     # Suppress per-file tqdm when running several uploads at once (the bars would interleave).
     show_progress = max_workers == 1 or len(tasks) == 1
 
-    def _zip_and_upload(task: tuple[Path, Path, str]) -> str:
-        src_dir, zip_path, sub = task
+    def _zip_and_upload(task: tuple[Path, Path | None, str]) -> str:
+        src, zip_path, sub = task
         t0 = time.monotonic()
-        print(f"  [{src_dir.name}] zipping → {zip_path.name} ...", flush=True)
-        _zip_dir(src_dir, zip_path)
-        mb = zip_path.stat().st_size / 1e6
-        print(f"  [{src_dir.name}] uploading {zip_path.name} ({mb:.0f} MB) → {sub}/ ...", flush=True)
+        # zip_path=None → src is a single file (e.g. a .pmtiles archive), uploaded as-is.
+        upload_path = src
+        if zip_path is not None:
+            print(f"  [{src.name}] zipping → {zip_path.name} ...", flush=True)
+            _zip_dir(src, zip_path)
+            upload_path = zip_path
+        mb = upload_path.stat().st_size / 1e6
+        print(f"  [{src.name}] uploading {upload_path.name} ({mb:.0f} MB) → {sub}/ ...", flush=True)
         # Fresh client per thread: boxsdk's requests session is not safe to share across threads.
         BoxClient(config, verbose=verbose).upload(
-            zip_path, subfolder_ids[sub], overwrite=overwrite, show_progress=show_progress
+            upload_path, subfolder_ids[sub], overwrite=overwrite, show_progress=show_progress
         )
-        return f"  [{src_dir.name}] done {zip_path.name} ({mb:.0f} MB) in {time.monotonic() - t0:.0f}s"
+        return f"  [{src.name}] done {upload_path.name} ({mb:.0f} MB) in {time.monotonic() - t0:.0f}s"
 
     print(f"Zipping + uploading {len(tasks)} item(s) with up to {max_workers} parallel worker(s) ...", flush=True)
     try:

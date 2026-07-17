@@ -243,14 +243,19 @@ def build_properties(
     ramp_path: Path | None,
     units_abbr: str | None,
     description: str | None,
+    is_cog: bool = False,
 ) -> dict:
     """Assemble the schema-allowed properties.json dict."""
     props: dict = {
         "type": "tile",
         "name": name,
         "description": description or DEFAULT_DESCRIPTIONS.get(processing, ""),
-        "tilePattern": "{z}/{x}/{y}.png",
     }
+    # A COG is self-describing (OpenLayers reads the GeoTIFF directly), so it has no tile pattern.
+    if is_cog:
+        props["isCog"] = True
+    else:
+        props["tilePattern"] = "{z}/{x}/{y}.png"
     # Hillshade has no legend; an imagery layer (nac/wac/source) usually has none either.
     if ramp_path is not None:
         units = units_abbr if units_abbr is not None else DEFAULT_UNITS.get(processing, "")
@@ -288,6 +293,11 @@ def make_parser() -> argparse.ArgumentParser:
         help="Legend units abbreviation (default per processing: slope=deg, tri=m).",
     )
     p.add_argument("--description", default=None, help="Override the default description.")
+    p.add_argument(
+        "--is-cog",
+        action="store_true",
+        help="Mark as a COG sublayer (self-describing; emits isCog=true, no tilePattern).",
+    )
     return p
 
 
@@ -307,6 +317,7 @@ def main() -> None:
         ramp_path=ramp_path,
         units_abbr=args.units,
         description=args.description,
+        is_cog=args.is_cog,
     )
 
     out: Path = args.out.resolve()

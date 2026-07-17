@@ -231,9 +231,10 @@ function createLayerForSublayer(
     projConfig,
   };
 
-  // COG layers are identified by path extension since there's no dedicated
-  // `type: "cog"` in the DB schema yet.
-  if (isCogPath(sublayer.path)) {
+  // COG raster sublayers are flagged with `isCog` (a self-describing GeoTIFF rendered via
+  // WebGLTile + GeoTIFF). The `.tif`/`.tiff` path check is a defensive fallback for any COG
+  // injected before the flag existed.
+  if (sublayer.isCog || isCogPath(sublayer.path)) {
     return createCogLayer(input);
   }
 

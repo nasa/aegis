@@ -22,6 +22,7 @@ import Map from "ol/Map";
 import View from "ol/View";
 import { flushSync } from "react-dom";
 import TileLayer from "ol/layer/Tile";
+import WebGLTileLayer from "ol/layer/WebGLTile";
 
 import { MapContext } from "components/interface/map/MapProvider";
 import { TileLayers } from "components/interface/map/behaviors/TileLayers";
@@ -141,6 +142,20 @@ function makeTileSublayer(uuid: string, name = `Layer ${uuid.slice(-1)}`): Subla
   });
 }
 
+// A COG sublayer: type "tile" + isCog. The path deliberately has no .tif extension so the test
+// proves routing is driven by the isCog flag, not the legacy path-extension fallback.
+function makeCogSublayer(uuid: string): Sublayer {
+  return generateBlankSublayer({
+    uuid,
+    name: "COG Sublayer",
+    layerUuid: LAYER_UUID,
+    type: "tile",
+    path: `data/${uuid}-elevation`,
+    isCog: true,
+    missionId: 42,
+  });
+}
+
 // Two-entry manifest so bounds calculations don't crash (single-entry manifests
 // access manifest[index+1] unconditionally in getManifestTimeBounds).
 const TIME_MANIFEST: TimeLayerInfo[] = [
@@ -242,6 +257,13 @@ function findTileLayers(): TileLayer[] {
     .filter((l) => l instanceof TileLayer) as TileLayer[];
 }
 
+function findWebGLTileLayers(): WebGLTileLayer[] {
+  return map
+    .getLayers()
+    .getArray()
+    .filter((l) => l instanceof WebGLTileLayer) as WebGLTileLayer[];
+}
+
 function renderTileLayers(mode: "editor" | "dashboard" | "minimap" = "editor") {
   harness.render(
     <Provider store={store}>
@@ -288,6 +310,26 @@ describe("TileLayers", () => {
     const layers = findTileLayers();
     expect(layers).toHaveLength(1);
     expect(layers[0].get("uuid")).toBe(SUBLAYER_A_UUID);
+  });
+
+  it("creates a WebGLTile (COG) layer for an isCog sublayer", () => {
+    // Stub fetch so the GeoTIFF source's eager remote read doesn't spam the console.
+    const fetchStub = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(() => new Promise(() => undefined));
+    try {
+      store = makeStore(preloaded({ sublayers: [makeCogSublayer(SUBLAYER_A_UUID)] }));
+      renderTileLayers();
+
+      // Routed to the COG path (WebGLTile), not the raster TileLayer path.
+      expect(findTileLayers()).toHaveLength(0);
+      const cogLayers = findWebGLTileLayers();
+      expect(cogLayers).toHaveLength(1);
+      expect(cogLayers[0].get("sublayerType")).toBe("cog");
+      expect(cogLayers[0].get("uuid")).toBe(SUBLAYER_A_UUID);
+    } finally {
+      fetchStub.mockRestore();
+    }
   });
 
   it("does nothing without a selected preset", () => {

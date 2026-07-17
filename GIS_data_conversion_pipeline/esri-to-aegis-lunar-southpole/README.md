@@ -1,9 +1,18 @@
 # ESRI → AEGIS (lunar south pole)
 
-Turns a GIS data drop into AEGIS-ready map products for a **lunar south-pole** mission,
-served as Leaflet-compatible PNG/TMS tile layers on the shared cap grid (origin
-`-931100`, `projResUnitsPerPixel = 12800`) **and registers them on a running AEGIS
-server** over HTTP.
+Turns a GIS data drop into AEGIS-ready map products for a **lunar south-pole** mission and
+**registers them on a running AEGIS server** over HTTP. Output is **OpenLayers-first**:
+
+- PNG/TMS raster tile layers on the shared cap grid (origin `-931100`,
+  `projResUnitsPerPixel = 12800`), each cut to its **own native resolution** (independent
+  per-layer pyramid — no shared z13 clamp), with a **projected-metre** `<BoundingBox>`.
+- **COG** raster sublayers (`--cog`) — a self-describing Cloud-Optimised GeoTIFF OpenLayers
+  renders directly (registered with `isCog`).
+- **PMTiles** vector-tile layers (`--vector-tile-cache`) — a delivered ArcGIS vector-tile cache
+  packed into one `.pmtiles` archive (registered as a `"vector-tile"` sublayer).
+
+(OpenLayers consumes the TMS tiles natively via a y-flip; legacy Leaflet-era missions keep
+rendering through the app's compatibility shim and are never regenerated.)
 
 Given an existing mission id (created in the AEGIS admin), the pipeline writes products
 into `<static>/missionFiles/<id>/` (resolved from `STATIC_DIR` in the repo `.env`), then —
@@ -30,6 +39,8 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **vector**   | landing-ellipse shapefile                | `Data/ellipse.geojson`              | reproject to EPSG:4326                  |
 | **rasters**  | custom rasters (`--raster`, repeatable)  | `Layers/<stem>/` tile pyramid each  | stretch (if float) → tile               |
 | **vectors**  | custom vectors (`--vector`, repeatable)  | `Data/<stem>.geojson` each          | shp → reproject; geojson copied         |
+| **vectortiles** | ArcGIS vector-tile cache (`--vector-tile-cache`, repeatable) | `Layers/<name>.pmtiles` each | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`) |
+| **cogs**     | custom rasters (`--cog`, repeatable)     | `Data/<stem>_cog.tif` each          | GeoTIFF → COG (registered `isCog`)      |
 | **grid**     | lander `--lander-lat/--lander-lng`       | `grid_source.geojson` (10 km dflt)  | LGRS grid → AEGIS mission-grid GeoJSON  |
 | **register** | the built `<out>` + `--mission-id`       | mission fields + sublayers + active grid | POST fields + layers/sublayers + grid |
 | **box**      | the built `<out>` + `--mission-name`     | zips uploaded to Box (parallel)     | zip `Data/` + each layer → upload       |
@@ -88,6 +99,8 @@ esri-to-aegis-lunar-southpole/
 │   └── singleband_timeaware.py  # single-band time series → tiles + manifest.json
 ├── vector/
 │   └── shp_to_geojson.py     # shapefile → GeoJSON (EPSG:4326, attrs preserved)
+├── vectortile/
+│   └── arcgis_cache_to_pmtiles.py  # ArcGIS Compact Cache V2 → single .pmtiles (carries esri_tile_info)
 └── docs/
     ├── SITE_A03MP026-MONS-MOUTON-PLATEAU.md
     ├── LEGACY-COVERAGE.md       # what was ported from lunar_utils/aegis (and what wasn't)
@@ -190,8 +203,9 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 > delete that sublayer in the admin first, then re-run `register`.
 
 Steps: `0 stage · 1 dem · 2 nac · 3 slope · 4 products · 5 vector · 6 rasters · 7 vectors ·
-8 grid · 9 register · 10 box`. By default the pipeline runs only the steps whose inputs are
-present — `grid` runs when a lander location is given, and `register`/`box` when
+8 vectortiles · 9 cogs · 10 grid · 11 register · 12 box`. By default the pipeline runs only the
+steps whose inputs are present — `vectortiles` runs when `--vector-tile-cache` is given, `cogs`
+when `--cog` is given, `grid` when a lander location is given, and `register`/`box` when
 `--register`/`--box` are passed; `--steps` overrides this.
 Inputs default to the A03MP026 layout under `--src`; override any with `--dem`, `--slope`,
 `--lyrx`, `--ellipse`, `--nac-mosaic`, `--raster`, `--vector`. Use `--out` to override the
@@ -229,6 +243,7 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
 ├── grid_source.geojson           # AEGIS mission-grid GeoJSON (register POSTs it; not in Data/)
 ├── Data/
 │   ├── <source>_zstd.tif         # demFilePath (keeps the source filename, e.g. mp2-sfs-dem_MoonSP_COG_zstd.tif)
+│   ├── <stem>_cog.tif            # COG raster sublayer (if a --cog step ran; registered isCog)
 │   ├── ellipse.geojson           # vector sublayer (if a vector step ran)
 │   ├── LGRS.json                 # active grid coordinates (written by the grid API on register)
 │   └── conversion_report.md      # captured run log + per-step timings
@@ -237,7 +252,8 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
     ├── slope/                    # tile sublayer  (+ properties.json with legend)
     ├── hillshade/                # tile sublayer  (no legend)
     ├── aspect/                   # tile sublayer  (+ properties.json with legend)
-    └── tri/                      # tile sublayer  (+ properties.json with legend)
+    ├── tri/                      # tile sublayer  (+ properties.json with legend)
+    └── <name>.pmtiles            # vector-tile sublayer (if a --vector-tile-cache step ran)
 ```
 
 Each `Layers/<name>/` also contains a `tilemapresource.xml` (bbox + zoom) and a

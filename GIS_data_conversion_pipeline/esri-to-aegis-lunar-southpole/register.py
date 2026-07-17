@@ -155,6 +155,7 @@ def _blank_sublayer(mission_id: int, layer_uuid: str) -> dict:
         "minNativeZoom": 0,
         "maxNativeZoom": 0,
         "maxZoom": 30,
+        "isCog": False,
         "isTimeBased": False,
         "timeLayerManifest": [],
         "createdAt": now_iso(),
@@ -172,9 +173,9 @@ def build_raster_sublayer(mission_id: int, layer_uuid: str, layer_dir: Path) -> 
     if tmr.exists():
         sub.update(parse_tilemapresource(tmr))
 
-    # properties.json overrides name/description/legend/tilePattern/tileFormat/type.
+    # properties.json overrides name/description/legend/tilePattern/tileFormat/type/isCog.
     props = read_properties(layer_dir / "properties.json")
-    for key in ("type", "name", "description", "legend", "tilePattern", "tileFormat"):
+    for key in ("type", "name", "description", "legend", "tilePattern", "tileFormat", "isCog"):
         if key in props:
             sub[key] = props[key]
     return sub
@@ -187,6 +188,36 @@ def build_vector_sublayer(mission_id: int, layer_uuid: str, geojson_file: Path) 
     sub["name"] = geojson_file.stem
     sub["path"] = geojson_file.name
     sub["tilePattern"] = ""
+    return sub
+
+
+def build_vector_tile_sublayer(mission_id: int, layer_uuid: str, pmtiles_file: Path) -> dict:
+    """A vector-tile (PMTiles) sublayer for a Layers/<name>.pmtiles archive.
+
+    Self-describing: the archive's embedded esri_tile_info carries the tile grid, so no
+    tilePattern/tileFormat/boundingBox is set. The path is the .pmtiles filename (AEGIS resolves
+    it under the mission's Layers/ dir).
+    """
+    sub = _blank_sublayer(mission_id, layer_uuid)
+    sub["type"] = "vector-tile"
+    sub["name"] = pmtiles_file.stem
+    sub["path"] = pmtiles_file.name
+    sub["tilePattern"] = ""
+    return sub
+
+
+def build_cog_sublayer(mission_id: int, layer_uuid: str, cog_file: Path) -> dict:
+    """A COG raster sublayer for a Data/<stem>_cog.tif.
+
+    Self-describing: OpenLayers reads the GeoTIFF directly over HTTP Range, so no
+    tilePattern/tileFormat/boundingBox/zoom is set. Marked isCog so the app routes it to the
+    WebGLTile/GeoTIFF path; the path is the .tif filename (AEGIS resolves it under Data/).
+    """
+    sub = _blank_sublayer(mission_id, layer_uuid)
+    sub["name"] = cog_file.stem
+    sub["path"] = cog_file.name
+    sub["tilePattern"] = ""
+    sub["isCog"] = True
     return sub
 
 
@@ -260,11 +291,40 @@ def find_vector_files(data_dir: Path) -> list[Path]:
 
 
 def find_dem_file(data_dir: Path) -> Path | None:
-    """The mission DEM COG under Data/ (first *.tif). Used for the demFilePath field."""
+    """The mission DEM COG under Data/ (first non-``_cog.tif`` *.tif). Used for the demFilePath.
+
+    ``--cog`` outputs use a ``_cog.tif`` suffix and are registered as their own COG sublayers,
+    so they must not be picked up as the mission DEM.
+    """
     if not data_dir.exists():
         return None
-    tifs = sorted(f for f in data_dir.iterdir() if f.is_file() and f.suffix.lower() == ".tif")
+    tifs = sorted(
+        f
+        for f in data_dir.iterdir()
+        if f.is_file() and f.suffix.lower() == ".tif" and not f.stem.endswith("_cog")
+    )
     return tifs[0] if tifs else None
+
+
+def find_pmtiles_files(layers_dir: Path) -> list[Path]:
+    """PMTiles vector-tile archives under Layers/ (single .pmtiles files, not tile dirs)."""
+    if not layers_dir.exists():
+        return []
+    return sorted(f for f in layers_dir.iterdir() if f.is_file() and f.suffix.lower() == ".pmtiles")
+
+
+def find_cog_files(data_dir: Path) -> list[Path]:
+    """COG rasters under Data/ (``*_cog.tif``), registered as isCog raster sublayers.
+
+    Uses the ``_cog`` suffix so the mission DEM COG (see :func:`find_dem_file`) is excluded.
+    """
+    if not data_dir.exists():
+        return []
+    return sorted(
+        f
+        for f in data_dir.iterdir()
+        if f.is_file() and f.suffix.lower() == ".tif" and f.stem.endswith("_cog")
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -354,21 +414,25 @@ def register_mission(
     # ── 2. header layers ───────────────────────────────────────────────────
     raster_dirs = find_raster_layer_dirs(layers_dir)
     vector_files = find_vector_files(data_dir)
+    pmtiles_files = find_pmtiles_files(layers_dir)
+    cog_files = find_cog_files(data_dir)
 
-    if not raster_dirs and not vector_files:
+    if not (raster_dirs or vector_files or pmtiles_files or cog_files):
         print(
-            f"  [warn] no tile layers under {layers_dir} or vectors under {data_dir}.\n"
+            f"  [warn] no tile/COG layers under {layers_dir}/{data_dir} or vectors/PMTiles.\n"
             "         For a register-only run, pass --out pointing at the locally-built "
             "mission folder (its Layers/ + Data/).",
             file=sys.stderr,
         )
 
+    has_raster = bool(raster_dirs or cog_files)
+    has_vector = bool(vector_files or pmtiles_files)
     needed_headers: list[str] = []
     if include_external_nac:
         needed_headers.append(config.HEADER_COMMON_LSP)
-    if raster_dirs:
+    if has_raster:
         needed_headers.append(config.HEADER_RASTER)
-    if vector_files:
+    if has_vector:
         needed_headers.append(config.HEADER_VECTOR)
 
     headers = ensure_header_layers(client, mission_id, needed_headers, dry_run=dry_run)
@@ -381,9 +445,15 @@ def register_mission(
         )
     for layer_dir in raster_dirs:
         sublayers.append(build_raster_sublayer(mission_id, headers[config.HEADER_RASTER], layer_dir))
+    for cog_file in cog_files:
+        sublayers.append(build_cog_sublayer(mission_id, headers[config.HEADER_RASTER], cog_file))
     for geojson_file in vector_files:
         sublayers.append(
             build_vector_sublayer(mission_id, headers[config.HEADER_VECTOR], geojson_file)
+        )
+    for pmtiles_file in pmtiles_files:
+        sublayers.append(
+            build_vector_tile_sublayer(mission_id, headers[config.HEADER_VECTOR], pmtiles_file)
         )
 
     # ── 4. skip already-registered (header, path) pairs ────────────────────
