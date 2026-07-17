@@ -100,6 +100,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--products", nargs="+", default=None, choices=["hillshade", "slope", "aspect", "tri"], metavar="PRODUCT", help="DEM-derived products to build (default: hillshade aspect tri; add slope to derive it from the DEM).")
     parser.add_argument("--raster", action="append", default=[], metavar="PATH", help="Custom raster layer (repeatable).")
     parser.add_argument("--vector", action="append", default=[], metavar="PATH", help="Custom vector layer, shp or geojson (repeatable).")
+    parser.add_argument("--vector-tile-cache", action="append", default=[], metavar="PATH", help="ArcGIS vector-tile cache dir (has root.json) → Layers/<name>.pmtiles (repeatable).")
+    parser.add_argument("--cog", action="append", default=[], metavar="PATH", help="Custom raster → Cloud-Optimised GeoTIFF sublayer in Data/ (repeatable).")
+    parser.add_argument("--cog-nodata", type=float, default=None, help="noData value to tag on --cog outputs (e.g. -3.4e38).")
 
     # Grid
     parser.add_argument("--grid-extent", default=config.GRID_EXTENT_DEFAULT, help=f"LGRS grid square extent around the lander (default: {config.GRID_EXTENT_DEFAULT}).")

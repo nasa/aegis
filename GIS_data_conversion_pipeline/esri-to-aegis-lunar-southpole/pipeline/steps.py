@@ -9,6 +9,7 @@ input-driven :func:`default_steps` are consumed by ``main.py``.
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -31,6 +32,7 @@ LYRX_TO_RAMP = ROOT / "products" / "lyrx_to_ramp.py"
 WRITE_PROPERTIES = ROOT / "properties" / "write_properties.py"
 GENERATE_LGRS = ROOT / "grid" / "generate_lgrs.py"
 CONVERT_LGRS = ROOT / "grid" / "convert_lgrs.py"
+ARCGIS_CACHE_TO_PMTILES = ROOT / "vectortile" / "arcgis_cache_to_pmtiles.py"
 
 
 # ---------------------------------------------------------------------------
@@ -356,6 +358,61 @@ def step_grid(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             pass
 
 
+def _pmtiles_name(cache_dir: Path) -> str:
+    """Pick a meaningful output name for a delivered ArcGIS cache.
+
+    The cache leaf is often a generic level dir (``p12``); prefer the parent name in that case
+    (e.g. ``AggregatedContour/p12`` → ``AggregatedContour``).
+    """
+    leaf = cache_dir.name
+    if re.fullmatch(r"p\d+", leaf) or leaf in ("tile", "cache"):
+        return cache_dir.parent.name or leaf
+    return leaf
+
+
+def step_vectortiles(p: config.PipelinePaths, args: argparse.Namespace) -> None:
+    """ArcGIS vector-tile caches (--vector-tile-cache) → one Layers/<name>.pmtiles each.
+
+    The archive lands under Layers/ (not Data/) because AEGIS resolves a "vector-tile" sublayer's
+    PMTiles URL via the Layers/ subdir. The converter copies the cache's esri_tile_info into the
+    archive so OpenLayers can build the vector tile grid with no reprojection.
+    """
+    banner("vectortiles — ArcGIS vector-tile cache → PMTiles (Layers/<name>.pmtiles)")
+    p.layers.mkdir(parents=True, exist_ok=True)
+    for cache in args.vector_tile_cache:
+        cache = Path(cache)
+        require_input(cache / "root.json", "ArcGIS vector-tile cache (root.json)", "--vector-tile-cache")
+        name = _pmtiles_name(cache)
+        out_pmtiles = p.layers / f"{name}.pmtiles"
+        if out_pmtiles.exists() and not args.overwrite:
+            tee(f"  [skip] {out_pmtiles} already built (use --overwrite to rebuild)")
+            continue
+        tee(f"\n  cache: {cache}  → {out_pmtiles}")
+        run([PYTHON, ARCGIS_CACHE_TO_PMTILES, cache, p.layers, "--name", name])
+
+
+def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
+    """Custom rasters (--cog) → one Cloud-Optimised GeoTIFF each in Data/<stem>_cog.tif.
+
+    Additive OpenLayers-first output: OL renders a COG directly (WebGLTile + GeoTIFF over HTTP
+    Range) with no tile pyramid. Registered as an isCog raster sublayer by the register step.
+    """
+    banner("cogs — custom rasters → Cloud-Optimised GeoTIFF (Data/<stem>_cog.tif)")
+    p.data.mkdir(parents=True, exist_ok=True)
+    for raster in args.cog:
+        raster = Path(raster)
+        require_input(raster, "COG source raster", "--cog")
+        out_cog = p.data / f"{raster.stem}_cog.tif"
+        if out_cog.exists() and not args.overwrite:
+            tee(f"  [skip] {out_cog} already built (use --overwrite to rebuild)")
+            continue
+        tee(f"\n  raster: {raster}  → {out_cog}")
+        cmd: list[str | Path] = [PYTHON, GEOTIFF_TO_COG, raster, "-o", out_cog]
+        if args.cog_nodata is not None:
+            cmd += ["--nodata", str(args.cog_nodata)]
+        run(cmd)
+
+
 def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Register mission fields + header layers + sublayers + active grid on the AEGIS server."""
     banner("register — AEGIS mission fields + layers + sublayers + grid")
@@ -428,6 +485,8 @@ STEPS: list[tuple[str, str]] = [
     ("vector", "Landing-ellipse shapefile → GeoJSON"),
     ("rasters", "Custom rasters (--raster) → tile to one cap-grid layer each"),
     ("vectors", "Custom vectors (--vector, shp/geojson) → GeoJSON in Data/"),
+    ("vectortiles", "ArcGIS vector-tile caches (--vector-tile-cache) → Layers/<name>.pmtiles"),
+    ("cogs", "Custom rasters (--cog) → Cloud-Optimised GeoTIFF in Data/"),
     ("grid", "Lander location → LGRS mission grid GeoJSON (default 10km)"),
     ("register", "Set mission fields + header layers/sublayers + active grid via AEGIS API"),
     ("box", "Zip Data/ + each layer and upload to Box"),
@@ -442,6 +501,8 @@ STEP_FNS = {
     "vector": step_vector,
     "rasters": step_rasters,
     "vectors": step_vectors,
+    "vectortiles": step_vectortiles,
+    "cogs": step_cogs,
     "grid": step_grid,
     "register": step_register,
     "box": step_box,
@@ -450,7 +511,10 @@ STEP_FNS = {
 STEP_NAMES = [name for name, _ in STEPS]
 
 # Steps that produce files under <out> (vs. publish-only steps that need <out> to exist).
-DATA_STEPS = {"stage", "dem", "nac", "slope", "products", "vector", "rasters", "vectors", "grid"}
+DATA_STEPS = {
+    "stage", "dem", "nac", "slope", "products", "vector", "rasters", "vectors",
+    "vectortiles", "cogs", "grid",
+}
 
 
 def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str]:
@@ -471,6 +535,10 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
         chosen.append("rasters")
     if args.vector:
         chosen.append("vectors")
+    if args.vector_tile_cache:
+        chosen.append("vectortiles")
+    if args.cog:
+        chosen.append("cogs")
     if args.lander_lat is not None and args.lander_lng is not None and not args.no_grid:
         chosen.append("grid")
     if args.register:

@@ -54,6 +54,7 @@ def build_cog(
     compress: str = "zstd",
     jpeg_quality: int = 85,
     blocksize: int = 512,
+    nodata: float | None = None,
 ) -> Path:
     """
     Convert an arbitrary GeoTIFF into a COG using GDAL's native COG driver.
@@ -104,6 +105,21 @@ def build_cog(
 
         print("  Writing COG (single-pass, multi-threaded) ...", flush=True)
 
+        # noData must be set at CREATION — the COG driver copies the source's noData, and a
+        # post-hoc edit rewrites the IFD and breaks the COG layout. When --nodata is given we
+        # copy from a lazy in-memory VRT that declares it (no pixel copy), so the single COG
+        # write both honours the override and keeps a valid COG. Omit --nodata to preserve the
+        # source's own noData tag (the COG copy carries it through unchanged).
+        vsimem_vrt: str | None = None
+        copy_source: object = src
+        if nodata is not None:
+            from osgeo import gdal
+
+            vsimem_vrt = "/vsimem/geotiff_to_cog_src.vrt"
+            gdal.Translate(vsimem_vrt, str(src_path), format="VRT", noData=nodata)
+            copy_source = vsimem_vrt
+            print(f"  noData tag:  {nodata}")
+
         # rasterio.shutil.copy has no progress callback, so report the growing output
         # file size every 15 s from a monitor thread. Size is a proxy (compression means
         # it won't match the source), but it shows the write is alive and how fast.
@@ -123,10 +139,14 @@ def build_cog(
         mon = threading.Thread(target=_monitor, daemon=True)
         mon.start()
         try:
-            rasterio.shutil.copy(src, str(dst_path), **copy_kwargs)
+            rasterio.shutil.copy(copy_source, str(dst_path), **copy_kwargs)
         finally:
             done.set()
             mon.join(timeout=1)
+            if vsimem_vrt is not None:
+                from osgeo import gdal
+
+                gdal.Unlink(vsimem_vrt)
 
     elapsed = time.time() - t0
     cog_size_gb = dst_path.stat().st_size / (1024**3)
@@ -190,6 +210,12 @@ def main() -> None:
         default=512,
         help="Internal tile size in pixels (default: 512)",
     )
+    parser.add_argument(
+        "--nodata",
+        type=float,
+        default=None,
+        help="noData value to tag on the COG (e.g. -3.4e38). Omit to preserve the source's.",
+    )
 
     args = parser.parse_args()
 
@@ -210,6 +236,7 @@ def main() -> None:
         compress=args.compress,
         jpeg_quality=args.jpeg_quality,
         blocksize=args.blocksize,
+        nodata=args.nodata,
     )
 
     print("Serve the COG via any static host with Range request support.")

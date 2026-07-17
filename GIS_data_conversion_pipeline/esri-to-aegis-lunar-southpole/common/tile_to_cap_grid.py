@@ -2,24 +2,29 @@
 """Tile a raster onto the AEGIS lunar **south-pole cap grid** — the shared map
 definition used by the production ``NAC_POLE_SOUTH_CM_AVG_MERGE`` basemap.
 
-Every layer tiled this way overlays that basemap pixel-for-pixel in Leaflet.
+Every layer tiled this way overlays that basemap pixel-for-pixel in OpenLayers.
 Uses pure rasterio/numpy — no gdal CLI required.
 
     Origin              = (-931100, -931100)        # cap bottom-left
     Extent              = -931100 .. 931100  (both axes)
-    z0 units-per-pixel  = 12800  ->  z13 = 1.5625   # 14 levels, TMS (y from bottom)
+    z0 units-per-pixel  = 12800                      # TMS (y from bottom)
 
 The z0 resolution (12800) must equal the mission's ``projResUnitsPerPixel``
-(with ``projResZoomLevel = 0``): Leaflet builds its per-mission resolution pyramid
-as ``12800 / 2**z`` and uses it to compute tile indices.  Every layer must be cut
-on this same z0 or Leaflet requests non-existent indices → 404s.
+(with ``projResZoomLevel = 0``): OpenLayers builds its per-mission resolution pyramid
+as ``12800 / 2**z`` (``buildLegacyResolutions``) and uses it to compute tile indices.
+Every layer must be cut on this same z0 or OL requests non-existent indices → 404s.
+
+Each layer is cut to its **own native resolution** (an OpenLayers per-layer pyramid):
+the depth ``max_zoom = round(log2(z0_res / r_in))`` is per-layer, while origin and z0
+stay shared.  A 1 m/px source tiles to z14; there is no global zoom clamp.
 
 Alignment note
 --------------
 The cap is not a whole number of tiles wide.  The production basemap anchors at the
-BOTTOM-left (-931100) and lets the partial tile fall off the TOP — exactly what
-Leaflet assumes.  This script replicates that: it computes tile indices from the
-bottom-left and counts up, so the TMS y=0 row coincides with y=-931100.
+BOTTOM-left (-931100) and lets the partial tile fall off the TOP.  This script
+replicates that: it computes tile indices from the bottom-left and counts up, so the
+TMS y=0 row coincides with y=-931100.  OpenLayers consumes these TMS tiles by flipping
+the y index in a ``tileUrlFunction`` (the app keeps this for both legacy and new layers).
 
 Usage
 -----
@@ -40,11 +45,7 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
-from rasterio.crs import CRS
 from rasterio.enums import Resampling
-from rasterio.transform import from_bounds
-from rasterio.warp import transform_bounds
-from rasterio.windows import Window
 from PIL import Image  # type: ignore
 
 # Import the shared projection profile from the pipeline root (one level up from
@@ -56,10 +57,7 @@ from config import (  # noqa: E402
     CAP_MAX,
     TILE,
     CAP_Z0_RES,
-    CAP_MAX_ZOOM,
     CAP_SRS,
-    PROJ_PROJ4,
-    PROJ_GEOGRAPHIC_PROJ4,
 )
 
 # Windows consoles default to cp1252; force UTF-8 so banners don't crash.
@@ -75,24 +73,6 @@ for _stream in (sys.stdout, sys.stderr):
 # ---------------------------------------------------------------------------
 
 
-def _proj_bbox_to_lonlat(
-    bbox: tuple[float, float, float, float]
-) -> tuple[float, float, float, float]:
-    """Reproject a cap-grid ``(minx, miny, maxx, maxy)`` (projected metres) to geographic
-    ``(min_lon, min_lat, max_lon, max_lat)`` degrees on the lunar sphere.
-
-    ``densify_pts`` samples points along each edge before taking the min/max, so the
-    curvature of the polar-stereographic rectangle's edges in lon/lat is captured (the four
-    corners alone would under-cover the true lon span).
-    """
-    return transform_bounds(  # type: ignore[return-value]
-        CRS.from_proj4(PROJ_PROJ4),
-        CRS.from_proj4(PROJ_GEOGRAPHIC_PROJ4),
-        *bbox,
-        densify_pts=21,
-    )
-
-
 def write_tilemapresource(
     out_dir: Path,
     max_zoom: int,
@@ -102,17 +82,13 @@ def write_tilemapresource(
     """Emit a cap-grid tilemapresource.xml.
 
     ``bbox`` is the layer's TIGHT data extent ``(minx, miny, maxx, maxy)`` in cap-grid
-    projected metres.  It is written to ``<BoundingBox>`` as **geographic lon/lat degrees**
-    (reprojected here), because AEGIS reads that element straight into ``sublayer.boundingBox``
-    and Leaflet clips tile requests against it in lat/lng — so the layer only fetches tiles
-    that were actually written instead of walking the whole ~1.86 Mm cap (or, if the box were
-    left in projected metres, rejecting every real tile and rendering nothing).  ``<SRS>`` /
-    ``<Origin>`` / ``<TileSet units-per-pixel>`` stay in projected metres to document the grid;
-    only ``<BoundingBox>`` is geographic.  When ``bbox`` is ``None`` it falls back to the full
-    cap (an effectively unbounded lat/lng box — no clip).
+    projected metres, and is written to ``<BoundingBox>`` **as projected metres** — the
+    OpenLayers-native form.  OL clips tile requests to a layer/source ``extent`` in the
+    projection's own coordinates, so the projected box is what the consumer wants.  ``<SRS>``
+    / ``<Origin>`` / ``<TileSet units-per-pixel>`` are projected metres too, so the whole
+    document is in one unit system.  When ``bbox`` is ``None`` it falls back to the full cap.
     """
-    proj_bbox = bbox if bbox is not None else (CAP_MIN, CAP_MIN, CAP_MAX, CAP_MAX)
-    minx, miny, maxx, maxy = _proj_bbox_to_lonlat(proj_bbox)
+    minx, miny, maxx, maxy = bbox if bbox is not None else (CAP_MIN, CAP_MIN, CAP_MAX, CAP_MAX)
     tilesets = "\n".join(
         f'        <TileSet href="{z}" units-per-pixel="{z0_res / 2 ** z:.14f}" order="{z}"/>'
         for z in range(max_zoom + 1)
@@ -200,10 +176,14 @@ def tile_raster(
         bounds = src.bounds
         r_in = float(src.res[0])
 
-        # Snap to nearest cap zoom level
+        # Cut each layer to its OWN native resolution — an OpenLayers per-layer pyramid.
+        # Origin (CAP_MIN) and z0 (CAP_Z0_RES) stay shared so the layer still aligns to the
+        # mission cap grid and overlays the basemap; only the depth (max_zoom) is per-layer.
+        # There is no global zoom clamp: round(log2(z0_res / r_in)) is self-limiting at the
+        # source's native resolution (a 1 m/px raster → z14). The app builds resolutions as
+        # 12800 / 2**z for z in 0..maxNativeZoom, so a deeper layer "just works".
         z0_res = CAP_Z0_RES
-        cap_max_zoom = CAP_MAX_ZOOM
-        max_zoom = min(cap_max_zoom, max(0, round(math.log2(z0_res / r_in))))
+        max_zoom = max(0, round(math.log2(z0_res / r_in)))
         out_res = z0_res / 2**max_zoom
         tile_span = TILE * out_res
 
@@ -429,15 +409,10 @@ def tile_raster(
         min(CAP_MAX, CAP_MIN + (ty_max + 1) * tile_span),
     )
     write_tilemapresource(output_dir, max_zoom, CAP_Z0_RES, bbox)
-    ll = _proj_bbox_to_lonlat(bbox)
     print(f"\n  tiles written: {n_written:,}  in {time.monotonic() - t_start:.0f}s")
     print(
         f"  data bbox (proj m) minx {bbox[0]:.1f}  miny {bbox[1]:.1f}  "
         f"maxx {bbox[2]:.1f}  maxy {bbox[3]:.1f}"
-    )
-    print(
-        f"  BoundingBox (lon/lat°) minlon {ll[0]:.5f}  minlat {ll[1]:.5f}  "
-        f"maxlon {ll[2]:.5f}  maxlat {ll[3]:.5f}"
     )
     print(f"  tilemapresource.xml: {output_dir / 'tilemapresource.xml'}")
     print(

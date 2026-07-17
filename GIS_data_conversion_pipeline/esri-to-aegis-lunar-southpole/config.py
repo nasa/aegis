@@ -33,15 +33,19 @@ from aegis_api import DEFAULT_ENV_FILE, REPO_ROOT, load_env_value
 # ---------------------------------------------------------------------------
 # The shared map definition used by the production NAC_POLE_SOUTH_CM_AVG_MERGE
 # basemap. Every layer tiled on this grid overlays that basemap pixel-for-pixel
-# in Leaflet. CAP_Z0_RES MUST equal the mission's projResUnitsPerPixel (with
-# projResZoomLevel = 0): Leaflet builds its resolution pyramid as
-# CAP_Z0_RES / 2**z, so every layer must be cut on this same z0.
+# in OpenLayers. CAP_Z0_RES MUST equal the mission's projResUnitsPerPixel (with
+# projResZoomLevel = 0): OpenLayers builds its resolution pyramid as
+# CAP_Z0_RES / 2**z, so every layer must be cut on this same z0. Each layer's
+# DEPTH (max zoom) is per-layer, derived from its native resolution by the tiler
+# (an OpenLayers per-layer pyramid) — there is no shared zoom clamp.
 
 CAP_MIN = -931100.0  # cap bottom-left (both axes), == projOriginX/Y
 CAP_MAX = 931100.0  # cap top-right (both axes)
 TILE = 256  # tile size in pixels
 CAP_Z0_RES = 12800.0  # z0 units-per-pixel == mission projResUnitsPerPixel
-CAP_MAX_ZOOM = 13  # z13 = 1.5625 m/px (14 levels, TMS y-from-bottom)
+# Zoom range of the external NAC basemap ONLY (its published S3 tiles are z0..z13). New
+# layers cut by tile_to_cap_grid.py are NOT clamped to this — each cuts to its native depth.
+CAP_EXTERNAL_NAC_MAX_ZOOM = 13
 
 PLANET_RADIUS = 1737400  # lunar sphere radius (m)
 PROJ_EPSG = "IAU2000:30166"
@@ -49,11 +53,6 @@ PROJ_PROJ4 = (
     "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 "
     "+a=1737400 +b=1737400 +units=m +no_defs"
 )
-# Geographic (lon/lat) counterpart of PROJ_PROJ4 — same lunar sphere. The tiler reprojects
-# each layer's tight cap-grid extent into these degrees before writing the tilemapresource
-# <BoundingBox>, because AEGIS/Leaflet clips tile requests in geographic lat/lng (see the
-# BoundingBox note in common/tile_to_cap_grid.py).
-PROJ_GEOGRAPHIC_PROJ4 = "+proj=longlat +a=1737400 +b=1737400 +no_defs"
 
 # Full WKT SRS written into each layer's tilemapresource.xml.
 CAP_SRS = (
@@ -172,7 +171,7 @@ EXTERNAL_NAC = {
     "tile_pattern": "{z}/{x}/{y}.png",
     "bounding_box": [CAP_MIN, CAP_MIN, CAP_MAX, CAP_MAX],
     "min_native_zoom": 0,
-    "max_native_zoom": CAP_MAX_ZOOM,
+    "max_native_zoom": CAP_EXTERNAL_NAC_MAX_ZOOM,
     "tile_format": "tms",
     "description": (
         "Lunar Reconnaissance Orbiter Camera (LROC) Narrow Angle Camera (NAC) "

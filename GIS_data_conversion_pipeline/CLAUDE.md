@@ -40,8 +40,10 @@ pixi run python <script>.py ...
   (`reporting` output-capture, `steps`, `summary`); `config.py` holds the cap-grid projection
   profile + path resolution + header/external-NAC/grid constants; `aegis_api.py` /
   `register.py` / `box_publish.py` do the HTTP registration + Box upload; `common/` shared
-  raster tools; one folder per concern (`dem nac slope products vector grid timeaware
-  properties`). `products/lyrx_to_ramp.py` converts GIS-delivered ArcGIS `.lyrx` symbology to
+  raster tools; one folder per concern (`dem nac slope products vector vectortile grid
+  timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivered ArcGIS
+  vector-tile cache (Compact Cache V2) into a single `.pmtiles` (pure-Python `pmtiles`, no GDAL).
+  `products/lyrx_to_ramp.py` converts GIS-delivered ArcGIS `.lyrx` symbology to
   gdaldem ramps; `products/default_color_ramps/` are the built-in fallback ramps.
 - [`mercator/`](mercator/) — Mercator/global tiling for **non-polar / Earth** data.
 

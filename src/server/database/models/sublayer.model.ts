@@ -35,6 +35,8 @@ export class Sublayer_db implements Sublayer_db_type {
   maxNativeZoom: number;
   @Property({ type: MikroTypes.float, nullable: true })
   maxZoom: number;
+  @Property({ type: MikroTypes.boolean, default: false })
+  isCog: boolean;
   @Property({ type: MikroTypes.boolean, nullable: true })
   isTimeBased: boolean;
   @Property({ type: MikroTypes.json, nullable: true })
