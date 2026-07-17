@@ -28,7 +28,7 @@ import { makeTraverseRateString } from "utils/component-helpers";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdateTraverseByField } from "client/automerge/apply/apply-traverse";
+import { applyUpdateTraverseByField } from "operations/apply/apply-traverse";
 import CalculatedDwell from "../calculated-dwell";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {

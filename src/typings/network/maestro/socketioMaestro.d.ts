@@ -1,7 +1,7 @@
 // ─── /maestro namespace — Maestro API client ─────────────────────────────────
 
 interface MaestroServerToClientEvents {
-  dataAll: (everythingForMaestro: Maegistro.IAegisEntity) => void;
+  dataAll: (everythingForMaestro: Maegistro.AegisSlice) => void;
 }
 
 interface MaestroClientToServerEvents {
@@ -13,12 +13,12 @@ interface MaestroClientToServerEvents {
     missionId: number,
     callback: (
       response:
-        | { status: "success"; message: string; data: Maegistro.IAegisEntity }
+        | { status: "success"; message: string; data: Maegistro.AegisSlice }
         | { status: "failure"; message: string }
         | { status: "error"; message: string }
     ) => void
   ) => void;
-  sendMDAU: (missionId: number, mdau: MaestroDataAegisUses) => void;
+  sendMDAU: (missionId: number, mdau: Maegistro.MaestroDataAegisUses) => void;
   // Mimics the emss/rexOverwrite route
   rexOverwrite: (
     body: RexOverwrite,

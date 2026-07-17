@@ -40,8 +40,8 @@ import { thunkDocDeleteRex } from "store/thunk/thunkRex";
 import { LoadingOverlay } from "components/interface/_global-elements";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdateEvaByField } from "client/automerge/apply/apply-eva";
-import { applyUpdateRexByField } from "client/automerge/apply/apply-rex";
+import { applyUpdateEvaByField } from "operations/apply/apply-eva";
+import { applyUpdateRexByField } from "operations/apply/apply-rex";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useAppDispatch();

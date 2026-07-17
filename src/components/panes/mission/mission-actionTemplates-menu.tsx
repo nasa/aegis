@@ -6,7 +6,7 @@ import actionStyles from "../actions-action.module.css";
 import {
   applyDeleteActionTemplate,
   applyDuplicateActionTemplate,
-} from "client/automerge/apply/apply-mission-actionTemplate";
+} from "operations/apply/apply-mission-actionTemplate";
 import { withMissionChange } from "client/automergeDocHandles";
 
 export const ActionTemplateMenu: FunctionComponent<{

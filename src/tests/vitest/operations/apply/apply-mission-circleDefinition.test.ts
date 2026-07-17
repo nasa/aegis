@@ -7,7 +7,7 @@ import {
   applyCreateCircleDefinition,
   applyDeleteCircleDefinition,
   applyUpdateCircleDefinitionByField,
-} from "client/automerge/apply/apply-mission-circleDefinition";
+} from "operations/apply/apply-mission-circleDefinition";
 import { v4 as uuidv4 } from "uuid";
 
 beforeAll(() => {

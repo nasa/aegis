@@ -1,7 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import { applyDeleteEquipmentItem } from "client/automerge/apply/apply-mission-equipment";
-import { getEquipmentItemUsages } from "client/automerge/equipmentItemUsages";
+import { applyDeleteEquipmentItem } from "operations/apply/apply-mission-equipment";
+import { getEquipmentItemUsages } from "operations/helpers/equipmentItemUsages";
 
 export const thunkDocDeleteEquipmentItem = appCreateAsyncThunk<
   { equipmentItemUuid: string },

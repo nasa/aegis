@@ -8,7 +8,7 @@ import {
   applyToggleStationCircleVisible,
   applyUpdateStationByField,
   applyUpdateStationCircleStyle,
-} from "client/automerge/apply/apply-station";
+} from "operations/apply/apply-station";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankStation } from "store/storeUtils/station";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";

@@ -15,7 +15,7 @@ import {
   applyRemoveEquipmentItem,
   applyAddGeographicUnit,
   applyRemoveGeographicUnit,
-} from "client/automerge/apply/apply-action";
+} from "operations/apply/apply-action";
 
 export const EquipmentSelector: FunctionComponent<{
   equipmentItemsUsage: EquipmentItemUsages | null;

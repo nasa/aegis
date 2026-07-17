@@ -197,22 +197,6 @@ describe("buildAegisEntityForMaestro", () => {
     expect(result.fetchedAegisActions[actionOnTraverse.refUuid]).toBeDefined();
   });
 
-  it("attaches rexUuid to EVA when rex exists for subscribed EVA", async () => {
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
-
-    const mockCoreData = buildMockCoreData({
-      evas: [evaSubscribed],
-      stations: [stationA],
-      traverses: [traverseA],
-      rexes: [rexForSubscribed],
-    });
-    mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
-
-    const result = await buildAegisEntityForMaestro(MISSION_ID);
-
-    expect(result.aegisEvas[evaSubscribed.refUuid].rexUuid).toBe(rexForSubscribed.uuid);
-  });
-
   it("maps station actionOrderUuids to action refUuids", async () => {
     const stationWithOrder = generateBlankStation({
       name: "Vitest Station With Order",

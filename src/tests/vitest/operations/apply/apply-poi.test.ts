@@ -3,7 +3,7 @@ import {
   setMissionAutomergeDocHandle,
   withMissionChange,
 } from "client/automergeDocHandles";
-import { applyUpdatePoiByField } from "client/automerge/apply/apply-poi";
+import { applyUpdatePoiByField } from "operations/apply/apply-poi";
 import { generateBlankPoi } from "store/storeUtils/poi";
 import { v4 as uuidv4 } from "uuid";
 

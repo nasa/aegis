@@ -16,7 +16,7 @@ import {
   setMissionAutomergeDocHandle,
   withMissionChange,
 } from "client/automergeDocHandles";
-import { applyRexPetStartStop } from "client/automerge/apply/apply-rex";
+import { applyRexPetStartStop } from "operations/apply/apply-rex";
 
 // Mock thunkDocDuplicateEva so we can control its return value in specific tests.
 const mockThunkDocDuplicateEva = vi.fn();

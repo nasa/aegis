@@ -7,7 +7,7 @@ import {
   applyDuplicateTraverse,
   applyDeleteTraverses,
   applyUpdateTraverseByField,
-} from "client/automerge/apply/apply-traverse";
+} from "operations/apply/apply-traverse";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankRex } from "store/storeUtils/rex";

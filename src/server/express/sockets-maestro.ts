@@ -187,7 +187,7 @@ export const setupMaestroNamespace = (
         }
       });
 
-      socket.on("sendMDAU", (missionId: number, mdau: MaestroDataAegisUses) => {
+      socket.on("sendMDAU", (missionId: number, mdau: Maegistro.MaestroDataAegisUses) => {
         if (!missionId || isNaN(missionId)) {
           serverLogger.warning({
             logId: "socket-maestro",
@@ -196,9 +196,29 @@ export const setupMaestroNamespace = (
           return;
         }
         try {
-          // strip out aegisStations and send the rest as a new RexOverwrite object
-          const { aegisStations, ...rexOverwrite } = mdau;
-          overwriteRex(rexOverwrite);
+          const { aegisStations, aegisRexes } = mdau;
+
+          // Call overwriteRex for each rex entry in aegisRexes
+          if (aegisRexes) {
+            for (const rexEntry of Object.values(aegisRexes)) {
+              const rexOverwrite: RexOverwrite = {
+                uuid: rexEntry.uuid,
+                petStartStopTimestamp: rexEntry.petStartStopTimestamp,
+                petValueAtStartStop: rexEntry.petValueAtStartStop,
+                petRunning: rexEntry.petRunning,
+                isRunning: rexEntry.isRunning,
+                maestroControlled: rexEntry.maestroControlled,
+                maestroEventId: null, //todo these values need to be moved to EVA, not rex
+                maestroEventUrl: null,
+                maestroActivityPropertiesByRefUuid: rexEntry.maestroActivityPropertiesByRefUuid,
+                xgressEntries: rexEntry.xgressEntries,
+                stationEntriesByRefUuid: rexEntry.stationEntriesByRefUuid,
+                traverseEntriesByRefUuid: rexEntry.traverseEntriesByRefUuid,
+                actionEntriesByRefUuid: rexEntry.actionEntriesByRefUuid,
+              };
+              overwriteRex(rexOverwrite);
+            }
+          }
 
           // update stations
           applyMdauStationsToDoc(missionId, aegisStations).catch((error) => {

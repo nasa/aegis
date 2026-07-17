@@ -25,7 +25,7 @@ import {
   applyUpdatePosSourceField,
   applyUpdatePosTypeField,
   applyUpdateRexByField,
-} from "client/automerge/apply/apply-rex";
+} from "operations/apply/apply-rex";
 import { withMissionChange } from "client/automergeDocHandles";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useMemo } from "react";

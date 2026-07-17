@@ -10,7 +10,7 @@ import {
   applyDuplicateActionTemplate,
   applyUpdateActionTemplateActionDefinition,
   applyUpdateActionTemplateByField,
-} from "client/automerge/apply/apply-mission-actionTemplate";
+} from "operations/apply/apply-mission-actionTemplate";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankActionTemplate } from "store/storeUtils/mission";
 import { v4 as uuidv4 } from "uuid";

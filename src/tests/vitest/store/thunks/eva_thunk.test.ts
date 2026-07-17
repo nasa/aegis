@@ -20,7 +20,7 @@ import {
   setMissionAutomergeDocHandle,
   withMissionChange,
 } from "client/automergeDocHandles";
-import { applyUpdateEvaByField } from "client/automerge/apply/apply-eva";
+import { applyUpdateEvaByField } from "operations/apply/apply-eva";
 import { initialState as evaInitialState } from "store/eva";
 
 const confirmSpy = vi.spyOn(window, "confirm").mockImplementation(() => true);

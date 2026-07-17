@@ -6,7 +6,7 @@ import {
 import {
   applyCreateActionDefinitionItem,
   applyUpdateActionDefinitionItemByField,
-} from "client/automerge/apply/apply-mission-actionDefinition";
+} from "operations/apply/apply-mission-actionDefinition";
 
 beforeAll(() => {
   setMissionAutomergeDocHandle(null);

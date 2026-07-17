@@ -26,7 +26,7 @@ import { useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdateActionByField } from "client/automerge/apply/apply-action";
+import { applyUpdateActionByField } from "operations/apply/apply-action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { longDateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";

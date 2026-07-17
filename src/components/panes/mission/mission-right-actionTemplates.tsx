@@ -43,7 +43,7 @@ import {
   applyCreateActionTemplate,
   applyUpdateActionTemplateActionDefinition,
   applyUpdateActionTemplateByField,
-} from "client/automerge/apply/apply-mission-actionTemplate";
+} from "operations/apply/apply-mission-actionTemplate";
 import { withMissionChange } from "client/automergeDocHandles";
 
 const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
