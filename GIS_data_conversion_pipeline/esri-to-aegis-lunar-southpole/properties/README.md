@@ -5,7 +5,7 @@ Generates the per-layer metadata file the AEGIS admin auto-imports
 from a GDAL `color-relief` colour ramp so the legend always matches the applied colours.
 
 ```bash
-cd data_conversion_scripts
+cd GIS_data_conversion_pipeline
 
 # Slope legend (degrees) from the standard ramp
 pixi run python esri-to-aegis-lunar-southpole/properties/write_properties.py \

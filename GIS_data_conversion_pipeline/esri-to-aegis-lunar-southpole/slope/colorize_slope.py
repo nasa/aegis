@@ -42,7 +42,7 @@ Usage
 -----
 ::
 
-    cd data_conversion_scripts
+    cd GIS_data_conversion_pipeline
 
     # Minimal — auto-detect lyrx next to the input raster
     pixi run python esri-to-aegis-lunar-southpole/slope/colorize_slope.py \\

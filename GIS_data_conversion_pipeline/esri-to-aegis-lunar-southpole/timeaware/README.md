@@ -5,7 +5,7 @@ onto the south-pole cap grid and writes the `manifest.json` AEGIS reads for time
 layers (`loadManifestFromFile` in `src/components/admin/layerSublayerEdit.tsx`).
 
 ```bash
-cd data_conversion_scripts
+cd GIS_data_conversion_pipeline
 pixi run python esri-to-aegis-lunar-southpole/timeaware/singleband_timeaware.py \
     /path/to/illum_frames --datatype mazarico -o /path/to/output
 
@@ -25,7 +25,7 @@ pixi run python esri-to-aegis-lunar-southpole/timeaware/singleband_timeaware.py 
 └── …
 ```
 
-AEGIS derives per-frame time *ranges* itself (midpoints between adjacent frames), so the
+AEGIS derives per-frame time _ranges_ itself (midpoints between adjacent frames), so the
 manifest only needs `datetime` + `dirName`. **Only one time-based sublayer is allowed per
 mission** (enforced by the admin).
 

@@ -98,6 +98,8 @@ OUT_ELLIPSE_NAME = "ellipse.geojson"
 def dem_output_name(dem_in: Path) -> str:
     """COG output filename for a DEM input: ``<source-stem>_<compress>.tif``."""
     return f"{dem_in.stem}_{DEM_COMPRESS}.tif"
+
+
 OUT_NAC_LAYER_NAME = "nac"
 OUT_SLOPE_LAYER_NAME = "slope"
 OUT_SLOPE_RGBA_NAME = "slope_rgba.tif"  # scratch, removed after tiling
@@ -114,11 +116,13 @@ PRODUCTS_DEFAULT = ["hillshade", "aspect", "tri"]
 # Built-in (fallback) colour ramps. Used when the GIS team does not deliver product
 # symbology as a .lyrx; a delivered .lyrx is converted (products/lyrx_to_ramp.py) and used
 # instead. slope.txt encodes the same standard as the MS3 AMPES_Slope 1.lyrx.
-DEFAULT_COLOR_RAMPS_DIR = Path(__file__).resolve().parent / "products" / "default_color_ramps"
+DEFAULT_COLOR_RAMPS_DIR = (
+    Path(__file__).resolve().parent / "products" / "default_color_ramps"
+)
 # Legend units per colorized product (passed to properties/write_properties.py).
 PRODUCT_UNITS = {"slope": "deg", "aspect": "", "tri": "m"}
 
-# TRI colour treatment is resolution-dependent (see the gotcha in data_conversion_scripts/
+# TRI colour treatment is resolution-dependent (see the gotcha in GIS_data_conversion_pipeline/
 # CLAUDE.md): a matching ramp from default_color_ramps/ARCHIVE/ must be used per DEM resolution,
 # otherwise the legend bins (and colours) are wrong. Falls back to the legacy tri.txt.
 TRI_RAMP_BY_RESOLUTION = {
@@ -143,12 +147,17 @@ OUT_GRID_SOURCE_NAME = "grid_source.geojson"
 
 def tri_ramp_for_resolution(resolution: float | None) -> Path:
     """Return the TRI colour ramp matching the DEM resolution (legacy tri.txt fallback)."""
-    name = TRI_RAMP_BY_RESOLUTION.get(float(resolution)) if resolution is not None else None
+    name = (
+        TRI_RAMP_BY_RESOLUTION.get(float(resolution))
+        if resolution is not None
+        else None
+    )
     if name:
         candidate = DEFAULT_COLOR_RAMPS_DIR / "ARCHIVE" / name
         if candidate.exists():
             return candidate
     return DEFAULT_COLOR_RAMPS_DIR / "tri.txt"
+
 
 # Default DEM native resolution (m/px) written to the mission demResolution.
 DEFAULT_DEM_RESOLUTION = 1.0

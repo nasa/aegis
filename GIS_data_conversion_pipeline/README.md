@@ -10,7 +10,7 @@ binaries via **pixi** — no system GDAL, no source builds. Run scripts with
 `uv run`.) See [`pyproject.toml`](pyproject.toml) for details.
 
 ```bash
-cd data_conversion_scripts
+cd GIS_data_conversion_pipeline
 pixi install
 ```
 
@@ -43,12 +43,12 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 By default the pipeline runs only the steps whose inputs are present (e.g. `grid` when a
 lander location is given), plus `register`/`box` when `--register`/`--box` are passed.
 
-| You want…                       | Flag                                  |
-| ------------------------------- | ------------------------------------- |
-| Default (input-driven) steps    | _(omit `--steps`/`--from`)_           |
-| Specific steps, by name         | `--steps dem vector`                  |
-| Specific steps, by index        | `--steps 1 5`                         |
-| Everything from a step onward   | `--from slope` (or `--from 3`)        |
+| You want…                         | Flag                                                          |
+| --------------------------------- | ------------------------------------------------------------- |
+| Default (input-driven) steps      | _(omit `--steps`/`--from`)_                                   |
+| Specific steps, by name           | `--steps dem vector`                                          |
+| Specific steps, by index          | `--steps 1 5`                                                 |
+| Everything from a step onward     | `--from slope` (or `--from 3`)                                |
 | Rebuild layers that already exist | add `--overwrite` (tile steps skip existing layers otherwise) |
 
 #### Specifying source & destination paths
@@ -57,18 +57,18 @@ Output goes to `<static>/missionFiles/<mission-id>/` by default (override with `
 step reads a specific input under `--src` that you can override individually. Outputs land in
 `<out>/Data/` (DEM, vectors, grid coords, conversion report) and `<out>/Layers/` (tile layers).
 
-| Step       | Source flag (overrides the `--src` default)   | Destination (under `--out`)              |
-| ---------- | --------------------------------------------- | ---------------------------------------- |
-| `dem`      | `--dem <dem.tif>`                             | `Data/<source>_zstd.tif` (keeps source name) |
-| `nac`      | `--nac-mosaic <mosaic.tif>` _(delivered separately)_ | `Layers/nac/`                     |
-| `slope`    | `--slope <slope.tif>` + `--lyrx <ramp.lyrx>` | `Layers/slope/`                          |
-| `products` | `--dem` + `--products hillshade slope aspect tri` | `Layers/{hillshade,slope,aspect,tri}/` |
-| `vector`   | `--ellipse <ellipse.shp>`                    | `Data/ellipse.geojson`                   |
-| `rasters`  | `--raster <path>` (repeatable)               | `Layers/<stem>/` each                    |
-| `vectors`  | `--vector <path>` (repeatable, shp/geojson)  | `Data/<stem>.geojson` each               |
-| `grid`     | `--lander-lat/--lander-lng` (`--grid-extent 10km`) | `grid_source.geojson`              |
-| `register` | `--mission-id` (+ `--aegis-url`/`--token`)   | mission fields + layers/sublayers + active grid |
-| `box`      | `--mission-name`                             | zips → Box `<mission name>/{Data,Layers}/` |
+| Step       | Source flag (overrides the `--src` default)          | Destination (under `--out`)                     |
+| ---------- | ---------------------------------------------------- | ----------------------------------------------- |
+| `dem`      | `--dem <dem.tif>`                                    | `Data/<source>_zstd.tif` (keeps source name)    |
+| `nac`      | `--nac-mosaic <mosaic.tif>` _(delivered separately)_ | `Layers/nac/`                                   |
+| `slope`    | `--slope <slope.tif>` + `--lyrx <ramp.lyrx>`         | `Layers/slope/`                                 |
+| `products` | `--dem` + `--products hillshade slope aspect tri`    | `Layers/{hillshade,slope,aspect,tri}/`          |
+| `vector`   | `--ellipse <ellipse.shp>`                            | `Data/ellipse.geojson`                          |
+| `rasters`  | `--raster <path>` (repeatable)                       | `Layers/<stem>/` each                           |
+| `vectors`  | `--vector <path>` (repeatable, shp/geojson)          | `Data/<stem>.geojson` each                      |
+| `grid`     | `--lander-lat/--lander-lng` (`--grid-extent 10km`)   | `grid_source.geojson`                           |
+| `register` | `--mission-id` (+ `--aegis-url`/`--token`)           | mission fields + layers/sublayers + active grid |
+| `box`      | `--mission-name`                                     | zips → Box `<mission name>/{Data,Layers}/`      |
 
 Omit a source flag and the step uses its default path under `--src` (the A03MP026 layout).
 A GIS-delivered `.lyrx` passed with `--lyrx` is used **instead of** the built-in colour ramp

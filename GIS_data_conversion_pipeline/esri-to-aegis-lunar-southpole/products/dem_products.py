@@ -28,7 +28,7 @@ Usage
 -----
 ::
 
-    cd data_conversion_scripts
+    cd GIS_data_conversion_pipeline
     pixi run python esri-to-aegis-lunar-southpole/products/dem_products.py \\
         --dem /path/to/dem.tif --out /path/to/products \\
         --products slope hillshade aspect tri
@@ -158,7 +158,9 @@ def make_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--dem", type=Path, required=True, help="Input DEM GeoTIFF.")
-    p.add_argument("--out", type=Path, required=True, help="Output directory for the products.")
+    p.add_argument(
+        "--out", type=Path, required=True, help="Output directory for the products."
+    )
     p.add_argument(
         "--products",
         nargs="+",
@@ -166,8 +168,12 @@ def make_parser() -> argparse.ArgumentParser:
         choices=ALL_PRODUCTS,
         help=f"Which products to generate (default: {ALL_PRODUCTS}).",
     )
-    p.add_argument("--slope-ramp", type=Path, default=None, help="Override slope colour ramp.")
-    p.add_argument("--aspect-ramp", type=Path, default=None, help="Override aspect colour ramp.")
+    p.add_argument(
+        "--slope-ramp", type=Path, default=None, help="Override slope colour ramp."
+    )
+    p.add_argument(
+        "--aspect-ramp", type=Path, default=None, help="Override aspect colour ramp."
+    )
     p.add_argument(
         "--tri-ramp",
         type=Path,
@@ -176,13 +182,30 @@ def make_parser() -> argparse.ArgumentParser:
     )
     # GIS-delivered ArcGIS symbology per product. Converted to a gdaldem ramp and used
     # INSTEAD OF the default/--*-ramp (precedence: --*-lyrx > --*-ramp > default).
-    p.add_argument("--slope-lyrx", type=Path, default=None, help="ArcGIS .lyrx slope symbology to use instead of the slope ramp.")
-    p.add_argument("--aspect-lyrx", type=Path, default=None, help="ArcGIS .lyrx aspect symbology to use instead of the aspect ramp.")
-    p.add_argument("--tri-lyrx", type=Path, default=None, help="ArcGIS .lyrx TRI symbology to use instead of the TRI ramp.")
+    p.add_argument(
+        "--slope-lyrx",
+        type=Path,
+        default=None,
+        help="ArcGIS .lyrx slope symbology to use instead of the slope ramp.",
+    )
+    p.add_argument(
+        "--aspect-lyrx",
+        type=Path,
+        default=None,
+        help="ArcGIS .lyrx aspect symbology to use instead of the aspect ramp.",
+    )
+    p.add_argument(
+        "--tri-lyrx",
+        type=Path,
+        default=None,
+        help="ArcGIS .lyrx TRI symbology to use instead of the TRI ramp.",
+    )
     return p
 
 
-def _resolve_ramp(product: str, lyrx: Path | None, override: Path | None, out_dir: Path) -> Path | None:
+def _resolve_ramp(
+    product: str, lyrx: Path | None, override: Path | None, out_dir: Path
+) -> Path | None:
     """Pick a product's colour ramp: provided .lyrx (converted) > --*-ramp > default."""
     if lyrx is not None:
         lyrx = lyrx.resolve()
@@ -198,7 +221,9 @@ def _resolve_ramp(product: str, lyrx: Path | None, override: Path | None, out_di
     if ramp is not None:
         ramp = Path(ramp).resolve()
         if not ramp.exists():
-            print(f"ERROR: colour ramp not found for {product}: {ramp}", file=sys.stderr)
+            print(
+                f"ERROR: colour ramp not found for {product}: {ramp}", file=sys.stderr
+            )
             sys.exit(1)
     return ramp
 
@@ -214,8 +239,16 @@ def main() -> None:
     out_dir: Path = args.out.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    overrides = {"slope": args.slope_ramp, "aspect": args.aspect_ramp, "tri": args.tri_ramp}
-    lyrxes = {"slope": args.slope_lyrx, "aspect": args.aspect_lyrx, "tri": args.tri_lyrx}
+    overrides = {
+        "slope": args.slope_ramp,
+        "aspect": args.aspect_ramp,
+        "tri": args.tri_ramp,
+    }
+    lyrxes = {
+        "slope": args.slope_lyrx,
+        "aspect": args.aspect_lyrx,
+        "tri": args.tri_lyrx,
+    }
 
     print("=" * 64)
     print("DEM → standardized AEGIS products")
@@ -223,8 +256,12 @@ def main() -> None:
 
     for product in args.products:
         # hillshade has no ramp; everything else resolves lyrx > --*-ramp > default.
-        ramp = None if product == "hillshade" else _resolve_ramp(
-            product, lyrxes.get(product), overrides.get(product), out_dir
+        ramp = (
+            None
+            if product == "hillshade"
+            else _resolve_ramp(
+                product, lyrxes.get(product), overrides.get(product), out_dir
+            )
         )
         make_product(dem, product, ramp, out_dir)
 

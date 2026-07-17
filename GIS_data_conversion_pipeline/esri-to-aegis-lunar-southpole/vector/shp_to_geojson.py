@@ -19,7 +19,7 @@ transform — both provided as conda-forge binaries by the pixi env, so run it
 under ``pixi run`` (fiona is not importable under a bare ``.venv``/``uv``).
 
 Usage:
-    cd data_conversion_scripts
+    cd GIS_data_conversion_pipeline
 
     pixi run python esri-to-aegis-lunar-southpole/vector/shp_to_geojson.py \\
         <drop>/A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp \\
@@ -158,7 +158,7 @@ def main() -> None:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "Example (from data_conversion_scripts/):\n"
+            "Example (from GIS_data_conversion_pipeline/):\n"
             "  pixi run python esri-to-aegis-lunar-southpole/vector/shp_to_geojson.py \\\n"
             "      A03MP026_Ellipse.shp ellipse.geojson --to-epsg 4326\n"
         ),

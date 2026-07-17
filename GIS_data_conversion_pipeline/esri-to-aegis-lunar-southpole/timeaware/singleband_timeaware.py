@@ -34,7 +34,7 @@ Usage
 -----
 ::
 
-    cd data_conversion_scripts
+    cd GIS_data_conversion_pipeline
     pixi run python esri-to-aegis-lunar-southpole/timeaware/singleband_timeaware.py \\
         /path/to/illum_frames --datatype mazarico -o /path/to/output
     # manifest only (skip tiling):
@@ -57,7 +57,9 @@ from pathlib import Path
 import numpy as np
 import rasterio
 
-ROOT = Path(__file__).resolve().parent.parent  # pipeline root (esri-to-aegis-lunar-southpole)
+ROOT = (
+    Path(__file__).resolve().parent.parent
+)  # pipeline root (esri-to-aegis-lunar-southpole)
 TILE_TO_CAP_GRID = ROOT / "common" / "tile_to_cap_grid.py"
 PYTHON = sys.executable
 
@@ -97,11 +99,11 @@ def parse_datetime(stem: str, datatype: str) -> str:
                 return datetime.strptime(candidate, QUICKMAP_FMT).strftime(AEGIS_FMT)
             except ValueError:
                 continue
-        raise ValueError(
-            f"No QuickMap datetime (MM_DD_YYYY_HH) found in {stem!r}."
-        )
+        raise ValueError(f"No QuickMap datetime (MM_DD_YYYY_HH) found in {stem!r}.")
 
-    raise ValueError(f"Unknown datatype {datatype!r}; expected 'mazarico' or 'quickmap'.")
+    raise ValueError(
+        f"Unknown datatype {datatype!r}; expected 'mazarico' or 'quickmap'."
+    )
 
 
 def collect_single_band_tifs(indir: Path) -> list[Path]:
@@ -159,7 +161,9 @@ def tile_frame(tif: Path, out_dir: Path, scratch: Path) -> None:
     try:
         env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
         subprocess.run(
-            [PYTHON, str(TILE_TO_CAP_GRID), str(src8), str(out_dir)], check=True, env=env
+            [PYTHON, str(TILE_TO_CAP_GRID), str(src8), str(out_dir)],
+            check=True,
+            env=env,
         )
     finally:
         if is_temp:
@@ -171,7 +175,9 @@ def make_parser() -> argparse.ArgumentParser:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("indir", type=Path, help="Directory of single-band time-series .tif files.")
+    p.add_argument(
+        "indir", type=Path, help="Directory of single-band time-series .tif files."
+    )
     p.add_argument(
         "--datatype",
         required=True,
@@ -179,11 +185,16 @@ def make_parser() -> argparse.ArgumentParser:
         help="Filename datetime convention.",
     )
     p.add_argument(
-        "-o", "--outdir", type=Path, default=None,
+        "-o",
+        "--outdir",
+        type=Path,
+        default=None,
         help="Output root (default: alongside indir). The layer folder is created inside it.",
     )
     p.add_argument(
-        "-nt", "--no-tile", action="store_true",
+        "-nt",
+        "--no-tile",
+        action="store_true",
         help="Only (re)write manifest.json; skip tiling.",
     )
     return p
@@ -231,7 +242,9 @@ def main() -> None:
         "last_updated": datetime.now().strftime(AEGIS_FMT),
         "time_layers": time_layers,
     }
-    (layer_dir / "manifest.json").write_text(json.dumps(manifest, indent=4) + "\n", encoding="utf-8")
+    (layer_dir / "manifest.json").write_text(
+        json.dumps(manifest, indent=4) + "\n", encoding="utf-8"
+    )
 
     print(f"\nWrote {layer_dir / 'manifest.json'}  ({len(time_layers)} time layers)")
     print(f"Layer dir: {layer_dir}")
