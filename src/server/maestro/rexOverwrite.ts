@@ -1,104 +1,8 @@
-import type { Request, Response } from "express";
-import express from "express";
-import { validateRexOverwrite } from "../../../../utils/rexOverwriteValidator";
 import { v4 as uuidv4 } from "uuid";
-import { serverLogger } from "utils/logging/serverLogger";
-import { asError } from "@emss/utils";
-
-import fs from "node:fs";
-import path from "node:path";
-import { SCHEMA_DIR } from "utils/validateSchemaServer";
-import { getAutomergeMissions, getAutomergeMissionHandle } from "../missionAutomerge";
-
-const router = express.Router();
-// Used by Maestro to control a rex.
-// Deprecated
-// Body of the POST request should be a RexOverwrite object
-router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const emssToken = req.headers["emss-token"] as string;
-
-  // Check if user has EMSS permissions
-  const editPermission = emssToken && emssToken === process.env.EMSS_TOKEN;
-  if (!editPermission) {
-    serverLogger.apiRoute({
-      logLevel: "warning",
-      httpMethod: "POST",
-      responseStatus: 401,
-      routeName: "emss/rexOverwrite",
-      uuids: [req.body.uuid],
-      message: "Unauthorized",
-    });
-    res.status(401).json({ status: "failure", message: "Unauthorized" });
-    return;
-  }
-
-  // validate inputs
-  const validateMsgs = validateRexOverwrite(req.body);
-  if (validateMsgs) {
-    serverLogger.apiRoute({
-      logLevel: "notice",
-      httpMethod: "POST",
-      responseStatus: 400,
-      routeName: "emss/rexOverwrite",
-      uuids: [req.body.uuid],
-      message: validateMsgs,
-    });
-    res.status(400).json({ status: "failure", message: validateMsgs });
-    return;
-  }
-
-  try {
-    const updatedRexes: Rex[] = await overwriteRex(req.body);
-
-    res.status(200).json({
-      status: "success",
-      message: `Rex updated for rex uuids ${updatedRexes.map((r) => r.uuid).toString()}`,
-      data: updatedRexes,
-    });
-  } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    serverLogger.apiRoute({
-      logLevel: "error",
-      httpMethod: "POST",
-      responseStatus: errorMessage.includes("not found") ? 404 : 500,
-      routeName: "emss/rexOverwrite",
-      uuids: [req.body.uuid],
-      message: `Error processing the POST request: ${errorMessage}`,
-      error: asError(e),
-    });
-    const status = errorMessage.includes("not found") ? 404 : 500;
-    res
-      .status(status)
-      .json({ status: "error", message: `Error processing the POST request: ${errorMessage}` });
-  }
-});
-
-router.get("/schema", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const schemaFile = fs.readFileSync(path.join(SCHEMA_DIR, "rexOverwrite.json"), "utf8");
-    const schema = JSON.parse(schemaFile);
-    res.status(200).json({
-      status: "success",
-      message: "rexOverwrite schema retrieved",
-      data: schema,
-    });
-  } catch (e) {
-    serverLogger.apiRoute({
-      logLevel: "error",
-      httpMethod: "GET",
-      responseStatus: 500,
-      routeName: "rexOverwrite/schema",
-      appUsername: req.session?.appUser?.username,
-      message: `Error retrieving schema: ${e}`,
-      error: asError(e),
-    });
-    res.status(500).json({
-      status: "error",
-      message: `Error retrieving schema: ${e}`,
-      data: null,
-    });
-  }
-});
+import {
+  getAutomergeMissions,
+  getAutomergeMissionHandle,
+} from "../express/routes/missionAutomerge";
 
 // Update the rex record in the automerge mission document.
 // More than one rex may be updated if we need to stop a previously running rex.
@@ -282,5 +186,3 @@ export async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
     ...rexUuidsToStop.map((uuid) => updatedMission.rexes[uuid]),
   ].filter(Boolean);
 }
-
-export default router;

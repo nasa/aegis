@@ -43,12 +43,12 @@ vi.mock("utils/maestro", async () => {
   return { ...actual, buildAegisEntityForMaestro: mockBuildAegisEntityForMaestro };
 });
 
-vi.mock("server/express/routes/emss/rexOverwrite", async () => {
-  const actual = await vi.importActual("server/express/routes/emss/rexOverwrite");
+vi.mock("server/maestro/rexOverwrite", async () => {
+  const actual = await vi.importActual("server/maestro/rexOverwrite");
   return { ...actual, overwriteRex: mockOverwriteRex };
 });
 
-vi.mock("utils/rexOverwriteValidator", () => ({
+vi.mock("server/maestro/rexOverwriteValidator", () => ({
   validateRexOverwrite: mockValidateRexOverwrite,
 }));
 
@@ -136,7 +136,7 @@ beforeEach(() => {
   globalValues.maestro.evaSubscriptions = new Map();
   globalValues.maestro.socketio = null;
   globalValues.maestro.docListeners = new Map();
-  globalValues.serverSocketStatus.maestroMissionVisitors = {};
+  globalValues.serverSocketStatus.maestroVisitors = {};
   // Configure getAutomergeMissions to return a mission whose evas registry is
   // built from a shared mutable object that tests can populate before calling handlers.
   // The evaRegistry is replaced each beforeEach so tests start with a clean slate.
@@ -168,7 +168,7 @@ describe("maestro namespace socket handlers", () => {
     globalValues.maestro.evaSubscriptions = new Map();
     globalValues.maestro.socketio = null;
     globalValues.maestro.docListeners = new Map();
-    globalValues.serverSocketStatus.maestroMissionVisitors = {};
+    globalValues.serverSocketStatus.maestroVisitors = {};
 
     mockSocket = {
       join: vi.fn(),
@@ -224,9 +224,7 @@ describe("maestro namespace socket handlers", () => {
 
       expect(mockSocket.join).toHaveBeenCalledWith(getMaestroSocketRoomName(MISSION_ID));
       const visitors =
-        globalValues.serverSocketStatus.maestroMissionVisitors[
-          getMaestroSocketRoomName(MISSION_ID)
-        ];
+        globalValues.serverSocketStatus.maestroVisitors[getMaestroSocketRoomName(MISSION_ID)];
       expect(visitors).toHaveLength(1);
       expect(visitors[0].socketId).toBe(mockSocket.id);
     });
@@ -245,9 +243,7 @@ describe("maestro namespace socket handlers", () => {
       });
 
       const visitors =
-        globalValues.serverSocketStatus.maestroMissionVisitors[
-          getMaestroSocketRoomName(MISSION_ID)
-        ];
+        globalValues.serverSocketStatus.maestroVisitors[getMaestroSocketRoomName(MISSION_ID)];
       expect(visitors).toHaveLength(1);
       expect(visitors[0].name).toBe("Vitest TestMaestro Updated");
     });
@@ -347,7 +343,7 @@ describe("maestro namespace socket handlers", () => {
       expect(mockSocket.leave).toHaveBeenCalledWith(getMaestroSocketRoomName(MISSION_ID));
     });
 
-    it("removes the visitor from maestroMissionVisitors", () => {
+    it("removes the visitor from maestroVisitors", () => {
       const visitor: MaestroVisitor = {
         socketId: mockSocket.id,
         name: "Vitest TestMaestro",
@@ -358,7 +354,7 @@ describe("maestro namespace socket handlers", () => {
       mockSocket._handlers["missionLeave"](MISSION_ID);
 
       const roomName = getMaestroSocketRoomName(MISSION_ID);
-      expect(globalValues.serverSocketStatus.maestroMissionVisitors[roomName]).toHaveLength(0);
+      expect(globalValues.serverSocketStatus.maestroVisitors[roomName]).toHaveLength(0);
     });
 
     it("calls removeMaestroDocListener when room becomes empty on missionLeave", () => {
@@ -394,7 +390,7 @@ describe("maestro namespace socket handlers", () => {
         name: "Vitest OtherMaestro",
         connectedAt: Date.now(),
       };
-      globalValues.serverSocketStatus.maestroMissionVisitors[roomName].push(otherVisitor);
+      globalValues.serverSocketStatus.maestroVisitors[roomName].push(otherVisitor);
 
       const removeListenerFn = vi.fn();
       globalValues.maestro.docListeners.set(MISSION_ID, removeListenerFn);
@@ -402,8 +398,8 @@ describe("maestro namespace socket handlers", () => {
       mockSocket._handlers["missionLeave"](MISSION_ID);
 
       expect(removeListenerFn).not.toHaveBeenCalled();
-      expect(globalValues.serverSocketStatus.maestroMissionVisitors[roomName]).toHaveLength(1);
-      expect(globalValues.serverSocketStatus.maestroMissionVisitors[roomName][0].socketId).toBe(
+      expect(globalValues.serverSocketStatus.maestroVisitors[roomName]).toHaveLength(1);
+      expect(globalValues.serverSocketStatus.maestroVisitors[roomName][0].socketId).toBe(
         "other-socket-id"
       );
     });
@@ -427,7 +423,7 @@ describe("maestro namespace socket handlers", () => {
       expect(emitFn).toHaveBeenCalledWith("inspectorUpdate", globalValues.serverSocketStatus);
     });
 
-    it("does nothing when maestroMissionVisitors has no entry for the room", () => {
+    it("does nothing when maestroVisitors has no entry for the room", () => {
       // missionLeave for a mission that was never joined — should not throw
       expect(() => {
         mockSocket._handlers["missionLeave"](MISSION_ID);
@@ -436,7 +432,7 @@ describe("maestro namespace socket handlers", () => {
   });
 
   describe("disconnect", () => {
-    it("removes the socket from maestroMissionVisitors", () => {
+    it("removes the socket from maestroVisitors", () => {
       const visitor: MaestroVisitor = {
         socketId: mockSocket.id,
         name: "Vitest TestMaestro",
@@ -446,14 +442,14 @@ describe("maestro namespace socket handlers", () => {
 
       // Verify visitor is tracked
       expect(
-        globalValues.serverSocketStatus.maestroMissionVisitors[getMaestroSocketRoomName(MISSION_ID)]
+        globalValues.serverSocketStatus.maestroVisitors[getMaestroSocketRoomName(MISSION_ID)]
       ).toHaveLength(1);
 
       // Disconnect
       mockSocket._handlers["disconnect"]();
 
       expect(
-        globalValues.serverSocketStatus.maestroMissionVisitors[getMaestroSocketRoomName(MISSION_ID)]
+        globalValues.serverSocketStatus.maestroVisitors[getMaestroSocketRoomName(MISSION_ID)]
       ).toHaveLength(0);
     });
 
@@ -492,7 +488,7 @@ describe("maestro namespace socket handlers", () => {
         name: "Vitest OtherMaestro",
         connectedAt: Date.now(),
       };
-      globalValues.serverSocketStatus.maestroMissionVisitors[roomName].push(otherVisitor);
+      globalValues.serverSocketStatus.maestroVisitors[roomName].push(otherVisitor);
 
       // Simulate a doc listener
       const removeListenerFn = vi.fn();
@@ -502,8 +498,8 @@ describe("maestro namespace socket handlers", () => {
       mockSocket._handlers["disconnect"]();
 
       expect(removeListenerFn).not.toHaveBeenCalled();
-      expect(globalValues.serverSocketStatus.maestroMissionVisitors[roomName]).toHaveLength(1);
-      expect(globalValues.serverSocketStatus.maestroMissionVisitors[roomName][0].socketId).toBe(
+      expect(globalValues.serverSocketStatus.maestroVisitors[roomName]).toHaveLength(1);
+      expect(globalValues.serverSocketStatus.maestroVisitors[roomName][0].socketId).toBe(
         "other-socket-id"
       );
     });

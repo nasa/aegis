@@ -5,7 +5,6 @@ import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
 import { getMaestroSocketRoomName } from "./sockets-maestro";
 import { buildAegisEntityForMaestro } from "utils/maestro";
-import { emitMaestroStoreUpsertFromDiff } from "./sockets-maestro-legacy";
 import { opApplyMdauStationUpdates } from "operations/op-station";
 import { getSequenceUuidByRefUuidAndRexUuid } from "store/selectors";
 
@@ -329,9 +328,6 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
               });
             }
           }
-
-          // Deprecated: emit to the legacy "maestro" room.
-          emitMaestroStoreUpsertFromDiff(missionId, diff);
         } catch (error) {
           serverLogger.error(
             {

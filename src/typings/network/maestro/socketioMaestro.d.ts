@@ -20,6 +20,7 @@ interface MaestroClientToServerEvents {
   ) => void;
   sendMDAU: (missionId: number, mdau: Maegistro.MaestroDataAegisUses) => void;
   // Mimics the emss/rexOverwrite route
+  // Deprecated
   rexOverwrite: (
     body: RexOverwrite,
     callback: (

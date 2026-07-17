@@ -17,8 +17,8 @@ import {
 } from "server/express/sockets-maestro-emitters";
 import { emssTokenIsValid } from "utils/permissions";
 import { asError } from "@emss/utils";
-import { overwriteRex } from "server/express/routes/emss/rexOverwrite";
-import { validateRexOverwrite } from "utils/rexOverwriteValidator";
+import { overwriteRex } from "server/maestro/rexOverwrite";
+import { validateRexOverwrite } from "server/maestro/rexOverwriteValidator";
 import { buildAegisEntityForMaestro } from "utils/maestro";
 import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
@@ -71,18 +71,17 @@ export const setupMaestroNamespace = (
         socket.join(roomName);
 
         // Add this maestro visitor to the server's global under the mission room
-        if (!globalValues.serverSocketStatus.maestroMissionVisitors[roomName]) {
-          globalValues.serverSocketStatus.maestroMissionVisitors[roomName] = [];
+        if (!globalValues.serverSocketStatus.maestroVisitors[roomName]) {
+          globalValues.serverSocketStatus.maestroVisitors[roomName] = [];
         }
-        const maestroMissionVisitors =
-          globalValues.serverSocketStatus.maestroMissionVisitors[roomName];
+        const maestroVisitors = globalValues.serverSocketStatus.maestroVisitors[roomName];
         // Set this visitor's information on the server's global
         // Remove this socket from tracking list if it exists and push the new one
-        remove(maestroMissionVisitors, (item) => {
+        remove(maestroVisitors, (item) => {
           return item.socketId === socket.id;
         });
         maestroVisitor.socketId = socket.id;
-        maestroMissionVisitors.push(maestroVisitor);
+        maestroVisitors.push(maestroVisitor);
 
         // Attach automerge listener for this mission if not already attached
         // The listener will be removed when the last maestro visitor for this mission disconnects
@@ -132,13 +131,13 @@ export const setupMaestroNamespace = (
         const roomName = getMaestroSocketRoomName(missionId);
         socket.leave(roomName);
 
-        if (globalValues.serverSocketStatus.maestroMissionVisitors[roomName]) {
+        if (globalValues.serverSocketStatus.maestroVisitors[roomName]) {
           // Remove this maestro visitor from the server's global under the mission room
-          remove(globalValues.serverSocketStatus.maestroMissionVisitors[roomName], (item) => {
+          remove(globalValues.serverSocketStatus.maestroVisitors[roomName], (item) => {
             return item.socketId === socket.id;
           });
           // If the room is now empty
-          if (globalValues.serverSocketStatus.maestroMissionVisitors[roomName].length === 0) {
+          if (globalValues.serverSocketStatus.maestroVisitors[roomName].length === 0) {
             cleanupMaestro(missionId);
           }
         }
@@ -151,12 +150,12 @@ export const setupMaestroNamespace = (
 
       socket.on("disconnect", () => {
         // Remove this socket from any maestro mission rooms they happened to be in
-        for (const roomName in globalValues.serverSocketStatus.maestroMissionVisitors) {
-          remove(globalValues.serverSocketStatus.maestroMissionVisitors[roomName], (item) => {
+        for (const roomName in globalValues.serverSocketStatus.maestroVisitors) {
+          remove(globalValues.serverSocketStatus.maestroVisitors[roomName], (item) => {
             return item.socketId === socket.id;
           });
           // If the room is now empty
-          if (globalValues.serverSocketStatus.maestroMissionVisitors[roomName].length === 0) {
+          if (globalValues.serverSocketStatus.maestroVisitors[roomName].length === 0) {
             const missionId = getMissionIdFromSocketRoomName(roomName);
             if (missionId != null) cleanupMaestro(missionId);
           }

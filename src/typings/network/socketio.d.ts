@@ -7,7 +7,6 @@ interface ServerToClientEvents {
   version: (version: AppVersion) => void; // server version sent to client
   storeUpsert: (payload: StoreUpsert) => void;
   storeDelete: (payload: StoreDelete) => void;
-  storeUpsertForMaestro: (payload: StoreUpsertForMaestro) => void; // Deprecated - use Maestro namespace instead
   inspectorUpdate: (payload: ServerSocketStatus) => void;
 }
 
@@ -15,7 +14,6 @@ interface ClientToServerEvents {
   storeUpsert: (payload: StoreUpsert) => void;
   storeDelete: (payload: StoreDelete) => void;
   visitorJoin: (visitorData: VisitorData) => void;
-  maestroJoin: (maestroVisitor: MaestroVisitor) => void; // Deprecated - use Maestro namespace instead
   inspectorJoin: () => void;
   getMaestroDebugInfo: (
     callback: (data: {
@@ -37,8 +35,7 @@ interface ClientSocketStatus {
 // information stored in the server's globalValues about the socket status
 interface ServerSocketStatus {
   visitorsData: VisitorData[];
-  maestroVisitors: MaestroVisitor[]; // Deprecated
-  maestroMissionVisitors: { [missionId: string]: MaestroVisitor[] };
+  maestroVisitors: { [missionId: string]: MaestroVisitor[] };
   lastEditEvents: EditEvents; // last edit events for all missions
 }
 

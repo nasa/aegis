@@ -174,7 +174,7 @@ beforeEach(() => {
   globalValues.maestro.socketio = null;
   globalValues.maestro.docListeners = new Map();
   globalValues.maestro.docHandles = new Map();
-  globalValues.serverSocketStatus.maestroMissionVisitors = {};
+  globalValues.serverSocketStatus.maestroVisitors = {};
 });
 
 // ─── isDiffRelevantToSubscribedEvas ──────────────────────────────────────────

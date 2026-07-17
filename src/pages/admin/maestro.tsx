@@ -325,12 +325,12 @@ const Maestro: React.FunctionComponent = () => {
         <section className={adminCommon.section}>
           <h2>Maestro Visitors</h2>
           <div className={adminCommon.details}>
-            {!serverSocketStatus?.maestroMissionVisitors ||
-            Object.keys(serverSocketStatus.maestroMissionVisitors).length === 0 ? (
+            {!serverSocketStatus?.maestroVisitors ||
+            Object.keys(serverSocketStatus.maestroVisitors).length === 0 ? (
               <div className={adminCommon.emptyState}>No Maestro visitors connected.</div>
             ) : (
-              <PrintMaestroMissionVisitors
-                maestroMissionVisitors={serverSocketStatus.maestroMissionVisitors}
+              <PrintMaestroVisitors
+                maestroVisitors={serverSocketStatus.maestroVisitors}
                 missionNames={missionNames}
               />
             )}
@@ -729,11 +729,11 @@ const Maestro: React.FunctionComponent = () => {
 
 // ─── Maestro Mission Visitors table ───────────────────────────────────────────
 
-const PrintMaestroMissionVisitors: FunctionComponent<{
-  maestroMissionVisitors: { [roomName: string]: MaestroVisitor[] };
+const PrintMaestroVisitors: FunctionComponent<{
+  maestroVisitors: { [roomName: string]: MaestroVisitor[] };
   missionNames: Map<number, string>;
-}> = ({ maestroMissionVisitors, missionNames }) => {
-  const rows = Object.entries(maestroMissionVisitors)
+}> = ({ maestroVisitors, missionNames }) => {
+  const rows = Object.entries(maestroVisitors)
     .sort(([a], [b]) => a.localeCompare(b))
     .flatMap(([roomName, visitors]) => {
       const missionId = parseMissionIdFromRoomName(roomName);
