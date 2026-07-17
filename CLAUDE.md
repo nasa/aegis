@@ -31,6 +31,9 @@ npm run lint:fix
 # Unit tests (Vitest)
 npm run test:vitest
 
+# Component/DOM tests (Vitest browser mode)
+npm run test:vitest:browser
+
 # Full CI check (lint + tsc + build + unit tests)
 npm run test:all
 
@@ -46,30 +49,49 @@ npm run migration:fresh   # drop + recreate + seed
 npm run seed
 ```
 
+## Comments
+
+Keep comments short. Write comments that explain what the code does or why — never comments that narrate what wasn't done, what a previous approach was, or what you chose not to do. Delete such notes rather than adding them.
+
+## After Code Changes
+
+After every batch of code changes, run:
+
+```bash
+npm run test:all
+```
+
+This runs lint (JS/TS + CSS) → tsc → build → vitest → vitest:browser in sequence. Fix any failures before reporting the task complete. Do not skip lint — this project has non-standard CSS and JS/TS lint rules that will fail on patterns that look valid (e.g. specific import ordering, CSS property conventions). If lint fails, read the error output carefully and fix exactly what it reports rather than guessing at the rule.
+
+## Map / OpenLayers
+
+Any prompt that mentions "map", "OpenLayers", "OL", "ol", tiles, markers, layers, or the map implementation must first read `src/components/interface/map/CLAUDE.md` for full architecture context before doing any work.
+
 ## Architecture Overview
 
 The app is a monolithic full-stack TypeScript project with a React SPA frontend and an Express API backend, both in the same `src/` tree.
 
 ### Key Directories
 
-| Path                    | Role                                                         |
-| ----------------------- | ------------------------------------------------------------ |
-| `src/components/`       | React UI components (panes, pages, dashboard, interface)     |
-| `src/pages/`            | Top-level page components routed by React Router             |
-| `src/store/`            | Redux Toolkit slices, thunks, selectors, and store utilities |
-| `src/client/`           | Automerge mutation helpers (client-side doc operations)      |
-| `src/http-client/`      | Typed `fetch` wrappers for every REST endpoint               |
-| `src/utils/`            | Shared helpers: logging, formatting, permissions, socket ops |
-| `src/packages/`         | Lightweight shared utilities (fetchFns, user helpers)        |
-| `src/server/express/`   | Express app, REST routes, Socket.io setup                    |
-| `src/server/database/`  | MikroORM config, entity models, migrations, seeds            |
-| `src/server/automerge/` | PostgreSQL storage adapter for Automerge documents           |
+| Path                            | Role                                                         |
+| ------------------------------- | ------------------------------------------------------------ |
+| `src/components/`               | React UI components (panes, pages, dashboard, interface)     |
+| `src/components/interface/map/` | OpenLayers map implementation (active map layer)             |
+| `src/pages/`                    | Top-level page components routed by React Router             |
+| `src/store/`                    | Redux Toolkit slices, thunks, selectors, and store utilities |
+| `src/client/`                   | Automerge mutation helpers (client-side doc operations)      |
+| `src/http-client/`              | Typed `fetch` wrappers for every REST endpoint               |
+| `src/utils/`                    | Shared helpers: logging, formatting, permissions, socket ops |
+| `src/packages/`                 | Lightweight shared utilities (fetchFns, user helpers)        |
+| `src/server/express/`           | Express app, REST routes, Socket.io setup                    |
+| `src/server/database/`          | MikroORM config, entity models, migrations, seeds            |
+| `src/server/automerge/`         | PostgreSQL storage adapter for Automerge documents           |
 
 ### Frontend
 
 - **React 18** SPA bootstrapped by Vite.
 - **Redux Toolkit** manages UI state only. Slices live in `src/store/` (no `slices/` subdirectory), async operations in `src/store/thunk/`, memoized selectors in `src/store/selectors.ts`. Entity data (missions, EVAs, stations, POIs, etc.) is **not** stored in Redux — it lives exclusively in Automerge documents. Redux slices track only UI state: selected items, expanded panels, navigation state, etc.
-- **Leaflet** drives the map canvas. Map-related components live under `src/components/interface/map/` and `src/components/dashboard/map.tsx`.
+- **OpenLayers** drives the map canvas. Map-related components live under `src/components/interface/map/` (the three entry points are `AegisMapEditor.tsx`, `AegisMapDashboard.tsx`, and `AegisMapMinimap.tsx`). See `src/components/interface/map/CLAUDE.md` for full architecture details.
 - **Automerge** (v3 + automerge-repo) is the primary data layer for all collaborative entities. The repo is initialized in `src/index.tsx` with a WebSocket adapter pointed at `/api/v1/socketAutomerge/`. All entity mutations (mission, EVA, station, POI, traverse, action, rex) go through Automerge; mutation helpers are in `src/client/automerge/`. Selectors in `src/store/selectors.ts` read directly from Automerge doc state (e.g. `selectAsPlannedStations(mission: Mission)`) rather than from Redux.
 - **Automerge mutation architecture** is organised into three layers to guarantee that each logical operation produces exactly one `.change()` patch (no half-built state visible to peers):
   - `apply*` (`src/client/automerge/apply/`): inner draft mutators that receive `(m: Mission, args)` and mutate the doc. Pure sync; never call `.change()` or import `missionDocHandle`. _(ESLint-enforced.)_
@@ -107,18 +129,18 @@ REST responses are wrapped as `WrappedResponse<T>` with a `status` field (`"ok"`
 
 The app organizes around these core entities. Since the Automerge entity migration, the storage layer differs per entity — see the table below:
 
-| Entity                      | Automerge helpers (`src/client/automerge/apply/`)             | Redux slice (UI state only) | DB model    | REST routes    |
-| --------------------------- | ------------------------------------------------------------- | --------------------------- | ----------- | -------------- |
-| **Mission**                 | `apply-mission.ts` + sub-files                                | `mission.ts`                | ✅          | ✅             |
-| **EVA**                     | `apply-eva.ts`                                                | `eva.ts`                    | ✅ (legacy) | ❌ removed     |
-| **POI**                     | `apply-poi.ts`                                                | `poi.ts`                    | ✅ (legacy) | ❌ removed     |
-| **Station**                 | `apply-station.ts`                                            | `station.ts`                | ✅ (legacy) | ❌ removed     |
-| **Traverse**                | `apply-traverse.ts`                                           | `traverse.ts`               | ✅ (legacy) | ❌ removed     |
-| **Action / ActionTemplate** | `apply-action.ts`, `apply-mission-actionTemplate.ts`          | `action.ts`                 | ✅ (legacy) | ❌ removed     |
-| **Rex**                     | `apply-rex.ts`                                                | `rex.ts`                    | ✅ (legacy) | ✅ (emss only) |
-| **STM**                     | —                                                             | `stm.ts`                    | ✅          | ✅             |
-| **Layers**                  | —                                                             | —                           | ✅          | ✅             |
-| **Preset**                  | —                                                             | `preset.ts`                 | ✅          | ✅             |
+| Entity                      | Automerge helpers (`src/client/automerge/apply/`)    | Redux slice (UI state only) | DB model    | REST routes    |
+| --------------------------- | ---------------------------------------------------- | --------------------------- | ----------- | -------------- |
+| **Mission**                 | `apply-mission.ts` + sub-files                       | `mission.ts`                | ✅          | ✅             |
+| **EVA**                     | `apply-eva.ts`                                       | `eva.ts`                    | ✅ (legacy) | ❌ removed     |
+| **POI**                     | `apply-poi.ts`                                       | `poi.ts`                    | ✅ (legacy) | ❌ removed     |
+| **Station**                 | `apply-station.ts`                                   | `station.ts`                | ✅ (legacy) | ❌ removed     |
+| **Traverse**                | `apply-traverse.ts`                                  | `traverse.ts`               | ✅ (legacy) | ❌ removed     |
+| **Action / ActionTemplate** | `apply-action.ts`, `apply-mission-actionTemplate.ts` | `action.ts`                 | ✅ (legacy) | ❌ removed     |
+| **Rex**                     | `apply-rex.ts`                                       | `rex.ts`                    | ✅ (legacy) | ✅ (emss only) |
+| **STM**                     | —                                                    | `stm.ts`                    | ✅          | ✅             |
+| **Layers**                  | —                                                    | —                           | ✅          | ✅             |
+| **Preset**                  | —                                                    | `preset.ts`                 | ✅          | ✅             |
 
 - **Mission** — top-level planning container; Automerge document root. Per-mission doc holds all collaborative entity data.
 - **EVA** — Extra-Vehicular Activity; lives inside the mission Automerge doc.
@@ -135,7 +157,7 @@ The app organizes around these core entities. Since the Automerge entity migrati
 
 ## Technology Stack
 
-- **Frontend**: React 18, Redux Toolkit, Vite, TypeScript, Leaflet, Automerge 3, Socket.io-client, Axios, React Router 7, React Final Form, Paper.js, Dayjs
+- **Frontend**: React 18, Redux Toolkit, Vite, TypeScript, OpenLayers, Automerge 3, Socket.io-client, Axios, React Router 7, React Final Form, Paper.js, Dayjs
 - **Backend**: Express 5, Node 22, Socket.io, Automerge-Repo, MikroORM 6, PostgreSQL 17
-- **Testing**: Vitest (unit), Playwright (E2E)
+- **Testing**: Vitest (unit), Vitest browser mode (component/DOM), Playwright (E2E)
 - **Linting**: ESLint, StyleLint, Prettier

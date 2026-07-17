@@ -1,8 +1,11 @@
 {
   "git.ignoreLimitWarning": true,
-  // Tell the VS Code Vitest extension where the config lives after the move
-  // from the project root to src/tests/vitest/.
-  "vitest.rootConfig": "src/tests/vitest/vitest.config.mts",
+  // Point the VS Code Vitest extension at the root "projects" aggregator so
+  // it discovers both the node/jsdom suite (src/tests/vitest) and the
+  // Playwright-backed browser suite (src/tests/vitest-browser). A single
+  // rootConfig pointing at just one of the two sub-configs would hide the
+  // other suite's tests from the Testing sidebar.
+  "vitest.rootConfig": "vitest.config.mts",
   "editor.formatOnSave": true,
   "editor.tabSize": 2,
   "[typescriptreact]": {

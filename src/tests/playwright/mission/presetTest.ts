@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
+import { waitForPageReady } from "../helpers";
 
 export async function presetTest(page: Page): Promise<string> {
   // Use a unique suffix per run to avoid collisions with names left behind
@@ -10,8 +11,7 @@ export async function presetTest(page: Page): Promise<string> {
 
   await page.goto("http://localhost:4000/mission/22");
   //go to preset section
-  await page.waitForLoadState("networkidle");
-  await page.getByLabel("loading-overlay").waitFor({ state: "hidden", timeout: 30000 });
+  await waitForPageReady(page);
   await page.getByLabel("preset Section", { exact: true }).click();
   await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
     "Map Display Presets"
@@ -30,6 +30,13 @@ export async function presetTest(page: Page): Promise<string> {
   await page.getByLabel("Preset Title", { exact: true }).fill(presetBaseName);
   await expect(page.getByLabel("Preset Title", { exact: true })).toHaveValue(presetBaseName);
   await expect(page.getByLabel("leftPresetName", { exact: true })).toHaveCount(presetCount + 1);
+
+  // The title input commits through a 50ms debounce, so wait for the rename to
+  // reach the store (reflected in the left list item) before saving. Otherwise
+  // the save can capture — and re-persist — the stale auto-generated name.
+  await expect(newPresetQuery.getByLabel("leftPresetName", { exact: true })).toContainText(
+    presetBaseName
+  );
 
   await page.getByLabel("saveButton", { exact: true }).click();
   await page.getByLabel("Edit", { exact: true }).waitFor();

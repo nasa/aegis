@@ -8,7 +8,7 @@ import cloneDeep from "lodash/cloneDeep";
 import { applyDeletePosType } from "client/automerge/apply/apply-rex";
 
 /*
- * Update the position entry with a location from leaflet
+ * Update the position entry with a location
  * and then save to automerge. Also called when creating a new position entry
  */
 export const thunkDocUpdatePosEntryWithLocation = appCreateAsyncThunk<{

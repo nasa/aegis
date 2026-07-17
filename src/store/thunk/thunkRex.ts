@@ -272,32 +272,30 @@ export const thunkDocAddCollectionId = appCreateAsyncThunk<{
   // No Step 3: this thunk has no UI side-effects of its own.
 });
 
-export const thunkDocCreateInitialPosEntries = appCreateAsyncThunk<void>(
+export const thunkDocCreateInitialPosEntries = appCreateAsyncThunk<{ rexUuid: string }>(
   "createInitialPosEntries",
-  async () => {
+  async ({ rexUuid }) => {
     const missionDocHandle = getMissionDocHandle();
     if (!missionDocHandle) return;
     const doc = missionDocHandle.doc();
     if (!doc) return;
 
-    const runningRex = Object.values(doc.rexes ?? {}).find((r) => r.isRunning);
-    if (!runningRex) return;
-
     // Step 1: Build the new pos entries from the running REX's pos sources and types.
-    const runningRexEva = doc.evas?.[runningRex.evaUuid];
+    const rex = doc.rexes?.[rexUuid];
+    const rexEva = doc.evas?.[rex.evaUuid];
     const posEntryLocation: AEGISPoint =
-      runningRexEva?.egressLocationUuid === "lander"
+      rexEva?.egressLocationUuid === "lander"
         ? doc.landerLocation
-        : doc.stations?.[runningRexEva?.egressLocationUuid]?.location;
+        : doc.stations?.[rexEva?.egressLocationUuid]?.location;
 
     const newPosEntries: PosEntry[] = [];
-    for (const posSource of runningRex?.posSources ?? []) {
+    for (const posSource of rex?.posSources ?? []) {
       const newPosEntry: PosEntry = {
         uuid: uuidv4(),
         location: posEntryLocation,
         elevation: null,
         petSeconds: 0,
-        posTypeUuids: runningRex.posTypes.map((posType) => posType.uuid),
+        posTypeUuids: rex.posTypes.map((posType) => posType.uuid),
         posSourceUuid: posSource.uuid,
         createdAt: getAccurateNow().getTime(),
         updatedAt: getAccurateNow().getTime(),
@@ -305,13 +303,13 @@ export const thunkDocCreateInitialPosEntries = appCreateAsyncThunk<void>(
       newPosEntries.push(newPosEntry);
     }
 
-    const existingPosEntries = cloneDeep(runningRex.posEntries ?? []);
+    const existingPosEntries = cloneDeep(rex.posEntries ?? []);
     const mergedPosEntries = [...existingPosEntries, ...newPosEntries];
 
     // Step 2: Apply the merged pos entries to the running REX.
     missionDocHandle.change((m: Mission) =>
       applyUpdateRexByField(m, {
-        rexUuid: runningRex.uuid,
+        rexUuid: rex.uuid,
         fieldName: "posEntries",
         value: mergedPosEntries,
         preserveUpdatedAt: true,

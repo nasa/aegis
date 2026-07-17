@@ -33,7 +33,6 @@ const MAESTRO_RELEVANT_MISSION_FIELDS = [
   "createdAt",
   "updatedAt",
 ] as const satisfies readonly (keyof Maegistro.AegisMission)[];
-
 type MaestroRelevantMissionField = (typeof MAESTRO_RELEVANT_MISSION_FIELDS)[number];
 
 /** Diff result — what was upserted and what was deleted. */
@@ -48,8 +47,7 @@ export type MaestroDiff = {
 };
 
 /**
- * The slice of a Mission that Maestro cares about. Only these top-level keys are
- * tracked between change events; anything else can change freely without notifying Maestro.
+ * The top-level keys that Maestro cares about.
  */
 type MissionDataMaestroCaresAbout = {
   evas: Mission["evas"];
@@ -61,7 +59,7 @@ type MissionDataMaestroCaresAbout = {
 };
 
 /**
- * Stored per-mission snapshot of mission data maestro cares about
+ * Stored per-mission snapshot of mission data maestro cares about.
  * Use this to compare and find diffs
  */
 const maestroDataSnapshots = new Map<number, MissionDataMaestroCaresAbout>();
@@ -84,7 +82,7 @@ const buildMissionDataMaestroCaresAbout = (mission: Mission): MissionDataMaestro
 });
 
 /**
- * Diffs two collections by reference. Returns the entities that were added or
+ * Helper to diffs two collections by reference. Returns the entities that were added or
  * modified (present in `next` with a different reference than `prev`) and the UUIDs
  * that were removed.
  *
@@ -247,7 +245,7 @@ const emitToMaestroNamespace = async (missionId: number): Promise<void> => {
 /**
  * Removes the given EVA uuids from global eva subscriptions
  */
-const removeDeletedEvasFromSubscriptions = (missionId: number, deletedEvaUuids: string[]): void => {
+export const removeEvaFromSubscriptions = (missionId: number, deletedEvaUuids: string[]): void => {
   if (deletedEvaUuids.length === 0) return;
   const subscriptions = globalValues.maestro.evaSubscriptions.get(missionId);
   if (!subscriptions || subscriptions.length === 0) return;
@@ -309,7 +307,7 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
 
           // Drop subscriptions to deleted EVAs
           if (diff.evas.deletedUuids.length > 0) {
-            removeDeletedEvasFromSubscriptions(missionId, diff.evas.deletedUuids);
+            removeEvaFromSubscriptions(missionId, diff.evas.deletedUuids);
           }
 
           // Emit to the /maestro namespace if the diff is relevant to subscribed EVAs.
@@ -418,14 +416,18 @@ export const applyMdauStationsToDoc = async (
   });
 };
 
-// This is only called if the room is empty
-export const cleanupSocketRoom = (missionId: number): void => {
+/**
+ * Cleanup all things associated with maestro for this mission
+ * This is only called if the room is empty
+ * @param missionId
+ */
+export const cleanupMaestro = (missionId: number): void => {
   // Remove the docHandle change listener and delete the reference from global
   const removeListenerFn = globalValues.maestro.docListeners.get(missionId);
   if (!removeListenerFn) {
     serverLogger.warning({
       logId: "socket-maestro",
-      logValue: `cleanupSocketRoom - No listener function found to remove for mission ${missionId}`,
+      logValue: `cleanupMaestro - No listener function found to remove for mission ${missionId}`,
     });
   } else {
     removeListenerFn();
@@ -440,13 +442,13 @@ export const cleanupSocketRoom = (missionId: number): void => {
   if (!docHandleRemoved) {
     serverLogger.warning({
       logId: "socket-maestro",
-      logValue: `cleanupSocketRoom - No docHandle found to remove for mission ${missionId}`,
+      logValue: `cleanupMaestro - No docHandle found to remove for mission ${missionId}`,
     });
   }
 
   // All cleanup done
   serverLogger.debug({
     logId: "socket-maestro",
-    logValue: `cleanupSocketRoom - Cleaned up listener, docHandle, and snapshot for mission ${missionId}`,
+    logValue: `cleanupMaestro - Cleaned up listener, docHandle, and snapshot for mission ${missionId}`,
   });
 };

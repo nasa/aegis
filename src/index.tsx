@@ -12,8 +12,6 @@ import { RepoContext } from "@automerge/automerge-repo-react-hooks";
 import { BrowserWebSocketClientAdapter } from "@automerge/automerge-repo-network-websocket";
 
 import "./styles/globals.css";
-import "leaflet/dist/leaflet.css";
-import "./styles/leaflet-blend.css";
 import "./styles/fonts.css";
 import { CookiesProvider } from "react-cookie";
 import { setupFetchFns } from "packages/fetchFns";

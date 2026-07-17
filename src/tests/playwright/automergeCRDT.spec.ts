@@ -1,4 +1,5 @@
 import { test } from "@playwright/test";
+import { waitForPageReady } from "./helpers";
 
 /**
  * For use in local dev only to simulate concurrent edits and other Conflict-Free Replicated Data Type (CRDT) tests
@@ -19,7 +20,7 @@ test("Continuous automerge edits", async ({ browser }) => {
   const page = await context.newPage();
 
   await page.goto("http://localhost:4000/mission/1");
-  await page.waitForTimeout(2000);
+  await waitForPageReady(page);
   await page.getByLabel("mission Section").locator("path").click();
   await page.getByLabel("Edit").click();
 

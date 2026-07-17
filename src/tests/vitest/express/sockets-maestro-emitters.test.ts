@@ -24,7 +24,7 @@ vi.mock("server/express/routes/docListing", () => ({
 
 import {
   isDiffRelevantToSubscribedEvas,
-  cleanupSocketRoom,
+  cleanupMaestro,
 } from "server/express/sockets-maestro-emitters";
 import { getMaestroSocketRoomName } from "server/express/sockets-maestro";
 
@@ -385,7 +385,7 @@ describe("cleanupSocketRoom", () => {
     // Pre-populate docHandle for this mission but no docListener
     globalValues.maestro.docHandles.set(nonExistentMissionId, { doc: vi.fn() } as never);
 
-    expect(() => cleanupSocketRoom(nonExistentMissionId)).not.toThrow();
+    expect(() => cleanupMaestro(nonExistentMissionId)).not.toThrow();
 
     // No listener was registered — docListeners should still not have an entry
     expect(globalValues.maestro.docListeners.has(nonExistentMissionId)).toBe(false);
@@ -398,7 +398,7 @@ describe("cleanupSocketRoom", () => {
     const removeListenerFn = vi.fn();
     globalValues.maestro.docListeners.set(MISSION_ID, removeListenerFn);
     globalValues.maestro.docHandles.set(MISSION_ID, { doc: vi.fn() } as never);
-    cleanupSocketRoom(MISSION_ID);
+    cleanupMaestro(MISSION_ID);
     expect(removeListenerFn).toHaveBeenCalled();
     expect(globalValues.maestro.docListeners.has(MISSION_ID)).toBe(false);
   });
@@ -406,14 +406,14 @@ describe("cleanupSocketRoom", () => {
   it("removes the docHandle from globalValues.maestro.docHandles", () => {
     globalValues.maestro.docListeners.set(MISSION_ID, vi.fn());
     globalValues.maestro.docHandles.set(MISSION_ID, { doc: vi.fn() } as never);
-    cleanupSocketRoom(MISSION_ID);
+    cleanupMaestro(MISSION_ID);
     expect(globalValues.maestro.docHandles.has(MISSION_ID)).toBe(false);
   });
 
   it("cleanupSocketRoom does not throw when called after state is set up", () => {
     globalValues.maestro.docListeners.set(MISSION_ID, vi.fn());
     globalValues.maestro.docHandles.set(MISSION_ID, { doc: vi.fn() } as never);
-    expect(() => cleanupSocketRoom(MISSION_ID)).not.toThrow();
+    expect(() => cleanupMaestro(MISSION_ID)).not.toThrow();
     expect(globalValues.maestro.docListeners.has(MISSION_ID)).toBe(false);
     expect(globalValues.maestro.docHandles.has(MISSION_ID)).toBe(false);
   });
@@ -468,7 +468,7 @@ describe("cleanupSocketRoom", () => {
     });
 
     // Cleanup — this deletes the snapshot
-    cleanupSocketRoom(SNAPSHOT_MISSION_ID);
+    cleanupMaestro(SNAPSHOT_MISSION_ID);
 
     // Re-add listener — doc() still returns undefined, so no initial snapshot again
     mockDocHandle.doc.mockReturnValue(undefined);

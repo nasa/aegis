@@ -2,6 +2,25 @@ import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
 /**
+ * Wait for the page's <LoadingOverlay /> to appear and then disappear.
+ * Intended to be used after the page.goto call.
+ *
+ * `waitFor({ state: "hidden" })` alone is unsafe right after a `page.goto`:
+ * Playwright's "hidden" state is satisfied by an element that is *not yet in
+ * the DOM*, so if React hasn't mounted yet the wait returns instantly and the
+ * test races past the actual loading. We wait for "attached" first to make
+ * sure the overlay has rendered, then for it to be hidden.
+ *
+ * The "attached" wait has a short fallback timeout — if the overlay never
+ * renders (e.g. data was already cached), we proceed instead of failing.
+ */
+export async function waitForPageReady(page: Page): Promise<void> {
+  const overlay = page.getByLabel("loading-overlay");
+  await overlay.waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
+  await overlay.waitFor({ state: "hidden", timeout: 30000 });
+}
+
+/**
  * Toggle the global Edit mode on/off via the toggle button in the header.
  * After clicking, waits briefly for the UI to update.
  */

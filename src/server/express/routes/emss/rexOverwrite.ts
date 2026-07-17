@@ -11,7 +11,8 @@ import { SCHEMA_DIR } from "utils/validateSchemaServer";
 import { getAutomergeMissions, getAutomergeMissionHandle } from "../missionAutomerge";
 
 const router = express.Router();
-// Used by Maestro to control a rex. Deprecated
+// Used by Maestro to control a rex.
+// Deprecated
 // Body of the POST request should be a RexOverwrite object
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;

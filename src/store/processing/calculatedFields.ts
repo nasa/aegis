@@ -1,7 +1,10 @@
-import { calcPathDurationMins, calculateAscentAndDescent } from "utils/mapping/geoMath";
+import {
+  calcPathDurationMins,
+  calculateAscentAndDescent,
+  getSegmentBearing,
+} from "utils/mapping/geoMath";
 import { mergeEquipmentItems } from "store/storeUtils/store";
 import { isNotNumber } from "utils/formatting";
-import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
 
 type CalculatedActionFields = {
   totalDuration: number;
@@ -243,8 +246,19 @@ export const getCalculatedFieldsByTraverse = (params: {
   missionTraverseRate: number;
   evaTraverseRate: number;
   traverseActions: Action[];
+  // Coordinate frame for segment bearings. Defaults to LPS grid (lunar) so the
+  // internal EVA/timeline callers — which only read duration/distance, never
+  // bearings — keep their existing behaviour. Display callers (traverse info
+  // panel) pass the mission flag so Earth missions get true-north azimuths.
+  usingLGRSCoordinates?: boolean;
 }): TraverseCalculatedFields => {
-  const { traverse, missionTraverseRate, evaTraverseRate, traverseActions } = params;
+  const {
+    traverse,
+    missionTraverseRate,
+    evaTraverseRate,
+    traverseActions,
+    usingLGRSCoordinates = true,
+  } = params;
   if (!traverse) return;
 
   //calculate total traverse action time
@@ -276,7 +290,7 @@ export const getCalculatedFieldsByTraverse = (params: {
   // get traverse segment bearings
   const pathSegmentBearings: number[] = [];
   for (let i = 1; i < traverse.path.length; i++) {
-    const bearing = getBearingFromLatLngPoints(traverse.path[i - 1], traverse.path[i]);
+    const bearing = getSegmentBearing(traverse.path[i - 1], traverse.path[i], usingLGRSCoordinates);
     pathSegmentBearings.push(bearing);
   }
 
