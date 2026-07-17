@@ -40,6 +40,7 @@ export default defineConfig({
       public: path.resolve(workspaceRoot, "src/public"),
       server: path.resolve(workspaceRoot, "src/server"),
       client: path.resolve(workspaceRoot, "src/client"),
+      operations: path.resolve(workspaceRoot, "src/operations"),
     },
   },
   test: {

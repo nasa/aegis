@@ -12,7 +12,7 @@ import { withMissionChange } from "client/automergeDocHandles";
 import {
   applyToggleStationCircleVisible,
   applyUpdateStationCircleStyle,
-} from "client/automerge/apply/apply-station";
+} from "operations/apply/apply-station";
 
 const Station_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();

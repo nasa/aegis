@@ -6,7 +6,7 @@ import {
 import {
   applyCreateEquipmentItem,
   applyUpdateEquipmentItemByField,
-} from "client/automerge/apply/apply-mission-equipment";
+} from "operations/apply/apply-mission-equipment";
 import { v4 as uuidv4 } from "uuid";
 
 beforeAll(() => {

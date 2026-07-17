@@ -1,10 +1,14 @@
 import type { FunctionComponent } from "react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, deepEqual } from "utils/useAppSelector";
-import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
+import {
+  LastEditedNumeric,
+  LoadingOverlay,
+  SubpanelHeading,
+} from "components/interface/_global-elements";
 import {
   faFileInvoice,
   faInfoCircle,
@@ -26,6 +30,7 @@ import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
+import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -34,6 +39,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   // component, in particular, we access most/all of the properties of mission and it is simpler
   const automergeUrl = useAppSelector((state) => state.mission.automergeUrl, shallowEqual);
   const [automergeMission, changeMissionDoc] = useDocument<Mission>(automergeUrl as AutomergeUrl);
+
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
 
   // Wrapper to also update the updatedAt field when any change is made
   const changeAutomergeMission = useCallback(
@@ -253,10 +260,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           ),
                         ],
                       }}
-                      onSubmit={(val: AEGISPoint) => {
-                        changeAutomergeMission((m) => {
-                          m.landerLocation = val;
-                        });
+                      onSubmit={async (val: AEGISPoint) => {
+                        setShowLoadingOverlay(true);
+                        await dispatch(thunkDocUpdateLanderLocation({ location: val }));
+                        setShowLoadingOverlay(false);
                       }}
                       key={`${automergeMission.id}-latlng`}
                     />
@@ -446,6 +453,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           </div>
         </div>
       )}
+      {showLoadingOverlay && <LoadingOverlay message="Please Wait..." />}
     </div>
   );
 };

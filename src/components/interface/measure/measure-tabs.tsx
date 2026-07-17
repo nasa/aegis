@@ -23,7 +23,7 @@ const MeasureTabs: FunctionComponent = () => {
       <div
         className={styles.measurementAdd}
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html="Add Temporary Measurement"
+        data-tooltip-content="Add Temporary Measurement"
         onClick={() => {
           dispatch(thunkAddNewMeasurement());
         }}
@@ -79,7 +79,7 @@ const MeasureTab: FunctionComponent<{ uuid: string; color: string }> = ({ uuid, 
       <div
         className={styles.measureTabRemove}
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html="Remove Measurement"
+        data-tooltip-content="Remove Measurement"
         onClick={() => {
           dispatch(thunkRemoveMeasurement({ measurementUuid: uuid }));
         }}

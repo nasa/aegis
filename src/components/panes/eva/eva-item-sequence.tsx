@@ -149,7 +149,7 @@ export const EvaEgressIngressListing: FunctionComponent<{
           <div
             className={evaStyles.evaItemRightItem}
             data-tooltip-id="aegis-tooltip"
-            data-tooltip-html={isEgress ? "Egress duration (hh:mm)" : "Ingress duration (hh:mm)"}
+            data-tooltip-content={isEgress ? "Egress duration (hh:mm)" : "Ingress duration (hh:mm)"}
             data-tooltip-place="right"
           >
             {hmmFromMinutes(isEgress ? eva.egressDuration : eva.ingressDuration)}

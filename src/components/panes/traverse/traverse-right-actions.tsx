@@ -6,7 +6,7 @@ import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselect
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdateTraverseByField } from "client/automerge/apply/apply-traverse";
+import { applyUpdateTraverseByField } from "operations/apply/apply-traverse";
 
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;

@@ -6,7 +6,7 @@ import {
 import {
   applyCreateGeoUnit,
   applyUpdateGeoUnitByField,
-} from "client/automerge/apply/apply-mission-geoUnit";
+} from "operations/apply/apply-mission-geoUnit";
 import { v4 as uuidv4 } from "uuid";
 
 beforeAll(() => {

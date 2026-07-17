@@ -24,7 +24,7 @@ import {
   applyDeleteTraverses,
   applyUpsertTraverse,
   applyTraverseUpdatesStage,
-} from "client/automerge/apply/apply-traverse";
+} from "operations/apply/apply-traverse";
 import {
   applyDuplicateEvaStage,
   applyUpsertEva,
@@ -33,16 +33,13 @@ import {
   applySwapEvaSequenceItems,
   applySpliceEvaSequence,
   applyPushEvaSequenceItems,
-} from "client/automerge/apply/apply-eva";
-import { stageDuplicateEva } from "client/automerge/stage/stage-eva";
-import { stageDeleteEva } from "client/automerge/stage/stage-eva";
-import { stageDuplicateStation } from "client/automerge/stage/stage-station";
-import { stageTraverseUpdate } from "client/automerge/stage/stage-traverse";
-import {
-  applyDuplicateStationStage,
-  applyDeleteStations,
-} from "client/automerge/apply/apply-station";
-import { applyDeleteActions } from "client/automerge/apply/apply-action";
+} from "operations/apply/apply-eva";
+import { stageDuplicateEva } from "operations/stage/stage-eva";
+import { stageDeleteEva } from "operations/stage/stage-eva";
+import { stageDuplicateStation } from "operations/stage/stage-station";
+import { stageTraverseUpdate } from "operations/stage/stage-traverse";
+import { applyDuplicateStationStage, applyDeleteStations } from "operations/apply/apply-station";
+import { applyDeleteActions } from "operations/apply/apply-action";
 import { setStationCircleUIStates } from "store/station";
 
 export const thunkDocDeleteEva = appCreateAsyncThunk<{

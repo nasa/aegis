@@ -8,7 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import "react-checkbox-tree/lib/react-checkbox-tree.css";
 import { STM_Coverage } from "./stm-coverage";
-import { applyUpdateActionByField } from "client/automerge/apply/apply-action";
+import { applyUpdateActionByField } from "operations/apply/apply-action";
 import { withMissionChange } from "client/automergeDocHandles";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
@@ -77,7 +77,7 @@ const STMSelector: FunctionComponent<{
                 {partialMission?.stmLevel1Name} {level1.numbering}
               </span>{" "}
               -{" "}
-              <span data-tooltip-id="aegis-tooltip" data-tooltip-html={level1.name}>
+              <span data-tooltip-id="aegis-tooltip" data-tooltip-content={level1.name}>
                 {level1.name}
               </span>
             </>
@@ -102,7 +102,7 @@ const STMSelector: FunctionComponent<{
                   {level2.numbering}
                 </span>{" "}
                 -{" "}
-                <span data-tooltip-id="aegis-tooltip" data-tooltip-html={level2.name}>
+                <span data-tooltip-id="aegis-tooltip" data-tooltip-content={level2.name}>
                   {level2.name}
                 </span>
               </>
@@ -214,7 +214,7 @@ const STMLabelLevel3: FunctionComponent<{
       <span
         className={stmStyles.toggleContainer}
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html="STM Priority"
+        data-tooltip-content="STM Priority"
       >
         <span
           className={`${priorityClass(1)} ${priority === 1 ? stmStyles.toggleSelected : ""}`}
@@ -250,7 +250,7 @@ const STMLabelLevel3: FunctionComponent<{
         {level2.numbering}
         {level3.numbering} -{" "}
       </span>
-      <span data-tooltip-id="aegis-tooltip" data-tooltip-html={level3.name}>
+      <span data-tooltip-id="aegis-tooltip" data-tooltip-content={level3.name}>
         {level3.name}
       </span>
     </span>

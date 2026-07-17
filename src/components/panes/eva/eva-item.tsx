@@ -173,7 +173,7 @@ const EvaItem: FunctionComponent<{ asPlannedEvaUuid: string; first?: boolean }> 
                 icon={faPersonWalkingArrowRight}
                 className={`${evaStyles.rexIconWrapper} ${selectedStyleState === "highlight" && evaStyles.rexIconWrapperSelected}`}
                 data-tooltip-id="aegis-tooltip"
-                data-tooltip-html={"Execution in Progress"}
+                data-tooltip-content={"Execution in Progress"}
               />
             )}
           </div>

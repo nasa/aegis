@@ -1,9 +1,11 @@
 import type { FunctionComponent } from "react";
+import { useId } from "react";
 import stmStyles from "./stm-coverage.module.css";
+import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
 import uniqBy from "lodash/uniqBy";
 import uniq from "lodash/uniq";
-import ReactDOMServer from "react-dom/server";
+import { Tooltip } from "react-tooltip";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 export const STM_Coverage: FunctionComponent<{
@@ -171,8 +173,37 @@ export const STM_Coverage: FunctionComponent<{
     onLevel3Hover(uuid);
   }
 
+  // Two shared tooltip instances per STM_Coverage mount (one per level).
+  // Each level1 / level3 anchor references the corresponding shared instance
+  // via data-tooltip-id and passes its uuid via data-stm-uuid; the render
+  // prop reads that uuid and reconstructs the JSX.
+  const level1TooltipId = useId();
+  const level3TooltipId = useId();
+
   return (
     <>
+      <Tooltip
+        id={level1TooltipId}
+        className={aegisTooltipStyles.tooltip}
+        clickable={true}
+        delayShow={1000}
+        delayHide={500}
+        render={({ activeAnchor }) => {
+          const uuid = activeAnchor?.getAttribute("data-stm-uuid");
+          return uuid ? buildSTMTooltip(uuid, "level1", true) : null;
+        }}
+      />
+      <Tooltip
+        id={level3TooltipId}
+        className={aegisTooltipStyles.tooltip}
+        clickable={true}
+        delayShow={1000}
+        delayHide={500}
+        render={({ activeAnchor }) => {
+          const uuid = activeAnchor?.getAttribute("data-stm-uuid");
+          return uuid ? buildSTMTooltip(uuid, "level3", true) : null;
+        }}
+      />
       <div
         className={`${stmStyles.stm_mini} ${
           horizontal ? stmStyles.stmHorizontal_mini : stmStyles.stmVertical_mini
@@ -180,9 +211,6 @@ export const STM_Coverage: FunctionComponent<{
       >
         {level3s &&
           allSTMLevel1.map((level1) => {
-            const tooltipString = ReactDOMServer.renderToStaticMarkup(
-              buildSTMTooltip(level1.uuid, "level1", true)
-            );
             return (
               <div
                 key={level1.uuid}
@@ -197,8 +225,8 @@ export const STM_Coverage: FunctionComponent<{
                         ? stmStyles.level1NumberingCol_mini
                         : stmStyles.level1NumberingRow_mini
                     }`}
-                    data-tooltip-id="aegis-tooltip"
-                    data-tooltip-html={tooltipString}
+                    data-tooltip-id={level1TooltipId}
+                    data-stm-uuid={level1.uuid}
                   >
                     {level1.numbering}
                   </div>
@@ -221,9 +249,6 @@ export const STM_Coverage: FunctionComponent<{
                           {allSTMLevel3
                             .filter((level3) => level3.level2Uuid === goal.uuid)
                             .map((level3, index, array) => {
-                              const tooltipString = ReactDOMServer.renderToStaticMarkup(
-                                buildSTMTooltip(level3.uuid, "level3", true)
-                              );
                               return (
                                 <div key={level3.uuid}>
                                   <div
@@ -251,8 +276,8 @@ export const STM_Coverage: FunctionComponent<{
                                       !completedLevel3Uuids?.includes(level3.uuid) &&
                                       stmStyles.rexInProgress
                                     }`}
-                                    data-tooltip-id="aegis-tooltip"
-                                    data-tooltip-html={tooltipString}
+                                    data-tooltip-id={level3TooltipId}
+                                    data-stm-uuid={level3.uuid}
                                     onMouseOver={() => {
                                       handleHover(level3.uuid);
                                     }}

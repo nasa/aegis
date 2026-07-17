@@ -311,7 +311,7 @@ export const MapMenu: FunctionComponent<{
                         }
                       }}
                       data-tooltip-id="aegis-tooltip"
-                      data-tooltip-html={posSource.name}
+                      data-tooltip-content={posSource.name}
                     >
                       {posSource.abbr}
                     </div>

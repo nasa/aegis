@@ -27,7 +27,7 @@ export const ToggleButton: FunctionComponent<{
     <div
       className={`${formStyles.toggleButton}`}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={toolTip}
+      data-tooltip-content={toolTip}
       onClick={() => {
         if (isDisabled) return;
         onClick();
@@ -224,7 +224,7 @@ export const CollaborationInputField: FunctionComponent<{
         <div
           className={`${formStyles.inputFieldValue}`}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={fieldProps.ariaLabel}
+          data-tooltip-content={fieldProps.ariaLabel}
           aria-label={fieldProps.ariaLabel}
         >
           {valueToShow}
@@ -422,7 +422,7 @@ export const CollaborationTextArea: FunctionComponent<{
         <div
           className={`${formStyles.textAreaValue}`}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={fieldProps.ariaLabel}
+          data-tooltip-content={fieldProps.ariaLabel}
           aria-label={fieldProps.ariaLabel}
         >
           {valueToShow}
@@ -637,7 +637,7 @@ export const ValidatedInputField: FunctionComponent<{
         <div
           className={`${formStyles.inputFieldValue}`}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={fieldProps.ariaLabel}
+          data-tooltip-content={fieldProps.ariaLabel}
           aria-label={fieldProps.ariaLabel}
           style={displayStyle}
         >
@@ -831,7 +831,7 @@ export const ValidatedTextArea: FunctionComponent<{
         <div
           className={`${formStyles.textAreaValue}`}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={fieldProps.ariaLabel}
+          data-tooltip-content={fieldProps.ariaLabel}
           aria-label={fieldProps.ariaLabel}
         >
           {valueToShow}
@@ -1058,7 +1058,7 @@ export const ValidatedLatLngField: FunctionComponent<{
                 ) : (
                   <div
                     data-tooltip-id="aegis-tooltip"
-                    data-tooltip-html={fieldPropsLat.ariaLabel}
+                    data-tooltip-content={fieldPropsLat.ariaLabel}
                     aria-label={fieldPropsLat.ariaLabel}
                   >
                     {round(value.lat, 6).toString()}
@@ -1078,7 +1078,7 @@ export const ValidatedLatLngField: FunctionComponent<{
                 ) : (
                   <div
                     data-tooltip-id="aegis-tooltip"
-                    data-tooltip-html={fieldPropsLng.ariaLabel}
+                    data-tooltip-content={fieldPropsLng.ariaLabel}
                     aria-label={fieldPropsLng.ariaLabel}
                   >
                     {round(value.lng, 6).toString()}

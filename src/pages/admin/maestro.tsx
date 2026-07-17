@@ -276,7 +276,7 @@ const Maestro: React.FunctionComponent = () => {
   const emitSendMdau = () => {
     if (!maestroSocket.current?.connected || !sendMdauMissionId) return;
     try {
-      const mdau = JSON.parse(sendMdauJson) as MaestroDataAegisUses;
+      const mdau = JSON.parse(sendMdauJson) as Maegistro.MaestroDataAegisUses;
       setSendMdauJsonError(null);
       maestroSocket.current.emit("sendMDAU", Number(sendMdauMissionId), mdau);
     } catch (e) {

@@ -33,10 +33,24 @@ export function applyUpdateTraverseByField<K extends keyof Traverse>(
   }
 }
 
-/** Delete a list of traverses from the doc. */
+/**
+ * Delete a list of traverses from the doc.
+ *
+ * Also cleans up any matching entries from every REX's `traverseEntries` map
+ * so we don't leave orphaned rex entries pointing at deleted traverses.
+ */
 export function applyDeleteTraverses(m: Mission, traverseUuids: string[]): void {
+  if (traverseUuids.length === 0) return;
   for (const uuid of traverseUuids) {
     delete m.traverses[uuid];
+  }
+  for (const rex of Object.values(m.rexes ?? {})) {
+    if (!rex.traverseEntries) continue;
+    for (const uuid of traverseUuids) {
+      if (uuid in rex.traverseEntries) {
+        delete rex.traverseEntries[uuid];
+      }
+    }
   }
 }
 

@@ -3,7 +3,7 @@ import {
   setMissionAutomergeDocHandle,
   withMissionChange,
 } from "client/automergeDocHandles";
-import { applyUpdateMissionByField } from "client/automerge/apply/apply-mission";
+import { applyUpdateMissionByField } from "operations/apply/apply-mission";
 import { v4 as uuidv4 } from "uuid";
 
 beforeAll(() => {

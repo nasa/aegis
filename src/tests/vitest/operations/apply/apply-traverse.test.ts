@@ -5,11 +5,15 @@ import {
 } from "client/automergeDocHandles";
 import {
   applyDuplicateTraverse,
+  applyDeleteTraverses,
   applyUpdateTraverseByField,
-} from "client/automerge/apply/apply-traverse";
+} from "operations/apply/apply-traverse";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { generateBlankRex } from "store/storeUtils/rex";
 import { v4 as uuidv4 } from "uuid";
+
+const getMission = (): Mission => getMissionDocHandle().doc();
 
 beforeAll(() => {
   setMissionAutomergeDocHandle(null);
@@ -20,6 +24,7 @@ beforeEach(() => {
   getMissionDocHandle().change((m) => {
     m.traverses = {};
     m.actions = {};
+    m.rexes = {};
   });
 });
 
@@ -274,6 +279,73 @@ describe("apply-traverse", () => {
 
       const doc = getMissionDocHandle().doc();
       expect(doc.traverses[traverse.uuid]).toEqual(traverse);
+    });
+  });
+
+  describe("applyDeleteTraverses()", () => {
+    describe("REX entries cleanup", () => {
+      it("removes matching entries from rex.traverseEntries and leaves other entries intact", () => {
+        const traverseA = generateBlankTraverse({ name: "Vitest Traverse A" });
+        const traverseB = generateBlankTraverse({ name: "Vitest Traverse B" });
+        const stationUuid = uuidv4();
+        const actionUuid = uuidv4();
+        const rex = generateBlankRex({ evaUuid: uuidv4() });
+        rex.traverseEntries = {
+          [traverseA.uuid]: { rexStatus: "in-progress" },
+          [traverseB.uuid]: { rexStatus: "pending" },
+        };
+        rex.stationEntries = { [stationUuid]: { rexStatus: "pending" } };
+        rex.actionEntries = { [actionUuid]: { rexStatus: "complete", mass: 5 } };
+        getMissionDocHandle().change((m) => {
+          m.traverses[traverseA.uuid] = traverseA;
+          m.traverses[traverseB.uuid] = traverseB;
+          m.rexes[rex.uuid] = rex;
+        });
+
+        withMissionChange((m) => applyDeleteTraverses(m, [traverseA.uuid]));
+
+        const updatedRex = getMission().rexes[rex.uuid];
+        expect(updatedRex.traverseEntries?.[traverseA.uuid]).toBeUndefined();
+        expect(updatedRex.traverseEntries?.[traverseB.uuid]).toBeDefined();
+        expect(updatedRex.traverseEntries?.[traverseB.uuid].rexStatus).toBe("pending");
+        // unrelated entries untouched
+        expect(updatedRex.stationEntries?.[stationUuid]).toBeDefined();
+        expect(updatedRex.actionEntries?.[actionUuid]).toBeDefined();
+      });
+
+      it("cleans up matching traverseEntries across multiple rexes", () => {
+        const traverseA = generateBlankTraverse({ name: "Vitest Traverse A" });
+        const rex1 = generateBlankRex({ evaUuid: uuidv4() });
+        rex1.traverseEntries = { [traverseA.uuid]: { rexStatus: "in-progress" } };
+        const rex2 = generateBlankRex({ evaUuid: uuidv4() });
+        rex2.traverseEntries = { [traverseA.uuid]: { rexStatus: "pending" } };
+        getMissionDocHandle().change((m) => {
+          m.traverses[traverseA.uuid] = traverseA;
+          m.rexes[rex1.uuid] = rex1;
+          m.rexes[rex2.uuid] = rex2;
+        });
+
+        withMissionChange((m) => applyDeleteTraverses(m, [traverseA.uuid]));
+
+        expect(getMission().rexes[rex1.uuid].traverseEntries?.[traverseA.uuid]).toBeUndefined();
+        expect(getMission().rexes[rex2.uuid].traverseEntries?.[traverseA.uuid]).toBeUndefined();
+      });
+
+      it("does not throw when rex.traverseEntries is null", () => {
+        const traverseA = generateBlankTraverse({ name: "Vitest Traverse A" });
+        const rex = generateBlankRex({ evaUuid: uuidv4() });
+        rex.traverseEntries = null;
+        getMissionDocHandle().change((m) => {
+          m.traverses[traverseA.uuid] = traverseA;
+          m.rexes[rex.uuid] = rex;
+        });
+
+        expect(() =>
+          withMissionChange((m) => applyDeleteTraverses(m, [traverseA.uuid]))
+        ).not.toThrow();
+        expect(getMission().traverses[traverseA.uuid]).toBeUndefined();
+        expect(getMission().rexes[rex.uuid].traverseEntries).toBeNull();
+      });
     });
   });
 });

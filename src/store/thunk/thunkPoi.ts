@@ -10,8 +10,8 @@ import { getAccurateNow } from "utils/formatting";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import { applyDeleteActions, applyDuplicateActions } from "client/automerge/apply/apply-action";
-import { applyDeletePois, applyUpsertPoi } from "client/automerge/apply/apply-poi";
+import { applyDeleteActions, applyDuplicateActions } from "operations/apply/apply-action";
+import { applyDeletePois, applyUpsertPoi } from "operations/apply/apply-poi";
 import { generateUniqueName } from "utils/names/unique-name";
 import { generateBlankPoi } from "store/storeUtils/poi";
 

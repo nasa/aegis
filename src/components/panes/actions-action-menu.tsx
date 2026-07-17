@@ -16,8 +16,8 @@ import {
   applyDeleteActionAndUpdateParent,
   applyDuplicateActions,
   applyUpdateActionByField,
-} from "client/automerge/apply/apply-action";
-import { applyCreateTemplateFromAction } from "client/automerge/apply/apply-mission-actionTemplate";
+} from "operations/apply/apply-action";
+import { applyCreateTemplateFromAction } from "operations/apply/apply-mission-actionTemplate";
 
 export const ActionMenu: FunctionComponent<{
   action: Action;

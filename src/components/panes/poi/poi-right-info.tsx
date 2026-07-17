@@ -13,7 +13,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { setSelectedPOIRightNavItem } from "store/poi";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdatePoiByField } from "client/automerge/apply/apply-poi";
+import { applyUpdatePoiByField } from "operations/apply/apply-poi";
 import { validators } from "components/interface/form/formValidators";
 import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
@@ -356,7 +356,7 @@ const Info_Panel: FunctionComponent<{
                       <LastEditedNumeric
                         updatedAt={selectedPoi?.updatedAt}
                         createdAt={selectedPoi?.createdAt}
-                        infoString={`POI UUID: ${selectedPoi?.uuid}`}
+                        info={[["POI UUID", selectedPoi?.uuid]]}
                       />
                     </div>
                   </div>

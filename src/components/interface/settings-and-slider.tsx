@@ -292,7 +292,7 @@ const Slider: FunctionComponent<{
           max={max}
           name={name}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={name}
+          data-tooltip-content={name}
           aria-label={name}
           defaultValue={value}
           className={styles.slider}

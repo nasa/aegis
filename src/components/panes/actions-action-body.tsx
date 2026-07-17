@@ -26,7 +26,7 @@ import { useState } from "react";
 import paneStyles from "./global-pane-styles.module.css";
 import actionStyles from "./actions-action.module.css";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdateActionByField } from "client/automerge/apply/apply-action";
+import { applyUpdateActionByField } from "operations/apply/apply-action";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { longDateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
@@ -434,7 +434,7 @@ const RightActionBody: FunctionComponent<{
               <FontAwesomeIcon
                 icon={faHexagonNodes}
                 data-tooltip-id="aegis-tooltip"
-                data-tooltip-html="Fields in this section are Maestro controlled"
+                data-tooltip-content="Fields in this section are Maestro controlled"
               />
             </div>
           )}
@@ -879,7 +879,10 @@ const RightActionBody: FunctionComponent<{
           <LastEditedNumeric
             updatedAt={action?.updatedAt}
             createdAt={action?.createdAt}
-            infoString={`Action UUID: ${action?.uuid}<br />Action RefUUID: ${action?.refUuid}`}
+            info={[
+              ["Action UUID", action?.uuid],
+              ["Action RefUUID", action?.refUuid],
+            ]}
           />
         </div>
       </div>

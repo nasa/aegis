@@ -136,10 +136,24 @@ export function applyUpdateActionDefinitionSelection(
   });
 }
 
-/** Delete a list of actions from the doc. */
+/**
+ * Delete a list of actions from the doc.
+ *
+ * Also cleans up any matching entries from every REX's `actionEntries` map so
+ * we don't leave orphaned rex entries pointing at deleted actions.
+ */
 export function applyDeleteActions(m: Mission, actionUuids: string[]): void {
+  if (actionUuids.length === 0) return;
   for (const uuid of actionUuids) {
     delete m.actions[uuid];
+  }
+  for (const rex of Object.values(m.rexes ?? {})) {
+    if (!rex.actionEntries) continue;
+    for (const uuid of actionUuids) {
+      if (uuid in rex.actionEntries) {
+        delete rex.actionEntries[uuid];
+      }
+    }
   }
 }
 
@@ -177,7 +191,9 @@ export function applyDeleteActionAndUpdateParent(m: Mission, { uuid }: { uuid: s
     }
   }
 
-  delete m.actions[uuid];
+  // Delegate the actual action delete + REX actionEntries cleanup to
+  // applyDeleteActions so all deletion paths share the same cleanup logic.
+  applyDeleteActions(m, [uuid]);
 }
 
 /**

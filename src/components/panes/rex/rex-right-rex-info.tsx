@@ -12,7 +12,7 @@ import { Button, Checkbox } from "components/interface/form/globalFields";
 import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
 import { validators } from "components/interface/form/formValidators";
 import PetInterval from "components/page/petInterval";
-import { applyRexPetStartStop, applyUpdateRexByField } from "client/automerge/apply/apply-rex";
+import { applyRexPetStartStop, applyUpdateRexByField } from "operations/apply/apply-rex";
 import { withMissionChange } from "client/automergeDocHandles";
 import { thunkDocCreateInitialPosEntries } from "store/thunk/thunkRex";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -189,7 +189,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 <FontAwesomeIcon
                   icon={faHexagonNodes}
                   data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html="Fields in this section are Maestro controlled"
+                  data-tooltip-content="Fields in this section are Maestro controlled"
                 />
               </div>
             )}
@@ -326,7 +326,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     <LastEditedNumeric
                       updatedAt={selectedRex?.updatedAt}
                       createdAt={selectedRex?.createdAt}
-                      infoString={`REX UUID: ${selectedRex?.uuid}`}
+                      info={[["REX UUID", selectedRex?.uuid]]}
                     />
                   </div>
                 </div>

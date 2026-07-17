@@ -43,7 +43,7 @@ import {
   applyCreateActionTemplate,
   applyUpdateActionTemplateActionDefinition,
   applyUpdateActionTemplateByField,
-} from "client/automerge/apply/apply-mission-actionTemplate";
+} from "operations/apply/apply-mission-actionTemplate";
 import { withMissionChange } from "client/automergeDocHandles";
 
 const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
@@ -542,7 +542,7 @@ const ActionTemplateItem: FunctionComponent<{
                 <LastEditedNumeric
                   updatedAt={actionTemplate?.updatedAt}
                   createdAt={actionTemplate?.createdAt}
-                  infoString={`Action Template UUID: ${actionTemplateUuid}`}
+                  info={[["Action Template UUID", actionTemplateUuid]]}
                 />
               </div>
             </div>
