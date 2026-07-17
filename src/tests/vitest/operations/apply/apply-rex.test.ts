@@ -7,7 +7,7 @@ import {
   applyUpdatePosTypeField,
   applyDeletePosSource,
   applyDeletePosType,
-} from "client/automerge/apply/apply-rex";
+} from "operations/apply/apply-rex";
 import { generateBlankPosType, generateBlankRex } from "store/storeUtils/rex";
 import { v4 as uuidv4 } from "uuid";
 

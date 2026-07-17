@@ -55,6 +55,17 @@ type StationDuplicationStageData = {
   actionsStage: ActionsDuplicationStageData;
 };
 
+// ─── Adjacent traverse renames stage ──────────────────────────────────────
+
+/**
+ * A single traverse whose auto-generated "<before> to <after>" display name
+ * needs to be updated because one of its endpoint stations was renamed.
+ */
+type TraverseRenameStageData = {
+  traverseUuid: string;
+  newName: string;
+};
+
 // ─── Traverse duplication ──────────────────────────────────────────────────
 
 type TraverseDuplicationStageData = {

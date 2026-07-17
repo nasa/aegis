@@ -16,7 +16,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import {
   applyCreateActionDefinitionItem,
   applyUpdateActionDefinitionItemByField,
-} from "client/automerge/apply/apply-mission-actionDefinition";
+} from "operations/apply/apply-mission-actionDefinition";
 import { withMissionChange } from "client/automergeDocHandles";
 
 const ActionDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {

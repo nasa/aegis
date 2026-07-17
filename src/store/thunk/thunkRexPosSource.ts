@@ -2,7 +2,7 @@ import appCreateAsyncThunk from "./thunkUtil";
 import { v4 as uuidv4 } from "uuid";
 import cloneDeep from "lodash/cloneDeep";
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import { applyUpdateRexByField, applyDeletePosSource } from "client/automerge/apply/apply-rex";
+import { applyUpdateRexByField, applyDeletePosSource } from "operations/apply/apply-rex";
 
 export const thunkDocCreatePosSource = appCreateAsyncThunk<void>(
   "createPosSource",

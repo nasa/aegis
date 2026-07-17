@@ -13,7 +13,7 @@ import { Button, IconDropdown } from "components/interface/form/globalFields";
 import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
 import { setSelectedPOIRightNavItem } from "store/poi";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdatePoiByField } from "client/automerge/apply/apply-poi";
+import { applyUpdatePoiByField } from "operations/apply/apply-poi";
 import Info_Panel from "./poi-right-info";
 import Actions_Panel from "./poi-right-actions";
 import { useAppDispatch } from "utils/useAppDispatch";

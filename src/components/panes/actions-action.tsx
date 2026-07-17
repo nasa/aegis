@@ -17,7 +17,7 @@ import { withMissionChange } from "client/automergeDocHandles";
 import {
   applyUpdateActionByField,
   applyUpdateActionDefinitionSelection,
-} from "client/automerge/apply/apply-action";
+} from "operations/apply/apply-action";
 import { hmmFromMinutes, titleCase } from "utils/formatting";
 import { EmojiRenderer } from "components/interface/emojis";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";

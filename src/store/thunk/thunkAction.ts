@@ -1,7 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkFetchElevation } from "./thunkElevation";
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import { applyUpdateActionByField } from "client/automerge/apply/apply-action";
+import { applyUpdateActionByField } from "operations/apply/apply-action";
 
 export const thunkDocUpdateActionLocation = appCreateAsyncThunk<{
   location: AEGISPoint;

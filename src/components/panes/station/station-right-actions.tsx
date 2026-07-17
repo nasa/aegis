@@ -7,7 +7,7 @@ import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselect
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdateStationByField } from "client/automerge/apply/apply-station";
+import { applyUpdateStationByField } from "operations/apply/apply-station";
 
 const Actions_Panel: FunctionComponent<{
   editMode: boolean;

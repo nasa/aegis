@@ -10,7 +10,7 @@ import {
   applyDuplicateActions,
   applyUpdateActionByField,
   applyUpdateActionDefinitionSelection,
-} from "client/automerge/apply/apply-action";
+} from "operations/apply/apply-action";
 import { getHighlightedActions } from "store/selectors";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankPoi } from "store/storeUtils/poi";

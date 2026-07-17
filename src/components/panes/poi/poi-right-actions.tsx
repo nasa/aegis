@@ -4,7 +4,7 @@ import paneStyles from "../global-pane-styles.module.css";
 
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdatePoiByField } from "client/automerge/apply/apply-poi";
+import { applyUpdatePoiByField } from "operations/apply/apply-poi";
 import Actions from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";

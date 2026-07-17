@@ -15,7 +15,7 @@ import { ActionsListHeadings } from "./actions";
 import { ActionDefType } from "./actions-action";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyDuplicateActions } from "client/automerge/apply/apply-action";
+import { applyDuplicateActions } from "operations/apply/apply-action";
 
 export const Assoc_POIs: FunctionComponent<{
   stationPoiUuids: string[];

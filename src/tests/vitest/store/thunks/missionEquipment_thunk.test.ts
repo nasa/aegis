@@ -3,7 +3,7 @@ import {
   setMissionAutomergeDocHandle,
   withMissionChange,
 } from "client/automergeDocHandles";
-import { applyCreateEquipmentItem } from "client/automerge/apply/apply-mission-equipment";
+import { applyCreateEquipmentItem } from "operations/apply/apply-mission-equipment";
 import { thunkDocDeleteEquipmentItem } from "store/thunk/thunkMissionEquipment";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankActionTemplate } from "store/storeUtils/mission";

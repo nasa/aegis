@@ -3,7 +3,7 @@ import {
   setMissionAutomergeDocHandle,
   withMissionChange,
 } from "client/automergeDocHandles";
-import { applyUpsertEva, applyUpdateEvaByField } from "client/automerge/apply/apply-eva";
+import { applyUpsertEva, applyUpdateEvaByField } from "operations/apply/apply-eva";
 import { generateBlankEVA } from "store/storeUtils/eva";
 
 const getMission = (): Mission => getMissionDocHandle().doc();

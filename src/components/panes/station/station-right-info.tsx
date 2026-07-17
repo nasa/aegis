@@ -35,7 +35,7 @@ import { globalGrid } from "utils/mapping/grid";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdateStationByField } from "client/automerge/apply/apply-station";
+import { applyUpdateStationByField } from "operations/apply/apply-station";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;

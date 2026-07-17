@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { getAccurateNow } from "utils/formatting";
 import { getTotalDistance } from "utils/mapping/geoMath";
-import { getTraverseEndpoints } from "client/automerge/getTraverseEndpoints";
+import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
 import { thunkFetchElevation } from "store/thunk/thunkElevation";
 import type { AppDispatch } from "utils/useAppDispatch";
 
@@ -142,4 +142,70 @@ export async function stageTraverseUpdate(
     newName: renameTraverse ? `${nameBefore} to ${nameAfter}` : undefined,
     updatedAt: getAccurateNow().getTime(),
   } satisfies TraverseUpdateStageData;
+}
+
+/**
+ * Build the list of EVA-sequence traverses whose auto-generated
+ * "<before> to <after>" display names need to be recomputed because the
+ * given station is being renamed.
+ *
+ * Returns:
+ *  - `undefined` if the station doesn't exist in the doc.
+ *  - `[]` if the new name matches the current name (no-op).
+ *  - Otherwise, one `TraverseRenameStageData` per affected adjacent traverse.
+ */
+export function stageAdjacentTraverseRenames(
+  mission: Mission,
+  args: { stationUuid: string; newName: string }
+): TraverseRenameStageData[] | undefined {
+  const { stationUuid, newName } = args;
+  const station = mission.stations?.[stationUuid];
+  if (!station) return undefined;
+  if (station.name === newName) return [];
+
+  const allEvas = Object.values(mission.evas ?? {});
+
+  // Collect every traverse uuid before or after this station
+  const traverseUuidsToRename = new Set<string>();
+  for (const eva of allEvas) {
+    // Traverses immediately before/after this station
+    for (let i = 0; i < eva.sequence.length; i++) {
+      if (eva.sequence[i].type === "station" && eva.sequence[i].uuid === stationUuid) {
+        const traverseBefore = eva.sequence[i - 1];
+        if (traverseBefore?.type === "traverse") traverseUuidsToRename.add(traverseBefore.uuid);
+        const traverseAfter = eva.sequence[i + 1];
+        if (traverseAfter?.type === "traverse") traverseUuidsToRename.add(traverseAfter.uuid);
+      }
+    }
+    // Boundary traverses where this station is the ingress/egress location
+    if (eva.egressLocationUuid === stationUuid && eva.sequence[0]?.type === "traverse") {
+      traverseUuidsToRename.add(eva.sequence[0].uuid);
+    }
+    if (
+      eva.ingressLocationUuid === stationUuid &&
+      eva.sequence[eva.sequence.length - 1]?.type === "traverse"
+    ) {
+      traverseUuidsToRename.add(eva.sequence[eva.sequence.length - 1].uuid);
+    }
+  }
+
+  // Recompute each affected traverse's "<before> to <after>" name using the
+  // pending new station name
+  const traverseRenames: TraverseRenameStageData[] = [];
+  for (const traverseUuid of traverseUuidsToRename) {
+    const eva = allEvas.find((e) => e.sequence.some((s) => s.uuid === traverseUuid));
+    if (!eva) continue;
+    const { nameBefore, nameAfter } = getTraverseEndpoints(
+      traverseUuid,
+      eva.sequence as EvaSequenceItem[],
+      eva.egressLocationUuid,
+      eva.ingressLocationUuid,
+      mission.stations,
+      mission.landerLocation,
+      { uuid: stationUuid, location: station.location, name: newName }
+    );
+    traverseRenames.push({ traverseUuid, newName: `${nameBefore} to ${nameAfter}` });
+  }
+
+  return traverseRenames;
 }

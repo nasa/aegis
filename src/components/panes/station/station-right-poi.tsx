@@ -6,7 +6,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdateStationByField } from "client/automerge/apply/apply-station";
+import { applyUpdateStationByField } from "operations/apply/apply-station";
 import stationStyles from "./station.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { Checkbox, TextArea } from "components/interface/form/globalFields";

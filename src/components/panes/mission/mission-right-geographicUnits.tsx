@@ -15,7 +15,7 @@ import { thunkDocDeleteGeoUnit } from "store/thunk/thunkMissionGeoUnit";
 import {
   applyCreateGeoUnit,
   applyUpdateGeoUnitByField,
-} from "client/automerge/apply/apply-mission-geoUnit";
+} from "operations/apply/apply-mission-geoUnit";
 import { withMissionChange } from "client/automergeDocHandles";
 
 const GeographicUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {

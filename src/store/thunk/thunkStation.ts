@@ -6,23 +6,23 @@ import {
   setAllStationCirclesUIStates,
 } from "store/station";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mapping/geoMath";
-import { getTraverseEndpoints } from "client/automerge/getTraverseEndpoints";
-import { stageTraverseUpdate } from "client/automerge/stage/stage-traverse";
+import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
+import { stageTraverseUpdate } from "operations/stage/stage-traverse";
 import { thunkFetchElevation } from "./thunkElevation";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
-import { applyTraverseUpdatesStage } from "client/automerge/apply/apply-traverse";
+import { applyTraverseUpdatesStage } from "operations/apply/apply-traverse";
 import { generateUniqueName } from "utils/names/unique-name";
 import { thunkCancelMarkerMapDirective } from "./thunkMap";
-import { applyDeleteActions } from "client/automerge/apply/apply-action";
+import { applyDeleteActions } from "operations/apply/apply-action";
 import {
   applyDeleteStations,
   applyUpsertStation,
   applyUpdateAllStationCircleControls,
   applyStationLocationUpdateStage,
   applyDuplicateStationStage,
-} from "client/automerge/apply/apply-station";
-import { stageDuplicateStation } from "client/automerge/stage/stage-station";
+} from "operations/apply/apply-station";
+import { stageDuplicateStation } from "operations/stage/stage-station";
 import { getAccurateNow } from "utils/formatting";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankStation } from "store/storeUtils/station";

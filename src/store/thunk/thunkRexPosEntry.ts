@@ -5,7 +5,7 @@ import { clearPosEntryInEdit } from "store/rex";
 import { updateMapDirective } from "store/map";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import cloneDeep from "lodash/cloneDeep";
-import { applyDeletePosType } from "client/automerge/apply/apply-rex";
+import { applyDeletePosType } from "operations/apply/apply-rex";
 
 /*
  * Update the position entry with a location

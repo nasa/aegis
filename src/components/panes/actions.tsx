@@ -17,7 +17,7 @@ import { getStmUuids } from "store/storeUtils/store";
 import { letterOrdinal } from "utils/formatting";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyCreateAction } from "client/automerge/apply/apply-action";
+import { applyCreateAction } from "operations/apply/apply-action";
 import { getHighlightedActions } from "store/selectors";
 
 const Actions: FunctionComponent<{

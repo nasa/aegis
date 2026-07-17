@@ -2,13 +2,12 @@
  * Resolves the before/after locations and names for a traverse's endpoints
  * by scanning an EVA sequence.
  *
- * The EVA sequence alternates: [traverse, station, traverse, station, ..., traverse].
  * For a given traverseUuid:
  *   - "before" comes from the egress location (if first) or the preceding station.
  *   - "after"  comes from the ingress location (if last)  or the following station.
  *
  * The optional `stationOverride` lets callers substitute a different location/name
- * for a specific station UUID — used when a station is being moved or replaced and
+ * for a specific station UUID — used when a station is being edited and
  * the doc has not yet been updated.
  */
 

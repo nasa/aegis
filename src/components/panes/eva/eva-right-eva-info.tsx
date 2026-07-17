@@ -40,7 +40,7 @@ import { selectAsPlannedStations } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdateEvaByField } from "client/automerge/apply/apply-eva";
+import { applyUpdateEvaByField } from "operations/apply/apply-eva";
 
 type XgressData = {
   uuid: string; // uuid of the xgress station or "lander"

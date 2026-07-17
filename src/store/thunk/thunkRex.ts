@@ -16,8 +16,8 @@ import {
   applyDeleteRexStage,
   applyUpdateRexByField,
   applyUpsertRexEntryItem,
-} from "client/automerge/apply/apply-rex";
-import { stageCreateRex, stageDeleteRex } from "client/automerge/stage/stage-rex";
+} from "operations/apply/apply-rex";
+import { stageCreateRex, stageDeleteRex } from "operations/stage/stage-rex";
 import { v4 as uuidv4 } from "uuid";
 import { getAccurateNow } from "utils/formatting";
 import cloneDeep from "lodash/cloneDeep";

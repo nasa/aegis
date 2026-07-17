@@ -1,7 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import { applyDeleteGeoUnit } from "client/automerge/apply/apply-mission-geoUnit";
-import { getGeoUnitUsages } from "client/automerge/geoUnitUsages";
+import { applyDeleteGeoUnit } from "operations/apply/apply-mission-geoUnit";
+import { getGeoUnitUsages } from "operations/helpers/geoUnitUsages";
 
 export const thunkDocDeleteGeoUnit = appCreateAsyncThunk<
   { geographicUnitUuid: string },
