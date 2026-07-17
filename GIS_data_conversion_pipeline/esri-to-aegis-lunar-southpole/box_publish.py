@@ -4,9 +4,9 @@
 Layout produced on Box (under ``BOX_INITIAL_FOLDER_ID``):
 
     <mission name>/
-      Data/   Data.zip            (one zip of everything in <out>/Data, incl. any *_cog.tif)
-      Layers/ <layer>.zip ...     (one zip per <out>/Layers/<layer> directory)
-              <name>.pmtiles ...  (each loose PMTiles archive uploaded as-is, not zipped)
+      Data/   Data.zip            (one zip of everything in <out>/Data, incl. the DEM COG)
+      Layers/ <layer>.zip ...     (one zip per <out>/Layers/<layer> directory — raster tiles,
+                                   PMTiles, or COG; PMTiles/COG folders are stored uncompressed)
 
 The Box client (CCG auth + chunked upload + ``mkdir -p``) is a trimmed port of
 ``lunar_utils/lunar_utils/box_client.py``. Credentials come from the repo-root ``.env``
@@ -181,16 +181,30 @@ class BoxClient:
 # ---------------------------------------------------------------------------
 
 
-def _zip_dir(src_dir: Path, zip_path: Path) -> Path:
+def _dir_is_precompressed(src_dir: Path) -> bool:
+    """True if the folder holds an already-compressed self-describing artifact (PMTiles or COG).
+
+    Such archives gain nothing from DEFLATE and are range-requested by the client, so they are
+    stored uncompressed (0 compression) — this is what lets the extracted PMTiles/COG be managed
+    like any other Layers/ folder without paying to re-compress already-compressed bytes.
+    """
+    for f in src_dir.rglob("*"):
+        if f.is_file() and f.suffix.lower() in (".pmtiles", ".tif", ".tiff"):
+            return True
+    return False
+
+
+def _zip_dir(src_dir: Path, zip_path: Path, compression: int = zipfile.ZIP_DEFLATED) -> Path:
     """Zip the contents of src_dir into zip_path under a single top-level folder.
 
     The top-level folder is named after the zip file (its stem), so ``Data.zip``
     contains ``Data/...`` and ``<layer>.zip`` contains ``<layer>/...`` rather than
-    exploding files at the archive root.
+    exploding files at the archive root. ``compression`` defaults to DEFLATE; pass
+    ``zipfile.ZIP_STORED`` (0 compression) for already-compressed contents.
     """
     zip_path.parent.mkdir(parents=True, exist_ok=True)
     root = zip_path.stem
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+    with zipfile.ZipFile(zip_path, "w", compression) as zf:
         for file in sorted(src_dir.rglob("*")):
             if file.is_file():
                 zf.write(file, Path(root) / file.relative_to(src_dir))
@@ -220,9 +234,9 @@ def upload_mission_folder(
     config = box_config_from_env(env_path)
     box = BoxClient(config, verbose=verbose)  # used only to create the destination folders
 
-    # Build the task list: (src, zip_path_or_None, box_subfolder). zip_path=None means src is a
-    # single file uploaded as-is (a PMTiles archive); otherwise src is a dir zipped to zip_path.
-    tasks: list[tuple[Path, Path | None, str]] = []
+    # Build the task list: (src_dir, zip_path, box_subfolder). Each Data/ and each Layers/<dir>
+    # (raster tiles, PMTiles, or COG — all folders now) is zipped then uploaded.
+    tasks: list[tuple[Path, Path, str]] = []
     if data_dir.exists() and any(data_dir.iterdir()):
         tasks.append((data_dir, scratch / "Data.zip", "Data"))
     else:
@@ -230,16 +244,8 @@ def upload_mission_folder(
     layer_dirs = sorted(d for d in layers_dir.iterdir() if d.is_dir()) if layers_dir.exists() else []
     for d in layer_dirs:
         tasks.append((d, scratch / f"{d.name}.zip", "Layers"))
-    # Loose PMTiles archives live directly under Layers/ (not subdirs) — upload each as-is.
-    pmtiles_files = (
-        sorted(f for f in layers_dir.iterdir() if f.is_file() and f.suffix.lower() == ".pmtiles")
-        if layers_dir.exists()
-        else []
-    )
-    for f in pmtiles_files:
-        tasks.append((f, None, "Layers"))
-    if not layer_dirs and not pmtiles_files:
-        print("  (no Layers/ directories or PMTiles to upload)")
+    if not layer_dirs:
+        print("  (no Layers/ directories to upload)")
 
     if not tasks:
         print("Nothing to upload.")
@@ -253,15 +259,15 @@ def upload_mission_folder(
     # Suppress per-file tqdm when running several uploads at once (the bars would interleave).
     show_progress = max_workers == 1 or len(tasks) == 1
 
-    def _zip_and_upload(task: tuple[Path, Path | None, str]) -> str:
+    def _zip_and_upload(task: tuple[Path, Path, str]) -> str:
         src, zip_path, sub = task
         t0 = time.monotonic()
-        # zip_path=None → src is a single file (e.g. a .pmtiles archive), uploaded as-is.
-        upload_path = src
-        if zip_path is not None:
-            print(f"  [{src.name}] zipping → {zip_path.name} ...", flush=True)
-            _zip_dir(src, zip_path)
-            upload_path = zip_path
+        # Already-compressed folders (PMTiles/COG) are stored (0 compression); everything else
+        # is DEFLATEd. Re-compressing already-compressed bytes just burns CPU for no size win.
+        compression = zipfile.ZIP_STORED if _dir_is_precompressed(src) else zipfile.ZIP_DEFLATED
+        print(f"  [{src.name}] zipping → {zip_path.name} ...", flush=True)
+        _zip_dir(src, zip_path, compression)
+        upload_path = zip_path
         mb = upload_path.stat().st_size / 1e6
         print(f"  [{src.name}] uploading {upload_path.name} ({mb:.0f} MB) → {sub}/ ...", flush=True)
         # Fresh client per thread: boxsdk's requests session is not safe to share across threads.

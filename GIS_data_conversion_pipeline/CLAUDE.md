@@ -42,7 +42,11 @@ pixi run python <script>.py ...
   `register.py` / `box_publish.py` do the HTTP registration + Box upload; `common/` shared
   raster tools; one folder per concern (`dem nac slope products vector vectortile grid
   timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivered ArcGIS
-  vector-tile cache (Compact Cache V2) into a single `.pmtiles` (pure-Python `pmtiles`, no GDAL).
+  vector-tile cache (Compact Cache V2) into a single `.pmtiles` (pure-Python `pmtiles`, no GDAL),
+  emitted inside its own `Layers/<name>/` folder. Every produced sublayer (raster tiles, PMTiles,
+  COG) is a folder under `Layers/`; AEGIS infers the type from the folder contents (no `isCog`
+  flag), and the mission DEM COG stays in `Data/` as `demFilePath`. See
+  [`esri-to-aegis-lunar-southpole/CLAUDE.md`](esri-to-aegis-lunar-southpole/CLAUDE.md).
   `products/lyrx_to_ramp.py` converts GIS-delivered ArcGIS `.lyrx` symbology to
   gdaldem ramps; `products/default_color_ramps/` are the built-in fallback ramps.
 - [`mercator/`](mercator/) — Mercator/global tiling for **non-polar / Earth** data.
