@@ -19,51 +19,6 @@ interface MaestroClientToServerEvents {
     ) => void
   ) => void;
   sendMDAU: (missionId: number, mdau: MaestroDataAegisUses) => void;
-  // Mimics the api/v1/mission route
-  getMission: (
-    missionId: number,
-    callback: (
-      response:
-        | { status: "success"; message: string; data: Mission[] }
-        | { status: "failure"; message: string }
-        | { status: "error"; message: string }
-    ) => void
-  ) => void;
-  // Mimics the api/v1/readable/eva route
-  getReadableEva: (
-    params: ReadableEvaParams,
-    callback: (
-      response:
-        | {
-            status: "success";
-            message: string;
-            data:
-              | ExportEva[]
-              | { uuid: string; refUuid: string; createdAt?: string; updatedAt?: string }[];
-          }
-        | { status: "failure"; message: string }
-        | { status: "error"; message: string }
-    ) => void
-  ) => void;
-  // Mimics the emss/getMissions route
-  getMissions: (
-    callback: (
-      response:
-        | { status: "success"; message: string; data: MissionsWithEvas }
-        | { status: "failure"; message: string }
-        | { status: "error"; message: string }
-    ) => void
-  ) => void;
-  // Mimics the emss/getRexesByEvaRef route
-  getRexesByEvaRef: (
-    evaRefUuid: string,
-    callback: (
-      response:
-        | { status: "success"; message: string; data: RefRex[] }
-        | { status: "failure"; message: string }
-        | { status: "error"; message: string }
-    ) => void
-  ) => void;
   // Mimics the emss/rexOverwrite route
   rexOverwrite: (
     body: RexOverwrite,
