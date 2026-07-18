@@ -163,6 +163,21 @@ def tri_ramp_for_resolution(resolution: float | None) -> Path:
 DEFAULT_DEM_RESOLUTION = 1.0
 
 # ---------------------------------------------------------------------------
+# Contours (DEM → vector-tile PMTiles)
+# ---------------------------------------------------------------------------
+# Two contour sublayers are generated from the DEM so majors/minors can be styled
+# independently: a coarse "major" set and a fine "minor" set (which excludes the major
+# lines so coincident intervals aren't double-drawn). Layer folders are named
+# contours_<interval>m. Intervals are in metres.
+CONTOUR_MAJOR_INTERVAL_DEFAULT = 100
+CONTOUR_MINOR_INTERVAL_DEFAULT = 20
+
+
+def contour_layer_name(interval: int) -> str:
+    """Layer folder / archive base name for a contour interval (e.g. 100 → ``contours_100m``)."""
+    return f"contours_{interval}m"
+
+# ---------------------------------------------------------------------------
 # AEGIS registration: header layers + the shared external NAC basemap
 # ---------------------------------------------------------------------------
 # Header (parent) layer names the `register` step groups sublayers under.

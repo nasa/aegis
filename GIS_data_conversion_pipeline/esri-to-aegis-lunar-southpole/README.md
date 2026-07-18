@@ -11,6 +11,10 @@ Turns a GIS data drop into AEGIS-ready map products for a **lunar south-pole** m
   `.tif`; no `isCog` flag).
 - **PMTiles** vector-tile layers (`--vector-tile-cache`) — a delivered ArcGIS vector-tile cache
   packed into one `Layers/<name>/<name>.pmtiles` folder (registered as a `"vector-tile"` sublayer).
+- **Contour** vector-tile layers (`--contours`) — elevation contours generated from the DEM
+  (`gdal_contour` → MVT tiled on the cap grid → PMTiles), emitted as two independently-styleable
+  sublayers `Layers/contours_<major>m/` and `Layers/contours_<minor>m/`. Each line carries a
+  `label` attribute (elevation in metres) the map renders as a label.
 
 (OpenLayers consumes the TMS tiles natively via a y-flip; legacy Leaflet-era missions keep
 rendering through the app's compatibility shim and are never regenerated.)
@@ -41,6 +45,7 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **rasters**     | custom rasters (`--raster`, repeatable)                      | `Layers/<stem>/` tile pyramid each       | stretch (if float) → tile                                          |
 | **vectors**     | custom vectors (`--vector`, repeatable)                      | `Data/<stem>.geojson` each               | shp → reproject; geojson copied                                    |
 | **vectortiles** | ArcGIS vector-tile cache (`--vector-tile-cache`, repeatable) | `Layers/<name>/<name>.pmtiles` each      | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`) |
+| **contours**    | the DEM (`--contours`)                                       | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
 | **cogs**        | custom rasters (`--cog`, repeatable)                         | `Layers/<stem>/<stem>.tif` each          | GeoTIFF → COG (type inferred from `.tif`)                          |
 | **grid**        | lander `--lander-lat/--lander-lng`                           | `grid_source.geojson` (10 km dflt)       | LGRS grid → AEGIS mission-grid GeoJSON                             |
 | **register**    | the built `<out>` + `--mission-id`                           | mission fields + sublayers + active grid | POST fields + layers/sublayers + grid                              |
@@ -101,7 +106,8 @@ esri-to-aegis-lunar-southpole/
 ├── vector/
 │   └── shp_to_geojson.py     # shapefile → GeoJSON (EPSG:4326, attrs preserved)
 ├── vectortile/
-│   └── arcgis_cache_to_pmtiles.py  # ArcGIS Compact Cache V2 → single .pmtiles (carries esri_tile_info)
+│   ├── arcgis_cache_to_pmtiles.py  # ArcGIS Compact Cache V2 → single .pmtiles (carries esri_tile_info)
+│   └── dem_to_contours_pmtiles.py  # DEM → gdal_contour → MVT (cap grid) → .pmtiles (synthesized esri_tile_info)
 └── docs/
     ├── SITE_A03MP026-MONS-MOUTON-PLATEAU.md
     ├── LEGACY-COVERAGE.md       # what was ported from lunar_utils/aegis (and what wasn't)
@@ -204,8 +210,9 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 > delete that sublayer in the admin first, then re-run `register`.
 
 Steps: `0 stage · 1 dem · 2 nac · 3 slope · 4 products · 5 vector · 6 rasters · 7 vectors ·
-8 vectortiles · 9 cogs · 10 grid · 11 register · 12 box`. By default the pipeline runs only the
-steps whose inputs are present — `vectortiles` runs when `--vector-tile-cache` is given, `cogs`
+8 vectortiles · 9 contours · 10 cogs · 11 grid · 12 register · 13 box`. By default the pipeline
+runs only the steps whose inputs are present — `vectortiles` runs when `--vector-tile-cache` is
+given, `contours` when `--contours` is given (needs `--dem`), `cogs`
 when `--cog` is given, `grid` when a lander location is given, and `register`/`box` when
 `--register`/`--box` are passed; `--steps` overrides this.
 Inputs default to the A03MP026 layout under `--src`; override any with `--dem`, `--slope`,
@@ -340,6 +347,30 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --dem F:/drop/dem.tif --nac-mosaic F:/drop/nac_mosaic.tif \
     --vector-tile-cache F:/drop/AggregatedContour/p12 \
     --register --box
+```
+
+To generate **elevation contours from the DEM** (no delivered cache needed), add `--contours`.
+The `contours` step runs `gdal_contour` on `--dem`, tiles the lines onto the cap grid as MVT, and
+packs two `.pmtiles` sublayers — a **major** and a **minor** set — so they can be styled
+independently in AEGIS. Intervals default to 100 m (major) / 20 m (minor); the minor set excludes
+the major lines. Each line is labelled with its elevation in metres in the map. Max zoom defaults
+to the cap level that resolves `--dem-resolution` (14 at 1 mpp):
+
+```bash
+cd GIS_data_conversion_pipeline
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --aegis-url http://localhost:4000 \
+    --mission-id <LOCAL_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --lander-lat -84.223397 --lander-lng 33.5021945 \
+    --dem F:/drop/dem.tif --dem-resolution 1 \
+    --contours --major-interval 100 --minor-interval 20 \
+    --register --box
+# -> Layers/contours_100m/contours_100m.pmtiles  +  Layers/contours_20m/contours_20m.pmtiles
+
+# Contours only, into an existing build (rebuild the two layers):
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --out F:/_repos/aegis_static/missionFiles/<LOCAL_ID> \
+    --dem F:/drop/dem.tif --steps contours --major-interval 100 --minor-interval 20 --overwrite
 ```
 
 **Step 2 — admin (manual):** create the mission on prod (note `<PROD_ID>`), download the

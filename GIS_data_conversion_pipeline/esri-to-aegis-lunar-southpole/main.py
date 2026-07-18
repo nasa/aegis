@@ -188,6 +188,31 @@ def build_parser() -> argparse.ArgumentParser:
         help="noData value to tag on --cog outputs (e.g. -3.4e38).",
     )
 
+    # Contours (DEM → major/minor vector-tile PMTiles)
+    parser.add_argument(
+        "--contours",
+        action="store_true",
+        help="Generate major/minor contour PMTiles from the DEM (Layers/contours_<interval>m).",
+    )
+    parser.add_argument(
+        "--major-interval",
+        type=int,
+        default=config.CONTOUR_MAJOR_INTERVAL_DEFAULT,
+        help=f"Major contour interval in metres (default: {config.CONTOUR_MAJOR_INTERVAL_DEFAULT}).",
+    )
+    parser.add_argument(
+        "--minor-interval",
+        type=int,
+        default=config.CONTOUR_MINOR_INTERVAL_DEFAULT,
+        help=f"Minor contour interval in metres (default: {config.CONTOUR_MINOR_INTERVAL_DEFAULT}).",
+    )
+    parser.add_argument(
+        "--contour-maxzoom",
+        type=int,
+        default=None,
+        help="Deepest cap-grid LOD for contours (default: derived from --dem-resolution).",
+    )
+
     # Grid
     parser.add_argument(
         "--grid-extent",
