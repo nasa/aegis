@@ -15,8 +15,10 @@ as ``12800 / 2**z`` (``buildLegacyResolutions``) and uses it to compute tile ind
 Every layer must be cut on this same z0 or OL requests non-existent indices → 404s.
 
 Each layer is cut to its **own native resolution** (an OpenLayers per-layer pyramid):
-the depth ``max_zoom = round(log2(z0_res / r_in))`` is per-layer, while origin and z0
-stay shared.  A 1 m/px source tiles to z14; there is no global zoom clamp.
+the depth ``max_zoom = ceil(log2(z0_res / r_in))`` is per-layer, while origin and z0
+stay shared.  Using ``ceil`` (not nearest) guarantees the stored grid is never coarser
+than the source — worst case it oversamples onto a finer rung.  A 1 m/px source tiles to
+z14; there is no global zoom clamp.
 
 Alignment note
 --------------
@@ -181,11 +183,14 @@ def tile_raster(
         # Cut each layer to its OWN native resolution — an OpenLayers per-layer pyramid.
         # Origin (CAP_MIN) and z0 (CAP_Z0_RES) stay shared so the layer still aligns to the
         # mission cap grid and overlays the basemap; only the depth (max_zoom) is per-layer.
-        # There is no global zoom clamp: round(log2(z0_res / r_in)) is self-limiting at the
-        # source's native resolution (a 1 m/px raster → z14). The app builds resolutions as
+        # ceil() picks the next-deeper rung so out_res <= r_in: a layer is never stored coarser
+        # than its source. Nearest-rounding could downsample by up to ~1.41x (linear) whenever
+        # log2(z0_res / r_in) fell just below a half-step; ceil trades that for oversampling onto
+        # a finer grid (larger tiles, no detail lost). The depth is self-limiting at the source
+        # resolution (1 m/px → z14); there is no global zoom clamp. The app builds resolutions as
         # 12800 / 2**z for z in 0..maxNativeZoom, so a deeper layer "just works".
         z0_res = CAP_Z0_RES
-        max_zoom = max(0, round(math.log2(z0_res / r_in)))
+        max_zoom = max(0, math.ceil(math.log2(z0_res / r_in)))
         out_res = z0_res / 2**max_zoom
         tile_span = TILE * out_res
 
