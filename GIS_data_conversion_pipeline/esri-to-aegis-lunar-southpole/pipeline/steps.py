@@ -9,6 +9,7 @@ input-driven :func:`default_steps` are consumed by ``main.py``.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import shutil
 import sys
@@ -33,6 +34,7 @@ WRITE_PROPERTIES = ROOT / "properties" / "write_properties.py"
 GENERATE_LGRS = ROOT / "grid" / "generate_lgrs.py"
 CONVERT_LGRS = ROOT / "grid" / "convert_lgrs.py"
 ARCGIS_CACHE_TO_PMTILES = ROOT / "vectortile" / "arcgis_cache_to_pmtiles.py"
+DEM_TO_CONTOURS_PMTILES = ROOT / "vectortile" / "dem_to_contours_pmtiles.py"
 
 
 # ---------------------------------------------------------------------------
@@ -394,6 +396,74 @@ def step_vectortiles(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         run([PYTHON, ARCGIS_CACHE_TO_PMTILES, cache, layer_dir, "--name", name])
 
 
+def _write_contour_properties(layer_dir: Path, name: str, interval: int, kind: str) -> None:
+    """Write a minimal properties.json (name/description) for a contour PMTiles layer.
+
+    register.py's ``_apply_properties`` reads only name/description/legend onto the
+    self-describing vector-tile sublayer, so we emit just those schema-allowed keys.
+    """
+    props = {
+        "name": name,
+        "description": (
+            f"Elevation contour lines at a {interval} m interval ({kind}), derived from the "
+            "mission DEM. Each line is labelled with its elevation in metres."
+        ),
+    }
+    (layer_dir / "properties.json").write_text(
+        json.dumps(props, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def _build_contour_layer(
+    p: config.PipelinePaths,
+    args: argparse.Namespace,
+    interval: int,
+    kind: str,
+    exclude_multiple_of: int | None,
+) -> None:
+    """Generate one contour PMTiles sublayer (Layers/contours_<interval>m/)."""
+    name = config.contour_layer_name(interval)
+    layer_dir = p.layers / name
+    out_pmtiles = layer_dir / f"{name}.pmtiles"
+    if out_pmtiles.exists() and not args.overwrite:
+        tee(f"  [skip] {out_pmtiles} already built (use --overwrite to rebuild)")
+        return
+    layer_dir.mkdir(parents=True, exist_ok=True)
+    tee(f"\n  {kind} contours ({interval} m) → {out_pmtiles}")
+    cmd: list[str | Path] = [
+        PYTHON, DEM_TO_CONTOURS_PMTILES, p.dem_in, layer_dir,
+        "--name", name, "--interval", str(interval),
+        "--dem-resolution", str(args.dem_resolution),
+    ]
+    if args.contour_maxzoom is not None:
+        cmd += ["--maxzoom", str(args.contour_maxzoom)]
+    if exclude_multiple_of:
+        cmd += ["--exclude-multiple-of", str(exclude_multiple_of)]
+    run(cmd)
+    _write_contour_properties(layer_dir, f"Contours ({interval} m)", interval, kind)
+
+
+def step_contours(p: config.PipelinePaths, args: argparse.Namespace) -> None:
+    """DEM → major + minor contour PMTiles (Layers/contours_<interval>m/<name>.pmtiles each).
+
+    Two sublayers are produced so majors/minors can be styled independently in AEGIS: a coarse
+    ``--major-interval`` set and a fine ``--minor-interval`` set (which excludes the major lines
+    so coincident intervals aren't double-drawn). Each carries an ``elev`` attribute that the
+    OpenLayers vector-tile style function renders as an elevation label.
+    """
+    banner("contours — DEM → major/minor contour PMTiles (Layers/contours_<interval>m/)")
+    require_input(p.dem_in, "DEM GeoTIFF", "--dem")
+    p.layers.mkdir(parents=True, exist_ok=True)
+
+    major = args.major_interval
+    minor = args.minor_interval
+    if major and major > 0:
+        _build_contour_layer(p, args, major, "major", exclude_multiple_of=None)
+    if minor and minor > 0 and minor != major:
+        # Minor set excludes lines that coincide with the major interval.
+        _build_contour_layer(p, args, minor, "minor", exclude_multiple_of=major)
+
+
 def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Custom rasters (--cog) → one Cloud-Optimised GeoTIFF each in Layers/<stem>/<stem>.tif.
 
@@ -493,6 +563,7 @@ STEPS: list[tuple[str, str]] = [
     ("rasters", "Custom rasters (--raster) → tile to one cap-grid layer each"),
     ("vectors", "Custom vectors (--vector, shp/geojson) → GeoJSON in Data/"),
     ("vectortiles", "ArcGIS vector-tile caches (--vector-tile-cache) → Layers/<name>/<name>.pmtiles"),
+    ("contours", "DEM → major/minor contour PMTiles (Layers/contours_<interval>m)"),
     ("cogs", "Custom rasters (--cog) → Cloud-Optimised GeoTIFF in Data/"),
     ("grid", "Lander location → LGRS mission grid GeoJSON (default 10km)"),
     ("register", "Set mission fields + header layers/sublayers + active grid via AEGIS API"),
@@ -509,6 +580,7 @@ STEP_FNS = {
     "rasters": step_rasters,
     "vectors": step_vectors,
     "vectortiles": step_vectortiles,
+    "contours": step_contours,
     "cogs": step_cogs,
     "grid": step_grid,
     "register": step_register,
@@ -520,7 +592,7 @@ STEP_NAMES = [name for name, _ in STEPS]
 # Steps that produce files under <out> (vs. publish-only steps that need <out> to exist).
 DATA_STEPS = {
     "stage", "dem", "nac", "slope", "products", "vector", "rasters", "vectors",
-    "vectortiles", "cogs", "grid",
+    "vectortiles", "contours", "cogs", "grid",
 }
 
 
@@ -544,6 +616,8 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
         chosen.append("vectors")
     if args.vector_tile_cache:
         chosen.append("vectortiles")
+    if args.contours and p.dem_in.exists():
+        chosen.append("contours")
     if args.cog:
         chosen.append("cogs")
     if args.lander_lat is not None and args.lander_lng is not None and not args.no_grid:

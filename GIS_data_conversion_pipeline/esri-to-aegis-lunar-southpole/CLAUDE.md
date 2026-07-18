@@ -35,6 +35,17 @@ a layer's type from the folder's **contents**, not from any stored flag:
   since OpenLayers over-zooms by requesting tiles at the max LOD, a phantom level makes the whole
   layer blank right at that resolution. The converter caps `maxLOD`/`lods` (and the written tiles)
   to the last fully-tiled level so OpenLayers over-zooms from there instead.
+- **Contour PMTiles** (`step_contours` → `vectortile/dem_to_contours_pmtiles.py`) *tile from
+  scratch* rather than pack a delivered cache: `gdal_contour` on the DEM → GDAL **MVT directory
+  driver** with a custom `TILING_SCHEME` (the cap grid — the `-f PMTiles`/`-f MBTILES` drivers only
+  do Web-Mercator and reject a custom scheme) → pack the `{z}/{x}/{y}.pbf` pyramid with the
+  pure-Python `pmtiles` writer, **synthesizing** `esri_tile_info` from the cap-grid constants in
+  `config.py` (not copied from a `root.json`). Each line carries a `label` attribute (elevation in
+  metres) — the generic per-feature label field the OpenLayers vector-tile style function
+  (`buildVectorStyleFn`) renders. The
+  step emits **two** sublayers, `Layers/contours_<major>m/` and `Layers/contours_<minor>m/` (the
+  minor set excludes the major lines), so majors/minors are styled independently in AEGIS.
+  `--contour-maxzoom` defaults to the cap level that resolves `--dem-resolution` (14 at 1 mpp).
 - **COG raster sublayers** (`step_cogs` → `common/geotiff_to_cog.py`) write
   `Layers/<stem>/<stem>.tif`. There is **no `isCog` field** — a COG is identified by the `.tif`
   path. Removed across the app (typings/model/store/schema) and here; do not re-introduce it.

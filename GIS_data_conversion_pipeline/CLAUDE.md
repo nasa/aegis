@@ -43,7 +43,10 @@ pixi run python <script>.py ...
   raster tools; one folder per concern (`dem nac slope products vector vectortile grid
 timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivered ArcGIS
   vector-tile cache (Compact Cache V2) into a single `.pmtiles` (pure-Python `pmtiles`, no GDAL),
-  emitted inside its own `Layers/<name>/` folder. Every produced sublayer (raster tiles, PMTiles,
+  emitted inside its own `Layers/<name>/` folder; `vectortile/dem_to_contours_pmtiles.py` instead
+  *tiles from scratch* — `gdal_contour` on the DEM → GDAL MVT-dir driver (custom cap-grid
+  `TILING_SCHEME`) → PMTiles with synthesized `esri_tile_info` — producing labelled contour
+  vector-tile layers. Every produced sublayer (raster tiles, PMTiles,
   COG) is a folder under `Layers/`; AEGIS infers the type from the folder contents (no `isCog`
   flag), and the mission DEM COG stays in `Data/` as `demFilePath`. See
   [`esri-to-aegis-lunar-southpole/CLAUDE.md`](esri-to-aegis-lunar-southpole/CLAUDE.md).

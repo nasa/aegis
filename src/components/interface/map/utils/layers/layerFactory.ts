@@ -178,7 +178,7 @@ function createTileLayer(input: LayerFactoryInput): TileLayer<XYZ> {
 }
 
 function createVectorLayer(input: LayerFactoryInput): VectorImageLayer {
-  const { sublayer, missionId, projCode, style } = input;
+  const { sublayer, missionId, projCode, style, projConfig } = input;
 
   const url = buildFullUrl(sublayer, missionId, "data");
 
@@ -190,7 +190,7 @@ function createVectorLayer(input: LayerFactoryInput): VectorImageLayer {
         featureProjection: projCode,
       }),
     }),
-    style: buildVectorStyleFn(style),
+    style: buildVectorStyleFn(style, baseResolutionFromProjConfig(projConfig)),
     imageRatio: 1.5,
     // declutter is intentionally OFF for GeoJSON layers — it suppresses
     // entire features (stroke + fill) when their text labels overlap, which
@@ -216,7 +216,7 @@ function createPmtilesLayer(input: LayerFactoryInput): VectorTileLayer {
   // The TileLayers behavior component will asynchronously resolve the
   // PMTiles metadata and attach the source. This avoids blocking render.
   return new VectorTileLayer({
-    style: buildVectorStyleFn(style),
+    style: buildVectorStyleFn(style, baseResolutionFromProjConfig(projConfig)),
     declutter: false,
     properties: {
       name: sublayer.name,
@@ -265,6 +265,17 @@ function isExternalPath(path: string): boolean {
 // Tile grid builder
 // ---------------------------------------------------------------------------
 
+/**
+ * Resolution (map units per pixel) at zoom 0 for the mission projection.
+ * Matches `buildLegacyResolutions`'s base: unitsPerPixel * 2^zoomLevel.
+ * Returns undefined when the projection config lacks resolution data, in which
+ * case zoom-based label gating is skipped.
+ */
+function baseResolutionFromProjConfig(projConfig: TileGridConfig | null): number | undefined {
+  if (!projConfig?.projResUnitsPerPixel) return undefined;
+  return projConfig.projResUnitsPerPixel * Math.pow(2, projConfig.projResZoomLevel ?? 0);
+}
+
 function buildTileGrid(sublayer: Sublayer, projConfig: TileGridConfig | null): TileGrid | null {
   if (!projConfig?.projResUnitsPerPixel) return null;
 
@@ -307,19 +318,51 @@ function buildTileGrid(sublayer: Sublayer, projConfig: TileGridConfig | null): T
 // Vector style builder
 // ---------------------------------------------------------------------------
 
-export function buildVectorStyleFn(style: MapSublayerStyle): (feature: Feature<Geometry>) => Style {
+/**
+ * Build the OL style function for a vector / vector-tile sublayer.
+ *
+ * @param style          Per-sublayer visual controls from the preset.
+ * @param baseResolution Resolution at zoom 0 (map units per pixel). Passed so the
+ *                       style function can convert the current `resolution` into a
+ *                       zoom level and honour `style.labelMinZoom`. When omitted,
+ *                       labels are not zoom-gated (they follow `showLabels` only).
+ */
+export function buildVectorStyleFn(
+  style: MapSublayerStyle,
+  baseResolution?: number
+): (feature: Feature<Geometry>, resolution: number) => Style {
   // Cache styles to avoid creating new Style/Stroke/Fill/Text objects per feature per frame.
   // Key: geomType + labelText + resolvedFillColor + style params that affect output.
   const styleCache: { [key: string]: Style } = {};
 
-  return (feature: Feature<Geometry>) => {
+  return (feature: Feature<Geometry>, resolution: number) => {
     const geomType = feature.getGeometry()?.getType();
-    const name = feature.get("name") || feature.get("NAME") || "";
-    const elevation = feature.get("elevation") || feature.get("ELEVATION") || feature.get("elev");
 
+    // When zoomed out past labelMinZoom, suppress labels so dense layers (e.g.
+    // contours) don't turn into an unreadable overlapping mess. zoom = log2(base
+    // / resolution); larger resolution = further zoomed out = lower zoom.
+    let labelsAllowedAtZoom = true;
+    if (style.labelMinZoom != null && baseResolution && baseResolution > 0) {
+      const zoom = Math.log2(baseResolution / resolution);
+      labelsAllowedAtZoom = zoom >= style.labelMinZoom;
+    }
+    // Generic `label` lets any vector source opt into a per-feature label. Elevation/name
+    // variants are kept for backward compatibility (contour PMTiles carry `elev`; delivered
+    // contour GeoJSONs use `Contour`).
+    const genericLabel = feature.get("label");
+    const name = feature.get("name") || feature.get("NAME") || "";
+    const elevation =
+      feature.get("elevation") ??
+      feature.get("ELEVATION") ??
+      feature.get("elev") ??
+      feature.get("Contour");
+
+    // Labels are opt-out per sublayer (style.showLabels); undefined = show (legacy default).
+    // Also gated by resolution so they thin out / disappear when zoomed far out.
     let labelText = "";
-    if (name || elevation != null) {
-      labelText = elevation != null ? String(elevation) : name;
+    if (style.showLabels !== false && labelsAllowedAtZoom) {
+      const value = genericLabel ?? elevation ?? (name || null);
+      if (value != null) labelText = String(value);
     }
 
     // Resolve fill color — supports "prop:<propertyName>" to read color
@@ -331,7 +374,7 @@ export function buildVectorStyleFn(style: MapSublayerStyle): (feature: Feature<G
     }
 
     // Build cache key from all values that affect the output style
-    const cacheKey = `${geomType}|${labelText}|${resolvedFillColor}|${style.color}|${style.weight}|${style.isDashed}|${style.dashLen}|${style.fillOpacity}`;
+    const cacheKey = `${geomType}|${labelText}|${resolvedFillColor}|${style.color}|${style.weight}|${style.isDashed}|${style.dashLen}|${style.fillOpacity}|${style.labelColor}|${style.labelStrokeColor}|${style.labelStrokeWidth}|${style.labelStrokeOpacity}`;
 
     if (!styleCache[cacheKey]) {
       let textStyle: Text | undefined;
@@ -339,8 +382,17 @@ export function buildVectorStyleFn(style: MapSublayerStyle): (feature: Feature<G
         textStyle = new Text({
           text: labelText,
           font: "12px Arial",
-          fill: new Fill({ color: style.color || "#333" }),
-          stroke: new Stroke({ color: "#fff", width: 2 }),
+          fill: new Fill({ color: style.labelColor || style.color || "#333" }),
+          stroke:
+            (style.labelStrokeWidth ?? 3) > 0
+              ? new Stroke({
+                  color: withAlpha(
+                    style.labelStrokeColor ?? "#ffffff",
+                    style.labelStrokeOpacity ?? 0.85
+                  ),
+                  width: style.labelStrokeWidth ?? 3,
+                })
+              : undefined,
           placement: geomType === "LineString" ? "line" : "point",
           maxAngle: Math.PI / 4,
           overflow: true,
