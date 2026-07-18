@@ -100,7 +100,12 @@ export function createCogLayer(input: LayerFactoryInput): WebGLTileLayer {
       // Nearest-neighbor sampling: crisp square pixels when zoomed past the
       // raster's native resolution rather than an antialiased blur.
       interpolate: false,
+      // Snap tiles in instead of the default opacity fade — matches the raster
+      // tile layers and is cheaper to render.
+      transition: 0,
     }),
+    // One overview level for blur-then-sharpen on pan/zoom, bounded by cacheSize.
+    preload: 1,
     properties: {
       name: input.sublayer.name,
       uuid: input.sublayer.uuid,
@@ -131,6 +136,10 @@ function createTileLayer(input: LayerFactoryInput): TileLayer<XYZ> {
     // layer's native resolution shows crisp square pixels instead of a blurred,
     // antialiased image.
     interpolate: false,
+    // Snap tiles in instead of OL's default 250ms opacity fade — cheaper on the
+    // CPU/GPU and matches Leaflet's instant tile appearance. cacheSize is left at
+    // the OL default (512) to keep memory bounded on low-end laptops.
+    transition: 0,
   };
 
   if (sublayer.minNativeZoom != null) sourceOpts.minZoom = sublayer.minNativeZoom;
@@ -156,6 +165,10 @@ function createTileLayer(input: LayerFactoryInput): TileLayer<XYZ> {
 
   return new TileLayer({
     source: new XYZ(sourceOpts),
+    // Keep one overview level so pans/zooms upscale a blurry parent tile instead
+    // of showing blank until the sharp tile arrives (Leaflet's blur-then-sharpen
+    // behavior). preload:1 is bounded by cacheSize, unlike preload:Infinity.
+    preload: 1,
     properties: {
       name: sublayer.name,
       uuid: sublayer.uuid,
