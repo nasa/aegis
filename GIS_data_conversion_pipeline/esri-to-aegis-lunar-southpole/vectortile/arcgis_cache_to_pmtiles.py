@@ -15,6 +15,15 @@ in ``src/components/interface/map/utils/parsers/esriPMTiles.ts``) reads ``esri_t
 south-polar projection with **zero reprojection**. If ``esri_tile_info.lods`` is missing the
 layer renders blank — always emit it.
 
+**Phantom deepest LODs.** ArcGIS caches sometimes declare a deeper ``maxLOD`` than was
+actually tiled: the deepest level(s) hold only a handful of stray tiles. OpenLayers over-zooms
+past a layer's native max by requesting tiles at that max LOD — so if the max LOD is a phantom
+level, every over-zoom request misses and the whole layer blanks right at that resolution. We
+therefore drop any trailing level whose tile count collapses below ``--min-coverage-ratio`` of
+the level above (healthy pyramids grow per level; a real deepest level never shrinks), capping
+both the written tiles and the emitted ``maxLOD``/``lods`` so OpenLayers over-zooms from the
+last fully-tiled level instead.
+
 Pure-Python (only the ``pmtiles`` writer, no GDAL), so it runs under ``.venv`` or ``pixi``.
 
 Usage
@@ -118,11 +127,40 @@ def iter_bundle_tiles(
     return tiles
 
 
-def build_pmtiles_metadata(input_dir: Path) -> dict:
+def effective_max_zoom(counts_by_zoom: dict[int, int], min_coverage_ratio: float) -> int:
+    """Deepest zoom to keep, dropping phantom trailing LODs.
+
+    A trailing level is treated as phantom (declared but never fully tiled) when its tile
+    count is below ``min_coverage_ratio`` times the level immediately above it. Real pyramids
+    grow ~2-4x per level, so a genuine deepest level never shrinks; a collapse to a few tiles
+    is the signature of an incomplete ArcGIS cache. Steps down one level at a time so several
+    stacked phantom levels are all dropped. ``min_coverage_ratio <= 0`` keeps every level.
+    """
+    if not counts_by_zoom:
+        return 0
+    zooms = sorted(counts_by_zoom)
+    keep_max = zooms[-1]
+    while keep_max > zooms[0]:
+        parent = keep_max - 1
+        if parent not in counts_by_zoom:
+            break
+        if counts_by_zoom[keep_max] >= min_coverage_ratio * counts_by_zoom[parent]:
+            break
+        keep_max -= 1
+    return keep_max
+
+
+def build_pmtiles_metadata(input_dir: Path, max_lod_cap: int | None = None) -> dict:
     """Copy the ESRI tile-grid metadata from the cache ``root.json`` into PMTiles metadata.
 
     Emits ``esri_tile_info`` (the OpenLayers tile-grid contract) plus top-level
-    ``vector_layers`` (layer ids/fields for styling/introspection).
+    ``vector_layers`` (layer ids/fields for styling/introspection). ``vector_layers`` may
+    live in ``root.json`` (older deliveries) or ``metadata.json`` (``indexedVector`` caches);
+    prefer ``root.json`` and fall back to ``metadata.json``.
+
+    ``max_lod_cap`` (when set) caps ``maxLOD`` and truncates ``lods`` to that level, so the
+    emitted grid never advertises a deeper level than was actually written (see the phantom-LOD
+    note in the module docstring).
     """
     metadata: dict = {}
     root_json = input_dir / "root.json"
@@ -137,6 +175,12 @@ def build_pmtiles_metadata(input_dir: Path) -> dict:
 
     if "vector_layers" in root_data:
         metadata["vector_layers"] = root_data["vector_layers"]
+    else:
+        meta_json = input_dir / "metadata.json"
+        if meta_json.exists():
+            meta_data = json.loads(meta_json.read_text(encoding="utf-8"))
+            if "vector_layers" in meta_data:
+                metadata["vector_layers"] = meta_data["vector_layers"]
 
     tile_info: dict = {}
     ti = root_data.get("tileInfo", {})
@@ -156,12 +200,27 @@ def build_pmtiles_metadata(input_dir: Path) -> dict:
             tile_info[key] = root_data[key]
 
     if tile_info:
+        if max_lod_cap is not None:
+            if "lods" in tile_info:
+                tile_info["lods"] = [
+                    lod for lod in tile_info["lods"] if lod.get("level", 0) <= max_lod_cap
+                ]
+            tile_info["maxLOD"] = min(tile_info.get("maxLOD", max_lod_cap), max_lod_cap)
         metadata["esri_tile_info"] = tile_info
     return metadata
 
 
-def extract_to_pmtiles(input_dir: Path, pmtiles_path: Path, decompress: bool) -> None:
-    """Extract every bundle into a single clustered ``.pmtiles`` archive."""
+def extract_to_pmtiles(
+    input_dir: Path,
+    pmtiles_path: Path,
+    decompress: bool,
+    min_coverage_ratio: float = 0.5,
+) -> None:
+    """Extract every bundle into a single clustered ``.pmtiles`` archive.
+
+    Phantom trailing LODs (declared in the cache but never fully tiled) are dropped before
+    writing — see :func:`effective_max_zoom` and the module docstring.
+    """
     from pmtiles.tile import Compression, TileType, zxy_to_tileid
     from pmtiles.writer import Writer
 
@@ -172,9 +231,10 @@ def extract_to_pmtiles(input_dir: Path, pmtiles_path: Path, decompress: bool) ->
         print(f"ERROR: tile directory not found at {tile_dir}", file=sys.stderr)
         sys.exit(1)
 
-    # Collect all tiles so we can write them sorted by tile_id (clustered PMTiles = best reads).
-    all_tiles: list[tuple[int, bytes]] = []
-    total_tiles = 0
+    # Collect tiles alongside their zoom so phantom deepest levels can be dropped before
+    # writing; the archive is then written sorted by tile_id (clustered PMTiles = best reads).
+    collected: list[tuple[int, int, bytes]] = []  # (zoom, tile_id, data)
+    counts_by_zoom: dict[int, int] = {}
     for zoom_dir in sorted(tile_dir.iterdir()):
         if not zoom_dir.is_dir() or not zoom_dir.name.startswith("L"):
             continue
@@ -183,16 +243,35 @@ def extract_to_pmtiles(input_dir: Path, pmtiles_path: Path, decompress: bool) ->
         zoom_tiles = 0
         for bundle_path in bundles:
             for z, y, x, tile_data in iter_bundle_tiles(bundle_path, zoom, decompress):
-                all_tiles.append((zxy_to_tileid(z, x, y), tile_data))
+                collected.append((z, zxy_to_tileid(z, x, y), tile_data))
                 zoom_tiles += 1
         if zoom_tiles > 0:
+            counts_by_zoom[zoom] = zoom_tiles
             print(f"  z{zoom:<2} {zoom_tiles:>8,} tiles  ({len(bundles)} bundle(s))")
-        total_tiles += zoom_tiles
 
-    if total_tiles == 0:
+    if not counts_by_zoom:
         print("ERROR: no tiles found in the cache — nothing to write.", file=sys.stderr)
         sys.exit(1)
 
+    # Drop phantom deepest LODs so OpenLayers over-zooms from the last fully-tiled level
+    # instead of requesting nonexistent tiles (which blanks the whole layer). Cap both the
+    # written tiles and the emitted esri_tile_info maxLOD/lods to the kept depth.
+    declared_max = max(counts_by_zoom)
+    keep_max = effective_max_zoom(counts_by_zoom, min_coverage_ratio)
+    max_lod_cap: int | None = None
+    if keep_max < declared_max:
+        dropped = [z for z in sorted(counts_by_zoom) if z > keep_max]
+        dropped_desc = ", ".join(f"z{z} ({counts_by_zoom[z]:,} tiles)" for z in dropped)
+        print(
+            f"  [cap] phantom deepest LOD(s) {dropped_desc} — "
+            f"< {min_coverage_ratio:g}x the coverage of the level above. "
+            f"Capping maxLOD {declared_max} → {keep_max}; OpenLayers will over-zoom from z{keep_max}."
+        )
+        collected = [t for t in collected if t[0] <= keep_max]
+        max_lod_cap = keep_max
+
+    all_tiles = [(tid, data) for (_z, tid, data) in collected]
+    total_tiles = len(all_tiles)
     all_tiles.sort(key=lambda t: t[0])
 
     # tile_compression must reflect what we actually wrote (sampled from the first tile).
@@ -205,7 +284,7 @@ def extract_to_pmtiles(input_dir: Path, pmtiles_path: Path, decompress: bool) ->
         for tid, data in all_tiles:
             writer.write_tile(tid, data)
         header = {"tile_type": TileType.MVT, "tile_compression": tile_compression}
-        metadata = build_pmtiles_metadata(input_dir)
+        metadata = build_pmtiles_metadata(input_dir, max_lod_cap=max_lod_cap)
         if "esri_tile_info" not in metadata:
             print(
                 "  [warn] esri_tile_info missing — OpenLayers cannot build the tile grid "
@@ -248,6 +327,22 @@ def main() -> None:
         action="store_true",
         help="Keep tiles gzip-compressed (default: decompress for simpler serving).",
     )
+    parser.add_argument(
+        "--min-coverage-ratio",
+        type=float,
+        default=0.5,
+        metavar="R",
+        help=(
+            "Drop the deepest LOD(s) whose tile count is below R× the level above "
+            "(phantom/incomplete levels ArcGIS declared but never fully tiled, which blank the "
+            "layer on over-zoom). Default 0.5; set 0 (or --keep-all-lods) to keep every level."
+        ),
+    )
+    parser.add_argument(
+        "--keep-all-lods",
+        action="store_true",
+        help="Do not drop phantom deepest LODs (equivalent to --min-coverage-ratio 0).",
+    )
     args = parser.parse_args()
 
     if not args.input_dir.exists():
@@ -256,6 +351,7 @@ def main() -> None:
 
     pmtiles_path = args.pmtiles or (args.output_dir / f"{args.name}.pmtiles")
     decompress = not args.keep_gzip
+    min_coverage_ratio = 0.0 if args.keep_all_lods else args.min_coverage_ratio
 
     print("=" * 60)
     print("ArcGIS Compact Cache V2 → PMTiles")
@@ -263,8 +359,9 @@ def main() -> None:
     print(f"  input       {args.input_dir.resolve()}")
     print(f"  output      {pmtiles_path.resolve()}")
     print(f"  decompress  {decompress}")
+    print(f"  min-cov     {min_coverage_ratio:g}")
     print()
-    extract_to_pmtiles(args.input_dir, pmtiles_path, decompress)
+    extract_to_pmtiles(args.input_dir, pmtiles_path, decompress, min_coverage_ratio)
 
 
 if __name__ == "__main__":

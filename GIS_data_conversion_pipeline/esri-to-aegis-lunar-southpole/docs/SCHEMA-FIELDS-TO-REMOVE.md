@@ -21,6 +21,19 @@ pipeline to work today.
   `SublayerImportable` / the DB model + a migration, and stop emitting it from the tiler.
   - Corollary: **`tilemapResource.ts` `boundingBox` parsing** (`parseTilemapResourceXml`) becomes
     dead once nothing stores the box.
+- **`sublayer.maxZoom`** — a legacy Leaflet field (Leaflet's `maxZoom` = deepest zoom the layer
+  displays by over-zooming, distinct from `maxNativeZoom` = deepest zoom tiles actually exist for).
+  The OpenLayers renderer never reads it: `layerFactory` bounds the raster tile source from
+  `minNativeZoom`/`maxNativeZoom` only (`src/components/interface/map/utils/layers/layerFactory.ts`
+  lines 136–137), and PMTiles vector-tile layers derive their whole grid from the archive's embedded
+  `esri_tile_info` (`maxLOD`). `sublayer.maxZoom` now survives only in the admin edit form and the
+  store/DB round-trip. `register.py` `_blank_sublayer()` hardcodes it to `30` — a meaningless
+  placeholder (e.g. the AggregatedContour PMTiles layer shows "Maximum Zoom 30" in admin while the
+  cache's real deepest level is `maxLOD` 14). Candidate to drop from `Sublayer` /
+  `SublayerImportable` / the DB model + a migration, remove the admin "Maximum Zoom" input, and stop
+  defaulting it in `register.py`.
+  - Keep `minNativeZoom` / `maxNativeZoom`: the raster layer factory reads both to bound the tile
+    source (`sourceOpts.minZoom` / `sourceOpts.maxZoom`).
 - **Admin `tileFormat` options `wtms` / `wms`** (`src/components/admin/layerSublayerEdit.tsx`) —
   the pipeline never emits them and the OL layer factory only branches on `tms` vs everything-else
   (XYZ). Only `tms` and `xyz` are meaningful; `wtms`/`wms` can be dropped from the dropdown.

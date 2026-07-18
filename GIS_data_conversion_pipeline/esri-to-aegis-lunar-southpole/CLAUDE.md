@@ -30,7 +30,11 @@ a layer's type from the folder's **contents**, not from any stored flag:
 - **PMTiles** (`step_vectortiles` → `vectortile/arcgis_cache_to_pmtiles.py`) write
   `Layers/<name>/<name>.pmtiles`. The converter copies the ArcGIS cache's `esri_tile_info`
   (lods/origin/extent) into the PMTiles metadata — that is the OpenLayers tile-grid contract;
-  without it the layer renders blank.
+  without it the layer renders blank. It also **drops phantom deepest LODs** (`--min-coverage-ratio`,
+  default 0.5): ArcGIS caches sometimes declare a `maxLOD` deeper than was actually tiled, and
+  since OpenLayers over-zooms by requesting tiles at the max LOD, a phantom level makes the whole
+  layer blank right at that resolution. The converter caps `maxLOD`/`lods` (and the written tiles)
+  to the last fully-tiled level so OpenLayers over-zooms from there instead.
 - **COG raster sublayers** (`step_cogs` → `common/geotiff_to_cog.py`) write
   `Layers/<stem>/<stem>.tif`. There is **no `isCog` field** — a COG is identified by the `.tif`
   path. Removed across the app (typings/model/store/schema) and here; do not re-introduce it.
