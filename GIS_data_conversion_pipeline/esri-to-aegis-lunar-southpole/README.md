@@ -323,6 +323,25 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --register --box
 ```
 
+To include a **vector-tile layer built from source**, add `--vector-tile-cache` pointing at a
+delivered ArcGIS Compact Cache V2 directory (the folder that contains `root.json` + `tile/`).
+The `vectortiles` step packs its bundles into a single `.pmtiles`, carrying the cache's
+`esri_tile_info` so OpenLayers renders it on the cap grid — no re-tiling. The layer folder name
+comes from the cache dir, falling back to its parent when the leaf is a generic level dir like
+`p12` (so `AggregatedContour/p12` → `Layers/AggregatedContour/AggregatedContour.pmtiles`).
+`--vector-tile-cache` is repeatable:
+
+```bash
+cd GIS_data_conversion_pipeline
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --aegis-url http://localhost:4000 \
+    --mission-id <LOCAL_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --lander-lat -84.223397 --lander-lng 33.5021945 \
+    --dem F:/drop/dem.tif --nac-mosaic F:/drop/nac_mosaic.tif \
+    --vector-tile-cache F:/drop/AggregatedContour/p12 \
+    --register --box
+```
+
 **Step 2 — admin (manual):** create the mission on prod (note `<PROD_ID>`), download the
 Box zips for `"A03MP026 - ART3 Surface EVA MS 3"`, and unzip them into prod's
 `missionFiles/<PROD_ID>/{Data,Layers}`.
