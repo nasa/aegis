@@ -19,11 +19,6 @@ export const defaultSublayerStyle: MapSublayerStyle = {
   dashLen: 10,
   altColor: "#FFFFFF",
   altOpacity: 1,
-  showLabels: true,
-  labelColor: "#ffffff",
-  labelStrokeColor: "rgba(255,255,255,0.85)",
-  labelStrokeWidth: 2,
-  labelStrokeOpacity: 0.85,
 };
 /**
  * Generate a blank sublayer

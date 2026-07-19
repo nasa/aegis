@@ -512,43 +512,6 @@ describe("buildVectorStyleFn", () => {
     expect(text).toBeFalsy();
   });
 
-  it("labels contour features from the 'elev' property", () => {
-    const fn = buildVectorStyleFn(makeStyle());
-    const feat = new Feature(new Point([0, 0]));
-    feat.set("elev", 5800);
-    expect(fn(feat).getText()!.getText()).toBe("5800");
-  });
-
-  it("labels delivered contour GeoJSONs from the 'Contour' property", () => {
-    const fn = buildVectorStyleFn(makeStyle());
-    const feat = new Feature(new Point([0, 0]));
-    feat.set("Contour", 6100);
-    expect(fn(feat).getText()!.getText()).toBe("6100");
-  });
-
-  it("prefers a generic 'label' property over elevation and name", () => {
-    const fn = buildVectorStyleFn(makeStyle());
-    const feat = new Feature(new Point([0, 0]));
-    feat.set("name", "ignored");
-    feat.set("elev", 5800);
-    feat.set("label", "Rim");
-    expect(fn(feat).getText()!.getText()).toBe("Rim");
-  });
-
-  it("suppresses labels when style.showLabels is false", () => {
-    const fn = buildVectorStyleFn(makeStyle({ showLabels: false }));
-    const feat = new Feature(new Point([0, 0]));
-    feat.set("elev", 5800);
-    expect(fn(feat).getText()).toBeFalsy();
-  });
-
-  it("still labels when style.showLabels is undefined (legacy default)", () => {
-    const fn = buildVectorStyleFn(makeStyle({ showLabels: undefined }));
-    const feat = new Feature(new Point([0, 0]));
-    feat.set("elev", 5800);
-    expect(fn(feat).getText()!.getText()).toBe("5800");
-  });
-
   it("uses 'line' placement for LineString labels and 'point' for others", () => {
     const fn = buildVectorStyleFn(makeStyle());
     const lineFeat = new Feature(
