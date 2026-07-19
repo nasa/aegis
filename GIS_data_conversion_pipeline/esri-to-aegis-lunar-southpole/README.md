@@ -258,6 +258,13 @@ resolution-dependent — the step auto-selects
 `default_color_ramps/ARCHIVE/TRIColors_{1m,5m,10m}_DEM.txt` to match `--dem-resolution`
 (falling back to the legacy `tri.txt`), so set `--dem-resolution` to your DEM's m/px.
 
+**COG products (`--products-as-cog`).** By default each product is tiled into a PNG/TMS
+pyramid. Pass `--products-as-cog` to emit each colorized product as a
+Cloud-Optimised GeoTIFF in `Layers/<name>/<name>.tif` instead — OL renders it directly via
+HTTP Range with no tile pyramid. The register step detects COGs automatically (the `.tif`
+extension in `Layers/`). Use this when you want to skip the tiling step (much faster, no
+zoom-level pyramid to manage) and the app client supports COG rendering for that product type.
+
 **Provided symbology (`.lyrx`).** When the GIS team delivers product symbology as an ArcGIS
 `.lyrx` (e.g. `AMPES_Slope 1.lyrx`), pass it with `--lyrx` and the `products`/`slope` steps
 use it **instead of** the built-in `default_color_ramps/` ramp — for both the colorize and the

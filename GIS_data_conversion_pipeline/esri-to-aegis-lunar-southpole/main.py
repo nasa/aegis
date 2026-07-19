@@ -165,6 +165,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="DEM-derived products to build (default: hillshade aspect tri; add slope to derive it from the DEM).",
     )
     parser.add_argument(
+        "--products-as-cog",
+        action="store_true",
+        help=(
+            "Emit DEM-derived products (--products) as Cloud-Optimised GeoTIFFs "
+            "(Layers/<name>/<name>.tif) instead of tile pyramids. "
+            "OL renders them directly via HTTP Range — no tiling step needed."
+        ),
+    )
+    parser.add_argument(
         "--raster",
         action="append",
         default=[],
