@@ -74,6 +74,25 @@ Omit a source flag and the step uses its default path under `--src` (the A03MP02
 A GIS-delivered `.lyrx` passed with `--lyrx` is used **instead of** the built-in colour ramp
 (see the pipeline README). Every tile layer also gets a `properties.json` legend.
 
+Use **`--products-prefix <PREFIX>`** to namespace every generated layer folder **and** its
+AEGIS layer name (e.g. `--products-prefix LOLA` → `Layers/LOLA_hillshade`, layer name
+`"LOLA_hillshade"`). This lets you run multiple DEMs into the **same** mission without one
+run clobbering another's layer folders. It affects only `Layers/` outputs; `Data/` products
+(DEM COG, grid, vectors) are mission-level and stay unprefixed. Pair it with
+**`--no-mission-dem`** when the extra DEM is _products-only_: that skips the `dem` step (no
+`Data/` COG) and leaves the mission's `demFilePath`/`demResolution` untouched on register, so
+the supplementary DEM contributes layers only — not a new mission DEM.
+
+```bash
+# Add a second (LOLA) DEM's products/contours to mission 50 alongside an existing DEM's:
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --mission-id 50 --mission-name "..." --products-prefix LOLA --no-mission-dem \
+    --dem F:/drop/LDEM_83S_10MPP_ADJ.TIF --dem-resolution 10 \
+    --products hillshade slope aspect tri --contours \
+    --steps products contours register box --overwrite
+# -> Layers/LOLA_hillshade, LOLA_slope, LOLA_aspect, LOLA_tri, LOLA_contours_100m, LOLA_contours_20m
+```
+
 ```bash
 # Register a previously-built mission onto another server (e.g. prod) — no rebuild:
 pixi run python esri-to-aegis-lunar-southpole/main.py \

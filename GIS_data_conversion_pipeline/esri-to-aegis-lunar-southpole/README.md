@@ -35,21 +35,21 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 
 ## Pipeline data types (`main.py` steps)
 
-| Type            | Input                                                        | Output                                   | Process                                                            |
-| --------------- | ------------------------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------ |
-| **dem**         | DEM GeoTIFF                                                  | `Data/<source>_zstd.tif` (COG)           | re-emit as clean COG (keeps source name)                           |
-| **nac**         | single NAC mosaic raster (from GIS team)                     | `Layers/nac/` tile pyramid               | stretch (if float) → tile                                          |
-| **slope**       | slope float raster (°) + `.lyrx` ramp                        | `Layers/slope/` tile pyramid             | colorize → tile                                                    |
-| **products**    | the DEM (`--dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/` | derive from DEM → colorize → tile (`--products`)                   |
-| **vector**      | landing-ellipse shapefile                                    | `Data/ellipse.geojson`                   | reproject to EPSG:4326                                             |
-| **rasters**     | custom rasters (`--raster`, repeatable)                      | `Layers/<stem>/` tile pyramid each       | stretch (if float) → tile                                          |
-| **vectors**     | custom vectors (`--vector`, repeatable)                      | `Data/<stem>.geojson` each               | shp → reproject; geojson copied                                    |
-| **vectortiles** | ArcGIS vector-tile cache (`--vector-tile-cache`, repeatable) | `Layers/<name>/<name>.pmtiles` each      | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`) |
+| Type            | Input                                                        | Output                                    | Process                                                                     |
+| --------------- | ------------------------------------------------------------ | ----------------------------------------- | --------------------------------------------------------------------------- |
+| **dem**         | DEM GeoTIFF                                                  | `Data/<source>_zstd.tif` (COG)            | re-emit as clean COG (keeps source name)                                    |
+| **nac**         | single NAC mosaic raster (from GIS team)                     | `Layers/nac/` tile pyramid                | stretch (if float) → tile                                                   |
+| **slope**       | slope float raster (°) + `.lyrx` ramp                        | `Layers/slope/` tile pyramid              | colorize → tile                                                             |
+| **products**    | the DEM (`--dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/`  | derive from DEM → colorize → tile (`--products`)                            |
+| **vector**      | landing-ellipse shapefile                                    | `Data/ellipse.geojson`                    | reproject to EPSG:4326                                                      |
+| **rasters**     | custom rasters (`--raster`, repeatable)                      | `Layers/<stem>/` tile pyramid each        | stretch (if float) → tile                                                   |
+| **vectors**     | custom vectors (`--vector`, repeatable)                      | `Data/<stem>.geojson` each                | shp → reproject; geojson copied                                             |
+| **vectortiles** | ArcGIS vector-tile cache (`--vector-tile-cache`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
 | **contours**    | the DEM (`--contours`)                                       | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
-| **cogs**        | custom rasters (`--cog`, repeatable)                         | `Layers/<stem>/<stem>.tif` each          | GeoTIFF → COG (type inferred from `.tif`)                          |
-| **grid**        | lander `--lander-lat/--lander-lng`                           | `grid_source.geojson` (10 km dflt)       | LGRS grid → AEGIS mission-grid GeoJSON                             |
-| **register**    | the built `<out>` + `--mission-id`                           | mission fields + sublayers + active grid | POST fields + layers/sublayers + grid                              |
-| **box**         | the built `<out>` + `--mission-name`                         | zips uploaded to Box (parallel)          | zip `Data/` + each layer → upload                                  |
+| **cogs**        | custom rasters (`--cog`, repeatable)                         | `Layers/<stem>/<stem>.tif` each           | GeoTIFF → COG (type inferred from `.tif`)                                   |
+| **grid**        | lander `--lander-lat/--lander-lng`                           | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON                                      |
+| **register**    | the built `<out>` + `--mission-id`                           | mission fields + sublayers + active grid  | POST fields + layers/sublayers + grid                                       |
+| **box**         | the built `<out>` + `--mission-name`                         | zips uploaded to Box (parallel)           | zip `Data/` + each layer → upload                                           |
 
 Every tile layer also gets a `properties.json` (name/description/legend) that the AEGIS
 admin auto-imports — see [`properties/`](properties/). The **register** step reads those
@@ -220,6 +220,36 @@ Inputs default to the A03MP026 layout under `--src`; override any with `--dem`, 
 default `<static>/missionFiles/<id>` output root. The EMSS token is read from the repo
 `.env` (`EMSS_TOKEN`) unless `--token` is passed.
 
+**Namespacing layers (`--products-prefix`).** Pass `--products-prefix <PREFIX>` to prepend
+`<PREFIX>_` to every generated **layer folder** and its **AEGIS layer name** — e.g.
+`--products-prefix LOLA` yields `Layers/LOLA_hillshade/` (layer name `"LOLA_hillshade"`),
+`Layers/LOLA_slope/`, `Layers/LOLA_nac/`, `Layers/LOLA_contours_100m/`, and contour display
+names like `"LOLA Contours (100 m)"`. This lets you process **multiple DEMs into one mission**
+without a later run overwriting an earlier run's layer folders. Only `Layers/` outputs are
+prefixed; `Data/` products (the DEM COG `demFilePath`, the LGRS grid, and vector GeoJSONs)
+are mission-level and stay unprefixed. `register`/`box` need no extra flags — they discover
+folders under `Layers/`, so the prefixed folders are picked up (and named) automatically.
+
+```bash
+# Add a LOLA DEM's products + contours to an existing mission 50 (keeps the first DEM's layers):
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+    --mission-id 50 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
+    --products-prefix LOLA --no-mission-dem \
+    --dem F:/drop/LDEM_83S_10MPP_ADJ.TIF --dem-resolution 10 \
+    --products hillshade slope aspect tri --contours \
+    --steps products contours register box --overwrite
+# -> Layers/LOLA_{hillshade,slope,aspect,tri}, Layers/LOLA_contours_{100,20}m
+```
+
+**Products-only DEM (`--no-mission-dem`).** By default the `dem` step re-emits the `--dem`
+input as the mission's DEM COG (`Data/<source>_zstd.tif` → `demFilePath`), and `register`
+sets `demFilePath`/`demResolution` on the mission. When you feed a **supplementary** DEM
+just to derive extra products/contours for a mission that already has its primary DEM, pass
+`--no-mission-dem`: it **skips the `dem` step** (no `Data/` COG is written) and leaves
+`demFilePath`/`demResolution` **untouched** on register. `--dem-resolution` is still honoured
+for product processing (TRI ramp, contour zoom). Typically combined with `--products-prefix`
+so the supplementary layers don't collide with the primary DEM's — as in the example above.
+
 **DEM-derived products.** The `products` step defaults to **hillshade, aspect, tri**; the
 dedicated `slope` step is preferred when a GIS-delivered slope raster + `.lyrx` exist. When
 the **only** input is a DEM (e.g. the A03MP026 MS3 drop), derive all four straight from the
@@ -267,7 +297,9 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
 Every produced sublayer is a **folder** under `Layers/`; AEGIS infers its type from the folder
 contents (`{z}/{x}/{y}` tiles → raster tile, `.pmtiles` → vector-tile, `.tif` → COG). Raster tile
 folders also contain a `tilemapresource.xml` (bbox + zoom) and a `properties.json`
-(name/description/legend), both auto-imported by the admin. The mission DEM COG is the exception —
+(name/description/legend), both auto-imported by the admin. With `--products-prefix LOLA` these
+folders (and their AEGIS layer names) become `LOLA_nac/`, `LOLA_slope/`, … so multiple DEM runs
+can share one mission. The mission DEM COG is the exception —
 it stays in `Data/` (keeping its source filename with a `_zstd` suffix) as the self-describing
 `demFilePath`, not a sublayer.
 

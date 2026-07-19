@@ -90,10 +90,14 @@ def write_properties(
 ) -> None:
     """Write an AEGIS properties.json into a tile-layer dir (legend from a colour ramp)."""
     cmd: list[str | Path] = [
-        PYTHON, WRITE_PROPERTIES,
-        "--processing", processing,
-        "--name", name,
-        "--out", layer_dir / "properties.json",
+        PYTHON,
+        WRITE_PROPERTIES,
+        "--processing",
+        processing,
+        "--name",
+        name,
+        "--out",
+        layer_dir / "properties.json",
     ]
     if ramp is not None:
         cmd += ["--ramp", ramp]
@@ -123,10 +127,20 @@ def tile_raster_to_layer(
     scratch.mkdir(parents=True, exist_ok=True)
     stretched = scratch / f"{layer_dir.name}_8bit.tif"
     try:
-        run([
-            PYTHON, STRETCH_TO_8BIT, raster, stretched,
-            "--pct-low", "2", "--pct-high", "98", "--nodata", "-3.4e38",
-        ])
+        run(
+            [
+                PYTHON,
+                STRETCH_TO_8BIT,
+                raster,
+                stretched,
+                "--pct-low",
+                "2",
+                "--pct-high",
+                "98",
+                "--nodata",
+                "-3.4e38",
+            ]
+        )
         run([PYTHON, TILE_TO_CAP_GRID, stretched, layer_dir])
         write_properties(layer_dir, processing, name)
     finally:
@@ -160,7 +174,17 @@ def step_dem(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     banner("dem — DEM GeoTIFF → clean COG (demFilePath)")
     require_input(p.dem_in, "DEM GeoTIFF", "--dem")
     p.data.mkdir(parents=True, exist_ok=True)
-    run([PYTHON, GEOTIFF_TO_COG, p.dem_in, "--compress", config.DEM_COMPRESS, "-o", p.dem_out])
+    run(
+        [
+            PYTHON,
+            GEOTIFF_TO_COG,
+            p.dem_in,
+            "--compress",
+            config.DEM_COMPRESS,
+            "-o",
+            p.dem_out,
+        ]
+    )
 
 
 def step_nac(p: config.PipelinePaths, args: argparse.Namespace) -> None:
@@ -168,7 +192,12 @@ def step_nac(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     banner("nac — NAC mosaic → cap-grid tile layer")
     require_input(p.nac_mosaic, "NAC mosaic raster", "--nac-mosaic")
     tile_raster_to_layer(
-        p, p.nac_mosaic, p.nac_layer, config.OUT_NAC_LAYER_NAME, "nac", args.overwrite
+        p,
+        p.nac_mosaic,
+        p.nac_layer,
+        p.layer_name(config.OUT_NAC_LAYER_NAME),
+        "nac",
+        args.overwrite,
     )
 
 
@@ -205,8 +234,11 @@ def step_slope(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         run([PYTHON, TILE_TO_CAP_GRID, p.slope_rgba, p.slope_layer])
         # Legend mirrors the colour treatment actually applied (lyrx symbology if provided).
         write_properties(
-            p.slope_layer, "slope", config.OUT_SLOPE_LAYER_NAME,
-            ramp=slope_ramp(p, scratch), units=config.PRODUCT_UNITS["slope"],
+            p.slope_layer,
+            "slope",
+            p.layer_name(config.OUT_SLOPE_LAYER_NAME),
+            ramp=slope_ramp(p, scratch),
+            units=config.PRODUCT_UNITS["slope"],
         )
     finally:
         p.slope_rgba.unlink(missing_ok=True)
@@ -240,7 +272,9 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     # Rebuild only what's missing (or everything with --overwrite): dem_products on a
     # large DEM is expensive, so don't derive products whose layer is already built.
     to_build = [
-        pr for pr in products if clear_layer_dir(p.layers / layer_name[pr], args.overwrite)
+        pr
+        for pr in products
+        if clear_layer_dir(p.layer_path(layer_name[pr]), args.overwrite)
     ]
     if not to_build:
         tee("  all requested product layers already built — nothing to do")
@@ -262,7 +296,14 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         ramp_for = {product: ramp_resolvers[product]() for product in to_build}
 
         dem_cmd: list[str | Path] = [
-            PYTHON, DEM_PRODUCTS, "--dem", p.dem_in, "--out", scratch, "--products", *to_build
+            PYTHON,
+            DEM_PRODUCTS,
+            "--dem",
+            p.dem_in,
+            "--out",
+            scratch,
+            "--products",
+            *to_build,
         ]
         for product in to_build:
             if ramp_for[product] is not None:
@@ -270,12 +311,15 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         run(dem_cmd)
 
         for i, product in enumerate(to_build):
-            layer_dir = p.layers / layer_name[product]
+            layer_dir = p.layer_path(layer_name[product])
             tee(f"\n  tiling product {i + 1}/{len(to_build)}: {product} → {layer_dir}")
             run([PYTHON, TILE_TO_CAP_GRID, scratch / f"{product}.tif", layer_dir])
             write_properties(
-                layer_dir, product, layer_name[product],
-                ramp=ramp_for[product], units=config.PRODUCT_UNITS.get(product),
+                layer_dir,
+                product,
+                p.layer_name(layer_name[product]),
+                ramp=ramp_for[product],
+                units=config.PRODUCT_UNITS.get(product),
             )
     finally:
         for product in products:
@@ -302,9 +346,11 @@ def step_rasters(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     for raster in args.raster:
         raster = Path(raster)
         require_input(raster, "custom raster", "--raster")
-        layer_dir = p.layers / raster.stem
+        layer_dir = p.layer_path(raster.stem)
         tee(f"\n  raster: {raster}  → {layer_dir}")
-        tile_raster_to_layer(p, raster, layer_dir, raster.stem, "source", args.overwrite)
+        tile_raster_to_layer(
+            p, raster, layer_dir, p.layer_name(raster.stem), "source", args.overwrite
+        )
 
 
 def step_vectors(p: config.PipelinePaths, args: argparse.Namespace) -> None:
@@ -327,9 +373,14 @@ def step_vectors(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 
 def step_grid(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """LGRS mission grid from the lander location → AEGIS grid GeoJSON (default 10 km square)."""
-    banner(f"grid — LGRS grid ({args.grid_extent}, {args.grid_precision} m) → AEGIS GeoJSON")
+    banner(
+        f"grid — LGRS grid ({args.grid_extent}, {args.grid_precision} m) → AEGIS GeoJSON"
+    )
     if args.lander_lat is None or args.lander_lng is None:
-        tee("  [skip] grid needs --lander-lat/--lander-lng (lander location).", file=sys.stderr)
+        tee(
+            "  [skip] grid needs --lander-lat/--lander-lng (lander location).",
+            file=sys.stderr,
+        )
         return
 
     grid_out = p.out / config.OUT_GRID_SOURCE_NAME
@@ -337,16 +388,29 @@ def step_grid(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     scratch.mkdir(parents=True, exist_ok=True)
     raw = scratch / "raw_grid.geojson"
     try:
-        run([
-            PYTHON, GENERATE_LGRS,
-            "--lat", str(args.lander_lat), "--lng", str(args.lander_lng),
-            "--extent", args.grid_extent, "--precision", str(args.grid_precision),
-            "-o", raw,
-        ])
+        run(
+            [
+                PYTHON,
+                GENERATE_LGRS,
+                "--lat",
+                str(args.lander_lat),
+                "--lng",
+                str(args.lander_lng),
+                "--extent",
+                args.grid_extent,
+                "--precision",
+                str(args.grid_precision),
+                "-o",
+                raw,
+            ]
+        )
         run([PYTHON, CONVERT_LGRS, raw, "-o", scratch])
         cleaned = scratch / f"Cleaned_{raw.stem}.geojson"
         if not cleaned.exists():
-            tee(f"  ERROR: expected converted grid not found: {cleaned}", file=sys.stderr)
+            tee(
+                f"  ERROR: expected converted grid not found: {cleaned}",
+                file=sys.stderr,
+            )
             sys.exit(1)
         shutil.move(str(cleaned), str(grid_out))
         tee(f"  grid → {grid_out}")
@@ -380,12 +444,18 @@ def step_vectortiles(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     PMTiles URL via the Layers/ subdir. The converter copies the cache's esri_tile_info into the
     archive so OpenLayers can build the vector tile grid with no reprojection.
     """
-    banner("vectortiles — ArcGIS vector-tile cache → PMTiles (Layers/<name>/<name>.pmtiles)")
+    banner(
+        "vectortiles — ArcGIS vector-tile cache → PMTiles (Layers/<name>/<name>.pmtiles)"
+    )
     p.layers.mkdir(parents=True, exist_ok=True)
     for cache in args.vector_tile_cache:
         cache = Path(cache)
-        require_input(cache / "root.json", "ArcGIS vector-tile cache (root.json)", "--vector-tile-cache")
-        name = _pmtiles_name(cache)
+        require_input(
+            cache / "root.json",
+            "ArcGIS vector-tile cache (root.json)",
+            "--vector-tile-cache",
+        )
+        name = p.layer_name(_pmtiles_name(cache))
         layer_dir = p.layers / name
         out_pmtiles = layer_dir / f"{name}.pmtiles"
         if out_pmtiles.exists() and not args.overwrite:
@@ -396,7 +466,9 @@ def step_vectortiles(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         run([PYTHON, ARCGIS_CACHE_TO_PMTILES, cache, layer_dir, "--name", name])
 
 
-def _write_contour_properties(layer_dir: Path, name: str, interval: int, kind: str) -> None:
+def _write_contour_properties(
+    layer_dir: Path, name: str, interval: int, kind: str
+) -> None:
     """Write a minimal properties.json (name/description) for a contour PMTiles layer.
 
     register.py's ``_apply_properties`` reads only name/description/legend onto the
@@ -422,7 +494,7 @@ def _build_contour_layer(
     exclude_multiple_of: int | None,
 ) -> None:
     """Generate one contour PMTiles sublayer (Layers/contours_<interval>m/)."""
-    name = config.contour_layer_name(interval)
+    name = p.layer_name(config.contour_layer_name(interval))
     layer_dir = p.layers / name
     out_pmtiles = layer_dir / f"{name}.pmtiles"
     if out_pmtiles.exists() and not args.overwrite:
@@ -431,16 +503,26 @@ def _build_contour_layer(
     layer_dir.mkdir(parents=True, exist_ok=True)
     tee(f"\n  {kind} contours ({interval} m) → {out_pmtiles}")
     cmd: list[str | Path] = [
-        PYTHON, DEM_TO_CONTOURS_PMTILES, p.dem_in, layer_dir,
-        "--name", name, "--interval", str(interval),
-        "--dem-resolution", str(args.dem_resolution),
+        PYTHON,
+        DEM_TO_CONTOURS_PMTILES,
+        p.dem_in,
+        layer_dir,
+        "--name",
+        name,
+        "--interval",
+        str(interval),
+        "--dem-resolution",
+        str(args.dem_resolution),
     ]
     if args.contour_maxzoom is not None:
         cmd += ["--maxzoom", str(args.contour_maxzoom)]
     if exclude_multiple_of:
         cmd += ["--exclude-multiple-of", str(exclude_multiple_of)]
     run(cmd)
-    _write_contour_properties(layer_dir, f"Contours ({interval} m)", interval, kind)
+    display = f"Contours ({interval} m)"
+    if p.layer_prefix:
+        display = f"{p.layer_prefix} {display}"
+    _write_contour_properties(layer_dir, display, interval, kind)
 
 
 def step_contours(p: config.PipelinePaths, args: argparse.Namespace) -> None:
@@ -451,7 +533,9 @@ def step_contours(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     so coincident intervals aren't double-drawn). Each carries an ``elev`` attribute that the
     OpenLayers vector-tile style function renders as an elevation label.
     """
-    banner("contours — DEM → major/minor contour PMTiles (Layers/contours_<interval>m/)")
+    banner(
+        "contours — DEM → major/minor contour PMTiles (Layers/contours_<interval>m/)"
+    )
     require_input(p.dem_in, "DEM GeoTIFF", "--dem")
     p.layers.mkdir(parents=True, exist_ok=True)
 
@@ -477,7 +561,7 @@ def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     for raster in args.cog:
         raster = Path(raster)
         require_input(raster, "COG source raster", "--cog")
-        layer_dir = p.layers / raster.stem
+        layer_dir = p.layer_path(raster.stem)
         out_cog = layer_dir / f"{raster.stem}.tif"
         if out_cog.exists() and not args.overwrite:
             tee(f"  [skip] {out_cog} already built (use --overwrite to rebuild)")
@@ -502,12 +586,21 @@ def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 
     token = args.token or load_token()
     if not token:
-        tee("ERROR: no EMSS token (pass --token or set EMSS_TOKEN in .env)", file=sys.stderr)
+        tee(
+            "ERROR: no EMSS token (pass --token or set EMSS_TOKEN in .env)",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
-    # demFilePath reflects the actual COG in Data/ (keeps the source filename).
-    dem_file = find_dem_file(p.data)
-    dem_rel = f"{config.OUT_DATA_DIRNAME}/{dem_file.name}" if dem_file else None
+    # demFilePath reflects the actual COG in Data/ (keeps the source filename). With
+    # --no-mission-dem the DEM is products-only, so leave demFilePath/demResolution untouched.
+    if args.no_mission_dem:
+        dem_rel = None
+        dem_resolution = None
+    else:
+        dem_file = find_dem_file(p.data)
+        dem_rel = f"{config.OUT_DATA_DIRNAME}/{dem_file.name}" if dem_file else None
+        dem_resolution = args.dem_resolution
     mission_fields = None
     if not args.no_mission_fields:
         mission_fields = build_mission_fields(
@@ -515,7 +608,7 @@ def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             lander_lat=args.lander_lat,
             lander_lng=args.lander_lng,
             dem_rel_path=dem_rel,
-            dem_resolution=args.dem_resolution,
+            dem_resolution=dem_resolution,
         )
 
     grid_geojson = None if args.no_grid else (p.out / config.OUT_GRID_SOURCE_NAME)
@@ -545,7 +638,10 @@ def step_box(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     from box_publish import upload_mission_folder
 
     upload_mission_folder(
-        out_dir=p.out, mission_name=args.mission_name, overwrite=True, max_workers=args.box_workers
+        out_dir=p.out,
+        mission_name=args.mission_name,
+        overwrite=True,
+        max_workers=args.box_workers,
     )
 
 
@@ -562,11 +658,17 @@ STEPS: list[tuple[str, str]] = [
     ("vector", "Landing-ellipse shapefile → GeoJSON"),
     ("rasters", "Custom rasters (--raster) → tile to one cap-grid layer each"),
     ("vectors", "Custom vectors (--vector, shp/geojson) → GeoJSON in Data/"),
-    ("vectortiles", "ArcGIS vector-tile caches (--vector-tile-cache) → Layers/<name>/<name>.pmtiles"),
+    (
+        "vectortiles",
+        "ArcGIS vector-tile caches (--vector-tile-cache) → Layers/<name>/<name>.pmtiles",
+    ),
     ("contours", "DEM → major/minor contour PMTiles (Layers/contours_<interval>m)"),
     ("cogs", "Custom rasters (--cog) → Cloud-Optimised GeoTIFF in Data/"),
     ("grid", "Lander location → LGRS mission grid GeoJSON (default 10km)"),
-    ("register", "Set mission fields + header layers/sublayers + active grid via AEGIS API"),
+    (
+        "register",
+        "Set mission fields + header layers/sublayers + active grid via AEGIS API",
+    ),
     ("box", "Zip Data/ + each layer and upload to Box"),
 ]
 
@@ -591,8 +693,18 @@ STEP_NAMES = [name for name, _ in STEPS]
 
 # Steps that produce files under <out> (vs. publish-only steps that need <out> to exist).
 DATA_STEPS = {
-    "stage", "dem", "nac", "slope", "products", "vector", "rasters", "vectors",
-    "vectortiles", "contours", "cogs", "grid",
+    "stage",
+    "dem",
+    "nac",
+    "slope",
+    "products",
+    "vector",
+    "rasters",
+    "vectors",
+    "vectortiles",
+    "contours",
+    "cogs",
+    "grid",
 }
 
 
@@ -603,7 +715,8 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
     """
     chosen = ["stage"]
     if p.dem_in.exists():
-        chosen += ["dem", "products"]
+        # --no-mission-dem: derive products from the DEM but don't emit the mission DEM COG.
+        chosen += ["products"] if args.no_mission_dem else ["dem", "products"]
     if p.nac_mosaic.exists():
         chosen.append("nac")
     if p.slope_in.exists():
