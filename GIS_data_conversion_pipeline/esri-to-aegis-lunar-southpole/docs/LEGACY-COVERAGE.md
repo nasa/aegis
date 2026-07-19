@@ -23,7 +23,7 @@ answered.
 
 | Legacy concern | Equivalent here |
 | --- | --- |
-| `tiling.py` `_tile_sps` (lunar SPS tiling) | `common/tile_to_cap_grid.py` (pure rasterio cap grid) |
+| `tiling.py` `_tile_sps` (lunar SPS tiling) | `common/tile_to_cap_grid.py` (GDAL native cap-grid tiler) |
 | DEM → COG, raster inspection | `common/geotiff_to_cog.py`, `common/inspect_geotiff.py` |
 | GIS-delivered slope colorize (`.lyrx`) | `slope/colorize_slope.py` |
 

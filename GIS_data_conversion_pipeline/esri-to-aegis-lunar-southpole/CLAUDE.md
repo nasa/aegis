@@ -89,7 +89,8 @@ range-requested by the client. Everything else uses DEFLATE.
 ## Verifying a change here
 
 - `python -m py_compile` the edited files (stdlib/rasterio-only scripts run under `.venv`; anything
-  importing `osgeo`/`fiona` needs `pixi run`).
+  importing `osgeo`/`fiona` **or shelling out to the `gdal`/`gdalbuildvrt` CLIs — e.g.
+  `common/tile_to_cap_grid.py`** needs `pixi run`).
 - `pixi run python esri-to-aegis-lunar-southpole/main.py --list` and `--summary` (no API calls).
 - Build a sample with `--vector-tile-cache` and/or `--cog`, then confirm the
   `Layers/<name>/<name>.pmtiles` and `Layers/<name>/<name>.tif` folders exist and

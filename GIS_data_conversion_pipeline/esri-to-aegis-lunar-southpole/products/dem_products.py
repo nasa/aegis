@@ -42,8 +42,10 @@ Then tile each product, e.g.::
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 from osgeo import gdal
@@ -93,7 +95,7 @@ def _progress(label: str):
     return cb
 
 
-def _colorize(processed: str, ramp: Path, out_path: Path) -> None:
+def _colorize(processed: str, ramp: Path, out_path: Path, label: str = "colorize") -> None:
     """gdaldem color-relief a single-band raster → 8-bit RGBA GeoTIFF (nodata transparent)."""
     gdal.DEMProcessing(
         destName=str(out_path),
@@ -104,7 +106,7 @@ def _colorize(processed: str, ramp: Path, out_path: Path) -> None:
         format="GTiff",
         creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
         computeEdges=True,
-        callback=_progress("colorize"),
+        callback=_progress(label),
     )
 
 
@@ -144,7 +146,7 @@ def make_product(dem: Path, product: str, ramp: Path | None, out_dir: Path) -> P
             creationOptions=["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"],
             callback=_progress(mode),
         )
-        _colorize(str(processed), ramp, out_path)  # type: ignore[arg-type]
+        _colorize(str(processed), ramp, out_path, f"colorize {product}")  # type: ignore[arg-type]
     finally:
         processed.unlink(missing_ok=True)
 
@@ -254,16 +256,36 @@ def main() -> None:
     print("DEM → standardized AEGIS products")
     print("=" * 64)
 
-    for product in args.products:
-        # hillshade has no ramp; everything else resolves lyrx > --*-ramp > default.
-        ramp = (
+    # Resolve every product's colour ramp up front (sequential + cheap; a .lyrx conversion
+    # writes a ramp file, so it must finish before the products fan out).
+    ramps = {
+        product: (
             None
             if product == "hillshade"
             else _resolve_ramp(
                 product, lyrxes.get(product), overrides.get(product), out_dir
             )
         )
-        make_product(dem, product, ramp, out_dir)
+        for product in args.products
+    }
+
+    # Each gdal.DEMProcessing call is single-threaded, and the products are independent (each
+    # re-reads the DEM and computes on its own). So the CPU win is running the products in
+    # PARALLEL PROCESSES, one per core, instead of one-after-another. Falls back to serial for
+    # a single product (no pool overhead).
+    workers = min(len(args.products), os.cpu_count() or 1)
+    if workers <= 1:
+        for product in args.products:
+            make_product(dem, product, ramps[product], out_dir)
+    else:
+        print(f"\n  deriving {len(args.products)} products in parallel ({workers} workers)")
+        with ProcessPoolExecutor(max_workers=workers) as ex:
+            futures = {
+                ex.submit(make_product, dem, product, ramps[product], out_dir): product
+                for product in args.products
+            }
+            for fut in as_completed(futures):
+                fut.result()  # re-raise any worker exception
 
     print(f"\nDone. Products in {out_dir}")
 
