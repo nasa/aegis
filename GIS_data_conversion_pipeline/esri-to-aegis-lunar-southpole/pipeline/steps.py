@@ -351,7 +351,9 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
                 tee(f"\n  COG product {i + 1}/{len(to_build)}: {product} → {out_cog}")
                 run([PYTHON, GEOTIFF_TO_COG, src_tif, "-o", out_cog])
             else:
-                tee(f"\n  tiling product {i + 1}/{len(to_build)}: {product} → {layer_dir}")
+                tee(
+                    f"\n  tiling product {i + 1}/{len(to_build)}: {product} → {layer_dir}"
+                )
                 run([PYTHON, TILE_TO_CAP_GRID, src_tif, layer_dir])
 
             write_properties(
@@ -694,7 +696,10 @@ STEPS: list[tuple[str, str]] = [
     ("dem", "DEM GeoTIFF → clean COG (demFilePath)"),
     ("nac", "NAC mosaic → stretch (if float) → tile to one cap-grid layer"),
     ("slope", "Slope float → colorize → tile to one cap-grid layer"),
-    ("products", "DEM → hillshade/aspect/tri → colorize → tile or COG (one layer each; --products-as-cog for COG)"),
+    (
+        "products",
+        "DEM → hillshade/aspect/tri → colorize → tile or COG (one layer each; --products-as-cog for COG)",
+    ),
     ("vector", "Landing-ellipse shapefile → GeoJSON"),
     ("rasters", "Custom rasters (--raster) → tile to one cap-grid layer each"),
     ("vectors", "Custom vectors (--vector, shp/geojson) → GeoJSON in Data/"),
