@@ -23,7 +23,6 @@ import { globalGrid } from "utils/mapping/grid";
 import { adjustGridIndex, findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
 
 import { useMapContext } from "../MapProvider";
-import { withAlpha } from "../utils/layers/layerFactory";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useCoordConverters } from "../hooks/useCoordConverters";
 import { Z_INDEX } from "../utils/zIndex";
@@ -173,25 +172,24 @@ export function Grid(): null {
 
         const coord = toMapCoord(point.coordinates);
         const labelFeature = new Feature(new Point(coord));
-        const strokeWidth = gridStyle?.labelStrokeWidth ?? 3;
         labelFeature.setStyle(
           new Style({
             text: new Text({
               text: point.name,
+              // bold
               font: "12px sans-serif",
+
               fill: new Fill({
-                color: gridStyle?.labelColor ?? gridStyle?.color ?? "#ffffff",
+                color: "#000",
               }),
-              stroke:
-                strokeWidth > 0
-                  ? new Stroke({
-                      color: withAlpha(
-                        gridStyle?.labelStrokeColor ?? "#ffffff",
-                        gridStyle?.labelStrokeOpacity ?? 0.85
-                      ),
-                      width: strokeWidth,
-                    })
-                  : undefined,
+              backgroundFill: new Fill({
+                color: "rgba(255, 255, 255, 0.7)",
+              }),
+              backgroundStroke: new Stroke({
+                color: "rgba(255, 255, 255, 0.7)",
+                width: 1,
+              }),
+              padding: [3, 1, 0, 3],
               offsetX: 5,
               offsetY: -8,
               textAlign: "left",

@@ -151,15 +151,10 @@ export function TileLayers(): null {
         // visual style only
         existing.setZIndex(zIndex);
         applyVisualStyle(existing, sublayerToRender.visualStyle);
-        const baseResolution = map.getView().getResolutionForZoom(0);
         if (sublayerToRender.type === "vector") {
-          (existing as VectorImageLayer).setStyle(
-            buildVectorStyleFn(sublayerToRender.visualStyle, baseResolution)
-          );
+          (existing as VectorImageLayer).setStyle(buildVectorStyleFn(sublayerToRender.visualStyle));
         } else if (sublayerToRender.type === "vector-tile") {
-          (existing as VectorTileLayer).setStyle(
-            buildVectorStyleFn(sublayerToRender.visualStyle, baseResolution)
-          );
+          (existing as VectorTileLayer).setStyle(buildVectorStyleFn(sublayerToRender.visualStyle));
         }
       } else {
         // Tear down the stale layer first if only its resolved path changed

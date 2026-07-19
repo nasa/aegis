@@ -39,8 +39,6 @@ const Settings_subpanel: FunctionComponent<{
     dashLen: false,
     altColor: false,
     altOpacity: false,
-    showLabels: false,
-    showLabelColor: false,
   };
 
   if (type === "vector") {
@@ -57,8 +55,6 @@ const Settings_subpanel: FunctionComponent<{
       dashLen: false,
       altColor: false,
       altOpacity: false,
-      showLabels: true,
-      showLabelColor: true,
     };
   } else if (type === "circle") {
     showSliders = {
@@ -74,8 +70,6 @@ const Settings_subpanel: FunctionComponent<{
       dashLen: true,
       altColor: true,
       altOpacity: true,
-      showLabels: false,
-      showLabelColor: false,
     };
   } else if (type === "vector-tile") {
     showSliders = {
@@ -91,8 +85,6 @@ const Settings_subpanel: FunctionComponent<{
       dashLen: false,
       altColor: false,
       altOpacity: false,
-      showLabels: true,
-      showLabelColor: true,
     };
   } else if (type === "grid") {
     showSliders = {
@@ -108,8 +100,6 @@ const Settings_subpanel: FunctionComponent<{
       dashLen: false,
       altColor: false,
       altOpacity: false,
-      showLabels: true,
-      showLabelColor: true,
     };
   }
 
@@ -185,82 +175,6 @@ const Settings_subpanel: FunctionComponent<{
           unit={"px"}
         />
       )}
-      {showSliders.showLabels && (
-        <div className={styles.listItem}>
-          <div className={styles.listItemText}>Show Labels</div>
-          <div className={styles.listItemControl}>
-            <Checkbox
-              checked={layerStyle?.showLabels ?? true}
-              onChange={(e) => {
-                setStyle(e.target.checked, "showLabels");
-              }}
-              toolTip="Show feature labels (e.g. contour elevations)"
-            />
-          </div>
-        </div>
-      )}
-      {showSliders.showLabels && (layerStyle?.showLabels ?? true) && (
-        <Slider
-          display="Label Min Zoom"
-          name="labelMinZoom"
-          value={layerStyle?.labelMinZoom ?? 0}
-          onChange={(e) => setStyle(Number(e.target.value), "labelMinZoom")}
-          min={0}
-          max={12}
-          unit={""}
-        />
-      )}
-      {showSliders.showLabels && (layerStyle?.showLabels ?? true) && showSliders.showLabelColor && (
-        <div className={styles.listItem}>
-          <div className={styles.listItemText}>Label Color</div>
-          <div className={styles.listItemControl}>
-            <CompactColor
-              key={`label-color-${JSON.stringify(layerStyle)}`}
-              color={layerStyle?.labelColor ?? "#ffffff"}
-              colors={COLOR_PALATTE}
-              onChange={(color) => {
-                setStyle(color.hex, "labelColor");
-              }}
-            />
-          </div>
-        </div>
-      )}
-      {showSliders.showLabels && (layerStyle?.showLabels ?? true) && (
-        <div className={styles.listItem}>
-          <div className={styles.listItemText}>Label Halo Color</div>
-          <div className={styles.listItemControl}>
-            <CompactColor
-              key={`label-stroke-${JSON.stringify(layerStyle)}`}
-              color={layerStyle?.labelStrokeColor ?? "rgba(255,255,255,0.85)"}
-              colors={COLOR_PALATTE}
-              onChange={(color) => {
-                setStyle(color.hex, "labelStrokeColor");
-              }}
-            />
-          </div>
-        </div>
-      )}
-      {showSliders.showLabels && (layerStyle?.showLabels ?? true) && (
-        <Slider
-          display="Label Halo Size"
-          name="labelStrokeWidth"
-          value={layerStyle?.labelStrokeWidth ?? 3}
-          onChange={(e) => setStyle(Number(e.target.value), "labelStrokeWidth")}
-          min={0}
-          max={10}
-          unit={"px"}
-        />
-      )}
-      {showSliders.showLabels &&
-        (layerStyle?.showLabels ?? true) &&
-        (layerStyle?.labelStrokeWidth ?? 3) > 0 && (
-          <Slider
-            display="Label Halo Opacity"
-            name="labelStrokeOpacity"
-            value={Math.round((layerStyle?.labelStrokeOpacity ?? 0.85) * 100)}
-            onChange={(e) => setStyle(Number(e.target.value) / 100, "labelStrokeOpacity")}
-          />
-        )}
       {showSliders.isDashed && (
         <div className={styles.listItem}>
           <div className={styles.listItemText}>Dashed Line</div>
