@@ -177,6 +177,7 @@ def contour_layer_name(interval: int) -> str:
     """Layer folder / archive base name for a contour interval (e.g. 100 → ``contours_100m``)."""
     return f"contours_{interval}m"
 
+
 # ---------------------------------------------------------------------------
 # AEGIS registration: header layers + the shared external NAC basemap
 # ---------------------------------------------------------------------------
@@ -244,6 +245,17 @@ class PipelinePaths:
     nac_layer: Path
     slope_layer: Path
     slope_rgba: Path
+    # Optional prefix applied to every generated layer FOLDER + its AEGIS layer name
+    # (e.g. "LOLA" → Layers/LOLA_hillshade, name "LOLA_hillshade"). Empty = no prefix.
+    layer_prefix: str = ""
+
+    def layer_name(self, base: str) -> str:
+        """Prefix a base layer name with ``<prefix>_`` when a layer_prefix is set."""
+        return f"{self.layer_prefix}_{base}" if self.layer_prefix else base
+
+    def layer_path(self, base: str) -> Path:
+        """Layers/ subdirectory for a base layer name, honouring the layer_prefix."""
+        return self.layers / self.layer_name(base)
 
 
 def resolve_paths(
@@ -256,20 +268,29 @@ def resolve_paths(
     ellipse: Path | None = None,
     nac_mosaic: Path | None = None,
     nac_frames: Path | None = None,
+    layer_prefix: str | None = None,
 ) -> PipelinePaths:
     """Build the concrete path set from an output root and an input root.
 
     ``out`` is required (replaces the old hardcoded ``missionFiles/<id>``). ``src``
     defaults to :data:`DEFAULT_SRC`. Any individual input may be overridden; an
     override that is absolute is used as-is, otherwise it is resolved under ``src``.
+
+    ``layer_prefix`` (from ``--products-prefix``) namespaces every generated layer
+    folder and its AEGIS layer name (e.g. ``LOLA`` → ``Layers/LOLA_hillshade``), so
+    multiple DEM runs can coexist in one mission.
     """
     src = (src or DEFAULT_SRC).resolve()
     out = out.resolve()
+    prefix = (layer_prefix or "").strip().strip("_")
 
     def under_src(override: Path | None, default_rel: Path) -> Path:
         if override is None:
             return src / default_rel
         return override if override.is_absolute() else src / override
+
+    def prefixed(base: str) -> str:
+        return f"{prefix}_{base}" if prefix else base
 
     layers = out / OUT_LAYERS_DIRNAME
     data = out / OUT_DATA_DIRNAME
@@ -288,7 +309,8 @@ def resolve_paths(
         data=data,
         dem_out=data / dem_output_name(dem_in_resolved),
         ellipse_out=data / OUT_ELLIPSE_NAME,
-        nac_layer=layers / OUT_NAC_LAYER_NAME,
-        slope_layer=layers / OUT_SLOPE_LAYER_NAME,
+        nac_layer=layers / prefixed(OUT_NAC_LAYER_NAME),
+        slope_layer=layers / prefixed(OUT_SLOPE_LAYER_NAME),
         slope_rgba=out / OUT_SLOPE_RGBA_NAME,
+        layer_prefix=prefix,
     )

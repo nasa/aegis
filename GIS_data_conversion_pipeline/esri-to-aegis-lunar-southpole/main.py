@@ -129,6 +129,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help=f"Input data-drop root (default: {config.DEFAULT_SRC}).",
     )
+    parser.add_argument(
+        "--products-prefix",
+        default=None,
+        metavar="PREFIX",
+        help=(
+            "Prefix for every generated layer folder AND its AEGIS layer name "
+            '(e.g. --products-prefix LOLA → Layers/LOLA_hillshade, "LOLA_hillshade"). '
+            "Lets multiple DEM runs coexist in one mission without clobbering each "
+            "other's layer folders. Does not affect Data/ outputs (DEM COG, grid, vectors)."
+        ),
+    )
 
     # Inputs
     parser.add_argument("--dem", type=Path, default=None, help="DEM GeoTIFF path.")
@@ -252,6 +263,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Do not set mission GIS fields during register.",
     )
     parser.add_argument(
+        "--no-mission-dem",
+        action="store_true",
+        help=(
+            "Use the --dem only to derive products/contours; do NOT write it as the mission "
+            "DEM. Skips the 'dem' step (no Data/ COG) and leaves demFilePath/demResolution "
+            "untouched on register. Use when adding a supplementary DEM's layers to a mission "
+            "that already has its primary DEM (typically with --products-prefix)."
+        ),
+    )
+    parser.add_argument(
         "--no-grid",
         action="store_true",
         help="Do not build or register the LGRS mission grid.",
@@ -319,6 +340,7 @@ def main() -> None:
         lyrx=args.lyrx,
         ellipse=args.ellipse,
         nac_mosaic=args.nac_mosaic,
+        layer_prefix=args.products_prefix,
     )
 
     if args.summary:
@@ -337,6 +359,12 @@ def main() -> None:
         ]
     else:
         chosen = steps.default_steps(args, p)
+
+    # --no-mission-dem means the DEM is products-only: never run the 'dem' step (which would
+    # write the mission DEM COG), even if it was explicitly requested via --steps.
+    dropped_dem_step = args.no_mission_dem and "dem" in chosen
+    if dropped_dem_step:
+        chosen = [n for n in chosen if n != "dem"]
 
     # Publish-only run (e.g. registering a previously-built mission onto prod): the data steps
     # that would create <out> aren't running, so the built folder must already exist. When
@@ -361,6 +389,9 @@ def main() -> None:
     tee(f"  aegis-url : {args.aegis_url}")
     tee(f"  src       : {p.src}")
     tee(f"  out       : {p.out}")
+    if args.no_mission_dem:
+        note = " (dropped 'dem' step)" if dropped_dem_step else ""
+        tee(f"  dem mode  : products-only — mission DEM untouched{note}")
     tee(f"  plan      : {len(chosen)} step(s)")
     step_desc = dict(steps.STEPS)
     for i, name in enumerate(chosen):
