@@ -250,16 +250,34 @@ def step_slope(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             pass
 
 
+def _cog_layer_needs_build(layer_dir: Path, name: str, overwrite: bool) -> bool:
+    """True if the COG product layer should be (re)built. Mirrors the skip/overwrite logic for tile layers."""
+    out_cog = layer_dir / f"{name}.tif"
+    if out_cog.exists():
+        if not overwrite:
+            tee(f"  [skip] {out_cog} already built (use --overwrite to rebuild)")
+            return False
+        tee(f"  [overwrite] removing existing COG {out_cog}")
+        out_cog.unlink()
+    return True
+
+
 def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """Derive standardized products from the DEM → colorize → tile (one layer each).
+    """Derive standardized products from the DEM → colorize → tile or COG (one layer each).
 
     Which products to build comes from ``--products`` (default ``config.PRODUCTS_DEFAULT`` =
     hillshade/aspect/tri; pass ``--products hillshade slope aspect tri`` to also derive slope
     from the DEM when no GIS-delivered slope raster is available). The TRI colour ramp is
     chosen to match ``--dem-resolution`` so its legend bins are correct.
+
+    With ``--products-as-cog`` the colorized rasters are converted to Cloud-Optimised GeoTIFFs
+    in ``Layers/<name>/<name>.tif`` instead of being tiled — OL renders them directly via HTTP
+    Range with no tile pyramid.
     """
     products = args.products or config.PRODUCTS_DEFAULT
-    banner(f"products — DEM → {'/'.join(products)} → cap-grid tile layers")
+    as_cog = getattr(args, "products_as_cog", False)
+    output_kind = "COG" if as_cog else "cap-grid tile layers"
+    banner(f"products — DEM → {'/'.join(products)} → {output_kind}")
     require_input(p.dem_in, "DEM GeoTIFF", "--dem")
 
     layer_name = {
@@ -271,11 +289,22 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 
     # Rebuild only what's missing (or everything with --overwrite): dem_products on a
     # large DEM is expensive, so don't derive products whose layer is already built.
-    to_build = [
-        pr
-        for pr in products
-        if clear_layer_dir(p.layer_path(layer_name[pr]), args.overwrite)
-    ]
+    if as_cog:
+        to_build = [
+            pr
+            for pr in products
+            if _cog_layer_needs_build(
+                p.layer_path(layer_name[pr]),
+                p.layer_name(layer_name[pr]),
+                args.overwrite,
+            )
+        ]
+    else:
+        to_build = [
+            pr
+            for pr in products
+            if clear_layer_dir(p.layer_path(layer_name[pr]), args.overwrite)
+        ]
     if not to_build:
         tee("  all requested product layers already built — nothing to do")
         return
@@ -283,10 +312,11 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     scratch = p.out / "scratch_products"
     scratch.mkdir(parents=True, exist_ok=True)
     try:
-        # Per-product colour ramp (None = no legend). slope honours GIS-delivered .lyrx
-        # symbology when present; TRI is resolution-matched. The SAME ramp drives both the
-        # gdaldem colorize (dem_products) and the AEGIS legend (write_properties). Resolved
-        # lazily so the .lyrx conversion only runs when slope is actually being built.
+        # Per-product colour ramp (None = no legend for hillshade). slope honours
+        # GIS-delivered .lyrx symbology when present; TRI is resolution-matched. The SAME
+        # ramp drives both the gdaldem colorize (dem_products) and the AEGIS legend
+        # (write_properties). Resolved lazily so the .lyrx conversion only runs when slope
+        # is actually being built.
         ramp_resolvers = {
             "hillshade": lambda: None,
             "slope": lambda: slope_ramp(p, scratch),
@@ -311,13 +341,23 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         run(dem_cmd)
 
         for i, product in enumerate(to_build):
+            lname = p.layer_name(layer_name[product])
             layer_dir = p.layer_path(layer_name[product])
-            tee(f"\n  tiling product {i + 1}/{len(to_build)}: {product} → {layer_dir}")
-            run([PYTHON, TILE_TO_CAP_GRID, scratch / f"{product}.tif", layer_dir])
+            layer_dir.mkdir(parents=True, exist_ok=True)
+            src_tif = scratch / f"{product}.tif"
+
+            if as_cog:
+                out_cog = layer_dir / f"{lname}.tif"
+                tee(f"\n  COG product {i + 1}/{len(to_build)}: {product} → {out_cog}")
+                run([PYTHON, GEOTIFF_TO_COG, src_tif, "-o", out_cog])
+            else:
+                tee(f"\n  tiling product {i + 1}/{len(to_build)}: {product} → {layer_dir}")
+                run([PYTHON, TILE_TO_CAP_GRID, src_tif, layer_dir])
+
             write_properties(
                 layer_dir,
                 product,
-                p.layer_name(layer_name[product]),
+                lname,
                 ramp=ramp_for[product],
                 units=config.PRODUCT_UNITS.get(product),
             )
@@ -654,7 +694,7 @@ STEPS: list[tuple[str, str]] = [
     ("dem", "DEM GeoTIFF → clean COG (demFilePath)"),
     ("nac", "NAC mosaic → stretch (if float) → tile to one cap-grid layer"),
     ("slope", "Slope float → colorize → tile to one cap-grid layer"),
-    ("products", "DEM → hillshade/aspect/tri → colorize → tile (one layer each)"),
+    ("products", "DEM → hillshade/aspect/tri → colorize → tile or COG (one layer each; --products-as-cog for COG)"),
     ("vector", "Landing-ellipse shapefile → GeoJSON"),
     ("rasters", "Custom rasters (--raster) → tile to one cap-grid layer each"),
     ("vectors", "Custom vectors (--vector, shp/geojson) → GeoJSON in Data/"),
