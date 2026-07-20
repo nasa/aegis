@@ -2,6 +2,10 @@ import { rexOverwriteSchemaValidator } from "utils/validateSchemaServer";
 import { validators } from "components/interface/form/formValidators";
 import { validate as isUuid } from "uuid";
 
+/**
+ * This file is Deprecated and should be removed when ./rexOverwrite.ts is removed
+ */
+
 // returns null if valid, or string message if invalid
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const validatePercentComplete = (activityEntry: any): string | null => {

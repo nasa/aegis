@@ -10,7 +10,7 @@ import { globalValues } from "server/express/global";
 /**
  * Creates the object for AEGIS data maestro cares about to be sent across sockets
  */
-export const buildAegisEntityForMaestro = async (
+export const buildAegisSliceForMaestro = async (
   missionId: number
 ): Promise<Maegistro.AegisSlice> => {
   // Use the stored DocHandle reference for efficiency.

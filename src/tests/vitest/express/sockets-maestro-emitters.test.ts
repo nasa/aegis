@@ -579,17 +579,17 @@ describe("addMaestroDocListenerForMission", () => {
       traverses: [traverseA],
     });
     // Return mockCoreData for both the change listener snapshot AND the eventual
-    // buildAegisEntityForMaestro call inside emitToMaestroNamespace.
+    // buildAegisSliceForMaestro call inside emitToMaestroNamespace.
     mockDocHandle.doc.mockReturnValue(mockCoreData);
     // Also set up the getAutomergeMissions fallback in case docHandles lookup fails
-    // inside the emitToMaestroNamespace → buildAegisEntityForMaestro chain.
+    // inside the emitToMaestroNamespace → buildAegisSliceForMaestro chain.
     mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
 
     const changeListener = mockDocHandle.on.mock.calls[0][1];
     changeListener();
 
     // The throttled change listener calls emitToMaestroNamespace which calls
-    // buildAegisEntityForMaestro (real) and emits dataAll.
+    // buildAegisSliceForMaestro (real) and emits dataAll.
     await vi.waitFor(() => {
       expect(ns._emit).toHaveBeenCalledWith("dataAll", expect.any(Object));
     });

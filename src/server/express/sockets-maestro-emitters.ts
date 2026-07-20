@@ -4,7 +4,7 @@ import type { DocumentId } from "@automerge/automerge-repo";
 import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
 import { getMaestroSocketRoomName } from "./sockets-maestro";
-import { buildAegisEntityForMaestro } from "utils/maestro";
+import { buildAegisSliceForMaestro } from "utils/maestro";
 import { opApplyMdauStationUpdates } from "operations/op-station";
 import { getSequenceUuidByRefUuidAndRexUuid } from "store/selectors";
 
@@ -216,7 +216,7 @@ export const isDiffRelevantToSubscribedEvas = (
 };
 
 /**
- * Emits the IAegisEntity to the maestro namespace for a given mission ID.
+ * Emits the Maestro AEGISSlice to the maestro namespace for a given mission ID.
  */
 const emitToMaestroNamespace = async (missionId: number): Promise<void> => {
   try {
@@ -229,7 +229,7 @@ const emitToMaestroNamespace = async (missionId: number): Promise<void> => {
     const roomSize = maestroNamespace.adapter.rooms.get(roomName)?.size ?? 0;
     if (roomSize === 0) return;
 
-    const entity = await buildAegisEntityForMaestro(missionId);
+    const entity = await buildAegisSliceForMaestro(missionId);
     maestroNamespace.to(roomName).emit("dataAll", entity);
   } catch (error) {
     serverLogger.error(
@@ -279,8 +279,7 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
       automergeListing.automergeUrl as DocumentId
     );
 
-    // Save the reference to the handle so isRelevantToSubscribedEvas / buildAegisEntityForMaestro
-    // can access the document faster without having to find it.
+    // Save the reference to the handle so we can access the document faster without having to find it.
     globalValues.maestro.docHandles.set(missionId, missionDocHandle);
 
     // Initialize first snapshot with the current doc state.

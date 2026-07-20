@@ -6,6 +6,7 @@ import {
 
 // Update the rex record in the automerge mission document.
 // More than one rex may be updated if we need to stop a previously running rex.
+// Deprecated - This function should be removed when the socket endpoint for rexOverwrite is removed
 export async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
   if (!rexOverwrite || !rexOverwrite.uuid) return [];
 

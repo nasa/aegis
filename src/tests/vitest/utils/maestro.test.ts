@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { buildAegisEntityForMaestro } from "utils/maestro";
+import { buildAegisSliceForMaestro } from "utils/maestro";
 import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankStation } from "store/storeUtils/station";
@@ -123,7 +123,7 @@ beforeEach(() => {
   globalValues.maestro.docHandles = new Map();
 });
 
-describe("buildAegisEntityForMaestro", () => {
+describe("buildAegisSliceForMaestro", () => {
   it("returns only subscribed EVAs and their related entities", async () => {
     globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
 
@@ -136,7 +136,7 @@ describe("buildAegisEntityForMaestro", () => {
     });
     mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
 
-    const result = await buildAegisEntityForMaestro(MISSION_ID);
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
 
     expect(Object.keys(result.aegisEvas)).toHaveLength(1);
     expect(result.aegisEvas[evaSubscribed.refUuid]).toBeDefined();
@@ -165,7 +165,7 @@ describe("buildAegisEntityForMaestro", () => {
     });
     mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
 
-    const result = await buildAegisEntityForMaestro(MISSION_ID);
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
 
     expect(Object.keys(result.aegisEvas)).toHaveLength(0);
     expect(Object.keys(result.aegisStations)).toHaveLength(0);
@@ -191,7 +191,7 @@ describe("buildAegisEntityForMaestro", () => {
     });
     mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
 
-    const result = await buildAegisEntityForMaestro(MISSION_ID);
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
 
     expect(Object.keys(result.fetchedAegisActions)).toHaveLength(1);
     expect(result.fetchedAegisActions[actionOnTraverse.refUuid]).toBeDefined();
@@ -219,7 +219,7 @@ describe("buildAegisEntityForMaestro", () => {
     });
     mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
 
-    const result = await buildAegisEntityForMaestro(MISSION_ID);
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
 
     expect(result.aegisStations[stationWithOrder.refUuid].actionOrderRefUuids).toEqual([
       actionInSubscribed.refUuid,
@@ -248,7 +248,7 @@ describe("buildAegisEntityForMaestro", () => {
     });
     mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
 
-    const result = await buildAegisEntityForMaestro(MISSION_ID);
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
 
     expect(result.aegisTraverses[traverseWithOrder.refUuid].actionOrderRefUuids).toEqual([
       actionInSubscribed.refUuid,
@@ -256,7 +256,7 @@ describe("buildAegisEntityForMaestro", () => {
   });
 });
 
-describe("buildAegisEntityForMaestro — docHandle path", () => {
+describe("buildAegisSliceForMaestro — docHandle path", () => {
   it("uses stored docHandle reference instead of getAutomergeMissions", async () => {
     const mockCoreData = buildMockCoreData({
       evas: [evaSubscribed],
@@ -268,7 +268,7 @@ describe("buildAegisEntityForMaestro — docHandle path", () => {
     globalValues.maestro.docHandles.set(MISSION_ID, { doc: mockDoc } as never);
     globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
 
-    const result = await buildAegisEntityForMaestro(MISSION_ID);
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
 
     expect(mockGetAutomergeMissions).not.toHaveBeenCalled();
     expect(mockDoc).toHaveBeenCalled();
@@ -287,7 +287,7 @@ describe("buildAegisEntityForMaestro — docHandle path", () => {
 
     globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
 
-    await buildAegisEntityForMaestro(MISSION_ID);
+    await buildAegisSliceForMaestro(MISSION_ID);
 
     expect(mockGetAutomergeMissions).toHaveBeenCalledWith([MISSION_ID]);
   });

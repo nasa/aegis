@@ -19,7 +19,7 @@ import { emssTokenIsValid } from "utils/permissions";
 import { asError } from "@emss/utils";
 import { overwriteRex } from "server/maestro/rexOverwrite";
 import { validateRexOverwrite } from "server/maestro/rexOverwriteValidator";
-import { buildAegisEntityForMaestro } from "utils/maestro";
+import { buildAegisSliceForMaestro } from "utils/maestro";
 import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
@@ -174,7 +174,7 @@ export const setupMaestroNamespace = (
         }
         try {
           const data = await RequestContext.create(globalValues.orm.em, () =>
-            buildAegisEntityForMaestro(missionId)
+            buildAegisSliceForMaestro(missionId)
           );
           callback({ status: "success", message: "Everything retrieved", data });
         } catch (error) {

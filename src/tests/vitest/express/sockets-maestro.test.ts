@@ -7,14 +7,14 @@ import { v4 as uuidv4 } from "uuid";
 // vi.hoisted ensures these are available when vi.mock factories run (hoisted to top)
 const {
   mockAddMaestroDocListenerForMission,
-  mockBuildAegisEntityForMaestro,
+  mockBuildAegisSliceForMaestro,
   mockOverwriteRex,
   mockValidateRexOverwrite,
   mockGetAutomergeDocListing,
   mockGetAutomergeMissions,
 } = vi.hoisted(() => ({
   mockAddMaestroDocListenerForMission: vi.fn().mockResolvedValue(undefined),
-  mockBuildAegisEntityForMaestro: vi.fn(),
+  mockBuildAegisSliceForMaestro: vi.fn(),
   mockOverwriteRex: vi.fn(),
   mockValidateRexOverwrite: vi.fn().mockReturnValue(null),
   mockGetAutomergeDocListing: vi.fn(),
@@ -36,11 +36,11 @@ vi.mock("server/express/sockets-maestro-emitters", async () => {
   };
 });
 
-// Mock buildAegisEntityForMaestro from its actual source module (utils/maestro),
+// Mock buildAegisSliceForMaestro from its actual source module (utils/maestro),
 // since sockets-maestro.ts imports it directly from there
 vi.mock("utils/maestro", async () => {
   const actual = await vi.importActual("utils/maestro");
-  return { ...actual, buildAegisEntityForMaestro: mockBuildAegisEntityForMaestro };
+  return { ...actual, buildAegisSliceForMaestro: mockBuildAegisSliceForMaestro };
 });
 
 vi.mock("server/maestro/rexOverwrite", async () => {
@@ -543,20 +543,20 @@ describe("maestro namespace socket handlers", () => {
     });
 
     it("calls callback with success when data is retrieved", async () => {
-      const aegisEntity = { aegisMissions: {}, aegisEvas: {} } as Maegistro.AegisSlice;
-      mockBuildAegisEntityForMaestro.mockResolvedValue(aegisEntity);
+      const aegisSlice = { aegisMissions: {}, aegisEvas: {} } as Maegistro.AegisSlice;
+      mockBuildAegisSliceForMaestro.mockResolvedValue(aegisSlice);
       const callback = vi.fn();
       await mockSocket._handlers["getEverything"](MISSION_ID, callback);
-      expect(mockBuildAegisEntityForMaestro).toHaveBeenCalledWith(MISSION_ID);
+      expect(mockBuildAegisSliceForMaestro).toHaveBeenCalledWith(MISSION_ID);
       expect(callback).toHaveBeenCalledWith({
         status: "success",
         message: "Everything retrieved",
-        data: aegisEntity,
+        data: aegisSlice,
       });
     });
 
     it("calls callback with error when retrieval fails", async () => {
-      mockBuildAegisEntityForMaestro.mockRejectedValue(new Error("build error"));
+      mockBuildAegisSliceForMaestro.mockRejectedValue(new Error("build error"));
       const callback = vi.fn();
       await mockSocket._handlers["getEverything"](MISSION_ID, callback);
       expect(callback).toHaveBeenCalledWith(
