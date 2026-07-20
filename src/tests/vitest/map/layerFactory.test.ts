@@ -393,7 +393,7 @@ describe("buildVectorStyleFn", () => {
   it("returns a function that produces a Style for any geometry", () => {
     const fn = buildVectorStyleFn(makeStyle());
     const feature = new Feature(new Point([0, 0]));
-    const style = fn(feature);
+    const style = fn(feature, 0);
     expect(style).toBeInstanceOf(Style);
   });
 
@@ -405,7 +405,8 @@ describe("buildVectorStyleFn", () => {
           [0, 0],
           [10, 10],
         ])
-      )
+      ),
+      0
     );
     const stroke = style.getStroke()!;
     expect(stroke.getColor()).toBe("#ff0000");
@@ -420,7 +421,8 @@ describe("buildVectorStyleFn", () => {
           [0, 0],
           [10, 10],
         ])
-      )
+      ),
+      0
     );
     expect(style.getStroke()!.getLineDash()).toEqual([6, 6]);
   });
@@ -438,7 +440,8 @@ describe("buildVectorStyleFn", () => {
             [0, 0],
           ],
         ])
-      )
+      ),
+      0
     );
     const lineStyle = fn(
       new Feature(
@@ -446,7 +449,8 @@ describe("buildVectorStyleFn", () => {
           [0, 0],
           [10, 10],
         ])
-      )
+      ),
+      0
     );
     expect(polyStyle.getFill()).not.toBeNull();
     expect(lineStyle.getFill()).toBeNull();
@@ -464,7 +468,8 @@ describe("buildVectorStyleFn", () => {
             [0, 0],
           ],
         ])
-      )
+      ),
+      0
     );
     const fillColor = style.getFill()!.getColor() as string;
     expect(fillColor).toBe("rgba(51,153,204,0.25)");
@@ -483,7 +488,7 @@ describe("buildVectorStyleFn", () => {
       ])
     );
     feat.set("color", "#abcdef");
-    const style = fn(feat);
+    const style = fn(feat, 0);
     const fillColor = style.getFill()!.getColor() as string;
     expect(fillColor).toBe("rgba(171,205,239,1)");
   });
@@ -492,7 +497,7 @@ describe("buildVectorStyleFn", () => {
     const fn = buildVectorStyleFn(makeStyle());
     const feat = new Feature(new Point([0, 0]));
     feat.set("name", "Crater A");
-    const text = fn(feat).getText();
+    const text = fn(feat, 0).getText();
     expect(text).not.toBeNull();
     expect(text!.getText()).toBe("Crater A");
   });
@@ -502,14 +507,51 @@ describe("buildVectorStyleFn", () => {
     const feat = new Feature(new Point([0, 0]));
     feat.set("name", "ignored");
     feat.set("elevation", 1234);
-    const text = fn(feat).getText();
+    const text = fn(feat, 0).getText();
     expect(text!.getText()).toBe("1234");
   });
 
   it("renders no text when feature has no name and no elevation", () => {
     const fn = buildVectorStyleFn(makeStyle());
-    const text = fn(new Feature(new Point([0, 0]))).getText();
+    const text = fn(new Feature(new Point([0, 0])), 0).getText();
     expect(text).toBeFalsy();
+  });
+
+  it("labels contour features from the 'elev' property", () => {
+    const fn = buildVectorStyleFn(makeStyle());
+    const feat = new Feature(new Point([0, 0]));
+    feat.set("elev", 5800);
+    expect(fn(feat, 0).getText()!.getText()).toBe("5800");
+  });
+
+  it("labels delivered contour GeoJSONs from the 'Contour' property", () => {
+    const fn = buildVectorStyleFn(makeStyle());
+    const feat = new Feature(new Point([0, 0]));
+    feat.set("Contour", 6100);
+    expect(fn(feat, 0).getText()!.getText()).toBe("6100");
+  });
+
+  it("prefers a generic 'label' property over elevation and name", () => {
+    const fn = buildVectorStyleFn(makeStyle());
+    const feat = new Feature(new Point([0, 0]));
+    feat.set("name", "ignored");
+    feat.set("elev", 5800);
+    feat.set("label", "Rim");
+    expect(fn(feat, 0).getText()!.getText()).toBe("Rim");
+  });
+
+  it("suppresses labels when style.showLabels is false", () => {
+    const fn = buildVectorStyleFn(makeStyle({ showLabels: false }));
+    const feat = new Feature(new Point([0, 0]));
+    feat.set("elev", 5800);
+    expect(fn(feat, 0).getText()).toBeFalsy();
+  });
+
+  it("still labels when style.showLabels is undefined (legacy default)", () => {
+    const fn = buildVectorStyleFn(makeStyle({ showLabels: undefined }));
+    const feat = new Feature(new Point([0, 0]));
+    feat.set("elev", 5800);
+    expect(fn(feat, 0).getText()!.getText()).toBe("5800");
   });
 
   it("uses 'line' placement for LineString labels and 'point' for others", () => {
@@ -524,7 +566,7 @@ describe("buildVectorStyleFn", () => {
     const pointFeat = new Feature(new Point([0, 0]));
     pointFeat.set("name", "Spot");
 
-    expect(fn(lineFeat).getText()!.getPlacement()).toBe("line");
-    expect(fn(pointFeat).getText()!.getPlacement()).toBe("point");
+    expect(fn(lineFeat, 0).getText()!.getPlacement()).toBe("line");
+    expect(fn(pointFeat, 0).getText()!.getPlacement()).toBe("point");
   });
 });

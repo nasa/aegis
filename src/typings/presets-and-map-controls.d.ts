@@ -31,6 +31,12 @@ interface MapSublayerStyle {
   dashLen: number;
   altColor: string; // for dashed lines
   altOpacity: number; // for dashed lines
+  showLabels?: boolean; // vector / vector-tile: draw per-feature labels (e.g. contour elevations)
+  labelMinZoom?: number; // vector / vector-tile: only draw labels when the map zoom >= this level. Undefined = always. Prevents crowded labels when zoomed out.
+  labelColor?: string; // label text color (grid labels; vector labels use `color`)
+  labelStrokeColor?: string; // halo color behind label text
+  labelStrokeWidth?: number; // halo width in pixels
+  labelStrokeOpacity?: number; // halo opacity (0–1)
 }
 
 type MapSublayerStyleKeys = keyof MapSublayerStyle;
