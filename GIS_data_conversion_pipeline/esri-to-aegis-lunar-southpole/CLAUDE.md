@@ -45,7 +45,7 @@ a layer's type from the folder's **contents**, not from any stored flag:
   (`buildVectorStyleFn`) renders. The
   step emits **two** sublayers, `Layers/contours_<major>m/` and `Layers/contours_<minor>m/` (the
   minor set excludes the major lines), so majors/minors are styled independently in AEGIS.
-  `--contour-maxzoom` defaults to the cap level that resolves `--dem-resolution` (14 at 1 mpp).
+  `--contours-maxzoom` defaults to the cap level that resolves `--dem-resolution` (14 at 1 mpp).
 - **COG raster sublayers** (`step_cogs` → `common/geotiff_to_cog.py`) write
   `Layers/<stem>/<stem>_cog.tif`. There is **no `isCog` field** — a COG is identified by the `.tif`
   path. Removed across the app (typings/model/store/schema) and here; do not re-introduce it.
@@ -97,6 +97,6 @@ range-requested by the client. Everything else uses DEFLATE.
   importing `osgeo`/`fiona` **or shelling out to the `gdal`/`gdalbuildvrt` CLIs — e.g.
   `common/tile_to_cap_grid.py`** needs `pixi run`).
 - `pixi run python esri-to-aegis-lunar-southpole/main.py --list` and `--summary` (no API calls).
-- Build a sample with `--vector-tile-cache` and/or `--cog`, then confirm the
+- Build a sample with `--in-esri-vector-tiles` and/or `--in-cog`, then confirm the
   `Layers/<name>/<name>.pmtiles` and `Layers/<name>/<name>_cog.tif` folders exist and
   `... --steps register --dry-run` prints the expected `type`/`path` (and no `isCog`).
