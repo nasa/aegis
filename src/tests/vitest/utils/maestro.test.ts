@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { buildAegisSliceForMaestro } from "utils/maestro";
+import { buildAegisSliceForMaestro } from "server/maestro/v1/maestro";
 import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankStation } from "store/storeUtils/station";
@@ -119,13 +119,13 @@ const rexForNotSubscribed = generateBlankRex({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  globalValues.maestro.evaSubscriptions = new Map();
-  globalValues.maestro.docHandles = new Map();
+  globalValues.maestroV1.evaSubscriptions = new Map();
+  globalValues.maestroV1.docHandles = new Map();
 });
 
 describe("buildAegisSliceForMaestro", () => {
   it("returns only subscribed EVAs and their related entities", async () => {
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+    globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
 
     const mockCoreData = buildMockCoreData({
       evas: [evaSubscribed, evaNotSubscribed],
@@ -181,7 +181,7 @@ describe("buildAegisSliceForMaestro", () => {
       traverseUuid: traverseA.uuid,
     });
 
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+    globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
 
     const mockCoreData = buildMockCoreData({
       evas: [evaSubscribed],
@@ -209,7 +209,7 @@ describe("buildAegisSliceForMaestro", () => {
       sequence: [{ type: "station", uuid: stationWithOrder.uuid }],
     });
 
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaWithOrder.uuid]);
+    globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, [evaWithOrder.uuid]);
 
     const mockCoreData = buildMockCoreData({
       evas: [evaWithOrder],
@@ -238,7 +238,7 @@ describe("buildAegisSliceForMaestro", () => {
       sequence: [{ type: "traverse", uuid: traverseWithOrder.uuid }],
     });
 
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaWithOrder.uuid]);
+    globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, [evaWithOrder.uuid]);
 
     const mockCoreData = buildMockCoreData({
       evas: [evaWithOrder],
@@ -265,8 +265,8 @@ describe("buildAegisSliceForMaestro — docHandle path", () => {
     });
 
     const mockDoc = vi.fn().mockReturnValue(mockCoreData);
-    globalValues.maestro.docHandles.set(MISSION_ID, { doc: mockDoc } as never);
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+    globalValues.maestroV1.docHandles.set(MISSION_ID, { doc: mockDoc } as never);
+    globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
 
     const result = await buildAegisSliceForMaestro(MISSION_ID);
 
@@ -285,7 +285,7 @@ describe("buildAegisSliceForMaestro — docHandle path", () => {
     });
     mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
 
-    globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+    globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
 
     await buildAegisSliceForMaestro(MISSION_ID);
 

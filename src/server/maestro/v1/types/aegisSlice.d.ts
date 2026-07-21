@@ -4,7 +4,7 @@
  * conflict with similarly-named types used natively in AEGIS. Reference them as Maestro.AegisEva,
  * Maestro.AegisStation, etc. No import needed.
  */
-declare namespace Maegistro {
+export declare namespace AegisSlice {
   interface EvaSequenceItem {
     type: "station" | "traverse";
     refUuid: string;

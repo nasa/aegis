@@ -15,12 +15,6 @@ interface ClientToServerEvents {
   storeDelete: (payload: StoreDelete) => void;
   visitorJoin: (visitorData: VisitorData) => void;
   inspectorJoin: () => void;
-  getMaestroDebugInfo: (
-    callback: (data: {
-      docListenerMissionIds: number[];
-      evaSubscriptions: { [missionId: number]: string[] };
-    }) => void
-  ) => void;
 }
 
 type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting" | "failed";
@@ -35,7 +29,6 @@ interface ClientSocketStatus {
 // information stored in the server's globalValues about the socket status
 interface ServerSocketStatus {
   visitorsData: VisitorData[];
-  maestroVisitors: { [missionId: string]: MaestroVisitor[] };
   lastEditEvents: EditEvents; // last edit events for all missions
 }
 

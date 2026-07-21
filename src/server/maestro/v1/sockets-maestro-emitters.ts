@@ -1,12 +1,12 @@
 import { globalValues } from "server/express/global";
-import { getAutomergeDocListing } from "./routes/docListing";
+import { getAutomergeDocListing } from "../../express/routes/docListing";
 import type { DocumentId } from "@automerge/automerge-repo";
 import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
 import { getMaestroSocketRoomName } from "./sockets-maestro";
-import { buildAegisSliceForMaestro } from "utils/maestro";
-import { opApplyMdauStationUpdates } from "operations/op-station";
-import { getSequenceUuidByRefUuidAndRexUuid } from "store/selectors";
+import { buildAegisSliceForMaestro } from "server/maestro/v1/maestro";
+import type { AegisSlice } from "./types/aegisSlice";
+import type { MaestroVersionDebugInfo, MaestroVisitorDebugEntry } from "./types/socketioMaestro";
 
 // ─── Maestro namespace emit helpers ──────────────────────────────────────────
 
@@ -22,8 +22,8 @@ export type MaestroRelevantCollectionKey = Extract<
  * Top-level Mission fields that Maestro cares about.
  * Any change to these is always relevant to Maestro regardless of EVA subscriptions.
  *
- * `satisfies` ensures the returned object has exactly the keys of Maestro.AegisMission for safety.
- * It only works if there are no optional fields in Maestro.AegisMission type.
+ * `satisfies` ensures the returned object has exactly the keys of AegisSlice.AegisMission for safety.
+ * It only works if there are no optional fields in AegisSlice.AegisMission type.
  */
 const MAESTRO_RELEVANT_MISSION_FIELDS = [
   "name",
@@ -32,7 +32,7 @@ const MAESTRO_RELEVANT_MISSION_FIELDS = [
   "actionSystemVersion",
   "createdAt",
   "updatedAt",
-] as const satisfies readonly (keyof Maegistro.AegisMission)[];
+] as const satisfies readonly (keyof AegisSlice.AegisMission)[];
 type MaestroRelevantMissionField = (typeof MAESTRO_RELEVANT_MISSION_FIELDS)[number];
 
 /** Diff result — what was upserted and what was deleted. */
@@ -168,7 +168,7 @@ export const isDiffRelevantToSubscribedEvas = (
   // Mission-level fields are always relevant
   if (diff.changedMissionFields.length > 0) return true;
 
-  const subscribedEvaUuids = globalValues.maestro.evaSubscriptions.get(missionId);
+  const subscribedEvaUuids = globalValues.maestroV1.evaSubscriptions.get(missionId);
   if (!subscribedEvaUuids || subscribedEvaUuids.length === 0) return false;
 
   const subscribedEvaUuidSet = new Set(subscribedEvaUuids); // convert to Set
@@ -220,7 +220,7 @@ export const isDiffRelevantToSubscribedEvas = (
  */
 const emitToMaestroNamespace = async (missionId: number): Promise<void> => {
   try {
-    const maestroNamespace = globalValues.maestro.socketio;
+    const maestroNamespace = globalValues.maestroV1.socketio;
     if (!maestroNamespace) return;
     const roomName = getMaestroSocketRoomName(missionId);
     // Check the room size again. It's already checked before this
@@ -247,16 +247,16 @@ const emitToMaestroNamespace = async (missionId: number): Promise<void> => {
  */
 export const removeEvaFromSubscriptions = (missionId: number, deletedEvaUuids: string[]): void => {
   if (deletedEvaUuids.length === 0) return;
-  const subscriptions = globalValues.maestro.evaSubscriptions.get(missionId);
+  const subscriptions = globalValues.maestroV1.evaSubscriptions.get(missionId);
   if (!subscriptions || subscriptions.length === 0) return;
 
   const updatedSubscriptions = subscriptions.filter((uuid) => !deletedEvaUuids.includes(uuid));
 
   if (updatedSubscriptions.length === subscriptions.length) return; // nothing changed
   if (updatedSubscriptions.length === 0) {
-    globalValues.maestro.evaSubscriptions.delete(missionId);
+    globalValues.maestroV1.evaSubscriptions.delete(missionId);
   } else {
-    globalValues.maestro.evaSubscriptions.set(missionId, updatedSubscriptions);
+    globalValues.maestroV1.evaSubscriptions.set(missionId, updatedSubscriptions);
   }
 };
 
@@ -266,11 +266,11 @@ export const removeEvaFromSubscriptions = (missionId: number, deletedEvaUuids: s
  * Called when a Maestro visitor joins a mission.
  */
 export const addMaestroDocListenerForMission = async (missionId: number): Promise<void> => {
-  if (globalValues.maestro.docListeners.has(missionId)) return; // Already listening, exit
+  if (globalValues.maestroV1.docListeners.has(missionId)) return; // Already listening, exit
 
   // Set a placeholder immediately (before any awaits) to prevent two concurrent
   // calls from attaching duplicate listeners because this one was still processing
-  globalValues.maestro.docListeners.set(missionId, () => {});
+  globalValues.maestroV1.docListeners.set(missionId, () => {});
 
   try {
     // Get automerge doc handle
@@ -280,7 +280,7 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
     );
 
     // Save the reference to the handle so we can access the document faster without having to find it.
-    globalValues.maestro.docHandles.set(missionId, missionDocHandle);
+    globalValues.maestroV1.docHandles.set(missionId, missionDocHandle);
 
     // Initialize first snapshot with the current doc state.
     const initialDoc = missionDocHandle.doc();
@@ -310,7 +310,7 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
           }
 
           // Emit to the /maestro namespace if the diff is relevant to subscribed EVAs.
-          const maestroNamespace = globalValues.maestro.socketio;
+          const maestroNamespace = globalValues.maestroV1.socketio;
           if (maestroNamespace) {
             const roomName = getMaestroSocketRoomName(missionId);
             const roomSize = maestroNamespace.adapter.rooms.get(roomName)?.size ?? 0;
@@ -343,7 +343,7 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
     );
 
     missionDocHandle.on("change", throttledListener);
-    globalValues.maestro.docListeners.set(missionId, () => {
+    globalValues.maestroV1.docListeners.set(missionId, () => {
       missionDocHandle.off("change", throttledListener);
     });
 
@@ -363,93 +363,13 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
 };
 
 /**
- * Atomically applies station name updates from a Maestro MDAU payload to the
- * Automerge mission document.
- *
- * Each key of `aegisStations` is the station's `refUuid`.
- *
- * @param missionId    - The numeric mission ID
- * @param aegisStations - The `aegisStations` map from the MDAU payload
- */
-export const applyMdauStationsToDoc = async (
-  missionId: number,
-  aegisStations: { [stationRefUuid: string]: Maegistro.MdauStation }
-): Promise<void> => {
-  if (!aegisStations || Object.keys(aegisStations).length === 0) return;
-
-  // Use the already-cached doc handle
-  const docHandle = globalValues.maestro.docHandles.get(missionId);
-  if (!docHandle) {
-    serverLogger.warning({
-      logId: "socket-maestro",
-      logValue: `applyMdauStationsToDoc - no doc handle available for mission ${missionId}`,
-    });
-    return;
-  }
-  const mission = docHandle.doc();
-
-  // Validate station uuids
-  const resolvedStations: (Maegistro.MdauStation & { uuid: string })[] = [];
-  const unresolved: { refUuid: string; rexUuid: string | null }[] = [];
-  for (const stationRefUuid in aegisStations) {
-    const stationUuid = getSequenceUuidByRefUuidAndRexUuid(mission, {
-      refUuid: stationRefUuid,
-      rexUuid: aegisStations[stationRefUuid].rexUuid ?? null,
-    });
-    // Not found, push to unresolved array
-    if (!stationUuid || !mission.stations[stationUuid]) {
-      unresolved.push({
-        refUuid: stationRefUuid,
-        rexUuid: aegisStations[stationRefUuid].rexUuid ?? null,
-      });
-      continue;
-    }
-    resolvedStations.push({ ...aegisStations[stationRefUuid], uuid: stationUuid });
-  }
-  // None of the stations could be found
-  if (resolvedStations.length === 0) {
-    for (const { refUuid, rexUuid } of unresolved) {
-      serverLogger.warning({
-        logId: "socket-maestro",
-        logValue: `applyMdauStationsToDoc - could not resolve station uuid for refUuid ${refUuid} rexUuid ${rexUuid}`,
-      });
-    }
-    return;
-  }
-
-  // Diff check. Filter out any fields that haven't changed
-  const stationsToUpdate = resolvedStations.map((mdauStation) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { uuid, refUuid, rexUuid, ...mutableFields } = mdauStation;
-    const existingStation = mission.stations[uuid];
-    // Build a new object with only the fields that changed
-    const incomingStation: Partial<typeof mutableFields> & { uuid: string } = { uuid };
-    for (const [field, incomingValue] of Object.entries(mutableFields)) {
-      if (incomingValue === undefined) continue;
-      if (incomingValue === (existingStation as unknown as Record<string, unknown>)[field])
-        continue;
-      // value was changed, add the field
-      (incomingStation as Record<string, unknown>)[field] = incomingValue;
-    }
-    return incomingStation;
-  });
-
-  // Check whether there is actually anything to write.
-  const hasChanges = stationsToUpdate.some((s) => Object.keys(s).some((f) => f !== "uuid"));
-  if (!hasChanges) return; // No changes to write
-
-  // Apply the changes
-  opApplyMdauStationUpdates(docHandle, stationsToUpdate);
-};
-
-/**
  * Cleanup all things associated with maestro for this mission
  * This is only called if the room is empty
  * @param missionId
  */
 export const cleanupMaestro = (missionId: number): void => {
   // Remove the docHandle change listener and delete the reference from global
-  const removeListenerFn = globalValues.maestro.docListeners.get(missionId);
+  const removeListenerFn = globalValues.maestroV1.docListeners.get(missionId);
   if (!removeListenerFn) {
     serverLogger.warning({
       logId: "socket-maestro",
@@ -457,14 +377,14 @@ export const cleanupMaestro = (missionId: number): void => {
     });
   } else {
     removeListenerFn();
-    globalValues.maestro.docListeners.delete(missionId);
+    globalValues.maestroV1.docListeners.delete(missionId);
   }
 
   // Remove snapshot
   maestroDataSnapshots.delete(missionId);
 
   // Remove global doc handle reference
-  const docHandleRemoved = globalValues.maestro.docHandles.delete(missionId);
+  const docHandleRemoved = globalValues.maestroV1.docHandles.delete(missionId);
   if (!docHandleRemoved) {
     serverLogger.warning({
       logId: "socket-maestro",
@@ -477,4 +397,26 @@ export const cleanupMaestro = (missionId: number): void => {
     logId: "socket-maestro",
     logValue: `cleanupMaestro - Cleaned up listener, docHandle, and snapshot for mission ${missionId}`,
   });
+};
+
+/**
+ * Summary information of the Maegistro V1 information from global
+ * Used in the admin page inspector
+ */
+export const buildDebugInfo = (): MaestroVersionDebugInfo => {
+  const slice = globalValues.maestroV1;
+  const docListenerMissionIds = Array.from(slice.docListeners.keys());
+  const evaSubscriptions: { [missionId: number]: string[] } = {};
+  slice.evaSubscriptions.forEach((uuids, missionId) => {
+    evaSubscriptions[missionId] = [...uuids];
+  });
+  const visitors: { [missionId: string]: MaestroVisitorDebugEntry[] } = {};
+  for (const missionId in slice.visitorData) {
+    visitors[missionId] = (slice.visitorData[missionId] ?? []).map((v) => ({
+      socketId: v.socketId,
+      name: v.name,
+      connectedAt: v.connectedAt,
+    }));
+  }
+  return { docListenerMissionIds, evaSubscriptions, visitors };
 };

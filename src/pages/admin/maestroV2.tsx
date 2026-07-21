@@ -10,30 +10,24 @@ import { createClientSocket } from "utils/clientSocketHelpers";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlug, faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
+import type { MDAU } from "server/maestro/v2/types/mdau";
+import type { MaestroVersionDebugInfo } from "server/maestro/v2/types/socketioMaestro";
 
-// ─── Maestro namespace connection ─────────────────────────────────────────────
+// ─── Maegistro v2 namespace connection ────────────────────────────────────────
+// v2 lives on the new /socket server under the /maestro/v2 namespace.
+// Future major versions would use /maestro/v3, /maestro/v4, ... on the same server.
 
 const createMaestroSocket = (
   serverURL: string,
   emssToken: string
-): Socket<MaestroServerToClientEvents, MaestroClientToServerEvents> => {
-  return io(`${serverURL}/maestro`, {
+): Socket<MaestroServerToClientEventsV2, MaestroClientToServerEventsV2> => {
+  return io(`${serverURL}/maestro/v2`, {
     transports: ["websocket"],
     upgrade: true,
-    path: "/api/v1/socketio",
+    path: "/socket",
     auth: { token: emssToken },
     autoConnect: false,
-  }) as unknown as Socket<MaestroServerToClientEvents, MaestroClientToServerEvents>;
-};
-
-const parseMissionIdFromRoomName = (roomName: string): number | null => {
-  const match = roomName.match(/^maestro(\d+)$/);
-  return match ? Number(match[1]) : null;
-};
-
-type MaestroDebugInfo = {
-  docListenerMissionIds: number[];
-  evaSubscriptions: { [missionId: number]: string[] };
+  }) as unknown as Socket<MaestroServerToClientEventsV2, MaestroClientToServerEventsV2>;
 };
 
 // ─── Shared input style ───────────────────────────────────────────────────────
@@ -67,12 +61,12 @@ const EmitCard: FunctionComponent<{
   </div>
 );
 
-// ─── Main page component ───────────────────────────────────────────────────────
+// ─── Main page component ──────────────────────────────────────────────────────
 
-const Maestro: React.FunctionComponent = () => {
+const MaestroV2: React.FunctionComponent = () => {
   const navigate = useNavigate();
 
-  // Inspector socket (default namespace)
+  // Inspector socket (default namespace on the new /socket server).
   const inspectorSocket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
   const [inspectorConnectionStatus, setInspectorConnectionStatus] =
     useState<ConnectionStatus>("connecting");
@@ -80,9 +74,9 @@ const Maestro: React.FunctionComponent = () => {
   const [serverSocketStatus, setServerSocketStatus] = useState<ServerSocketStatus>(null);
   const [missionNames, setMissionNames] = useState<Map<number, string>>(new Map());
 
-  // Maestro namespace socket
+  // Maegistro v2 namespace socket
   const maestroSocket =
-    useRef<Socket<MaestroServerToClientEvents, MaestroClientToServerEvents>>(null);
+    useRef<Socket<MaestroServerToClientEventsV2, MaestroClientToServerEventsV2>>(null);
   const [maestroConnectionStatus, setMaestroConnectionStatus] =
     useState<ConnectionStatus>("disconnected");
   const [maestroSocketId, setMaestroSocketId] = useState<string | null>(null);
@@ -90,7 +84,7 @@ const Maestro: React.FunctionComponent = () => {
   // ── Connect + missionJoin form ───────────────────────────────────────────
   const [emssToken, setEmssToken] = useState<string>("");
   const [joinMissionId, setJoinMissionId] = useState<string>("");
-  const [joinVisitorName, setJoinVisitorName] = useState<string>("Maestro Monitor Page");
+  const [joinVisitorName, setJoinVisitorName] = useState<string>("Maestro V2 Monitor Page");
 
   // ── missionLeave form ────────────────────────────────────────────────────
   const [leaveMissionId, setLeaveMissionId] = useState<string>("");
@@ -108,24 +102,22 @@ const Maestro: React.FunctionComponent = () => {
   // ── getEverything ─────────────────────────────────────────────────────────
   const [everythingMissionId, setEverythingMissionId] = useState<string>("");
 
-  // ── rexOverwrite ──────────────────────────────────────────────────────────
-  const [rexOverwriteJson, setRexOverwriteJson] = useState<string>(
-    JSON.stringify({ uuid: "" }, null, 2)
-  );
-  const [rexOverwriteJsonError, setRexOverwriteJsonError] = useState<string | null>(null);
-
-  // ── sendMDAU ──────────────────────────────────────────────────────────────
+  // ── sendMDAU (v2's replacement for v1's rexOverwrite) ────────────────────
   const [sendMdauMissionId, setSendMdauMissionId] = useState<string>("");
-  const [sendMdauJson, setSendMdauJson] = useState<string>(JSON.stringify({ uuid: "" }, null, 2));
+  const [sendMdauJson, setSendMdauJson] = useState<string>(
+    JSON.stringify({ aegisStations: {} }, null, 2)
+  );
   const [sendMdauJsonError, setSendMdauJsonError] = useState<string | null>(null);
 
-  // ── Maestro debug info ────────────────────────────────────────────────────
-  const [maestroDebugInfo, setMaestroDebugInfo] = useState<MaestroDebugInfo | null>(null);
+  // ── Maegistro v2 debug info (visitors, listeners, subscriptions) ─────────
+  // Fetched via the v2 /maestro/v2 namespace's `getDebugInfo` event — requires
+  // an EMSS-authenticated maestro socket, i.e. after "Connect & Join" has run.
+  const [debugInfo, setDebugInfo] = useState<MaestroVersionDebugInfo | null>(null);
 
-  const refreshGlobalInfo = () => {
-    if (!inspectorSocket.current?.connected) return;
-    inspectorSocket.current.emit("getMaestroDebugInfo", (data) => {
-      setMaestroDebugInfo(data);
+  const refreshDebugInfo = () => {
+    if (!maestroSocket.current?.connected) return;
+    maestroSocket.current.emit("getDebugInfo", (data) => {
+      setDebugInfo(data);
     });
   };
 
@@ -155,7 +147,6 @@ const Maestro: React.FunctionComponent = () => {
       inspectorSocket.current.on("connect", () => {
         inspectorSocket.current.emit("inspectorJoin");
         setInspectorConnectionStatus("connected");
-        refreshGlobalInfo();
       });
 
       inspectorSocket.current.on("disconnect", () => {
@@ -165,7 +156,6 @@ const Maestro: React.FunctionComponent = () => {
       inspectorSocket.current.on("inspectorUpdate", (data: ServerSocketStatus) => {
         setServerSocketStatus(data);
         setLastUpdatedAt(new Date().toISOString());
-        refreshGlobalInfo();
       });
 
       return () => {
@@ -194,25 +184,27 @@ const Maestro: React.FunctionComponent = () => {
       setMaestroSocketId(socketId ?? null);
       setMaestroConnectionStatus("connected");
       const missionId = Number(joinMissionId);
-      const maestroVisitor: MaestroVisitor = {
+      const maestroVisitor: MaestroVisitorV2 = {
         socketId: socketId,
-        name: joinVisitorName.trim() || "Maestro Monitor Page",
+        name: joinVisitorName.trim() || "Maestro V2 Monitor Page",
         connectedAt: Date.now(),
       };
       sock.emit("missionJoin", missionId, maestroVisitor);
+      // Populate the debug tables now that we have an authenticated socket.
+      sock.emit("getDebugInfo", (data) => setDebugInfo(data));
     });
 
     sock.onAny((event, ...args) => {
-      console.log("[maestro socket] received event:", event, args);
+      console.log("[maestro v2 socket] received event:", event, args);
     });
 
     sock.on("connect_error", (err) => {
-      console.warn("[maestro socket] connect_error:", err.message);
+      console.warn("[maestro v2 socket] connect_error:", err.message);
       setMaestroConnectionStatus("failed");
     });
 
     sock.on("disconnect", (reason) => {
-      console.log("[maestro socket] disconnected:", reason);
+      console.log("[maestro v2 socket] disconnected:", reason);
       setMaestroConnectionStatus("disconnected");
     });
 
@@ -227,6 +219,8 @@ const Maestro: React.FunctionComponent = () => {
       maestroSocket.current = null;
       setMaestroConnectionStatus("disconnected");
       setMaestroSocketId(null);
+      // Debug info came from the maestro socket — clear it when we disconnect.
+      setDebugInfo(null);
     }
   };
 
@@ -262,21 +256,10 @@ const Maestro: React.FunctionComponent = () => {
     maestroSocket.current.emit("getEverything", Number(everythingMissionId), () => {});
   };
 
-  const emitRexOverwrite = () => {
-    if (!maestroSocket.current?.connected) return;
-    try {
-      const body = JSON.parse(rexOverwriteJson) as RexOverwrite;
-      setRexOverwriteJsonError(null);
-      maestroSocket.current.emit("rexOverwrite", body, () => {});
-    } catch (e) {
-      setRexOverwriteJsonError(`Invalid JSON: ${String(e)}`);
-    }
-  };
-
   const emitSendMdau = () => {
     if (!maestroSocket.current?.connected || !sendMdauMissionId) return;
     try {
-      const mdau = JSON.parse(sendMdauJson) as Maegistro.MaestroDataAegisUses;
+      const mdau = JSON.parse(sendMdauJson) as MDAU.MaestroDataAegisUses;
       setSendMdauJsonError(null);
       maestroSocket.current.emit("sendMDAU", Number(sendMdauMissionId), mdau);
     } catch (e) {
@@ -292,7 +275,10 @@ const Maestro: React.FunctionComponent = () => {
         <Link to="/admin" className={adminCommon.backLink}>
           ← Admin
         </Link>
-        <h1 className={adminCommon.pageTitle}>Maestro Monitor</h1>
+        <h1 className={adminCommon.pageTitle}>Maegistro v2 Monitor</h1>
+        <p style={{ color: "#94a3b8", marginTop: "-8px", fontSize: "0.9rem" }}>
+          Current Maegistro v2 traffic on <code>/socket</code> namespace <code>/maestro/v2</code>.
+        </p>
 
         {/* ── Inspector Socket Status ───────────────────────────────────── */}
         <section className={adminCommon.section}>
@@ -321,18 +307,18 @@ const Maestro: React.FunctionComponent = () => {
           </div>
         </section>
 
-        {/* ── Maestro Mission Visitors ──────────────────────────────────── */}
+        {/* ── Maegistro v2 Mission Visitors ─────────────────────────────── */}
         <section className={adminCommon.section}>
-          <h2>Maestro Visitors</h2>
+          <h2>Maegistro v2 Visitors</h2>
           <div className={adminCommon.details}>
-            {!serverSocketStatus?.maestroVisitors ||
-            Object.keys(serverSocketStatus.maestroVisitors).length === 0 ? (
-              <div className={adminCommon.emptyState}>No Maestro visitors connected.</div>
+            {!debugInfo?.visitors || Object.keys(debugInfo.visitors).length === 0 ? (
+              <div className={adminCommon.emptyState}>
+                {isMaestroConnected
+                  ? "No Maegistro v2 visitors connected."
+                  : "Connect via 'Connect & Join' below to load debug info."}
+              </div>
             ) : (
-              <PrintMaestroVisitors
-                maestroVisitors={serverSocketStatus.maestroVisitors}
-                missionNames={missionNames}
-              />
+              <PrintMaestroVisitors visitors={debugInfo.visitors} missionNames={missionNames} />
             )}
           </div>
         </section>
@@ -343,9 +329,13 @@ const Maestro: React.FunctionComponent = () => {
             <h2 style={{ margin: 0 }}>Subscriptions And Automerge Listeners</h2>
             <button
               className={adminCommon.button}
-              onClick={refreshGlobalInfo}
-              disabled={inspectorConnectionStatus !== "connected"}
-              title="Refresh"
+              onClick={refreshDebugInfo}
+              disabled={!isMaestroConnected}
+              title={
+                isMaestroConnected
+                  ? "Refresh"
+                  : "Connect to the v2 maestro namespace to enable refresh"
+              }
             >
               <FontAwesomeIcon icon={faRotateRight} />
             </button>
@@ -365,8 +355,7 @@ const Maestro: React.FunctionComponent = () => {
                 >
                   EVA Subscriptions
                 </p>
-                {!maestroDebugInfo ||
-                Object.keys(maestroDebugInfo.evaSubscriptions).length === 0 ? (
+                {!debugInfo || Object.keys(debugInfo.evaSubscriptions).length === 0 ? (
                   <div className={adminCommon.emptyState}>No active EVA subscriptions.</div>
                 ) : (
                   <table className={adminCommon.table}>
@@ -377,14 +366,12 @@ const Maestro: React.FunctionComponent = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(maestroDebugInfo.evaSubscriptions).map(
-                        ([missionId, uuids]) => (
-                          <tr key={missionId}>
-                            <td>{missionNames.get(Number(missionId)) ?? missionId}</td>
-                            <td>{uuids.join(", ")}</td>
-                          </tr>
-                        )
-                      )}
+                      {Object.entries(debugInfo.evaSubscriptions).map(([missionId, uuids]) => (
+                        <tr key={missionId}>
+                          <td>{missionNames.get(Number(missionId)) ?? missionId}</td>
+                          <td>{uuids.join(", ")}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 )}
@@ -402,7 +389,7 @@ const Maestro: React.FunctionComponent = () => {
                 >
                   AM Doc Listeners
                 </p>
-                {!maestroDebugInfo?.docListenerMissionIds.length ? (
+                {!debugInfo?.docListenerMissionIds.length ? (
                   <div className={adminCommon.emptyState}>No active listeners.</div>
                 ) : (
                   <table className={adminCommon.table}>
@@ -412,7 +399,7 @@ const Maestro: React.FunctionComponent = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {maestroDebugInfo.docListenerMissionIds.map((missionId) => (
+                      {debugInfo.docListenerMissionIds.map((missionId) => (
                         <tr key={missionId}>
                           <td>{missionNames.get(missionId) ?? missionId}</td>
                         </tr>
@@ -643,7 +630,7 @@ const Maestro: React.FunctionComponent = () => {
               </button>
             </EmitCard>
 
-            {/* sendMDAU */}
+            {/* sendMDAU (v2's replacement for v1's rexOverwrite) */}
             <EmitCard title="sendMDAU">
               <input
                 className={adminCommon.formInput}
@@ -685,41 +672,6 @@ const Maestro: React.FunctionComponent = () => {
                 </button>
               </div>
             </EmitCard>
-
-            {/* rexOverwrite */}
-            <EmitCard title="rexOverwrite">
-              <textarea
-                className={adminCommon.formInput}
-                rows={4}
-                value={rexOverwriteJson}
-                onChange={(e) => {
-                  setRexOverwriteJson(e.target.value);
-                  setRexOverwriteJsonError(null);
-                }}
-                style={{
-                  fontFamily: "var(--font-mono, monospace)",
-                  fontSize: "0.85em",
-                  width: "100%",
-                }}
-              />
-              <div
-                style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "6px" }}
-              >
-                {rexOverwriteJsonError && (
-                  <p style={{ color: "#f87171", margin: 0, fontSize: "0.85em" }}>
-                    {rexOverwriteJsonError}
-                  </p>
-                )}
-                <button
-                  className={adminCommon.buttonPrimary}
-                  onClick={emitRexOverwrite}
-                  disabled={!isMaestroConnected}
-                  style={{ width: "fit-content" }}
-                >
-                  Emit
-                </button>
-              </div>
-            </EmitCard>
           </div>
         </section>
       </div>
@@ -727,23 +679,22 @@ const Maestro: React.FunctionComponent = () => {
   );
 };
 
-// ─── Maestro Mission Visitors table ───────────────────────────────────────────
+// ─── Maegistro v2 Mission Visitors table ──────────────────────────────────────
 
 const PrintMaestroVisitors: FunctionComponent<{
-  maestroVisitors: { [roomName: string]: MaestroVisitor[] };
+  visitors: MaestroVersionDebugInfo["visitors"];
   missionNames: Map<number, string>;
-}> = ({ maestroVisitors, missionNames }) => {
-  const rows = Object.entries(maestroVisitors)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .flatMap(([roomName, visitors]) => {
-      const missionId = parseMissionIdFromRoomName(roomName);
-      const missionLabel =
-        missionId !== null ? (missionNames.get(missionId) ?? `Mission ${missionId}`) : roomName;
-      return (visitors ?? []).map((visitor) => ({ missionLabel, visitor }));
+}> = ({ visitors, missionNames }) => {
+  const rows = Object.entries(visitors)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .flatMap(([missionId, visitorList]) => {
+      const missionIdNum = Number(missionId);
+      const missionLabel = missionNames.get(missionIdNum) ?? `Mission ${missionId}`;
+      return (visitorList ?? []).map((visitor) => ({ missionLabel, visitor }));
     });
 
   if (!rows.length)
-    return <div className={adminCommon.emptyState}>No Maestro visitors connected.</div>;
+    return <div className={adminCommon.emptyState}>No Maegistro v2 visitors connected.</div>;
 
   return (
     <table className={adminCommon.table}>
@@ -811,4 +762,4 @@ const PrintEditEvents: FunctionComponent<{
   );
 };
 
-export default Maestro;
+export default MaestroV2;

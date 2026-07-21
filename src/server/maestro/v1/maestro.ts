@@ -6,22 +6,23 @@ import {
 import { makeEquipmentReadable, makeReadableActionDefinition } from "utils/export";
 import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
 import { globalValues } from "server/express/global";
+import type { AegisSlice } from "./types/aegisSlice";
 
 /**
  * Creates the object for AEGIS data maestro cares about to be sent across sockets
  */
 export const buildAegisSliceForMaestro = async (
   missionId: number
-): Promise<Maegistro.AegisSlice> => {
+): Promise<AegisSlice.AegisSlice> => {
   // Use the stored DocHandle reference for efficiency.
-  const docHandle = globalValues.maestro.docHandles.get(missionId);
+  const docHandle = globalValues.maestroV1.docHandles.get(missionId);
   const mission: Mission = docHandle
     ? docHandle.doc()
     : (await getAutomergeMissions([missionId]))[0]!;
 
   // Only include EVAs that Maestro has subscribed to for this mission.
   // evaSubscriptions is keyed by EVA uuid.
-  const subscribedEvaUuids = globalValues.maestro.evaSubscriptions.get(missionId) ?? [];
+  const subscribedEvaUuids = globalValues.maestroV1.evaSubscriptions.get(missionId) ?? [];
   const subscribedEvaUuidSet = new Set(subscribedEvaUuids);
   const subscribedEvas = Object.values(mission.evas).filter((eva) =>
     subscribedEvaUuidSet.has(eva.uuid)
@@ -76,7 +77,7 @@ export const buildAegisSliceForMaestro = async (
 
 // `satisfies` ensures the returned object has exactly the keys of Maestro.AegisMission for safety
 // It only works if there are no optional fields in Maestro.AegisMission type.
-const formatMissionForMaestro = (mission: Mission): Maegistro.AegisMission =>
+const formatMissionForMaestro = (mission: Mission): AegisSlice.AegisMission =>
   ({
     id: mission.id,
     name: mission.name,
@@ -84,7 +85,7 @@ const formatMissionForMaestro = (mission: Mission): Maegistro.AegisMission =>
     actionSystemVersion: mission.actionSystemVersion as 1 | 2,
     createdAt: new Date(mission.createdAt).toISOString(),
     updatedAt: new Date(mission.updatedAt).toISOString(),
-  }) satisfies Record<keyof Maegistro.AegisMission, unknown>;
+  }) satisfies Record<keyof AegisSlice.AegisMission, unknown>;
 
 interface LookupMaps {
   /** Maps sequence-item UUID → the EVA that owns it. */
@@ -132,7 +133,7 @@ const formatEvasForMaestro = (
   evas: Eva[],
   mission: Mission,
   lookups: LookupMaps
-): Maegistro.AegisEva[] => {
+): AegisSlice.AegisEva[] => {
   return evas.map((eva) => {
     const rex = lookups.rexByEvaUuid.get(eva.uuid);
     return {
@@ -170,7 +171,7 @@ const formatStationsForMaestro = (
   stations: Station[],
   mission: Mission,
   lookups: LookupMaps
-): Maegistro.AegisStation[] => {
+): AegisSlice.AegisStation[] => {
   return stations.map((station) => {
     const stationActions = (lookups.actionsByStationUuid.get(station.uuid) ?? []).filter(
       (a) => a.enabled
@@ -199,7 +200,7 @@ const formatTraversesForMaestro = (
   traverses: Traverse[],
   mission: Mission,
   lookups: LookupMaps
-): Maegistro.AegisTraverse[] => {
+): AegisSlice.AegisTraverse[] => {
   return traverses.map((traverse) => {
     const traverseEva = lookups.evaBySequenceUuid.get(traverse.uuid);
     const traverseActions = (lookups.actionsByTraverseUuid.get(traverse.uuid) ?? []).filter(
@@ -232,7 +233,7 @@ const formatActionsForMaestro = (
   actions: Action[],
   mission: Mission,
   lookups: LookupMaps
-): Maegistro.AegisAction[] => {
+): AegisSlice.AegisAction[] => {
   return actions.map((action) => {
     const actionStation = action.stationUuid ? mission.stations[action.stationUuid] : undefined;
     const actionTraverse = action.traverseUuid ? mission.traverses[action.traverseUuid] : undefined;

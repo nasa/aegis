@@ -72,15 +72,6 @@ export const setupSocketIO = (): void => {
         io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
       });
 
-      socket.on("getMaestroDebugInfo", (callback) => {
-        const docListenerMissionIds = Array.from(globalValues.maestro.docListeners.keys());
-        const evaSubscriptions: { [missionId: number]: string[] } = {};
-        globalValues.maestro.evaSubscriptions.forEach((uuids, missionId) => {
-          evaSubscriptions[missionId] = uuids;
-        });
-        callback({ docListenerMissionIds, evaSubscriptions });
-      });
-
       socket.on("disconnect", () => {
         try {
           // remove this socket if it's a regular visitor

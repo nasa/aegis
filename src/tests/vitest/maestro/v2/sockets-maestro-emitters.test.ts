@@ -4,7 +4,7 @@ import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankRex } from "store/storeUtils/rex";
-import type * as SocketsMaestroEmitters from "server/express/sockets-maestro-emitters";
+import type * as SocketsMaestroEmitters from "server/maestro/v2/sockets-maestro-emitters";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -25,8 +25,8 @@ vi.mock("server/express/routes/docListing", () => ({
 import {
   isDiffRelevantToSubscribedEvas,
   cleanupMaestro,
-} from "server/express/sockets-maestro-emitters";
-import { getMaestroSocketRoomName } from "server/express/sockets-maestro";
+} from "server/maestro/v2/sockets-maestro-emitters";
+import { getMaestroSocketRoomName } from "server/maestro/v2/sockets-maestro";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -170,11 +170,11 @@ beforeEach(() => {
       .mockResolvedValue({ ...defaultDocHandle, doc: vi.fn().mockReturnValue(undefined) }),
   } as never;
   mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://default-url" }]);
-  globalValues.maestro.evaSubscriptions = new Map();
-  globalValues.maestro.socketio = null;
-  globalValues.maestro.docListeners = new Map();
-  globalValues.maestro.docHandles = new Map();
-  globalValues.serverSocketStatus.maestroVisitors = {};
+  globalValues.maestroV2.evaSubscriptions = new Map();
+  globalValues.maestroV2.socketio = null;
+  globalValues.maestroV2.docListeners = new Map();
+  globalValues.maestroV2.docHandles = new Map();
+  globalValues.maestroV2.visitorData = {};
 });
 
 // ─── isDiffRelevantToSubscribedEvas ──────────────────────────────────────────
@@ -197,7 +197,7 @@ describe("isDiffRelevantToSubscribedEvas", () => {
     });
 
     it("returns true even when changedMissionFields has a value and there are subscriptions", () => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
       const mission = buildMockCoreData({ evas: [evaSubscribed] });
       const diff: MaestroDiff = { ...emptyDiff(), changedMissionFields: ["description"] };
       expect(isDiffRelevantToSubscribedEvas(MISSION_ID, mission, diff)).toBe(true);
@@ -206,7 +206,7 @@ describe("isDiffRelevantToSubscribedEvas", () => {
 
   describe("eva upserts", () => {
     beforeEach(() => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
     });
 
     it("returns true when an upserted EVA uuid is subscribed", () => {
@@ -222,7 +222,7 @@ describe("isDiffRelevantToSubscribedEvas", () => {
     });
 
     it("returns false when there are no subscriptions and an EVA is upserted", () => {
-      globalValues.maestro.evaSubscriptions = new Map(); // clear
+      globalValues.maestroV2.evaSubscriptions = new Map(); // clear
       const mission = buildMockCoreData({ evas: [evaSubscribed] });
       const diff: MaestroDiff = { ...emptyDiff(), evas: collDiff([evaSubscribed]) };
       expect(isDiffRelevantToSubscribedEvas(MISSION_ID, mission, diff)).toBe(false);
@@ -231,14 +231,14 @@ describe("isDiffRelevantToSubscribedEvas", () => {
 
   describe("eva deletedUuids", () => {
     it("returns true when a deleted EVA uuid is subscribed", () => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
       const mission = buildMockCoreData({ evas: [] });
       const diff: MaestroDiff = { ...emptyDiff(), evas: collDiff([], [evaSubscribed.uuid]) };
       expect(isDiffRelevantToSubscribedEvas(MISSION_ID, mission, diff)).toBe(true);
     });
 
     it("returns false when the deleted EVA uuid is not subscribed", () => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
       const mission = buildMockCoreData({ evas: [evaSubscribed] });
       const diff: MaestroDiff = { ...emptyDiff(), evas: collDiff([], [evaNotSubscribed.uuid]) };
       expect(isDiffRelevantToSubscribedEvas(MISSION_ID, mission, diff)).toBe(false);
@@ -247,7 +247,7 @@ describe("isDiffRelevantToSubscribedEvas", () => {
 
   describe("station upserts", () => {
     beforeEach(() => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
     });
 
     it("returns true when an upserted station uuid is in the subscribed EVA's sequence", () => {
@@ -265,7 +265,7 @@ describe("isDiffRelevantToSubscribedEvas", () => {
 
   describe("station deletedUuids", () => {
     beforeEach(() => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
     });
 
     it("returns true when a deleted station uuid is in the subscribed EVA's sequence", () => {
@@ -283,7 +283,7 @@ describe("isDiffRelevantToSubscribedEvas", () => {
 
   describe("traverse upserts and deletes", () => {
     beforeEach(() => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
     });
 
     it("returns true when an upserted traverse uuid is in the subscribed EVA's sequence", () => {
@@ -313,7 +313,7 @@ describe("isDiffRelevantToSubscribedEvas", () => {
 
   describe("action upserts", () => {
     beforeEach(() => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
     });
 
     it("returns true when action.stationUuid is in the subscribed EVA's sequence", () => {
@@ -342,7 +342,7 @@ describe("isDiffRelevantToSubscribedEvas", () => {
 
   describe("rex upserts", () => {
     beforeEach(() => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
     });
 
     it("returns true when rex.evaUuid matches a subscribed EVA", () => {
@@ -360,7 +360,7 @@ describe("isDiffRelevantToSubscribedEvas", () => {
 
   describe("rex deletedUuids", () => {
     it("always returns true (conservative) when any rex is deleted", () => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
       const mission = buildMockCoreData({ evas: [evaSubscribed] });
       const diff: MaestroDiff = { ...emptyDiff(), rexes: collDiff([], [rexForNotSubscribed.uuid]) };
       expect(isDiffRelevantToSubscribedEvas(MISSION_ID, mission, diff)).toBe(true);
@@ -369,7 +369,7 @@ describe("isDiffRelevantToSubscribedEvas", () => {
 
   describe("empty diff", () => {
     it("returns false when all arrays are empty and no changed mission fields", () => {
-      globalValues.maestro.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
       const mission = buildMockCoreData({ evas: [evaSubscribed] });
       expect(isDiffRelevantToSubscribedEvas(MISSION_ID, mission, emptyDiff())).toBe(false);
     });
@@ -383,52 +383,52 @@ describe("cleanupSocketRoom", () => {
     const nonExistentMissionId = 99999;
 
     // Pre-populate docHandle for this mission but no docListener
-    globalValues.maestro.docHandles.set(nonExistentMissionId, { doc: vi.fn() } as never);
+    globalValues.maestroV2.docHandles.set(nonExistentMissionId, { doc: vi.fn() } as never);
 
     expect(() => cleanupMaestro(nonExistentMissionId)).not.toThrow();
 
     // No listener was registered — docListeners should still not have an entry
-    expect(globalValues.maestro.docListeners.has(nonExistentMissionId)).toBe(false);
+    expect(globalValues.maestroV2.docListeners.has(nonExistentMissionId)).toBe(false);
 
     // The docHandle should still be cleaned up (cleanup continues past the missing-listener branch)
-    expect(globalValues.maestro.docHandles.has(nonExistentMissionId)).toBe(false);
+    expect(globalValues.maestroV2.docHandles.has(nonExistentMissionId)).toBe(false);
   });
 
   it("calls and removes the listener when one is registered", () => {
     const removeListenerFn = vi.fn();
-    globalValues.maestro.docListeners.set(MISSION_ID, removeListenerFn);
-    globalValues.maestro.docHandles.set(MISSION_ID, { doc: vi.fn() } as never);
+    globalValues.maestroV2.docListeners.set(MISSION_ID, removeListenerFn);
+    globalValues.maestroV2.docHandles.set(MISSION_ID, { doc: vi.fn() } as never);
     cleanupMaestro(MISSION_ID);
     expect(removeListenerFn).toHaveBeenCalled();
-    expect(globalValues.maestro.docListeners.has(MISSION_ID)).toBe(false);
+    expect(globalValues.maestroV2.docListeners.has(MISSION_ID)).toBe(false);
   });
 
   it("removes the docHandle from globalValues.maestro.docHandles", () => {
-    globalValues.maestro.docListeners.set(MISSION_ID, vi.fn());
-    globalValues.maestro.docHandles.set(MISSION_ID, { doc: vi.fn() } as never);
+    globalValues.maestroV2.docListeners.set(MISSION_ID, vi.fn());
+    globalValues.maestroV2.docHandles.set(MISSION_ID, { doc: vi.fn() } as never);
     cleanupMaestro(MISSION_ID);
-    expect(globalValues.maestro.docHandles.has(MISSION_ID)).toBe(false);
+    expect(globalValues.maestroV2.docHandles.has(MISSION_ID)).toBe(false);
   });
 
   it("cleanupSocketRoom does not throw when called after state is set up", () => {
-    globalValues.maestro.docListeners.set(MISSION_ID, vi.fn());
-    globalValues.maestro.docHandles.set(MISSION_ID, { doc: vi.fn() } as never);
+    globalValues.maestroV2.docListeners.set(MISSION_ID, vi.fn());
+    globalValues.maestroV2.docHandles.set(MISSION_ID, { doc: vi.fn() } as never);
     expect(() => cleanupMaestro(MISSION_ID)).not.toThrow();
-    expect(globalValues.maestro.docListeners.has(MISSION_ID)).toBe(false);
-    expect(globalValues.maestro.docHandles.has(MISSION_ID)).toBe(false);
+    expect(globalValues.maestroV2.docListeners.has(MISSION_ID)).toBe(false);
+    expect(globalValues.maestroV2.docHandles.has(MISSION_ID)).toBe(false);
   });
 
   it("clears the snapshot so the next change listener sees all entities as new", async () => {
     const SNAPSHOT_MISSION_ID = 8888;
     const { addMaestroDocListenerForMission: actualAddListener } = await vi.importActual<
       typeof SocketsMaestroEmitters
-    >("server/express/sockets-maestro-emitters");
+    >("server/maestro/v2/sockets-maestro-emitters");
 
     const ns = createMockMaestroNamespace();
     const roomName = getMaestroSocketRoomName(SNAPSHOT_MISSION_ID);
     ns._rooms.set(roomName, new Set(["socket1"]));
-    globalValues.maestro.socketio = ns as never;
-    globalValues.maestro.evaSubscriptions.set(SNAPSHOT_MISSION_ID, [evaSubscribed.uuid]);
+    globalValues.maestroV2.socketio = ns as never;
+    globalValues.maestroV2.evaSubscriptions.set(SNAPSHOT_MISSION_ID, [evaSubscribed.uuid]);
 
     const mockDocHandle = {
       whenReady: vi.fn().mockResolvedValue(undefined),
@@ -500,7 +500,7 @@ describe("addMaestroDocListenerForMission", () => {
 
   beforeAll(async () => {
     const actual = await vi.importActual<typeof SocketsMaestroEmitters>(
-      "server/express/sockets-maestro-emitters"
+      "server/maestro/v2/sockets-maestro-emitters"
     );
     actualAddMaestroDocListenerForMission = actual.addMaestroDocListenerForMission;
   });
@@ -519,7 +519,7 @@ describe("addMaestroDocListenerForMission", () => {
   });
 
   it("returns early when mission already has a listener", async () => {
-    globalValues.maestro.docListeners.set(MISSION_ID, vi.fn());
+    globalValues.maestroV2.docListeners.set(MISSION_ID, vi.fn());
 
     await actualAddMaestroDocListenerForMission(MISSION_ID);
 
@@ -531,14 +531,14 @@ describe("addMaestroDocListenerForMission", () => {
 
     expect(mockGetAutomergeDocListing).toHaveBeenCalledWith([MISSION_ID]);
     expect(mockDocHandle.on).toHaveBeenCalledWith("change", expect.any(Function));
-    expect(globalValues.maestro.docListeners.has(MISSION_ID)).toBe(true);
+    expect(globalValues.maestroV2.docListeners.has(MISSION_ID)).toBe(true);
   });
 
   it("throttled change listener does nothing when maestro namespace is null", async () => {
     await actualAddMaestroDocListenerForMission(MISSION_ID);
 
     const changeListener = mockDocHandle.on.mock.calls[0][1];
-    globalValues.maestro.socketio = null;
+    globalValues.maestroV2.socketio = null;
 
     changeListener();
 
@@ -549,7 +549,7 @@ describe("addMaestroDocListenerForMission", () => {
   it("throttled change listener does nothing when room is empty", async () => {
     const ns = createMockMaestroNamespace();
     // No sockets in the room
-    globalValues.maestro.socketio = ns as never;
+    globalValues.maestroV2.socketio = ns as never;
 
     await actualAddMaestroDocListenerForMission(MISSION_ID);
     const changeListener = mockDocHandle.on.mock.calls[0][1];
@@ -566,8 +566,8 @@ describe("addMaestroDocListenerForMission", () => {
     const ns = createMockMaestroNamespace();
     const roomName = getMaestroSocketRoomName(LISTENER_MISSION_ID);
     ns._rooms.set(roomName, new Set(["socket1"]));
-    globalValues.maestro.socketio = ns as never;
-    globalValues.maestro.evaSubscriptions.set(LISTENER_MISSION_ID, [evaSubscribed.uuid]);
+    globalValues.maestroV2.socketio = ns as never;
+    globalValues.maestroV2.evaSubscriptions.set(LISTENER_MISSION_ID, [evaSubscribed.uuid]);
 
     // doc() returns undefined during setup so no initial snapshot is stored,
     // ensuring the first change sees everything as new and triggers an emit.
@@ -598,27 +598,27 @@ describe("addMaestroDocListenerForMission", () => {
   it("cleanup function removes the change listener", async () => {
     await actualAddMaestroDocListenerForMission(MISSION_ID);
 
-    expect(globalValues.maestro.docListeners.has(MISSION_ID)).toBe(true);
-    const cleanupFn = globalValues.maestro.docListeners.get(MISSION_ID)!;
+    expect(globalValues.maestroV2.docListeners.has(MISSION_ID)).toBe(true);
+    const cleanupFn = globalValues.maestroV2.docListeners.get(MISSION_ID)!;
     cleanupFn();
 
     expect(mockDocHandle.off).toHaveBeenCalledWith("change", expect.any(Function));
   });
 
   it("stores the DocHandle in globalValues.maestro.docHandles keyed by missionId", async () => {
-    expect(globalValues.maestro.docHandles.has(MISSION_ID)).toBe(false);
+    expect(globalValues.maestroV2.docHandles.has(MISSION_ID)).toBe(false);
     await actualAddMaestroDocListenerForMission(MISSION_ID);
-    expect(globalValues.maestro.docHandles.get(MISSION_ID)).toBe(mockDocHandle);
+    expect(globalValues.maestroV2.docHandles.get(MISSION_ID)).toBe(mockDocHandle);
   });
 
   it("does not overwrite an existing docHandle when the mission already has a listener", async () => {
     const existingHandle = { doc: vi.fn(), on: vi.fn(), off: vi.fn(), whenReady: vi.fn() };
-    globalValues.maestro.docListeners.set(MISSION_ID, vi.fn());
-    globalValues.maestro.docHandles.set(MISSION_ID, existingHandle as never);
+    globalValues.maestroV2.docListeners.set(MISSION_ID, vi.fn());
+    globalValues.maestroV2.docHandles.set(MISSION_ID, existingHandle as never);
 
     await actualAddMaestroDocListenerForMission(MISSION_ID);
 
     // Early return — handle must be unchanged
-    expect(globalValues.maestro.docHandles.get(MISSION_ID)).toBe(existingHandle);
+    expect(globalValues.maestroV2.docHandles.get(MISSION_ID)).toBe(existingHandle);
   });
 });

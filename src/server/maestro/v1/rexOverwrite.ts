@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import {
   getAutomergeMissions,
   getAutomergeMissionHandle,
-} from "../express/routes/missionAutomerge";
+} from "../../express/routes/missionAutomerge";
 
 // Update the rex record in the automerge mission document.
 // More than one rex may be updated if we need to stop a previously running rex.

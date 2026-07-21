@@ -3,7 +3,7 @@
  * This typings file is hopefully temporary and will be eventually merged into a fully shared Maegistro typings file (maegistro.d.ts)
  * that will be used by both Maestro and AEGIS
  */
-declare namespace Maegistro {
+export declare namespace MDAU {
   /**
    * Status of AEGIS sequence items (stations, traverses, lander) and actions
    */

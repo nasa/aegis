@@ -1,14 +1,13 @@
 // ─── /maestro namespace — Maestro API client ─────────────────────────────────
 
-interface MaestroServerToClientEvents {
-  // Maegistro V1.5 & V2 - in progress
-  dataAll: (everythingForMaestro: Maegistro.AegisSlice) => void;
+import type { AegisSlice } from "./aegisSlice";
+
+export interface MaestroServerToClientEvents {
+  dataAll: (everythingForMaestro: AegisSlice.AegisSlice) => void;
 }
 
-interface MaestroClientToServerEvents {
-  // Maegistro V1.5 only
+export interface MaestroClientToServerEvents {
   missionJoin: (missionId: number, maestroVisitor: MaestroVisitor) => void;
-  // Maegistro V1.5 & V2 - in progress
   missionLeave: (missionId: number) => void;
   subscribeToEva: (missionId: number, evaRefUuid: string, rexUuid: string | null) => void;
   unsubscribeToEva: (missionId: number, evaRefUuid: string, rexUuid: string | null) => void;
@@ -16,20 +15,13 @@ interface MaestroClientToServerEvents {
     missionId: number,
     callback: (
       response:
-        | { status: "success"; message: string; data: Maegistro.AegisSlice }
+        | { status: "success"; message: string; data: AegisSlice.AegisSlice }
         | { status: "failure"; message: string }
         | { status: "error"; message: string }
     ) => void
   ) => void;
 
-  // Maegistro V2 - in progress
-  sendMDAU: (missionId: number, mdau: Maegistro.MaestroDataAegisUses) => void;
-  missionJoin2: (missionId: number, maestroVisitor: MaestroVisitor) => void;
-
-  // Maegistro V1.5
   // Mimics the emss/rexOverwrite route
-  // Deprecated in favor of sendMDAU. Used for Maegistro V1.5 currently
-  // but this is a known signature that will be removed in the future
   rexOverwrite: (
     body: RexOverwrite,
     callback: (
@@ -39,10 +31,24 @@ interface MaestroClientToServerEvents {
         | { status: "error"; message: string }
     ) => void
   ) => void;
+
+  getDebugInfo: (callback: (data: MaestroVersionDebugInfo) => void) => void;
+}
+
+export interface MaestroVersionDebugInfo {
+  docListenerMissionIds: number[];
+  evaSubscriptions: { [missionId: number]: string[] };
+  visitors: { [missionId: string]: MaestroVisitorDebugEntry[] };
+}
+
+export interface MaestroVisitorDebugEntry {
+  socketId: string;
+  name: string;
+  connectedAt: number;
 }
 
 // sent by maestro client when joining and stored in server's globalValues
-interface MaestroVisitor {
+export interface MaestroVisitor {
   socketId: string; // identifier for managing the list on server global
   name: string; // name of the maestro server
   connectedAt: number; // timestamp when the maestro joined

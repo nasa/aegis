@@ -2,15 +2,15 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import { Doc_Listing_db } from "server/database/models/_allModels";
-import DocListingFactory from "../fixtures/entityFactories/DocListingFactory";
-import { createMockAutomergeRepo } from "../helpers/mockAutomergeRepo";
+import DocListingFactory from "../../fixtures/entityFactories/DocListingFactory";
+import { createMockAutomergeRepo } from "../../helpers/mockAutomergeRepo";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankAction } from "store/storeUtils/action";
-import { overwriteRex } from "server/maestro/rexOverwrite";
-import { validateRexOverwrite } from "server/maestro/rexOverwriteValidator";
+import { overwriteRex } from "server/maestro/v1/rexOverwrite";
+import { validateRexOverwrite } from "server/maestro/v1/rexOverwriteValidator";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 
 // suppress socketio side-effects (no real socket server in tests).
