@@ -639,7 +639,7 @@ def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 
 
 def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """Register mission fields + header layers + sublayers + active grid on the AEGIS server."""
+    """Register mission fields + the 'All Layers' header + sublayers + active grid on the AEGIS server."""
     banner("register — AEGIS mission fields + layers + sublayers + grid")
     if args.mission_id is None:
         tee("ERROR: --mission-id is required for the register step.", file=sys.stderr)

@@ -197,10 +197,8 @@ def contour_layer_name(interval: int) -> str:
 # ---------------------------------------------------------------------------
 # AEGIS registration: header layers + the shared external NAC basemap
 # ---------------------------------------------------------------------------
-# Header (parent) layer names the `register` step groups sublayers under.
-HEADER_COMMON_LSP = "Common_LSP"  # external lunar south-pole basemap(s) only
-HEADER_RASTER = "Raster"  # all generated/custom tile layers
-HEADER_VECTOR = "Vector"  # all GeoJSON vector layers
+# Header (parent) layer name all pipeline-generated sublayers group under.
+HEADER_ALL_LAYERS = "All Layers"
 
 # The shared lunar south-pole NAC mosaic, hosted externally and reused by every LSP
 # mission. Registered as an "external" tile sublayer: path = base URL, final tile URL
