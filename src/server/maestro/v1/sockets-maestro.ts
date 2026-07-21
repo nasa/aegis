@@ -48,7 +48,7 @@ export const setupMaestroNamespace = (
     const token = socket.handshake.auth?.token as string | undefined;
     if (!emssTokenIsValid(token)) {
       serverLogger.warning({
-        logId: "socket-maestro",
+        logId: "socket-maestro-v1",
         logValue: "Maestro namespace: rejected connection, invalid emssToken",
       });
       next(new Error("Unauthorized"));
@@ -66,7 +66,7 @@ export const setupMaestroNamespace = (
       socket.on("missionJoin", (missionId: number, maestroVisitor: MaestroVisitor) => {
         if (!missionId || isNaN(missionId)) {
           serverLogger.warning({
-            logId: "socket-maestro",
+            logId: "socket-maestro-v1",
             logValue: `missionJoin - invalid missionId ${missionId}`,
           });
           return;
@@ -107,7 +107,7 @@ export const setupMaestroNamespace = (
           const evaUuid = await getEvaUuid(missionId, evaRefUuid, rexUuid);
           if (!evaUuid) {
             serverLogger.warning({
-              logId: "socket-maestro",
+              logId: "socket-maestro-v1",
               logValue: `subscribeToEva - could not get evaUuid from missionId ${missionId}, evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
             });
           }
@@ -124,7 +124,7 @@ export const setupMaestroNamespace = (
           const evaUuid = await getEvaUuid(missionId, evaRefUuid, rexUuid);
           if (!evaUuid) {
             serverLogger.warning({
-              logId: "socket-maestro",
+              logId: "socket-maestro-v1",
               logValue: `unsubscribeToEva - could not get evaUuid from missionId ${missionId}, evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
             });
           }
@@ -183,7 +183,7 @@ export const setupMaestroNamespace = (
           callback({ status: "success", message: "Everything retrieved", data });
         } catch (error) {
           serverLogger.error(
-            { logId: "socket-maestro", logValue: "SocketIO - getEverything" },
+            { logId: "socket-maestro-v1", logValue: "SocketIO - getEverything" },
             error instanceof Error ? error : new Error(String(error))
           );
           callback({ status: "error", message: `Error getting everything ${error}` });
@@ -218,7 +218,7 @@ export const setupMaestroNamespace = (
         } catch (e) {
           const errorMessage = e instanceof Error ? e.message : String(e);
           serverLogger.error(
-            { logId: "socket-maestro", logValue: "SocketIO - rexOverwrite" },
+            { logId: "socket-maestro-v1", logValue: "SocketIO - rexOverwrite" },
             asError(e)
           );
           callback({ status: "error", message: `Error processing the request: ${errorMessage}` });

@@ -237,7 +237,7 @@ const emitToMaestroNamespace = async (missionId: number): Promise<void> => {
   } catch (error) {
     serverLogger.error(
       {
-        logId: "socket-maestro",
+        logId: "socket-maestro-v2",
         logValue: `Error emitting to maestro namespace for mission ${missionId}`,
       },
       error instanceof Error ? error : new Error(String(error))
@@ -321,7 +321,7 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
               emitToMaestroNamespace(missionId).catch((error) => {
                 serverLogger.error(
                   {
-                    logId: "socket-maestro",
+                    logId: "socket-maestro-v2",
                     logValue: `addMaestroDocListenerForMission - Error in emitToMaestroNamespace for mission ${missionId}`,
                     missionId,
                   },
@@ -333,7 +333,7 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
         } catch (error) {
           serverLogger.error(
             {
-              logId: "socket-maestro",
+              logId: "socket-maestro-v2",
               logValue: `addMaestroDocListenerForMission - Error in throttled listener for mission ${missionId}`,
               missionId,
             },
@@ -351,13 +351,13 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
     });
 
     serverLogger.debug({
-      logId: "socket-maestro",
+      logId: "socket-maestro-v2",
       logValue: `addMaestroDocListenerForMission - Added maestro automerge doc listener for mission ${missionId}`,
     });
   } catch (error) {
     serverLogger.error(
       {
-        logId: "socket-maestro",
+        logId: "socket-maestro-v2",
         logValue: `addMaestroDocListenerForMission - Error adding maestro doc listener for mission ${missionId}`,
       },
       error instanceof Error ? error : new Error(String(error))
@@ -384,7 +384,7 @@ export const applyMdauStationsToDoc = async (
   const docHandle = globalValues.maestroV2.docHandles.get(missionId);
   if (!docHandle) {
     serverLogger.warning({
-      logId: "socket-maestro",
+      logId: "socket-maestro-v2",
       logValue: `applyMdauStationsToDoc - no doc handle available for mission ${missionId}`,
     });
     return;
@@ -413,7 +413,7 @@ export const applyMdauStationsToDoc = async (
   if (resolvedStations.length === 0) {
     for (const { refUuid, rexUuid } of unresolved) {
       serverLogger.warning({
-        logId: "socket-maestro",
+        logId: "socket-maestro-v2",
         logValue: `applyMdauStationsToDoc - could not resolve station uuid for refUuid ${refUuid} rexUuid ${rexUuid}`,
       });
     }
@@ -455,7 +455,7 @@ export const cleanupMaestro = (missionId: number): void => {
   const removeListenerFn = globalValues.maestroV2.docListeners.get(missionId);
   if (!removeListenerFn) {
     serverLogger.warning({
-      logId: "socket-maestro",
+      logId: "socket-maestro-v2",
       logValue: `cleanupMaestro - No listener function found to remove for mission ${missionId}`,
     });
   } else {
@@ -470,14 +470,14 @@ export const cleanupMaestro = (missionId: number): void => {
   const docHandleRemoved = globalValues.maestroV2.docHandles.delete(missionId);
   if (!docHandleRemoved) {
     serverLogger.warning({
-      logId: "socket-maestro",
+      logId: "socket-maestro-v2",
       logValue: `cleanupMaestro - No docHandle found to remove for mission ${missionId}`,
     });
   }
 
   // All cleanup done
   serverLogger.debug({
-    logId: "socket-maestro",
+    logId: "socket-maestro-v2",
     logValue: `cleanupMaestro - Cleaned up listener, docHandle, and snapshot for mission ${missionId}`,
   });
 };
