@@ -120,62 +120,100 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Input data-drop root (default: {config.DEFAULT_SRC}).",
     )
     inputs.add_argument(
-        "--in-dem", dest="in_dem", type=Path, default=None,
+        "--in-dem",
+        dest="in_dem",
+        type=Path,
+        default=None,
         help="DEM GeoTIFF path.",
     )
     inputs.add_argument(
-        "--in-slope", dest="in_slope", type=Path, default=None,
+        "--in-slope",
+        dest="in_slope",
+        type=Path,
+        default=None,
         help="Slope raster path.",
     )
     inputs.add_argument(
-        "--in-lyrx", dest="in_lyrx", type=Path, default=None,
+        "--in-lyrx",
+        dest="in_lyrx",
+        type=Path,
+        default=None,
         help="Slope .lyrx colour standard.",
     )
     inputs.add_argument(
-        "--in-ellipse", dest="in_ellipse", type=Path,
-        default=None, help="Landing-ellipse shapefile path.",
+        "--in-ellipse",
+        dest="in_ellipse",
+        type=Path,
+        default=None,
+        help="Landing-ellipse shapefile path.",
     )
     inputs.add_argument(
-        "--in-nac", dest="in_nac", type=Path, default=None,
+        "--in-nac",
+        dest="in_nac",
+        type=Path,
+        default=None,
         help="GIS-provided NAC mosaic raster to tile.",
     )
     inputs.add_argument(
-        "--in-raster", dest="in_raster", action="append",
-        default=[], metavar="PATH", help="Custom raster layer (repeatable).",
+        "--in-raster",
+        dest="in_raster",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="Custom raster layer (repeatable).",
     )
     inputs.add_argument(
-        "--in-vector", dest="in_vector", action="append",
-        default=[], metavar="PATH",
+        "--in-vector",
+        dest="in_vector",
+        action="append",
+        default=[],
+        metavar="PATH",
         help="Custom vector layer, shp or geojson (repeatable).",
     )
     inputs.add_argument(
         "--in-esri-vector-tiles",
-        dest="in_esri_vector_tiles", action="append", default=[], metavar="PATH",
+        dest="in_esri_vector_tiles",
+        action="append",
+        default=[],
+        metavar="PATH",
         help="ArcGIS vector-tile cache dir (has root.json) → Layers/<name>/<name>.pmtiles (repeatable).",
     )
     inputs.add_argument(
-        "--in-cog", dest="in_cog", action="append", default=[],
+        "--in-cog",
+        dest="in_cog",
+        action="append",
+        default=[],
         metavar="PATH",
         help="Custom raster → Cloud-Optimised GeoTIFF sublayer in Layers/<stem>/<stem>_cog.tif (repeatable).",
     )
     inputs.add_argument(
-        "--in-cog-nodata", dest="in_cog_nodata", type=float,
-        default=None, help="noData value to tag on --in-cog outputs (e.g. -3.4e38).",
+        "--in-cog-nodata",
+        dest="in_cog_nodata",
+        type=float,
+        default=None,
+        help="noData value to tag on --in-cog outputs (e.g. -3.4e38).",
     )
 
     output = parser.add_argument_group("Output location (--out-* / --layer-*)")
     output.add_argument(
-        "--out-dir", dest="out_dir", type=Path, default=None,
+        "--out-dir",
+        dest="out_dir",
+        type=Path,
+        default=None,
         help="Override output root (default: <static>/missionFiles/<mission-id>).",
     )
     output.add_argument(
-        "--out-static-dir", dest="out_static_dir", type=Path,
+        "--out-static-dir",
+        dest="out_static_dir",
+        type=Path,
         default=None,
         help="AEGIS static root (default: STATIC_DIR in .env or ../aegis_static).",
     )
     output.add_argument(
-        "--layer-prefix", dest="layer_prefix",
-        default=None, metavar="PREFIX",
+        "--layer-prefix",
+        dest="layer_prefix",
+        default=None,
+        metavar="PREFIX",
         help=(
             "Prefix for every generated layer folder AND its AEGIS layer name "
             '(e.g. --layer-prefix LOLA → Layers/LOLA_hillshade, "LOLA_hillshade"). '
@@ -186,14 +224,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     dem_products = parser.add_argument_group("DEM-derived products (--dem-*)")
     dem_products.add_argument(
-        "--dem-products", dest="dem_products",
-        nargs="+", default=None, choices=["hillshade", "slope", "aspect", "tri"],
+        "--dem-products",
+        dest="dem_products",
+        nargs="+",
+        default=None,
+        choices=["hillshade", "slope", "aspect", "tri"],
         metavar="PRODUCT",
         help="DEM-derived products to build (default: hillshade aspect tri; add slope to derive it from the DEM).",
     )
     dem_products.add_argument(
         "--dem-products-as-cog",
-        dest="dem_products_as_cog", action="store_true",
+        dest="dem_products_as_cog",
+        action="store_true",
         help=(
             "Emit DEM-derived products (--dem-products) as Cloud-Optimised GeoTIFFs "
             "(Layers/<name>/<name>_cog.tif) instead of tile pyramids. "
@@ -202,7 +244,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     dem_products.add_argument(
         "--dem-products-only",
-        dest="dem_products_only", action="store_true",
+        dest="dem_products_only",
+        action="store_true",
         help=(
             "Use --in-dem only to derive products/contours; do NOT write it as the mission "
             "DEM. Skips the 'dem' step (no Data/ COG) and leaves demFilePath/demResolution "
@@ -218,18 +261,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate major/minor contour PMTiles from the DEM (Layers/contours_<interval>m).",
     )
     contours.add_argument(
-        "--contours-major", dest="contours_major",
-        type=int, default=config.CONTOUR_MAJOR_INTERVAL_DEFAULT,
+        "--contours-major",
+        dest="contours_major",
+        type=int,
+        default=config.CONTOUR_MAJOR_INTERVAL_DEFAULT,
         help=f"Major contour interval in metres (default: {config.CONTOUR_MAJOR_INTERVAL_DEFAULT}).",
     )
     contours.add_argument(
-        "--contours-minor", dest="contours_minor",
-        type=int, default=config.CONTOUR_MINOR_INTERVAL_DEFAULT,
+        "--contours-minor",
+        dest="contours_minor",
+        type=int,
+        default=config.CONTOUR_MINOR_INTERVAL_DEFAULT,
         help=f"Minor contour interval in metres (default: {config.CONTOUR_MINOR_INTERVAL_DEFAULT}).",
     )
     contours.add_argument(
-        "--contours-maxzoom", dest="contours_maxzoom",
-        type=int, default=None,
+        "--contours-maxzoom",
+        dest="contours_maxzoom",
+        type=int,
+        default=None,
         help="Deepest cap-grid LOD for contours (default: derived from --dem-resolution).",
     )
 
@@ -259,16 +308,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     publish.add_argument(
         "--register-no-mission-fields",
-        dest="register_no_mission_fields", action="store_true",
+        dest="register_no_mission_fields",
+        action="store_true",
         help="Do not set mission GIS fields during register.",
     )
     publish.add_argument(
         "--register-no-external-nac",
-        dest="register_no_external_nac", action="store_true",
-        help="Do not register the Common_LSP external NAC layer.",
+        dest="register_no_external_nac",
+        action="store_true",
+        help="Do not register the external NAC layer.",
     )
     publish.add_argument(
-        "--register-no-grid", dest="register_no_grid",
+        "--register-no-grid",
+        dest="register_no_grid",
         action="store_true",
         help="Do not register the LGRS mission grid during the register step (grid GeoJSON is still built if --grid is passed).",
     )
