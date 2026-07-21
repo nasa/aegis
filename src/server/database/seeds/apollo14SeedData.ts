@@ -1145,7 +1145,6 @@ export const buildApollo14Mission = (): Mission =>
 const DEMO_LAYER_UUID = "a0000000-0000-4000-9000-00000000000a";
 const SUBLAYER_ORTHO_UUID = "a1000000-0000-4000-9000-000000000001";
 const SUBLAYER_HILLSHADE_UUID = "a1000000-0000-4000-9000-000000000002";
-const SUBLAYER_SAMPLE_STATIONS_UUID = "a1000000-0000-4000-9000-000000000003";
 const SUBLAYER_TRAVERSES_UUID = "a1000000-0000-4000-9000-000000000004";
 const PRESET_UUID = "a2000000-0000-4000-9000-000000000001";
 
@@ -1202,19 +1201,6 @@ export const apollo14Layers: Apollo14SeedLayer[] = [
         minNativeZoom: 8,
         maxNativeZoom: 14,
         maxZoom: 23,
-      },
-      {
-        uuid: SUBLAYER_SAMPLE_STATIONS_UUID,
-        name: "Sample Stations",
-        type: "vector",
-        description: "",
-        path: "Apollo14.geojson",
-        tilePattern: null,
-        tileFormat: "tms",
-        boundingBox: null,
-        minNativeZoom: null,
-        maxNativeZoom: null,
-        maxZoom: null,
       },
       {
         uuid: SUBLAYER_TRAVERSES_UUID,
@@ -1276,24 +1262,14 @@ export const apollo14Preset: Preset = {
       "NAC DTM 2m Hillshade",
       false
     ),
-    [SUBLAYER_SAMPLE_STATIONS_UUID]: sublayerControl(
-      SUBLAYER_SAMPLE_STATIONS_UUID,
-      "Sample Stations",
-      false
-    ),
-    [SUBLAYER_TRAVERSES_UUID]: sublayerControl(SUBLAYER_TRAVERSES_UUID, "Traverses", false),
+    [SUBLAYER_TRAVERSES_UUID]: sublayerControl(SUBLAYER_TRAVERSES_UUID, "Traverses", true),
   },
   mapCircleControls: {},
   mapGridControl: null,
   layerOrder: [
     {
       layerUuid: DEMO_LAYER_UUID,
-      sublayerUuids: [
-        SUBLAYER_SAMPLE_STATIONS_UUID,
-        SUBLAYER_TRAVERSES_UUID,
-        SUBLAYER_ORTHO_UUID,
-        SUBLAYER_HILLSHADE_UUID,
-      ],
+      sublayerUuids: [SUBLAYER_TRAVERSES_UUID, SUBLAYER_ORTHO_UUID, SUBLAYER_HILLSHADE_UUID],
     },
   ],
   sunAzimuth: 0,
