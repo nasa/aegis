@@ -1,9 +1,80 @@
+<p>
+  <img src="src/public/images/logo_NASA.svg" alt="NASA logo" height="48" />
+</p>
+
 # Artemis EVA GIS (AEGIS)
 
-AEGIS is building the EVA composition and execution tool that seamlessly integrates map data into the EVA product development process to plan, train, fly, explore lunar surface EVA
+AEGIS (Artemis EVA GIS) is an internal NASA planning tool aimed at enabling NASA's Artemis Extra-Vehicular Activity (EVA) operations. AEGIS integrates Science Traceability Matrix (STM) objectives with spatial maps to help the flight controller community maximize the coverage of science objectives in the dynamic environment of lunar EVAs. AEGIS also supports the creation of EVA stations, complete with activity definitions, crew assignments, contingency plans, and safety measures. AEGIS facilitates EVA planning by automating complex calculations and offering a spatiotemporal view of EVA plans. The product's goal is to enable flight controllers to execute successful missions.
 
-Wiki: https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS
+  <img src="src/public/images/EMSS.svg" alt="EMSS logo" height="220" />
 
+AEGIS is one of the Exploration Mission System Software (EMSS) tools built by the EMSS team at NASA Johnson Space Center to support the Flight Operations **plan, train, fly, explore** work processes. It evolved from early field-test prototypes (JETT3, Fall 2022) into the prime surface mission-planning tool for EVA operations in just three years, and works alongside sibling tools such as Maestro (EVA procedure authoring and execution), [CODA](https://github.com/nasa/coda) (temporal alignment of disparate data sets), and Talky Bot (real-time voice-loop transcription).
+
+📄 Read the paper: [Continuing Development and Enabling of Exploration Mission Systems Software](https://ttu-ir.tdl.org/items/ebd7ceef-0e7d-4f06-9829-6d2b5fd8a64b) (2026 IEEE Aerospace Conference)
+
+## Screenshots
+
+### Editor (main planning view)
+
+The editor is the primary workspace for composing EVAs -- building stations, defining activities, assigning crew, and tracking Science Traceability Matrix coverage against an annotated lunar map.
+
+![AEGIS editor with feature callouts](docs/AEGIS-editor-callouts.jpg)
+
+### Dashboard
+
+The dashboard provides a mission-level overview of EVA plans, summaries, and system status.
+
+![AEGIS dashboard with feature callouts](docs/AEGIS-dashboard-callouts.jpg)
+
+## Key Capabilities
+
+- **EVA, station, and POI composition** -- build EVAs from stations and points of interest, each with activity definitions, crew assignments, contingency plans, and safety measures.
+- **Science Traceability Matrix (STM) integration** -- plan against science objectives and visualize STM coverage to maximize the science return of each traverse.
+- **Spatiotemporal planning** -- combine annotated maps, data profiles, EVA sequence diagrams, and measure/bearing calculations for a unified view of plans over space and time.
+- **Automated calculations** -- traverse timing, distances, bearings, and elevation profiles are computed automatically from the underlying GIS data.
+- **Real-time multi-user collaboration** -- multiple editors and viewers work on the same mission simultaneously via a collaborative editing layer.
+- **Real-time execution mode** -- follow an EVA as it is flown, comparing the plan against as-executed progress.
+
+## Map & GIS Rendering
+
+The map is a custom [OpenLayers](https://openlayers.org/) engine purpose-built for lunar surface data. Unlike a typical web map, it does not assume a Web Mercator earth -- it renders **custom, per-mission coordinate reference systems**, including the polar projections required for Artemis' south-pole landing region.
+
+- **Lunar south-pole projections** -- renders in a Moon-specific polar stereographic CRS rather than an earth projection. The Artemis surface projection is **South Pole Stereographic on the Moon (2015) sphere** (`IAU2000:30166`, `+proj=stere +lat_0=-90 +lon_0=0 +a=1737400 +b=1737400`, radius 1,737.4 km). The GIS data pipeline also produces the NASA projections -- Lunar Polar Stereographic (LPS, scale factor 0.994) and Lunar Transverse Mercator (LTM) -- for the grid overlay.
+- **Per-mission projection config** -- each mission carries its own proj4 definition, extent, origin, and resolution set, so missions in different regions (or with different source data) render in their correct native CRS. Projections are registered at runtime via proj4; missions can also fall back to standard Web Mercator for earth-based field tests.
+- **Multiple layer/source types**, mixed freely within a single mission:
+  - **Raster tiles** -- TMS/XYZ tile pyramids, with custom (non-Mercator) tile grids and TMS Y-axis handling for polar projections.
+  - **Cloud Optimized GeoTIFF (COG)** -- streamed and rendered on the GPU via WebGL, used for DEMs and large single-file rasters without pre-tiling.
+  - **Vector** -- GeoJSON, canvas-batched for performance.
+  - **Vector tiles** -- PMTiles (MVT), including ESRI-exported archives, with tile metadata read on demand.
+- **Time-aware layers** -- sublayers can be bound to mission time, so the displayed imagery/data tracks the selected EVA datetime or timeline scrub position.
+- **Elevation-aware planning** -- a DEM/COG elevation source drives automatically generated terrain profiles along traverses and stations.
+- **Geodesic measurement** -- traverse and measurement distances/bearings are computed geodesically on the lunar sphere (not from projected geometry), so they stay accurate under polar distortion near the pole.
+- **Lunar Grid Reference System (LGRS) grid overlay** -- an on-map graticule generated from the [LGRS](https://github.com/rbeyer/lgrs) grid definitions used across the Artemis program.
+- **Map presets** -- saved layer stacks, ordering, opacity, blend modes, and view options that can be swapped in a single action.
+
+### GIS Data Processing Pipeline
+
+AEGIS includes a GIS data processing pipeline that can generate the full set of map assets for **any region of the Moon** given a DEM (Digital Elevation Model) and a NAC (Narrow Angle Camera) mosaic as input. From those inputs it produces the cap-grid raster tile pyramids, Cloud Optimized GeoTIFFs, PMTiles vector tiles (including DEM-derived elevation contours), and LGRS grid definitions that AEGIS renders -- reprojecting the source data into the appropriate lunar CRS (south-pole stereographic) along the way. It can also register the generated products directly onto a running AEGIS server over HTTP (mission projection/DEM/lander fields, header layers, sublayers, and the active grid), so no manual admin import is required.
+
+## Setup Outside of NASA
+
+> **🚧 Placeholder -- coming soon.**
+>
+> The [First-Time Setup within NASA](#first-time-setup-within-nasa) instructions below assume access to NASA's internal infrastructure (EMSS dev servers, the AEGIS Box asset source, prod database dumps, and internal package registries). This section will provide a self-contained path to run AEGIS outside of that environment.
+>
+> Planned contents:
+>
+> - **Seed a database** -- run a seeder to populate a local database with sample missions and reference data instead of importing a NASA prod dump.
+> - **Download map assets** -- obtain the GIS map products (DTMs, layers) needed to render missions, from a publicly available source.
+> - **Get started** -- a minimal end-to-end walkthrough to bring up the app locally with the seeded data and downloaded assets.
+
+## First-Time Setup within NASA
+
+> **Note:** The instructions in this section and below are for setup **within NASA**, and depend on internal infrastructure. For running AEGIS outside of NASA, see [Setup Outside of NASA](#setup-outside-of-nasa) above.
+
+Internal references and environments:
+
+- Wiki: https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS
 - Production: https://aegis.fit.nasa.gov/
 - Integration: https://aegis-int.fit.nasa.gov/
 - Development: Any EMSS dev server (see below)
@@ -15,8 +86,6 @@ EMSS dev servers all have element names, and are:
 - https://iron-emss-dev.fit.nasa.gov
 - https://neon-emss-dev.fit.nasa.gov
 - https://oxygen-emss-dev.fit.nasa.gov
-
-## First-Time Setup
 
 We need to setup the local environment before spinning up the app.
 
@@ -170,7 +239,7 @@ npm run migration:up
 
 When the Postgres version is updated in `docker-compose.yml`, the database must be migrated. The procedure differs by environment.
 
-> **Note on PostGIS:** AEGIS previously ran on a `postgis/postgis` image. It has been migrated to plain `postgres:17`. Historical database dumps may contain PostGIS extension DDL (`CREATE EXTENSION postgis`, etc.) that plain Postgres cannot execute. All dump/import tooling (CI scripts, `upgrade-db.sh`, and `load-sql-dump.mjs`) automatically strips this DDL before importing. Note that the strip only removes `CREATE/COMMENT EXTENSION` lines. A dump produced before `--exclude-schema=tiger/topology` was added to the export job may still contain PostGIS schema or function DDL that plain Postgres cannot execute — use a current export from `z:db-export:prod` rather than a cached historical artifact when possible.
+> **Note on PostGIS:** AEGIS previously ran on a `postgis/postgis` image. It has been migrated to plain `postgres:17`. Historical database dumps may contain PostGIS extension DDL (`CREATE EXTENSION postgis`, etc.) that plain Postgres cannot execute. All dump/import tooling (CI scripts, `upgrade-db.sh`, and `load-sql-dump.mjs`) automatically strips this DDL before importing. Note that the strip only removes `CREATE/COMMENT EXTENSION` lines. A dump produced before `--exclude-schema=tiger/topology` was added to the export job may still contain PostGIS schema or function DDL that plain Postgres cannot execute -- use a current export from `z:db-export:prod` rather than a cached historical artifact when possible.
 
 **For Dev Environments (e.g., gold, iron, etc.):**
 Dev environments are upgraded manually via CI jobs because we cannot guarantee AEGIS is deployed on every dev server (making an automated in-place upgrade unreliable).
