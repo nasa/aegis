@@ -172,7 +172,7 @@ def step_stage(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 def step_dem(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Re-emit the DEM GeoTIFF as a clean COG for the mission demFilePath."""
     banner("dem — DEM GeoTIFF → clean COG (demFilePath)")
-    require_input(p.dem_in, "DEM GeoTIFF", "--dem")
+    require_input(p.dem_in, "DEM GeoTIFF", "--in-dem")
     p.data.mkdir(parents=True, exist_ok=True)
     run(
         [
@@ -190,7 +190,7 @@ def step_dem(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 def step_nac(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """NAC mosaic → (stretch if float) → tile to one cap-grid layer."""
     banner("nac — NAC mosaic → cap-grid tile layer")
-    require_input(p.nac_mosaic, "NAC mosaic raster", "--nac-mosaic")
+    require_input(p.nac_mosaic, "NAC mosaic raster", "--in-nac")
     tile_raster_to_layer(
         p,
         p.nac_mosaic,
@@ -218,7 +218,7 @@ def slope_ramp(p: config.PipelinePaths, scratch: Path) -> Path:
 def step_slope(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Slope float raster → colorize (lyrx ramp) → tile to one cap-grid layer."""
     banner("slope — slope float → colorize → cap-grid tile layer")
-    require_input(p.slope_in, "slope raster", "--slope")
+    require_input(p.slope_in, "slope raster", "--in-slope")
     if not clear_layer_dir(p.slope_layer, args.overwrite):
         return
 
@@ -265,20 +265,20 @@ def _cog_layer_needs_build(layer_dir: Path, name: str, overwrite: bool) -> bool:
 def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Derive standardized products from the DEM → colorize → tile or COG (one layer each).
 
-    Which products to build comes from ``--products`` (default ``config.PRODUCTS_DEFAULT`` =
-    hillshade/aspect/tri; pass ``--products hillshade slope aspect tri`` to also derive slope
+    Which products to build comes from ``--dem-products`` (default ``config.PRODUCTS_DEFAULT`` =
+    hillshade/aspect/tri; pass ``--dem-products hillshade slope aspect tri`` to also derive slope
     from the DEM when no GIS-delivered slope raster is available). The TRI colour ramp is
     chosen to match ``--dem-resolution`` so its legend bins are correct.
 
-    With ``--products-as-cog`` the colorized rasters are converted to Cloud-Optimised GeoTIFFs
+    With ``--dem-products-as-cog`` the colorized rasters are converted to Cloud-Optimised GeoTIFFs
     in ``Layers/<name>/<name>_cog.tif`` instead of being tiled — OL renders them directly via HTTP
     Range with no tile pyramid.
     """
-    products = args.products or config.PRODUCTS_DEFAULT
-    as_cog = getattr(args, "products_as_cog", False)
+    products = args.dem_products or config.PRODUCTS_DEFAULT
+    as_cog = args.dem_products_as_cog
     output_kind = "COG" if as_cog else "cap-grid tile layers"
     banner(f"products — DEM → {'/'.join(products)} → {output_kind}")
-    require_input(p.dem_in, "DEM GeoTIFF", "--dem")
+    require_input(p.dem_in, "DEM GeoTIFF", "--in-dem")
 
     layer_name = {
         "hillshade": config.OUT_HILLSHADE_LAYER_NAME,
@@ -388,7 +388,7 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 def step_vector(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Landing-ellipse shapefile → GeoJSON (EPSG:4326)."""
     banner("vector — ellipse shapefile → GeoJSON")
-    require_input(p.ellipse_shp, "ellipse shapefile", "--ellipse")
+    require_input(p.ellipse_shp, "ellipse shapefile", "--in-ellipse")
     p.data.mkdir(parents=True, exist_ok=True)
     run([PYTHON, SHP_TO_GEOJSON, p.ellipse_shp, p.ellipse_out, "--to-epsg", "4326"])
 
@@ -396,9 +396,9 @@ def step_vector(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 def step_rasters(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Custom raster layers (--raster) → one cap-grid tile layer each (Layers/<stem>)."""
     banner("rasters — custom rasters → cap-grid tile layers")
-    for raster in args.raster:
+    for raster in args.in_raster:
         raster = Path(raster)
-        require_input(raster, "custom raster", "--raster")
+        require_input(raster, "custom raster", "--in-raster")
         layer_dir = p.layer_path(raster.stem)
         tee(f"\n  raster: {raster}  → {layer_dir}")
         tile_raster_to_layer(
@@ -410,9 +410,9 @@ def step_vectors(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Custom vector layers (--vector) → GeoJSON in Data/ (shp converted, geojson copied)."""
     banner("vectors — custom vectors → GeoJSON in Data/")
     p.data.mkdir(parents=True, exist_ok=True)
-    for vector in args.vector:
+    for vector in args.in_vector:
         vector = Path(vector)
-        require_input(vector, "custom vector", "--vector")
+        require_input(vector, "custom vector", "--in-vector")
         out = p.data / f"{vector.stem}.geojson"
         suffix = vector.suffix.lower()
         if suffix == ".shp":
@@ -490,7 +490,7 @@ def _pmtiles_name(cache_dir: Path) -> str:
 
 
 def step_vectortiles(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """ArcGIS vector-tile caches (--vector-tile-cache) → one Layers/<name>/<name>.pmtiles each.
+    """ArcGIS vector-tile caches (--in-esri-vector-tiles) → one Layers/<name>/<name>.pmtiles each.
 
     Each archive lands inside its own folder under Layers/ so it is managed exactly like a raster
     tile-layer folder (upload/rename/delete as a unit). AEGIS resolves the "vector-tile" sublayer's
@@ -501,12 +501,12 @@ def step_vectortiles(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         "vectortiles — ArcGIS vector-tile cache → PMTiles (Layers/<name>/<name>.pmtiles)"
     )
     p.layers.mkdir(parents=True, exist_ok=True)
-    for cache in args.vector_tile_cache:
+    for cache in args.in_esri_vector_tiles:
         cache = Path(cache)
         require_input(
             cache / "root.json",
             "ArcGIS vector-tile cache (root.json)",
-            "--vector-tile-cache",
+            "--in-esri-vector-tiles",
         )
         name = p.layer_name(_pmtiles_name(cache))
         layer_dir = p.layers / name
@@ -567,8 +567,8 @@ def _build_contour_layer(
         "--dem-resolution",
         str(args.dem_resolution),
     ]
-    if args.contour_maxzoom is not None:
-        cmd += ["--maxzoom", str(args.contour_maxzoom)]
+    if args.contours_maxzoom is not None:
+        cmd += ["--maxzoom", str(args.contours_maxzoom)]
     if exclude_multiple_of:
         cmd += ["--exclude-multiple-of", str(exclude_multiple_of)]
     run(cmd)
@@ -582,18 +582,18 @@ def step_contours(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """DEM → major + minor contour PMTiles (Layers/contours_<interval>m/<name>.pmtiles each).
 
     Two sublayers are produced so majors/minors can be styled independently in AEGIS: a coarse
-    ``--major-interval`` set and a fine ``--minor-interval`` set (which excludes the major lines
+    ``--contours-major`` set and a fine ``--contours-minor`` set (which excludes the major lines
     so coincident intervals aren't double-drawn). Each carries an ``elev`` attribute that the
     OpenLayers vector-tile style function renders as an elevation label.
     """
     banner(
         "contours — DEM → major/minor contour PMTiles (Layers/contours_<interval>m/)"
     )
-    require_input(p.dem_in, "DEM GeoTIFF", "--dem")
+    require_input(p.dem_in, "DEM GeoTIFF", "--in-dem")
     p.layers.mkdir(parents=True, exist_ok=True)
 
-    major = args.major_interval
-    minor = args.minor_interval
+    major = args.contours_major
+    minor = args.contours_minor
     if major and major > 0:
         _build_contour_layer(p, args, major, "major", exclude_multiple_of=None)
     if minor and minor > 0 and minor != major:
@@ -602,7 +602,7 @@ def step_contours(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 
 
 def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """Custom rasters (--cog) → one Cloud-Optimised GeoTIFF each in Layers/<stem>/<stem>_cog.tif.
+    """Custom rasters (--in-cog) → one Cloud-Optimised GeoTIFF each in Layers/<stem>/<stem>_cog.tif.
 
     Additive OpenLayers-first output: OL renders a COG directly (WebGLTile + GeoTIFF over HTTP
     Range) with no tile pyramid. Each COG lands inside its own Layers/ folder so it is managed like
@@ -613,9 +613,9 @@ def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         "cogs — custom rasters → Cloud-Optimised GeoTIFF (Layers/<stem>/<stem>_cog.tif)"
     )
     p.layers.mkdir(parents=True, exist_ok=True)
-    for raster in args.cog:
+    for raster in args.in_cog:
         raster = Path(raster)
-        require_input(raster, "COG source raster", "--cog")
+        require_input(raster, "COG source raster", "--in-cog")
         layer_dir = p.layer_path(raster.stem)
         out_cog = layer_dir / config.cog_layer_filename(raster.stem)
         if out_cog.exists() and not args.overwrite:
@@ -633,8 +633,8 @@ def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             "--compress",
             config.COG_COMPRESS,
         ]
-        if args.cog_nodata is not None:
-            cmd += ["--nodata", str(args.cog_nodata)]
+        if args.in_cog_nodata is not None:
+            cmd += ["--nodata", str(args.in_cog_nodata)]
         run(cmd)
 
 
@@ -657,8 +657,8 @@ def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         sys.exit(1)
 
     # demFilePath reflects the actual COG in Data/ (keeps the source filename). With
-    # --no-mission-dem the DEM is products-only, so leave demFilePath/demResolution untouched.
-    if args.no_mission_dem:
+    # --dem-products-only the DEM is products-only, so leave demFilePath/demResolution untouched.
+    if args.dem_products_only:
         dem_rel = None
         dem_resolution = None
     else:
@@ -666,7 +666,7 @@ def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         dem_rel = f"{config.OUT_DATA_DIRNAME}/{dem_file.name}" if dem_file else None
         dem_resolution = args.dem_resolution
     mission_fields = None
-    if not args.no_mission_fields:
+    if not args.register_no_mission_fields:
         mission_fields = build_mission_fields(
             name=args.mission_name,
             lander_lat=args.lander_lat,
@@ -675,7 +675,9 @@ def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             dem_resolution=dem_resolution,
         )
 
-    grid_geojson = None if args.no_grid else (p.out / config.OUT_GRID_SOURCE_NAME)
+    grid_geojson = (
+        None if args.register_no_grid else (p.out / config.OUT_GRID_SOURCE_NAME)
+    )
 
     client = AegisApiClient(args.aegis_url, token)
     register_mission(
@@ -683,7 +685,7 @@ def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         mission_id=args.mission_id,
         out_dir=p.out,
         mission_fields=mission_fields,
-        include_external_nac=not args.no_external_nac,
+        include_external_nac=not args.register_no_external_nac,
         grid_geojson=grid_geojson,
         dry_run=args.dry_run,
     )
@@ -720,19 +722,19 @@ STEPS: list[tuple[str, str]] = [
     ("slope", "Slope float → colorize → tile to one cap-grid layer"),
     (
         "products",
-        "DEM → hillshade/aspect/tri → colorize → tile or COG (one layer each; --products-as-cog for COG)",
+        "DEM → hillshade/aspect/tri → colorize → tile or COG (one layer each; --dem-products-as-cog for COG)",
     ),
     ("vector", "Landing-ellipse shapefile → GeoJSON"),
-    ("rasters", "Custom rasters (--raster) → tile to one cap-grid layer each"),
-    ("vectors", "Custom vectors (--vector, shp/geojson) → GeoJSON in Data/"),
+    ("rasters", "Custom rasters (--in-raster) → tile to one cap-grid layer each"),
+    ("vectors", "Custom vectors (--in-vector, shp/geojson) → GeoJSON in Data/"),
     (
         "vectortiles",
-        "ArcGIS vector-tile caches (--vector-tile-cache) → Layers/<name>/<name>.pmtiles",
+        "ArcGIS vector-tile caches (--in-esri-vector-tiles) → Layers/<name>/<name>.pmtiles",
     ),
     ("contours", "DEM → major/minor contour PMTiles (Layers/contours_<interval>m)"),
     (
         "cogs",
-        "Custom rasters (--cog) → Cloud-Optimised GeoTIFF in Layers/<stem>/<stem>_cog.tif",
+        "Custom rasters (--in-cog) → Cloud-Optimised GeoTIFF in Layers/<stem>/<stem>_cog.tif",
     ),
     ("grid", "Lander location → LGRS mission grid GeoJSON (default 10km)"),
     (
@@ -785,23 +787,23 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
     """
     chosen = ["stage"]
     if p.dem_in.exists():
-        # --no-mission-dem: derive products from the DEM but don't emit the mission DEM COG.
-        chosen += ["products"] if args.no_mission_dem else ["dem", "products"]
+        # --dem-products-only: derive products from the DEM but don't emit the mission DEM COG.
+        chosen += ["products"] if args.dem_products_only else ["dem", "products"]
     if p.nac_mosaic.exists():
         chosen.append("nac")
     if p.slope_in.exists():
         chosen.append("slope")
     if p.ellipse_shp.exists():
         chosen.append("vector")
-    if args.raster:
+    if args.in_raster:
         chosen.append("rasters")
-    if args.vector:
+    if args.in_vector:
         chosen.append("vectors")
-    if args.vector_tile_cache:
+    if args.in_esri_vector_tiles:
         chosen.append("vectortiles")
     if args.contours and p.dem_in.exists():
         chosen.append("contours")
-    if args.cog:
+    if args.in_cog:
         chosen.append("cogs")
     if (
         getattr(args, "grid", False)

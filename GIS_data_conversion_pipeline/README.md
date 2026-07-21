@@ -30,7 +30,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py --list           # show th
 pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --src <drop> --products hillshade slope aspect tri --register --box
+    --in-root <drop> --dem-products hillshade slope aspect tri --register --box
 ```
 
 #### Selecting which steps run
@@ -53,42 +53,42 @@ lander location is given), plus `register`/`box` when `--register`/`--box` are p
 
 #### Specifying source & destination paths
 
-Output goes to `<static>/missionFiles/<mission-id>/` by default (override with `--out`); each
-step reads a specific input under `--src` that you can override individually. Outputs land in
+Output goes to `<static>/missionFiles/<mission-id>/` by default (override with `--out-dir`); each
+step reads a specific input under `--in-root` that you can override individually. Outputs land in
 `<out>/Data/` (DEM, vectors, grid coords, conversion report) and `<out>/Layers/` (tile layers).
 
-| Step       | Source flag (overrides the `--src` default)          | Destination (under `--out`)                     |
+| Step       | Source flag (overrides the `--in-root` default)          | Destination (under `--out-dir`)                     |
 | ---------- | ---------------------------------------------------- | ----------------------------------------------- |
-| `dem`      | `--dem <dem.tif>`                                    | `Data/<source>_deflate_cog.tif` (keeps source name) |
-| `nac`      | `--nac-mosaic <mosaic.tif>` _(delivered separately)_ | `Layers/nac/`                                   |
-| `slope`    | `--slope <slope.tif>` + `--lyrx <ramp.lyrx>`         | `Layers/slope/`                                 |
-| `products` | `--dem` + `--products hillshade slope aspect tri`    | `Layers/{hillshade,slope,aspect,tri}/`          |
-| `vector`   | `--ellipse <ellipse.shp>`                            | `Data/ellipse.geojson`                          |
-| `rasters`  | `--raster <path>` (repeatable)                       | `Layers/<stem>/` each                           |
-| `vectors`  | `--vector <path>` (repeatable, shp/geojson)          | `Data/<stem>.geojson` each                      |
+| `dem`      | `--in-dem <dem.tif>`                                    | `Data/<source>_deflate_cog.tif` (keeps source name) |
+| `nac`      | `--in-nac <mosaic.tif>` _(delivered separately)_ | `Layers/nac/`                                   |
+| `slope`    | `--in-slope <slope.tif>` + `--in-lyrx <ramp.lyrx>`         | `Layers/slope/`                                 |
+| `products` | `--in-dem` + `--dem-products hillshade slope aspect tri`    | `Layers/{hillshade,slope,aspect,tri}/`          |
+| `vector`   | `--in-ellipse <ellipse.shp>`                            | `Data/ellipse.geojson`                          |
+| `rasters`  | `--in-raster <path>` (repeatable)                       | `Layers/<stem>/` each                           |
+| `vectors`  | `--in-vector <path>` (repeatable, shp/geojson)          | `Data/<stem>.geojson` each                      |
 | `grid`     | `--lander-lat/--lander-lng` (`--grid-extent 10km`)   | `grid_source.geojson`                           |
 | `register` | `--mission-id` (+ `--aegis-url`/`--token`)           | mission fields + layers/sublayers + active grid |
 | `box`      | `--mission-name`                                     | zips → Box `<mission name>/{Data,Layers}/`      |
 
-Omit a source flag and the step uses its default path under `--src` (the A03MP026 layout).
-A GIS-delivered `.lyrx` passed with `--lyrx` is used **instead of** the built-in colour ramp
+Omit a source flag and the step uses its default path under `--in-root` (the A03MP026 layout).
+A GIS-delivered `.lyrx` passed with `--in-lyrx` is used **instead of** the built-in colour ramp
 (see the pipeline README). Every tile layer also gets a `properties.json` legend.
 
-Use **`--products-prefix <PREFIX>`** to namespace every generated layer folder **and** its
-AEGIS layer name (e.g. `--products-prefix LOLA` → `Layers/LOLA_hillshade`, layer name
+Use **`--layer-prefix <PREFIX>`** to namespace every generated layer folder **and** its
+AEGIS layer name (e.g. `--layer-prefix LOLA` → `Layers/LOLA_hillshade`, layer name
 `"LOLA_hillshade"`). This lets you run multiple DEMs into the **same** mission without one
 run clobbering another's layer folders. It affects only `Layers/` outputs; `Data/` products
 (DEM COG, grid, vectors) are mission-level and stay unprefixed. Pair it with
-**`--no-mission-dem`** when the extra DEM is _products-only_: that skips the `dem` step (no
+**`--dem-products-only`** when the extra DEM is _products-only_: that skips the `dem` step (no
 `Data/` COG) and leaves the mission's `demFilePath`/`demResolution` untouched on register, so
 the supplementary DEM contributes layers only — not a new mission DEM.
 
 ```bash
 # Add a second (LOLA) DEM's products/contours to mission 50 alongside an existing DEM's:
 pixi run python esri-to-aegis-lunar-southpole/main.py \
-    --mission-id 50 --mission-name "..." --products-prefix LOLA --no-mission-dem \
-    --dem F:/drop/LDEM_83S_10MPP_ADJ.TIF --dem-resolution 10 \
-    --products hillshade slope aspect tri --contours \
+    --mission-id 50 --mission-name "..." --layer-prefix LOLA --dem-products-only \
+    --in-dem F:/drop/LDEM_83S_10MPP_ADJ.TIF --dem-resolution 10 \
+    --dem-products hillshade slope aspect tri --contours \
     --steps products contours register box --overwrite
 # -> Layers/LOLA_hillshade, LOLA_slope, LOLA_aspect, LOLA_tri, LOLA_contours_100m, LOLA_contours_20m
 ```
@@ -98,14 +98,14 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 pixi run python esri-to-aegis-lunar-southpole/main.py \
     --aegis-url https://aegis.fit.nasa.gov --mission-id <PROD_ID> \
     --mission-name "..." --lander-lat .. --lander-lng .. \
-    --out <static>/missionFiles/<LOCAL_ID> --token <PROD_TOKEN> --steps register
+    --out-dir <static>/missionFiles/<LOCAL_ID> --token <PROD_TOKEN> --steps register
 
 pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --summary   # print AEGIS values
 ```
 
 #### Standalone converters (inputs not part of the ESRI drop)
 
-These take positional `input` / `output` paths directly (no `--src`/`--out`):
+These take positional `input` / `output` paths directly (no `--in-root`/`--out-dir`):
 
 - [`grid/generate_lgrs.py`](esri-to-aegis-lunar-southpole/grid/) — generate the raw LGRS grid
   for a landing site (USGS `lgrs` package; replaces the manual ESRI export).

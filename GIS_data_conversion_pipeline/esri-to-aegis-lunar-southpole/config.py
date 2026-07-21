@@ -12,13 +12,13 @@ Two things live in this file:
    never drift apart) and printed by ``main.py --summary``. This pipeline targets
    the lunar south pole only; there is intentionally no Earth/Web-Mercator profile.
 
-2. **Path resolution** — :func:`resolve_paths` turns an input root (``--src``) and
-   an output root (``--out``) into the concrete input/output file paths. There are
+2. **Path resolution** — :func:`resolve_paths` turns an input root (``--in-root``) and
+   an output root (``--out-dir``) into the concrete input/output file paths. There are
    **no mission numbers** anywhere; the output root *is* the per-environment knob.
 
 The default input layout matches the A03MP026 (Mons Mouton Plateau) data drop, but
 every input can be overridden on the command line, so a different drop only needs
-different ``--src`` / per-input flags.
+different ``--in-root`` / per-input flags.
 """
 
 from __future__ import annotations
@@ -72,15 +72,15 @@ CAP_SRS = (
 DEFAULT_LANDER_LAT = -84.223397
 DEFAULT_LANDER_LNG = 33.5021945
 
-# Default input root (the unpacked GIS data drop). Override with --src.
+# Default input root (the unpacked GIS data drop). Override with --in-root.
 DEFAULT_SRC = Path("F:/_repos/aegis_static/MS3")
 
-# Input file paths relative to --src (A03MP026 layout). Override per-input on the CLI.
+# Input file paths relative to --in-root (A03MP026 layout). Override per-input on the CLI.
 REL_DEM = Path("A03MP026/SFS_1mpp_DEM/mp2-sfs-dem_MoonSP_COG.tif")
 REL_SLOPE = Path("A03MP026/Slope/SiteUD1_final_adj_5mpp_slp.tif")
 REL_LYRX = Path("A03MP026/Slope/AMPES_Slope 1.lyrx")  # slope colour standard
 REL_ELLIPSE = Path("A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp")
-# Single NAC mosaic delivered by the GIS team. No fixed name yet — pass --nac-mosaic.
+# Single NAC mosaic delivered by the GIS team. No fixed name yet — pass --in-nac.
 REL_NAC_MOSAIC = Path("A03MP026_NAC_mosaic/nac_mosaic.tif")
 # Per-frame NAC ortho directory — used ONLY by the preserved example under nac/examples/.
 REL_NAC_FRAMES = Path("A03MP026_SFS_1mpp_orthoimages")
@@ -292,7 +292,7 @@ def resolve_paths(
     defaults to :data:`DEFAULT_SRC`. Any individual input may be overridden; an
     override that is absolute is used as-is, otherwise it is resolved under ``src``.
 
-    ``layer_prefix`` (from ``--products-prefix``) namespaces every generated layer
+    ``layer_prefix`` (from ``--layer-prefix``) namespaces every generated layer
     folder and its AEGIS layer name (e.g. ``LOLA`` → ``Layers/LOLA_hillshade``), so
     multiple DEM runs can coexist in one mission.
     """

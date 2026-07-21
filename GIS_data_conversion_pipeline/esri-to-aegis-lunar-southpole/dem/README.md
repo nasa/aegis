@@ -16,5 +16,5 @@ pixi run python ../common/geotiff_to_cog.py <dem_in>.tif --compress deflate -o <
 ```
 
 For the A03MP026 drop the input is `A03MP026/SFS_1mpp_DEM/mp2-sfs-dem_MoonSP_COG.tif`
-at 1 m/px (`demResolution = 1.0`). Override the input with `main.py --dem <path>`. The
+at 1 m/px (`demResolution = 1.0`). Override the input with `main.py --in-dem <path>`. The
 `register` step sets `demFilePath` to the actual file written under `Data/`.

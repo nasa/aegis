@@ -6,10 +6,10 @@ Turns a GIS data drop into AEGIS-ready map products for a **lunar south-pole** m
 - PNG/TMS raster tile layers on the shared cap grid (origin `-931100`,
   `projResUnitsPerPixel = 12800`), each cut to its **own native resolution** (independent
   per-layer pyramid — no shared z13 clamp), with a **projected-metre** `<BoundingBox>`.
-- **COG** raster sublayers (`--cog`) — a self-describing Cloud-Optimised GeoTIFF OpenLayers
+- **COG** raster sublayers (`--in-cog`) — a self-describing Cloud-Optimised GeoTIFF OpenLayers
   renders directly, emitted as its own `Layers/<stem>/<stem>.tif` folder (type inferred from the
   `.tif`; no `isCog` flag).
-- **PMTiles** vector-tile layers (`--vector-tile-cache`) — a delivered ArcGIS vector-tile cache
+- **PMTiles** vector-tile layers (`--in-esri-vector-tiles`) — a delivered ArcGIS vector-tile cache
   packed into one `Layers/<name>/<name>.pmtiles` folder (registered as a `"vector-tile"` sublayer).
 - **Contour** vector-tile layers (`--contours`) — elevation contours generated from the DEM
   (`gdal_contour` → MVT tiled on the cap grid → PMTiles), emitted as two independently-styleable
@@ -40,13 +40,13 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **dem**         | DEM GeoTIFF                                                  | `Data/<source>_deflate_cog.tif` (COG)     | re-emit as clean COG (keeps source name)                                    |
 | **nac**         | single NAC mosaic raster (from GIS team)                     | `Layers/nac/` tile pyramid                | stretch (if float) → tile                                                   |
 | **slope**       | slope float raster (°) + `.lyrx` ramp                        | `Layers/slope/` tile pyramid              | colorize → tile                                                             |
-| **products**    | the DEM (`--dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/`  | derive from DEM → colorize → tile (`--products`)                            |
+| **products**    | the DEM (`--in-dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/`  | derive from DEM → colorize → tile (`--dem-products`)                            |
 | **vector**      | landing-ellipse shapefile                                    | `Data/ellipse.geojson`                    | reproject to EPSG:4326                                                      |
-| **rasters**     | custom rasters (`--raster`, repeatable)                      | `Layers/<stem>/` tile pyramid each        | stretch (if float) → tile                                                   |
-| **vectors**     | custom vectors (`--vector`, repeatable)                      | `Data/<stem>.geojson` each                | shp → reproject; geojson copied                                             |
-| **vectortiles** | ArcGIS vector-tile cache (`--vector-tile-cache`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
+| **rasters**     | custom rasters (`--in-raster`, repeatable)                      | `Layers/<stem>/` tile pyramid each        | stretch (if float) → tile                                                   |
+| **vectors**     | custom vectors (`--in-vector`, repeatable)                      | `Data/<stem>.geojson` each                | shp → reproject; geojson copied                                             |
+| **vectortiles** | ArcGIS vector-tile cache (`--in-esri-vector-tiles`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
 | **contours**    | the DEM (`--contours`)                                       | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
-| **cogs**        | custom rasters (`--cog`, repeatable)                         | `Layers/<stem>/<stem>_cog.tif` each       | GeoTIFF → COG (deflate; type inferred from `.tif`)                          |
+| **cogs**        | custom rasters (`--in-cog`, repeatable)                         | `Layers/<stem>/<stem>_cog.tif` each       | GeoTIFF → COG (deflate; type inferred from `.tif`)                          |
 | **grid**        | `--grid` + lander `--lander-lat/--lander-lng`                | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
 | **register**    | the built `<out>` + `--mission-id`                           | mission fields + sublayers + active grid  | POST fields + layers/sublayers + grid                                       |
 | **box**         | the built `<out>` + `--mission-name`                         | zips uploaded to Box (parallel)           | zip `Data/` + each layer → upload                                           |
@@ -75,7 +75,7 @@ are present (default), or pick explicitly with `--steps`. Each run writes a
 
 ```text
 esri-to-aegis-lunar-southpole/
-├── main.py            # thin CLI runner (--mission-id / --src / --steps / --register / --box)
+├── main.py            # thin CLI runner (--mission-id / --in-root / --steps / --register / --box)
 ├── pipeline/          # runner internals: reporting (output capture), steps, summary
 ├── config.py          # cap-grid profile + path resolution + header/external-NAC constants
 ├── aegis_api.py       # stdlib HTTP client for the AEGIS REST API (mission/layer/sublayer/grid)
@@ -137,9 +137,9 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --aegis-url http://localhost:4000 \
     --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --dem F:/drop/dem.tif --products hillshade slope aspect tri \
-    --nac-mosaic F:/drop/nac_mosaic.tif \
-    --raster F:/drop/keepout.tif --vector F:/drop/stations.shp \
+    --in-dem F:/drop/dem.tif --dem-products hillshade slope aspect tri \
+    --in-nac F:/drop/nac_mosaic.tif \
+    --in-raster F:/drop/keepout.tif --in-vector F:/drop/stations.shp \
     --grid --register --box
 
 # DEM-only mission (A03MP026 MS3): derive all four products from the DEM + LGRS grid.
@@ -147,8 +147,8 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --src F:/tempF/MS3_data_drop \
-    --products hillshade slope aspect tri \
+    --in-root F:/tempF/MS3_data_drop \
+    --dem-products hillshade slope aspect tri \
     --grid --grid-extent 10km --grid-precision 100 \
     --register --box
 
@@ -172,7 +172,7 @@ them, and only afterwards register the mission and/or upload to Box — without 
 `--steps` selects exactly which steps run and **overrides** the `--register`/`--box` gating,
 so a publish-only run is just `--steps register` or `--steps box` (don't also pass
 `--register`/`--box`). Both reuse the already-built output folder — by default
-`<static>/missionFiles/<mission-id>`; if your build lives elsewhere, point at it with `--out`.
+`<static>/missionFiles/<mission-id>`; if your build lives elsewhere, point at it with `--out-dir`.
 
 ```bash
 cd GIS_data_conversion_pipeline
@@ -182,8 +182,8 @@ cd GIS_data_conversion_pipeline
 pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --dem F:/drop/dem.tif --nac-mosaic F:/drop/nac_mosaic.tif \
-    --products hillshade slope aspect tri --grid
+    --in-dem F:/drop/dem.tif --in-nac F:/drop/nac_mosaic.tif \
+    --dem-products hillshade slope aspect tri --grid
 
 # 2a. Register ONLY (mission fields + header layers + sublayers + active grid).
 #     Reads the built folder; needs --mission-id + an EMSS token (--token or .env).
@@ -192,7 +192,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --aegis-url http://localhost:4000 --mission-id 123 \
     --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --steps register            # add --dry-run to preview; --no-mission-fields to skip GIS fields
+    --steps register            # add --dry-run to preview; --register-no-mission-fields to skip GIS fields
 
 # 2b. Box upload ONLY (zip Data/ + each layer → Box). Needs --mission-name (the Box
 #     folder); no AEGIS URL/token required. --dry-run lists the zips without uploading.
@@ -200,9 +200,9 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --steps box                 # add --dry-run to preview; --box-workers N to parallelise
 
-# If the local build is not at the default folder, point either at it with --out:
+# If the local build is not at the default folder, point either at it with --out-dir:
 pixi run python esri-to-aegis-lunar-southpole/main.py \
-    --mission-id 123 --steps register --out F:/_repos/aegis_static/missionFiles/123
+    --mission-id 123 --steps register --out-dir F:/_repos/aegis_static/missionFiles/123
 ```
 
 > Re-running `register` is safe — it skips `(header, path)` sublayer pairs that already
@@ -211,18 +211,18 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 
 Steps: `0 stage · 1 dem · 2 nac · 3 slope · 4 products · 5 vector · 6 rasters · 7 vectors ·
 8 vectortiles · 9 contours · 10 cogs · 11 grid · 12 register · 13 box`. By default the pipeline
-runs only the steps whose inputs are present — `vectortiles` runs when `--vector-tile-cache` is
-given, `contours` when `--contours` is given (needs `--dem`), `cogs`
-when `--cog` is given, `grid` when `--grid` is passed (needs `--lander-lat`/`--lander-lng`), and
+runs only the steps whose inputs are present — `vectortiles` runs when `--in-esri-vector-tiles` is
+given, `contours` when `--contours` is given (needs `--in-dem`), `cogs`
+when `--in-cog` is given, `grid` when `--grid` is passed (needs `--lander-lat`/`--lander-lng`), and
 `register`/`box` when `--register`/`--box` are passed; `--steps` overrides this.
-Inputs default to the A03MP026 layout under `--src`; override any with `--dem`, `--slope`,
-`--lyrx`, `--ellipse`, `--nac-mosaic`, `--raster`, `--vector`. Use `--out` to override the
+Inputs default to the A03MP026 layout under `--in-root`; override any with `--in-dem`, `--in-slope`,
+`--in-lyrx`, `--in-ellipse`, `--in-nac`, `--in-raster`, `--in-vector`. Use `--out-dir` to override the
 default `<static>/missionFiles/<id>` output root. The EMSS token is read from the repo
 `.env` (`EMSS_TOKEN`) unless `--token` is passed.
 
-**Namespacing layers (`--products-prefix`).** Pass `--products-prefix <PREFIX>` to prepend
+**Namespacing layers (`--layer-prefix`).** Pass `--layer-prefix <PREFIX>` to prepend
 `<PREFIX>_` to every generated **layer folder** and its **AEGIS layer name** — e.g.
-`--products-prefix LOLA` yields `Layers/LOLA_hillshade/` (layer name `"LOLA_hillshade"`),
+`--layer-prefix LOLA` yields `Layers/LOLA_hillshade/` (layer name `"LOLA_hillshade"`),
 `Layers/LOLA_slope/`, `Layers/LOLA_nac/`, `Layers/LOLA_contours_100m/`, and contour display
 names like `"LOLA Contours (100 m)"`. This lets you process **multiple DEMs into one mission**
 without a later run overwriting an earlier run's layer folders. Only `Layers/` outputs are
@@ -234,51 +234,51 @@ folders under `Layers/`, so the prefixed folders are picked up (and named) autom
 # Add a LOLA DEM's products + contours to an existing mission 50 (keeps the first DEM's layers):
 pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id 50 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
-    --products-prefix LOLA --no-mission-dem \
-    --dem F:/drop/LDEM_83S_10MPP_ADJ.TIF --dem-resolution 10 \
-    --products hillshade slope aspect tri --contours \
+    --layer-prefix LOLA --dem-products-only \
+    --in-dem F:/drop/LDEM_83S_10MPP_ADJ.TIF --dem-resolution 10 \
+    --dem-products hillshade slope aspect tri --contours \
     --steps products contours register box --overwrite
 # -> Layers/LOLA_{hillshade,slope,aspect,tri}, Layers/LOLA_contours_{100,20}m
 ```
 
-**Products-only DEM (`--no-mission-dem`).** By default the `dem` step re-emits the `--dem`
+**Products-only DEM (`--dem-products-only`).** By default the `dem` step re-emits the `--in-dem`
 input as the mission's DEM COG (`Data/<source>_deflate_cog.tif` → `demFilePath`), and `register`
 sets `demFilePath`/`demResolution` on the mission. When you feed a **supplementary** DEM
 just to derive extra products/contours for a mission that already has its primary DEM, pass
-`--no-mission-dem`: it **skips the `dem` step** (no `Data/` COG is written) and leaves
+`--dem-products-only`: it **skips the `dem` step** (no `Data/` COG is written) and leaves
 `demFilePath`/`demResolution` **untouched** on register. `--dem-resolution` is still honoured
-for product processing (TRI ramp, contour zoom). Typically combined with `--products-prefix`
+for product processing (TRI ramp, contour zoom). Typically combined with `--layer-prefix`
 so the supplementary layers don't collide with the primary DEM's — as in the example above.
 
 **DEM-derived products.** The `products` step defaults to **hillshade, aspect, tri**; the
 dedicated `slope` step is preferred when a GIS-delivered slope raster + `.lyrx` exist. When
 the **only** input is a DEM (e.g. the A03MP026 MS3 drop), derive all four straight from the
-DEM with `--products hillshade slope aspect tri`. The **TRI** colour ramp is
+DEM with `--dem-products hillshade slope aspect tri`. The **TRI** colour ramp is
 resolution-dependent — the step auto-selects
 `default_color_ramps/ARCHIVE/TRIColors_{1m,5m,10m}_DEM.txt` to match `--dem-resolution`
 (falling back to the legacy `tri.txt`), so set `--dem-resolution` to your DEM's m/px.
 
-**COG products (`--products-as-cog`).** By default each product is tiled into a PNG/TMS
-pyramid. Pass `--products-as-cog` to emit each colorized product as a
+**COG products (`--dem-products-as-cog`).** By default each product is tiled into a PNG/TMS
+pyramid. Pass `--dem-products-as-cog` to emit each colorized product as a
 Cloud-Optimised GeoTIFF in `Layers/<name>/<name>.tif` instead — OL renders it directly via
 HTTP Range with no tile pyramid. The register step detects COGs automatically (the `.tif`
 extension in `Layers/`). Use this when you want to skip the tiling step (much faster, no
 zoom-level pyramid to manage) and the app client supports COG rendering for that product type.
 
 **Provided symbology (`.lyrx`).** When the GIS team delivers product symbology as an ArcGIS
-`.lyrx` (e.g. `AMPES_Slope 1.lyrx`), pass it with `--lyrx` and the `products`/`slope` steps
+`.lyrx` (e.g. `AMPES_Slope 1.lyrx`), pass it with `--in-lyrx` and the `products`/`slope` steps
 use it **instead of** the built-in `default_color_ramps/` ramp — for both the colorize and the
 AEGIS legend. `products/lyrx_to_ramp.py` converts the `.lyrx` to a `gdaldem color-relief` ramp
 (it can also be run standalone, or fed to `dem_products.py` via `--slope-lyrx`/`--aspect-lyrx`/
 `--tri-lyrx`). The `default_color_ramps/` are only the fallback when no `.lyrx` is provided.
 
-### Inputs (defaults, relative to `--src`)
+### Inputs (defaults, relative to `--in-root`)
 
 ```text
 A03MP026/SFS_1mpp_DEM/mp2-sfs-dem_MoonSP_COG.tif   # dem
 A03MP026/Slope/SiteUD1_final_adj_5mpp_slp.tif      # slope (+ AMPES_Slope 1.lyrx)
 A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
-<delivered separately>                             # nac mosaic → pass --nac-mosaic
+<delivered separately>                             # nac mosaic → pass --in-nac
 ```
 
 ### Outputs (under `<static>/missionFiles/<id>`)
@@ -297,14 +297,14 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
     ├── hillshade/                # tile sublayer  (no legend)
     ├── aspect/                   # tile sublayer  (+ properties.json with legend)
     ├── tri/                      # tile sublayer  (+ properties.json with legend)
-    ├── <name>/<name>.pmtiles     # vector-tile sublayer (if a --vector-tile-cache step ran)
-    └── <stem>/<stem>_cog.tif     # COG raster sublayer (if a --cog step ran; type inferred from .tif)
+    ├── <name>/<name>.pmtiles     # vector-tile sublayer (if a --in-esri-vector-tiles step ran)
+    └── <stem>/<stem>_cog.tif     # COG raster sublayer (if a --in-cog step ran; type inferred from .tif)
 ```
 
 Every produced sublayer is a **folder** under `Layers/`; AEGIS infers its type from the folder
 contents (`{z}/{x}/{y}` tiles → raster tile, `.pmtiles` → vector-tile, `.tif` → COG). Raster tile
 folders also contain a `tilemapresource.xml` (bbox + zoom) and a `properties.json`
-(name/description/legend), both auto-imported by the admin. With `--products-prefix LOLA` these
+(name/description/legend), both auto-imported by the admin. With `--layer-prefix LOLA` these
 folders (and their AEGIS layer names) become `LOLA_nac/`, `LOLA_slope/`, … so multiple DEM runs
 can share one mission. The mission DEM COG is the exception —
 it stays in `Data/` (keeping its source filename with a compression + `_cog` suffix, e.g.
@@ -365,17 +365,17 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --aegis-url http://localhost:4000 \
     --mission-id <LOCAL_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --dem F:/drop/dem.tif --nac-mosaic F:/drop/nac_mosaic.tif \
+    --in-dem F:/drop/dem.tif --in-nac F:/drop/nac_mosaic.tif \
     --grid --register --box
 ```
 
-To include a **vector-tile layer built from source**, add `--vector-tile-cache` pointing at a
+To include a **vector-tile layer built from source**, add `--in-esri-vector-tiles` pointing at a
 delivered ArcGIS Compact Cache V2 directory (the folder that contains `root.json` + `tile/`).
 The `vectortiles` step packs its bundles into a single `.pmtiles`, carrying the cache's
 `esri_tile_info` so OpenLayers renders it on the cap grid — no re-tiling. The layer folder name
 comes from the cache dir, falling back to its parent when the leaf is a generic level dir like
 `p12` (so `AggregatedContour/p12` → `Layers/AggregatedContour/AggregatedContour.pmtiles`).
-`--vector-tile-cache` is repeatable:
+`--in-esri-vector-tiles` is repeatable:
 
 ```bash
 cd GIS_data_conversion_pipeline
@@ -383,13 +383,13 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --aegis-url http://localhost:4000 \
     --mission-id <LOCAL_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --dem F:/drop/dem.tif --nac-mosaic F:/drop/nac_mosaic.tif \
-    --vector-tile-cache F:/drop/AggregatedContour/p12 \
+    --in-dem F:/drop/dem.tif --in-nac F:/drop/nac_mosaic.tif \
+    --in-esri-vector-tiles F:/drop/AggregatedContour/p12 \
     --grid --register --box
 ```
 
 To generate **elevation contours from the DEM** (no delivered cache needed), add `--contours`.
-The `contours` step runs `gdal_contour` on `--dem`, tiles the lines onto the cap grid as MVT, and
+The `contours` step runs `gdal_contour` on `--in-dem`, tiles the lines onto the cap grid as MVT, and
 packs two `.pmtiles` sublayers — a **major** and a **minor** set — so they can be styled
 independently in AEGIS. Intervals default to 100 m (major) / 20 m (minor); the minor set excludes
 the major lines. Each line is labelled with its elevation in metres in the map. Max zoom defaults
@@ -401,15 +401,15 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --aegis-url http://localhost:4000 \
     --mission-id <LOCAL_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --dem F:/drop/dem.tif --dem-resolution 1 \
-    --contours --major-interval 100 --minor-interval 20 \
+    --in-dem F:/drop/dem.tif --dem-resolution 1 \
+    --contours --contours-major 100 --contours-minor 20 \
     --grid --register --box
 # -> Layers/contours_100m/contours_100m.pmtiles  +  Layers/contours_20m/contours_20m.pmtiles
 
 # Contours only, into an existing build (rebuild the two layers):
 pixi run python esri-to-aegis-lunar-southpole/main.py \
-    --out F:/_repos/aegis_static/missionFiles/<LOCAL_ID> \
-    --dem F:/drop/dem.tif --steps contours --major-interval 100 --minor-interval 20 --overwrite
+    --out-dir F:/_repos/aegis_static/missionFiles/<LOCAL_ID> \
+    --in-dem F:/drop/dem.tif --steps contours --contours-major 100 --contours-minor 20 --overwrite
 ```
 
 **Step 2 — admin (manual):** create the mission on prod (note `<PROD_ID>`), download the
@@ -424,7 +424,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --aegis-url https://aegis.fit.nasa.gov \
     --mission-id <PROD_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --out F:/_repos/aegis_static/missionFiles/<LOCAL_ID> \
+    --out-dir F:/_repos/aegis_static/missionFiles/<LOCAL_ID> \
     --token <PROD_EMSS_TOKEN> --steps register --dry-run
 
 # run for real (drop --dry-run)
@@ -432,7 +432,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --aegis-url https://aegis.fit.nasa.gov \
     --mission-id <PROD_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --out F:/_repos/aegis_static/missionFiles/<LOCAL_ID> \
+    --out-dir F:/_repos/aegis_static/missionFiles/<LOCAL_ID> \
     --token <PROD_EMSS_TOKEN> --steps register
 ```
 
@@ -442,11 +442,11 @@ it skips `(header, path)` pairs that already exist.
 
 **Why it works across servers:** internal sublayer `path`s are folder-relative (e.g. `slope`, or
 `contours/contours.pmtiles`), and bbox/zoom/legend come from the built sidecars — none depend on the mission id.
-So the only prod-specific values are `--aegis-url`, `--token`, and `--mission-id`. `--out`
+So the only prod-specific values are `--aegis-url`, `--token`, and `--mission-id`. `--out-dir`
 points at the **local** build (whose id differs from prod's) so the script knows which layers
 to register; the `missionId` written into every payload is `<PROD_ID>`. (If you instead run
 the script _on_ the prod host after unzipping, `missionFiles/<PROD_ID>` already exists, so
-you can drop `--out`.)
+you can drop `--out-dir`.)
 
 Other AEGIS import targets produced by the standalone converters:
 
