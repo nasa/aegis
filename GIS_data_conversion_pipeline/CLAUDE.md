@@ -83,7 +83,10 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
 - **Mission grid GeoJSON**: top-level `row_total`/`column_total`/`name`/`crs` + Point features
   with `id, LGRS_ACC, L_coord, R_coord, row, column` (see `grid/convert_lgrs.py`).
 - **DEM** is registered as the mission `demFilePath`/`demResolution`, not a sublayer. The COG
-  keeps its source filename with a `_zstd` suffix (e.g. `Data/mp2-sfs-dem_MoonSP_COG_zstd.tif`).
+  keeps its source filename with a compression + `_cog` suffix (e.g.
+  `Data/mp2-sfs-dem_MoonSP_COG_deflate_cog.tif`). All generated COGs use **deflate**, never
+  **zstd** — geotiff.js/OpenLayers can't decode zstd (TIFF tag 50000), so a zstd COG is blank
+  in the browser.
 - **HTTP registration** (the `register` step, `register.py` + `aegis_api.py`) replaces admin
   clicking: `POST /api/v1/missionAutomerge/fields` (projection/DEM/lander/`actionSystemVersion=2`/
   `usingLGRSCoordinates=true`), `POST /api/v1/layer` (Common_LSP/Raster/Vector header layers),

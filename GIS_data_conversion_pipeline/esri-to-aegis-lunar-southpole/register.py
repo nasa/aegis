@@ -213,7 +213,7 @@ def build_vector_tile_sublayer(
 def build_cog_sublayer(
     mission_id: int, layer_uuid: str, layer_dir: Path, cog_file: Path
 ) -> dict:
-    """A COG raster sublayer for a Layers/<stem>/<stem>.tif.
+    """A COG raster sublayer for a Layers/<stem>/<stem>_cog.tif.
 
     Self-describing: OpenLayers reads the GeoTIFF directly over HTTP Range, so no
     tilePattern/tileFormat/boundingBox/zoom is set. The app routes it to the WebGLTile/GeoTIFF path
@@ -322,17 +322,17 @@ def find_vector_files(data_dir: Path) -> list[Path]:
 
 
 def find_dem_file(data_dir: Path) -> Path | None:
-    """The mission DEM COG under Data/ (first non-``_cog.tif`` *.tif). Used for the demFilePath.
+    """The mission DEM COG under Data/ (the ``*_cog.tif`` GeoTIFF). Used for the demFilePath.
 
-    Custom COG *sublayers* now live under Layers/ (not Data/), so Data/ should hold only the DEM.
-    The ``_cog`` exclusion is kept as a harmless safety net for any legacy ``_cog.tif`` in Data/.
+    Custom COG *sublayers* live under Layers/ (not Data/), so Data/ holds only the DEM COG,
+    which — like every COG we generate — carries the ``_cog`` marker (see config.dem_output_name).
     """
     if not data_dir.exists():
         return None
     tifs = sorted(
         f
         for f in data_dir.iterdir()
-        if f.is_file() and f.suffix.lower() == ".tif" and not f.stem.endswith("_cog")
+        if f.is_file() and f.suffix.lower() in (".tif", ".tiff") and f.stem.endswith("_cog")
     )
     return tifs[0] if tifs else None
 

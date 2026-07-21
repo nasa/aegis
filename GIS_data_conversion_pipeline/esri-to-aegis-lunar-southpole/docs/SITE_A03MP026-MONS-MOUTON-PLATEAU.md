@@ -19,7 +19,7 @@ pipeline README "AEGIS import" section).
 Each data type is handled by the pipeline (`main.py`) as follows:
 
 - **DEM** — re-emit the 1 mpp DEM as a clean COG (keeps the source name, e.g.
-  `Data/mp2-sfs-dem_MoonSP_COG_zstd.tif`), used as `demFilePath`. Not a tile layer.
+  `Data/mp2-sfs-dem_MoonSP_COG_deflate_cog.tif`), used as `demFilePath`. Not a tile layer.
 - **Products** — derive hillshade/slope/aspect/TRI from the DEM (`--products`), colorized;
   slope honours the GIS `.lyrx` symbology when provided.
 - **Grid** — generate the LGRS mission grid from the lander location (default 10 km) and
@@ -134,7 +134,7 @@ ellipse paths can each be overridden on the CLI.
 <out>/                                  # <static>/missionFiles/<mission-id>/
 ├── grid_source.geojson                # AEGIS mission-grid GeoJSON (register POSTs it)
 ├── Data/
-│   ├── mp2-sfs-dem_MoonSP_COG_zstd.tif # demFilePath (keeps source name)
+│   ├── mp2-sfs-dem_MoonSP_COG_deflate_cog.tif # demFilePath (keeps source name)
 │   ├── ellipse.geojson
 │   ├── <grid>.json                    # active grid coordinates (written by the grid API)
 │   └── conversion_report.md           # captured run log + per-step timings
@@ -156,7 +156,7 @@ are what it sets:
   the `Common_LSP` header.
 - Ellipse + custom vectors → `vector` sublayers under the `Vector` header
   (`dataProjection EPSG:4326`, `featureProjection IAU2000:30166`).
-- DEM → `demFilePath` (`Data/mp2-sfs-dem_MoonSP_COG_zstd.tif`, `demResolution = 1.0`).
+- DEM → `demFilePath` (`Data/mp2-sfs-dem_MoonSP_COG_deflate_cog.tif`, `demResolution = 1.0`).
 - Mission projection on the `12800` cap grid (origin unchanged); `actionSystemVersion = 2`,
   `usingLGRSCoordinates = true`; the LGRS grid set active.
 

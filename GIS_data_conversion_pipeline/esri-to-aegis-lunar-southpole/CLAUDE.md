@@ -25,7 +25,7 @@ a layer's type from the folder's **contents**, not from any stored flag:
 |------------------|-----------|-----------------|-------------|
 | `{z}/{x}/{y}.png` + `tilemapresource.xml` | `tile` (raster) | `<folder>` | `Layers/<folder>/<tilePattern>` |
 | `<name>.pmtiles` | `vector-tile` | `<folder>/<name>.pmtiles` | `Layers/<folder>/<name>.pmtiles` |
-| `<name>.tif` / `.tiff` | `tile` (COG) | `<folder>/<name>.tif` | `Layers/<folder>/<name>.tif` |
+| `<name>_cog.tif` / `.tiff` | `tile` (COG) | `<folder>/<name>_cog.tif` | `Layers/<folder>/<name>_cog.tif` |
 
 - **PMTiles** (`step_vectortiles` → `vectortile/arcgis_cache_to_pmtiles.py`) write
   `Layers/<name>/<name>.pmtiles`. The converter copies the ArcGIS cache's `esri_tile_info`
@@ -47,10 +47,15 @@ a layer's type from the folder's **contents**, not from any stored flag:
   minor set excludes the major lines), so majors/minors are styled independently in AEGIS.
   `--contour-maxzoom` defaults to the cap level that resolves `--dem-resolution` (14 at 1 mpp).
 - **COG raster sublayers** (`step_cogs` → `common/geotiff_to_cog.py`) write
-  `Layers/<stem>/<stem>.tif`. There is **no `isCog` field** — a COG is identified by the `.tif`
+  `Layers/<stem>/<stem>_cog.tif`. There is **no `isCog` field** — a COG is identified by the `.tif`
   path. Removed across the app (typings/model/store/schema) and here; do not re-introduce it.
-- **The mission DEM COG is different** — `step_dem` writes `Data/<source>_zstd.tif` and it is the
-  mission `demFilePath` (not a sublayer). It stays in `Data/`.
+  All generated COGs use **deflate** compression (`config.COG_COMPRESS`), never **zstd** — the
+  browser GeoTIFF decoder (geotiff.js/OpenLayers) cannot decode zstd (TIFF tag 50000) and renders
+  it blank. The shared filename helper is `config.cog_layer_filename()` (`<name>_cog.tif`).
+- **The mission DEM COG is different** — `step_dem` writes `Data/<source>_<compress>_cog.tif`
+  (e.g. `_deflate_cog.tif`) and it is the mission `demFilePath` (not a sublayer). It stays in
+  `Data/`; `register.find_dem_file` locates it by the `_cog` marker. It uses the same
+  browser-decodable codec (`config.DEM_COMPRESS`) so it can also be read client-side.
 - **GeoJSON vectors** stay `Data/<name>.geojson` (`type: "vector"`).
 - **`properties.json`** (name/description/legend) is validated against
   `../../.local/schemas/sublayerImportable.json` (`additionalProperties: false`, generated from the
@@ -93,5 +98,5 @@ range-requested by the client. Everything else uses DEFLATE.
   `common/tile_to_cap_grid.py`** needs `pixi run`).
 - `pixi run python esri-to-aegis-lunar-southpole/main.py --list` and `--summary` (no API calls).
 - Build a sample with `--vector-tile-cache` and/or `--cog`, then confirm the
-  `Layers/<name>/<name>.pmtiles` and `Layers/<name>/<name>.tif` folders exist and
+  `Layers/<name>/<name>.pmtiles` and `Layers/<name>/<name>_cog.tif` folders exist and
   `... --steps register --dry-run` prints the expected `type`/`path` (and no `isCog`).

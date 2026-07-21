@@ -37,7 +37,7 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 
 | Type            | Input                                                        | Output                                    | Process                                                                     |
 | --------------- | ------------------------------------------------------------ | ----------------------------------------- | --------------------------------------------------------------------------- |
-| **dem**         | DEM GeoTIFF                                                  | `Data/<source>_zstd.tif` (COG)            | re-emit as clean COG (keeps source name)                                    |
+| **dem**         | DEM GeoTIFF                                                  | `Data/<source>_deflate_cog.tif` (COG)     | re-emit as clean COG (keeps source name)                                    |
 | **nac**         | single NAC mosaic raster (from GIS team)                     | `Layers/nac/` tile pyramid                | stretch (if float) → tile                                                   |
 | **slope**       | slope float raster (°) + `.lyrx` ramp                        | `Layers/slope/` tile pyramid              | colorize → tile                                                             |
 | **products**    | the DEM (`--dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/`  | derive from DEM → colorize → tile (`--products`)                            |
@@ -46,8 +46,8 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **vectors**     | custom vectors (`--vector`, repeatable)                      | `Data/<stem>.geojson` each                | shp → reproject; geojson copied                                             |
 | **vectortiles** | ArcGIS vector-tile cache (`--vector-tile-cache`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
 | **contours**    | the DEM (`--contours`)                                       | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
-| **cogs**        | custom rasters (`--cog`, repeatable)                         | `Layers/<stem>/<stem>.tif` each           | GeoTIFF → COG (type inferred from `.tif`)                                   |
-| **grid**        | lander `--lander-lat/--lander-lng`                           | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON                                      |
+| **cogs**        | custom rasters (`--cog`, repeatable)                         | `Layers/<stem>/<stem>_cog.tif` each       | GeoTIFF → COG (deflate; type inferred from `.tif`)                          |
+| **grid**        | `--grid` + lander `--lander-lat/--lander-lng`                | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
 | **register**    | the built `<out>` + `--mission-id`                           | mission fields + sublayers + active grid  | POST fields + layers/sublayers + grid                                       |
 | **box**         | the built `<out>` + `--mission-name`                         | zips uploaded to Box (parallel)           | zip `Data/` + each layer → upload                                           |
 
@@ -140,16 +140,16 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --dem F:/drop/dem.tif --products hillshade slope aspect tri \
     --nac-mosaic F:/drop/nac_mosaic.tif \
     --raster F:/drop/keepout.tif --vector F:/drop/stations.shp \
-    --register --box
+    --grid --register --box
 
 # DEM-only mission (A03MP026 MS3): derive all four products from the DEM + LGRS grid.
-# The grid step runs automatically when a lander location is given (default 10 km square).
+# Pass --grid to generate the LGRS mission grid (default 10 km square).
 pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
     --src F:/tempF/MS3_data_drop \
     --products hillshade slope aspect tri \
-    --grid-extent 10km --grid-precision 100 \
+    --grid --grid-extent 10km --grid-precision 100 \
     --register --box
 
 # Selected steps (names or indices) — e.g. only (re)register without rebuilding tiles
@@ -183,7 +183,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
     --dem F:/drop/dem.tif --nac-mosaic F:/drop/nac_mosaic.tif \
-    --products hillshade slope aspect tri
+    --products hillshade slope aspect tri --grid
 
 # 2a. Register ONLY (mission fields + header layers + sublayers + active grid).
 #     Reads the built folder; needs --mission-id + an EMSS token (--token or .env).
@@ -213,8 +213,8 @@ Steps: `0 stage · 1 dem · 2 nac · 3 slope · 4 products · 5 vector · 6 rast
 8 vectortiles · 9 contours · 10 cogs · 11 grid · 12 register · 13 box`. By default the pipeline
 runs only the steps whose inputs are present — `vectortiles` runs when `--vector-tile-cache` is
 given, `contours` when `--contours` is given (needs `--dem`), `cogs`
-when `--cog` is given, `grid` when a lander location is given, and `register`/`box` when
-`--register`/`--box` are passed; `--steps` overrides this.
+when `--cog` is given, `grid` when `--grid` is passed (needs `--lander-lat`/`--lander-lng`), and
+`register`/`box` when `--register`/`--box` are passed; `--steps` overrides this.
 Inputs default to the A03MP026 layout under `--src`; override any with `--dem`, `--slope`,
 `--lyrx`, `--ellipse`, `--nac-mosaic`, `--raster`, `--vector`. Use `--out` to override the
 default `<static>/missionFiles/<id>` output root. The EMSS token is read from the repo
@@ -242,7 +242,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 ```
 
 **Products-only DEM (`--no-mission-dem`).** By default the `dem` step re-emits the `--dem`
-input as the mission's DEM COG (`Data/<source>_zstd.tif` → `demFilePath`), and `register`
+input as the mission's DEM COG (`Data/<source>_deflate_cog.tif` → `demFilePath`), and `register`
 sets `demFilePath`/`demResolution` on the mission. When you feed a **supplementary** DEM
 just to derive extra products/contours for a mission that already has its primary DEM, pass
 `--no-mission-dem`: it **skips the `dem` step** (no `Data/` COG is written) and leaves
@@ -287,7 +287,7 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
 <out>/
 ├── grid_source.geojson           # AEGIS mission-grid GeoJSON (register POSTs it; not in Data/)
 ├── Data/
-│   ├── <source>_zstd.tif         # demFilePath (keeps the source filename, e.g. mp2-sfs-dem_MoonSP_COG_zstd.tif)
+│   ├── <source>_deflate_cog.tif  # demFilePath (keeps the source filename, e.g. mp2-sfs-dem_MoonSP_COG_deflate_cog.tif)
 │   ├── ellipse.geojson           # vector sublayer (if a vector step ran)
 │   ├── LGRS.json                 # active grid coordinates (written by the grid API on register)
 │   └── conversion_report.md      # captured run log + per-step timings
@@ -298,7 +298,7 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
     ├── aspect/                   # tile sublayer  (+ properties.json with legend)
     ├── tri/                      # tile sublayer  (+ properties.json with legend)
     ├── <name>/<name>.pmtiles     # vector-tile sublayer (if a --vector-tile-cache step ran)
-    └── <stem>/<stem>.tif         # COG raster sublayer (if a --cog step ran; type inferred from .tif)
+    └── <stem>/<stem>_cog.tif     # COG raster sublayer (if a --cog step ran; type inferred from .tif)
 ```
 
 Every produced sublayer is a **folder** under `Layers/`; AEGIS infers its type from the folder
@@ -307,8 +307,8 @@ folders also contain a `tilemapresource.xml` (bbox + zoom) and a `properties.jso
 (name/description/legend), both auto-imported by the admin. With `--products-prefix LOLA` these
 folders (and their AEGIS layer names) become `LOLA_nac/`, `LOLA_slope/`, … so multiple DEM runs
 can share one mission. The mission DEM COG is the exception —
-it stays in `Data/` (keeping its source filename with a `_zstd` suffix) as the self-describing
-`demFilePath`, not a sublayer.
+it stays in `Data/` (keeping its source filename with a compression + `_cog` suffix, e.g.
+`_deflate_cog.tif`) as the self-describing `demFilePath`, not a sublayer.
 
 ---
 
@@ -366,7 +366,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id <LOCAL_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
     --dem F:/drop/dem.tif --nac-mosaic F:/drop/nac_mosaic.tif \
-    --register --box
+    --grid --register --box
 ```
 
 To include a **vector-tile layer built from source**, add `--vector-tile-cache` pointing at a
@@ -385,7 +385,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
     --dem F:/drop/dem.tif --nac-mosaic F:/drop/nac_mosaic.tif \
     --vector-tile-cache F:/drop/AggregatedContour/p12 \
-    --register --box
+    --grid --register --box
 ```
 
 To generate **elevation contours from the DEM** (no delivered cache needed), add `--contours`.
@@ -403,7 +403,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
     --dem F:/drop/dem.tif --dem-resolution 1 \
     --contours --major-interval 100 --minor-interval 20 \
-    --register --box
+    --grid --register --box
 # -> Layers/contours_100m/contours_100m.pmtiles  +  Layers/contours_20m/contours_20m.pmtiles
 
 # Contours only, into an existing build (rebuild the two layers):

@@ -13,7 +13,8 @@ the cap-grid projection profile + path resolution live in ``config.py``; the AEG
 logic in ``register.py`` / ``box_publish.py``.
 
 Data steps (each runs only when its input is present): dem · nac · slope · products · vector ·
-rasters · vectors · grid. Publish steps (opt-in): register · box. Every run writes a
+rasters · vectors. Opt-in data steps: contours (--contours) · grid (--grid). Publish steps
+(opt-in): register · box. Every run writes a
 ``Data/conversion_report.md`` capturing the full console log + per-step timings.
 
 Run from the parent ``GIS_data_conversion_pipeline/`` directory via pixi:
@@ -169,7 +170,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "Emit DEM-derived products (--products) as Cloud-Optimised GeoTIFFs "
-            "(Layers/<name>/<name>.tif) instead of tile pyramids. "
+            "(Layers/<name>/<name>_cog.tif) instead of tile pyramids. "
             "OL renders them directly via HTTP Range — no tiling step needed."
         ),
     )
@@ -199,7 +200,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         metavar="PATH",
-        help="Custom raster → Cloud-Optimised GeoTIFF sublayer in Layers/<stem>/<stem>.tif (repeatable).",
+        help="Custom raster → Cloud-Optimised GeoTIFF sublayer in Layers/<stem>/<stem>_cog.tif (repeatable).",
     )
     parser.add_argument(
         "--cog-nodata",
@@ -237,13 +238,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--grid-extent",
         default=config.GRID_EXTENT_DEFAULT,
-        help=f"LGRS grid square extent around the lander (default: {config.GRID_EXTENT_DEFAULT}).",
+        help=f"LGRS grid square extent around the lander (default: {config.GRID_EXTENT_DEFAULT}). Only used when --grid is passed.",
     )
     parser.add_argument(
         "--grid-precision",
         type=int,
         default=config.GRID_PRECISION_DEFAULT,
-        help=f"LGRS grid cell size in metres (default: {config.GRID_PRECISION_DEFAULT}).",
+        help=f"LGRS grid cell size in metres (default: {config.GRID_PRECISION_DEFAULT}). Only used when --grid is passed.",
     )
 
     # Publish toggles
@@ -282,9 +283,14 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--grid",
+        action="store_true",
+        help="Generate the LGRS mission grid GeoJSON from the lander location (requires --lander-lat/--lander-lng).",
+    )
+    parser.add_argument(
         "--no-grid",
         action="store_true",
-        help="Do not build or register the LGRS mission grid.",
+        help="Do not register the LGRS mission grid during the register step (grid GeoJSON is still built if --grid is passed).",
     )
     parser.add_argument(
         "--dry-run",

@@ -9,11 +9,11 @@ tiling + overviews + compression in a single optimised pass with
 multi-threaded compression across all CPU cores.
 
 Compression options (--compress):
-    zstd    — fastest lossless, excellent ratio (default)
-    deflate — lossless, universally supported
+    deflate — lossless, universally supported, browser-decodable (default)
     lzw     — lossless, fast decompression
     jpeg    — lossy, ~10-20x compression, ideal for visual imagery
     lerc    — lossy with controlled error bounds
+    zstd    — fastest lossless, excellent ratio, but NOT decodable by geotiff.js/OpenLayers
 
 Usage:
     cd GIS_data_conversion_pipeline
@@ -51,7 +51,7 @@ for _s in (sys.stdout, sys.stderr):
 def build_cog(
     src_path: Path,
     dst_path: Path,
-    compress: str = "zstd",
+    compress: str = "deflate",
     jpeg_quality: int = 85,
     blocksize: int = 512,
     nodata: float | None = None,
@@ -167,11 +167,11 @@ def main() -> None:
             "The COG can be served directly to OpenLayers via\n"
             "ol/source/GeoTIFF using HTTP Range requests.\n\n"
             "Compression options (--compress):\n"
-            "  zstd    — fastest lossless, excellent ratio (default)\n"
-            "  deflate — lossless, universally supported\n"
+            "  deflate — lossless, universally supported, browser-decodable (default)\n"
             "  lzw     — lossless, fast decompression\n"
             "  jpeg    — lossy, ~10-20x compression, great for imagery\n"
-            "  lerc    — lossy with controlled error bounds"
+            "  lerc    — lossy with controlled error bounds\n"
+            "  zstd    — fastest lossless, best ratio, but NOT decodable by geotiff.js/OpenLayers"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
@@ -194,9 +194,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--compress",
-        default="zstd",
+        default="deflate",
         choices=["zstd", "deflate", "lzw", "jpeg", "lerc"],
-        help="Compression algorithm (default: zstd)",
+        help=(
+            "Compression algorithm (default: deflate — lossless and decodable by "
+            "geotiff.js/OpenLayers). Avoid zstd (TIFF tag 50000): GDAL/rasterio read it "
+            "server-side but geotiff.js cannot, so a zstd COG renders blank in the browser."
+        ),
     )
     parser.add_argument(
         "--jpeg-quality",

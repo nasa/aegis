@@ -59,7 +59,7 @@ step reads a specific input under `--src` that you can override individually. Ou
 
 | Step       | Source flag (overrides the `--src` default)          | Destination (under `--out`)                     |
 | ---------- | ---------------------------------------------------- | ----------------------------------------------- |
-| `dem`      | `--dem <dem.tif>`                                    | `Data/<source>_zstd.tif` (keeps source name)    |
+| `dem`      | `--dem <dem.tif>`                                    | `Data/<source>_deflate_cog.tif` (keeps source name) |
 | `nac`      | `--nac-mosaic <mosaic.tif>` _(delivered separately)_ | `Layers/nac/`                                   |
 | `slope`    | `--slope <slope.tif>` + `--lyrx <ramp.lyrx>`         | `Layers/slope/`                                 |
 | `products` | `--dem` + `--products hillshade slope aspect tri`    | `Layers/{hillshade,slope,aspect,tri}/`          |
