@@ -252,7 +252,7 @@ def step_slope(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 
 def _cog_layer_needs_build(layer_dir: Path, name: str, overwrite: bool) -> bool:
     """True if the COG product layer should be (re)built. Mirrors the skip/overwrite logic for tile layers."""
-    out_cog = layer_dir / f"{name}.tif"
+    out_cog = layer_dir / config.cog_layer_filename(name)
     if out_cog.exists():
         if not overwrite:
             tee(f"  [skip] {out_cog} already built (use --overwrite to rebuild)")
@@ -271,7 +271,7 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     chosen to match ``--dem-resolution`` so its legend bins are correct.
 
     With ``--products-as-cog`` the colorized rasters are converted to Cloud-Optimised GeoTIFFs
-    in ``Layers/<name>/<name>.tif`` instead of being tiled — OL renders them directly via HTTP
+    in ``Layers/<name>/<name>_cog.tif`` instead of being tiled — OL renders them directly via HTTP
     Range with no tile pyramid.
     """
     products = args.products or config.PRODUCTS_DEFAULT
@@ -347,9 +347,20 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             src_tif = scratch / f"{product}.tif"
 
             if as_cog:
-                out_cog = layer_dir / f"{lname}.tif"
+                out_cog = layer_dir / config.cog_layer_filename(lname)
                 tee(f"\n  COG product {i + 1}/{len(to_build)}: {product} → {out_cog}")
-                run([PYTHON, GEOTIFF_TO_COG, src_tif, "-o", out_cog])
+                # OL-rendered COG: browser-decodable codec (config.COG_COMPRESS = deflate).
+                run(
+                    [
+                        PYTHON,
+                        GEOTIFF_TO_COG,
+                        src_tif,
+                        "-o",
+                        out_cog,
+                        "--compress",
+                        config.COG_COMPRESS,
+                    ]
+                )
             else:
                 tee(
                     f"\n  tiling product {i + 1}/{len(to_build)}: {product} → {layer_dir}"
@@ -591,26 +602,37 @@ def step_contours(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 
 
 def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """Custom rasters (--cog) → one Cloud-Optimised GeoTIFF each in Layers/<stem>/<stem>.tif.
+    """Custom rasters (--cog) → one Cloud-Optimised GeoTIFF each in Layers/<stem>/<stem>_cog.tif.
 
     Additive OpenLayers-first output: OL renders a COG directly (WebGLTile + GeoTIFF over HTTP
     Range) with no tile pyramid. Each COG lands inside its own Layers/ folder so it is managed like
     any other layer; the register step detects it as a COG raster sublayer from the .tif inside.
     (The mission DEM COG is separate — it stays in Data/ as demFilePath, see step_dem.)
     """
-    banner("cogs — custom rasters → Cloud-Optimised GeoTIFF (Layers/<stem>/<stem>.tif)")
+    banner(
+        "cogs — custom rasters → Cloud-Optimised GeoTIFF (Layers/<stem>/<stem>_cog.tif)"
+    )
     p.layers.mkdir(parents=True, exist_ok=True)
     for raster in args.cog:
         raster = Path(raster)
         require_input(raster, "COG source raster", "--cog")
         layer_dir = p.layer_path(raster.stem)
-        out_cog = layer_dir / f"{raster.stem}.tif"
+        out_cog = layer_dir / config.cog_layer_filename(raster.stem)
         if out_cog.exists() and not args.overwrite:
             tee(f"  [skip] {out_cog} already built (use --overwrite to rebuild)")
             continue
         layer_dir.mkdir(parents=True, exist_ok=True)
         tee(f"\n  raster: {raster}  → {out_cog}")
-        cmd: list[str | Path] = [PYTHON, GEOTIFF_TO_COG, raster, "-o", out_cog]
+        # OL-rendered COG: browser-decodable codec (config.COG_COMPRESS = deflate).
+        cmd: list[str | Path] = [
+            PYTHON,
+            GEOTIFF_TO_COG,
+            raster,
+            "-o",
+            out_cog,
+            "--compress",
+            config.COG_COMPRESS,
+        ]
         if args.cog_nodata is not None:
             cmd += ["--nodata", str(args.cog_nodata)]
         run(cmd)
@@ -708,7 +730,10 @@ STEPS: list[tuple[str, str]] = [
         "ArcGIS vector-tile caches (--vector-tile-cache) → Layers/<name>/<name>.pmtiles",
     ),
     ("contours", "DEM → major/minor contour PMTiles (Layers/contours_<interval>m)"),
-    ("cogs", "Custom rasters (--cog) → Cloud-Optimised GeoTIFF in Data/"),
+    (
+        "cogs",
+        "Custom rasters (--cog) → Cloud-Optimised GeoTIFF in Layers/<stem>/<stem>_cog.tif",
+    ),
     ("grid", "Lander location → LGRS mission grid GeoJSON (default 10km)"),
     (
         "register",
@@ -778,7 +803,11 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
         chosen.append("contours")
     if args.cog:
         chosen.append("cogs")
-    if args.lander_lat is not None and args.lander_lng is not None and not args.no_grid:
+    if (
+        getattr(args, "grid", False)
+        and args.lander_lat is not None
+        and args.lander_lng is not None
+    ):
         chosen.append("grid")
     if args.register:
         chosen.append("register")

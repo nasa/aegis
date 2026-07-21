@@ -88,16 +88,32 @@ REL_NAC_FRAMES = Path("A03MP026_SFS_1mpp_orthoimages")
 # Output file/dir names under --out (generic; the pipeline is mission-agnostic).
 OUT_LAYERS_DIRNAME = "Layers"
 OUT_DATA_DIRNAME = "Data"
-# The DEM keeps its source filename with a compression suffix (e.g.
-# mp2-sfs-dem_MoonSP_COG.tif → mp2-sfs-dem_MoonSP_COG_zstd.tif) so the mission's
+# Compression for every COG the browser may read (OL-rendered sublayers via
+# products-as-cog/--cog, AND the mission DEM, which we may hit directly from the browser).
+# Must be a codec the browser GeoTIFF decoder (geotiff.js, used by ol/source/GeoTIFF) can
+# decode: raw, LZW, JPEG, Deflate, PackBits, LERC. ZSTD (TIFF tag 50000) is NOT supported by
+# geotiff.js and renders blank in the browser — GDAL/rasterio decode it server-side, but the
+# browser cannot, so do not use it for anything that might be fetched client-side.
+COG_COMPRESS = "deflate"
+# The DEM keeps its source filename with a compression + _cog suffix (e.g.
+# mp2-sfs-dem_MoonSP_COG.tif → mp2-sfs-dem_MoonSP_COG_deflate_cog.tif) so the mission's
 # demFilePath is self-describing rather than an opaque "dem.tif".
-DEM_COMPRESS = "zstd"
+DEM_COMPRESS = COG_COMPRESS
 OUT_ELLIPSE_NAME = "ellipse.geojson"
 
 
+def cog_layer_filename(name: str) -> str:
+    """Filename for an OL-rendered COG sublayer inside its ``Layers/<name>/`` folder.
+
+    Every COG we generate carries a ``_cog`` marker so a ``.tif`` in a build tree is
+    recognisably a Cloud-Optimised GeoTIFF (the app still routes on the ``.tif`` extension).
+    """
+    return f"{name}_cog.tif"
+
+
 def dem_output_name(dem_in: Path) -> str:
-    """COG output filename for a DEM input: ``<source-stem>_<compress>.tif``."""
-    return f"{dem_in.stem}_{DEM_COMPRESS}.tif"
+    """COG output filename for a DEM input: ``<source-stem>_<compress>_cog.tif``."""
+    return f"{dem_in.stem}_{DEM_COMPRESS}_cog.tif"
 
 
 OUT_NAC_LAYER_NAME = "nac"
