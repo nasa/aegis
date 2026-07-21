@@ -4,7 +4,7 @@
 
 # Artemis EVA GIS (AEGIS)
 
-AEGIS (Artemis EVA Geographic Information System) is a NASA planning tool aimed at enabling NASA's Artemis Extravehicular Activity (EVA) operations. AEGIS supports the creation of EVA stations, complete with activity definitions, crew assignments, contingency plans, and safety measures. AEGIS facilitates EVA planning by automating complex calculations and offering a spatiotemporal view of EVA plans. AEGIS also integrates Science Traceability Matrix (STM) objectives with spatial maps to help the flight controller community maximize the coverage of science objectives in the dynamic environment of lunar EVAs. The product's goal is to enable flight controllers, which includes the mission science team, to execute successful missions. 
+AEGIS (Artemis EVA Geographic Information System) is a NASA planning tool aimed at enabling NASA's Artemis Extravehicular Activity (EVA) operations. AEGIS supports the creation of EVA stations, complete with activity definitions, crew assignments, contingency plans, and safety measures. AEGIS facilitates EVA planning by automating complex calculations and offering a spatiotemporal view of EVA plans. AEGIS also integrates Science Traceability Matrix (STM) objectives with spatial maps to help the flight controller community maximize the coverage of science objectives in the dynamic environment of lunar EVAs. The product's goal is to enable flight controllers, which includes the mission science team, to execute successful missions.
 
   <img src="src/public/images/EMSS.svg" alt="EMSS logo" height="220" />
 
@@ -58,15 +58,48 @@ AEGIS includes a GIS data processing pipeline that can generate the full set of 
 
 ## Setup Outside of NASA
 
-> **🚧 Placeholder -- coming soon.**
->
-> The [First-Time Setup within NASA](#first-time-setup-within-nasa) instructions below assume access to NASA's internal infrastructure (EMSS dev servers, the AEGIS Box asset source, prod database dumps, and internal package registries). This section will provide a self-contained path to run AEGIS outside of that environment.
->
-> Planned contents:
->
-> - **Seed a database** -- ✅ available now, see [Seed a demo database](#seed-a-demo-database) below.
-> - **Download map assets** -- obtain the GIS map products (DTMs, layers) needed to render missions, from a publicly available source.
-> - **Get started** -- a minimal end-to-end walkthrough to bring up the app locally with the seeded data and downloaded assets.
+The [First-Time Setup within NASA](#first-time-setup-within-nasa) instructions below assume access to NASA's internal infrastructure (EMSS dev servers, the AEGIS Box asset source, prod database dumps, and internal package registries). The steps in this section provide a self-contained path to run AEGIS with the Apollo 14 demo mission outside of that environment.
+
+### Prerequisites
+
+1. Clone this repo.
+2. Install JavaScript dependencies: `npm i`
+3. Get the secret values from another AEGIS developer and paste them into a new file called `env.secret.ts`.
+4. Create a `./.env` file: `npm run make-dotenv`.
+5. Start the required Docker services (PostgreSQL): `npm run docker:services`.
+
+### Step 1: Seed the database
+
+See [Seed a demo database](#seed-a-demo-database) below.
+
+### Step 2: Download map assets
+
+The seeded Apollo 14 mission references GIS map products (tile layers, vector layers, and a DEM) that must be present on disk for the map to render. Download the pre-packaged asset bundle and extract it into your static assets folder.
+
+1. Create the static assets folder next to the repo (the default location configured in `.env` for local dev):
+   ```bash
+   mkdir ../aegis_static
+   ```
+2. Download the Apollo 14 GIS demo data bundle:
+   ```bash
+   curl -L -o AEGIS_Apollo_14_GIS_demo_data.zip \
+     https://ares-aegis.s3.us-gov-west-1.amazonaws.com/AEGIS_Apollo_14_GIS_demo_data.zip
+   ```
+3. Extract it into the `missionFiles` subdirectory of the static folder:
+   ```bash
+   unzip AEGIS_Apollo_14_GIS_demo_data.zip -d ../aegis_static/missionFiles
+   ```
+   The zip unpacks into the expected directory structure that AEGIS layer paths reference, so no further reorganisation is needed.
+
+> **Note:** The `STATIC_DIR` environment variable (set to `../aegis_static` by default for local dev in `env.config.ts`) controls where AEGIS looks for these files. If you configured a different path, extract the zip there instead.
+
+### Step 3: Run the app
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:4000](http://localhost:4000) and log in as `admin` / `admin`. The Apollo 14 mission should open with the map layers rendering correctly.
 
 ### Seed a demo database
 
@@ -92,8 +125,9 @@ This runs, in order:
 Then `npm run dev` and log in as `admin` / `admin` to open the seeded mission.
 
 > **Note:** The demo mission references NAC ortho / hillshade tile layers and vector layers by path.
-> The layer records are created, but the tiles themselves are separate GIS assets (see **Download map
-> assets** above) -- without them the map renders the mission geometry over an empty basemap.
+> The layer records are created, but the tiles themselves are separate GIS assets -- without them the
+> map renders the mission geometry over an empty basemap. See [Download map assets](#step-2-download-map-assets)
+> for instructions on obtaining and installing them.
 >
 > `seed:demo` expects a fresh database. Re-running `automerge:seed` on its own is safe: it detects an
 > existing "Apollo 14" mission and exits without creating a duplicate.
