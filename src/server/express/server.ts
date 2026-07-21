@@ -99,7 +99,7 @@ initializeBase64Wasm(automergeWasmBase64);
   // upgrade an already established client/server connection to a
   //    different protocol (over the same transport protocol).
   server.on("upgrade", (request, socket, head) => {
-    if (request.url === "/api/v1/socketAutomerge/") {
+    if (request.url === "/socketAutomerge/") {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit("connection", ws, request);
       });

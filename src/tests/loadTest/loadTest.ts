@@ -82,7 +82,7 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
     const automergeRepo = new Repo({
       network: [
         new BrowserWebSocketClientAdapter(
-          `${serverURL}/api/v1/socketAutomerge/`
+          `${serverURL}/socketAutomerge/`
         ) as unknown as NetworkAdapterInterface, // connect back to the server via sockets
       ],
       // storage: new IndexedDBStorageAdapter(),

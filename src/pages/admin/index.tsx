@@ -120,13 +120,13 @@ const Index: React.FunctionComponent = () => {
               <NavCard
                 to="/admin/maestroV1"
                 title="Maegistro v1 Monitor (Legacy)"
-                description="Monitor legacy Maegistro v1 connections on /api/v1/socketio."
+                description="Monitor legacy Maegistro v1 connections on /api/v1/socketio on the /maestro namespace."
                 enabled={!!user?.isSuperAdmin}
               />
               <NavCard
                 to="/admin/maestroV2"
                 title="Maegistro v2 Monitor"
-                description="Monitor Maegistro v2 connections on /socket namespace /maestro/v2."
+                description="Monitor Maegistro v2 connections on /socket on the /maestro/v2 namespace."
                 enabled={!!user?.isSuperAdmin}
               />
               <NavCard
