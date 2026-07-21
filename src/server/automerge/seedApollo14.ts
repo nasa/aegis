@@ -201,7 +201,7 @@ const seed = async (): Promise<void> => {
   // Validate the seeded document against the mission schema before persisting.
   const mission = missionDocHandle.doc();
   const isValid = missionValidator(structuredClone(mission));
-  if (!isValid && missionValidator.errors?.length > 0) {
+  if (!isValid) {
     throw new Error(`Seeded mission is invalid: ${JSON.stringify(missionValidator.errors)}`);
   }
 

@@ -104,8 +104,8 @@ Open [http://localhost:4000](http://localhost:4000) and log in as `admin` / `adm
 ### Seed a demo database
 
 Instead of importing a NASA prod database dump, you can populate a fresh local database with a
-self-contained **Apollo 14** demo mission (a handful of POIs, stations, an EVA traverse, one REX, and
-a few map layers). This is the fastest way to get a working, populated database with no internal
+self-contained **Apollo 14** demo mission (a handful of POIs, stations, and an EVA with its traverses,
+plus a few map layers). This is the fastest way to get a working, populated database with no internal
 infrastructure.
 
 Prerequisites: dependencies installed (`npm i`) and the database container running
