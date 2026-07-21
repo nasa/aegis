@@ -64,7 +64,7 @@ The [First-Time Setup within NASA](#first-time-setup-within-nasa) instructions b
 
 1. Clone this repo.
 2. Install JavaScript dependencies: `npm i`
-3. Get the secret values from another AEGIS developer and paste them into a new file called `env.secret.ts`.
+3. Create your secrets file by copying the template: `cp env.secret.ts.template env.secret.ts`. The placeholder values let the app run locally; Box.com and EMSS/Maestro integrations will not work with them, but local development (including the Apollo 14 demo) does not need them. (AEGIS developers with NASA access should instead follow [First-Time Setup within NASA](#first-time-setup-within-nasa).)
 4. Create a `./.env` file: `npm run make-dotenv`.
 5. Start the required Docker services (PostgreSQL): `npm run docker:services`.
 
