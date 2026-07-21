@@ -4,13 +4,13 @@
 
 # Artemis EVA GIS (AEGIS)
 
-AEGIS (Artemis EVA GIS) is an internal NASA planning tool aimed at enabling NASA's Artemis Extra-Vehicular Activity (EVA) operations. AEGIS integrates Science Traceability Matrix (STM) objectives with spatial maps to help the flight controller community maximize the coverage of science objectives in the dynamic environment of lunar EVAs. AEGIS also supports the creation of EVA stations, complete with activity definitions, crew assignments, contingency plans, and safety measures. AEGIS facilitates EVA planning by automating complex calculations and offering a spatiotemporal view of EVA plans. The product's goal is to enable flight controllers to execute successful missions.
+AEGIS (Artemis EVA Geographic Information System) is a NASA planning tool aimed at enabling NASA's Artemis Extravehicular Activity (EVA) operations. AEGIS supports the creation of EVA stations, complete with activity definitions, crew assignments, contingency plans, and safety measures. AEGIS facilitates EVA planning by automating complex calculations and offering a spatiotemporal view of EVA plans. AEGIS also integrates Science Traceability Matrix (STM) objectives with spatial maps to help the flight controller community maximize the coverage of science objectives in the dynamic environment of lunar EVAs. The product's goal is to enable flight controllers, which includes the mission science team, to execute successful missions. 
 
   <img src="src/public/images/EMSS.svg" alt="EMSS logo" height="220" />
 
-AEGIS is one of the Exploration Mission System Software (EMSS) tools built by the EMSS team at NASA Johnson Space Center to support the Flight Operations **plan, train, fly, explore** work processes. It evolved from early field-test prototypes (JETT3, Fall 2022) into the prime surface mission-planning tool for EVA operations in just three years, and works alongside sibling tools such as Maestro (EVA procedure authoring and execution), [CODA](https://github.com/nasa/coda) (temporal alignment of disparate data sets), and Talky Bot (real-time voice-loop transcription).
+AEGIS is one of the Exploration Mission System Software (EMSS) tools built by the EMSS team at NASA Johnson Space Center to support the Flight Operations **plan, train, fly, explore** work processes. It evolved from early field-test prototypes (e.g., [JETT3](https://ntrs.nasa.gov/citations/20230010686), Fall 2022) into the prime surface mission-planning tool for EVA operations in just three years, and works alongside sibling tools such as Maestro (EVA procedure authoring and execution), [CODA](https://github.com/nasa/coda) (temporal alignment of disparate data sets), and Talky Bot (real-time voice-loop transcription).
 
-📄 Read the paper: [Continuing Development and Enabling of Exploration Mission Systems Software](https://ttu-ir.tdl.org/items/ebd7ceef-0e7d-4f06-9829-6d2b5fd8a64b) (2026 IEEE Aerospace Conference)
+📄 Read the paper: [Continuing Development and Enabling of Exploration Mission Systems Software](https://ttu-ir.tdl.org/items/ebd7ceef-0e7d-4f06-9829-6d2b5fd8a64b) (2026 IEEE Aerospace Conference) and [Supporting Exploration Missions by Enabling Exploration Mission System Software](https://ntrs.nasa.gov/citations/20230006625) (2023 ICES Conference)
 
 ## Screenshots
 
@@ -22,7 +22,7 @@ The editor is the primary workspace for composing EVAs -- building stations, def
 
 ### Dashboard
 
-The dashboard provides a mission-level overview of EVA plans, summaries, and system status.
+The dashboard provides a mission-level overview of EVA plans, summaries, and system status that updates live throughout mission execution
 
 ![AEGIS dashboard with feature callouts](docs/AEGIS-dashboard-callouts.jpg)
 
@@ -49,7 +49,7 @@ The map is a custom [OpenLayers](https://openlayers.org/) engine purpose-built f
 - **Time-aware layers** -- sublayers can be bound to mission time, so the displayed imagery/data tracks the selected EVA datetime or timeline scrub position.
 - **Elevation-aware planning** -- a DEM/COG elevation source drives automatically generated terrain profiles along traverses and stations.
 - **Geodesic measurement** -- traverse and measurement distances/bearings are computed geodesically on the lunar sphere (not from projected geometry), so they stay accurate under polar distortion near the pole.
-- **Lunar Grid Reference System (LGRS) grid overlay** -- an on-map graticule generated from the [LGRS](https://github.com/rbeyer/lgrs) grid definitions used across the Artemis program.
+- **Lunar Grid Reference System (LGRS) grid overlay** -- an on-map graticule generated from the [Lunar Grid Rerference System](https://github.com/rbeyer/lgrs) grid definitions used across the Artemis program.
 - **Map presets** -- saved layer stacks, ordering, opacity, blend modes, and view options that can be swapped in a single action.
 
 ### GIS Data Processing Pipeline
