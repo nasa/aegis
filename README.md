@@ -64,9 +64,39 @@ AEGIS includes a GIS data processing pipeline that can generate the full set of 
 >
 > Planned contents:
 >
-> - **Seed a database** -- run a seeder to populate a local database with sample missions and reference data instead of importing a NASA prod dump.
+> - **Seed a database** -- ✅ available now, see [Seed a demo database](#seed-a-demo-database) below.
 > - **Download map assets** -- obtain the GIS map products (DTMs, layers) needed to render missions, from a publicly available source.
 > - **Get started** -- a minimal end-to-end walkthrough to bring up the app locally with the seeded data and downloaded assets.
+
+### Seed a demo database
+
+Instead of importing a NASA prod database dump, you can populate a fresh local database with a
+self-contained **Apollo 14** demo mission (a handful of POIs, stations, an EVA traverse, one REX, and
+a few map layers). This is the fastest way to get a working, populated database with no internal
+infrastructure.
+
+Prerequisites: dependencies installed (`npm i`) and the database container running
+(`npm run docker:services`).
+
+```bash
+npm run seed:demo
+```
+
+This runs, in order:
+
+1. `migration:fresh` -- drops, recreates, and seeds the relational schema (creates the `admin` /
+   `admin` and `guest` / `guest` users via the MikroORM seeder).
+2. `automerge:seed:build` + `automerge:seed` -- creates the Apollo 14 mission **Automerge document**
+   (all collaborative entity data lives in Automerge, not the relational tables) plus its map layers.
+
+Then `npm run dev` and log in as `admin` / `admin` to open the seeded mission.
+
+> **Note:** The demo mission references NAC ortho / hillshade tile layers and vector layers by path.
+> The layer records are created, but the tiles themselves are separate GIS assets (see **Download map
+> assets** above) -- without them the map renders the mission geometry over an empty basemap.
+>
+> `seed:demo` expects a fresh database. Re-running `automerge:seed` on its own is safe: it detects an
+> existing "Apollo 14" mission and exits without creating a duplicate.
 
 ## First-Time Setup within NASA
 

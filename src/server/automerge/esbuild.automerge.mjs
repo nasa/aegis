@@ -52,8 +52,18 @@ const integrityCtx = await esbuild.context({
   outfile: "./.local/automerge/dist/integrityCheck.js",
 });
 
+// Build the standalone Apollo 14 demo seed runner
+const seedCtx = await esbuild.context({
+  ...sharedOptions,
+  entryPoints: ["src/server/automerge/seedApollo14.ts"],
+  outfile: "./.local/automerge/dist/seedApollo14.js",
+});
+
 await migrationCtx.rebuild();
 await migrationCtx.dispose();
 
 await integrityCtx.rebuild();
 await integrityCtx.dispose();
+
+await seedCtx.rebuild();
+await seedCtx.dispose();
