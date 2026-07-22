@@ -20,7 +20,7 @@ export const createClientSocket = (
   return io(serverURL, {
     transports: ["websocket"],
     upgrade: true,
-    path: "/socket",
+    path: "/api/socket",
     reconnectionAttempts: serverURL === "aegis.fit.nasa.gov" ? Infinity : 10,
     // Allow disabling for self-signed certs when running load testing locally
     rejectUnauthorized: loadTestOptions?.rejectUnauthorized ?? true,

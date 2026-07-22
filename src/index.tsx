@@ -42,7 +42,7 @@ clientLogger.info({
 const repo = new Repo({
   network: [
     new BrowserWebSocketClientAdapter(
-      `${window.location.protocol}//${window.location.hostname}:${window.location.port}/socketAutomerge/`
+      `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api/socketAutomerge/`
     ) as unknown as NetworkAdapterInterface, // connect back to the server via sockets
   ],
   /** @ts-expect-error @type {(import("@automerge/automerge-repo").PeerId)}  */

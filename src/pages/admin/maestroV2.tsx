@@ -24,7 +24,7 @@ const createMaestroSocket = (
   return io(`${serverURL}/maestro/v2`, {
     transports: ["websocket"],
     upgrade: true,
-    path: "/socket",
+    path: "/api/socket",
     auth: { token: emssToken },
     autoConnect: false,
   }) as unknown as Socket<MaestroServerToClientEventsV2, MaestroClientToServerEventsV2>;

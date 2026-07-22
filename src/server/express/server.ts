@@ -66,7 +66,7 @@ initializeBase64Wasm(automergeWasmBase64);
     {}
   >(server, {
     transports: ["websocket"],
-    path: "/socket",
+    path: "/api/socket",
     addTrailingSlash: false,
     // Reduce ping interval and timeout from Socket.IO defaults
     // to detect dead connections within ~10s
@@ -99,7 +99,7 @@ initializeBase64Wasm(automergeWasmBase64);
   // upgrade an already established client/server connection to a
   //    different protocol (over the same transport protocol).
   server.on("upgrade", (request, socket, head) => {
-    if (request.url === "/socketAutomerge/") {
+    if (request.url === "/api/socketAutomerge/") {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit("connection", ws, request);
       });
