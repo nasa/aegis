@@ -1,12 +1,8 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { deleteGrids, getGrids, upsertGrids } from "http-client/grid";
+import { deleteGrid, getGrid, upsertGrid } from "http-client/grid";
 import type { ChangeEventHandler, FunctionComponent } from "react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import styles from "components/admin/admin.module.css";
 import adminCommon from "pages/admin/adminCommon.module.css";
-import { v4 as uuidv4 } from "uuid";
-import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import prettyBytes from "pretty-bytes";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { isValidAutomergeUrl } from "@automerge/automerge-repo";
@@ -24,6 +20,7 @@ interface GridGeoJson {
   type: string;
   row_total: number;
   column_total: number;
+  spacing?: number; // metres between adjacent grid lines (added by the GIS pipeline)
 }
 interface ReadGridPoint {
   geometry: GridPointGeometry;
@@ -55,7 +52,7 @@ const readJsonFile = (file: Blob): Promise<unknown> =>
     fileReader.readAsText(file);
   });
 
-const parseFullGrid = async (selectedFile: Blob, intMissionId: number): Promise<MissionGrid> => {
+const parseFullGrid = async (selectedFile: Blob): Promise<MissionGrid> => {
   const parsedData: GridGeoJson = (await readJsonFile(selectedFile)) as GridGeoJson;
 
   const gridCoords: MissionGridPoint[][] = Array(parsedData.row_total)
@@ -78,24 +75,21 @@ const parseFullGrid = async (selectedFile: Blob, intMissionId: number): Promise<
 
   return {
     gridInformation: {
-      uuid: uuidv4(),
       numRows: parsedData.row_total,
       numCols: parsedData.column_total,
-      missionId: intMissionId,
-      spacing: 0,
+      spacing: parsedData.spacing ?? 0,
       name: parsedData.name,
       fileName: `${parsedData.name}_${Date.now()}.json`,
-      isActiveGrid: false,
     },
     coordinates: gridCoords,
-  } as MissionGrid;
+  };
 };
 
 const AdminMissionGrid: FunctionComponent<{}> = () => {
-  const [grids, setGrids] = useState<MissionGrid[]>(null);
-  const [isSubmitValid, setIsSubmitValid] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isFilePicked, setIsFilePicked] = useState(false);
+  const [isSubmitValid, setIsSubmitValid] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
@@ -108,22 +102,31 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
       }
     });
   }, [intMissionId]);
-  const [missionDoc, changeMissionDoc] = useDocument<Mission>(automergeUrl);
+  const [missionDoc] = useDocument<Mission>(automergeUrl);
+  const grid = missionDoc?.grid ?? null;
 
-  const readAndUploadGrid = async (selectedFile: Blob) => {
-    const grid: MissionGrid = await parseFullGrid(selectedFile, intMissionId);
-    const res = await upsertGrids([grid], intMissionId, true);
-    alert(`${res.status} - ${res.message}`);
-    const reloadResponse = await getGrids(intMissionId);
-    if (reloadResponse.data) {
-      setGrids(reloadResponse.data);
+  const readAndUploadGrid = async (fileToUpload: File) => {
+    setIsUploading(true);
+    try {
+      const parsedGrid: MissionGrid = await parseFullGrid(fileToUpload);
+      // Sanity check that the coordinate file we just read matches what the
+      // server will report before writing.
+      await upsertGrid(parsedGrid, intMissionId, true);
+      // Confirm the server persisted the metadata to the mission doc.
+      await getGrid(intMissionId);
+      setSelectedFile(null);
+      setIsFilePicked(false);
+      setIsSubmitValid(false);
+      alert("Grid uploaded successfully.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const fileChangeHandler: ChangeEventHandler<HTMLInputElement> = (event) => {
     if (event.target.files.length > 0) {
-      setSelectedFile(event.target.files[0]); //put into state
-      setIsFilePicked(true); //toggle to show file details
+      setSelectedFile(event.target.files[0]);
+      setIsFilePicked(true);
     } else {
       setSelectedFile(null);
       setIsFilePicked(false);
@@ -131,62 +134,21 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
     }
   };
 
-  const handleGridSelection = async (selectedUuid: string) => {
-    setGrids((prevGrids) =>
-      prevGrids.map((grid) => ({
-        coordinates: grid.coordinates,
-        gridInformation: {
-          ...grid.gridInformation,
-          isActiveGrid: grid.gridInformation.uuid === selectedUuid,
-        },
-      }))
-    );
-    await upsertGrids(grids, intMissionId, false);
-    if (selectedUuid === null) {
-      changeMissionDoc((m: Mission) => {
-        m.activeGridUuid = null;
-        m.updatedAt = new Date().getTime();
-      });
-    }
-  };
-
-  const deleteGrid = async (gridUuid: string) => {
-    const grid = grids.find((g) => g.gridInformation.uuid === gridUuid);
+  const handleDelete = async () => {
     if (
-      !confirm(`Are you sure you want to delete grid "${grid?.gridInformation.name ?? gridUuid}"?`)
+      !confirm(`Are you sure you want to delete the grid "${grid?.name ?? ""}" for this mission?`)
     )
       return;
-    await deleteGrids(gridUuid, intMissionId);
-    setGrids((prevGrids) => prevGrids.filter((grid) => grid.gridInformation.uuid !== gridUuid));
+    await deleteGrid(intMissionId);
   };
 
   useEffect(() => {
-    if (selectedFile?.name.slice(-8).toLowerCase() === ".geojson") {
+    if (selectedFile?.name.toLowerCase().endsWith(".json")) {
       setIsSubmitValid(true);
     } else {
       setIsSubmitValid(false);
     }
-  }, [grids, intMissionId, isFilePicked, selectedFile?.name]);
-
-  useEffect(() => {
-    const upsertGridInfo = async () => {
-      await upsertGrids(grids, intMissionId, false);
-    };
-
-    if (grids?.length > 0) {
-      upsertGridInfo();
-    }
-  }, [grids, intMissionId]);
-
-  useEffect(() => {
-    const loadGrid = async () => {
-      const response = await getGrids(intMissionId);
-      if (response.data) {
-        setGrids(response.data);
-      }
-    };
-    loadGrid();
-  }, [intMissionId]);
+  }, [isFilePicked, selectedFile?.name]);
 
   return (
     <main className={adminCommon.page}>
@@ -207,8 +169,48 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
           {intMissionId ? (
             <div>
               <div className={adminCommon.details} style={{ marginBottom: 16 }}>
-                <p>Upload grid (.geojson only)</p>
-                <p>The below values MUST correspond to the grid file you are uploading.</p>
+                <h3 style={{ margin: "0 0 12px", color: "#e2e8f0" }}>Current Grid</h3>
+                {grid ? (
+                  <table>
+                    <tbody>
+                      <tr>
+                        <td style={{ paddingRight: 16 }}>Name</td>
+                        <td>{grid.name}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ paddingRight: 16 }}>Rows</td>
+                        <td>{grid.numRows}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ paddingRight: 16 }}>Columns</td>
+                        <td>{grid.numCols}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ paddingRight: 16 }}>Spacing (m)</td>
+                        <td>{grid.spacing || "unknown"}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                ) : (
+                  <p>No grid has been uploaded for this mission.</p>
+                )}
+                {grid && (
+                  <div style={{ marginTop: 12 }}>
+                    <button className={adminCommon.button} onClick={handleDelete}>
+                      Delete Grid
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className={adminCommon.details}>
+                <h3 style={{ margin: "0 0 12px", color: "#e2e8f0" }}>
+                  {grid ? "Replace Grid" : "Upload Grid"}
+                </h3>
+                <p>
+                  Upload grid (LGRS.json from the GIS pipeline, or .geojson). Uploading replaces the
+                  mission&apos;s grid.
+                </p>
                 <p>
                   <a
                     href="https://eegitlab.fit.nasa.gov/emss/aegis/-/wikis/Formatting-for-geoJSON-grid-uploads"
@@ -225,81 +227,27 @@ const AdminMissionGrid: FunctionComponent<{}> = () => {
                   style={{ marginTop: 8 }}
                 />
                 <div style={{ marginTop: 8 }}>
-                  {isFilePicked ? (
+                  {isFilePicked && selectedFile ? (
                     <p>
                       Filename: {selectedFile.name}
                       <br />
                       Filetype: {selectedFile.type}
                       <br />
                       File size: {prettyBytes(selectedFile.size)}
-                      <br />
-                      Last modified date:{" "}
-                      {
-                        selectedFile.lastModifiedDate
-                          ? selectedFile.lastModifiedDate.toLocaleDateString()
-                          : "Not Available" //some browsers don't have this data (Firefox, Safari)
-                      }
                     </p>
                   ) : null}
                 </div>
                 {!isSubmitValid && isFilePicked ? (
-                  <p style={{ color: "#f87171" }}>Please select a valid file</p>
+                  <p style={{ color: "#f87171" }}>Please select a valid .json/.geojson file</p>
                 ) : null}
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                   <button
                     className={adminCommon.buttonPrimary}
                     type="submit"
                     onClick={() => readAndUploadGrid(selectedFile)}
-                    disabled={!isSubmitValid}
+                    disabled={!isSubmitValid || isUploading}
                   >
-                    Save Mission
-                  </button>
-                </div>
-              </div>
-
-              <div className={adminCommon.details}>
-                <h3 style={{ margin: "0 0 12px", color: "#e2e8f0" }}>Mission Grids</h3>
-                {grids && (
-                  <table className={styles.fileTable}>
-                    <thead>
-                      <tr>
-                        <th>Grid Name</th>
-                        <th>Rows</th>
-                        <th>Columns</th>
-                        <th>Active</th>
-                        <th>Delete</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {grids.map((grid) => (
-                        <tr key={grid.gridInformation.uuid}>
-                          <td>{grid.gridInformation.name}</td>
-                          <td>{grid.gridInformation.numRows}</td>
-                          <td>{grid.gridInformation.numCols}</td>
-                          <td className={styles.gridInputContainer}>
-                            <input
-                              type="radio"
-                              id={grid.gridInformation.uuid}
-                              name="chooseGrid"
-                              checked={grid.gridInformation.isActiveGrid}
-                              onChange={() => handleGridSelection(grid.gridInformation.uuid)}
-                            />
-                          </td>
-                          <td className={styles.gridInputContainer}>
-                            <FontAwesomeIcon
-                              icon={faTrash}
-                              onClick={() => deleteGrid(grid.gridInformation.uuid)}
-                              style={{ cursor: "pointer" }}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-                <div style={{ marginTop: 12 }}>
-                  <button className={adminCommon.button} onClick={() => handleGridSelection(null)}>
-                    Clear Active Grid
+                    {isUploading ? "Uploading..." : "Upload Grid"}
                   </button>
                 </div>
               </div>

@@ -7,7 +7,6 @@ import { Doc_Listing_db, Doc_Listing_dbSchema } from "./doc_listing.model";
 import { EnvironmentConfig_db, EnvironmentConfig_dbSchema } from "./environmentConfig.model";
 import { Eva_db, Eva_dbSchema } from "./eva.model";
 import { Folder_db, Folder_dbSchema } from "./folder.model";
-import { Grid_db, Grid_dbSchema } from "./grid.model";
 import { Layer_db, Layer_dbSchema } from "./layer.model";
 import { MissionBackup_db, MissionBackup_dbSchema } from "./missionBackup.model";
 import { Poi_db, Poi_dbSchema } from "./poi.model";
@@ -29,7 +28,6 @@ export const allSchemas = [
   EnvironmentConfig_dbSchema,
   Eva_dbSchema,
   Folder_dbSchema,
-  Grid_dbSchema,
   Layer_dbSchema,
   MissionBackup_dbSchema,
   Poi_dbSchema,
@@ -59,7 +57,6 @@ export {
   STM_Level3_db,
   Sublayer_db,
   Traverse_db,
-  Grid_db,
   STM_Rule_db,
   Folder_db,
   Doc_Listing_db,

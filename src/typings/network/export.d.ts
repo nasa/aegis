@@ -109,6 +109,5 @@ type MissionSourceData = {
   stmLevel2s?: STM_Level2_db[];
   stmLevel3s?: STM_Level3_db[];
   stmRules?: STM_Rule_db[];
-  grids: Grid_db[];
   folders: Folder_db[];
 };

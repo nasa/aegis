@@ -194,10 +194,19 @@ def convert(raw: dict, name: str) -> dict:
             }
         )
 
+    # Grid line spacing in metres. Prefer the value stamped by generate_lgrs.py;
+    # otherwise derive it from the LGRS_ACC length for hand-exported ESRI files
+    # (6 chars → 100 m, 5 chars → 1 km).
+    spacing = raw.get("spacing")
+    if spacing is None and out_features:
+        acc_len = len(str(out_features[0]["properties"]["LGRS_ACC"]))
+        spacing = {6: 100, 5: 1000}.get(acc_len)
+
     return {
         "type": "FeatureCollection",
         "name": name,
         "crs": raw.get("crs", DEFAULT_CRS),
+        "spacing": spacing or 0,
         "row_total": row + 1,  # +1 for AEGIS indexing
         "column_total": column + 1,
         "features": out_features,

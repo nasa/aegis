@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config({ override: true, quiet: true });
+import * as fs from "node:fs";
 import { isValidAutomergeUrl, Repo } from "@automerge/automerge-repo/slim";
 import type { DocHandle, StorageAdapterInterface } from "@automerge/automerge-repo/slim";
 import { PostgresStorageAdapter } from "server/automerge/automerge-repo-storage-postgres";
@@ -454,11 +455,105 @@ getORM()
       });
     };
 
+    // Migration: pull the mission's grid metadata out of the legacy grid_db table and onto
+    // the mission doc as `mission.grid`, and remove the legacy `activeGridUuid` pointer.
+    // Grid coordinate arrays remain on disk (Data/<fileName>) and are NOT moved.
+    //
+    // IMPORTANT operational ordering: run this Automerge migration BEFORE the MikroORM
+    // migration that drops grid_db (Migration20260722000000). If grid_db has already been
+    // dropped, previously-unmigrated docs cannot recover their grid metadata (their
+    // coordinate files are left orphaned until re-uploaded) — this is logged loudly.
+    const automergeMigration20260722GridToMissionDoc = async (docHandle: DocHandle<Mission>) => {
+      const doc = docHandle.doc();
+      const missionId = doc.id;
+
+      // Idempotent: already migrated (has `grid`, no legacy pointer) → skip.
+      if ("grid" in doc && !("activeGridUuid" in doc)) return;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const legacyActiveUuid: string | null = (doc as any).activeGridUuid ?? null;
+
+      // Read any legacy grid_db rows for this mission (raw SQL — the model is gone).
+      type LegacyGridRow = {
+        uuid: string;
+        numRows: number | null;
+        numCols: number | null;
+        spacing: number | string | null;
+        name: string | null;
+        fileName: string | null;
+        isActiveGrid: boolean | null;
+      };
+      let rows: LegacyGridRow[] = [];
+      let tableExists = true;
+      try {
+        const em = globalValues.orm.em.fork();
+        rows = (await em.getConnection().execute(
+          `select "uuid", "num_rows" as "numRows", "num_cols" as "numCols", "spacing",
+                  "name", "file_name" as "fileName", "is_active_grid" as "isActiveGrid"
+           from "grid_db" where "mission_id" = ?`,
+          [missionId]
+        )) as LegacyGridRow[];
+      } catch {
+        // Table no longer exists (drop migration already ran) — cannot recover metadata.
+        tableExists = false;
+      }
+
+      // Resolve the effective grid row.
+      let chosen: LegacyGridRow | undefined = rows.find((r) => r.isActiveGrid);
+      let outcome: string;
+      if (!chosen && legacyActiveUuid) chosen = rows.find((r) => r.uuid === legacyActiveUuid);
+      if (!chosen && rows.length === 1) chosen = rows[0];
+      if (!chosen && rows.length > 1) {
+        chosen = rows[0];
+        outcome = `ambiguous (${rows.length} grids, none active) — kept first`;
+      }
+
+      let definition: MissionGridDefinition | null = null;
+      if (chosen) {
+        definition = {
+          numRows: Number(chosen.numRows) || 0,
+          numCols: Number(chosen.numCols) || 0,
+          spacing: Number(chosen.spacing) || 0,
+          name: chosen.name ?? "",
+          fileName: chosen.fileName ?? "",
+        };
+        outcome ??= "migrated";
+        // Warn (don't fail) if the coordinate file is missing on disk.
+        const filePath = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/${definition.fileName}`;
+        if (!definition.fileName || !fs.existsSync(filePath)) {
+          outcome = `migrated (coordinate file missing: ${definition.fileName || "<none>"})`;
+        }
+      } else if (!tableExists && legacyActiveUuid) {
+        outcome = "grid_db already dropped — metadata unrecoverable, cleared";
+        serverLogger.error(
+          {
+            logId: "automerge-migration",
+            logValue: `Mission ${missionId} had activeGridUuid ${legacyActiveUuid} but grid_db is gone; grid cleared`,
+          },
+          new Error(`Grid metadata unrecoverable for mission ${missionId}`)
+        );
+      } else {
+        outcome = "no grid";
+      }
+
+      docHandle.change((m: Mission) => {
+        m.grid = definition;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ("activeGridUuid" in m) delete (m as any).activeGridUuid;
+      });
+
+      serverLogger.debug({
+        logId: "automerge-migration",
+        logValue: `Mission ${missionId} grid migration: ${outcome}`,
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
       automergeMigration20260528AddMaestroDocId,
       automergeMigration20260717AddActionNaming,
+      automergeMigration20260722GridToMissionDoc,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {

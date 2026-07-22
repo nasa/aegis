@@ -79,8 +79,10 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
   here.
 - **`manifest.json`** (time-aware): `{ time_layers: [{ datetime, dirName }] }`. AEGIS allows
   **one** time-based sublayer per mission.
-- **Mission grid GeoJSON**: top-level `row_total`/`column_total`/`name`/`crs` + Point features
-  with `id, LGRS_ACC, L_coord, R_coord, row, column` (see `grid/convert_lgrs.py`).
+- **Mission grid GeoJSON**: top-level `row_total`/`column_total`/`name`/`crs`/`spacing` (spacing =
+  metres between grid lines) + Point features with `id, LGRS_ACC, L_coord, R_coord, row, column`
+  (see `grid/convert_lgrs.py`). One grid per mission; metadata is stored on the mission Automerge
+  doc (`mission.grid`), coordinates as `Data/<name>.json` — no `Grid_db` / `activeGridUuid`.
 - **DEM** is registered as the mission `demFilePath`/`demResolution`, not a sublayer. The COG
   keeps its source filename with a compression + `_cog` suffix (e.g.
   `Data/mp2-sfs-dem_MoonSP_COG_deflate_cog.tif`). All generated COGs use **deflate**, never
@@ -89,7 +91,8 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
 - **HTTP registration** (the `register` step, `register.py` + `aegis_api.py`) replaces admin
   clicking: `POST /api/v1/missionAutomerge/fields` (projection/DEM/lander/`actionSystemVersion=2`/
   `usingLGRSCoordinates=true`), `POST /api/v1/layer` (Common_LSP/Raster/Vector header layers),
-  `POST /api/v1/sublayer`, and `POST /api/v1/grid` (active grid → `Data/<name>.json`). The
+  `POST /api/v1/sublayer`, and `POST /api/v1/grid` (writes the mission grid → `Data/<name>.json`
+  + `mission.grid` on the doc). The
   server-side endpoint `POST /api/v1/missionAutomerge/fields` exists specifically for this (the
   app otherwise mutates the mission only via the Automerge websocket) and requires the EMSS API
   token. Changed lander coordinates are rejected when affected mission assets already exist,

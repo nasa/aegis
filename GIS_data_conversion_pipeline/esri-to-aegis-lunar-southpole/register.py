@@ -349,14 +349,15 @@ def find_dem_file(data_dir: Path) -> Path | None:
 
 
 def build_mission_grid(
-    geojson_path: Path, mission_id: int, existing_grids: list[dict]
+    geojson_path: Path, mission_id: int, existing_grid: dict | None
 ) -> dict:
     """Build a MissionGrid (gridInformation + 2D coordinates) from an AEGIS grid GeoJSON.
 
     Mirrors the admin's gridUpload.tsx transform: a FeatureCollection of Point features with
     row/column/id/L_coord/R_coord is turned into a ``coordinates[row][col]`` array with the
-    row index inverted (``row_total - row - 1``) and ``[lon,lat]`` → ``{lat,lng}``. Reuses an
-    existing grid's uuid/fileName when one of the same name exists, so re-runs update in place.
+    row index inverted (``row_total - row - 1``) and ``[lon,lat]`` → ``{lat,lng}``. Reuses the
+    existing grid's fileName when present so re-runs update in place. There is one grid per
+    mission; its metadata is stored on the mission Automerge doc (``mission.grid``).
     """
     fc = json.loads(geojson_path.read_text(encoding="utf-8"))
     # The raw GeoJSON's internal name is just the scratch filename ("raw_grid"); use a clean,
@@ -364,6 +365,7 @@ def build_mission_grid(
     name = config.GRID_DEFAULT_NAME
     row_total = int(fc["row_total"])
     col_total = int(fc["column_total"])
+    spacing = int(fc.get("spacing", 0) or 0)
 
     coordinates: list[list[dict]] = [[None] * col_total for _ in range(row_total)]  # type: ignore[list-item]
     for feat in fc["features"]:
@@ -382,27 +384,16 @@ def build_mission_grid(
             "name": label,
         }
 
-    prior = next(
-        (
-            g["gridInformation"]
-            for g in existing_grids
-            if g.get("gridInformation", {}).get("name") == name
-        ),
-        None,
-    )
-    grid_uuid = prior["uuid"] if prior else str(uuidlib.uuid4())
-    file_name = prior["fileName"] if prior else f"{name}.json"
+    prior = (existing_grid or {}).get("gridInformation") or {}
+    file_name = prior.get("fileName") or f"{name}.json"
 
     return {
         "gridInformation": {
-            "uuid": grid_uuid,
-            "missionId": mission_id,
             "numRows": row_total,
             "numCols": col_total,
-            "spacing": 0,
+            "spacing": spacing,
             "name": name,
             "fileName": file_name,
-            "isActiveGrid": True,
         },
         "coordinates": coordinates,
     }
@@ -530,9 +521,9 @@ def register_mission(
         if dry_run:
             print(f"  [dry-run] would register active grid from {grid_geojson.name}")
         else:
-            existing = client.get_grids(mission_id)
+            existing = client.get_grid(mission_id)
             grid = build_mission_grid(grid_geojson, mission_id, existing)
-            client.upsert_grids(mission_id, [grid], upsert_full_grid=True)
+            client.upsert_grid(mission_id, grid, upsert_full_grid=True)
             gi = grid["gridInformation"]
             print(
                 f"  registered active grid '{gi['name']}' "

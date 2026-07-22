@@ -20,7 +20,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   );
   const presetGridControl = selectedPreset?.mapGridControl;
 
-  const gridInformation: MissionGridInformation = globalGrid?.gridInformation;
+  const gridInformation: MissionGridDefinition = globalGrid?.gridInformation;
 
   const styleSetterHandler = ({
     uuid,
