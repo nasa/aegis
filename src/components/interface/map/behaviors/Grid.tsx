@@ -19,19 +19,25 @@ import { unByKey } from "ol/Observable";
 
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { globalGrid } from "utils/mapping/grid";
+import { defaultGridStyle } from "store/storeUtils/sublayer";
+import { globalGrid, getGridBaseSpacingMeters } from "utils/mapping/grid";
 import { adjustGridIndex, findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
 
 import { useMapContext } from "../MapProvider";
+import { useMapMenuContext } from "../MapMenuProvider";
 import { withAlpha } from "../utils/layers/layerFactory";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useCoordConverters } from "../hooks/useCoordConverters";
 import { Z_INDEX } from "../utils/zIndex";
 
+// Hide labels once adjacent labels would be closer than this many screen pixels.
+const LABEL_MIN_PX = 60;
+
 export function Grid(): null {
   const { map, mode } = useMapContext();
   const config = MODE_CONFIGS[mode];
   const { toMapCoord, toAegisPoint } = useCoordConverters();
+  const { gridSpacingMode, gridLabelInterval } = useMapMenuContext();
 
   const planetRadius = useMissionDocSelector((doc) => doc.planetRadius, refEqual) as
     | number
@@ -98,16 +104,51 @@ export function Grid(): null {
     const endGridIdx = findClosestPointInGlobalGrid(gridCoordinates, bottomRight, planetRadius);
     if (!startGridIdx || !endGridIdx) return;
 
-    // Adaptive density: target ~100 visible grid cells at any zoom.
-    // ceil ensures we always reduce density rather than straddle a threshold.
+    // Base spacing (metres between adjacent grid lines), derived from the grid
+    // geometry — the single source of truth (see getGridBaseSpacingMeters).
+    const baseSpacing = getGridBaseSpacingMeters(globalGrid, planetRadius);
+    const resolution = map.getView().getResolution() ?? 0;
+
     const basePointsShown =
       (endGridIdx.row - startGridIdx.row) * (endGridIdx.col - startGridIdx.col);
-    const lineZoomLevel = Math.max(1, Math.ceil(Math.sqrt(basePointsShown / 100)));
 
-    // Labels target ~25 visible, and must be a multiple of lineZoomLevel
-    // so label positions are a strict subset of line positions.
-    const rawLabelInterval = Math.ceil(Math.sqrt(basePointsShown / 25));
-    const labelZoomLevel = Math.ceil(rawLabelInterval / lineZoomLevel) * lineZoomLevel;
+    // --- Line stride ---
+    // Fixed mode draws every Nth grid line at a fixed real-world spacing,
+    // independent of zoom. Auto mode targets ~100 visible cells at any zoom.
+    let lineZoomLevel: number;
+    if (gridSpacingMode !== "auto" && baseSpacing > 0) {
+      lineZoomLevel = Math.max(1, Math.round(gridSpacingMode / baseSpacing));
+    } else {
+      lineZoomLevel = Math.max(1, Math.ceil(Math.sqrt(basePointsShown / 100)));
+    }
+
+    // --- Label stride + overlap cutoff ---
+    // Labels are always placed on a multiple of the line stride so they sit on
+    // drawn lines. The auto label interval hides labels when they would overlap
+    // (the "zoom-out cutoff"); a fixed label interval is always shown.
+    let labelZoomLevel: number;
+    let hideLabels = false;
+    if (gridSpacingMode === "auto") {
+      // Adaptive labels target ~25 visible.
+      const rawLabelInterval = Math.ceil(Math.sqrt(basePointsShown / 25));
+      labelZoomLevel = Math.ceil(rawLabelInterval / lineZoomLevel) * lineZoomLevel;
+    } else if (gridLabelInterval === "auto") {
+      // A label on every drawn line, hidden once they would overlap.
+      labelZoomLevel = lineZoomLevel;
+      if (baseSpacing > 0 && resolution > 0) {
+        const pxSpacing = (labelZoomLevel * baseSpacing) / resolution;
+        if (pxSpacing < LABEL_MIN_PX) hideLabels = true;
+      }
+    } else if (baseSpacing > 0) {
+      // Fixed label interval, aligned up to a multiple of the line stride.
+      const rawLabelStride = Math.max(1, Math.round(gridLabelInterval / baseSpacing));
+      labelZoomLevel = Math.max(
+        lineZoomLevel,
+        Math.ceil(rawLabelStride / lineZoomLevel) * lineZoomLevel
+      );
+    } else {
+      labelZoomLevel = lineZoomLevel;
+    }
 
     const startIndex = adjustGridIndex(startGridIdx, numRows, numCols, lineZoomLevel, true);
     const endIndex = adjustGridIndex(endGridIdx, numRows, numCols, lineZoomLevel, false);
@@ -115,7 +156,9 @@ export function Grid(): null {
     const labelStartIndex = adjustGridIndex(startGridIdx, numRows, numCols, labelZoomLevel, true);
     const labelEndIndex = adjustGridIndex(endGridIdx, numRows, numCols, labelZoomLevel, false);
 
-    const gridStyle = mapGridControl.style;
+    // Merge in grid defaults so every field has a value (fixes label color
+    // silently inheriting the stroke color when unset).
+    const gridStyle = { ...defaultGridStyle, ...(mapGridControl.style ?? {}) };
 
     // --- Lines ---
     const lineSource = lineLayer.getSource()!;
@@ -123,8 +166,8 @@ export function Grid(): null {
 
     const lineStyle = new Style({
       stroke: new Stroke({
-        color: gridStyle?.color || "rgba(255,255,255,0.4)",
-        width: gridStyle?.weight || 1,
+        color: gridStyle.color,
+        width: gridStyle.weight,
       }),
     });
 
@@ -162,7 +205,7 @@ export function Grid(): null {
     const labelSource = labelLayer.getSource()!;
     labelSource.clear();
 
-    if (!mapGridControl.labelsVisible || !config.grid.labelsEnabled) return;
+    if (!mapGridControl.labelsVisible || !config.grid.labelsEnabled || hideLabels) return;
 
     for (let i = labelEndIndex.row; i >= labelStartIndex.row; i -= labelZoomLevel) {
       for (let j = labelStartIndex.col; j <= labelEndIndex.col; j += labelZoomLevel) {
@@ -173,23 +216,24 @@ export function Grid(): null {
 
         const coord = toMapCoord(point.coordinates);
         const labelFeature = new Feature(new Point(coord));
-        const strokeWidth = gridStyle?.labelStrokeWidth ?? 3;
+        const haloWidth = gridStyle.labelHaloWidth ?? defaultGridStyle.labelHaloWidth;
         labelFeature.setStyle(
           new Style({
             text: new Text({
               text: point.name,
               font: "12px sans-serif",
               fill: new Fill({
-                color: gridStyle?.labelColor ?? gridStyle?.color ?? "#ffffff",
+                // Label color is independent of the line stroke color.
+                color: gridStyle.labelColor ?? defaultGridStyle.labelColor,
               }),
               stroke:
-                strokeWidth > 0
+                haloWidth > 0
                   ? new Stroke({
                       color: withAlpha(
-                        gridStyle?.labelStrokeColor ?? "#ffffff",
-                        gridStyle?.labelStrokeOpacity ?? 0.85
+                        gridStyle.labelHaloColor ?? defaultGridStyle.labelHaloColor,
+                        gridStyle.labelHaloOpacity ?? defaultGridStyle.labelHaloOpacity
                       ),
-                      width: strokeWidth,
+                      width: haloWidth,
                     })
                   : undefined,
               offsetX: 5,
@@ -201,7 +245,16 @@ export function Grid(): null {
         labelSource.addFeature(labelFeature);
       }
     }
-  }, [map, mapGridControl, planetRadius, toMapCoord, toAegisPoint, config.grid.labelsEnabled]);
+  }, [
+    map,
+    mapGridControl,
+    planetRadius,
+    toMapCoord,
+    toAegisPoint,
+    config.grid.labelsEnabled,
+    gridSpacingMode,
+    gridLabelInterval,
+  ]);
 
   // --- Listen for view changes to rebuild grid ---
   useEffect(() => {

@@ -83,9 +83,6 @@ export const auditPresetsAgainstLayers = async ({
           Object.entries(existingControl.style ?? {}).filter(([, value]) => value != null)
         );
         const mergedStyle = { ...defaultSublayerStyle, ...definedStyleValues };
-        if (mergedStyle.labelStrokeColor === "rgba(255,255,255,0.85)") {
-          mergedStyle.labelStrokeColor = defaultSublayerStyle.labelStrokeColor;
-        }
         if (!isEqual(existingControl.style, mergedStyle)) {
           existingControl.style = mergedStyle;
         }

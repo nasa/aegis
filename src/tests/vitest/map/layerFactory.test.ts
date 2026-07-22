@@ -566,9 +566,9 @@ describe("buildVectorStyleFn", () => {
 
     expect(text.getFill()!.getColor()).toBe(defaultSublayerStyle.labelColor);
     expect(text.getStroke()!.getColor()).toBe(
-      withAlpha(defaultSublayerStyle.labelStrokeColor, defaultSublayerStyle.labelStrokeOpacity)
+      withAlpha(defaultSublayerStyle.labelHaloColor, defaultSublayerStyle.labelHaloOpacity)
     );
-    expect(text.getStroke()!.getWidth()).toBe(defaultSublayerStyle.labelStrokeWidth);
+    expect(text.getStroke()!.getWidth()).toBe(defaultSublayerStyle.labelHaloWidth);
   });
 
   it("uses 'line' placement for LineString labels and 'point' for others", () => {
