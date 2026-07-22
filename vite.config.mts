@@ -35,17 +35,30 @@ export const config: UserConfig = {
       operations: path.resolve(__dirname, "./src/operations"),
     },
   },
-  //server configurations for running vite as a server (only happens in local dev). On docker/production, nginx serves the front end
+  // Server configurations for running vite as a server (only happens in local dev). On docker/production, nginx serves the front end
   server: {
-    // neither of these proxies are hit when running under docker:dev because nginx intercepts them
+    // None of these proxies are hit when running under docker:dev because nginx intercepts them
+    // Targets must NOT have a trailing slash: http-proxy-middleware appends the request URL to
+    // target, so a trailing-slash target produces a double-slash path that
+    // won't match the server's strict URL check for the automerge upgrade.
     proxy: {
       "/api/v1": {
-        target: "http://localhost:4001/",
+        target: "http://localhost:4001",
+        changeOrigin: true,
+        ws: true,
+      },
+      "/api/automergeSocket": {
+        target: "http://localhost:4001",
+        changeOrigin: true,
+        ws: true,
+      },
+      "/api/socket": {
+        target: "http://localhost:4001",
         changeOrigin: true,
         ws: true,
       },
       "/static": {
-        target: "http://localhost:4001/",
+        target: "http://localhost:4001",
         changeOrigin: true,
       },
     },

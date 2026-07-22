@@ -98,8 +98,11 @@ initializeBase64Wasm(automergeWasmBase64);
 
   // upgrade an already established client/server connection to a
   //    different protocol (over the same transport protocol).
+  // Socket.IO's own upgrade listeners (auto-attached during SocketServer
+  // construction above) handle /api/socket and /api/v1/socketio; this one
+  // handles the Automerge WS.
   server.on("upgrade", (request, socket, head) => {
-    if (request.url === "/api/socketAutomerge/") {
+    if (request.url === "/api/automergeSocket/") {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit("connection", ws, request);
       });
