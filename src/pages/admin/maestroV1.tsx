@@ -125,6 +125,28 @@ const MaestroV1: React.FunctionComponent = () => {
 
   // ── Auth check + inspector socket setup ──────────────────────────────────
   useEffect(() => {
+    // Create the inspector socket synchronously so React can attach a matching
+    // cleanup that actually runs on unmount (returning cleanup from an async
+    // IIFE would be discarded by React).
+    if (!inspectorSocket.current || !inspectorSocket.current.connected) {
+      inspectorSocket.current = createClientSocket(window.location.origin);
+    }
+    const socket = inspectorSocket.current;
+
+    socket.on("connect", () => {
+      socket.emit("inspectorJoin");
+      setInspectorConnectionStatus("connected");
+    });
+
+    socket.on("disconnect", () => {
+      setInspectorConnectionStatus("disconnected");
+    });
+
+    socket.on("inspectorUpdate", (data: ServerSocketStatus) => {
+      setServerSocketStatus(data);
+      setLastUpdatedAt(new Date().toISOString());
+    });
+
     (async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
@@ -141,31 +163,14 @@ const MaestroV1: React.FunctionComponent = () => {
         missionsRes.data.forEach((m) => nameMap.set(m.id, m.name));
         setMissionNames(nameMap);
       }
-
-      if (!inspectorSocket.current || !inspectorSocket.current.connected) {
-        inspectorSocket.current = createClientSocket(window.location.origin);
-      }
-
-      inspectorSocket.current.on("connect", () => {
-        inspectorSocket.current.emit("inspectorJoin");
-        setInspectorConnectionStatus("connected");
-      });
-
-      inspectorSocket.current.on("disconnect", () => {
-        setInspectorConnectionStatus("disconnected");
-      });
-
-      inspectorSocket.current.on("inspectorUpdate", (data: ServerSocketStatus) => {
-        setServerSocketStatus(data);
-        setLastUpdatedAt(new Date().toISOString());
-      });
-
-      return () => {
-        inspectorSocket.current?.off("connect");
-        inspectorSocket.current?.off("inspectorUpdate");
-        inspectorSocket.current?.disconnect();
-      };
     })();
+
+    return () => {
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.off("inspectorUpdate");
+      socket.disconnect();
+    };
   }, [navigate]);
 
   // ── Maestro socket lifecycle ──────────────────────────────────────────────

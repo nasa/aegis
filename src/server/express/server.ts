@@ -57,8 +57,8 @@ initializeBase64Wasm(automergeWasmBase64);
     pingTimeout: 5000,
   });
 
-  // New Socket.IO server on /socket for all current AEGIS internal traffic and Maegistro v2.
-  serverLogger.debug({ logId: "server", logValue: "Starting Socket.IO on /socket" });
+  // New Socket.IO server on /api/socket for all current AEGIS internal traffic and Maegistro v2.
+  serverLogger.debug({ logId: "server", logValue: "Starting Socket.IO on /api/socket" });
   globalValues.socketio = new SocketServer<
     ClientToServerEvents,
     ServerToClientEvents,
@@ -83,7 +83,7 @@ initializeBase64Wasm(automergeWasmBase64);
   setupSocketIO();
   // v1 Maegistro lives on the legacy socket server.
   setupMaestroNamespaceV1(globalValues.socketioLegacy);
-  // v2 Maegistro lives on the new /socket server under the /maestro/v2 namespace.
+  // v2 Maegistro lives on the new /api/socket server under the /maestro/v2 namespace.
   setupMaestroNamespaceV2(globalValues.socketio);
 
   // express request handler

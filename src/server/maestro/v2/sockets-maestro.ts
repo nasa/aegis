@@ -1,7 +1,7 @@
 /**
  * /maestro/v2 namespace — Maegistro v2 API client connections
  *
- * Mounted on the new /socket Socket.IO server. Auth is enforced once at
+ * Mounted on the new /api/socket Socket.IO server. Auth is enforced once at
  * connection time via namespace middleware. All handlers in this file can
  * assume the socket is EMSS-authenticated.
  *
@@ -242,6 +242,7 @@ const getEvaUuid = async (missionId: number, evaRefUuid: string, rexUuid: string
   } else {
     mission = docHandle.doc();
   }
+  if (!mission) return;
 
   if (rexUuid) {
     // Verify the rex exists and its EVA matches the given refUuid

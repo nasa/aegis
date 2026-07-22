@@ -110,6 +110,7 @@ export const setupMaestroNamespace = (
               logId: "socket-maestro-v1",
               logValue: `subscribeToEva - could not get evaUuid from missionId ${missionId}, evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
             });
+            return;
           }
           if (!subscriptions.includes(evaUuid)) {
             subscriptions.push(evaUuid);
@@ -244,6 +245,7 @@ const getEvaUuid = async (missionId: number, evaRefUuid: string, rexUuid: string
   } else {
     mission = docHandle.doc();
   }
+  if (!mission) return;
 
   if (rexUuid) {
     // Verify the rex exists and its EVA matches the given refUuid
