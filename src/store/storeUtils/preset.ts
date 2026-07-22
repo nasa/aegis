@@ -34,6 +34,29 @@ export const generateBlankPreset = (partialPreset?: Partial<Preset>): Preset => 
 };
 
 /**
+ * Backward-compat: the label halo style fields were renamed
+ * labelStroke*  →  labelHalo*. Map any legacy keys on a style object in place so
+ * presets saved before the rename keep their halo settings.
+ */
+function migrateLegacyHaloStyle(style: MapSublayerStyle | null | undefined): void {
+  if (!style) return;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const s = style as any;
+  if ("labelStrokeColor" in s) {
+    if (s.labelHaloColor === undefined) s.labelHaloColor = s.labelStrokeColor;
+    delete s.labelStrokeColor;
+  }
+  if ("labelStrokeWidth" in s) {
+    if (s.labelHaloWidth === undefined) s.labelHaloWidth = s.labelStrokeWidth;
+    delete s.labelStrokeWidth;
+  }
+  if ("labelStrokeOpacity" in s) {
+    if (s.labelHaloOpacity === undefined) s.labelHaloOpacity = s.labelStrokeOpacity;
+    delete s.labelStrokeOpacity;
+  }
+}
+
+/**
  * Converts db preset fks to their uuid/id arrays
  * @param dbPresets an array of presets in mikro db format
  * @returns an a converted array of presets or a single preset
@@ -60,6 +83,14 @@ export function convertPresetsTypeDbToStore(dbPresets: Preset_db[]): Preset[] {
       createdAt: dbPreset.createdAt.toISOString(),
       updatedAt: dbPreset.updatedAt.toISOString(),
     };
+    // Migrate legacy label halo field names on every style object.
+    for (const control of Object.values(convertedPreset.mapSublayerControls ?? {})) {
+      migrateLegacyHaloStyle(control.style);
+    }
+    for (const control of Object.values(convertedPreset.mapCircleControls ?? {})) {
+      migrateLegacyHaloStyle(control.style);
+    }
+    migrateLegacyHaloStyle(convertedPreset.mapGridControl?.style);
     presets.push(convertedPreset);
   }
   return presets;

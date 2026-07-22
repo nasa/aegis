@@ -34,6 +34,8 @@ export interface MapMenuSettings {
   showScaleBar: boolean;
   showMouseLatLon: boolean;
   showSunEarth: boolean;
+  gridSpacingMode: GridSpacingMode;
+  gridLabelInterval: GridSpacingMode;
 }
 
 export interface MapMenuSetters {
@@ -47,6 +49,8 @@ export interface MapMenuSetters {
   setShowScaleBar: Dispatch<SetStateAction<boolean>>;
   setShowMouseLatLon: Dispatch<SetStateAction<boolean>>;
   setShowSunEarth: Dispatch<SetStateAction<boolean>>;
+  setGridSpacingMode: Dispatch<SetStateAction<GridSpacingMode>>;
+  setGridLabelInterval: Dispatch<SetStateAction<GridSpacingMode>>;
 }
 
 const DEFAULT_SETTINGS: MapMenuSettings = {
@@ -71,6 +75,8 @@ const DEFAULT_SETTINGS: MapMenuSettings = {
   showScaleBar: true,
   showMouseLatLon: true,
   showSunEarth: false,
+  gridSpacingMode: "auto",
+  gridLabelInterval: "auto",
 };
 
 // ---------------------------------------------------------------------------
@@ -116,6 +122,12 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
   const [showScaleBar, setShowScaleBar] = useState(DEFAULT_SETTINGS.showScaleBar);
   const [showMouseLatLon, setShowMouseLatLon] = useState(DEFAULT_SETTINGS.showMouseLatLon);
   const [showSunEarth, setShowSunEarth] = useState(DEFAULT_SETTINGS.showSunEarth);
+  const [gridSpacingMode, setGridSpacingMode] = useState<GridSpacingMode>(
+    DEFAULT_SETTINGS.gridSpacingMode
+  );
+  const [gridLabelInterval, setGridLabelInterval] = useState<GridSpacingMode>(
+    DEFAULT_SETTINGS.gridLabelInterval
+  );
 
   // --- Cookie persistence ---
   const [cookie, setCookie] = useCookies(["AEGIS_Map_Menu_Settings"]);
@@ -134,6 +146,8 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
     setShowScaleBar(saved.showScaleBar ?? true);
     setShowMouseLatLon(saved.showMouseLatLon ?? true);
     setShowSunEarth(saved.showSunEarth ?? false);
+    if (saved.gridSpacingMode !== undefined) setGridSpacingMode(saved.gridSpacingMode);
+    if (saved.gridLabelInterval !== undefined) setGridLabelInterval(saved.gridLabelInterval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -152,6 +166,8 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
         showSunEarth,
         showScaleBar,
         showMouseLatLon,
+        gridSpacingMode,
+        gridLabelInterval,
       } satisfies MapMenuCookie),
       // maxAge (1 year, in seconds) makes this a persistent cookie — without an
       // expiry it defaults to a session cookie and is dropped when the browser closes.
@@ -169,6 +185,8 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
     showSunEarth,
     showScaleBar,
     showMouseLatLon,
+    gridSpacingMode,
+    gridLabelInterval,
   ]);
 
   // --- Context values ---
@@ -184,6 +202,8 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
       showScaleBar,
       showMouseLatLon,
       showSunEarth,
+      gridSpacingMode,
+      gridLabelInterval,
     }),
     [
       submenuStations,
@@ -196,6 +216,8 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
       showScaleBar,
       showMouseLatLon,
       showSunEarth,
+      gridSpacingMode,
+      gridLabelInterval,
     ]
   );
 
@@ -211,6 +233,8 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
       setShowScaleBar,
       setShowMouseLatLon,
       setShowSunEarth,
+      setGridSpacingMode,
+      setGridLabelInterval,
     }),
     // State setters from useState are stable references — no deps needed
 
