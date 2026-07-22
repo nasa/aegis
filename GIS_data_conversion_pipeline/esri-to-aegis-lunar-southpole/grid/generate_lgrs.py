@@ -179,6 +179,7 @@ def generate(lat: float, lng: float, extent_m: float, precision: int) -> dict:
         "type": "FeatureCollection",
         "name": f"LGRS_{precision}m_{lat}_{lng}",
         "crs": DEFAULT_CRS,
+        "spacing": precision,  # metres between adjacent grid lines (persisted for AEGIS)
         "features": features,
     }
 

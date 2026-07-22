@@ -5,7 +5,6 @@ type STM_Level1_db = import("server/database/models/_allModels").STM_Level1_db;
 type STM_Level2_db = import("server/database/models/_allModels").STM_Level2_db;
 type STM_Level3_db = import("server/database/models/_allModels").STM_Level3_db;
 type STM_Rule_db = import("server/database/models/_allModels").STM_Rule_db;
-type Grid_db = import("server/database/models/_allModels").Grid_db;
 type Folder_db = import("server/database/models/_allModels").Folder_db;
 
 // Type definitions
@@ -24,7 +23,6 @@ type EntityMaps = {
   stmLevel2s: UuidMap;
   stmLevel3s: UuidMap;
   stmRules: UuidMap;
-  grids: UuidMap;
   folders: UuidMap;
 };
 

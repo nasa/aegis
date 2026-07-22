@@ -14,7 +14,6 @@ import { STM_Level2_db } from "./stm_level2.model";
 import { STM_Level3_db } from "./stm_level3.model";
 import { Sublayer_db } from "./sublayer.model";
 import { Traverse_db } from "./traverse.model";
-import { Grid_db } from "./grid.model";
 import { STM_Rule_db } from "./stm_rules.model";
 import { Folder_db } from "./folder.model";
 import { Doc_Listing_db } from "./doc_listing.model";
@@ -36,7 +35,6 @@ export {
   STM_Level3_db,
   Sublayer_db,
   Traverse_db,
-  Grid_db,
   STM_Rule_db,
   Folder_db,
   Doc_Listing_db,

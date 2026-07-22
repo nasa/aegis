@@ -123,25 +123,25 @@ class AegisApiClient:
         )
         return self._unwrap(resp, "upsert sublayers") or []  # type: ignore[return-value]
 
-    # -- grids --------------------------------------------------------------
-    def get_grids(self, mission_id: int) -> list[dict]:
-        """List grid metadata for a mission (coordinates omitted)."""
+    # -- grid ---------------------------------------------------------------
+    def get_grid(self, mission_id: int) -> dict | None:
+        """Get the mission's single grid metadata (coordinates omitted), or None."""
         resp = self._request("GET", f"/api/v1/grid?missionId={mission_id}")
-        return self._unwrap(resp, "get grids") or []  # type: ignore[return-value]
+        return self._unwrap(resp, "get grid")  # type: ignore[return-value]
 
-    def upsert_grids(
-        self, mission_id: int, grids: list[dict], upsert_full_grid: bool = True
-    ) -> list[dict]:
-        """Upsert grids. With upsert_full_grid the server writes each grid's coordinate JSON
-        into the mission Data/ folder; an isActiveGrid grid also becomes the mission's
-        activeGridUuid (set server-side on the automerge doc)."""
+    def upsert_grid(
+        self, mission_id: int, grid: dict, upsert_full_grid: bool = True
+    ) -> dict | None:
+        """Upsert the mission's grid. With upsert_full_grid the server writes the grid's
+        coordinate JSON into the mission Data/ folder and stores the grid metadata on the
+        mission Automerge doc (mission.grid)."""
         resp = self._request(
             "POST",
             "/api/v1/grid",
             {
                 "missionId": mission_id,
-                "grids": grids,
+                "grid": grid,
                 "upsertFullGrid": upsert_full_grid,
             },
         )
-        return self._unwrap(resp, "upsert grids") or []  # type: ignore[return-value]
+        return self._unwrap(resp, "upsert grid")  # type: ignore[return-value]

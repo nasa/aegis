@@ -8,7 +8,7 @@ import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
-import { getGrids } from "../../../express/routes/grid";
+import { getGrid } from "../../../express/routes/grid";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
 
@@ -50,9 +50,9 @@ export async function getReadableEvaData(params: ReadableEvaParams): Promise<Exp
   }
 
   let gridCoordinates = null;
-  if (mission.activeGridUuid) {
+  if (mission.grid) {
     try {
-      gridCoordinates = (await getGrids(missionId, true, mission.activeGridUuid))[0]?.coordinates;
+      gridCoordinates = (await getGrid(missionId, true))?.coordinates;
     } catch (e) {
       // Something went wrong with fetching grids. Report an error but continue without grid data
       serverLogger.apiRoute({

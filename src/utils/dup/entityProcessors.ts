@@ -7,7 +7,6 @@ import {
   STM_Level2_db,
   STM_Level3_db,
   Sublayer_db,
-  Grid_db,
   STM_Rule_db,
   Folder_db,
 } from "server/database/models/_allModels";
@@ -390,35 +389,6 @@ export const processStmRules = async (
       );
     }
   }
-};
-
-// Duplicate/Restore Grids
-export const processGrids = (
-  em: EntityManager,
-  grids: Grid_db[],
-  missionId: number,
-  uuidMaps: EntityMaps
-): string | undefined => {
-  let newActiveGridUuid: string | undefined = undefined;
-
-  for (const grid of grids) {
-    if (!grid || !grid.uuid) continue;
-
-    const newUuid = createUuidMapping(grid.uuid, uuidMaps.grids);
-
-    if (grid.isActiveGrid) {
-      newActiveGridUuid = newUuid;
-    }
-
-    const newGrid = em.create(Grid_db, {
-      ...grid,
-      uuid: newUuid,
-      missionId,
-    });
-    em.persist(newGrid);
-  }
-
-  return newActiveGridUuid;
 };
 
 // Duplicate/Restore Folders
