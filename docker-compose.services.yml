@@ -16,7 +16,9 @@ services:
       - "5432:5432"
 
   gdal:
-    image: bfeistnasa/aegis-gdal:latest
+    image: ${GDAL_IMAGE:-bfeistnasa/aegis-gdal:latest}
+    working_dir: /app
+    command: ["python", "elevationService.py"]
     volumes:
       - ./src/server/python:/app
     ports:

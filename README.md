@@ -189,12 +189,21 @@ We need to setup the local environment before spinning up the app.
 
 This is for doing local development with the database and GDAL containers running.
 
-The GDAL container powers elevation-profile generation. It is pulled as a prebuilt public
-image (`bfeistnasa/aegis-gdal:latest`) from Docker Hub, so no access to a private registry is
-required — the first `npm run docker:services` will download it (~1.6 GB). If you don't need
-elevation features, the app runs fine without GDAL; those features will simply return an error.
+The GDAL container powers elevation-profile generation. Which image is pulled depends on the
+command you run:
+
+- `npm run docker:services` — **internal NASA devs.** Pulls the GDAL base image from the EE
+  registry (`eegitlabregistry.fit.nasa.gov/emss/docker-images/deploy:gdal`); requires private-
+  registry access.
+- `npm run docker:services:public` — **open-source / external users.** Pulls a prebuilt public
+  image (`bfeistnasa/aegis-gdal:latest`) from Docker Hub, ~1.6 GB on first run, no private-
+  registry access needed.
+
+Both start the same database + GDAL containers; only the GDAL image source differs. If you don't
+need elevation features, the app runs fine without GDAL; those features will simply return an error.
 
 1. Run Docker only starting the service containers (gdal and database): `npm run docker:services`
+   (open-source / external users: `npm run docker:services:public`)
 2. Run `npm run dev` to start the API and frontend.
 3. Open [http://localhost:4000](http://localhost:4000) with your browser (note lack of https).
 4. Continue to **Step 3: Setting up GIS products for local development**
