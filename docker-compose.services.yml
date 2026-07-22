@@ -16,12 +16,7 @@ services:
       - "5432:5432"
 
   gdal:
-    # See comment above regarding `image`/`build` overrides
-    image: aegis-dev-gdal:latest
-    build:
-      context: .
-      dockerfile: ./docker/gdal/Dockerfile
-      target: base
+    image: bfeistnasa/aegis-gdal:latest
     volumes:
       - ./src/server/python:/app
     ports:

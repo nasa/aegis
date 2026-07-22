@@ -187,7 +187,12 @@ We need to setup the local environment before spinning up the app.
 
 ### Step 2, Option 1: Development with service containers (PREFERRED)
 
-This is for doing local development with the database and Gdal containers running.
+This is for doing local development with the database and GDAL containers running.
+
+The GDAL container powers elevation-profile generation. It is pulled as a prebuilt public
+image (`bfeistnasa/aegis-gdal:latest`) from Docker Hub, so no access to a private registry is
+required — the first `npm run docker:services` will download it (~1.6 GB). If you don't need
+elevation features, the app runs fine without GDAL; those features will simply return an error.
 
 1. Run Docker only starting the service containers (gdal and database): `npm run docker:services`
 2. Run `npm run dev` to start the API and frontend.
@@ -355,6 +360,24 @@ docker logs <container name> -f
 # Restart individual services
 docker restart <container name>
 ```
+
+## Updating the public GDAL image
+
+Local and preview development pull a prebuilt GDAL image from Docker Hub
+(`bfeistnasa/aegis-gdal:latest`) because the private base image it derives from can no longer
+be rebuilt. To publish or refresh that image (maintainers only, requires push access to the
+`bfeistnasa` Docker Hub org):
+
+```bash
+# From an environment that already has a working aegis GDAL image built locally
+# (e.g. the pipeline artifact or a previously-built aegis-dev-gdal:latest):
+docker tag aegis-dev-gdal:latest bfeistnasa/aegis-gdal:latest
+docker login                       # log in to the bfeistnasa Docker Hub account
+docker push bfeistnasa/aegis-gdal:latest
+```
+
+The pipeline itself is unaffected — it still builds its own GDAL image from the private base
+via `docker/gdal/Dockerfile` and the base `docker-compose.yml`.
 
 ## Load Testing
 
