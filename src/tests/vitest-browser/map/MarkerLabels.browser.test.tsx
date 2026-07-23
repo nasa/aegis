@@ -201,6 +201,9 @@ beforeEach(() => {
   mockMissionDoc.evas = undefined;
   mockMissionDoc.pois = undefined;
   mockMissionDoc.actions = undefined;
+  mockMissionDoc.actionSystemVersion = undefined;
+  mockMissionDoc.actionDefinitions = undefined;
+  mockMissionDoc.actionDefinitionConjunctions = undefined;
   labelSource = null;
   capturedSetters = null;
   harness = createReactHarness();
@@ -535,6 +538,43 @@ describe("MarkerLabels", () => {
     const feature = labelSource!.getFeatureById(`action-${ACTION_UUID}`);
     expect(feature).not.toBeNull();
     expect(feature!.get("labelType")).toBe("action");
+    expect(feature!.get("name")).toBe("Action 1");
+  });
+
+  it("labels STM (v2) actions from the definition + custom conjunctions", () => {
+    const stationA = makeStation(STATION_A_UUID, 10, 20);
+    const action = {
+      ...makeAction(ACTION_UUID, 11, 21, STATION_A_UUID),
+      name: "ignored-random-name",
+      stmAction: true,
+      actionDefinition: { verbUuid: "v1", nounUuid: "n1", adjectiveUuid: "a1" },
+    } as unknown as Action;
+    mockMissionDoc.stations = { [STATION_A_UUID]: stationA } as unknown as Mission["stations"];
+    mockMissionDoc.actions = { [ACTION_UUID]: action } as unknown as Mission["actions"];
+    mockMissionDoc.actionSystemVersion = 2;
+    mockMissionDoc.actionDefinitions = {
+      verbs: { v1: { name: "Sample" } },
+      nouns: { n1: { name: "Rock" } },
+      adjectives: { a1: { name: "Crater" } },
+    } as unknown as Mission["actionDefinitions"];
+    mockMissionDoc.actionDefinitionConjunctions = { verbToNoun: "on", nounToAdjective: "within" };
+
+    store = makeStore({
+      station: {
+        ...stationSlice.getInitialState(),
+        selectedStationUuid: STATION_A_UUID,
+      },
+      interface: { ...interfaceSlice.getInitialState(), sectionSelectedLabel: "station" },
+    } as PartialPreloadedState);
+    renderMarkerLabels();
+
+    flushSync(() => {
+      capturedSetters!.setSubmenuActions({ show: true, showLabels: true });
+    });
+
+    const feature = labelSource!.getFeatureById(`action-${ACTION_UUID}`);
+    expect(feature).not.toBeNull();
+    expect(feature!.get("name")).toBe("Sample on Rock within Crater");
   });
 
   it("renders action labels on the dashboard for in-progress sequence stations", () => {

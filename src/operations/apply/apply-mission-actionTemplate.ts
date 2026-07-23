@@ -5,6 +5,7 @@ import { generateBlankActionTemplate } from "store/storeUtils/mission";
 import { getAccurateNow } from "utils/formatting";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { generateUniqueName } from "utils/names/unique-name";
+import { getActionDefinitionLabel } from "store/selectors";
 
 /**
  * Insert a new blank ActionTemplate into the Mission draft.
@@ -203,8 +204,9 @@ export function applyCreateTemplateFromAction(
       m.actionDefinitions?.adjectives?.[newActionTemplate.actionDefinition?.adjectiveUuid || ""]
         ?.name;
 
+    const conjunctions = m.actionDefinitionConjunctions;
     newActionTemplate.templateName =
-      `Template of ${verbName || "Verb"} of ${nounName || "Noun"} in ${adjName || "Adj"} `.trim();
+      `Template of ${verbName || getActionDefinitionLabel(m, "verbs")} ${conjunctions.verbToNoun} ${nounName || getActionDefinitionLabel(m, "nouns")} ${conjunctions.nounToAdjective} ${adjName || getActionDefinitionLabel(m, "adjectives")} `.trim();
   }
 
   m.actionTemplates[newActionTemplateUuid] = newActionTemplate;

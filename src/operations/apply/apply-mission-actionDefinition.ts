@@ -1,8 +1,8 @@
-import capitalize from "lodash/capitalize";
 import cloneDeep from "lodash/cloneDeep";
 import { v4 as uuidv4 } from "uuid";
 
 import { getAccurateNow } from "utils/formatting";
+import { getActionDefinitionLabel } from "store/selectors";
 
 /**
  * Insert a new blank ActionDefinitionItem of the given type into the Mission draft.
@@ -14,7 +14,7 @@ export function applyCreateActionDefinitionItem(
 ): string {
   const newUuid = uuidv4();
   const blankItem: ActionDefinitionItem = {
-    name: `(${capitalize(type.slice(0, -1))} Name)`,
+    name: `(${getActionDefinitionLabel(m, type)} Name)`,
     abbr: "abbr",
   };
 
@@ -46,4 +46,40 @@ export function applyUpdateActionDefinitionItemByField<K extends keyof ActionDef
     actionDefinitionItem[fieldName] = cloneDeep(value);
     m.updatedAt = getAccurateNow().getTime();
   }
+}
+
+/**
+ * Set a custom singular/plural label for an action-definition category (verb/noun/adjective).
+ */
+export function applyUpdateActionDefinitionLabel(
+  m: Mission,
+  {
+    type,
+    form,
+    value,
+  }: {
+    type: "verb" | "noun" | "adjective";
+    form: "singular" | "plural";
+    value: string;
+  }
+): void {
+  m.actionDefinitionLabels[type][form] = value;
+  m.updatedAt = getAccurateNow().getTime();
+}
+
+/**
+ * Set a custom conjunction used in the action sentence "<verb> of <noun> in <adjective>".
+ */
+export function applyUpdateActionDefinitionConjunction(
+  m: Mission,
+  {
+    key,
+    value,
+  }: {
+    key: "verbToNoun" | "nounToAdjective";
+    value: string;
+  }
+): void {
+  m.actionDefinitionConjunctions[key] = value;
+  m.updatedAt = getAccurateNow().getTime();
 }

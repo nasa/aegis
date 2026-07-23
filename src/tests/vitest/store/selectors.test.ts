@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getSequenceUuidByRefUuidAndRexUuid } from "store/selectors";
+import { getSequenceUuidByRefUuidAndRexUuid, getActionDefinitionLabel } from "store/selectors";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankStation } from "store/storeUtils/station";
@@ -268,5 +268,33 @@ describe("getSequenceUuidByRefUuidAndRexUuid", () => {
         })
       ).toBe(stationInEva2.uuid);
     });
+  });
+});
+
+describe("getActionDefinitionLabel", () => {
+  it("returns the singular label for each type", () => {
+    const mission = {
+      actionDefinitionLabels: {
+        verb: { singular: "Task", plural: "Tasks" },
+        noun: { singular: "Focus", plural: "Foci" },
+        adjective: { singular: "Context", plural: "Contexts" },
+      },
+    };
+    expect(getActionDefinitionLabel(mission, "verbs")).toBe("Task");
+    expect(getActionDefinitionLabel(mission, "nouns")).toBe("Focus");
+    expect(getActionDefinitionLabel(mission, "adjectives")).toBe("Context");
+  });
+
+  it("returns the plural label for each type", () => {
+    const mission = {
+      actionDefinitionLabels: {
+        verb: { singular: "Task", plural: "Tasks" },
+        noun: { singular: "Focus", plural: "Foci" },
+        adjective: { singular: "Context", plural: "Contexts" },
+      },
+    };
+    expect(getActionDefinitionLabel(mission, "verbs", "plural")).toBe("Tasks");
+    expect(getActionDefinitionLabel(mission, "nouns", "plural")).toBe("Foci");
+    expect(getActionDefinitionLabel(mission, "adjectives", "plural")).toBe("Contexts");
   });
 });

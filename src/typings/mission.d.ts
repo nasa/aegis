@@ -41,6 +41,18 @@ interface Mission {
   stmLevel1Name?: string;
   stmLevel2Name?: string;
   stmLevel3Name?: string;
+  // Custom labels for the action-definition categories (verb/noun/adjective), in singular form
+  // (used in the action sentence) and plural form (used in headings/menus).
+  actionDefinitionLabels: {
+    verb: { singular: string; plural: string };
+    noun: { singular: string; plural: string };
+    adjective: { singular: string; plural: string };
+  };
+  // Custom conjunctions joining the action sentence "<verb> of <noun> in <adjective>".
+  actionDefinitionConjunctions: {
+    verbToNoun: string;
+    nounToAdjective: string;
+  };
   pois: { [uuid: string]: POI };
   actions: { [uuid: string]: Action };
   stations: { [uuid: string]: Station };

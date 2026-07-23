@@ -1,4 +1,9 @@
-import { getAlertColor, isModified, makeTraverseRateString } from "utils/component-helpers";
+import {
+  getActionDisplayName,
+  getAlertColor,
+  isModified,
+  makeTraverseRateString,
+} from "utils/component-helpers";
 
 describe("getAlertColor", () => {
   test("returns 'var(--alert)' for reportItems with 'error'", () => {
@@ -59,6 +64,59 @@ describe("isModified", () => {
     const obj1 = [{ uuid: "1", updatedAt: "2021-01-01" }];
     const obj2 = [{ uuid: "1", updatedAt: "2021-02-01" }];
     expect(isModified(obj1, obj2)).toBe(true);
+  });
+});
+
+describe("getActionDisplayName", () => {
+  const mission = {
+    actionSystemVersion: 2,
+    actionDefinitions: {
+      verbs: { v1: { name: "Sample" } },
+      nouns: { n1: { name: "Rock" } },
+      adjectives: { a1: { name: "Crater" } },
+    },
+    actionDefinitionConjunctions: { verbToNoun: "on", nounToAdjective: "within" },
+  } as unknown as Pick<
+    Mission,
+    "actionSystemVersion" | "actionDefinitions" | "actionDefinitionConjunctions"
+  >;
+
+  test("builds an STM (v2) action name from the definition + custom conjunctions", () => {
+    const action = {
+      name: "ignored",
+      stmAction: true,
+      actionDefinition: { verbUuid: "v1", nounUuid: "n1", adjectiveUuid: "a1" },
+    } as unknown as Action;
+    expect(getActionDisplayName({ action, mission })).toBe("Sample on Rock within Crater");
+  });
+
+  test("uses the stored name for a non-STM action even in a v2 mission", () => {
+    const action = {
+      name: "My Action",
+      stmAction: false,
+      actionDefinition: { verbUuid: "v1", nounUuid: "n1", adjectiveUuid: "a1" },
+    } as unknown as Action;
+    expect(getActionDisplayName({ action, mission })).toBe("My Action");
+  });
+
+  test("omits the noun-to-adjective conjunction and adjective when no adjective is selected", () => {
+    const action = {
+      name: "ignored",
+      stmAction: true,
+      actionDefinition: { verbUuid: "v1", nounUuid: "n1", adjectiveUuid: null },
+    } as unknown as Action;
+    expect(getActionDisplayName({ action, mission })).toBe("Sample on Rock");
+  });
+
+  test("uses the stored name in a v1 mission regardless of stmAction", () => {
+    const action = {
+      name: "Legacy Action",
+      stmAction: true,
+      actionDefinition: { verbUuid: "v1", nounUuid: "n1", adjectiveUuid: "a1" },
+    } as unknown as Action;
+    expect(getActionDisplayName({ action, mission: { ...mission, actionSystemVersion: 1 } })).toBe(
+      "Legacy Action"
+    );
   });
 });
 

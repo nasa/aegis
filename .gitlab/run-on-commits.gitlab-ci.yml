@@ -315,7 +315,7 @@ test-vitest:browser:
     expire_in: 1 day
 
 # Test the automerge migrations against a prod database
-# This job will run "npm run test:automerge:migration" which will generate the schema, build and run the migration
+# This job will generate the schema, build and run the migration
 # The migration file performs it's own checks against the schema
 # The migration file is executed twice and the results are compared to make sure it's repeatable
 test-automerge-migrate:
@@ -327,13 +327,13 @@ test-automerge-migrate:
 
     # generate a schema, build the migration file, run it, and validate against the schema
     - echo "Running migration (1)"
-    - npm run test:automerge:migration
+    - npm run automerge:migration
     # get a snapshot of the automerge_native_db table
     - node .gitlab/scripts/dump-table.mjs automerge_native_db automerge_native_db_migrate1.txt
 
-    # run the migration a 2nd time. This should not change the output
+    # Do it all again. This should not change the output
     - echo "Running migration (2)"
-    - npm run test:automerge:migration
+    - npm run automerge:migration
     # get a snapshot of the automerge_native_db table
     - node .gitlab/scripts/dump-table.mjs automerge_native_db automerge_native_db_migrate2.txt
 
@@ -364,8 +364,8 @@ test-automerge-integrity:
 
     # Run the full migration first so all entity data is in Automerge docs,
     # then run the standalone integrity check against those docs.
-    - npm run test:automerge:migration
-    - npm run test:automerge:integrity
+    - npm run automerge:migration
+    - npm run automerge:integrity
   artifacts:
     when: always
     paths:

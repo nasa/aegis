@@ -210,3 +210,20 @@ export function getHighlightedActions({
   }
   return actionHighlights;
 }
+
+/**
+ * Resolve the display label for an action-definition category. Every mission stores a fully
+ * populated `actionDefinitionLabels` (see generateBlankMission + the Automerge migration), so
+ * this reads it directly; the default is only used when a mission snapshot is unavailable.
+ * @param type the plural ActionDefinitionType ("verbs" | "nouns" | "adjectives")
+ * @param form "singular" (used in the action sentence) or "plural" (used in headings/menus)
+ */
+export const getActionDefinitionLabel = (
+  mission: Pick<Mission, "actionDefinitionLabels">,
+  type: ActionDefinitionType,
+  form: "singular" | "plural" = "singular"
+): string => {
+  const key = type.slice(0, -1) as "verb" | "noun" | "adjective";
+  const labels = mission.actionDefinitionLabels;
+  return labels[key][form];
+};

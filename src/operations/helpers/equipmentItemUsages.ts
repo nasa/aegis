@@ -33,7 +33,7 @@ export function getEquipmentItemUsages(
       if (action.stmAction) {
         const readableActionDef = makeReadableActionDefinition({
           action,
-          actionDefinitions: mission.actionDefinitions,
+          mission,
         });
         actionName = readableActionDef.displayString;
       }

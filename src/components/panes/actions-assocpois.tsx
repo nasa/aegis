@@ -179,6 +179,11 @@ const Assoc_POIAction: FunctionComponent<{
   actionSystemVersion,
   actionDefinitions,
 }) => {
+  const conjunctions = useMissionDocSelector(
+    (mission) => mission.actionDefinitionConjunctions,
+    refEqual
+  );
+
   return (
     <div className={assocPoisStyles.stationPoiActionItemsWrapper} key={action.uuid}>
       <div
@@ -227,7 +232,7 @@ const Assoc_POIAction: FunctionComponent<{
                   editMode={false}
                   actionDefinitionItems={actionDefinitions.verbs}
                 />
-                <div className={actionStyles.actionDefType}>of</div>
+                <div className={actionStyles.actionDefType}>{conjunctions.verbToNoun}</div>
                 <ActionDefType
                   actionUuid={action.uuid}
                   type={"nouns"}
@@ -235,14 +240,18 @@ const Assoc_POIAction: FunctionComponent<{
                   editMode={false}
                   actionDefinitionItems={actionDefinitions.nouns}
                 />
-                <div className={actionStyles.actionDefType}>in</div>
-                <ActionDefType
-                  actionUuid={action.uuid}
-                  type={"adjectives"}
-                  selectedUuid={action.actionDefinition?.adjectiveUuid}
-                  editMode={false}
-                  actionDefinitionItems={actionDefinitions.adjectives}
-                />
+                {action.actionDefinition?.adjectiveUuid && (
+                  <>
+                    <div className={actionStyles.actionDefType}>{conjunctions.nounToAdjective}</div>
+                    <ActionDefType
+                      actionUuid={action.uuid}
+                      type={"adjectives"}
+                      selectedUuid={action.actionDefinition?.adjectiveUuid}
+                      editMode={false}
+                      actionDefinitionItems={actionDefinitions.adjectives}
+                    />
+                  </>
+                )}
               </div>
               <div className={actionStyles.actionHeadingRight}>
                 <div
