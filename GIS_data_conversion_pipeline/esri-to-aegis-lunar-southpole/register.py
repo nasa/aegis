@@ -577,7 +577,7 @@ def main() -> None:
         "--no-mission-fields", action="store_true", help="Do not update mission fields."
     )
     parser.add_argument(
-        "--no-grid", action="store_true", help="Do not register the mission grid."
+        "--grid", action="store_true", help="Register the mission grid."
     )
     parser.add_argument(
         "--dry-run", action="store_true", help="Print actions without calling the API."
@@ -605,7 +605,7 @@ def main() -> None:
             dem_resolution=args.dem_resolution,
         )
 
-    grid_geojson = None if args.no_grid else (args.out / config.OUT_GRID_SOURCE_NAME)
+    grid_geojson = None if not args.grid else (args.out / config.OUT_GRID_SOURCE_NAME)
 
     client = AegisApiClient(args.aegis_url, token)
     register_mission(
