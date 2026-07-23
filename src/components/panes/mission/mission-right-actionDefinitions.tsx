@@ -2,7 +2,7 @@ import type { FunctionComponent } from "react";
 import { memo, useRef } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";
-import { deepEqual } from "utils/useAppSelector";
+import { deepEqual, shallowEqual } from "utils/useAppSelector";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faList, faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "components/interface/form/globalFields";
@@ -16,8 +16,12 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import {
   applyCreateActionDefinitionItem,
   applyUpdateActionDefinitionItemByField,
-} from "client/automerge/apply/apply-mission-actionDefinition";
+  applyUpdateActionDefinitionLabel,
+  applyUpdateActionDefinitionConjunction,
+} from "operations/apply/apply-mission-actionDefinition";
+
 import { withMissionChange } from "client/automergeDocHandles";
+import { getActionDefinitionLabel } from "store/selectors";
 
 const ActionDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   return (
@@ -26,6 +30,9 @@ const ActionDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
         STM Action Definitions
       </div>
       <div className={paneStyles.rightBodyBody}>
+        <div className={paneStyles.panelContainer}>
+          <WordingEditor editMode={editMode} />
+        </div>
         <div className={paneStyles.panelContainer}>
           <ActionDefinitions type={"verbs"} editMode={editMode} />
         </div>
@@ -42,6 +49,98 @@ const ActionDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
 
 export default ActionDefinitions_Panel;
 
+/**
+ * Editor for the customizable category labels (verb/noun/adjective, singular + plural) and the
+ * sentence conjunctions ("of"/"in"). Rendered as a live sentence so the impact of each field is
+ * obvious. Fields always show the effective value (custom or default) and are editable only in
+ * edit mode; leaving a field at its default keeps the mission on the shared fallback.
+ */
+const WordingEditor: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+  const actionDefinitionLabels = useMissionDocSelector(
+    (mission) => mission.actionDefinitionLabels,
+    deepEqual
+  );
+  const conjunctions = useMissionDocSelector(
+    (mission) => mission.actionDefinitionConjunctions,
+    deepEqual
+  );
+
+  const labelField = (type: ActionDefinitionType, form: "singular" | "plural") => {
+    const key = type.slice(0, -1) as "verb" | "noun" | "adjective";
+    return (
+      <ValidatedInputField
+        editMode={editMode}
+        fieldProps={{
+          name: `${key}-${form}`,
+          ariaLabel: `${capitalize(key)} ${form} label`,
+          validators: [validators.maxLength(50), validators.required],
+        }}
+        value={getActionDefinitionLabel({ actionDefinitionLabels }, type, form)}
+        displayStyle={{ color: `var(--${key})`, fontWeight: 600 }}
+        styleContainer={{ display: "inline-block", minWidth: "60px" }}
+        onSubmit={(val: string) =>
+          withMissionChange((m) =>
+            applyUpdateActionDefinitionLabel(m, { type: key, form, value: val })
+          )
+        }
+        key={`${key}-${form}`}
+      />
+    );
+  };
+
+  const conjunctionField = (mapKey: "verbToNoun" | "nounToAdjective") => (
+    <ValidatedInputField
+      editMode={editMode}
+      fieldProps={{
+        name: mapKey,
+        ariaLabel:
+          mapKey === "verbToNoun" ? "Verb-to-noun conjunction" : "Noun-to-adjective conjunction",
+        validators: [validators.maxLength(20), validators.required],
+      }}
+      value={conjunctions[mapKey]}
+      styleContainer={{ display: "inline-block", minWidth: "40px" }}
+      onSubmit={(val: string) =>
+        withMissionChange((m) =>
+          applyUpdateActionDefinitionConjunction(m, { key: mapKey, value: val })
+        )
+      }
+      key={mapKey}
+    />
+  );
+
+  return (
+    <div className={paneStyles.panelSection}>
+      <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+        <SubpanelHeading icon={faList}>Wording</SubpanelHeading>
+      </div>
+      <div style={{ padding: "0 18px" }}>
+        <div style={{ marginBottom: "8px" }}>Actions read as:</div>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "6px",
+            marginBottom: "12px",
+          }}
+        >
+          {labelField("verbs", "singular")}
+          {conjunctionField("verbToNoun")}
+          {labelField("nouns", "singular")}
+          {conjunctionField("nounToAdjective")}
+          {labelField("adjectives", "singular")}
+        </div>
+        <div style={{ marginBottom: "8px" }}>Plural labels (menus &amp; lists):</div>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px" }}>
+          {labelField("verbs", "plural")}
+          {labelField("nouns", "plural")}
+          {labelField("adjectives", "plural")}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ActionDefinitions: FunctionComponent<{
   type: ActionDefinitionType;
   editMode: boolean;
@@ -51,6 +150,10 @@ const ActionDefinitions: FunctionComponent<{
     (mission) => mission.actionDefinitions,
     deepEqual
   );
+  const actionDefinitionLabels = useMissionDocSelector((mission) => {
+    const key = type.slice(0, -1) as "verb" | "noun" | "adjective";
+    return mission?.actionDefinitionLabels[key];
+  }, shallowEqual);
 
   // Makes a 2nd sorted array of the key value object map
   const actionDefinitionItemsSorted = Object.entries(actionDefinitions?.[type] || {}).sort(
@@ -67,7 +170,7 @@ const ActionDefinitions: FunctionComponent<{
   return (
     <div className={paneStyles.panelSection}>
       <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-        <SubpanelHeading icon={faList}>{capitalize(type)}</SubpanelHeading>
+        <SubpanelHeading icon={faList}>{actionDefinitionLabels.plural}</SubpanelHeading>
       </div>
       <div ref={divRef}>
         <ul className={missionStyles.propertyList}>
@@ -94,6 +197,7 @@ const ActionDefinitions: FunctionComponent<{
                 actionDefinitionKeyValue={actionDefinitionKeyValue}
                 editMode={editMode}
                 evenRow={index % 2 === 0}
+                namePlaceholder={`(${actionDefinitionLabels.singular} Name)`}
               />
             </li>
           ))}
@@ -102,7 +206,7 @@ const ActionDefinitions: FunctionComponent<{
         {editMode && (
           <Button
             icon={faPlusCircle}
-            label={`Add Action ${capitalize(type.slice(0, -1))}`}
+            label={`Add ${actionDefinitionLabels.singular}`}
             style={{ width: buttonWidth, marginLeft: "18px", marginTop: "8px" }}
             onClick={async () => {
               withMissionChange((m) => applyCreateActionDefinitionItem(m, { type }));
@@ -120,7 +224,8 @@ const ActionDefinitionItem: FunctionComponent<{
   actionDefinitionKeyValue: [string, { name: string; abbr: string }];
   editMode: boolean;
   evenRow: boolean;
-}> = ({ type, actionDefinitionKeyValue, editMode, evenRow }) => {
+  namePlaceholder: string;
+}> = ({ type, actionDefinitionKeyValue, editMode, evenRow, namePlaceholder }) => {
   const dispatch = useAppDispatch();
 
   let backgroundColor: string = "var(--grey2)";
@@ -148,9 +253,7 @@ const ActionDefinitionItem: FunctionComponent<{
                 })
               );
             }}
-            focusContents={
-              actionDefinitionKeyValue[1].name === `(${capitalize(type.slice(0, -1))} Name)`
-            }
+            focusContents={actionDefinitionKeyValue[1].name === namePlaceholder}
           />
         </div>
         <div className={missionStyles.propertyRowLongAbbr}>

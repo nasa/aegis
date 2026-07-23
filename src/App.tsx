@@ -23,6 +23,8 @@ import { setLaunchpadUser } from "store/user";
 import { setClientAppVersion } from "store/connection";
 import { clientLogger } from "utils/logging/clientLogger";
 
+const TestMapPerformant = React.lazy(() => import("pages/testMapPerformant"));
+
 const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElement => {
   const dispatch = useAppDispatch();
   if (!(props.launchpadUser instanceof Error)) {
@@ -48,6 +50,14 @@ const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElemen
         <Route path="/versionCheck" element={<VersionCheck />} />
         <Route path="/mission/:id" element={<Mission />} />
         <Route path="/dashboard/:id" element={<Dashboard />} />
+        <Route
+          path="/testMapPerformant"
+          element={
+            <React.Suspense fallback={null}>
+              <TestMapPerformant />
+            </React.Suspense>
+          }
+        />
         <Route path="/admin" element={<AdminHome />} />
         <Route path="/admin/export/:id" element={<AdminExport />} />
         <Route path="/admin/automerge/:automergeUrl?" element={<ManageAutomergeDoc />} />

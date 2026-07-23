@@ -16,7 +16,7 @@ import { thunkDocDeleteEquipmentItem } from "store/thunk/thunkMissionEquipment";
 import {
   applyCreateEquipmentItem,
   applyUpdateEquipmentItemByField,
-} from "client/automerge/apply/apply-mission-equipment";
+} from "operations/apply/apply-mission-equipment";
 import { withMissionChange } from "client/automergeDocHandles";
 
 const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {

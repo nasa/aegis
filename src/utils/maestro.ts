@@ -12,7 +12,7 @@ import { globalValues } from "server/express/global";
  */
 export const buildAegisEntityForMaestro = async (
   missionId: number
-): Promise<Maegistro.IAegisEntity> => {
+): Promise<Maegistro.AegisSlice> => {
   // Use the stored DocHandle reference for efficiency.
   const docHandle = globalValues.maestro.docHandles.get(missionId);
   const mission: Mission = docHandle
@@ -253,7 +253,7 @@ const formatActionsForMaestro = (
       }),
       actionDefinitionReadable: makeReadableActionDefinition({
         action,
-        actionDefinitions: mission.actionDefinitions,
+        mission,
       }),
       missionId: action.missionId,
       icon: action.icon,

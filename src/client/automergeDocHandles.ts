@@ -30,12 +30,12 @@ export const setMissionAutomergeDocHandle = (docHandle: DocHandle<Mission>): voi
  * Run a single atomic mutation on the Mission Automerge document.
  *
  * This is the only sanctioned way for components and helpers outside of
- * `src/store/thunk/**` to mutate the doc. It centralizes the null-guard
+ * thunks to mutate the doc. It centralizes the null-guard
  * for `getMissionDocHandle()` and the call to `.change()` so callers never
  * have to handle either themselves.
  *
  * Pass a synchronous mutator that takes the live draft and mutates it via
- * `apply*` helpers from `src/client/automerge/apply/`. The mutator may
+ * `apply*` functions. The mutator may
  * return a value (e.g. a newly-allocated uuid from `applyCreateAction`),
  * which this function returns through to the caller.
  *
@@ -56,4 +56,31 @@ export function withMissionChange<T>(fn: (m: Mission) => T): T | undefined {
     result = fn(m);
   });
   return result;
+}
+
+/**
+ * Client-side entry point for invoking an `op*` function.
+ * It fetches the current mission doc handle, guards for
+ * null, and forwards the handle plus caller-supplied args to the op.
+ *
+ * Components and other client-only code must go through this helper rather
+ * than calling `getMissionDocHandle()` themselves (which is ESLint-restricted
+ * outside the allow-list).
+ *
+ * The atomicity guarantee lives inside the `op*` itself: an op owns exactly
+ * one `.change()` call per logical operation.
+ *
+ * Example:
+ *   withMissionOp(opUpdateStationName, stationUuid, newName);
+ *
+ * @returns the value returned by `op`, or `undefined` if the doc handle is
+ *          not available.
+ */
+export function withMissionOp<TArgs extends unknown[], TResult>(
+  op: (handle: DocHandle<Mission>, ...args: TArgs) => TResult,
+  ...args: TArgs
+): TResult | undefined {
+  const handle = getMissionDocHandle();
+  if (!handle) return undefined;
+  return op(handle, ...args);
 }

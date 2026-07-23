@@ -17,12 +17,12 @@ import { withMissionChange } from "client/automergeDocHandles";
 import {
   applyUpdateActionByField,
   applyUpdateActionDefinitionSelection,
-} from "client/automerge/apply/apply-action";
+} from "operations/apply/apply-action";
 import { hmmFromMinutes, titleCase } from "utils/formatting";
+import { getActionDefinitionLabel } from "store/selectors";
 import { EmojiRenderer } from "components/interface/emojis";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { validators } from "components/interface/form/formValidators";
-import capitalize from "lodash/capitalize";
 import { useAppDispatch } from "utils/useAppDispatch";
 import RightActionBody from "./actions-action-body";
 import { ActionMenu } from "./actions-action-menu";
@@ -125,6 +125,10 @@ const RightAction: FunctionComponent<{
   }, refEqual);
   const actionParentPoiName = useMissionDocSelector(
     (mission) => (parentPoiUuid ? mission.pois[parentPoiUuid]?.name : undefined),
+    refEqual
+  );
+  const conjunctions = useMissionDocSelector(
+    (mission) => mission.actionDefinitionConjunctions,
     refEqual
   );
 
@@ -280,7 +284,7 @@ const RightAction: FunctionComponent<{
                       editMode={editMode}
                       actionDefinitionItems={partialMission.actionDefinitions?.verbs}
                     />
-                    <div className={actionStyles.actionDefType}>of</div>
+                    <div className={actionStyles.actionDefType}>{conjunctions.verbToNoun}</div>
                     <ActionDefType
                       actionUuid={action.uuid}
                       type={"nouns"}
@@ -288,14 +292,20 @@ const RightAction: FunctionComponent<{
                       editMode={editMode}
                       actionDefinitionItems={partialMission.actionDefinitions?.nouns}
                     />
-                    <div className={actionStyles.actionDefType}>in</div>
-                    <ActionDefType
-                      actionUuid={action.uuid}
-                      type={"adjectives"}
-                      selectedUuid={action.actionDefinition?.adjectiveUuid}
-                      editMode={editMode}
-                      actionDefinitionItems={partialMission.actionDefinitions?.adjectives}
-                    />
+                    {(editMode || action.actionDefinition?.adjectiveUuid) && (
+                      <>
+                        <div className={actionStyles.actionDefType}>
+                          {conjunctions.nounToAdjective}
+                        </div>
+                        <ActionDefType
+                          actionUuid={action.uuid}
+                          type={"adjectives"}
+                          selectedUuid={action.actionDefinition?.adjectiveUuid}
+                          editMode={editMode}
+                          actionDefinitionItems={partialMission.actionDefinitions?.adjectives}
+                        />
+                      </>
+                    )}
                   </div>
                 </>
               )}
@@ -306,7 +316,7 @@ const RightAction: FunctionComponent<{
                     className={actionStyles.actionHeadingRightItem}
                     style={{ marginRight: "0", cursor: "pointer", marginTop: "3px" }}
                     data-tooltip-id="aegis-tooltip"
-                    data-tooltip-html={"Copied from POI: " + actionParentPoiName}
+                    data-tooltip-content={"Copied from POI: " + actionParentPoiName}
                   >
                     <FontAwesomeIcon icon={faCircle} />
                   </div>
@@ -314,7 +324,7 @@ const RightAction: FunctionComponent<{
                 <div
                   className={actionStyles.actionHeadingRightItem}
                   data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html={"Duration (h:mm)"}
+                  data-tooltip-content={"Duration (h:mm)"}
                   style={{
                     color: action.duration < 0 ? "var(--warning)" : "inherit",
                     marginTop: "2px",
@@ -386,6 +396,10 @@ export const ActionDefType: FunctionComponent<{
   actionDefinitionItems: ActionDefinitionItems;
 }> = ({ actionUuid, type, selectedUuid, editMode, actionDefinitionItems }) => {
   const selectedName = actionDefinitionItems[selectedUuid]?.name;
+  const emptyLabel = useMissionDocSelector(
+    (mission) => getActionDefinitionLabel(mission, type),
+    refEqual
+  );
   return (
     <>
       {!editMode ? (
@@ -393,7 +407,7 @@ export const ActionDefType: FunctionComponent<{
           className={actionStyles.actionDefType}
           style={{ color: `var(--${type.slice(0, -1)})` }}
         >
-          {selectedName || capitalize(type.slice(0, -1))}
+          {selectedName || emptyLabel}
         </span>
       ) : (
         <ActionDefDropdown

@@ -16,7 +16,7 @@ import {
   applyCreateCircleDefinition,
   applyDeleteCircleDefinition,
   applyUpdateCircleDefinitionByField,
-} from "client/automerge/apply/apply-mission-circleDefinition";
+} from "operations/apply/apply-mission-circleDefinition";
 import { withMissionChange } from "client/automergeDocHandles";
 import { LoadingOverlay } from "components/interface/_global-elements";
 

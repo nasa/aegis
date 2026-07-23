@@ -17,7 +17,7 @@ import { getStmUuids } from "store/storeUtils/store";
 import { letterOrdinal } from "utils/formatting";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyCreateAction } from "client/automerge/apply/apply-action";
+import { applyCreateAction } from "operations/apply/apply-action";
 import { getHighlightedActions } from "store/selectors";
 
 const Actions: FunctionComponent<{
@@ -327,7 +327,7 @@ export const ActionsTopSection: FunctionComponent<{
                   <div
                     className={paneStyles.displayFieldLabel}
                     data-tooltip-id="aegis-tooltip"
-                    data-tooltip-html="Sum of all action durations, nominal to max"
+                    data-tooltip-content="Sum of all action durations, nominal to max"
                   >
                     Total Action Time (mins):
                   </div>

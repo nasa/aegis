@@ -3,7 +3,7 @@ import {
   setMissionAutomergeDocHandle,
   withMissionChange,
 } from "client/automergeDocHandles";
-import { applyCreateGeoUnit } from "client/automerge/apply/apply-mission-geoUnit";
+import { applyCreateGeoUnit } from "operations/apply/apply-mission-geoUnit";
 import { thunkDocDeleteGeoUnit } from "store/thunk/thunkMissionGeoUnit";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankActionTemplate } from "store/storeUtils/mission";

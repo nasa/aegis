@@ -15,7 +15,7 @@ import { ActionsListHeadings } from "./actions";
 import { ActionDefType } from "./actions-action";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyDuplicateActions } from "client/automerge/apply/apply-action";
+import { applyDuplicateActions } from "operations/apply/apply-action";
 
 export const Assoc_POIs: FunctionComponent<{
   stationPoiUuids: string[];
@@ -179,6 +179,11 @@ const Assoc_POIAction: FunctionComponent<{
   actionSystemVersion,
   actionDefinitions,
 }) => {
+  const conjunctions = useMissionDocSelector(
+    (mission) => mission.actionDefinitionConjunctions,
+    refEqual
+  );
+
   return (
     <div className={assocPoisStyles.stationPoiActionItemsWrapper} key={action.uuid}>
       <div
@@ -204,7 +209,7 @@ const Assoc_POIAction: FunctionComponent<{
                 <div
                   className={actionStyles.actionHeadingRightItem}
                   data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html={"Duration (h:mm)"}
+                  data-tooltip-content={"Duration (h:mm)"}
                   style={{
                     color: action.duration < 0 ? "var(--warning)" : "inherit",
                     marginTop: "2px",
@@ -227,7 +232,7 @@ const Assoc_POIAction: FunctionComponent<{
                   editMode={false}
                   actionDefinitionItems={actionDefinitions.verbs}
                 />
-                <div className={actionStyles.actionDefType}>of</div>
+                <div className={actionStyles.actionDefType}>{conjunctions.verbToNoun}</div>
                 <ActionDefType
                   actionUuid={action.uuid}
                   type={"nouns"}
@@ -235,20 +240,24 @@ const Assoc_POIAction: FunctionComponent<{
                   editMode={false}
                   actionDefinitionItems={actionDefinitions.nouns}
                 />
-                <div className={actionStyles.actionDefType}>in</div>
-                <ActionDefType
-                  actionUuid={action.uuid}
-                  type={"adjectives"}
-                  selectedUuid={action.actionDefinition?.adjectiveUuid}
-                  editMode={false}
-                  actionDefinitionItems={actionDefinitions.adjectives}
-                />
+                {action.actionDefinition?.adjectiveUuid && (
+                  <>
+                    <div className={actionStyles.actionDefType}>{conjunctions.nounToAdjective}</div>
+                    <ActionDefType
+                      actionUuid={action.uuid}
+                      type={"adjectives"}
+                      selectedUuid={action.actionDefinition?.adjectiveUuid}
+                      editMode={false}
+                      actionDefinitionItems={actionDefinitions.adjectives}
+                    />
+                  </>
+                )}
               </div>
               <div className={actionStyles.actionHeadingRight}>
                 <div
                   className={actionStyles.actionHeadingRightItem}
                   data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html={"Duration (h:mm)"}
+                  data-tooltip-content={"Duration (h:mm)"}
                   style={{ color: action.duration < 0 ? "var(--warning)" : "inherit" }}
                 >
                   {hmmFromMinutes(action.duration)}
@@ -265,7 +274,7 @@ const Assoc_POIAction: FunctionComponent<{
             size="xs"
             className={assocPoisStyles.copyIcon}
             data-tooltip-id="aegis-tooltip"
-            data-tooltip-html={"Action copied to station"}
+            data-tooltip-content={"Action copied to station"}
           />
         ) : (
           <>
@@ -286,7 +295,7 @@ const Assoc_POIAction: FunctionComponent<{
                   e.stopPropagation();
                 }}
                 data-tooltip-id="aegis-tooltip"
-                data-tooltip-html="Copy this action to station"
+                data-tooltip-content="Copy this action to station"
                 style={{ cursor: "pointer" }}
               />
             ) : (

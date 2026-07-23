@@ -48,7 +48,7 @@ export const Button: FunctionComponent<{
     <div
       className={`${formStyles.button} ${className} ${enabledStyle} `}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={toolTip}
+      data-tooltip-content={toolTip}
       onClick={(e) => {
         if (enabled) onClick(e);
       }}
@@ -100,7 +100,7 @@ export const TextboxButton: FunctionComponent<{
           : ""
       }`}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={toolTip}
+      data-tooltip-content={toolTip}
       onMouseDown={(e) => {
         onMouseDown(e);
       }}
@@ -138,7 +138,7 @@ export const Dropdown: FunctionComponent<{
       className={formStyles.select}
       style={containerStyle}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={toolTip}
+      data-tooltip-content={toolTip}
     >
       <select
         value={selected}
@@ -389,7 +389,7 @@ export const InLineEditInput: FunctionComponent<{
           className={formStyles.inLineEditValue}
           style={styleValue}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={fieldProps.ariaLabel}
+          data-tooltip-content={fieldProps.ariaLabel}
           aria-label={fieldProps.ariaLabel}
         >
           {valueToShow}
@@ -498,7 +498,7 @@ export const Checkbox: FunctionComponent<{
       className={`${formStyles.checkboxContainer} ${editableStyle}`}
       onClick={onClick}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={toolTip}
+      data-tooltip-content={toolTip}
     >
       {labelPlacement === "left" ? (
         <label
@@ -544,7 +544,7 @@ export const ValidationErrors: FunctionComponent<{
         color="var(--error)"
         className={formStyles.errorIcon}
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html={meta.error}
+        data-tooltip-content={meta.error}
         onClick={(event) => {
           event.stopPropagation();
         }}
@@ -713,7 +713,7 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
             {label ? (
               <label
                 data-tooltip-id="aegis-tooltip"
-                data-tooltip-html={label.title}
+                data-tooltip-content={label.title}
                 className={label.className}
                 style={label.style}
               >
@@ -780,7 +780,7 @@ export const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
           {label ? (
             <label
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={label.title}
+              data-tooltip-content={label.title}
               className={label.className}
               style={label.style}
             >
@@ -836,7 +836,7 @@ export const FFCheckbox: FunctionComponent<FFCheckboxProps> = ({
           {label ? (
             <label
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-html={label.title}
+              data-tooltip-content={label.title}
               className={label.className}
               style={label.style}
             >
@@ -879,7 +879,7 @@ export const FFSelect: FunctionComponent<FFSelectProps> = ({
       {label ? (
         <label
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={label.title}
+          data-tooltip-content={label.title}
           className={label.className}
           style={label.style}
         >

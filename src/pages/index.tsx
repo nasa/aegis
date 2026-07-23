@@ -10,6 +10,7 @@ import PetInterval from "components/page/petInterval";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faPersonWalkingArrowRight, faTv } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip } from "react-tooltip";
+import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import { setAppUser } from "store/user";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { clientLogger } from "utils/logging/clientLogger";
@@ -203,7 +204,7 @@ const MissionHomepageItem = ({
                 <button
                   className={`${styles.tableButton}`}
                   data-tooltip-id="aegis-tooltip"
-                  data-tooltip-html="View Dashbord"
+                  data-tooltip-content="View Dashboard"
                   onClick={() => {
                     navigate(`/dashboard/${missionHomepageItem.id}`);
                   }}
@@ -221,7 +222,7 @@ const MissionHomepageItem = ({
               navigate(`/mission/${missionHomepageItem.id}`);
             }}
             data-tooltip-id="aegis-tooltip"
-            data-tooltip-html="Go to Mission"
+            data-tooltip-content="Go to Mission"
           >
             Select
           </button>
@@ -509,7 +510,7 @@ const Home: React.FunctionComponent = () => {
       <div className={styles.main}>
         <Tooltip
           id="aegis-tooltip"
-          className={styles.tooltip}
+          className={aegisTooltipStyles.tooltip}
           clickable={true}
           delayShow={1000}
           delayHide={500}

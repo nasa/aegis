@@ -5,12 +5,12 @@
  * Maestro.AegisStation, etc. No import needed.
  */
 declare namespace Maegistro {
-  export interface EvaSequenceItem {
+  interface EvaSequenceItem {
     type: "station" | "traverse";
     refUuid: string;
   }
 
-  export interface CalculatedFieldItems {
+  interface CalculatedFieldItems {
     totalDwellTime: number;
     durationMinutes?: number;
   }
@@ -18,13 +18,13 @@ declare namespace Maegistro {
   /**
    * Format of successful API responses from AEGIS
    */
-  export type AegisResponse<T> = {
+  type AegisResponse<T> = {
     status: string;
     message: string;
     data: T;
   };
 
-  export type AegisMission = {
+  type AegisMission = {
     name: string;
     id: number;
     description: string;
@@ -33,11 +33,11 @@ declare namespace Maegistro {
     updatedAt: string;
   };
 
-  export type AegisMissions = {
+  type AegisMissions = {
     [missionId: number]: AegisMission;
   };
 
-  export type AegisEva = {
+  type AegisEva = {
     missionId: number;
     name: string;
     refUuid: string;
@@ -49,12 +49,11 @@ declare namespace Maegistro {
     egressDuration: number;
     createdAt: string;
     updatedAt: string;
-    rexUuid?: string;
   };
 
-  export type AegisEvas = { [evaId: string]: AegisEva };
+  type AegisEvas = { [evaId: string]: AegisEva };
 
-  export type AegisStation = {
+  type AegisStation = {
     missionId: number;
     name: string;
     refUuid: string;
@@ -65,12 +64,11 @@ declare namespace Maegistro {
     actionOrderRefUuids: string[];
     updatedAt: string;
     createdAt: string;
-    rexUuid?: string;
   };
 
-  export type AegisStations = { [stationId: string]: AegisStation };
+  type AegisStations = { [stationId: string]: AegisStation };
 
-  export type AegisTraverse = {
+  type AegisTraverse = {
     refUuid: string;
     missionId: number;
     name: string;
@@ -81,12 +79,11 @@ declare namespace Maegistro {
     iconEmojiDecoded?: string;
     duration: number | null;
     calculatedFields: CalculatedFieldItems;
-    rexUuid?: string;
   };
 
-  export type AegisTraverses = { [traverseId: string]: AegisTraverse };
+  type AegisTraverses = { [traverseId: string]: AegisTraverse };
 
-  export type ActionDefinitionReadable = {
+  type ActionDefinitionReadable = {
     displayString: string;
     verb?: {
       abbr: string;
@@ -105,18 +102,13 @@ declare namespace Maegistro {
     };
   };
 
-  export type AegisDifferences = {
-    current: Partial<AegisAction>;
-    incoming: Partial<AegisAction>;
-  };
-
-  export type EquipmentItemUsage = {
+  type EquipmentItemUsage = {
     name: string;
     singleUse: boolean;
     quantityUsed: number;
   };
 
-  export type AegisAction = {
+  type AegisAction = {
     name: string;
     refUuid: string;
     descriptionTask: string;
@@ -132,17 +124,16 @@ declare namespace Maegistro {
     iconEmojiDecoded: string;
     stationRefUuid?: string;
     traverseRefUuid?: string;
-    rexUuid?: string;
     enabled: boolean;
   };
 
-  export type AegisActionsRequest = {
+  type AegisActionsRequest = {
     status: string;
     message: string;
     data: AegisAction[];
   };
 
-  export interface AegisActionDateRequest {
+  interface AegisActionDateRequest {
     status: string;
     message: string;
     data: {
@@ -152,9 +143,9 @@ declare namespace Maegistro {
     }[];
   }
 
-  export type AegisActions = { [actionId: string]: AegisAction };
+  type AegisActions = { [actionId: string]: AegisAction };
 
-  export type AllocatedAegisActions = {
+  type AllocatedAegisActions = {
     [actionId: string]: {
       aegisAction: AegisAction;
       stepUuids: string[];
@@ -168,11 +159,10 @@ declare namespace Maegistro {
    * properties directly, but uses them to construct other parts of the aegis
    * slice
    */
-  export type AegisEvaWithSequenceReadable = AegisEva & {
+  type AegisEvaWithSequenceReadable = AegisEva & {
     sequenceReadable: (StationWithReadable | TraverseWithReadable | null)[];
   };
-
-  export type ReadableActions<T extends "Station" | "Traverse"> = {
+  type ReadableActions<T extends "Station" | "Traverse"> = {
     actionsReadable: AegisAction[];
     _itemType: T;
   };
@@ -184,7 +174,7 @@ declare namespace Maegistro {
    * properties directly, but uses them to construct other parts of the aegis
    * slice
    */
-  export type StationWithReadable = AegisStation & ReadableActions<"Station">;
+  type StationWithReadable = AegisStation & ReadableActions<"Station">;
 
   /**
    * "with readable" type meaning that it's the type coming straight from AEGIS
@@ -193,9 +183,9 @@ declare namespace Maegistro {
    * properties directly, but uses them to construct other parts of the aegis
    * slice
    */
-  export type TraverseWithReadable = AegisTraverse & ReadableActions<"Traverse">;
+  type TraverseWithReadable = AegisTraverse & ReadableActions<"Traverse">;
 
-  export interface IAegisEntity {
+  interface AegisSlice {
     aegisMissions: AegisMissions;
     aegisEvas: AegisEvas;
     aegisStations: AegisStations;
@@ -204,14 +194,13 @@ declare namespace Maegistro {
     fetchedAegisActions: AegisActions;
   }
 
-  export interface AegisErrorElement {
+  interface AegisErrorElement {
     activityUuid: string;
     stepUuid: string;
   }
 
-  export interface AegisErrorTypes {
+  interface AegisErrorTypes {
     mismatchedEva: AegisErrorElement[];
-    outdatedAction: AegisErrorElement[];
     durationErrors: AegisErrorElement[];
     actionMissingErrors: AegisErrorElement[];
     stationActionErrors: AegisErrorElement[];
@@ -221,7 +210,7 @@ declare namespace Maegistro {
     missingSequenceItem: string[];
   }
 
-  export interface AegisErrorList {
+  interface AegisErrorList {
     [key: string]: AegisErrorTypes;
   }
 
@@ -229,5 +218,5 @@ declare namespace Maegistro {
    * AEGIS passes Maestro "ingress" or "egress", but when sending REX data
    * back to AEGIS it should be "xgress" for either lander activity.
    */
-  export type AegisSequenceType = "station" | "traverse" | "ingress" | "egress" | "xgress";
+  type AegisSequenceType = "station" | "traverse" | "ingress" | "egress" | "xgress";
 }

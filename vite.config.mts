@@ -32,6 +32,7 @@ export const config: UserConfig = {
       assets: path.resolve(__dirname, "./src/assets"),
       public: path.resolve(__dirname, "./src/public"),
       client: path.resolve(__dirname, "./src/client"),
+      operations: path.resolve(__dirname, "./src/operations"),
     },
   },
   //server configurations for running vite as a server (only happens in local dev). On docker/production, nginx serves the front end
@@ -78,15 +79,6 @@ export const config: UserConfig = {
               "react-final-form",
               "@reduxjs/toolkit",
               "@fortawesome/react-fontawesome", // needs to be here to prevent circular chunking issues
-            ],
-            leaflet: [
-              "leaflet",
-              "leaflet-ant-path",
-              "leaflet-draggable-lines",
-              "leaflet-highlightable-layers",
-              "leaflet-polylinedecorator",
-              "leaflet.tilelayer.colorfilter",
-              "proj4leaflet",
             ],
             emojis: ["@emoji-mart/data", "@emoji-mart/react"],
             fonts: [

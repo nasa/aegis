@@ -108,17 +108,6 @@ const Maestro: React.FunctionComponent = () => {
   // ── getEverything ─────────────────────────────────────────────────────────
   const [everythingMissionId, setEverythingMissionId] = useState<string>("");
 
-  // ── getMission ────────────────────────────────────────────────────────────
-  const [getMissionId, setGetMissionId] = useState<string>("");
-
-  // ── getReadableEva ────────────────────────────────────────────────────────
-  const [readableEvaMissionId, setReadableEvaMissionId] = useState<string>("");
-  const [readableEvaRefUuid, setReadableEvaRefUuid] = useState<string>("");
-  const [readableRexUuid, setReadableRexUuid] = useState<string>("");
-
-  // ── getRexesByEvaRef ──────────────────────────────────────────────────────
-  const [rexEvaRefUuid, setRexEvaRefUuid] = useState<string>("");
-
   // ── rexOverwrite ──────────────────────────────────────────────────────────
   const [rexOverwriteJson, setRexOverwriteJson] = useState<string>(
     JSON.stringify({ uuid: "" }, null, 2)
@@ -273,31 +262,6 @@ const Maestro: React.FunctionComponent = () => {
     maestroSocket.current.emit("getEverything", Number(everythingMissionId), () => {});
   };
 
-  const emitGetMission = () => {
-    if (!maestroSocket.current?.connected) return;
-    maestroSocket.current.emit("getMission", Number(getMissionId), () => {});
-  };
-
-  const emitGetReadableEva = () => {
-    if (!maestroSocket.current?.connected) return;
-    const params: ReadableEvaParams = {
-      missionId: Number(readableEvaMissionId),
-      ...(readableEvaRefUuid.trim() && { evaRefUuid: readableEvaRefUuid.trim() }),
-      ...(readableRexUuid.trim() && { rexUuid: readableRexUuid.trim() }),
-    };
-    maestroSocket.current.emit("getReadableEva", params, () => {});
-  };
-
-  const emitGetMissions = () => {
-    if (!maestroSocket.current?.connected) return;
-    maestroSocket.current.emit("getMissions", () => {});
-  };
-
-  const emitGetRexesByEvaRef = () => {
-    if (!maestroSocket.current?.connected) return;
-    maestroSocket.current.emit("getRexesByEvaRef", rexEvaRefUuid.trim(), () => {});
-  };
-
   const emitRexOverwrite = () => {
     if (!maestroSocket.current?.connected) return;
     try {
@@ -312,7 +276,7 @@ const Maestro: React.FunctionComponent = () => {
   const emitSendMdau = () => {
     if (!maestroSocket.current?.connected || !sendMdauMissionId) return;
     try {
-      const mdau = JSON.parse(sendMdauJson) as MaestroDataAegisUses;
+      const mdau = JSON.parse(sendMdauJson) as Maegistro.MaestroDataAegisUses;
       setSendMdauJsonError(null);
       maestroSocket.current.emit("sendMDAU", Number(sendMdauMissionId), mdau);
     } catch (e) {
@@ -673,94 +637,6 @@ const Maestro: React.FunctionComponent = () => {
                 className={adminCommon.buttonPrimary}
                 onClick={emitGetEverything}
                 disabled={!isMaestroConnected || !everythingMissionId}
-                style={{ marginTop: "auto" }}
-              >
-                Emit
-              </button>
-            </EmitCard>
-
-            {/* getMission */}
-            <EmitCard title="getMission">
-              <input
-                className={adminCommon.formInput}
-                type="number"
-                value={getMissionId}
-                onChange={(e) => setGetMissionId(e.target.value)}
-                placeholder="Mission ID"
-                style={narrowInput}
-              />
-              <button
-                className={adminCommon.buttonPrimary}
-                onClick={emitGetMission}
-                disabled={!isMaestroConnected || !getMissionId}
-                style={{ marginTop: "auto" }}
-              >
-                Emit
-              </button>
-            </EmitCard>
-
-            {/* getMissions */}
-            <EmitCard title="getMissions">
-              <button
-                className={adminCommon.buttonPrimary}
-                onClick={emitGetMissions}
-                disabled={!isMaestroConnected}
-                style={{ marginTop: "auto" }}
-              >
-                Emit
-              </button>
-            </EmitCard>
-
-            {/* getRexesByEvaRef */}
-            <EmitCard title="getRexesByEvaRef">
-              <input
-                className={adminCommon.formInput}
-                type="text"
-                value={rexEvaRefUuid}
-                onChange={(e) => setRexEvaRefUuid(e.target.value)}
-                placeholder="EVA RefUuid"
-                style={wideInput}
-              />
-              <button
-                className={adminCommon.buttonPrimary}
-                onClick={emitGetRexesByEvaRef}
-                disabled={!isMaestroConnected || !rexEvaRefUuid}
-                style={{ marginTop: "auto" }}
-              >
-                Emit
-              </button>
-            </EmitCard>
-
-            {/* getReadableEva */}
-            <EmitCard title="getReadableEva">
-              <input
-                className={adminCommon.formInput}
-                type="number"
-                value={readableEvaMissionId}
-                onChange={(e) => setReadableEvaMissionId(e.target.value)}
-                placeholder="Mission ID"
-                style={narrowInput}
-              />
-              <input
-                className={adminCommon.formInput}
-                type="text"
-                value={readableEvaRefUuid}
-                onChange={(e) => setReadableEvaRefUuid(e.target.value)}
-                placeholder="EVA RefUuid (optional)"
-                style={wideInput}
-              />
-              <input
-                className={adminCommon.formInput}
-                type="text"
-                value={readableRexUuid}
-                onChange={(e) => setReadableRexUuid(e.target.value)}
-                placeholder="Rex Uuid (optional)"
-                style={wideInput}
-              />
-              <button
-                className={adminCommon.buttonPrimary}
-                onClick={emitGetReadableEva}
-                disabled={!isMaestroConnected || !readableEvaMissionId}
                 style={{ marginTop: "auto" }}
               >
                 Emit

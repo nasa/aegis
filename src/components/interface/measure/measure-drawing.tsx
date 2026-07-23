@@ -204,8 +204,8 @@ export function drawElevationProfile(
 export function drawMeasureSegmentDistances(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
   measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
-  pathSegmentDistances: number[],
-  pathSegmentBearings: number[],
+  pathSegmentDistances: number[] | undefined,
+  pathSegmentBearings: number[] | undefined,
   usingLGRSCoordinates: boolean
 ): void {
   const paperVars = measurePaperDataRef.current.paperVars;
@@ -214,10 +214,16 @@ export function drawMeasureSegmentDistances(
   const lineSegmentMarksGroup = measurePaperGroupsRef.current.lineSegmentMarksGroup;
   lineSegmentMarksGroup.removeChildren();
 
+  // Early return if no segment distances available
+  if (!pathSegmentDistances || pathSegmentDistances.length === 0) return;
+
   const totalDistance = pathSegmentDistances.reduce(
     (accumulator, currentVal) => accumulator + currentVal,
     0
   );
+
+  // Avoid division by zero
+  if (totalDistance === 0) return;
 
   // draw vertical lines for each segment
   let locX = paperVars.drawingLeft;

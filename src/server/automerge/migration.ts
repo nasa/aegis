@@ -8,6 +8,10 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 
 import { getAutomergeDocListing } from "server/express/routes/docListing";
+import {
+  DEFAULT_ACTION_DEFINITION_LABELS,
+  DEFAULT_ACTION_DEFINITION_CONJUNCTIONS,
+} from "store/storeUtils/mission";
 import { missionValidator } from "utils/validateSchemaServer";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
@@ -432,10 +436,29 @@ getORM()
       });
     };
 
+    // Migration: Add the action definition labels and conjunction fields, seeded with the
+    // defaults so existing missions render exactly as before.
+    const automergeMigration20260717AddActionNaming = async (docHandle: DocHandle<Mission>) => {
+      docHandle.change((mission: Mission) => {
+        // The persisted doc may predate these (now required) fields; the type says they always
+        // exist, so view it as Partial to add them conditionally without narrowing to `never`.
+        const doc = mission as Partial<Mission>;
+        if (!("actionDefinitionLabels" in doc)) {
+          doc.actionDefinitionLabels = structuredClone(DEFAULT_ACTION_DEFINITION_LABELS);
+        }
+        if (!("actionDefinitionConjunctions" in doc)) {
+          doc.actionDefinitionConjunctions = structuredClone(
+            DEFAULT_ACTION_DEFINITION_CONJUNCTIONS
+          );
+        }
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
       automergeMigration20260528AddMaestroDocId,
+      automergeMigration20260717AddActionNaming,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {

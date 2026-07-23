@@ -208,6 +208,7 @@ merge-vitest-coverage:
   needs:
     - install_dependencies
     - test-vitest
+    - test-vitest:browser
   before_script:
     - tar -xf node_modules.tar
   script:
@@ -283,8 +284,38 @@ test-playwright:
       - playwright-report/ # Store Playwright test reports
     expire_in: 1 day
 
+test-vitest:browser:
+  stage: stageless
+  image: mcr.microsoft.com/playwright:v1.61.0-jammy
+  needs:
+    - install_dependencies
+  tags: ["openshift"]
+  before_script:
+    # node_modules is shipped as a tarball artifact (see install_dependencies)
+    - tar -xf node_modules.tar
+    # node_modules artifact was built on Alpine (musl); this image is Ubuntu (glibc).
+    # npm skips libc-mismatched optional deps, so install the glibc rollup binary explicitly.
+    - npm install --no-save @rollup/rollup-linux-x64-gnu
+  script:
+    # schema:create generates typescript-json-schema outputs some modules import.
+    - npm run schema:create
+    # Emit a coverage blob (like the sharded test-vitest jobs) so
+    # merge-vitest-coverage folds browser-mode coverage into the single
+    # cobertura/lcov report. Explicit blob name avoids colliding with the
+    # node shards' auto-named blobs when both artifacts extract into the merge.
+    - npx vitest run
+      --config src/tests/vitest-browser/vitest.config.mts
+      --coverage
+      --reporter=blob
+      --outputFile=.vitest-reports/blob-browser.json
+  timeout: 20 minutes
+  artifacts:
+    paths:
+      - .vitest-reports/
+    expire_in: 1 day
+
 # Test the automerge migrations against a prod database
-# This job will run "npm run test:automerge:migration" which will generate the schema, build and run the migration
+# This job will generate the schema, build and run the migration
 # The migration file performs it's own checks against the schema
 # The migration file is executed twice and the results are compared to make sure it's repeatable
 test-automerge-migrate:
@@ -296,13 +327,13 @@ test-automerge-migrate:
 
     # generate a schema, build the migration file, run it, and validate against the schema
     - echo "Running migration (1)"
-    - npm run test:automerge:migration
+    - npm run automerge:migration
     # get a snapshot of the automerge_native_db table
     - node .gitlab/scripts/dump-table.mjs automerge_native_db automerge_native_db_migrate1.txt
 
-    # run the migration a 2nd time. This should not change the output
+    # Do it all again. This should not change the output
     - echo "Running migration (2)"
-    - npm run test:automerge:migration
+    - npm run automerge:migration
     # get a snapshot of the automerge_native_db table
     - node .gitlab/scripts/dump-table.mjs automerge_native_db automerge_native_db_migrate2.txt
 
@@ -333,8 +364,8 @@ test-automerge-integrity:
 
     # Run the full migration first so all entity data is in Automerge docs,
     # then run the standalone integrity check against those docs.
-    - npm run test:automerge:migration
-    - npm run test:automerge:integrity
+    - npm run automerge:migration
+    - npm run automerge:integrity
   artifacts:
     when: always
     paths:
@@ -480,6 +511,8 @@ docker:retag:
     - job: test-automerge-migrate
       artifacts: false
     - job: merge-vitest-coverage
+      artifacts: false
+    - job: test-vitest:browser
       artifacts: false
     - job: docker:build:nginx
       artifacts: false

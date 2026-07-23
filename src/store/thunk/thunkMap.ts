@@ -44,7 +44,18 @@ export const thunkCancelMarkerMapDirective = appCreateAsyncThunk<void>(
 
 export const thunkUpdateMapDirective = appCreateAsyncThunk<MapDirective, void, false>(
   "updateMapDirective",
-  async (mapDirective, { dispatch }) => {
+  async (mapDirective, { dispatch, getState }) => {
+    // Enforce "one edit at a time": before starting a new edit/create, tear down
+    // any interaction still bound to a previous directive. Without this, a stale
+    // OL Modify/Translate interaction can overlap the new one and crash. The
+    // teardown is synchronous; the 200ms delay lets it settle before the new
+    // interaction is created.
+    const startActions: MapAction[] = ["editPolyline", "editMarker", "createMarker"];
+    const existing = getState().map.mapDirective;
+    if (mapDirective && startActions.includes(mapDirective.mapAction) && existing) {
+      dispatch(updateMapDirective(null));
+    }
+
     setTimeout(() => {
       dispatch(updateMapDirective(mapDirective));
     }, 200);

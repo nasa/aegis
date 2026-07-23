@@ -41,6 +41,7 @@ export default defineConfig({
       public: path.resolve(workspaceRoot, "src/public"),
       server: path.resolve(workspaceRoot, "src/server"),
       client: path.resolve(workspaceRoot, "src/client"),
+      operations: path.resolve(workspaceRoot, "src/operations"),
     },
   },
   test: {
@@ -69,6 +70,8 @@ export default defineConfig({
         // files use TypeScript-only syntax and are not unit-testable anyway.
         "src/server/express/server.ts",
         "src/server/automerge/migration.ts",
+        "src/server/automerge/integrityCheck.ts",
+        "src/server/automerge/automerge-repo-storage-postgres.ts",
       ],
     },
     globalSetup: [path.resolve(__dirname, "./vitest.globalSetup.ts")],

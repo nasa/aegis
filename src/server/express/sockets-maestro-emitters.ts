@@ -5,8 +5,9 @@ import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
 import { getMaestroSocketRoomName } from "./sockets-maestro";
 import { buildAegisEntityForMaestro } from "utils/maestro";
-import { getSequenceUuidByRefUuidAndRexUuid } from "store/selectors";
 import { emitMaestroStoreUpsertFromDiff } from "./sockets-maestro-legacy";
+import { opApplyMdauStationUpdates } from "operations/op-station";
+import { getSequenceUuidByRefUuidAndRexUuid } from "store/selectors";
 
 // ─── Maestro namespace emit helpers ──────────────────────────────────────────
 
@@ -33,7 +34,6 @@ const MAESTRO_RELEVANT_MISSION_FIELDS = [
   "createdAt",
   "updatedAt",
 ] as const satisfies readonly (keyof Maegistro.AegisMission)[];
-
 type MaestroRelevantMissionField = (typeof MAESTRO_RELEVANT_MISSION_FIELDS)[number];
 
 /** Diff result — what was upserted and what was deleted. */
@@ -48,8 +48,7 @@ export type MaestroDiff = {
 };
 
 /**
- * The slice of a Mission that Maestro cares about. Only these top-level keys are
- * tracked between change events; anything else can change freely without notifying Maestro.
+ * The top-level keys that Maestro cares about.
  */
 type MissionDataMaestroCaresAbout = {
   evas: Mission["evas"];
@@ -61,7 +60,7 @@ type MissionDataMaestroCaresAbout = {
 };
 
 /**
- * Stored per-mission snapshot of mission data maestro cares about
+ * Stored per-mission snapshot of mission data maestro cares about.
  * Use this to compare and find diffs
  */
 const maestroDataSnapshots = new Map<number, MissionDataMaestroCaresAbout>();
@@ -84,7 +83,7 @@ const buildMissionDataMaestroCaresAbout = (mission: Mission): MissionDataMaestro
 });
 
 /**
- * Diffs two collections by reference. Returns the entities that were added or
+ * Helper to diffs two collections by reference. Returns the entities that were added or
  * modified (present in `next` with a different reference than `prev`) and the UUIDs
  * that were removed.
  *
@@ -247,7 +246,7 @@ const emitToMaestroNamespace = async (missionId: number): Promise<void> => {
 /**
  * Removes the given EVA uuids from global eva subscriptions
  */
-const removeDeletedEvasFromSubscriptions = (missionId: number, deletedEvaUuids: string[]): void => {
+export const removeEvaFromSubscriptions = (missionId: number, deletedEvaUuids: string[]): void => {
   if (deletedEvaUuids.length === 0) return;
   const subscriptions = globalValues.maestro.evaSubscriptions.get(missionId);
   if (!subscriptions || subscriptions.length === 0) return;
@@ -309,7 +308,7 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
 
           // Drop subscriptions to deleted EVAs
           if (diff.evas.deletedUuids.length > 0) {
-            removeDeletedEvasFromSubscriptions(missionId, diff.evas.deletedUuids);
+            removeEvaFromSubscriptions(missionId, diff.evas.deletedUuids);
           }
 
           // Emit to the /maestro namespace if the diff is relevant to subscribed EVAs.
@@ -379,7 +378,7 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
  */
 export const applyMdauStationsToDoc = async (
   missionId: number,
-  aegisStations: MaestroDataAegisUses["aegisStations"]
+  aegisStations: { [stationRefUuid: string]: Maegistro.MdauStation }
 ): Promise<void> => {
   if (!aegisStations || Object.keys(aegisStations).length === 0) return;
 
@@ -392,40 +391,74 @@ export const applyMdauStationsToDoc = async (
     });
     return;
   }
+  const mission = docHandle.doc();
 
-  docHandle.change((m) => {
-    for (const [refUuid, stationData] of Object.entries(aegisStations)) {
-      const rexUuid = stationData.rexUuid ?? null;
-      const stationUuid = getSequenceUuidByRefUuidAndRexUuid(m, {
-        refUuid,
-        rexUuid,
+  // Validate station uuids
+  const resolvedStations: (Maegistro.MdauStation & { uuid: string })[] = [];
+  const unresolved: { refUuid: string; rexUuid: string | null }[] = [];
+  for (const stationRefUuid in aegisStations) {
+    const stationUuid = getSequenceUuidByRefUuidAndRexUuid(mission, {
+      refUuid: stationRefUuid,
+      rexUuid: aegisStations[stationRefUuid].rexUuid ?? null,
+    });
+    // Not found, push to unresolved array
+    if (!stationUuid || !mission.stations[stationUuid]) {
+      unresolved.push({
+        refUuid: stationRefUuid,
+        rexUuid: aegisStations[stationRefUuid].rexUuid ?? null,
       });
-      if (!stationUuid) {
-        serverLogger.warning({
-          logId: "socket-maestro",
-          logValue: `applyMdauStationsToDoc - could not resolve station uuid for refUuid ${refUuid} rexUuid ${rexUuid}`,
-        });
-        continue;
-      }
-      //todo need to update traverses
-      //todo we will need to stop the trigger of sending dataAll back because automerge change triggered a listener
-      const station = m.stations[stationUuid];
-      if (station) {
-        station.name = stationData.name;
-        station.updatedAt = Date.now();
-      }
+      continue;
     }
+    resolvedStations.push({ ...aegisStations[stationRefUuid], uuid: stationUuid });
+  }
+  // None of the stations could be found
+  if (resolvedStations.length === 0) {
+    for (const { refUuid, rexUuid } of unresolved) {
+      serverLogger.warning({
+        logId: "socket-maestro",
+        logValue: `applyMdauStationsToDoc - could not resolve station uuid for refUuid ${refUuid} rexUuid ${rexUuid}`,
+      });
+    }
+    return;
+  }
+
+  // Diff check. Filter out any fields that haven't changed
+  const stationsToUpdate = resolvedStations.map((mdauStation) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { uuid, refUuid, rexUuid, ...mutableFields } = mdauStation;
+    const existingStation = mission.stations[uuid];
+    // Build a new object with only the fields that changed
+    const incomingStation: Partial<typeof mutableFields> & { uuid: string } = { uuid };
+    for (const [field, incomingValue] of Object.entries(mutableFields)) {
+      if (incomingValue === undefined) continue;
+      if (incomingValue === (existingStation as unknown as Record<string, unknown>)[field])
+        continue;
+      // value was changed, add the field
+      (incomingStation as Record<string, unknown>)[field] = incomingValue;
+    }
+    return incomingStation;
   });
+
+  // Check whether there is actually anything to write.
+  const hasChanges = stationsToUpdate.some((s) => Object.keys(s).some((f) => f !== "uuid"));
+  if (!hasChanges) return; // No changes to write
+
+  // Apply the changes
+  opApplyMdauStationUpdates(docHandle, stationsToUpdate);
 };
 
-// This is only called if the room is empty
-export const cleanupSocketRoom = (missionId: number): void => {
+/**
+ * Cleanup all things associated with maestro for this mission
+ * This is only called if the room is empty
+ * @param missionId
+ */
+export const cleanupMaestro = (missionId: number): void => {
   // Remove the docHandle change listener and delete the reference from global
   const removeListenerFn = globalValues.maestro.docListeners.get(missionId);
   if (!removeListenerFn) {
     serverLogger.warning({
       logId: "socket-maestro",
-      logValue: `cleanupSocketRoom - No listener function found to remove for mission ${missionId}`,
+      logValue: `cleanupMaestro - No listener function found to remove for mission ${missionId}`,
     });
   } else {
     removeListenerFn();
@@ -440,13 +473,13 @@ export const cleanupSocketRoom = (missionId: number): void => {
   if (!docHandleRemoved) {
     serverLogger.warning({
       logId: "socket-maestro",
-      logValue: `cleanupSocketRoom - No docHandle found to remove for mission ${missionId}`,
+      logValue: `cleanupMaestro - No docHandle found to remove for mission ${missionId}`,
     });
   }
 
   // All cleanup done
   serverLogger.debug({
     logId: "socket-maestro",
-    logValue: `cleanupSocketRoom - Cleaned up listener, docHandle, and snapshot for mission ${missionId}`,
+    logValue: `cleanupMaestro - Cleaned up listener, docHandle, and snapshot for mission ${missionId}`,
   });
 };

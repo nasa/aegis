@@ -48,14 +48,18 @@
   border-bottom-right-radius: var(--panelRadius);
 }
 
-.page .tooltip {
-  z-index: 900;
-  background-color: white;
-  color: black;
-  max-width: 300px;
-  font-size: 0.8rem;
-  padding: 6px;
+.minimapWrapper {
   position: absolute;
+  width: 25%;
+  height: 35%;
+  bottom: 4px;
+  right: 4px;
+  z-index: 10;
+  border-radius: var(--panelRadius);
+  overflow: hidden;
+  border: 2px solid black;
+  box-sizing: border-box;
+  background-color: black;
 }
 
 .infoMessageWrapper {

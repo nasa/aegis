@@ -73,92 +73,21 @@ body {
   border: 1px none #eeeeee10;
 }
 
-/* --- leaflet overrides --- */
-/* hide attribution */
-.leaflet-control-attribution {
-  display: none !important;
+/* --- openlayers overrides --- */
+/* Position the zoom control at the top-left edge. The eyeball menu and preset
+   menu sit at left:45px/85px, so the far-left edge is free; keeping zoom here
+   also avoids colliding with the top-right crew-pos menu during a REX. */
+.ol-zoom {
+  top: 10px;
+  left: 10px;
+  right: auto;
+  z-index: 100;
 }
 
-/* hide marker artifacts */
-.leaflet-div-icon {
-  background-color: transparent !important;
-  border: none !important;
-  margin-left: -10px !important;
-  margin-top: -10px !important;
-  outline: none;
-}
-
-/* zoom control color */
-.leaflet-bar a {
-  background-color: var(--grey2) !important;
-  color: #ffffff !important;
-  border: 1px solid var(--grey3) !important;
-}
-
-/* scale line */
-.leaflet-control-scale-line {
-  background-color: var(--grey2) !important;
-  color: #ffffff !important;
-  border: 1px solid var(--grey3) !important;
-  text-shadow: none !important;
-}
-
-/* map background color */
-.leaflet-container {
-  background-color: var(--grey2) !important;
-}
-
-.leaflet-tooltip-own {
-  padding: 2px 5px 2px 5px !important;
-}
-
-.leaflet-tooltip-gridLabels {
-  position: relative;
-  padding: 0 2px 0 2px !important;
-  border-radius: 0 !important;
-  font-size: 0.6rem;
-  margin-left: 0 !important;
-  box-shadow: none !important;
-  overflow: hidden;
-}
-.leaflet-tooltip-gridLabels::before {
-  display: none;
-}
-
-.leaflet-tooltip-gridLabels-dashboard {
-  position: relative;
-  top: -5px !important;
-  padding: 0 2px 0 2px !important;
-  border-radius: 0 !important;
-  font-size: 1rem;
-  font-weight: bold;
-  margin-left: 0 !important;
-  box-shadow: none !important;
-  overflow: hidden;
-}
-.leaflet-tooltip-gridLabels-dashboard::before {
-  display: none;
-}
-
-/* Leaflet crispness override */
-.leaflet-container .leaflet-overlay-pane svg,
-.leaflet-container .leaflet-marker-pane img,
-.leaflet-container .leaflet-shadow-pane img,
-.leaflet-container .leaflet-tile-pane img,
-.leaflet-container img.leaflet-image-layer {
-  max-width: none !important;
-  /* Preserve crisp pixels with scaled up images */ /* Legal fallback */ /* Firefox        */ /* Opera          */ /* Safari         */ /* CSS3 Proposed  */ /* CSS4 Proposed  */
-  image-rendering: pixelated; /* CSS4 Proposed  */
-  -ms-interpolation-mode: nearest-neighbor; /* IE8+           */
-}
-
-.leaflet-pane > svg path.leaflet-interactive:focus {
-  outline: none;
-}
-
-.leaflet-pane .leaflet-overlay-pane {
-  filter: drop-shadow(0 0 1px rgb(0 0 0 / 20%)) drop-shadow(0 0 1px rgb(0 0 0 / 20%))
-    drop-shadow(0 0 1px rgb(0 0 0 / 20%)) drop-shadow(0 0 1px rgb(0 0 0 / 20%));
+.ol-zoom button {
+  background-color: var(--grey2);
+  color: #ffffff;
+  border: 1px solid var(--grey3);
 }
 
 /* metatag component styling */

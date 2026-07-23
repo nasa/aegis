@@ -237,7 +237,7 @@ const StationGroupTitle: FunctionComponent<{ evaUuid?: string }> = ({ evaUuid })
       <div
         className={styles.stationGroupTitle}
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html={evaPartial?.name}
+        data-tooltip-content={evaPartial?.name}
         style={{ width: `${(numberOfStationsInEva + 1) * 22}px` }}
       >
         {evaPartial && abbreviateString(evaPartial.name, 3 * numberOfStationsInEva)}
@@ -359,7 +359,7 @@ const StationName: FunctionComponent<{ station: Station }> = ({ station }) => {
         dispatch(stmViewSetHoveredTopItem(station.uuid));
       }}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={station.name}
+      data-tooltip-content={station.name}
       data-tooltip-place="left-start"
     >
       <div className={styles.gridStationNameText}>{abbreviateString(station.name, 12)}</div>
@@ -385,7 +385,7 @@ const EvaSelector: FunctionComponent = () => {
     <div
       className={styles.selectionControl}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html="Contains all EVAs that have assigned stations"
+      data-tooltip-content="Contains all EVAs that have assigned stations"
     >
       <MultiSelectDropdown
         items={asPlannedEvaWithStations.map((eva) => ({ label: eva.name, value: eva.uuid }))}
@@ -430,7 +430,7 @@ const ActionTypesSelector: FunctionComponent = () => {
           icon={faFilterCircleXmark}
           className={styles.filterIndicator}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-html="Show all action types"
+          data-tooltip-content="Show all action types"
           onClick={() => {
             // recheck all actionTypes
             for (const actionType of actionTypes) {

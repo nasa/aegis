@@ -28,12 +28,16 @@ import { makeTraverseRateString } from "utils/component-helpers";
 import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdateTraverseByField } from "client/automerge/apply/apply-traverse";
+import { applyUpdateTraverseByField } from "operations/apply/apply-traverse";
 import CalculatedDwell from "../calculated-dwell";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const missionTraverseRate = useMissionDocSelector((mission) => mission.traverseRate, refEqual);
+  const usingLGRSCoordinates = useMissionDocSelector(
+    (mission) => mission.usingLGRSCoordinates,
+    refEqual
+  );
 
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -81,8 +85,15 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       missionTraverseRate,
       evaTraverseRate: traverseEvaTraverseRate,
       traverseActions,
+      usingLGRSCoordinates,
     });
-  }, [docMaps, selectedTraverse, missionTraverseRate, traverseEvaTraverseRate]);
+  }, [
+    docMaps,
+    selectedTraverse,
+    missionTraverseRate,
+    traverseEvaTraverseRate,
+    usingLGRSCoordinates,
+  ]);
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = useMemo(
     () => (mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null),
@@ -555,7 +566,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <LastEditedNumeric
                         updatedAt={selectedTraverse?.updatedAt}
                         createdAt={selectedTraverse?.createdAt}
-                        infoString={`Traverse UUID: ${selectedTraverse?.uuid}<br />Traverse RefUUID: ${selectedTraverse?.refUuid}`}
+                        info={[
+                          ["Traverse UUID", selectedTraverse?.uuid],
+                          ["Traverse RefUUID", selectedTraverse?.refUuid],
+                        ]}
                       />
                     </div>
                   </div>

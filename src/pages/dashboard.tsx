@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useParams } from "react-router";
-import { useCookies } from "react-cookie";
 
 import styles from "./dashboard.module.css";
+import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import { setAppUser } from "store/user";
 import { Tooltip } from "react-tooltip";
 import { isLoggedIn } from "http-client/login";
@@ -13,13 +13,18 @@ import DashboardHeader from "components/dashboard/header";
 import SocketClient from "components/page/socketClient";
 import { setAllSliceStores } from "store/crossActions";
 import { populateStore } from "store/processing/populateStore";
-import MapBody from "components/dashboard/map";
 import DashTimeline from "components/dashboard/timeline/dashTimeline";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
-import { useMissionDocSelector } from "utils/useDocSelector";
-import MiniMap from "components/dashboard/miniMap";
+import { FeatureSourcesProvider } from "components/interface/map/FeatureSourcesProvider";
+import { DashboardBoundsProvider } from "components/interface/map/DashboardBoundsProvider";
+import { AegisMapDashboard } from "components/interface/map/AegisMapDashboard";
+import { AegisMapMinimap } from "components/interface/map/AegisMapMinimap";
 import { setGridCornerPoint } from "store/map";
+import { setSelectedEvaUuid } from "store/eva";
+import { setSelectedRexUuid } from "store/rex";
+import { setSectionSelected } from "store/interface";
 import { loadAndReturnGrid } from "utils/mapping/grid";
+import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import { clientLogger } from "utils/logging/clientLogger";
 import { LoadingOverlay } from "components/interface/_global-elements";
@@ -31,10 +36,10 @@ type RouteParams = {
 const Main = (): JSX.Element => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [eyeballMenuCookie] = useCookies(["AEGIS_Map_View_Settings"]);
+
   const automergeRepo = useRepo();
   const partialMission = useMissionDocSelector(
-    (mission) => ({ name: mission.name, activeGridUuid: mission.activeGridUuid }),
+    (doc) => ({ name: doc.name, activeGridUuid: doc.activeGridUuid }),
     deepEqual
   );
   const isVersionChecked = useAppSelector(
@@ -46,65 +51,13 @@ const Main = (): JSX.Element => {
     if (!mission?.rexes) return null;
     return Object.values(mission.rexes).find((r) => r.isRunning) ?? null;
   }, deepEqual);
-  const defaultPreset = useAppSelector((state) => {
-    const defaultPresetUuid = state.preset.presetsFromDb.find((p) => p.missionDefault)?.uuid;
-    return state.preset.presetsFromDb.find((p) => p.uuid === defaultPresetUuid);
-  }, deepEqual);
 
   const [missionPerms, setMissionPerms] = useState(null);
   const [storeIsPopulated, setStoreIsPopulated] = useState(false);
-  // props that are passed between the big map and mini map
-  const [bigMapBounds, setBigMapBounds] = useState<L.LatLngBoundsLiteral>(null);
-  const [mapDisplayPos, setMapDisplayPos] = useState<MapDisplayPos>({
-    show: true,
-    showAllLabels: false,
-    showLatestLabels: false,
-    showPaths: true,
-    showOldPaths: true,
-    fadeOldPaths: true,
-    showMarkers: true,
-    showOldMarkers: false,
-    fadeOldMarkers: false,
-    sourceUuids: [],
-  });
-  const [showScaleBar, setShowScaleBar] = useState(true);
-  // store preset in local state so it can be passed to both maps
-  const [selectedPreset, setSelectedPreset] = useState<Preset>(defaultPreset);
-  const [showArrows, setShowArrows] = useState(true);
 
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
-
-  useEffect(() => {
-    // set selected preset to default preset for initial load
-    if (!selectedPreset) setSelectedPreset(defaultPreset);
-  }, [defaultPreset, selectedPreset]);
-
-  // Set default sourceUuids when runningRexFromDb changes, reading from cookie settings
-  useEffect(() => {
-    if (!runningRex?.posSources) return;
-
-    const taskSourceUuid = runningRex.posSources.find((source) => source.abbr === "T")?.uuid;
-    const crewSourceUuid = runningRex.posSources.find((source) => source.abbr === "C")?.uuid;
-
-    // Get existing settings from cookie, similar to map-body-leaflet
-    const existingSettings = eyeballMenuCookie["AEGIS_Map_View_Settings"];
-
-    if (existingSettings?.mapDisplayPos) {
-      // Use cookie settings but override sourceUuids with task and crew defaults
-      setMapDisplayPos({
-        ...existingSettings.mapDisplayPos,
-        sourceUuids: [taskSourceUuid, crewSourceUuid].filter(Boolean), // filter out undefined values
-      });
-    } else {
-      // No cookie settings, just update sourceUuids on current state
-      setMapDisplayPos((prevMapDisplayPos) => ({
-        ...prevMapDisplayPos,
-        sourceUuids: [taskSourceUuid, crewSourceUuid].filter(Boolean),
-      }));
-    }
-  }, [runningRex?.posSources, eyeballMenuCookie]);
 
   useEffect(() => {
     if (!intMissionId) return;
@@ -193,12 +146,26 @@ const Main = (): JSX.Element => {
     document.title = `${partialMission.name} - AEGIS`;
   }, [partialMission?.name]);
 
+  // Keep the map/pos selection in sync with the running REX.
+  const runningRexUuid = runningRex?.uuid ?? null;
+  const runningRexEvaUuid = runningRex?.evaUuid ?? null;
+  useEffect(() => {
+    if (!storeIsPopulated || !runningRexUuid) return;
+    // Switch to the EVA section so traverse/pos map behaviors (gated on
+    // sectionSelected === "evas") render. When the dashboard loads with a REX
+    // already running, populateStore's setRunningRexView sets this; when a REX
+    // starts after load, this effect is the only thing that does.
+    dispatch(setSectionSelected("evas"));
+    dispatch(setSelectedRexUuid(runningRexUuid));
+    dispatch(setSelectedEvaUuid(runningRexEvaUuid));
+  }, [dispatch, storeIsPopulated, runningRexUuid, runningRexEvaUuid]);
+
   return (
     <>
       <div className={styles.page}>
         <Tooltip
           id="aegis-tooltip"
-          className={styles.tooltip}
+          className={aegisTooltipStyles.tooltip}
           clickable={true}
           delayShow={1000}
           delayHide={500}
@@ -209,24 +176,20 @@ const Main = (): JSX.Element => {
             {runningRex ? (
               <div className={styles.mainContent}>
                 <div className={`${styles.middlePanel} ${styles.mapBody}`}>
-                  <MapBody
-                    setBigMapBounds={setBigMapBounds}
-                    mapDisplayPos={mapDisplayPos}
-                    setMapDisplayPos={setMapDisplayPos}
-                    showScaleBar={showScaleBar}
-                    setShowScaleBar={setShowScaleBar}
-                    selectedPreset={selectedPreset}
-                    setSelectedPreset={setSelectedPreset}
-                    showArrows={showArrows}
-                    setShowArrows={setShowArrows}
-                  />
-                  <MiniMap
-                    bigMapBounds={bigMapBounds}
-                    mapDisplayPos={mapDisplayPos}
-                    showScaleBar={showScaleBar}
-                    selectedPreset={selectedPreset}
-                    showArrows={showArrows}
-                  />
+                  <DashboardBoundsProvider>
+                    {/* Each map owns its own FeatureSourcesProvider so the
+                        dashboard and minimap reconcile independent VectorSources.
+                        Sharing one provider forced both maps to display the same
+                        feature set (last reconcile wins). */}
+                    <FeatureSourcesProvider>
+                      <AegisMapDashboard />
+                    </FeatureSourcesProvider>
+                    <div className={styles.minimapWrapper}>
+                      <FeatureSourcesProvider>
+                        <AegisMapMinimap />
+                      </FeatureSourcesProvider>
+                    </div>
+                  </DashboardBoundsProvider>
                 </div>
                 <div className={styles.rightPanel}>
                   <DashTimeline />

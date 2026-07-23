@@ -31,8 +31,9 @@ import { getCalculatedFieldsByStation } from "store/processing/calculatedFields"
 import Station_Circles_Panel from "./station-right-circles";
 import { selectAsPlannedStations } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { withMissionChange } from "client/automergeDocHandles";
-import { applyUpdateStationByField } from "client/automerge/apply/apply-station";
+import { withMissionChange, withMissionOp } from "client/automergeDocHandles";
+import { applyUpdateStationByField } from "operations/apply/apply-station";
+import { opUpdateStationName } from "operations/op-station";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -194,13 +195,7 @@ const StationEditorRight: FunctionComponent = () => {
               styleContainer={{ paddingRight: "10px" }}
               displayStyle={{ fontSize: "1.1em", color: "var(--station)" }}
               onSubmit={(val: string) => {
-                withMissionChange((m) =>
-                  applyUpdateStationByField(m, {
-                    stationUuid: selectedStation.uuid,
-                    fieldName: "name",
-                    value: val || "",
-                  })
-                );
+                withMissionOp(opUpdateStationName, selectedStation.uuid, val || "");
               }}
               key={`${selectedStation.uuid}-name`}
             />

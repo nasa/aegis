@@ -68,6 +68,13 @@ __pycache__
 /blob-report/
 /playwright/.cache/
 **/playwright/.auth
+.vitest-reports
 
 # Agents
 .claude
+# vitest browser-mode failure artifacts (auto-screenshots, attachments)
+/.vitest-attachments/
+**/__screenshots__/
+
+# ignore AI instructions
+agent.md

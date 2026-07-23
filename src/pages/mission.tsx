@@ -11,7 +11,7 @@ import { LeftControlPanel, NavGutter } from "components/interface/side-controls"
 import { RightControlPanel } from "components/interface/side-controls";
 import { BottomControlPanel } from "components/interface/side-controls";
 import SocketClient from "components/page/socketClient";
-import MapBody from "components/interface/map/map-body-leaflet"; // Adjust import as needed
+import { AegisMapEditor } from "components/interface/map/AegisMapEditor";
 import { setAllSliceStores } from "store/crossActions";
 import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
@@ -23,6 +23,8 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import { useEffect, useState } from "react";
 import { LoadingOverlay } from "components/interface/_global-elements";
+import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
+import type { LastEditedInfoLine } from "components/interface/_global-elements";
 
 type RouteParams = {
   id: string;
@@ -192,13 +194,54 @@ const Main: React.FunctionComponent = () => {
             </div>
           ) : (
             <div className={styles.page}>
+              {/* Standard tooltip for displaying plain string content */}
               <Tooltip
                 id="aegis-tooltip"
-                className={styles.tooltip}
+                className={aegisTooltipStyles.tooltip}
                 clickable={true}
                 delayShow={1000}
                 delayHide={500}
               />
+              {/* Tooltip instance for all LastEditedNumeric tooltips
+               * This is a separate tooltip since it needs to render custom html content rather than simple text.
+               */}
+              <Tooltip
+                id={"aegis-last-edited"}
+                className={aegisTooltipStyles.tooltip}
+                clickable={true}
+                delayShow={1000}
+                delayHide={500}
+                render={({ activeAnchor }) => {
+                  if (!activeAnchor) return null;
+                  const updated = activeAnchor.getAttribute("data-le-updated");
+                  const created = activeAnchor.getAttribute("data-le-created");
+                  const infoRaw = activeAnchor.getAttribute("data-le-info");
+                  let info: LastEditedInfoLine[] = [];
+                  if (infoRaw) {
+                    try {
+                      const parsed: unknown = JSON.parse(infoRaw);
+                      if (Array.isArray(parsed)) info = parsed as LastEditedInfoLine[];
+                    } catch (err) {
+                      clientLogger.warning({
+                        logId: "lastEditedTooltip:parseError",
+                        message: "Failed to parse data-le-info",
+                        error: err instanceof Error ? err.message : String(err),
+                      });
+                    }
+                  }
+                  return (
+                    <>
+                      <div>Updated At: {updated} Z</div>
+                      <div>Created At: {created} Z</div>
+                      {info.map(([label, value]) => (
+                        <div key={label}>
+                          {label}: {value}
+                        </div>
+                      ))}
+                    </>
+                  );
+                }}
+              />{" "}
               <div className={styles.header}>
                 <Header />
               </div>
@@ -220,7 +263,7 @@ const Main: React.FunctionComponent = () => {
                         <NavGutter selectedNavItem={interfaceStateLabel} />
                         <LeftControlPanel />
                       </div>
-                      <div className={styles.mapBody}>{hasMissionLayers && <MapBody />}</div>
+                      <div className={styles.mapBody}>{hasMissionLayers && <AegisMapEditor />}</div>
                     </div>
                     <BottomControlPanel />
                   </div>

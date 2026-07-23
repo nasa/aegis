@@ -1,7 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import { stageLanderLocationUpdate } from "client/automerge/stage/stage-lander";
-import { applyLanderLocationUpdateStage } from "client/automerge/apply/apply-mission";
+import { stageLanderLocationUpdate } from "operations/stage/stage-lander";
+import { applyLanderLocationUpdateStage } from "operations/apply/apply-mission";
 
 export const thunkDocUpdateLanderLocation = appCreateAsyncThunk<{
   location: AEGISPoint;

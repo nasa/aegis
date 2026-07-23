@@ -1,0 +1,101 @@
+.mapViewDisplay {
+  position: absolute;
+  top: 10px;
+  left: 45px;
+  z-index: 100;
+  border: 2px solid rgb(0 0 0 / 20%);
+  border-radius: var(--radius);
+}
+
+.mapPresetDisplay {
+  position: absolute;
+  top: 10px;
+  left: 85px;
+  z-index: 99; /* show under the map view */
+  border: 2px solid rgb(0 0 0 / 20%);
+  border-radius: var(--radius);
+}
+
+.mapFollowDisplay {
+  position: absolute;
+  top: 50px;
+  left: 45px; /* align with the eyeball menu */
+  z-index: 98; /* below the eyeball + preset menus */
+  border: 2px solid rgb(0 0 0 / 20%);
+  border-radius: var(--radius);
+}
+
+.followMenu {
+  display: flex;
+  flex-direction: row;
+  border: 1px solid var(--grey3);
+  background-color: var(--grey2);
+  cursor: pointer;
+  column-gap: 6px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.followButtonWrapper {
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.followButton {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-radius: var(--radius);
+  min-width: 20px;
+  padding: 3px 5px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+}
+
+.followSelected {
+  background-color: var(--grey5);
+  color: var(--grey1);
+  font-weight: 600;
+}
+
+.followDropdownWrapper {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  width: 160px;
+}
+
+.followDropdown {
+  width: 160px;
+  padding: 3px 5px;
+}
+
+.followDropdownHeader {
+  font-size: 0.8rem;
+}
+
+.hide {
+  display: none;
+}
+
+.mapScaleDisplay {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  color: var(--grey0);
+  font-weight: 600;
+  text-align: center;
+  z-index: 100;
+  border-radius: var(--radius);
+  background-color: var(--grey5);
+}
+
+.mapPositionDisplay {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 100;
+  border: 2px solid rgb(0 0 0 / 20%);
+
+  border-radius: var(--radius);
+  background-color: var(--grey2);
+}

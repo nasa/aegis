@@ -1,14 +1,14 @@
-import { stageTraverseUpdate } from "client/automerge/stage/stage-traverse";
+import { stageTraverseUpdate } from "operations/stage/stage-traverse";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkUpdateMapDirective } from "./thunkMap";
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import { applyDeleteActions } from "client/automerge/apply/apply-action";
+import { applyDeleteActions } from "operations/apply/apply-action";
 import {
   applyDeleteTraverses,
   applyUpdateTraverseByField,
   applyUpsertTraverse,
   applyTraverseUpdatesStage,
-} from "client/automerge/apply/apply-traverse";
+} from "operations/apply/apply-traverse";
 
 /**
  * Updates the traverse path, distances, elevation, and
