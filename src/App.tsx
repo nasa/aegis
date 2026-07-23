@@ -10,7 +10,6 @@ import AdminMissions from "pages/admin/missions";
 import AdminMission from "pages/admin/mission";
 import AdminMissionLayers from "pages/admin/missionLayers";
 import AdminMissionSTM from "pages/admin/missionSTM";
-import AdminMissionGrid from "components/admin/gridUpload";
 import AdminMissionDuplicate from "pages/admin/missionDuplicate";
 import AdminUser from "pages/admin/user";
 import ServerSocketStatus from "pages/admin/serverSocketStatus";
@@ -66,7 +65,6 @@ const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElemen
         <Route path="/admin/mission/:id/:automergeUrl?" element={<AdminMission />} />
         <Route path="/admin/mission_layers/:id" element={<AdminMissionLayers />} />
         <Route path="/admin/mission_stm/:id" element={<AdminMissionSTM />} />
-        <Route path="/admin/mission_grid/:id" element={<AdminMissionGrid />} />
         <Route path="/admin/mission_duplicate/:id" element={<AdminMissionDuplicate />} />
         <Route path="/admin/user" element={<AdminUser />} />
         <Route path="/admin/serverSocketStatus" element={<ServerSocketStatus />} />

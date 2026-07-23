@@ -8,6 +8,7 @@ import FileManager from "components/admin/fileManager";
 import { InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import Projection from "components/admin/projection";
+import AdminMissionGrid from "components/admin/gridUpload";
 import adminCommon from "./adminCommon.module.css";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { maestroCreateDoc } from "http-client/maestro";
@@ -734,6 +735,12 @@ const Mission: React.FunctionComponent = () => {
                     )}
                   </div>
                 </section>
+
+                {/* Grid Section */}
+                <AdminMissionGrid
+                  missionId={automergeMission.id}
+                  grid={automergeMission.grid ?? null}
+                />
               </div>
             </div>
           </>
