@@ -4,9 +4,10 @@
 Layout produced on Box (under ``BOX_INITIAL_FOLDER_ID``):
 
     <mission name>/
-      Data/   Data.zip            (one zip of everything in <out>/Data, incl. the DEM COG)
+      Data/   Data.zip            (one zip of everything in <out>/Data, files at root)
       Layers/ <layer>.zip ...     (one zip per <out>/Layers/<layer> directory — raster tiles,
-                                   PMTiles, or COG; PMTiles/COG folders are stored uncompressed)
+                                   PMTiles, or COG; PMTiles/COG folders are stored uncompressed;
+                                   each zip contains a single top-level folder named after the layer)
 
 The Box client (CCG auth + chunked upload + ``mkdir -p``) is a trimmed port of
 ``lunar_utils/lunar_utils/box_client.py``. Credentials come from the repo-root ``.env``
@@ -207,21 +208,25 @@ def _dir_is_precompressed(src_dir: Path) -> bool:
 
 
 def _zip_dir(
-    src_dir: Path, zip_path: Path, compression: int = zipfile.ZIP_DEFLATED
+    src_dir: Path,
+    zip_path: Path,
+    compression: int = zipfile.ZIP_DEFLATED,
+    top_level_folder: str | None = None,
 ) -> Path:
-    """Zip the contents of src_dir into zip_path under a single top-level folder.
+    """Zip the contents of src_dir into zip_path.
 
-    The top-level folder is named after the zip file (its stem), so ``Data.zip``
-    contains ``Data/...`` and ``<layer>.zip`` contains ``<layer>/...`` rather than
-    exploding files at the archive root. ``compression`` defaults to DEFLATE; pass
+    If ``top_level_folder`` is given, all files are placed under that folder name
+    inside the archive (e.g. ``<layer>/...``). If ``None``, files are written at
+    the archive root. ``compression`` defaults to DEFLATE; pass
     ``zipfile.ZIP_STORED`` (0 compression) for already-compressed contents.
     """
     zip_path.parent.mkdir(parents=True, exist_ok=True)
-    root = zip_path.stem
     with zipfile.ZipFile(zip_path, "w", compression) as zf:
         for file in sorted(src_dir.rglob("*")):
             if file.is_file():
-                zf.write(file, Path(root) / file.relative_to(src_dir))
+                rel = file.relative_to(src_dir)
+                arc_name = Path(top_level_folder) / rel if top_level_folder else rel
+                zf.write(file, arc_name)
     return zip_path
 
 
@@ -289,7 +294,9 @@ def upload_mission_folder(
             zipfile.ZIP_STORED if _dir_is_precompressed(src) else zipfile.ZIP_DEFLATED
         )
         print(f"  [{src.name}] zipping → {zip_path.name} ...", flush=True)
-        _zip_dir(src, zip_path, compression)
+        # Data.zip: files at root. Layer zips: files under a top-level folder named after the layer.
+        top_level = None if sub == "Data" else src.name
+        _zip_dir(src, zip_path, compression, top_level_folder=top_level)
         upload_path = zip_path
         mb = upload_path.stat().st_size / 1e6
         print(
