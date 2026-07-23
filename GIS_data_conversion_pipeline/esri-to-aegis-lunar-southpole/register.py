@@ -365,7 +365,6 @@ def build_mission_grid(
     name = config.GRID_DEFAULT_NAME
     row_total = int(fc["row_total"])
     col_total = int(fc["column_total"])
-    spacing = int(fc.get("spacing", 0) or 0)
 
     coordinates: list[list[dict]] = [[None] * col_total for _ in range(row_total)]  # type: ignore[list-item]
     for feat in fc["features"]:
@@ -391,7 +390,6 @@ def build_mission_grid(
         "gridInformation": {
             "numRows": row_total,
             "numCols": col_total,
-            "spacing": spacing,
             "name": name,
             "fileName": file_name,
         },

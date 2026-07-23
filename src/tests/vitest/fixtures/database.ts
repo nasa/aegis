@@ -56,7 +56,6 @@ const seedMissionDatabaseFixtures = async (
     doc.grid = {
       numRows: 10,
       numCols: 10,
-      spacing: 100,
       name: "Vitest Test Grid",
       fileName: "vitest-test-grid.json",
     };

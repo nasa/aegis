@@ -11,7 +11,6 @@ interface GridGeoJson {
   type: string;
   row_total: number;
   column_total: number;
-  spacing?: number; // metres between adjacent grid lines (added by the GIS pipeline)
 }
 interface ReadGridPoint {
   geometry: GridPointGeometry;
@@ -68,7 +67,6 @@ const parseFullGrid = async (selectedFile: Blob): Promise<MissionGrid> => {
     gridInformation: {
       numRows: parsedData.row_total,
       numCols: parsedData.column_total,
-      spacing: parsedData.spacing ?? 0,
       name: parsedData.name,
       fileName: `${parsedData.name}_${Date.now()}.json`,
     },
@@ -152,10 +150,6 @@ const AdminMissionGrid: FunctionComponent<{
                   <tr>
                     <td style={{ paddingRight: 16 }}>Columns</td>
                     <td>{grid.numCols}</td>
-                  </tr>
-                  <tr>
-                    <td style={{ paddingRight: 16 }}>Spacing (m)</td>
-                    <td>{grid.spacing || "unknown"}</td>
                   </tr>
                 </tbody>
               </table>
