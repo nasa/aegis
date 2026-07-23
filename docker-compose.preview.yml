@@ -27,6 +27,8 @@ services:
       - DB_HOST=database
 
   gdal:
-    # Pull the prebuilt public image rather than building from the private base image.
-    # See the note in docker-compose.services.yml for details.
-    image: bfeistnasa/aegis-gdal:latest
+    image: aegis-preview-gdal:latest
+    build:
+      context: .
+      dockerfile: ./docker/gdal/Dockerfile
+      target: base

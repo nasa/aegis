@@ -35,7 +35,8 @@ import {
   apollo14StmLevel2s,
   apollo14StmLevel3s,
   buildApollo14Mission,
-} from "server/database/seeds/apollo14SeedData";
+  stampMissionId,
+} from "server/automerge/seeder/apollo14SeedData";
 
 const SEED_MISSION_NAME = "Apollo 14";
 const LOG_ID = "automerge-seed";
@@ -60,13 +61,14 @@ const automergeRepo = new Repo({ storage: storageAdapter });
 /**
  * Standalone seed script that creates the "Apollo 14" demo mission from nothing:
  *  - creates the mission Automerge document
- *  - adds the doc-listing row (which assigns the mission id)
- *  - stamps the id onto the mission and every entity
+ *  - adds the doc-listing row (which assigns the next available mission id)
+ *  - stamps that id onto the mission and every entity
  *  - seeds the mission's map layers/sublayers
  *  - backs the mission up to the mission-backup table
  *
- * Intended to be run once against a fresh database (see `npm run seed:demo`). If an
- * "Apollo 14" mission already exists it exits without doing anything.
+ * The mission id is taken from the doc-listing autoincrement rather than hardcoded, so
+ * this can be run against any database (see `npm run seed:demo`). If an "Apollo 14"
+ * mission already exists it exits without doing anything.
  */
 const seed = async (): Promise<void> => {
   globalValues.orm = await MikroORM.init(config);
@@ -95,15 +97,21 @@ const seed = async (): Promise<void> => {
     return;
   }
 
-  // Create the mission Automerge document from the static seed data. The seed data
-  // hardcodes the mission id / entity missionIds to 1 (see apollo14SeedData.ts).
+  // Build the seed data. The mission id / entity missionIds are placeholders here; the
+  // real id is stamped on below once the doc-listing assigns it (see apollo14SeedData.ts).
   const seedMission: Mission = buildApollo14Mission();
-  const missionId = seedMission.id;
-  if (missionId == null) throw new Error("Seed mission is missing a hardcoded id.");
+
+  // Validate against the mission schema before anything is persisted, so an invalid
+  // mission never reaches storage.
+  if (!missionValidator(structuredClone(seedMission))) {
+    throw new Error(`Seeded mission is invalid: ${JSON.stringify(missionValidator.errors)}`);
+  }
+
+  // Create the mission Automerge document.
   const missionDocHandle = automergeRepo.create<Mission>(seedMission);
   await missionDocHandle.whenReady();
 
-  // Add a doc-listing row and flush to get the assigned mission id back.
+  // Add a doc-listing row and flush to get the assigned (next available) mission id.
   const em = globalValues.orm.em.fork();
   const docListing: Partial<AutomergeDocListing> = { automergeUrl: missionDocHandle.url };
   const dbReference = em.create(
@@ -111,16 +119,11 @@ const seed = async (): Promise<void> => {
     docListing as RequiredEntityData<DocListing_db_type>
   );
   await em.persist(dbReference).flush();
+  const missionId = dbReference.missionId;
 
-  // The seed data assumes a fresh database where this is the first mission (id 1).
-  // Fail loudly rather than silently produce a mission whose id disagrees with its
-  // doc-listing / entity missionIds.
-  if (dbReference.missionId !== missionId) {
-    throw new Error(
-      `Expected the seeded mission to be assigned id ${missionId}, but the doc-listing ` +
-        `assigned ${dbReference.missionId}. Run against a fresh database (npm run seed:demo).`
-    );
-  }
+  // Stamp the assigned id onto the mission document and every entity so their
+  // missionIds match the id the database handed out.
+  missionDocHandle.change((m) => stampMissionId(m, missionId));
 
   // Seed the map layers and their sublayers for this mission (deterministic uuids
   // from the seed data so the default preset can reference them).
@@ -156,9 +159,11 @@ const seed = async (): Promise<void> => {
     }
   }
 
-  // Seed the mission-default map preset.
+  // Seed the mission-default map preset. Its static missionId is a placeholder, so
+  // override it with the assigned id.
   em.create(Preset_db, {
     ...apollo14Preset,
+    missionId,
     createdAt: now,
     updatedAt: now,
   } as RequiredEntityData<Preset_db_type>);
@@ -198,15 +203,13 @@ const seed = async (): Promise<void> => {
 
   await em.flush();
 
-  // Validate the seeded document against the mission schema before persisting.
   const mission = missionDocHandle.doc();
-  const isValid = missionValidator(structuredClone(mission));
-  if (!isValid) {
-    throw new Error(`Seeded mission is invalid: ${JSON.stringify(missionValidator.errors)}`);
-  }
 
-  // Flush the Automerge document to storage (bypasses the debounced save timer),
-  // then back the mission up to the mission-backup table.
+  // The Repo persists documents via a debounced/throttled save timer rather than
+  // writing synchronously on create. This script calls process.exit() as soon as it
+  // finishes, so without flush() the seeded document could be lost before the timer
+  // fires. flush() bypasses the debounce and awaits the storage write for every cached
+  // handle. Then back the mission up to the mission-backup table.
   await automergeRepo.flush();
   await upsertBackupDbMissions([mission]);
 

@@ -58,7 +58,7 @@ AEGIS includes a GIS data processing pipeline that can generate the full set of 
 
 ## Setup Outside of NASA
 
-The [First-Time Setup within NASA](#first-time-setup-within-nasa) instructions below assume access to NASA's internal infrastructure (EMSS dev servers, the AEGIS Box asset source, prod database dumps, and internal package registries). The steps in this section provide a self-contained path to run AEGIS with the Apollo 14 demo mission outside of that environment.
+> **Note:** The [First-Time Setup within NASA](#first-time-setup-within-nasa) instructions below assume access to NASA's internal infrastructure (EMSS dev servers, the AEGIS Box asset source, prod database dumps, and internal package registries). The steps in this section provide a self-contained path to run AEGIS with the Apollo 14 demo mission outside of that environment.
 
 ### Prerequisites
 
@@ -78,7 +78,28 @@ The [First-Time Setup within NASA](#first-time-setup-within-nasa) instructions b
 
 ### Step 1: Seed the database
 
-See [Seed a demo database](#seed-a-demo-database) below.
+Instead of importing a NASA prod database dump, populate your fresh local database with a
+self-contained **Apollo 14** demo mission (a handful of POIs, stations, and an EVA with its
+traverses, plus a few map layers):
+
+```bash
+npm run seed:demo
+```
+
+This runs, in order:
+
+1. `migration:fresh` -- drops, recreates, and seeds the relational schema (creates the `admin` /
+   `admin` and `guest` / `guest` users via the MikroORM seeder).
+2. `automerge:seed:build` + `automerge:seed` -- creates the Apollo 14 mission **Automerge document**
+   (all collaborative entity data lives in Automerge, not the relational tables) plus its map layers.
+
+> **Note:** The demo mission references NAC ortho / hillshade tile layers and vector layers by path.
+> The layer records are created, but the tiles themselves are separate GIS assets -- see
+> [Step 2: Download map assets](#step-2-download-map-assets) below for obtaining and installing them.
+> Without them the map renders the mission geometry over an empty basemap.
+>
+> `seed:demo` expects a fresh database. Re-running `automerge:seed` on its own is safe: it detects an
+> existing "Apollo 14" mission and exits without creating a duplicate.
 
 ### Step 2: Download map assets
 
@@ -108,37 +129,6 @@ npm run dev
 ```
 
 Open [http://localhost:4000](http://localhost:4000) and log in as `admin` / `admin`. The Apollo 14 mission should open with the map layers rendering correctly.
-
-### Seed a demo database
-
-Instead of importing a NASA prod database dump, you can populate a fresh local database with a
-self-contained **Apollo 14** demo mission (a handful of POIs, stations, and an EVA with its traverses,
-plus a few map layers). This is the fastest way to get a working, populated database with no internal
-infrastructure.
-
-Prerequisites: dependencies installed (`npm i`) and the database container running
-(`npm run docker:services`).
-
-```bash
-npm run seed:demo
-```
-
-This runs, in order:
-
-1. `migration:fresh` -- drops, recreates, and seeds the relational schema (creates the `admin` /
-   `admin` and `guest` / `guest` users via the MikroORM seeder).
-2. `automerge:seed:build` + `automerge:seed` -- creates the Apollo 14 mission **Automerge document**
-   (all collaborative entity data lives in Automerge, not the relational tables) plus its map layers.
-
-Then `npm run dev` and log in as `admin` / `admin` to open the seeded mission.
-
-> **Note:** The demo mission references NAC ortho / hillshade tile layers and vector layers by path.
-> The layer records are created, but the tiles themselves are separate GIS assets -- without them the
-> map renders the mission geometry over an empty basemap. See [Download map assets](#step-2-download-map-assets)
-> for instructions on obtaining and installing them.
->
-> `seed:demo` expects a fresh database. Re-running `automerge:seed` on its own is safe: it detects an
-> existing "Apollo 14" mission and exits without creating a duplicate.
 
 ## First-Time Setup within NASA
 
@@ -195,23 +185,11 @@ We need to setup the local environment before spinning up the app.
 
 ### Step 2, Option 1: Development with service containers (PREFERRED)
 
-This is for doing local development with the database and GDAL containers running.
-
-The GDAL container powers elevation-profile generation. Which image is pulled depends on the
-command you run:
-
-- `npm run docker:services` — **internal NASA devs.** Pulls the GDAL base image from the EE
-  registry (`eegitlabregistry.fit.nasa.gov/emss/docker-images/deploy:gdal`); requires private-
-  registry access.
-- `npm run docker:services:public` — **open-source / external users.** Pulls a prebuilt public
-  image (`bfeistnasa/aegis-gdal:latest`) from Docker Hub, ~1.6 GB on first run, no private-
-  registry access needed.
-
-Both start the same database + GDAL containers; only the GDAL image source differs. If you don't
-need elevation features, the app runs fine without GDAL; those features will simply return an error.
+This is for doing local development with the database and GDAL containers running. The GDAL
+container powers elevation-profile generation; if you don't need elevation features, the app runs
+fine without GDAL and those features will simply return an error.
 
 1. Run Docker only starting the service containers (gdal and database): `npm run docker:services`
-   (open-source / external users: `npm run docker:services:public`)
 2. Run `npm run dev` to start the API and frontend.
 3. Open [http://localhost:4000](http://localhost:4000) with your browser (note lack of https).
 4. Continue to **Step 3: Setting up GIS products for local development**
@@ -378,11 +356,25 @@ docker logs <container name> -f
 docker restart <container name>
 ```
 
-## Updating the public GDAL image
+## GDAL image sources
 
-Local and preview development pull a prebuilt GDAL image from Docker Hub
-(`bfeistnasa/aegis-gdal:latest`) because the private base image it derives from can no longer
-be rebuilt. To publish or refresh that image (maintainers only, requires push access to the
+The GDAL container powers elevation-profile generation. Which image is used depends on the command
+you run to start the service containers:
+
+- `npm run docker:services` — **internal NASA devs.** Builds the GDAL image locally from the private
+  EE base image (`eegitlabregistry.fit.nasa.gov/emss/docker-images/deploy:gdal`, via
+  `docker/gdal/Dockerfile`); requires private-registry access.
+- `npm run docker:services:public` — **open-source / external users.** Pulls a prebuilt public image
+  (`bfeistnasa/aegis-gdal:latest`) from Docker Hub (~1.6 GB on first run), no private-registry access
+  needed. This override lives in `docker-compose.services.public.yml`.
+
+Both start the same database + GDAL containers; only the GDAL image source differs. The pipeline
+builds its own GDAL image from the private base via `docker/gdal/Dockerfile` and the base
+`docker-compose.yml`.
+
+### Updating the public GDAL image
+
+To publish or refresh the public Docker Hub image (maintainers only, requires push access to the
 `bfeistnasa` Docker Hub org):
 
 ```bash
@@ -392,9 +384,6 @@ docker tag aegis-dev-gdal:latest bfeistnasa/aegis-gdal:latest
 docker login                       # log in to the bfeistnasa Docker Hub account
 docker push bfeistnasa/aegis-gdal:latest
 ```
-
-The pipeline itself is unaffected — it still builds its own GDAL image from the private base
-via `docker/gdal/Dockerfile` and the base `docker-compose.yml`.
 
 ## Load Testing
 

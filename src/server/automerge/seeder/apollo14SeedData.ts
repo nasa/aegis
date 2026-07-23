@@ -1,4 +1,10 @@
+import { generateBlankAction } from "store/storeUtils/action";
+import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankPoi } from "store/storeUtils/poi";
+import { generateBlankStation } from "store/storeUtils/station";
+import { defaultSublayerStyle } from "store/storeUtils/sublayer";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 /**
  * Static seed data for the "Apollo 14" demo mission.
@@ -8,10 +14,11 @@ import { generateBlankMission } from "store/storeUtils/mission";
  * generic demo labels and do NOT represent the historical Apollo 14 traverse or
  * sampling sites.
  *
- * The mission `id` and every entity `missionId` are hardcoded to 1: `npm run seed:demo`
- * runs `migration:fresh` first, so the demo mission is always the first row in an empty
- * database (the `doc_listing` autoincrement resets to 1). The seed runner
- * ({@link file://../../automerge/seedApollo14.ts}) asserts the assigned id is 1.
+ * The mission `id` and every entity `missionId` are set to a placeholder (1) in this
+ * static data. The seed runner ({@link file://./seedApollo14.ts}) stamps the real id
+ * onto the mission and every entity at seed time, using the next available id assigned
+ * by the `doc_listing` autoincrement — so the demo can be seeded into any database, not
+ * just a fresh one.
  *
  * The mission scaffold comes from {@link generateBlankMission} so new Mission fields are
  * picked up automatically; the typed literals below are checked by `tsc` (part of
@@ -240,7 +247,7 @@ const actionDefinitions: ActionDefinitions = {
 };
 
 const pois: { [uuid: string]: POI } = {
-  "b1a4d0c2-0001-4a01-9a01-000000000001": {
+  "b1a4d0c2-0001-4a01-9a01-000000000001": generateBlankPoi({
     actionOrderUuids: [],
     createdAt: 1700000000000,
     description: "Lunar module landing site.",
@@ -259,8 +266,8 @@ const pois: { [uuid: string]: POI } = {
     tags: [],
     updatedAt: 1700000000000,
     uuid: "b1a4d0c2-0001-4a01-9a01-000000000001",
-  },
-  "b1a4d0c2-0002-4a02-9a02-000000000002": {
+  }),
+  "b1a4d0c2-0002-4a02-9a02-000000000002": generateBlankPoi({
     actionOrderUuids: [],
     createdAt: 1700000000000,
     description: "Candidate sampling location.",
@@ -279,8 +286,8 @@ const pois: { [uuid: string]: POI } = {
     tags: [],
     updatedAt: 1700000000000,
     uuid: "b1a4d0c2-0002-4a02-9a02-000000000002",
-  },
-  "b1a4d0c2-0003-4a03-9a03-000000000003": {
+  }),
+  "b1a4d0c2-0003-4a03-9a03-000000000003": generateBlankPoi({
     actionOrderUuids: [],
     createdAt: 1700000000000,
     description: "Candidate sampling location.",
@@ -299,8 +306,8 @@ const pois: { [uuid: string]: POI } = {
     tags: [],
     updatedAt: 1700000000000,
     uuid: "b1a4d0c2-0003-4a03-9a03-000000000003",
-  },
-  "b1a4d0c2-0004-4a04-9a04-000000000004": {
+  }),
+  "b1a4d0c2-0004-4a04-9a04-000000000004": generateBlankPoi({
     actionOrderUuids: [],
     createdAt: 1700000000000,
     description: "Reference survey marker.",
@@ -319,11 +326,11 @@ const pois: { [uuid: string]: POI } = {
     tags: [],
     updatedAt: 1700000000000,
     uuid: "b1a4d0c2-0004-4a04-9a04-000000000004",
-  },
+  }),
 };
 
 const stations: { [uuid: string]: Station } = {
-  "12f9ea21-f50d-4406-beac-5c0517421b35": {
+  "12f9ea21-f50d-4406-beac-5c0517421b35": generateBlankStation({
     actionOrderUuids: [
       "fef12ca1-66dd-47ac-bfa6-0b0e77a2eea9",
       "071db5a3-4deb-46a7-8dce-433f43a4c78a",
@@ -381,8 +388,8 @@ const stations: { [uuid: string]: Station } = {
       ],
     ],
     walkbackTraverseRate: null,
-  },
-  "c1f76e55-8f39-45ee-8080-ab1f604394c7": {
+  }),
+  "c1f76e55-8f39-45ee-8080-ab1f604394c7": generateBlankStation({
     actionOrderUuids: [
       "ac3c7ed3-f6d0-4db6-bf1b-e1216da2a500",
       "bbcc42ec-7d96-47da-bac7-fa473a0063f0",
@@ -443,11 +450,11 @@ const stations: { [uuid: string]: Station } = {
       ],
     ],
     walkbackTraverseRate: null,
-  },
+  }),
 };
 
 const traverses: { [uuid: string]: Traverse } = {
-  "5f96866a-e8b5-4fa1-9451-b58b18fa2e49": {
+  "5f96866a-e8b5-4fa1-9451-b58b18fa2e49": generateBlankTraverse({
     actionOrderUuids: [],
     color: null,
     createdAt: 1700000000000,
@@ -492,8 +499,8 @@ const traverses: { [uuid: string]: Traverse } = {
     status: null,
     updatedAt: 1700000000000,
     uuid: "5f96866a-e8b5-4fa1-9451-b58b18fa2e49",
-  },
-  "7b12776f-9e1c-4d5a-926e-76e7e335f3a1": {
+  }),
+  "7b12776f-9e1c-4d5a-926e-76e7e335f3a1": generateBlankTraverse({
     actionOrderUuids: [],
     color: null,
     createdAt: 1700000000000,
@@ -538,8 +545,8 @@ const traverses: { [uuid: string]: Traverse } = {
     status: null,
     updatedAt: 1700000000000,
     uuid: "7b12776f-9e1c-4d5a-926e-76e7e335f3a1",
-  },
-  "b0939224-fc3d-48d8-bacd-e8513a7b9ffc": {
+  }),
+  "b0939224-fc3d-48d8-bacd-e8513a7b9ffc": generateBlankTraverse({
     actionOrderUuids: [],
     color: null,
     createdAt: 1700000000000,
@@ -587,11 +594,11 @@ const traverses: { [uuid: string]: Traverse } = {
     status: null,
     updatedAt: 1700000000000,
     uuid: "b0939224-fc3d-48d8-bacd-e8513a7b9ffc",
-  },
+  }),
 };
 
 const actions: { [uuid: string]: Action } = {
-  "071db5a3-4deb-46a7-8dce-433f43a4c78a": {
+  "071db5a3-4deb-46a7-8dce-433f43a4c78a": generateBlankAction({
     actionDefinition: {
       adjectiveUuid: "9bede51a-7ff8-47c2-ae16-567c29c5221a",
       nounUuid: "ceb692fe-0750-4733-afaa-99d09b39ef25",
@@ -624,8 +631,8 @@ const actions: { [uuid: string]: Action } = {
     type: "other",
     updatedAt: 1700000000000,
     uuid: "071db5a3-4deb-46a7-8dce-433f43a4c78a",
-  },
-  "ac3c7ed3-f6d0-4db6-bf1b-e1216da2a500": {
+  }),
+  "ac3c7ed3-f6d0-4db6-bf1b-e1216da2a500": generateBlankAction({
     actionDefinition: {
       adjectiveUuid: "1b3f4104-db3f-4346-a0c2-620642e3c173",
       nounUuid: "b96c47c5-4278-4746-85ad-64493b01e6c0",
@@ -658,8 +665,8 @@ const actions: { [uuid: string]: Action } = {
     type: "other",
     updatedAt: 1700000000000,
     uuid: "ac3c7ed3-f6d0-4db6-bf1b-e1216da2a500",
-  },
-  "bbcc42ec-7d96-47da-bac7-fa473a0063f0": {
+  }),
+  "bbcc42ec-7d96-47da-bac7-fa473a0063f0": generateBlankAction({
     actionDefinition: {
       adjectiveUuid: "99641ec4-800c-4fac-b974-d78b79834c4e",
       nounUuid: "51d6eba0-5892-43a9-bfbc-dbde82b9798b",
@@ -692,8 +699,8 @@ const actions: { [uuid: string]: Action } = {
     type: "other",
     updatedAt: 1700000000000,
     uuid: "bbcc42ec-7d96-47da-bac7-fa473a0063f0",
-  },
-  "fef12ca1-66dd-47ac-bfa6-0b0e77a2eea9": {
+  }),
+  "fef12ca1-66dd-47ac-bfa6-0b0e77a2eea9": generateBlankAction({
     actionDefinition: {
       adjectiveUuid: "0d8c842f-2272-433b-955b-6a8e726f2ca8",
       nounUuid: "169c90f2-1413-49b0-82e8-3f8fd37f470a",
@@ -726,11 +733,11 @@ const actions: { [uuid: string]: Action } = {
     type: "other",
     updatedAt: 1700000000000,
     uuid: "fef12ca1-66dd-47ac-bfa6-0b0e77a2eea9",
-  },
+  }),
 };
 
 const evas: { [uuid: string]: Eva } = {
-  "469d97d4-dbdb-4865-b952-0af9e497a324": {
+  "469d97d4-dbdb-4865-b952-0af9e497a324": generateBlankEVA({
     createdAt: 1700000000000,
     datetime: null,
     description: "",
@@ -770,16 +777,17 @@ const evas: { [uuid: string]: Eva } = {
     traverseRate: 2,
     updatedAt: 1700000000000,
     uuid: "469d97d4-dbdb-4865-b952-0af9e497a324",
-  },
+  }),
 };
 
 /**
  * Static Science Traceability Matrix for the demo mission. Lifted from a real
- * test-environment dump. Every level1 entry is assigned to mission id 1 (see the
- * id note above). The hierarchy is:
+ * test-environment dump. Every level1 entry carries a placeholder missionId (1); the
+ * seed runner overrides it with the mission's assigned id at seed time (see the
+ * file-level docstring above). The hierarchy is:
  *   Level1 (Goal) -> Level2 (Objective) -> Level3 (Investigation)
  *
- * These are seeded straight to the DB by {@link file://../../automerge/seedApollo14.ts}
+ * These are seeded straight to the DB by {@link file://./seedApollo14.ts}
  * (STM is not part of the Mission Automerge document).
  */
 export const apollo14StmLevel1s: STMLevel1[] = Object.values({
@@ -1092,55 +1100,78 @@ export const apollo14StmLevel3s: STMLevel3[] = Object.values({
 });
 
 /**
- * Build the Apollo 14 demo mission document. `id` and entity `missionId`s are
- * hardcoded to 1 (see the id note above).
+ * Build the Apollo 14 demo mission document. `id` and entity `missionId`s are set to a
+ * placeholder (1); the seed runner stamps the real, next-available id onto the mission
+ * and every entity at seed time via {@link stampMissionId}.
+ *
+ * Returns an independent deep copy each call, so callers (e.g. {@link stampMissionId})
+ * can mutate it without touching the shared static seed data.
  */
 export const buildApollo14Mission = (): Mission =>
-  generateBlankMission({
-    ...{
-      id: 1,
-      name: "Apollo 14",
-      description:
-        "Demo mission seeded for local development. Geometry is representative sample data, not the historical Apollo 14 traverse.",
-      usingLGRSCoordinates: false,
-      actionSystemVersion: 2,
-      landerLocation: {
-        lat: -3.645421873728663,
-        lng: -17.47186660766602,
+  structuredClone(
+    generateBlankMission({
+      ...{
+        id: 1,
+        name: "Apollo 14",
+        description:
+          "Demo mission seeded for local development. Geometry is representative sample data, not the historical Apollo 14 traverse.",
+        usingLGRSCoordinates: false,
+        actionSystemVersion: 2,
+        landerLocation: {
+          lat: -3.645421873728663,
+          lng: -17.47186660766602,
+        },
+        landerElevationMeters: -1063.605,
+        planetRadius: 1737400,
+        initialZoom: 14,
+        traverseRate: 2,
+        walkbackRate: 2,
+        defaultEvaDuration: 240,
+        demFilePath: "Data/NAC_DTM_APOLLO14.TIF",
+        demResolution: 10,
+        projIsCustom: false,
+        projEpsg: "EPSG:3857",
+        projProj4String:
+          "+proj=merc +a=1737400 +b=1737400 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs",
+        projBoundsMinX: -17.528332,
+        projBoundsMinY: -3.9129984,
+        projBoundsMaxX: -17.38599,
+        projBoundsMaxY: -2.9632773,
+        projOriginX: -17.528332,
+        projOriginY: -3.9129984,
+        projResZoomLevel: 8,
+        projResUnitsPerPixel: 611.4962,
       },
-      landerElevationMeters: -1063.605,
-      planetRadius: 1737400,
-      initialZoom: 14,
-      traverseRate: 2,
-      walkbackRate: 2,
-      defaultEvaDuration: 240,
-      demFilePath: "Data/NAC_DTM_APOLLO14.TIF",
-      demResolution: 10,
-      projIsCustom: false,
-      projEpsg: "EPSG:3857",
-      projProj4String:
-        "+proj=merc +a=1737400 +b=1737400 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs",
-      projBoundsMinX: -17.528332,
-      projBoundsMinY: -3.9129984,
-      projBoundsMaxX: -17.38599,
-      projBoundsMaxY: -2.9632773,
-      projOriginX: -17.528332,
-      projOriginY: -3.9129984,
-      projResZoomLevel: 8,
-      projResUnitsPerPixel: 611.4962,
-    },
-    actionDefinitions,
-    pois,
-    stations,
-    traverses,
-    actions,
-    evas,
-  });
+      actionDefinitions,
+      pois,
+      stations,
+      traverses,
+      actions,
+      evas,
+    })
+  );
+
+/**
+ * Stamp a mission id onto the mission document and every entity that carries a
+ * `missionId`. Called by the seed runner with the id the `doc_listing` table assigned
+ * (the next available id), so the demo no longer assumes a specific id. This is an
+ * apply-style draft mutator: it is safe to call inside an Automerge `.change()`.
+ */
+export const stampMissionId = (mission: Mission, missionId: number): void => {
+  mission.id = missionId;
+  for (const poi of Object.values(mission.pois)) poi.missionId = missionId;
+  for (const station of Object.values(mission.stations)) station.missionId = missionId;
+  for (const traverse of Object.values(mission.traverses)) traverse.missionId = missionId;
+  for (const action of Object.values(mission.actions)) action.missionId = missionId;
+  for (const eva of Object.values(mission.evas)) eva.missionId = missionId;
+  for (const rex of Object.values(mission.rexes)) rex.missionId = missionId;
+};
 
 /**
  * Deterministic uuids for the seeded layer, sublayers, and preset. They are hardcoded
  * (rather than generated at seed time) so the default preset below can reference the
- * sublayers statically. Safe on a fresh database (see the id note above).
+ * sublayers statically. The demo mission is seeded at most once (the runner skips if an
+ * "Apollo 14" mission already exists), so these uuids never collide.
  */
 const DEMO_LAYER_UUID = "a0000000-0000-4000-9000-00000000000a";
 const SUBLAYER_ORTHO_UUID = "a1000000-0000-4000-9000-000000000001";
@@ -1219,39 +1250,22 @@ export const apollo14Layers: Apollo14SeedLayer[] = [
   },
 ];
 
-/** Default sublayer style shared by every preset control (matches the app's defaults). */
-const DEFAULT_SUBLAYER_STYLE: MapSublayerStyle = {
-  opacity: 1,
-  contrast: 1,
-  brightness: 1,
-  saturation: 1,
-  blendMode: "normal",
-  color: "#FFFFFF",
-  weight: 1,
-  fillColor: "none",
-  fillOpacity: 0,
-  isDashed: false,
-  dashLen: 10,
-  altColor: "#FFFFFF",
-  altOpacity: 1,
-};
-
 const sublayerControl = (uuid: string, name: string, visible: boolean): MapSublayerControl => ({
   name,
   sublayerUuid: uuid,
   visible,
-  style: { ...DEFAULT_SUBLAYER_STYLE },
+  style: { ...defaultSublayerStyle },
 });
 
 /**
  * The mission-default map preset. Shows the NAC ortho by default with the other
  * sublayers available but hidden. References the deterministic layer/sublayer uuids
- * above. `createdAt`/`updatedAt` are assigned at seed time.
+ * above. `missionId`/`createdAt`/`updatedAt` are assigned at seed time.
  */
 export const apollo14Preset: Preset = {
   uuid: PRESET_UUID,
   ownerId: 1,
-  missionId: 1,
+  missionId: 1, // placeholder; the seed runner overrides this with the assigned id
   name: "Map Preset 1",
   description: "",
   missionDefault: true,

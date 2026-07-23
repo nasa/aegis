@@ -13,7 +13,8 @@ import {
   apollo14Layers,
   apollo14Preset,
   buildApollo14Mission,
-} from "server/database/seeds/apollo14SeedData";
+  stampMissionId,
+} from "server/automerge/seeder/apollo14SeedData";
 
 const VALID_SUBLAYER_TYPES: SublayerType[] = ["vector", "tile", "vector-tile"];
 
@@ -32,22 +33,33 @@ describe("Apollo 14 seed data", () => {
       ).toBe(true);
     });
 
-    it("stamps id and every entity missionId to 1", () => {
-      const mission = buildApollo14Mission();
-      expect(mission.id).toBe(1);
-
+    const expectMissionIds = (mission: Mission, id: number): void => {
       const entityMaps = [
         mission.pois,
         mission.stations,
         mission.traverses,
+        mission.actions,
         mission.evas,
         mission.rexes,
       ];
       for (const map of entityMaps) {
         for (const entity of Object.values(map)) {
-          expect(entity.missionId).toBe(1);
+          expect(entity.missionId).toBe(id);
         }
       }
+    };
+
+    it("uses a placeholder id of 1 before the runner stamps the real id", () => {
+      const mission = buildApollo14Mission();
+      expect(mission.id).toBe(1);
+      expectMissionIds(mission, 1);
+    });
+
+    it("stampMissionId stamps the assigned id onto the mission and every entity", () => {
+      const mission = buildApollo14Mission();
+      stampMissionId(mission, 42);
+      expect(mission.id).toBe(42);
+      expectMissionIds(mission, 42);
     });
 
     it("has referentially-intact EVA sequences and REX eva refs", () => {
@@ -172,9 +184,9 @@ describe("Apollo 14 seed data", () => {
     const layerUuids = new Set(apollo14Layers.map((l) => l.uuid));
     const sublayerUuids = new Set(apollo14Layers.flatMap((l) => l.sublayers.map((s) => s.uuid)));
 
-    it("is the mission default and belongs to mission 1", () => {
+    it("is the mission default with a placeholder missionId stamped at seed time", () => {
       expect(apollo14Preset.missionDefault).toBe(true);
-      expect(apollo14Preset.missionId).toBe(1);
+      expect(apollo14Preset.missionId).toBe(1); // placeholder; the runner overrides with the assigned id
     });
 
     it("references only existing sublayers in its controls", () => {

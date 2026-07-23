@@ -16,9 +16,12 @@ services:
       - "5432:5432"
 
   gdal:
-    image: ${GDAL_IMAGE:-bfeistnasa/aegis-gdal:latest}
-    working_dir: /app
-    command: ["python", "elevationService.py"]
+    # See comment above regarding `image`/`build` overrides
+    image: aegis-dev-gdal:latest
+    build:
+      context: .
+      dockerfile: ./docker/gdal/Dockerfile
+      target: base
     volumes:
       - ./src/server/python:/app
     ports:

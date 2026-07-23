@@ -5,10 +5,11 @@ import * as esbuild from "esbuild";
 //  When executed via npm script, the current working directory is the root of the project.
 
 // Remove the previous build directory
-rmSync("./.local/automerge/dist", { recursive: true, force: true });
+rmSync("./.local/seeder/dist", { recursive: true, force: true });
 
-// Shared esbuild options for all automerge entry points
-const sharedOptions = {
+// esbuild options for the standalone Apollo 14 demo seed runner. Kept separate from the
+// automerge migration/integrity build so neither build slows the other down.
+const buildOptions = {
   bundle: true,
   sourcemap: true,
   format: "esm",
@@ -36,24 +37,10 @@ const sharedOptions = {
     "tedious",
   ],
   tsconfig: "./tsconfig.json",
+  entryPoints: ["src/server/automerge/seeder/seedApollo14.ts"],
+  outfile: "./.local/seeder/dist/seedApollo14.js",
 };
 
-// Build the migration script
-const migrationCtx = await esbuild.context({
-  ...sharedOptions,
-  entryPoints: ["src/server/automerge/migration.ts"],
-  outfile: "./.local/automerge/dist/migration.js",
-});
-
-// Build the standalone integrity-check runner
-const integrityCtx = await esbuild.context({
-  ...sharedOptions,
-  entryPoints: ["src/server/automerge/integrityCheck.ts"],
-  outfile: "./.local/automerge/dist/integrityCheck.js",
-});
-
-await migrationCtx.rebuild();
-await migrationCtx.dispose();
-
-await integrityCtx.rebuild();
-await integrityCtx.dispose();
+const seedCtx = await esbuild.context(buildOptions);
+await seedCtx.rebuild();
+await seedCtx.dispose();
