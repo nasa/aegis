@@ -161,7 +161,6 @@ function makeGrid(rows = 3, cols = 3): MissionGrid {
     gridInformation: {
       numRows: rows,
       numCols: cols,
-      spacing: 1000,
       name: "Test Grid",
       fileName: "test.json",
     },

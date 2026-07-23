@@ -197,7 +197,6 @@ type MissionGrid = {
 type MissionGridDefinition = {
   numRows: number;
   numCols: number;
-  spacing: number; // metres between adjacent grid lines; 0 = unknown (legacy)
   name: string;
   fileName: string; // on-disk coordinate file in the mission Data/ folder
 };

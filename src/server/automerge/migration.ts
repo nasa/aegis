@@ -513,7 +513,6 @@ getORM()
         definition = {
           numRows: Number(chosen.numRows) || 0,
           numCols: Number(chosen.numCols) || 0,
-          spacing: Number(chosen.spacing) || 0,
           name: chosen.name ?? "",
           fileName: chosen.fileName ?? "",
         };
