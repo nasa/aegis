@@ -1,7 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { v4 as uuidv4 } from "uuid";
 import { getAccurateNow } from "utils/formatting";
-import { clearPosEntryInEdit } from "store/rex";
+import { clearPosEntryInEdit, setSelectedPosEntryUuid } from "store/rex";
 import { updateMapDirective } from "store/map";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import cloneDeep from "lodash/cloneDeep";
@@ -26,6 +26,7 @@ export const thunkDocUpdatePosEntryWithLocation = appCreateAsyncThunk<{
   if (!missionDocHandle) return;
 
   // Step 2: Update pos entry with the new location, or push a new entry if it doesn't exist yet.
+  let createdNewEntry = false;
   missionDocHandle.change((m: Mission) => {
     const rex = m.rexes[selectedRexUuid];
     if (!rex) return;
@@ -42,11 +43,16 @@ export const thunkDocUpdatePosEntryWithLocation = appCreateAsyncThunk<{
         location,
         updatedAt: getAccurateNow().getTime(),
       });
+      createdNewEntry = true;
     }
     rex.updatedAt = getAccurateNow().getTime();
   });
 
-  // Step 3: Clear the pos entry from edit state.
+  // Step 3: UI side-effects
+  // Auto-select the newly created pos entry and clear the pos entry from edit state.
+  if (createdNewEntry) {
+    dispatch(setSelectedPosEntryUuid(posEntryUuid));
+  }
   dispatch(clearPosEntryInEdit());
 });
 

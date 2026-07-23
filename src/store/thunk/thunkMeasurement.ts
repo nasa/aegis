@@ -4,7 +4,6 @@ import { getSegmentBearing, getTotalDistance } from "utils/mapping/geoMath";
 import { removeMeasurement, setSelectedMeasurementUuid, upsertMeasurement } from "store/measure";
 import { v4 as uuidv4 } from "uuid";
 import { updateMapDirective } from "store/map";
-import { thunkClearAllMapSelections } from "./crossThunk";
 import { getAccurateNow } from "utils/formatting";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 
@@ -148,7 +147,6 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
       pathSegmentElevations: newElevationProfile,
       pathSegmentBearings,
     };
-    dispatch(thunkClearAllMapSelections());
     dispatch(upsertMeasurement(newMeasurement));
     dispatch(setSelectedMeasurementUuid(measurementUuid));
   }

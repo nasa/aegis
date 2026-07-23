@@ -6,7 +6,6 @@ import {
   setSelectedEvaRightNavItem,
   setSelectedEvaUuid,
 } from "store/eva";
-import { poiSlice } from "store/poi";
 import { rexSlice } from "store/rex";
 import { stationSlice } from "store/station";
 
@@ -62,16 +61,6 @@ export const thunkObliterateMissionSpecificData = appCreateAsyncThunk<void>(
     dispatch(stmObliterateState());
     dispatch(traverseObliterateState());
     dispatch(measurementObliterateState());
-  }
-);
-
-export const thunkClearAllMapSelections = appCreateAsyncThunk<void>(
-  "cross/thunkClearAllSelections",
-  async (_, { dispatch }) => {
-    dispatch(poiSlice.actions.setSelectedPoiUuid(null));
-    dispatch(stationSlice.actions.setSelectedStationUuid(null));
-    dispatch(evaSlice.actions.setSelectedEvaSequenceItemUuid(null));
-    dispatch(rexSlice.actions.setSelectedPosEntryUuid(null));
   }
 );
 
