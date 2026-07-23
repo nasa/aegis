@@ -498,10 +498,14 @@ getORM()
         tableExists = false;
       }
 
-      // Resolve the effective grid row.
-      let chosen: LegacyGridRow | undefined = rows.find((r) => r.isActiveGrid);
+      // Resolve the effective grid row. The mission doc's activeGridUuid is the runtime
+      // source of truth for which grid the mission displayed; grid_db.is_active_grid can
+      // drift from it (e.g. a hotfix grid activated on the doc while the flag stayed on the
+      // old grid). Prefer the doc pointer, then the flag, then single-row / ambiguous fallbacks.
+      let chosen: LegacyGridRow | undefined;
       let outcome: string;
-      if (!chosen && legacyActiveUuid) chosen = rows.find((r) => r.uuid === legacyActiveUuid);
+      if (legacyActiveUuid) chosen = rows.find((r) => r.uuid === legacyActiveUuid);
+      if (!chosen) chosen = rows.find((r) => r.isActiveGrid);
       if (!chosen && rows.length === 1) chosen = rows[0];
       if (!chosen && rows.length > 1) {
         chosen = rows[0];
