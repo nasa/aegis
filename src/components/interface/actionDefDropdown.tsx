@@ -2,8 +2,10 @@ import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { FunctionComponent } from "react";
 import { useRef } from "react";
-import capitalize from "lodash/capitalize";
 import styles from "./actionDefDropdown.module.css";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { refEqual } from "utils/useAppSelector";
+import { getActionDefinitionLabel } from "store/selectors";
 
 export const ActionDefDropdown: FunctionComponent<{
   actionDefinitionItems: ActionDefinitionItems;
@@ -14,8 +16,11 @@ export const ActionDefDropdown: FunctionComponent<{
   const dialogRef = useRef<HTMLDialogElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const selectedItemRef = useRef<HTMLDivElement>(null);
-
-  const selectedName = selectedUuid ? actionDefinitionItems[selectedUuid]?.name : capitalize(type);
+  const emptyLabel = useMissionDocSelector(
+    (mission) => getActionDefinitionLabel(mission, type),
+    refEqual
+  );
+  const selectedName = selectedUuid ? actionDefinitionItems[selectedUuid]?.name : emptyLabel;
   const typeColor = `var(--${type.slice(0, -1)})`;
 
   const handleOpen = (e: React.MouseEvent) => {
@@ -71,7 +76,7 @@ export const ActionDefDropdown: FunctionComponent<{
             className={`${styles.menuItem} ${!selectedUuid ? styles.menuItemSelected : ""}`}
             onClick={() => handleSelect("")}
           >
-            {capitalize(type)}
+            {emptyLabel}
           </div>
           {Object.entries(actionDefinitionItems).map(([uuid, actionDef]) => (
             <div

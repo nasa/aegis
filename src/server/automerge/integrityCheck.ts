@@ -8,8 +8,8 @@
  * Does NOT run migrations or modify any document.
  *
  * Build: npm run automerge:integrity:build
- * Run:   npm run automerge:integrity
- * Full:  npm run test:automerge:integrity
+ * Run:   npm run automerge:integrity:run
+ * Full:  npm run automerge:integrity
  */
 import dotenv from "dotenv";
 dotenv.config({ override: true, quiet: true });

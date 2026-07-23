@@ -3,6 +3,7 @@ import type { IconDefinition } from "@fortawesome/free-regular-svg-icons";
 import { faSquare, faSquareCheck } from "@fortawesome/free-regular-svg-icons";
 import rexStyles from "components/panes/rex/rex.module.css";
 import evaStyles from "components/panes/eva/eva.module.css";
+import { buildActionDefinitionName } from "store/storeUtils/mission";
 
 export const getAlertColor = (
   reportItems: ReportItem[],
@@ -201,18 +202,52 @@ export const getSequenceItemRowStyles = ({
   return { rowClassName, nameClassName };
 };
 
-export const getStmActionName = ({
+const getStmActionName = ({
   actionDefinition,
-  missionActionDefs,
+  missionActionDefinitions,
+  actionDefinitionConjunctions,
 }: {
   actionDefinition: ActionDefinition;
-  missionActionDefs: ActionDefinitions;
+  missionActionDefinitions: ActionDefinitions;
+  actionDefinitionConjunctions: Mission["actionDefinitionConjunctions"];
 }): string => {
-  const verbDef = missionActionDefs.verbs[actionDefinition?.verbUuid];
-  const nounDef = missionActionDefs.nouns[actionDefinition?.nounUuid];
-  const adjectiveDef = missionActionDefs.adjectives[actionDefinition?.adjectiveUuid];
-  const verbName = verbDef?.name;
-  const nounName = nounDef?.name;
-  const adjectiveName = adjectiveDef?.name;
-  return `${verbName || "Unknown"} of ${nounName || "Unknown"} in ${adjectiveName || "Unknown"}`;
+  const verbDef = missionActionDefinitions.verbs[actionDefinition?.verbUuid];
+  const nounDef = missionActionDefinitions.nouns[actionDefinition?.nounUuid];
+  const adjectiveDef = missionActionDefinitions.adjectives[actionDefinition?.adjectiveUuid];
+  return buildActionDefinitionName({
+    verbName: verbDef?.name,
+    nounName: nounDef?.name,
+    adjectiveName: adjectiveDef?.name,
+    conjunctions: actionDefinitionConjunctions,
+  });
+};
+
+/**
+ * Resolve the name to display for an action. STM (v2) actions have no free-text
+ * name — their name is built from the verb/noun/adjective definition joined by the
+ * mission's custom conjunctions. Everything else uses the stored `action.name`.
+ */
+export const getActionDisplayName = ({
+  action,
+  mission,
+}: {
+  action: Pick<Action, "name" | "stmAction" | "actionDefinition">;
+  mission: Pick<
+    Mission,
+    "actionSystemVersion" | "actionDefinitions" | "actionDefinitionConjunctions"
+  >;
+}): string => {
+  if (
+    mission.actionSystemVersion === 2 &&
+    action.stmAction &&
+    action.actionDefinition &&
+    mission.actionDefinitions
+  ) {
+    return getStmActionName({
+      actionDefinition: action.actionDefinition,
+      missionActionDefinitions: mission.actionDefinitions,
+      actionDefinitionConjunctions: mission.actionDefinitionConjunctions,
+    });
+  }
+  return action.name;
 };

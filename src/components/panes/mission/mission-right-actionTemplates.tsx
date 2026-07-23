@@ -5,7 +5,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import missionStyles from "./mission.module.css";
 import actionsStyles from "../actions.module.css";
 import actionStyles from "../actions-action.module.css";
-import { useAppSelector, shallowEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import {
   faAtlas,
@@ -35,9 +35,9 @@ import { collapseActions, expandActions } from "store/action";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { validators, regExValidators } from "components/interface/form/formValidators";
 import { toDecimal } from "utils/formatting";
+import { getActionDefinitionLabel } from "store/selectors";
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { ActionTemplateMenu } from "./mission-actionTemplates-menu";
-import capitalize from "lodash/capitalize";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import {
   applyCreateActionTemplate,
@@ -120,6 +120,10 @@ const ActionTemplateItem: FunctionComponent<{
       actionDefinitions: mission.actionDefinitions,
     }),
     deepEqual
+  );
+  const conjunctions = useMissionDocSelector(
+    (mission) => mission.actionDefinitionConjunctions,
+    refEqual
   );
 
   const actionsExpanded = useAppSelector((state) => state.action.actionsExpanded, shallowEqual);
@@ -259,7 +263,7 @@ const ActionTemplateItem: FunctionComponent<{
                           actionDefinitions={partialMission.actionDefinitions?.verbs}
                           actionTemplateUuid={actionTemplateUuid}
                         />
-                        <div className={actionStyles.actionDefType}>of</div>
+                        <div className={actionStyles.actionDefType}>{conjunctions.verbToNoun}</div>
                         <ActionDefType
                           type={"nouns"}
                           actionDefinitionUuid={actionTemplate.actionDefinition?.nounUuid}
@@ -267,14 +271,20 @@ const ActionTemplateItem: FunctionComponent<{
                           actionDefinitions={partialMission.actionDefinitions?.nouns}
                           actionTemplateUuid={actionTemplateUuid}
                         />
-                        <div className={actionStyles.actionDefType}>in</div>
-                        <ActionDefType
-                          type={"adjectives"}
-                          actionDefinitionUuid={actionTemplate.actionDefinition?.adjectiveUuid}
-                          editMode={editMode}
-                          actionDefinitions={partialMission.actionDefinitions?.adjectives}
-                          actionTemplateUuid={actionTemplateUuid}
-                        />
+                        {(editMode || actionTemplate.actionDefinition?.adjectiveUuid) && (
+                          <>
+                            <div className={actionStyles.actionDefType}>
+                              {conjunctions.nounToAdjective}
+                            </div>
+                            <ActionDefType
+                              type={"adjectives"}
+                              actionDefinitionUuid={actionTemplate.actionDefinition?.adjectiveUuid}
+                              editMode={editMode}
+                              actionDefinitions={partialMission.actionDefinitions?.adjectives}
+                              actionTemplateUuid={actionTemplateUuid}
+                            />
+                          </>
+                        )}
                       </div>
                     </>
                   )}
@@ -561,6 +571,10 @@ const ActionDefType: FunctionComponent<{
   actionTemplateUuid: string;
 }> = ({ type, actionDefinitionUuid, editMode, actionDefinitions, actionTemplateUuid }) => {
   const selectedActionDefItem = actionDefinitions[actionDefinitionUuid];
+  const emptyLabel = useMissionDocSelector(
+    (mission) => getActionDefinitionLabel(mission, type),
+    refEqual
+  );
 
   return (
     <>
@@ -569,9 +583,7 @@ const ActionDefType: FunctionComponent<{
           className={actionStyles.actionDefType}
           style={{ color: `var(--${type.slice(0, -1)})` }}
         >
-          {selectedActionDefItem?.name
-            ? selectedActionDefItem?.name
-            : capitalize(type.slice(0, -1))}
+          {selectedActionDefItem?.name ? selectedActionDefItem?.name : emptyLabel}
         </span>
       ) : (
         <ActionDefDropdown

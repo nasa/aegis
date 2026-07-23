@@ -24,6 +24,7 @@ import { thunkDocUpdateActionLocation } from "store/thunk/thunkAction";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { setHoverUuidsForSequence, clearMapItemHover } from "store/hover";
 import { updateMapDirective } from "store/map";
+import { getActionDisplayName } from "utils/component-helpers";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -43,6 +44,17 @@ export function ActionMarkers(): null {
   const { toMapCoord, toAegisPoint } = useCoordConverters();
 
   const actionsFromDoc = useMissionDocSelector((m) => Object.values(m.actions ?? {}), deepEqual);
+
+  // Naming inputs for STM (v2) actions, whose label is built from the
+  // verb/noun/adjective definition joined by the mission's custom conjunctions.
+  const actionNaming = useMissionDocSelector(
+    (m) => ({
+      actionSystemVersion: m.actionSystemVersion,
+      actionDefinitions: m.actionDefinitions,
+      actionDefinitionConjunctions: m.actionDefinitionConjunctions,
+    }),
+    deepEqual
+  );
 
   // --- Redux state ---
   const selectedStationUuid = useAppSelector((s) => s.station.selectedStationUuid, refEqual);
@@ -178,14 +190,14 @@ export function ActionMarkers(): null {
         geometry: new Point(toMapCoord(action.location)),
         properties: {
           emoji: action.icon || "2754",
-          name: action.name,
+          name: getActionDisplayName({ action, mission: actionNaming }),
           mapItemType: "action",
         },
       };
     };
 
     reconcileFeatures(actionSource, actionsToShow, mapper);
-  }, [actionsToShow, actionSource, toMapCoord]);
+  }, [actionsToShow, actionSource, toMapCoord, actionNaming]);
 
   // --- Style ---
   useEffect(() => {

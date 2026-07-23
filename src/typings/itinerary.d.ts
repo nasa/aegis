@@ -286,14 +286,16 @@ type ActionType =
 type ActionDefinitionItem = { name: string; abbr: string };
 type ActionDefinitionItems = { [uuid: string]: ActionDefinitionItem };
 
-// used in the Mission structure
+// Used in the Mission structure
+// The full list of noun/verb/adj
 type ActionDefinitions = {
   verbs: ActionDefinitionItems;
   nouns: ActionDefinitionItems;
   adjectives: ActionDefinitionItems;
 };
 
-// used in the Action structure
+// Used in the Action structure
+// A single noun/verb/adj for a given action
 type ActionDefinition = {
   verbUuid?: string;
   nounUuid?: string;

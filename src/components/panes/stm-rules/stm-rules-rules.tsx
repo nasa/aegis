@@ -1,7 +1,7 @@
 import type { FunctionComponent } from "react";
 import { useState } from "react";
 import styles from "./stm-rules-rules.module.css";
-import { shallowEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
+import { shallowEqual, deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { Checkbox, MultiSelectDropdown } from "components/interface/form/globalFields";
 import { setRuleEditingUuid, upsertSTMRuleByField } from "store/stm";
@@ -31,6 +31,10 @@ const STMRule: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
   const dispatch = useAppDispatch();
   const isEditing = false;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const conjunctions = useMissionDocSelector(
+    (mission) => mission.actionDefinitionConjunctions,
+    refEqual
+  );
   return (
     <>
       <div
@@ -52,11 +56,11 @@ const STMRule: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
           <div className={styles.stmRuleSetContainer}>
             <STMRuleSet isEditing={isEditing} stmRule={rule} type="verbs" />
           </div>
-          <div className={styles.stmRuleSetConjunction}>of</div>
+          <div className={styles.stmRuleSetConjunction}>{conjunctions.verbToNoun}</div>
           <div className={styles.stmRuleSetContainer}>
             <STMRuleSet isEditing={isEditing} stmRule={rule} type="nouns" />
           </div>
-          <div className={styles.stmRuleSetConjunction}>in</div>
+          <div className={styles.stmRuleSetConjunction}>{conjunctions.nounToAdjective}</div>
           <div className={styles.stmRuleSetContainer}>
             <STMRuleSet isEditing={isEditing} stmRule={rule} type="adjectives" />
           </div>
@@ -84,6 +88,10 @@ export const STMRuleSet: FunctionComponent<{
     (mission) => mission.actionDefinitions,
     deepEqual
   );
+  const actionDefinitionLabels = useMissionDocSelector((mission) => {
+    const key = type.slice(0, -1) as "verb" | "noun" | "adjective";
+    return mission?.actionDefinitionLabels[key];
+  }, shallowEqual);
 
   const actionDefinitionItemsToDisplay: { uuid: string; name: string; abbr: string }[] = [];
   const ruleItemUuidsKeyString = `${type.slice(0, -1)}Uuids` as
@@ -131,7 +139,7 @@ export const STMRuleSet: FunctionComponent<{
                   }
                   dispatch(upsertSTMRuleByField(stmRule.uuid, uuidKeyString, uuidArray));
                 }}
-                titleLabel={`${capitalize(type)}...`}
+                titleLabel={`${actionDefinitionLabels.plural}...`}
                 containerStyle={{ zIndex: 10, width: "170px" }}
                 containerClassName={styles.stmRuleSetMultiselectContainer}
                 headerClassName={styles.multiselectDropdownHeader}
@@ -158,7 +166,7 @@ export const STMRuleSet: FunctionComponent<{
                   upsertSTMRuleByField(stmRule.uuid, anyKeyString, !stmRule[ruleAnyKeyString])
                 );
               }}
-              toolTip={`Any ${type.slice(0, -1)}`}
+              toolTip={`Any ${actionDefinitionLabels.singular}`}
               label={`Any`}
             />
           </div>
@@ -174,13 +182,15 @@ export const STMRuleSet: FunctionComponent<{
                   ))}
                 </>
               ) : (
-                <div className={styles.stmRuleSetItemName}>{`...Select ${capitalize(type)}`}</div>
+                <div
+                  className={styles.stmRuleSetItemName}
+                >{`...Select ${actionDefinitionLabels.plural}`}</div>
               )}
             </>
           ) : (
             <div
               className={styles.stmRuleSetItemName}
-            >{`<Any ${capitalize(type.slice(0, -1))}>`}</div>
+            >{`<Any ${actionDefinitionLabels.singular}>`}</div>
           )}
         </div>
       )}

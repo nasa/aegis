@@ -17,6 +17,8 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     description: "",
     actionSystemVersion: 1,
     actionDefinitions: null,
+    actionDefinitionLabels: structuredClone(DEFAULT_ACTION_DEFINITION_LABELS),
+    actionDefinitionConjunctions: structuredClone(DEFAULT_ACTION_DEFINITION_CONJUNCTIONS),
     missionBanner: "",
     landerLocation: { lat: null, lng: null },
     landerElevationMeters: 0,
@@ -158,6 +160,45 @@ export const generateDefaultActionDefinitions = (
   };
 
   return { ...newActionDefinitions, ...partialActionDefinitions };
+};
+
+/**
+ * Default category labels + conjunctions for the action-definition "sentence"
+ * (<verb> of <noun> in <adjective>).
+ */
+export const DEFAULT_ACTION_DEFINITION_LABELS: Mission["actionDefinitionLabels"] = {
+  verb: { singular: "Verb", plural: "Verbs" },
+  noun: { singular: "Noun", plural: "Nouns" },
+  adjective: { singular: "Adjective", plural: "Adjectives" },
+};
+
+export const DEFAULT_ACTION_DEFINITION_CONJUNCTIONS: Mission["actionDefinitionConjunctions"] = {
+  verbToNoun: "of",
+  nounToAdjective: "in",
+};
+
+/**
+ * Join the parts of an action-definition sentence into a display name.
+ * The adjective is optional: when it isn't selected, both the adjective and its
+ * leading conjunction are omitted (no trailing "in Unknown"). The verb and noun
+ * fall back to "Unknown" so an action always has a stable, non-empty name.
+ */
+export const buildActionDefinitionName = ({
+  verbName,
+  nounName,
+  adjectiveName,
+  conjunctions,
+}: {
+  verbName?: string;
+  nounName?: string;
+  adjectiveName?: string;
+  conjunctions: { verbToNoun: string; nounToAdjective: string };
+}): string => {
+  let name = `${verbName || "Unknown"} ${conjunctions.verbToNoun} ${nounName || "Unknown"}`;
+  if (adjectiveName) {
+    name += ` ${conjunctions.nounToAdjective} ${adjectiveName}`;
+  }
+  return name;
 };
 
 export const generateBlankEquipmentItem = (

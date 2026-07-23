@@ -242,6 +242,40 @@ describe("ActionMarkers", () => {
     expect(features[0].getId()).toBe(ACTION_STATION_UUID);
     expect(features[0].get("mapItemType")).toBe("action");
     expect(features[0].get("emoji")).toBe("1f4a1");
+    expect(features[0].get("name")).toBe("Action 1");
+  });
+
+  it("labels STM (v2) actions from the definition + custom conjunctions", () => {
+    const action = {
+      ...makeAction(ACTION_STATION_UUID, "stationUuid", STATION_UUID),
+      name: "ignored-random-name",
+      stmAction: true,
+      actionDefinition: { verbUuid: "v1", nounUuid: "n1", adjectiveUuid: "a1" },
+    } as unknown as Action;
+    mockMissionDoc.actions = { [ACTION_STATION_UUID]: action } as unknown as Mission["actions"];
+    mockMissionDoc.actionSystemVersion = 2;
+    mockMissionDoc.actionDefinitions = {
+      verbs: { v1: { name: "Sample" } },
+      nouns: { n1: { name: "Rock" } },
+      adjectives: { a1: { name: "Crater" } },
+    } as unknown as Mission["actionDefinitions"];
+    mockMissionDoc.actionDefinitionConjunctions = { verbToNoun: "on", nounToAdjective: "within" };
+
+    store = makeStore({
+      station: {
+        ...stationSlice.getInitialState(),
+        selectedStationUuid: STATION_UUID,
+      },
+      interface: {
+        ...interfaceSlice.getInitialState(),
+        sectionSelectedLabel: "station",
+      },
+    } as PartialPreloadedState);
+
+    renderActionMarkers();
+    const features = actionSource!.getFeatures();
+    expect(features).toHaveLength(1);
+    expect(features[0].get("name")).toBe("Sample on Rock within Crater");
   });
 
   it("renders actions belonging to selected POI (sectionSelected=poi)", () => {

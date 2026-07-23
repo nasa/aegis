@@ -6,6 +6,8 @@ import {
 import {
   applyCreateActionDefinitionItem,
   applyUpdateActionDefinitionItemByField,
+  applyUpdateActionDefinitionLabel,
+  applyUpdateActionDefinitionConjunction,
 } from "operations/apply/apply-mission-actionDefinition";
 
 beforeAll(() => {
@@ -136,6 +138,74 @@ describe("apply-mission-actionDefinition", () => {
           })
         )
       ).not.toThrow();
+    });
+  });
+
+  describe("applyUpdateActionDefinitionLabel()", () => {
+    it("sets a custom singular label", () => {
+      const missionDocHandle = getMissionDocHandle();
+
+      withMissionChange((m) =>
+        applyUpdateActionDefinitionLabel(m, { type: "verb", form: "singular", value: "Task" })
+      );
+
+      expect(missionDocHandle.doc().actionDefinitionLabels.verb.singular).toBe("Task");
+    });
+
+    it("sets a custom plural label without clobbering the singular", () => {
+      const missionDocHandle = getMissionDocHandle();
+
+      withMissionChange((m) =>
+        applyUpdateActionDefinitionLabel(m, { type: "noun", form: "singular", value: "Focus" })
+      );
+      withMissionChange((m) =>
+        applyUpdateActionDefinitionLabel(m, { type: "noun", form: "plural", value: "Foci" })
+      );
+
+      expect(missionDocHandle.doc().actionDefinitionLabels.noun.singular).toBe("Focus");
+      expect(missionDocHandle.doc().actionDefinitionLabels.noun.plural).toBe("Foci");
+    });
+
+    it("updates mission updatedAt", () => {
+      const missionDocHandle = getMissionDocHandle();
+      const before = missionDocHandle.doc().updatedAt;
+      vi.spyOn(Date.prototype, "getTime").mockReturnValueOnce(before + 10);
+
+      withMissionChange((m) =>
+        applyUpdateActionDefinitionLabel(m, {
+          type: "adjective",
+          form: "singular",
+          value: "Context",
+        })
+      );
+
+      expect(missionDocHandle.doc().updatedAt).toBeGreaterThan(before);
+    });
+  });
+
+  describe("applyUpdateActionDefinitionConjunction()", () => {
+    it("sets a custom conjunction", () => {
+      const missionDocHandle = getMissionDocHandle();
+
+      withMissionChange((m) =>
+        applyUpdateActionDefinitionConjunction(m, { key: "verbToNoun", value: "on" })
+      );
+
+      expect(missionDocHandle.doc().actionDefinitionConjunctions.verbToNoun).toBe("on");
+    });
+
+    it("sets both conjunctions independently", () => {
+      const missionDocHandle = getMissionDocHandle();
+
+      withMissionChange((m) =>
+        applyUpdateActionDefinitionConjunction(m, { key: "verbToNoun", value: "on" })
+      );
+      withMissionChange((m) =>
+        applyUpdateActionDefinitionConjunction(m, { key: "nounToAdjective", value: "within" })
+      );
+
+      expect(missionDocHandle.doc().actionDefinitionConjunctions.verbToNoun).toBe("on");
+      expect(missionDocHandle.doc().actionDefinitionConjunctions.nounToAdjective).toBe("within");
     });
   });
 });

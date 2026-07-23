@@ -253,7 +253,7 @@ const formatActionsForMaestro = (
       }),
       actionDefinitionReadable: makeReadableActionDefinition({
         action,
-        actionDefinitions: mission.actionDefinitions,
+        mission,
       }),
       missionId: action.missionId,
       icon: action.icon,
