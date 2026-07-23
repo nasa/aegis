@@ -136,8 +136,12 @@ export function InteractionManager(): null {
 
   // Selection/navigation context — used to auto-cancel an in-progress edit when
   // the user navigates away (selects a different traverse, station, POI,
-  // measurement, or switches section). See the watcher effect below.
+  // measurement, or switches section / bottom tab). See the watcher effect below.
   const sectionSelected = useAppSelector((s) => s.interface.sectionSelectedLabel, refEqual);
+  const bottomSectionSelected = useAppSelector(
+    (s) => s.interface.bottomSectionSelectedLabel,
+    refEqual
+  );
   const selectedPoiUuid = useAppSelector((s) => s.poi.selectedPoiUuid, refEqual);
   const selectedStationUuid = useAppSelector((s) => s.station.selectedStationUuid, refEqual);
   const selectedSeqItemUuid = useAppSelector((s) => s.eva.selectedEvaSequenceItemUuid, refEqual);
@@ -145,7 +149,7 @@ export function InteractionManager(): null {
     (s) => s.measure.selectedMeasurementUuid,
     refEqual
   );
-  const selectionKey = `${sectionSelected}|${selectedPoiUuid}|${selectedStationUuid}|${selectedSeqItemUuid}|${selectedMeasurementUuid}`;
+  const selectionKey = `${sectionSelected}|${bottomSectionSelected}|${selectedPoiUuid}|${selectedStationUuid}|${selectedSeqItemUuid}|${selectedMeasurementUuid}`;
   const selectionKeyAtEditStartRef = useRef<string | null>(null);
 
   // Read planetRadius from the doc for distance calculations in measurement edits.
