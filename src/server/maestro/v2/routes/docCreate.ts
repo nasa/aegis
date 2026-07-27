@@ -3,10 +3,9 @@ import express from "express";
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import { getEnvironmentConfig } from "server/express/routes/environmentConfig";
 
 const router = express.Router();
-
-const MAESTRO_BASE_URL = "https://maestro-beta.fit.nasa.gov";
 
 /**
  * POST /api/v1/maestro/v2/doc/create
@@ -56,7 +55,30 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const maestroRes = await fetch(`${MAESTRO_BASE_URL}/api/v1/doc/create`, {
+    const maestroServerConfig = await getEnvironmentConfig("maestroServer");
+    const rawMaestroServer = maestroServerConfig.effectiveValue;
+    // Values sourced from env may not include a scheme (e.g. "maestro-beta.fit.nasa.gov").
+    // Default to https:// when one isn't provided.
+    const maestroServer = rawMaestroServer
+      ? /^https?:\/\//i.test(rawMaestroServer)
+        ? rawMaestroServer
+        : `https://${rawMaestroServer}`
+      : null;
+    if (!maestroServer) {
+      serverLogger.apiRoute({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 500,
+        routeName: "maestro/doc/create",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        message: "Maestro server URL is not configured",
+        error: new Error("Maestro server URL is not configured"),
+      });
+      res.status(500).json({ status: "error", message: "Maestro server URL is not configured." });
+      return;
+    }
+    const maestroRes = await fetch(`${maestroServer}/api/v1/doc/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
