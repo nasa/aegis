@@ -9,11 +9,13 @@ const router = express.Router();
 const MAESTRO_BASE_URL = "https://maestro-beta.fit.nasa.gov";
 
 /**
- * POST /api/v1/maestro/doc/create
+ * POST /api/v1/maestro/v2/doc/create
  * Endpoint that calls the Maestro /api/v1/doc/create endpoint
  * with the server-side EMSS_TOKEN for authentication.
+ *
+ * Used by Maegistro v2 only.
  */
-router.post("/doc/create", async (req: Request, res: Response): Promise<void> => {
+router.post("/", async (req: Request, res: Response): Promise<void> => {
   const missionId = req.body.missionId as number | undefined;
 
   const editPermission = hasPerms({

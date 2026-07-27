@@ -8,16 +8,22 @@ import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
-import { getGrids } from "../grid";
+import { getGrids } from "../../../express/routes/grid";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
-import { getAutomergeMissions } from "../missionAutomerge";
+import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
+
+/**
+ * Used by Maegistro v1 and v2
+ */
+
+interface ReadableEvaParams {
+  missionId: number;
+  evaRefUuid?: string;
+  rexUuid?: string;
+}
 
 const router = express.Router();
 
-/**
- * Shared data logic for the readable/eva route and maestro socket handler.
- * Otherwise returns full ExportEva[] records.
- */
 export async function getReadableEvaData(params: ReadableEvaParams): Promise<ExportEva[]> {
   const { missionId, evaRefUuid, rexUuid } = params;
 

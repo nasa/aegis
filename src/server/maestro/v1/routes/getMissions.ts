@@ -5,12 +5,15 @@ import express from "express";
 
 import { serverLogger } from "utils/logging/serverLogger";
 import { emssTokenIsValid } from "utils/permissions";
-import { getAutomergeMissions } from "../missionAutomerge";
+import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
+
+/**
+ * Used by Maegistro v1 and v2
+ */
 
 const router = express.Router();
 
 // Used by Maestro to get all missions and their as-planned EVAs
-// Deprecated
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
 

@@ -6,7 +6,11 @@ import express from "express";
 import { emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
-import { getAutomergeMissions } from "../missionAutomerge";
+import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
+
+/**
+ * Used by Maegistro v1 and v2
+ */
 
 const router = express.Router();
 
@@ -19,7 +23,6 @@ const parseQuery = (query: Query) => {
 };
 
 // Used by Maestro to get all REX executions for a given as-planned EVA
-// Deprecated
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   const emssToken = req.headers["emss-token"] as string;

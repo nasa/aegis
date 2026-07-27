@@ -1,4 +1,9 @@
+import type {
+  MaestroCreateDocRequest,
+  MaestroCreateDocResponse,
+} from "server/maestro/v2/types/clientTypesMaestro";
 /**
+ * Maegistro v2
  * Creates a new Maestro document.
  * Injects the EMSS_TOKEN server-side so it is never exposed to the client.
  */
@@ -6,7 +11,7 @@ export async function maestroCreateDoc(
   request: MaestroCreateDocRequest
 ): Promise<MaestroCreateDocResponse> {
   try {
-    const res = await fetch(`/api/v1/maestro/doc/create`, {
+    const res = await fetch(`/api/v1/maestro/v2/doc/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -3,7 +3,7 @@ import type { App_User_db } from "server/database/models/_allModels";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
+import AppUserFactory from "../../fixtures/entityFactories/AppUserFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
 
@@ -43,13 +43,13 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("Maestro API Endpoint", () => {
+describe("Maegistro V2 doc/create API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
 
   test("Returns auth failure when not logged in", async () => {
     const res = await supertest(app)
-      .post("/api/v1/maestro/doc/create")
+      .post("/api/v1/maestro/v2/doc/create")
       .send({ missionId: testMissionIds[0] });
     expect(res.statusCode).toBe(401);
   });
@@ -64,10 +64,10 @@ describe("Maestro API Endpoint", () => {
     aegisSessionSigCookie = res.header["set-cookie"][1];
   });
 
-  describe("POST /doc/create", () => {
+  describe("POST /api/v1/maestro/v2/doc/create", () => {
     test("Returns 401 when user has no permissions for the mission", async () => {
       const res = await supertest(app)
-        .post("/api/v1/maestro/doc/create")
+        .post("/api/v1/maestro/v2/doc/create")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send({ missionId: testMissionIds[2] });
 
@@ -78,7 +78,7 @@ describe("Maestro API Endpoint", () => {
 
     test("Returns 401 when user has view-only permissions for the mission", async () => {
       const res = await supertest(app)
-        .post("/api/v1/maestro/doc/create")
+        .post("/api/v1/maestro/v2/doc/create")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send({ missionId: testMissionIds[1] });
 
@@ -92,7 +92,7 @@ describe("Maestro API Endpoint", () => {
       delete process.env.EMSS_TOKEN;
 
       const res = await supertest(app)
-        .post("/api/v1/maestro/doc/create")
+        .post("/api/v1/maestro/v2/doc/create")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send({ missionId: testMissionIds[0] });
 
@@ -114,7 +114,7 @@ describe("Maestro API Endpoint", () => {
       } as unknown as Response);
 
       const res = await supertest(app)
-        .post("/api/v1/maestro/doc/create")
+        .post("/api/v1/maestro/v2/doc/create")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send({ missionId: testMissionIds[0], someField: "someValue" });
 
@@ -144,7 +144,7 @@ describe("Maestro API Endpoint", () => {
       } as unknown as Response);
 
       const res = await supertest(app)
-        .post("/api/v1/maestro/doc/create")
+        .post("/api/v1/maestro/v2/doc/create")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send({ missionId: testMissionIds[0] });
 
@@ -158,7 +158,7 @@ describe("Maestro API Endpoint", () => {
       (global.fetch as Mock).mockRejectedValueOnce(new Error("Network failure"));
 
       const res = await supertest(app)
-        .post("/api/v1/maestro/doc/create")
+        .post("/api/v1/maestro/v2/doc/create")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send({ missionId: testMissionIds[0] });
 

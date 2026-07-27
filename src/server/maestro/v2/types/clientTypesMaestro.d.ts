@@ -1,13 +1,13 @@
-type MaestroAccessControl = "public" | "private";
+export type MaestroAccessControl = "public" | "private";
 
-type MaestroCreateDocRequest = {
+export type MaestroCreateDocRequest = {
   missionId: number;
   missionName: string;
   owners?: LaunchpadUser[];
   accessControl?: MaestroAccessControl;
 };
 
-type MaestroCreateDocResponse =
+export type MaestroCreateDocResponse =
   | {
       status: "success";
       data: {

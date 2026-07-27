@@ -8,8 +8,12 @@ import { hasPerms, emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
-import { getGrids } from "../grid";
-import { getAutomergeMissions } from "../missionAutomerge";
+import { getGrids } from "../../../express/routes/grid";
+import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
+
+/**
+ * Used by Maegistro v1 and v2
+ */
 
 const router = express.Router();
 
