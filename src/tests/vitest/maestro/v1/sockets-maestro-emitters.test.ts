@@ -25,6 +25,8 @@ vi.mock("server/express/routes/docListing", () => ({
 import {
   isDiffRelevantToSubscribedEvas,
   cleanupMaestro,
+  removeEvaFromSubscriptions,
+  buildDebugInfo,
 } from "server/maestro/v1/sockets-maestro-emitters";
 import { getMaestroSocketRoomName } from "server/maestro/v1/sockets-maestro";
 
@@ -620,5 +622,176 @@ describe("addMaestroDocListenerForMission", () => {
 
     // Early return — handle must be unchanged
     expect(globalValues.maestroV1.docHandles.get(MISSION_ID)).toBe(existingHandle);
+  });
+
+  it("stores initial snapshot when doc() returns a mission at listener setup time", async () => {
+    const INITIAL_MISSION_ID = 5555;
+    const ns = createMockMaestroNamespace();
+    const roomName = getMaestroSocketRoomName(INITIAL_MISSION_ID);
+    ns._rooms.set(roomName, new Set(["socket1"]));
+    globalValues.maestroV1.socketio = ns as never;
+    globalValues.maestroV1.evaSubscriptions.set(INITIAL_MISSION_ID, [evaSubscribed.uuid]);
+
+    // Return a mission at setup time so initial snapshot is stored.
+    const initialMission = buildMockCoreData({ evas: [evaSubscribed], stations: [stationA] });
+    mockDocHandle.doc.mockReturnValue(initialMission);
+
+    await actualAddMaestroDocListenerForMission(INITIAL_MISSION_ID);
+
+    // Fire the change listener with the same data — since initial snapshot was stored
+    // from the same object, diff should show no changes and no emit should fire.
+    const changeListener = mockDocHandle.on.mock.calls[0][1];
+    changeListener();
+
+    // Give the throttled listener time to run
+    await new Promise((r) => setTimeout(r, 10));
+
+    // No emit should have occurred because prev snapshot === current mission
+    expect(ns._emit).not.toHaveBeenCalled();
+  });
+
+  it("throttled listener does not emit when diff has no changes (no-op change)", async () => {
+    const NOOP_MISSION_ID = 3333;
+    const ns = createMockMaestroNamespace();
+    const roomName = getMaestroSocketRoomName(NOOP_MISSION_ID);
+    ns._rooms.set(roomName, new Set(["socket1"]));
+    globalValues.maestroV1.socketio = ns as never;
+    globalValues.maestroV1.evaSubscriptions.set(NOOP_MISSION_ID, [evaSubscribed.uuid]);
+
+    // Set an initial snapshot at setup by returning a mission from doc().
+    const mission = buildMockCoreData({ evas: [evaSubscribed], stations: [stationA] });
+    mockDocHandle.doc.mockReturnValue(mission);
+
+    await actualAddMaestroDocListenerForMission(NOOP_MISSION_ID);
+
+    // Fire the listener — doc() still returns the same mission ref → diff is empty
+    const changeListener = mockDocHandle.on.mock.calls[0][1];
+    changeListener();
+
+    await new Promise((r) => setTimeout(r, 10));
+
+    // No emit because diff.hasAnyChange is false
+    expect(ns._emit).not.toHaveBeenCalled();
+  });
+
+  it("throttled listener removes subscriptions for deleted EVAs", async () => {
+    const DELETE_MISSION_ID = 2222;
+    const ns = createMockMaestroNamespace();
+    const roomName = getMaestroSocketRoomName(DELETE_MISSION_ID);
+    ns._rooms.set(roomName, new Set(["socket1"]));
+    globalValues.maestroV1.socketio = ns as never;
+    globalValues.maestroV1.evaSubscriptions.set(DELETE_MISSION_ID, [evaSubscribed.uuid]);
+
+    // Initial doc has evaSubscribed present so it's in the snapshot.
+    const initialMission = buildMockCoreData({ evas: [evaSubscribed] });
+    mockDocHandle.doc.mockReturnValueOnce(initialMission);
+    await actualAddMaestroDocListenerForMission(DELETE_MISSION_ID);
+
+    // Second doc() call returns a mission without the subscribed EVA → deletion detected
+    const missionNoEvas = buildMockCoreData({ evas: [] });
+    mockDocHandle.doc.mockReturnValue(missionNoEvas);
+    mockGetAutomergeMissions.mockResolvedValue([missionNoEvas]);
+
+    const changeListener = mockDocHandle.on.mock.calls[0][1];
+    changeListener();
+
+    await new Promise((r) => setTimeout(r, 10));
+
+    // Subscription should have been removed because that EVA was deleted
+    expect(globalValues.maestroV1.evaSubscriptions.has(DELETE_MISSION_ID)).toBe(false);
+  });
+});
+
+// ─── removeEvaFromSubscriptions ──────────────────────────────────────────────
+
+describe("removeEvaFromSubscriptions", () => {
+  it("does nothing when deletedEvaUuids is empty", () => {
+    globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+    removeEvaFromSubscriptions(MISSION_ID, []);
+    expect(globalValues.maestroV1.evaSubscriptions.get(MISSION_ID)).toEqual([evaSubscribed.uuid]);
+  });
+
+  it("does nothing when the mission has no subscriptions", () => {
+    // No entry in the map for this mission
+    expect(() => removeEvaFromSubscriptions(MISSION_ID, [evaSubscribed.uuid])).not.toThrow();
+    expect(globalValues.maestroV1.evaSubscriptions.has(MISSION_ID)).toBe(false);
+  });
+
+  it("does nothing when the mission has an empty subscription array", () => {
+    globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, []);
+    removeEvaFromSubscriptions(MISSION_ID, [evaSubscribed.uuid]);
+    expect(globalValues.maestroV1.evaSubscriptions.get(MISSION_ID)).toEqual([]);
+  });
+
+  it("returns early when no subscribed uuid matches any deleted uuid", () => {
+    globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+    removeEvaFromSubscriptions(MISSION_ID, ["some-other-uuid"]);
+    // Unchanged
+    expect(globalValues.maestroV1.evaSubscriptions.get(MISSION_ID)).toEqual([evaSubscribed.uuid]);
+  });
+
+  it("deletes the mission entry entirely when all subscribed uuids are removed", () => {
+    globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+    removeEvaFromSubscriptions(MISSION_ID, [evaSubscribed.uuid]);
+    expect(globalValues.maestroV1.evaSubscriptions.has(MISSION_ID)).toBe(false);
+  });
+
+  it("removes only the matching uuid and keeps the rest", () => {
+    globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, [
+      evaSubscribed.uuid,
+      evaNotSubscribed.uuid,
+    ]);
+    removeEvaFromSubscriptions(MISSION_ID, [evaSubscribed.uuid]);
+    const remaining = globalValues.maestroV1.evaSubscriptions.get(MISSION_ID);
+    expect(remaining).toEqual([evaNotSubscribed.uuid]);
+  });
+});
+
+// ─── buildDebugInfo ──────────────────────────────────────────────────────────
+
+describe("buildDebugInfo", () => {
+  it("returns empty structures when nothing is registered", () => {
+    const info = buildDebugInfo();
+    expect(info.docListenerMissionIds).toEqual([]);
+    expect(info.evaSubscriptions).toEqual({});
+    expect(info.visitors).toEqual({});
+  });
+
+  it("reports doc listener mission ids from globalValues", () => {
+    globalValues.maestroV1.docListeners.set(1, vi.fn());
+    globalValues.maestroV1.docListeners.set(2, vi.fn());
+    const info = buildDebugInfo();
+    expect(info.docListenerMissionIds.sort()).toEqual([1, 2]);
+  });
+
+  it("copies evaSubscriptions to a plain object and defensively copies uuid arrays", () => {
+    const uuids = [evaSubscribed.uuid, evaNotSubscribed.uuid];
+    globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, uuids);
+    const info = buildDebugInfo();
+    expect(info.evaSubscriptions[MISSION_ID]).toEqual(uuids);
+    // Mutating the returned array must not affect the source map
+    info.evaSubscriptions[MISSION_ID].push("mutation");
+    expect(globalValues.maestroV1.evaSubscriptions.get(MISSION_ID)).toEqual(uuids);
+  });
+
+  it("maps visitors into plain debug entries with only public fields", () => {
+    const visitor = {
+      socketId: "abc",
+      name: "Maestro-1",
+      connectedAt: 12345,
+      // Any extra fields on a MaestroVisitor should be dropped from the debug view
+    };
+    globalValues.maestroV1.visitorData = { [MISSION_ID]: [visitor as never] };
+    const info = buildDebugInfo();
+    expect(info.visitors[String(MISSION_ID)]).toEqual([
+      { socketId: "abc", name: "Maestro-1", connectedAt: 12345 },
+    ]);
+  });
+
+  it("handles missions that have an undefined visitorData entry without throwing", () => {
+    // Assign a mission id key with undefined value (matches the `?? []` fallback branch)
+    globalValues.maestroV1.visitorData = { [MISSION_ID]: undefined as never };
+    const info = buildDebugInfo();
+    expect(info.visitors[String(MISSION_ID)]).toEqual([]);
   });
 });

@@ -611,5 +611,173 @@ describe("maestro namespace socket handlers", () => {
         expect.objectContaining({ status: "success", data: updatedRexes })
       );
     });
+
+    it("returns error when overwriteRex resolves null (no rexes updated)", async () => {
+      mockOverwriteRex.mockResolvedValue(null as never);
+      const callback = vi.fn();
+      await mockSocket._handlers["rexOverwrite"](rexOverwriteBody, callback);
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "error",
+        })
+      );
+    });
+  });
+
+  // ─── subscribeToEva unresolved uuid ─────────────────────────────────────────
+
+  describe("subscribeToEva / unsubscribeToEva - unresolvable EVA", () => {
+    it("subscribeToEva does not add to subscriptions when EVA cannot be resolved", async () => {
+      // evaRegistry is empty and mockGetAutomergeMissions returns a mission with no evas.
+      // getAsPlannedEvaFromRefUuid will return undefined → evaUuid is undefined.
+      const unknownRefUuid = uuidv4();
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, unknownRefUuid, null);
+
+      expect(globalValues.maestroV1.evaSubscriptions.has(MISSION_ID)).toBe(false);
+    });
+
+    it("unsubscribeToEva does not throw when EVA cannot be resolved", async () => {
+      const unknownRefUuid = uuidv4();
+      await expect(
+        mockSocket._handlers["unsubscribeToEva"](MISSION_ID, unknownRefUuid, null)
+      ).resolves.not.toThrow();
+    });
+
+    it("subscribeToEva resolves via rexUuid when rex exists and refUuid matches", async () => {
+      const evaUuid = uuidv4();
+      const evaRefUuid = uuidv4();
+      const rexUuid = uuidv4();
+      // Return a mission that contains a rex mapping rexUuid → evaUuid, and an EVA whose refUuid matches.
+      mockGetAutomergeMissions.mockResolvedValueOnce([
+        {
+          evas: { [evaUuid]: { uuid: evaUuid, refUuid: evaRefUuid } },
+          rexes: { [rexUuid]: { evaUuid } },
+        },
+      ]);
+
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, rexUuid);
+
+      const subs = globalValues.maestroV1.evaSubscriptions.get(MISSION_ID);
+      expect(subs).toContain(evaUuid);
+    });
+
+    it("subscribeToEva does not subscribe when rex exists but refUuid mismatches", async () => {
+      const evaUuid = uuidv4();
+      const rexUuid = uuidv4();
+      mockGetAutomergeMissions.mockResolvedValueOnce([
+        {
+          evas: { [evaUuid]: { uuid: evaUuid, refUuid: "different-ref-uuid" } },
+          rexes: { [rexUuid]: { evaUuid } },
+        },
+      ]);
+
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, "expected-ref-uuid", rexUuid);
+
+      expect(globalValues.maestroV1.evaSubscriptions.has(MISSION_ID)).toBe(false);
+    });
+
+    it("subscribeToEva does not subscribe when rexUuid is provided but rex does not exist", async () => {
+      mockGetAutomergeMissions.mockResolvedValueOnce([{ evas: {}, rexes: {} }]);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, uuidv4(), "unknown-rex-uuid");
+      expect(globalValues.maestroV1.evaSubscriptions.has(MISSION_ID)).toBe(false);
+    });
+
+    it("subscribeToEva uses cached docHandle when available (skips getAutomergeMissions)", async () => {
+      const evaUuid = uuidv4();
+      const evaRefUuid = uuidv4();
+      const missionFromDoc = {
+        evas: { [evaUuid]: { uuid: evaUuid, refUuid: evaRefUuid } },
+        rexes: {},
+      };
+      // Pre-populate the docHandles cache so getEvaUuid takes the docHandle path
+      globalValues.maestroV1.docHandles.set(MISSION_ID, {
+        doc: vi.fn().mockReturnValue(missionFromDoc),
+      } as never);
+
+      mockGetAutomergeMissions.mockClear();
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null);
+
+      // docHandle short-circuits the getAutomergeMissions call
+      expect(mockGetAutomergeMissions).not.toHaveBeenCalled();
+      expect(globalValues.maestroV1.evaSubscriptions.get(MISSION_ID)).toContain(evaUuid);
+    });
+
+    it("subscribeToEva does nothing when getAutomergeMissions returns no mission", async () => {
+      mockGetAutomergeMissions.mockResolvedValueOnce([undefined]);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, uuidv4(), null);
+      expect(globalValues.maestroV1.evaSubscriptions.has(MISSION_ID)).toBe(false);
+    });
+  });
+
+  // ─── missionJoin invalid inputs ─────────────────────────────────────────────
+
+  describe("missionJoin invalid inputs", () => {
+    it("does nothing when missionId is 0 (falsy)", () => {
+      const visitor: MaestroVisitorV1 = {
+        socketId: mockSocket.id,
+        name: "Vitest TestMaestro",
+        connectedAt: Date.now(),
+      };
+      mockSocket._handlers["missionJoin"](0, visitor);
+      expect(mockSocket.join).not.toHaveBeenCalled();
+      expect(globalValues.maestroV1.visitorData[0]).toBeUndefined();
+    });
+
+    it("does nothing when missionId is NaN", () => {
+      const visitor: MaestroVisitorV1 = {
+        socketId: mockSocket.id,
+        name: "Vitest TestMaestro",
+        connectedAt: Date.now(),
+      };
+      mockSocket._handlers["missionJoin"](NaN, visitor);
+      expect(mockSocket.join).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── getDebugInfo socket handler ────────────────────────────────────────────
+
+  describe("getDebugInfo", () => {
+    it("invokes the callback with the current debug info structure", () => {
+      globalValues.maestroV1.docListeners.set(MISSION_ID, vi.fn());
+      globalValues.maestroV1.evaSubscriptions.set(MISSION_ID, ["eva-uuid-1"]);
+      globalValues.maestroV1.visitorData[MISSION_ID] = [
+        { socketId: "s1", name: "M-1", connectedAt: 111 },
+      ];
+
+      const callback = vi.fn();
+      mockSocket._handlers["getDebugInfo"](callback);
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      const info = callback.mock.calls[0][0];
+      expect(info.docListenerMissionIds).toContain(MISSION_ID);
+      expect(info.evaSubscriptions[MISSION_ID]).toEqual(["eva-uuid-1"]);
+      expect(info.visitors[String(MISSION_ID)]).toEqual([
+        { socketId: "s1", name: "M-1", connectedAt: 111 },
+      ]);
+    });
+  });
+});
+
+// ─── getMissionIdFromSocketRoomName ─────────────────────────────────────────
+
+describe("getMissionIdFromSocketRoomName", () => {
+  it("parses a valid maestro{N} room name", async () => {
+    const { getMissionIdFromSocketRoomName } = await import("server/maestro/v1/sockets-maestro");
+    expect(getMissionIdFromSocketRoomName("maestro42")).toBe(42);
+  });
+
+  it("returns null for a non-matching room name", async () => {
+    const { getMissionIdFromSocketRoomName } = await import("server/maestro/v1/sockets-maestro");
+    expect(getMissionIdFromSocketRoomName("something-else")).toBeNull();
+  });
+
+  it("returns null for an empty string", async () => {
+    const { getMissionIdFromSocketRoomName } = await import("server/maestro/v1/sockets-maestro");
+    expect(getMissionIdFromSocketRoomName("")).toBeNull();
+  });
+
+  it("returns null when the mission number segment is missing", async () => {
+    const { getMissionIdFromSocketRoomName } = await import("server/maestro/v1/sockets-maestro");
+    expect(getMissionIdFromSocketRoomName("maestro")).toBeNull();
   });
 });

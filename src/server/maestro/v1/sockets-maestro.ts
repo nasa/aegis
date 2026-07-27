@@ -206,7 +206,7 @@ export const setupMaestroNamespace = (
           if (!updatedRexes || updatedRexes.length === 0) {
             callback({
               status: "error",
-              message: "Failed to update Rex(es) after multiple tries due to optimistic locking",
+              message: "Failed to update Rex(es), no rexes updated.",
             });
             return;
           }
