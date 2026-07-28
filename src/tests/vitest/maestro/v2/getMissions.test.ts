@@ -73,7 +73,7 @@ beforeAll(async () => {
   testMissionsPartial = [
     {
       id: testAutomergeDocListings[0].missionId,
-      name: "Vitest Test Mission 1",
+      name: "Vitest Test Mission V2 1",
       isArchived: false,
       actionSystemVersion: 2,
       evas: mission1Evas,
@@ -81,7 +81,7 @@ beforeAll(async () => {
     },
     {
       id: testAutomergeDocListings[1].missionId,
-      name: "Vitest Test Mission 2",
+      name: "Vitest Test Mission V2 2",
       isArchived: false,
       actionSystemVersion: 2,
       evas: {},
@@ -89,7 +89,7 @@ beforeAll(async () => {
     },
     {
       id: testAutomergeDocListings[2].missionId,
-      name: "Vitest Test Mission 3",
+      name: "Vitest Test Mission V2 3",
       isArchived: false,
       actionSystemVersion: 1,
       evas: mission3Evas,

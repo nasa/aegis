@@ -36,7 +36,7 @@ export declare namespace MDAU {
     name: string;
     duration: number;
     actionOrderRefUuids: string[] | null;
-    updatedAt: string;
+    updatedAt: number;
     rexUuid?: string;
   };
 
@@ -44,7 +44,7 @@ export declare namespace MDAU {
     refUuid: string;
     duration: number;
     actionOrderRefUuids: string[] | null;
-    updatedAt: string;
+    updatedAt: number;
     rexUuid?: string;
   };
 
@@ -62,14 +62,14 @@ export declare namespace MDAU {
     sequenceRefUuids: EvaSequenceItem[];
     ingressDuration: number;
     egressDuration: number;
-    updatedAt: string;
+    updatedAt: number;
     rexUuid?: string;
   };
 
   type MdauAction = {
     refUuid: string;
     actors: string[]; // crewAssigned in AEGIS
-    updatedAt: string;
+    updatedAt: number;
     rexUuid?: string;
   };
 
@@ -111,7 +111,7 @@ export declare namespace MDAU {
      * Whether the REX in AEGIS is controlled by Maestro or not
      */
     maestroControlled: boolean;
-    updatedAt: string;
+    updatedAt: number;
     /**
      * Just the non-REX info from activities
      */
