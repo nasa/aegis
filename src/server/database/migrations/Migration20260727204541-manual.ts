@@ -18,6 +18,13 @@ export class Migration20260727204541 extends Migration {
     this.addSql(
       `alter table "environment_config_db" add constraint "environment_config_db_key_unique" unique ("key");`
     );
+    // The initial migration seeded row id=1 via an explicit-id INSERT, which does not advance the
+    // SERIAL sequence. On a freshly migrated DB the sequence still returns 1 on the next
+    // nextval(), so the first auto-assigned INSERT collides with the seed row. Force the sequence
+    // past every existing id so subsequent inserts succeed. Idempotent on already-advanced DBs.
+    this.addSql(
+      `select setval('environment_config_db_id_seq', (select coalesce(max(id), 1) from "environment_config_db"));`
+    );
   }
 
   override down(): void | Promise<void> {

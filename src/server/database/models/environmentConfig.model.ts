@@ -3,7 +3,7 @@ import { types as MikroTypes } from "@mikro-orm/postgresql";
 
 @Entity()
 export class EnvironmentConfig_db {
-  @PrimaryKey({ type: MikroTypes.integer })
+  @PrimaryKey({ type: MikroTypes.integer, autoincrement: true })
   id!: number;
 
   @Property({ type: MikroTypes.text, nullable: false, unique: true })
