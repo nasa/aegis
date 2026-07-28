@@ -67,8 +67,10 @@ vi.mock("@mikro-orm/postgresql", async (importOriginal) => {
 
 import { getMaestroSocketRoomName } from "server/maestro/v2/sockets-maestro";
 import { emssTokenIsValid } from "utils/permissions";
+import { serverLogger } from "utils/logging/serverLogger";
 import type { AegisSlice } from "server/maestro/v2/types/aegisSlice";
 import type { MaestroVisitor } from "server/maestro/v2/types/socketioMaestro";
+import type { MDAU } from "server/maestro/v2/types/mdau";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -560,6 +562,121 @@ describe("maestro namespace socket handlers", () => {
       };
       mockSocket._handlers["sendMDAU"](MISSION_ID, { aegisStations });
       expect(mockApplyMdauStationsToDoc).toHaveBeenCalledWith(MISSION_ID, aegisStations);
+    });
+
+    it("processes a fully-populated MDAU payload without logging any errors", async () => {
+      // Build a full MDAU sample that exercises every top-level collection and
+      // every field of every sub-type defined in MDAU.MaestroDataAegisUses.
+      const now = Date.now();
+      const stationRefUuid = "station-ref-1";
+      const traverseRefUuid = "traverse-ref-1";
+      const evaRefUuid = "eva-ref-1";
+      const actionRefUuid = "action-ref-1";
+      const rexUuid = "rex-uuid-1";
+      const xgressUuid = "xgress-uuid-1";
+
+      const fullMdau: MDAU.MaestroDataAegisUses = {
+        aegisStations: {
+          [stationRefUuid]: {
+            refUuid: stationRefUuid,
+            name: "Vitest Full Station",
+            duration: 42,
+            actionOrderRefUuids: [actionRefUuid],
+            updatedAt: now,
+            rexUuid,
+          },
+        },
+        aegisTraverse: {
+          [traverseRefUuid]: {
+            refUuid: traverseRefUuid,
+            duration: 15,
+            actionOrderRefUuids: null,
+            updatedAt: now,
+            rexUuid,
+          },
+        },
+        aegisEva: {
+          [evaRefUuid]: {
+            refUuid: evaRefUuid,
+            name: ["EV1", "EV2"],
+            maestroEventId: "maestro-event-1",
+            maestroEventUrl: "https://maestro.example/events/1",
+            sequenceRefUuids: [
+              { type: "station", refUuid: stationRefUuid },
+              { type: "traverse", refUuid: traverseRefUuid },
+            ],
+            ingressDuration: 300,
+            egressDuration: 240,
+            updatedAt: now,
+            rexUuid,
+          },
+        },
+        aegisAction: {
+          [actionRefUuid]: {
+            refUuid: actionRefUuid,
+            actors: ["EV1"],
+            updatedAt: now,
+            rexUuid,
+          },
+        },
+        aegisRexes: {
+          [rexUuid]: {
+            uuid: rexUuid,
+            petStartStopTimestamp: "2025-01-21T17:06:59.000Z",
+            petValueAtStartStop: "+00:00:00",
+            petRunning: true,
+            isRunning: true,
+            maestroControlled: true,
+            updatedAt: now,
+            maestroActivityPropertiesByRefUuid: {
+              [stationRefUuid]: { color: "#ff0000", number: "1" },
+              [traverseRefUuid]: { color: "#00ff00", number: "2" },
+            },
+            xgressEntries: {
+              [xgressUuid]: { rexStatus: "complete" },
+            },
+            stationEntriesByRefUuid: {
+              [stationRefUuid]: {
+                rexStatus: "in-progress",
+                maestroPercentCompleteEv1: 50,
+                maestroPercentCompleteEv2: 25,
+              },
+            },
+            traverseEntriesByRefUuid: {
+              [traverseRefUuid]: {
+                rexStatus: "pending",
+                maestroPercentCompleteEv1: 0,
+                maestroPercentCompleteEv2: 0,
+              },
+            },
+            actionEntriesByRefUuid: {
+              [actionRefUuid]: {
+                rexStatus: "complete",
+                markerId: "M-001",
+                containerId: "C-001",
+                secondaryContainerId: "C-002",
+              },
+            },
+          },
+        },
+      };
+
+      const errorSpy = vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+
+      // Handler is synchronous but delegates to an async function via .catch();
+      // invoking it must not throw.
+      expect(() => mockSocket._handlers["sendMDAU"](MISSION_ID, fullMdau)).not.toThrow();
+
+      // Let the promise from applyMdauStationsToDoc resolve so the .catch()
+      // branch has a chance to fire if something failed.
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockApplyMdauStationsToDoc).toHaveBeenCalledTimes(1);
+      expect(mockApplyMdauStationsToDoc).toHaveBeenCalledWith(MISSION_ID, fullMdau.aegisStations);
+      expect(errorSpy).not.toHaveBeenCalled();
+
+      errorSpy.mockRestore();
     });
   });
 
