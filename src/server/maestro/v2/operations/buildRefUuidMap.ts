@@ -13,6 +13,12 @@ type RefUuidMap = Map<string, string>;
 
 /**
  * Resolution maps for a mission, grouped by rex scope.
+ *
+ * In addition to refUuid → uuid resolution, this carries `evaUuidByUuid`:
+ * a reverse index from any entity uuid (station/traverse/action/rex/eva) to
+ * the EVA uuid that owns it. It is built in the same single pass and used to
+ * gate incoming MDAU data by EVA subscription without a second traversal of
+ * the doc.
  */
 export interface MdauRefUuidMaps {
   asPlannedStations: RefUuidMap;
@@ -24,6 +30,11 @@ export interface MdauRefUuidMaps {
   rexTraverses: Map<string, RefUuidMap>;
   /** rexUuid → (action refUuid → action uuid) */
   rexActions: Map<string, RefUuidMap>;
+  /**
+   * Any entity uuid (station / traverse / action / rex / eva) → the EVA uuid
+   * that owns it. Entities with no resolvable owning EVA are absent.
+   */
+  evaUuidByUuid: Map<string, string>;
 }
 
 /**
@@ -37,6 +48,7 @@ export const buildMdauRefUuidMaps = (mission: Mission): MdauRefUuidMaps => {
     rexStations: new Map(),
     rexTraverses: new Map(),
     rexActions: new Map(),
+    evaUuidByUuid: new Map(),
   };
 
   // Map every EVA uuid → the rexUuid that owns it (if any). EVAs not present
@@ -44,22 +56,30 @@ export const buildMdauRefUuidMaps = (mission: Mission): MdauRefUuidMaps => {
   const rexUuidByEvaUuid = new Map<string, string>();
   for (const rex of Object.values(mission.rexes ?? {})) {
     rexUuidByEvaUuid.set(rex.evaUuid, rex.uuid);
+    // Rex → its EVA (used for subscription gating).
+    maps.evaUuidByUuid.set(rex.uuid, rex.evaUuid);
   }
 
   // Map every station/traverse uuid → the rexUuid whose EVA sequence contains
   // it (if any). Also captures ingress/egress stations referenced by the EVA.
+  // In the same loop, index every entity uuid → its owning EVA uuid.
   const rexUuidBySequenceUuid = new Map<string, string>();
   for (const eva of Object.values(mission.evas ?? {})) {
+    // Eva → itself.
+    maps.evaUuidByUuid.set(eva.uuid, eva.uuid);
+
     const rexUuid = rexUuidByEvaUuid.get(eva.uuid);
-    if (!rexUuid) continue;
     for (const seqItem of eva.sequence ?? []) {
-      rexUuidBySequenceUuid.set(seqItem.uuid, rexUuid);
+      maps.evaUuidByUuid.set(seqItem.uuid, eva.uuid);
+      if (rexUuid) rexUuidBySequenceUuid.set(seqItem.uuid, rexUuid);
     }
     if (eva.ingressLocationUuid && eva.ingressLocationUuid !== "lander") {
-      rexUuidBySequenceUuid.set(eva.ingressLocationUuid, rexUuid);
+      maps.evaUuidByUuid.set(eva.ingressLocationUuid, eva.uuid);
+      if (rexUuid) rexUuidBySequenceUuid.set(eva.ingressLocationUuid, rexUuid);
     }
     if (eva.egressLocationUuid && eva.egressLocationUuid !== "lander") {
-      rexUuidBySequenceUuid.set(eva.egressLocationUuid, rexUuid);
+      maps.evaUuidByUuid.set(eva.egressLocationUuid, eva.uuid);
+      if (rexUuid) rexUuidBySequenceUuid.set(eva.egressLocationUuid, rexUuid);
     }
   }
 
@@ -96,10 +116,15 @@ export const buildMdauRefUuidMaps = (mission: Mission): MdauRefUuidMaps => {
 
   // Actions — an action belongs to whatever rex scope its parent
   // (station or traverse) belongs to. An action never exists in isolation, so
-  // its parent uuid determines the scope.
+  // its parent uuid determines the scope. The owning EVA is likewise inherited
+  // from the parent.
   for (const action of Object.values(mission.actions ?? {})) {
     if (!action.refUuid) continue;
     const parentUuid = action.stationUuid ?? action.traverseUuid ?? null;
+    if (parentUuid) {
+      const parentEvaUuid = maps.evaUuidByUuid.get(parentUuid);
+      if (parentEvaUuid) maps.evaUuidByUuid.set(action.uuid, parentEvaUuid);
+    }
     const rexUuid = parentUuid ? rexUuidBySequenceUuid.get(parentUuid) : undefined;
     if (rexUuid) {
       getRexMap(maps.rexActions, rexUuid).set(action.refUuid, action.uuid);

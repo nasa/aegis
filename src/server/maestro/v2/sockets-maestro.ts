@@ -245,7 +245,8 @@ export const setupMaestroNamespace = (
 
           // Update the doc from the full MDAU payload (stations, traverses,
           // evas, actions, rexes) in a single atomic Automerge change.
-          opUpdateMdau(docHandle, mdau);
+          // Only data for subscribed EVAs is applied.
+          opUpdateMdau(docHandle, missionId, mdau);
           callback?.({ status: "success" });
         } catch (error) {
           serverLogger.error(

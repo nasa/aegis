@@ -584,7 +584,7 @@ describe("maestro namespace socket handlers", () => {
         },
       };
       mockSocket._handlers["sendMDAU"](MISSION_ID, mdau);
-      expect(mockOpUpdateMdau).toHaveBeenCalledWith(sendMdauDocHandle, mdau);
+      expect(mockOpUpdateMdau).toHaveBeenCalledWith(sendMdauDocHandle, MISSION_ID, mdau);
     });
 
     it("processes a fully-populated MDAU payload without logging any errors", async () => {
@@ -691,7 +691,7 @@ describe("maestro namespace socket handlers", () => {
       expect(() => mockSocket._handlers["sendMDAU"](MISSION_ID, fullMdau)).not.toThrow();
 
       expect(mockOpUpdateMdau).toHaveBeenCalledTimes(1);
-      expect(mockOpUpdateMdau).toHaveBeenCalledWith(sendMdauDocHandle, fullMdau);
+      expect(mockOpUpdateMdau).toHaveBeenCalledWith(sendMdauDocHandle, MISSION_ID, fullMdau);
       expect(errorSpy).not.toHaveBeenCalled();
 
       errorSpy.mockRestore();

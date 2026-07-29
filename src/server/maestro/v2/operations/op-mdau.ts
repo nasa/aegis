@@ -5,6 +5,7 @@
  */
 import type { DocHandle } from "@automerge/automerge-repo";
 import { stageAdjacentTraverseRenames } from "operations/stage/stage-traverse";
+import { globalValues } from "server/express/global";
 import {
   applyMdauActions,
   applyMdauEvas,
@@ -19,17 +20,23 @@ import type { MDAU } from "../types/mdau";
 
 /**
  * Update the mission doc from an entire MDAU payload atomically.
+ * Only data belonging to EVAs that Maestro is currently subscribed to is
+ * applied.
+ *
  * @param docHandle - the mission's Automerge doc handle
+ * @param missionId - the mission id (used to look up EVA subscriptions)
  * @param mdau      - the raw MDAU payload from Maestro
  */
 export const opUpdateMdau = (
   docHandle: DocHandle<Mission>,
+  missionId: number,
   mdau: MDAU.MaestroDataAegisUses
 ): void => {
   const mission = docHandle.doc();
   if (!mission) return;
 
-  const stage = stageMdau(mission, mdau);
+  const subscribedEvaUuids = new Set(globalValues.maestroV2.evaSubscriptions.get(missionId) ?? []);
+  const stage = stageMdau(mission, mdau, subscribedEvaUuids);
   if (
     stage.stations.length === 0 &&
     stage.traverses.length === 0 &&

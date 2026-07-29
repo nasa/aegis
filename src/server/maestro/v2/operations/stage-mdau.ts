@@ -19,6 +19,26 @@ import type {
 } from "../types/mdauStageData";
 
 /**
+ * Checks if entity (action/traverse/station...) uuid belongs to a subscribed EVA
+ */
+const isEntitySubscribed = (
+  maps: MdauRefUuidMaps,
+  subscribedEvaUuids: Set<string>,
+  uuid: string,
+  entityKind: string
+): boolean => {
+  const evaUuid = maps.evaUuidByUuid.get(uuid);
+  if (evaUuid !== undefined && subscribedEvaUuids.has(evaUuid)) return true;
+  serverLogger.warning({
+    logId: "socket-maestro-v2",
+    logValue:
+      `stageMdau - received ${entityKind} data (uuid ${uuid}) for an EVA that Maestro ` +
+      `is not subscribed to. Ignoring.`,
+  });
+  return false;
+};
+
+/**
  * Convert an incoming `actionOrderRefUuids` into resolved `actionOrderUuids`.
  * Maestro may only REORDER existing actions — no additions/deletions. Returns
  * the new order, or `null` if invalid or unchanged.
@@ -67,6 +87,7 @@ const stageActionOrder = (
 const stageStations = (
   mission: Mission,
   maps: MdauRefUuidMaps,
+  subscribedEvaUuids: Set<string>,
   aegisStations: NonNullable<MDAU.MaestroDataAegisUses["aegisStations"]>
 ): StationStage[] => {
   const stages: StationStage[] = [];
@@ -82,6 +103,7 @@ const stageStations = (
       });
       continue;
     }
+    if (!isEntitySubscribed(maps, subscribedEvaUuids, uuid, "station")) continue;
 
     const stage: StationStage = { uuid, updatedAt: mdau.updatedAt };
     if (mdau.name !== undefined && mdau.name !== station.name) stage.name = mdau.name;
@@ -108,6 +130,7 @@ const stageStations = (
 const stageTraverses = (
   mission: Mission,
   maps: MdauRefUuidMaps,
+  subscribedEvaUuids: Set<string>,
   aegisTraverse: NonNullable<MDAU.MaestroDataAegisUses["aegisTraverse"]>
 ): TraverseStage[] => {
   const stages: TraverseStage[] = [];
@@ -123,6 +146,7 @@ const stageTraverses = (
       });
       continue;
     }
+    if (!isEntitySubscribed(maps, subscribedEvaUuids, uuid, "traverse")) continue;
 
     const stage: TraverseStage = { uuid, updatedAt: mdau.updatedAt };
     if (mdau.duration !== undefined && mdau.duration !== traverse.duration)
@@ -146,6 +170,7 @@ const stageTraverses = (
 const stageEvas = (
   mission: Mission,
   maps: MdauRefUuidMaps,
+  subscribedEvaUuids: Set<string>,
   aegisEva: NonNullable<MDAU.MaestroDataAegisUses["aegisEva"]>
 ): EvaStage[] => {
   const stages: EvaStage[] = [];
@@ -171,6 +196,7 @@ const stageEvas = (
       });
       continue;
     }
+    if (!isEntitySubscribed(maps, subscribedEvaUuids, uuid, "eva")) continue;
 
     const stage: EvaStage = { uuid, updatedAt: mdau.updatedAt };
     if (mdau.name !== undefined && mdau.name !== eva.name) stage.name = mdau.name;
@@ -192,6 +218,7 @@ const stageEvas = (
 const stageActions = (
   mission: Mission,
   maps: MdauRefUuidMaps,
+  subscribedEvaUuids: Set<string>,
   aegisAction: NonNullable<MDAU.MaestroDataAegisUses["aegisAction"]>
 ): ActionStage[] => {
   const stages: ActionStage[] = [];
@@ -207,6 +234,7 @@ const stageActions = (
       });
       continue;
     }
+    if (!isEntitySubscribed(maps, subscribedEvaUuids, uuid, "action")) continue;
 
     const stage: ActionStage = { uuid, updatedAt: mdau.updatedAt };
     // `actors` maps to AEGIS `crewAssigned`.
@@ -241,6 +269,7 @@ const stageMaestroActivityProperties = (
 const stageRexes = (
   mission: Mission,
   maps: MdauRefUuidMaps,
+  subscribedEvaUuids: Set<string>,
   aegisRexes: NonNullable<MDAU.MaestroDataAegisUses["aegisRexes"]>
 ): RexStage[] => {
   const stages: RexStage[] = [];
@@ -254,6 +283,7 @@ const stageRexes = (
       });
       continue;
     }
+    if (!isEntitySubscribed(maps, subscribedEvaUuids, rexUuid, "rex")) continue;
 
     // Resolve station entries (keyed by station/traverse refUuid → uuid).
     const stationEntries: RexStage["stationEntries"] = {};
@@ -329,15 +359,28 @@ const stageRexes = (
 
 /**
  * Build the complete resolved + diffed plan for one `sendMDAU` payload.
- * Reads data only; never mutates the doc.
+ *
+ * @param mission             - the current mission doc snapshot
+ * @param mdau                - the raw MDAU payload from Maestro
+ * @param subscribedEvaUuids  - EVA uuids Maestro is currently subscribed to
  */
-export const stageMdau = (mission: Mission, mdau: MDAU.MaestroDataAegisUses): MdauStageData => {
+export const stageMdau = (
+  mission: Mission,
+  mdau: MDAU.MaestroDataAegisUses,
+  subscribedEvaUuids: Set<string>
+): MdauStageData => {
   const maps = buildMdauRefUuidMaps(mission);
   return {
-    stations: mdau.aegisStations ? stageStations(mission, maps, mdau.aegisStations) : [],
-    traverses: mdau.aegisTraverse ? stageTraverses(mission, maps, mdau.aegisTraverse) : [],
-    evas: mdau.aegisEva ? stageEvas(mission, maps, mdau.aegisEva) : [],
-    actions: mdau.aegisAction ? stageActions(mission, maps, mdau.aegisAction) : [],
-    rexes: mdau.aegisRexes ? stageRexes(mission, maps, mdau.aegisRexes) : [],
+    stations: mdau.aegisStations
+      ? stageStations(mission, maps, subscribedEvaUuids, mdau.aegisStations)
+      : [],
+    traverses: mdau.aegisTraverse
+      ? stageTraverses(mission, maps, subscribedEvaUuids, mdau.aegisTraverse)
+      : [],
+    evas: mdau.aegisEva ? stageEvas(mission, maps, subscribedEvaUuids, mdau.aegisEva) : [],
+    actions: mdau.aegisAction
+      ? stageActions(mission, maps, subscribedEvaUuids, mdau.aegisAction)
+      : [],
+    rexes: mdau.aegisRexes ? stageRexes(mission, maps, subscribedEvaUuids, mdau.aegisRexes) : [],
   };
 };

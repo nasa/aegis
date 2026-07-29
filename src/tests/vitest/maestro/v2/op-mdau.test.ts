@@ -1,13 +1,29 @@
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
+import { globalValues } from "server/express/global";
 import { opUpdateMdau } from "server/maestro/v2/operations/op-mdau";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { serverLogger } from "utils/logging/serverLogger";
+import type { DocHandle } from "@automerge/automerge-repo";
 import type { MDAU } from "server/maestro/v2/types/mdau";
 
+const MISSION_ID = 9999;
+
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+/**
+ * Subscribe Maestro to every EVA currently in the doc, then run opUpdateMdau.
+ * Keeps existing tests focused on their behaviour without repeating the
+ * subscription setup. Dedicated tests below cover the unsubscribed path.
+ */
+function runMdau(handle: DocHandle<Mission>, mdau: MDAU.MaestroDataAegisUses): void {
+  const evaUuids = Object.keys(handle.doc().evas ?? {});
+  globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, evaUuids);
+  opUpdateMdau(handle, MISSION_ID, mdau);
+}
 
 /**
  * Build a minimal EVA sequence:
@@ -40,6 +56,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  globalValues.maestroV2.evaSubscriptions = new Map();
   getMissionDocHandle().change((m) => {
     m.stations = {};
     m.traverses = {};
@@ -58,7 +75,7 @@ afterAll(() => {
 describe("opUpdateMdau() — stations", () => {
   it("does nothing when the payload is empty", () => {
     const handle = getMissionDocHandle();
-    expect(() => opUpdateMdau(handle, {})).not.toThrow();
+    expect(() => opUpdateMdau(handle, MISSION_ID, {})).not.toThrow();
   });
 
   it("updates a station's name and duration by refUuid (as-planned)", () => {
@@ -76,7 +93,7 @@ describe("opUpdateMdau() — stations", () => {
     });
 
     const now = Date.now();
-    opUpdateMdau(handle, {
+    runMdau(handle, {
       aegisStations: {
         [station.refUuid]: {
           refUuid: station.refUuid,
@@ -109,7 +126,7 @@ describe("opUpdateMdau() — stations", () => {
     });
     const before = handle.doc().stations[station.uuid].updatedAt;
 
-    opUpdateMdau(handle, {
+    runMdau(handle, {
       aegisStations: {
         [station.refUuid]: {
           refUuid: station.refUuid,
@@ -139,7 +156,7 @@ describe("opUpdateMdau() — stations", () => {
       m.evas[eva.uuid] = eva;
     });
 
-    opUpdateMdau(handle, {
+    runMdau(handle, {
       aegisStations: {
         [station.refUuid]: {
           refUuid: station.refUuid,
@@ -176,7 +193,7 @@ describe("opUpdateMdau() — stations", () => {
       m.evas[eva.uuid] = eva;
     });
 
-    opUpdateMdau(handle, {
+    runMdau(handle, {
       aegisStations: {
         [station.refUuid]: {
           refUuid: station.refUuid,
@@ -212,7 +229,7 @@ describe("opUpdateMdau() — stations", () => {
       m.evas[eva.uuid] = eva;
     });
 
-    opUpdateMdau(handle, {
+    runMdau(handle, {
       aegisStations: {
         [station.refUuid]: {
           refUuid: station.refUuid,
@@ -247,7 +264,7 @@ describe("opUpdateMdau() — traverses", () => {
     });
 
     const now = Date.now();
-    opUpdateMdau(handle, {
+    runMdau(handle, {
       aegisTraverse: {
         [traverse.refUuid]: {
           refUuid: traverse.refUuid,
@@ -283,7 +300,7 @@ describe("opUpdateMdau() — evas", () => {
     });
 
     const now = Date.now();
-    opUpdateMdau(handle, {
+    runMdau(handle, {
       aegisEva: {
         [eva.refUuid]: {
           refUuid: eva.refUuid,
@@ -327,7 +344,7 @@ describe("opUpdateMdau() — actions", () => {
     });
 
     const now = Date.now();
-    opUpdateMdau(handle, {
+    runMdau(handle, {
       aegisAction: {
         [action.refUuid]: {
           refUuid: action.refUuid,
@@ -411,7 +428,7 @@ describe("opUpdateMdau() — rexes", () => {
       },
     };
 
-    opUpdateMdau(handle, { aegisRexes: { [rex.uuid]: mdauRex } });
+    runMdau(handle, { aegisRexes: { [rex.uuid]: mdauRex } });
 
     const updated = handle.doc().rexes[rex.uuid];
     expect(updated.petRunning).toBe(true);
@@ -444,7 +461,7 @@ describe("opUpdateMdau() — rexes", () => {
       m.rexes[otherRex.uuid] = otherRex;
     });
 
-    opUpdateMdau(handle, {
+    runMdau(handle, {
       aegisRexes: {
         [rex.uuid]: {
           uuid: rex.uuid,
@@ -474,7 +491,7 @@ describe("opUpdateMdau() — rexes", () => {
       m.landerLocation = { lat: 1, lng: 2 };
     });
 
-    opUpdateMdau(handle, {
+    runMdau(handle, {
       aegisRexes: {
         [rex.uuid]: {
           uuid: rex.uuid,
@@ -495,5 +512,173 @@ describe("opUpdateMdau() — rexes", () => {
 
     const updated = handle.doc().rexes[rex.uuid];
     expect(updated.posEntries?.length).toBe(rex.posSources.length);
+  });
+});
+
+// ── opUpdateMdau: subscription gating ────────────────────────────────────────
+
+describe("opUpdateMdau() — subscription gating", () => {
+  it("ignores station data for an EVA that Maestro is not subscribed to", () => {
+    const station = generateBlankStation({ name: "Vitest Alpha", duration: 10 });
+    const eva = generateBlankEVA({
+      egressLocationUuid: "lander",
+      ingressLocationUuid: "lander",
+      sequence: [{ type: "station", uuid: station.uuid }],
+    });
+
+    const handle = getMissionDocHandle();
+    handle.change((m) => {
+      m.stations[station.uuid] = station;
+      m.evas[eva.uuid] = eva;
+    });
+
+    // No subscriptions for this mission.
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, []);
+    const warnSpy = vi.spyOn(serverLogger, "warning").mockImplementation(() => {});
+
+    opUpdateMdau(handle, MISSION_ID, {
+      aegisStations: {
+        [station.refUuid]: {
+          refUuid: station.refUuid,
+          name: "Should Not Apply",
+          duration: 99,
+          actionOrderRefUuids: null,
+          updatedAt: Date.now(),
+        },
+      },
+    });
+
+    const updated = handle.doc().stations[station.uuid];
+    expect(updated.name).toBe("Vitest Alpha");
+    expect(updated.duration).toBe(10);
+    expect(warnSpy).toHaveBeenCalled();
+  });
+
+  it("applies station data only for the subscribed EVA and drops the rest", () => {
+    const subscribedStation = generateBlankStation({ name: "Subscribed", duration: 10 });
+    const unsubscribedStation = generateBlankStation({ name: "Unsubscribed", duration: 10 });
+    const subscribedEva = generateBlankEVA({
+      egressLocationUuid: "lander",
+      ingressLocationUuid: "lander",
+      sequence: [{ type: "station", uuid: subscribedStation.uuid }],
+    });
+    const unsubscribedEva = generateBlankEVA({
+      egressLocationUuid: "lander",
+      ingressLocationUuid: "lander",
+      sequence: [{ type: "station", uuid: unsubscribedStation.uuid }],
+    });
+
+    const handle = getMissionDocHandle();
+    handle.change((m) => {
+      m.stations[subscribedStation.uuid] = subscribedStation;
+      m.stations[unsubscribedStation.uuid] = unsubscribedStation;
+      m.evas[subscribedEva.uuid] = subscribedEva;
+      m.evas[unsubscribedEva.uuid] = unsubscribedEva;
+    });
+
+    // Subscribe only to the first EVA.
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [subscribedEva.uuid]);
+    const warnSpy = vi.spyOn(serverLogger, "warning").mockImplementation(() => {});
+
+    const now = Date.now();
+    opUpdateMdau(handle, MISSION_ID, {
+      aegisStations: {
+        [subscribedStation.refUuid]: {
+          refUuid: subscribedStation.refUuid,
+          name: "Subscribed Updated",
+          duration: 20,
+          actionOrderRefUuids: null,
+          updatedAt: now,
+        },
+        [unsubscribedStation.refUuid]: {
+          refUuid: unsubscribedStation.refUuid,
+          name: "Unsubscribed Updated",
+          duration: 30,
+          actionOrderRefUuids: null,
+          updatedAt: now,
+        },
+      },
+    });
+
+    const doc = handle.doc();
+    expect(doc.stations[subscribedStation.uuid].name).toBe("Subscribed Updated");
+    expect(doc.stations[unsubscribedStation.uuid].name).toBe("Unsubscribed");
+    expect(warnSpy).toHaveBeenCalled();
+  });
+
+  it("ignores action data for an unsubscribed EVA", () => {
+    const station = generateBlankStation({ name: "Vitest Alpha" });
+    const action = generateBlankAction({ stationUuid: station.uuid, crewAssigned: ["EV1"] });
+    station.actionOrderUuids = [action.uuid];
+    const eva = generateBlankEVA({
+      egressLocationUuid: "lander",
+      ingressLocationUuid: "lander",
+      sequence: [{ type: "station", uuid: station.uuid }],
+    });
+
+    const handle = getMissionDocHandle();
+    handle.change((m) => {
+      m.stations[station.uuid] = station;
+      m.actions[action.uuid] = action;
+      m.evas[eva.uuid] = eva;
+    });
+
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, []);
+    const warnSpy = vi.spyOn(serverLogger, "warning").mockImplementation(() => {});
+
+    opUpdateMdau(handle, MISSION_ID, {
+      aegisAction: {
+        [action.refUuid]: {
+          refUuid: action.refUuid,
+          actors: ["EV1", "EV2"],
+          updatedAt: Date.now(),
+        },
+      },
+    });
+
+    expect(handle.doc().actions[action.uuid].crewAssigned).toEqual(["EV1"]);
+    expect(warnSpy).toHaveBeenCalled();
+  });
+
+  it("ignores rex data for an unsubscribed EVA", () => {
+    const eva = generateBlankEVA({
+      egressLocationUuid: "lander",
+      ingressLocationUuid: "lander",
+      sequence: [],
+    });
+    const rex = generateBlankRex({ evaUuid: eva.uuid, isRunning: false, maestroControlled: false });
+
+    const handle = getMissionDocHandle();
+    handle.change((m) => {
+      m.evas[eva.uuid] = eva;
+      m.rexes[rex.uuid] = rex;
+    });
+
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, []);
+    const warnSpy = vi.spyOn(serverLogger, "warning").mockImplementation(() => {});
+
+    opUpdateMdau(handle, MISSION_ID, {
+      aegisRexes: {
+        [rex.uuid]: {
+          uuid: rex.uuid,
+          petStartStopTimestamp: null,
+          petValueAtStartStop: "+00:00:00",
+          petRunning: true,
+          isRunning: true,
+          maestroControlled: true,
+          updatedAt: Date.now(),
+          maestroActivityPropertiesByRefUuid: {},
+          xgressEntries: {},
+          stationEntriesByRefUuid: {},
+          traverseEntriesByRefUuid: {},
+          actionEntriesByRefUuid: {},
+        },
+      },
+    });
+
+    const updated = handle.doc().rexes[rex.uuid];
+    expect(updated.isRunning).toBe(false);
+    expect(updated.maestroControlled).toBe(false);
+    expect(warnSpy).toHaveBeenCalled();
   });
 });
