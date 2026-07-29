@@ -3,7 +3,7 @@ import type { App_User_db } from "server/database/models/_allModels";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import AppUserFactory from "../../fixtures/entityFactories/AppUserFactory";
+import AppUserFactory from "../../../fixtures/entityFactories/AppUserFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
 

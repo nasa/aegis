@@ -18,7 +18,7 @@ import {
   cleanupMaestro,
   removeEvaFromSubscriptions,
 } from "server/maestro/v2/sockets-maestro-emitters";
-import { applyMdauStationsToDoc } from "server/maestro/v2/sendMdau";
+import { opUpdateMdau } from "server/maestro/v2/operations/op-mdau";
 import { emssTokenIsValid } from "utils/permissions";
 import { buildAegisSliceForMaestro } from "server/maestro/v2/buildAegisSlice";
 import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
@@ -203,18 +203,21 @@ export const setupMaestroNamespace = (
           return;
         }
         try {
-          const { aegisStations } = mdau;
+          if (!mdau) return;
 
-          // update stations
-          applyMdauStationsToDoc(missionId, aegisStations).catch((error) => {
-            serverLogger.error(
-              {
-                logId: "socket-maestro-v2",
-                logValue: "SocketIO - sendMDAU - applyMdauStationsToDoc",
-              },
-              error instanceof Error ? error : new Error(String(error))
-            );
-          });
+          // Use the already-cached doc handle for this mission.
+          const docHandle = globalValues.maestroV2.docHandles.get(missionId);
+          if (!docHandle) {
+            serverLogger.warning({
+              logId: "socket-maestro-v2",
+              logValue: `sendMDAU - no doc handle available for mission ${missionId}`,
+            });
+            return;
+          }
+
+          // Update the doc from the full MDAU payload (stations, traverses,
+          // evas, actions, rexes) in a single atomic Automerge change.
+          opUpdateMdau(docHandle, mdau);
         } catch (error) {
           serverLogger.error(
             { logId: "socket-maestro-v2", logValue: "SocketIO - sendMDAU" },
