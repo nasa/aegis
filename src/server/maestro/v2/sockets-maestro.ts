@@ -14,13 +14,13 @@ import { RequestContext } from "@mikro-orm/postgresql";
 import { globalValues } from "../../express/global";
 import {
   addMaestroDocListenerForMission,
-  applyMdauStationsToDoc,
   buildDebugInfo,
   cleanupMaestro,
   removeEvaFromSubscriptions,
 } from "server/maestro/v2/sockets-maestro-emitters";
+import { applyMdauStationsToDoc } from "server/maestro/v2/sendMdau";
 import { emssTokenIsValid } from "utils/permissions";
-import { buildAegisSliceForMaestro } from "server/maestro/v2/maestro";
+import { buildAegisSliceForMaestro } from "server/maestro/v2/buildAegisSlice";
 import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import type {

@@ -30,14 +30,20 @@ vi.mock("server/maestro/v2/sockets-maestro-emitters", async () => {
   return {
     ...actual,
     addMaestroDocListenerForMission: mockAddMaestroDocListenerForMission,
-    applyMdauStationsToDoc: mockApplyMdauStationsToDoc,
   };
 });
 
-// Mock buildAegisSliceForMaestro from its actual source module (maestro.ts),
+// Mock applyMdauStationsToDoc from its actual source module (sendMdau.ts),
 // since sockets-maestro.ts imports it directly from there
-vi.mock("server/maestro/v2/maestro", async () => {
-  const actual = await vi.importActual("server/maestro/v2/maestro");
+vi.mock("server/maestro/v2/sendMdau", async () => {
+  const actual = await vi.importActual("server/maestro/v2/sendMdau");
+  return { ...actual, applyMdauStationsToDoc: mockApplyMdauStationsToDoc };
+});
+
+// Mock buildAegisSliceForMaestro from its actual source module (buildAegisSlice.ts),
+// since sockets-maestro.ts imports it directly from there
+vi.mock("server/maestro/v2/buildAegisSlice", async () => {
+  const actual = await vi.importActual("server/maestro/v2/buildAegisSlice");
   return { ...actual, buildAegisSliceForMaestro: mockBuildAegisSliceForMaestro };
 });
 
