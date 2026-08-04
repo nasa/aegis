@@ -15,6 +15,7 @@ import {
   upsertBackupDbMissions,
 } from "./mission";
 import { deleteFile } from "server/file/file";
+import { missionFieldsValidator } from "utils/validateSchemaServer";
 
 /**
  * Endpoint for working with the mission document in automerge
@@ -131,35 +132,6 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * Top-level mission fields that may be set through the fields-update endpoint.
- * Deliberately limited to GIS/setup metadata (projection, DEM, lander, naming) so
- * external tooling cannot clobber collaborative entity collections (pois/stations/evas/…).
- */
-const UPDATABLE_MISSION_FIELDS = [
-  "name",
-  "description",
-  "landerLocation",
-  "landerElevationMeters",
-  "planetRadius",
-  "initialZoom",
-  "demFilePath",
-  "demResolution",
-  "projIsCustom",
-  "projEpsg",
-  "projProj4String",
-  "projBoundsMinX",
-  "projBoundsMinY",
-  "projBoundsMaxX",
-  "projBoundsMaxY",
-  "projOriginX",
-  "projOriginY",
-  "projResZoomLevel",
-  "projResUnitsPerPixel",
-  "actionSystemVersion",
-  "usingLGRSCoordinates",
-] as const satisfies readonly (keyof Mission)[];
-
-/**
  * Apply a subset of GIS/setup fields to an existing mission's automerge document.
  *
  * Mission entity data lives only in automerge (mutated in-browser via doc hooks), so
@@ -210,23 +182,26 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Keep only allow-listed keys that were actually supplied.
-    const applied: (keyof Mission)[] = UPDATABLE_MISSION_FIELDS.filter((key) =>
-      Object.prototype.hasOwnProperty.call(fields, key)
-    );
+    if (!missionFieldsValidator(fields)) {
+      res.status(400).json({
+        status: "error",
+        message: "Invalid mission fields",
+        data: missionFieldsValidator.errors,
+      });
+      return;
+    }
+
+    const applied = Object.keys(fields) as (keyof MissionFields)[];
     if (applied.length === 0) {
       res.status(400).json({
         status: "error",
-        message: `No updatable fields provided. Allowed: ${UPDATABLE_MISSION_FIELDS.join(", ")}`,
+        message: "No mission fields provided",
       });
       return;
     }
 
     handle.change((m: Mission) => {
-      for (const key of applied) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (m as any)[key] = (fields as any)[key];
-      }
+      Object.assign(m, fields);
       m.updatedAt = new Date().getTime();
     });
 
