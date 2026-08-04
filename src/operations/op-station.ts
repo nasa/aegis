@@ -37,25 +37,29 @@ export function opUpdateStationName(
   });
 }
 
+export type MdauStationUpdateV2 = {
+  uuid: string;
+  refUuid?: string;
+  rexUuid?: string;
+} & {
+  [field: string]: unknown;
+};
+
 /**
- * Apply a batch of MDAU-driven station updates atomically.
+ * Apply a batch of MDAU-driven station updates atomically. (Maestro v2)
  */
-export function opApplyMdauStationUpdates(
+export function opApplyMdauStationUpdatesV2(
   missionDocHandle: DocHandle<Mission>,
-  stations: (Partial<
-    Maegistro.MdauStation & {
-      uuid: string;
-    }
-  > & {
-    uuid: string;
-  })[]
+  stations: MdauStationUpdateV2[]
 ): void {
   const mission = missionDocHandle.doc();
 
   // Pre-compute traverse rename cascades for any name changes.
   const traverseRenames: TraverseRenameStageData[] = [];
   for (const partialMdauStation of stations) {
-    if (partialMdauStation.name === undefined) continue;
+    // `name` is typed `unknown` because MdauStationUpdateV2 accepts an open bag
+    // of MDAU-driven fields; narrow to string before cascading renames.
+    if (typeof partialMdauStation.name !== "string") continue;
     const renames = stageAdjacentTraverseRenames(mission, {
       stationUuid: partialMdauStation.uuid,
       newName: partialMdauStation.name,
@@ -86,6 +90,4 @@ export function opApplyMdauStationUpdates(
       });
     }
   });
-
-  return;
 }

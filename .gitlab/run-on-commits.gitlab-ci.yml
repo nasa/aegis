@@ -192,6 +192,7 @@ test-vitest:
       --config src/tests/vitest/vitest.config.mts
       --coverage
       --reporter=blob
+      --reporter=default
       --shard=${SHARD_INDEX}/${NUM_SHARDS}
   artifacts:
     paths:

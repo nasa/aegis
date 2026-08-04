@@ -8,7 +8,6 @@ import type { DefaultEventsMap, Socket } from "socket.io";
 
 export const setupSocketIO = (): void => {
   const visitorsData: VisitorData[] = globalValues.serverSocketStatus.visitorsData;
-  const maestroVisitors: MaestroVisitor[] = globalValues.serverSocketStatus.maestroVisitors;
   const io = globalValues.socketio;
 
   // Listen for connection events
@@ -66,21 +65,6 @@ export const setupSocketIO = (): void => {
         }
       });
 
-      // Deprecated
-      socket.on("maestroJoin", (maestroVisitor: MaestroVisitor) => {
-        socket.join(`maestro`); // join a maestro room
-
-        // set this visitor's information on the server's global
-        // remove this socket from tracking list if it exists and push the new one
-        remove(maestroVisitors, (item) => {
-          return item.socketId === maestroVisitor.socketId;
-        });
-        maestroVisitors.push(maestroVisitor);
-
-        // update the inspector room
-        io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
-      });
-
       socket.on("inspectorJoin", () => {
         socket.join("inspector"); // join an inspector room
 
@@ -88,22 +72,8 @@ export const setupSocketIO = (): void => {
         io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
       });
 
-      socket.on("getMaestroDebugInfo", (callback) => {
-        const docListenerMissionIds = Array.from(globalValues.maestro.docListeners.keys());
-        const evaSubscriptions: { [missionId: number]: string[] } = {};
-        globalValues.maestro.evaSubscriptions.forEach((uuids, missionId) => {
-          evaSubscriptions[missionId] = uuids;
-        });
-        callback({ docListenerMissionIds, evaSubscriptions });
-      });
-
       socket.on("disconnect", () => {
         try {
-          // remove this socket if this is a deprecated maestroJoin visitor
-          remove(maestroVisitors, (item) => {
-            return item.socketId === socket.id;
-          });
-
           // remove this socket if it's a regular visitor
           const visitorBeingRemoved = find(visitorsData, {
             socketId: socket.id,
@@ -170,7 +140,7 @@ const getStatusFromServer = (missionId: number): StatusFromServer => {
 };
 
 /**
- * Server emits an upsert message to all aegis clients in the mission room, and maestro room
+ * Server emits an upsert message to all aegis clients in the mission room
  * Called from our api endpoints
  * @param payload
  */
@@ -197,7 +167,7 @@ export const emitStoreUpsert = (payload: StoreUpsert): void => {
 };
 
 /**
- * Server emits a delete message to all aegis clients in the mission room, and maestro room
+ * Server emits a delete message to all aegis clients in the mission room
  * Called from our api endpoints
  * @param payload
  */

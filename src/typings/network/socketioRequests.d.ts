@@ -18,10 +18,3 @@ type RefRex = {
   updatedAt: string;
   isRunning: boolean;
 };
-
-// used in api/v1/readable/eva route and maestro socket handler
-interface ReadableEvaParams {
-  missionId: number;
-  evaRefUuid?: string;
-  rexUuid?: string;
-}
