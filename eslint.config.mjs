@@ -29,6 +29,8 @@ export default [
       "**/.local",
       "playwright-report/**",
       "test-results/**",
+      // Vendored `@emss/*` stand-ins that emulate third-party packages; see emss-fallback/README.md.
+      "emss-fallback/**",
     ],
   },
   ...fixupConfigRules(compat.extends("prettier", "plugin:react-hooks/recommended")),
