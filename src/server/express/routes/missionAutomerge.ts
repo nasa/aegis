@@ -148,14 +148,13 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
   const { missionId, fields } = (req.body ?? {}) as MissionFieldsUpdateRequest;
   const emssToken = req.headers["emss-token"] as string;
 
-  const externalApiPermission = emssTokenIsValid(emssToken);
   const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
     emssToken,
   });
-  if (!externalApiPermission || !editPermission) {
+  if (!editPermission) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",
@@ -211,7 +210,7 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
         mission.landerLocation?.lng !== requestedLanderLocation.lng ||
         mission.landerLocation?.alt !== requestedLanderLocation.alt);
 
-    if (landerLocationChanged && missionHasLanderDependentAssets(mission)) {
+    if (landerLocationChanged && missionHasLanderDependentEntities(mission)) {
       res.status(409).json({
         status: "failure",
         message:
@@ -329,7 +328,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 
 export default router;
 
-export function missionHasLanderDependentAssets(mission: Mission): boolean {
+export function missionHasLanderDependentEntities(mission: Mission): boolean {
   const hasPlacedStation = Object.values(mission.stations ?? {}).some(
     (station) => station.location != null || (station.walkbackPath?.length ?? 0) > 0
   );

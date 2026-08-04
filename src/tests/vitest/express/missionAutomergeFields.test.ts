@@ -1,12 +1,12 @@
-import { missionHasLanderDependentAssets } from "server/express/routes/missionAutomerge";
+import { missionHasLanderDependentEntities } from "server/express/routes/missionAutomerge";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 
-describe("missionHasLanderDependentAssets", () => {
+describe("missionHasLanderDependentEntities", () => {
   test("returns false for a blank mission", () => {
-    expect(missionHasLanderDependentAssets(generateBlankMission())).toBe(false);
+    expect(missionHasLanderDependentEntities(generateBlankMission())).toBe(false);
   });
 
   test("returns true for a placed station", () => {
@@ -14,7 +14,7 @@ describe("missionHasLanderDependentAssets", () => {
     const station = generateBlankStation({ location: { lat: 1, lng: 2 } });
     mission.stations[station.uuid] = station;
 
-    expect(missionHasLanderDependentAssets(mission)).toBe(true);
+    expect(missionHasLanderDependentEntities(mission)).toBe(true);
   });
 
   test("returns true for a station with an existing walkback", () => {
@@ -27,7 +27,7 @@ describe("missionHasLanderDependentAssets", () => {
     });
     mission.stations[station.uuid] = station;
 
-    expect(missionHasLanderDependentAssets(mission)).toBe(true);
+    expect(missionHasLanderDependentEntities(mission)).toBe(true);
   });
 
   test("returns true for an EVA with a lander-connected traverse", () => {
@@ -41,7 +41,7 @@ describe("missionHasLanderDependentAssets", () => {
     mission.traverses[traverse.uuid] = traverse;
     mission.evas[eva.uuid] = eva;
 
-    expect(missionHasLanderDependentAssets(mission)).toBe(true);
+    expect(missionHasLanderDependentEntities(mission)).toBe(true);
   });
 
   test("ignores EVAs that do not touch the lander", () => {
@@ -55,6 +55,6 @@ describe("missionHasLanderDependentAssets", () => {
     mission.traverses[traverse.uuid] = traverse;
     mission.evas[eva.uuid] = eva;
 
-    expect(missionHasLanderDependentAssets(mission)).toBe(false);
+    expect(missionHasLanderDependentEntities(mission)).toBe(false);
   });
 });
