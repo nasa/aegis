@@ -12,6 +12,7 @@ import adminCommon from "./adminCommon.module.css";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { maestroCreateDoc } from "http-client/maestro";
 import { getCurrentUser } from "packages/getCurrentUser";
+import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
 
 type RouteParams = {
   id: string;
@@ -564,9 +565,9 @@ const Mission: React.FunctionComponent = () => {
                   changeAutomergeMission={changeAutomergeMission}
                 />
 
-                {/* Maestro Section */}
+                {/* Maegistro V2 section */}
                 <section className={adminCommon.section} style={{ marginBottom: 16 }}>
-                  <h2 className={adminCommon.sectionHeading}>Maestro</h2>
+                  <h2 className={adminCommon.sectionHeading}>Maegistro V2</h2>
                   <div className={adminCommon.details}>
                     {automergeMission.maestroDocId ? (
                       <div>

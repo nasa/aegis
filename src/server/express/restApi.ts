@@ -24,10 +24,17 @@ import appUsersRoutes from "./routes/appUsers";
 import timeRoutes from "./routes/time";
 import folderRoutes from "./routes/folder";
 
-import rexControl from "./routes/emss/rexControl";
-import rexByEvaRef from "./routes/emss/getRexesByEvaRef";
-import getMissions from "./routes/emss/getMissions";
-import rexOverwrite from "./routes/emss/rexOverwrite";
+import rexByEvaRef from "../maestro/v1/routes/getRexesByEvaRef";
+import getMissions from "../maestro/v1/routes/getMissions";
+import readableEvaRoutes from "../maestro/v1/routes/eva";
+import readableMissionRoutes from "../maestro/v1/routes/mission";
+
+import rexByEvaRefV2 from "../maestro/v2/routes/getRexesByEvaRef";
+import getMissionsV2 from "../maestro/v2/routes/getMissions";
+import readableEvaRoutesV2 from "../maestro/v2/routes/eva";
+import readableMissionRoutesV2 from "../maestro/v2/routes/mission";
+import docCreateV2 from "../maestro/v2/routes/docCreate";
+
 import enableEmssApi from "./routes/emss/enableEmssApi";
 
 import socketLastEditEventRoutes from "./routes/socket/lastEditEvent";
@@ -48,11 +55,6 @@ import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 import docListingRoute from "./routes/docListing";
 import environmentConfigRoute from "./routes/environmentConfig";
 import missionAutomergeRoutes from "./routes/missionAutomerge";
-import maestroRoutes from "./routes/maestro";
-
-import readableActionRoutes from "./routes/readable/action";
-import readableEvaRoutes from "./routes/readable/eva";
-import readableMissionRoutes from "./routes/readable/mission";
 
 import dustRoute from "./routes/external/dust";
 
@@ -124,7 +126,7 @@ app.use("/api/v1/stm", stmRoutes);
 app.use("/api/v1/stmRules", stmRulesRoutes);
 app.use("/api/v1/sublayer", sublayerRoutes);
 app.use("/api/v1/appUsers", appUsersRoutes);
-app.use("/api/v1/time", timeRoutes); // Added route
+app.use("/api/v1/time", timeRoutes);
 app.use("/api/v1/file/boxDownloadFile", boxDownloadFileRoute);
 app.use("/api/v1/file/boxGetFolderItems", boxGetFolderItems);
 app.use("/api/v1/file/upload", fileUploadRoute);
@@ -135,19 +137,22 @@ app.use("/api/v1/log/from-client", logFromClient);
 app.use("/api/v1/folder", folderRoutes);
 app.use("/api/v1/docListing", docListingRoute);
 app.use("/api/v1/environmentConfig", environmentConfigRoute);
-app.use("/api/v1/maestro", maestroRoutes);
 
-// readable endpoints
-app.use("/api/v1/readable/action", readableActionRoutes);
+// require emssToken auth only
+app.use("/api/v1/emss/enableEmssApi", enableEmssApi);
+
+// Maegistro V1
 app.use("/api/v1/readable/eva", readableEvaRoutes);
 app.use("/api/v1/readable/mission", readableMissionRoutes);
-
-// endpoints that require emssToken auth only
-app.use("/api/v1/emss/rexControl", rexControl);
 app.use("/api/v1/emss/getRexesByEvaRef", rexByEvaRef);
 app.use("/api/v1/emss/getMissions", getMissions);
-app.use("/api/v1/emss/enableEmssApi", enableEmssApi);
-app.use("/api/v1/emss/rexOverwrite", rexOverwrite);
+
+// Maegistro V2
+app.use("/api/v1/maestro/v2/eva", readableEvaRoutesV2);
+app.use("/api/v1/maestro/v2/mission", readableMissionRoutesV2);
+app.use("/api/v1/maestro/v2/getRexesByEvaRef", rexByEvaRefV2);
+app.use("/api/v1/maestro/v2/getMissions", getMissionsV2);
+app.use("/api/v1/maestro/v2/doc/create", docCreateV2);
 
 // external endpoints used by other stakeholders
 app.use("/api/v1/external/dust", dustRoute);

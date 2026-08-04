@@ -35,6 +35,7 @@ import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { selectAsPlannedStations } from "store/selectors";
 import { hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
+import { getActionDisplayName } from "utils/component-helpers";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -143,6 +144,17 @@ export function MarkerLabels(): null {
   const asPlannedStationsFromDoc = useMissionDocSelector(selectAsPlannedStations, deepEqual);
   const poisFromDoc = useMissionDocSelector((m) => Object.values(m.pois ?? {}), deepEqual);
   const actionsFromDoc = useMissionDocSelector((m) => Object.values(m.actions ?? {}), deepEqual);
+
+  // Naming inputs for STM (v2) actions, whose label is built from the
+  // verb/noun/adjective definition joined by the mission's custom conjunctions.
+  const actionNaming = useMissionDocSelector(
+    (m) => ({
+      actionSystemVersion: m.actionSystemVersion,
+      actionDefinitions: m.actionDefinitions,
+      actionDefinitionConjunctions: m.actionDefinitionConjunctions,
+    }),
+    deepEqual
+  );
 
   const selectedTraverseUuid = useMissionDocSelector((m) => {
     if (!selectedSeqItemUuid) return null;
@@ -426,7 +438,7 @@ export function MarkerLabels(): null {
         if (action.location?.lat != null && action.location?.lng != null) {
           infos.push({
             id: `action-${action.uuid}`,
-            name: action.name,
+            name: getActionDisplayName({ action, mission: actionNaming }),
             labelType: "action",
             anchorCoord: toMapCoord(action.location) as [number, number],
             priority: PRIORITY_ACTION,
@@ -572,7 +584,7 @@ export function MarkerLabels(): null {
           if (action?.location?.lat != null && action?.location?.lng != null) {
             infos.push({
               id: hoverLabelId,
-              name: action.name,
+              name: getActionDisplayName({ action, mission: actionNaming }),
               labelType: "action",
               anchorCoord: toMapCoord(action.location) as [number, number],
               priority: PRIORITY_ACTION,
@@ -599,6 +611,7 @@ export function MarkerLabels(): null {
     poisFromDoc,
     selectedPoiUuid,
     actionsFromDoc,
+    actionNaming,
     selectedTraverseUuid,
     dashboardActionParentUuids,
     folders,

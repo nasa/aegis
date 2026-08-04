@@ -70,6 +70,8 @@ describe("Thunk Position Entry Tests", () => {
       expect(updatedRex.updatedAt).not.toBeNull();
       // posEntryInEdit cleared in redux
       expect(store.getState().rex.posEntryInEdit.uuid).toBeNull();
+      // newly created pos entry is auto-selected
+      expect(store.getState().rex.selectedPosEntryUuid).toEqual(posEntryInEdit.uuid);
     });
 
     test("updates an existing pos entry's location on automerge", async () => {
@@ -100,6 +102,8 @@ describe("Thunk Position Entry Tests", () => {
       expect(updatedRex.posEntries[0].location).toEqual(newLoc);
       expect(updatedRex.updatedAt).not.toBeNull();
       expect(store.getState().rex.posEntryInEdit.uuid).toBeNull();
+      // editing an existing entry does not change the selected pos entry
+      expect(store.getState().rex.selectedPosEntryUuid).toBeNull();
     });
 
     test("rejects when posEntryUuid does not match posEntryInEdit", async () => {

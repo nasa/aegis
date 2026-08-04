@@ -1,9 +1,142 @@
+<p>
+  <img src="src/public/images/logo_NASA.svg" alt="NASA logo" height="48" />
+</p>
+
 # Artemis EVA GIS (AEGIS)
 
-AEGIS is building the EVA composition and execution tool that seamlessly integrates map data into the EVA product development process to plan, train, fly, explore lunar surface EVA
+AEGIS (Artemis EVA Geographic Information System) is a NASA planning tool aimed at enabling NASA's Artemis Extravehicular Activity (EVA) operations. AEGIS supports the creation of EVA stations, complete with activity definitions, crew assignments, contingency plans, and safety measures. AEGIS facilitates EVA planning by automating complex calculations and offering a spatiotemporal view of EVA plans. AEGIS also integrates Science Traceability Matrix (STM) objectives with spatial maps to help the flight controller community maximize the coverage of science objectives in the dynamic environment of lunar EVAs. The product's goal is to enable flight controllers, which includes the mission science team, to execute successful missions.
 
-Wiki: https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS
+  <img src="src/public/images/EMSS.svg" alt="EMSS logo" height="220" />
 
+AEGIS is one of the Exploration Mission System Software (EMSS) tools built by the EMSS team at NASA Johnson Space Center to support the Flight Operations **plan, train, fly, explore** work processes. It evolved from early field-test prototypes (e.g., [JETT3](https://ntrs.nasa.gov/citations/20230010686), Fall 2022) into the prime surface mission-planning tool for EVA operations in just three years, and works alongside sibling tools such as Maestro (EVA procedure authoring and execution), [CODA](https://github.com/nasa/coda) (temporal alignment of disparate data sets), and Talky Bot (real-time voice-loop transcription).
+
+📄 Read the paper: [Continuing Development and Enabling of Exploration Mission Systems Software](https://ttu-ir.tdl.org/items/ebd7ceef-0e7d-4f06-9829-6d2b5fd8a64b) (2026 IEEE Aerospace Conference) and [Supporting Exploration Missions by Enabling Exploration Mission System Software](https://ntrs.nasa.gov/citations/20230006625) (2023 ICES Conference)
+
+## Screenshots
+
+### Editor (main planning view)
+
+The editor is the primary workspace for composing EVAs -- building stations, defining activities, assigning crew, and tracking Science Traceability Matrix coverage against an annotated lunar map.
+
+![AEGIS editor with feature callouts](docs/AEGIS-editor-callouts.jpg)
+
+### Dashboard
+
+The dashboard provides a mission-level overview of EVA plans, summaries, and system status that updates live throughout mission execution
+
+![AEGIS dashboard with feature callouts](docs/AEGIS-dashboard-callouts.jpg)
+
+## Key Capabilities
+
+- **EVA, station, and POI composition** -- build EVAs from stations and points of interest, each with activity definitions, crew assignments, contingency plans, and safety measures.
+- **Science Traceability Matrix (STM) integration** -- plan against science objectives and visualize STM coverage to maximize the science return of each traverse.
+- **Spatiotemporal planning** -- combine annotated maps, data profiles, EVA sequence diagrams, and measure/bearing calculations for a unified view of plans over space and time.
+- **Automated calculations** -- traverse timing, distances, bearings, and elevation profiles are computed automatically from the underlying GIS data.
+- **Real-time multi-user collaboration** -- multiple editors and viewers work on the same mission simultaneously via a collaborative editing layer.
+- **Real-time execution mode** -- follow an EVA as it is flown, comparing the plan against as-executed progress.
+
+## Map & GIS Rendering
+
+The map is a custom [OpenLayers](https://openlayers.org/) engine purpose-built for lunar surface data. Unlike a typical web map, it does not assume a Web Mercator earth -- it renders **custom, per-mission coordinate reference systems**, including the polar projections required for Artemis' south-pole landing region.
+
+- **Lunar south-pole projections** -- renders in a Moon-specific polar stereographic CRS rather than an earth projection. The Artemis surface projection is **South Pole Stereographic on the Moon (2015) sphere** (`IAU2000:30166`, `+proj=stere +lat_0=-90 +lon_0=0 +a=1737400 +b=1737400`, radius 1,737.4 km). The GIS data pipeline also produces the NASA projections -- Lunar Polar Stereographic (LPS, scale factor 0.994) and Lunar Transverse Mercator (LTM) -- for the grid overlay.
+- **Per-mission projection config** -- each mission carries its own proj4 definition, extent, origin, and resolution set, so missions in different regions (or with different source data) render in their correct native CRS. Projections are registered at runtime via proj4; missions can also fall back to standard Web Mercator for earth-based field tests.
+- **Multiple layer/source types**, mixed freely within a single mission:
+  - **Raster tiles** -- TMS/XYZ tile pyramids, with custom (non-Mercator) tile grids and TMS Y-axis handling for polar projections.
+  - **Cloud Optimized GeoTIFF (COG)** -- streamed and rendered on the GPU via WebGL, used for DEMs and large single-file rasters without pre-tiling.
+  - **Vector** -- GeoJSON, canvas-batched for performance.
+  - **Vector tiles** -- PMTiles (MVT), including ESRI-exported archives, with tile metadata read on demand.
+- **Time-aware layers** -- sublayers can be bound to mission time, so the displayed imagery/data tracks the selected EVA datetime or timeline scrub position.
+- **Elevation-aware planning** -- a DEM/COG elevation source drives automatically generated terrain profiles along traverses and stations.
+- **Geodesic measurement** -- traverse and measurement distances/bearings are computed geodesically on the lunar sphere (not from projected geometry), so they stay accurate under polar distortion near the pole.
+- **Lunar Grid Reference System (LGRS) grid overlay** -- an on-map graticule generated from the [Lunar Grid Rerference System](https://github.com/rbeyer/lgrs) grid definitions used across the Artemis program.
+- **Map presets** -- saved layer stacks, ordering, opacity, blend modes, and view options that can be swapped in a single action.
+
+### GIS Data Processing Pipeline
+
+AEGIS includes a GIS data processing pipeline that can generate the full set of map assets for **any region of the Moon** given a DEM (Digital Elevation Model) and a NAC (Narrow Angle Camera) mosaic as input. From those inputs it produces the cap-grid raster tile pyramids, Cloud Optimized GeoTIFFs, PMTiles vector tiles (including DEM-derived elevation contours), and LGRS grid definitions that AEGIS renders -- reprojecting the source data into the appropriate lunar CRS (south-pole stereographic) along the way. It can also register the generated products directly onto a running AEGIS server over HTTP (mission projection/DEM/lander fields, header layers, sublayers, and the active grid), so no manual admin import is required.
+
+## Setup Outside of NASA
+
+> **Note:** The [First-Time Setup within NASA](#first-time-setup-within-nasa) instructions below assume access to NASA's internal infrastructure (EMSS dev servers, the AEGIS Box asset source, prod database dumps, and internal package registries). The steps in this section provide a self-contained path to run AEGIS with the Apollo 14 demo mission outside of that environment.
+
+### Prerequisites
+
+1. Clone this repo.
+2. Install JavaScript dependencies **without the private packages**: `npm run setup:public`
+   (equivalent to `npm install --omit=optional`). AEGIS depends on a few private
+   `@emss/*` packages hosted on NASA's internal registry; they are declared as
+   optional and are only needed at build time. `setup:public` skips them and then
+   substitutes the local stand-ins in [`emss-fallback/`](emss-fallback/README.md).
+   (AEGIS developers with NASA registry access run plain `npm i` and get the real
+   packages — see [First-Time Setup within NASA](#first-time-setup-within-nasa).)
+3. Create your `.env` file by copying the template: `cp .env.template .env`. The
+   placeholder values let the app run locally; Box.com and EMSS/Maestro integrations
+   will not work with them, but local development (including the Apollo 14 demo) does
+   not need them.
+4. Start the required Docker services (PostgreSQL + GDAL): `npm run docker:services:public`.
+
+### Step 1: Seed the database
+
+Instead of importing a NASA prod database dump, populate your fresh local database with a
+self-contained **Apollo 14** demo mission (a handful of POIs, stations, and an EVA with its
+traverses, plus a few map layers):
+
+```bash
+npm run seed:demo
+```
+
+This runs, in order:
+
+1. `migration:fresh` -- drops, recreates, and seeds the relational schema (creates the `admin` /
+   `admin` and `guest` / `guest` users via the MikroORM seeder).
+2. `automerge:seed:build` + `automerge:seed` -- creates the Apollo 14 mission **Automerge document**
+   (all collaborative entity data lives in Automerge, not the relational tables) plus its map layers.
+
+> **Note:** The demo mission references NAC ortho / hillshade tile layers and vector layers by path.
+> The layer records are created, but the tiles themselves are separate GIS assets -- see
+> [Step 2: Download map assets](#step-2-download-map-assets) below for obtaining and installing them.
+> Without them the map renders the mission geometry over an empty basemap.
+>
+> Re-running `automerge:seed` on its own is safe: it detects an existing "Apollo 14" mission and exits
+> without creating a duplicate.
+
+### Step 2: Download map assets
+
+The seeded Apollo 14 mission references GIS map products (tile layers, vector layers, and a DEM) that must be present on disk for the map to render. Download the pre-packaged asset bundle and extract it into your static assets folder.
+
+1. Create the static assets folder next to the repo (the default location configured in `.env` for local dev):
+   ```bash
+   mkdir ../aegis_static
+   ```
+2. Download the Apollo 14 GIS demo data bundle:
+   ```bash
+   curl -L -o AEGIS_Apollo_14_GIS_demo_data.zip \
+     https://ares-aegis.s3.us-gov-west-1.amazonaws.com/AEGIS_Apollo_14_GIS_demo_data.zip
+   ```
+3. Extract it into the `missionFiles` subdirectory of the static folder:
+   ```bash
+   unzip AEGIS_Apollo_14_GIS_demo_data.zip -d ../aegis_static/missionFiles
+   ```
+   The zip unpacks into the expected directory structure that AEGIS layer paths reference, so no further reorganisation is needed.
+
+> **Note:** The `STATIC_DIR` environment variable (set to `../aegis_static` by default for local dev in `env.config.ts`) controls where AEGIS looks for these files. If you configured a different path, extract the zip there instead.
+
+### Step 3: Run the app
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:4000](http://localhost:4000) and log in as `admin` / `admin`. The Apollo 14 mission should open with the map layers rendering correctly.
+
+## First-Time Setup within NASA
+
+> **Note:** The instructions in this section and below are for setup **within NASA**, and depend on internal infrastructure. For running AEGIS outside of NASA, see [Setup Outside of NASA](#setup-outside-of-nasa) above.
+
+Internal references and environments:
+
+- Wiki: https://wiki.jsc.nasa.gov/fod/index.php/Artemis_EVA_GIS
 - Production: https://aegis.fit.nasa.gov/
 - Integration: https://aegis-int.fit.nasa.gov/
 - Development: Any EMSS dev server (see below)
@@ -15,8 +148,6 @@ EMSS dev servers all have element names, and are:
 - https://iron-emss-dev.fit.nasa.gov
 - https://neon-emss-dev.fit.nasa.gov
 - https://oxygen-emss-dev.fit.nasa.gov
-
-## First-Time Setup
 
 We need to setup the local environment before spinning up the app.
 
@@ -54,7 +185,9 @@ We need to setup the local environment before spinning up the app.
 
 ### Step 2, Option 1: Development with service containers (PREFERRED)
 
-This is for doing local development with the database and Gdal containers running.
+This is for doing local development with the database and GDAL containers running. The GDAL
+container powers elevation-profile generation; if you don't need elevation features, the app runs
+fine without GDAL and those features will simply return an error.
 
 1. Run Docker only starting the service containers (gdal and database): `npm run docker:services`
 2. Run `npm run dev` to start the API and frontend.
@@ -170,7 +303,7 @@ npm run migration:up
 
 When the Postgres version is updated in `docker-compose.yml`, the database must be migrated. The procedure differs by environment.
 
-> **Note on PostGIS:** AEGIS previously ran on a `postgis/postgis` image. It has been migrated to plain `postgres:17`. Historical database dumps may contain PostGIS extension DDL (`CREATE EXTENSION postgis`, etc.) that plain Postgres cannot execute. All dump/import tooling (CI scripts, `upgrade-db.sh`, and `load-sql-dump.mjs`) automatically strips this DDL before importing. Note that the strip only removes `CREATE/COMMENT EXTENSION` lines. A dump produced before `--exclude-schema=tiger/topology` was added to the export job may still contain PostGIS schema or function DDL that plain Postgres cannot execute — use a current export from `z:db-export:prod` rather than a cached historical artifact when possible.
+> **Note on PostGIS:** AEGIS previously ran on a `postgis/postgis` image. It has been migrated to plain `postgres:17`. Historical database dumps may contain PostGIS extension DDL (`CREATE EXTENSION postgis`, etc.) that plain Postgres cannot execute. All dump/import tooling (CI scripts, `upgrade-db.sh`, and `load-sql-dump.mjs`) automatically strips this DDL before importing. Note that the strip only removes `CREATE/COMMENT EXTENSION` lines. A dump produced before `--exclude-schema=tiger/topology` was added to the export job may still contain PostGIS schema or function DDL that plain Postgres cannot execute -- use a current export from `z:db-export:prod` rather than a cached historical artifact when possible.
 
 **For Dev Environments (e.g., gold, iron, etc.):**
 Dev environments are upgraded manually via CI jobs because we cannot guarantee AEGIS is deployed on every dev server (making an automated in-place upgrade unreliable).
@@ -221,6 +354,35 @@ docker logs <container name> -f
 
 # Restart individual services
 docker restart <container name>
+```
+
+## GDAL image sources
+
+The GDAL container powers elevation-profile generation. Which image is used depends on the command
+you run to start the service containers:
+
+- `npm run docker:services` — **internal NASA devs.** Builds the GDAL image locally from the private
+  EE base image (`eegitlabregistry.fit.nasa.gov/emss/docker-images/deploy:gdal`, via
+  `docker/gdal/Dockerfile`); requires private-registry access.
+- `npm run docker:services:public` — **open-source / external users.** Pulls a prebuilt public image
+  (`bfeistnasa/aegis-gdal:latest`) from Docker Hub (~1.6 GB on first run), no private-registry access
+  needed. This override lives in `docker-compose.services.public.yml`.
+
+Both start the same database + GDAL containers; only the GDAL image source differs. The pipeline
+builds its own GDAL image from the private base via `docker/gdal/Dockerfile` and the base
+`docker-compose.yml`.
+
+### Updating the public GDAL image
+
+To publish or refresh the public Docker Hub image (maintainers only, requires push access to the
+`bfeistnasa` Docker Hub org):
+
+```bash
+# From an environment that already has a working aegis GDAL image built locally
+# (e.g. the pipeline artifact or a previously-built aegis-dev-gdal:latest):
+docker tag aegis-dev-gdal:latest bfeistnasa/aegis-gdal:latest
+docker login                       # log in to the bfeistnasa Docker Hub account
+docker push bfeistnasa/aegis-gdal:latest
 ```
 
 ## Load Testing

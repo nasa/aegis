@@ -72,4 +72,4 @@ ENTRYPOINT ["/sbin/tini", "--"]
 
 # This image is intended to be run with docker-compose.
 # Ensure mikro is migrated *before* the automerge migration
-CMD ["/bin/sh", "-c", "npm run migration:up && npm run automerge:migration && npm run api"]
+CMD ["/bin/sh", "-c", "npm run migration:up && npm run automerge:migration:run && npm run api"]

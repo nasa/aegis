@@ -352,9 +352,9 @@ Overlay gotchas:
 | `MeasurementLines` | shared `measurementSource` | editor | ✅ | edit-drag dance; new measurements spawn at viewport thirds |
 | `StationMarkers` | shared `stationSource` | all | ✅ | dashboard in-progress green ring; drag = selected only |
 | `PoiMarkers` | shared `poiSource` | all | ✅ | selected POI always shown; `source.changed()` repaint |
-| `ActionMarkers` | shared `actionSource` | all | ✅ | shown only when parent selected + eyeball on |
+| `ActionMarkers` | shared `actionSource` | all | ✅ | shown only when parent selected + eyeball on; STM (v2) action label built from the definition via `getActionDisplayName` (not `action.name`) |
 | `LanderMarker` | own source | all | single feature `"lander"` | disabled mid-edit (sits on traverse endpoint) |
-| `MarkerLabels` | shared `labelSource` | editor/dash | layout pass | single overlap-dim + drag-reposition system; freezes PET during drag |
+| `MarkerLabels` | shared `labelSource` | editor/dash | layout pass | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition) |
 | `PosEntries` | shared `posSource` (markers) + `posPathSource` (paths) | all | ✅ markers / rebuild paths | only when section=="evas" & selectedRex; epsilon egress skip; keeps edited entry visible |
 | `InteractionManager` | active Translate/Modify | editor | — | one interaction at a time; auto-cancel-on-navigate |
 | `HoverHighlight` | own source | editor | — | clones hovered geometry; POS resolved from REX (not vector) |

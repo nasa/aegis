@@ -136,6 +136,10 @@ const STMRuleTitle: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
     (state) => state.stm.ruleEditingUuid === rule.uuid,
     shallowEqual
   );
+  const conjunctions = useMissionDocSelector(
+    (mission) => mission.actionDefinitionConjunctions,
+    refEqual
+  );
 
   return (
     <div className={styles.stmRuleContainer}>
@@ -165,11 +169,11 @@ const STMRuleTitle: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
       <div className={ruleStyles.stmRuleSetContainer}>
         <STMRuleSet isEditing={isEditing} stmRule={rule} type="verbs" />
       </div>
-      <div className={ruleStyles.stmRuleSetConjunction}>of</div>
+      <div className={ruleStyles.stmRuleSetConjunction}>{conjunctions.verbToNoun}</div>
       <div className={ruleStyles.stmRuleSetContainer}>
         <STMRuleSet isEditing={isEditing} stmRule={rule} type="nouns" />
       </div>
-      <div className={ruleStyles.stmRuleSetConjunction}>in</div>
+      <div className={ruleStyles.stmRuleSetConjunction}>{conjunctions.nounToAdjective}</div>
       <div className={ruleStyles.stmRuleSetContainer}>
         <STMRuleSet isEditing={isEditing} stmRule={rule} type="adjectives" />
       </div>

@@ -1,4 +1,5 @@
 import { decodeEmoji } from "./formatting";
+import { buildActionDefinitionName } from "store/storeUtils/mission";
 import { getGridCoordinatesFromPoint } from "./mapping/geoMath";
 import {
   getCalculatedFieldsByEva,
@@ -35,7 +36,6 @@ export const makeExportActions = (params: {
 }): ExportAction[] => {
   const { actions, mission, missionGrid } = params;
   if (!actions || actions.length === 0) return [];
-  const actionDefinitions: ActionDefinitions = mission.actionDefinitions;
   const evaUuidToRexUuid = Object.fromEntries(
     Object.values(mission.rexes).map((r) => [r.evaUuid, r.uuid])
   );
@@ -80,7 +80,7 @@ export const makeExportActions = (params: {
       //Verb of noun in adjective
       actionDefinitionReadable: makeReadableActionDefinition({
         action,
-        actionDefinitions,
+        mission,
       }),
       stmPrioritiesReadable: action.stmPriorities
         ? Object.entries(action.stmPriorities).map(([uuid, priority]) => ({
@@ -409,10 +409,12 @@ export const makeExportMission = (params: {
 
 export const makeReadableActionDefinition = (params: {
   action: Action;
-  actionDefinitions: ActionDefinitions;
+  mission: Pick<Mission, "actionDefinitions" | "actionDefinitionConjunctions">;
 }): ActionDefinitionReadable => {
-  const { action, actionDefinitions } = params;
+  const { action, mission } = params;
   if (!action?.actionDefinition) return null;
+  const actionDefinitions = mission.actionDefinitions;
+  const conjunctions = mission.actionDefinitionConjunctions;
 
   const verbUuid = action.actionDefinition.verbUuid;
   const nounUuid = action.actionDefinition.nounUuid;
@@ -425,7 +427,12 @@ export const makeReadableActionDefinition = (params: {
     : null;
 
   const readableActionDefinition: ActionDefinitionReadable = {
-    displayString: `${verb?.name} of ${noun?.name} in ${adjective?.name}`,
+    displayString: buildActionDefinitionName({
+      verbName: verb?.name,
+      nounName: noun?.name,
+      adjectiveName: adjective?.name,
+      conjunctions,
+    }),
     verb: verb,
     noun: noun,
     adjective: adjective,
