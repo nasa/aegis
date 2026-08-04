@@ -148,13 +148,14 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
   const { missionId, fields } = (req.body ?? {}) as MissionFieldsUpdateRequest;
   const emssToken = req.headers["emss-token"] as string;
 
+  const externalApiPermission = emssTokenIsValid(emssToken);
   const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
     emssToken,
   });
-  if (!editPermission) {
+  if (!externalApiPermission || !editPermission) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",
