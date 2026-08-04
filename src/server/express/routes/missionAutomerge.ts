@@ -138,6 +138,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
  * external tooling normally cannot set projection/DEM/lander metadata over HTTP. This
  * route loads the server-side doc handle and applies an allow-listed set of fields in a
  * single change(). It does NOT accept entity collections — use the websocket repo for those.
+ * It is intentionally restricted to EMSS-token callers because it is the registration
+ * surface used by the GIS conversion tooling, not a browser editing API.
  *
  * Mounted as a POST sub-route so it never collides with the create
  * endpoint above and keeps the API to GET/POST/DELETE verbs.
@@ -146,13 +148,14 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
   const { missionId, fields } = (req.body ?? {}) as MissionFieldsUpdateRequest;
   const emssToken = req.headers["emss-token"] as string;
 
+  const externalApiPermission = emssTokenIsValid(emssToken);
   const editPermission = hasPerms({
     missionId,
     permission: "edit",
     appUser: req.session.appUser,
     emssToken,
   });
-  if (!editPermission) {
+  if (!externalApiPermission || !editPermission) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",
@@ -196,6 +199,23 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({
         status: "error",
         message: "No mission fields provided",
+      });
+      return;
+    }
+
+    const mission = handle.doc();
+    const requestedLanderLocation = fields.landerLocation;
+    const landerLocationChanged =
+      requestedLanderLocation !== undefined &&
+      (mission.landerLocation?.lat !== requestedLanderLocation.lat ||
+        mission.landerLocation?.lng !== requestedLanderLocation.lng ||
+        mission.landerLocation?.alt !== requestedLanderLocation.alt);
+
+    if (landerLocationChanged && missionHasLanderDependentAssets(mission)) {
+      res.status(409).json({
+        status: "failure",
+        message:
+          "landerLocation cannot be changed through this endpoint after lander-dependent assets exist; use the Automerge lander-location update workflow",
       });
       return;
     }
@@ -308,6 +328,24 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 export default router;
+
+export function missionHasLanderDependentAssets(mission: Mission): boolean {
+  const hasPlacedStation = Object.values(mission.stations ?? {}).some(
+    (station) => station.location != null || (station.walkbackPath?.length ?? 0) > 0
+  );
+  if (hasPlacedStation) return true;
+
+  return Object.values(mission.evas ?? {}).some((eva) => {
+    if (eva.sequence.length === 0) return false;
+
+    const firstTraverse = mission.traverses?.[eva.sequence[0].uuid];
+    const lastTraverse = mission.traverses?.[eva.sequence[eva.sequence.length - 1].uuid];
+    return Boolean(
+      (eva.egressLocationUuid === "lander" && firstTraverse) ||
+      (eva.ingressLocationUuid === "lander" && lastTraverse)
+    );
+  });
+}
 
 /**
  * Get the automerge document handle for a single mission.

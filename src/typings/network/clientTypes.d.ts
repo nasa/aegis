@@ -58,9 +58,10 @@ type MissionFieldsUpdate = Partial<MissionFields>;
 /**
  * Update a subset of top-level mission fields on the server-side Automerge doc
  * (POST /api/v1/missionAutomerge/fields). Used by external (non-browser) tooling —
- * e.g. the data-conversion pipeline that registers a freshly generated mission's
- * projection/DEM/lander metadata over HTTP. `fields` is a partial Mission; the route
- * only applies an allow-listed set of keys.
+ * e.g. the data-conversion pipeline that registers a mission's projection/DEM/lander
+ * metadata over HTTP. The route requires the EMSS API token and rejects changed
+ * landerLocation values once affected mission assets exist. `fields` is a partial Mission;
+ * the route only applies an allow-listed set of keys.
  */
 type MissionFieldsUpdateRequest = {
   missionId: number;

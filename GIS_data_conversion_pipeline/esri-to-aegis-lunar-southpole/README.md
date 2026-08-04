@@ -35,21 +35,21 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 
 ## Pipeline data types (`main.py` steps)
 
-| Type            | Input                                                        | Output                                    | Process                                                                     |
-| --------------- | ------------------------------------------------------------ | ----------------------------------------- | --------------------------------------------------------------------------- |
-| **dem**         | DEM GeoTIFF                                                  | `Data/<source>_deflate_cog.tif` (COG)     | re-emit as clean COG (keeps source name)                                    |
-| **nac**         | single NAC mosaic raster (from GIS team)                     | `Layers/nac/` tile pyramid                | stretch (if float) → tile                                                   |
-| **slope**       | slope float raster (°) + `.lyrx` ramp                        | `Layers/slope/` tile pyramid              | colorize → tile                                                             |
-| **products**    | the DEM (`--in-dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/`  | derive from DEM → colorize → tile (`--dem-products`)                            |
-| **vector**      | landing-ellipse shapefile                                    | `Data/ellipse.geojson`                    | reproject to EPSG:4326                                                      |
+| Type            | Input                                                           | Output                                    | Process                                                                     |
+| --------------- | --------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
+| **dem**         | DEM GeoTIFF                                                     | `Data/<source>_deflate_cog.tif` (COG)     | re-emit as clean COG (keeps source name)                                    |
+| **nac**         | single NAC mosaic raster (from GIS team)                        | `Layers/nac/` tile pyramid                | stretch (if float) → tile                                                   |
+| **slope**       | slope float raster (°) + `.lyrx` ramp                           | `Layers/slope/` tile pyramid              | colorize → tile                                                             |
+| **products**    | the DEM (`--in-dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/`  | derive from DEM → colorize → tile (`--dem-products`)                        |
+| **vector**      | landing-ellipse shapefile                                       | `Data/ellipse.geojson`                    | reproject to EPSG:4326                                                      |
 | **rasters**     | custom rasters (`--in-raster`, repeatable)                      | `Layers/<stem>/` tile pyramid each        | stretch (if float) → tile                                                   |
 | **vectors**     | custom vectors (`--in-vector`, repeatable)                      | `Data/<stem>.geojson` each                | shp → reproject; geojson copied                                             |
 | **vectortiles** | ArcGIS vector-tile cache (`--in-esri-vector-tiles`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
-| **contours**    | the DEM (`--contours`)                                       | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
+| **contours**    | the DEM (`--contours`)                                          | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
 | **cogs**        | custom rasters (`--in-cog`, repeatable)                         | `Layers/<stem>/<stem>_cog.tif` each       | GeoTIFF → COG (deflate; type inferred from `.tif`)                          |
-| **grid**        | `--grid` + lander `--lander-lat/--lander-lng`                | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
-| **register**    | the built `<out>` + `--mission-id`                           | mission fields + sublayers + active grid  | POST fields + layers/sublayers + grid                                       |
-| **box**         | the built `<out>` + `--mission-name`                         | zips uploaded to Box (parallel)           | zip `Data/` + each layer → upload                                           |
+| **grid**        | `--grid` + lander `--lander-lat/--lander-lng`                   | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
+| **register**    | the built `<out>` + `--mission-id`                              | mission fields + sublayers + active grid  | POST fields + layers/sublayers + grid                                       |
+| **box**         | the built `<out>` + `--mission-name`                            | zips uploaded to Box (parallel)           | zip `Data/` + each layer → upload                                           |
 
 Every tile layer also gets a `properties.json` (name/description/legend) that the AEGIS
 admin auto-imports — see [`properties/`](properties/). The **register** step reads those
@@ -323,7 +323,10 @@ already-registered `(header, path)` pairs):
   `planetRadius=1737400`), plus `name`, `landerLocation`, `demFilePath`, `demResolution`,
   `actionSystemVersion=2`, and `usingLGRSCoordinates=true`.
   (This endpoint exists specifically so external tooling can set mission GIS fields, which
-  otherwise live only in the Automerge doc; see `src/server/express/routes/missionAutomerge.ts`.)
+  otherwise live only in the Automerge doc; it requires the EMSS API token. A changed
+  `landerLocation` is rejected once affected mission assets exist, because the browser-only
+  Automerge lander-location workflow must update station walkbacks and lander-connected EVA
+  traverses; see `src/server/express/routes/missionAutomerge.ts`.)
 - **Header layers** — `POST /api/v1/layer` creates `Common_LSP` (external NAC only),
   `Raster` (all tile layers), and `Vector` (all GeoJSON), as needed.
 - **Sublayers** — `POST /api/v1/sublayer`, one per `Layers/<dir>` classified by its contents:

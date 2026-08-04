@@ -44,7 +44,7 @@ pixi run python <script>.py ...
 timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivered ArcGIS
   vector-tile cache (Compact Cache V2) into a single `.pmtiles` (pure-Python `pmtiles`, no GDAL),
   emitted inside its own `Layers/<name>/` folder; `vectortile/dem_to_contours_pmtiles.py` instead
-  *tiles from scratch* — `gdal_contour` on the DEM → GDAL MVT-dir driver (custom cap-grid
+  _tiles from scratch_ — `gdal_contour` on the DEM → GDAL MVT-dir driver (custom cap-grid
   `TILING_SCHEME`) → PMTiles with synthesized `esri_tile_info` — producing labelled contour
   vector-tile layers. Every produced sublayer (raster tiles, PMTiles,
   COG) is a folder under `Layers/`; AEGIS infers the type from the folder contents (no `isCog`
@@ -92,8 +92,11 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
   `usingLGRSCoordinates=true`), `POST /api/v1/layer` (Common_LSP/Raster/Vector header layers),
   `POST /api/v1/sublayer`, and `POST /api/v1/grid` (active grid → `Data/<name>.json`). The
   server-side endpoint `POST /api/v1/missionAutomerge/fields` exists specifically for this (the
-  app otherwise mutates the mission only via the Automerge websocket). Each run also writes a
-  `Data/conversion_report.md` (full console log + per-step timings).
+  app otherwise mutates the mission only via the Automerge websocket) and requires the EMSS API
+  token. Changed lander coordinates are rejected when affected mission assets already exist,
+  because the browser-only lander-location workflow must update station walkbacks and
+  lander-connected EVA traverses. Each run also writes a `Data/conversion_report.md` (full
+  console log + per-step timings).
 
 ## Gotchas
 
