@@ -12,6 +12,7 @@ import { selectAsPlannedStations } from "store/selectors";
 import {
   apollo14Layers,
   apollo14Preset,
+  apollo14Sublayers,
   buildApollo14Mission,
   stampMissionId,
 } from "server/automerge/seeder/apollo14SeedData";
@@ -161,19 +162,22 @@ describe("Apollo 14 seed data", () => {
     });
   });
 
-  describe("apollo14Layers", () => {
-    it("is non-empty", () => {
+  describe("apollo14Layers and apollo14Sublayers", () => {
+    it("are non-empty", () => {
       expect(apollo14Layers.length).toBeGreaterThan(0);
+      expect(apollo14Sublayers.length).toBeGreaterThan(0);
     });
 
-    it("has sublayers with valid types and tile paths", () => {
-      for (const layer of apollo14Layers) {
-        expect(layer.sublayers.length).toBeGreaterThan(0);
-        for (const sublayer of layer.sublayers) {
-          expect(VALID_SUBLAYER_TYPES).toContain(sublayer.type);
-          if (sublayer.type === "tile") {
-            expect(sublayer.path).not.toBeNull();
-          }
+    it("has sublayers with valid types and tile paths, all linked to a seeded layer", () => {
+      const layerUuids = new Set(apollo14Layers.map((l) => l.uuid));
+      for (const sublayer of apollo14Sublayers) {
+        expect(VALID_SUBLAYER_TYPES).toContain(sublayer.type);
+        expect(
+          layerUuids.has(sublayer.layerUuid),
+          `sublayer ${sublayer.uuid} references missing layer ${sublayer.layerUuid}`
+        ).toBe(true);
+        if (sublayer.type === "tile") {
+          expect(sublayer.path.length).toBeGreaterThan(0);
         }
       }
     });
@@ -182,7 +186,7 @@ describe("Apollo 14 seed data", () => {
   describe("apollo14Preset", () => {
     // Flat list of every seeded layer/sublayer uuid.
     const layerUuids = new Set(apollo14Layers.map((l) => l.uuid));
-    const sublayerUuids = new Set(apollo14Layers.flatMap((l) => l.sublayers.map((s) => s.uuid)));
+    const sublayerUuids = new Set(apollo14Sublayers.map((s) => s.uuid));
 
     it("is the mission default with a placeholder missionId stamped at seed time", () => {
       expect(apollo14Preset.missionDefault).toBe(true);
