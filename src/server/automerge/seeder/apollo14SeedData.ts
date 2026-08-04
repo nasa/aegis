@@ -1,9 +1,16 @@
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankLayer } from "store/storeUtils/layer";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankPoi } from "store/storeUtils/poi";
+import { generateBlankPreset } from "store/storeUtils/preset";
 import { generateBlankStation } from "store/storeUtils/station";
-import { defaultSublayerStyle } from "store/storeUtils/sublayer";
+import {
+  generateBlankStmLvl1,
+  generateBlankStmLvl2,
+  generateBlankStmLvl3,
+} from "store/storeUtils/stm";
+import { defaultSublayerStyle, generateBlankSublayer } from "store/storeUtils/sublayer";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 /**
@@ -17,12 +24,10 @@ import { generateBlankTraverse } from "store/storeUtils/traverse";
  * The mission `id` and every entity `missionId` are set to a placeholder (1) in this
  * static data. The seed runner ({@link file://./seedApollo14.ts}) stamps the real id
  * onto the mission and every entity at seed time, using the next available id assigned
- * by the `doc_listing` autoincrement — so the demo can be seeded into any database, not
- * just a fresh one.
+ * by the `doc_listing` autoincrement
  *
  * The mission scaffold comes from {@link generateBlankMission} so new Mission fields are
- * picked up automatically; the typed literals below are checked by `tsc` (part of
- * `npm run test:all`), which flags when a schema change needs a touch-up.
+ * picked up automatically.
  */
 
 const actionDefinitions: ActionDefinitions = {
@@ -781,322 +786,322 @@ const evas: { [uuid: string]: Eva } = {
 };
 
 /**
- * Static Science Traceability Matrix for the demo mission. Lifted from a real
- * test-environment dump. Every level1 entry carries a placeholder missionId (1); the
- * seed runner overrides it with the mission's assigned id at seed time (see the
- * file-level docstring above). The hierarchy is:
+ * Static Science Traceability Matrix for the demo mission.
+ * Every level1 entry carries a placeholder missionId (1); the
+ * seed runner overrides it with the mission's assigned id at seed time.
+ * The hierarchy is:
  *   Level1 (Goal) -> Level2 (Objective) -> Level3 (Investigation)
  *
  * These are seeded straight to the DB by {@link file://./seedApollo14.ts}
  * (STM is not part of the Mission Automerge document).
  */
 export const apollo14StmLevel1s: STMLevel1[] = Object.values({
-  "c25a9f75-8077-4651-a4e0-342263b5da6e": {
+  "c25a9f75-8077-4651-a4e0-342263b5da6e": generateBlankStmLvl1({
     uuid: "c25a9f75-8077-4651-a4e0-342263b5da6e",
     numbering: "1",
     name: "Understanding Planetary Processes",
     missionId: 1,
-  },
-  "d81f6f60-2840-4807-80d4-36acdb932a2d": {
+  }),
+  "d81f6f60-2840-4807-80d4-36acdb932a2d": generateBlankStmLvl1({
     uuid: "d81f6f60-2840-4807-80d4-36acdb932a2d",
     numbering: "2",
     name: "Understanding Character and Origin of Lunar Polar Volatiles",
     missionId: 1,
-  },
-  "643c5fe2-2d92-4d71-8cdd-703a9463c265": {
+  }),
+  "643c5fe2-2d92-4d71-8cdd-703a9463c265": generateBlankStmLvl1({
     uuid: "643c5fe2-2d92-4d71-8cdd-703a9463c265",
     numbering: "3",
     name: "Interpreting the Impact History of the Earth-Moon System",
     missionId: 1,
-  },
-  "70e521d8-9d33-49e8-ad65-11e26defda5b": {
+  }),
+  "70e521d8-9d33-49e8-ad65-11e26defda5b": generateBlankStmLvl1({
     uuid: "70e521d8-9d33-49e8-ad65-11e26defda5b",
     numbering: "5",
     name: "Observing the Universe and Local Space Environment from a Unique Location",
     missionId: 1,
-  },
-  "c6febf7f-c9b0-43d9-9817-41743adedd93": {
+  }),
+  "c6febf7f-c9b0-43d9-9817-41743adedd93": generateBlankStmLvl1({
     uuid: "c6febf7f-c9b0-43d9-9817-41743adedd93",
     numbering: "7",
     name: "Investigating and Mitigating Exploration Risks",
     missionId: 1,
-  },
+  }),
 });
 
 export const apollo14StmLevel2s: STMLevel2[] = Object.values({
-  "5d4e82fd-2d37-418c-b161-b8680833a04d": {
+  "5d4e82fd-2d37-418c-b161-b8680833a04d": generateBlankStmLvl2({
     uuid: "5d4e82fd-2d37-418c-b161-b8680833a04d",
     numbering: "a",
     name: "Formation of the Earth-Moon System",
     level1Uuid: "c25a9f75-8077-4651-a4e0-342263b5da6e",
-  },
-  "73e6a936-464e-412c-bd01-b320fa54c18f": {
+  }),
+  "73e6a936-464e-412c-bd01-b320fa54c18f": generateBlankStmLvl2({
     uuid: "73e6a936-464e-412c-bd01-b320fa54c18f",
     numbering: "b",
     name: "Differentiation: Magma Oceans, Crust, and Mantle",
     level1Uuid: "c25a9f75-8077-4651-a4e0-342263b5da6e",
-  },
-  "4179b56a-65ff-4fbe-b3b6-f34dafb73624": {
+  }),
+  "4179b56a-65ff-4fbe-b3b6-f34dafb73624": generateBlankStmLvl2({
     uuid: "4179b56a-65ff-4fbe-b3b6-f34dafb73624",
     numbering: "f",
     name: "The Moon is a Natural Laboratory for Regolith Processes and Weathering on Anhydrous Bodies",
     level1Uuid: "c25a9f75-8077-4651-a4e0-342263b5da6e",
-  },
-  "be826912-0a3a-4502-bd4e-09a6550abc01": {
+  }),
+  "be826912-0a3a-4502-bd4e-09a6550abc01": generateBlankStmLvl2({
     uuid: "be826912-0a3a-4502-bd4e-09a6550abc01",
     numbering: "a",
     name: "Determine the Compositional state (elemental, isotopic, mineralogic) and compositional distribution (lateral and with depth) of the volatile component",
     level1Uuid: "d81f6f60-2840-4807-80d4-36acdb932a2d",
-  },
-  "cab8f512-176c-4886-ba1f-44ba256cff00": {
+  }),
+  "cab8f512-176c-4886-ba1f-44ba256cff00": generateBlankStmLvl2({
     uuid: "cab8f512-176c-4886-ba1f-44ba256cff00",
     numbering: "b",
     name: "Determine the source(s) for lunar polar volatile deposits",
     level1Uuid: "d81f6f60-2840-4807-80d4-36acdb932a2d",
-  },
-  "fdb18982-da50-4630-a4f2-f0fed48f9df2": {
+  }),
+  "fdb18982-da50-4630-a4f2-f0fed48f9df2": generateBlankStmLvl2({
     uuid: "fdb18982-da50-4630-a4f2-f0fed48f9df2",
     numbering: "c",
     name: "Understand the transport, retention, alteration, and loss processes that operate on volatile materials at permanently shaded lunar regions",
     level1Uuid: "d81f6f60-2840-4807-80d4-36acdb932a2d",
-  },
-  "3630fbed-4857-4d18-9b17-f4a9aa170cbb": {
+  }),
+  "3630fbed-4857-4d18-9b17-f4a9aa170cbb": generateBlankStmLvl2({
     uuid: "3630fbed-4857-4d18-9b17-f4a9aa170cbb",
     numbering: "d",
     name: "Understand regolith modification processes (including space weathering), particularly deposition of volatile materials in the near surface",
     level1Uuid: "d81f6f60-2840-4807-80d4-36acdb932a2d",
-  },
-  "f451ca8b-de4a-42af-918d-0212a7b03234": {
+  }),
+  "f451ca8b-de4a-42af-918d-0212a7b03234": generateBlankStmLvl2({
     uuid: "f451ca8b-de4a-42af-918d-0212a7b03234",
     numbering: "f",
     name: "Understand the impact of human exploration on the lunar volatile record across the surface",
     level1Uuid: "d81f6f60-2840-4807-80d4-36acdb932a2d",
-  },
-  "fcc8ba12-33d1-4c74-9a46-0e6b38ea95f3": {
+  }),
+  "fcc8ba12-33d1-4c74-9a46-0e6b38ea95f3": generateBlankStmLvl2({
     uuid: "fcc8ba12-33d1-4c74-9a46-0e6b38ea95f3",
     numbering: "a",
     name: "Test the Cataclysm",
     level1Uuid: "643c5fe2-2d92-4d71-8cdd-703a9463c265",
-  },
-  "c2db032a-5331-4009-9776-eb7107d9bad8": {
+  }),
+  "c2db032a-5331-4009-9776-eb7107d9bad8": generateBlankStmLvl2({
     uuid: "c2db032a-5331-4009-9776-eb7107d9bad8",
     numbering: "b",
     name: "Understand changes to the Earth-Moon bombardment rate",
     level1Uuid: "643c5fe2-2d92-4d71-8cdd-703a9463c265",
-  },
-  "8dec2c41-4d71-44e8-9970-b7596480d41a": {
+  }),
+  "8dec2c41-4d71-44e8-9970-b7596480d41a": generateBlankStmLvl2({
     uuid: "8dec2c41-4d71-44e8-9970-b7596480d41a",
     numbering: "c",
     name: "Understand the impact history of the landing site",
     level1Uuid: "643c5fe2-2d92-4d71-8cdd-703a9463c265",
-  },
-  "67838ad6-71b9-47ac-a0e8-6973652ed6ed": {
+  }),
+  "67838ad6-71b9-47ac-a0e8-6973652ed6ed": generateBlankStmLvl2({
     uuid: "67838ad6-71b9-47ac-a0e8-6973652ed6ed",
     numbering: "b",
     name: "Heliophysical Investigations using the Moon",
     level1Uuid: "70e521d8-9d33-49e8-ad65-11e26defda5b",
-  },
-  "9428163e-dfcc-43fe-9ce6-52da45919dc4": {
+  }),
+  "9428163e-dfcc-43fe-9ce6-52da45919dc4": generateBlankStmLvl2({
     uuid: "9428163e-dfcc-43fe-9ce6-52da45919dc4",
     numbering: "k",
     name: "Understand lunar dust behavior, particularly dust dynamics",
     level1Uuid: "c6febf7f-c9b0-43d9-9817-41743adedd93",
-  },
-  "db3b5b09-0016-498a-9321-93c15b457566": {
+  }),
+  "db3b5b09-0016-498a-9321-93c15b457566": generateBlankStmLvl2({
     uuid: "db3b5b09-0016-498a-9321-93c15b457566",
     numbering: "l",
     name: "Understand lunar electrodynamics",
     level1Uuid: "c6febf7f-c9b0-43d9-9817-41743adedd93",
-  },
-  "3b661d8e-f13f-4b0f-a427-afff86271a8e": {
+  }),
+  "3b661d8e-f13f-4b0f-a427-afff86271a8e": generateBlankStmLvl2({
     uuid: "3b661d8e-f13f-4b0f-a427-afff86271a8e",
     numbering: "m",
     name: "Monitor real-time environmental variables affecting safe operations, which includes monitoring for meteors, micrometeors, and other space debris that could potentially impact the lunar surface",
     level1Uuid: "c6febf7f-c9b0-43d9-9817-41743adedd93",
-  },
+  }),
 });
 
 export const apollo14StmLevel3s: STMLevel3[] = Object.values({
-  "e3c9cc9b-f712-4fb9-93ee-a2c3561e7d23": {
+  "e3c9cc9b-f712-4fb9-93ee-a2c3561e7d23": generateBlankStmLvl3({
     uuid: "e3c9cc9b-f712-4fb9-93ee-a2c3561e7d23",
     numbering: "1",
     name: "Establish the mechanisms, timing, and extent of volatile depletion in the Moon",
     level2Uuid: "5d4e82fd-2d37-418c-b161-b8680833a04d",
-  },
-  "f050b96d-2095-447a-904d-817a6b331057": {
+  }),
+  "f050b96d-2095-447a-904d-817a6b331057": generateBlankStmLvl3({
     uuid: "f050b96d-2095-447a-904d-817a6b331057",
     numbering: "2",
     name: "Constrain the physicochemical conditions and processes that operated at the surface of the lunar magma ocean",
     level2Uuid: "5d4e82fd-2d37-418c-b161-b8680833a04d",
-  },
-  "45f63b01-738a-4049-9930-7f6043dbf67f": {
+  }),
+  "45f63b01-738a-4049-9930-7f6043dbf67f": generateBlankStmLvl3({
     uuid: "45f63b01-738a-4049-9930-7f6043dbf67f",
     numbering: "3",
     name: "Understand the size, chemical makeup, and timing of core formation",
     level2Uuid: "5d4e82fd-2d37-418c-b161-b8680833a04d",
-  },
-  "8a5f3a47-42bd-4d9f-9ce7-d39e1c74c1f1": {
+  }),
+  "8a5f3a47-42bd-4d9f-9ce7-d39e1c74c1f1": generateBlankStmLvl3({
     uuid: "8a5f3a47-42bd-4d9f-9ce7-d39e1c74c1f1",
     numbering: "1",
     name: "Determine the extent and composition of the primary feldspathic crust, KREEP layer, and other products of planetary differentiation",
     level2Uuid: "73e6a936-464e-412c-bd01-b320fa54c18f",
-  },
-  "d1fc30c9-83f0-4dd3-bd81-d0ed25598b9a": {
+  }),
+  "d1fc30c9-83f0-4dd3-bd81-d0ed25598b9a": generateBlankStmLvl3({
     uuid: "d1fc30c9-83f0-4dd3-bd81-d0ed25598b9a",
     numbering: "2",
     name: "Determine the bulk composition of the crust and mantle",
     level2Uuid: "73e6a936-464e-412c-bd01-b320fa54c18f",
-  },
-  "4ffdba0e-6763-49fa-b467-f3b562c85823": {
+  }),
+  "4ffdba0e-6763-49fa-b467-f3b562c85823": generateBlankStmLvl3({
     uuid: "4ffdba0e-6763-49fa-b467-f3b562c85823",
     numbering: "3",
     name: "Inventory, relationships, and ages of nonmare rocks.",
     level2Uuid: "73e6a936-464e-412c-bd01-b320fa54c18f",
-  },
-  "f6ae009e-6633-47cc-81cb-fa32998b512f": {
+  }),
+  "f6ae009e-6633-47cc-81cb-fa32998b512f": generateBlankStmLvl3({
     uuid: "f6ae009e-6633-47cc-81cb-fa32998b512f",
     numbering: "1",
     name: "Determine physical properties of regolith at diverse locations of expected human activity",
     level2Uuid: "4179b56a-65ff-4fbe-b3b6-f34dafb73624",
-  },
-  "cd04e3b3-6e14-4380-b02e-ac17a49b9882": {
+  }),
+  "cd04e3b3-6e14-4380-b02e-ac17a49b9882": generateBlankStmLvl3({
     uuid: "cd04e3b3-6e14-4380-b02e-ac17a49b9882",
     numbering: "1",
     name: "Identification of surface frost composition",
     level2Uuid: "be826912-0a3a-4502-bd4e-09a6550abc01",
-  },
-  "a8493a94-6247-4b15-8b45-57c0232185a1": {
+  }),
+  "a8493a94-6247-4b15-8b45-57c0232185a1": generateBlankStmLvl3({
     uuid: "a8493a94-6247-4b15-8b45-57c0232185a1",
     numbering: "2",
     name: "Identification of surface frost locations in spatial context",
     level2Uuid: "be826912-0a3a-4502-bd4e-09a6550abc01",
-  },
-  "6420c80b-f21d-4e7b-a322-26b58dd86641": {
+  }),
+  "6420c80b-f21d-4e7b-a322-26b58dd86641": generateBlankStmLvl3({
     uuid: "6420c80b-f21d-4e7b-a322-26b58dd86641",
     numbering: "3",
     name: "Temporal variability of frost",
     level2Uuid: "be826912-0a3a-4502-bd4e-09a6550abc01",
-  },
-  "5b91e832-371b-4ff2-b8a1-0a5cd316d616": {
+  }),
+  "5b91e832-371b-4ff2-b8a1-0a5cd316d616": generateBlankStmLvl3({
     uuid: "5b91e832-371b-4ff2-b8a1-0a5cd316d616",
     numbering: "4",
     name: "Speciation of surface hydrogen",
     level2Uuid: "be826912-0a3a-4502-bd4e-09a6550abc01",
-  },
-  "c295cb78-4934-4f27-bd00-58eb8d4f43fb": {
+  }),
+  "c295cb78-4934-4f27-bd00-58eb8d4f43fb": generateBlankStmLvl3({
     uuid: "c295cb78-4934-4f27-bd00-58eb8d4f43fb",
     numbering: "5",
     name: "Understand surface hydrogen speciation spatial variability",
     level2Uuid: "be826912-0a3a-4502-bd4e-09a6550abc01",
-  },
-  "7e658a4d-0234-46a9-bedf-72b58398e6fb": {
+  }),
+  "7e658a4d-0234-46a9-bedf-72b58398e6fb": generateBlankStmLvl3({
     uuid: "7e658a4d-0234-46a9-bedf-72b58398e6fb",
     numbering: "6",
     name: "Spatial distribution of subsurface hydrogen",
     level2Uuid: "be826912-0a3a-4502-bd4e-09a6550abc01",
-  },
-  "4c96c581-9808-49e1-a119-dd9c52f596c7": {
+  }),
+  "4c96c581-9808-49e1-a119-dd9c52f596c7": generateBlankStmLvl3({
     uuid: "4c96c581-9808-49e1-a119-dd9c52f596c7",
     numbering: "7",
     name: "Determine distribution of micro cold traps across lunar surface within illuminated regions",
     level2Uuid: "be826912-0a3a-4502-bd4e-09a6550abc01",
-  },
-  "eb63647d-69bf-42b0-848b-6accfef8c0af": {
+  }),
+  "eb63647d-69bf-42b0-848b-6accfef8c0af": generateBlankStmLvl3({
     uuid: "eb63647d-69bf-42b0-848b-6accfef8c0af",
     numbering: "1",
     name: "Origin of the polar volatiles",
     level2Uuid: "cab8f512-176c-4886-ba1f-44ba256cff00",
-  },
-  "fab55a0d-a68b-4626-9297-38eec6f5139d": {
+  }),
+  "fab55a0d-a68b-4626-9297-38eec6f5139d": generateBlankStmLvl3({
     uuid: "fab55a0d-a68b-4626-9297-38eec6f5139d",
     numbering: "1",
     name: "Distribution of water/OH within a PSR",
     level2Uuid: "fdb18982-da50-4630-a4f2-f0fed48f9df2",
-  },
-  "9f4f512a-62aa-483c-ad40-3a15eb7df867": {
+  }),
+  "9f4f512a-62aa-483c-ad40-3a15eb7df867": generateBlankStmLvl3({
     uuid: "9f4f512a-62aa-483c-ad40-3a15eb7df867",
     numbering: "2",
     name: "Subsurface temperatures",
     level2Uuid: "fdb18982-da50-4630-a4f2-f0fed48f9df2",
-  },
-  "32aaae67-6447-4026-b5a0-dfaf43cf1aeb": {
+  }),
+  "32aaae67-6447-4026-b5a0-dfaf43cf1aeb": generateBlankStmLvl3({
     uuid: "32aaae67-6447-4026-b5a0-dfaf43cf1aeb",
     numbering: "3",
     name: "Determine the compositional/physical properties of H-bearing species of the regolith as a function of time",
     level2Uuid: "fdb18982-da50-4630-a4f2-f0fed48f9df2",
-  },
-  "9d4ba324-2944-4bca-9b82-183af23d1973": {
+  }),
+  "9d4ba324-2944-4bca-9b82-183af23d1973": generateBlankStmLvl3({
     uuid: "9d4ba324-2944-4bca-9b82-183af23d1973",
     numbering: "1",
     name: "Speciation of surface hydrogen",
     level2Uuid: "3630fbed-4857-4d18-9b17-f4a9aa170cbb",
-  },
-  "fb03bcfd-6db4-44e0-bc91-f342ae368cc2": {
+  }),
+  "fb03bcfd-6db4-44e0-bc91-f342ae368cc2": generateBlankStmLvl3({
     uuid: "fb03bcfd-6db4-44e0-bc91-f342ae368cc2",
     numbering: "1",
     name: "Identify exploration-induced variations on volatile composition, form, and distribution on the lunar surface during sample collection and transport, during curation and analysis, and from landed activities",
     level2Uuid: "f451ca8b-de4a-42af-918d-0212a7b03234",
-  },
-  "514bfc59-ff0e-4f9a-9191-57b9e31e4869": {
+  }),
+  "514bfc59-ff0e-4f9a-9191-57b9e31e4869": generateBlankStmLvl3({
     uuid: "514bfc59-ff0e-4f9a-9191-57b9e31e4869",
     numbering: "1",
     name: "Identify impact melt, impact ejecta, and exogenous (impactor) material in lunar samples to address the hypothesized Lunar Cataclysm",
     level2Uuid: "fcc8ba12-33d1-4c74-9a46-0e6b38ea95f3",
-  },
-  "cc194e75-b85c-4d2a-afe6-9bad9913760d": {
+  }),
+  "cc194e75-b85c-4d2a-afe6-9bad9913760d": generateBlankStmLvl3({
     uuid: "cc194e75-b85c-4d2a-afe6-9bad9913760d",
     numbering: "1",
     name: "Refine the post-basin impact flux, including up to the present",
     level2Uuid: "c2db032a-5331-4009-9776-eb7107d9bad8",
-  },
-  "afa76b13-43a1-4a88-991d-3cc73d9ed065": {
+  }),
+  "afa76b13-43a1-4a88-991d-3cc73d9ed065": generateBlankStmLvl3({
     uuid: "afa76b13-43a1-4a88-991d-3cc73d9ed065",
     numbering: "1",
     name: "Determine the sequence of individual craters and basins that influence local, regional, and global stratigraphy at the Artemis III landing site",
     level2Uuid: "8dec2c41-4d71-44e8-9970-b7596480d41a",
-  },
-  "9bf437ea-2e29-4df6-a4f7-f45527573968": {
+  }),
+  "9bf437ea-2e29-4df6-a4f7-f45527573968": generateBlankStmLvl3({
     uuid: "9bf437ea-2e29-4df6-a4f7-f45527573968",
     numbering: "1",
     name: "Near-Lunar Electromagnetic and Plasma Environment",
     level2Uuid: "67838ad6-71b9-47ac-a0e8-6973652ed6ed",
-  },
-  "f8606ab7-f0d5-4744-aa73-40258894de11": {
+  }),
+  "f8606ab7-f0d5-4744-aa73-40258894de11": generateBlankStmLvl3({
     uuid: "f8606ab7-f0d5-4744-aa73-40258894de11",
     numbering: "1",
     name: "Understand the properties of electrostatic lofting and levitation, and the role of electrical charging of the dust in the granular behavior of lunar regolih (see science goal 6g)",
     level2Uuid: "9428163e-dfcc-43fe-9ce6-52da45919dc4",
-  },
-  "da6e1a1a-7862-4874-be24-9e0dda80c02f": {
+  }),
+  "da6e1a1a-7862-4874-be24-9e0dda80c02f": generateBlankStmLvl3({
     uuid: "da6e1a1a-7862-4874-be24-9e0dda80c02f",
     numbering: "2",
     name: "Dust-Plasma Interaction on the Surface & Exosphere of the Moon",
     level2Uuid: "9428163e-dfcc-43fe-9ce6-52da45919dc4",
-  },
-  "fd95ad6e-9000-4d75-9724-a2e53e8f9047": {
+  }),
+  "fd95ad6e-9000-4d75-9724-a2e53e8f9047": generateBlankStmLvl3({
     uuid: "fd95ad6e-9000-4d75-9724-a2e53e8f9047",
     numbering: "1",
     name: "Understand the plasma properties near the lunar surface and how they respond to external drivers, particularly across the terminator",
     level2Uuid: "db3b5b09-0016-498a-9321-93c15b457566",
-  },
-  "4da435d2-287c-4780-b530-ee934257d556": {
+  }),
+  "4da435d2-287c-4780-b530-ee934257d556": generateBlankStmLvl3({
     uuid: "4da435d2-287c-4780-b530-ee934257d556",
     numbering: "2",
     name: "Understand the origin of lunar surface potentials, how they evolve between sunlit and shadowed regions, and under what circumstances they pose a threat to exploration",
     level2Uuid: "db3b5b09-0016-498a-9321-93c15b457566",
-  },
-  "a1a76159-8dd5-44d5-8d06-02c9aa8dce5c": {
+  }),
+  "a1a76159-8dd5-44d5-8d06-02c9aa8dce5c": generateBlankStmLvl3({
     uuid: "a1a76159-8dd5-44d5-8d06-02c9aa8dce5c",
     numbering: "1",
     name: "Establish a lunar environmental monitoring station to measure environmental variables such as temperature, vibration, dust collection, radiation, seismic activity, and gravity",
     level2Uuid: "3b661d8e-f13f-4b0f-a427-afff86271a8e",
-  },
-  "d4a76d02-8510-4529-a19b-9a1a336707dc": {
+  }),
+  "d4a76d02-8510-4529-a19b-9a1a336707dc": generateBlankStmLvl3({
     uuid: "d4a76d02-8510-4529-a19b-9a1a336707dc",
     numbering: "2",
     name: "Provide real-time environmental information relevant to daily lunar operations",
     level2Uuid: "3b661d8e-f13f-4b0f-a427-afff86271a8e",
-  },
+  }),
 });
 
 /**
@@ -1154,8 +1159,7 @@ export const buildApollo14Mission = (): Mission =>
 /**
  * Stamp a mission id onto the mission document and every entity that carries a
  * `missionId`. Called by the seed runner with the id the `doc_listing` table assigned
- * (the next available id), so the demo no longer assumes a specific id. This is an
- * apply-style draft mutator: it is safe to call inside an Automerge `.change()`.
+ * (the next available id). This is safe to call inside an Automerge `.change()`.
  */
 export const stampMissionId = (mission: Mission, missionId: number): void => {
   mission.id = missionId;
@@ -1179,75 +1183,63 @@ const SUBLAYER_HILLSHADE_UUID = "a1000000-0000-4000-9000-000000000002";
 const SUBLAYER_TRAVERSES_UUID = "a1000000-0000-4000-9000-000000000004";
 const PRESET_UUID = "a2000000-0000-4000-9000-000000000001";
 
-/** One sublayer definition. `missionId`/timestamps are assigned at seed time. */
-export interface Apollo14SeedSublayer {
-  uuid: string;
-  name: string;
-  type: SublayerType;
-  description: string;
-  path: string | null;
-  tilePattern: string | null;
-  tileFormat: string;
-  boundingBox: number[] | null;
-  minNativeZoom: number | null;
-  maxNativeZoom: number | null;
-  maxZoom: number | null;
-}
-
-/** One header layer and its sublayers. `missionId` is assigned at seed time. */
-export interface Apollo14SeedLayer {
-  uuid: string;
-  name: string;
-  sublayers: Apollo14SeedSublayer[];
-}
-
-/** A single "Demo Layers" header layer holding every demo sublayer. */
-export const apollo14Layers: Apollo14SeedLayer[] = [
-  {
+/**
+ * The demo mission's map layers. A single "Demo Layers" header layer holds every demo
+ * sublayer. `missionId` is a placeholder (`1`); the seed runner stamps the assigned id
+ * at seed time.
+ */
+export const apollo14Layers: Layer[] = [
+  generateBlankLayer({
     uuid: DEMO_LAYER_UUID,
+    missionId: 1,
     name: "Demo Layers",
-    sublayers: [
-      {
-        uuid: SUBLAYER_ORTHO_UUID,
-        name: "NAC Ortho 50cm",
-        type: "tile",
-        description: "",
-        path: "NAC_ortho_50cm_1_v4",
-        tilePattern: "{z}/{x}/{y}.png",
-        tileFormat: "tms",
-        boundingBox: [-17.52243003485202, -3.90647227279352, -17.39118427681328, -2.96897224131543],
-        minNativeZoom: 8,
-        maxNativeZoom: 16,
-        maxZoom: 23,
-      },
-      {
-        uuid: SUBLAYER_HILLSHADE_UUID,
-        name: "NAC DTM 2m Hillshade",
-        type: "tile",
-        description: "",
-        path: "NAC_DTM_hillshade",
-        tilePattern: "{z}/{x}/{y}.png",
-        tileFormat: "tms",
-        boundingBox: [-17.52838060176, -3.91301487948368, -17.38598936240026, -2.96326094389799],
-        minNativeZoom: 8,
-        maxNativeZoom: 14,
-        maxZoom: 23,
-      },
-      {
-        uuid: SUBLAYER_TRAVERSES_UUID,
-        name: "Traverses",
-        type: "vector",
-        description: "",
-        path: "Apollo14Traverse.geojson",
-        tilePattern: null,
-        tileFormat: "tms",
-        boundingBox: null,
-        minNativeZoom: null,
-        maxNativeZoom: null,
-        maxZoom: null,
-      },
-    ],
-  },
+  }),
+];
+
+/**
+ * The demo mission's sublayers. Each is linked to its parent layer via
+ * `layerUuid`. `missionId` is a placeholder (`1`); the seed runner stamps the assigned
+ * id at seed time. Any Sublayer field not set here (e.g. `legend`, `isTimeBased`) is
+ * filled with the standard default by `generateBlankSublayer`.
+ */
+export const apollo14Sublayers: Sublayer[] = [
+  generateBlankSublayer({
+    uuid: SUBLAYER_ORTHO_UUID,
+    missionId: 1,
+    layerUuid: DEMO_LAYER_UUID,
+    name: "NAC Ortho 50cm",
+    type: "tile",
+    path: "NAC_ortho_50cm_1_v4",
+    tilePattern: "{z}/{x}/{y}.png",
+    tileFormat: "tms",
+    boundingBox: [-17.52243003485202, -3.90647227279352, -17.39118427681328, -2.96897224131543],
+    minNativeZoom: 8,
+    maxNativeZoom: 16,
+    maxZoom: 23,
+  }),
+  generateBlankSublayer({
+    uuid: SUBLAYER_HILLSHADE_UUID,
+    missionId: 1,
+    layerUuid: DEMO_LAYER_UUID,
+    name: "NAC DTM 2m Hillshade",
+    type: "tile",
+    path: "NAC_DTM_hillshade",
+    tilePattern: "{z}/{x}/{y}.png",
+    tileFormat: "tms",
+    boundingBox: [-17.52838060176, -3.91301487948368, -17.38598936240026, -2.96326094389799],
+    minNativeZoom: 8,
+    maxNativeZoom: 14,
+    maxZoom: 23,
+  }),
+  generateBlankSublayer({
+    uuid: SUBLAYER_TRAVERSES_UUID,
+    missionId: 1,
+    layerUuid: DEMO_LAYER_UUID,
+    name: "Traverses",
+    type: "vector",
+    path: "Apollo14Traverse.geojson",
+    tileFormat: "tms",
+  }),
 ];
 
 const sublayerControl = (uuid: string, name: string, visible: boolean): MapSublayerControl => ({
@@ -1262,12 +1254,11 @@ const sublayerControl = (uuid: string, name: string, visible: boolean): MapSubla
  * sublayers available but hidden. References the deterministic layer/sublayer uuids
  * above. `missionId`/`createdAt`/`updatedAt` are assigned at seed time.
  */
-export const apollo14Preset: Preset = {
+export const apollo14Preset: Preset = generateBlankPreset({
   uuid: PRESET_UUID,
   ownerId: 1,
-  missionId: 1, // placeholder; the seed runner overrides this with the assigned id
+  missionId: 1,
   name: "Map Preset 1",
-  description: "",
   missionDefault: true,
   mapSublayerControls: {
     [SUBLAYER_ORTHO_UUID]: sublayerControl(SUBLAYER_ORTHO_UUID, "NAC Ortho 50cm", true),
@@ -1278,17 +1269,10 @@ export const apollo14Preset: Preset = {
     ),
     [SUBLAYER_TRAVERSES_UUID]: sublayerControl(SUBLAYER_TRAVERSES_UUID, "Traverses", true),
   },
-  mapCircleControls: {},
-  mapGridControl: null,
   layerOrder: [
     {
       layerUuid: DEMO_LAYER_UUID,
       sublayerUuids: [SUBLAYER_TRAVERSES_UUID, SUBLAYER_ORTHO_UUID, SUBLAYER_HILLSHADE_UUID],
     },
   ],
-  sunAzimuth: 0,
-  sunEnabled: false,
-  earthAzimuth: 0,
-  earthEnabled: false,
-  earthAsMoon: false,
-};
+});

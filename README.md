@@ -98,8 +98,8 @@ This runs, in order:
 > [Step 2: Download map assets](#step-2-download-map-assets) below for obtaining and installing them.
 > Without them the map renders the mission geometry over an empty basemap.
 >
-> `seed:demo` expects a fresh database. Re-running `automerge:seed` on its own is safe: it detects an
-> existing "Apollo 14" mission and exits without creating a duplicate.
+> Re-running `automerge:seed` on its own is safe: it detects an existing "Apollo 14" mission and exits
+> without creating a duplicate.
 
 ### Step 2: Download map assets
 
