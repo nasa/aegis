@@ -23,6 +23,7 @@ import View from "ol/View";
 import { flushSync } from "react-dom";
 import TileLayer from "ol/layer/Tile";
 import WebGLTileLayer from "ol/layer/WebGLTile";
+import { VectorImage as VectorImageLayer } from "ol/layer";
 
 import { MapContext } from "components/interface/map/MapProvider";
 import { TileLayers } from "components/interface/map/behaviors/TileLayers";
@@ -263,6 +264,13 @@ function findWebGLTileLayers(): WebGLTileLayer[] {
     .filter((l) => l instanceof WebGLTileLayer) as WebGLTileLayer[];
 }
 
+function findVectorImageLayers(): VectorImageLayer[] {
+  return map
+    .getLayers()
+    .getArray()
+    .filter((l) => l instanceof VectorImageLayer) as VectorImageLayer[];
+}
+
 function renderTileLayers(mode: "editor" | "dashboard" | "minimap" = "editor") {
   harness.render(
     <Provider store={store}>
@@ -326,6 +334,39 @@ describe("TileLayers", () => {
       expect(cogLayers).toHaveLength(1);
       expect(cogLayers[0].get("sublayerType")).toBe("cog");
       expect(cogLayers[0].get("uuid")).toBe(SUBLAYER_A_UUID);
+    } finally {
+      fetchStub.mockRestore();
+    }
+  });
+
+  it("refreshes vector layers after their initial feature load", () => {
+    const fetchStub = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(() => new Promise(() => undefined));
+    try {
+      const vectorSublayer = generateBlankSublayer({
+        uuid: SUBLAYER_A_UUID,
+        name: "Contours",
+        layerUuid: LAYER_UUID,
+        type: "vector",
+        path: "contours.geojson",
+        missionId: 42,
+      });
+      store = makeStore(
+        preloaded({
+          sublayers: [vectorSublayer],
+          presets: [makePreset({ visibleUuids: [SUBLAYER_A_UUID] })],
+        })
+      );
+      renderTileLayers();
+
+      const layer = findVectorImageLayers()[0];
+      const source = layer.getSource()!;
+      const revisionBeforeLoad = layer.getRevision();
+
+      source.dispatchEvent("featuresloadend");
+
+      expect(layer.getRevision()).toBeGreaterThan(revisionBeforeLoad);
     } finally {
       fetchStub.mockRestore();
     }

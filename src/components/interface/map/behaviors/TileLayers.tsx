@@ -184,6 +184,13 @@ export function TileLayers(): null {
         layer.set("_resolvedPath", sublayerToRender.path);
         layer.setZIndex(zIndex);
         applyVisualStyle(layer, sublayerToRender.visualStyle);
+        if (sublayerToRender.type === "vector") {
+          const source = (layer as VectorImageLayer).getSource();
+          source?.once("featuresloadend", () => {
+            layer.changed();
+            map.render();
+          });
+        }
         map.addLayer(layer);
         activeLayersRef.current.set(sublayerToRender.uuid, layer);
 
