@@ -78,6 +78,7 @@ describe("Box download", () => {
   test("parses progress events and encodes the request path", async () => {
     mockBoxDownloadResponse([
       '{"type":"progress","stage":"downloading","bytesDownloaded":1048576,"totalBytes":2097152}\n',
+      '{"type":"progress","stage":"extracting","fileName":"large.zip","elapsedSeconds":10}\n',
       '{"status":"success","message":"File downloaded and processed","data":{"success":true}}\n',
     ]);
     const onProgress = vi.fn();
@@ -95,6 +96,12 @@ describe("Box download", () => {
       bytesDownloaded: 1048576,
       totalBytes: 2097152,
     });
+    expect(onProgress).toHaveBeenCalledWith({
+      type: "progress",
+      stage: "extracting",
+      fileName: "large.zip",
+      elapsedSeconds: 10,
+    });
     expect(global.fetch).toHaveBeenCalledWith(
       "/api/v1/file/boxDownloadFile?missionId=12&itemId=42&path=mission+files%2Flayers"
     );
@@ -106,6 +113,24 @@ describe("Box download", () => {
     await expect(boxDownloadFile(12, "42", "mission files/layers")).resolves.toEqual({
       status: "error",
       message: "Box download stalled",
+    });
+  });
+
+  test("parses progress events split across stream chunks", async () => {
+    mockBoxDownloadResponse([
+      '{"type":"progress","stage":"extracting","elapsedSeconds":20',
+      ',"fileName":"large.zip"}\n',
+      '{"status":"success","message":"File downloaded and processed","data":{"success":true}}\n',
+    ]);
+    const onProgress = vi.fn();
+
+    await boxDownloadFile(12, "42", "mission files/layers", onProgress);
+
+    expect(onProgress).toHaveBeenCalledWith({
+      type: "progress",
+      stage: "extracting",
+      elapsedSeconds: 20,
+      fileName: "large.zip",
     });
   });
 });

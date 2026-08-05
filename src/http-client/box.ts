@@ -47,7 +47,6 @@ export async function boxDownloadFile(
     return (await res.json()) as WrappedResponse<void>;
   }
 
-  const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffered = "";
   let response: WrappedResponse<void> | null = null;
@@ -62,14 +61,13 @@ export async function boxDownloadFile(
     }
   };
 
-  while (true) {
-    const { done, value } = await reader.read();
-    buffered += decoder.decode(value, { stream: !done });
+  for await (const chunk of res.body) {
+    buffered += decoder.decode(chunk, { stream: true });
     const lines = buffered.split("\n");
     buffered = lines.pop() ?? "";
     lines.forEach(processLine);
-    if (done) break;
   }
+  buffered += decoder.decode();
   processLine(buffered);
 
   return response ?? { status: "error", message: "Download ended without a completion response" };
@@ -81,4 +79,5 @@ export type BoxDownloadProgress = {
   fileName?: string;
   bytesDownloaded?: number;
   totalBytes?: number;
+  elapsedSeconds?: number;
 };
