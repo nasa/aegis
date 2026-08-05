@@ -823,6 +823,42 @@
   padding: 2px 0;
 }
 
+.downloadProgress {
+  width: 140px;
+  height: 10px;
+}
+
+.downloadStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.folderLoadingStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+  color: #cbd5e1;
+  cursor: wait;
+  text-decoration: none;
+}
+
+.folderLoadingSpinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgb(203 213 225 / 35%);
+  border-top-color: #cbd5e1;
+  border-radius: 50%;
+  animation: folder-loading-spin 800ms linear infinite;
+}
+
+@keyframes folder-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .importButton {
   background: #2563eb;
   color: white;
