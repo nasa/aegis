@@ -87,10 +87,11 @@ export function createOlLayer(input: LayerFactoryInput): OLLayer | null {
 /**
  * Create a COG (Cloud Optimized GeoTIFF) layer.
  * Separated from the main factory because COG sublayers are identified by
- * a path ending in `.tif` or `.tiff`, not by a dedicated `type` field yet.
+ * a path ending in `.tif` or `.tiff`, not by a dedicated `type` field.
+ * The COG lives inside a folder under Layers/ (path = `<folder>/<file>.tif`).
  */
 export function createCogLayer(input: LayerFactoryInput): WebGLTileLayer {
-  const url = buildFullUrl(input.sublayer, input.missionId, "data");
+  const url = buildFullUrl(input.sublayer, input.missionId, "tile");
 
   return new WebGLTileLayer({
     source: new GeoTIFFSource({

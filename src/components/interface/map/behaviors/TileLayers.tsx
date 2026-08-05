@@ -231,8 +231,9 @@ function createLayerForSublayer(
     projConfig,
   };
 
-  // COG layers are identified by path extension since there's no dedicated
-  // `type: "cog"` in the DB schema yet.
+  // COG raster sublayers are self-describing GeoTIFFs rendered via WebGLTile + GeoTIFF,
+  // identified by a `.tif`/`.tiff` path (a file inside the layer's Layers/ folder).
+  // A `.pmtiles` path is not matched here, so vector-tile layers still route to createOlLayer.
   if (isCogPath(sublayer.path)) {
     return createCogLayer(input);
   }
