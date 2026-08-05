@@ -106,6 +106,11 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
   fallback `slope.txt` still matches the MS3 `AMPES_Slope 1.lyrx`). **TRI is
   resolution-dependent** — the `products` step auto-selects `default_color_ramps/ARCHIVE/
 TRIColors_{1m,5m,10m}_DEM.txt` to match `--dem-resolution`.
+- `tile_to_cap_grid.py` pads its virtual cap canvas to **`2**max_zoom` tiles**, not to the next
+  whole tile at max zoom. `gdal raster tile` anchors at the top-left and re-derives the row
+  count per zoom as `ceil(rows / 2)`, so anything other than a power-of-two tile count walks
+  the bottom row off `CAP_MIN` on the way up and shifts the coarser levels north (the layer
+  visibly jumps as you zoom out past its native level). Keep the padding power-of-two.
 - `tile_to_cap_grid.py` honours a real alpha band when input is RGBA; for ≤3-band input it
   infers transparency from band 0 == nodata/0. Colorized products should be RGBA so colours
   with red=0 (e.g. darkest TRI `rgb(0,38,115)`) aren't clipped.
