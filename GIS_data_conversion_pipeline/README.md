@@ -60,11 +60,10 @@ step reads a specific input under `--in-root` that you can override individually
 | Step       | Source flag (overrides the `--in-root` default)          | Destination (under `--out-dir`)                     |
 | ---------- | ---------------------------------------------------- | ----------------------------------------------- |
 | `dem`      | `--in-dem <dem.tif>`                                    | `Data/<source>_deflate_cog.tif` (keeps source name) |
-| `nac`      | `--in-nac <mosaic.tif>` _(delivered separately)_ | `Layers/nac/`                                   |
 | `slope`    | `--in-slope <slope.tif>` + `--in-lyrx <ramp.lyrx>`         | `Layers/slope/`                                 |
 | `products` | `--in-dem` + `--dem-products hillshade slope aspect tri`    | `Layers/{hillshade,slope,aspect,tri}/`          |
 | `vector`   | `--in-ellipse <ellipse.shp>`                            | `Data/ellipse.geojson`                          |
-| `rasters`  | `--in-raster <path>` (repeatable)                       | `Layers/<stem>/` each                           |
+| `rasters`  | `--in-raster <path>` (repeatable; `--raster-name` optional) | `Layers/<name>/` each                        |
 | `vectors`  | `--in-vector <path>` (repeatable, shp/geojson)          | `Data/<stem>.geojson` each                      |
 | `grid`     | `--lander-lat/--lander-lng` (`--grid-extent 10km`)   | `grid_source.geojson`                           |
 | `register` | `--mission-id` (+ `--aegis-url`/`--token`)           | mission fields + layers/sublayers + active grid |
@@ -117,8 +116,7 @@ These take positional `input` / `output` paths directly (no `--in-root`/`--out-d
   `singleband_timeaware.py <indir> --datatype <mazarico|quickmap> [-o <outdir>]`.
 
 See its [README](esri-to-aegis-lunar-southpole/README.md) for all data types, folder layout,
-AEGIS import settings, and [`docs/LEGACY-COVERAGE.md`](esri-to-aegis-lunar-southpole/docs/LEGACY-COVERAGE.md)
-(what was ported from the legacy `lunar_utils/aegis` package). General raster utilities
+and AEGIS import settings. General raster utilities
 (`geotiff_to_cog`, `inspect_geotiff`, `raster_to_tiles`) live in its
 [`common/`](esri-to-aegis-lunar-southpole/common/) folder.
 

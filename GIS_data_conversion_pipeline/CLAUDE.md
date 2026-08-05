@@ -10,8 +10,7 @@ COGs, GeoJSON, mission grids, time-aware layers, and the `properties.json` / `ma
 sidecars. Beyond producing files, the main pipeline also **registers a mission on a running
 AEGIS server over HTTP** (mission GIS fields, header layers, sublayers, active grid) and can
 **zip + upload the results to Box** — so a generated mission needs no admin "import from file"
-clicking. It supersedes the legacy `../../lunar_utils/lunar_utils/aegis` package — see
-[`esri-to-aegis-lunar-southpole/docs/LEGACY-COVERAGE.md`](esri-to-aegis-lunar-southpole/docs/LEGACY-COVERAGE.md).
+clicking. It is the active implementation of the AEGIS GIS conversion workflow.
 
 ## Environment & commands
 
@@ -40,7 +39,7 @@ pixi run python <script>.py ...
   (`reporting` output-capture, `steps`, `summary`); `config.py` holds the cap-grid projection
   profile + path resolution + header/external-NAC/grid constants; `aegis_api.py` /
   `register.py` / `box_publish.py` do the HTTP registration + Box upload; `common/` shared
-  raster tools; one folder per concern (`dem nac slope products vector vectortile grid
+  raster tools; one folder per concern (`dem slope products vector vectortile grid
 timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivered ArcGIS
   vector-tile cache (Compact Cache V2) into a single `.pmtiles` (pure-Python `pmtiles`, no GDAL),
   emitted inside its own `Layers/<name>/` folder; `vectortile/dem_to_contours_pmtiles.py` instead
@@ -57,7 +56,7 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
 ## Conventions for new/edited scripts
 
 - **Run-by-path geo sub-scripts; package-imported orchestration.** The per-concern geo
-  scripts (`common/`, `dem/`, `nac/`, `slope/`, `products/`, `vector/`, `grid/`, `timeaware/`)
+  scripts (`common/`, `dem/`, `slope/`, `products/`, `vector/`, `grid/`, `timeaware/`)
   are invoked as `pixi run python <path>.py` and orchestrated via `subprocess` (see
   `pipeline/steps.py`). The orchestration layer is the exception: `main.py` imports its
   same-dir modules (`config`, `aegis_api`, `register`, `box_publish`) and the `pipeline/`
