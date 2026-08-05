@@ -1,0 +1,390 @@
+{
+  "missionId": 35,
+  "mdau": {
+    "aegisStations": {
+      "4538fe82-56f3-48e5-a1de-9e997ce6b5ea": {
+        "refUuid": "4538fe82-56f3-48e5-a1de-9e997ce6b5ea",
+        "name": "S2",
+        "duration": 0,
+        "actionOrderRefUuids": [
+          "b425252f-10f1-4d4d-aadc-16b0a7544dc5",
+          "a7c24de7-c9a2-4720-bcb4-ef0382f17714",
+          "71b661ca-5099-4049-a009-33d89b02a968",
+          "16dd5aaf-5b56-4894-9f2a-a868562ffb53"
+        ],
+        "updatedAt": "2026-07-29T21:01:59.298Z"
+      },
+      "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216": {
+        "refUuid": "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216",
+        "name": "S1-neon-test5",
+        "duration": 0,
+        "actionOrderRefUuids": [
+          "eb99fc4d-4731-4b15-a097-cec6a3c5cac4",
+          "e763a705-fba4-4bb9-bbeb-b5d437b0d1a4",
+          "91f218a2-6ee8-4619-9a7d-5970f147288f",
+          "6e2ee00b-0bd4-44fb-a238-329c5e7714b3",
+          "8897a17f-c2bb-4d7c-94a2-2237a3848cec",
+          "43ef4f44-87b6-4f83-8dda-10d6c63aaa2c",
+          "d4eaae4b-b20b-4aec-942f-6b1b89bd6e6c",
+          "a4cf7ec7-d582-47b8-a9cf-72c30b5372e4",
+          "4c83a975-7022-4e97-a6ea-04235dec71f7"
+        ],
+        "updatedAt": "2026-07-29T21:01:59.299Z"
+      }
+    },
+    "aegisTraverse": {
+      "aead4977-42e1-40d5-81d5-17bcfbba21af": {
+        "refUuid": "aead4977-42e1-40d5-81d5-17bcfbba21af",
+        "duration": 0,
+        "actionOrderRefUuids": [
+          "1b0840b1-7880-4f74-84c2-510b67e5d886",
+          "568b1277-4e39-435c-98a3-2254815f0de6"
+        ],
+        "updatedAt": "2026-07-29T19:16:53.046Z"
+      },
+      "b35ae2bb-2bef-45b1-9838-1cb548ac28dc": {
+        "refUuid": "b35ae2bb-2bef-45b1-9838-1cb548ac28dc",
+        "duration": 0,
+        "actionOrderRefUuids": [
+          "426f0a95-3596-48fa-93e0-8cae517afa4f"
+        ],
+        "updatedAt": "2026-07-29T19:16:53.047Z"
+      },
+      "c3ef38a5-86ce-43df-92b5-b02e87fcb7b4": {
+        "refUuid": "c3ef38a5-86ce-43df-92b5-b02e87fcb7b4",
+        "duration": 0,
+        "actionOrderRefUuids": [],
+        "updatedAt": "2025-08-13T19:36:01.690Z"
+      }
+    },
+    "aegisEva": {
+      "ff0e6bcf-8a4b-4f1d-aba1-46070d1a9081": {
+        "refUuid": "ff0e6bcf-8a4b-4f1d-aba1-46070d1a9081",
+        "name": [
+          "EVA1 for Maestro"
+        ],
+        "maestroEventId": "3bbc3a2f-4d2b-4f9b-bb36-a48dff70fa34",
+        "maestroEventUrl": "https://maestro-local.fit.nasa.gov/event/3bbc3a2f-4d2b-4f9b-bb36-a48dff70fa34",
+        "sequenceRefUuids": [
+          {
+            "type": "traverse",
+            "refUuid": "aead4977-42e1-40d5-81d5-17bcfbba21af"
+          },
+          {
+            "type": "station",
+            "refUuid": "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216"
+          },
+          {
+            "type": "traverse",
+            "refUuid": "b35ae2bb-2bef-45b1-9838-1cb548ac28dc"
+          },
+          {
+            "type": "station",
+            "refUuid": "4538fe82-56f3-48e5-a1de-9e997ce6b5ea"
+          },
+          {
+            "type": "traverse",
+            "refUuid": "c3ef38a5-86ce-43df-92b5-b02e87fcb7b4"
+          }
+        ],
+        "ingressDuration": 10,
+        "egressDuration": 10,
+        "updatedAt": "2026-03-06T16:04:24.512Z"
+      }
+    },
+    "aegisAction": {
+      "16dd5aaf-5b56-4894-9f2a-a868562ffb53": {
+        "refUuid": "16dd5aaf-5b56-4894-9f2a-a868562ffb53",
+        "actors": [
+          "EV1"
+        ],
+        "updatedAt": "2025-08-13T20:49:20.751Z"
+      },
+      "1b0840b1-7880-4f74-84c2-510b67e5d886": {
+        "refUuid": "1b0840b1-7880-4f74-84c2-510b67e5d886",
+        "actors": [
+          "EV1",
+          "EV2"
+        ],
+        "updatedAt": "2025-08-12T19:13:22.803Z"
+      },
+      "426f0a95-3596-48fa-93e0-8cae517afa4f": {
+        "refUuid": "426f0a95-3596-48fa-93e0-8cae517afa4f",
+        "actors": [
+          "EV1",
+          "EV2"
+        ],
+        "updatedAt": "2025-08-12T19:13:22.803Z"
+      },
+      "43ef4f44-87b6-4f83-8dda-10d6c63aaa2c": {
+        "refUuid": "43ef4f44-87b6-4f83-8dda-10d6c63aaa2c",
+        "actors": [
+          "EV2"
+        ],
+        "updatedAt": "2025-08-12T19:13:22.802Z"
+      },
+      "4c83a975-7022-4e97-a6ea-04235dec71f7": {
+        "refUuid": "4c83a975-7022-4e97-a6ea-04235dec71f7",
+        "actors": [
+          "EV1"
+        ],
+        "updatedAt": "2026-02-09T22:12:14.176Z"
+      },
+      "568b1277-4e39-435c-98a3-2254815f0de6": {
+        "refUuid": "568b1277-4e39-435c-98a3-2254815f0de6",
+        "actors": [
+          "EV1",
+          "EV2"
+        ],
+        "updatedAt": "2025-08-12T19:13:22.802Z"
+      },
+      "6e2ee00b-0bd4-44fb-a238-329c5e7714b3": {
+        "refUuid": "6e2ee00b-0bd4-44fb-a238-329c5e7714b3",
+        "actors": [
+          "EV2"
+        ],
+        "updatedAt": "2025-08-12T19:13:22.802Z"
+      },
+      "71b661ca-5099-4049-a009-33d89b02a968": {
+        "refUuid": "71b661ca-5099-4049-a009-33d89b02a968",
+        "actors": [
+          "EV2"
+        ],
+        "updatedAt": "2025-08-13T20:47:56.101Z"
+      },
+      "8897a17f-c2bb-4d7c-94a2-2237a3848cec": {
+        "refUuid": "8897a17f-c2bb-4d7c-94a2-2237a3848cec",
+        "actors": [
+          "EV1"
+        ],
+        "updatedAt": "2025-10-01T19:34:51.194Z"
+      },
+      "91f218a2-6ee8-4619-9a7d-5970f147288f": {
+        "refUuid": "91f218a2-6ee8-4619-9a7d-5970f147288f",
+        "actors": [
+          "EV1"
+        ],
+        "updatedAt": "2026-07-23T15:04:32.279Z"
+      },
+      "a4cf7ec7-d582-47b8-a9cf-72c30b5372e4": {
+        "refUuid": "a4cf7ec7-d582-47b8-a9cf-72c30b5372e4",
+        "actors": [
+          "EV1",
+          "EV2"
+        ],
+        "updatedAt": "2025-08-12T19:13:22.803Z"
+      },
+      "a7c24de7-c9a2-4720-bcb4-ef0382f17714": {
+        "refUuid": "a7c24de7-c9a2-4720-bcb4-ef0382f17714",
+        "actors": [
+          "EV2"
+        ],
+        "updatedAt": "2025-08-13T20:48:55.014Z"
+      },
+      "b425252f-10f1-4d4d-aadc-16b0a7544dc5": {
+        "refUuid": "b425252f-10f1-4d4d-aadc-16b0a7544dc5",
+        "actors": [
+          "EV1"
+        ],
+        "updatedAt": "2025-09-18T15:53:09.869Z"
+      },
+      "d4eaae4b-b20b-4aec-942f-6b1b89bd6e6c": {
+        "refUuid": "d4eaae4b-b20b-4aec-942f-6b1b89bd6e6c",
+        "actors": [
+          "EV1"
+        ],
+        "updatedAt": "2026-02-11T21:20:30.350Z"
+      },
+      "e763a705-fba4-4bb9-bbeb-b5d437b0d1a4": {
+        "refUuid": "e763a705-fba4-4bb9-bbeb-b5d437b0d1a4",
+        "actors": [
+          "EV2"
+        ],
+        "updatedAt": "2026-07-29T19:17:06.875Z"
+      },
+      "eb99fc4d-4731-4b15-a097-cec6a3c5cac4": {
+        "refUuid": "eb99fc4d-4731-4b15-a097-cec6a3c5cac4",
+        "actors": [
+          "EV1"
+        ],
+        "updatedAt": "2026-07-29T19:38:14.796Z"
+      }
+    },
+    "aegisRexes": {
+      "0cb4650c-914b-4659-aab4-ea7c14dd991b": {
+        "uuid": "0cb4650c-914b-4659-aab4-ea7c14dd991b",
+        "isRunning": true,
+        "maestroControlled": true,
+        "petStartStopTimestamp": "2026-07-29T22:06:49.865Z",
+        "petValueAtStartStop": "+00:00:00",
+        "petRunning": true,
+        "updatedAt": 1785359210188,
+        "xgressEntries": {
+          "egress": {
+            "rexStatus": "pending"
+          },
+          "ingress": {
+            "rexStatus": "pending"
+          }
+        },
+        "maestroActivityPropertiesByRefUuid": {
+          "egress": {
+            "color": "#ffffff",
+            "number": "1"
+          },
+          "aead4977-42e1-40d5-81d5-17bcfbba21af": {
+            "color": "#ffffff",
+            "number": "2"
+          },
+          "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216": {
+            "color": "#ffffff",
+            "number": "3"
+          },
+          "b35ae2bb-2bef-45b1-9838-1cb548ac28dc": {
+            "color": "#ffffff",
+            "number": "4"
+          },
+          "4538fe82-56f3-48e5-a1de-9e997ce6b5ea": {
+            "color": "#ffffff",
+            "number": "5"
+          },
+          "c3ef38a5-86ce-43df-92b5-b02e87fcb7b4": {
+            "color": "#ffffff",
+            "number": "6"
+          },
+          "ingress": {
+            "color": "#ffffff",
+            "number": "7"
+          }
+        },
+        "stationEntriesByRefUuid": {
+          "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216": {
+            "rexStatus": "pending",
+            "maestroPercentCompleteEv1": 0,
+            "maestroPercentCompleteEv2": 0
+          },
+          "4538fe82-56f3-48e5-a1de-9e997ce6b5ea": {
+            "rexStatus": "pending",
+            "maestroPercentCompleteEv1": 0,
+            "maestroPercentCompleteEv2": 0
+          }
+        },
+        "traverseEntriesByRefUuid": {
+          "aead4977-42e1-40d5-81d5-17bcfbba21af": {
+            "rexStatus": "pending",
+            "maestroPercentCompleteEv1": 0,
+            "maestroPercentCompleteEv2": 0
+          },
+          "b35ae2bb-2bef-45b1-9838-1cb548ac28dc": {
+            "rexStatus": "pending",
+            "maestroPercentCompleteEv1": 0,
+            "maestroPercentCompleteEv2": 0
+          },
+          "c3ef38a5-86ce-43df-92b5-b02e87fcb7b4": {
+            "rexStatus": "pending",
+            "maestroPercentCompleteEv1": 0,
+            "maestroPercentCompleteEv2": 0
+          }
+        },
+        "actionEntriesByRefUuid": {
+          "1b0840b1-7880-4f74-84c2-510b67e5d886": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "568b1277-4e39-435c-98a3-2254815f0de6": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "eb99fc4d-4731-4b15-a097-cec6a3c5cac4": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "e763a705-fba4-4bb9-bbeb-b5d437b0d1a4": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "91f218a2-6ee8-4619-9a7d-5970f147288f": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "6e2ee00b-0bd4-44fb-a238-329c5e7714b3": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "8897a17f-c2bb-4d7c-94a2-2237a3848cec": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "43ef4f44-87b6-4f83-8dda-10d6c63aaa2c": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "d4eaae4b-b20b-4aec-942f-6b1b89bd6e6c": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "a4cf7ec7-d582-47b8-a9cf-72c30b5372e4": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "4c83a975-7022-4e97-a6ea-04235dec71f7": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "426f0a95-3596-48fa-93e0-8cae517afa4f": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "b425252f-10f1-4d4d-aadc-16b0a7544dc5": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "a7c24de7-c9a2-4720-bcb4-ef0382f17714": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "71b661ca-5099-4049-a009-33d89b02a968": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          },
+          "16dd5aaf-5b56-4894-9f2a-a868562ffb53": {
+            "rexStatus": "pending",
+            "markerId": "",
+            "containerId": "",
+            "secondaryContainerId": ""
+          }
+        }
+      }
+    }
+  }
+}
