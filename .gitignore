@@ -61,6 +61,9 @@ temp
 __pycache__
 *.py[cod]
 /static
+*.egg-info
+.venv
+.pixi
 
 # playwright testing stuff
 /test-results/

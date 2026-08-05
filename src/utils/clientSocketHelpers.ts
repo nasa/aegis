@@ -20,7 +20,7 @@ export const createClientSocket = (
   return io(serverURL, {
     transports: ["websocket"],
     upgrade: true,
-    path: "/api/v1/socketio",
+    path: "/api/socket",
     reconnectionAttempts: serverURL === "aegis.fit.nasa.gov" ? Infinity : 10,
     // Allow disabling for self-signed certs when running load testing locally
     rejectUnauthorized: loadTestOptions?.rejectUnauthorized ?? true,
@@ -105,7 +105,7 @@ export const attachSocketListeners = (
   // For non-production environments. In production we will attempt reconnects infinitely
   socket.io.on("reconnect_failed", () => {
     clientLogger.error(
-      { logId: "socket", logValue: "Socket.IO reconnect_failed (path: /api/v1/socketio)" },
+      { logId: "socket", logValue: "Socket.IO reconnect_failed (path: /api/socket)" },
       new Error("Socket reconnection failed after maximum attempts")
     );
     dispatch(setSocketConnectionStatus("failed"));

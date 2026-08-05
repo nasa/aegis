@@ -77,11 +77,18 @@ export const auditPresetsAgainstLayers = async ({
           visible: false,
           style: { ...defaultSublayerStyle },
         };
-      } else if (!existingControl.style) {
-        //partially-migrated preset: the control exists but has no style. Backfill
-        //  defaults at the source so the map never has to guard against an absent
-        //  style at render time.
-        existingControl.style = { ...defaultSublayerStyle };
+      } else {
+        // Backfill fields added after the preset was created while preserving custom values.
+        const definedStyleValues = Object.fromEntries(
+          Object.entries(existingControl.style ?? {}).filter(([, value]) => value != null)
+        );
+        const mergedStyle = { ...defaultSublayerStyle, ...definedStyleValues };
+        if (mergedStyle.labelStrokeColor === "rgba(255,255,255,0.85)") {
+          mergedStyle.labelStrokeColor = defaultSublayerStyle.labelStrokeColor;
+        }
+        if (!isEqual(existingControl.style, mergedStyle)) {
+          existingControl.style = mergedStyle;
+        }
       }
     }
 

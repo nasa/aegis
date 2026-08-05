@@ -82,4 +82,25 @@ describe("auditPresetsAgainstLayers", () => {
     expect(state.preset.presets[0].mapSublayerControls[sublayerUuid].style).toEqual(customStyle);
     expect(httpClient_preset.upsertPresets).not.toHaveBeenCalled();
   });
+
+  it("backfills missing style fields without overwriting custom values", async () => {
+    const legacyStyle = {
+      ...defaultSublayerStyle,
+      labelColor: undefined,
+      labelStrokeColor: "rgba(255,255,255,0.85)",
+      labelStrokeWidth: undefined,
+      labelStrokeOpacity: undefined,
+      opacity: 0.5,
+    } as unknown as MapSublayerStyle;
+    const state = buildState(legacyStyle);
+    const sublayerUuid = state.mission.sublayers[0].uuid;
+
+    await auditPresetsAgainstLayers({ wholeStoreState: state });
+
+    expect(state.preset.presets[0].mapSublayerControls[sublayerUuid].style).toEqual({
+      ...defaultSublayerStyle,
+      opacity: 0.5,
+    });
+    expect(httpClient_preset.upsertPresets).toHaveBeenCalledTimes(1);
+  });
 });

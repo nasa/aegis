@@ -15,6 +15,7 @@ import {
   upsertBackupDbMissions,
 } from "./mission";
 import { deleteFile } from "server/file/file";
+import { missionFieldsValidator } from "utils/validateSchemaServer";
 
 /**
  * Endpoint for working with the mission document in automerge
@@ -130,6 +131,119 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+/**
+ * Apply a subset of GIS/setup fields to an existing mission's automerge document.
+ *
+ * Mission entity data lives only in automerge (mutated in-browser via doc hooks), so
+ * external tooling normally cannot set projection/DEM/lander metadata over HTTP. This
+ * route loads the server-side doc handle and applies an allow-listed set of fields in a
+ * single change(). It does NOT accept entity collections — use the websocket repo for those.
+ * Access uses the standard mission edit permission: a valid EMSS token, a super-admin
+ * session, or an authenticated user session with edit permission for the mission.
+ *
+ * Mounted as a POST sub-route so it never collides with the create
+ * endpoint above and keeps the API to GET/POST/DELETE verbs.
+ */
+router.post("/fields", async (req: Request, res: Response): Promise<void> => {
+  const { missionId, fields } = (req.body ?? {}) as MissionFieldsUpdateRequest;
+  const emssToken = req.headers["emss-token"] as string;
+
+  const editPermission = hasPerms({
+    missionId,
+    permission: "edit",
+    appUser: req.session.appUser,
+    emssToken,
+  });
+  if (!editPermission) {
+    serverLogger.apiRoute({
+      logLevel: "warning",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "missionAutomerge/fields",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      message: "Unauthorized",
+    });
+    res.status(401).json({ status: "failure", message: "Unauthorized" });
+    return;
+  }
+
+  if (!missionId || isNaN(missionId)) {
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
+    return;
+  }
+  if (!fields || typeof fields !== "object") {
+    res.status(400).json({ status: "error", message: "No fields provided in request body" });
+    return;
+  }
+
+  try {
+    const handle = await getAutomergeMissionHandle(missionId);
+    if (!handle) {
+      res.status(404).json({ status: "failure", message: `Mission ${missionId} not found` });
+      return;
+    }
+
+    if (!missionFieldsValidator(fields)) {
+      res.status(400).json({
+        status: "error",
+        message: "Invalid mission fields",
+        data: missionFieldsValidator.errors,
+      });
+      return;
+    }
+
+    const applied = Object.keys(fields) as (keyof MissionFields)[];
+    if (applied.length === 0) {
+      res.status(400).json({
+        status: "error",
+        message: "No mission fields provided",
+      });
+      return;
+    }
+
+    const mission = handle.doc();
+    const requestedLanderLocation = fields.landerLocation;
+    const landerLocationChanged =
+      requestedLanderLocation !== undefined &&
+      (mission.landerLocation?.lat !== requestedLanderLocation.lat ||
+        mission.landerLocation?.lng !== requestedLanderLocation.lng ||
+        mission.landerLocation?.alt !== requestedLanderLocation.alt);
+
+    if (landerLocationChanged && missionHasLanderDependentEntities(mission)) {
+      res.status(409).json({
+        status: "failure",
+        message:
+          "landerLocation cannot be changed through this endpoint after lander-dependent assets exist; use the Automerge lander-location update workflow",
+      });
+      return;
+    }
+
+    handle.change((m: Mission) => {
+      Object.assign(m, fields);
+      m.updatedAt = new Date().getTime();
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: `Mission ${missionId} updated (${applied.join(", ")})`,
+      data: handle.doc(),
+    });
+  } catch (e) {
+    serverLogger.apiRoute({
+      logLevel: "error",
+      httpMethod: "POST",
+      responseStatus: 500,
+      routeName: "missionAutomerge/fields",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      message: `Error processing the POST request ${e}`,
+      error: asError(e),
+    });
+    res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
+  }
+});
+
 // delete the automerge document, the doc listing, and the backup copy in the DB
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionIds } = req.body as MissionDeleteRequest;
@@ -213,6 +327,24 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 export default router;
+
+export function missionHasLanderDependentEntities(mission: Mission): boolean {
+  const hasPlacedStation = Object.values(mission.stations ?? {}).some(
+    (station) => station.location != null || (station.walkbackPath?.length ?? 0) > 0
+  );
+  if (hasPlacedStation) return true;
+
+  return Object.values(mission.evas ?? {}).some((eva) => {
+    if (eva.sequence.length === 0) return false;
+
+    const firstTraverse = mission.traverses?.[eva.sequence[0].uuid];
+    const lastTraverse = mission.traverses?.[eva.sequence[eva.sequence.length - 1].uuid];
+    return Boolean(
+      (eva.egressLocationUuid === "lander" && firstTraverse) ||
+      (eva.ingressLocationUuid === "lander" && lastTraverse)
+    );
+  });
+}
 
 /**
  * Get the automerge document handle for a single mission.
