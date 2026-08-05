@@ -28,6 +28,10 @@ function isCogPath(path: string): boolean {
   return lower.endsWith(".tif") || lower.endsWith(".tiff");
 }
 
+function isPmtilesPath(path: string): boolean {
+  return path?.toLowerCase().endsWith(".pmtiles") ?? false;
+}
+
 /** Render a single sublayer record from the DB */
 function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditHandle>) {
   const [sublayer, setSublayer] = useState<Sublayer>(props.sublayer);
@@ -207,7 +211,10 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
   }
 
   // any property in Sublayer
-  async function loadSublayerPropertiesFromFile(rootPath: string) {
+  async function loadSublayerPropertiesFromFile(
+    rootPath: string,
+    detectedSource?: Pick<Sublayer, "type" | "path" | "tilePattern">
+  ) {
     const res = await fetch(`${rootPath}/properties.json`, {
       headers: {
         "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -244,7 +251,11 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
 
     //set values
     setSublayer((state) => {
-      return { ...state, ...(partialSublayerJson as SublayerImportable) };
+      return {
+        ...state,
+        ...(partialSublayerJson as SublayerImportable),
+        ...detectedSource,
+      };
     });
     // if we have legend, also push it to the local state
     if (Object.keys(partialSublayerJson).includes("legend")) {
@@ -258,19 +269,22 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
     }
   }
 
-  async function preloadDataFromFiles(folderName: string) {
+  async function preloadDataFromFiles(
+    folderName: string,
+    detectedSource?: Pick<Sublayer, "type" | "path" | "tilePattern">
+  ) {
     // clear errors from the last properties.json loaded, if there were any
     setPropertiesErrs([]);
 
     if (isExternal) {
       await loadTileMapResourceFromFile(folderName);
       await loadManifestFromFile(folderName);
-      await loadSublayerPropertiesFromFile(folderName);
+      await loadSublayerPropertiesFromFile(folderName, detectedSource);
     } else {
       const rootPath = `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}`;
       await loadTileMapResourceFromFile(rootPath);
       await loadManifestFromFile(rootPath);
-      await loadSublayerPropertiesFromFile(rootPath);
+      await loadSublayerPropertiesFromFile(rootPath, detectedSource);
     }
   }
 
@@ -285,31 +299,55 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
       return;
     }
 
+    // A ZIP uploaded directly to Layers/ can extract a PMTiles or COG file at the root,
+    // rather than inside a folder. Those files are already complete source paths.
+    const selectedFile = props.fileList?.find((file) => file.name === folder);
+    if (selectedFile && !selectedFile.isDir) {
+      if (isPmtilesPath(folder)) {
+        setSublayer((state) => ({
+          ...state,
+          type: "vector-tile",
+          name: folder,
+          path: folder,
+          tilePattern: "",
+        }));
+      } else if (isCogPath(folder)) {
+        setSublayer((state) => ({
+          ...state,
+          type: "tile",
+          name: folder,
+          path: folder,
+          tilePattern: "",
+        }));
+      }
+      return;
+    }
+
     const files: GISfile[] | void = await listFiles(
       `missionFiles/${props.missionId}/Layers/${folder}`
     ).catch(console.error);
     const fileNames: string[] = files ? files.filter((f) => !f.isDir).map((f) => f.name) : [];
-    const pmtiles = fileNames.find((n) => n.toLowerCase().endsWith(".pmtiles"));
+    const pmtiles = fileNames.find((n) => isPmtilesPath(n));
     const tif = fileNames.find((n) => isCogPath(n));
+
+    let detectedSource: Pick<Sublayer, "type" | "path" | "tilePattern">;
 
     if (pmtiles) {
       // PMTiles vector-tile layer — self-describing, no tile pattern.
-      setSublayer((state) => ({
-        ...state,
+      detectedSource = {
         type: "vector-tile",
-        name: folder,
         path: `${folder}/${pmtiles}`,
         tilePattern: "",
-      }));
+      };
+      setSublayer((state) => ({ ...state, ...detectedSource, name: folder }));
     } else if (tif) {
       // COG raster layer — self-describing GeoTIFF, no tile pattern.
-      setSublayer((state) => ({
-        ...state,
+      detectedSource = {
         type: "tile",
-        name: folder,
         path: `${folder}/${tif}`,
         tilePattern: "",
-      }));
+      };
+      setSublayer((state) => ({ ...state, ...detectedSource, name: folder }));
     } else {
       // Raster tile pyramid — path is the folder; tilePattern is read from properties.json below.
       setSublayer((state) => ({
@@ -323,7 +361,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
 
     // Pull bounding box / zoom / manifest / name / description / legend from the folder's
     // sidecar files (tilemapresource.xml / manifest.json / properties.json) where present.
-    await preloadDataFromFiles(folder);
+    await preloadDataFromFiles(folder, detectedSource);
   }
 
   function clearAllFields(type: SublayerType) {
@@ -478,7 +516,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
                   </>
                 ) : (
                   <>
-                    <label htmlFor="folderNames">Internal Folder </label>
+                    <label htmlFor="folderNames">Internal Source </label>
                     <select
                       id="folderNames"
                       title="folder names"
@@ -490,16 +528,20 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
                       <option value="" key="">
                         None
                       </option>
-                      {props.fileList?.map((file) => {
-                        return (
-                          <option value={file.name} key={file.name}>
-                            {file.name}
-                          </option>
-                        );
-                      })}
+                      {props.fileList
+                        ?.filter(
+                          (file) => file.isDir || isPmtilesPath(file.name) || isCogPath(file.name)
+                        )
+                        .map((file) => {
+                          return (
+                            <option value={file.name} key={file.name}>
+                              {file.name}
+                            </option>
+                          );
+                        })}
                     </select>
                     <br />
-                    Layer type is detected from the folder contents (tiles, PMTiles, or COG).
+                    Layer type is detected from the selected source (tiles, PMTiles, or COG).
                   </>
                 )}
 

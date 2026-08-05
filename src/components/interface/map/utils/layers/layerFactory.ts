@@ -27,6 +27,7 @@ import type { Feature } from "ol";
 import type { Geometry } from "ol/geom";
 
 import { buildLegacyResolutions } from "../parsers/leafletShim";
+import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -379,18 +380,21 @@ export function buildVectorStyleFn(
     if (!styleCache[cacheKey]) {
       let textStyle: Text | undefined;
       if (labelText) {
+        const labelColor = style.labelColor ?? defaultSublayerStyle.labelColor;
+        const labelStrokeColor = style.labelStrokeColor ?? defaultSublayerStyle.labelStrokeColor;
+        const labelStrokeWidth = style.labelStrokeWidth ?? defaultSublayerStyle.labelStrokeWidth;
+        const labelStrokeOpacity =
+          style.labelStrokeOpacity ?? defaultSublayerStyle.labelStrokeOpacity;
+
         textStyle = new Text({
           text: labelText,
           font: "12px Arial",
-          fill: new Fill({ color: style.labelColor || style.color || "#333" }),
+          fill: new Fill({ color: labelColor }),
           stroke:
-            (style.labelStrokeWidth ?? 3) > 0
+            labelStrokeWidth > 0
               ? new Stroke({
-                  color: withAlpha(
-                    style.labelStrokeColor ?? "#ffffff",
-                    style.labelStrokeOpacity ?? 0.85
-                  ),
-                  width: style.labelStrokeWidth ?? 3,
+                  color: withAlpha(labelStrokeColor, labelStrokeOpacity),
+                  width: labelStrokeWidth,
                 })
               : undefined,
           placement: geomType === "LineString" ? "line" : "point",

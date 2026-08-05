@@ -165,21 +165,7 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
         name: sublayer.name,
         sublayerUuid: sublayer.uuid,
         visible: false,
-        style: {
-          opacity: defaultSublayerStyle.opacity,
-          contrast: defaultSublayerStyle.contrast,
-          brightness: defaultSublayerStyle.brightness,
-          saturation: defaultSublayerStyle.saturation,
-          blendMode: defaultSublayerStyle.blendMode,
-          color: defaultSublayerStyle.color,
-          weight: defaultSublayerStyle.weight,
-          fillColor: defaultSublayerStyle.fillColor,
-          fillOpacity: defaultSublayerStyle.fillOpacity,
-          isDashed: defaultSublayerStyle.isDashed,
-          dashLen: defaultSublayerStyle.dashLen,
-          altColor: defaultSublayerStyle.altColor,
-          altOpacity: defaultSublayerStyle.altOpacity,
-        },
+        style: { ...defaultSublayerStyle },
       };
     }
 

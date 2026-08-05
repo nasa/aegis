@@ -21,10 +21,12 @@ import {
   createOlLayer,
   createCogLayer,
   buildVectorStyleFn,
+  withAlpha,
   type LayerFactoryInput,
   type TileGridConfig,
 } from "components/interface/map/utils/layers/layerFactory";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
+import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import { registerTestProjections, LUNAR_PROJ_CODE } from "./helpers/olTestUtils";
 
 registerTestProjections();
@@ -327,13 +329,13 @@ describe("createOlLayer", () => {
           missionId: 42,
           sublayer: makeSublayerToDraw({
             type: "vector-tile",
-            path: "vt",
-            tilePattern: "{z}/{x}/{y}.pbf",
+            path: "vt/contours.pmtiles",
+            tilePattern: "",
           }),
         })
       )!;
       expect(layer.get("sublayerType")).toBe("vector-tile");
-      expect(layer.get("_pmtilesUrl")).toBe("/static/missionFiles/42/Layers/vt");
+      expect(layer.get("_pmtilesUrl")).toBe("/static/missionFiles/42/Layers/vt/contours.pmtiles");
       expect(layer.get("_projCode")).toBe(LUNAR_PROJ_CODE);
     });
   });
@@ -552,6 +554,20 @@ describe("buildVectorStyleFn", () => {
     const feat = new Feature(new Point([0, 0]));
     feat.set("elev", 5800);
     expect(fn(feat, 0).getText()!.getText()).toBe("5800");
+  });
+
+  it("uses shared defaults for label halo styling when preset fields are missing", () => {
+    const fn = buildVectorStyleFn(makeStyle());
+    const feat = new Feature(new Point([0, 0]));
+    feat.set("name", "Crater A");
+
+    const text = fn(feat, 0).getText()!;
+
+    expect(text.getFill()!.getColor()).toBe(defaultSublayerStyle.labelColor);
+    expect(text.getStroke()!.getColor()).toBe(
+      withAlpha(defaultSublayerStyle.labelStrokeColor, defaultSublayerStyle.labelStrokeOpacity)
+    );
+    expect(text.getStroke()!.getWidth()).toBe(defaultSublayerStyle.labelStrokeWidth);
   });
 
   it("uses 'line' placement for LineString labels and 'point' for others", () => {

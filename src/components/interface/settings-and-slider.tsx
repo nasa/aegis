@@ -6,6 +6,7 @@ import { Checkbox, Dropdown } from "components/interface/form/globalFields";
 import { getPercentOrDefault } from "utils/formatting";
 import CompactColor from "@uiw/react-color-compact";
 import { COLOR_PALATTE } from "utils/consts";
+import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 const Settings_subpanel: FunctionComponent<{
   type: "vector" | "circle" | "vector-tile" | "tile" | "grid";
@@ -216,7 +217,7 @@ const Settings_subpanel: FunctionComponent<{
           <div className={styles.listItemControl}>
             <CompactColor
               key={`label-color-${JSON.stringify(layerStyle)}`}
-              color={layerStyle?.labelColor ?? "#ffffff"}
+              color={layerStyle?.labelColor ?? defaultSublayerStyle.labelColor}
               colors={COLOR_PALATTE}
               onChange={(color) => {
                 setStyle(color.hex, "labelColor");
@@ -231,7 +232,7 @@ const Settings_subpanel: FunctionComponent<{
           <div className={styles.listItemControl}>
             <CompactColor
               key={`label-stroke-${JSON.stringify(layerStyle)}`}
-              color={layerStyle?.labelStrokeColor ?? "rgba(255,255,255,0.85)"}
+              color={layerStyle?.labelStrokeColor ?? defaultSublayerStyle.labelStrokeColor}
               colors={COLOR_PALATTE}
               onChange={(color) => {
                 setStyle(color.hex, "labelStrokeColor");
@@ -244,7 +245,7 @@ const Settings_subpanel: FunctionComponent<{
         <Slider
           display="Label Halo Size"
           name="labelStrokeWidth"
-          value={layerStyle?.labelStrokeWidth ?? 3}
+          value={layerStyle?.labelStrokeWidth ?? defaultSublayerStyle.labelStrokeWidth}
           onChange={(e) => setStyle(Number(e.target.value), "labelStrokeWidth")}
           min={0}
           max={10}
@@ -253,11 +254,13 @@ const Settings_subpanel: FunctionComponent<{
       )}
       {showSliders.showLabels &&
         (layerStyle?.showLabels ?? true) &&
-        (layerStyle?.labelStrokeWidth ?? 3) > 0 && (
+        (layerStyle?.labelStrokeWidth ?? defaultSublayerStyle.labelStrokeWidth) > 0 && (
           <Slider
             display="Label Halo Opacity"
             name="labelStrokeOpacity"
-            value={Math.round((layerStyle?.labelStrokeOpacity ?? 0.85) * 100)}
+            value={Math.round(
+              (layerStyle?.labelStrokeOpacity ?? defaultSublayerStyle.labelStrokeOpacity) * 100
+            )}
             onChange={(e) => setStyle(Number(e.target.value) / 100, "labelStrokeOpacity")}
           />
         )}
