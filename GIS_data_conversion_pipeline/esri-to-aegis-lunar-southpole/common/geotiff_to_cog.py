@@ -9,27 +9,23 @@ tiling + overviews + compression in a single optimised pass with
 multi-threaded compression across all CPU cores.
 
 Compression options (--compress):
-    zstd    — fastest lossless, excellent ratio (default)
-    deflate — lossless, universally supported
+    deflate — lossless, universally supported, browser-decodable (default)
     lzw     — lossless, fast decompression
     jpeg    — lossy, ~10-20x compression, ideal for visual imagery
     lerc    — lossy with controlled error bounds
+    zstd    — fastest lossless, excellent ratio, but NOT decodable by geotiff.js/OpenLayers
 
 Usage:
-    cd data_conversion_scripts
+    cd GIS_data_conversion_pipeline
 
     # Default (ZSTD lossless):
-    uv run python geotiff_to_cog.py <input.tif>
+    pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py <input.tif>
 
     # JPEG lossy (smallest file):
-    uv run python geotiff_to_cog.py <input.tif> --compress jpeg
+    pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py <input.tif> --compress jpeg
 
     # Custom output path:
-    uv run python geotiff_to_cog.py <input.tif> -o <output_cog.tif>
-
-Example:
-    uv run python geotiff_to_cog.py \\
-        ../../aegis_static/test/NAC_POLE_SOUTH_CM_AVG_MERGE.tif
+    pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py <input.tif> -o <output_cog.tif>
 """
 
 from __future__ import annotations
@@ -37,19 +33,28 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import threading
 import time
 from pathlib import Path
 
 import rasterio
 import rasterio.shutil
 
+# Force UTF-8 stdout/stderr — avoids UnicodeEncodeError on default cp1252 terminals.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    except (AttributeError, ValueError):
+        pass
+
 
 def build_cog(
     src_path: Path,
     dst_path: Path,
-    compress: str = "zstd",
+    compress: str = "deflate",
     jpeg_quality: int = 85,
     blocksize: int = 512,
+    nodata: float | None = None,
 ) -> Path:
     """
     Convert an arbitrary GeoTIFF into a COG using GDAL's native COG driver.
@@ -98,9 +103,50 @@ def build_cog(
         if compress in ("deflate", "lzw", "zstd"):
             copy_kwargs["predictor"] = "yes"
 
-        print("  Writing COG (single-pass, multi-threaded) ...")
-        print("  (watch output file grow to monitor progress)")
-        rasterio.shutil.copy(src, str(dst_path), **copy_kwargs)
+        print("  Writing COG (single-pass, multi-threaded) ...", flush=True)
+
+        # noData must be set at CREATION — the COG driver copies the source's noData, and a
+        # post-hoc edit rewrites the IFD and breaks the COG layout. When --nodata is given we
+        # copy from a lazy in-memory VRT that declares it (no pixel copy), so the single COG
+        # write both honours the override and keeps a valid COG. Omit --nodata to preserve the
+        # source's own noData tag (the COG copy carries it through unchanged).
+        vsimem_vrt: str | None = None
+        copy_source: object = src
+        if nodata is not None:
+            from osgeo import gdal
+
+            vsimem_vrt = "/vsimem/geotiff_to_cog_src.vrt"
+            gdal.Translate(vsimem_vrt, str(src_path), format="VRT", noData=nodata)
+            copy_source = vsimem_vrt
+            print(f"  noData tag:  {nodata}")
+
+        # rasterio.shutil.copy has no progress callback, so report the growing output
+        # file size every 15 s from a monitor thread. Size is a proxy (compression means
+        # it won't match the source), but it shows the write is alive and how fast.
+        done = threading.Event()
+
+        def _monitor() -> None:
+            while not done.wait(15):
+                try:
+                    written_gb = dst_path.stat().st_size / (1024**3)
+                except OSError:
+                    continue
+                print(
+                    f"    ... {written_gb:.2f} GB written  ({time.time() - t0:.0f}s elapsed)",
+                    flush=True,
+                )
+
+        mon = threading.Thread(target=_monitor, daemon=True)
+        mon.start()
+        try:
+            rasterio.shutil.copy(copy_source, str(dst_path), **copy_kwargs)
+        finally:
+            done.set()
+            mon.join(timeout=1)
+            if vsimem_vrt is not None:
+                from osgeo import gdal
+
+                gdal.Unlink(vsimem_vrt)
 
     elapsed = time.time() - t0
     cog_size_gb = dst_path.stat().st_size / (1024**3)
@@ -121,21 +167,21 @@ def main() -> None:
             "The COG can be served directly to OpenLayers via\n"
             "ol/source/GeoTIFF using HTTP Range requests.\n\n"
             "Compression options (--compress):\n"
-            "  zstd    — fastest lossless, excellent ratio (default)\n"
-            "  deflate — lossless, universally supported\n"
+            "  deflate — lossless, universally supported, browser-decodable (default)\n"
             "  lzw     — lossless, fast decompression\n"
             "  jpeg    — lossy, ~10-20x compression, great for imagery\n"
-            "  lerc    — lossy with controlled error bounds"
+            "  lerc    — lossy with controlled error bounds\n"
+            "  zstd    — fastest lossless, best ratio, but NOT decodable by geotiff.js/OpenLayers"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "Examples:\n"
+            "Examples (from GIS_data_conversion_pipeline/):\n"
             "  # ZSTD (default, lossless):\n"
-            "  uv run python geotiff_to_cog.py input.tif\n\n"
+            "  pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py input.tif\n\n"
             "  # JPEG (lossy, smallest file):\n"
-            "  uv run python geotiff_to_cog.py input.tif --compress jpeg\n\n"
+            "  pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py input.tif --compress jpeg\n\n"
             "  # Custom output path:\n"
-            "  uv run python geotiff_to_cog.py input.tif -o my_output_cog.tif\n"
+            "  pixi run python esri-to-aegis-lunar-southpole/common/geotiff_to_cog.py input.tif -o my_output_cog.tif\n"
         ),
     )
     parser.add_argument("input", type=Path, help="Input GeoTIFF")
@@ -148,9 +194,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--compress",
-        default="zstd",
+        default="deflate",
         choices=["zstd", "deflate", "lzw", "jpeg", "lerc"],
-        help="Compression algorithm (default: zstd)",
+        help=(
+            "Compression algorithm (default: deflate — lossless and decodable by "
+            "geotiff.js/OpenLayers). Avoid zstd (TIFF tag 50000): GDAL/rasterio read it "
+            "server-side but geotiff.js cannot, so a zstd COG renders blank in the browser."
+        ),
     )
     parser.add_argument(
         "--jpeg-quality",
@@ -163,6 +213,12 @@ def main() -> None:
         type=int,
         default=512,
         help="Internal tile size in pixels (default: 512)",
+    )
+    parser.add_argument(
+        "--nodata",
+        type=float,
+        default=None,
+        help="noData value to tag on the COG (e.g. -3.4e38). Omit to preserve the source's.",
     )
 
     args = parser.parse_args()
@@ -184,6 +240,7 @@ def main() -> None:
         compress=args.compress,
         jpeg_quality=args.jpeg_quality,
         blocksize=args.blocksize,
+        nodata=args.nodata,
     )
 
     print("Serve the COG via any static host with Range request support.")

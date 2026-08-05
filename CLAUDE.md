@@ -67,6 +67,10 @@ This runs lint (JS/TS + CSS) → tsc → build → vitest → vitest:browser in 
 
 Any prompt that mentions "map", "OpenLayers", "OL", "ol", tiles, markers, layers, or the map implementation must first read `src/components/interface/map/CLAUDE.md` for full architecture context before doing any work.
 
+## GIS Data Conversion Pipeline
+
+Any prompt about the GIS data processing pipeline (converting GIS drops into AEGIS map products — tiles, COG, PMTiles, GeoJSON, mission grids, `properties.json`/`manifest.json`, or the `register`/Box publish flow) must first read `GIS_data_conversion_pipeline/esri-to-aegis-lunar-southpole/CLAUDE.md` before doing any work.
+
 ## Architecture Overview
 
 The app is a monolithic full-stack TypeScript project with a React SPA frontend and an Express API backend, both in the same `src/` tree.

@@ -29,6 +29,11 @@ export default [
       "**/.local",
       "playwright-report/**",
       "test-results/**",
+      // Standalone Python toolset — its conda/venv envs + build artifacts (created by
+      // `pixi install`) are not JS/TS and must never be linted.
+      "**/.pixi/**",
+      "**/.venv/**",
+      "**/*.egg-info/**",
       // Vendored `@emss/*` stand-ins that emulate third-party packages; see emss-fallback/README.md.
       "emss-fallback/**",
     ],

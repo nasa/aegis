@@ -18,3 +18,8 @@ export const rexOverwriteSchemaValidator = ajv.compile<RexOverwrite>(rexOverwrit
 
 const missionSchema = JSON.parse(fs.readFileSync(path.join(SCHEMA_DIR, "mission.json"), "utf8"));
 export const missionValidator = ajv.compile<Mission>(missionSchema);
+
+const missionFieldsSchema = JSON.parse(
+  fs.readFileSync(path.join(SCHEMA_DIR, "missionFields.json"), "utf8")
+);
+export const missionFieldsValidator = ajv.compile<MissionFieldsUpdate>(missionFieldsSchema);
