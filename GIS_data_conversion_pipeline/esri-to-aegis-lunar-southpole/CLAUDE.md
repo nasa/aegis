@@ -21,11 +21,11 @@ per-concern converter via `subprocess` so the pixi env is inherited.
 **Every produced sublayer is a folder under `Layers/`.** The AEGIS app and `register.py` both infer
 a layer's type from the folder's **contents**, not from any stored flag:
 
-| Folder contains… | AEGIS type | sublayer `path` | served from |
-|------------------|-----------|-----------------|-------------|
-| `{z}/{x}/{y}.png` + `tilemapresource.xml` | `tile` (raster) | `<folder>` | `Layers/<folder>/<tilePattern>` |
-| `<name>.pmtiles` | `vector-tile` | `<folder>/<name>.pmtiles` | `Layers/<folder>/<name>.pmtiles` |
-| `<name>_cog.tif` / `.tiff` | `tile` (COG) | `<folder>/<name>_cog.tif` | `Layers/<folder>/<name>_cog.tif` |
+| Folder contains…                          | AEGIS type      | sublayer `path`           | served from                      |
+| ----------------------------------------- | --------------- | ------------------------- | -------------------------------- |
+| `{z}/{x}/{y}.png` + `tilemapresource.xml` | `tile` (raster) | `<folder>`                | `Layers/<folder>/<tilePattern>`  |
+| `<name>.pmtiles`                          | `vector-tile`   | `<folder>/<name>.pmtiles` | `Layers/<folder>/<name>.pmtiles` |
+| `<name>_cog.tif` / `.tiff`                | `tile` (COG)    | `<folder>/<name>_cog.tif` | `Layers/<folder>/<name>_cog.tif` |
 
 - **PMTiles** (`step_vectortiles` → `vectortile/arcgis_cache_to_pmtiles.py`) write
   `Layers/<name>/<name>.pmtiles`. The converter copies the ArcGIS cache's `esri_tile_info`
@@ -35,8 +35,8 @@ a layer's type from the folder's **contents**, not from any stored flag:
   since OpenLayers over-zooms by requesting tiles at the max LOD, a phantom level makes the whole
   layer blank right at that resolution. The converter caps `maxLOD`/`lods` (and the written tiles)
   to the last fully-tiled level so OpenLayers over-zooms from there instead.
-- **Contour PMTiles** (`step_contours` → `vectortile/dem_to_contours_pmtiles.py`) *tile from
-  scratch* rather than pack a delivered cache: `gdal_contour` on the DEM → GDAL **MVT directory
+- **Contour PMTiles** (`step_contours` → `vectortile/dem_to_contours_pmtiles.py`) _tile from
+  scratch_ rather than pack a delivered cache: `gdal_contour` on the DEM → GDAL **MVT directory
   driver** with a custom `TILING_SCHEME` (the cap grid — the `-f PMTiles`/`-f MBTILES` drivers only
   do Web-Mercator and reject a custom scheme) → pack the `{z}/{x}/{y}.pbf` pyramid with the
   pure-Python `pmtiles` writer, **synthesizing** `esri_tile_info` from the cap-grid constants in

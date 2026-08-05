@@ -21,7 +21,15 @@ def _trim(raw: str | None, fallback: str = _TBD) -> str:
         return raw
 
 
-def _first_built_tmr(p: config.PipelinePaths) -> Path | None:
+def _raster_layer_names(args: argparse.Namespace) -> list[str]:
+    names = getattr(args, "raster_name", [])
+    return [
+        names[index] if index < len(names) else Path(raster).stem
+        for index, raster in enumerate(getattr(args, "in_raster", []))
+    ]
+
+
+def _first_built_tmr(p: config.PipelinePaths, args: argparse.Namespace) -> Path | None:
     product_layers = [
         p.layer_path(n)
         for n in (
@@ -30,7 +38,8 @@ def _first_built_tmr(p: config.PipelinePaths) -> Path | None:
             config.OUT_TRI_LAYER_NAME,
         )
     ]
-    for layer in (p.nac_layer, p.slope_layer, *product_layers):
+    raster_layers = [p.layer_path(name) for name in _raster_layer_names(args)]
+    for layer in (*raster_layers, p.slope_layer, *product_layers):
         tmr = layer / "tilemapresource.xml"
         if tmr.exists():
             return tmr
@@ -64,7 +73,7 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
     def row(label: str, value: str) -> None:
         tee(f"  {label:<{W}} {value}")
 
-    origin_x, origin_y, z0_res = _parse_origin_and_res(_first_built_tmr(p))
+    origin_x, origin_y, z0_res = _parse_origin_and_res(_first_built_tmr(p, args))
     lander_lat = (
         args.lander_lat if args.lander_lat is not None else config.DEFAULT_LANDER_LAT
     )
@@ -99,10 +108,11 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
     row("demResolution", str(args.dem_resolution))
     if p.layer_prefix:
         row("layer prefix", f"{p.layer_prefix}_  (folders + AEGIS layer names)")
-    row(
-        "NAC tile layer",
-        f"Layers/{p.layer_name(config.OUT_NAC_LAYER_NAME)}/  {mark(p.nac_layer)}",
-    )
+    for name in _raster_layer_names(args):
+        row(
+            "Raster tile layer",
+            f"Layers/{p.layer_name(name)}/  {mark(p.layer_path(name))}",
+        )
     row(
         "Slope tile layer",
         f"Layers/{p.layer_name(config.OUT_SLOPE_LAYER_NAME)}/  {mark(p.slope_layer)}",

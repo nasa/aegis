@@ -12,7 +12,7 @@ the ``pipeline/`` package (``pipeline.steps`` / ``pipeline.reporting`` / ``pipel
 the cap-grid projection profile + path resolution live in ``config.py``; the AEGIS API + Box
 logic in ``register.py`` / ``box_publish.py``.
 
-Data steps (each runs only when its input is present): dem · nac · slope · products · vector ·
+Data steps (each runs only when its input is present): dem · slope · products · vector ·
 rasters · vectors. Opt-in data steps: contours (--contours) · grid (--grid). Publish steps
 (opt-in): register · box. Every run writes a
 ``Data/conversion_report.md`` capturing the full console log + per-step timings.
@@ -25,7 +25,7 @@ Run from the parent ``GIS_data_conversion_pipeline/`` directory via pixi:
         --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \\
         --lander-lat -84.223397 --lander-lng 33.5021945 \\
         --in-dem F:/drop/dem.tif --dem-products hillshade slope aspect tri \\
-        --in-nac F:/drop/nac.tif --register --box
+        --in-raster F:/drop/nac.tif --raster-name NAC_mosaic --register --box
     pixi run python esri-to-aegis-lunar-southpole/main.py --list
 
 Register-only onto another server (e.g. prod) AFTER local generation + Box upload — see the
@@ -148,19 +148,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Landing-ellipse shapefile path.",
     )
     inputs.add_argument(
-        "--in-nac",
-        dest="in_nac",
-        type=Path,
-        default=None,
-        help="GIS-provided NAC mosaic raster to tile.",
-    )
-    inputs.add_argument(
         "--in-raster",
         dest="in_raster",
         action="append",
         default=[],
         metavar="PATH",
         help="Custom raster layer (repeatable).",
+    )
+    inputs.add_argument(
+        "--raster-name",
+        dest="raster_name",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="Output layer name for each --in-raster (repeat once per raster; defaults to the source stem).",
     )
     inputs.add_argument(
         "--in-vector",
@@ -395,7 +396,6 @@ def main() -> None:
         slope=args.in_slope,
         lyrx=args.in_lyrx,
         ellipse=args.in_ellipse,
-        nac_mosaic=args.in_nac,
         layer_prefix=args.layer_prefix,
     )
 

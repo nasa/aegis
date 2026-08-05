@@ -1,7 +1,7 @@
 """Central configuration for the ESRI/ArcGIS → AEGIS lunar south-pole pipeline.
 
 Everything mission-, site-, or environment-specific lives here so the per-type
-processing scripts (``dem/``, ``nac/``, ``slope/``, ``vector/``) and the shared
+processing scripts (``dem/``, ``slope/``, ``vector/``) and the shared
 tiler (``common/tile_to_cap_grid.py``) stay generic.
 
 Two things live in this file:
@@ -80,10 +80,6 @@ REL_DEM = Path("A03MP026/SFS_1mpp_DEM/mp2-sfs-dem_MoonSP_COG.tif")
 REL_SLOPE = Path("A03MP026/Slope/SiteUD1_final_adj_5mpp_slp.tif")
 REL_LYRX = Path("A03MP026/Slope/AMPES_Slope 1.lyrx")  # slope colour standard
 REL_ELLIPSE = Path("A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp")
-# Single NAC mosaic delivered by the GIS team. No fixed name yet — pass --in-nac.
-REL_NAC_MOSAIC = Path("A03MP026_NAC_mosaic/nac_mosaic.tif")
-# Per-frame NAC ortho directory — used ONLY by the preserved example under nac/examples/.
-REL_NAC_FRAMES = Path("A03MP026_SFS_1mpp_orthoimages")
 
 # Output file/dir names under --out (generic; the pipeline is mission-agnostic).
 OUT_LAYERS_DIRNAME = "Layers"
@@ -116,7 +112,6 @@ def dem_output_name(dem_in: Path) -> str:
     return f"{dem_in.stem}_{DEM_COMPRESS}_cog.tif"
 
 
-OUT_NAC_LAYER_NAME = "nac"
 OUT_SLOPE_LAYER_NAME = "slope"
 OUT_SLOPE_RGBA_NAME = "slope_rgba.tif"  # scratch, removed after tiling
 
@@ -248,15 +243,12 @@ class PipelinePaths:
     slope_in: Path
     lyrx: Path
     ellipse_shp: Path
-    nac_mosaic: Path
-    nac_frames_dir: Path
     # Output roots
     layers: Path
     data: Path
     # Output products
     dem_out: Path
     ellipse_out: Path
-    nac_layer: Path
     slope_layer: Path
     slope_rgba: Path
     # Optional prefix applied to every generated layer FOLDER + its AEGIS layer name
@@ -280,8 +272,6 @@ def resolve_paths(
     slope: Path | None = None,
     lyrx: Path | None = None,
     ellipse: Path | None = None,
-    nac_mosaic: Path | None = None,
-    nac_frames: Path | None = None,
     layer_prefix: str | None = None,
 ) -> PipelinePaths:
     """Build the concrete path set from an output root and an input root.
@@ -317,13 +307,10 @@ def resolve_paths(
         slope_in=under_src(slope, REL_SLOPE),
         lyrx=under_src(lyrx, REL_LYRX),
         ellipse_shp=under_src(ellipse, REL_ELLIPSE),
-        nac_mosaic=under_src(nac_mosaic, REL_NAC_MOSAIC),
-        nac_frames_dir=under_src(nac_frames, REL_NAC_FRAMES),
         layers=layers,
         data=data,
         dem_out=data / dem_output_name(dem_in_resolved),
         ellipse_out=data / OUT_ELLIPSE_NAME,
-        nac_layer=layers / prefixed(OUT_NAC_LAYER_NAME),
         slope_layer=layers / prefixed(OUT_SLOPE_LAYER_NAME),
         slope_rgba=out / OUT_SLOPE_RGBA_NAME,
         layer_prefix=prefix,

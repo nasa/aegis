@@ -33,6 +33,7 @@
 
 .listItemSlider {
   display: flex;
+  align-items: center;
   margin-left: 5px;
   margin-top: 2px;
   width: 100%;

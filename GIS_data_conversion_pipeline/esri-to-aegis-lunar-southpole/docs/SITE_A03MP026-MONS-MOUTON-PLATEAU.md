@@ -24,11 +24,9 @@ Each data type is handled by the pipeline (`main.py`) as follows:
   slope honours the GIS `.lyrx` symbology when provided.
 - **Grid** — generate the LGRS mission grid from the lander location (default 10 km) and
   register it as the active grid.
-- **NAC** — the GIS team delivers a **single mosaic raster**; we contrast-stretch it
-  (if it is float) and tile it onto the shared cap grid as **one** layer
-  (`Layers/nac/`). We do **not** mosaic frames ourselves, and we do **not** ship one
-  layer per frame (that earlier test config is kept only as an example — see
-  `nac/examples/per_frame_layers/`).
+- **Raster inputs** — pass each source raster with `--in-raster`; float rasters are
+  contrast-stretched when needed and tiled onto the shared cap grid. Use
+  `--raster-name` to choose the output layer name.
 - **Slope** — colorize the float slope raster with the `.lyrx` colour standard, then
   tile it as one layer (`Layers/slope/`). Optional/display-only.
 - **Vector** — reproject the landing-ellipse shapefile to EPSG:4326 GeoJSON
@@ -56,17 +54,11 @@ The landing ellipse provides the mission anchor:
 | `diam_m`  | `199`        |
 | `ctrl`    | `mm-sfs-dem` |
 
-### 2.2 NAC orthoimage frames
+### 2.2 Raster inputs
 
-The original drop `A03MP026_SFS_1mpp_orthoimages/` contains the raw per-frame ortho
-imagery (126 display-relevant `M*-map.tif` frames + 2 `mm2-*` QA rasters). Each frame
-is single-band float32 radiance, already orthorectified, already in the correct
-south-pole stereographic CRS, nodata-aware with `-3.4e38`.
-
-For the shipping pipeline these frames are **not** consumed directly — the GIS team
-delivers a single merged NAC mosaic which is what `main.py --in-nac` tiles. The
-per-frame directory is used only by the preserved example in
-`nac/examples/per_frame_layers/`.
+The supplied mosaic is a single-band float32 raster in the lunar south-pole
+stereographic CRS, with nodata-aware values. Pass it through the generic raster step,
+for example `main.py --in-raster <path> --raster-name NAC_mosaic`.
 
 ---
 
@@ -139,7 +131,7 @@ ellipse paths can each be overridden on the CLI.
 │   ├── <grid>.json                    # active grid coordinates (written by the grid API)
 │   └── conversion_report.md           # captured run log + per-step timings
 └── Layers/
-    ├── nac/                           # one NAC layer (from the GIS mosaic)
+    ├── <raster-name>/                 # raster tile layer from --in-raster
     ├── slope/  hillshade/  aspect/  tri/   # DEM-derived products
     └── <custom rasters>/
 ```

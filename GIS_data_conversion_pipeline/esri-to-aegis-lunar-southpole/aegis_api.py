@@ -5,7 +5,7 @@ Stdlib-only (``urllib``) so it runs under a bare ``.venv`` as well as ``pixi`` �
 ``register`` step in ``main.py`` needs no geospatial imports.
 
 Auth is the EMSS token (``emss-token`` header), read from the repo-root ``.env`` if not
-passed explicitly — same convention as ``nac/examples/per_frame_layers/``.
+passed explicitly.
 
 Endpoints used:
   * ``POST   /api/v1/missionAutomerge/fields`` — set GIS/setup fields on the mission doc
