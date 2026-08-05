@@ -38,11 +38,10 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | Type            | Input                                                           | Output                                    | Process                                                                     |
 | --------------- | --------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
 | **dem**         | DEM GeoTIFF                                                     | `Data/<source>_deflate_cog.tif` (COG)     | re-emit as clean COG (keeps source name)                                    |
-| **nac**         | single NAC mosaic raster (from GIS team)                        | `Layers/nac/` tile pyramid                | stretch (if float) → tile                                                   |
 | **slope**       | slope float raster (°) + `.lyrx` ramp                           | `Layers/slope/` tile pyramid              | colorize → tile                                                             |
 | **products**    | the DEM (`--in-dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/`  | derive from DEM → colorize → tile (`--dem-products`)                        |
 | **vector**      | landing-ellipse shapefile                                       | `Data/ellipse.geojson`                    | reproject to EPSG:4326                                                      |
-| **rasters**     | custom rasters (`--in-raster`, repeatable)                      | `Layers/<stem>/` tile pyramid each        | stretch (if float) → tile                                                   |
+| **rasters**     | custom rasters (`--in-raster`, repeatable)                      | `Layers/<name>/` tile pyramid each        | stretch (if float) → tile                                                   |
 | **vectors**     | custom vectors (`--in-vector`, repeatable)                      | `Data/<stem>.geojson` each                | shp → reproject; geojson copied                                             |
 | **vectortiles** | ArcGIS vector-tile cache (`--in-esri-vector-tiles`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
 | **contours**    | the DEM (`--contours`)                                          | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
@@ -82,14 +81,12 @@ esri-to-aegis-lunar-southpole/
 ├── register.py        # build + POST mission fields, header layers, sublayers, active grid
 ├── box_publish.py     # zip Data/ + each layer and upload to Box, in parallel (ported BoxClient)
 ├── common/            # shared across data types + general raster tools
-│   ├── tile_to_cap_grid.py   # tile any raster onto the south-pole cap grid (NAC + slope)
+│   ├── tile_to_cap_grid.py   # tile any raster onto the south-pole cap grid
+│   ├── raster_to_8bit.py     # percentile-stretch float rasters to transparent uint8
 │   ├── geotiff_to_cog.py     # GeoTIFF → Cloud-Optimised GeoTIFF
 │   ├── inspect_geotiff.py    # quick raster summary (use first to understand inputs)
 │   └── raster_to_tiles.py    # gdal2tiles pyramid (general; alt to tile_to_cap_grid)
 ├── dem/               # see dem/README.md (DEM = clean COG re-emit)
-├── nac/
-│   ├── stretch_to_8bit.py    # float radiance → 8-bit grayscale
-│   └── examples/per_frame_layers/   # PRESERVED EXAMPLE: one layer per NAC frame (not shipped)
 ├── slope/
 │   └── colorize_slope.py     # .lyrx colour standard → 8-bit RGBA
 ├── products/          # DEM-derived products (slope/hillshade/aspect/tri)
@@ -110,7 +107,6 @@ esri-to-aegis-lunar-southpole/
 │   └── dem_to_contours_pmtiles.py  # DEM → gdal_contour → MVT (cap grid) → .pmtiles (synthesized esri_tile_info)
 └── docs/
     ├── SITE_A03MP026-MONS-MOUTON-PLATEAU.md
-    ├── LEGACY-COVERAGE.md       # what was ported from lunar_utils/aegis (and what wasn't)
     └── leaflet-notes.md          # Leaflet-specific bits + what changes for the OpenLayers cutover
 
 # sibling subfolder (non-polar / Earth):
@@ -138,7 +134,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
     --in-dem F:/drop/dem.tif --dem-products hillshade slope aspect tri \
-    --in-nac F:/drop/nac_mosaic.tif \
+    --in-raster F:/drop/nac_mosaic.tif --raster-name NAC_mosaic \
     --in-raster F:/drop/keepout.tif --in-vector F:/drop/stations.shp \
     --grid --register --box
 
@@ -182,7 +178,7 @@ cd GIS_data_conversion_pipeline
 pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --in-dem F:/drop/dem.tif --in-nac F:/drop/nac_mosaic.tif \
+    --in-dem F:/drop/dem.tif \
     --dem-products hillshade slope aspect tri --grid
 
 # 2a. Register ONLY (mission fields + header layers + sublayers + active grid).
@@ -209,21 +205,30 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 > exist. To change an already-registered sublayer's `boundingBox`/zoom (e.g. after re-tiling),
 > delete that sublayer in the admin first, then re-run `register`.
 
-Steps: `0 stage · 1 dem · 2 nac · 3 slope · 4 products · 5 vector · 6 rasters · 7 vectors ·
-8 vectortiles · 9 contours · 10 cogs · 11 grid · 12 register · 13 box`. By default the pipeline
+Steps: `0 stage · 1 dem · 2 slope · 3 products · 4 vector · 5 rasters · 6 vectors ·
+7 vectortiles · 8 contours · 9 cogs · 10 grid · 11 register · 12 box`. By default the pipeline
 runs only the steps whose inputs are present — `vectortiles` runs when `--in-esri-vector-tiles` is
 given, `contours` when `--contours` is given (needs `--in-dem`), `cogs`
 when `--in-cog` is given, `grid` when `--grid` is passed (needs `--lander-lat`/`--lander-lng`), and
 `register`/`box` when `--register`/`--box` are passed; `--steps` overrides this.
 Inputs default to the A03MP026 layout under `--in-root`; override any with `--in-dem`, `--in-slope`,
-`--in-lyrx`, `--in-ellipse`, `--in-nac`, `--in-raster`, `--in-vector`. Use `--out-dir` to override the
+`--in-lyrx`, `--in-ellipse`, `--in-raster`, `--in-vector`. Use `--out-dir` to override the
 default `<static>/missionFiles/<id>` output root. The EMSS token is read from the repo
 `.env` (`EMSS_TOKEN`) unless `--token` is passed.
+
+`--in-raster` is repeatable. Each input becomes a raster tile layer named from its source stem;
+pass `--raster-name` once per input to choose stable output names. For example:
+
+```bash
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+  --mission-id 98 --in-raster F:/tempF/MS3_data_drop/mm2-average.tif \
+  --raster-name NAC_mosaic --steps rasters --overwrite
+```
 
 **Namespacing layers (`--layer-prefix`).** Pass `--layer-prefix <PREFIX>` to prepend
 `<PREFIX>_` to every generated **layer folder** and its **AEGIS layer name** — e.g.
 `--layer-prefix LOLA` yields `Layers/LOLA_hillshade/` (layer name `"LOLA_hillshade"`),
-`Layers/LOLA_slope/`, `Layers/LOLA_nac/`, `Layers/LOLA_contours_100m/`, and contour display
+`Layers/LOLA_slope/`, `Layers/LOLA_<raster-name>/`, `Layers/LOLA_contours_100m/`, and contour display
 names like `"LOLA Contours (100 m)"`. This lets you process **multiple DEMs into one mission**
 without a later run overwriting an earlier run's layer folders. Only `Layers/` outputs are
 prefixed; `Data/` products (the DEM COG `demFilePath`, the LGRS grid, and vector GeoJSONs)
@@ -278,7 +283,7 @@ AEGIS legend. `products/lyrx_to_ramp.py` converts the `.lyrx` to a `gdaldem colo
 A03MP026/SFS_1mpp_DEM/mp2-sfs-dem_MoonSP_COG.tif   # dem
 A03MP026/Slope/SiteUD1_final_adj_5mpp_slp.tif      # slope (+ AMPES_Slope 1.lyrx)
 A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
-<delivered separately>                             # nac mosaic → pass --in-nac
+<delivered separately>                             # raster → pass --in-raster
 ```
 
 ### Outputs (under `<static>/missionFiles/<id>`)
@@ -292,7 +297,7 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
 │   ├── LGRS.json                 # active grid coordinates (written by the grid API on register)
 │   └── conversion_report.md      # captured run log + per-step timings
 └── Layers/
-    ├── nac/                      # tile sublayer  → Layers/nac/{z}/{x}/{y}.png  (+ properties.json)
+    ├── <name>/                   # raster tile sublayer → Layers/<name>/{z}/{x}/{y}.png
     ├── slope/                    # tile sublayer  (+ properties.json with legend)
     ├── hillshade/                # tile sublayer  (no legend)
     ├── aspect/                   # tile sublayer  (+ properties.json with legend)
@@ -305,7 +310,7 @@ Every produced sublayer is a **folder** under `Layers/`; AEGIS infers its type f
 contents (`{z}/{x}/{y}` tiles → raster tile, `.pmtiles` → vector-tile, `.tif` → COG). Raster tile
 folders also contain a `tilemapresource.xml` (bbox + zoom) and a `properties.json`
 (name/description/legend), both auto-imported by the admin. With `--layer-prefix LOLA` these
-folders (and their AEGIS layer names) become `LOLA_nac/`, `LOLA_slope/`, … so multiple DEM runs
+folders (and their AEGIS layer names) become `LOLA_<raster-name>/`, `LOLA_slope/`, … so multiple DEM runs
 can share one mission. The mission DEM COG is the exception —
 it stays in `Data/` (keeping its source filename with a compression + `_cog` suffix, e.g.
 `_deflate_cog.tif`) as the self-describing `demFilePath`, not a sublayer.
@@ -323,8 +328,9 @@ already-registered `(header, path)` pairs):
   `planetRadius=1737400`), plus `name`, `landerLocation`, `demFilePath`, `demResolution`,
   `actionSystemVersion=2`, and `usingLGRSCoordinates=true`.
   (This endpoint exists specifically so external tooling can set mission GIS fields, which
-  otherwise live only in the Automerge doc; it requires the EMSS API token. A changed
-  `landerLocation` is rejected once affected mission assets exist, because the browser-only
+  otherwise live only in the Automerge doc; it uses standard mission edit authorization,
+  normally via the EMSS API token for this pipeline. A changed `landerLocation` is rejected
+  once affected mission assets exist, because the browser-only
   Automerge lander-location workflow must update station walkbacks and lander-connected EVA
   traverses; see `src/server/express/routes/missionAutomerge.ts`.)
 - **Header layers** — `POST /api/v1/layer` creates `Common_LSP` (external NAC only),
@@ -368,7 +374,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --aegis-url http://localhost:4000 \
     --mission-id <LOCAL_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --in-dem F:/drop/dem.tif --in-nac F:/drop/nac_mosaic.tif \
+    --in-dem F:/drop/dem.tif \
     --grid --register --box
 ```
 
@@ -386,7 +392,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --aegis-url http://localhost:4000 \
     --mission-id <LOCAL_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
-    --in-dem F:/drop/dem.tif --in-nac F:/drop/nac_mosaic.tif \
+    --in-dem F:/drop/dem.tif \
     --in-esri-vector-tiles F:/drop/AggregatedContour/p12 \
     --grid --register --box
 ```
@@ -458,12 +464,3 @@ Other AEGIS import targets produced by the standalone converters:
 - **Time-aware layer** — register the `*_singleband_time-aware_data/` folder (containing
   `manifest.json`) as a tile sublayer; AEGIS marks it `isTimeBased`. Only **one** time-based
   sublayer is allowed per mission.
-
----
-
-## Preserved example: per-frame NAC layers
-
-`nac/examples/per_frame_layers/` is a kept **example** of an earlier test
-configuration that tiled _each_ NAC frame into its own AEGIS sublayer (100+
-sublayers). It is **not** part of the shipping pipeline (which tiles a single mosaic
-into one `nac` layer) but is retained as a worked reference. See that folder's README.

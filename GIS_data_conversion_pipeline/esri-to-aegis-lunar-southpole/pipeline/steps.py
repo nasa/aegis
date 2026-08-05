@@ -25,7 +25,7 @@ PYTHON = sys.executable
 ROOT = Path(__file__).resolve().parent.parent
 GEOTIFF_TO_COG = ROOT / "common" / "geotiff_to_cog.py"
 TILE_TO_CAP_GRID = ROOT / "common" / "tile_to_cap_grid.py"
-STRETCH_TO_8BIT = ROOT / "nac" / "stretch_to_8bit.py"
+STRETCH_TO_8BIT = ROOT / "common" / "raster_to_8bit.py"
 COLORIZE_SLOPE = ROOT / "slope" / "colorize_slope.py"
 SHP_TO_GEOJSON = ROOT / "vector" / "shp_to_geojson.py"
 DEM_PRODUCTS = ROOT / "products" / "dem_products.py"
@@ -184,20 +184,6 @@ def step_dem(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             "-o",
             p.dem_out,
         ]
-    )
-
-
-def step_nac(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """NAC mosaic → (stretch if float) → tile to one cap-grid layer."""
-    banner("nac — NAC mosaic → cap-grid tile layer")
-    require_input(p.nac_mosaic, "NAC mosaic raster", "--in-nac")
-    tile_raster_to_layer(
-        p,
-        p.nac_mosaic,
-        p.nac_layer,
-        p.layer_name(config.OUT_NAC_LAYER_NAME),
-        "nac",
-        args.overwrite,
     )
 
 
@@ -394,15 +380,29 @@ def step_vector(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 
 
 def step_rasters(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """Custom raster layers (--raster) → one cap-grid tile layer each (Layers/<stem>)."""
-    banner("rasters — custom rasters → cap-grid tile layers")
-    for raster in args.in_raster:
+    """Custom rasters → stretched cap-grid tile layers."""
+    banner("rasters — custom rasters → stretch (if needed) → cap-grid tile layers")
+    if args.raster_name and len(args.raster_name) != len(args.in_raster):
+        raise SystemExit(
+            "--raster-name must be provided once for each --in-raster, "
+            "or omitted to use each source filename"
+        )
+
+    for index, raster in enumerate(args.in_raster):
         raster = Path(raster)
         require_input(raster, "custom raster", "--in-raster")
-        layer_dir = p.layer_path(raster.stem)
+        layer_name = args.raster_name[index] if args.raster_name else raster.stem
+        if (
+            not layer_name
+            or layer_name in {".", ".."}
+            or "/" in layer_name
+            or "\\" in layer_name
+        ):
+            raise SystemExit(f"Invalid raster layer name: {layer_name!r}")
+        layer_dir = p.layer_path(layer_name)
         tee(f"\n  raster: {raster}  → {layer_dir}")
         tile_raster_to_layer(
-            p, raster, layer_dir, p.layer_name(raster.stem), "source", args.overwrite
+            p, raster, layer_dir, p.layer_name(layer_name), "source", args.overwrite
         )
 
 
@@ -718,14 +718,16 @@ def step_box(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 STEPS: list[tuple[str, str]] = [
     ("stage", "Remove .sr.lock files; create Layers/ and Data/"),
     ("dem", "DEM GeoTIFF → clean COG (demFilePath)"),
-    ("nac", "NAC mosaic → stretch (if float) → tile to one cap-grid layer"),
     ("slope", "Slope float → colorize → tile to one cap-grid layer"),
     (
         "products",
         "DEM → hillshade/aspect/tri → colorize → tile or COG (one layer each; --dem-products-as-cog for COG)",
     ),
     ("vector", "Landing-ellipse shapefile → GeoJSON"),
-    ("rasters", "Custom rasters (--in-raster) → tile to one cap-grid layer each"),
+    (
+        "rasters",
+        "Custom rasters (--in-raster) → stretch if needed → cap-grid tile layers",
+    ),
     ("vectors", "Custom vectors (--in-vector, shp/geojson) → GeoJSON in Data/"),
     (
         "vectortiles",
@@ -747,7 +749,6 @@ STEPS: list[tuple[str, str]] = [
 STEP_FNS = {
     "stage": step_stage,
     "dem": step_dem,
-    "nac": step_nac,
     "slope": step_slope,
     "products": step_products,
     "vector": step_vector,
@@ -767,7 +768,6 @@ STEP_NAMES = [name for name, _ in STEPS]
 DATA_STEPS = {
     "stage",
     "dem",
-    "nac",
     "slope",
     "products",
     "vector",
@@ -789,8 +789,6 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
     if p.dem_in.exists():
         # --dem-products-only: derive products from the DEM but don't emit the mission DEM COG.
         chosen += ["products"] if args.dem_products_only else ["dem", "products"]
-    if p.nac_mosaic.exists():
-        chosen.append("nac")
     if p.slope_in.exists():
         chosen.append("slope")
     if p.ellipse_shp.exists():

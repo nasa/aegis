@@ -39,9 +39,12 @@ Alignment note
 --------------
 The cap is not a whole number of tiles wide.  The production basemap anchors at the
 BOTTOM-left (-931100) and lets the partial tile fall off the TOP.  ``gdal raster tile``
-instead anchors at the top-left and flips Y→TMS using the tile count, so we pad the VRT's
-top/right out to a whole number of tiles (``cap_top``): the BOTTOM-left then stays exactly
-on -931100 and gdal's Y-flip resolves to the same bottom-anchored grid the basemap uses.
+instead anchors at the top-left and flips Y→TMS using the tile count *at each zoom*, so the
+VRT is padded top/right to ``2**max_zoom`` tiles (``cap_top``) — a whole number of tiles at
+**every** level, not just at max zoom.  Every level then halves exactly, TMS row 0 stays on
+-931100 all the way up, and the layer keeps the bottom-anchored grid the basemap uses.
+Padding only to the next whole tile at max zoom leaves an odd row count that re-rounds on
+each halving, which walks the coarser levels off the grid (up to a tile of northward shift).
 
 Usage
 -----
@@ -172,11 +175,16 @@ def tile_raster(
         bounds.top,
     )
 
-    # Padded cap top — the cap is NOT a whole number of tiles wide; pad top/right to the
-    # next tile boundary so the bottom-left stays exactly on CAP_MIN. gdal raster tile
-    # anchors at the top-left and flips Y→TMS by tile count, so this padding makes its
-    # y-indices land on the same bottom-anchored rows the basemap uses.
-    n_cap_tiles = math.ceil((CAP_MAX - CAP_MIN) / tile_span)
+    # Padded cap top — the cap is NOT a whole number of tiles wide, so the canvas has to be
+    # padded top/right for the bottom-left to stay exactly on CAP_MIN. gdal raster tile
+    # anchors at the TOP-left and flips Y→TMS using the tile count at EACH zoom, which it
+    # re-derives as ceil(rows / 2) per level. Padding only to the next whole tile at max zoom
+    # is therefore not enough: an odd row count at max zoom re-rounds on the way up and walks
+    # the bottom row off CAP_MIN, shifting every coarser level north by up to a tile (the
+    # "layer jumps when you zoom out past its native level" bug). Padding to 2**max_zoom tiles
+    # — one single z0 tile of 256 * CAP_Z0_RES metres, which always covers the cap — makes
+    # every level halve exactly, so TMS row 0 sits on CAP_MIN at every zoom.
+    n_cap_tiles = 2**max_zoom
     cap_top = CAP_MIN + n_cap_tiles * tile_span
 
     # Tile-index window the data actually covers at max_zoom.
