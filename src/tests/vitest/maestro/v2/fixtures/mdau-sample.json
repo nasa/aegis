@@ -12,7 +12,7 @@
           "71b661ca-5099-4049-a009-33d89b02a968",
           "16dd5aaf-5b56-4894-9f2a-a868562ffb53"
         ],
-        "updatedAt": "2026-07-29T21:01:59.298Z"
+        "updatedAt": 1785358919298
       },
       "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216": {
         "refUuid": "ab8ffbe6-c59a-48ce-9f2b-64e562fd1216",
@@ -29,7 +29,7 @@
           "a4cf7ec7-d582-47b8-a9cf-72c30b5372e4",
           "4c83a975-7022-4e97-a6ea-04235dec71f7"
         ],
-        "updatedAt": "2026-07-29T21:01:59.299Z"
+        "updatedAt": 1785358919299
       }
     },
     "aegisTraverse": {
@@ -40,7 +40,7 @@
           "1b0840b1-7880-4f74-84c2-510b67e5d886",
           "568b1277-4e39-435c-98a3-2254815f0de6"
         ],
-        "updatedAt": "2026-07-29T19:16:53.046Z"
+        "updatedAt": 1785352613046
       },
       "b35ae2bb-2bef-45b1-9838-1cb548ac28dc": {
         "refUuid": "b35ae2bb-2bef-45b1-9838-1cb548ac28dc",
@@ -48,21 +48,19 @@
         "actionOrderRefUuids": [
           "426f0a95-3596-48fa-93e0-8cae517afa4f"
         ],
-        "updatedAt": "2026-07-29T19:16:53.047Z"
+        "updatedAt": 1785352613047
       },
       "c3ef38a5-86ce-43df-92b5-b02e87fcb7b4": {
         "refUuid": "c3ef38a5-86ce-43df-92b5-b02e87fcb7b4",
         "duration": 0,
         "actionOrderRefUuids": [],
-        "updatedAt": "2025-08-13T19:36:01.690Z"
+        "updatedAt": 1755113761690
       }
     },
     "aegisEva": {
       "ff0e6bcf-8a4b-4f1d-aba1-46070d1a9081": {
         "refUuid": "ff0e6bcf-8a4b-4f1d-aba1-46070d1a9081",
-        "name": [
-          "EVA1 for Maestro"
-        ],
+        "name": "EVA1 for Maestro",
         "maestroEventId": "3bbc3a2f-4d2b-4f9b-bb36-a48dff70fa34",
         "maestroEventUrl": "https://maestro-local.fit.nasa.gov/event/3bbc3a2f-4d2b-4f9b-bb36-a48dff70fa34",
         "sequenceRefUuids": [
@@ -89,7 +87,7 @@
         ],
         "ingressDuration": 10,
         "egressDuration": 10,
-        "updatedAt": "2026-03-06T16:04:24.512Z"
+        "updatedAt": 1772813064512
       }
     },
     "aegisAction": {
@@ -98,7 +96,7 @@
         "actors": [
           "EV1"
         ],
-        "updatedAt": "2025-08-13T20:49:20.751Z"
+        "updatedAt": 1755118160751
       },
       "1b0840b1-7880-4f74-84c2-510b67e5d886": {
         "refUuid": "1b0840b1-7880-4f74-84c2-510b67e5d886",
@@ -106,7 +104,7 @@
           "EV1",
           "EV2"
         ],
-        "updatedAt": "2025-08-12T19:13:22.803Z"
+        "updatedAt": 1755026002803
       },
       "426f0a95-3596-48fa-93e0-8cae517afa4f": {
         "refUuid": "426f0a95-3596-48fa-93e0-8cae517afa4f",
@@ -114,21 +112,21 @@
           "EV1",
           "EV2"
         ],
-        "updatedAt": "2025-08-12T19:13:22.803Z"
+        "updatedAt": 1755026002803
       },
       "43ef4f44-87b6-4f83-8dda-10d6c63aaa2c": {
         "refUuid": "43ef4f44-87b6-4f83-8dda-10d6c63aaa2c",
         "actors": [
           "EV2"
         ],
-        "updatedAt": "2025-08-12T19:13:22.802Z"
+        "updatedAt": 1755026002802
       },
       "4c83a975-7022-4e97-a6ea-04235dec71f7": {
         "refUuid": "4c83a975-7022-4e97-a6ea-04235dec71f7",
         "actors": [
           "EV1"
         ],
-        "updatedAt": "2026-02-09T22:12:14.176Z"
+        "updatedAt": 1770675134176
       },
       "568b1277-4e39-435c-98a3-2254815f0de6": {
         "refUuid": "568b1277-4e39-435c-98a3-2254815f0de6",
@@ -136,35 +134,35 @@
           "EV1",
           "EV2"
         ],
-        "updatedAt": "2025-08-12T19:13:22.802Z"
+        "updatedAt": 1755026002802
       },
       "6e2ee00b-0bd4-44fb-a238-329c5e7714b3": {
         "refUuid": "6e2ee00b-0bd4-44fb-a238-329c5e7714b3",
         "actors": [
           "EV2"
         ],
-        "updatedAt": "2025-08-12T19:13:22.802Z"
+        "updatedAt": 1755026002802
       },
       "71b661ca-5099-4049-a009-33d89b02a968": {
         "refUuid": "71b661ca-5099-4049-a009-33d89b02a968",
         "actors": [
           "EV2"
         ],
-        "updatedAt": "2025-08-13T20:47:56.101Z"
+        "updatedAt": 1755118076101
       },
       "8897a17f-c2bb-4d7c-94a2-2237a3848cec": {
         "refUuid": "8897a17f-c2bb-4d7c-94a2-2237a3848cec",
         "actors": [
           "EV1"
         ],
-        "updatedAt": "2025-10-01T19:34:51.194Z"
+        "updatedAt": 1759347291194
       },
       "91f218a2-6ee8-4619-9a7d-5970f147288f": {
         "refUuid": "91f218a2-6ee8-4619-9a7d-5970f147288f",
         "actors": [
           "EV1"
         ],
-        "updatedAt": "2026-07-23T15:04:32.279Z"
+        "updatedAt": 1784819072279
       },
       "a4cf7ec7-d582-47b8-a9cf-72c30b5372e4": {
         "refUuid": "a4cf7ec7-d582-47b8-a9cf-72c30b5372e4",
@@ -172,42 +170,42 @@
           "EV1",
           "EV2"
         ],
-        "updatedAt": "2025-08-12T19:13:22.803Z"
+        "updatedAt": 1755026002803
       },
       "a7c24de7-c9a2-4720-bcb4-ef0382f17714": {
         "refUuid": "a7c24de7-c9a2-4720-bcb4-ef0382f17714",
         "actors": [
           "EV2"
         ],
-        "updatedAt": "2025-08-13T20:48:55.014Z"
+        "updatedAt": 1755118135014
       },
       "b425252f-10f1-4d4d-aadc-16b0a7544dc5": {
         "refUuid": "b425252f-10f1-4d4d-aadc-16b0a7544dc5",
         "actors": [
           "EV1"
         ],
-        "updatedAt": "2025-09-18T15:53:09.869Z"
+        "updatedAt": 1758210789869
       },
       "d4eaae4b-b20b-4aec-942f-6b1b89bd6e6c": {
         "refUuid": "d4eaae4b-b20b-4aec-942f-6b1b89bd6e6c",
         "actors": [
           "EV1"
         ],
-        "updatedAt": "2026-02-11T21:20:30.350Z"
+        "updatedAt": 1770844830350
       },
       "e763a705-fba4-4bb9-bbeb-b5d437b0d1a4": {
         "refUuid": "e763a705-fba4-4bb9-bbeb-b5d437b0d1a4",
         "actors": [
           "EV2"
         ],
-        "updatedAt": "2026-07-29T19:17:06.875Z"
+        "updatedAt": 1785352626875
       },
       "eb99fc4d-4731-4b15-a097-cec6a3c5cac4": {
         "refUuid": "eb99fc4d-4731-4b15-a097-cec6a3c5cac4",
         "actors": [
           "EV1"
         ],
-        "updatedAt": "2026-07-29T19:38:14.796Z"
+        "updatedAt": 1785353894796
       }
     },
     "aegisRexes": {

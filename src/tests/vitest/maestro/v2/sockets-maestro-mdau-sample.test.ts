@@ -33,12 +33,6 @@ const sample = sampleFile as unknown as {
 const MISSION_ID = sample.missionId ?? 9999;
 const mdau = sample.mdau;
 
-/**
- * MDAU `name` may arrive as a plain string or as a `[string]` array. AEGIS
- * writes whatever it is given straight into the doc, so assertions compare
- * against the raw sample value rather than normalizing.
- */
-
 // ── Mission builder (derived entirely from the sample payload) ────────────────
 
 interface BuiltMission {
@@ -323,11 +317,9 @@ describe("sendMDAU sample payload — stations", () => {
       expect(uuid, `station uuid for refUuid ${refUuid}`).toBeDefined();
       const station = doc.stations[uuid!];
       expect(station).toBeDefined();
-      expect(station.name).toEqual(src.name);
+      expect(station.name).toBe(src.name);
       expect(station.duration).toBe(src.duration);
-      // updatedAt is written from the sample when a field changes; assert it
-      // is present (Maestro may send it as an ISO string or epoch number).
-      expect(station.updatedAt).toBeTruthy();
+      expect(station.updatedAt).toBe(src.updatedAt);
     }
   });
 });
@@ -342,9 +334,7 @@ describe("sendMDAU sample payload — traverses", () => {
       const traverse = doc.traverses[uuid!];
       expect(traverse).toBeDefined();
       expect(traverse.duration).toBe(src.duration);
-      // updatedAt may be the sample value or re-stamped by adjacent-station
-      // rename side-effects; assert it is present either way.
-      expect(traverse.updatedAt).toBeTruthy();
+      expect(typeof traverse.updatedAt).toBe("number");
     }
   });
 
@@ -375,10 +365,11 @@ describe("sendMDAU sample payload — evas", () => {
     const src = mdau.aegisEva[refUuid];
     const eva = doc.evas[built.asPlannedEvaUuid];
     expect(eva).toBeDefined();
-    expect(eva.name).toEqual(src.name);
+    expect(typeof eva.name).toBe("string");
+    expect(eva.name).toBe(src.name);
     expect(eva.ingressDuration).toBe(src.ingressDuration);
     expect(eva.egressDuration).toBe(src.egressDuration);
-    expect(eva.updatedAt).toBeTruthy();
+    expect(eva.updatedAt).toBe(src.updatedAt);
   });
 });
 
