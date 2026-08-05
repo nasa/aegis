@@ -724,7 +724,10 @@ STEPS: list[tuple[str, str]] = [
         "DEM → hillshade/aspect/tri → colorize → tile or COG (one layer each; --dem-products-as-cog for COG)",
     ),
     ("vector", "Landing-ellipse shapefile → GeoJSON"),
-    ("rasters", "Custom rasters (--in-raster) → stretch if needed → cap-grid tile layers"),
+    (
+        "rasters",
+        "Custom rasters (--in-raster) → stretch if needed → cap-grid tile layers",
+    ),
     ("vectors", "Custom vectors (--in-vector, shp/geojson) → GeoJSON in Data/"),
     (
         "vectortiles",

@@ -57,17 +57,17 @@ Output goes to `<static>/missionFiles/<mission-id>/` by default (override with `
 step reads a specific input under `--in-root` that you can override individually. Outputs land in
 `<out>/Data/` (DEM, vectors, grid coords, conversion report) and `<out>/Layers/` (tile layers).
 
-| Step       | Source flag (overrides the `--in-root` default)          | Destination (under `--out-dir`)                     |
-| ---------- | ---------------------------------------------------- | ----------------------------------------------- |
-| `dem`      | `--in-dem <dem.tif>`                                    | `Data/<source>_deflate_cog.tif` (keeps source name) |
-| `slope`    | `--in-slope <slope.tif>` + `--in-lyrx <ramp.lyrx>`         | `Layers/slope/`                                 |
-| `products` | `--in-dem` + `--dem-products hillshade slope aspect tri`    | `Layers/{hillshade,slope,aspect,tri}/`          |
-| `vector`   | `--in-ellipse <ellipse.shp>`                            | `Data/ellipse.geojson`                          |
-| `rasters`  | `--in-raster <path>` (repeatable; `--raster-name` optional) | `Layers/<name>/` each                        |
-| `vectors`  | `--in-vector <path>` (repeatable, shp/geojson)          | `Data/<stem>.geojson` each                      |
-| `grid`     | `--lander-lat/--lander-lng` (`--grid-extent 10km`)   | `grid_source.geojson`                           |
-| `register` | `--mission-id` (+ `--aegis-url`/`--token`)           | mission fields + layers/sublayers + active grid |
-| `box`      | `--mission-name`                                     | zips → Box `<mission name>/{Data,Layers}/`      |
+| Step       | Source flag (overrides the `--in-root` default)             | Destination (under `--out-dir`)                     |
+| ---------- | ----------------------------------------------------------- | --------------------------------------------------- |
+| `dem`      | `--in-dem <dem.tif>`                                        | `Data/<source>_deflate_cog.tif` (keeps source name) |
+| `slope`    | `--in-slope <slope.tif>` + `--in-lyrx <ramp.lyrx>`          | `Layers/slope/`                                     |
+| `products` | `--in-dem` + `--dem-products hillshade slope aspect tri`    | `Layers/{hillshade,slope,aspect,tri}/`              |
+| `vector`   | `--in-ellipse <ellipse.shp>`                                | `Data/ellipse.geojson`                              |
+| `rasters`  | `--in-raster <path>` (repeatable; `--raster-name` optional) | `Layers/<name>/` each                               |
+| `vectors`  | `--in-vector <path>` (repeatable, shp/geojson)              | `Data/<stem>.geojson` each                          |
+| `grid`     | `--lander-lat/--lander-lng` (`--grid-extent 10km`)          | `grid_source.geojson`                               |
+| `register` | `--mission-id` (+ `--aegis-url`/`--token`)                  | mission fields + layers/sublayers + active grid     |
+| `box`      | `--mission-name`                                            | zips → Box `<mission name>/{Data,Layers}/`          |
 
 Omit a source flag and the step uses its default path under `--in-root` (the A03MP026 layout).
 A GIS-delivered `.lyrx` passed with `--in-lyrx` is used **instead of** the built-in colour ramp
