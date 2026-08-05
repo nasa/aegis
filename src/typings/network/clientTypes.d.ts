@@ -134,9 +134,20 @@ type FolderDeleteRequest = {
 };
 
 type EnvironmentConfigData = {
-  defaultUrl: string;
-  urlOverride: string | null;
-  effectiveUrl: string;
+  key: string;
+  /** Fields directly from the database row (or `null` when no row exists yet). */
+  config: {
+    /** Override value stored in the database. `null` means no override is set. */
+    value: string | null;
+    description: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+  /** Default value sourced from the deployment environment (e.g. from `process.env`). */
+  defaultValue: string | null;
+  /** The value actually in use: `config.value` if set, otherwise `defaultValue`. */
+  effectiveValue: string | null;
+  /** True when a non-empty override value is stored in the database. */
   isOverridden: boolean;
 };
 
