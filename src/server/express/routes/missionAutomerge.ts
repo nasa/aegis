@@ -138,8 +138,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
  * external tooling normally cannot set projection/DEM/lander metadata over HTTP. This
  * route loads the server-side doc handle and applies an allow-listed set of fields in a
  * single change(). It does NOT accept entity collections — use the websocket repo for those.
- * It is intentionally restricted to EMSS-token callers because it is the registration
- * surface used by the GIS conversion tooling, not a browser editing API.
+ * Access uses the standard mission edit permission: a valid EMSS token, a super-admin
+ * session, or an authenticated user session with edit permission for the mission.
  *
  * Mounted as a POST sub-route so it never collides with the create
  * endpoint above and keeps the API to GET/POST/DELETE verbs.

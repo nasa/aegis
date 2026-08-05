@@ -323,8 +323,9 @@ already-registered `(header, path)` pairs):
   `planetRadius=1737400`), plus `name`, `landerLocation`, `demFilePath`, `demResolution`,
   `actionSystemVersion=2`, and `usingLGRSCoordinates=true`.
   (This endpoint exists specifically so external tooling can set mission GIS fields, which
-  otherwise live only in the Automerge doc; it requires the EMSS API token. A changed
-  `landerLocation` is rejected once affected mission assets exist, because the browser-only
+  otherwise live only in the Automerge doc; it uses standard mission edit authorization,
+  normally via the EMSS API token for this pipeline. A changed `landerLocation` is rejected
+  once affected mission assets exist, because the browser-only
   Automerge lander-location workflow must update station walkbacks and lander-connected EVA
   traverses; see `src/server/express/routes/missionAutomerge.ts`.)
 - **Header layers** — `POST /api/v1/layer` creates `Common_LSP` (external NAC only),
