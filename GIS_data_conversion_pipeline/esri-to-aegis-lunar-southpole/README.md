@@ -47,6 +47,7 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **contours**      | the DEM (`--contours`)                                          | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
 | **cogs**          | custom rasters (`--in-cog`, repeatable)                         | `Layers/<stem>/<stem>_cog.tif` each       | GeoTIFF → COG (deflate; type inferred from `.tif`)                          |
 | **viewshed-cogs** | classified viewsheds (`--in-viewshed-raster`, repeatable)       | `Layers/<name>/<name>_cog.tif` each       | class 1 transparent; class 2 opaque `#FFA77F`; nodata transparent           |
+| **keepout-cogs**  | classified slope keep-out masks (`--in-keepout-raster`)         | `Layers/<name>/<name>_cog.tif` each       | class 0 opaque `#FF0000`; nodata transparent                                |
 | **grid**          | `--grid` + lander `--lander-lat/--lander-lng`                   | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
 | **register**      | the built `<out>` + `--mission-id`                              | mission fields + sublayers + active grid  | POST fields + layers/sublayers + grid                                       |
 | **box**           | the built `<out>` + `--mission-name`                            | zips uploaded to Box (parallel)           | zip `Data/` + each layer → upload                                           |
@@ -178,6 +179,21 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
   --steps viewshed-cogs --overwrite
 ```
 
+### Convert a classified slope keep-out mask to a transparent COG
+
+Slope keep-out rasters use `0` for terrain at or above the slope threshold and
+`255` for lower-slope nodata. The converted COG renders class `0` in opaque red
+(`#FF0000`) and keeps nodata transparent. The AEGIS layer opacity control
+adjusts transparency at runtime.
+
+```bash
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+  --mission-id 50 \
+  --in-keepout-raster "F:/tempF/MS3_data_drop/AEGIS_MS3_MP026_GIS_Data_20260805/01_AEGIS/00_GIS_Files/01_Raster/MP026_20deg_Slope_KeepOutZone_cog.tif" \
+  --out-keepout-raster "slope_20deg_keepout" \
+  --steps keepout-cogs --overwrite
+```
+
 ### Generate once, then run just `register` or just `box`
 
 A common flow is to build all the tiles/products **locally once** (no publishing), inspect
@@ -224,10 +240,12 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 > delete that sublayer in the admin first, then re-run `register`.
 
 Steps: `0 stage · 1 dem · 2 slope · 3 products · 4 vector · 5 rasters · 6 vectors ·
-7 vectortiles · 8 contours · 9 cogs · 10 grid · 11 register · 12 box`. By default the pipeline
+7 vectortiles · 8 contours · 9 cogs · 10 viewshed-cogs · 11 keepout-cogs · 12 grid ·
+13 register · 14 box`. By default the pipeline
 runs only the steps whose inputs are present — `vectortiles` runs when `--in-esri-vector-tiles` is
 given, `contours` when `--contours` is given (needs `--in-dem`), `cogs`
-when `--in-cog` is given, `grid` when `--grid` is passed (needs `--lander-lat`/`--lander-lng`), and
+when `--in-cog` is given, `viewshed-cogs` when `--in-viewshed-raster` is given,
+`keepout-cogs` when `--in-keepout-raster` is given, `grid` when `--grid` is passed (needs `--lander-lat`/`--lander-lng`), and
 `register`/`box` when `--register`/`--box` are passed; `--steps` overrides this.
 Inputs default to the A03MP026 layout under `--in-root`; override any with `--in-dem`, `--in-slope`,
 `--in-lyrx`, `--in-ellipse`, `--in-raster`, `--in-vector`. Use `--out-dir` to override the

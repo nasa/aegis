@@ -123,6 +123,13 @@ VIEWSHED_NODATA = 255
 VIEWSHED_FILL_COLOR = "#FFA77F"
 VIEWSHED_FILL_OPACITY = 1.0
 
+# The source Reclassify operation assigns class 0 to terrain at or above 20
+# degrees and nodata to lower-slope terrain. Keep-out zones use fixed red below.
+KEEPOUT_VALUE_KEEPOUT = 0
+KEEPOUT_NODATA = 255
+KEEPOUT_FILL_COLOR = "#FF0000"
+KEEPOUT_FILL_OPACITY = 1.0
+
 # DEM-derived product layers (Layers/<name>/). Slope is intentionally omitted from the
 # default products step because the dedicated `slope` step already produces a slope layer
 # using the GIS-team .lyrx — which encodes the SAME standard as default_color_ramps/slope.txt.

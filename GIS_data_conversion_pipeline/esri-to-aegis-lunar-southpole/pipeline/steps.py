@@ -28,6 +28,7 @@ TILE_TO_CAP_GRID = ROOT / "common" / "tile_to_cap_grid.py"
 STRETCH_TO_8BIT = ROOT / "common" / "raster_to_8bit.py"
 COLORIZE_SLOPE = ROOT / "slope" / "colorize_slope.py"
 COLORIZE_VIEWSHED = ROOT / "viewshed" / "colorize_viewshed.py"
+COLORIZE_CLASSIFIED_MASK = ROOT / "common" / "colorize_classified_mask.py"
 SHP_TO_GEOJSON = ROOT / "vector" / "shp_to_geojson.py"
 DEM_PRODUCTS = ROOT / "products" / "dem_products.py"
 LYRX_TO_RAMP = ROOT / "products" / "lyrx_to_ramp.py"
@@ -639,21 +640,27 @@ def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         run(cmd)
 
 
-def _viewshed_layer_name(raster: Path) -> str:
+def _classified_mask_layer_name(raster: Path) -> str:
     """Keep a source COG's existing suffix from duplicating in its output name."""
     return raster.stem.removesuffix("_cog")
 
 
-def _write_viewshed_properties(layer_dir: Path, name: str) -> None:
-    """Write the fixed non-visible viewshed legend for an RGBA COG layer."""
+def _write_classified_mask_properties(
+    layer_dir: Path,
+    name: str,
+    description: str,
+    legend_description: str,
+    fill_color: str,
+) -> None:
+    """Write a one-class legend for an RGBA classified-mask COG layer."""
     properties = {
         "name": name,
-        "description": "Non-visible terrain in a delivered viewshed raster.",
+        "description": description,
         "legend": {
             "legend": [
                 {
-                    "color": config.VIEWSHED_FILL_COLOR,
-                    "description": "Non-visible",
+                    "color": fill_color,
+                    "description": legend_description,
                 }
             ],
             "unitsAbbr": "",
@@ -687,7 +694,7 @@ def step_viewshed_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> Non
             base_name = (
                 args.out_viewshed_raster[index]
                 if args.out_viewshed_raster
-                else _viewshed_layer_name(raster)
+                else _classified_mask_layer_name(raster)
             )
             if (
                 not base_name
@@ -736,7 +743,98 @@ def step_viewshed_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> Non
                         config.COG_COMPRESS,
                     ]
                 )
-                _write_viewshed_properties(layer_dir, layer_name)
+                _write_classified_mask_properties(
+                    layer_dir,
+                    layer_name,
+                    "Non-visible terrain in a delivered viewshed raster.",
+                    "Non-visible",
+                    config.VIEWSHED_FILL_COLOR,
+                )
+            finally:
+                rgba.unlink(missing_ok=True)
+    finally:
+        try:
+            scratch.rmdir()
+        except OSError:
+            pass
+
+
+def step_keepout_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
+    """Classified slope keep-out rasters -> transparent-mask RGBA COG sublayers."""
+    banner("keepout-cogs — classified slope keep-out rasters -> RGBA COG masks")
+    if args.out_keepout_raster and len(args.out_keepout_raster) != len(
+        args.in_keepout_raster
+    ):
+        raise SystemExit(
+            "--out-keepout-raster must be provided once for each --in-keepout-raster, "
+            "or omitted to use each source filename"
+        )
+
+    p.layers.mkdir(parents=True, exist_ok=True)
+    scratch = p.out / "scratch_keepout_cogs"
+    scratch.mkdir(parents=True, exist_ok=True)
+
+    try:
+        for index, raster in enumerate(args.in_keepout_raster):
+            raster = Path(raster)
+            require_input(raster, "slope keep-out GeoTIFF", "--in-keepout-raster")
+            base_name = (
+                args.out_keepout_raster[index]
+                if args.out_keepout_raster
+                else _classified_mask_layer_name(raster)
+            )
+            if (
+                not base_name
+                or base_name in {".", ".."}
+                or "/" in base_name
+                or "\\" in base_name
+            ):
+                raise SystemExit(f"Invalid keep-out layer name: {base_name!r}")
+            layer_name = p.layer_name(base_name)
+            layer_dir = p.layers / layer_name
+            out_cog = layer_dir / config.cog_layer_filename(layer_name)
+            if out_cog.exists() and not args.overwrite:
+                tee(f"  [skip] {out_cog} already built (use --overwrite to rebuild)")
+                continue
+
+            layer_dir.mkdir(parents=True, exist_ok=True)
+            rgba = scratch / f"{layer_name}_rgba.tif"
+            tee(f"\n  keep-out: {raster} -> {out_cog}")
+            try:
+                run(
+                    [
+                        PYTHON,
+                        COLORIZE_CLASSIFIED_MASK,
+                        raster,
+                        rgba,
+                        "--fill-value",
+                        str(config.KEEPOUT_VALUE_KEEPOUT),
+                        "--nodata-value",
+                        str(config.KEEPOUT_NODATA),
+                        "--fill-color",
+                        config.KEEPOUT_FILL_COLOR,
+                        "--fill-opacity",
+                        str(config.KEEPOUT_FILL_OPACITY),
+                    ]
+                )
+                run(
+                    [
+                        PYTHON,
+                        GEOTIFF_TO_COG,
+                        rgba,
+                        "-o",
+                        out_cog,
+                        "--compress",
+                        config.COG_COMPRESS,
+                    ]
+                )
+                _write_classified_mask_properties(
+                    layer_dir,
+                    layer_name,
+                    "Terrain at or above the delivered slope keep-out threshold.",
+                    "Keep-out zone",
+                    config.KEEPOUT_FILL_COLOR,
+                )
             finally:
                 rgba.unlink(missing_ok=True)
     finally:
@@ -850,6 +948,10 @@ STEPS: list[tuple[str, str]] = [
         "viewshed-cogs",
         "Classified viewshed rasters (--in-viewshed-raster) → transparent-mask RGBA COGs",
     ),
+    (
+        "keepout-cogs",
+        "Classified slope keep-out rasters (--in-keepout-raster) → transparent-mask RGBA COGs",
+    ),
     ("grid", "Lander location → LGRS mission grid GeoJSON (default 10km)"),
     (
         "register",
@@ -870,6 +972,7 @@ STEP_FNS = {
     "contours": step_contours,
     "cogs": step_cogs,
     "viewshed-cogs": step_viewshed_cogs,
+    "keepout-cogs": step_keepout_cogs,
     "grid": step_grid,
     "register": step_register,
     "box": step_box,
@@ -890,6 +993,7 @@ DATA_STEPS = {
     "contours",
     "cogs",
     "viewshed-cogs",
+    "keepout-cogs",
     "grid",
 }
 
@@ -919,6 +1023,8 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
         chosen.append("cogs")
     if args.in_viewshed_raster:
         chosen.append("viewshed-cogs")
+    if args.in_keepout_raster:
+        chosen.append("keepout-cogs")
     if (
         getattr(args, "grid", False)
         and args.lander_lat is not None

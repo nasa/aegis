@@ -37,6 +37,14 @@ def _viewshed_layer_names(args: argparse.Namespace) -> list[str]:
     ]
 
 
+def _keepout_layer_names(args: argparse.Namespace) -> list[str]:
+    names = getattr(args, "out_keepout_raster", [])
+    return [
+        names[index] if index < len(names) else Path(raster).stem.removesuffix("_cog")
+        for index, raster in enumerate(getattr(args, "in_keepout_raster", []))
+    ]
+
+
 def _first_built_tmr(p: config.PipelinePaths, args: argparse.Namespace) -> Path | None:
     product_layers = [
         p.layer_path(n)
@@ -126,6 +134,13 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
         out_cog = p.layers / layer_name / config.cog_layer_filename(layer_name)
         row(
             "Viewshed COG layer",
+            f"Layers/{layer_name}/{out_cog.name}  {mark(out_cog)}",
+        )
+    for name in _keepout_layer_names(args):
+        layer_name = p.layer_name(name)
+        out_cog = p.layers / layer_name / config.cog_layer_filename(layer_name)
+        row(
+            "Keep-out COG layer",
             f"Layers/{layer_name}/{out_cog.name}  {mark(out_cog)}",
         )
     row(

@@ -216,6 +216,28 @@ def build_parser() -> argparse.ArgumentParser:
             "or omit to use the source filename."
         ),
     )
+    inputs.add_argument(
+        "--in-keepout-raster",
+        dest="in_keepout_raster",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help=(
+            "Classified slope keep-out GeoTIFF (0=keep-out, 255=nodata) "
+            "to convert into a transparent-mask RGBA COG; repeatable."
+        ),
+    )
+    inputs.add_argument(
+        "--out-keepout-raster",
+        dest="out_keepout_raster",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help=(
+            "Output layer name for each --in-keepout-raster; repeat once per input "
+            "or omit to use the source filename."
+        ),
+    )
 
     output = parser.add_argument_group("Output location (--out-* / --layer-*)")
     output.add_argument(
