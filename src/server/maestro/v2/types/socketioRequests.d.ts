@@ -14,7 +14,7 @@ export type MissionsWithEvas = {
 export type RefRex = {
   uuid: string;
   name: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: number;
+  updatedAt: number;
   isRunning: boolean;
 };

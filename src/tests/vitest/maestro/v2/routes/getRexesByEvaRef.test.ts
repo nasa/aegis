@@ -36,8 +36,8 @@ beforeAll(async () => {
     generateBlankEVA({ name: "Vitest rex-eva-1", refUuid: sharedRefUuid }),
   ];
   testRexes = [
-    generateBlankRex({ name: "Vitest Rex-0", evaUuid: testEvas[0].uuid }),
-    generateBlankRex({ name: "Vitest Rex-1", evaUuid: testEvas[1].uuid }),
+    generateBlankRex({ name: "Vitest Rex-0", evaUuid: testEvas[0].uuid, isRunning: false }),
+    generateBlankRex({ name: "Vitest Rex-1", evaUuid: testEvas[1].uuid, isRunning: true }),
   ];
 
   const evasRecord: Record<string, Eva> = {};
@@ -113,6 +113,39 @@ describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
       expect(res.body.data.length).toBe(2);
       const uuids = res.body.data.map((r: { uuid: string }) => r.uuid);
       expect(uuids).toEqual(expect.arrayContaining([testRexes[0].uuid, testRexes[1].uuid]));
+    });
+
+    test("Returns correct isRunning value for a non-running rex", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .set("emss-token", emssToken)
+        .query({ evaRefUuid: testEvas[0].refUuid });
+      expect(res.statusCode).toBe(200);
+      const rex0 = res.body.data.find((r: { uuid: string }) => r.uuid === testRexes[0].uuid);
+      expect(rex0.isRunning).toBe(false);
+    });
+
+    test("Returns correct isRunning value for a running rex", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .set("emss-token", emssToken)
+        .query({ evaRefUuid: testEvas[0].refUuid });
+      expect(res.statusCode).toBe(200);
+      const rex1 = res.body.data.find((r: { uuid: string }) => r.uuid === testRexes[1].uuid);
+      expect(rex1.isRunning).toBe(true);
+    });
+
+    test("Returns createdAt and updatedAt as numbers", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .set("emss-token", emssToken)
+        .query({ evaRefUuid: testEvas[0].refUuid });
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.length).toBe(2);
+      for (const rex of res.body.data) {
+        expect(typeof rex.createdAt).toBe("number");
+        expect(typeof rex.updatedAt).toBe("number");
+      }
     });
 
     test("Does not retrieve rex if it has a maestroEventId", async () => {

@@ -89,8 +89,8 @@ export async function getRexesByEvaRefData(evaRefUuid: string): Promise<RefRex[]
   return matchingRexes.map((rex) => ({
     uuid: rex.uuid,
     name: rex.name,
-    createdAt: new Date(rex.createdAt).toISOString(),
-    updatedAt: new Date(rex.updatedAt).toISOString(),
+    createdAt: rex.createdAt,
+    updatedAt: rex.updatedAt,
     isRunning: rex.isRunning,
   }));
 }
