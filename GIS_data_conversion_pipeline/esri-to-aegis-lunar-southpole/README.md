@@ -7,7 +7,7 @@ Turns a GIS data drop into AEGIS-ready map products for a **lunar south-pole** m
   `projResUnitsPerPixel = 12800`), each cut to its **own native resolution** (independent
   per-layer pyramid — no shared z13 clamp), with a **projected-metre** `<BoundingBox>`.
 - **COG** raster sublayers (`--in-cog`) — a self-describing Cloud-Optimised GeoTIFF OpenLayers
-  renders directly, emitted as its own `Layers/<stem>/<stem>.tif` folder (type inferred from the
+  renders directly, emitted as its own `Layers/<name>/<name>_cog.tif` folder (type inferred from the
   `.tif`; no `isCog` flag).
 - **PMTiles** vector-tile layers (`--in-esri-vector-tiles`) — a delivered ArcGIS vector-tile cache
   packed into one `Layers/<name>/<name>.pmtiles` folder (registered as a `"vector-tile"` sublayer).
@@ -45,7 +45,7 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **vectors**       | custom vectors (`--in-vector`, repeatable)                      | `Data/<stem>.geojson` each                | shp → reproject; geojson copied                                             |
 | **vectortiles**   | ArcGIS vector-tile cache (`--in-esri-vector-tiles`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
 | **contours**      | the DEM (`--contours`)                                          | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
-| **cogs**          | custom rasters (`--in-cog`, repeatable)                         | `Layers/<stem>/<stem>_cog.tif` each       | GeoTIFF → COG (deflate; type inferred from `.tif`)                          |
+| **cogs**          | custom rasters (`--in-cog`, repeatable)                         | `Layers/<name>/<name>_cog.tif` each       | single-band floats stretch to display-ready 8-bit → COG (deflate)           |
 | **viewshed-cogs** | classified viewsheds (`--in-viewshed-raster`, repeatable)       | `Layers/<name>/<name>_cog.tif` each       | class 1 transparent; class 2 opaque `#FFA77F`; nodata transparent           |
 | **keepout-cogs**  | classified slope keep-out masks (`--in-keepout-raster`)         | `Layers/<name>/<name>_cog.tif` each       | class 0 opaque `#FF0000`; nodata transparent                                |
 | **grid**          | `--grid` + lander `--lander-lat/--lander-lng`                   | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
@@ -259,6 +259,20 @@ pass `--raster-name` once per input to choose stable output names. For example:
 pixi run python esri-to-aegis-lunar-southpole/main.py \
   --mission-id 98 --in-raster F:/tempF/MS3_data_drop/mm2-average.tif \
   --raster-name NAC_mosaic --steps rasters --overwrite
+```
+
+Custom raster layers and COGs use nodata-driven transparency by default. For imagery where black
+pixels must stay opaque, pass `--no-raster-transparency` (for example, NAC mosaics). This removes
+the COG noData tag or writes opaque PNG tiles without changing transparency behavior for
+DEM-derived or classified-mask products.
+
+`--in-cog` is also repeatable. Pass `--out-cog` once per COG input to choose a layer name instead
+of using the source stem:
+
+```bash
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+  --mission-id 50 --in-cog F:/tempF/MS3_data_drop/mm2-average.tif \
+  --out-cog NAC_mosaic --no-raster-transparency --steps cogs --overwrite
 ```
 
 **Namespacing layers (`--layer-prefix`).** Pass `--layer-prefix <PREFIX>` to prepend

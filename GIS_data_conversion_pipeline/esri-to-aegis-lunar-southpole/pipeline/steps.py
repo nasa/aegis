@@ -82,6 +82,19 @@ def is_uint8(raster: Path) -> bool:
         return False
 
 
+def needs_display_stretch(raster: Path) -> bool:
+    """True when a single-band raster needs 8-bit display values before COG conversion."""
+    try:
+        import rasterio  # imported lazily; only needed for the input inspection
+    except ImportError:
+        return False
+    try:
+        with rasterio.open(raster) as src:
+            return src.count == 1 and str(src.dtypes[0]) != "uint8"
+    except Exception:
+        return False
+
+
 def write_properties(
     layer_dir: Path,
     processing: str,
@@ -115,13 +128,17 @@ def tile_raster_to_layer(
     name: str,
     processing: str,
     overwrite: bool,
+    transparency: bool = True,
 ) -> None:
     """Tile one raster onto the cap grid (stretching float input to 8-bit first)."""
     if not clear_layer_dir(layer_dir, overwrite):
         return
     if is_uint8(raster):
         tee(f"  {raster.name} is already 8-bit — tiling directly (no stretch)")
-        run([PYTHON, TILE_TO_CAP_GRID, raster, layer_dir])
+        cmd: list[str | Path] = [PYTHON, TILE_TO_CAP_GRID, raster, layer_dir]
+        if not transparency:
+            cmd.append("--no-transparency")
+        run(cmd)
         write_properties(layer_dir, processing, name)
         return
 
@@ -143,7 +160,10 @@ def tile_raster_to_layer(
                 "-3.4e38",
             ]
         )
-        run([PYTHON, TILE_TO_CAP_GRID, stretched, layer_dir])
+        cmd = [PYTHON, TILE_TO_CAP_GRID, stretched, layer_dir]
+        if not transparency:
+            cmd.append("--no-transparency")
+        run(cmd)
         write_properties(layer_dir, processing, name)
     finally:
         stretched.unlink(missing_ok=True)
@@ -404,7 +424,13 @@ def step_rasters(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         layer_dir = p.layer_path(layer_name)
         tee(f"\n  raster: {raster}  → {layer_dir}")
         tile_raster_to_layer(
-            p, raster, layer_dir, p.layer_name(layer_name), "source", args.overwrite
+            p,
+            raster,
+            layer_dir,
+            p.layer_name(layer_name),
+            "source",
+            args.overwrite,
+            transparency=not args.no_raster_transparency,
         )
 
 
@@ -604,40 +630,93 @@ def step_contours(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 
 
 def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """Custom rasters (--in-cog) → one Cloud-Optimised GeoTIFF each in Layers/<stem>/<stem>_cog.tif.
+    """Custom rasters (--in-cog) → one Cloud-Optimised GeoTIFF each in Layers/<name>/<name>_cog.tif.
 
-    Additive OpenLayers-first output: OL renders a COG directly (WebGLTile + GeoTIFF over HTTP
-    Range) with no tile pyramid. Each COG lands inside its own Layers/ folder so it is managed like
+    Single-band floating-point rasters are stretched into display-ready uint8 values (1..255) with
+    zero reserved for nodata before COG creation. This makes the result render as grayscale in the
+    OpenLayers GeoTIFF source. Each COG lands inside its own Layers/ folder so it is managed like
     any other layer; the register step detects it as a COG raster sublayer from the .tif inside.
     (The mission DEM COG is separate — it stays in Data/ as demFilePath, see step_dem.)
     """
     banner(
-        "cogs — custom rasters → Cloud-Optimised GeoTIFF (Layers/<stem>/<stem>_cog.tif)"
+        "cogs — custom rasters → Cloud-Optimised GeoTIFF (Layers/<name>/<name>_cog.tif)"
     )
+    if args.no_raster_transparency and args.in_cog_nodata is not None:
+        raise SystemExit(
+            "--no-raster-transparency cannot be combined with --in-cog-nodata"
+        )
     p.layers.mkdir(parents=True, exist_ok=True)
-    for raster in args.in_cog:
+    if args.out_cog and len(args.out_cog) != len(args.in_cog):
+        raise SystemExit(
+            "--out-cog must be provided once for each --in-cog, "
+            "or omitted to use each source filename"
+        )
+
+    for index, raster in enumerate(args.in_cog):
         raster = Path(raster)
         require_input(raster, "COG source raster", "--in-cog")
-        layer_dir = p.layer_path(raster.stem)
-        out_cog = layer_dir / config.cog_layer_filename(raster.stem)
-        if out_cog.exists() and not args.overwrite:
-            tee(f"  [skip] {out_cog} already built (use --overwrite to rebuild)")
-            continue
+        layer_name = args.out_cog[index] if args.out_cog else raster.stem
+        if (
+            not layer_name
+            or layer_name in {".", ".."}
+            or "/" in layer_name
+            or "\\" in layer_name
+        ):
+            raise SystemExit(f"Invalid COG layer name: {layer_name!r}")
+        layer_name = p.layer_name(layer_name)
+        layer_dir = p.layers / layer_name
+        out_cog = layer_dir / config.cog_layer_filename(layer_name)
+        if out_cog.exists():
+            if not args.overwrite:
+                tee(f"  [skip] {out_cog} already built (use --overwrite to rebuild)")
+                continue
+            out_cog.unlink()
         layer_dir.mkdir(parents=True, exist_ok=True)
         tee(f"\n  raster: {raster}  → {out_cog}")
-        # OL-rendered COG: browser-decodable codec (config.COG_COMPRESS = deflate).
-        cmd: list[str | Path] = [
-            PYTHON,
-            GEOTIFF_TO_COG,
-            raster,
-            "-o",
-            out_cog,
-            "--compress",
-            config.COG_COMPRESS,
-        ]
-        if args.in_cog_nodata is not None:
-            cmd += ["--nodata", str(args.in_cog_nodata)]
-        run(cmd)
+        stretched: Path | None = None
+        try:
+            cog_input = raster
+            if needs_display_stretch(raster):
+                scratch = p.out / "scratch"
+                scratch.mkdir(parents=True, exist_ok=True)
+                stretched = scratch / f"{layer_name}_8bit.tif"
+                stretch_cmd: list[str | Path] = [
+                    PYTHON,
+                    STRETCH_TO_8BIT,
+                    raster,
+                    stretched,
+                    "--pct-low",
+                    "2",
+                    "--pct-high",
+                    "98",
+                ]
+                if args.in_cog_nodata is not None:
+                    stretch_cmd += ["--nodata", str(args.in_cog_nodata)]
+                run(stretch_cmd)
+                cog_input = stretched
+
+            # OL-rendered COG: browser-decodable codec (config.COG_COMPRESS = deflate).
+            cmd: list[str | Path] = [
+                PYTHON,
+                GEOTIFF_TO_COG,
+                cog_input,
+                "-o",
+                out_cog,
+                "--compress",
+                config.COG_COMPRESS,
+            ]
+            if args.no_raster_transparency:
+                cmd.append("--clear-nodata")
+            elif args.in_cog_nodata is not None and stretched is None:
+                cmd += ["--nodata", str(args.in_cog_nodata)]
+            run(cmd)
+        finally:
+            if stretched is not None:
+                stretched.unlink(missing_ok=True)
+                try:
+                    stretched.parent.rmdir()
+                except OSError:
+                    pass
 
 
 def _classified_mask_layer_name(raster: Path) -> str:
@@ -942,7 +1021,7 @@ STEPS: list[tuple[str, str]] = [
     ("contours", "DEM → major/minor contour PMTiles (Layers/contours_<interval>m)"),
     (
         "cogs",
-        "Custom rasters (--in-cog) → Cloud-Optimised GeoTIFF in Layers/<stem>/<stem>_cog.tif",
+        "Custom rasters (--in-cog) → Cloud-Optimised GeoTIFF in Layers/<name>/<name>_cog.tif",
     ),
     (
         "viewshed-cogs",

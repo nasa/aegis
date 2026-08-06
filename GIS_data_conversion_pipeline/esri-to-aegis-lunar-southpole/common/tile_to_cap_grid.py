@@ -148,6 +148,7 @@ def tile_raster(
     input_path: Path,
     output_dir: Path,
     resampling: str = "average",
+    transparency: bool = True,
 ) -> None:
     gdal = _which("gdal")
     gdalbuildvrt = _which("gdalbuildvrt")
@@ -203,9 +204,7 @@ def tile_raster(
     print(
         f"  data extent        E {dminx:.1f}..{dmaxx:.1f}  N {dminy:.1f}..{dmaxy:.1f}"
     )
-    print(
-        f"  input res          {r_in:g} m/px  →  cap z{max_zoom} ({out_res:g} m/px)"
-    )
+    print(f"  input res          {r_in:g} m/px  →  cap z{max_zoom} ({out_res:g} m/px)")
     print(f"  z0 units/px        {z0_res:.0f}")
     print(f"  cap_top (padded)   {cap_top:.1f}")
     print(f"  tile window @z{max_zoom}    x {xmin}..{xmax}   y(xyz) {ymin}..{ymax}")
@@ -244,12 +243,6 @@ def tile_raster(
             resampling,
             "--overview-resampling",
             resampling,
-            # Force an alpha channel so transparency is honoured for single-band inputs
-            # (hillshade, single-band NAC): gdal derives alpha from the VRT's nodata.
-            # RGBA colorized products (slope/aspect/tri) already carry an alpha band,
-            # which gdal preserves — so colours with red=0 aren't clipped.
-            "--add-alpha",
-            "--skip-blank",
             # No HTML viewers — the layer folder is tiles + our tilemapresource.xml only
             # (a stray openlayers.html would get registered/zipped/uploaded as cruft).
             "--webviewer",
@@ -271,6 +264,13 @@ def tile_raster(
             "-o",
             str(output_dir),
         ]
+        if transparency:
+            cmd[cmd.index("--webviewer") : cmd.index("--webviewer")] = [
+                "--add-alpha",
+                "--skip-blank",
+            ]
+        else:
+            cmd[cmd.index("--webviewer") : cmd.index("--webviewer")] = ["--no-alpha"]
         print("$ " + " ".join(cmd) + "\n", flush=True)
         subprocess.run(cmd, check=True)
 
@@ -316,13 +316,23 @@ def main() -> None:
         choices=["average", "nearest", "bilinear", "lanczos"],
         help="Max-zoom + overview resampling (default: average)",
     )
+    ap.add_argument(
+        "--no-transparency",
+        action="store_true",
+        help="Write opaque tiles without an alpha channel or skipped blank tiles.",
+    )
     args = ap.parse_args()
 
     if not args.input.exists():
         print(f"ERROR: input not found: {args.input}", file=sys.stderr)
         sys.exit(1)
 
-    tile_raster(args.input, args.output_dir, resampling=args.resampling)
+    tile_raster(
+        args.input,
+        args.output_dir,
+        resampling=args.resampling,
+        transparency=not args.no_transparency,
+    )
 
 
 if __name__ == "__main__":

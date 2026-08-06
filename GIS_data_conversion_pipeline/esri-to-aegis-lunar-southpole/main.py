@@ -164,6 +164,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output layer name for each --in-raster (repeat once per raster; defaults to the source stem).",
     )
     inputs.add_argument(
+        "--no-raster-transparency",
+        dest="no_raster_transparency",
+        action="store_true",
+        help="Write custom raster tile layers and COGs without nodata-driven transparency.",
+    )
+    inputs.add_argument(
         "--in-vector",
         dest="in_vector",
         action="append",
@@ -185,7 +191,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         metavar="PATH",
-        help="Custom raster → Cloud-Optimised GeoTIFF sublayer in Layers/<stem>/<stem>_cog.tif (repeatable).",
+        help="Custom raster → Cloud-Optimised GeoTIFF sublayer in Layers/<name>/<name>_cog.tif (repeatable).",
+    )
+    inputs.add_argument(
+        "--out-cog",
+        dest="out_cog",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="Output layer name for each --in-cog (repeat once per raster; defaults to the source stem).",
     )
     inputs.add_argument(
         "--in-cog-nodata",
