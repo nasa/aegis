@@ -160,6 +160,7 @@ const formatEvasForMaestro = (
           ? "lander"
           : (mission.stations[eva.egressLocationUuid]?.refUuid ?? ""),
       egressDuration: eva.egressDuration ?? 0,
+      datetime: eva.datetime,
       createdAt: new Date(eva.createdAt).toISOString(),
       updatedAt: new Date(eva.updatedAt).toISOString(),
       ...(rex && { rexUuid: rex.uuid }),

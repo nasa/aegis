@@ -7,13 +7,13 @@ import { v4 as uuidv4 } from "uuid";
 const {
   mockAddMaestroDocListenerForMission,
   mockBuildAegisSliceForMaestro,
-  mockApplyMdauStationsToDoc,
+  mockOpUpdateMdau,
   mockGetAutomergeDocListing,
   mockGetAutomergeMissions,
 } = vi.hoisted(() => ({
   mockAddMaestroDocListenerForMission: vi.fn().mockResolvedValue(undefined),
   mockBuildAegisSliceForMaestro: vi.fn(),
-  mockApplyMdauStationsToDoc: vi.fn().mockResolvedValue(undefined),
+  mockOpUpdateMdau: vi.fn(),
   mockGetAutomergeDocListing: vi.fn(),
   mockGetAutomergeMissions: vi.fn(),
 }));
@@ -30,14 +30,20 @@ vi.mock("server/maestro/v2/sockets-maestro-emitters", async () => {
   return {
     ...actual,
     addMaestroDocListenerForMission: mockAddMaestroDocListenerForMission,
-    applyMdauStationsToDoc: mockApplyMdauStationsToDoc,
   };
 });
 
-// Mock buildAegisSliceForMaestro from its actual source module (maestro.ts),
+// Mock opUpdateMdau from its actual source module,
 // since sockets-maestro.ts imports it directly from there
-vi.mock("server/maestro/v2/maestro", async () => {
-  const actual = await vi.importActual("server/maestro/v2/maestro");
+vi.mock("server/maestro/v2/operations/op-mdau", async () => {
+  const actual = await vi.importActual("server/maestro/v2/operations/op-mdau");
+  return { ...actual, opUpdateMdau: mockOpUpdateMdau };
+});
+
+// Mock buildAegisSliceForMaestro from its actual source module,
+// since sockets-maestro.ts imports it directly from there
+vi.mock("server/maestro/v2/buildAegisSlice", async () => {
+  const actual = await vi.importActual("server/maestro/v2/buildAegisSlice");
   return { ...actual, buildAegisSliceForMaestro: mockBuildAegisSliceForMaestro };
 });
 
@@ -99,7 +105,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   // Re-apply mock implementations after clearAllMocks so module-level mocks still resolve
   mockAddMaestroDocListenerForMission.mockResolvedValue(undefined);
-  mockApplyMdauStationsToDoc.mockResolvedValue(undefined);
+  mockOpUpdateMdau.mockReturnValue(undefined);
   // Provide automerge infrastructure mocks globally so the real addMaestroDocListenerForMission
   // won't throw if it is called (circular dep between sockets-maestro and sockets-maestro-emitters
   // can cause the vi.mock factory not to intercept it in sockets-maestro.ts).
@@ -127,6 +133,7 @@ beforeEach(() => {
   globalValues.maestroV2.socketio = null;
   globalValues.maestroV2.docListeners = new Map();
   globalValues.maestroV2.visitorData = {};
+  globalValues.maestroV2.docHandles = new Map();
   // Configure getAutomergeMissions to return a mission whose evas registry is
   // built from a shared mutable object that tests can populate before calling handlers.
   evaRegistry = {};
@@ -335,7 +342,9 @@ describe("maestro namespace socket handlers", () => {
 
       mockSocket._handlers["missionLeave"](MISSION_ID);
 
-      expect(globalValues.maestroV2.visitorData[MISSION_ID]).toHaveLength(0);
+      // Entry is deleted (not left as empty array) so subsequent disconnects
+      // don't re-trigger cleanupMaestro on a stale empty entry.
+      expect(globalValues.maestroV2.visitorData[MISSION_ID]).toBeUndefined();
     });
 
     it("calls removeMaestroDocListener when room becomes empty on missionLeave", () => {
@@ -423,7 +432,9 @@ describe("maestro namespace socket handlers", () => {
       // Disconnect
       mockSocket._handlers["disconnect"]();
 
-      expect(globalValues.maestroV2.visitorData[MISSION_ID]).toHaveLength(0);
+      // Entry is deleted (not left as empty array) so subsequent disconnects
+      // don't re-trigger cleanupMaestro on a stale empty entry.
+      expect(globalValues.maestroV2.visitorData[MISSION_ID]).toBeUndefined();
     });
 
     it("calls removeMaestroDocListener when room becomes empty on disconnect", () => {
@@ -540,28 +551,44 @@ describe("maestro namespace socket handlers", () => {
   // ─── sendMDAU ─────────────────────────────────────────────────────────────
 
   describe("sendMDAU", () => {
+    // A minimal doc handle registered for MISSION_ID so the sendMDAU handler
+    // can resolve one. Only the sendMDAU tests need this; the subscribe/eva
+    // tests intentionally rely on an empty docHandles map.
+    const sendMdauDocHandle = { doc: vi.fn().mockReturnValue({}) };
+    beforeEach(() => {
+      globalValues.maestroV2.docHandles.set(MISSION_ID, sendMdauDocHandle as never);
+    });
+
     it("does nothing when missionId is invalid", () => {
       mockSocket._handlers["sendMDAU"](null, { aegisStations: {} });
-      expect(mockApplyMdauStationsToDoc).not.toHaveBeenCalled();
+      expect(mockOpUpdateMdau).not.toHaveBeenCalled();
     });
 
     it("does nothing when missionId is NaN", () => {
       mockSocket._handlers["sendMDAU"](NaN, { aegisStations: {} });
-      expect(mockApplyMdauStationsToDoc).not.toHaveBeenCalled();
+      expect(mockOpUpdateMdau).not.toHaveBeenCalled();
     });
 
-    it("calls applyMdauStationsToDoc with missionId and aegisStations", () => {
-      const aegisStations = {
-        "ref-uuid-1": {
-          refUuid: "ref-uuid-1",
-          name: "Vitest Station",
-          duration: 30,
-          actionOrderRefUuids: null as string[] | null,
-          updatedAt: new Date().toISOString(),
+    it("does nothing when no doc handle is available for the mission", () => {
+      globalValues.maestroV2.docHandles.delete(MISSION_ID);
+      mockSocket._handlers["sendMDAU"](MISSION_ID, { aegisStations: {} });
+      expect(mockOpUpdateMdau).not.toHaveBeenCalled();
+    });
+
+    it("calls opUpdateMdau with the resolved doc handle and the full mdau payload", () => {
+      const mdau: MDAU.MaestroDataAegisUses = {
+        aegisStations: {
+          "ref-uuid-1": {
+            refUuid: "ref-uuid-1",
+            name: "Vitest Station",
+            duration: 30,
+            actionOrderRefUuids: null,
+            updatedAt: Date.now(),
+          },
         },
       };
-      mockSocket._handlers["sendMDAU"](MISSION_ID, { aegisStations });
-      expect(mockApplyMdauStationsToDoc).toHaveBeenCalledWith(MISSION_ID, aegisStations);
+      mockSocket._handlers["sendMDAU"](MISSION_ID, mdau);
+      expect(mockOpUpdateMdau).toHaveBeenCalledWith(sendMdauDocHandle, MISSION_ID, mdau);
     });
 
     it("processes a fully-populated MDAU payload without logging any errors", async () => {
@@ -598,7 +625,7 @@ describe("maestro namespace socket handlers", () => {
         aegisEva: {
           [evaRefUuid]: {
             refUuid: evaRefUuid,
-            name: ["EV1", "EV2"],
+            name: "Vitest Full EVA",
             maestroEventId: "maestro-event-1",
             maestroEventUrl: "https://maestro.example/events/1",
             sequenceRefUuids: [
@@ -663,17 +690,12 @@ describe("maestro namespace socket handlers", () => {
 
       const errorSpy = vi.spyOn(serverLogger, "error").mockImplementation(() => {});
 
-      // Handler is synchronous but delegates to an async function via .catch();
+      // Handler is synchronous and delegates the full payload to opUpdateMdau;
       // invoking it must not throw.
       expect(() => mockSocket._handlers["sendMDAU"](MISSION_ID, fullMdau)).not.toThrow();
 
-      // Let the promise from applyMdauStationsToDoc resolve so the .catch()
-      // branch has a chance to fire if something failed.
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(mockApplyMdauStationsToDoc).toHaveBeenCalledTimes(1);
-      expect(mockApplyMdauStationsToDoc).toHaveBeenCalledWith(MISSION_ID, fullMdau.aegisStations);
+      expect(mockOpUpdateMdau).toHaveBeenCalledTimes(1);
+      expect(mockOpUpdateMdau).toHaveBeenCalledWith(sendMdauDocHandle, MISSION_ID, fullMdau);
       expect(errorSpy).not.toHaveBeenCalled();
 
       errorSpy.mockRestore();

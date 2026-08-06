@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { buildAegisSliceForMaestro } from "server/maestro/v2/maestro";
+import { buildAegisSliceForMaestro } from "server/maestro/v2/buildAegisSlice";
 import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankStation } from "store/storeUtils/station";

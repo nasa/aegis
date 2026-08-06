@@ -21,7 +21,12 @@ export interface MaestroClientToServerEvents {
         | { status: "error"; message: string }
     ) => void
   ) => void;
-  sendMDAU: (missionId: number, mdau: MDAU.MaestroDataAegisUses) => void;
+  sendMDAU: (
+    missionId: number,
+    mdau: MDAU.MaestroDataAegisUses,
+    // Optional callback to read responses from the server
+    callback?: (response: { status: "success" } | { status: "error"; message: string }) => void
+  ) => void;
 
   getDebugInfo: (callback: (data: MaestroVersionDebugInfo) => void) => void;
 }

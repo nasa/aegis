@@ -1,0 +1,82 @@
+import type { MDAU } from "./mdau";
+
+/** A diffed set of fields to write to a single station. Always carries `uuid`. */
+export interface StationStage {
+  uuid: string;
+  name?: string;
+  duration?: number;
+  /** Reordered action uuids (reorder-only; already validated). */
+  actionOrderUuids?: string[];
+  updatedAt: number;
+}
+
+/** A diffed set of fields to write to a single traverse. */
+export interface TraverseStage {
+  uuid: string;
+  duration?: number;
+  actionOrderUuids?: string[];
+  updatedAt: number;
+}
+
+/** A diffed set of fields to write to a single EVA. */
+export interface EvaStage {
+  uuid: string;
+  name?: string;
+  ingressDuration?: number;
+  egressDuration?: number;
+  updatedAt: number;
+}
+
+/** A diffed set of fields to write to a single action. */
+export interface ActionStage {
+  uuid: string;
+  crewAssigned?: Crew[];
+  updatedAt: number;
+}
+
+/**
+ * A fully-resolved plan for a single rex. Entry maps are keyed by resolved
+ * AEGIS uuid (not refUuid). Top-level fields are copied verbatim from the MDAU
+ * payload (per the v2 contract) — no per-field diffing on rexes.
+ */
+export interface RexStage {
+  uuid: string;
+  /** Verbatim scalar fields to overwrite on the rex. */
+  fields: Partial<
+    Pick<
+      Rex,
+      | "petStartStopTimestamp"
+      | "petValueAtStartStop"
+      | "petRunning"
+      | "isRunning"
+      | "maestroControlled"
+    >
+  >;
+  /** Whether the incoming payload flips this rex to running (used for stop-others + posEntries). */
+  startsRunning: boolean;
+  /** maestroActivityPropertiesByRefUuid resolved to uuid keys. */
+  maestroActivityProperties: MaestroActivityProperties | null;
+  /** Resolved station/traverse activity entries keyed by sequence uuid. */
+  stationEntries: { [uuid: string]: MDAU.AegisActivityEntry };
+  traverseEntries: { [uuid: string]: MDAU.AegisActivityEntry };
+  /** xgress entries keyed verbatim (xgress uuids are not refUuids). */
+  xgressEntries: { [xgressUuid: string]: { rexStatus: MDAU.AegisRexStatus } };
+  /** Resolved action entries keyed by action uuid. */
+  actionEntries: {
+    [uuid: string]: {
+      rexStatus: MDAU.AegisRexStatus;
+      markerId: string;
+      containerId: string;
+      secondaryContainerId: string;
+    };
+  };
+}
+
+/** The complete resolved + diffed plan for one `sendMDAU` payload. */
+export interface MdauStageData {
+  stations: StationStage[];
+  traverses: TraverseStage[];
+  evas: EvaStage[];
+  actions: ActionStage[];
+  rexes: RexStage[];
+}

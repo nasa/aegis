@@ -38,7 +38,7 @@ export function opDeleteStation(
 - **Server side** — call the op directly with an explicit handle (usually looked up from `globalValues.maestro.docHandles`):
 
   ```typescript
-  opApplyMdauStationUpdates(docHandle, updates);
+  opUpdateMdau(docHandle, mdau);
   ```
 
 - **Client side** — use `withMissionOp` from `client/automergeDocHandles.ts`. It fetches the current mission doc handle, guards for null, and forwards the caller-supplied args to the op. Components must not touch the handle directly (ESLint-enforced):
