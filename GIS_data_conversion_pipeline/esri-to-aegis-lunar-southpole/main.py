@@ -194,6 +194,28 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="noData value to tag on --in-cog outputs (e.g. -3.4e38).",
     )
+    inputs.add_argument(
+        "--in-viewshed-raster",
+        dest="in_viewshed_raster",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help=(
+            "Classified viewshed GeoTIFF (1=visible, 2=non-visible, 255=nodata) "
+            "to convert into a transparent-mask RGBA COG; repeatable."
+        ),
+    )
+    inputs.add_argument(
+        "--out-viewshed-raster",
+        dest="out_viewshed_raster",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help=(
+            "Output layer name for each --in-viewshed-raster; repeat once per input "
+            "or omit to use the source filename."
+        ),
+    )
 
     output = parser.add_argument_group("Output location (--out-* / --layer-*)")
     output.add_argument(

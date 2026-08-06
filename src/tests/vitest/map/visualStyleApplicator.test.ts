@@ -6,8 +6,13 @@
  * canvas elements and are better tested in browser mode.
  */
 
-import { describe, it, expect } from "vitest";
-import { buildCSSFilter } from "components/interface/map/utils/visualStyleApplicator";
+import { describe, it, expect, vi } from "vitest";
+import type { Layer as OLLayer } from "ol/layer";
+import {
+  applyVisualStyle,
+  buildCSSFilter,
+  clearVisualStyle,
+} from "components/interface/map/utils/visualStyleApplicator";
 
 /** Helper to create a minimal MapSublayerStyle with defaults */
 function makeStyle(overrides: Partial<MapSublayerStyle> = {}): MapSublayerStyle {
@@ -66,5 +71,27 @@ describe("buildCSSFilter", () => {
     const result = buildCSSFilter(makeStyle({ brightness: 1, contrast: 0.5 }));
     expect(result).toBe("contrast(0.5)");
     expect(result).not.toContain("brightness");
+  });
+});
+
+describe("applyVisualStyle", () => {
+  it("uses CSS blend mode for a COG WebGL canvas", () => {
+    const handlers: Record<string, (event: unknown) => void> = {};
+    const layer = {
+      get: vi.fn((key: string) => (key === "sublayerType" ? "cog" : undefined)),
+      on: vi.fn((event: string, handler: (renderEvent: unknown) => void) => {
+        handlers[event] = handler;
+      }),
+      un: vi.fn(),
+      setOpacity: vi.fn(),
+    } as unknown as OLLayer;
+    const canvas = document.createElement("canvas");
+
+    applyVisualStyle(layer, makeStyle({ blendMode: "multiply" }));
+    handlers.prerender({ context: { canvas } });
+
+    expect(canvas.style.mixBlendMode).toBe("multiply");
+    clearVisualStyle(layer);
+    expect(canvas.style.mixBlendMode).toBe("");
   });
 });

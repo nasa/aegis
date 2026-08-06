@@ -27,6 +27,7 @@ GEOTIFF_TO_COG = ROOT / "common" / "geotiff_to_cog.py"
 TILE_TO_CAP_GRID = ROOT / "common" / "tile_to_cap_grid.py"
 STRETCH_TO_8BIT = ROOT / "common" / "raster_to_8bit.py"
 COLORIZE_SLOPE = ROOT / "slope" / "colorize_slope.py"
+COLORIZE_VIEWSHED = ROOT / "viewshed" / "colorize_viewshed.py"
 SHP_TO_GEOJSON = ROOT / "vector" / "shp_to_geojson.py"
 DEM_PRODUCTS = ROOT / "products" / "dem_products.py"
 LYRX_TO_RAMP = ROOT / "products" / "lyrx_to_ramp.py"
@@ -638,6 +639,113 @@ def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         run(cmd)
 
 
+def _viewshed_layer_name(raster: Path) -> str:
+    """Keep a source COG's existing suffix from duplicating in its output name."""
+    return raster.stem.removesuffix("_cog")
+
+
+def _write_viewshed_properties(layer_dir: Path, name: str) -> None:
+    """Write the fixed non-visible viewshed legend for an RGBA COG layer."""
+    properties = {
+        "name": name,
+        "description": "Non-visible terrain in a delivered viewshed raster.",
+        "legend": {
+            "legend": [
+                {
+                    "color": config.VIEWSHED_FILL_COLOR,
+                    "description": "Non-visible",
+                }
+            ],
+            "unitsAbbr": "",
+            "version": "",
+        },
+    }
+    (layer_dir / "properties.json").write_text(
+        json.dumps(properties, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def step_viewshed_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
+    """Classified viewshed rasters -> transparent-mask RGBA COG sublayers."""
+    banner("viewshed-cogs — classified viewshed rasters -> RGBA COG masks")
+    if args.out_viewshed_raster and len(args.out_viewshed_raster) != len(
+        args.in_viewshed_raster
+    ):
+        raise SystemExit(
+            "--out-viewshed-raster must be provided once for each --in-viewshed-raster, "
+            "or omitted to use each source filename"
+        )
+
+    p.layers.mkdir(parents=True, exist_ok=True)
+    scratch = p.out / "scratch_viewshed_cogs"
+    scratch.mkdir(parents=True, exist_ok=True)
+
+    try:
+        for index, raster in enumerate(args.in_viewshed_raster):
+            raster = Path(raster)
+            require_input(raster, "viewshed GeoTIFF", "--in-viewshed-raster")
+            base_name = (
+                args.out_viewshed_raster[index]
+                if args.out_viewshed_raster
+                else _viewshed_layer_name(raster)
+            )
+            if (
+                not base_name
+                or base_name in {".", ".."}
+                or "/" in base_name
+                or "\\" in base_name
+            ):
+                raise SystemExit(f"Invalid viewshed layer name: {base_name!r}")
+            layer_name = p.layer_name(base_name)
+            layer_dir = p.layers / layer_name
+            out_cog = layer_dir / config.cog_layer_filename(layer_name)
+            if out_cog.exists() and not args.overwrite:
+                tee(f"  [skip] {out_cog} already built (use --overwrite to rebuild)")
+                continue
+
+            layer_dir.mkdir(parents=True, exist_ok=True)
+            rgba = scratch / f"{layer_name}_rgba.tif"
+            tee(f"\n  viewshed: {raster} -> {out_cog}")
+            try:
+                run(
+                    [
+                        PYTHON,
+                        COLORIZE_VIEWSHED,
+                        raster,
+                        rgba,
+                        "--visible-value",
+                        str(config.VIEWSHED_VALUE_VISIBLE),
+                        "--nonvisible-value",
+                        str(config.VIEWSHED_VALUE_NONVISIBLE),
+                        "--nodata-value",
+                        str(config.VIEWSHED_NODATA),
+                        "--fill-color",
+                        config.VIEWSHED_FILL_COLOR,
+                        "--fill-opacity",
+                        str(config.VIEWSHED_FILL_OPACITY),
+                    ]
+                )
+                run(
+                    [
+                        PYTHON,
+                        GEOTIFF_TO_COG,
+                        rgba,
+                        "-o",
+                        out_cog,
+                        "--compress",
+                        config.COG_COMPRESS,
+                    ]
+                )
+                _write_viewshed_properties(layer_dir, layer_name)
+            finally:
+                rgba.unlink(missing_ok=True)
+    finally:
+        try:
+            scratch.rmdir()
+        except OSError:
+            pass
+
+
 def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Register mission fields + the 'All Layers' header + sublayers + active grid on the AEGIS server."""
     banner("register — AEGIS mission fields + layers + sublayers + grid")
@@ -738,6 +846,10 @@ STEPS: list[tuple[str, str]] = [
         "cogs",
         "Custom rasters (--in-cog) → Cloud-Optimised GeoTIFF in Layers/<stem>/<stem>_cog.tif",
     ),
+    (
+        "viewshed-cogs",
+        "Classified viewshed rasters (--in-viewshed-raster) → transparent-mask RGBA COGs",
+    ),
     ("grid", "Lander location → LGRS mission grid GeoJSON (default 10km)"),
     (
         "register",
@@ -757,6 +869,7 @@ STEP_FNS = {
     "vectortiles": step_vectortiles,
     "contours": step_contours,
     "cogs": step_cogs,
+    "viewshed-cogs": step_viewshed_cogs,
     "grid": step_grid,
     "register": step_register,
     "box": step_box,
@@ -776,6 +889,7 @@ DATA_STEPS = {
     "vectortiles",
     "contours",
     "cogs",
+    "viewshed-cogs",
     "grid",
 }
 
@@ -803,6 +917,8 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
         chosen.append("contours")
     if args.in_cog:
         chosen.append("cogs")
+    if args.in_viewshed_raster:
+        chosen.append("viewshed-cogs")
     if (
         getattr(args, "grid", False)
         and args.lander_lat is not None

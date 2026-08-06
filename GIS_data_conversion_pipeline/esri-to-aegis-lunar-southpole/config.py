@@ -115,6 +115,14 @@ def dem_output_name(dem_in: Path) -> str:
 OUT_SLOPE_LAYER_NAME = "slope"
 OUT_SLOPE_RGBA_NAME = "slope_rgba.tif"  # scratch, removed after tiling
 
+# Delivered viewshed rasters use these class values. The GIS .lyrx uses 50%
+# opacity, but the AEGIS layer opacity control owns transparency at runtime.
+VIEWSHED_VALUE_VISIBLE = 1
+VIEWSHED_VALUE_NONVISIBLE = 2
+VIEWSHED_NODATA = 255
+VIEWSHED_FILL_COLOR = "#FFA77F"
+VIEWSHED_FILL_OPACITY = 1.0
+
 # DEM-derived product layers (Layers/<name>/). Slope is intentionally omitted from the
 # default products step because the dedicated `slope` step already produces a slope layer
 # using the GIS-team .lyrx — which encodes the SAME standard as default_color_ramps/slope.txt.
