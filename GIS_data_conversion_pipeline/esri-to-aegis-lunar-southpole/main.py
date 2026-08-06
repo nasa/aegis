@@ -13,7 +13,7 @@ the cap-grid projection profile + path resolution live in ``config.py``; the AEG
 logic in ``register.py`` / ``box_publish.py``.
 
 Data steps (each runs only when its input is present): dem · slope · products · vector ·
-rasters · vectors. Opt-in data steps: contours (--contours) · grid (--grid). Publish steps
+rasters · vectors · horizons. Opt-in data steps: contours (--contours) · grid (--grid). Publish steps
 (opt-in): register · box. Every run writes a
 ``Data/conversion_report.md`` capturing the full console log + per-step timings.
 
@@ -176,6 +176,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         metavar="PATH",
         help="Custom vector layer, shp or geojson (repeatable).",
+    )
+    inputs.add_argument(
+        "--in-horizon-shapefile-dir",
+        dest="in_horizon_shapefile_dir",
+        type=Path,
+        default=None,
+        metavar="DIR",
+        help=(
+            "Directory of delivered horizon-line shapefiles; converts each *Horizon*.shp "
+            "to CRS-safe GeoJSON in Data/."
+        ),
     )
     inputs.add_argument(
         "--in-esri-vector-tiles",

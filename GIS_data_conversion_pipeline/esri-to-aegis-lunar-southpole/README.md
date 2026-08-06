@@ -43,6 +43,7 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **vector**        | landing-ellipse shapefile                                       | `Data/ellipse.geojson`                    | reproject to EPSG:4326                                                      |
 | **rasters**       | custom rasters (`--in-raster`, repeatable)                      | `Layers/<name>/` tile pyramid each        | stretch (if float) → tile                                                   |
 | **vectors**       | custom vectors (`--in-vector`, repeatable)                      | `Data/<stem>.geojson` each                | shp → reproject; geojson copied                                             |
+| **horizons**      | horizon shapefile directory (`--in-horizon-shapefile-dir`)      | `Data/MP026_Horizon_*.geojson`            | find horizon `.shp` files → reproject using the supplied `.prj`             |
 | **vectortiles**   | ArcGIS vector-tile cache (`--in-esri-vector-tiles`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
 | **contours**      | the DEM (`--contours`)                                          | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
 | **cogs**          | custom rasters (`--in-cog`, repeatable)                         | `Layers/<name>/<name>_cog.tif` each       | single-band floats stretch to display-ready 8-bit → COG (deflate)           |
@@ -161,6 +162,32 @@ pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --steps r
 pixi run python esri-to-aegis-lunar-southpole/main.py --list
 pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --summary
 ```
+
+### Import horizon lines
+
+The MS3 MP026 horizon delivery contains six `MP026_Horizon_*.shp` line layers. Their
+`.prj` files declare lunar geographic coordinates (`GCS_Moon_2000`), and the matching
+delivered GeoJSON files have the same longitude/latitude ranges. Use the shapefiles for
+ingest so the pipeline verifies and applies the authoritative CRS rather than relying on
+a GeoJSON CRS member that may be absent in a later delivery.
+
+```bash
+# Write the six AEGIS-ready GeoJSON files into missionFiles/<mission-id>/Data/.
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+  --mission-id <mission-id> \
+  --in-horizon-shapefile-dir "F:/tempF/MS3_data_drop/AEGIS_MS3_MP026_GIS_Data_20260805/01_AEGIS/00_GIS_Files/00_Vector/00_Shapefiles" \
+  --steps horizons
+
+# Optionally create Vector header/sublayer records without changing the mission's GIS fields.
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+  --mission-id <mission-id> \
+  --steps register \
+  --register-no-mission-fields --register-no-grid --register-no-external-nac
+```
+
+`--in-vector` copies an existing GeoJSON unchanged, so use it only when its coordinates are
+already known to be lunar longitude/latitude. The `horizons` step deliberately uses the
+companion shapefiles and their CRS metadata to avoid importing projected metres as degrees.
 
 ### Convert a classified viewshed to a transparent COG
 

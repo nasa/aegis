@@ -452,6 +452,28 @@ def step_vectors(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             tee(f"  [skip] unsupported vector format: {vector}", file=sys.stderr)
 
 
+def step_horizons(p: config.PipelinePaths, args: argparse.Namespace) -> None:
+    """Delivered horizon shapefiles → CRS-safe GeoJSON files in Data/."""
+    banner("horizons — shapefiles → GeoJSON in Data/")
+    source_dir = args.in_horizon_shapefile_dir
+    if source_dir is None or not source_dir.is_dir():
+        raise SystemExit(
+            "--in-horizon-shapefile-dir must point to the delivered shapefile directory."
+        )
+
+    sources = sorted(
+        path for path in source_dir.glob("*.shp") if "horizon" in path.stem.lower()
+    )
+    if not sources:
+        raise SystemExit(f"No horizon shapefiles found in {source_dir}")
+
+    p.data.mkdir(parents=True, exist_ok=True)
+    for source in sources:
+        out = p.data / f"{source.stem}.geojson"
+        tee(f"  horizon: {source} → {out}")
+        run([PYTHON, SHP_TO_GEOJSON, source, out, "--to-epsg", "4326"])
+
+
 def step_grid(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """LGRS mission grid from the lander location → AEGIS grid GeoJSON (default 10 km square)."""
     banner(
@@ -1015,6 +1037,10 @@ STEPS: list[tuple[str, str]] = [
     ),
     ("vectors", "Custom vectors (--in-vector, shp/geojson) → GeoJSON in Data/"),
     (
+        "horizons",
+        "Horizon shapefiles (--in-horizon-shapefile-dir) → GeoJSON in Data/",
+    ),
+    (
         "vectortiles",
         "ArcGIS vector-tile caches (--in-esri-vector-tiles) → Layers/<name>/<name>.pmtiles",
     ),
@@ -1047,6 +1073,7 @@ STEP_FNS = {
     "vector": step_vector,
     "rasters": step_rasters,
     "vectors": step_vectors,
+    "horizons": step_horizons,
     "vectortiles": step_vectortiles,
     "contours": step_contours,
     "cogs": step_cogs,
@@ -1068,6 +1095,7 @@ DATA_STEPS = {
     "vector",
     "rasters",
     "vectors",
+    "horizons",
     "vectortiles",
     "contours",
     "cogs",
@@ -1094,6 +1122,8 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
         chosen.append("rasters")
     if args.in_vector:
         chosen.append("vectors")
+    if args.in_horizon_shapefile_dir:
+        chosen.append("horizons")
     if args.in_esri_vector_tiles:
         chosen.append("vectortiles")
     if args.contours and p.dem_in.exists():
