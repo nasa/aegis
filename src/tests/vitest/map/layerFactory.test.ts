@@ -381,6 +381,7 @@ describe("createCogLayer", () => {
       expect(layer.get("name")).toBe("Elevation");
       expect(layer.get("uuid")).toBe(sublayer.uuid);
       expect(layer.getSource()!.getInterpolate()).toBe(false);
+      expect(layer.getClassName()).toBe(`ol-layer-${sublayer.uuid}`);
     } finally {
       fetchStub.mockRestore();
     }

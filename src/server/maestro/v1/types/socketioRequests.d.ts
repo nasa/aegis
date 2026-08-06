@@ -1,5 +1,5 @@
-// used in api/v1/emss/getMissions route and maestro socket handler
-type MissionsWithEvas = {
+// used in getMissions maestro route
+export type MissionsWithEvas = {
   [missionId: number]: {
     missionName: string;
     missionActionSystemVersion: number;
@@ -10,8 +10,8 @@ type MissionsWithEvas = {
   };
 };
 
-// used in api/v1/emss/getRexesByEvaRef route and maestro socket handler
-type RefRex = {
+// used in getRexesByEvaRef maestro route
+export type RefRex = {
   uuid: string;
   name: string;
   createdAt: string;

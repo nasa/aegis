@@ -212,7 +212,7 @@ def build_vector_tile_sublayer(
 def build_cog_sublayer(
     mission_id: int, layer_uuid: str, layer_dir: Path, cog_file: Path
 ) -> dict:
-    """A COG raster sublayer for a Layers/<stem>/<stem>_cog.tif.
+    """A COG raster sublayer for a Layers/<name>/<name>_cog.tif.
 
     Self-describing: OpenLayers reads the GeoTIFF directly over HTTP Range, so no
     tilePattern/tileFormat/boundingBox/zoom is set. The app routes it to the WebGLTile/GeoTIFF path
