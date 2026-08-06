@@ -141,13 +141,13 @@ export const setupMaestroNamespace = (
         const roomName = getMaestroSocketRoomName(missionId);
         socket.leave(roomName);
 
-        if (globalValues.maestroV2.visitorData[missionId]) {
+        const visitors = globalValues.maestroV2.visitorData[missionId];
+        if (visitors) {
           // Remove this maestro visitor from the server's global under the mission room
-          remove(globalValues.maestroV2.visitorData[missionId], (item) => {
-            return item.socketId === socket.id;
-          });
-          // If the room is now empty
-          if (globalValues.maestroV2.visitorData[missionId].length === 0) {
+          const removed = remove(visitors, (item) => item.socketId === socket.id);
+          // If we removed the last visitor and the room is now empty, delete the key and cleanup
+          if (removed.length > 0 && visitors.length === 0) {
+            delete globalValues.maestroV2.visitorData[missionId];
             cleanupMaestro(missionId);
           }
         }
@@ -161,11 +161,11 @@ export const setupMaestroNamespace = (
       socket.on("disconnect", () => {
         // Remove this socket from any maestro mission rooms they happened to be in
         for (const missionId in globalValues.maestroV2.visitorData) {
-          remove(globalValues.maestroV2.visitorData[missionId], (item) => {
-            return item.socketId === socket.id;
-          });
-          // If the room is now empty
-          if (globalValues.maestroV2.visitorData[missionId].length === 0) {
+          const visitors = globalValues.maestroV2.visitorData[missionId];
+          const removed = remove(visitors, (item) => item.socketId === socket.id);
+          // If we removed the last visitor and the room is now empty, delete the key and cleanup
+          if (removed.length > 0 && visitors.length === 0) {
+            delete globalValues.maestroV2.visitorData[missionId];
             if (missionId != null) cleanupMaestro(+missionId);
           }
         }
