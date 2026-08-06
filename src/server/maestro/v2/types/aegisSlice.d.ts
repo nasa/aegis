@@ -47,6 +47,7 @@ export declare namespace AegisSlice {
     ingressDuration: number;
     egressLocationRefUuid: string;
     egressDuration: number;
+    datetime: number | null;
     createdAt: string;
     updatedAt: string;
   };
