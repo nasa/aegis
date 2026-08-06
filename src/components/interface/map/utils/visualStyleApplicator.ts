@@ -1,17 +1,19 @@
 /**
  * visualStyleApplicator — applies CSS filters, opacity, and blend modes
- * to OL layers via canvas 2D context manipulation.
+ * to OL layers via renderer-specific context manipulation.
  *
  * IMPORTANT: Multiple layers may share the same canvas element (any layers
  * with the default "ol-layer" className render to a single shared canvas).
  * Therefore we CANNOT set CSS properties (filter, mix-blend-mode) on the
  * canvas DOM element — those would affect ALL layers on that canvas.
  *
- * Instead, we use `prerender` / `postrender` event listeners to manipulate
+ * Canvas layers use `prerender` / `postrender` event listeners to manipulate
  * the canvas 2D rendering context:
  *   - `prerender`: save context state, apply `ctx.filter` and
  *     `ctx.globalCompositeOperation` so the layer's own draw calls use them.
  *   - `postrender`: restore context state so subsequent layers are unaffected.
+ * COG layers have a dedicated WebGL canvas, so their CSS filter and blend mode
+ * are applied directly to that element instead.
  *
  * For opacity, we use OL's native `layer.setOpacity()` which handles per-layer
  * opacity correctly regardless of canvas sharing.
@@ -26,14 +28,17 @@ type RenderHandler = (event: RenderEvent) => void;
 interface LayerWithStyleHandlers extends OLLayer {
   __aegisPrerenderHandler?: RenderHandler;
   __aegisPostrenderHandler?: RenderHandler;
+  __aegisStyledCanvas?: HTMLCanvasElement;
 }
 
-/** Extract the 2D canvas context from an OL render event. */
-function getContext(event: RenderEvent): CanvasRenderingContext2D | null {
-  // OL's render event exposes the context; the exact shape depends on the
-  // layer renderer but `event.context` is the standard path.
-  const ctx = (event as unknown as { context?: CanvasRenderingContext2D }).context;
-  return ctx ?? null;
+function getContext(event: RenderEvent): NonNullable<RenderEvent["context"]> | null {
+  return event.context ?? null;
+}
+
+function isCanvas2DContext(
+  context: NonNullable<RenderEvent["context"]>
+): context is CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D {
+  return typeof (context as { save?: unknown }).save === "function";
 }
 
 /** Map CSS blend mode names to canvas globalCompositeOperation values.
@@ -60,6 +65,7 @@ export function applyVisualStyle(layer: OLLayer, style: MapSublayerStyle): void 
   // Build the CSS filter string
   const cssFilter = buildCSSFilter(style);
   const blendMode = style.blendMode || "normal";
+  const isCogLayer = layer.get("sublayerType") === "cog";
 
   // Remove any existing handlers we attached (avoid stacking)
   removeHandlers(layer);
@@ -71,23 +77,34 @@ export function applyVisualStyle(layer: OLLayer, style: MapSublayerStyle): void 
 
   // --- prerender: save context + apply filter/blend ----------------------
   const prerenderHandler: RenderHandler = (event) => {
-    const ctx = getContext(event);
-    if (!ctx) return;
-    ctx.save();
+    const context = getContext(event);
+    if (!context) return;
+
+    if (isCogLayer) {
+      const canvas = context.canvas;
+      if (!(canvas instanceof HTMLCanvasElement)) return;
+      canvas.style.filter = needsFilter ? cssFilter : "";
+      canvas.style.mixBlendMode = needsBlend ? blendMode : "normal";
+      (layer as LayerWithStyleHandlers).__aegisStyledCanvas = canvas;
+      return;
+    }
+
+    if (!isCanvas2DContext(context)) return;
+    context.save();
 
     if (needsFilter) {
-      ctx.filter = cssFilter;
+      context.filter = cssFilter;
     }
     if (needsBlend) {
-      ctx.globalCompositeOperation = blendModeToCompositeOp(blendMode);
+      context.globalCompositeOperation = blendModeToCompositeOp(blendMode);
     }
   };
 
   // --- postrender: restore context state ---------------------------------
   const postrenderHandler: RenderHandler = (event) => {
-    const ctx = getContext(event);
-    if (!ctx) return;
-    ctx.restore();
+    const context = getContext(event);
+    if (!context || isCogLayer || !isCanvas2DContext(context)) return;
+    context.restore();
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -109,6 +126,11 @@ export function clearVisualStyle(layer: OLLayer): void {
 /** Remove previously attached prerender/postrender handlers. */
 function removeHandlers(layer: OLLayer): void {
   const styled = layer as LayerWithStyleHandlers;
+  if (styled.__aegisStyledCanvas) {
+    styled.__aegisStyledCanvas.style.filter = "";
+    styled.__aegisStyledCanvas.style.mixBlendMode = "";
+    styled.__aegisStyledCanvas = undefined;
+  }
   if (styled.__aegisPrerenderHandler) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     layer.un("prerender", styled.__aegisPrerenderHandler as any);

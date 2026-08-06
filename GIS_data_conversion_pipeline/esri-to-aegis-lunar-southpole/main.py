@@ -164,6 +164,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output layer name for each --in-raster (repeat once per raster; defaults to the source stem).",
     )
     inputs.add_argument(
+        "--no-raster-transparency",
+        dest="no_raster_transparency",
+        action="store_true",
+        help="Write custom raster tile layers and COGs without nodata-driven transparency.",
+    )
+    inputs.add_argument(
         "--in-vector",
         dest="in_vector",
         action="append",
@@ -185,7 +191,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         metavar="PATH",
-        help="Custom raster → Cloud-Optimised GeoTIFF sublayer in Layers/<stem>/<stem>_cog.tif (repeatable).",
+        help="Custom raster → Cloud-Optimised GeoTIFF sublayer in Layers/<name>/<name>_cog.tif (repeatable).",
+    )
+    inputs.add_argument(
+        "--out-cog",
+        dest="out_cog",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="Output layer name for each --in-cog (repeat once per raster; defaults to the source stem).",
     )
     inputs.add_argument(
         "--in-cog-nodata",
@@ -193,6 +207,50 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         help="noData value to tag on --in-cog outputs (e.g. -3.4e38).",
+    )
+    inputs.add_argument(
+        "--in-viewshed-raster",
+        dest="in_viewshed_raster",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help=(
+            "Classified viewshed GeoTIFF (1=visible, 2=non-visible, 255=nodata) "
+            "to convert into a transparent-mask RGBA COG; repeatable."
+        ),
+    )
+    inputs.add_argument(
+        "--out-viewshed-raster",
+        dest="out_viewshed_raster",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help=(
+            "Output layer name for each --in-viewshed-raster; repeat once per input "
+            "or omit to use the source filename."
+        ),
+    )
+    inputs.add_argument(
+        "--in-keepout-raster",
+        dest="in_keepout_raster",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help=(
+            "Classified slope keep-out GeoTIFF (0=keep-out, 255=nodata) "
+            "to convert into a transparent-mask RGBA COG; repeatable."
+        ),
+    )
+    inputs.add_argument(
+        "--out-keepout-raster",
+        dest="out_keepout_raster",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help=(
+            "Output layer name for each --in-keepout-raster; repeat once per input "
+            "or omit to use the source filename."
+        ),
     )
 
     output = parser.add_argument_group("Output location (--out-* / --layer-*)")

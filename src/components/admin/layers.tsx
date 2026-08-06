@@ -90,10 +90,11 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
     (folderName: string) => {
       if (!allSublayers) return false;
       for (const sublayer of allSublayers) {
-        if (sublayer.path === folderName) {
+        if (sublayer.path === folderName || sublayer.path.startsWith(`${folderName}/`)) {
           return true;
         }
       }
+      return false;
     },
     [allSublayers]
   );
