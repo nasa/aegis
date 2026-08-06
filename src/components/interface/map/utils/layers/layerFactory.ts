@@ -105,6 +105,7 @@ export function createCogLayer(input: LayerFactoryInput): WebGLTileLayer {
       // tile layers and is cheaper to render.
       transition: 0,
     }),
+    className: `ol-layer-${input.sublayer.uuid}`,
     // One overview level for blur-then-sharpen on pan/zoom, bounded by cacheSize.
     preload: 1,
     properties: {

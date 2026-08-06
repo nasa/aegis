@@ -21,7 +21,7 @@ function getDownloadStageText(
       if (downloadPercent === undefined) return "Downloading...";
       return `Downloading ${downloadPercent}%`;
     case "extracting":
-      return "Extracting...";
+      return `Extracting ${progress.elapsedSeconds ?? 0}s`;
     case "moving":
       return "Moving...";
     case "complete":

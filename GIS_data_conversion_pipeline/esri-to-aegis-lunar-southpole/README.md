@@ -7,7 +7,7 @@ Turns a GIS data drop into AEGIS-ready map products for a **lunar south-pole** m
   `projResUnitsPerPixel = 12800`), each cut to its **own native resolution** (independent
   per-layer pyramid — no shared z13 clamp), with a **projected-metre** `<BoundingBox>`.
 - **COG** raster sublayers (`--in-cog`) — a self-describing Cloud-Optimised GeoTIFF OpenLayers
-  renders directly, emitted as its own `Layers/<stem>/<stem>.tif` folder (type inferred from the
+  renders directly, emitted as its own `Layers/<name>/<name>_cog.tif` folder (type inferred from the
   `.tif`; no `isCog` flag).
 - **PMTiles** vector-tile layers (`--in-esri-vector-tiles`) — a delivered ArcGIS vector-tile cache
   packed into one `Layers/<name>/<name>.pmtiles` folder (registered as a `"vector-tile"` sublayer).
@@ -35,20 +35,22 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 
 ## Pipeline data types (`main.py` steps)
 
-| Type            | Input                                                           | Output                                    | Process                                                                     |
-| --------------- | --------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
-| **dem**         | DEM GeoTIFF                                                     | `Data/<source>_deflate_cog.tif` (COG)     | re-emit as clean COG (keeps source name)                                    |
-| **slope**       | slope float raster (°) + `.lyrx` ramp                           | `Layers/slope/` tile pyramid              | colorize → tile                                                             |
-| **products**    | the DEM (`--in-dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/`  | derive from DEM → colorize → tile (`--dem-products`)                        |
-| **vector**      | landing-ellipse shapefile                                       | `Data/ellipse.geojson`                    | reproject to EPSG:4326                                                      |
-| **rasters**     | custom rasters (`--in-raster`, repeatable)                      | `Layers/<name>/` tile pyramid each        | stretch (if float) → tile                                                   |
-| **vectors**     | custom vectors (`--in-vector`, repeatable)                      | `Data/<stem>.geojson` each                | shp → reproject; geojson copied                                             |
-| **vectortiles** | ArcGIS vector-tile cache (`--in-esri-vector-tiles`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
-| **contours**    | the DEM (`--contours`)                                          | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
-| **cogs**        | custom rasters (`--in-cog`, repeatable)                         | `Layers/<stem>/<stem>_cog.tif` each       | GeoTIFF → COG (deflate; type inferred from `.tif`)                          |
-| **grid**        | `--grid` + lander `--lander-lat/--lander-lng`                   | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
-| **register**    | the built `<out>` + `--mission-id`                              | mission fields + sublayers + active grid  | POST fields + layers/sublayers + grid                                       |
-| **box**         | the built `<out>` + `--mission-name`                            | zips uploaded to Box (parallel)           | zip `Data/` + each layer → upload                                           |
+| Type              | Input                                                           | Output                                    | Process                                                                     |
+| ----------------- | --------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
+| **dem**           | DEM GeoTIFF                                                     | `Data/<source>_deflate_cog.tif` (COG)     | re-emit as clean COG (keeps source name)                                    |
+| **slope**         | slope float raster (°) + `.lyrx` ramp                           | `Layers/slope/` tile pyramid              | colorize → tile                                                             |
+| **products**      | the DEM (`--in-dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/`  | derive from DEM → colorize → tile (`--dem-products`)                        |
+| **vector**        | landing-ellipse shapefile                                       | `Data/ellipse.geojson`                    | reproject to EPSG:4326                                                      |
+| **rasters**       | custom rasters (`--in-raster`, repeatable)                      | `Layers/<name>/` tile pyramid each        | stretch (if float) → tile                                                   |
+| **vectors**       | custom vectors (`--in-vector`, repeatable)                      | `Data/<stem>.geojson` each                | shp → reproject; geojson copied                                             |
+| **vectortiles**   | ArcGIS vector-tile cache (`--in-esri-vector-tiles`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
+| **contours**      | the DEM (`--contours`)                                          | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
+| **cogs**          | custom rasters (`--in-cog`, repeatable)                         | `Layers/<name>/<name>_cog.tif` each       | single-band floats stretch to display-ready 8-bit → COG (deflate)           |
+| **viewshed-cogs** | classified viewsheds (`--in-viewshed-raster`, repeatable)       | `Layers/<name>/<name>_cog.tif` each       | class 1 transparent; class 2 opaque `#FFA77F`; nodata transparent           |
+| **keepout-cogs**  | classified slope keep-out masks (`--in-keepout-raster`)         | `Layers/<name>/<name>_cog.tif` each       | class 0 opaque `#FF0000`; nodata transparent                                |
+| **grid**          | `--grid` + lander `--lander-lat/--lander-lng`                   | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
+| **register**      | the built `<out>` + `--mission-id`                              | mission fields + sublayers + active grid  | POST fields + layers/sublayers + grid                                       |
+| **box**           | the built `<out>` + `--mission-name`                            | zips uploaded to Box (parallel)           | zip `Data/` + each layer → upload                                           |
 
 Every tile layer also gets a `properties.json` (name/description/legend) that the AEGIS
 admin auto-imports — see [`properties/`](properties/). The **register** step reads those
@@ -160,6 +162,38 @@ pixi run python esri-to-aegis-lunar-southpole/main.py --list
 pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --summary
 ```
 
+### Convert a classified viewshed to a transparent COG
+
+The converter expects the delivered viewshed class contract: `1` visible, `2`
+non-visible, and `255` nodata. It creates an RGBA COG where visible and nodata
+pixels are transparent, while non-visible pixels use opaque `#FFA77F`. Use the
+AEGIS layer opacity control to adjust mask transparency. Pair each
+`--in-viewshed-raster` with `--out-viewshed-raster NAME` to set the layer folder,
+COG filename, and AEGIS display name; omit it to use the source stem.
+
+```bash
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+  --mission-id 50 \
+  --in-viewshed-raster "F:/tempF/MS3_data_drop/AEGIS_MS3_MP026_GIS_Data_20260805/01_AEGIS/00_GIS_Files/01_Raster/A03MP026_SfS_1mpp_VIEWSHED_BlueOrigin_cog.tif" \
+  --out-viewshed-raster "viewshed_blueorigin_nonvisible" \
+  --steps viewshed-cogs --overwrite
+```
+
+### Convert a classified slope keep-out mask to a transparent COG
+
+Slope keep-out rasters use `0` for terrain at or above the slope threshold and
+`255` for lower-slope nodata. The converted COG renders class `0` in opaque red
+(`#FF0000`) and keeps nodata transparent. The AEGIS layer opacity control
+adjusts transparency at runtime.
+
+```bash
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+  --mission-id 50 \
+  --in-keepout-raster "F:/tempF/MS3_data_drop/AEGIS_MS3_MP026_GIS_Data_20260805/01_AEGIS/00_GIS_Files/01_Raster/MP026_20deg_Slope_KeepOutZone_cog.tif" \
+  --out-keepout-raster "slope_20deg_keepout" \
+  --steps keepout-cogs --overwrite
+```
+
 ### Generate once, then run just `register` or just `box`
 
 A common flow is to build all the tiles/products **locally once** (no publishing), inspect
@@ -206,10 +240,12 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 > delete that sublayer in the admin first, then re-run `register`.
 
 Steps: `0 stage · 1 dem · 2 slope · 3 products · 4 vector · 5 rasters · 6 vectors ·
-7 vectortiles · 8 contours · 9 cogs · 10 grid · 11 register · 12 box`. By default the pipeline
+7 vectortiles · 8 contours · 9 cogs · 10 viewshed-cogs · 11 keepout-cogs · 12 grid ·
+13 register · 14 box`. By default the pipeline
 runs only the steps whose inputs are present — `vectortiles` runs when `--in-esri-vector-tiles` is
 given, `contours` when `--contours` is given (needs `--in-dem`), `cogs`
-when `--in-cog` is given, `grid` when `--grid` is passed (needs `--lander-lat`/`--lander-lng`), and
+when `--in-cog` is given, `viewshed-cogs` when `--in-viewshed-raster` is given,
+`keepout-cogs` when `--in-keepout-raster` is given, `grid` when `--grid` is passed (needs `--lander-lat`/`--lander-lng`), and
 `register`/`box` when `--register`/`--box` are passed; `--steps` overrides this.
 Inputs default to the A03MP026 layout under `--in-root`; override any with `--in-dem`, `--in-slope`,
 `--in-lyrx`, `--in-ellipse`, `--in-raster`, `--in-vector`. Use `--out-dir` to override the
@@ -223,6 +259,20 @@ pass `--raster-name` once per input to choose stable output names. For example:
 pixi run python esri-to-aegis-lunar-southpole/main.py \
   --mission-id 98 --in-raster F:/tempF/MS3_data_drop/mm2-average.tif \
   --raster-name NAC_mosaic --steps rasters --overwrite
+```
+
+Custom raster layers and COGs use nodata-driven transparency by default. For imagery where black
+pixels must stay opaque, pass `--no-raster-transparency` (for example, NAC mosaics). This removes
+the COG noData tag or writes opaque PNG tiles without changing transparency behavior for
+DEM-derived or classified-mask products.
+
+`--in-cog` is also repeatable. Pass `--out-cog` once per COG input to choose a layer name instead
+of using the source stem:
+
+```bash
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+  --mission-id 50 --in-cog F:/tempF/MS3_data_drop/mm2-average.tif \
+  --out-cog NAC_mosaic --no-raster-transparency --steps cogs --overwrite
 ```
 
 **Namespacing layers (`--layer-prefix`).** Pass `--layer-prefix <PREFIX>` to prepend

@@ -9,6 +9,7 @@ import type { Query } from "express-serve-static-core";
 
 import { createHash } from "node:crypto";
 import fs from "node:fs";
+import path from "node:path";
 import type { Readable } from "node:stream";
 
 import { BoxClient, BoxCcgAuth, CcgConfig } from "box-node-sdk";
@@ -28,6 +29,7 @@ const BOX_DOWNLOAD_STREAM_ATTEMPTS = 3;
 const BOX_DOWNLOAD_RETRY_DELAY_MS = 1000;
 const BOX_DOWNLOAD_CLIENT_PROGRESS_INTERVAL_BYTES = ONE_MIB_IN_BYTES;
 const BOX_DOWNLOAD_PROGRESS_INTERVAL_BYTES = 10 * ONE_MIB_IN_BYTES;
+const BOX_DOWNLOAD_EXTRACTION_HEARTBEAT_INTERVAL_MS = 10 * 1000;
 
 type BoxDownloadProgress = {
   type: "progress";
@@ -35,6 +37,7 @@ type BoxDownloadProgress = {
   fileName?: string;
   bytesDownloaded?: number;
   totalBytes?: number;
+  elapsedSeconds?: number;
 };
 
 type BoxDownloadResponse =
@@ -86,8 +89,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   try {
-    const downloadFilePath = process.env.STATIC_DIR;
-    if (!downloadFilePath) {
+    const staticDirectory = process.env.STATIC_DIR;
+    if (!staticDirectory) {
       throw new Error("STATIC_DIR is not configured");
     }
 
@@ -127,12 +130,21 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       logValue: `Box metadata received for ${metadata.name}: ${totalBytes ?? "unknown"} bytes`,
     });
 
+    const stagedDownloadFilePath = path.join(
+      staticDirectory,
+      "missionFiles",
+      String(queryObj.missionId),
+      metadata.name
+    );
+    const legacyDownloadFilePath = path.join(staticDirectory, metadata.name);
+
     await downloadFileFromBox(
       client,
       queryObj.itemId,
-      downloadFilePath + "/" + metadata.name,
+      stagedDownloadFilePath,
       totalBytes,
       metadata.sha1,
+      legacyDownloadFilePath,
       (bytesDownloaded) => {
         writeProgress(res, {
           type: "progress",
@@ -146,22 +158,36 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
     const fileExtension = metadata.name.split(".").pop()?.toLowerCase();
     if (fileExtension === "zip") {
-      writeProgress(res, { type: "progress", stage: "extracting", fileName: metadata.name });
+      const extractionStartedAt = Date.now();
+      const writeExtractionProgress = () => {
+        writeProgress(res, {
+          type: "progress",
+          stage: "extracting",
+          fileName: metadata.name,
+          elapsedSeconds: Math.floor((Date.now() - extractionStartedAt) / 1000),
+        });
+      };
+      writeExtractionProgress();
       serverLogger.info({
         logId: "box-download",
         logValue: `Extracting downloaded zip ${metadata.name} to ${queryObj.path}`,
       });
-      await unzip(metadata.name, queryObj.path);
+      const extractionHeartbeat = setInterval(() => {
+        writeExtractionProgress();
+      }, BOX_DOWNLOAD_EXTRACTION_HEARTBEAT_INTERVAL_MS);
+      try {
+        await unzip(path.relative(staticDirectory, stagedDownloadFilePath), queryObj.path);
+      } finally {
+        clearInterval(extractionHeartbeat);
+      }
     } else {
       writeProgress(res, { type: "progress", stage: "moving", fileName: metadata.name });
-      if (!fs.existsSync(downloadFilePath + "/" + queryObj.path)) {
-        fs.mkdirSync(downloadFilePath + "/" + queryObj.path, { recursive: true });
+      const destinationDirectory = path.join(staticDirectory, queryObj.path ?? "");
+      if (!fs.existsSync(destinationDirectory)) {
+        fs.mkdirSync(destinationDirectory, { recursive: true });
       }
 
-      fs.renameSync(
-        downloadFilePath + "/" + metadata.name,
-        downloadFilePath + "/" + queryObj.path + "/" + metadata.name
-      );
+      fs.renameSync(stagedDownloadFilePath, path.join(destinationDirectory, metadata.name));
     }
 
     serverLogger.info({
@@ -205,84 +231,94 @@ async function downloadFileFromBox(
   downloadFilePath: string,
   totalBytes: number | undefined,
   expectedSha1: string | undefined,
+  legacyDownloadFilePath: string,
   onProgress: (bytesDownloaded: number) => void
 ): Promise<void> {
   const partialFilePath = `${downloadFilePath}.part`;
-  if (!fs.existsSync(partialFilePath) && fs.existsSync(downloadFilePath)) {
-    fs.rmSync(downloadFilePath, { force: true });
-  }
+  removePartialFile(partialFilePath);
+  removePartialFile(`${legacyDownloadFilePath}.part`);
+  fs.mkdirSync(path.dirname(downloadFilePath), { recursive: true });
 
-  let downloadedBytes = getFileSize(partialFilePath);
-  if (totalBytes !== undefined && downloadedBytes > totalBytes) {
-    fs.rmSync(partialFilePath, { force: true });
-    downloadedBytes = 0;
-  }
-  if (totalBytes !== undefined && downloadedBytes === totalBytes) {
-    if (!fs.existsSync(partialFilePath)) {
-      fs.writeFileSync(partialFilePath, "");
-    }
-    const actualSha1 = expectedSha1 ? await getFileSha1(partialFilePath) : undefined;
-    if (expectedSha1 && actualSha1 !== expectedSha1.toLowerCase()) {
+  try {
+    let downloadedBytes = getFileSize(partialFilePath);
+    if (totalBytes !== undefined && downloadedBytes > totalBytes) {
       fs.rmSync(partialFilePath, { force: true });
       downloadedBytes = 0;
-    } else {
-      fs.renameSync(partialFilePath, downloadFilePath);
-      onProgress(downloadedBytes);
-      return;
     }
-  }
-
-  for (let attempt = 1; attempt <= BOX_DOWNLOAD_STREAM_ATTEMPTS; attempt++) {
-    let retryDelayMs = attempt * BOX_DOWNLOAD_RETRY_DELAY_MS;
-    try {
-      downloadedBytes = getFileSize(partialFilePath);
-      const response = await requestBoxDownload(client, itemId, downloadedBytes, totalBytes);
-      const stream = response.content;
-
-      await writeBoxDownloadToFile(
-        stream,
-        partialFilePath,
-        itemId,
-        downloadedBytes,
-        totalBytes,
-        onProgress
-      );
-
-      downloadedBytes = getFileSize(partialFilePath);
-      if (totalBytes !== undefined && downloadedBytes !== totalBytes) {
-        throw new Error(
-          `Box download ended early for file ${itemId}: ${downloadedBytes}/${totalBytes} bytes`
-        );
+    if (totalBytes !== undefined && downloadedBytes === totalBytes) {
+      if (!fs.existsSync(partialFilePath)) {
+        fs.writeFileSync(partialFilePath, "");
       }
       const actualSha1 = expectedSha1 ? await getFileSha1(partialFilePath) : undefined;
       if (expectedSha1 && actualSha1 !== expectedSha1.toLowerCase()) {
         fs.rmSync(partialFilePath, { force: true });
-        throw new Error(`Box download checksum mismatch for file ${itemId}`);
+        downloadedBytes = 0;
+      } else {
+        fs.renameSync(partialFilePath, downloadFilePath);
+        onProgress(downloadedBytes);
+        return;
       }
-
-      fs.renameSync(partialFilePath, downloadFilePath);
-      return;
-    } catch (error) {
-      const downloadError = asError(error);
-      downloadedBytes = getFileSize(partialFilePath);
-      if (error instanceof BoxDownloadNotReadyError && error.retryAfterMs !== undefined) {
-        retryDelayMs = error.retryAfterMs;
-      }
-
-      if (attempt === BOX_DOWNLOAD_STREAM_ATTEMPTS) {
-        throw downloadError;
-      }
-
-      serverLogger.warning({
-        logId: "box-download",
-        logValue: `Box download attempt ${attempt} failed for item ${itemId} at ${downloadedBytes} bytes: ${downloadError.message}. Retrying from that byte.`,
-      });
-      onProgress(downloadedBytes);
-      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
     }
-  }
 
-  throw new Error(`Box download failed for file ${itemId}`);
+    for (let attempt = 1; attempt <= BOX_DOWNLOAD_STREAM_ATTEMPTS; attempt++) {
+      let retryDelayMs = attempt * BOX_DOWNLOAD_RETRY_DELAY_MS;
+      try {
+        downloadedBytes = getFileSize(partialFilePath);
+        const response = await requestBoxDownload(client, itemId, downloadedBytes, totalBytes);
+        const stream = response.content;
+
+        await writeBoxDownloadToFile(
+          stream,
+          partialFilePath,
+          itemId,
+          downloadedBytes,
+          totalBytes,
+          onProgress
+        );
+
+        downloadedBytes = getFileSize(partialFilePath);
+        if (totalBytes !== undefined && downloadedBytes !== totalBytes) {
+          throw new Error(
+            `Box download ended early for file ${itemId}: ${downloadedBytes}/${totalBytes} bytes`
+          );
+        }
+        const actualSha1 = expectedSha1 ? await getFileSha1(partialFilePath) : undefined;
+        if (expectedSha1 && actualSha1 !== expectedSha1.toLowerCase()) {
+          fs.rmSync(partialFilePath, { force: true });
+          throw new Error(`Box download checksum mismatch for file ${itemId}`);
+        }
+
+        fs.renameSync(partialFilePath, downloadFilePath);
+        return;
+      } catch (error) {
+        const downloadError = asError(error);
+        downloadedBytes = getFileSize(partialFilePath);
+        if (error instanceof BoxDownloadNotReadyError && error.retryAfterMs !== undefined) {
+          retryDelayMs = error.retryAfterMs;
+        }
+
+        if (attempt === BOX_DOWNLOAD_STREAM_ATTEMPTS) {
+          throw downloadError;
+        }
+
+        serverLogger.warning({
+          logId: "box-download",
+          logValue: `Box download attempt ${attempt} failed for item ${itemId} at ${downloadedBytes} bytes: ${downloadError.message}. Retrying from that byte.`,
+        });
+        onProgress(downloadedBytes);
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    }
+
+    throw new Error(`Box download failed for file ${itemId}`);
+  } catch (error) {
+    fs.rmSync(partialFilePath, { force: true });
+    throw error;
+  }
+}
+
+function removePartialFile(filePath: string): void {
+  fs.rmSync(filePath, { force: true });
 }
 
 async function requestBoxDownload(
