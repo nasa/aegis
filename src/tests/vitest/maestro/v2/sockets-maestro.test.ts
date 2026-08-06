@@ -335,7 +335,9 @@ describe("maestro namespace socket handlers", () => {
 
       mockSocket._handlers["missionLeave"](MISSION_ID);
 
-      expect(globalValues.maestroV2.visitorData[MISSION_ID]).toHaveLength(0);
+      // Entry is deleted (not left as empty array) so subsequent disconnects
+      // don't re-trigger cleanupMaestro on a stale empty entry.
+      expect(globalValues.maestroV2.visitorData[MISSION_ID]).toBeUndefined();
     });
 
     it("calls removeMaestroDocListener when room becomes empty on missionLeave", () => {
@@ -423,7 +425,9 @@ describe("maestro namespace socket handlers", () => {
       // Disconnect
       mockSocket._handlers["disconnect"]();
 
-      expect(globalValues.maestroV2.visitorData[MISSION_ID]).toHaveLength(0);
+      // Entry is deleted (not left as empty array) so subsequent disconnects
+      // don't re-trigger cleanupMaestro on a stale empty entry.
+      expect(globalValues.maestroV2.visitorData[MISSION_ID]).toBeUndefined();
     });
 
     it("calls removeMaestroDocListener when room becomes empty on disconnect", () => {
