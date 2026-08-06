@@ -7,10 +7,7 @@ import { emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
-
-/**
- * Used by Maegistro v1 and v2
- */
+import type { RefRex } from "server/maestro/v1/types/socketioRequests";
 
 const router = express.Router();
 

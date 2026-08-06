@@ -8,6 +8,7 @@ import app from "server/express/restApi";
 import { createMockAutomergeRepo } from "../../helpers/mockAutomergeRepo";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
+import type { MissionsWithEvas } from "server/maestro/v1/types/socketioRequests";
 
 let testAutomergeDocListings: Doc_Listing_db[];
 let testMissionsPartial: Partial<Mission>[];
