@@ -254,6 +254,52 @@ describe("buildAegisSliceForMaestro", () => {
       actionInSubscribed.refUuid,
     ]);
   });
+
+  it("passes datetime fields through as numeric timestamps", async () => {
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+
+    const mockCoreData = buildMockCoreData({
+      evas: [evaSubscribed],
+      stations: [stationA],
+      traverses: [traverseA],
+      actions: [actionInSubscribed],
+    });
+    mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
+
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
+
+    const mission = result.aegisMissions[MISSION_ID];
+    expect(typeof mission.createdAt).toBe("number");
+    expect(typeof mission.updatedAt).toBe("number");
+    expect(mission.createdAt).toBe(mockCoreData.createdAt);
+    expect(mission.updatedAt).toBe(mockCoreData.updatedAt);
+
+    const eva = result.aegisEvas[evaSubscribed.refUuid];
+    expect(typeof eva.createdAt).toBe("number");
+    expect(typeof eva.updatedAt).toBe("number");
+    expect(eva.createdAt).toBe(evaSubscribed.createdAt);
+    expect(eva.updatedAt).toBe(evaSubscribed.updatedAt);
+    expect(eva.datetime === null || typeof eva.datetime === "number").toBe(true);
+    expect(eva.datetime).toBe(evaSubscribed.datetime);
+
+    const station = result.aegisStations[stationA.refUuid];
+    expect(typeof station.createdAt).toBe("number");
+    expect(typeof station.updatedAt).toBe("number");
+    expect(station.createdAt).toBe(stationA.createdAt);
+    expect(station.updatedAt).toBe(stationA.updatedAt);
+
+    const traverse = result.aegisTraverses[traverseA.refUuid];
+    expect(typeof traverse.createdAt).toBe("number");
+    expect(typeof traverse.updatedAt).toBe("number");
+    expect(traverse.createdAt).toBe(traverseA.createdAt);
+    expect(traverse.updatedAt).toBe(traverseA.updatedAt);
+
+    const action = result.fetchedAegisActions[actionInSubscribed.refUuid];
+    expect(typeof action.createdAt).toBe("number");
+    expect(typeof action.updatedAt).toBe("number");
+    expect(action.createdAt).toBe(actionInSubscribed.createdAt);
+    expect(action.updatedAt).toBe(actionInSubscribed.updatedAt);
+  });
 });
 
 describe("buildAegisSliceForMaestro — docHandle path", () => {

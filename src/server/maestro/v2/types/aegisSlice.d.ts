@@ -29,8 +29,8 @@ export declare namespace AegisSlice {
     id: number;
     description: string;
     actionSystemVersion: 1 | 2;
-    createdAt: string;
-    updatedAt: string;
+    createdAt: number;
+    updatedAt: number;
   };
 
   type AegisMissions = {
@@ -48,8 +48,8 @@ export declare namespace AegisSlice {
     egressLocationRefUuid: string;
     egressDuration: number;
     datetime: number | null;
-    createdAt: string;
-    updatedAt: string;
+    createdAt: number;
+    updatedAt: number;
   };
 
   type AegisEvas = { [evaId: string]: AegisEva };
@@ -63,8 +63,8 @@ export declare namespace AegisSlice {
     calculatedFields: CalculatedFieldItems;
     description: string;
     actionOrderRefUuids: string[];
-    updatedAt: string;
-    createdAt: string;
+    updatedAt: number;
+    createdAt: number;
   };
 
   type AegisStations = { [stationId: string]: AegisStation };
@@ -75,8 +75,8 @@ export declare namespace AegisSlice {
     name: string;
     description: string;
     actionOrderRefUuids: string[] | null;
-    createdAt: string;
-    updatedAt: string;
+    createdAt: number;
+    updatedAt: number;
     iconEmojiDecoded?: string;
     duration: number | null;
     calculatedFields: CalculatedFieldItems;
@@ -117,8 +117,8 @@ export declare namespace AegisSlice {
     actionDefinitionReadable: ActionDefinitionReadable | null | undefined;
     missionId: number;
     icon: string;
-    createdAt: string;
-    updatedAt: string;
+    createdAt: number;
+    updatedAt: number;
     crewAssigned: string[];
     duration: number;
     stmAction: boolean;
@@ -139,8 +139,8 @@ export declare namespace AegisSlice {
     message: string;
     data: {
       actionUuid: string;
-      createdAt: string;
-      updatedAt: string;
+      createdAt: number;
+      updatedAt: number;
     }[];
   }
 

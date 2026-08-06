@@ -83,8 +83,8 @@ const formatMissionForMaestro = (mission: Mission): AegisSlice.AegisMission =>
     name: mission.name,
     description: mission.description ?? "",
     actionSystemVersion: mission.actionSystemVersion as 1 | 2,
-    createdAt: new Date(mission.createdAt).toISOString(),
-    updatedAt: new Date(mission.updatedAt).toISOString(),
+    createdAt: mission.createdAt,
+    updatedAt: mission.updatedAt,
   }) satisfies Record<keyof AegisSlice.AegisMission, unknown>;
 
 interface LookupMaps {
@@ -161,8 +161,8 @@ const formatEvasForMaestro = (
           : (mission.stations[eva.egressLocationUuid]?.refUuid ?? ""),
       egressDuration: eva.egressDuration ?? 0,
       datetime: eva.datetime,
-      createdAt: new Date(eva.createdAt).toISOString(),
-      updatedAt: new Date(eva.updatedAt).toISOString(),
+      createdAt: eva.createdAt,
+      updatedAt: eva.updatedAt,
       ...(rex && { rexUuid: rex.uuid }),
     };
   });
@@ -190,8 +190,8 @@ const formatStationsForMaestro = (
       actionOrderRefUuids:
         station.actionOrderUuids?.map((uuid) => mission.actions[uuid]?.refUuid).filter(Boolean) ??
         [],
-      createdAt: new Date(station.createdAt).toISOString(),
-      updatedAt: new Date(station.updatedAt).toISOString(),
+      createdAt: station.createdAt,
+      updatedAt: station.updatedAt,
       ...(rex && { rexUuid: rex.uuid }),
     };
   });
@@ -216,8 +216,8 @@ const formatTraversesForMaestro = (
       actionOrderRefUuids:
         traverse.actionOrderUuids?.map((uuid) => mission.actions[uuid]?.refUuid).filter(Boolean) ??
         [],
-      createdAt: new Date(traverse.createdAt).toISOString(),
-      updatedAt: new Date(traverse.updatedAt).toISOString(),
+      createdAt: traverse.createdAt,
+      updatedAt: traverse.updatedAt,
       duration: traverse.duration,
       calculatedFields: getMaestroCalculatedFieldsForTraverse({
         traverse,
@@ -259,8 +259,8 @@ const formatActionsForMaestro = (
       }),
       missionId: action.missionId,
       icon: action.icon,
-      createdAt: new Date(action.createdAt).toISOString(),
-      updatedAt: new Date(action.updatedAt).toISOString(),
+      createdAt: action.createdAt,
+      updatedAt: action.updatedAt,
       crewAssigned: action.crewAssigned,
       duration: action.duration,
       stmAction: action.stmAction,
