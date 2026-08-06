@@ -248,6 +248,7 @@ const PrintUsers: FunctionComponent<{
               <th>Name</th>
               <th>Sessions</th>
               <th>App User</th>
+              <th>IP Address</th>
               <th>Version</th>
               <th>Connected At</th>
             </tr>
@@ -273,6 +274,7 @@ const PrintUsers: FunctionComponent<{
                     </span>
                   </td>
                   <td>{record.appUser.username || "N/A"}</td>
+                  <td>{record.launchpadUser?.ip_address || "N/A"}</td>
                   <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.85em" }}>
                     {record.clientAppVersion.version} – {record.clientAppVersion.gitCommit}
                   </td>
