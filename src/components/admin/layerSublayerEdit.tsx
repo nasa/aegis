@@ -592,7 +592,11 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
                     <select
                       id="filePath"
                       onChange={(e) => {
-                        setSublayer({ ...sublayer, path: e.target.value });
+                        setSublayer({
+                          ...sublayer,
+                          path: e.target.value,
+                          name: e.target.value.replace(/\.geojson$/i, ""),
+                        });
                       }}
                       value={sublayer.path || "selectafile"}
                     >
