@@ -14,13 +14,14 @@ import { RequestContext } from "@mikro-orm/postgresql";
 import { globalValues } from "../../express/global";
 import {
   addMaestroDocListenerForMission,
-  applyMdauStationsToDoc,
   buildDebugInfo,
   cleanupMaestro,
   removeEvaFromSubscriptions,
 } from "server/maestro/v2/sockets-maestro-emitters";
+import { opUpdateMdau } from "server/maestro/v2/operations/op-mdau";
+import { mdauValidator } from "utils/validateSchemaServer";
 import { emssTokenIsValid } from "utils/permissions";
-import { buildAegisSliceForMaestro } from "server/maestro/v2/maestro";
+import { buildAegisSliceForMaestro } from "server/maestro/v2/buildAegisSlice";
 import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import type {
@@ -194,32 +195,65 @@ export const setupMaestroNamespace = (
         }
       });
 
-      socket.on("sendMDAU", (missionId: number, mdau: MDAU.MaestroDataAegisUses) => {
+      socket.on("sendMDAU", (missionId: number, mdau: MDAU.MaestroDataAegisUses, callback?) => {
         if (!missionId || isNaN(missionId)) {
           serverLogger.warning({
             logId: "socket-maestro-v2",
             logValue: `sendMDAU - invalid missionId ${missionId}`,
           });
+          callback?.({ status: "error", message: `Invalid missionId ${missionId}` });
           return;
         }
         try {
-          const { aegisStations } = mdau;
+          if (!mdau) {
+            callback?.({ status: "error", message: "Missing MDAU payload" });
+            return;
+          }
 
-          // update stations
-          applyMdauStationsToDoc(missionId, aegisStations).catch((error) => {
+          // Validate the incoming MDAU payload against the generated schema.
+          // Reject the whole payload if it fails so we never write malformed
+          // data into the Automerge doc.
+          if (!mdauValidator(mdau)) {
+            const validationError = JSON.stringify(mdauValidator.errors);
             serverLogger.error(
               {
                 logId: "socket-maestro-v2",
-                logValue: "SocketIO - sendMDAU - applyMdauStationsToDoc",
+                logValue: `sendMDAU - invalid MDAU payload for mission ${missionId}`,
               },
-              error instanceof Error ? error : new Error(String(error))
+              new Error(validationError)
             );
-          });
+            callback?.({
+              status: "error",
+              message: `Invalid MDAU payload: ${validationError}`,
+            });
+            return;
+          }
+
+          // Use the already-cached doc handle for this mission.
+          const docHandle = globalValues.maestroV2.docHandles.get(missionId);
+          if (!docHandle) {
+            serverLogger.warning({
+              logId: "socket-maestro-v2",
+              logValue: `sendMDAU - no doc handle available for mission ${missionId}`,
+            });
+            callback?.({
+              status: "error",
+              message: `No doc handle available for mission ${missionId}`,
+            });
+            return;
+          }
+
+          // Update the doc from the full MDAU payload (stations, traverses,
+          // evas, actions, rexes) in a single atomic Automerge change.
+          // Only data for subscribed EVAs is applied.
+          opUpdateMdau(docHandle, missionId, mdau);
+          callback?.({ status: "success" });
         } catch (error) {
           serverLogger.error(
             { logId: "socket-maestro-v2", logValue: "SocketIO - sendMDAU" },
             error instanceof Error ? error : new Error(String(error))
           );
+          callback?.({ status: "error", message: `Error processing MDAU: ${error}` });
         }
       });
 

@@ -50,7 +50,7 @@ export declare namespace MDAU {
 
   type MdauEva = {
     refUuid: string;
-    name: string[];
+    name: string;
     /**
      * Maestro's executeEventId
      */

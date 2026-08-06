@@ -18,12 +18,14 @@ vi.mock("utils/validateSchemaServer", async () => {
   const Ajv = (await import("ajv")).default;
   const rexOverwriteSchema = await import("../../../.local/schemas/rexOverwrite.json");
   const missionSchema = await import("../../../.local/schemas/mission.json");
+  const mdauSchema = await import("../../../.local/schemas/mdau.json");
   const missionFieldsSchema = await import("../../../.local/schemas/missionFields.json");
   const ajv = new Ajv({ verbose: true, allowUnionTypes: true, allErrors: true });
 
   return {
     rexOverwriteSchemaValidator: ajv.compile(rexOverwriteSchema),
     missionValidator: ajv.compile(missionSchema),
+    mdauValidator: ajv.compile(mdauSchema),
     missionFieldsValidator: ajv.compile(missionFieldsSchema),
   };
 });
