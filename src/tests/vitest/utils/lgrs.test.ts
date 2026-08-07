@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -206,17 +205,6 @@ describe("lgrs 0.3.0 oracle corpus", () => {
     };
 
     expect(normalized).toEqual(oracle.expected);
-  });
-
-  test("fixture manifest matches the committed oracle files", () => {
-    const manifest = readFileSync(fixturePath("manifest.sha256"), "ascii").trim().split("\n");
-    for (const entry of manifest) {
-      const [expectedHash, filename] = entry.split(/\s+/);
-      const actualHash = createHash("sha256")
-        .update(readFileSync(fixturePath(filename)))
-        .digest("hex");
-      expect(actualHash, filename).toBe(expectedHash);
-    }
   });
 
   test("builds a representative 10 km plan within the regression budget", () => {

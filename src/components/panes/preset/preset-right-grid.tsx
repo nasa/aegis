@@ -66,36 +66,55 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
                       <SubpanelHeading icon={faInfo}>Grid Information</SubpanelHeading>
                     </div>
-                    <div className={paneStyles.panelSectionRow}>
-                      <div className={paneStyles.panelSection2Column}>
-                        <div className={paneStyles.panelColumnTable}>
-                          <div className={paneStyles.panelColumnTableRow}>
-                            <div className={paneStyles.panelColumnTableCell}>
-                              <div className={paneStyles.displayFieldLabel}>
-                                Number of Grid Columns:
+                    {resolvedGrid.kind === "dynamic-lgrs" ? (
+                      <div className={paneStyles.panelSectionRow}>
+                        <div className={paneStyles.panelSection2Column}>
+                          <div className={paneStyles.panelColumnTable}>
+                            <div className={paneStyles.panelColumnTableRow}>
+                              <div className={paneStyles.panelColumnTableCell}>
+                                <div className={paneStyles.displayFieldLabel}>Grid Type:</div>
                               </div>
-                            </div>
-                            <div className={paneStyles.panelColumnTableCell}>
-                              <div className={paneStyles.displayFieldValue}>
-                                {gridDefinition?.numCols ? gridDefinition.numCols : "N/A"}
-                              </div>
-                            </div>
-                          </div>
-                          <div className={paneStyles.panelColumnTableRow}>
-                            <div className={paneStyles.panelColumnTableCell}>
-                              <div className={paneStyles.displayFieldLabel}>
-                                Number of Grid Rows:
-                              </div>
-                            </div>
-                            <div className={paneStyles.panelColumnTableCell}>
-                              <div className={paneStyles.displayFieldValue}>
-                                {gridDefinition?.numRows ? gridDefinition.numRows : "N/A"}
+                              <div className={paneStyles.panelColumnTableCell}>
+                                <div className={paneStyles.displayFieldValue}>
+                                  LGRS dynamically generated
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className={paneStyles.panelSectionRow}>
+                        <div className={paneStyles.panelSection2Column}>
+                          <div className={paneStyles.panelColumnTable}>
+                            <div className={paneStyles.panelColumnTableRow}>
+                              <div className={paneStyles.panelColumnTableCell}>
+                                <div className={paneStyles.displayFieldLabel}>
+                                  Number of Grid Columns:
+                                </div>
+                              </div>
+                              <div className={paneStyles.panelColumnTableCell}>
+                                <div className={paneStyles.displayFieldValue}>
+                                  {gridDefinition?.numCols ? gridDefinition.numCols : "N/A"}
+                                </div>
+                              </div>
+                            </div>
+                            <div className={paneStyles.panelColumnTableRow}>
+                              <div className={paneStyles.panelColumnTableCell}>
+                                <div className={paneStyles.displayFieldLabel}>
+                                  Number of Grid Rows:
+                                </div>
+                              </div>
+                              <div className={paneStyles.panelColumnTableCell}>
+                                <div className={paneStyles.displayFieldValue}>
+                                  {gridDefinition?.numRows ? gridDefinition.numRows : "N/A"}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className={paneStyles.panelSection}>
                     <div className={paneStyles.panelSectionTitle}>
