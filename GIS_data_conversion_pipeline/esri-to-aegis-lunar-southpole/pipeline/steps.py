@@ -37,6 +37,7 @@ GENERATE_LGRS = ROOT / "grid" / "generate_lgrs.py"
 CONVERT_LGRS = ROOT / "grid" / "convert_lgrs.py"
 ARCGIS_CACHE_TO_PMTILES = ROOT / "vectortile" / "arcgis_cache_to_pmtiles.py"
 DEM_TO_CONTOURS_PMTILES = ROOT / "vectortile" / "dem_to_contours_pmtiles.py"
+TIMEAWARE_COGS = ROOT / "timeaware" / "timeaware_cogs.py"
 
 
 # ---------------------------------------------------------------------------
@@ -741,6 +742,55 @@ def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
                     pass
 
 
+def step_time_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
+    """Time-series rasters -> one manifest-driven nested COG layer."""
+    banner("time-cogs — time-series rasters -> nested COGs + manifest")
+    if not args.in_time_cog_dir:
+        raise SystemExit("--in-time-cog-dir must be provided for the time-cogs step.")
+    if not args.out_time_cog:
+        raise SystemExit("--out-time-cog is required with --in-time-cog-dir.")
+
+    for source_dir in args.in_time_cog_dir:
+        require_input(
+            source_dir, "time-aware COG source directory", "--in-time-cog-dir"
+        )
+        if not source_dir.is_dir():
+            raise SystemExit(f"Time-aware COG source is not a directory: {source_dir}")
+
+    base_name = args.out_time_cog
+    if (
+        not base_name
+        or base_name in {".", ".."}
+        or "/" in base_name
+        or "\\" in base_name
+    ):
+        raise SystemExit(f"Invalid time-aware COG layer name: {base_name!r}")
+
+    layer_name = p.layer_name(base_name)
+    layer_dir = p.layers / layer_name
+    p.layers.mkdir(parents=True, exist_ok=True)
+    command: list[str | Path] = [
+        PYTHON,
+        TIMEAWARE_COGS,
+        *args.in_time_cog_dir,
+        "--out",
+        layer_dir,
+        "--datatype",
+        args.time_cog_datatype,
+        "--name",
+        layer_name,
+    ]
+    if args.time_cog_illumination_alpha:
+        command += [
+            "--illumination-alpha",
+            "--illumination-opacity",
+            str(args.time_cog_illumination_opacity),
+        ]
+    if args.overwrite:
+        command.append("--overwrite")
+    run(command)
+
+
 def _classified_mask_layer_name(raster: Path) -> str:
     """Keep a source COG's existing suffix from duplicating in its output name."""
     return raster.stem.removesuffix("_cog")
@@ -1050,6 +1100,10 @@ STEPS: list[tuple[str, str]] = [
         "Custom rasters (--in-cog) → Cloud-Optimised GeoTIFF in Layers/<name>/<name>_cog.tif",
     ),
     (
+        "time-cogs",
+        "Time-series rasters (--in-time-cog-dir) → one nested COG layer + manifest",
+    ),
+    (
         "viewshed-cogs",
         "Classified viewshed rasters (--in-viewshed-raster) → transparent-mask RGBA COGs",
     ),
@@ -1077,6 +1131,7 @@ STEP_FNS = {
     "vectortiles": step_vectortiles,
     "contours": step_contours,
     "cogs": step_cogs,
+    "time-cogs": step_time_cogs,
     "viewshed-cogs": step_viewshed_cogs,
     "keepout-cogs": step_keepout_cogs,
     "grid": step_grid,
@@ -1099,6 +1154,7 @@ DATA_STEPS = {
     "vectortiles",
     "contours",
     "cogs",
+    "time-cogs",
     "viewshed-cogs",
     "keepout-cogs",
     "grid",
@@ -1130,6 +1186,8 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
         chosen.append("contours")
     if args.in_cog:
         chosen.append("cogs")
+    if args.in_time_cog_dir:
+        chosen.append("time-cogs")
     if args.in_viewshed_raster:
         chosen.append("viewshed-cogs")
     if args.in_keepout_raster:

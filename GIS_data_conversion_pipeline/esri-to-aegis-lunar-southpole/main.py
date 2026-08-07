@@ -13,7 +13,7 @@ the cap-grid projection profile + path resolution live in ``config.py``; the AEG
 logic in ``register.py`` / ``box_publish.py``.
 
 Data steps (each runs only when its input is present): dem · slope · products · vector ·
-rasters · vectors · horizons. Opt-in data steps: contours (--contours) · grid (--grid). Publish steps
+rasters · vectors · horizons · time-cogs. Opt-in data steps: contours (--contours) · grid (--grid). Publish steps
 (opt-in): register · box. Every run writes a
 ``Data/conversion_report.md`` capturing the full console log + per-step timings.
 
@@ -218,6 +218,48 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         help="noData value to tag on --in-cog outputs (e.g. -3.4e38).",
+    )
+    inputs.add_argument(
+        "--in-time-cog-dir",
+        dest="in_time_cog_dir",
+        action="append",
+        default=[],
+        type=Path,
+        metavar="DIR",
+        help=(
+            "Directory of timestamped GeoTIFF frames for one time-aware COG layer; repeat "
+            "for disconnected temporal windows."
+        ),
+    )
+    inputs.add_argument(
+        "--out-time-cog",
+        dest="out_time_cog",
+        default=None,
+        metavar="NAME",
+        help="Output name for the single merged time-aware COG layer (required with --in-time-cog-dir).",
+    )
+    inputs.add_argument(
+        "--time-cog-datatype",
+        dest="time_cog_datatype",
+        choices=["mazarico", "quickmap"],
+        default="mazarico",
+        help="Filename datetime convention for --in-time-cog-dir (default: mazarico).",
+    )
+    inputs.add_argument(
+        "--time-cog-illumination-alpha",
+        dest="time_cog_illumination_alpha",
+        action="store_true",
+        help=(
+            "Convert source illumination fractions to black RGBA pixels with alpha inverse to "
+            "illumination; omit for raw time rasters."
+        ),
+    )
+    inputs.add_argument(
+        "--time-cog-illumination-opacity",
+        dest="time_cog_illumination_opacity",
+        type=float,
+        default=1.0,
+        help="Multiplier from 0 to 1 for --time-cog-illumination-alpha output (default: 1).",
     )
     inputs.add_argument(
         "--in-viewshed-raster",

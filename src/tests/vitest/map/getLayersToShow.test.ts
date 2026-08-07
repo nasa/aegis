@@ -236,6 +236,54 @@ describe("getLayersToShow", () => {
     expect(result[0].timeInfo).not.toBeNull();
   });
 
+  it("selects nested temporal COGs without bridging explicit gaps", () => {
+    const layer = makeLayer("Temporal Raster");
+    const sub = generateBlankSublayer({
+      name: "Temporal Raster",
+      layerUuid: layer.uuid,
+      path: "temporal-raster",
+      isTimeBased: true,
+      timeLayerManifest: [
+        {
+          datetime: "2030-01-01T00:15:00Z",
+          dirName: "window-a/frame-a_cog.tif",
+          lowerBound: "2030-01-01T00:07:30Z",
+          upperBound: "2030-01-01T00:15:00Z",
+        },
+        {
+          datetime: "2030-01-01T02:00:00Z",
+          dirName: "window-b/frame-b_cog.tif",
+          lowerBound: "2030-01-01T02:00:00Z",
+          upperBound: "2030-01-01T02:07:30Z",
+        },
+      ],
+    });
+    const preset = generateBlankPreset({
+      layerOrder: [{ layerUuid: layer.uuid, sublayerUuids: [sub.uuid] }],
+      mapSublayerControls: {
+        [sub.uuid]: { name: sub.name, sublayerUuid: sub.uuid, visible: true, style: makeStyle() },
+      },
+    });
+
+    const inWindowResult = getLayersToShow({
+      selectedPreset: preset,
+      missionSublayers: [sub],
+      missionLayers: [layer],
+      mapDateTime: "2030-01-01T00:10:00Z",
+    });
+    expect(inWindowResult).toHaveLength(1);
+    expect(inWindowResult[0].path).toBe("temporal-raster/window-a/frame-a_cog.tif");
+
+    const result = getLayersToShow({
+      selectedPreset: preset,
+      missionSublayers: [sub],
+      missionLayers: [layer],
+      mapDateTime: "2030-01-01T01:00:00Z",
+    });
+
+    expect(result).toEqual([]);
+  });
+
   it("excludes time-based sublayers when datetime is outside bounds", () => {
     const layer = makeLayer("Time Layer");
     const sub = generateBlankSublayer({

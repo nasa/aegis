@@ -47,6 +47,7 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **vectortiles**   | ArcGIS vector-tile cache (`--in-esri-vector-tiles`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
 | **contours**      | the DEM (`--contours`)                                          | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
 | **cogs**          | custom rasters (`--in-cog`, repeatable)                         | `Layers/<name>/<name>_cog.tif` each       | single-band floats stretch to display-ready 8-bit → COG (deflate)           |
+| **time-cogs**     | time raster directories (`--in-time-cog-dir`, repeatable)       | `Layers/<name>/<window>/<frame>_cog.tif`  | matching-grid frames → deflate COGs + time manifest; optional RGBA shadows  |
 | **viewshed-cogs** | classified viewsheds (`--in-viewshed-raster`, repeatable)       | `Layers/<name>/<name>_cog.tif` each       | class 1 transparent; class 2 opaque `#FFA77F`; nodata transparent           |
 | **keepout-cogs**  | classified slope keep-out masks (`--in-keepout-raster`)         | `Layers/<name>/<name>_cog.tif` each       | class 0 opaque `#FF0000`; nodata transparent                                |
 | **grid**          | `--grid` + lander `--lander-lat/--lander-lng`                   | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
@@ -69,6 +70,7 @@ are present (default), or pick explicitly with `--steps`. Each run writes a
 | [`grid/generate_lgrs.py`](grid/)                  | lander `--lat/--lng` + `--extent`    | raw LGRS grid GeoJSON (feeds `convert_lgrs.py`)  |
 | [`grid/convert_lgrs.py`](grid/)                   | raw LGRS GeoJSON (generated or ESRI) | AEGIS mission-grid GeoJSON (`Cleaned_*.geojson`) |
 | [`timeaware/singleband_timeaware.py`](timeaware/) | dir of single-band time rasters      | tiled time layers + `manifest.json`              |
+| [`timeaware/timeaware_cogs.py`](timeaware/)       | one or more time raster directories  | nested COG time layer + `manifest.json`          |
 | [`../mercator/tile_mercator.py`](../mercator/)    | Earth/Moon non-polar raster          | Web-Mercator / geodetic tile pyramid             |
 
 ---
@@ -538,6 +540,8 @@ Other AEGIS import targets produced by the standalone converters:
 
 - **Mission grid** — upload `Cleaned_*.geojson` from `grid/convert_lgrs.py` at the mission
   grid admin (`/admin/mission_grid/<id>`).
-- **Time-aware layer** — register the `*_singleband_time-aware_data/` folder (containing
-  `manifest.json`) as a tile sublayer; AEGIS marks it `isTimeBased`. Only **one** time-based
-  sublayer is allowed per mission.
+- **Time-aware layer** — register either the legacy `*_singleband_time-aware_data/` tile folder
+  or a `time-cogs` output folder (both contain `manifest.json`) as a tile sublayer; AEGIS marks it
+  `isTimeBased`. A manifest `dirName` may point to a frame tile directory or a nested `.tif` COG,
+  so existing tile-based missions require no migration. Only **one** time-based sublayer is
+  allowed per mission.

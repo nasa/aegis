@@ -114,6 +114,9 @@ These take positional `input` / `output` paths directly (no `--in-root`/`--out-d
 - [`timeaware/singleband_timeaware.py`](esri-to-aegis-lunar-southpole/timeaware/) —
   single-band time series → tiles + `manifest.json`.
   `singleband_timeaware.py <indir> --datatype <mazarico|quickmap> [-o <outdir>]`.
+- [`timeaware/timeaware_cogs.py`](esri-to-aegis-lunar-southpole/timeaware/) —
+  one or more time-series directories → nested COGs + `manifest.json`.
+  Prefer the main pipeline step: `--in-time-cog-dir <dir> --out-time-cog <name>`.
 
 See its [README](esri-to-aegis-lunar-southpole/README.md) for all data types, folder layout,
 and AEGIS import settings. General raster utilities
