@@ -19,9 +19,7 @@ for stream in (sys.stdout, sys.stderr):
         pass
 
 
-def illumination_to_rgba(
-    input_path: Path, output_path: Path, opacity: float
-) -> None:
+def illumination_to_rgba(input_path: Path, output_path: Path, opacity: float) -> None:
     """Write black RGBA pixels with alpha equal to one minus the illumination fraction."""
     with rasterio.open(input_path) as source:
         if source.count != 1:
