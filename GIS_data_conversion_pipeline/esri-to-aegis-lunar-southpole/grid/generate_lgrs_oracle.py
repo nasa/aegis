@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import importlib.metadata
 import json
 import math
@@ -292,13 +291,8 @@ def viewport_cases() -> list[dict]:
 
 
 def write_json(path: Path, value: object) -> None:
-    path.write_text(
-        json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
-
-
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    with path.open("w", encoding="utf-8", newline="\n") as file:
+        file.write(json.dumps(value, indent=2, sort_keys=True) + "\n")
 
 
 def generate(output: Path) -> None:
@@ -315,12 +309,9 @@ def generate(output: Path) -> None:
         "tag": ORACLE_TAG,
         "commit": ORACLE_COMMIT,
         "standard": STANDARD,
-        "pypiWheelSha256": "d9f7e7b0ff3fa23a576848c080c42ca2d54daef59424154f732e8785d71ab18",
-        "pypiSdistSha256": "5a3d81947db1d243f7b90f1ead2a6b9bb1bf973150d8322a94151e4a43883c8",
         "generator": str(generator_path.relative_to(generator_path.parents[3])).replace(
             "\\", "/"
         ),
-        "generatorSha256": sha256(generator_path),
         "command": "pixi run lgrs-oracle",
         "seed": SEED,
         "seededCaseCount": RANDOM_CASE_COUNT,
@@ -335,8 +326,6 @@ def generate(output: Path) -> None:
     }
     for filename, value in files.items():
         write_json(output / filename, value)
-    manifest = "".join(f"{sha256(output / name)}  {name}\n" for name in sorted(files))
-    (output / "manifest.sha256").write_text(manifest, encoding="ascii")
 
 
 def main() -> None:

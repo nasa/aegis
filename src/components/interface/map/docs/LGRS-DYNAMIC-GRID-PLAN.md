@@ -237,37 +237,38 @@ Audit the server's `/closestPoint` endpoint before removing it. It has no known 
 
 ---
 
-## 5. Python Oracle and Conformance Strategy
+## 5. Pinned Fixture and Conformance Strategy
 
 ### 5.1 Pin the authority
 
-The pipeline currently allows `lgrs >= 0.3.0`; this is not sufficient for an authoritative port because the upstream project is pre-1.0 and evolving. Select an exact release and record:
+The fixture generator uses an exact `lgrs` release because the upstream project is pre-1.0 and evolving. Record:
 
 - PyPI package version.
 - GitHub repository URL.
 - Git commit SHA or immutable release tag.
 - CRS constants and standard revision.
-- Oracle-generation command and its SHA-256 output hash.
+- Fixture-generation command.
 
-The fixture metadata must travel with every expected-output file so a future standard upgrade is explicit rather than accidental.
+The fixture metadata travels with every expected-output file so a future standard upgrade is explicit rather than accidental.
 
 ### 5.2 Commit a conformance corpus, not a giant polygon export
 
 Do not vendor a large opaque GeoJSON from the upstream repository as the primary test asset. It is difficult to review, stores polygon geometry that the browser intentionally does not create, and would duplicate an external evolving implementation.
 
-Instead, add a deterministic Python oracle generator in the pipeline and commit its compact JSON outputs under a path such as:
+Instead, provide a deterministic Python fixture generator and commit its compact JSON outputs under a path such as:
 
 ```text
 src/tests/vitest/fixtures/lgrs/<oracle-version>/
   metadata.json
   south-lps-cases.json
   south-lps-viewports.json
-  manifest.sha256
 ```
 
 The corpus should contain both readable table cases and a deterministic seeded sample. A corpus of several thousand points and viewport plans is small enough for ordinary Git review and much more useful than a massive GeoJSON grid.
 
-### 5.3 Required oracle cases
+**Fixture lifecycle:** CI reads the committed corpus only; it does not install Python or regenerate fixture output. When intentionally changing the LGRS contract or upgrading its pinned version, run `pixi run lgrs-oracle`, review the resulting fixture changes, and commit them together.
+
+### 5.3 Required fixture cases
 
 Generate expected outputs with the pinned Python library for all of these categories:
 
@@ -284,18 +285,17 @@ Generate expected outputs with the pinned Python library for all of these catego
 | Viewports            | Canonical cap-map extents at multiple zoom levels, pan positions, and line/label stride settings                                      |
 | Property sample      | A seeded set of thousands of valid south-LPS points, reproducible from its seed and generator version                                 |
 
-For each oracle point, record canonical LPS coordinates, full LGRS/ACC values, condensed label values, lower-left cell corner, and any expected unsupported-domain result. For each viewport, record expected line positions and labels after clipping and selection of 10 m, 100 m, 1 km, or auto spacing.
+For each fixture point, record canonical LPS coordinates, full LGRS/ACC values, condensed label values, lower-left cell corner, and any expected unsupported-domain result. For each viewport, record expected line positions and labels after clipping and selection of 10 m, 100 m, 1 km, or auto spacing.
 
 ### 5.4 Test layers
 
-1. **Vitest pure-unit tests:** compare TypeScript LPS snapping, labels, corners, and viewport plans against every committed oracle case.
+1. **Vitest pure-unit tests:** compare TypeScript LPS snapping, labels, corners, and viewport plans against every committed fixture case.
 2. **Vitest property tests:** replay the seeded corpus and assert invariants such as stable floor behavior, grid-cell containment, and label round trips.
 3. **Browser map tests:** assert line and label counts, endpoint projection, no dynamic full-grid fetch, current auto-density behavior across zooms, fixed-spacing behavior, and cleanup on unmount.
 4. **Legacy contract tests:** retain and extend grid-upload/API tests to prove existing uploaded missions still render and export unchanged.
-5. **Oracle regeneration check:** a dedicated Pixi/Python job regenerates fixtures into a temporary directory and diffs them against the committed corpus. This must run in CI where the pipeline environment is available.
-6. **Performance regression tests:** use representative viewports and assert the expected auto stride, line/label counts, and a practical render-plan time budget.
+5. **Performance regression tests:** use representative viewports and assert the expected auto stride, line/label counts, and a practical render-plan time budget.
 
-The normal Node test suite reads committed JSON only and therefore stays fast and independent of Python. The Python regeneration job proves the committed expected values still come from the pinned authority.
+The normal Node test suite reads committed JSON only and therefore stays fast and independent of Python. Refresh the corpus with the pinned Python generator only when intentionally changing the LGRS contract or upgrading its pinned version.
 
 ---
 
@@ -310,9 +310,8 @@ The normal Node test suite reads committed JSON only and therefore stays fast an
 3. Add the two-option **Grid Rendering** toggle beside **Using LGRS Coordinate System** on the mission admin page, with independent state changes and projection validation.
 4. Document the current fixed-spacing and auto-density rules as the dynamic renderer's required behavior.
 5. Write the Python oracle generator and commit the first corpus.
-6. Add a CI job that verifies regeneration without modifying the worktree.
 
-**Exit criterion:** expected outputs are reproducible from a known Python environment and reviewed as a conformance contract.
+**Exit criterion:** expected outputs are generated from a known pinned Python environment and reviewed as a conformance contract.
 
 ### Phase B: Build the pure port
 
