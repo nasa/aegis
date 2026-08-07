@@ -3,8 +3,8 @@
 
 The output is a single folder under ``Layers/``. Each source directory becomes a nested frame
 directory, while ``manifest.json`` maps every timestamp to its ``.tif`` file. Explicit frame
-bounds are written per source directory so disconnected observation windows stay hidden between
-their final and first frames.
+bounds are written only when timestamp coverage is discontinuous, so unsupported observation
+windows remain hidden.
 
 Example:
 
@@ -23,12 +23,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 import rasterio
+
+from time_manifest import add_bounds_for_gaps
 
 for _stream in (sys.stdout, sys.stderr):
     try:
@@ -130,42 +131,17 @@ def validate_shared_grid(frames: list[Frame]) -> None:
             )
 
 
-def midpoint(first: str, second: str) -> str:
-    """Return the midpoint between two AEGIS ISO-8601 timestamps."""
-    first_time = datetime.strptime(first, AEGIS_FMT)
-    second_time = datetime.strptime(second, AEGIS_FMT)
-    return (first_time + (second_time - first_time) / 2).strftime(AEGIS_FMT)
-
-
 def manifest_entries(frames: list[Frame]) -> list[dict[str, str]]:
-    """Create file targets and bounds without extending a frame across group gaps."""
-    by_group: dict[str, list[Frame]] = defaultdict(list)
-    for frame in frames:
-        by_group[frame.group].append(frame)
-
-    entries: list[dict[str, str]] = []
-    for group_frames in by_group.values():
-        group_frames.sort(key=lambda frame: frame.datetime)
-        for index, frame in enumerate(group_frames):
-            lower_bound = (
-                frame.datetime
-                if index == 0
-                else midpoint(group_frames[index - 1].datetime, frame.datetime)
-            )
-            upper_bound = (
-                frame.datetime
-                if index == len(group_frames) - 1
-                else midpoint(frame.datetime, group_frames[index + 1].datetime)
-            )
-            entries.append(
-                {
-                    "datetime": frame.datetime,
-                    "dirName": f"{frame.group}/{frame.source.stem}_cog.tif",
-                    "lowerBound": lower_bound,
-                    "upperBound": upper_bound,
-                }
-            )
-    return sorted(entries, key=lambda entry: entry["datetime"])
+    """Create source targets and add bounds only where timestamp coverage is discontinuous."""
+    return add_bounds_for_gaps(
+        [
+            {
+                "datetime": frame.datetime,
+                "dirName": f"{frame.group}/{frame.source.stem}_cog.tif",
+            }
+            for frame in frames
+        ]
+    )
 
 
 def build_layer(
