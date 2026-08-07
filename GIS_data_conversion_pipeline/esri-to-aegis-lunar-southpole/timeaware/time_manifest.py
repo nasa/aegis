@@ -50,7 +50,17 @@ def add_bounds_for_gaps(entries: list[dict[str, str]]) -> list[dict[str, str]]:
     bounded: list[dict[str, str]] = []
     for run in runs:
         for index, entry in enumerate(run):
-            lower_bound = entry["datetime"] if index == 0 else _midpoint(run[index - 1]["datetime"], entry["datetime"])
-            upper_bound = entry["datetime"] if index == len(run) - 1 else _midpoint(entry["datetime"], run[index + 1]["datetime"])
-            bounded.append({**entry, "lowerBound": lower_bound, "upperBound": upper_bound})
+            lower_bound = (
+                entry["datetime"]
+                if index == 0
+                else _midpoint(run[index - 1]["datetime"], entry["datetime"])
+            )
+            upper_bound = (
+                entry["datetime"]
+                if index == len(run) - 1
+                else _midpoint(entry["datetime"], run[index + 1]["datetime"])
+            )
+            bounded.append(
+                {**entry, "lowerBound": lower_bound, "upperBound": upper_bound}
+            )
     return bounded
