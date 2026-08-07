@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import styles from "./map-menu.module.css";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { globalGrid, getGridBaseSpacingMeters } from "utils/mapping/grid";
+import { getGridBaseSpacingMeters } from "utils/mapping/grid";
+import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 
 const GRID_SPACING_OPTIONS: { label: string; value: GridSpacingMode }[] = [
   { label: "Auto", value: "auto" },
@@ -84,7 +85,13 @@ export const MapMenu: FunctionComponent<{
   // Base grid spacing (metres) drives which fixed-spacing options are selectable.
   // Derived from the loaded grid geometry so it always matches what's drawn.
   const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
-  const baseGridSpacing = getGridBaseSpacingMeters(globalGrid, planetRadius);
+  const resolvedGrid = useResolvedMissionGrid();
+  const baseGridSpacing =
+    resolvedGrid.kind === "dynamic-lgrs"
+      ? 10
+      : resolvedGrid.kind === "server-file"
+        ? getGridBaseSpacingMeters(resolvedGrid.grid, planetRadius)
+        : 0;
 
   //if the selected pos source list contains a uuid that isn't in selected rex's pos sources list this means that the selected rex has changed.
   //If this is true, set default pos sources to task and crew

@@ -170,6 +170,17 @@ tsc:
     - npm run schema:create
     - npm run tsc
 
+lgrs-oracle:
+  stage: stageless
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.14-slim
+  tags: ["openshift"]
+  needs: []
+  script:
+    - pip install --no-cache-dir lgrs==0.3.0
+    - python GIS_data_conversion_pipeline/esri-to-aegis-lunar-southpole/grid/generate_lgrs_oracle.py
+      --output /tmp/lgrs-oracle
+    - diff -ru src/tests/vitest/fixtures/lgrs/0.3.0 /tmp/lgrs-oracle
+
 # Sharded vitest. Each shard emits a blob report (coverage data embedded);
 # merge-vitest-coverage consolidates them into the final cobertura/lcov/junit.
 # Per-shard cobertura would only reflect 1/N of the codebase and confuse

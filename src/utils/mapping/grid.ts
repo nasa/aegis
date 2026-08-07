@@ -2,6 +2,39 @@ import { getGrid } from "http-client/grid";
 import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 
 export let globalGrid: MissionGrid = null;
+const loadedGridListeners = new Set<() => void>();
+
+function setLoadedGrid(grid: MissionGrid): void {
+  if (globalGrid === grid) return;
+  globalGrid = grid;
+  for (const listener of loadedGridListeners) listener();
+}
+
+export function subscribeLoadedGrid(listener: () => void): () => void {
+  loadedGridListeners.add(listener);
+  return () => loadedGridListeners.delete(listener);
+}
+
+export function getLoadedGridSnapshot(): MissionGrid {
+  return globalGrid;
+}
+
+export function getGridRenderMode(mission: Pick<Mission, "gridRenderMode">): GridRenderMode {
+  return mission.gridRenderMode ?? "server-file";
+}
+
+export function resolveMissionGrid(
+  mission: Pick<Mission, "serverFileGrid" | "gridRenderMode">,
+  serverGrid: MissionGrid = globalGrid
+): ResolvedMissionGrid {
+  if (getGridRenderMode(mission) === "dynamic-lgrs") return { kind: "dynamic-lgrs" };
+  if (!mission.serverFileGrid || !serverGrid?.coordinates?.length) return { kind: "none" };
+  return { kind: "server-file", grid: serverGrid };
+}
+
+export function clearLoadedGrid(): void {
+  setLoadedGrid(null);
+}
 
 /**
  * Derive the base spacing (metres between adjacent grid lines) from the grid
@@ -28,15 +61,15 @@ export function getGridBaseSpacingMeters(grid: MissionGrid, planetRadius: number
 
 export async function loadAndReturnGrid(missionId: number): Promise<MissionGrid> {
   if (!missionId) {
-    globalGrid = null;
+    setLoadedGrid(null);
     return null;
   }
   const gridData = (await getGrid(missionId, true)).data;
   if (gridData?.coordinates?.length) {
-    globalGrid = gridData;
+    setLoadedGrid(gridData);
     return gridData;
   } else {
-    globalGrid = null;
+    setLoadedGrid(null);
     return null;
   }
 }

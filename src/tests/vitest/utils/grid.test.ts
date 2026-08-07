@@ -1,4 +1,8 @@
-import { getGridBaseSpacingMeters } from "utils/mapping/grid";
+import {
+  getGridBaseSpacingMeters,
+  getGridRenderMode,
+  resolveMissionGrid,
+} from "utils/mapping/grid";
 import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 
 const makeGrid = (points: { lat: number; lng: number }[][]): MissionGrid => ({
@@ -41,5 +45,39 @@ describe("getGridBaseSpacingMeters", () => {
 
   test("returns 0 for a null/empty grid", () => {
     expect(getGridBaseSpacingMeters(null as unknown as MissionGrid, radius)).toBe(0);
+  });
+});
+
+describe("resolveMissionGrid", () => {
+  const serverGrid = makeGrid([
+    [
+      { lat: 0, lng: 0 },
+      { lat: 0, lng: 0.01 },
+    ],
+  ]);
+  const grid = serverGrid.gridDefinition;
+
+  test("defaults existing missions without a mode to server-file", () => {
+    expect(getGridRenderMode({})).toBe("server-file");
+    expect(resolveMissionGrid({ serverFileGrid: grid }, serverGrid)).toEqual({
+      kind: "server-file",
+      grid: serverGrid,
+    });
+  });
+
+  test("resolves dynamic mode without exposing an uploaded matrix", () => {
+    expect(
+      resolveMissionGrid({ serverFileGrid: grid, gridRenderMode: "dynamic-lgrs" }, serverGrid)
+    ).toEqual({
+      kind: "dynamic-lgrs",
+    });
+  });
+
+  test("resolves an absent server-file grid to none", () => {
+    expect(
+      resolveMissionGrid({ serverFileGrid: null, gridRenderMode: "server-file" }, serverGrid)
+    ).toEqual({
+      kind: "none",
+    });
   });
 });

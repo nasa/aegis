@@ -4,7 +4,7 @@
  * Mocks:
  *  - `useCoordConverters` — avoids Automerge dependency
  *  - `utils/useDocSelector` — provides mutable planetRadius
- *  - `utils/mapping/grid` — provides a mutable globalGrid fixture
+ *  - `useResolvedMissionGrid` — provides a mutable resolved-grid fixture
  *  - `utils/mapping/geoMath` — stubs `findClosestPointInGlobalGrid` /
  *    `adjustGridIndex` so test assertions don't depend on real geometry math
  *
@@ -47,7 +47,13 @@ vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
   }),
 }));
 
-const mockMissionDoc: { planetRadius: number } = { planetRadius: 1737400 };
+const mockMissionDoc: Partial<Mission> = {
+  planetRadius: 1737400,
+  projIsCustom: true,
+  projProj4String:
+    "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=1737400 +b=1737400 +units=m +no_defs",
+  gridRenderMode: "server-file",
+};
 
 vi.mock("utils/useDocSelector", () => ({
   useMissionDocSelector: <TSel,>(selector: (doc: unknown) => TSel): TSel =>
@@ -57,6 +63,13 @@ vi.mock("utils/useDocSelector", () => ({
 
 // Mutable globalGrid fixture — vi.hoisted() so it's available inside the mock factory.
 const mockGrid = vi.hoisted(() => ({ current: null as MissionGrid | null }));
+
+vi.mock("components/interface/map/hooks/useResolvedMissionGrid", () => ({
+  useResolvedMissionGrid: (): ResolvedMissionGrid => {
+    if (mockMissionDoc.gridRenderMode === "dynamic-lgrs") return { kind: "dynamic-lgrs" };
+    return mockGrid.current ? { kind: "server-file", grid: mockGrid.current } : { kind: "none" };
+  },
+}));
 
 // Use a stable Proxy as the exported globalGrid value.
 // Since the ESM binding captures the proxy reference (never null), it passes
@@ -220,6 +233,7 @@ function findLayerAtZIndex(zIndex: number): VectorLayer<VectorSource> | null {
 
 beforeEach(() => {
   mockGrid.current = null;
+  mockMissionDoc.gridRenderMode = "server-file";
   geoMathCalls.count = 0;
   harness = createReactHarness();
 
@@ -325,6 +339,31 @@ describe("Grid", () => {
     const lineLayer = findLayerAtZIndex(Z_INDEX.GRID_LINES)!;
     // 3 rows + 3 cols = 6 line features for a 3×3 grid
     expect(lineLayer.getSource()!.getFeatures().length).toBeGreaterThan(0);
+  });
+
+  it("adds dynamic lines and labels without a server grid", () => {
+    mockMissionDoc.gridRenderMode = "dynamic-lgrs";
+    store = makeStore({
+      preset: {
+        ...presetSlice.getInitialState(),
+        selectedPresetUuid: PRESET_UUID,
+        presets: [
+          {
+            uuid: PRESET_UUID,
+            mapGridControl: makeGridControl(true, true),
+          } as unknown as Preset,
+        ],
+      },
+    } as PartialPreloadedState);
+
+    renderGrid();
+
+    expect(
+      findLayerAtZIndex(Z_INDEX.GRID_LINES)!.getSource()!.getFeatures().length
+    ).toBeGreaterThan(0);
+    expect(
+      findLayerAtZIndex(Z_INDEX.GRID_LABELS)!.getSource()!.getFeatures().length
+    ).toBeGreaterThan(0);
   });
 
   it("label source is empty when labelsVisible=false", () => {
