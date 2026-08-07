@@ -3,13 +3,13 @@ import paneStyles from "../global-pane-styles.module.css";
 import gridStyles from "./preset-right-grid.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faInfo, faPaintBrush } from "@fortawesome/free-solid-svg-icons";
-import { globalGrid } from "utils/mapping/grid";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { upsertPresetByField } from "store/preset";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import Settings_subpanel from "components/interface/settings-and-slider";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { Checkbox } from "components/interface/form/globalFields";
+import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 
 const defaultGridStyle: MapSublayerStyle = {
   ...defaultSublayerStyle,
@@ -19,6 +19,7 @@ const defaultGridStyle: MapSublayerStyle = {
 
 const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
+  const resolvedGrid = useResolvedMissionGrid();
 
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset: Preset = useAppSelector(
@@ -32,7 +33,8 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     style: { ...defaultGridStyle, ...presetGridControl?.style },
   };
 
-  const gridDefinition: MissionGridDefinition = globalGrid?.gridDefinition;
+  const gridDefinition =
+    resolvedGrid.kind === "server-file" ? resolvedGrid.grid.gridDefinition : undefined;
 
   const styleSetterHandler = ({
     uuid,
@@ -56,7 +58,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
-          {globalGrid ? (
+          {resolvedGrid.kind !== "none" ? (
             <div>
               <div>
                 <div className={gridStyles.gridGroup}>

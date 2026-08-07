@@ -31,16 +31,17 @@ import CalculatedDwell from "../calculated-dwell";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { setOriginalPoints, updateMapDirective } from "store/map";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
-import { globalGrid } from "utils/mapping/grid";
 import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateStationByField } from "operations/apply/apply-station";
+import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
+  const resolvedGrid = useResolvedMissionGrid();
   const partialMission = useMissionDocSelector(
     (mission) => ({
       walkbackRate: mission.walkbackRate,
@@ -129,9 +130,9 @@ const Info_Panel: FunctionComponent<{
     if (selectedStation?.location && partialMission.usingLGRSCoordinates) {
       return getLGRSCoordsFromLatLng(selectedStation.location.lat, selectedStation.location.lng);
     }
-    if (selectedStation?.location && globalGrid?.coordinates && gridCornerPoint) {
+    if (selectedStation?.location && resolvedGrid.kind === "server-file" && gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
-        globalGrid.coordinates,
+        resolvedGrid.grid.coordinates,
         selectedStation.location,
         partialMission.planetRadius
       );
@@ -143,6 +144,7 @@ const Info_Panel: FunctionComponent<{
     partialMission.usingLGRSCoordinates,
     partialMission.planetRadius,
     gridCornerPoint,
+    resolvedGrid,
   ]);
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");

@@ -1,0 +1,17 @@
+{
+  "command": "pixi run lgrs-oracle",
+  "commit": "6ba953e09e5dde9d379df5b2c1a91b7b958fb851",
+  "generator": "GIS_data_conversion_pipeline/esri-to-aegis-lunar-southpole/grid/generate_lgrs_oracle.py",
+  "generatorSha256": "8fe2f4b9d4e9d0e0df614f58101ff151a26aa7bdd16b79f704866e2cdc724413",
+  "package": "lgrs",
+  "pypiSdistSha256": "5a3d81947db1d243f7b90f1ead2a6b9bb1bf973150d8322a94151e4a43883c8",
+  "pypiWheelSha256": "d9f7e7b0ff3fa23a576848c080c42ca2d54daef59424154f732e8785d71ab18",
+  "repository": "https://github.com/rbeyer/lgrs",
+  "seed": 9382026,
+  "seededCaseCount": 3000,
+  "southLpsDomainRadiusMeters": 302181.57437176147,
+  "southLpsMinimumLatitude": -80.0,
+  "standard": "USGS Techniques and Methods 11-E1 (2025), mark 7.2 reference code",
+  "tag": "v0.3.0",
+  "version": "0.3.0"
+}

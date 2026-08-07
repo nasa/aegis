@@ -62,7 +62,7 @@ pyproj = ">=3.6.0"
 # install lgrs's optional [reference] extra, which would pull a source-built gdal.
 [tool.pixi.pypi-dependencies]
 aegis-data-conversion = { path = ".", editable = true }
-lgrs = ">=0.3.0"
+lgrs = "==0.3.0"
 geopandas = "*"
 
 # Pure-Python deps for the esri-to-aegis main.py `register` / `box` steps. Kept here (not in
@@ -77,3 +77,4 @@ tqdm = ">=4.66.0"
 python-dotenv = ">=1.0.0"
 
 [tool.pixi.tasks]
+lgrs-oracle = "python esri-to-aegis-lunar-southpole/grid/generate_lgrs_oracle.py"

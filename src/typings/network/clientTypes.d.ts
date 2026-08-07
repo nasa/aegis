@@ -51,6 +51,7 @@ type MissionFields = Pick<
   | "projResUnitsPerPixel"
   | "actionSystemVersion"
   | "usingLGRSCoordinates"
+  | "gridRenderMode"
 >;
 type MissionFieldsUpdate = Partial<MissionFields>;
 

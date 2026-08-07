@@ -14,9 +14,9 @@ import type { MapBrowserEvent } from "ol";
 import { refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridCoordinatesFromPoint } from "utils/mapping/geoMath";
-import { globalGrid } from "utils/mapping/grid";
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
+import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 
 interface MouseCoordinateDisplayProps {
@@ -29,6 +29,7 @@ export function MouseCoordinateDisplay({
   const { map, mode } = useMapContext();
   const config = MODE_CONFIGS[mode];
   const { toAegisPoint } = useCoordConverters();
+  const resolvedGrid = useResolvedMissionGrid();
 
   const planetRadius = useMissionDocSelector((doc) => doc.planetRadius, refEqual);
   const usingLGRS = useMissionDocSelector((doc) => doc.usingLGRSCoordinates, refEqual);
@@ -47,7 +48,7 @@ export function MouseCoordinateDisplay({
         point,
         planetRadius,
         usingLGRS,
-        globalGrid?.coordinates
+        resolvedGrid.kind === "server-file" ? resolvedGrid.grid.coordinates : undefined
       );
       setMouseGridCoord(gridCoords);
     };
@@ -56,7 +57,7 @@ export function MouseCoordinateDisplay({
     return () => {
       map.un("pointermove", handleMove);
     };
-  }, [map, config.map.showMouseCoords, toAegisPoint, planetRadius, usingLGRS]);
+  }, [map, config.map.showMouseCoords, toAegisPoint, planetRadius, usingLGRS, resolvedGrid]);
 
   if (!config.map.showMouseCoords) return null;
 

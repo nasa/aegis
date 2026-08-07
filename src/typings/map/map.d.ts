@@ -120,5 +120,6 @@ type MissionSelectProperties = Pick<
   | "projOriginY"
   | "circleDefinitions"
   | "usingLGRSCoordinates"
+  | "gridRenderMode"
   | "actionDefinitions"
 >;
