@@ -56,6 +56,14 @@ export function migrateLegacyHaloStyle(style: MapSublayerStyle | null | undefine
   }
 }
 
+export function migrateLegacyCircleControlHaloStyles(
+  mapCircleControls: MapCircleControls | null | undefined
+): void {
+  for (const control of Object.values(mapCircleControls ?? {})) {
+    migrateLegacyHaloStyle(control.style);
+  }
+}
+
 /**
  * Converts db preset fks to their uuid/id arrays
  * @param dbPresets an array of presets in mikro db format
@@ -83,6 +91,12 @@ export function convertPresetsTypeDbToStore(dbPresets: Preset_db[]): Preset[] {
       createdAt: dbPreset.createdAt.toISOString(),
       updatedAt: dbPreset.updatedAt.toISOString(),
     };
+    // Migrate legacy label halo field names on every style object.
+    for (const control of Object.values(convertedPreset.mapSublayerControls ?? {})) {
+      migrateLegacyHaloStyle(control.style);
+    }
+    migrateLegacyCircleControlHaloStyles(convertedPreset.mapCircleControls);
+    migrateLegacyHaloStyle(convertedPreset.mapGridControl?.style);
     presets.push(convertedPreset);
   }
   return presets;
