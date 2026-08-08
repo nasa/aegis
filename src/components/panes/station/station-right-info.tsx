@@ -11,6 +11,7 @@ import {
   faRoute,
   faToolbox,
   faXmark,
+  faGlobe,
 } from "@fortawesome/free-solid-svg-icons";
 import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
@@ -36,6 +37,7 @@ import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateStationByField } from "operations/apply/apply-station";
+import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -73,6 +75,11 @@ const Info_Panel: FunctionComponent<{
     () => docMaps?.stations[selectedStationUuid],
     [docMaps, selectedStationUuid]
   );
+  const quickMapLinkState = useMissionDocSelector((mission) => {
+    const station = mission.stations[selectedStationUuid];
+    if (!station || !isQuickMapPoint(station.location)) return null;
+    return createQuickMapLinkState({ center: station.location, stations: [station] });
+  }, deepEqual);
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = useMemo(
     () => (mapDirective?.uuid === selectedStationUuid ? mapDirective : null),
@@ -264,6 +271,20 @@ const Info_Panel: FunctionComponent<{
       <div className={paneStyles.rightBodyTitle}>Station Information</div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faGlobe}>QuickMap</SubpanelHeading>
+            </div>
+            <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+              <Button
+                onClick={() => quickMapLinkState && openQuickMap(quickMapLinkState)}
+                label="View in QuickMap"
+                toolTip="Opens an external, read-only QuickMap window"
+                style={{ width: "145px" }}
+                enabled={quickMapLinkState != null}
+              />
+            </div>
+          </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>

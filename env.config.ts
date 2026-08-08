@@ -292,4 +292,7 @@ export const config: DotenvConfig<typeof environments> = {
     local: "off",
     default: "info",
   },
+  VITE_QUICKMAP_BASE_URL: { default: "https://quickmap.lroc.im-ldi.com/" },
+  VITE_QUICKMAP_LAYER_IDS: { default: "66,3921" },
+  VITE_QUICKMAP_RESOLUTION_METERS_PER_PIXEL: { default: "5" },
 };

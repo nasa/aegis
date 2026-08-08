@@ -5,6 +5,7 @@ import {
   faMessage,
   faRoute,
   faXmark,
+  faGlobe,
 } from "@fortawesome/free-solid-svg-icons";
 import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import { Button, PathColorPickerMenu } from "components/interface/form/globalFields";
@@ -15,7 +16,7 @@ import {
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 import { setSelectedTraverseRightNavItem } from "store/traverse";
-import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import traverseStyles from "./traverse.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -30,6 +31,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateTraverseByField } from "operations/apply/apply-traverse";
 import CalculatedDwell from "../calculated-dwell";
+import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -51,6 +53,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     () => docMaps?.traverses[selectedEvaSequenceItemUuid],
     [docMaps, selectedEvaSequenceItemUuid]
   );
+  const quickMapLinkState = useMissionDocSelector((mission) => {
+    const traverse = mission.traverses[selectedEvaSequenceItemUuid];
+    const center = traverse?.path?.find(isQuickMapPoint);
+    if (!traverse || !center) return null;
+    return createQuickMapLinkState({ center, traverses: [traverse] });
+  }, deepEqual);
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
   const selectedEvaTraverseRate = useMissionDocSelector(
     (mission) => mission.evas?.[selectedEvaUuid]?.traverseRate,
@@ -162,6 +170,20 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       <div className={paneStyles.rightBodyTitle}>Traverse Information</div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faGlobe}>QuickMap</SubpanelHeading>
+            </div>
+            <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+              <Button
+                onClick={() => quickMapLinkState && openQuickMap(quickMapLinkState)}
+                label="View in QuickMap"
+                toolTip="Opens an external, read-only QuickMap window"
+                style={{ width: "145px" }}
+                enabled={quickMapLinkState != null}
+              />
+            </div>
+          </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
