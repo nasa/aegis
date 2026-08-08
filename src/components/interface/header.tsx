@@ -17,12 +17,7 @@ import { ToggleButton } from "components/interface/form/globalFieldsAutomerge";
 import { setIsInEditMode } from "store/mission";
 import { thunkCancelMarkerMapDirective } from "store/thunk/thunkMap";
 
-interface HeaderProps {
-  mapView?: "2d" | "3d";
-  onMapViewChange?: (mapView: "2d" | "3d") => void;
-}
-
-const Header: FunctionComponent<HeaderProps> = ({ mapView, onMapViewChange }) => {
+const Header: FunctionComponent = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
@@ -136,15 +131,6 @@ const Header: FunctionComponent<HeaderProps> = ({ mapView, onMapViewChange }) =>
             }
             label="Edit"
             toggleAriaLabel="globalEditToggle"
-          />
-        )}
-        {partialMission?.name && mapView !== undefined && onMapViewChange && (
-          <ToggleButton
-            toggled={mapView === "3d"}
-            onClick={() => onMapViewChange(mapView === "2d" ? "3d" : "2d")}
-            label="3D"
-            toolTip={`Switch to ${mapView === "2d" ? "3D" : "2D"} map`}
-            toggleAriaLabel="mapViewToggle"
           />
         )}
         <div

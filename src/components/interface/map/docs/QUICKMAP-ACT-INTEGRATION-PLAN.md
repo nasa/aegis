@@ -4,7 +4,7 @@
 **Date:** 2026-08-08
 **Scope:** External LROC QuickMap companion-window integration for AEGIS
 
-This document splits the QuickMap-specific work from the [3D Lunar Map Prototype Research and Implementation Plan](3D-MAP-PROTOTYPE-PLAN.md). It owns the URL adapter, popup lifecycle, and the cross-window API request to Applied Coherent Technology (ACT).
+This document owns the URL adapter, popup lifecycle, and the cross-window API request to Applied Coherent Technology (ACT).
 
 ## Implementation Status (2026-08-08)
 
