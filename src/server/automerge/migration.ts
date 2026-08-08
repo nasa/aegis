@@ -13,6 +13,7 @@ import {
   DEFAULT_ACTION_DEFINITION_LABELS,
   DEFAULT_ACTION_DEFINITION_CONJUNCTIONS,
 } from "store/storeUtils/mission";
+import { migrateLegacyHaloStyle } from "store/storeUtils/preset";
 import { missionValidator } from "utils/validateSchemaServer";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
@@ -246,6 +247,10 @@ getORM()
         );
         stationsRecord = {};
         for (const dbStation of dbStations) {
+          const mapCircleControls = structuredClone(dbStation.mapCircleControls);
+          for (const control of Object.values(mapCircleControls ?? {})) {
+            migrateLegacyHaloStyle(control.style);
+          }
           const convertedStation: Station = {
             uuid: dbStation.uuid,
             refUuid: dbStation.refUuid,
@@ -264,7 +269,7 @@ getORM()
             walkbackTraverseRate: dbStation.walkbackTraverseRate,
             duration: dbStation.duration,
             icon: dbStation.icon,
-            mapCircleControls: dbStation.mapCircleControls,
+            mapCircleControls,
             poiUuids: dbStation.poi.map((p: Poi_db) => p.uuid),
             createdAt: dbStation.createdAt.getTime(), // Make dates numeric
             updatedAt: dbStation.updatedAt.getTime(), // Make dates numeric
