@@ -1,10 +1,25 @@
 # QuickMap URL Adapter and ACT Integration Plan
 
-**Status:** Proposed / research complete  
-**Date:** 2026-08-07  
+**Status:** Q0 panel linking implemented; partnership and accuracy gates remain
+**Date:** 2026-08-08
 **Scope:** External LROC QuickMap companion-window integration for AEGIS
 
 This document splits the QuickMap-specific work from the [3D Lunar Map Prototype Research and Implementation Plan](3D-MAP-PROTOTYPE-PLAN.md). It owns the URL adapter, popup lifecycle, and the cross-window API request to Applied Coherent Technology (ACT).
+
+## Implementation Status (2026-08-08)
+
+Completed for the initial companion-window integration:
+
+- Added environment-configured QuickMap host, layer IDs, and default resolution.
+- Added a pure URL adapter with coordinate validation/normalization, point/line/polygon encoding, deliberate polygon closure, and a 7,000-character URL budget. The result reports included and omitted geometry counts to callers.
+- Added `View in QuickMap` actions to the EVA, station, and traverse information panels. Each opens or focuses the named external `aegis-quickmap` window from the user click.
+- EVA links center on the lander and include every EVA sequence station, non-lander ingress/egress station, and EVA traverse. Duplicate station UUIDs are sent once.
+- Station and traverse links center on the selected station or first valid traverse coordinate and include the selected geometry.
+- Added unit coverage for URL encoding, the antimeridian and south pole, polygon closure, malformed lines, and URL-budget omission.
+
+The supported URL contract carries only point coordinates, not AEGIS station icon IDs, names, or styles. EVA stations therefore appear as QuickMap's standard point markers; icon transfer requires an ACT-supported feature styling API.
+
+The standalone `Open QuickMap 3D` command, measurement links, visible omitted-feature feedback, E2E popup assertion, ACT messaging API, and Q1 accuracy/operations gates remain planned work.
 
 ## 1. Decision and Scope
 
@@ -60,12 +75,12 @@ The currently supplied layer IDs are:
 - WAC basemap: `66`
 - Controlled Polar NACs: `3921`
 
-These IDs are internal and must be configuration, not source constants. The currently canonical host appears to be `https://quickmap.lroc.im-ldi.com/`; the emailed guide uses `https://quickmap.im-ldi.com/`. The base URL must be environment configuration and confirmed with ACT before release.
+These IDs are internal and must be configuration, not source constants. The currently canonical host appears to be `https://quickmap.lroc.im-ldi.com/`; the emailed guide uses `https://quickmap.im-ldi.com/`. AEGIS configures the base URL, layer IDs, and resolution with `VITE_QUICKMAP_BASE_URL`, `VITE_QUICKMAP_LAYER_IDS`, and `VITE_QUICKMAP_RESOLUTION_METERS_PER_PIXEL`; the production values still need ACT confirmation before release.
 
 `features` encoding:
 
 - Coordinates are `lon,lat` degrees.
-- Features are separated by `|`.
+- Features are separated by `|`; coordinate pairs within a line or polygon are separated by `;`.
 - One coordinate pair is a Point.
 - Two or more coordinate pairs are a LineString.
 - A closed coordinate list is a Polygon.
@@ -86,7 +101,10 @@ interface QuickMapLinkState {
   >;
 }
 
-function buildQuickMapUrl(baseUrl: string, state: QuickMapLinkState): URL;
+function buildQuickMapLink(
+  baseUrl: string,
+  state: QuickMapLinkState
+): { url: URL; includedGeometryCount: number; omittedGeometryCount: number };
 ```
 
 Implementation rules:
@@ -98,7 +116,7 @@ Implementation rules:
 - Preserve geometry boundaries with `|` before URL encoding.
 - Reject malformed lines with fewer than two distinct points.
 - Close polygon rings deliberately; do not infer closure from rounded coordinates.
-- Apply a conservative URL budget and report omitted feature counts.
+- Apply a conservative URL budget and return omitted feature counts to the caller.
 - Prioritize lander, current selection, active EVA sequence, measurements, then other visible items when the budget is exceeded.
 - Do not include mission geometry in a URL until its logging/history/privacy implications are accepted.
 
@@ -109,8 +127,9 @@ The adapter should have unit coverage for URL encoding, geometry boundaries, the
 AEGIS can immediately expose these commands:
 
 - **Open QuickMap 3D:** lander center, default resolution, WAC, and controlled NAC layers.
-- **Open selected EVA in QuickMap:** lander, stations, and POIs as points and traverses as lines.
-- **Open selection in QuickMap:** center on the selected station, POI, action, POS entry, or measurement and include its related geometry.
+- **View selected EVA in QuickMap:** from the EVA information panel, center on the lander and send every sequence station, non-lander ingress/egress station, and traverse.
+- **View selected station in QuickMap:** from the station information panel, center on and send the selected station.
+- **View selected traverse in QuickMap:** from the traverse information panel, center on the first valid coordinate and send the selected traverse.
 - **Refresh QuickMap:** re-navigate the named window with a newly generated URL after an explicit user command.
 
 Example launch path:
@@ -124,7 +143,7 @@ const quickMapWindow = window.open(
 quickMapWindow?.focus();
 ```
 
-The initial `window.open` must run directly from a user gesture to avoid popup blocking. Keep the `WindowProxy` in a component ref, not Redux. A later explicit sync command can assign a new URL to the existing cross-origin window and focus it. Do not navigate it on every cursor or Automerge change; each URL update reloads QuickMap and loses transient interaction state.
+The initial `window.open` must run directly from a user gesture to avoid popup blocking. A later explicit sync command can assign a new URL to the existing cross-origin window and focus it. Do not navigate it on every cursor or Automerge change; each URL update reloads QuickMap and loses transient interaction state. The initial implementation uses the browser's named-window behavior to reuse and focus `aegis-quickmap`; no window reference is stored in Redux.
 
 ## 6. Camera and Current Limitations
 
@@ -215,12 +234,13 @@ Protocol requirements:
 
 ### Phase Q0: QuickMap Link Adapter
 
-- Add configured QuickMap base URL and layer IDs.
-- Add URL/geometry adapter with unit tests and URL budget.
-- Add an explicit `Open QuickMap 3D` command.
-- Default to mission lander, `proj=22`, and WAC + controlled NAC.
-- Add selected EVA stations/traverses and current measurements.
-- Label it as an external, one-way companion view.
+- [x] Add configured QuickMap base URL, layer IDs, and default resolution.
+- [x] Add URL/geometry adapter with unit tests and URL budget.
+- [x] Add external QuickMap actions to EVA, station, and traverse information panels.
+- [x] Default links to `proj=22` with WAC + controlled NAC layers.
+- [x] Add all selected EVA stations/traverses, including non-lander ingress/egress stations.
+- [x] Label the action as an external, one-way companion view in its tooltip.
+- [ ] Add a standalone `Open QuickMap 3D` command, measurement payloads, visible omitted-feature feedback, and an E2E popup URL assertion.
 
 Exit: mission 50 opens reliably with the expected features and no iframe.
 
