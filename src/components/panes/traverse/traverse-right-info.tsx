@@ -66,6 +66,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         },
       ],
       traverses: [traverse],
+      defaultTraverseColor:
+        Object.values(mission.evas ?? {}).find((eva) =>
+          eva.sequence.some((sequenceItem) => sequenceItem.uuid === traverse.uuid)
+        )?.traverseColor ?? undefined,
     });
   }, deepEqual);
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);

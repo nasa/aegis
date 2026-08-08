@@ -102,6 +102,51 @@ describe("QuickMap URL adapter", () => {
     ]);
   });
 
+  it("keeps EVA traverses separate and transfers each traverse color", () => {
+    const state = createQuickMapLinkState({
+      center: { lat: -89.9, lng: 180 },
+      defaultTraverseColor: "#0000ff",
+      traverses: [
+        {
+          uuid: "outbound",
+          name: "Outbound",
+          color: "#ff0000",
+          path: [
+            { lat: -89.9, lng: 180 },
+            { lat: -89.91, lng: 179.9 },
+          ],
+        } as Traverse,
+        {
+          uuid: "return",
+          name: "Return",
+          path: [
+            { lat: -89.91, lng: 179.9 },
+            { lat: -89.92, lng: 179.8 },
+          ],
+        } as Traverse,
+      ],
+    });
+
+    expect(state.geometries).toEqual([
+      {
+        type: "LineString",
+        coordinates: [
+          [180, -89.9],
+          [179.9, -89.91],
+        ],
+        properties: { title: "Outbound", stroke: "#ff0000", "stroke-width": "3" },
+      },
+      {
+        type: "LineString",
+        coordinates: [
+          [179.9, -89.91],
+          [179.8, -89.92],
+        ],
+        properties: { title: "Return", stroke: "#0000ff", "stroke-width": "3" },
+      },
+    ]);
+  });
+
   it("uses position type order to color REX POS circles and traverses", () => {
     const ev1: PosType = {
       uuid: "ev1",

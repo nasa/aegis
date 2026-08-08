@@ -185,11 +185,13 @@ export function createQuickMapLinkState({
   additionalPoints = [],
   stations = [],
   traverses = [],
+  defaultTraverseColor,
 }: {
   center: AEGISPoint;
   additionalPoints?: QuickMapPoint[];
   stations?: Station[];
   traverses?: Traverse[];
+  defaultTraverseColor?: string;
 }): QuickMapLinkState {
   const { layerIds, resolutionMetersPerPixel } = getQuickMapConfig();
   const additionalPointGeometries = additionalPoints.flatMap((point): QuickMapGeometry[] => {
@@ -220,8 +222,18 @@ export function createQuickMapLinkState({
     const coordinates = (traverse.path ?? [])
       .filter(isQuickMapPoint)
       .map((point) => [point.lng, point.lat] as [number, number]);
+    const traverseColor = traverse.color || defaultTraverseColor;
     return hasQuickMapDistinctLineCoordinates(coordinates)
-      ? [{ type: "LineString", coordinates, properties: { title: traverse.name } }]
+      ? [
+          {
+            type: "LineString",
+            coordinates,
+            properties: {
+              title: traverse.name,
+              ...(traverseColor ? { stroke: traverseColor, "stroke-width": "3" } : {}),
+            },
+          },
+        ]
       : [];
   });
 
