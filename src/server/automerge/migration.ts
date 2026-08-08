@@ -13,7 +13,7 @@ import {
   DEFAULT_ACTION_DEFINITION_LABELS,
   DEFAULT_ACTION_DEFINITION_CONJUNCTIONS,
 } from "store/storeUtils/mission";
-import { migrateLegacyHaloStyle } from "store/storeUtils/preset";
+import { migrateLegacyCircleControlHaloStyles } from "store/storeUtils/preset";
 import { missionValidator } from "utils/validateSchemaServer";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
@@ -248,9 +248,7 @@ getORM()
         stationsRecord = {};
         for (const dbStation of dbStations) {
           const mapCircleControls = structuredClone(dbStation.mapCircleControls);
-          for (const control of Object.values(mapCircleControls ?? {})) {
-            migrateLegacyHaloStyle(control.style);
-          }
+          migrateLegacyCircleControlHaloStyles(mapCircleControls);
           const convertedStation: Station = {
             uuid: dbStation.uuid,
             refUuid: dbStation.refUuid,
@@ -460,6 +458,17 @@ getORM()
       });
     };
 
+    // Migration: rename legacy circle-label stroke properties to halo properties.
+    const automergeMigration20260807MigrateLegacyCircleHaloStyles = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      docHandle.change((mission: Mission) => {
+        for (const station of Object.values(mission.stations ?? {})) {
+          migrateLegacyCircleControlHaloStyles(station.mapCircleControls);
+        }
+      });
+    };
+
     // Migration: pull the mission's grid metadata out of the legacy grid_db table and onto
     // the mission doc as `mission.serverFileGrid`, and remove the legacy `activeGridUuid` pointer.
     // Grid coordinate arrays remain on disk (Data/<fileName>) and are NOT moved.
@@ -599,6 +608,7 @@ getORM()
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
       automergeMigration20260528AddMaestroDocId,
       automergeMigration20260717AddActionNaming,
+      automergeMigration20260807MigrateLegacyCircleHaloStyles,
       automergeMigration20260722GridToMissionDoc,
       automergeMigration20260810RenameStationLabelStrokeToHalo,
     ];

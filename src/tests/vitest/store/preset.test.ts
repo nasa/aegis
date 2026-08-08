@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { migrateLegacyHaloStyle } from "store/storeUtils/preset";
+import {
+  migrateLegacyCircleControlHaloStyles,
+  migrateLegacyHaloStyle,
+} from "store/storeUtils/preset";
 
 type LegacyHaloStyle = MapSublayerStyle & {
   labelStrokeColor?: string;
@@ -49,5 +52,41 @@ describe("migrateLegacyHaloStyle", () => {
     expect(mixedStyle).not.toHaveProperty("labelStrokeColor");
     expect(mixedStyle).not.toHaveProperty("labelStrokeOpacity");
     expect(mixedStyle).not.toHaveProperty("labelStrokeWidth");
+  });
+
+  it("migrates legacy styles in every circle control", () => {
+    const circleControls: MapCircleControls = {
+      first: {
+        uuid: "first",
+        visible: true,
+        style: {
+          labelStrokeColor: "#000000",
+          labelStrokeOpacity: 0.85,
+          labelStrokeWidth: 2,
+        } as LegacyHaloStyle,
+      },
+      second: {
+        uuid: "second",
+        visible: false,
+        style: {
+          labelStrokeColor: "#FFFFFF",
+          labelStrokeOpacity: 0.5,
+          labelStrokeWidth: 3,
+        } as LegacyHaloStyle,
+      },
+    };
+
+    migrateLegacyCircleControlHaloStyles(circleControls);
+
+    expect(circleControls.first.style).toMatchObject({
+      labelHaloColor: "#000000",
+      labelHaloOpacity: 0.85,
+      labelHaloWidth: 2,
+    });
+    expect(circleControls.second.style).toMatchObject({
+      labelHaloColor: "#FFFFFF",
+      labelHaloOpacity: 0.5,
+      labelHaloWidth: 3,
+    });
   });
 });
