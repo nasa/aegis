@@ -92,6 +92,10 @@ function formatCoordinate([longitude, latitude]: [number, number]): string {
   return `${normalizeQuickMapLongitude(longitude)},${latitude}`;
 }
 
+export function hasQuickMapDistinctLineCoordinates(coordinates: [number, number][]): boolean {
+  return coordinates.length >= 2 && new Set(coordinates.map(formatCoordinate)).size >= 2;
+}
+
 function formatGeometry(geometry: QuickMapGeometry): string {
   let coordinates: [number, number][];
 
@@ -100,13 +104,12 @@ function formatGeometry(geometry: QuickMapGeometry): string {
   } else {
     coordinates = geometry.coordinates;
 
-    const coordinateStrings = coordinates.map(formatCoordinate);
-
     if (geometry.type === "LineString") {
-      if (coordinateStrings.length < 2 || new Set(coordinateStrings).size < 2) {
+      if (!hasQuickMapDistinctLineCoordinates(coordinates)) {
         throw new Error("QuickMap lines require at least two distinct points.");
       }
     } else {
+      const coordinateStrings = coordinates.map(formatCoordinate);
       const distinctCoordinates = new Set(coordinateStrings);
       if (coordinateStrings.length < 3 || distinctCoordinates.size < 3) {
         throw new Error("QuickMap polygons require at least three distinct points.");
@@ -217,7 +220,7 @@ export function createQuickMapLinkState({
     const coordinates = (traverse.path ?? [])
       .filter(isQuickMapPoint)
       .map((point) => [point.lng, point.lat] as [number, number]);
-    return coordinates.length >= 2
+    return hasQuickMapDistinctLineCoordinates(coordinates)
       ? [{ type: "LineString", coordinates, properties: { title: traverse.name } }]
       : [];
   });
@@ -269,7 +272,7 @@ export function createQuickMapRexPositionLinkState({
       .filter(({ entry }) => entry.posTypeUuids.includes(posType.uuid))
       .map(({ entry }) => [entry.location.lng, entry.location.lat] as [number, number]);
 
-    return coordinates.length >= 2
+    return hasQuickMapDistinctLineCoordinates(coordinates)
       ? [
           {
             type: "LineString",
@@ -317,5 +320,12 @@ export function openQuickMap(state: QuickMapLinkState): QuickMapLinkResult {
     "popup,width=1440,height=900"
   );
   quickMapWindow?.focus();
+  if (result.omittedGeometryCount > 0) {
+    alert(
+      `QuickMap could not include ${result.omittedGeometryCount} item${
+        result.omittedGeometryCount === 1 ? "" : "s"
+      } because the link exceeds its URL limit.`
+    );
+  }
   return result;
 }

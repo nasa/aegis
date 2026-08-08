@@ -60,18 +60,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
   const [rexPetTime, setRexPetTime] = useState("");
 
-  const handleOpenQuickMap = () => {
-    if (!quickMapLinkState) return;
-    const { omittedGeometryCount } = openQuickMap(quickMapLinkState);
-    if (omittedGeometryCount > 0) {
-      alert(
-        `QuickMap could not include ${omittedGeometryCount} crew position item${
-          omittedGeometryCount === 1 ? "" : "s"
-        } because the link exceeds its URL limit. Traverse lines are complete, but some crew position points are omitted.`
-      );
-    }
-  };
-
   if (!selectedRex) return null;
 
   return (
@@ -344,7 +332,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           </div>
           <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
             <Button
-              onClick={handleOpenQuickMap}
+              onClick={() => quickMapLinkState && openQuickMap(quickMapLinkState)}
               label="View Crew Positions in QuickMap"
               toolTip="Opens the REX crew position history in an external QuickMap window"
               style={{ width: "240px" }}

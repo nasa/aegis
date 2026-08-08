@@ -3,6 +3,7 @@ import {
   buildQuickMapLink,
   createQuickMapLinkState,
   createQuickMapRexPositionLinkState,
+  hasQuickMapDistinctLineCoordinates,
   normalizeQuickMapLongitude,
   type QuickMapLinkState,
 } from "utils/quickMap";
@@ -213,6 +214,30 @@ describe("QuickMap URL adapter", () => {
         ],
       })
     ).toThrow("QuickMap lines require at least two distinct points.");
+  });
+
+  it("omits generated traverse paths with no distinct coordinates", () => {
+    const state = createQuickMapLinkState({
+      center: { lat: -89.9, lng: 180 },
+      traverses: [
+        {
+          uuid: "stationary-traverse",
+          name: "Stationary traverse",
+          path: [
+            { lat: -89.9, lng: 180 },
+            { lat: -89.9, lng: 180 },
+          ],
+        } as Traverse,
+      ],
+    });
+
+    expect(
+      hasQuickMapDistinctLineCoordinates([
+        [180, -89.9],
+        [180, -89.9],
+      ])
+    ).toBe(false);
+    expect(state.geometries).toEqual([]);
   });
 
   it("omits trailing geometry that exceeds the URL budget", () => {
