@@ -12,6 +12,7 @@ import { RightControlPanel } from "components/interface/side-controls";
 import { BottomControlPanel } from "components/interface/side-controls";
 import SocketClient from "components/page/socketClient";
 import { AegisMapEditor } from "components/interface/map/AegisMapEditor";
+import { AegisMap3DPlaceholder } from "components/interface/map-3d/AegisMap3DPlaceholder";
 import { setAllSliceStores } from "store/crossActions";
 import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
@@ -48,6 +49,7 @@ const Main: React.FunctionComponent = () => {
   );
 
   const [missionPerms, setMissionPerms] = useState(null);
+  const [mapView, setMapView] = useState<"2d" | "3d">("2d");
   const [storeIsPopulated, setStoreIsPopulated] = useState(false);
   const [searchParams] = useSearchParams();
   const evaRefUuid = searchParams.get("evaRefUuid");
@@ -243,7 +245,7 @@ const Main: React.FunctionComponent = () => {
                 }}
               />{" "}
               <div className={styles.header}>
-                <Header />
+                <Header mapView={mapView} onMapViewChange={setMapView} />
               </div>
               {paneType?.fullScreen ? (
                 <div className={styles.body}>
@@ -263,7 +265,13 @@ const Main: React.FunctionComponent = () => {
                         <NavGutter selectedNavItem={interfaceStateLabel} />
                         <LeftControlPanel />
                       </div>
-                      <div className={styles.mapBody}>{hasMissionLayers && <AegisMapEditor />}</div>
+                      <div className={styles.mapBody}>
+                        {mapView === "3d" ? (
+                          <AegisMap3DPlaceholder />
+                        ) : (
+                          hasMissionLayers && <AegisMapEditor />
+                        )}
+                      </div>
                     </div>
                     <BottomControlPanel />
                   </div>
