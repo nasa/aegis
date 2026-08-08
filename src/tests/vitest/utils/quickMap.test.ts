@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildQuickMapLink,
+  createQuickMapLinkState,
   normalizeQuickMapLongitude,
   type QuickMapLinkState,
 } from "utils/quickMap";
@@ -24,7 +25,7 @@ const linkState: QuickMapLinkState = {
 };
 
 describe("QuickMap URL adapter", () => {
-  it("encodes the documented 3D state and geometry boundaries", () => {
+  it("encodes the live QuickMap 3D state and geometry boundaries", () => {
     const { url, includedGeometryCount, omittedGeometryCount } = buildQuickMapLink(
       baseUrl,
       linkState
@@ -34,7 +35,7 @@ describe("QuickMap URL adapter", () => {
     expect(url.searchParams.get("center")).toBe("180,-89.9");
     expect(url.searchParams.get("resolution")).toBe("5");
     expect(url.searchParams.get("stack")).toBe("66,3921");
-    expect(url.searchParams.get("features")).toBe("180,-89.9|-180,-89.9;-179.9,-89.8");
+    expect(url.searchParams.get("features")).toBe("180,-89.9|-180,-89.9,-179.9,-89.8");
     expect(includedGeometryCount).toBe(2);
     expect(omittedGeometryCount).toBe(0);
   });
@@ -59,7 +60,44 @@ describe("QuickMap URL adapter", () => {
       ],
     });
 
-    expect(url.searchParams.get("features")).toBe("10,-80;11,-80;10,-81;10,-80");
+    expect(url.searchParams.get("features")).toBe("10,-80,11,-80,10,-81,10,-80");
+  });
+
+  it("serializes QuickMap feature properties with the geometry", () => {
+    const { url } = buildQuickMapLink(baseUrl, {
+      ...linkState,
+      geometries: [
+        {
+          type: "Point",
+          coordinates: [10, -80],
+          properties: { title: "Lander", "marker-color": "#ffffff" },
+        },
+      ],
+    });
+
+    expect(url.searchParams.get("features")).toBe(
+      '10,-80@@{"properties":{"title":"Lander","marker-color":"#ffffff"}}'
+    );
+  });
+
+  it("includes additional points before station and traverse geometry", () => {
+    const state = createQuickMapLinkState({
+      center: { lat: -89.9, lng: 180 },
+      additionalPoints: [
+        {
+          location: { lat: -89.9, lng: 180 },
+          properties: { title: "Lander", "marker-color": "#ffffff" },
+        },
+      ],
+    });
+
+    expect(state.geometries).toEqual([
+      {
+        type: "Point",
+        coordinates: [180, -89.9],
+        properties: { title: "Lander", "marker-color": "#ffffff" },
+      },
+    ]);
   });
 
   it("rejects malformed lines", () => {

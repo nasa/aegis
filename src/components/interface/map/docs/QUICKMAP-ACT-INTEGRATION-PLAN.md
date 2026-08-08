@@ -13,11 +13,11 @@ Completed for the initial companion-window integration:
 - Added environment-configured QuickMap host, layer IDs, and default resolution.
 - Added a pure URL adapter with coordinate validation/normalization, point/line/polygon encoding, deliberate polygon closure, and a 7,000-character URL budget. The result reports included and omitted geometry counts to callers.
 - Added `View in QuickMap` actions to the EVA, station, and traverse information panels. Each opens or focuses the named external `aegis-quickmap` window from the user click.
-- EVA links center on the lander and include every EVA sequence station, non-lander ingress/egress station, and EVA traverse. Duplicate station UUIDs are sent once.
+- EVA links center on the lander and include a white lander marker, every EVA sequence station, non-lander ingress/egress station, and EVA traverse. Duplicate station UUIDs are sent once.
 - Station and traverse links center on the selected station or first valid traverse coordinate and include the selected geometry.
 - Added unit coverage for URL encoding, the antimeridian and south pole, polygon closure, malformed lines, and URL-budget omission.
 
-The supported URL contract carries only point coordinates, not AEGIS station icon IDs, names, or styles. EVA stations therefore appear as QuickMap's standard point markers; icon transfer requires an ACT-supported feature styling API.
+The supported URL contract carries station and traverse names as feature metadata, but it does not provide a supported mapping for AEGIS emoji station icons. EVA stations therefore appear as QuickMap's standard point markers; icon transfer requires an ACT-supported feature styling API.
 
 The standalone `Open QuickMap 3D` command, measurement links, visible omitted-feature feedback, E2E popup assertion, ACT messaging API, and Q1 accuracy/operations gates remain planned work.
 
@@ -50,7 +50,7 @@ The live LROC QuickMap runtime was inspected on 2026-08-07.
 - Public documentation supports GeoJSON, CSV, and Shapefile import. GeoJSON coordinates are interpreted as lon/lat on the active ellipsoid.
 - Public drawing tools support points, paths, polygons, coordinate editing, profile charts, and data queries.
 - The team-provided QuickMap Linking Guide adds a supported URL contract for projection, center, resolution, feature geometry, and layer stack.
-- The live app accepted the supplied `features` format and rewrote each feature with an internal generated ID.
+- The live app accepts comma-delimited coordinates per feature and rewrites each feature with an internal generated ID. Optional `@@` metadata is preserved as feature properties.
 - Public bundles contain worker `postMessage` traffic and a same-origin reload channel, but no documented cross-origin host-control API was found.
 - Both `quickmap.im-ldi.com` and `quickmap.lroc.im-ldi.com` currently send `X-Frame-Options: sameorigin` and `Content-Security-Policy: frame-ancestors 'self'`. AEGIS cannot embed either host in an iframe today.
 
@@ -80,7 +80,7 @@ These IDs are internal and must be configuration, not source constants. The curr
 `features` encoding:
 
 - Coordinates are `lon,lat` degrees.
-- Features are separated by `|`; coordinate pairs within a line or polygon are separated by `;`.
+- Features are separated by `|`; every feature is a comma-delimited sequence of coordinates.
 - One coordinate pair is a Point.
 - Two or more coordinate pairs are a LineString.
 - A closed coordinate list is a Polygon.

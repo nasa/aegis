@@ -77,8 +77,23 @@ const Info_Panel: FunctionComponent<{
   );
   const quickMapLinkState = useMissionDocSelector((mission) => {
     const station = mission.stations[selectedStationUuid];
-    if (!station || !isQuickMapPoint(station.location)) return null;
-    return createQuickMapLinkState({ center: station.location, stations: [station] });
+    if (
+      !station ||
+      !isQuickMapPoint(station.location) ||
+      !isQuickMapPoint(mission.landerLocation)
+    ) {
+      return null;
+    }
+    return createQuickMapLinkState({
+      center: station.location,
+      additionalPoints: [
+        {
+          location: mission.landerLocation,
+          properties: { title: "Lander", "marker-color": "#ffffff" },
+        },
+      ],
+      stations: [station],
+    });
   }, deepEqual);
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = useMemo(
@@ -271,20 +286,6 @@ const Info_Panel: FunctionComponent<{
       <div className={paneStyles.rightBodyTitle}>Station Information</div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>
-              <SubpanelHeading icon={faGlobe}>QuickMap</SubpanelHeading>
-            </div>
-            <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
-              <Button
-                onClick={() => quickMapLinkState && openQuickMap(quickMapLinkState)}
-                label="View in QuickMap"
-                toolTip="Opens an external, read-only QuickMap window"
-                style={{ width: "145px" }}
-                enabled={quickMapLinkState != null}
-              />
-            </div>
-          </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
@@ -846,6 +847,20 @@ const Info_Panel: FunctionComponent<{
             </div>
           </div>
 
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faGlobe}>QuickMap</SubpanelHeading>
+            </div>
+            <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+              <Button
+                onClick={() => quickMapLinkState && openQuickMap(quickMapLinkState)}
+                label="View Station in QuickMap"
+                toolTip="Opens an external, read-only QuickMap window"
+                style={{ width: "200px" }}
+                enabled={quickMapLinkState != null}
+              />
+            </div>
+          </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>

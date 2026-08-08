@@ -82,6 +82,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     if (!selectedEvaUuid || !isQuickMapPoint(mission.landerLocation)) return null;
     return createQuickMapLinkState({
       center: mission.landerLocation,
+      additionalPoints: [
+        {
+          location: mission.landerLocation,
+          properties: { title: "Lander", "marker-color": "#ffffff" },
+        },
+      ],
       stations: selectEvaStations(mission, selectedEvaUuid),
       traverses: selectEvaTraverses(mission, selectedEvaUuid),
     });
@@ -245,20 +251,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>
-              <SubpanelHeading icon={faGlobe}>QuickMap</SubpanelHeading>
-            </div>
-            <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
-              <Button
-                onClick={() => quickMapLinkState && openQuickMap(quickMapLinkState)}
-                label="View in QuickMap"
-                toolTip="Opens an external, read-only QuickMap window"
-                style={{ width: "145px" }}
-                enabled={quickMapLinkState != null}
-              />
-            </div>
-          </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle}>
               <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
@@ -856,6 +848,20 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             </div>
           </div>
 
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faGlobe}>QuickMap</SubpanelHeading>
+            </div>
+            <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+              <Button
+                onClick={() => quickMapLinkState && openQuickMap(quickMapLinkState)}
+                label="View EVA in QuickMap"
+                toolTip="Opens an external, read-only QuickMap window"
+                style={{ width: "200px" }}
+                enabled={quickMapLinkState != null}
+              />
+            </div>
+          </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
