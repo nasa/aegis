@@ -1,7 +1,11 @@
 export type QuickMapGeometry =
-  | { type: "Point"; coordinates: [number, number] }
-  | { type: "LineString"; coordinates: [number, number][] }
-  | { type: "Polygon"; coordinates: [number, number][] };
+  | { type: "Point"; coordinates: [number, number]; properties?: Record<string, string> }
+  | {
+      type: "LineString";
+      coordinates: [number, number][];
+      properties?: Record<string, string>;
+    }
+  | { type: "Polygon"; coordinates: [number, number][]; properties?: Record<string, string> };
 
 export interface QuickMapLinkState {
   center: AEGISPoint;
@@ -14,6 +18,16 @@ export interface QuickMapLinkResult {
   url: URL;
   includedGeometryCount: number;
   omittedGeometryCount: number;
+}
+
+export interface QuickMapPoint {
+  location: AEGISPoint;
+  properties?: Record<string, string>;
+}
+
+interface QuickMapRexPositionEntry {
+  entry: PosEntry;
+  primaryPosType: PosType;
 }
 
 export const DEFAULT_QUICKMAP_BASE_URL = "https://quickmap.lroc.im-ldi.com/";
@@ -78,28 +92,38 @@ function formatCoordinate([longitude, latitude]: [number, number]): string {
   return `${normalizeQuickMapLongitude(longitude)},${latitude}`;
 }
 
+export function hasQuickMapDistinctLineCoordinates(coordinates: [number, number][]): boolean {
+  return coordinates.length >= 2 && new Set(coordinates.map(formatCoordinate)).size >= 2;
+}
+
 function formatGeometry(geometry: QuickMapGeometry): string {
+  let coordinates: [number, number][];
+
   if (geometry.type === "Point") {
-    return formatCoordinate(geometry.coordinates);
-  }
+    coordinates = [geometry.coordinates];
+  } else {
+    coordinates = geometry.coordinates;
 
-  const coordinateStrings = geometry.coordinates.map(formatCoordinate);
-
-  if (geometry.type === "LineString") {
-    if (coordinateStrings.length < 2 || new Set(coordinateStrings).size < 2) {
-      throw new Error("QuickMap lines require at least two distinct points.");
+    if (geometry.type === "LineString") {
+      if (!hasQuickMapDistinctLineCoordinates(coordinates)) {
+        throw new Error("QuickMap lines require at least two distinct points.");
+      }
+    } else {
+      const coordinateStrings = coordinates.map(formatCoordinate);
+      const distinctCoordinates = new Set(coordinateStrings);
+      if (coordinateStrings.length < 3 || distinctCoordinates.size < 3) {
+        throw new Error("QuickMap polygons require at least three distinct points.");
+      }
+      if (coordinateStrings[0] !== coordinateStrings.at(-1)) {
+        coordinates = [...coordinates, coordinates[0]];
+      }
     }
-    return coordinateStrings.join(";");
   }
 
-  const distinctCoordinates = new Set(coordinateStrings);
-  if (coordinateStrings.length < 3 || distinctCoordinates.size < 3) {
-    throw new Error("QuickMap polygons require at least three distinct points.");
-  }
-  if (coordinateStrings[0] !== coordinateStrings.at(-1)) {
-    coordinateStrings.push(coordinateStrings[0]);
-  }
-  return coordinateStrings.join(";");
+  const serializedCoordinates = coordinates.map(formatCoordinate).join(",");
+  return geometry.properties
+    ? `${serializedCoordinates}@@${JSON.stringify({ properties: geometry.properties })}`
+    : serializedCoordinates;
 }
 
 function createBaseUrl(baseUrl: string, state: QuickMapLinkState): URL {
@@ -158,34 +182,132 @@ export function buildQuickMapLink(
 
 export function createQuickMapLinkState({
   center,
+  additionalPoints = [],
   stations = [],
   traverses = [],
 }: {
   center: AEGISPoint;
+  additionalPoints?: QuickMapPoint[];
   stations?: Station[];
   traverses?: Traverse[];
 }): QuickMapLinkState {
   const { layerIds, resolutionMetersPerPixel } = getQuickMapConfig();
+  const additionalPointGeometries = additionalPoints.flatMap((point): QuickMapGeometry[] => {
+    if (!isQuickMapPoint(point.location)) return [];
+    return [
+      {
+        type: "Point",
+        coordinates: [point.location.lng, point.location.lat],
+        properties: point.properties,
+      },
+    ];
+  });
   const seenStationUuids = new Set<string>();
   const stationGeometries = stations.flatMap((station): QuickMapGeometry[] => {
     if (seenStationUuids.has(station.uuid) || !isQuickMapPoint(station.location)) {
       return [];
     }
     seenStationUuids.add(station.uuid);
-    return [{ type: "Point", coordinates: [station.location.lng, station.location.lat] }];
+    return [
+      {
+        type: "Point",
+        coordinates: [station.location.lng, station.location.lat],
+        properties: { title: station.name },
+      },
+    ];
   });
   const traverseGeometries = traverses.flatMap((traverse): QuickMapGeometry[] => {
     const coordinates = (traverse.path ?? [])
       .filter(isQuickMapPoint)
       .map((point) => [point.lng, point.lat] as [number, number]);
-    return coordinates.length >= 2 ? [{ type: "LineString", coordinates }] : [];
+    return hasQuickMapDistinctLineCoordinates(coordinates)
+      ? [{ type: "LineString", coordinates, properties: { title: traverse.name } }]
+      : [];
   });
 
   return {
     center,
     resolutionMetersPerPixel,
     layerIds,
-    geometries: [...stationGeometries, ...traverseGeometries],
+    geometries: [...additionalPointGeometries, ...stationGeometries, ...traverseGeometries],
+  };
+}
+
+export function createQuickMapRexPositionLinkState({
+  rex,
+  landerLocation,
+}: {
+  rex: Rex;
+  landerLocation: AEGISPoint | null | undefined;
+}): QuickMapLinkState | null {
+  const positionEntries: QuickMapRexPositionEntry[] = (rex.posEntries ?? [])
+    .flatMap((entry) => {
+      if (!isQuickMapPoint(entry.location)) return [];
+      const primaryPosType = rex.posTypes.find((posType) =>
+        entry.posTypeUuids.includes(posType.uuid)
+      );
+      return primaryPosType ? [{ entry, primaryPosType }] : [];
+    })
+    .sort(
+      (first, second) =>
+        first.entry.petSeconds - second.entry.petSeconds ||
+        first.entry.createdAt - second.entry.createdAt
+    );
+
+  if (positionEntries.length === 0) return null;
+
+  const { layerIds, resolutionMetersPerPixel } = getQuickMapConfig();
+  const pointGeometries: QuickMapGeometry[] = positionEntries.map(({ entry, primaryPosType }) => ({
+    type: "Point",
+    coordinates: [entry.location.lng, entry.location.lat],
+    properties: {
+      title: primaryPosType.name,
+      "marker-symbol": "circle",
+      "marker-color": primaryPosType.pathColor,
+    },
+  }));
+
+  const traverseGeometries = rex.posTypes.flatMap((posType): QuickMapGeometry[] => {
+    const coordinates = positionEntries
+      .filter(({ entry }) => entry.posTypeUuids.includes(posType.uuid))
+      .map(({ entry }) => [entry.location.lng, entry.location.lat] as [number, number]);
+
+    return hasQuickMapDistinctLineCoordinates(coordinates)
+      ? [
+          {
+            type: "LineString",
+            coordinates,
+            properties: {
+              title: posType.name,
+              stroke: posType.pathColor,
+              "stroke-width": "3",
+            },
+          },
+        ]
+      : [];
+  });
+
+  const latestPosition = [...positionEntries].sort(
+    (first, second) =>
+      second.entry.createdAt - first.entry.createdAt ||
+      second.entry.petSeconds - first.entry.petSeconds
+  )[0];
+  const center = latestPosition.entry.location;
+  const landerGeometry: QuickMapGeometry[] = isQuickMapPoint(landerLocation)
+    ? [
+        {
+          type: "Point",
+          coordinates: [landerLocation.lng, landerLocation.lat],
+          properties: { title: "Lander", "marker-color": "#ffffff" },
+        },
+      ]
+    : [];
+
+  return {
+    center,
+    resolutionMetersPerPixel,
+    layerIds,
+    geometries: [...landerGeometry, ...traverseGeometries, ...pointGeometries],
   };
 }
 
@@ -198,5 +320,12 @@ export function openQuickMap(state: QuickMapLinkState): QuickMapLinkResult {
     "popup,width=1440,height=900"
   );
   quickMapWindow?.focus();
+  if (result.omittedGeometryCount > 0) {
+    alert(
+      `QuickMap could not include ${result.omittedGeometryCount} item${
+        result.omittedGeometryCount === 1 ? "" : "s"
+      } because the link exceeds its URL limit.`
+    );
+  }
   return result;
 }

@@ -3,7 +3,12 @@ import { useMemo, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import rexStyles from "./rex.module.css";
 import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
-import { faCirclePlay, faHexagonNodes, faStopwatch } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCirclePlay,
+  faGlobe,
+  faHexagonNodes,
+  faStopwatch,
+} from "@fortawesome/free-solid-svg-icons";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBackwardFast, faPause, faPlay } from "@fortawesome/free-solid-svg-icons";
@@ -18,6 +23,7 @@ import { thunkDocCreateInitialPosEntries } from "store/thunk/thunkRex";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { setOnlyShowRunningRex } from "store/eva";
 import { useAppDispatch } from "utils/useAppDispatch";
+import { createQuickMapRexPositionLinkState, openQuickMap } from "utils/quickMap";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -32,6 +38,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     () => (selectedRexUuid ? docMaps?.rexes?.[selectedRexUuid] : undefined),
     [docMaps, selectedRexUuid]
   );
+  const quickMapLinkState = useMissionDocSelector((mission) => {
+    const rex = selectedRexUuid ? mission.rexes?.[selectedRexUuid] : null;
+    return rex
+      ? createQuickMapRexPositionLinkState({ rex, landerLocation: mission.landerLocation })
+      : null;
+  }, deepEqual);
 
   const rexSelectedEvaDateTime = useMemo(() => {
     if (!selectedRex) return undefined;
@@ -312,6 +324,20 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+        <div className={paneStyles.panelSection}>
+          <div className={paneStyles.panelSectionTitle}>
+            <SubpanelHeading icon={faGlobe}>QuickMap</SubpanelHeading>
+          </div>
+          <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+            <Button
+              onClick={() => quickMapLinkState && openQuickMap(quickMapLinkState)}
+              label="View Crew Positions in QuickMap"
+              toolTip="Opens the REX crew position history in an external QuickMap window"
+              style={{ width: "240px" }}
+              enabled={quickMapLinkState != null}
+            />
           </div>
         </div>
         <div className={paneStyles.panelSection}>
