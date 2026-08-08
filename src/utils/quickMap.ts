@@ -25,6 +25,11 @@ export interface QuickMapPoint {
   properties?: Record<string, string>;
 }
 
+interface QuickMapRexPositionEntry {
+  entry: PosEntry;
+  primaryPosType: PosType;
+}
+
 export const DEFAULT_QUICKMAP_BASE_URL = "https://quickmap.lroc.im-ldi.com/";
 export const DEFAULT_QUICKMAP_LAYER_IDS = ["66", "3921"];
 export const DEFAULT_QUICKMAP_RESOLUTION_METERS_PER_PIXEL = 5;
@@ -222,6 +227,84 @@ export function createQuickMapLinkState({
     resolutionMetersPerPixel,
     layerIds,
     geometries: [...additionalPointGeometries, ...stationGeometries, ...traverseGeometries],
+  };
+}
+
+export function createQuickMapRexPositionLinkState({
+  rex,
+  landerLocation,
+}: {
+  rex: Rex;
+  landerLocation: AEGISPoint | null | undefined;
+}): QuickMapLinkState | null {
+  const positionEntries: QuickMapRexPositionEntry[] = (rex.posEntries ?? [])
+    .flatMap((entry) => {
+      if (!isQuickMapPoint(entry.location)) return [];
+      const primaryPosType = rex.posTypes.find((posType) =>
+        entry.posTypeUuids.includes(posType.uuid)
+      );
+      return primaryPosType ? [{ entry, primaryPosType }] : [];
+    })
+    .sort(
+      (first, second) =>
+        first.entry.petSeconds - second.entry.petSeconds ||
+        first.entry.createdAt - second.entry.createdAt
+    );
+
+  if (positionEntries.length === 0) return null;
+
+  const { layerIds, resolutionMetersPerPixel } = getQuickMapConfig();
+  const pointGeometries: QuickMapGeometry[] = positionEntries.map(({ entry, primaryPosType }) => ({
+    type: "Point",
+    coordinates: [entry.location.lng, entry.location.lat],
+    properties: {
+      title: primaryPosType.name,
+      "marker-symbol": "circle",
+      "marker-color": primaryPosType.pathColor,
+    },
+  }));
+
+  const traverseGeometries = rex.posTypes.flatMap((posType): QuickMapGeometry[] => {
+    const coordinates = positionEntries
+      .filter(({ entry }) => entry.posTypeUuids.includes(posType.uuid))
+      .map(({ entry }) => [entry.location.lng, entry.location.lat] as [number, number]);
+
+    return coordinates.length >= 2
+      ? [
+          {
+            type: "LineString",
+            coordinates,
+            properties: {
+              title: posType.name,
+              stroke: posType.pathColor,
+              "stroke-width": "3",
+            },
+          },
+        ]
+      : [];
+  });
+
+  const latestPosition = [...positionEntries].sort(
+    (first, second) =>
+      second.entry.createdAt - first.entry.createdAt ||
+      second.entry.petSeconds - first.entry.petSeconds
+  )[0];
+  const center = latestPosition.entry.location;
+  const landerGeometry: QuickMapGeometry[] = isQuickMapPoint(landerLocation)
+    ? [
+        {
+          type: "Point",
+          coordinates: [landerLocation.lng, landerLocation.lat],
+          properties: { title: "Lander", "marker-color": "#ffffff" },
+        },
+      ]
+    : [];
+
+  return {
+    center,
+    resolutionMetersPerPixel,
+    layerIds,
+    geometries: [...landerGeometry, ...traverseGeometries, ...pointGeometries],
   };
 }
 

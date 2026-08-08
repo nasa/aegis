@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildQuickMapLink,
   createQuickMapLinkState,
+  createQuickMapRexPositionLinkState,
   normalizeQuickMapLongitude,
   type QuickMapLinkState,
 } from "utils/quickMap";
@@ -96,6 +97,103 @@ describe("QuickMap URL adapter", () => {
         type: "Point",
         coordinates: [180, -89.9],
         properties: { title: "Lander", "marker-color": "#ffffff" },
+      },
+    ]);
+  });
+
+  it("uses position type order to color REX POS circles and traverses", () => {
+    const ev1: PosType = {
+      uuid: "ev1",
+      abbr: "1",
+      name: "EV1",
+      icon: "",
+      pathColor: "#ff0000",
+    };
+    const ev2: PosType = {
+      uuid: "ev2",
+      abbr: "2",
+      name: "EV2",
+      icon: "",
+      pathColor: "#ffffff",
+    };
+    const cart: PosType = {
+      uuid: "cart",
+      abbr: "C",
+      name: "Cart",
+      icon: "",
+      pathColor: "#aaaaaa",
+    };
+    const rex = {
+      posTypes: [ev1, ev2, cart],
+      posEntries: [
+        {
+          uuid: "all-types",
+          location: { lat: -89.9, lng: 100 },
+          petSeconds: 20,
+          posTypeUuids: [cart.uuid, ev2.uuid, ev1.uuid],
+          createdAt: 20,
+        },
+        {
+          uuid: "ev2-cart",
+          location: { lat: -89.91, lng: 101 },
+          petSeconds: 10,
+          posTypeUuids: [cart.uuid, ev2.uuid],
+          createdAt: 10,
+        },
+        {
+          uuid: "cart-only",
+          location: { lat: -89.92, lng: 102 },
+          petSeconds: 30,
+          posTypeUuids: [cart.uuid],
+          createdAt: 30,
+        },
+      ],
+    } as Rex;
+
+    const state = createQuickMapRexPositionLinkState({
+      rex,
+      landerLocation: { lat: -89.89, lng: 99 },
+    });
+
+    expect(state).not.toBeNull();
+    expect(state?.center).toEqual({ lat: -89.92, lng: 102 });
+    expect(state?.geometries).toEqual([
+      {
+        type: "Point",
+        coordinates: [99, -89.89],
+        properties: { title: "Lander", "marker-color": "#ffffff" },
+      },
+      {
+        type: "LineString",
+        coordinates: [
+          [101, -89.91],
+          [100, -89.9],
+        ],
+        properties: { title: "EV2", stroke: "#ffffff", "stroke-width": "3" },
+      },
+      {
+        type: "LineString",
+        coordinates: [
+          [101, -89.91],
+          [100, -89.9],
+          [102, -89.92],
+        ],
+        properties: { title: "Cart", stroke: "#aaaaaa", "stroke-width": "3" },
+      },
+      {
+        type: "Point",
+        coordinates: [101, -89.91],
+        properties: { title: "EV2", "marker-symbol": "circle", "marker-color": "#ffffff" },
+      },
+      {
+        type: "Point",
+        coordinates: [100, -89.9],
+        properties: { title: "EV1", "marker-symbol": "circle", "marker-color": "#ff0000" },
+      },
+      {
+        type: "Point",
+        coordinates: [102, -89.92],
+        properties: { title: "Cart", "marker-symbol": "circle", "marker-color": "#aaaaaa" },
       },
     ]);
   });
