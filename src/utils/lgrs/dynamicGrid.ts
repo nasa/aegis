@@ -9,8 +9,8 @@ import {
 } from "utils/consts";
 
 /**
- * AEGIS LGRS coordinate flow: southLps.ts ports geographic-to-LPS conversion,
- * this module ports LPS-to-LGRS/ACC labels and produces dynamic map geometry.
+ * AEGIS LGRS coordinate flow: southLps.ts ports LGRS python package geographic-to-LPS
+ * conversion, this module ports LPS-to-LGRS/ACC labels and produces dynamic map geometry.
  * Surf-nav is intentionally outside this display path and retained for bearings.
  */
 

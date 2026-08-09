@@ -163,6 +163,10 @@ describe("Geomath Functions", () => {
 });
 
 describe("getTrueBearingFromLatLngPoints()", () => {
+  test("returns 0 when both coordinates are identical", () => {
+    expect(getTrueBearingFromLatLngPoints({ lat: 0, lng: 0 }, { lat: 0, lng: 0 })).toBe(0);
+  });
+
   test("returns 0 for a due-north segment", () => {
     expect(getTrueBearingFromLatLngPoints({ lat: 0, lng: 0 }, { lat: 1, lng: 0 })).toBeCloseTo(
       0,
@@ -236,6 +240,12 @@ describe("getSegmentBearing()", () => {
     const lgrs = getSegmentBearing(horizontalWest, horizontalEast, true);
     const mercator = getSegmentBearing(horizontalWest, horizontalEast, false);
     expect(Math.abs(lgrs - mercator)).toBeGreaterThan(1);
+  });
+
+  test("returns 0 when the segment has no direction", () => {
+    const point: AEGISPoint = { lat: -89, lng: -133 };
+    expect(getSegmentBearing(point, point, true)).toBe(0);
+    expect(getSegmentBearing(point, point, false)).toBe(0);
   });
 });
 

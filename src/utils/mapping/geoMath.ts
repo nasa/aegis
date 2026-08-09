@@ -250,6 +250,8 @@ export function getTrueBearingFromLatLngPoints(
   origin: AEGISPoint,
   destination: AEGISPoint
 ): number {
+  if (origin.lat === destination.lat && origin.lng === destination.lng) return 0;
+
   const lat1 = deg2rad(origin.lat);
   const lat2 = deg2rad(destination.lat);
   const dLon = deg2rad(destination.lng - origin.lng);
