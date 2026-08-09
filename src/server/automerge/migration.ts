@@ -573,6 +573,15 @@ getORM()
       });
     };
 
+    // Migration: legacy missions with LGRS enabled use dynamic rendering by default.
+    const automergeMigration20260809AddGridRenderMode = async (docHandle: DocHandle<Mission>) => {
+      docHandle.change((mission: Mission) => {
+        if (!("gridRenderMode" in mission)) {
+          mission.gridRenderMode = mission.usingLGRSCoordinates ? "dynamic-lgrs" : "server-file";
+        }
+      });
+    };
+
     const automergeMigration20260810RenameStationLabelStrokeToHalo = async (
       docHandle: DocHandle<Mission>
     ) => {
@@ -610,6 +619,7 @@ getORM()
       automergeMigration20260717AddActionNaming,
       automergeMigration20260807MigrateLegacyCircleHaloStyles,
       automergeMigration20260722GridToMissionDoc,
+      automergeMigration20260809AddGridRenderMode,
       automergeMigration20260810RenameStationLabelStrokeToHalo,
     ];
     // Run all the migrations in the list above
