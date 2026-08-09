@@ -77,4 +77,4 @@ tqdm = ">=4.66.0"
 python-dotenv = ">=1.0.0"
 
 [tool.pixi.tasks]
-lgrs-oracle = "python esri-to-aegis-lunar-southpole/grid/generate_lgrs_oracle.py"
+lgrs-reference-corpus = "python esri-to-aegis-lunar-southpole/grid/generate_lgrs_reference_corpus.py"

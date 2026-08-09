@@ -12,9 +12,9 @@ import {
 } from "./dynamicGrid";
 
 /**
- * LGRS owns AEGIS coordinate display: this is the browser port of pinned
- * lgrs LatLonPoint(...).to_lps() for canonical south LPS. Surf-nav remains
- * responsible only for the established LPS grid-north bearing convention.
+ * Port of pinned Python lgrs LatLonPoint(...).to_lps() for canonical south LPS.
+ * Accuracy is verified by the lgrs 0.3.0 reference corpus: more than 3,000 Python-generated
+ * geographic-to-LPS and display-label cases, plus Python-generated viewport-grid render plans.
  */
 const SOUTH_LPS_LATITUDE = -90;
 const SOUTH_LPS_LONGITUDE = 0;

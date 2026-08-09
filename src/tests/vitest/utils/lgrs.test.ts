@@ -20,7 +20,7 @@ type ExpectedLabel = {
   lowerLeft: [number, number];
 };
 
-type OraclePointCase = {
+type ReferencePointCase = {
   category: string;
   easting: number;
   northing: number;
@@ -29,7 +29,7 @@ type OraclePointCase = {
   expected: ExpectedLabel | null;
 };
 
-type OracleViewport = {
+type ReferenceViewport = {
   name: string;
   extent: LpsExtent;
   gridSpacingMode: GridSpacingMode;
@@ -49,7 +49,7 @@ type OracleViewport = {
   };
 };
 
-type OracleProjectionCase = {
+type ReferenceProjectionCase = {
   category: string;
   latitude: number;
   longitude: number;
@@ -65,15 +65,15 @@ type OracleProjectionCase = {
 const fixturePath = (filename: string) =>
   resolve(process.cwd(), "src/tests/vitest/fixtures/lgrs/0.3.0", filename);
 const pointFixture = JSON.parse(readFileSync(fixturePath("south-lps-cases.json"), "utf8")) as {
-  readableCases: OraclePointCase[];
-  seededCases: OraclePointCase[];
+  readableCases: ReferencePointCase[];
+  seededCases: ReferencePointCase[];
 };
 const viewportFixture = JSON.parse(
   readFileSync(fixturePath("south-lps-viewports.json"), "utf8")
-) as { viewports: OracleViewport[] };
+) as { viewports: ReferenceViewport[] };
 const projectionFixture = JSON.parse(
   readFileSync(fixturePath("south-lps-projection-cases.json"), "utf8")
-) as { readableCases: OracleProjectionCase[]; seededCases: OracleProjectionCase[] };
+) as { readableCases: ReferenceProjectionCase[]; seededCases: ReferenceProjectionCase[] };
 
 function roundedCoordinate(coordinate: [number, number]): [number, number] {
   return coordinate.map((value) => Number(value.toFixed(6))) as [number, number];
@@ -96,7 +96,7 @@ describe("formatSouthLpsCoordinate", () => {
     [[500000, 499999.999], 100, "BAM000249", "BAM-0Z9", "-0 Z9"],
     [[475000, 500000], 100, "AZN000000", "AZN-0-0", "-0 -0"],
   ] as const)(
-    "matches the Python oracle at %j with %s m precision",
+    "matches the Python reference data at %j with %s m precision",
     (coordinate, precision, lgrs, acc, text) => {
       expect(formatSouthLpsCoordinate([...coordinate], precision)).toMatchObject({
         lgrs,
@@ -179,24 +179,27 @@ describe("canonical cap projection", () => {
   });
 });
 
-describe("lgrs 0.3.0 oracle corpus", () => {
-  test("matches every geographic-to-LPS and display-label oracle case", () => {
+describe("lgrs 0.3.0 reference corpus", () => {
+  test("matches every geographic-to-LPS and display-label reference case", () => {
     const cases = [...projectionFixture.readableCases, ...projectionFixture.seededCases];
     expect(cases.length).toBeGreaterThan(3000);
 
-    for (const oracleCase of cases) {
-      const point = { lat: oracleCase.latitude, lng: oracleCase.longitude } as AEGISPoint;
+    for (const referenceCase of cases) {
+      const point = { lat: referenceCase.latitude, lng: referenceCase.longitude } as AEGISPoint;
       const coordinate = latLonToSouthLps(point);
-      expect(coordinate, oracleCase.category).not.toBeNull();
-      expect(coordinate![0], oracleCase.category).toBeCloseTo(oracleCase.expected.easting, 6);
-      expect(coordinate![1], oracleCase.category).toBeCloseTo(oracleCase.expected.northing, 6);
+      expect(coordinate, referenceCase.category).not.toBeNull();
+      expect(coordinate![0], referenceCase.category).toBeCloseTo(referenceCase.expected.easting, 6);
+      expect(coordinate![1], referenceCase.category).toBeCloseTo(
+        referenceCase.expected.northing,
+        6
+      );
 
       const label = formatSouthLpsFromLatLng(point, 10);
-      expect(label, oracleCase.category).not.toBeNull();
-      expect(label, oracleCase.category).toMatchObject({
-        lgrs: oracleCase.expected.lgrs,
-        acc: oracleCase.expected.acc,
-        text: oracleCase.expected.text,
+      expect(label, referenceCase.category).not.toBeNull();
+      expect(label, referenceCase.category).toMatchObject({
+        lgrs: referenceCase.expected.lgrs,
+        acc: referenceCase.expected.acc,
+        text: referenceCase.expected.text,
       });
     }
   });
@@ -205,27 +208,27 @@ describe("lgrs 0.3.0 oracle corpus", () => {
     const cases = [...pointFixture.readableCases, ...pointFixture.seededCases];
     expect(cases.length).toBeGreaterThan(3000);
 
-    for (const oracleCase of cases) {
+    for (const referenceCase of cases) {
       const actual = formatSouthLpsCoordinate(
-        [oracleCase.easting, oracleCase.northing],
-        oracleCase.precision
+        [referenceCase.easting, referenceCase.northing],
+        referenceCase.precision
       );
-      if (!oracleCase.supported) {
-        expect(actual, oracleCase.category).toBeNull();
+      if (!referenceCase.supported) {
+        expect(actual, referenceCase.category).toBeNull();
       } else {
-        expect(actual, oracleCase.category).not.toBeNull();
-        expect(expectedLabel(actual!), oracleCase.category).toEqual(oracleCase.expected);
+        expect(actual, referenceCase.category).not.toBeNull();
+        expect(expectedLabel(actual!), referenceCase.category).toEqual(referenceCase.expected);
       }
     }
   });
 
-  test.each(viewportFixture.viewports)("matches viewport plan $name", (oracle) => {
+  test.each(viewportFixture.viewports)("matches viewport plan $name", (reference) => {
     const actual = createDynamicLgrsRenderPlan({
-      extent: oracle.extent,
-      gridSpacingMode: oracle.gridSpacingMode,
-      gridLabelInterval: oracle.gridLabelInterval,
-      mapResolution: oracle.mapResolution,
-      labelsVisible: oracle.labelsVisible,
+      extent: reference.extent,
+      gridSpacingMode: reference.gridSpacingMode,
+      gridLabelInterval: reference.gridLabelInterval,
+      mapResolution: reference.mapResolution,
+      labelsVisible: reference.labelsVisible,
     });
     const normalized = {
       lineSpacing: actual.lineSpacing,
@@ -242,7 +245,7 @@ describe("lgrs 0.3.0 oracle corpus", () => {
       })),
     };
 
-    expect(normalized).toEqual(oracle.expected);
+    expect(normalized).toEqual(reference.expected);
   });
 
   test("builds a representative 10 km plan within the regression budget", () => {
