@@ -9,7 +9,7 @@ interface Mission {
   missionBanner: string | null;
   isArchived: boolean;
   usingLGRSCoordinates: boolean;
-  gridRenderMode?: GridRenderMode;
+  gridRenderMode: GridRenderMode;
   actionSystemVersion: number;
   actionDefinitions: ActionDefinitions | null;
   landerLocation: AEGISPoint;
