@@ -19,12 +19,12 @@ export function getLoadedGridSnapshot(): MissionGrid {
   return globalGrid;
 }
 
-export function getGridRenderMode(mission: Pick<Mission, "gridRenderMode">): GridRenderMode {
+export function getGridRenderMode(mission: { gridRenderMode?: GridRenderMode }): GridRenderMode {
   return mission.gridRenderMode ?? "server-file";
 }
 
 export function resolveMissionGrid(
-  mission: Pick<Mission, "grid" | "gridRenderMode">,
+  mission: Pick<Mission, "grid"> & { gridRenderMode?: GridRenderMode },
   serverGrid: MissionGrid = globalGrid
 ): ResolvedMissionGrid {
   if (getGridRenderMode(mission) === "dynamic-lgrs") return { kind: "dynamic-lgrs" };
