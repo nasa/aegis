@@ -31,7 +31,7 @@ import CalculatedDwell from "../calculated-dwell";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { setOriginalPoints, updateMapDirective } from "store/map";
 import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
-import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateStationByField } from "operations/apply/apply-station";
@@ -128,7 +128,7 @@ const Info_Panel: FunctionComponent<{
   const gridCornerPoint = useAppSelector((state) => state.map.gridCornerPoint, refEqual);
   const stationGridCoordinates = useMemo(() => {
     if (selectedStation?.location && partialMission.usingLGRSCoordinates) {
-      return getLGRSCoordsFromLatLng(selectedStation.location.lat, selectedStation.location.lng);
+      return getSouthLpsDisplayCoordinate(selectedStation.location) ?? "Not set";
     }
     if (selectedStation?.location && resolvedGrid.kind === "server-file" && gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(

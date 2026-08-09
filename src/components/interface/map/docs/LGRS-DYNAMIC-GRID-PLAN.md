@@ -18,10 +18,12 @@
 - Added `resolveMissionGrid` and `useResolvedMissionGrid` as the runtime compatibility boundary. Map rendering, mouse coordinates, preferences, panes, pages, and exports consume the resolved source instead of importing `globalGrid` directly.
 - Updated mission and dashboard loading so dynamic missions clear legacy loaded data and do not call `loadAndReturnGrid`.
 - Added the pure `src/utils/lgrs/dynamicGrid.ts` south-LPS subset. It implements floor-based cell selection, LGRS and ACC labels, canonical cap/LPS transforms, fixed and auto spacing, label spacing, and clipping at the nominal 80 degrees south LPS boundary.
+- Added `src/utils/lgrs/southLps.ts`, a narrow TypeScript port of pinned `lgrs.coords.LatLonPoint(...).to_lps()` for canonical south LPS. It feeds every displayed LGRS/ACC coordinate into the shared label formatter.
 - Updated the OpenLayers `Grid` behavior to generate $O(n_x + n_y)$ line features from the visible LPS extent. Rebuilds are limited to one per animation frame while moving, followed by a final `moveend` rebuild.
 - Preserved the server-file matrix renderer, geometry-derived base spacing, grid styles, label controls, historical export data, and upload/API behavior behind the resolver.
 - Pinned the authority to Python `lgrs==0.3.0`, tag `v0.3.0`, commit `6ba953e09e5dde9d379df5b2c1a91b7b958fb851`.
 - Added a deterministic Python oracle generator, committed metadata/cases/viewports/manifests, a 3,000-point seeded corpus, pure Vitest replay and performance tests, browser rendering tests, and a CI regeneration/diff job.
+- Added a second 3,010-case geographic-to-LPS oracle (`south-lps-projection-cases.json`) that validates projected metres and final 10 m LGRS/ACC display text from the same upstream package.
 - Removed direct application imports of `globalGrid`; the mutable value now exists only inside the server-file compatibility module and its test mocks.
 
 ### Verification performed
@@ -49,6 +51,8 @@ AEGIS should not use the Python pipeline or `/api/v1/grid` to draw new LGRS grid
 The authoritative behavior remains the Python `lgrs` library. The TypeScript implementation must be a deliberately small south-LPS port, verified against a version-pinned Python oracle. It must not become a general replacement for the Python package's LTM, multi-zone, file-export, or GeoPandas features.
 
 `mission.usingLGRSCoordinates` is not a grid feature gate. It controls coordinate display and bearing conventions in the UI. Grid rendering must be selected independently by an explicit mission-level mode.
+
+For canonical south-LPS missions, `utils/lgrs/southLps.ts` owns geographic-to-LPS conversion, while `utils/lgrs/dynamicGrid.ts` owns LPS-to-LGRS/ACC formatting and dynamic grid geometry. `utils/surf-nav/` remains only for the existing LPS grid-north bearing convention.
 
 ### Non-goals
 
@@ -170,14 +174,14 @@ Create a new pure utility module under `src/utils/lgrs/` for the dynamic grid. K
 
 It should:
 
-- Reuse the existing latitude/longitude to LPS conversion constants and formulas where they match the standard.
+- Port the pinned `lgrs` geographic-to-canonical-south-LPS transform and verify it with a separate lat/lng-to-LPS oracle corpus.
 - Implement the south-LPS cell boundary convention with the library's floor behavior, not the current hover formatter's rounding behavior.
 - Implement full south-LPS LGRS and ACC zone/area/precision formatting needed for labels.
 - Generate visible easting and northing line positions from viewport bounds and the user's selected 10 m, 100 m, 1 km, or auto display spacing.
 - Produce a render plan containing only lines and labels needed for the current viewport.
 - Expose pure coordinate and label functions so unit tests do not need an OpenLayers map.
 
-Do not modify the existing surf-nav coordinate functions merely to accommodate rendering. They are documented as a matched copy of another system. The new `src/utils/lgrs/` module owns its own explicit `lgrs` conformance tests and may only consume shared constants or projection helpers through deliberate, tested boundaries.
+Do not modify the existing surf-nav coordinate functions merely to accommodate rendering. They remain a matched copy used only for LPS grid-north bearings. The new `src/utils/lgrs/` module owns explicit `lgrs` conformance tests for geographic-to-LPS conversion and LGRS/ACC formatting.
 
 ### 3.5 Map rendering
 

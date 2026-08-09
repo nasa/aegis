@@ -10,7 +10,7 @@ import math
 import random
 from pathlib import Path
 
-from lgrs.coords import LpsPoint
+from lgrs.coords import LatLonPoint, LpsPoint
 
 ORACLE_VERSION = "0.3.0"
 ORACLE_TAG = "v0.3.0"
@@ -19,20 +19,30 @@ ORACLE_REPOSITORY = "https://github.com/rbeyer/lgrs"
 STANDARD = "USGS Techniques and Methods 11-E1 (2025), mark 7.2 reference code"
 SEED = 9382026
 RANDOM_CASE_COUNT = 3000
+PROJECTION_RANDOM_CASE_COUNT = 3000
 LUNAR_RADIUS = 1_737_400.0
 LPS_SCALE = 0.994
 FALSE_ORIGIN = 500_000.0
 MIN_LATITUDE = -80.0
 DOMAIN_RADIUS = 2 * LUNAR_RADIUS * LPS_SCALE * math.tan(math.radians(5))
+DOMAIN_TOLERANCE_METERS = 1e-6
 PRECISIONS = (10, 100, 1000)
+DISPLAY_PRECISION = 10
 
 
 def round_coordinate(value: float) -> float:
     return round(value, 6)
 
 
+def round_projection_coordinate(value: float) -> float:
+    return round(value, 9)
+
+
 def is_supported(easting: float, northing: float) -> bool:
-    return math.hypot(easting - FALSE_ORIGIN, northing - FALSE_ORIGIN) <= DOMAIN_RADIUS
+    return (
+        math.hypot(easting - FALSE_ORIGIN, northing - FALSE_ORIGIN)
+        <= DOMAIN_RADIUS + DOMAIN_TOLERANCE_METERS
+    )
 
 
 def oracle_label(easting: float, northing: float, precision: int) -> dict | None:
@@ -120,6 +130,56 @@ def seeded_cases() -> list[dict]:
         precision = PRECISIONS[index % len(PRECISIONS)]
         cases.append(point_case(easting, northing, precision, "seeded"))
     return cases
+
+
+def projection_case(latitude: float, longitude: float, category: str) -> dict:
+    latitude = round_coordinate(latitude)
+    longitude = round_coordinate(longitude)
+    point = LatLonPoint(latitude=latitude, longitude=longitude)
+    lps = point.to_lps()
+    lgrs_box = point.to_lgrs(precision=DISPLAY_PRECISION)
+    acc_box = lgrs_box.to_acc(precision=DISPLAY_PRECISION)
+    half = len(acc_box.condensed) // 2
+    return {
+        "category": category,
+        "latitude": point.latitude,
+        "longitude": point.longitude,
+        "expected": {
+            "easting": round_projection_coordinate(lps.easting),
+            "northing": round_projection_coordinate(lps.northing),
+            "lgrs": lgrs_box.string,
+            "acc": acc_box.string,
+            "text": f"{acc_box.condensed[:half]} {acc_box.condensed[half:]}",
+        },
+    }
+
+
+def projection_cases() -> dict:
+    readable = [
+        (-90.0, 0.0, "south-pole"),
+        (-89.0, -133.0, "surf-nav-regression"),
+        (-85.0, 2.0, "upstream-usage-example"),
+        (-80.0, 0.0, "south-lps-boundary-central-meridian"),
+        (-80.0, -179.999, "south-lps-boundary-west-dateline"),
+        (-80.0, 179.999, "south-lps-boundary-east-dateline"),
+        (-80.000001, 45.0, "south-lps-boundary-poleward"),
+        (-85.0, -90.0, "west-cardinal-meridian"),
+        (-85.0, 90.0, "east-cardinal-meridian"),
+        (-85.0, 180.0, "antimeridian"),
+    ]
+    rng = random.Random(SEED + 1)
+    seeded = [
+        (
+            -90.0 + rng.random() * (MIN_LATITUDE + 90.0),
+            -180.0 + rng.random() * 360.0,
+            "seeded",
+        )
+        for _ in range(PROJECTION_RANDOM_CASE_COUNT)
+    ]
+    return {
+        "readableCases": [projection_case(*case) for case in readable],
+        "seededCases": [projection_case(*case) for case in seeded],
+    }
 
 
 def align_first(value: float, spacing: int) -> int:
@@ -315,13 +375,18 @@ def generate(output: Path) -> None:
         "command": "pixi run lgrs-oracle",
         "seed": SEED,
         "seededCaseCount": RANDOM_CASE_COUNT,
+        "projectionCaseCount": PROJECTION_RANDOM_CASE_COUNT,
+        "projectionDisplayPrecisionMeters": DISPLAY_PRECISION,
+        "projectionSource": "lgrs.coords.LatLonPoint(...).to_lps()",
         "southLpsMinimumLatitude": MIN_LATITUDE,
         "southLpsDomainRadiusMeters": DOMAIN_RADIUS,
+        "southLpsDomainToleranceMeters": DOMAIN_TOLERANCE_METERS,
     }
     cases = {"readableCases": readable_cases(), "seededCases": seeded_cases()}
     files = {
         "metadata.json": metadata,
         "south-lps-cases.json": cases,
+        "south-lps-projection-cases.json": projection_cases(),
         "south-lps-viewports.json": {"viewports": viewport_cases()},
     }
     for filename, value in files.items():

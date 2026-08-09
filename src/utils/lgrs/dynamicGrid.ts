@@ -8,11 +8,18 @@ import {
   SURF_NAV_MOON_MEAN_RADIUS,
 } from "utils/consts";
 
+/**
+ * AEGIS LGRS coordinate flow: southLps.ts ports geographic-to-LPS conversion,
+ * this module ports LPS-to-LGRS/ACC labels and produces dynamic map geometry.
+ * Surf-nav is intentionally outside this display path and retained for bearings.
+ */
+
 const BASE_GRID_SPACING_METERS = 10;
 const LINE_CELL_TARGET = 100;
 const LABEL_TARGET = 25;
 const LABEL_MIN_PX = 60;
 const SOUTH_LPS_MIN_LATITUDE = -80;
+const SOUTH_LPS_DOMAIN_TOLERANCE_METERS = 1e-6;
 const STANDARD_PRECISIONS = [1000, 100, 10, 1] as const;
 
 export const SOUTH_LPS_DOMAIN_RADIUS_METERS =
@@ -87,7 +94,7 @@ export function isSupportedSouthLpsCoordinate([easting, northing]: LpsCoordinate
   if (!Number.isFinite(easting) || !Number.isFinite(northing)) return false;
   return (
     Math.hypot(easting - SURF_NAV_LPS_FALSE_EAST, northing - SURF_NAV_LPS_FALSE_NORTH) <=
-    SOUTH_LPS_DOMAIN_RADIUS_METERS
+    SOUTH_LPS_DOMAIN_RADIUS_METERS + SOUTH_LPS_DOMAIN_TOLERANCE_METERS
   );
 }
 

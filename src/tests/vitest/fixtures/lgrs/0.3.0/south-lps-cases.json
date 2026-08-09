@@ -2145,26 +2145,53 @@
     {
       "category": "domain-edge",
       "easting": 802181.574372,
-      "expected": null,
+      "expected": {
+        "acc": "BNNB18-00",
+        "condensed": "B18-00",
+        "lgrs": "BNN02180000",
+        "lowerLeft": [
+          802180.0,
+          500000.0
+        ],
+        "text": "B18 -00"
+      },
       "northing": 500000.0,
       "precision": 10,
-      "supported": false
+      "supported": true
     },
     {
       "category": "domain-edge",
       "easting": 802181.574372,
-      "expected": null,
+      "expected": {
+        "acc": "BNNB1-0",
+        "condensed": "B1-0",
+        "lgrs": "BNN021000",
+        "lowerLeft": [
+          802100.0,
+          500000.0
+        ],
+        "text": "B1 -0"
+      },
       "northing": 500000.0,
       "precision": 100,
-      "supported": false
+      "supported": true
     },
     {
       "category": "domain-edge",
       "easting": 802181.574372,
-      "expected": null,
+      "expected": {
+        "acc": "BNNB-",
+        "condensed": "B-",
+        "lgrs": "BNN0200",
+        "lowerLeft": [
+          802000.0,
+          500000.0
+        ],
+        "text": "B -"
+      },
       "northing": 500000.0,
       "precision": 1000,
-      "supported": false
+      "supported": true
     },
     {
       "category": "domain-outside",

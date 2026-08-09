@@ -2,8 +2,8 @@
  * MouseCoordinateDisplay — shows lat/lng + grid coordinates under the cursor.
  *
  * Listens to `pointermove` on the OL map and converts projected coordinates
- * back to AEGIS lat/lng, then computes grid coordinates using the existing
- * `getGridCoordinatesFromPoint()` utility.
+ * back to AEGIS lat/lng, then computes grid coordinates through the LGRS
+ * display adapter in `getGridCoordinatesFromPoint()`.
  *
  * Editor only.
  */
