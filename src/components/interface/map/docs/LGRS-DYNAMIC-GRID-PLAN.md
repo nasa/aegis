@@ -22,24 +22,24 @@
 - Updated the OpenLayers `Grid` behavior to generate $O(n_x + n_y)$ line features from the visible LPS extent. Rebuilds are limited to one per animation frame while moving, followed by a final `moveend` rebuild.
 - Preserved the server-file matrix renderer, geometry-derived base spacing, grid styles, label controls, historical export data, and upload/API behavior behind the resolver.
 - Pinned the authority to Python `lgrs==0.3.0`, tag `v0.3.0`, commit `6ba953e09e5dde9d379df5b2c1a91b7b958fb851`.
-- Added a deterministic Python oracle generator, committed metadata/cases/viewports/manifests, a 3,000-point seeded corpus, pure Vitest replay and performance tests, browser rendering tests, and a CI regeneration/diff job.
-- Added a second 3,010-case geographic-to-LPS oracle (`south-lps-projection-cases.json`) that validates projected metres and final 10 m LGRS/ACC display text from the same upstream package.
+- Added a deterministic Python reference-corpus generator, committed metadata/cases/viewports/manifests, a 3,000-point seeded corpus, pure Vitest replay and performance tests, browser rendering tests, and a CI regeneration/diff job.
+- Added a second 3,010-case geographic-to-LPS reference corpus (`south-lps-projection-cases.json`) that validates projected metres and final 10 m LGRS/ACC display text from the same upstream package.
 - Removed direct application imports of `globalGrid`; the mutable value now exists only inside the server-file compatibility module and its test mocks.
 
 ### Verification performed
 
-- Regenerated the oracle into a temporary directory and verified a byte-for-byte diff against the committed fixtures.
+- Regenerated the reference corpus into a temporary directory and verified a byte-for-byte diff against the committed fixtures.
 - Ran the complete repository gate: lint, TypeScript, frontend/backend builds, 1,322 unit tests in 104 files, and 323 browser tests in 35 files.
 - Confirmed legacy server-file rendering and export tests still pass and dynamic rendering works without a loaded matrix.
 
 ### Follow-up work
 
 1. **Add end-to-end workflow coverage.** Exercise the real admin toggle, projection eligibility message, Automerge persistence, page load, and map render together. Assert at the network boundary that a dynamic mission performs no full-grid request and writes no `Data/<grid>.json` file; the current browser grid test mocks the resolver.
-2. **Expand explicit oracle boundary tables.** The seeded corpus and selected readable transitions pass, but add table cases for every reachable 25 km easting/northing alphabet transition and explicit latitude samples immediately poleward, on, and equatorward of 80 degrees south. Add independent containment and label round-trip invariants rather than relying only on expected-value replay.
+2. **Expand explicit reference boundary tables.** The seeded corpus and selected readable transitions pass, but add table cases for every reachable 25 km easting/northing alphabet transition and explicit latitude samples immediately poleward, on, and equatorward of 80 degrees south. Add independent containment and label round-trip invariants rather than relying only on expected-value replay.
 3. **Replace the compatibility singleton.** `globalGrid` has no direct application consumers, but `utils/mapping/grid.ts` still stores the loaded server-file grid in one module-level value observed through `useSyncExternalStore`. Replace it with mission-keyed state or a scoped provider before supporting multiple simultaneously mounted missions.
 4. **Audit `/api/v1/grid/closestPoint`.** Confirm external usage before deleting this legacy endpoint. No current browser caller was found.
 5. **Document legacy retirement.** Define migration guidance for custom/uploaded missions and the conditions under which the upload API, coordinate files, and matrix-based exports can be retired.
-6. **Confirm the first CI oracle run.** The job uses Python 3.14 and installs the exact PyPI package before regenerating fixtures. Verify package installation, dependency-proxy access, and runtime on the OpenShift runner after the branch is pushed.
+6. **Confirm the first CI reference-corpus run.** The job uses Python 3.14 and installs the exact PyPI package before regenerating fixtures. Verify package installation, dependency-proxy access, and runtime on the OpenShift runner after the branch is pushed.
 7. **Generalize projection support only when needed.** The initial renderer intentionally supports the verified canonical cap profile. A future noncanonical mission projection requires LPS-to-geographic-to-map endpoint transforms and potentially adaptive line densification. LTM and LPS/LTM overlap remain out of scope.
 
 ---
@@ -48,7 +48,7 @@
 
 AEGIS should not use the Python pipeline or `/api/v1/grid` to draw new LGRS grids. The browser already contains the LPS conversion constants used by the LGRS standard and can generate only the grid lines and labels visible in the viewport.
 
-The authoritative behavior remains the Python `lgrs` library. The TypeScript implementation must be a deliberately small south-LPS port, verified against a version-pinned Python oracle. It must not become a general replacement for the Python package's LTM, multi-zone, file-export, or GeoPandas features.
+The authoritative behavior remains the Python `lgrs` library. The TypeScript implementation must be a deliberately small south-LPS port, verified against a version-pinned Python reference corpus. It must not become a general replacement for the Python package's LTM, multi-zone, file-export, or GeoPandas features.
 
 `mission.usingLGRSCoordinates` is not a grid feature gate. It controls coordinate display and bearing conventions in the UI. Grid rendering must be selected independently by an explicit mission-level mode.
 
@@ -174,7 +174,7 @@ Create a new pure utility module under `src/utils/lgrs/` for the dynamic grid. K
 
 It should:
 
-- Port the pinned `lgrs` geographic-to-canonical-south-LPS transform and verify it with a separate lat/lng-to-LPS oracle corpus.
+- Port the pinned `lgrs` geographic-to-canonical-south-LPS transform and verify it with a separate lat/lng-to-LPS reference corpus.
 - Implement the south-LPS cell boundary convention with the library's floor behavior, not the current hover formatter's rounding behavior.
 - Implement full south-LPS LGRS and ACC zone/area/precision formatting needed for labels.
 - Generate visible easting and northing line positions from viewport bounds and the user's selected 10 m, 100 m, 1 km, or auto display spacing.
@@ -262,7 +262,7 @@ Do not vendor a large opaque GeoJSON from the upstream repository as the primary
 Instead, provide a deterministic Python fixture generator and commit its compact JSON outputs under a path such as:
 
 ```text
-src/tests/vitest/fixtures/lgrs/<oracle-version>/
+src/tests/vitest/fixtures/lgrs/<reference-version>/
   metadata.json
   south-lps-cases.json
   south-lps-viewports.json
@@ -270,7 +270,7 @@ src/tests/vitest/fixtures/lgrs/<oracle-version>/
 
 The corpus should contain both readable table cases and a deterministic seeded sample. A corpus of several thousand points and viewport plans is small enough for ordinary Git review and much more useful than a massive GeoJSON grid.
 
-**Fixture lifecycle:** CI reads the committed corpus only; it does not install Python or regenerate fixture output. When intentionally changing the LGRS contract or upgrading its pinned version, run `pixi run lgrs-oracle`, review the resulting fixture changes, and commit them together.
+**Fixture lifecycle:** CI reads the committed corpus only; it does not install Python or regenerate fixture output. When intentionally changing the LGRS contract or upgrading its pinned version, run `pixi run lgrs-reference-corpus`, review the resulting fixture changes, and commit them together.
 
 ### 5.3 Required fixture cases
 
@@ -313,7 +313,7 @@ The normal Node test suite reads committed JSON only and therefore stays fast an
 2. Add `gridRenderMode` to the mission schema, defaulting missing values to `"server-file"`.
 3. Add the two-option **Grid Rendering** toggle beside **Using LGRS Coordinate System** on the mission admin page, with independent state changes and projection validation.
 4. Document the current fixed-spacing and auto-density rules as the dynamic renderer's required behavior.
-5. Write the Python oracle generator and commit the first corpus.
+5. Write the Python reference-corpus generator and commit the first corpus.
 
 **Exit criterion:** expected outputs are generated from a known pinned Python environment and reviewed as a conformance contract.
 
@@ -323,10 +323,10 @@ The normal Node test suite reads committed JSON only and therefore stays fast an
 
 1. Add the narrow south-LPS TypeScript utility module.
 2. Implement canonical LGRS line snapping for 10 m, 100 m, 1 km, and auto display spacing, plus full labels and domain clipping.
-3. Add unit and property tests against the complete oracle corpus.
+3. Add unit and property tests against the complete reference corpus.
 4. Do not connect it to the map until all pure tests pass.
 
-**Exit criterion:** TypeScript matches every oracle coordinate, label, corner, and unsupported-domain outcome.
+**Exit criterion:** TypeScript matches every reference coordinate, label, corner, and unsupported-domain outcome.
 
 ### Phase C: Add the resolver and dynamic map path
 
@@ -365,7 +365,7 @@ The normal Node test suite reads committed JSON only and therefore stays fast an
 ## 7. Acceptance Criteria
 
 - A mission in `dynamic-lgrs` mode renders correct LGRS lines and labels without uploading or downloading a grid matrix.
-- Dynamic TypeScript results match the version-pinned Python oracle across every committed conformance case.
+- Dynamic TypeScript results match the version-pinned Python reference corpus across every committed conformance case.
 - The dynamic path never renders beyond the supported LPS domain or silently enters unsupported LTM behavior.
 - Dynamic `Auto` spacing follows the existing visible-extent stride behavior, while fixed 10 m, 100 m, and 1 km modes retain their selected spacing.
 - Dynamic viewport rendering uses the existing auto-density rules rather than a new feature-limit policy.

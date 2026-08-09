@@ -358,9 +358,7 @@ def write_json(path: Path, value: object) -> None:
 def generate(output: Path) -> None:
     installed_version = importlib.metadata.version("lgrs")
     if installed_version != REFERENCE_VERSION:
-        raise RuntimeError(
-            f"Expected lgrs {REFERENCE_VERSION}, found {installed_version}"
-        )
+        raise RuntimeError(f"Expected lgrs {REFERENCE_VERSION}, found {installed_version}")
 
     output.mkdir(parents=True, exist_ok=True)
     generator_path = Path(__file__).resolve()
