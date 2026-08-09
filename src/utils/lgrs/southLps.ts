@@ -21,6 +21,11 @@ const SOUTH_LPS_LONGITUDE = 0;
 export const LGRS_DISPLAY_PRECISION_METERS: LgrsPrecision = 10;
 const LPS_NUMERIC_TOLERANCE_METERS = 1e-9;
 
+interface LpsPair {
+  e_lps: number;
+  n_lps: number;
+}
+
 function radians(degrees: number): number {
   return (degrees * Math.PI) / 180;
 }
@@ -54,6 +59,18 @@ export function latLonToSouthLps(point: AEGISPoint): LpsCoordinate | null {
     SURF_NAV_LPS_FALSE_NORTH;
 
   return [normalizeLpsCoordinate(easting), normalizeLpsCoordinate(northing)];
+}
+
+/* LGRS owns AEGIS coordinate display: this is the browser port of pinned
+ * lgrs LatLonPoint(...).to_lps() for canonical south LPS. Surf-nav remains
+ * responsible only for the established LPS grid-north bearing convention.
+ */
+export function latlong_to_lps(lat: number, lng: number): LpsPair | null {
+  const coordinate = latLonToSouthLps({ lat, lng });
+  if (!coordinate) return null;
+
+  const [e_lps, n_lps] = coordinate;
+  return { e_lps, n_lps };
 }
 
 export function formatSouthLpsFromLatLng(

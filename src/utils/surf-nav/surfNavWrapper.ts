@@ -1,13 +1,15 @@
 /**
- * Surf-nav bearing bridge. LGRS coordinate display and dynamic-grid projection
- * live in utils/lgrs/southLps; this wrapper preserves only LPS grid-north bearings.
+ * Surf-nav bearing bridge. LGRS owns the LPS projection; surf-nav supplies
+ * only the planar grid-north bearing calculation.
  */
-import { latlong_to_lps } from "./coordinates";
+import { latlong_to_lps } from "utils/lgrs/southLps";
 import { range_bearing_from_xy } from "./orienteering";
 
 export function getBearingFromLatLngPoints(origin: AEGISPoint, destination: AEGISPoint): number {
-  const oLpsPair: SN_LPSPair = latlong_to_lps(origin.lat, origin.lng);
-  const dLpsPair: SN_LPSPair = latlong_to_lps(destination.lat, destination.lng);
+  const oLpsPair = latlong_to_lps(origin.lat, origin.lng);
+  const dLpsPair = latlong_to_lps(destination.lat, destination.lng);
+  if (!oLpsPair || !dLpsPair) return 0;
+
   const rangeBearing: SN_RangeBearingPair = range_bearing_from_xy(
     dLpsPair.e_lps,
     dLpsPair.n_lps,
@@ -15,5 +17,5 @@ export function getBearingFromLatLngPoints(origin: AEGISPoint, destination: AEGI
     oLpsPair.n_lps
   );
 
-  return rangeBearing.bearing;
+  return rangeBearing.range === 0 ? 0 : rangeBearing.bearing;
 }
