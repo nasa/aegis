@@ -44,18 +44,20 @@ export function getQuickMapConfig(): Pick<
   QuickMapLinkState,
   "resolutionMetersPerPixel" | "layerIds"
 > & { baseUrl: string } {
-  const configuredLayerIds = import.meta.env.VITE_QUICKMAP_LAYER_IDS?.split(",")
+  const configuredLayerIds = (import.meta.env.VITE_QUICKMAP_LAYER_IDS as string | undefined)
+    ?.split(",")
     .map((layerId) => layerId.trim())
     .filter(Boolean);
 
   return {
-    baseUrl: import.meta.env.VITE_QUICKMAP_BASE_URL || DEFAULT_QUICKMAP_BASE_URL,
+    baseUrl:
+      (import.meta.env.VITE_QUICKMAP_BASE_URL as string | undefined) || DEFAULT_QUICKMAP_BASE_URL,
     layerIds:
       configuredLayerIds && configuredLayerIds.length > 0
         ? configuredLayerIds
         : DEFAULT_QUICKMAP_LAYER_IDS,
     resolutionMetersPerPixel: getConfiguredPositiveNumber(
-      import.meta.env.VITE_QUICKMAP_RESOLUTION_METERS_PER_PIXEL,
+      import.meta.env.VITE_QUICKMAP_RESOLUTION_METERS_PER_PIXEL as string | undefined,
       DEFAULT_QUICKMAP_RESOLUTION_METERS_PER_PIXEL
     ),
   };
