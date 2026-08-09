@@ -10,6 +10,7 @@ import {
   type LgrsPrecision,
   type LpsExtent,
 } from "utils/lgrs/dynamicGrid";
+import { formatSouthLpsFromLatLng, latLonToSouthLps } from "utils/lgrs/southLps";
 
 type ExpectedLabel = {
   lgrs: string;
@@ -48,6 +49,19 @@ type OracleViewport = {
   };
 };
 
+type OracleProjectionCase = {
+  category: string;
+  latitude: number;
+  longitude: number;
+  expected: {
+    easting: number;
+    northing: number;
+    lgrs: string;
+    acc: string;
+    text: string;
+  };
+};
+
 const fixturePath = (filename: string) =>
   resolve(process.cwd(), "src/tests/vitest/fixtures/lgrs/0.3.0", filename);
 const pointFixture = JSON.parse(readFileSync(fixturePath("south-lps-cases.json"), "utf8")) as {
@@ -57,6 +71,9 @@ const pointFixture = JSON.parse(readFileSync(fixturePath("south-lps-cases.json")
 const viewportFixture = JSON.parse(
   readFileSync(fixturePath("south-lps-viewports.json"), "utf8")
 ) as { viewports: OracleViewport[] };
+const projectionFixture = JSON.parse(
+  readFileSync(fixturePath("south-lps-projection-cases.json"), "utf8")
+) as { readableCases: OracleProjectionCase[]; seededCases: OracleProjectionCase[] };
 
 function roundedCoordinate(coordinate: [number, number]): [number, number] {
   return coordinate.map((value) => Number(value.toFixed(6))) as [number, number];
@@ -163,6 +180,27 @@ describe("canonical cap projection", () => {
 });
 
 describe("lgrs 0.3.0 oracle corpus", () => {
+  test("matches every geographic-to-LPS and display-label oracle case", () => {
+    const cases = [...projectionFixture.readableCases, ...projectionFixture.seededCases];
+    expect(cases.length).toBeGreaterThan(3000);
+
+    for (const oracleCase of cases) {
+      const point = { lat: oracleCase.latitude, lng: oracleCase.longitude } as AEGISPoint;
+      const coordinate = latLonToSouthLps(point);
+      expect(coordinate, oracleCase.category).not.toBeNull();
+      expect(coordinate![0], oracleCase.category).toBeCloseTo(oracleCase.expected.easting, 6);
+      expect(coordinate![1], oracleCase.category).toBeCloseTo(oracleCase.expected.northing, 6);
+
+      const label = formatSouthLpsFromLatLng(point, 10);
+      expect(label, oracleCase.category).not.toBeNull();
+      expect(label, oracleCase.category).toMatchObject({
+        lgrs: oracleCase.expected.lgrs,
+        acc: oracleCase.expected.acc,
+        text: oracleCase.expected.text,
+      });
+    }
+  });
+
   test("matches every readable and seeded south-LPS point", () => {
     const cases = [...pointFixture.readableCases, ...pointFixture.seededCases];
     expect(cases.length).toBeGreaterThan(3000);

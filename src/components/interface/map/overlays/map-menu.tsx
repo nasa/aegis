@@ -86,12 +86,12 @@ export const MapMenu: FunctionComponent<{
   // Derived from the loaded grid geometry so it always matches what's drawn.
   const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
   const resolvedGrid = useResolvedMissionGrid();
-  const baseGridSpacing =
-    resolvedGrid.kind === "dynamic-lgrs"
-      ? 10
-      : resolvedGrid.kind === "server-file"
-        ? getGridBaseSpacingMeters(resolvedGrid.grid, planetRadius)
-        : 0;
+  let baseGridSpacing = 0;
+  if (resolvedGrid.kind === "dynamic-lgrs") {
+    baseGridSpacing = 10;
+  } else if (resolvedGrid.kind === "server-file") {
+    baseGridSpacing = getGridBaseSpacingMeters(resolvedGrid.grid, planetRadius);
+  }
 
   //if the selected pos source list contains a uuid that isn't in selected rex's pos sources list this means that the selected rex has changed.
   //If this is true, set default pos sources to task and crew

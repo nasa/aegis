@@ -26,7 +26,7 @@ import { regExValidators, validators } from "components/interface/form/formValid
 import { toDecimal } from "utils/formatting";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
-import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
@@ -60,10 +60,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
   const landerGridCoordinates = useAppSelector((state) => {
     if (automergeMission.landerLocation && automergeMission.usingLGRSCoordinates) {
-      return getLGRSCoordsFromLatLng(
-        automergeMission.landerLocation.lat,
-        automergeMission.landerLocation.lng
-      );
+      return getSouthLpsDisplayCoordinate(automergeMission.landerLocation) ?? "Not set";
     } else if (
       automergeMission.landerLocation &&
       resolvedGrid.kind === "server-file" &&

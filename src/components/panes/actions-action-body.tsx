@@ -43,7 +43,7 @@ import {
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkDocAddCollectionId, thunkDocAddRexActionMass } from "store/thunk/thunkRex";
-import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 
@@ -91,7 +91,7 @@ const RightActionBody: FunctionComponent<{
 
   const actionGridCoordinates = useAppSelector((state) => {
     if (action.location && partialMission.usingLGRSCoordinates) {
-      return getLGRSCoordsFromLatLng(action.location.lat, action.location.lng);
+      return getSouthLpsDisplayCoordinate(action.location) ?? "Not set";
     } else if (
       action.location &&
       resolvedGrid.kind === "server-file" &&

@@ -2,6 +2,7 @@ import {
   addPointsAtMeters,
   calcCentroidofCoordinates,
   getDistanceBetweenTwoCoordinates,
+  getGridCoordinatesFromPoint,
   getSegmentBearing,
   getSlope,
   getTotalDistance,
@@ -12,6 +13,10 @@ import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
 
 describe("Geomath Functions", () => {
   const earthRadius = 6371000; //6378137;
+
+  test("uses the LGRS display port for LGRS grid coordinates", () => {
+    expect(getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true)).toBe("B95 D44");
+  });
 
   test("Returns 0 distance between two identical coordinates", () => {
     const point: AEGISPoint = { lat: 0, lng: 0 };
