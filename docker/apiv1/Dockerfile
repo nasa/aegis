@@ -46,7 +46,7 @@ FROM base AS prod
 # Copy over only stuff we need to keep the image small
 # esbuild bundle from the build stage
 COPY --from=build /app/.local/express/dist/api/api.js /app/.local/express/dist/api/api.js
-COPY --from=build /app/.local/automerge/dist/migration.js /app/.local/automerge/dist/migration.js
+COPY --from=build /app/.local/automerge/dist /app/.local/automerge/dist
 # tsconfig, mikro config, and db migrations/models required for ts-node / mikro
 COPY --from=build /app/src/server/database /app/src/server/database
 COPY --from=build /app/tsconfig.json /app
@@ -71,7 +71,8 @@ RUN apk add --no-cache \
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # This image is intended to be run with docker-compose.
-# Migration runs in three phases: apply MikroORM migrations through the last schema state
-# compatible with Automerge, migrate document data while legacy tables still exist, then
-# apply the remaining MikroORM migrations that can safely remove legacy tables.
-CMD ["/bin/sh", "-c", "npm run migration && npm run api"]
+# Migration runs in three phases so every historical database dump can cross the two
+# SQL-to-Automerge data boundaries safely. First, create initial Automerge documents before
+# mission_db is removed. Second, run document backfills before grid_db is removed. Finally,
+# apply all remaining MikroORM migrations and start the API.
+CMD ["/bin/sh", "-c", "npm run migration:run && npm run api"]

@@ -45,6 +45,18 @@ const migrationCtx = await esbuild.context({
   outfile: "./.local/automerge/dist/migration.js",
 });
 
+const migrationPrepareCtx = await esbuild.context({
+  ...sharedOptions,
+  entryPoints: ["src/server/automerge/migrationPrepare.ts"],
+  outfile: "./.local/automerge/dist/migrationPrepare.js",
+});
+
+const bootstrapCtx = await esbuild.context({
+  ...sharedOptions,
+  entryPoints: ["src/server/automerge/bootstrap.ts"],
+  outfile: "./.local/automerge/dist/bootstrap.js",
+});
+
 // Build the standalone integrity-check runner
 const integrityCtx = await esbuild.context({
   ...sharedOptions,
@@ -61,6 +73,12 @@ const missionValidatorCtx = await esbuild.context({
 
 await migrationCtx.rebuild();
 await migrationCtx.dispose();
+
+await migrationPrepareCtx.rebuild();
+await migrationPrepareCtx.dispose();
+
+await bootstrapCtx.rebuild();
+await bootstrapCtx.dispose();
 
 await integrityCtx.rebuild();
 await integrityCtx.dispose();
