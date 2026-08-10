@@ -165,10 +165,10 @@ TRI_RAMP_BY_RESOLUTION = {
 GRID_EXTENT_DEFAULT = "10km"
 GRID_PRECISION_DEFAULT = 100
 GRID_DEFAULT_NAME = "LGRS"
-# The AEGIS mission-grid GeoJSON produced by the grid step (kept in the output ROOT, not in
-# Data/, so it is not mis-registered as a vector layer; the register step POSTs it to the grid
-# API, which writes the active grid's coordinate JSON into Data/ itself).
+# The AEGIS mission-grid GeoJSON produced by the grid step. It is kept in Data/ alongside the
+# active grid coordinates, but excluded from normal vector-sublayer registration.
 OUT_GRID_SOURCE_NAME = "grid_source.geojson"
+OUT_GRID_SOURCE_PATH = Path(OUT_DATA_DIRNAME) / OUT_GRID_SOURCE_NAME
 
 
 def tri_ramp_for_resolution(resolution: float | None) -> Path:

@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
 import * as fs from "node:fs";
-import { mkdir } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 
 import express from "express";
 import parseInt from "lodash/parseInt";
@@ -12,6 +12,7 @@ import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissionHandle } from "./missionAutomerge";
+import { globalValues } from "../global";
 
 const router = express.Router();
 
@@ -372,18 +373,32 @@ async function upsertGrid(
   grid: MissionGrid,
   upsertFullGrid: boolean
 ): Promise<MissionGrid> {
-  if (upsertFullGrid) {
-    await saveGridFile(missionId, grid);
-  }
-
   const handle = await getAutomergeMissionHandle(missionId);
   if (!handle) {
     throw new Error(`No mission document found for mission ${missionId}`);
   }
+  const previousDefinition = handle.doc()?.grid;
+
+  if (upsertFullGrid) {
+    await saveGridFile(missionId, grid);
+  }
+
   handle.change((m: Mission) => {
     m.grid = grid.gridInformation;
     m.updatedAt = new Date().getTime();
   });
+  if (handle.doc()?.grid?.fileName !== grid.gridInformation.fileName) {
+    throw new Error(`Could not update grid metadata for mission ${missionId}`);
+  }
+  await globalValues.automergeRepo.flush();
+
+  if (
+    upsertFullGrid &&
+    previousDefinition?.fileName &&
+    previousDefinition.fileName !== grid.gridInformation.fileName
+  ) {
+    await deleteGridFile(missionId, previousDefinition.fileName);
+  }
 
   return grid;
 }
@@ -397,16 +412,7 @@ async function saveGridFile(missionId: number, grid: MissionGrid): Promise<void>
     await mkdir(directory, { recursive: true });
   }
 
-  // Write the JSON string to a file
-  fs.writeFile(`${directory}/${grid.gridInformation.fileName}`, jsonContent, "utf8", (err) => {
-    if (err) {
-      serverLogger.error(
-        { logId: "grid", logValue: "Error writing file" },
-        err instanceof Error ? err : new Error(String(err))
-      );
-      return;
-    }
-  });
+  await writeFile(`${directory}/${grid.gridInformation.fileName}`, jsonContent, "utf8");
 }
 
 /**
@@ -419,21 +425,29 @@ async function deleteGrid(missionId: number): Promise<boolean> {
   const definition = handle?.doc()?.grid;
   if (!handle || !definition) return false;
 
-  deleteGridFile(missionId, definition.fileName);
   handle.change((m: Mission) => {
     m.grid = null;
     m.updatedAt = new Date().getTime();
   });
+  if (handle.doc()?.grid !== null) {
+    throw new Error(`Could not clear grid metadata for mission ${missionId}`);
+  }
+  await globalValues.automergeRepo.flush();
+  await deleteGridFile(missionId, definition.fileName);
   return true;
 }
 
-function deleteGridFile(missionId: number, gridFileName: string): void {
+async function deleteGridFile(missionId: number, gridFileName: string): Promise<void> {
   const fileName = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/${gridFileName}`;
 
-  fs.unlink(fileName, (err) => {
-    if (err) {
-      serverLogger.error({ logId: "grid", logValue: `Error deleting file ${fileName}` }, err);
-      return;
-    }
-  });
+  try {
+    await unlink(fileName);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    serverLogger.error(
+      { logId: "grid", logValue: `Error deleting file ${fileName}` },
+      asError(error)
+    );
+    throw error;
+  }
 }
