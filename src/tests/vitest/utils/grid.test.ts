@@ -2,7 +2,7 @@ import { getGridBaseSpacingMeters } from "utils/mapping/grid";
 import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 
 const makeGrid = (points: { lat: number; lng: number }[][]): MissionGrid => ({
-  gridInformation: {
+  gridDefinition: {
     numRows: points.length,
     numCols: points[0]?.length ?? 0,
     name: "test",
