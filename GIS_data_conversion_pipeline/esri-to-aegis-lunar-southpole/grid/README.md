@@ -10,7 +10,7 @@ lander coords ──▶ generate_lgrs.py ──▶ raw GeoJSON ──▶ convert
 > **In the pipeline this is automated.** `main.py`'s `grid` step runs both scripts (default
 > 10 km @ 100 m around `--lander-lat/--lander-lng`) → `Data/grid_source.geojson`, and the
 > `register` step POSTs it to `POST /api/v1/grid` as the **active** grid (the server writes
-> the coordinates to `Data/<name>.json` and sets the mission's `activeGridUuid`) — no manual
+> the coordinates to `Data/<name>.json` and sets the mission's `serverFileGrid`) — no manual
 > admin upload. The standalone usage below is for running the scripts directly.
 
 ## Quick start

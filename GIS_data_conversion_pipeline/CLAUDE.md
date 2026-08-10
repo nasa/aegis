@@ -81,7 +81,7 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
   **one** time-based sublayer per mission.
 - **Mission grid GeoJSON**: top-level `row_total`/`column_total`/`name`/`crs` + Point features with
   `id, LGRS_ACC, L_coord, R_coord, row, column` (see `grid/convert_lgrs.py`). One grid per mission;
-  metadata is stored on the mission Automerge doc (`mission.grid`), coordinates as `Data/<name>.json`
+  metadata is stored on the mission Automerge doc (`mission.serverFileGrid`), coordinates as `Data/<name>.json`
   — no `Grid_db` / `activeGridUuid`. Line spacing is derived from the coordinate geometry at runtime,
   not stored.
 - **DEM** is registered as the mission `demFilePath`/`demResolution`, not a sublayer. The COG
@@ -93,7 +93,7 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
   clicking: `POST /api/v1/missionAutomerge/fields` (projection/DEM/lander/`actionSystemVersion=2`/
   `usingLGRSCoordinates=true`), `POST /api/v1/layer` (Common_LSP/Raster/Vector header layers),
   `POST /api/v1/sublayer`, and `POST /api/v1/grid` (writes the mission grid → `Data/<name>.json`
-  + `mission.grid` on the doc). The
+  + `mission.serverFileGrid` on the doc). The
   server-side endpoint `POST /api/v1/missionAutomerge/fields` exists specifically for this (the
   app otherwise mutates the mission only via the Automerge websocket) and requires the EMSS API
   token. Changed lander coordinates are rejected when affected mission assets already exist,
