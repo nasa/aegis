@@ -716,7 +716,7 @@ const Mission: React.FunctionComponent = () => {
 
               <div>
                 {/* File Manager Section */}
-                <section className={adminCommon.section}>
+                <section className={adminCommon.section} style={{ marginBottom: 16 }}>
                   <h2 className={adminCommon.sectionHeading}>Mission Data Files</h2>
                   <p className={adminCommon.descriptionText}>
                     Manage files in the /Data folder for this mission.

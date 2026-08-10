@@ -521,6 +521,19 @@ getORM()
         if (!definition.fileName || !fs.existsSync(filePath)) {
           outcome = `migrated (coordinate file missing: ${definition.fileName || "<none>"})`;
         }
+
+        const unusedFileNames = new Set(
+          rows
+            .filter((row) => row.uuid !== chosen.uuid)
+            .map((row) => row.fileName)
+            .filter(
+              (fileName): fileName is string => !!fileName && fileName !== definition.fileName
+            )
+        );
+        for (const fileName of unusedFileNames) {
+          const filePath = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/${fileName}`;
+          fs.rmSync(filePath, { force: true });
+        }
       } else if (!tableExists && legacyActiveUuid) {
         outcome = "grid_db already dropped — metadata unrecoverable, cleared";
         serverLogger.error(
