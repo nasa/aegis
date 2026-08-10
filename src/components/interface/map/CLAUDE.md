@@ -398,15 +398,7 @@ Overlay gotchas:
 
 ---
 
-## 14. Docs (in `docs/`)
-
-- `TODO-after-this-MR.md` — backlog.
-- `CONTEXT-MENU-INTERACTIONS.md` — future right-click map interaction plan.
-- `AUTOMERGE-MIGRATION-NOTES.md` (this dir) — entity storage migration notes.
-
----
-
-## 15. Tests
+## 14. Tests
 
 ```bash
 npm run test:vitest            # Unit — src/tests/vitest/map/ (pure utils: reconciler, coord
