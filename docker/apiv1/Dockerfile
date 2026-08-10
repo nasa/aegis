@@ -71,5 +71,7 @@ RUN apk add --no-cache \
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # This image is intended to be run with docker-compose.
-# Ensure mikro is migrated *before* the automerge migration
-CMD ["/bin/sh", "-c", "npm run migration:up && npm run automerge:migration:run && npm run api"]
+# Migration runs in three phases: apply MikroORM migrations through the last schema state
+# compatible with Automerge, migrate document data while legacy tables still exist, then
+# apply the remaining MikroORM migrations that can safely remove legacy tables.
+CMD ["/bin/sh", "-c", "npm run migration && npm run api"]
