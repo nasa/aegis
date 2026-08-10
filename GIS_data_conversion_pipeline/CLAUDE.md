@@ -93,13 +93,13 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
   clicking: `POST /api/v1/missionAutomerge/fields` (projection/DEM/lander/`actionSystemVersion=2`/
   `usingLGRSCoordinates=true`), `POST /api/v1/layer` (Common_LSP/Raster/Vector header layers),
   `POST /api/v1/sublayer`, and `POST /api/v1/grid` (writes the mission grid → `Data/<name>.json`
-  + `mission.serverFileGrid` on the doc). The
-  server-side endpoint `POST /api/v1/missionAutomerge/fields` exists specifically for this (the
-  app otherwise mutates the mission only via the Automerge websocket) and requires the EMSS API
-  token. Changed lander coordinates are rejected when affected mission assets already exist,
-  because the browser-only lander-location workflow must update station walkbacks and
-  lander-connected EVA traverses. Each run also writes a `Data/conversion_report.md` (full
-  console log + per-step timings).
+  - `mission.serverFileGrid` on the doc). The
+    server-side endpoint `POST /api/v1/missionAutomerge/fields` exists specifically for this (the
+    app otherwise mutates the mission only via the Automerge websocket) and requires the EMSS API
+    token. Changed lander coordinates are rejected when affected mission assets already exist,
+    because the browser-only lander-location workflow must update station walkbacks and
+    lander-connected EVA traverses. Each run also writes a `Data/conversion_report.md` (full
+    console log + per-step timings).
 
 ## Gotchas
 
@@ -110,10 +110,10 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
   fallback `slope.txt` still matches the MS3 `AMPES_Slope 1.lyrx`). **TRI is
   resolution-dependent** — the `products` step auto-selects `default_color_ramps/ARCHIVE/
 TRIColors_{1m,5m,10m}_DEM.txt` to match `--dem-resolution`.
-- `tile_to_cap_grid.py` pads its virtual cap canvas to **`2**max_zoom` tiles**, not to the next
-  whole tile at max zoom. `gdal raster tile` anchors at the top-left and re-derives the row
-  count per zoom as `ceil(rows / 2)`, so anything other than a power-of-two tile count walks
-  the bottom row off `CAP_MIN` on the way up and shifts the coarser levels north (the layer
+- `tile_to_cap_grid.py` pads its virtual cap canvas to **`2**max_zoom`tiles**, not to the next
+whole tile at max zoom.`gdal raster tile`anchors at the top-left and re-derives the row
+count per zoom as`ceil(rows / 2)`, so anything other than a power-of-two tile count walks
+the bottom row off `CAP_MIN` on the way up and shifts the coarser levels north (the layer
   visibly jumps as you zoom out past its native level). Keep the padding power-of-two.
 - `tile_to_cap_grid.py` honours a real alpha band when input is RGBA; for ≤3-band input it
   infers transparency from band 0 == nodata/0. Colorized products should be RGBA so colours
