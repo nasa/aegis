@@ -1136,9 +1136,9 @@ describe("Mission Duplication Tests", () => {
     test("Should copy the grid metadata onto the duplicated mission doc", async () => {
       const em = globalValues.orm.em.fork();
 
-      // Grid metadata now lives on the mission Automerge doc (mission.grid).
+      // Grid metadata now lives on the mission Automerge doc (mission.serverFileGrid).
       // Skip if the source mission has no grid.
-      if (!sourceData.mission.grid) {
+      if (!sourceData.mission.serverFileGrid) {
         console.warn("No grid to test in the source mission");
         return;
       }
@@ -1153,7 +1153,7 @@ describe("Mission Duplication Tests", () => {
       expect(duplicatedMission).toBeDefined();
 
       // The grid metadata rides along on the mission doc copy verbatim.
-      expect(duplicatedMission.grid).toEqual(sourceData.mission.grid);
+      expect(duplicatedMission.serverFileGrid).toEqual(sourceData.mission.serverFileGrid);
     });
   });
 

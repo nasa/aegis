@@ -191,7 +191,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    if (!grid || !grid.gridInformation) {
+    if (!grid || !grid.gridDefinition) {
       serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "POST",
@@ -302,13 +302,13 @@ export async function getGrid(
   getFullGrid: boolean
 ): Promise<MissionGrid | null> {
   const handle = await getAutomergeMissionHandle(missionId);
-  const definition = handle?.doc()?.grid;
+  const definition = handle?.doc()?.serverFileGrid;
   if (!definition) return null;
 
   const coordinates: MissionGridPoint[][] | null = getFullGrid
     ? await getGridFromFile(missionId, definition.fileName)
     : null;
-  return { gridInformation: definition, coordinates };
+  return { gridDefinition: definition, coordinates };
 }
 
 async function getGridFromFile(missionId: number, fileName: string): Promise<MissionGridPoint[][]> {
@@ -348,7 +348,7 @@ async function getClosestPoints(
   radius: number
 ): Promise<GridIndex[]> {
   const handle = await getAutomergeMissionHandle(missionId);
-  const definition = handle?.doc()?.grid;
+  const definition = handle?.doc()?.serverFileGrid;
   if (!definition) return [];
 
   const grid: MissionGridPoint[][] = await getGridFromFile(missionId, definition.fileName);
@@ -377,17 +377,17 @@ async function upsertGrid(
   if (!handle) {
     throw new Error(`No mission document found for mission ${missionId}`);
   }
-  const previousDefinition = handle.doc()?.grid;
+  const previousDefinition = handle.doc()?.serverFileGrid;
 
   if (upsertFullGrid) {
     await saveGridFile(missionId, grid);
   }
 
   handle.change((m: Mission) => {
-    m.grid = grid.gridInformation;
+    m.serverFileGrid = grid.gridDefinition;
     m.updatedAt = new Date().getTime();
   });
-  if (handle.doc()?.grid?.fileName !== grid.gridInformation.fileName) {
+  if (handle.doc()?.serverFileGrid?.fileName !== grid.gridDefinition.fileName) {
     throw new Error(`Could not update grid metadata for mission ${missionId}`);
   }
   await globalValues.automergeRepo.flush();
@@ -395,7 +395,7 @@ async function upsertGrid(
   if (
     upsertFullGrid &&
     previousDefinition?.fileName &&
-    previousDefinition.fileName !== grid.gridInformation.fileName
+    previousDefinition.fileName !== grid.gridDefinition.fileName
   ) {
     await deleteGridFile(missionId, previousDefinition.fileName);
   }
@@ -412,7 +412,7 @@ async function saveGridFile(missionId: number, grid: MissionGrid): Promise<void>
     await mkdir(directory, { recursive: true });
   }
 
-  await writeFile(`${directory}/${grid.gridInformation.fileName}`, jsonContent, "utf8");
+  await writeFile(`${directory}/${grid.gridDefinition.fileName}`, jsonContent, "utf8");
 }
 
 /**
@@ -422,14 +422,14 @@ async function saveGridFile(missionId: number, grid: MissionGrid): Promise<void>
  */
 async function deleteGrid(missionId: number): Promise<boolean> {
   const handle = await getAutomergeMissionHandle(missionId);
-  const definition = handle?.doc()?.grid;
+  const definition = handle?.doc()?.serverFileGrid;
   if (!handle || !definition) return false;
 
   handle.change((m: Mission) => {
-    m.grid = null;
+    m.serverFileGrid = null;
     m.updatedAt = new Date().getTime();
   });
-  if (handle.doc()?.grid !== null) {
+  if (handle.doc()?.serverFileGrid !== null) {
     throw new Error(`Could not clear grid metadata for mission ${missionId}`);
   }
   await globalValues.automergeRepo.flush();

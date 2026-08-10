@@ -34,14 +34,14 @@ beforeAll(async () => {
       id: testAutomergeDocListings[0].missionId,
       name: "Vitest Test Mission Maegistro V2 Mission 1",
       isArchived: false,
-      // Leave grid null so route skips the getGrid/file read path.
-      grid: null,
+      // Leave serverFileGrid null so route skips the getGrid/file read path.
+      serverFileGrid: null,
     },
     {
       id: testAutomergeDocListings[1].missionId,
       name: "Vitest Test Mission Maegistro V2 Mission 2",
       isArchived: false,
-      grid: null,
+      serverFileGrid: null,
     },
   ];
 

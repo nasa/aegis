@@ -739,7 +739,7 @@ const Mission: React.FunctionComponent = () => {
                 {/* Grid Section */}
                 <AdminMissionGrid
                   missionId={automergeMission.id}
-                  grid={automergeMission.grid ?? null}
+                  grid={automergeMission.serverFileGrid ?? null}
                 />
               </div>
             </div>

@@ -39,7 +39,7 @@ const Main = (): JSX.Element => {
 
   const automergeRepo = useRepo();
   const partialMission = useMissionDocSelector(
-    (doc) => ({ name: doc.name, grid: doc.grid }),
+    (doc) => ({ name: doc.name, serverFileGrid: doc.serverFileGrid }),
     deepEqual
   );
   const isVersionChecked = useAppSelector(
@@ -123,7 +123,7 @@ const Main = (): JSX.Element => {
 
   // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
-    if (!partialMission?.grid) return;
+    if (!partialMission?.serverFileGrid) return;
 
     const loadGridAsync = async () => {
       const newGrid: MissionGrid = await loadAndReturnGrid(intMissionId);
@@ -135,7 +135,7 @@ const Main = (): JSX.Element => {
     };
 
     loadGridAsync();
-  }, [dispatch, intMissionId, partialMission?.grid]);
+  }, [dispatch, intMissionId, partialMission?.serverFileGrid]);
 
   useEffect(() => {
     if (!partialMission?.name) return;
