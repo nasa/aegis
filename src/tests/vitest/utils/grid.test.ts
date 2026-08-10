@@ -55,11 +55,11 @@ describe("resolveMissionGrid", () => {
       { lat: 0, lng: 0.01 },
     ],
   ]);
-  const grid = serverGrid.gridDefinition;
+  const serverFileGrid = serverGrid.gridDefinition;
 
   test("defaults existing missions without a mode to server-file", () => {
     expect(getGridRenderMode({})).toBe("server-file");
-    expect(resolveMissionGrid({ serverFileGrid: grid }, serverGrid)).toEqual({
+    expect(resolveMissionGrid({ serverFileGrid }, serverGrid)).toEqual({
       kind: "server-file",
       grid: serverGrid,
     });
@@ -67,17 +67,13 @@ describe("resolveMissionGrid", () => {
 
   test("resolves dynamic mode without exposing an uploaded matrix", () => {
     expect(
-      resolveMissionGrid({ serverFileGrid: grid, gridRenderMode: "dynamic-lgrs" }, serverGrid)
-    ).toEqual({
-      kind: "dynamic-lgrs",
-    });
+      resolveMissionGrid({ serverFileGrid, gridRenderMode: "dynamic-lgrs" }, serverGrid)
+    ).toEqual({ kind: "dynamic-lgrs" });
   });
 
   test("resolves an absent server-file grid to none", () => {
     expect(
       resolveMissionGrid({ serverFileGrid: null, gridRenderMode: "server-file" }, serverGrid)
-    ).toEqual({
-      kind: "none",
-    });
+    ).toEqual({ kind: "none" });
   });
 });

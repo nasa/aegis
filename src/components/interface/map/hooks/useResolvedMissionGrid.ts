@@ -6,7 +6,10 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 
 export function useResolvedMissionGrid(): ResolvedMissionGrid {
   const missionGrid = useMissionDocSelector(
-    (mission) => ({ serverFileGrid: mission.serverFileGrid, gridRenderMode: mission.gridRenderMode }),
+    (mission) => ({
+      serverFileGrid: mission.serverFileGrid,
+      gridRenderMode: mission.gridRenderMode,
+    }),
     deepEqual
   );
   const loadedGrid = useSyncExternalStore(
