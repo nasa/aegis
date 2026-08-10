@@ -463,7 +463,7 @@ getORM()
       const missionId = doc.id;
 
       // Idempotent: already migrated (has grid metadata, no legacy pointer) → skip.
-      if (("grid" in doc || "serverFileGrid" in doc) && !("activeGridUuid" in doc)) return;
+      if ("serverFileGrid" in doc && !("activeGridUuid" in doc)) return;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const legacyActiveUuid: string | null = (doc as any).activeGridUuid ?? null;
