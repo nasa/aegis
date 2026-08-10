@@ -317,11 +317,15 @@ def classify_layer_dir(layer_dir: Path) -> tuple[str, Path] | None:
 
 
 def find_vector_files(data_dir: Path) -> list[Path]:
-    """GeoJSON files under Data/ (the grid's coordinate JSON is .json, so it is excluded)."""
+    """Vector GeoJSON files under Data/, excluding the pipeline's mission-grid source."""
     if not data_dir.exists():
         return []
     return sorted(
-        f for f in data_dir.iterdir() if f.is_file() and f.suffix.lower() == ".geojson"
+        f
+        for f in data_dir.iterdir()
+        if f.is_file()
+        and f.suffix.lower() == ".geojson"
+        and f.name != config.OUT_GRID_SOURCE_NAME
     )
 
 
@@ -594,7 +598,7 @@ def main() -> None:
             dem_resolution=args.dem_resolution,
         )
 
-    grid_geojson = None if not args.grid else (args.out / config.OUT_GRID_SOURCE_NAME)
+    grid_geojson = None if not args.grid else (args.out / config.OUT_GRID_SOURCE_PATH)
 
     client = AegisApiClient(args.aegis_url, token)
     register_mission(

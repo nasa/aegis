@@ -464,7 +464,8 @@ def step_grid(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         )
         return
 
-    grid_out = p.out / config.OUT_GRID_SOURCE_NAME
+    p.data.mkdir(parents=True, exist_ok=True)
+    grid_out = p.out / config.OUT_GRID_SOURCE_PATH
     scratch = p.out / "scratch_grid"
     scratch.mkdir(parents=True, exist_ok=True)
     raw = scratch / "raw_grid.geojson"
@@ -494,6 +495,10 @@ def step_grid(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             )
             sys.exit(1)
         shutil.move(str(cleaned), str(grid_out))
+        legacy_grid_out = p.out / config.OUT_GRID_SOURCE_NAME
+        if legacy_grid_out != grid_out and legacy_grid_out.is_file():
+            legacy_grid_out.unlink()
+            tee(f"  removed legacy grid source {legacy_grid_out}")
         tee(f"  grid → {grid_out}")
     finally:
         raw.unlink(missing_ok=True)
@@ -961,7 +966,7 @@ def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         )
 
     grid_geojson = (
-        None if args.register_no_grid else (p.out / config.OUT_GRID_SOURCE_NAME)
+        None if args.register_no_grid else (p.out / config.OUT_GRID_SOURCE_PATH)
     )
 
     client = AegisApiClient(args.aegis_url, token)

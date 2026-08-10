@@ -48,7 +48,7 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **cogs**          | custom rasters (`--in-cog`, repeatable)                         | `Layers/<name>/<name>_cog.tif` each       | single-band floats stretch to display-ready 8-bit → COG (deflate)           |
 | **viewshed-cogs** | classified viewsheds (`--in-viewshed-raster`, repeatable)       | `Layers/<name>/<name>_cog.tif` each       | class 1 transparent; class 2 opaque `#FFA77F`; nodata transparent           |
 | **keepout-cogs**  | classified slope keep-out masks (`--in-keepout-raster`)         | `Layers/<name>/<name>_cog.tif` each       | class 0 opaque `#FF0000`; nodata transparent                                |
-| **grid**          | `--grid` + lander `--lander-lat/--lander-lng`                   | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
+| **grid**          | `--grid` + lander `--lander-lat/--lander-lng`                   | `Data/grid_source.geojson` (10 km dflt)   | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
 | **register**      | the built `<out>` + `--mission-id`                              | mission fields + sublayers + active grid  | POST fields + layers/sublayers + grid                                       |
 | **box**           | the built `<out>` + `--mission-name`                            | zips uploaded to Box (parallel)           | zip `Data/` + each layer → upload                                           |
 
@@ -340,8 +340,8 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
 
 ```text
 <out>/
-├── grid_source.geojson           # AEGIS mission-grid GeoJSON (register POSTs it; not in Data/)
 ├── Data/
+│   ├── grid_source.geojson       # AEGIS mission-grid GeoJSON (register POSTs it; not a vector layer)
 │   ├── <source>_deflate_cog.tif  # demFilePath (keeps the source filename, e.g. mp2-sfs-dem_MoonSP_COG_deflate_cog.tif)
 │   ├── ellipse.geojson           # vector sublayer (if a vector step ran)
 │   ├── LGRS.json                 # active grid coordinates (written by the grid API on register)
@@ -391,7 +391,7 @@ already-registered `(header, path)` pairs):
   plus the ellipse + custom GeoJSON as `vector` sublayers (`path = <file>.geojson`) and the shared
   external NAC (`path = <S3 base URL>`). bbox/zoom come from each `tilemapresource.xml`;
   name/description/legend from each `properties.json`.
-- **Mission grid** — `POST /api/v1/grid` (with `upsertFullGrid`) uploads `grid_source.geojson`
+- **Mission grid** — `POST /api/v1/grid` (with `upsertFullGrid`) uploads `Data/grid_source.geojson`
   as the **active** grid: the server writes its coordinates to `Data/LGRS.json` and sets the
   mission's `activeGridUuid`. Replaces the manual upload at `/admin/mission_grid/<id>`.
 
