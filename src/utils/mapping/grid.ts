@@ -24,11 +24,11 @@ export function getGridRenderMode(mission: { gridRenderMode?: GridRenderMode }):
 }
 
 export function resolveMissionGrid(
-  mission: Pick<Mission, "grid"> & { gridRenderMode?: GridRenderMode },
+  mission: Pick<Mission, "serverFileGrid"> & { gridRenderMode?: GridRenderMode },
   serverGrid: MissionGrid = globalGrid
 ): ResolvedMissionGrid {
   if (getGridRenderMode(mission) === "dynamic-lgrs") return { kind: "dynamic-lgrs" };
-  if (!mission.grid || !serverGrid?.coordinates?.length) return { kind: "none" };
+  if (!mission.serverFileGrid || !serverGrid?.coordinates?.length) return { kind: "none" };
   return { kind: "server-file", grid: serverGrid };
 }
 
