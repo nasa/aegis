@@ -27,7 +27,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     walkbackRate: 2,
     equipmentItems: {},
     geographicUnits: {},
-    grid: null,
+    serverFileGrid: null,
     planetRadius: 1737400, // moon
     initialZoom: 14,
     demFilePath: "",

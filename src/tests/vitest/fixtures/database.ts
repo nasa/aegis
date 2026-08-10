@@ -53,7 +53,7 @@ const seedMissionDatabaseFixtures = async (
 
   // ====== GRID — metadata stored on the Automerge mission doc ======
   missionDocHandle.change((doc: Mission) => {
-    doc.grid = {
+    doc.serverFileGrid = {
       numRows: 10,
       numCols: 10,
       name: "Vitest Test Grid",

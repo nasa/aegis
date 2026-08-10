@@ -456,14 +456,14 @@ getORM()
     };
 
     // Migration: pull the mission's grid metadata out of the legacy grid_db table and onto
-    // the mission doc as `mission.grid`, and remove the legacy `activeGridUuid` pointer.
+    // the mission doc as `mission.serverFileGrid`, and remove the legacy `activeGridUuid` pointer.
     // Grid coordinate arrays remain on disk (Data/<fileName>) and are NOT moved.
     const automergeMigration20260722GridToMissionDoc = async (docHandle: DocHandle<Mission>) => {
       const doc = docHandle.doc();
       const missionId = doc.id;
 
-      // Idempotent: already migrated (has `grid`, no legacy pointer) → skip.
-      if ("grid" in doc && !("activeGridUuid" in doc)) return;
+      // Idempotent: already migrated (has grid metadata, no legacy pointer) → skip.
+      if (("grid" in doc || "serverFileGrid" in doc) && !("activeGridUuid" in doc)) return;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const legacyActiveUuid: string | null = (doc as any).activeGridUuid ?? null;
@@ -535,7 +535,7 @@ getORM()
       }
 
       docHandle.change((m: Mission) => {
-        m.grid = definition;
+        m.serverFileGrid = definition;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ("activeGridUuid" in m) delete (m as any).activeGridUuid;
       });
@@ -546,12 +546,29 @@ getORM()
       });
     };
 
+    const automergeMigration20260810RenameGridToServerFileGrid = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      const doc = docHandle.doc();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const legacyGrid = (doc as any).grid as MissionGridDefinition | null;
+      if (!("grid" in doc) || "serverFileGrid" in doc) return;
+
+      docHandle.change((m: Mission) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mission = m as any;
+        mission.serverFileGrid = legacyGrid;
+        delete mission.grid;
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
       automergeMigration20260528AddMaestroDocId,
       automergeMigration20260717AddActionNaming,
       automergeMigration20260722GridToMissionDoc,
+      automergeMigration20260810RenameGridToServerFileGrid,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {

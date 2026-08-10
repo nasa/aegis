@@ -78,7 +78,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     const exportMissions: ExportMission[] = await Promise.all(
       records.map(async (mission) => {
         const gridCoordinates: MissionGridPoint[][] =
-          mission.grid && !mission.usingLGRSCoordinates
+          mission.serverFileGrid && !mission.usingLGRSCoordinates
             ? (await getGrid(mission.id, true))?.coordinates
             : null;
         return makeExportMission({

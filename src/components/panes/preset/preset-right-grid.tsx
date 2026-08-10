@@ -20,7 +20,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   );
   const presetGridControl = selectedPreset?.mapGridControl;
 
-  const gridInformation: MissionGridDefinition = globalGrid?.gridInformation;
+  const gridDefinition: MissionGridDefinition = globalGrid?.gridDefinition;
 
   const styleSetterHandler = ({
     uuid,
@@ -63,7 +63,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             </div>
                             <div className={paneStyles.panelColumnTableCell}>
                               <div className={paneStyles.displayFieldValue}>
-                                {gridInformation?.numCols ? gridInformation.numCols : "N/A"}
+                                {gridDefinition?.numCols ? gridDefinition.numCols : "N/A"}
                               </div>
                             </div>
                           </div>
@@ -75,7 +75,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             </div>
                             <div className={paneStyles.panelColumnTableCell}>
                               <div className={paneStyles.displayFieldValue}>
-                                {gridInformation?.numRows ? gridInformation.numRows : "N/A"}
+                                {gridDefinition?.numRows ? gridDefinition.numRows : "N/A"}
                               </div>
                             </div>
                           </div>

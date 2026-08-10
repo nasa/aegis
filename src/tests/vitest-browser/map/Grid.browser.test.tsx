@@ -158,7 +158,7 @@ function makeGrid(rows = 3, cols = 3): MissionGrid {
     coordinates.push(row);
   }
   return {
-    gridInformation: {
+    gridDefinition: {
       numRows: rows,
       numCols: cols,
       name: "Test Grid",

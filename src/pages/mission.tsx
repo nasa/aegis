@@ -62,7 +62,7 @@ const Main: React.FunctionComponent = () => {
       actionSystemVersion: mission.actionSystemVersion,
       isArchived: mission.isArchived,
       name: mission.name,
-      grid: mission.grid,
+      serverFileGrid: mission.serverFileGrid,
     }),
     deepEqual
   );
@@ -158,7 +158,7 @@ const Main: React.FunctionComponent = () => {
 
   // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
-    if (!partialMission?.grid) return;
+    if (!partialMission?.serverFileGrid) return;
 
     const loadGridAsync = async () => {
       const newGrid: MissionGrid = await loadAndReturnGrid(intMissionId);
@@ -170,7 +170,7 @@ const Main: React.FunctionComponent = () => {
     };
 
     loadGridAsync();
-  }, [dispatch, intMissionId, partialMission?.grid]);
+  }, [dispatch, intMissionId, partialMission?.serverFileGrid]);
 
   useEffect(() => {
     if (!partialMission?.name) return;

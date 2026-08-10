@@ -231,12 +231,12 @@ export const auditActionDefinitions = async ({
 };
 
 /**
- * Normalize the grid field on the mission doc. Grids moved from the legacy
- * `Grid_db` table + `activeGridUuid` pointer onto `mission.grid`. This is a
+ * Normalize the server-file grid field on the mission doc. Grids moved from the legacy
+ * `Grid_db` table + `activeGridUuid` pointer onto `mission.serverFileGrid`. This is a
  * safety-net for docs restored from backup or created before the server-side
  * migration ran. It never destroys recovery info: the legacy `activeGridUuid`
  * is only removed once real grid metadata is present (i.e. the server migration
- * has already populated `mission.grid`).
+ * has already populated `mission.serverFileGrid`).
  */
 export const auditMissionGrid = async ({
   missionDocHandle,
@@ -244,22 +244,25 @@ export const auditMissionGrid = async ({
   missionDocHandle: DocHandle<Mission>;
 }): Promise<void> => {
   const mission = missionDocHandle.doc();
-  const hasGrid = "grid" in mission;
+  const hasServerFileGrid = "serverFileGrid" in mission;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hasLegacyGrid = "grid" in (mission as any);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hasLegacyPointer = "activeGridUuid" in (mission as any);
 
   // Already normalized.
-  if (hasGrid && !hasLegacyPointer) return;
+  if (hasServerFileGrid && !hasLegacyGrid && !hasLegacyPointer) return;
 
   withMissionChange((m: Mission) => {
-    // Operate loosely: legacy docs may lack `grid` or still carry `activeGridUuid`
+    // Operate loosely: legacy docs may lack `serverFileGrid` or still carry `activeGridUuid`
     // even though the Mission type says otherwise.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mm = m as any;
-    if (!("grid" in mm)) mm.grid = null;
+    if (!("serverFileGrid" in mm)) mm.serverFileGrid = mm.grid ?? null;
+    if ("grid" in mm) delete mm.grid;
     // Only drop the legacy pointer when real grid metadata exists, so a pending
     // server migration can still recover the grid from grid_db.
-    if (mm.grid !== null && "activeGridUuid" in mm) {
+    if (mm.serverFileGrid !== null && "activeGridUuid" in mm) {
       delete mm.activeGridUuid;
     }
   });

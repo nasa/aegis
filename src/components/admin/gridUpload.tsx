@@ -64,7 +64,7 @@ const parseFullGrid = async (selectedFile: Blob): Promise<MissionGrid> => {
   });
 
   return {
-    gridInformation: {
+    gridDefinition: {
       numRows: parsedData.row_total,
       numCols: parsedData.column_total,
       name: parsedData.name,
@@ -76,7 +76,7 @@ const parseFullGrid = async (selectedFile: Blob): Promise<MissionGrid> => {
 
 const AdminMissionGrid: FunctionComponent<{
   missionId: number | null;
-  grid: Mission["grid"] | null;
+  grid: Mission["serverFileGrid"] | null;
 }> = ({ missionId, grid }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isFilePicked, setIsFilePicked] = useState(false);
