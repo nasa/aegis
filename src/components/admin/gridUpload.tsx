@@ -122,7 +122,8 @@ const AdminMissionGrid: FunctionComponent<{
   };
 
   useEffect(() => {
-    if (selectedFile?.name.toLowerCase().endsWith(".json")) {
+    const fileName = selectedFile?.name.toLowerCase();
+    if (fileName?.endsWith(".json") || fileName?.endsWith(".geojson")) {
       setIsSubmitValid(true);
     } else {
       setIsSubmitValid(false);
