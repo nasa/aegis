@@ -458,11 +458,6 @@ getORM()
     // Migration: pull the mission's grid metadata out of the legacy grid_db table and onto
     // the mission doc as `mission.grid`, and remove the legacy `activeGridUuid` pointer.
     // Grid coordinate arrays remain on disk (Data/<fileName>) and are NOT moved.
-    //
-    // IMPORTANT operational ordering: run this Automerge migration BEFORE the MikroORM
-    // migration that drops grid_db (Migration20260722000000). If grid_db has already been
-    // dropped, previously-unmigrated docs cannot recover their grid metadata (their
-    // coordinate files are left orphaned until re-uploaded) — this is logged loudly.
     const automergeMigration20260722GridToMissionDoc = async (docHandle: DocHandle<Mission>) => {
       const doc = docHandle.doc();
       const missionId = doc.id;
