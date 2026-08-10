@@ -23,7 +23,7 @@ import { thunkDocCreateInitialPosEntries } from "store/thunk/thunkRex";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { setOnlyShowRunningRex } from "store/eva";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { createQuickMapRexPositionLinkState, openQuickMap } from "utils/quickMap";
+import { createQuickMapRexPositionLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -40,9 +40,8 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   );
   const quickMapLinkState = useMissionDocSelector((mission) => {
     const rex = selectedRexUuid ? mission.rexes?.[selectedRexUuid] : null;
-    return rex
-      ? createQuickMapRexPositionLinkState({ rex, landerLocation: mission.landerLocation })
-      : null;
+    if (!rex || !isQuickMapPoint(mission.landerLocation)) return null;
+    return createQuickMapRexPositionLinkState({ rex, landerLocation: mission.landerLocation });
   }, deepEqual);
 
   const rexSelectedEvaDateTime = useMemo(() => {

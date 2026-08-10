@@ -30,36 +30,19 @@ interface QuickMapRexPositionEntry {
   primaryPosType: PosType;
 }
 
-export const DEFAULT_QUICKMAP_BASE_URL = "https://quickmap.lroc.im-ldi.com/";
-export const DEFAULT_QUICKMAP_LAYER_IDS = ["66", "3921"];
-export const DEFAULT_QUICKMAP_RESOLUTION_METERS_PER_PIXEL = 5;
-export const DEFAULT_QUICKMAP_URL_BUDGET = 7_000;
-
-function getConfiguredPositiveNumber(value: string | undefined, fallback: number): number {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
+export const QUICKMAP_BASE_URL = "https://quickmap.lroc.im-ldi.com/";
+export const QUICKMAP_LAYER_IDS = ["66", "3921"];
+export const QUICKMAP_RESOLUTION_METERS_PER_PIXEL = 5;
+export const QUICKMAP_URL_BUDGET = 7_000;
 
 export function getQuickMapConfig(): Pick<
   QuickMapLinkState,
   "resolutionMetersPerPixel" | "layerIds"
 > & { baseUrl: string } {
-  const configuredLayerIds = (import.meta.env.VITE_QUICKMAP_LAYER_IDS as string | undefined)
-    ?.split(",")
-    .map((layerId) => layerId.trim())
-    .filter(Boolean);
-
   return {
-    baseUrl:
-      (import.meta.env.VITE_QUICKMAP_BASE_URL as string | undefined) || DEFAULT_QUICKMAP_BASE_URL,
-    layerIds:
-      configuredLayerIds && configuredLayerIds.length > 0
-        ? configuredLayerIds
-        : DEFAULT_QUICKMAP_LAYER_IDS,
-    resolutionMetersPerPixel: getConfiguredPositiveNumber(
-      import.meta.env.VITE_QUICKMAP_RESOLUTION_METERS_PER_PIXEL as string | undefined,
-      DEFAULT_QUICKMAP_RESOLUTION_METERS_PER_PIXEL
-    ),
+    baseUrl: QUICKMAP_BASE_URL,
+    layerIds: QUICKMAP_LAYER_IDS,
+    resolutionMetersPerPixel: QUICKMAP_RESOLUTION_METERS_PER_PIXEL,
   };
 }
 
@@ -147,15 +130,7 @@ function createBaseUrl(baseUrl: string, state: QuickMapLinkState): URL {
   return url;
 }
 
-export function buildQuickMapLink(
-  baseUrl: string,
-  state: QuickMapLinkState,
-  { urlBudget = DEFAULT_QUICKMAP_URL_BUDGET }: { urlBudget?: number } = {}
-): QuickMapLinkResult {
-  if (urlBudget <= 0 || (!Number.isFinite(urlBudget) && urlBudget !== Infinity)) {
-    throw new Error("QuickMap URL budget must be a positive finite number or Infinity.");
-  }
-
+export function buildQuickMapLink(baseUrl: string, state: QuickMapLinkState): QuickMapLinkResult {
   const url = createBaseUrl(baseUrl, state);
   const geometryStrings = state.geometries.map(formatGeometry);
   const includedGeometryStrings: string[] = [];
@@ -164,7 +139,7 @@ export function buildQuickMapLink(
   for (const geometryString of geometryStrings) {
     const candidate = new URL(url);
     candidate.searchParams.set("features", [...includedGeometryStrings, geometryString].join("|"));
-    if (candidate.toString().length <= urlBudget) {
+    if (candidate.toString().length <= QUICKMAP_URL_BUDGET) {
       includedGeometryStrings.push(geometryString);
     } else {
       omittedGeometryCount++;
@@ -301,11 +276,7 @@ export function createQuickMapRexPositionLinkState({
       : [];
   });
 
-  const latestPosition = [...positionEntries].sort(
-    (first, second) =>
-      second.entry.createdAt - first.entry.createdAt ||
-      second.entry.petSeconds - first.entry.petSeconds
-  )[0];
+  const latestPosition = positionEntries.at(-1);
   const center = latestPosition.entry.location;
   const landerGeometry: QuickMapGeometry[] = isQuickMapPoint(landerLocation)
     ? [

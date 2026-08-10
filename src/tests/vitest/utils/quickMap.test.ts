@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  QUICKMAP_URL_BUDGET,
   buildQuickMapLink,
   createQuickMapLinkState,
   createQuickMapRexPositionLinkState,
@@ -244,6 +245,40 @@ describe("QuickMap URL adapter", () => {
     ]);
   });
 
+  it("centers on the latest position in chronological PET order", () => {
+    const posType: PosType = {
+      uuid: "eva",
+      abbr: "E",
+      name: "EVA",
+      icon: "",
+      pathColor: "#ff0000",
+    };
+    const state = createQuickMapRexPositionLinkState({
+      rex: {
+        posTypes: [posType],
+        posEntries: [
+          {
+            uuid: "later-created",
+            location: { lat: -89.9, lng: 100 },
+            petSeconds: 10,
+            posTypeUuids: [posType.uuid],
+            createdAt: 20,
+          },
+          {
+            uuid: "later-pet",
+            location: { lat: -89.91, lng: 101 },
+            petSeconds: 20,
+            posTypeUuids: [posType.uuid],
+            createdAt: 10,
+          },
+        ],
+      } as Rex,
+      landerLocation: null,
+    });
+
+    expect(state?.center).toEqual({ lat: -89.91, lng: 101 });
+  });
+
   it("rejects malformed lines", () => {
     expect(() =>
       buildQuickMapLink(baseUrl, {
@@ -286,15 +321,17 @@ describe("QuickMap URL adapter", () => {
   });
 
   it("omits trailing geometry that exceeds the URL budget", () => {
-    const oneGeometryResult = buildQuickMapLink(baseUrl, {
+    const { url, includedGeometryCount, omittedGeometryCount } = buildQuickMapLink(baseUrl, {
       ...linkState,
-      geometries: [linkState.geometries[0]],
+      geometries: [
+        linkState.geometries[0],
+        {
+          type: "Point",
+          coordinates: [-179.9, -89.8],
+          properties: { description: "x".repeat(QUICKMAP_URL_BUDGET) },
+        },
+      ],
     });
-    const { url, includedGeometryCount, omittedGeometryCount } = buildQuickMapLink(
-      baseUrl,
-      linkState,
-      { urlBudget: oneGeometryResult.url.toString().length }
-    );
 
     expect(url.searchParams.get("features")).toBe("180,-89.9");
     expect(includedGeometryCount).toBe(1);
