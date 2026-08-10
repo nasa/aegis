@@ -38,9 +38,9 @@ export function clearLoadedGrid(): void {
 
 /**
  * Derive the base spacing (metres between adjacent grid lines) from the grid
- * geometry. This is the single source of truth for grid resolution — spacing is
- * not stored on the mission doc, so both the resolution menu and the Grid
- * behavior compute it from the loaded coordinate file.
+ * geometry for server-file grids. Spacing is not stored on the mission doc, so
+ * both the resolution menu and the Grid behavior compute it from the loaded
+ * coordinate file when one is used. Dynamic LGRS grids use their own resolution.
  * @returns spacing in metres, or 0 if it can't be determined
  */
 export function getGridBaseSpacingMeters(grid: MissionGrid, planetRadius: number): number {
