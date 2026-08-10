@@ -3,7 +3,7 @@ import {
   ValidatedTextArea,
   ValidatedInputField,
 } from "components/interface/form/globalFieldsAutomerge";
-import { Dropdown, PathColorPickerMenu } from "components/interface/form/globalFields";
+import { Button, Dropdown, PathColorPickerMenu } from "components/interface/form/globalFields";
 import type { FunctionComponent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -28,6 +28,7 @@ import {
   faQuestionCircle,
   faToolbox,
   faRoute,
+  faGlobe,
 } from "@fortawesome/free-solid-svg-icons";
 import { regExValidators, validators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
@@ -36,11 +37,12 @@ import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
 import { faClock } from "@fortawesome/free-regular-svg-icons";
 import { thunkDocChangeIngressEgress } from "store/thunk/thunkEva";
 
-import { selectAsPlannedStations } from "store/selectors";
+import { selectAsPlannedStations, selectEvaStations, selectEvaTraverses } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateEvaByField } from "operations/apply/apply-eva";
+import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
 type XgressData = {
   uuid: string; // uuid of the xgress station or "lander"
@@ -76,6 +78,21 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     () => (selectedEvaUuid ? docMaps?.evas?.[selectedEvaUuid] : undefined),
     [docMaps, selectedEvaUuid]
   );
+  const quickMapLinkState = useMissionDocSelector((mission) => {
+    if (!selectedEvaUuid || !isQuickMapPoint(mission.landerLocation)) return null;
+    return createQuickMapLinkState({
+      center: mission.landerLocation,
+      additionalPoints: [
+        {
+          location: mission.landerLocation,
+          properties: { title: "Lander", "marker-color": "#ffffff" },
+        },
+      ],
+      stations: selectEvaStations(mission, selectedEvaUuid),
+      traverses: selectEvaTraverses(mission, selectedEvaUuid),
+      defaultTraverseColor: mission.evas?.[selectedEvaUuid]?.traverseColor ?? undefined,
+    });
+  }, deepEqual);
 
   // Returns rex name if this is a rex eva, else returns null
   const rexEvaName = useMemo(() => {
@@ -832,6 +849,20 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             </div>
           </div>
 
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faGlobe}>QuickMap</SubpanelHeading>
+            </div>
+            <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+              <Button
+                onClick={() => quickMapLinkState && openQuickMap(quickMapLinkState)}
+                label="View EVA in QuickMap"
+                toolTip="Opens an external, read-only QuickMap window"
+                style={{ width: "200px" }}
+                enabled={quickMapLinkState != null}
+              />
+            </div>
+          </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
