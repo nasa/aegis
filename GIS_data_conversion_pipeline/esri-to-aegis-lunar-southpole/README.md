@@ -393,7 +393,7 @@ already-registered `(header, path)` pairs):
   name/description/legend from each `properties.json`.
 - **Mission grid** — `POST /api/v1/grid` (with `upsertFullGrid`) uploads `Data/grid_source.geojson`
   as the **active** grid: the server writes its coordinates to `Data/LGRS.json` and sets the
-  mission's `activeGridUuid`. Replaces the manual upload at `/admin/mission_grid/<id>`.
+  mission's `serverFileGrid`. Replaces the manual upload at `/admin/mission_grid/<id>`.
 
 `--summary` prints the exact field values without calling the API. `--dry-run` previews the
 register/box actions. Run `register` alone with `--steps register` to (re)register an

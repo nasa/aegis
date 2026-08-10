@@ -355,13 +355,13 @@ def find_dem_file(data_dir: Path) -> Path | None:
 def build_mission_grid(
     geojson_path: Path, mission_id: int, existing_grid: dict | None
 ) -> dict:
-    """Build a MissionGrid (gridInformation + 2D coordinates) from an AEGIS grid GeoJSON.
+    """Build a MissionGrid (gridDefinition + 2D coordinates) from an AEGIS grid GeoJSON.
 
     Mirrors the admin's gridUpload.tsx transform: a FeatureCollection of Point features with
     row/column/id/L_coord/R_coord is turned into a ``coordinates[row][col]`` array with the
     row index inverted (``row_total - row - 1``) and ``[lon,lat]`` → ``{lat,lng}``. Reuses the
     existing grid's fileName when present so re-runs update in place. There is one grid per
-    mission; its metadata is stored on the mission Automerge doc (``mission.grid``).
+    mission; its metadata is stored on the mission Automerge doc (``mission.serverFileGrid``).
     """
     fc = json.loads(geojson_path.read_text(encoding="utf-8"))
     # The raw GeoJSON's internal name is just the scratch filename ("raw_grid"); use a clean,
@@ -387,11 +387,11 @@ def build_mission_grid(
             "name": label,
         }
 
-    prior = (existing_grid or {}).get("gridInformation") or {}
+    prior = (existing_grid or {}).get("gridDefinition") or {}
     file_name = prior.get("fileName") or f"{name}.json"
 
     return {
-        "gridInformation": {
+        "gridDefinition": {
             "numRows": row_total,
             "numCols": col_total,
             "name": name,
@@ -526,10 +526,11 @@ def register_mission(
             existing = client.get_grid(mission_id)
             grid = build_mission_grid(grid_geojson, mission_id, existing)
             client.upsert_grid(mission_id, grid, upsert_full_grid=True)
-            gi = grid["gridInformation"]
+            grid_definition = grid["gridDefinition"]
             print(
-                f"  registered active grid '{gi['name']}' "
-                f"({gi['numRows']}x{gi['numCols']}) -> Data/{gi['fileName']}"
+                f"  registered active grid '{grid_definition['name']}' "
+                f"({grid_definition['numRows']}x{grid_definition['numCols']}) "
+                f"-> Data/{grid_definition['fileName']}"
             )
     elif grid_geojson:
         print(f"  [warn] grid source not found: {grid_geojson}", file=sys.stderr)
