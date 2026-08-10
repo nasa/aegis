@@ -559,12 +559,43 @@ getORM()
       });
     };
 
+    const automergeMigration20260810RenameStationLabelStrokeToHalo = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      docHandle.change((mission: Mission) => {
+        for (const station of Object.values(mission.stations)) {
+          for (const control of Object.values(station.mapCircleControls)) {
+            const style = control.style as MapSublayerStyle & {
+              labelStrokeColor?: string;
+              labelStrokeWidth?: number;
+              labelStrokeOpacity?: number;
+            };
+            if ("labelStrokeColor" in style) {
+              if (style.labelHaloColor === undefined) style.labelHaloColor = style.labelStrokeColor;
+              delete style.labelStrokeColor;
+            }
+            if ("labelStrokeWidth" in style) {
+              if (style.labelHaloWidth === undefined) style.labelHaloWidth = style.labelStrokeWidth;
+              delete style.labelStrokeWidth;
+            }
+            if ("labelStrokeOpacity" in style) {
+              if (style.labelHaloOpacity === undefined) {
+                style.labelHaloOpacity = style.labelStrokeOpacity;
+              }
+              delete style.labelStrokeOpacity;
+            }
+          }
+        }
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
       automergeMigration20260528AddMaestroDocId,
       automergeMigration20260717AddActionNaming,
       automergeMigration20260722GridToMissionDoc,
+      automergeMigration20260810RenameStationLabelStrokeToHalo,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {
