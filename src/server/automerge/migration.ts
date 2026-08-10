@@ -463,7 +463,7 @@ getORM()
       const missionId = doc.id;
 
       // Idempotent: already migrated (has grid metadata, no legacy pointer) → skip.
-      if ("serverFileGrid" in doc && !("activeGridUuid" in doc)) return;
+      if (("grid" in doc || "serverFileGrid" in doc) && !("activeGridUuid" in doc)) return;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const legacyActiveUuid: string | null = (doc as any).activeGridUuid ?? null;
@@ -559,12 +559,29 @@ getORM()
       });
     };
 
+    const automergeMigration20260810RenameGridToServerFileGrid = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      const doc = docHandle.doc();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const legacyGrid = (doc as any).grid as MissionGridDefinition | null;
+      if (!("grid" in doc) || "serverFileGrid" in doc) return;
+
+      docHandle.change((m: Mission) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mission = m as any;
+        mission.serverFileGrid = legacyGrid;
+        delete mission.grid;
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
       automergeMigration20260528AddMaestroDocId,
       automergeMigration20260717AddActionNaming,
       automergeMigration20260722GridToMissionDoc,
+      automergeMigration20260810RenameGridToServerFileGrid,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {
