@@ -7,7 +7,7 @@ import {
   applyCreateReportCampaign,
   applyDeleteReportCampaign,
   applyUpdateReportCampaignByField,
-} from "client/automerge/apply/apply-mission-reportCampaign";
+} from "operations/apply/apply-mission-reportCampaign";
 
 beforeAll(() => setMissionAutomergeDocHandle(null));
 
