@@ -24,7 +24,11 @@ import {
 } from "store/preset";
 import { generateBlankPreset } from "store/storeUtils/preset";
 import { generateBlankLayer } from "store/storeUtils/layer";
-import { defaultSublayerStyle, generateBlankSublayer } from "store/storeUtils/sublayer";
+import {
+  defaultGridStyle,
+  defaultSublayerStyle,
+  generateBlankSublayer,
+} from "store/storeUtils/sublayer";
 import { setMissionAutomergeDocHandle, getMissionDocHandle } from "client/automergeDocHandles";
 import { initialState as missionInitialState } from "store/mission";
 import { initialState as presetInitialState } from "store/preset";
@@ -296,6 +300,11 @@ describe("Thunk Preset Tests", () => {
       const layerOrder = newPreset.layerOrder?.find((o) => o.layerUuid === layer.uuid);
       expect(layerOrder?.sublayerUuids).toContain(sublayer.uuid);
       expect(newPreset.mapSublayerControls[sublayer.uuid].style).toEqual(defaultSublayerStyle);
+      expect(newPreset.mapGridControl).toEqual({
+        visible: false,
+        labelsVisible: false,
+        style: defaultGridStyle,
+      });
 
       // The circle-controls branch should have produced an entry for the circle.
       expect(newPreset.mapCircleControls?.[circleUuid]).toBeDefined();

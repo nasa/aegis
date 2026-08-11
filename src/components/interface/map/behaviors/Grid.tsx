@@ -114,7 +114,9 @@ export function Grid(): null {
     const gridStyle = { ...defaultGridStyle, ...(mapGridControl.style ?? {}) };
     const lineStyle = new Style({
       stroke: new Stroke({
-        color: gridStyle.color,
+        color: gridStyle.color.startsWith("rgba(")
+          ? gridStyle.color
+          : withAlpha(gridStyle.color, gridStyle.opacity),
         width: gridStyle.weight,
       }),
     });

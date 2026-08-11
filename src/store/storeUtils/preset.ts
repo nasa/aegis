@@ -4,6 +4,7 @@ import type { Preset_db } from "server/database/models/_allModels";
 import { v4 as uuidv4 } from "uuid";
 
 import { getAccurateNow } from "utils/formatting";
+import { defaultGridStyle } from "./sublayer";
 
 /**
  * Generate a blank preset
@@ -21,7 +22,11 @@ export const generateBlankPreset = (partialPreset?: Partial<Preset>): Preset => 
     layerOrder: [],
     mapSublayerControls: null,
     mapCircleControls: {},
-    mapGridControl: null,
+    mapGridControl: {
+      visible: false,
+      labelsVisible: false,
+      style: { ...defaultGridStyle },
+    },
     sunAzimuth: 0,
     sunEnabled: false,
     earthAzimuth: 0,

@@ -146,7 +146,7 @@ function makeGridControl(visible: boolean, labelsVisible: boolean): MapGridContr
       brightness: 0,
       saturation: 0,
       blendMode: "normal",
-      color: "rgba(255,255,255,0.4)",
+      color: "#ffffff",
       weight: 1,
       fillColor: "",
       fillOpacity: 0,

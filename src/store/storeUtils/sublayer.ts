@@ -33,7 +33,8 @@ export const defaultSublayerStyle: MapSublayerStyle = {
  */
 export const defaultGridStyle: MapSublayerStyle = {
   ...defaultSublayerStyle,
-  color: "rgba(255,255,255,0.4)", // grid line stroke
+  color: "#ffffff",
+  opacity: 0.4,
   labelHaloWidth: 4,
   labelHaloOpacity: 0.1,
 };
