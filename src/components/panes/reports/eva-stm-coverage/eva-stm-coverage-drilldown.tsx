@@ -201,7 +201,11 @@ const DrilldownRule: FunctionComponent<{
     <div className={styles.drilldownRule}>
       <div className={styles.drilldownRuleSentence}>
         {rule ? (
-          <RuleSentence rule={rule} actionDefinitions={mission?.actionDefinitions ?? null} />
+          <RuleSentence
+            rule={rule}
+            actionDefinitions={mission?.actionDefinitions ?? null}
+            conjunctions={mission?.actionDefinitionConjunctions}
+          />
         ) : (
           "(deleted rule)"
         )}
@@ -328,6 +332,7 @@ const DrilldownActionRow: FunctionComponent<{
           <StmActionName
             actionDefinition={action.actionDefinition}
             missionActionDefs={mission.actionDefinitions}
+            conjunctions={mission.actionDefinitionConjunctions}
           />
         ) : (
           action.name
@@ -340,18 +345,24 @@ const DrilldownActionRow: FunctionComponent<{
 const StmActionName: FunctionComponent<{
   actionDefinition: ActionDefinition;
   missionActionDefs: ActionDefinitions;
-}> = ({ actionDefinition, missionActionDefs }) => {
+  conjunctions: Mission["actionDefinitionConjunctions"];
+}> = ({ actionDefinition, missionActionDefs, conjunctions }) => {
   const verbName = missionActionDefs.verbs[actionDefinition?.verbUuid]?.name ?? "Unknown";
   const nounName = missionActionDefs.nouns[actionDefinition?.nounUuid]?.name ?? "Unknown";
-  const adjectiveName =
-    missionActionDefs.adjectives[actionDefinition?.adjectiveUuid]?.name ?? "Unknown";
+  const adjectiveName = actionDefinition?.adjectiveUuid
+    ? (missionActionDefs.adjectives[actionDefinition.adjectiveUuid]?.name ?? "Unknown")
+    : null;
   return (
     <span>
       <span className={styles.drilldownRuleVerb}>{verbName}</span>
-      {" of "}
+      {` ${conjunctions.verbToNoun} `}
       <span className={styles.drilldownRuleNoun}>{nounName}</span>
-      {" in "}
-      <span className={styles.drilldownRuleAdjective}>{adjectiveName}</span>
+      {adjectiveName && (
+        <>
+          {` ${conjunctions.nounToAdjective} `}
+          <span className={styles.drilldownRuleAdjective}>{adjectiveName}</span>
+        </>
+      )}
     </span>
   );
 };
@@ -369,7 +380,9 @@ const ruleSetLabel = (
 const RuleSentence: FunctionComponent<{
   rule: STMRule;
   actionDefinitions: ActionDefinitions | null;
-}> = ({ rule, actionDefinitions }) => {
+  conjunctions: Mission["actionDefinitionConjunctions"] | undefined;
+}> = ({ rule, actionDefinitions, conjunctions }) => {
+  const { verbToNoun = "of", nounToAdjective = "in" } = conjunctions ?? {};
   return (
     <span>
       {rule.count}
@@ -377,11 +390,11 @@ const RuleSentence: FunctionComponent<{
       <span className={styles.drilldownRuleVerb}>
         {ruleSetLabel(rule.verbUuids, rule.verbAny, actionDefinitions?.verbs)}
       </span>
-      {" of "}
+      {` ${verbToNoun} `}
       <span className={styles.drilldownRuleNoun}>
         {ruleSetLabel(rule.nounUuids, rule.nounAny, actionDefinitions?.nouns)}
       </span>
-      {" in "}
+      {` ${nounToAdjective} `}
       <span className={styles.drilldownRuleAdjective}>
         {ruleSetLabel(rule.adjectiveUuids, rule.adjectiveAny, actionDefinitions?.adjectives)}
       </span>

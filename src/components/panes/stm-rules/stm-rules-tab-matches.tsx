@@ -44,7 +44,15 @@ const StmRulesTabMatches: FunctionComponent = () => {
     (mission) => mission.actionDefinitions,
     deepEqual
   );
-  const { widths, fontRef } = useStmRuleColumnWidths(rules, actionDefinitions);
+  const actionDefinitionLabels = useMissionDocSelector(
+    (mission) => mission.actionDefinitionLabels,
+    deepEqual
+  );
+  const { widths, fontRef } = useStmRuleColumnWidths(
+    rules,
+    actionDefinitions,
+    actionDefinitionLabels
+  );
   const widthVars = {
     "--stmVerbColWidth": `${widths.verbWidth}px`,
     "--stmNounColWidth": `${widths.nounWidth}px`,
