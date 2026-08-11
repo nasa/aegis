@@ -30,11 +30,11 @@ import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
-import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
+import { useServerFileGrid } from "components/interface/map/hooks/useServerFileGrid";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const resolvedGrid = useResolvedMissionGrid();
+  const serverFileGrid = useServerFileGrid();
   // Access the automerge mission document via the useDocument hook instead of the
   // useMissionDocSelector (to read) and updateMissionByField (to write). This is because for this
   // component, in particular, we access most/all of the properties of mission and it is simpler
@@ -61,13 +61,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const landerGridCoordinates = useAppSelector((state) => {
     if (automergeMission.landerLocation && automergeMission.usingLGRSCoordinates) {
       return getSouthLpsDisplayCoordinate(automergeMission.landerLocation) ?? "Not set";
-    } else if (
-      automergeMission.landerLocation &&
-      resolvedGrid.kind === "server-file" &&
-      state.map.gridCornerPoint
-    ) {
+    } else if (automergeMission.landerLocation && serverFileGrid && state.map.gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
-        resolvedGrid.grid.coordinates,
+        serverFileGrid.coordinates,
         automergeMission.landerLocation,
         automergeMission.planetRadius
       );

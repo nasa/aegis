@@ -7,7 +7,7 @@ import {
   getCalculatedFieldsByStation,
   getCalculatedFieldsByTraverse,
 } from "store/processing/calculatedFields";
-import { resolveMissionGrid } from "./mapping/grid";
+import { getServerFileGrid } from "./mapping/grid";
 import * as jsonKeysSort from "json-keys-sort";
 
 /**
@@ -466,9 +466,7 @@ export const makeExportString = ({
 }): string => {
   if (!mission) return "";
   let selectedExportedData = {};
-  const resolvedGrid = resolveMissionGrid(mission);
-  const missionGrid =
-    resolvedGrid.kind === "server-file" ? resolvedGrid.grid.coordinates : undefined;
+  const missionGrid = getServerFileGrid(mission.gridRenderMode)?.coordinates;
 
   /**
    * Mission

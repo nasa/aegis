@@ -4,13 +4,13 @@
  * Mocks:
  *  - `useCoordConverters` — avoids Automerge dependency
  *  - `utils/useDocSelector` — provides mutable planetRadius
- *  - `useResolvedMissionGrid` — provides a mutable resolved-grid fixture
+ *  - `useServerFileGrid` — provides a mutable server-file grid fixture
  *  - `utils/mapping/geoMath` — stubs `findClosestPointInGlobalGrid` /
  *    `adjustGridIndex` so test assertions don't depend on real geometry math
  *
  * Verifies:
  *  - Adds GRID_LINES and GRID_LABELS layers on mount
- *  - Both layers cleared when globalGrid is null
+ *  - Both layers cleared when the loaded grid is null
  *  - Both layers cleared when mapGridControl.visible=false
  *  - Line features added when grid is set and control is visible
  *  - Label features suppressed when labelsVisible=false
@@ -61,37 +61,17 @@ vi.mock("utils/useDocSelector", () => ({
   useDocSelector: (): undefined => undefined,
 }));
 
-// Mutable globalGrid fixture — vi.hoisted() so it's available inside the mock factory.
+// Mutable loaded-grid fixture — vi.hoisted() so it's available inside the mock factory.
 const mockGrid = vi.hoisted(() => ({ current: null as MissionGrid | null }));
 
-vi.mock("components/interface/map/hooks/useResolvedMissionGrid", () => ({
-  useResolvedMissionGrid: (): ResolvedMissionGrid => {
-    if (mockMissionDoc.gridRenderMode === "dynamic-lgrs") return { kind: "dynamic-lgrs" };
-    return mockGrid.current ? { kind: "server-file", grid: mockGrid.current } : { kind: "none" };
-  },
+vi.mock("components/interface/map/hooks/useServerFileGrid", () => ({
+  useServerFileGrid: (): MissionGrid | null =>
+    mockMissionDoc.gridRenderMode === "server-file" ? mockGrid.current : null,
 }));
 
-// Use a stable Proxy as the exported globalGrid value.
-// Since the ESM binding captures the proxy reference (never null), it passes
-// the `!globalGrid` guard in the component.  The proxy's property traps then
-// delegate to mockGrid.current at CALL TIME, making the fixture mutable.
-vi.mock("utils/mapping/grid", () => {
-  const globalGridProxy = new Proxy({} as MissionGrid, {
-    get(_target, prop: string) {
-      const current = mockGrid.current;
-      if (!current) return undefined;
-      return (current as Record<string, unknown>)[prop];
-    },
-    has(_target, prop) {
-      return mockGrid.current != null && prop in mockGrid.current;
-    },
-  });
-  return {
-    globalGrid: globalGridProxy,
-    loadAndReturnGrid: async (): Promise<null> => null,
-    getGridBaseSpacingMeters: () => 0,
-  };
-});
+vi.mock("utils/mapping/grid", () => ({
+  getGridBaseSpacingMeters: () => 0,
+}));
 
 // Call counter so findClosestPointInGlobalGrid returns distinct start/end indices.
 // Reset to 0 in beforeEach so each render gets a clean pair of calls.
@@ -272,7 +252,7 @@ describe("Grid", () => {
     expect(findLayerAtZIndex(Z_INDEX.GRID_LABELS)).not.toBeNull();
   });
 
-  it("line source is empty when globalGrid is null", () => {
+  it("line source is empty when the loaded grid is null", () => {
     mockGrid.current = null;
     store = makeStore({
       preset: {

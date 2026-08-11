@@ -14,7 +14,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     maestroDocId: null,
     isArchived: false,
     usingLGRSCoordinates: false,
-    gridRenderMode: "server-file",
+    gridRenderMode: "none",
     description: "",
     actionSystemVersion: 1,
     actionDefinitions: null,

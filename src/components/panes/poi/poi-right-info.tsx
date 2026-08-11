@@ -21,13 +21,13 @@ import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
 import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
+import { useServerFileGrid } from "components/interface/map/hooks/useServerFileGrid";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const resolvedGrid = useResolvedMissionGrid();
+  const serverFileGrid = useServerFileGrid();
   const partialMission = useMissionDocSelector(
     (mission) => ({
       usingLGRSCoordinates: mission.usingLGRSCoordinates,
@@ -85,9 +85,9 @@ const Info_Panel: FunctionComponent<{
   const poiGridCoordinates = useMemo(() => {
     if (selectedPoi?.location && partialMission.usingLGRSCoordinates) {
       return getSouthLpsDisplayCoordinate(selectedPoi.location) ?? "Not set";
-    } else if (selectedPoi?.location && resolvedGrid.kind === "server-file" && gridCornerPoint) {
+    } else if (selectedPoi?.location && serverFileGrid && gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
-        resolvedGrid.grid.coordinates,
+        serverFileGrid.coordinates,
         selectedPoi.location,
         partialMission.planetRadius
       );
@@ -99,7 +99,7 @@ const Info_Panel: FunctionComponent<{
     partialMission.usingLGRSCoordinates,
     partialMission.planetRadius,
     gridCornerPoint,
-    resolvedGrid,
+    serverFileGrid,
   ]);
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;

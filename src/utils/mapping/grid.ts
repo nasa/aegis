@@ -1,7 +1,7 @@
 import { getGrid } from "http-client/grid";
 import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 
-export let globalGrid: MissionGrid = null;
+let globalGrid: MissionGrid = null;
 const loadedGridListeners = new Set<() => void>();
 
 function setLoadedGrid(grid: MissionGrid): void {
@@ -15,21 +15,18 @@ export function subscribeLoadedGrid(listener: () => void): () => void {
   return () => loadedGridListeners.delete(listener);
 }
 
-export function getLoadedGridSnapshot(): MissionGrid {
+export function getLoadedGrid(): MissionGrid {
   return globalGrid;
 }
 
-export function getGridRenderMode(mission: { gridRenderMode?: GridRenderMode }): GridRenderMode {
-  return mission.gridRenderMode ?? "server-file";
-}
-
-export function resolveMissionGrid(
-  mission: Pick<Mission, "serverFileGrid"> & { gridRenderMode?: GridRenderMode },
-  serverGrid: MissionGrid = globalGrid
-): ResolvedMissionGrid {
-  if (getGridRenderMode(mission) === "dynamic-lgrs") return { kind: "dynamic-lgrs" };
-  if (!mission.serverFileGrid || !serverGrid?.coordinates?.length) return { kind: "none" };
-  return { kind: "server-file", grid: serverGrid };
+/**
+ * The server-file grid, but only when the mission is actually configured to use
+ * one and the coordinate file has finished loading. Null in every other case, so
+ * callers never have to check render mode and load state separately.
+ */
+export function getServerFileGrid(gridRenderMode: GridRenderMode): MissionGrid | null {
+  if (gridRenderMode !== "server-file") return null;
+  return globalGrid?.coordinates?.length ? globalGrid : null;
 }
 
 export function clearLoadedGrid(): void {

@@ -50,7 +50,7 @@ export async function getReadableEvaData(params: ReadableEvaParams): Promise<Exp
   }
 
   let gridCoordinates = null;
-  if (mission.serverFileGrid) {
+  if (mission.gridRenderMode === "server-file") {
     try {
       gridCoordinates = (await getGrid(missionId, true))?.coordinates;
     } catch (e) {

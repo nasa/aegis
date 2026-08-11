@@ -16,7 +16,7 @@ import { setAllSliceStores } from "store/crossActions";
 import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
-import { clearLoadedGrid, getGridRenderMode, loadAndReturnGrid } from "utils/mapping/grid";
+import { clearLoadedGrid, loadAndReturnGrid } from "utils/mapping/grid";
 import { setGridCornerPoint } from "store/map";
 import { clientLogger } from "utils/logging/clientLogger";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -160,7 +160,7 @@ const Main: React.FunctionComponent = () => {
   // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
     if (!partialMission) return;
-    if (getGridRenderMode(partialMission) === "dynamic-lgrs" || !partialMission.serverFileGrid) {
+    if (partialMission.gridRenderMode !== "server-file" || !partialMission.serverFileGrid) {
       clearLoadedGrid();
       dispatch(setGridCornerPoint(null));
       return;

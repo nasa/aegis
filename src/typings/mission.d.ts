@@ -190,17 +190,13 @@ type MissionGrid = {
   coordinates: MissionGridPoint[][];
 };
 
-type GridRenderMode = "server-file" | "dynamic-lgrs";
-
-type ResolvedMissionGrid =
-  | { kind: "none" }
-  | { kind: "dynamic-lgrs" }
-  | { kind: "server-file"; grid: MissionGrid };
+type GridRenderMode = "server-file" | "dynamic-lgrs" | "none";
 
 /**
  * Grid metadata stored on the mission Automerge doc (`mission.serverFileGrid`).
  * There is exactly one grid per mission; the coordinate array lives on disk
- * (Data/<fileName>) and is loaded into `globalGrid` at runtime.
+ * (Data/<fileName>) and is loaded into the module store in `utils/mapping/grid`
+ * at runtime (read via `getServerFileGrid` / the `useServerFileGrid` hook).
  */
 type MissionGridDefinition = {
   numRows: number;

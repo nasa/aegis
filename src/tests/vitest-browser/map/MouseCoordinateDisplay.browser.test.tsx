@@ -5,7 +5,7 @@
  *  - `useCoordConverters` — converts projected coords back to lat/lng
  *  - `utils/useDocSelector` — provides planetRadius + usingLGRSCoordinates
  *  - `utils/mapping/geoMath` — stubs getGridCoordinatesFromPoint
- *  - `useResolvedMissionGrid` — provides no server-file grid
+ *  - `useServerFileGrid` — provides no server-file grid
  *
  * Verifies:
  *  - Returns null in minimap mode (showMouseCoords=false)
@@ -66,8 +66,8 @@ vi.mock("utils/mapping/geoMath", () => ({
   getBearingFromLatLngPoints: (): number => 0,
 }));
 
-vi.mock("components/interface/map/hooks/useResolvedMissionGrid", () => ({
-  useResolvedMissionGrid: (): ResolvedMissionGrid => ({ kind: "none" }),
+vi.mock("components/interface/map/hooks/useServerFileGrid", () => ({
+  useServerFileGrid: (): MissionGrid | null => null,
 }));
 
 // ---------------------------------------------------------------------------

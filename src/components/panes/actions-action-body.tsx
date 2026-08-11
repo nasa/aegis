@@ -45,7 +45,7 @@ import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkDocAddCollectionId, thunkDocAddRexActionMass } from "store/thunk/thunkRex";
 import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
+import { useServerFileGrid } from "components/interface/map/hooks/useServerFileGrid";
 
 const RightActionBody: FunctionComponent<{
   editMode: boolean;
@@ -57,7 +57,7 @@ const RightActionBody: FunctionComponent<{
   allowRexEdit: boolean;
 }> = ({ editMode, action, parentType, parentLocation, parentElevation, rexUuid, allowRexEdit }) => {
   const dispatch = useAppDispatch();
-  const resolvedGrid = useResolvedMissionGrid();
+  const serverFileGrid = useServerFileGrid();
   const partialMission = useMissionDocSelector(
     (mission) => ({
       usingLGRSCoordinates: mission.usingLGRSCoordinates,
@@ -92,13 +92,9 @@ const RightActionBody: FunctionComponent<{
   const actionGridCoordinates = useAppSelector((state) => {
     if (action.location && partialMission.usingLGRSCoordinates) {
       return getSouthLpsDisplayCoordinate(action.location) ?? "Not set";
-    } else if (
-      action.location &&
-      resolvedGrid.kind === "server-file" &&
-      state.map.gridCornerPoint
-    ) {
+    } else if (action.location && serverFileGrid && state.map.gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
-        resolvedGrid.grid.coordinates,
+        serverFileGrid.coordinates,
         action.location,
         partialMission.planetRadius
       );

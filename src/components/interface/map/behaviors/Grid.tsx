@@ -35,7 +35,7 @@ import { useMapMenuContext } from "../MapMenuProvider";
 import { withAlpha } from "../utils/layers/layerFactory";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useCoordConverters } from "../hooks/useCoordConverters";
-import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
+import { useServerFileGrid } from "../hooks/useServerFileGrid";
 import { Z_INDEX } from "../utils/zIndex";
 
 // Hide labels once adjacent labels would be closer than this many screen pixels.
@@ -46,7 +46,8 @@ export function Grid(): null {
   const config = MODE_CONFIGS[mode];
   const { toMapCoord, toAegisPoint } = useCoordConverters();
   const { gridSpacingMode, gridLabelInterval } = useMapMenuContext();
-  const resolvedGrid = useResolvedMissionGrid();
+  const gridRenderMode = useMissionDocSelector((doc) => doc.gridRenderMode, refEqual);
+  const serverFileGrid = useServerFileGrid();
 
   const projectionConfig = useMissionDocSelector(
     (doc) => ({
@@ -100,7 +101,10 @@ export function Grid(): null {
     const lineLayer = lineLayerRef.current;
     const labelLayer = labelLayerRef.current;
     if (!lineLayer || !labelLayer) return;
-    if (!mapGridControl?.visible || resolvedGrid.kind === "none") {
+    // Nothing to draw when the grid is off, or when the mission uses a server
+    // file that hasn't loaded yet.
+    const hasDrawableGrid = gridRenderMode === "dynamic-lgrs" || !!serverFileGrid;
+    if (!mapGridControl?.visible || !hasDrawableGrid) {
       lineLayer.getSource()!.clear();
       labelLayer.getSource()!.clear();
       return;
@@ -149,7 +153,7 @@ export function Grid(): null {
     const extent = map.getView().calculateExtent(map.getSize());
     const resolution = map.getView().getResolution() ?? 0;
 
-    if (resolvedGrid.kind === "dynamic-lgrs") {
+    if (gridRenderMode === "dynamic-lgrs") {
       if (!projectionConfig || !isCanonicalSouthLpsMission(projectionConfig)) return;
       const min = mapCapToLps([extent[0], extent[1]]);
       const max = mapCapToLps([extent[2], extent[3]]);
@@ -177,8 +181,8 @@ export function Grid(): null {
       return;
     }
 
-    if (!planetRadius) return;
-    const gridCoordinates = resolvedGrid.grid.coordinates;
+    if (!planetRadius || !serverFileGrid) return;
+    const gridCoordinates = serverFileGrid.coordinates;
     const numRows = gridCoordinates.length;
     const numCols = gridCoordinates[0].length;
 
@@ -192,7 +196,7 @@ export function Grid(): null {
 
     // Base spacing (metres between adjacent grid lines), derived from the grid
     // geometry — the single source of truth (see getGridBaseSpacingMeters).
-    const baseSpacing = getGridBaseSpacingMeters(resolvedGrid.grid, planetRadius);
+    const baseSpacing = getGridBaseSpacingMeters(serverFileGrid, planetRadius);
 
     const basePointsShown =
       (endGridIdx.row - startGridIdx.row) * (endGridIdx.col - startGridIdx.col);
@@ -293,7 +297,8 @@ export function Grid(): null {
     mapGridControl,
     planetRadius,
     projectionConfig,
-    resolvedGrid,
+    gridRenderMode,
+    serverFileGrid,
     toMapCoord,
     toAegisPoint,
     config.grid.labelsEnabled,

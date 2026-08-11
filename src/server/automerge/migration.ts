@@ -576,8 +576,13 @@ getORM()
     // Migration: legacy missions with LGRS enabled use dynamic rendering by default.
     const automergeMigration20260809AddGridRenderMode = async (docHandle: DocHandle<Mission>) => {
       docHandle.change((mission: Mission) => {
-        if (mission.gridRenderMode === undefined) {
-          mission.gridRenderMode = mission.usingLGRSCoordinates ? "dynamic-lgrs" : "server-file";
+        if (mission.gridRenderMode !== undefined) return;
+        if (mission.usingLGRSCoordinates) {
+          mission.gridRenderMode = "dynamic-lgrs";
+        } else if (mission.serverFileGrid) {
+          mission.gridRenderMode = "server-file";
+        } else {
+          mission.gridRenderMode = "none";
         }
       });
     };

@@ -35,13 +35,13 @@ import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateStationByField } from "operations/apply/apply-station";
-import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
+import { useServerFileGrid } from "components/interface/map/hooks/useServerFileGrid";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const resolvedGrid = useResolvedMissionGrid();
+  const serverFileGrid = useServerFileGrid();
   const partialMission = useMissionDocSelector(
     (mission) => ({
       walkbackRate: mission.walkbackRate,
@@ -130,9 +130,9 @@ const Info_Panel: FunctionComponent<{
     if (selectedStation?.location && partialMission.usingLGRSCoordinates) {
       return getSouthLpsDisplayCoordinate(selectedStation.location) ?? "Not set";
     }
-    if (selectedStation?.location && resolvedGrid.kind === "server-file" && gridCornerPoint) {
+    if (selectedStation?.location && serverFileGrid && gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
-        resolvedGrid.grid.coordinates,
+        serverFileGrid.coordinates,
         selectedStation.location,
         partialMission.planetRadius
       );
@@ -144,7 +144,7 @@ const Info_Panel: FunctionComponent<{
     partialMission.usingLGRSCoordinates,
     partialMission.planetRadius,
     gridCornerPoint,
-    resolvedGrid,
+    serverFileGrid,
   ]);
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");

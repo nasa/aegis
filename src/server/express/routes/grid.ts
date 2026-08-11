@@ -303,7 +303,7 @@ export async function getGrid(
 ): Promise<MissionGrid | null> {
   const handle = await getAutomergeMissionHandle(missionId);
   const mission = handle?.doc();
-  if (mission?.gridRenderMode === "dynamic-lgrs") return null;
+  if (mission.gridRenderMode !== "server-file") return null;
   const definition = mission?.serverFileGrid;
   if (!definition) return null;
 
@@ -351,7 +351,7 @@ async function getClosestPoints(
 ): Promise<GridIndex[]> {
   const handle = await getAutomergeMissionHandle(missionId);
   const mission = handle?.doc();
-  if (mission?.gridRenderMode === "dynamic-lgrs") return [];
+  if (mission.gridRenderMode !== "server-file") return [];
   const definition = mission?.serverFileGrid;
   if (!definition) return [];
 

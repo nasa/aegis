@@ -6,14 +6,16 @@ import { faInfo, faPaintBrush } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { upsertPresetByField } from "store/preset";
 import { defaultGridStyle } from "store/storeUtils/sublayer";
+import { defaultGridStyle } from "store/storeUtils/sublayer";
 import Settings_subpanel from "components/interface/settings-and-slider";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { Checkbox } from "components/interface/form/globalFields";
-import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
-  const resolvedGrid = useResolvedMissionGrid();
+  const gridRenderMode = useMissionDocSelector((m) => m.gridRenderMode, refEqual);
+  const serverFileGrid = useMissionDocSelector((m) => m.serverFileGrid, deepEqual);
 
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset: Preset = useAppSelector(
@@ -21,14 +23,14 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     deepEqual
   );
   const presetGridControl = selectedPreset?.mapGridControl;
+
   const gridControl: MapGridControl = {
     visible: !!presetGridControl?.visible,
     labelsVisible: !!presetGridControl?.labelsVisible,
     style: { ...defaultGridStyle, ...presetGridControl?.style },
   };
 
-  const gridDefinition =
-    resolvedGrid.kind === "server-file" ? resolvedGrid.grid.gridDefinition : undefined;
+  const gridDefinition = gridRenderMode === "server-file" ? serverFileGrid : undefined;
 
   const styleSetterHandler = ({
     uuid,
@@ -52,7 +54,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       </div>
       <div className={paneStyles.rightBodyBody}>
         <div className={paneStyles.panelContainer}>
-          {resolvedGrid.kind !== "none" ? (
+          {gridRenderMode !== "none" ? (
             <div>
               <div>
                 <div className={gridStyles.gridGroup}>
@@ -60,7 +62,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
                       <SubpanelHeading icon={faInfo}>Grid Information</SubpanelHeading>
                     </div>
-                    {resolvedGrid.kind === "dynamic-lgrs" ? (
+                    {gridRenderMode === "dynamic-lgrs" ? (
                       <div className={paneStyles.panelSectionRow}>
                         <div className={paneStyles.panelSection2Column}>
                           <div className={paneStyles.panelColumnTable}>

@@ -6,7 +6,7 @@ import styles from "./map-menu.module.css";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridBaseSpacingMeters } from "utils/mapping/grid";
-import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
+import { useServerFileGrid } from "../hooks/useServerFileGrid";
 
 const GRID_SPACING_OPTIONS: { label: string; value: GridSpacingMode }[] = [
   { label: "Auto", value: "auto" },
@@ -85,12 +85,13 @@ export const MapMenu: FunctionComponent<{
   // Base grid spacing (metres) drives which fixed-spacing options are selectable.
   // Derived from the loaded grid geometry so it always matches what's drawn.
   const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
-  const resolvedGrid = useResolvedMissionGrid();
+  const gridRenderMode = useMissionDocSelector((m) => m.gridRenderMode, refEqual);
+  const serverFileGrid = useServerFileGrid();
   let baseGridSpacing = 0;
-  if (resolvedGrid.kind === "dynamic-lgrs") {
+  if (gridRenderMode === "dynamic-lgrs") {
     baseGridSpacing = 10;
-  } else if (resolvedGrid.kind === "server-file") {
-    baseGridSpacing = getGridBaseSpacingMeters(resolvedGrid.grid, planetRadius);
+  } else if (serverFileGrid) {
+    baseGridSpacing = getGridBaseSpacingMeters(serverFileGrid, planetRadius);
   }
 
   //if the selected pos source list contains a uuid that isn't in selected rex's pos sources list this means that the selected rex has changed.
