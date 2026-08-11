@@ -29,6 +29,7 @@ import {
 import cloneDeep from "lodash/cloneDeep";
 import capitalize from "lodash/capitalize";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { getActionDefinitionLabel } from "store/selectors";
 
 /**
  * className for a rule word-column wrapper: the base container plus its
@@ -219,6 +220,12 @@ export const STMRuleSet: FunctionComponent<{
     (mission) => mission.actionDefinitions,
     deepEqual
   );
+  const actionDefinitionLabels = useMissionDocSelector(
+    (mission) => mission.actionDefinitionLabels,
+    deepEqual
+  );
+  const singularLabel = getActionDefinitionLabel({ actionDefinitionLabels }, type);
+  const pluralLabel = getActionDefinitionLabel({ actionDefinitionLabels }, type, "plural");
 
   const actionDefinitionItemsToDisplay: { uuid: string; name: string; abbr: string }[] = [];
   const ruleItemUuidsKeyString = `${type.slice(0, -1)}Uuids` as
@@ -266,7 +273,7 @@ export const STMRuleSet: FunctionComponent<{
                   }
                   dispatch(upsertSTMRuleByField(stmRule.uuid, uuidKeyString, uuidArray));
                 }}
-                titleLabel={`${capitalize(type)}...`}
+                titleLabel={`${pluralLabel}...`}
                 containerStyle={{ zIndex: 10, width: "170px" }}
                 containerClassName={styles.stmRuleSetMultiselectContainer}
                 headerClassName={styles.multiselectDropdownHeader}
@@ -293,7 +300,7 @@ export const STMRuleSet: FunctionComponent<{
                   upsertSTMRuleByField(stmRule.uuid, anyKeyString, !stmRule[ruleAnyKeyString])
                 );
               }}
-              toolTip={`Any ${type.slice(0, -1)}`}
+              toolTip={`Any ${singularLabel}`}
               label={`Any`}
             />
           </div>
@@ -309,13 +316,11 @@ export const STMRuleSet: FunctionComponent<{
                   ))}
                 </>
               ) : (
-                <div className={styles.stmRuleSetItemName}>{`...Select ${capitalize(type)}`}</div>
+                <div className={styles.stmRuleSetItemName}>{`...Select ${pluralLabel}`}</div>
               )}
             </>
           ) : (
-            <div
-              className={styles.stmRuleSetItemName}
-            >{`<Any ${capitalize(type.slice(0, -1))}>`}</div>
+            <div className={styles.stmRuleSetItemName}>{`<Any ${singularLabel}>`}</div>
           )}
         </div>
       )}
