@@ -5,7 +5,7 @@ export const EnvironmentConfig_dbSchema = defineEntity({
   properties: {
     id: p.integer().autoincrement().primary(),
     key: p.text().unique(),
-    value: p.text().nullable(),
+    value: p.string().nullable(),
     description: p.text().nullable(),
     createdAt: p.datetime(3),
     updatedAt: p.datetime(3),

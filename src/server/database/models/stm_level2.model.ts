@@ -7,7 +7,7 @@ export const STM_Level2_dbSchema = defineEntity({
   name: "STM_Level2_db",
   properties: {
     uuid: p.string().primary(),
-    level1: () => p.manyToOne(STMLevel1Entity),
+    level1: () => p.manyToOne(STMLevel1Entity).updateRule("cascade"),
     level3s: () => p.oneToMany(STMLevel3Entity).mappedBy("level2"),
     name: p.text(),
     numbering: p.string(),

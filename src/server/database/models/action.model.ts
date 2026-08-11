@@ -10,10 +10,13 @@ export const Action_dbSchema = defineEntity({
     uuid: p.string().unique().primary(),
     refUuid: p.string().defaultRaw("uuid_generate_v4()"),
     missionId: p.integer(),
-    poi: () => p.manyToOne(PoiEntity),
-    station: () => p.manyToOne(StationEntity),
-    traverse: () => p.manyToOne(TraverseEntity),
-    parentAction: () => p.manyToOne(Action_db),
+    poi: () => p.manyToOne(PoiEntity).nullable().updateRule("cascade").deleteRule("set null"),
+    station: () =>
+      p.manyToOne(StationEntity).nullable().updateRule("cascade").deleteRule("set null"),
+    traverse: () =>
+      p.manyToOne(TraverseEntity).nullable().updateRule("cascade").deleteRule("set null"),
+    parentAction: () =>
+      p.manyToOne(Action_db).nullable().updateRule("cascade").deleteRule("set null"),
     parentCopyDate: p.double().$type<number>().nullable(),
     name: p.text(),
     priority: p.integer().nullable(),

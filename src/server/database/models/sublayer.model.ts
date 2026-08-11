@@ -7,7 +7,7 @@ export const Sublayer_dbSchema = defineEntity({
   properties: {
     uuid: p.uuid().primary(),
     missionId: p.integer(),
-    layer: () => p.manyToOne(LayerEntity),
+    layer: () => p.manyToOne(LayerEntity).updateRule("cascade"),
     name: p.text().nullable(),
     description: p.text().nullable(),
     legend: p.json<Legend>().nullable(),

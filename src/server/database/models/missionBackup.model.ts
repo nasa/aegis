@@ -4,7 +4,7 @@ export const MissionBackup_dbSchema = defineEntity({
   name: "MissionBackup_db",
   tableName: "mission_backup_db",
   properties: {
-    missionId: p.integer().primary(),
+    missionId: p.integer().primary().autoincrement(false),
     data: p.json<object>().columnType("jsonb"),
   },
 });
