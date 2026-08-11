@@ -1,36 +1,27 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
-
-@Entity()
 export class STM_Rule_db implements STMRule_db_type {
-  @PrimaryKey({ type: MikroTypes.string })
   uuid!: string;
-  @Property({ type: MikroTypes.integer })
+
   missionId!: number;
 
-  @Property({ type: MikroTypes.string })
   stmUuid!: string;
 
-  @Property({ type: MikroTypes.float })
   count: number;
-  @Property({ type: MikroTypes.array, columnType: "text[]" })
+
   verbUuids: string[];
-  @Property({ type: MikroTypes.array, columnType: "text[]" })
+
   nounUuids: string[];
-  @Property({ type: MikroTypes.array, columnType: "text[]" })
+
   adjectiveUuids: string[];
-  @Property({ type: MikroTypes.boolean })
+
   verbAny: boolean;
-  @Property({ type: MikroTypes.boolean })
+
   nounAny: boolean;
-  @Property({ type: MikroTypes.boolean })
+
   adjectiveAny: boolean;
 
-  @Property({ type: MikroTypes.datetime, length: 3 })
   createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
+
   updatedAt!: Date;
 
-  @Property({ type: MikroTypes.integer, version: true })
   version!: number; //used for optimistic locking
 }
