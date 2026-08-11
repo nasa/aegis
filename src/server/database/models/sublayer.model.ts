@@ -1,50 +1,32 @@
-import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-import { Layer_db } from "./_allModels";
+import { Layer_db as LayerEntity } from "./layer.model";
 
-@Entity()
-export class Sublayer_db implements Sublayer_db_type {
-  @PrimaryKey({ type: MikroTypes.uuid })
-  uuid: string;
+export const Sublayer_dbSchema = defineEntity({
+  name: "Sublayer_db",
+  properties: {
+    uuid: p.uuid().primary(),
+    missionId: p.integer(),
+    layer: () => p.manyToOne(LayerEntity).updateRule("cascade"),
+    name: p.text().nullable(),
+    description: p.text().nullable(),
+    legend: p.json<Legend>().nullable(),
+    type: p.text().$type<SublayerType>().nullable(),
+    path: p.text().nullable(),
+    tilePattern: p.text().nullable(),
+    boundingBox: p.json<number[]>().nullable(),
+    tileFormat: p.text().nullable(),
+    minNativeZoom: p.float().nullable(),
+    maxNativeZoom: p.float().nullable(),
+    maxZoom: p.float().nullable(),
+    isTimeBased: p.boolean().nullable(),
+    timeLayerManifest: p.json<TimeLayerInfo[]>().nullable(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  @Property({ type: MikroTypes.integer })
-  missionId!: number;
-  @ManyToOne(() => Layer_db, { unique: false, primary: false })
-  layer!: Layer_db;
+export class Sublayer_db extends Sublayer_dbSchema.class implements Sublayer_db_type {}
 
-  @Property({ type: MikroTypes.text, nullable: true })
-  name!: string;
-  @Property({ type: MikroTypes.text, nullable: true })
-  description: string;
-  @Property({ type: MikroTypes.json, nullable: true })
-  legend: Legend;
-  @Property({ type: MikroTypes.text, nullable: true })
-  type: SublayerType;
-  @Property({ type: MikroTypes.text, nullable: true })
-  path: string;
-  @Property({ type: MikroTypes.text, nullable: true })
-  tilePattern: string;
-  @Property({ type: MikroTypes.json, nullable: true })
-  boundingBox: number[];
-  @Property({ type: MikroTypes.text, nullable: true })
-  tileFormat: string;
-  @Property({ type: MikroTypes.float, nullable: true })
-  minNativeZoom: number;
-  @Property({ type: MikroTypes.float, nullable: true })
-  maxNativeZoom: number;
-  @Property({ type: MikroTypes.float, nullable: true })
-  maxZoom: number;
-  @Property({ type: MikroTypes.boolean, nullable: true })
-  isTimeBased: boolean;
-  @Property({ type: MikroTypes.json, nullable: true })
-  timeLayerManifest: TimeLayerInfo[];
-
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  updatedAt!: Date;
-
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number; //used for optimistic locking
-}
+Sublayer_dbSchema.setClass(Sublayer_db);

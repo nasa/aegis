@@ -1,24 +1,21 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-@Entity()
-export class EnvironmentConfig_db {
-  @PrimaryKey({ type: MikroTypes.integer, autoincrement: true })
-  id!: number;
+export const EnvironmentConfig_dbSchema = defineEntity({
+  name: "EnvironmentConfig_db",
+  properties: {
+    id: p.integer().autoincrement().primary(),
+    key: p.text().unique(),
+    value: p.string().nullable(),
+    description: p.text().nullable(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  @Property({ type: MikroTypes.text, nullable: false, unique: true })
-  key: string;
-  @Property({ type: MikroTypes.text, nullable: true })
-  value: string | null = null;
-
-  @Property({ type: MikroTypes.text, nullable: true })
-  description: string | null = null;
-
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  updatedAt!: Date;
-
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number;
+export class EnvironmentConfig_db extends EnvironmentConfig_dbSchema.class {
+  override value: string | null = null;
+  override description: string | null = null;
 }
+
+EnvironmentConfig_dbSchema.setClass(EnvironmentConfig_db);

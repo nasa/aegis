@@ -1,58 +1,35 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-@Entity()
-export class Rex_db implements Rex_db_type {
-  @PrimaryKey({ type: MikroTypes.string, unique: true })
-  uuid!: string;
+export const Rex_dbSchema = defineEntity({
+  name: "Rex_db",
+  properties: {
+    uuid: p.string().unique().primary(),
+    missionId: p.integer(),
+    name: p.text(),
+    description: p.text().nullable(),
+    petStartStopTimestamp: p.string().nullable(),
+    petValueAtStartStop: p.string().nullable(),
+    petRunning: p.boolean().nullable(),
+    evaUuid: p.string(),
+    isRunning: p.boolean().nullable(),
+    posEntries: p.json<PosEntry[]>().nullable(),
+    posTypes: p.json<PosType[]>().nullable(),
+    posSources: p.json<PosSource[]>().nullable(),
+    stationEntries: p.json<ActivityEntries>().nullable(),
+    traverseEntries: p.json<ActivityEntries>().nullable(),
+    actionEntries: p.json<ActionEntries>().nullable(),
+    xgressEntries: p.json<XgressEntries>().nullable(),
+    ownerId: p.integer().nullable(),
+    maestroControlled: p.boolean().default(false),
+    maestroEventId: p.string().nullable(),
+    maestroEventUrl: p.string().nullable(),
+    maestroActivityPropertiesByRefUuid: p.json<MaestroActivityPropertiesByRefUuid>().nullable(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  @Property({ type: MikroTypes.integer })
-  missionId!: number;
+export class Rex_db extends Rex_dbSchema.class implements Rex_db_type {}
 
-  @Property({ type: MikroTypes.text })
-  name!: string;
-  @Property({ type: MikroTypes.text, nullable: true })
-  description!: string;
-  @Property({ type: MikroTypes.string, nullable: true })
-  petStartStopTimestamp: string;
-  @Property({ type: MikroTypes.string, nullable: true })
-  petValueAtStartStop: string;
-  @Property({ type: MikroTypes.boolean, nullable: true })
-  petRunning: boolean;
-  @Property({ type: MikroTypes.string, nullable: false })
-  evaUuid: string;
-  @Property({ type: MikroTypes.boolean, nullable: true })
-  isRunning: boolean;
-  @Property({ type: MikroTypes.json, nullable: true })
-  posEntries: PosEntry[];
-  @Property({ type: MikroTypes.json, nullable: true })
-  posTypes: PosType[];
-  @Property({ type: MikroTypes.json, nullable: true })
-  posSources: PosSource[];
-  @Property({ type: MikroTypes.json, nullable: true })
-  stationEntries: ActivityEntries;
-  @Property({ type: MikroTypes.json, nullable: true })
-  traverseEntries: ActivityEntries;
-  @Property({ type: MikroTypes.json, nullable: true })
-  actionEntries: ActionEntries;
-  @Property({ type: MikroTypes.json, nullable: true })
-  xgressEntries: XgressEntries;
-  @Property({ type: MikroTypes.integer, nullable: true })
-  ownerId: number;
-  @Property({ type: MikroTypes.boolean, nullable: false, default: false })
-  maestroControlled: boolean;
-  @Property({ type: MikroTypes.string, nullable: true })
-  maestroEventId: string | null;
-  @Property({ type: MikroTypes.string, nullable: true })
-  maestroEventUrl: string | null;
-  @Property({ type: MikroTypes.json, nullable: true })
-  maestroActivityPropertiesByRefUuid: MaestroActivityPropertiesByRefUuid | null;
-
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  updatedAt!: Date;
-
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number; //used for optimistic locking
-}
+Rex_dbSchema.setClass(Rex_db);

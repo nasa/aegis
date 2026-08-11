@@ -1,29 +1,21 @@
-import { Entity, PrimaryKey, Property, OneToMany } from "@mikro-orm/decorators/legacy";
-import { Collection } from "@mikro-orm/core";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-import { STM_Level2_db } from "./_allModels";
+import { STM_Level2_db as STMLevel2Entity } from "./stm_level2.model";
 
-@Entity()
-export class STM_Level1_db implements STMLevel1_db_type {
-  @PrimaryKey({ type: MikroTypes.string })
-  uuid!: string;
+export const STM_Level1_dbSchema = defineEntity({
+  name: "STM_Level1_db",
+  properties: {
+    uuid: p.string().primary(),
+    missionId: p.integer(),
+    level2s: () => p.oneToMany(STMLevel2Entity).mappedBy("level1"),
+    name: p.text(),
+    numbering: p.string(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  @Property({ type: MikroTypes.integer })
-  missionId!: number;
-  @OneToMany(() => STM_Level2_db, (i) => i.level1) //one level1 has many level2s
-  level2s = new Collection<STM_Level2_db>(this);
+export class STM_Level1_db extends STM_Level1_dbSchema.class implements STMLevel1_db_type {}
 
-  @Property({ type: MikroTypes.text })
-  name!: string;
-  @Property({ type: MikroTypes.string })
-  numbering!: string;
-
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  updatedAt!: Date;
-
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number; //used for optimistic locking
-}
+STM_Level1_dbSchema.setClass(STM_Level1_db);
