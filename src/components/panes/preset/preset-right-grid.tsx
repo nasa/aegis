@@ -6,7 +6,6 @@ import { faInfo, faPaintBrush } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { upsertPresetByField } from "store/preset";
 import { defaultGridStyle } from "store/storeUtils/sublayer";
-import { defaultGridStyle } from "store/storeUtils/sublayer";
 import Settings_subpanel from "components/interface/settings-and-slider";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { Checkbox } from "components/interface/form/globalFields";
