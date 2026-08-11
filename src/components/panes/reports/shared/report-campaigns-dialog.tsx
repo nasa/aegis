@@ -7,7 +7,7 @@ import {
   applyCreateReportCampaign,
   applyDeleteReportCampaign,
   applyUpdateReportCampaignByField,
-} from "client/automerge/apply/apply-mission-reportCampaign";
+} from "operations/apply/apply-mission-reportCampaign";
 import { withMissionChange } from "client/automergeDocHandles";
 import { Button, Dropdown } from "components/interface/form/globalFields";
 import {

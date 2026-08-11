@@ -8,7 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
 import "react-checkbox-tree/lib/react-checkbox-tree.css";
 import { STM_Coverage } from "./stm-legacy-coverage";
-import { applyUpdateActionByField } from "client/automerge/apply/apply-action";
+import { applyUpdateActionByField } from "operations/apply/apply-action";
 import { withMissionChange } from "client/automergeDocHandles";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
