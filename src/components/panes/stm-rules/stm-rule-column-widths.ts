@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
-import capitalize from "lodash/capitalize";
+import { getActionDefinitionLabel } from "store/selectors";
 
 /**
  * Measures the pixel width needed by each satisfaction-rule word column
@@ -49,13 +49,18 @@ function fontStringFrom(el: Element): string {
 function candidateStringsForType(
   rules: STMRule[],
   actionDefinitions: ActionDefinitions,
+  actionDefinitionLabels: Mission["actionDefinitionLabels"],
   type: ActionDefinitionType
 ): string[] {
   const singular = type.slice(0, -1);
   const anyKey = `${singular}Any` as "verbAny" | "nounAny" | "adjectiveAny";
   const uuidsKey = `${singular}Uuids` as "verbUuids" | "nounUuids" | "adjectiveUuids";
-  const anyLabel = `<Any ${capitalize(singular)}>`;
-  const placeholder = `...Select ${capitalize(type)}`;
+  const anyLabel = `<Any ${getActionDefinitionLabel({ actionDefinitionLabels }, type)}>`;
+  const placeholder = `...Select ${getActionDefinitionLabel(
+    { actionDefinitionLabels },
+    type,
+    "plural"
+  )}`;
 
   const strings: string[] = [];
   for (const rule of rules) {
@@ -79,6 +84,7 @@ function candidateStringsForType(
 export function measureRuleColumnWidths(
   rules: STMRule[],
   actionDefinitions: ActionDefinitions,
+  actionDefinitionLabels: Mission["actionDefinitionLabels"],
   fontString: string
 ): RuleColumnWidths {
   const ctx = getMeasureContext();
@@ -95,9 +101,15 @@ export function measureRuleColumnWidths(
   };
 
   return {
-    verbWidth: measure(candidateStringsForType(rules, actionDefinitions, "verbs")),
-    nounWidth: measure(candidateStringsForType(rules, actionDefinitions, "nouns")),
-    adjectiveWidth: measure(candidateStringsForType(rules, actionDefinitions, "adjectives")),
+    verbWidth: measure(
+      candidateStringsForType(rules, actionDefinitions, actionDefinitionLabels, "verbs")
+    ),
+    nounWidth: measure(
+      candidateStringsForType(rules, actionDefinitions, actionDefinitionLabels, "nouns")
+    ),
+    adjectiveWidth: measure(
+      candidateStringsForType(rules, actionDefinitions, actionDefinitionLabels, "adjectives")
+    ),
   };
 }
 
@@ -110,7 +122,8 @@ export function measureRuleColumnWidths(
  */
 export function useStmRuleColumnWidths(
   rules: STMRule[],
-  actionDefinitions: ActionDefinitions | null
+  actionDefinitions: ActionDefinitions | null,
+  actionDefinitionLabels: Mission["actionDefinitionLabels"]
 ): { widths: RuleColumnWidths; fontRef: RefObject<HTMLDivElement> } {
   const fontRef = useRef<HTMLDivElement>(null);
   const [widths, setWidths] = useState<RuleColumnWidths>(EMPTY_WIDTHS);
@@ -120,7 +133,12 @@ export function useStmRuleColumnWidths(
     if (!el || !actionDefinitions) return;
 
     const compute = () => {
-      const next = measureRuleColumnWidths(rules, actionDefinitions, fontStringFrom(el));
+      const next = measureRuleColumnWidths(
+        rules,
+        actionDefinitions,
+        actionDefinitionLabels,
+        fontStringFrom(el)
+      );
       setWidths((prev) =>
         prev.verbWidth === next.verbWidth &&
         prev.nounWidth === next.nounWidth &&
@@ -142,7 +160,7 @@ export function useStmRuleColumnWidths(
     return () => {
       cancelled = true;
     };
-  }, [rules, actionDefinitions]);
+  }, [rules, actionDefinitions, actionDefinitionLabels]);
 
   return { widths, fontRef };
 }

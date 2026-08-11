@@ -18,6 +18,7 @@ import {
   useStmRuleColumnWidths,
 } from "components/panes/stm-rules/stm-rule-column-widths";
 import { generateBlankStmRule } from "store/storeUtils/stm";
+import { DEFAULT_ACTION_DEFINITION_LABELS } from "store/storeUtils/mission";
 
 const CHAR_WIDTH = 10;
 const MIN_WIDTH = 40;
@@ -64,7 +65,12 @@ const makeRule = (partial: Partial<STMRule>): STMRule => ({
 
 describe("measureRuleColumnWidths", () => {
   test("floors every column to MIN_WIDTH when there are no rules", () => {
-    const widths = measureRuleColumnWidths([], actionDefinitions, "14px Inter");
+    const widths = measureRuleColumnWidths(
+      [],
+      actionDefinitions,
+      DEFAULT_ACTION_DEFINITION_LABELS,
+      "14px Inter"
+    );
     expect(widths).toEqual({
       verbWidth: MIN_WIDTH,
       nounWidth: MIN_WIDTH,
@@ -74,7 +80,12 @@ describe("measureRuleColumnWidths", () => {
 
   test("measures each column from its own selected action definition names", () => {
     const rule = makeRule({ verbUuids: ["v1"], nounUuids: ["n1"], adjectiveUuids: ["a1"] });
-    const widths = measureRuleColumnWidths([rule], actionDefinitions, "14px Inter");
+    const widths = measureRuleColumnWidths(
+      [rule],
+      actionDefinitions,
+      DEFAULT_ACTION_DEFINITION_LABELS,
+      "14px Inter"
+    );
     expect(widths).toEqual({
       verbWidth: MIN_WIDTH, // "AB": 2*10+18=38 -> floored to 40
       nounWidth: 4 * CHAR_WIDTH + BUFFER, // "Rock": 58
@@ -84,7 +95,12 @@ describe("measureRuleColumnWidths", () => {
 
   test("does not let a wide value in one column affect the others", () => {
     const rule = makeRule({ verbUuids: ["v2"], nounUuids: ["n1"] });
-    const widths = measureRuleColumnWidths([rule], actionDefinitions, "14px Inter");
+    const widths = measureRuleColumnWidths(
+      [rule],
+      actionDefinitions,
+      DEFAULT_ACTION_DEFINITION_LABELS,
+      "14px Inter"
+    );
     expect(widths.verbWidth).toBe(12 * CHAR_WIDTH + BUFFER);
     expect(widths.nounWidth).toBe(4 * CHAR_WIDTH + BUFFER);
     // adjectiveUuids is empty on this rule -> falls back to the placeholder,
@@ -94,14 +110,24 @@ describe("measureRuleColumnWidths", () => {
 
   test("uses the '<Any X>' label when the any flag is set, ignoring selected uuids", () => {
     const rule = makeRule({ verbAny: true, verbUuids: ["v1"] });
-    const widths = measureRuleColumnWidths([rule], actionDefinitions, "14px Inter");
+    const widths = measureRuleColumnWidths(
+      [rule],
+      actionDefinitions,
+      DEFAULT_ACTION_DEFINITION_LABELS,
+      "14px Inter"
+    );
     // "<Any Verb>" is 10 chars
     expect(widths.verbWidth).toBe(10 * CHAR_WIDTH + BUFFER);
   });
 
   test("uses the placeholder text when no uuids are selected and any is false", () => {
     const rule = makeRule({});
-    const widths = measureRuleColumnWidths([rule], actionDefinitions, "14px Inter");
+    const widths = measureRuleColumnWidths(
+      [rule],
+      actionDefinitions,
+      DEFAULT_ACTION_DEFINITION_LABELS,
+      "14px Inter"
+    );
     // "...Select Verbs" is 15 chars
     expect(widths.verbWidth).toBe(15 * CHAR_WIDTH + BUFFER);
     // "...Select Nouns" is 15 chars
@@ -112,7 +138,12 @@ describe("measureRuleColumnWidths", () => {
 
   test("skips uuids that no longer resolve to an action definition", () => {
     const rule = makeRule({ verbUuids: ["deleted-uuid"] });
-    const widths = measureRuleColumnWidths([rule], actionDefinitions, "14px Inter");
+    const widths = measureRuleColumnWidths(
+      [rule],
+      actionDefinitions,
+      DEFAULT_ACTION_DEFINITION_LABELS,
+      "14px Inter"
+    );
     // no candidate strings survive -> measured max is 0 -> floors to MIN_WIDTH
     expect(widths.verbWidth).toBe(MIN_WIDTH);
   });
@@ -120,7 +151,12 @@ describe("measureRuleColumnWidths", () => {
   test("uses the widest candidate across all rules, not the sum", () => {
     const shortRule = makeRule({ verbUuids: ["v1"] });
     const longRule = makeRule({ verbUuids: ["v2"] });
-    const widths = measureRuleColumnWidths([shortRule, longRule], actionDefinitions, "14px Inter");
+    const widths = measureRuleColumnWidths(
+      [shortRule, longRule],
+      actionDefinitions,
+      DEFAULT_ACTION_DEFINITION_LABELS,
+      "14px Inter"
+    );
     expect(widths.verbWidth).toBe(12 * CHAR_WIDTH + BUFFER);
   });
 
@@ -131,19 +167,44 @@ describe("measureRuleColumnWidths", () => {
       adjectives: {},
     };
     const rule = makeRule({ verbUuids: ["v1"] });
-    const widths = measureRuleColumnWidths([rule], longDefinitions, "14px Inter");
+    const widths = measureRuleColumnWidths(
+      [rule],
+      longDefinitions,
+      DEFAULT_ACTION_DEFINITION_LABELS,
+      "14px Inter"
+    );
     expect(widths.verbWidth).toBe(MAX_WIDTH);
   });
 
   test("returns the floored defaults when a 2D canvas context is unavailable", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
     const rule = makeRule({ verbUuids: ["v2"] });
-    const widths = measureRuleColumnWidths([rule], actionDefinitions, "14px Inter");
+    const widths = measureRuleColumnWidths(
+      [rule],
+      actionDefinitions,
+      DEFAULT_ACTION_DEFINITION_LABELS,
+      "14px Inter"
+    );
     expect(widths).toEqual({
       verbWidth: MIN_WIDTH,
       nounWidth: MIN_WIDTH,
       adjectiveWidth: MIN_WIDTH,
     });
+  });
+
+  test("measures custom category labels for empty and any rule sets", () => {
+    const customLabels: Mission["actionDefinitionLabels"] = {
+      verb: { singular: "Task", plural: "Tasks" },
+      noun: { singular: "Focus", plural: "Foci" },
+      adjective: { singular: "Context", plural: "Contexts" },
+    };
+    const rule = makeRule({ verbAny: true });
+
+    const widths = measureRuleColumnWidths([rule], actionDefinitions, customLabels, "14px Inter");
+
+    expect(widths.verbWidth).toBe(10 * CHAR_WIDTH + BUFFER); // "<Any Task>"
+    expect(widths.nounWidth).toBe(14 * CHAR_WIDTH + BUFFER); // "...Select Foci"
+    expect(widths.adjectiveWidth).toBe(18 * CHAR_WIDTH + BUFFER); // "...Select Contexts"
   });
 });
 
@@ -167,7 +228,11 @@ describe("useStmRuleColumnWidths", () => {
     let latestWidths: { verbWidth: number; nounWidth: number; adjectiveWidth: number } | undefined;
 
     function Harness(): React.ReactElement {
-      const { widths, fontRef } = useStmRuleColumnWidths(rules, actionDefinitions);
+      const { widths, fontRef } = useStmRuleColumnWidths(
+        rules,
+        actionDefinitions,
+        DEFAULT_ACTION_DEFINITION_LABELS
+      );
       latestWidths = widths;
       return React.createElement("div", { ref: fontRef });
     }
@@ -177,7 +242,12 @@ describe("useStmRuleColumnWidths", () => {
     });
 
     // The mock measureText ignores the font string, so this is directly comparable.
-    const expected = measureRuleColumnWidths(rules, actionDefinitions, "unused");
+    const expected = measureRuleColumnWidths(
+      rules,
+      actionDefinitions,
+      DEFAULT_ACTION_DEFINITION_LABELS,
+      "unused"
+    );
     expect(latestWidths).toEqual(expected);
   });
 
@@ -185,7 +255,11 @@ describe("useStmRuleColumnWidths", () => {
     let latestWidths: { verbWidth: number; nounWidth: number; adjectiveWidth: number } | undefined;
 
     function Harness(): React.ReactElement {
-      const { widths, fontRef } = useStmRuleColumnWidths([makeRule({})], null);
+      const { widths, fontRef } = useStmRuleColumnWidths(
+        [makeRule({})],
+        null,
+        DEFAULT_ACTION_DEFINITION_LABELS
+      );
       latestWidths = widths;
       return React.createElement("div", { ref: fontRef });
     }
@@ -205,7 +279,11 @@ describe("useStmRuleColumnWidths", () => {
     let latestWidths: { verbWidth: number; nounWidth: number; adjectiveWidth: number } | undefined;
 
     function Harness({ rules }: { rules: STMRule[] }): React.ReactElement {
-      const { widths, fontRef } = useStmRuleColumnWidths(rules, actionDefinitions);
+      const { widths, fontRef } = useStmRuleColumnWidths(
+        rules,
+        actionDefinitions,
+        DEFAULT_ACTION_DEFINITION_LABELS
+      );
       latestWidths = widths;
       return React.createElement("div", { ref: fontRef });
     }

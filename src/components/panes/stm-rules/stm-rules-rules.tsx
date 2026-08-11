@@ -29,6 +29,7 @@ import {
 import cloneDeep from "lodash/cloneDeep";
 import capitalize from "lodash/capitalize";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { getActionDefinitionLabel } from "store/selectors";
 
 /**
  * className for a rule word-column wrapper: the base container plus its
@@ -219,10 +220,12 @@ export const STMRuleSet: FunctionComponent<{
     (mission) => mission.actionDefinitions,
     deepEqual
   );
-  const actionDefinitionLabels = useMissionDocSelector((mission) => {
-    const key = type.slice(0, -1) as "verb" | "noun" | "adjective";
-    return mission.actionDefinitionLabels[key];
-  }, shallowEqual);
+  const actionDefinitionLabels = useMissionDocSelector(
+    (mission) => mission.actionDefinitionLabels,
+    deepEqual
+  );
+  const singularLabel = getActionDefinitionLabel({ actionDefinitionLabels }, type);
+  const pluralLabel = getActionDefinitionLabel({ actionDefinitionLabels }, type, "plural");
 
   const actionDefinitionItemsToDisplay: { uuid: string; name: string; abbr: string }[] = [];
   const ruleItemUuidsKeyString = `${type.slice(0, -1)}Uuids` as
@@ -268,7 +271,7 @@ export const STMRuleSet: FunctionComponent<{
                 }}
                 titleLabel={
                   actionDefinitionItemsToDisplay.map((item) => item.name).join(", ") ||
-                  `${actionDefinitionLabels.plural}...`
+                  `${pluralLabel}...`
                 }
                 containerStyle={{ zIndex: 10, width: "170px" }}
                 containerClassName={styles.stmRuleSetMultiselectContainer}
@@ -292,7 +295,7 @@ export const STMRuleSet: FunctionComponent<{
                   upsertSTMRuleByField(stmRule.uuid, anyKeyString, !stmRule[ruleAnyKeyString])
                 );
               }}
-              toolTip={`Any ${actionDefinitionLabels.singular}`}
+              toolTip={`Any ${singularLabel}`}
               label={`Any`}
             />
           </div>
@@ -308,15 +311,11 @@ export const STMRuleSet: FunctionComponent<{
                   ))}
                 </>
               ) : (
-                <div
-                  className={styles.stmRuleSetItemName}
-                >{`...Select ${actionDefinitionLabels.plural}`}</div>
+                <div className={styles.stmRuleSetItemName}>{`...Select ${pluralLabel}`}</div>
               )}
             </>
           ) : (
-            <div
-              className={styles.stmRuleSetItemName}
-            >{`<Any ${actionDefinitionLabels.singular}>`}</div>
+            <div className={styles.stmRuleSetItemName}>{`<Any ${singularLabel}>`}</div>
           )}
         </div>
       )}
