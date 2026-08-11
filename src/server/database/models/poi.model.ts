@@ -1,39 +1,30 @@
-import { Collection } from "@mikro-orm/core";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-import type { Station_db } from "./_allModels";
+import { Station_db as StationEntity } from "./station.model";
 
-export class Poi_db implements Poi_db_type {
-  uuid!: string;
+export const Poi_dbSchema = defineEntity({
+  name: "Poi_db",
+  properties: {
+    uuid: p.string().unique().primary(),
+    missionId: p.integer(),
+    station: () => p.manyToMany(StationEntity).mappedBy("poi"),
+    name: p.text(),
+    description: p.text(),
+    priorityOverride: p.integer().nullable(),
+    radius: p.float(),
+    location: p.json<AEGISPoint>().nullable(),
+    elevation: p.float().nullable(),
+    icon: p.string().nullable(),
+    tags: p.json<string[]>().nullable(),
+    status: p.string().$type<POIStatus>(),
+    actionOrderUuids: p.json<string[]>().nullable(),
+    ownerId: p.integer().nullable(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  missionId!: number;
-  //a poi can belong to many stations
-  station = new Collection<Station_db>(this);
+export class Poi_db extends Poi_dbSchema.class implements Poi_db_type {}
 
-  name!: string;
-
-  description!: string;
-
-  priorityOverride: number;
-
-  radius!: number;
-
-  location: AEGISPoint;
-
-  elevation!: number;
-
-  icon: string;
-
-  tags: string[];
-
-  status!: POIStatus;
-
-  actionOrderUuids: string[];
-
-  ownerId: number;
-
-  createdAt!: Date;
-
-  updatedAt!: Date;
-
-  version!: number; //used for optimistic locking
-}
+Poi_dbSchema.setClass(Poi_db);

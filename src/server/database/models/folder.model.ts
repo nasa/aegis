@@ -1,17 +1,19 @@
-export class Folder_db implements Folder_db_type {
-  uuid!: string;
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-  missionId!: number;
+export const Folder_dbSchema = defineEntity({
+  name: "Folder_db",
+  properties: {
+    uuid: p.string().unique().primary(),
+    missionId: p.integer(),
+    name: p.text(),
+    type: p.text().$type<FolderType>(),
+    items: p.json<string[]>(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  name!: string;
+export class Folder_db extends Folder_dbSchema.class implements Folder_db_type {}
 
-  type!: FolderType;
-
-  items!: string[]; // uuids of items in this folder
-
-  createdAt!: Date;
-
-  updatedAt!: Date;
-
-  version!: number; //used for optimistic locking
-}
+Folder_dbSchema.setClass(Folder_db);

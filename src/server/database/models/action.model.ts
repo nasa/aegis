@@ -1,64 +1,44 @@
-import type { Poi_db, Station_db, Traverse_db } from "./_allModels";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-export class Action_db implements Action_db_type {
-  uuid!: string;
+import { Poi_db as PoiEntity } from "./poi.model";
+import { Station_db as StationEntity } from "./station.model";
+import { Traverse_db as TraverseEntity } from "./traverse.model";
 
-  refUuid: string; // assigned on creation and is preserved when duplication for a rex
+export const Action_dbSchema = defineEntity({
+  name: "Action_db",
+  properties: {
+    uuid: p.string().unique().primary(),
+    refUuid: p.string().defaultRaw("uuid_generate_v4()"),
+    missionId: p.integer(),
+    poi: () => p.manyToOne(PoiEntity),
+    station: () => p.manyToOne(StationEntity),
+    traverse: () => p.manyToOne(TraverseEntity),
+    parentAction: () => p.manyToOne(Action_db),
+    parentCopyDate: p.double().$type<number>().nullable(),
+    name: p.text(),
+    priority: p.integer().nullable(),
+    stmPriorities: p.json<StmPriorities>().nullable(),
+    type: p.string().$type<ActionType>(),
+    stmAction: p.boolean().default(false),
+    actionDefinition: p.json<ActionDefinition>().nullable(),
+    description: p.text(),
+    descriptionTask: p.text().nullable(),
+    icon: p.string().nullable(),
+    location: p.json<AEGISPoint>().nullable(),
+    elevation: p.float().nullable(),
+    duration: p.float().nullable(),
+    equipmentItemsUsage: p.json<EquipmentItemUsages>().nullable(),
+    geographicUnitsUsage: p.json<string[]>().nullable(),
+    mass: p.float().nullable(),
+    status: p.string().$type<POIStatus>(),
+    enabled: p.boolean().default(true),
+    crewAssigned: p.json<Crew[]>().nullable(),
+    createdAt: p.double().$type<number>(),
+    updatedAt: p.double().$type<number>(),
+    version: p.integer().version(),
+  },
+});
 
-  missionId!: number;
-  //an action can belong to either a POI, station, or traverse
+export class Action_db extends Action_dbSchema.class implements Action_db_type {}
 
-  poi: Poi_db;
-
-  station: Station_db;
-
-  traverse: Traverse_db;
-
-  parentAction: Action_db;
-
-  parentCopyDate: number;
-
-  name!: string;
-
-  priority: number;
-
-  stmPriorities: StmPriorities;
-
-  type!: ActionType;
-  // Action v2 fields
-
-  stmAction: boolean;
-
-  actionDefinition: ActionDefinition;
-  //
-
-  description!: string;
-
-  descriptionTask!: string;
-
-  icon: string;
-
-  location: AEGISPoint;
-
-  elevation!: number;
-
-  duration: number;
-
-  equipmentItemsUsage: EquipmentItemUsages;
-
-  geographicUnitsUsage: string[];
-
-  mass: number;
-
-  status!: POIStatus;
-
-  enabled: boolean;
-
-  crewAssigned: Crew[];
-
-  createdAt: number;
-
-  updatedAt: number;
-
-  version!: number; //used for optimistic locking
-}
+Action_dbSchema.setClass(Action_db);

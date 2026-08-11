@@ -1,22 +1,22 @@
-import { Collection } from "@mikro-orm/core";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-import type { STM_Level3_db, STM_Level1_db } from "./_allModels";
+import { STM_Level1_db as STMLevel1Entity } from "./stm_level1.model";
+import { STM_Level3_db as STMLevel3Entity } from "./stm_level3.model";
 
-export class STM_Level2_db implements STMLevel2_db_type {
-  uuid!: string;
+export const STM_Level2_dbSchema = defineEntity({
+  name: "STM_Level2_db",
+  properties: {
+    uuid: p.string().primary(),
+    level1: () => p.manyToOne(STMLevel1Entity),
+    level3s: () => p.oneToMany(STMLevel3Entity).mappedBy("level2"),
+    name: p.text(),
+    numbering: p.string(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  //many level2s have one level1
-  level1!: STM_Level1_db;
-  //one level2 has many level3s
-  level3s = new Collection<STM_Level3_db>(this);
+export class STM_Level2_db extends STM_Level2_dbSchema.class implements STMLevel2_db_type {}
 
-  name!: string;
-
-  numbering!: string;
-
-  createdAt!: Date;
-
-  updatedAt!: Date;
-
-  version!: number; //used for optimistic locking
-}
+STM_Level2_dbSchema.setClass(STM_Level2_db);

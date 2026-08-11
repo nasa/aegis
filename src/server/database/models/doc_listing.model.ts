@@ -1,7 +1,14 @@
-export class Doc_Listing_db implements DocListing_db_type {
-  missionId: number;
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-  automergeUrl: string;
+export const Doc_Listing_dbSchema = defineEntity({
+  name: "Doc_Listing_db",
+  properties: {
+    missionId: p.integer().autoincrement().primary(),
+    automergeUrl: p.text().nullable(),
+    version: p.integer().version(),
+  },
+});
 
-  version!: number; //used for optimistic locking
-}
+export class Doc_Listing_db extends Doc_Listing_dbSchema.class implements DocListing_db_type {}
+
+Doc_Listing_dbSchema.setClass(Doc_Listing_db);

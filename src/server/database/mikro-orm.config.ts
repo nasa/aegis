@@ -4,7 +4,7 @@ dotenv.config({ override: true, quiet: true });
 import { PostgreSqlDriver, defineConfig } from "@mikro-orm/postgresql";
 import { Migrator } from "@mikro-orm/migrations";
 import { SeedManager } from "@mikro-orm/seeder";
-import { allSchemas } from "./models/schemas";
+import { allSchemas } from "./models/_allModels";
 import path from "node:path";
 import { fileURLToPath } from "url";
 

@@ -1,39 +1,30 @@
-import { Collection } from "@mikro-orm/core";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-import type { Action_db } from "./_allModels";
+import { Action_db as ActionEntity } from "./action.model";
 
-export class Traverse_db implements Traverse_db_type {
-  uuid!: string;
+export const Traverse_dbSchema = defineEntity({
+  name: "Traverse_db",
+  properties: {
+    uuid: p.string().unique().primary(),
+    refUuid: p.string().defaultRaw("uuid_generate_v4()"),
+    missionId: p.integer(),
+    action: () => p.oneToMany(ActionEntity).mappedBy("traverse"),
+    name: p.text(),
+    path: p.json<AEGISPoint[]>().nullable(),
+    pathSegmentDistances: p.json<number[]>().nullable(),
+    pathSegmentElevations: p.json<number[][]>().nullable(),
+    duration: p.float().nullable(),
+    description: p.text(),
+    status: p.string().$type<TraverseStatus>().nullable(),
+    traverseRate: p.float().nullable().default(null),
+    color: p.string().nullable(),
+    actionOrderUuids: p.json<string[]>().nullable(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  refUuid: string; // assigned on creation and is preserved when duplication for a rex
+export class Traverse_db extends Traverse_dbSchema.class implements Traverse_db_type {}
 
-  missionId!: number;
-  //one traverse has many actions
-  action = new Collection<Action_db>(this);
-
-  name!: string;
-
-  path: AEGISPoint[];
-
-  pathSegmentDistances: number[];
-
-  pathSegmentElevations: number[][];
-
-  duration: number;
-
-  description: string;
-
-  status: TraverseStatus;
-
-  traverseRate: number;
-
-  color: string;
-
-  actionOrderUuids: string[];
-
-  createdAt!: Date;
-
-  updatedAt!: Date;
-
-  version!: number; //used for optimistic locking
-}
+Traverse_dbSchema.setClass(Traverse_db);

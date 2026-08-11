@@ -1,37 +1,29 @@
-export class Preset_db implements Preset_db_type {
-  uuid!: string;
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-  missionId!: number;
+export const Preset_dbSchema = defineEntity({
+  name: "Preset_db",
+  properties: {
+    uuid: p.uuid().unique().primary(),
+    missionId: p.integer(),
+    name: p.text(),
+    description: p.text().nullable(),
+    missionDefault: p.boolean().default(false),
+    mapSublayerControls: p.json<MapSublayerControls>().nullable(),
+    mapCircleControls: p.json<MapCircleControls>().nullable(),
+    mapGridControl: p.json<MapGridControl>().nullable(),
+    layerOrder: p.json<PresetLayerOrder[]>().nullable(),
+    sunAzimuth: p.float().nullable(),
+    sunEnabled: p.boolean().nullable().default(true),
+    earthAzimuth: p.float().nullable(),
+    earthEnabled: p.boolean().nullable().default(true),
+    earthAsMoon: p.boolean().nullable().default(false),
+    ownerId: p.integer().nullable(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  name: string;
+export class Preset_db extends Preset_dbSchema.class implements Preset_db_type {}
 
-  description: string;
-
-  missionDefault: boolean;
-
-  mapSublayerControls!: MapSublayerControls;
-
-  mapCircleControls!: MapCircleControls;
-
-  mapGridControl!: MapGridControl;
-
-  layerOrder: PresetLayerOrder[];
-
-  sunAzimuth: number;
-
-  sunEnabled: boolean;
-
-  earthAzimuth: number;
-
-  earthEnabled: boolean;
-
-  earthAsMoon: boolean;
-
-  ownerId: number;
-
-  createdAt!: Date;
-
-  updatedAt!: Date;
-
-  version!: number; //used for optimistic locking
-}
+Preset_dbSchema.setClass(Preset_db);
