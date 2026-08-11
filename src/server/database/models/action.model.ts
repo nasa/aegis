@@ -1,79 +1,47 @@
-import { Entity, ManyToOne, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-import { Poi_db, Station_db, Traverse_db } from "./_allModels";
+import { Poi_db as PoiEntity } from "./poi.model";
+import { Station_db as StationEntity } from "./station.model";
+import { Traverse_db as TraverseEntity } from "./traverse.model";
 
-@Entity()
-export class Action_db implements Action_db_type {
-  @PrimaryKey({ type: MikroTypes.string, unique: true })
-  uuid!: string;
-  @Property({
-    type: MikroTypes.string,
-    nullable: false,
-    defaultRaw: "uuid_generate_v4()",
-  })
-  refUuid: string; // assigned on creation and is preserved when duplication for a rex
+export const Action_dbSchema = defineEntity({
+  name: "Action_db",
+  properties: {
+    uuid: p.string().unique().primary(),
+    refUuid: p.string().defaultRaw("uuid_generate_v4()"),
+    missionId: p.integer(),
+    poi: () => p.manyToOne(PoiEntity).nullable().updateRule("cascade").deleteRule("set null"),
+    station: () =>
+      p.manyToOne(StationEntity).nullable().updateRule("cascade").deleteRule("set null"),
+    traverse: () =>
+      p.manyToOne(TraverseEntity).nullable().updateRule("cascade").deleteRule("set null"),
+    parentAction: () =>
+      p.manyToOne(Action_db).nullable().updateRule("cascade").deleteRule("set null"),
+    parentCopyDate: p.double().$type<number>().nullable(),
+    name: p.text(),
+    priority: p.integer().nullable(),
+    stmPriorities: p.json<StmPriorities>().nullable(),
+    type: p.string().$type<ActionType>(),
+    stmAction: p.boolean().default(false),
+    actionDefinition: p.json<ActionDefinition>().nullable(),
+    description: p.text(),
+    descriptionTask: p.text().nullable(),
+    icon: p.string().nullable(),
+    location: p.json<AEGISPoint>().nullable(),
+    elevation: p.float().nullable(),
+    duration: p.float().nullable(),
+    equipmentItemsUsage: p.json<EquipmentItemUsages>().nullable(),
+    geographicUnitsUsage: p.json<string[]>().nullable(),
+    mass: p.float().nullable(),
+    status: p.string().$type<POIStatus>(),
+    enabled: p.boolean().default(true),
+    crewAssigned: p.json<Crew[]>().nullable(),
+    createdAt: p.double().$type<number>(),
+    updatedAt: p.double().$type<number>(),
+    version: p.integer().version(),
+  },
+});
 
-  @Property({ type: MikroTypes.integer })
-  missionId!: number;
-  //an action can belong to either a POI, station, or traverse
-  @ManyToOne(() => Poi_db, { unique: false, primary: false, nullable: true })
-  poi: Poi_db;
-  @ManyToOne(() => Station_db, { unique: false, primary: false, nullable: true })
-  station: Station_db;
-  @ManyToOne(() => Traverse_db, { unique: false, primary: false, nullable: true })
-  traverse: Traverse_db;
+export class Action_db extends Action_dbSchema.class implements Action_db_type {}
 
-  @ManyToOne(() => Action_db, { unique: false, primary: false, nullable: true })
-  parentAction: Action_db;
-  @Property({ type: MikroTypes.double, nullable: true })
-  parentCopyDate: number;
-
-  @Property({ type: MikroTypes.text })
-  name!: string;
-  @Property({ type: MikroTypes.integer, nullable: true })
-  priority: number;
-  @Property({ type: MikroTypes.json, nullable: true })
-  stmPriorities: StmPriorities;
-  @Property({ type: MikroTypes.string })
-  type!: ActionType;
-  // Action v2 fields
-  @Property({ type: MikroTypes.boolean, default: false })
-  stmAction: boolean;
-  @Property({ type: MikroTypes.json, nullable: true })
-  actionDefinition: ActionDefinition;
-  //
-
-  @Property({ type: MikroTypes.text })
-  description!: string;
-  @Property({ type: MikroTypes.text, nullable: true })
-  descriptionTask!: string;
-  @Property({ type: MikroTypes.string, nullable: true })
-  icon: string;
-  @Property({ type: MikroTypes.json, nullable: true })
-  location: AEGISPoint;
-  @Property({ type: MikroTypes.float, nullable: true })
-  elevation!: number;
-  @Property({ type: MikroTypes.float, nullable: true })
-  duration: number;
-  @Property({ type: MikroTypes.json, nullable: true })
-  equipmentItemsUsage: EquipmentItemUsages;
-  @Property({ type: MikroTypes.json, nullable: true })
-  geographicUnitsUsage: string[];
-  @Property({ type: MikroTypes.float, nullable: true })
-  mass: number;
-  @Property({ type: MikroTypes.string })
-  status!: POIStatus;
-  @Property({ type: MikroTypes.boolean, default: true })
-  enabled: boolean;
-  @Property({ type: MikroTypes.json, nullable: true })
-  crewAssigned: Crew[];
-
-  @Property({ type: MikroTypes.double })
-  createdAt: number;
-  @Property({ type: MikroTypes.double })
-  updatedAt: number;
-
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number; //used for optimistic locking
-}
+Action_dbSchema.setClass(Action_db);

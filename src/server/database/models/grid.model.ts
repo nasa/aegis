@@ -1,27 +1,20 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-@Entity()
-export class Grid_db {
-  @PrimaryKey({ type: MikroTypes.string, unique: true })
-  uuid!: string;
+export const Grid_dbSchema = defineEntity({
+  name: "Grid_db",
+  properties: {
+    uuid: p.string().unique().primary(),
+    missionId: p.integer().nullable(),
+    numRows: p.integer().nullable(),
+    numCols: p.integer().nullable(),
+    spacing: p.integer().nullable(),
+    name: p.text().nullable(),
+    fileName: p.text().nullable(),
+    isActiveGrid: p.boolean().nullable(),
+    version: p.integer().version(),
+  },
+});
 
-  @Property({ type: MikroTypes.integer, nullable: true })
-  missionId: number;
+export class Grid_db extends Grid_dbSchema.class {}
 
-  @Property({ type: MikroTypes.integer, nullable: true })
-  numRows!: number;
-  @Property({ type: MikroTypes.integer, nullable: true })
-  numCols!: number;
-  @Property({ type: MikroTypes.integer, nullable: true })
-  spacing!: number;
-  @Property({ type: MikroTypes.text, nullable: true })
-  name!: string;
-  @Property({ type: MikroTypes.text, nullable: true })
-  fileName!: string;
-  @Property({ type: MikroTypes.boolean, nullable: true })
-  isActiveGrid!: boolean;
-
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number; //used for optimistic locking
-}
+Grid_dbSchema.setClass(Grid_db);

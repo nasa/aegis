@@ -1,63 +1,37 @@
-import { Entity, ManyToMany, OneToMany, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { Collection } from "@mikro-orm/core";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-import { Action_db, Poi_db } from "./_allModels";
+import { Action_db as ActionEntity } from "./action.model";
+import { Poi_db as PoiEntity } from "./poi.model";
 
-@Entity()
-export class Station_db implements Station_db_type {
-  @PrimaryKey({ type: MikroTypes.string, unique: true })
-  uuid!: string;
-  @Property({
-    type: MikroTypes.string,
-    nullable: false,
-    defaultRaw: "uuid_generate_v4()",
-  })
-  refUuid: string; // assigned on creation and is preserved when duplication for a rex
+export const Station_dbSchema = defineEntity({
+  name: "Station_db",
+  properties: {
+    uuid: p.string().unique().primary(),
+    refUuid: p.string().defaultRaw("uuid_generate_v4()"),
+    missionId: p.integer(),
+    action: () => p.oneToMany(ActionEntity).mappedBy("station"),
+    poi: () => p.manyToMany(PoiEntity).inversedBy("station").owner(),
+    name: p.text(),
+    status: p.string().$type<StationStatus>(),
+    description: p.text(),
+    radius: p.float(),
+    location: p.json<AEGISPoint>().nullable(),
+    elevation: p.float().nullable(),
+    walkbackPath: p.json<AEGISPoint[]>().nullable(),
+    walkbackPathSegmentDistances: p.json<number[]>().nullable(),
+    walkbackPathSegmentElevations: p.json<number[][]>().nullable(),
+    walkbackTraverseRate: p.float().nullable(),
+    actionOrderUuids: p.json<string[]>().nullable(),
+    duration: p.float().nullable(),
+    icon: p.string().nullable(),
+    ownerId: p.integer().nullable(),
+    mapCircleControls: p.json<MapCircleControls>().default("{}"),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  @Property({ type: MikroTypes.integer })
-  missionId!: number;
-  @OneToMany(() => Action_db, (i) => i.station) //one station has many actions
-  action = new Collection<Action_db>(this);
-  @ManyToMany(() => Poi_db, "station", { owner: true }) //many stations can have many pois
-  poi = new Collection<Poi_db>(this);
+export class Station_db extends Station_dbSchema.class implements Station_db_type {}
 
-  @Property({ type: MikroTypes.text })
-  name!: string;
-  @Property({ type: MikroTypes.string })
-  status!: StationStatus;
-  @Property({ type: MikroTypes.text })
-  description!: string;
-  @Property({ type: MikroTypes.float })
-  radius!: number;
-  @Property({ type: MikroTypes.json, nullable: true })
-  location: AEGISPoint;
-  @Property({ type: MikroTypes.float, nullable: true })
-  elevation!: number;
-  @Property({ type: MikroTypes.json, nullable: true })
-  walkbackPath: AEGISPoint[];
-  @Property({ type: MikroTypes.json, nullable: true })
-  walkbackPathSegmentDistances: number[];
-  @Property({ type: MikroTypes.json, nullable: true })
-  walkbackPathSegmentElevations: number[][];
-  @Property({ type: MikroTypes.float, nullable: true })
-  walkbackTraverseRate: number;
-  @Property({ type: MikroTypes.json, nullable: true })
-  actionOrderUuids: string[];
-  @Property({ type: MikroTypes.float, nullable: true })
-  duration: number;
-  @Property({ type: MikroTypes.string, nullable: true })
-  icon: string;
-  @Property({ type: MikroTypes.integer, nullable: true })
-  ownerId: number;
-  @Property({ type: MikroTypes.json, nullable: false, default: "{}" })
-  mapCircleControls!: MapCircleControls;
-
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  updatedAt!: Date;
-
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number; //used for optimistic locking
-}
+Station_dbSchema.setClass(Station_db);
