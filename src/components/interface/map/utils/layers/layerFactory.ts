@@ -376,26 +376,25 @@ export function buildVectorStyleFn(
     }
 
     // Build cache key from all values that affect the output style
-    const cacheKey = `${geomType}|${labelText}|${resolvedFillColor}|${style.color}|${style.weight}|${style.isDashed}|${style.dashLen}|${style.fillOpacity}|${style.labelColor}|${style.labelStrokeColor}|${style.labelStrokeWidth}|${style.labelStrokeOpacity}`;
+    const cacheKey = `${geomType}|${labelText}|${resolvedFillColor}|${style.color}|${style.weight}|${style.isDashed}|${style.dashLen}|${style.fillOpacity}|${style.labelColor}|${style.labelHaloColor}|${style.labelHaloWidth}|${style.labelHaloOpacity}`;
 
     if (!styleCache[cacheKey]) {
       let textStyle: Text | undefined;
       if (labelText) {
         const labelColor = style.labelColor ?? defaultSublayerStyle.labelColor;
-        const labelStrokeColor = style.labelStrokeColor ?? defaultSublayerStyle.labelStrokeColor;
-        const labelStrokeWidth = style.labelStrokeWidth ?? defaultSublayerStyle.labelStrokeWidth;
-        const labelStrokeOpacity =
-          style.labelStrokeOpacity ?? defaultSublayerStyle.labelStrokeOpacity;
+        const labelHaloColor = style.labelHaloColor ?? defaultSublayerStyle.labelHaloColor;
+        const labelHaloWidth = style.labelHaloWidth ?? defaultSublayerStyle.labelHaloWidth;
+        const labelHaloOpacity = style.labelHaloOpacity ?? defaultSublayerStyle.labelHaloOpacity;
 
         textStyle = new Text({
           text: labelText,
           font: "12px Arial",
           fill: new Fill({ color: labelColor }),
           stroke:
-            labelStrokeWidth > 0
+            labelHaloWidth > 0
               ? new Stroke({
-                  color: withAlpha(labelStrokeColor, labelStrokeOpacity),
-                  width: labelStrokeWidth,
+                  color: withAlpha(labelHaloColor, labelHaloOpacity),
+                  width: labelHaloWidth,
                 })
               : undefined,
           placement: geomType === "LineString" ? "line" : "point",

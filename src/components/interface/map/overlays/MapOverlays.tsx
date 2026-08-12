@@ -91,6 +91,10 @@ export function MapOverlays(): JSX.Element {
           setShowMouseLatLon={setters.setShowMouseLatLon}
           showSunEarth={display.showSunEarth}
           setShowSunEarth={setters.setShowSunEarth}
+          gridSpacingMode={display.gridSpacingMode}
+          setGridSpacingMode={setters.setGridSpacingMode}
+          gridLabelInterval={display.gridLabelInterval}
+          setGridLabelInterval={setters.setGridLabelInterval}
         />
       </div>
 
