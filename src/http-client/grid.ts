@@ -1,20 +1,8 @@
-export async function getGrids(
-  missionId: number = null,
-  gridUuid: string = null,
-  getFullGrids: boolean = false
-): Promise<WrappedResponse<MissionGrid[]>> {
-  let res: Response;
-  if (missionId && gridUuid) {
-    res = await fetch(
-      `/api/v1/grid?missionId=${missionId}&gridUuid=${gridUuid}&getFullGrids=${getFullGrids}`
-    );
-  } else if (missionId) {
-    res = await fetch(`/api/v1/grid?missionId=${missionId}&getFullGrids=${getFullGrids}`);
-  } else if (gridUuid) {
-    res = await fetch(`/api/v1/grid?gridUuid=${gridUuid}&getFullGrids=${getFullGrids}`);
-  } else {
-    res = await fetch(`/api/v1/grid&getFullGrids=${getFullGrids}`);
-  }
+export async function getGrid(
+  missionId: number,
+  getFullGrid: boolean = false
+): Promise<WrappedResponse<MissionGrid | null>> {
+  const res = await fetch(`/api/v1/grid?missionId=${missionId}&getFullGrids=${getFullGrid}`);
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
@@ -25,16 +13,16 @@ export async function getGrids(
     }
     return { status: "error", message: errorMessage };
   }
-  const response: WrappedResponse<MissionGrid[]> = await res.json();
+  const response: WrappedResponse<MissionGrid | null> = await res.json();
   return response;
 }
 
-export async function upsertGrids(
-  grids: MissionGrid[],
+export async function upsertGrid(
+  grid: MissionGrid,
   missionId: number,
   upsertFullGrid: boolean = false
-): Promise<WrappedResponse<MissionGrid[]>> {
-  const requestBody: GridUpsertRequest = { grids, missionId, upsertFullGrid };
+): Promise<WrappedResponse<MissionGrid>> {
+  const requestBody: GridUpsertRequest = { grid, missionId, upsertFullGrid };
   const res = await fetch(`/api/v1/grid/`, {
     method: "POST",
     headers: {
@@ -51,19 +39,16 @@ export async function upsertGrids(
       /* response body is not JSON */
     }
     alert(
-      `Error saving grids to database. Please let the AEGIS developers know. Status ${errorMessage}`
+      `Error saving grid to database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };
   }
-  const response: WrappedResponse<MissionGrid[]> = await res.json();
+  const response: WrappedResponse<MissionGrid> = await res.json();
   return response;
 }
 
-export async function deleteGrids(
-  gridUuid: string,
-  missionId: number
-): Promise<WrappedResponse<null>> {
-  const requestBody: GridDeleteRequest = { gridUuid, missionId };
+export async function deleteGrid(missionId: number): Promise<WrappedResponse<null>> {
+  const requestBody: GridDeleteRequest = { missionId };
   const res = await fetch(`/api/v1/grid`, {
     method: "DELETE",
     headers: {
@@ -80,7 +65,7 @@ export async function deleteGrids(
       /* response body is not JSON */
     }
     alert(
-      `Error deleting grids from database. Please let the AEGIS developers know. Status ${errorMessage}`
+      `Error deleting grid from database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };
   }

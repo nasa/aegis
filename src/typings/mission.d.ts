@@ -20,7 +20,7 @@ interface Mission {
   walkbackRate: number | null;
   equipmentItems: EquipmentItems | null;
   geographicUnits: GeographicUnits | null;
-  activeGridUuid: string | null;
+  serverFileGrid: MissionGridDefinition | null;
   _metadata?: string; // Meant for JsonExport file export only
   demFilePath: string;
   demResolution: number | null;
@@ -185,19 +185,20 @@ type OneMissionToRuleThemAll = {
 };
 
 type MissionGrid = {
-  gridInformation: MissionGridInformation;
+  gridDefinition: MissionGridDefinition;
   coordinates: MissionGridPoint[][];
 };
 
-type MissionGridInformation = {
-  uuid: string;
-  missionId: number;
+/**
+ * Grid metadata stored on the mission Automerge doc (`mission.serverFileGrid`).
+ * There is exactly one grid per mission; the coordinate array lives on disk
+ * (Data/<fileName>) and is loaded into `globalGrid` at runtime.
+ */
+type MissionGridDefinition = {
   numRows: number;
   numCols: number;
-  spacing: number;
   name: string;
-  fileName: string;
-  isActiveGrid: boolean;
+  fileName: string; // on-disk coordinate file in the mission Data/ folder
 };
 
 type MissionGridPoint = {

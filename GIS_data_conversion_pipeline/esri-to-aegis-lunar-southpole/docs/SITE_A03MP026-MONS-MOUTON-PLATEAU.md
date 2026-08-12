@@ -124,8 +124,8 @@ ellipse paths can each be overridden on the CLI.
 
 ```text
 <out>/                                  # <static>/missionFiles/<mission-id>/
-├── grid_source.geojson                # AEGIS mission-grid GeoJSON (register POSTs it)
 ├── Data/
+│   ├── grid_source.geojson            # AEGIS mission-grid GeoJSON (register POSTs it)
 │   ├── mp2-sfs-dem_MoonSP_COG_deflate_cog.tif # demFilePath (keeps source name)
 │   ├── ellipse.geojson
 │   ├── <grid>.json                    # active grid coordinates (written by the grid API)

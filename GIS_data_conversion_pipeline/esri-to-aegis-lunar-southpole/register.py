@@ -317,11 +317,15 @@ def classify_layer_dir(layer_dir: Path) -> tuple[str, Path] | None:
 
 
 def find_vector_files(data_dir: Path) -> list[Path]:
-    """GeoJSON files under Data/ (the grid's coordinate JSON is .json, so it is excluded)."""
+    """Vector GeoJSON files under Data/, excluding the pipeline's mission-grid source."""
     if not data_dir.exists():
         return []
     return sorted(
-        f for f in data_dir.iterdir() if f.is_file() and f.suffix.lower() == ".geojson"
+        f
+        for f in data_dir.iterdir()
+        if f.is_file()
+        and f.suffix.lower() == ".geojson"
+        and f.name != config.OUT_GRID_SOURCE_NAME
     )
 
 
@@ -349,14 +353,15 @@ def find_dem_file(data_dir: Path) -> Path | None:
 
 
 def build_mission_grid(
-    geojson_path: Path, mission_id: int, existing_grids: list[dict]
+    geojson_path: Path, mission_id: int, existing_grid: dict | None
 ) -> dict:
     """Build a MissionGrid (gridInformation + 2D coordinates) from an AEGIS grid GeoJSON.
 
     Mirrors the admin's gridUpload.tsx transform: a FeatureCollection of Point features with
     row/column/id/L_coord/R_coord is turned into a ``coordinates[row][col]`` array with the
-    row index inverted (``row_total - row - 1``) and ``[lon,lat]`` → ``{lat,lng}``. Reuses an
-    existing grid's uuid/fileName when one of the same name exists, so re-runs update in place.
+    row index inverted (``row_total - row - 1``) and ``[lon,lat]`` → ``{lat,lng}``. Reuses the
+    existing grid's fileName when present so re-runs update in place. There is one grid per
+    mission; its metadata is stored on the mission Automerge doc (``mission.grid``).
     """
     fc = json.loads(geojson_path.read_text(encoding="utf-8"))
     # The raw GeoJSON's internal name is just the scratch filename ("raw_grid"); use a clean,
@@ -382,27 +387,15 @@ def build_mission_grid(
             "name": label,
         }
 
-    prior = next(
-        (
-            g["gridInformation"]
-            for g in existing_grids
-            if g.get("gridInformation", {}).get("name") == name
-        ),
-        None,
-    )
-    grid_uuid = prior["uuid"] if prior else str(uuidlib.uuid4())
-    file_name = prior["fileName"] if prior else f"{name}.json"
+    prior = (existing_grid or {}).get("gridInformation") or {}
+    file_name = prior.get("fileName") or f"{name}.json"
 
     return {
         "gridInformation": {
-            "uuid": grid_uuid,
-            "missionId": mission_id,
             "numRows": row_total,
             "numCols": col_total,
-            "spacing": 0,
             "name": name,
             "fileName": file_name,
-            "isActiveGrid": True,
         },
         "coordinates": coordinates,
     }
@@ -530,9 +523,9 @@ def register_mission(
         if dry_run:
             print(f"  [dry-run] would register active grid from {grid_geojson.name}")
         else:
-            existing = client.get_grids(mission_id)
+            existing = client.get_grid(mission_id)
             grid = build_mission_grid(grid_geojson, mission_id, existing)
-            client.upsert_grids(mission_id, [grid], upsert_full_grid=True)
+            client.upsert_grid(mission_id, grid, upsert_full_grid=True)
             gi = grid["gridInformation"]
             print(
                 f"  registered active grid '{gi['name']}' "
@@ -605,7 +598,7 @@ def main() -> None:
             dem_resolution=args.dem_resolution,
         )
 
-    grid_geojson = None if not args.grid else (args.out / config.OUT_GRID_SOURCE_NAME)
+    grid_geojson = None if not args.grid else (args.out / config.OUT_GRID_SOURCE_PATH)
 
     client = AegisApiClient(args.aegis_url, token)
     register_mission(

@@ -10,7 +10,6 @@ import {
   STM_Level1_db,
   STM_Level2_db,
   STM_Rule_db,
-  Grid_db,
   Folder_db,
   Doc_Listing_db,
 } from "server/database/models/_allModels";
@@ -96,7 +95,7 @@ const safeSerialize = <T extends Record<string, any>>(obj: T): Partial<T> => {
 
 // What properties to exclude in comparisons for each entity type
 const CHANGING_PROPS = {
-  mission: ["id", "uuid", "createdAt", "updatedAt", "name", "activeGridUuid", "version"],
+  mission: ["id", "uuid", "createdAt", "updatedAt", "name", "version"],
   stmLevel1: ["uuid", "missionId", "createdAt", "updatedAt", "level2s", "version"],
   stmLevel2: ["uuid", "level1", "createdAt", "updatedAt", "level3s", "version"],
   stmLevel3: ["uuid", "level2", "createdAt", "updatedAt", "version"],
@@ -1134,77 +1133,27 @@ describe("Mission Duplication Tests", () => {
   });
 
   describe("Grid Duplication", () => {
-    test("Should duplicate all grids with proper properties", async () => {
+    test("Should copy the grid metadata onto the duplicated mission doc", async () => {
       const em = globalValues.orm.em.fork();
 
-      // Skip the test if there are no grids to test
-      // This check might still be relevant if the grid creation failed for some reason
-      if (sourceData.grids.length === 0) {
-        console.warn("No grids to test in the source mission");
+      // Grid metadata now lives on the mission Automerge doc (mission.serverFileGrid).
+      // Skip if the source mission has no grid.
+      if (!sourceData.mission.serverFileGrid) {
+        console.warn("No grid to test in the source mission");
         return;
       }
 
-      // 1. Get all grids from the original mission
-      const originalGrids = sourceData.grids;
-
-      // 2. Get all grids from the duplicated mission
-      const duplicatedGrids = await em.find(Grid_db, { missionId: duplicatedMissionId });
-      expect(duplicatedGrids.length).toEqual(originalGrids.length);
-
-      // 3. Verify grids were correctly duplicated
-      for (const originalGrid of originalGrids) {
-        // Get the mapped UUID
-        const newUuid = uuidMaps.grids.get(originalGrid.uuid);
-        expect(newUuid).toBeDefined();
-
-        // Find the duplicated grid with this UUID
-        const duplicatedGrid = duplicatedGrids.find((g) => g.uuid === newUuid);
-        expect(duplicatedGrid).toBeDefined();
-
-        // Verify the properties were duplicated correctly
-        if (duplicatedGrid) {
-          // Compare grid name (should be identical)
-          expect(duplicatedGrid.name).toEqual(originalGrid.name);
-
-          // Verify the mission ID was updated
-          expect(duplicatedGrid.missionId).toEqual(duplicatedMissionId);
-
-          // Compare the grid properties
-          expect(duplicatedGrid.numRows).toEqual(originalGrid.numRows);
-          expect(duplicatedGrid.numCols).toEqual(originalGrid.numCols);
-          expect(duplicatedGrid.spacing).toEqual(originalGrid.spacing);
-          expect(duplicatedGrid.isActiveGrid).toEqual(originalGrid.isActiveGrid);
-        }
-      }
-    });
-
-    test("Should update active grid reference in mission", async () => {
-      const em = globalValues.orm.em.fork();
-
-      // Skip if the original mission doesn't have an active grid
-      // This check might still be relevant if the grid creation/update failed
-      if (!sourceData.mission.activeGridUuid) {
-        console.warn("No active grid reference to test in source mission");
-        return;
-      }
-
-      // Get the duplicated mission
       const docListing = await em.findOne(Doc_Listing_db, { missionId: duplicatedMissionId });
       expect(docListing).toBeDefined();
       const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
         docListing.automergeUrl as AutomergeUrl
       );
-      missionDocHandle.whenReady();
+      await missionDocHandle.whenReady();
       const duplicatedMission = missionDocHandle.doc();
       expect(duplicatedMission).toBeDefined();
 
-      // Get the mapped grid UUID
-      const newGridUuid = uuidMaps.grids.get(sourceData.mission.activeGridUuid);
-
-      // Verify the active grid UUID was updated in the mission
-      if (newGridUuid) {
-        expect(duplicatedMission.activeGridUuid).toEqual(newGridUuid);
-      }
+      // The grid metadata rides along on the mission doc copy verbatim.
+      expect(duplicatedMission.serverFileGrid).toEqual(sourceData.mission.serverFileGrid);
     });
   });
 

@@ -1,7 +1,6 @@
 import type { EntityManager } from "@mikro-orm/postgresql";
 
 import FolderFactory from "./entityFactories/FolderFactory";
-import GridFactory from "./entityFactories/GridFactory";
 import LayerFactory from "./entityFactories/LayerFactory";
 import PresetFactory from "./entityFactories/PresetFactory";
 import STMLevel1Factory from "./entityFactories/STMLevel1Factory";
@@ -52,10 +51,14 @@ const seedMissionDatabaseFixtures = async (
     layerOrder: [{ layerUuid: testLayer.uuid, sublayerUuids: [testSublayer.uuid] }],
   });
 
-  // ====== GRID — UUID written back to the Automerge mission doc ======
-  const testGrid = await new GridFactory(em).createOne({ missionId });
+  // ====== GRID — metadata stored on the Automerge mission doc ======
   missionDocHandle.change((doc: Mission) => {
-    doc.activeGridUuid = testGrid.uuid;
+    doc.serverFileGrid = {
+      numRows: 10,
+      numCols: 10,
+      name: "Vitest Test Grid",
+      fileName: "vitest-test-grid.json",
+    };
   });
 
   // ====== STM HIERARCHY (L1 → L2 → L3) ======

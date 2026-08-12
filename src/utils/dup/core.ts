@@ -8,7 +8,6 @@ import {
   STM_Level2_db,
   STM_Level3_db,
   Sublayer_db,
-  Grid_db,
   STM_Rule_db,
   Folder_db,
   Doc_Listing_db,
@@ -20,7 +19,6 @@ import {
   processPresets,
   processStmEntities,
   processStmRules,
-  processGrids,
   processFolders,
   updateSublayerToLayerRelationships,
 } from "./entityProcessors";
@@ -115,23 +113,15 @@ export const createMissionCopy = async (
     await processStmEntities(em, stmLevel1s, stmLevel2s, stmLevel3s, newMissionId, uuidMaps);
     await processStmRules(em, stmRules, newMissionId, uuidMaps);
 
-    // Grids and folders
-    const newActiveGridUuid = processGrids(em, sourceData.grids, newMissionId, uuidMaps);
+    // Folders (grid metadata rides along on the mission doc copy; the grid
+    // coordinate file is copied by copyMissionAssets below)
     processFolders(em, sourceData.folders, newMissionId, uuidMaps);
 
     // 4. Update cross-entity references
     // Update DB-layer sublayer → layer relationships
     await updateSublayerToLayerRelationships(em, sourceData.sublayers, uuidMaps);
 
-    // 5. Set active grid UUID if available
-    if (newActiveGridUuid) {
-      // eslint-disable-next-line no-restricted-syntax
-      newMissionDocHandle.change((mission) => {
-        mission.activeGridUuid = newActiveGridUuid;
-      });
-    }
-
-    // 6. Flush all changes
+    // 5. Flush all changes
     await em.flush();
 
     // 7. Copy mission assets if needed and if an original ID exists
@@ -172,7 +162,6 @@ export const fetchMissionSourceData = async (
     stmLevel2s,
     stmLevel3s,
     stmRules,
-    grids: await em.find(Grid_db, { missionId }),
     folders: await em.find(Folder_db, { missionId }),
   };
 };

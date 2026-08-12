@@ -6,9 +6,16 @@ import { faInfo, faPaintBrush } from "@fortawesome/free-solid-svg-icons";
 import { globalGrid } from "utils/mapping/grid";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { upsertPresetByField } from "store/preset";
+import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import Settings_subpanel from "components/interface/settings-and-slider";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { Checkbox } from "components/interface/form/globalFields";
+
+const defaultGridStyle: MapSublayerStyle = {
+  ...defaultSublayerStyle,
+  color: "rgba(255,255,255,0.4)",
+  weight: 1,
+};
 
 const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -19,8 +26,13 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     deepEqual
   );
   const presetGridControl = selectedPreset?.mapGridControl;
+  const gridControl: MapGridControl = {
+    visible: !!presetGridControl?.visible,
+    labelsVisible: !!presetGridControl?.labelsVisible,
+    style: { ...defaultGridStyle, ...presetGridControl?.style },
+  };
 
-  const gridInformation: MissionGridInformation = globalGrid?.gridInformation;
+  const gridDefinition: MissionGridDefinition = globalGrid?.gridDefinition;
 
   const styleSetterHandler = ({
     uuid,
@@ -29,12 +41,12 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     uuid: string;
     layerStyle: MapSublayerStyle;
   }) => {
-    const gridControl: MapGridControl = {
-      visible: !!presetGridControl?.visible,
-      labelsVisible: !!presetGridControl?.labelsVisible,
+    const updatedGridControl: MapGridControl = {
+      visible: gridControl.visible,
+      labelsVisible: gridControl.labelsVisible,
       style: layerStyle,
     };
-    dispatch(upsertPresetByField(uuid, "mapGridControl", gridControl));
+    dispatch(upsertPresetByField(uuid, "mapGridControl", updatedGridControl));
   };
 
   return (
@@ -63,7 +75,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             </div>
                             <div className={paneStyles.panelColumnTableCell}>
                               <div className={paneStyles.displayFieldValue}>
-                                {gridInformation?.numCols ? gridInformation.numCols : "N/A"}
+                                {gridDefinition?.numCols ? gridDefinition.numCols : "N/A"}
                               </div>
                             </div>
                           </div>
@@ -75,7 +87,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             </div>
                             <div className={paneStyles.panelColumnTableCell}>
                               <div className={paneStyles.displayFieldValue}>
-                                {gridInformation?.numRows ? gridInformation.numRows : "N/A"}
+                                {gridDefinition?.numRows ? gridDefinition.numRows : "N/A"}
                               </div>
                             </div>
                           </div>
@@ -92,14 +104,14 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <div>
                         <div className={gridStyles.gridToggles}>
                           <Checkbox
-                            checked={!!presetGridControl?.visible}
+                            checked={gridControl.visible}
                             onChange={(e) => {
                               dispatch(
                                 upsertPresetByField(selectedPresetUuid, "mapGridControl", {
-                                  ...presetGridControl,
+                                  ...gridControl,
                                   visible: e.target.checked,
                                   labelsVisible: e.target.checked
-                                    ? presetGridControl?.labelsVisible
+                                    ? gridControl.labelsVisible
                                     : false,
                                 })
                               );
@@ -109,11 +121,11 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             label="Show Grid"
                           />
                           <Checkbox
-                            checked={!!presetGridControl?.labelsVisible}
+                            checked={gridControl.labelsVisible}
                             onChange={(e) => {
                               dispatch(
                                 upsertPresetByField(selectedPresetUuid, "mapGridControl", {
-                                  ...presetGridControl,
+                                  ...gridControl,
                                   labelsVisible: e.target.checked,
                                 })
                               );
@@ -127,7 +139,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           type="grid"
                           uuid={selectedPreset.uuid}
                           styleSetter={styleSetterHandler}
-                          mapGridControl={presetGridControl}
+                          mapGridControl={gridControl}
                         />
                       </div>
                     ) : (

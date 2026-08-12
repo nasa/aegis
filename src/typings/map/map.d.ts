@@ -98,7 +98,7 @@ type MissionSelectProperties = Pick<
   | "landerLocation"
   | "initialZoom"
   | "planetRadius"
-  | "activeGridUuid"
+  | "serverFileGrid"
   | "projBoundsMaxX"
   | "projBoundsMaxY"
   | "projBoundsMinX"

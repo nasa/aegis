@@ -62,7 +62,7 @@ const Main: React.FunctionComponent = () => {
       actionSystemVersion: mission.actionSystemVersion,
       isArchived: mission.isArchived,
       name: mission.name,
-      activeGridUuid: mission.activeGridUuid,
+      serverFileGrid: mission.serverFileGrid,
     }),
     deepEqual
   );
@@ -158,13 +158,10 @@ const Main: React.FunctionComponent = () => {
 
   // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
-    if (!partialMission?.activeGridUuid) return;
+    if (!partialMission?.serverFileGrid) return;
 
     const loadGridAsync = async () => {
-      const newGrid: MissionGrid = await loadAndReturnGrid(
-        intMissionId,
-        partialMission?.activeGridUuid
-      );
+      const newGrid: MissionGrid = await loadAndReturnGrid(intMissionId);
       if (newGrid?.coordinates && newGrid.coordinates.length > 0) {
         dispatch(setGridCornerPoint(newGrid.coordinates[0][0]));
       } else {
@@ -173,7 +170,7 @@ const Main: React.FunctionComponent = () => {
     };
 
     loadGridAsync();
-  }, [dispatch, intMissionId, partialMission?.activeGridUuid]);
+  }, [dispatch, intMissionId, partialMission?.serverFileGrid]);
 
   useEffect(() => {
     if (!partialMission?.name) return;
