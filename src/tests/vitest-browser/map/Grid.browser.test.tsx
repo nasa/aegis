@@ -158,15 +158,11 @@ function makeGrid(rows = 3, cols = 3): MissionGrid {
     coordinates.push(row);
   }
   return {
-    gridInformation: {
-      uuid: "grid-uuid",
-      missionId: 22,
+    gridDefinition: {
       numRows: rows,
       numCols: cols,
-      spacing: 1000,
       name: "Test Grid",
       fileName: "test.json",
-      isActiveGrid: true,
     },
     coordinates,
   };

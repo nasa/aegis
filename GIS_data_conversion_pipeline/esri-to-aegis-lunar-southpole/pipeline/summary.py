@@ -162,7 +162,7 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
     )
     row(
         "Mission grid (LGRS)",
-        f"{config.OUT_GRID_SOURCE_NAME}  {mark(p.out / config.OUT_GRID_SOURCE_NAME)}",
+        f"{config.OUT_GRID_SOURCE_PATH}  {mark(p.out / config.OUT_GRID_SOURCE_PATH)}",
     )
     tee("  └───────────────────────────────────────────────────────────────┘")
     tee(f"\n  Output root: {p.out}\n")

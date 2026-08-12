@@ -25,7 +25,6 @@ export const initializeUuidMaps = (): EntityMaps => {
     stmLevel2s: new Map<string, string>(),
     stmLevel3s: new Map<string, string>(),
     stmRules: new Map<string, string>(),
-    grids: new Map<string, string>(),
     folders: new Map<string, string>(),
   };
 };

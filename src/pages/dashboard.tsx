@@ -39,7 +39,7 @@ const Main = (): JSX.Element => {
 
   const automergeRepo = useRepo();
   const partialMission = useMissionDocSelector(
-    (doc) => ({ name: doc.name, activeGridUuid: doc.activeGridUuid }),
+    (doc) => ({ name: doc.name, serverFileGrid: doc.serverFileGrid }),
     deepEqual
   );
   const isVersionChecked = useAppSelector(
@@ -123,13 +123,10 @@ const Main = (): JSX.Element => {
 
   // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
-    if (!partialMission?.activeGridUuid) return;
+    if (!partialMission?.serverFileGrid) return;
 
     const loadGridAsync = async () => {
-      const newGrid: MissionGrid = await loadAndReturnGrid(
-        intMissionId,
-        partialMission.activeGridUuid
-      );
+      const newGrid: MissionGrid = await loadAndReturnGrid(intMissionId);
       if (newGrid?.coordinates && newGrid.coordinates.length > 0) {
         dispatch(setGridCornerPoint(newGrid.coordinates[0][0]));
       } else {
@@ -138,7 +135,7 @@ const Main = (): JSX.Element => {
     };
 
     loadGridAsync();
-  }, [dispatch, intMissionId, partialMission?.activeGridUuid]);
+  }, [dispatch, intMissionId, partialMission?.serverFileGrid]);
 
   useEffect(() => {
     if (!partialMission?.name) return;

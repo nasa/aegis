@@ -1,19 +1,16 @@
-import { getGrids } from "http-client/grid";
+import { getGrid } from "http-client/grid";
 
 export let globalGrid: MissionGrid = null;
 
-export async function loadAndReturnGrid(
-  missionId: number,
-  activeGridUuid: string
-): Promise<MissionGrid> {
-  if (!activeGridUuid || !missionId) {
+export async function loadAndReturnGrid(missionId: number): Promise<MissionGrid> {
+  if (!missionId) {
     globalGrid = null;
     return null;
   }
-  const gridData = (await getGrids(missionId, activeGridUuid, true)).data;
-  if (gridData?.length) {
-    globalGrid = gridData[0];
-    return gridData[0];
+  const gridData = (await getGrid(missionId, true)).data;
+  if (gridData?.coordinates?.length) {
+    globalGrid = gridData;
+    return gridData;
   } else {
     globalGrid = null;
     return null;

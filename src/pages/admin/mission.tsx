@@ -8,6 +8,7 @@ import FileManager from "components/admin/fileManager";
 import { InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import Projection from "components/admin/projection";
+import AdminMissionGrid from "components/admin/gridUpload";
 import adminCommon from "./adminCommon.module.css";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { maestroCreateDoc } from "http-client/maestro";
@@ -715,7 +716,7 @@ const Mission: React.FunctionComponent = () => {
 
               <div>
                 {/* File Manager Section */}
-                <section className={adminCommon.section}>
+                <section className={adminCommon.section} style={{ marginBottom: 16 }}>
                   <h2 className={adminCommon.sectionHeading}>Mission Data Files</h2>
                   <p className={adminCommon.descriptionText}>
                     Manage files in the /Data folder for this mission.
@@ -734,6 +735,12 @@ const Mission: React.FunctionComponent = () => {
                     )}
                   </div>
                 </section>
+
+                {/* Grid Section */}
+                <AdminMissionGrid
+                  missionId={automergeMission.id}
+                  grid={automergeMission.serverFileGrid ?? null}
+                />
               </div>
             </div>
           </>

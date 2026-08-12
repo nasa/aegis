@@ -1,11 +1,10 @@
 type GridUpsertRequest = {
-  grids: MissionGrid[];
+  grid: MissionGrid;
   missionId: number;
   upsertFullGrid: boolean;
 };
 
 type GridDeleteRequest = {
-  gridUuid: string;
   missionId: number;
 };
 
