@@ -49,7 +49,7 @@ export const applyMdauEvas = (m: Mission, stage: MdauStageData): void => {
     if (e.name !== undefined) eva.name = e.name;
     if (e.ingressDuration !== undefined) eva.ingressDuration = e.ingressDuration;
     if (e.egressDuration !== undefined) eva.egressDuration = e.egressDuration;
-    if (e.dateTime !== undefined) eva.datetime = e.dateTime;
+    if (e.datetime !== undefined) eva.datetime = e.datetime;
     eva.updatedAt = e.updatedAt;
   }
 };

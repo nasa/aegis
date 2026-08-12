@@ -24,7 +24,7 @@ export interface EvaStage {
   name?: string;
   ingressDuration?: number;
   egressDuration?: number;
-  dateTime?: number | null;
+  datetime?: number | null;
   updatedAt: number;
 }
 
