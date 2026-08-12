@@ -7,6 +7,12 @@ import {
 } from "store/station";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mapping/geoMath";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
+import {
+  getEgressLocationUuid,
+  getFirstTraverseItem,
+  getIngressLocationUuid,
+  getLastTraverseItem,
+} from "operations/helpers/evaSequence";
 import { stageTraverseUpdate } from "operations/stage/stage-traverse";
 import { thunkFetchElevation } from "./thunkElevation";
 import isEqual from "lodash/isEqual";
@@ -98,30 +104,19 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
       }
     }
     // Egress/ingress boundary traverses
-    if (eva.egressLocationUuid === stationUuid || eva.ingressLocationUuid === stationUuid) {
-      if (eva.sequence.length >= 1) {
-        const firstTraverseUuid = eva.sequence[0]?.uuid;
-        if (firstTraverseUuid && !hasBeenChecked.has(firstTraverseUuid)) {
-          hasBeenChecked.add(firstTraverseUuid);
-          traversesToUpdate.push({
-            traverseUuid: firstTraverseUuid,
-            evaSequence: eva.sequence as EvaSequenceItem[],
-            renameTraverse: false,
-          });
-        }
-        const lastTraverseUuid = eva.sequence[eva.sequence.length - 1]?.uuid;
-        if (
-          lastTraverseUuid &&
-          lastTraverseUuid !== firstTraverseUuid &&
-          !hasBeenChecked.has(lastTraverseUuid)
-        ) {
-          hasBeenChecked.add(lastTraverseUuid);
-          traversesToUpdate.push({
-            traverseUuid: lastTraverseUuid,
-            evaSequence: eva.sequence as EvaSequenceItem[],
-            renameTraverse: false,
-          });
-        }
+    if (getEgressLocationUuid(eva) === stationUuid || getIngressLocationUuid(eva) === stationUuid) {
+      const boundaryTraverseUuids = [
+        getFirstTraverseItem(eva)?.uuid,
+        getLastTraverseItem(eva)?.uuid,
+      ];
+      for (const traverseUuid of boundaryTraverseUuids) {
+        if (!traverseUuid || hasBeenChecked.has(traverseUuid)) continue;
+        hasBeenChecked.add(traverseUuid);
+        traversesToUpdate.push({
+          traverseUuid,
+          evaSequence: eva.sequence as EvaSequenceItem[],
+          renameTraverse: false,
+        });
       }
     }
   }
@@ -157,9 +152,7 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
 
     const { locationBefore, locationAfter, nameBefore, nameAfter } = getTraverseEndpoints(
       traverseUuid,
-      evaSequence,
-      eva.egressLocationUuid,
-      eva.ingressLocationUuid,
+      { ...eva, sequence: evaSequence },
       mission.stations,
       mission.landerLocation,
       { uuid: stationUuid, location, name: station.name ?? "" }
@@ -403,14 +396,16 @@ export const thunkDocDeleteStations = appCreateAsyncThunk<
         }
 
         // check if this station is used as ingress/egress
-        if (stationUuids.includes(eva.ingressLocationUuid)) {
-          const stationName = allStations[eva.ingressLocationUuid]?.name;
+        const ingressLocationUuid = getIngressLocationUuid(eva);
+        if (stationUuids.includes(ingressLocationUuid)) {
+          const stationName = allStations[ingressLocationUuid]?.name;
           const message = `Cannot delete a station that is being used as an ingress location in an EVA.\nStation not deleted.\nEVA ${eva.name} is using this station ${stationName}`;
           alert(message);
           return rejectWithValue(message);
         }
-        if (stationUuids.includes(eva.egressLocationUuid)) {
-          const stationName = allStations[eva.egressLocationUuid]?.name;
+        const egressLocationUuid = getEgressLocationUuid(eva);
+        if (stationUuids.includes(egressLocationUuid)) {
+          const stationName = allStations[egressLocationUuid]?.name;
           const message = `Cannot delete a station that is being used as an egress location in an EVA.\nEVA ${eva.name} is using this station ${stationName}`;
           alert(message);
           return rejectWithValue(message);
@@ -559,7 +554,8 @@ export const thunkDocUpdateStationIngressEgress = appCreateAsyncThunk<{
 
   // Find all traverses that need updating
   const evasUsingStationEgressIngress = Object.values(mission.evas ?? {}).filter(
-    (eva) => eva.egressLocationUuid === stationUuid || eva.ingressLocationUuid === stationUuid
+    (eva) =>
+      getEgressLocationUuid(eva) === stationUuid || getIngressLocationUuid(eva) === stationUuid
   );
 
   // Get first/last sequence items (the boundary traverses) of these evas
@@ -569,19 +565,13 @@ export const thunkDocUpdateStationIngressEgress = appCreateAsyncThunk<{
   };
   const traversesToUpdate: TraverseToUpdate[] = [];
   for (const eva of evasUsingStationEgressIngress) {
-    if (eva.sequence.length > 1) {
+    // On an EVA with no stations both helpers return the same single traverse.
+    const boundaryTraverseUuids = new Set(
+      [getFirstTraverseItem(eva)?.uuid, getLastTraverseItem(eva)?.uuid].filter(Boolean)
+    );
+    for (const traverseUuid of boundaryTraverseUuids) {
       traversesToUpdate.push({
-        traverseUuid: eva.sequence[0].uuid,
-        evaSequence: eva.sequence as EvaSequenceItem[],
-      });
-      traversesToUpdate.push({
-        traverseUuid: eva.sequence[eva.sequence.length - 1].uuid,
-        evaSequence: eva.sequence as EvaSequenceItem[],
-      });
-    } else if (eva.sequence.length === 1) {
-      // An empty EVA with no stations, just 1 traverse from egress to ingress
-      traversesToUpdate.push({
-        traverseUuid: eva.sequence[0].uuid,
+        traverseUuid,
         evaSequence: eva.sequence as EvaSequenceItem[],
       });
     }

@@ -24,6 +24,7 @@ import { getCalculatedFieldsByStation } from "store/processing/calculatedFields"
 import { selectAsPlannedStations } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { canMoveStationDown, canMoveStationUp } from "operations/helpers/evaSequence";
 
 const SequenceItemStation: FunctionComponent<{
   evaUuid: string;
@@ -45,6 +46,8 @@ const SequenceItemStation: FunctionComponent<{
     deepEqual
   );
   const sequenceIndex = evaSequence.findIndex((s) => s.uuid === stationUuid);
+  const canMoveUp = canMoveStationUp({ sequence: evaSequence }, sequenceIndex);
+  const canMoveDown = canMoveStationDown({ sequence: evaSequence }, sequenceIndex);
 
   // Get a list of as-planned stations for the dropdown menu when selecting a station for the eva sequence
   // Only return some of the properties in station to reduce re-renders
@@ -261,20 +264,18 @@ const SequenceItemStation: FunctionComponent<{
             </div>
             <div className={evaStyles.evaItemNameButtons}>
               <div
-                className={`${evaStyles.evaItemNameButton} ${sequenceIndex === 1 && evaStyles.disabled}`}
+                className={`${evaStyles.evaItemNameButton} ${!canMoveUp && evaStyles.disabled}`}
                 onClick={() => {
-                  if (sequenceIndex === 1) return;
+                  if (!canMoveUp) return;
                   handleMoveStationUp(sequenceIndex);
                 }}
               >
                 <FontAwesomeIcon icon={faArrowUp} />
               </div>
               <div
-                className={`${evaStyles.evaItemNameButton} ${
-                  sequenceIndex === evaSequence.length - 2 && evaStyles.disabled
-                }`}
+                className={`${evaStyles.evaItemNameButton} ${!canMoveDown && evaStyles.disabled}`}
                 onClick={() => {
-                  if (sequenceIndex === evaSequence.length - 2) return;
+                  if (!canMoveDown) return;
                   handleMoveStationDown(sequenceIndex);
                 }}
               >

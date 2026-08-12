@@ -2,6 +2,13 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { getAccurateNow } from "utils/formatting";
 import { getTotalDistance } from "utils/mapping/geoMath";
+import {
+  getEgressLocationUuid,
+  getFirstTraverseItem,
+  getIngressLocationUuid,
+  getLastTraverseItem,
+  isLanderUuid,
+} from "operations/helpers/evaSequence";
 import { thunkFetchElevation } from "store/thunk/thunkElevation";
 import type { AppDispatch } from "utils/useAppDispatch";
 
@@ -95,12 +102,14 @@ export async function stageLanderLocationUpdate(
   const traversePlans: TraversePlan[] = [];
 
   for (const eva of Object.values(mission.evas ?? {})) {
-    if (eva.sequence.length === 0) continue;
+    const firstTraverse = getFirstTraverseItem(eva);
+    const lastTraverse = getLastTraverseItem(eva);
+    if (!firstTraverse || !lastTraverse) continue;
 
-    const firstUuid = eva.sequence[0].uuid;
-    const lastUuid = eva.sequence[eva.sequence.length - 1].uuid;
-    const egressIsLander = eva.egressLocationUuid === "lander";
-    const ingressIsLander = eva.ingressLocationUuid === "lander";
+    const firstUuid = firstTraverse.uuid;
+    const lastUuid = lastTraverse.uuid;
+    const egressIsLander = isLanderUuid(getEgressLocationUuid(eva));
+    const ingressIsLander = isLanderUuid(getIngressLocationUuid(eva));
 
     // When both egress and ingress touch the lander and they resolve to the
     // same traverse (single-item sequence), snap both endpoints in one plan.

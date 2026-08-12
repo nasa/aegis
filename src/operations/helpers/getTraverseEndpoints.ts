@@ -1,10 +1,12 @@
+import { getTraverseNeighborUuids, isLanderUuid } from "./evaSequence";
+import type { EvaSequenceSource } from "./evaSequence";
+
 /**
  * Resolves the before/after locations and names for a traverse's endpoints
- * by scanning an EVA sequence.
+ * within an EVA sequence.
  *
- * For a given traverseUuid:
- *   - "before" comes from the egress location (if first) or the preceding station.
- *   - "after"  comes from the ingress location (if last)  or the following station.
+ * Neighbor resolution is delegated to `getTraverseNeighborUuids`, so this
+ * function does not need to know where the egress/ingress locations are stored.
  *
  * The optional `stationOverride` lets callers substitute a different location/name
  * for a specific station UUID — used when a station is being edited and
@@ -13,64 +15,31 @@
 
 export function getTraverseEndpoints(
   traverseUuid: string,
-  evaSequence: EvaSequenceItem[],
-  egressLocationUuid: string,
-  ingressLocationUuid: string,
+  eva: EvaSequenceSource | undefined,
   stations: { [uuid: string]: Station } | undefined,
   landerLocation: AEGISPoint,
   stationOverride?: { uuid: string; location: AEGISPoint; name: string }
 ): TraverseEndpointsResult {
-  let locationBefore: AEGISPoint | undefined;
-  let locationAfter: AEGISPoint | undefined;
-  let nameBefore = "";
-  let nameAfter = "";
-
-  const resolveStation = (uuid: string): { location: AEGISPoint | undefined; name: string } => {
+  const resolve = (
+    uuid: string | undefined
+  ): { location: AEGISPoint | undefined; name: string } => {
+    if (uuid === undefined) return { location: undefined, name: "" };
+    if (isLanderUuid(uuid)) return { location: landerLocation, name: "Lander" };
     if (stationOverride && uuid === stationOverride.uuid) {
       return { location: stationOverride.location, name: stationOverride.name };
     }
-    const s = stations?.[uuid];
-    return { location: s?.location, name: s?.name ?? "" };
+    const station = stations?.[uuid];
+    return { location: station?.location, name: station?.name ?? "" };
   };
 
-  for (let index = 0; index < evaSequence.length; index++) {
-    const item = evaSequence[index];
-    if (item.type !== "traverse" || item.uuid !== traverseUuid) continue;
+  const { beforeUuid, afterUuid } = getTraverseNeighborUuids(eva, traverseUuid);
+  const before = resolve(beforeUuid);
+  const after = resolve(afterUuid);
 
-    // Resolve "before"
-    if (index === 0) {
-      if (egressLocationUuid === "lander") {
-        locationBefore = landerLocation;
-        nameBefore = "Lander";
-      } else {
-        const resolved = resolveStation(egressLocationUuid);
-        locationBefore = resolved.location;
-        nameBefore = resolved.name;
-      }
-    } else {
-      const resolved = resolveStation(evaSequence[index - 1].uuid);
-      locationBefore = resolved.location;
-      nameBefore = resolved.name;
-    }
-
-    // Resolve "after"
-    if (index === evaSequence.length - 1) {
-      if (ingressLocationUuid === "lander") {
-        locationAfter = landerLocation;
-        nameAfter = "Lander";
-      } else {
-        const resolved = resolveStation(ingressLocationUuid);
-        locationAfter = resolved.location;
-        nameAfter = resolved.name;
-      }
-    } else {
-      const resolved = resolveStation(evaSequence[index + 1].uuid);
-      locationAfter = resolved.location;
-      nameAfter = resolved.name;
-    }
-
-    break; // found the traverse — no need to continue
-  }
-
-  return { locationBefore, locationAfter, nameBefore, nameAfter };
+  return {
+    locationBefore: before.location,
+    locationAfter: after.location,
+    nameBefore: before.name,
+    nameAfter: after.name,
+  };
 }
