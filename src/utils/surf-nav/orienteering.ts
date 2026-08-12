@@ -16,7 +16,7 @@
 import { radiansToDegrees } from "@turf/helpers";
 
 // Converts between range and bearing => range = 90 - bearing, bearing = 90 - range
-function angleBearingConversion(alpha: number): number {
+function angle_bearing_conversion(alpha: number): number {
   let beta = 90 - alpha;
   if (beta < 0) {
     beta += 360;
@@ -33,7 +33,7 @@ export function range_bearing_from_xy(
 ): SN_RangeBearingPair {
   const range = Math.sqrt(Math.pow(x_dest - x_source, 2) + Math.pow(y_dest - y_source, 2));
   const angle = radiansToDegrees(Math.atan2(y_dest - y_source, x_dest - x_source));
-  const bearing = angleBearingConversion(angle);
+  const bearing = angle_bearing_conversion(angle);
 
   return { range: range, bearing: bearing };
 }

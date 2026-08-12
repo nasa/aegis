@@ -10,11 +10,6 @@ import {
 import { resolveMissionGrid } from "./mapping/grid";
 import * as jsonKeysSort from "json-keys-sort";
 
-/**
- * Exported LGRS/ACC coordinate fields use getGridCoordinatesFromPoint(), which
- * delegates to the reference-corpus-verified utils/lgrs display path for LGRS missions.
- */
-
 export const makeEquipmentReadable = (params: {
   equipmentItems: EquipmentItemUsages;
   mission: Mission;

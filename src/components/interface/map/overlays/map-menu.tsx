@@ -15,6 +15,20 @@ const GRID_SPACING_OPTIONS: { label: string; value: GridSpacingMode }[] = [
   { label: "1km", value: 1000 },
 ];
 
+export function getCompatibleGridLabelInterval(
+  gridSpacingMode: GridSpacingMode,
+  gridLabelInterval: GridSpacingMode
+): GridSpacingMode {
+  if (
+    typeof gridSpacingMode === "number" &&
+    typeof gridLabelInterval === "number" &&
+    gridLabelInterval < gridSpacingMode
+  ) {
+    return gridSpacingMode;
+  }
+  return gridLabelInterval;
+}
+
 export const MapMenu: FunctionComponent<{
   mapDisplayPois: MapSubmenuMarkers;
   setMapDisplayPois: Dispatch<SetStateAction<MapSubmenuMarkers>>;
@@ -618,7 +632,12 @@ export const MapMenu: FunctionComponent<{
                       disabled ? `Grid resolution is ${Math.round(baseGridSpacing)} m` : undefined
                     }
                     onClick={() => {
-                      if (!disabled) setGridSpacingMode(opt.value);
+                      if (!disabled) {
+                        setGridSpacingMode(opt.value);
+                        setGridLabelInterval(
+                          getCompatibleGridLabelInterval(opt.value, gridLabelInterval)
+                        );
+                      }
                     }}
                   >
                     {opt.label}

@@ -22,6 +22,7 @@ import {
   type MapMenuSettings,
   type MapMenuSetters,
 } from "components/interface/map/MapMenuProvider";
+import { getCompatibleGridLabelInterval } from "components/interface/map/overlays/map-menu";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
 let harness: ReactHarness;
@@ -99,6 +100,14 @@ describe("MapMenuProvider — defaults", () => {
 
     flushSync(() => setters!.setSubmenuStations((s) => ({ ...s, show: false })));
     expect(settings!.submenuStations.show).toBe(false);
+  });
+});
+
+describe("grid label interval compatibility", () => {
+  it("promotes a finer fixed label interval when grid spacing becomes coarser", () => {
+    expect(getCompatibleGridLabelInterval(1000, 100)).toBe(1000);
+    expect(getCompatibleGridLabelInterval(1000, "auto")).toBe("auto");
+    expect(getCompatibleGridLabelInterval("auto", 100)).toBe(100);
   });
 });
 
