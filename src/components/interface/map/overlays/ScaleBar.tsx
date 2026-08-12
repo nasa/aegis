@@ -58,6 +58,7 @@ export function ScaleBar({ className }: ScaleBarProps): JSX.Element | null {
   return (
     <div className={className} style={{ width: `${scale.width}px` }}>
       <div
+        aria-label="scaleBar"
         style={{
           fontSize: `${fontSize}px`,
           border: "1px solid var(--grey3, #666)",

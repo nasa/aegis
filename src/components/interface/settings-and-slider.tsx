@@ -6,7 +6,7 @@ import { Checkbox, Dropdown } from "components/interface/form/globalFields";
 import { getPercentOrDefault } from "utils/formatting";
 import CompactColor from "@uiw/react-color-compact";
 import { COLOR_PALATTE } from "utils/consts";
-import { defaultSublayerStyle } from "store/storeUtils/sublayer";
+import { defaultGridStyle, defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 const Settings_subpanel: FunctionComponent<{
   type: "vector" | "circle" | "vector-tile" | "tile" | "grid";
@@ -25,6 +25,9 @@ const Settings_subpanel: FunctionComponent<{
   } else if (type === "circle") {
     layerStyle = mapCircleControls[uuid]?.style;
   }
+
+  // Display fallbacks for unset style fields — grid uses its own halo defaults.
+  const styleDefaults = type === "grid" ? defaultGridStyle : defaultSublayerStyle;
 
   //default setting options to show
   let showSliders = {
@@ -217,7 +220,7 @@ const Settings_subpanel: FunctionComponent<{
           <div className={styles.listItemControl}>
             <CompactColor
               key={`label-color-${JSON.stringify(layerStyle)}`}
-              color={layerStyle?.labelColor ?? defaultSublayerStyle.labelColor}
+              color={layerStyle?.labelColor ?? styleDefaults.labelColor}
               colors={COLOR_PALATTE}
               onChange={(color) => {
                 setStyle(color.hex, "labelColor");
@@ -231,11 +234,11 @@ const Settings_subpanel: FunctionComponent<{
           <div className={styles.listItemText}>Label Halo Color</div>
           <div className={styles.listItemControl}>
             <CompactColor
-              key={`label-stroke-${JSON.stringify(layerStyle)}`}
-              color={layerStyle?.labelStrokeColor ?? defaultSublayerStyle.labelStrokeColor}
+              key={`label-halo-${JSON.stringify(layerStyle)}`}
+              color={layerStyle?.labelHaloColor ?? styleDefaults.labelHaloColor}
               colors={COLOR_PALATTE}
               onChange={(color) => {
-                setStyle(color.hex, "labelStrokeColor");
+                setStyle(color.hex, "labelHaloColor");
               }}
             />
           </div>
@@ -244,9 +247,9 @@ const Settings_subpanel: FunctionComponent<{
       {showSliders.showLabels && (layerStyle?.showLabels ?? true) && (
         <Slider
           display="Label Halo Size"
-          name="labelStrokeWidth"
-          value={layerStyle?.labelStrokeWidth ?? defaultSublayerStyle.labelStrokeWidth}
-          onChange={(e) => setStyle(Number(e.target.value), "labelStrokeWidth")}
+          name="labelHaloWidth"
+          value={layerStyle?.labelHaloWidth ?? styleDefaults.labelHaloWidth}
+          onChange={(e) => setStyle(Number(e.target.value), "labelHaloWidth")}
           min={0}
           max={10}
           unit={"px"}
@@ -254,14 +257,14 @@ const Settings_subpanel: FunctionComponent<{
       )}
       {showSliders.showLabels &&
         (layerStyle?.showLabels ?? true) &&
-        (layerStyle?.labelStrokeWidth ?? defaultSublayerStyle.labelStrokeWidth) > 0 && (
+        (layerStyle?.labelHaloWidth ?? styleDefaults.labelHaloWidth) > 0 && (
           <Slider
             display="Label Halo Opacity"
-            name="labelStrokeOpacity"
+            name="labelHaloOpacity"
             value={Math.round(
-              (layerStyle?.labelStrokeOpacity ?? defaultSublayerStyle.labelStrokeOpacity) * 100
+              (layerStyle?.labelHaloOpacity ?? styleDefaults.labelHaloOpacity) * 100
             )}
-            onChange={(e) => setStyle(Number(e.target.value) / 100, "labelStrokeOpacity")}
+            onChange={(e) => setStyle(Number(e.target.value) / 100, "labelHaloOpacity")}
           />
         )}
       {showSliders.isDashed && (

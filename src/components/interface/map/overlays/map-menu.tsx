@@ -5,6 +5,14 @@ import { useEffect, useState } from "react";
 import styles from "./map-menu.module.css";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { globalGrid, getGridBaseSpacingMeters } from "utils/mapping/grid";
+
+const GRID_SPACING_OPTIONS: { label: string; value: GridSpacingMode }[] = [
+  { label: "Auto", value: "auto" },
+  { label: "10m", value: 10 },
+  { label: "100m", value: 100 },
+  { label: "1km", value: 1000 },
+];
 
 export const MapMenu: FunctionComponent<{
   mapDisplayPois: MapSubmenuMarkers;
@@ -27,6 +35,10 @@ export const MapMenu: FunctionComponent<{
   setShowMouseLatLon: Dispatch<SetStateAction<boolean>>;
   showSunEarth: boolean;
   setShowSunEarth: Dispatch<SetStateAction<boolean>>;
+  gridSpacingMode: GridSpacingMode;
+  setGridSpacingMode: Dispatch<SetStateAction<GridSpacingMode>>;
+  gridLabelInterval: GridSpacingMode;
+  setGridLabelInterval: Dispatch<SetStateAction<GridSpacingMode>>;
 }> = ({
   mapDisplayPois,
   setMapDisplayPois,
@@ -48,6 +60,10 @@ export const MapMenu: FunctionComponent<{
   setShowMouseLatLon,
   showSunEarth,
   setShowSunEarth,
+  gridSpacingMode,
+  setGridSpacingMode,
+  gridLabelInterval,
+  setGridLabelInterval,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
@@ -64,6 +80,11 @@ export const MapMenu: FunctionComponent<{
   }, deepEqual);
   const earthMoonName = selectedPreset?.earthAsMoon ? "Moon" : "Earth";
   const sunEarthEnabled: boolean = selectedPreset?.sunEnabled || selectedPreset?.earthEnabled;
+
+  // Base grid spacing (metres) drives which fixed-spacing options are selectable.
+  // Derived from the loaded grid geometry so it always matches what's drawn.
+  const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
+  const baseGridSpacing = getGridBaseSpacingMeters(globalGrid, planetRadius);
 
   //if the selected pos source list contains a uuid that isn't in selected rex's pos sources list this means that the selected rex has changed.
   //If this is true, set default pos sources to task and crew
@@ -565,6 +586,75 @@ export const MapMenu: FunctionComponent<{
               >
                 Distances
               </div>
+            </div>
+            <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
+              Grid
+              {GRID_SPACING_OPTIONS.map((opt, idx) => {
+                const disabled =
+                  opt.value !== "auto" && baseGridSpacing > 0 && opt.value < baseGridSpacing;
+                const selected = gridSpacingMode === opt.value;
+                const positionClass =
+                  idx === 0
+                    ? styles.toggleLeft
+                    : idx === GRID_SPACING_OPTIONS.length - 1
+                      ? styles.toggleRight
+                      : styles.toggleMiddle;
+                return (
+                  <div
+                    key={String(opt.value)}
+                    className={`${positionClass} ${styles.center} ${
+                      selected ? styles.toggleSelected : ""
+                    }`}
+                    style={disabled ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
+                    data-tooltip-id={disabled ? "aegis-tooltip" : undefined}
+                    data-tooltip-content={
+                      disabled ? `Grid resolution is ${Math.round(baseGridSpacing)} m` : undefined
+                    }
+                    onClick={() => {
+                      if (!disabled) setGridSpacingMode(opt.value);
+                    }}
+                  >
+                    {opt.label}
+                  </div>
+                );
+              })}
+            </div>
+            <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
+              Grid Labels
+              {GRID_SPACING_OPTIONS.map((opt, idx) => {
+                // The label interval only applies when the grid spacing is fixed,
+                // and can't be finer than the grid lines or the grid resolution.
+                const disabled =
+                  gridSpacingMode === "auto" ||
+                  (opt.value !== "auto" &&
+                    ((baseGridSpacing > 0 && opt.value < baseGridSpacing) ||
+                      (typeof gridSpacingMode === "number" && opt.value < gridSpacingMode)));
+                const selected = gridLabelInterval === opt.value;
+                const positionClass =
+                  idx === 0
+                    ? styles.toggleLeft
+                    : idx === GRID_SPACING_OPTIONS.length - 1
+                      ? styles.toggleRight
+                      : styles.toggleMiddle;
+                return (
+                  <div
+                    key={String(opt.value)}
+                    className={`${positionClass} ${styles.center} ${
+                      selected ? styles.toggleSelected : ""
+                    }`}
+                    style={disabled ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
+                    data-tooltip-id={gridSpacingMode === "auto" ? "aegis-tooltip" : undefined}
+                    data-tooltip-content={
+                      gridSpacingMode === "auto" ? "Set a fixed grid spacing first" : undefined
+                    }
+                    onClick={() => {
+                      if (!disabled) setGridLabelInterval(opt.value);
+                    }}
+                  >
+                    {opt.label}
+                  </div>
+                );
+              })}
             </div>
             <MenuItem
               title="Scale Bar"

@@ -66,6 +66,12 @@ interface MapSubmenuStations extends MapSubmenuMarkers {
 }
 
 /**
+ * Grid line / label spacing mode. "auto" = adaptive density (varies with zoom);
+ * a number = a fixed real-world spacing in metres.
+ */
+type GridSpacingMode = "auto" | 10 | 100 | 1000;
+
+/**
  * Cookie for map menu settings
  */
 type MapMenuCookie = {
@@ -79,6 +85,8 @@ type MapMenuCookie = {
   showSunEarth: boolean;
   showScaleBar: boolean;
   showMouseLatLon: boolean;
+  gridSpacingMode?: GridSpacingMode;
+  gridLabelInterval?: GridSpacingMode;
 };
 
 /*

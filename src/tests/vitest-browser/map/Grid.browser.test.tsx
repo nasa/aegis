@@ -20,6 +20,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Provider } from "react-redux";
+import { CookiesProvider, Cookies } from "react-cookie";
 import { configureStore } from "@reduxjs/toolkit";
 import Map from "ol/Map";
 import View from "ol/View";
@@ -27,6 +28,7 @@ import type VectorLayer from "ol/layer/Vector";
 import type VectorSource from "ol/source/Vector";
 
 import { MapContext } from "components/interface/map/MapProvider";
+import { MapMenuProvider } from "components/interface/map/MapMenuProvider";
 import { Grid } from "components/interface/map/behaviors/Grid";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { presetSlice } from "store/preset";
@@ -71,7 +73,11 @@ vi.mock("utils/mapping/grid", () => {
       return mockGrid.current != null && prop in mockGrid.current;
     },
   });
-  return { globalGrid: globalGridProxy, loadAndReturnGrid: async (): Promise<null> => null };
+  return {
+    globalGrid: globalGridProxy,
+    loadAndReturnGrid: async (): Promise<null> => null,
+    getGridBaseSpacingMeters: () => 0,
+  };
 });
 
 // Call counter so findClosestPointInGlobalGrid returns distinct start/end indices.
@@ -192,9 +198,13 @@ let store: ReturnType<typeof makeStore>;
 function renderGrid(mode: "editor" | "dashboard" | "minimap" = "editor") {
   harness.render(
     <Provider store={store}>
-      <MapContext.Provider value={{ map, mode }}>
-        <Grid />
-      </MapContext.Provider>
+      <CookiesProvider cookies={new Cookies()}>
+        <MapMenuProvider>
+          <MapContext.Provider value={{ map, mode }}>
+            <Grid />
+          </MapContext.Provider>
+        </MapMenuProvider>
+      </CookiesProvider>
     </Provider>
   );
 }
