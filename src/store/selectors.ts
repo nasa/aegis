@@ -1,6 +1,13 @@
 import sortBy from "lodash/sortBy";
 import concat from "lodash/concat";
 import type { RootState } from "store";
+import {
+  getEgressLocationUuid,
+  getIngressLocationUuid,
+  getSequenceStationItems,
+  getSequenceTraverseItems,
+  isLanderUuid,
+} from "operations/helpers/evaSequence";
 
 /**
  * Gets all Stations for an EVA.
@@ -11,20 +18,16 @@ export const selectEvaStations = (mission: Mission, evaUuid: string): Station[] 
   const evaStations: Station[] = [];
   const eva = mission?.evas?.[evaUuid];
   if (!eva) return [];
-  if (eva.sequence) {
-    const sequenceStations = eva.sequence
-      .filter((seqItem) => seqItem.type === "station" && seqItem.uuid)
-      .map((stationSeqItem) => allStations[stationSeqItem.uuid])
-      .filter(Boolean) as Station[];
-    evaStations.push(...sequenceStations);
-  }
-  if (eva.ingressLocationUuid !== "lander") {
-    const ingressStation = allStations[eva.ingressLocationUuid];
-    if (ingressStation) evaStations.push(ingressStation);
-  }
-  if (eva.egressLocationUuid !== "lander") {
-    const egressStation = allStations[eva.egressLocationUuid];
-    if (egressStation) evaStations.push(egressStation);
+  const sequenceStations = getSequenceStationItems(eva)
+    .filter((seqItem) => seqItem.uuid)
+    .map((stationSeqItem) => allStations[stationSeqItem.uuid])
+    .filter(Boolean) as Station[];
+  evaStations.push(...sequenceStations);
+
+  for (const xgressUuid of [getIngressLocationUuid(eva), getEgressLocationUuid(eva)]) {
+    if (isLanderUuid(xgressUuid)) continue;
+    const xgressStation = allStations[xgressUuid];
+    if (xgressStation) evaStations.push(xgressStation);
   }
   return evaStations;
 };
@@ -37,7 +40,7 @@ export const selectEvaTraverses = (mission: Mission, evaUuid: string): Traverse[
   const eva = mission?.evas?.[evaUuid];
   if (!eva?.sequence) return [];
 
-  const traverseSeqItems = eva.sequence.filter((seqItem) => seqItem.type === "traverse");
+  const traverseSeqItems = getSequenceTraverseItems(eva);
   const traverses = traverseSeqItems
     .map((traverseSeqItem) => allTraverses[traverseSeqItem.uuid])
     .filter(Boolean) as Traverse[];
@@ -55,7 +58,7 @@ export const selectEvaActions = (
 ): Action[] => {
   if (!eva?.sequence) return [];
 
-  const stationSeqItems = eva.sequence.filter((seqItem) => seqItem.type === "station");
+  const stationSeqItems = getSequenceStationItems(eva);
   const actionArrays = stationSeqItems.map((stationSeqItem) =>
     Object.values(allActionRecords).filter((a) => a.stationUuid === stationSeqItem.uuid)
   );
@@ -71,15 +74,14 @@ export const selectAsPlannedStations = (mission: Mission): Station[] => {
 
   const allRexEvaStationUuids = allEvas
     .filter((e) => allRexEvaUuids.includes(e.uuid))
-    .flatMap((eva) => eva.sequence?.filter((seq) => seq.type === "station").map((seq) => seq.uuid));
+    .flatMap((eva) => getSequenceStationItems(eva).map((seq) => seq.uuid));
   const allIngressEgressStationUuids = allEvas
     .filter((e) => allRexEvaUuids.includes(e.uuid))
-    .flatMap((eva) => {
-      const xgressStationUuids = [];
-      if (eva.ingressLocationUuid !== "lander") xgressStationUuids.push(eva.ingressLocationUuid);
-      if (eva.egressLocationUuid !== "lander") xgressStationUuids.push(eva.egressLocationUuid);
-      return xgressStationUuids;
-    });
+    .flatMap((eva) =>
+      [getIngressLocationUuid(eva), getEgressLocationUuid(eva)].filter(
+        (uuid) => uuid && !isLanderUuid(uuid)
+      )
+    );
   // Combine all uuids get stations that we need to filter out
   const allStationUuids = concat(allRexEvaStationUuids, allIngressEgressStationUuids);
   const stationList = Object.values(mission?.stations ?? {}).filter(

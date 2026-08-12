@@ -38,6 +38,14 @@ import { stageDuplicateEva } from "operations/stage/stage-eva";
 import { stageDeleteEva } from "operations/stage/stage-eva";
 import { stageDuplicateStation } from "operations/stage/stage-station";
 import { stageTraverseUpdate } from "operations/stage/stage-traverse";
+import {
+  getEgressLocationUuid,
+  getFirstTraverseItem,
+  getIngressLocationUuid,
+  getLastTraverseItem,
+  isFirstMovableStationIndex,
+  isLanderUuid,
+} from "operations/helpers/evaSequence";
 import { applyDuplicateStationStage, applyDeleteStations } from "operations/apply/apply-station";
 import { applyDeleteActions } from "operations/apply/apply-action";
 import { setStationCircleUIStates } from "store/station";
@@ -174,10 +182,10 @@ export const thunkDocDuplicateEva = appCreateAsyncThunk<
 
   if (isRexEva) {
     const sourceEva = mission.evas[evaUuid];
-    if (sourceEva.ingressLocationUuid !== "lander" && !stagedEvaData.ingressStationStage) {
+    if (!isLanderUuid(getIngressLocationUuid(sourceEva)) && !stagedEvaData.ingressStationStage) {
       throw new Error("Error duplicating ingress station in thunkDocDuplicateEva");
     }
-    if (sourceEva.egressLocationUuid !== "lander" && !stagedEvaData.egressStationStage) {
+    if (!isLanderUuid(getEgressLocationUuid(sourceEva)) && !stagedEvaData.egressStationStage) {
       throw new Error("Error duplicating egress station in thunkDocDuplicateEva");
     }
   }
@@ -237,7 +245,9 @@ export const thunkDocDeleteStationFromEva = appCreateAsyncThunk<{
   let traverseUuidToDelete: string;
   let spliceStart: number;
 
-  if (sequenceIndex === 1) {
+  if (isFirstMovableStationIndex({ sequence: evaSequence }, sequenceIndex)) {
+    // The first station has no traverse to keep before it, so the traverse
+    // after it survives and the one before it is removed.
     traverseUuidToUpdate = evaSequence[sequenceIndex + 1]?.uuid ?? null;
     traverseUuidToDelete = evaSequence[sequenceIndex - 1].uuid;
     spliceStart = sequenceIndex - 1;
@@ -495,8 +505,8 @@ export const thunkDocChangeIngressEgress = appCreateAsyncThunk<{
     // Determine the boundary traverse to update and build its new path
     const boundaryTraverseUuid =
       type === "ingress"
-        ? selectedEva.sequence[selectedEva.sequence.length - 1]?.uuid
-        : selectedEva.sequence[0]?.uuid;
+        ? getLastTraverseItem(selectedEva)?.uuid
+        : getFirstTraverseItem(selectedEva)?.uuid;
 
     const stagedTraverseData: TraverseUpdateStageData | null = boundaryTraverseUuid
       ? await stageTraverseUpdate(mission, dispatch, {
@@ -505,9 +515,9 @@ export const thunkDocChangeIngressEgress = appCreateAsyncThunk<{
           overrides: {
             evaSequence: selectedEva.sequence as EvaSequenceItem[],
             egressUuid:
-              type === "egress" ? stationOrLanderUuidToSet : selectedEva.egressLocationUuid,
+              type === "egress" ? stationOrLanderUuidToSet : getEgressLocationUuid(selectedEva),
             ingressUuid:
-              type === "ingress" ? stationOrLanderUuidToSet : selectedEva.ingressLocationUuid,
+              type === "ingress" ? stationOrLanderUuidToSet : getIngressLocationUuid(selectedEva),
           },
         })
       : null;

@@ -1,5 +1,10 @@
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { generateBlankRex } from "store/storeUtils/rex";
+import {
+  getEgressLocationUuid,
+  getIngressLocationUuid,
+  isLanderUuid,
+} from "operations/helpers/evaSequence";
 
 import { stageDuplicateEva } from "./stage-eva";
 
@@ -74,11 +79,8 @@ export function stageDeleteRex(
       if (item.type === "station") stationUuids.push(item.uuid);
       else if (item.type === "traverse") traverseUuids.push(item.uuid);
     }
-    if (eva.ingressLocationUuid && eva.ingressLocationUuid !== "lander") {
-      stationUuids.push(eva.ingressLocationUuid);
-    }
-    if (eva.egressLocationUuid && eva.egressLocationUuid !== "lander") {
-      stationUuids.push(eva.egressLocationUuid);
+    for (const xgressUuid of [getIngressLocationUuid(eva), getEgressLocationUuid(eva)]) {
+      if (xgressUuid && !isLanderUuid(xgressUuid)) stationUuids.push(xgressUuid);
     }
   }
 

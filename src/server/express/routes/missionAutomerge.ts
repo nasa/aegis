@@ -11,6 +11,13 @@ import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import type { RequiredEntityData } from "@mikro-orm/core";
 import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
+import {
+  getEgressLocationUuid,
+  getFirstTraverseItem,
+  getIngressLocationUuid,
+  getLastTraverseItem,
+  isLanderUuid,
+} from "operations/helpers/evaSequence";
 
 import {
   STM_Level1_db,
@@ -347,13 +354,11 @@ export function missionHasLanderDependentEntities(mission: Mission): boolean {
   if (hasPlacedStation) return true;
 
   return Object.values(mission.evas ?? {}).some((eva) => {
-    if (eva.sequence.length === 0) return false;
-
-    const firstTraverse = mission.traverses?.[eva.sequence[0].uuid];
-    const lastTraverse = mission.traverses?.[eva.sequence[eva.sequence.length - 1].uuid];
+    const firstTraverse = mission.traverses?.[getFirstTraverseItem(eva)?.uuid];
+    const lastTraverse = mission.traverses?.[getLastTraverseItem(eva)?.uuid];
     return Boolean(
-      (eva.egressLocationUuid === "lander" && firstTraverse) ||
-      (eva.ingressLocationUuid === "lander" && lastTraverse)
+      (isLanderUuid(getEgressLocationUuid(eva)) && firstTraverse) ||
+      (isLanderUuid(getIngressLocationUuid(eva)) && lastTraverse)
     );
   });
 }
