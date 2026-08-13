@@ -84,7 +84,12 @@ const Info_Panel: FunctionComponent<{
   const gridCornerPoint = useAppSelector((state) => state.map.gridCornerPoint, refEqual);
   const poiGridCoordinates = useMemo(() => {
     if (selectedPoi?.location && partialMission.usingLGRSCoordinates) {
-      return getSouthLpsDisplayCoordinate(selectedPoi.location) ?? "Not set";
+      return (
+        getSouthLpsDisplayCoordinate(
+          selectedPoi.location,
+          resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
+        ) ?? "Not set"
+      );
     } else if (selectedPoi?.location && resolvedGrid.kind === "server-file" && gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
         resolvedGrid.grid.coordinates,

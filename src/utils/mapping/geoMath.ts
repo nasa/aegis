@@ -41,12 +41,13 @@ export function getGridCoordinatesFromPoint(
   point: AEGISPoint,
   radius: number,
   usingLGRSCoordinates: boolean,
-  globalGrid?: MissionGridPoint[][]
+  globalGrid?: MissionGridPoint[][],
+  dynamicLgrs = false
 ): string {
   if (!point) return null;
 
   if (usingLGRSCoordinates) {
-    return getSouthLpsDisplayCoordinate(point);
+    return getSouthLpsDisplayCoordinate(point, dynamicLgrs ? "full" : "condensed");
   } else if (globalGrid) {
     return findGlobalGridCoordsFromPoint(globalGrid, point, radius);
   } else {

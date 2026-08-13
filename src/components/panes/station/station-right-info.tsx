@@ -128,7 +128,12 @@ const Info_Panel: FunctionComponent<{
   const gridCornerPoint = useAppSelector((state) => state.map.gridCornerPoint, refEqual);
   const stationGridCoordinates = useMemo(() => {
     if (selectedStation?.location && partialMission.usingLGRSCoordinates) {
-      return getSouthLpsDisplayCoordinate(selectedStation.location) ?? "Not set";
+      return (
+        getSouthLpsDisplayCoordinate(
+          selectedStation.location,
+          resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
+        ) ?? "Not set"
+      );
     }
     if (selectedStation?.location && resolvedGrid.kind === "server-file" && gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(

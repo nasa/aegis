@@ -18,6 +18,12 @@ describe("Geomath Functions", () => {
     expect(getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true)).toBe("B95 D44");
   });
 
+  test("uses the full ACC identifier for dynamic LGRS grids", () => {
+    expect(
+      getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true, undefined, true)
+    ).toBe("AZM B95 D44");
+  });
+
   test("Returns 0 distance between two identical coordinates", () => {
     const point: AEGISPoint = { lat: 0, lng: 0 };
     expect(getDistanceBetweenTwoCoordinates(point, point, 0)).toBe(0);

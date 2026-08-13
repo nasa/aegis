@@ -91,7 +91,12 @@ const RightActionBody: FunctionComponent<{
 
   const actionGridCoordinates = useAppSelector((state) => {
     if (action.location && partialMission.usingLGRSCoordinates) {
-      return getSouthLpsDisplayCoordinate(action.location) ?? "Not set";
+      return (
+        getSouthLpsDisplayCoordinate(
+          action.location,
+          resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
+        ) ?? "Not set"
+      );
     } else if (
       action.location &&
       resolvedGrid.kind === "server-file" &&

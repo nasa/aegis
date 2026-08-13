@@ -48,7 +48,8 @@ export function MouseCoordinateDisplay({
         point,
         planetRadius,
         usingLGRS,
-        resolvedGrid.kind === "server-file" ? resolvedGrid.grid.coordinates : undefined
+        resolvedGrid.kind === "server-file" ? resolvedGrid.grid.coordinates : undefined,
+        resolvedGrid.kind === "dynamic-lgrs"
       );
       setMouseGridCoord(gridCoords);
     };
@@ -81,6 +82,7 @@ export function MouseCoordinateDisplay({
             fontSize: "0.8em",
             border: "1px solid var(--grey3, #666)",
             padding: "5px",
+            minWidth: "150px",
           }}
         >
           {mouseGridCoord}

@@ -60,7 +60,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
   const landerGridCoordinates = useAppSelector((state) => {
     if (automergeMission.landerLocation && automergeMission.usingLGRSCoordinates) {
-      return getSouthLpsDisplayCoordinate(automergeMission.landerLocation) ?? "Not set";
+      return (
+        getSouthLpsDisplayCoordinate(
+          automergeMission.landerLocation,
+          resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
+        ) ?? "Not set"
+      );
     } else if (
       automergeMission.landerLocation &&
       resolvedGrid.kind === "server-file" &&

@@ -81,6 +81,18 @@ export function formatSouthLpsFromLatLng(
   return coordinate ? formatSouthLpsCoordinate(coordinate, precision) : null;
 }
 
-export function getSouthLpsDisplayCoordinate(point: AEGISPoint): string | null {
-  return formatSouthLpsFromLatLng(point, LGRS_DISPLAY_PRECISION_METERS)?.text ?? null;
+export function getSouthLpsDisplayCoordinate(
+  point: AEGISPoint,
+  format: "condensed" | "full" = "condensed"
+): string | null {
+  const label = formatSouthLpsFromLatLng(point, LGRS_DISPLAY_PRECISION_METERS);
+  if (format === "condensed") return label?.text ?? null;
+  if (!label) return null;
+
+  const gridZone = label.acc.slice(0, 3);
+  const coordinateDigits = label.acc.slice(3);
+  const eastingLength = coordinateDigits.length / 2;
+  return `${gridZone} ${coordinateDigits.slice(0, eastingLength)} ${coordinateDigits.slice(
+    eastingLength
+  )}`;
 }
