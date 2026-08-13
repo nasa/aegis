@@ -5,16 +5,18 @@ interface Eva {
 
   name: string;
   status: EVAStatus;
-  /**
-   * Does not include ingress/egress location. Starts/ends with a traverse item
-   */
+  /** Starts and ends with xgress stations */
   sequence: EvaSequenceItem[];
   description: string;
   duration: number | null; // minutes
   traverseRate: number | null; // km/h
+  /** @deprecated Mirror of the egress station's `duration`. Removed in a later MR; read the sequence instead. */
   egressDuration: number | null; // minutes
+  /** @deprecated Mirror of the ingress station's `duration`. Removed in a later MR; read the sequence instead. */
   ingressDuration: number | null; // minutes
+  /** @deprecated Mirror of `sequence[0]`, or "lander" when that station is a lander copy. Use `getEgressLocationUuid`. */
   egressLocationUuid: string; // station uuid or "lander"
+  /** @deprecated Mirror of the last sequence item, or "lander" when that station is a lander copy. Use `getIngressLocationUuid`. */
   ingressLocationUuid: string; // station uuid or "lander"
   traverseColor: string | null;
   ownerId: number;
@@ -85,6 +87,11 @@ interface Station {
   walkbackTraverseRate: number | null; // km/h
   icon: string | null;
   mapCircleControls: MapCircleControls;
+
+  /**
+   * True when this station is a copy of the lander used for EVA's xgress.
+   */
+  isLanderXgress?: boolean;
 
   /**
    * The estimated duration of the action, in minutes.

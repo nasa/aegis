@@ -9,11 +9,13 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 
 import { getAutomergeDocListing } from "server/express/routes/docListing";
+import { v4 as uuidv4 } from "uuid";
 import {
   DEFAULT_ACTION_DEFINITION_LABELS,
   DEFAULT_ACTION_DEFINITION_CONJUNCTIONS,
 } from "store/storeUtils/mission";
 import { migrateLegacyCircleControlHaloStyles } from "store/storeUtils/preset";
+import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import { missionValidator } from "utils/validateSchemaServer";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
@@ -611,6 +613,90 @@ getORM()
       });
     };
 
+    // Migration: Turn each EVA's egress/ingress location into a real Station at
+    // the start and end of its sequence.
+    //
+    // The sequence goes from `traverse, station, …, traverse` to
+    // `station, traverse, station, …, traverse, station`. An EVA that egressed
+    // or ingressed at the lander gets a new auto-managed station pinned to the
+    // lander; one that used a real station reuses that station's uuid.
+    //
+    // The legacy `egressLocationUuid` / `ingressLocationUuid` / `egressDuration`
+    // / `ingressDuration` fields are left in place as a mirror for readers that
+    // have not been migrated yet.
+    const automergeMigration20260806XgressStations = async (docHandle: DocHandle<Mission>) => {
+      docHandle.change((mission: Mission) => {
+        for (const eva of Object.values(mission.evas ?? {})) {
+          // Idempotency guard: already migrated when the sequence starts with a station.
+          if (eva.sequence?.[0]?.type === "station") continue;
+          if (!eva.sequence || eva.sequence.length === 0) continue;
+
+          const buildLanderStation = (duration: number | null): Station => {
+            const mapCircleControls: MapCircleControls = {};
+            for (const circleUuid of Object.keys(mission.circleDefinitions ?? {})) {
+              mapCircleControls[circleUuid] = {
+                uuid: circleUuid,
+                visible: false,
+                style: { ...defaultSublayerStyle },
+              };
+            }
+            // Copy the lander location field by field: it is read off a live
+            // Automerge proxy, which structuredClone cannot clone.
+            const landerLocation: AEGISPoint = {
+              lat: mission.landerLocation?.lat ?? null,
+              lng: mission.landerLocation?.lng ?? null,
+            };
+            if (mission.landerLocation?.alt !== undefined) {
+              landerLocation.alt = mission.landerLocation.alt;
+            }
+            const now = Date.now();
+            return {
+              uuid: uuidv4(),
+              refUuid: uuidv4(),
+              ownerId: eva.ownerId ?? 0,
+              missionId: mission.id,
+              poiUuids: [],
+              actionOrderUuids: [],
+              name: "Lander",
+              status: "Candidate",
+              description: "",
+              radius: 5,
+              location: landerLocation,
+              elevation: mission.landerElevationMeters ?? null,
+              walkbackPath: null,
+              walkbackPathSegmentDistances: null,
+              walkbackPathSegmentElevations: null,
+              walkbackTraverseRate: null,
+              icon: "1f680", // Rocket
+              mapCircleControls,
+              isLanderXgress: true,
+              duration: duration ?? 10,
+              createdAt: now,
+              updatedAt: now,
+            };
+          };
+
+          // Resolve each slot to a station uuid, creating a lander stand-in when
+          // the slot pointed at the lander (or at a station that no longer exists).
+          const resolveXgress = (locationUuid: string, duration: number | null): string => {
+            if (locationUuid && locationUuid !== "lander" && mission.stations?.[locationUuid]) {
+              return locationUuid;
+            }
+            // This xgress is at lander, create a new station and return uuid
+            const landerStation = buildLanderStation(duration);
+            mission.stations[landerStation.uuid] = landerStation;
+            return landerStation.uuid;
+          };
+
+          const egressUuid = resolveXgress(eva.egressLocationUuid, eva.egressDuration);
+          const ingressUuid = resolveXgress(eva.ingressLocationUuid, eva.ingressDuration);
+
+          eva.sequence.unshift({ type: "station", uuid: egressUuid }); // Insert egress to eva sequence
+          eva.sequence.push({ type: "station", uuid: ingressUuid }); // Insert ingress to eva sequence
+        }
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
@@ -620,6 +706,7 @@ getORM()
       automergeMigration20260722GridToMissionDoc,
       automergeMigration20260809AddGridRenderMode,
       automergeMigration20260810RenameStationLabelStrokeToHalo,
+      automergeMigration20260806XgressStations,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {

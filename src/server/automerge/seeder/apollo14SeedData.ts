@@ -335,6 +335,51 @@ const pois: { [uuid: string]: POI } = {
 };
 
 const stations: { [uuid: string]: Station } = {
+  // Auto-managed lander stand-ins filling the EVA's egress and ingress slots.
+  "a1000000-0000-4000-8000-00000000e915": generateBlankStation({
+    actionOrderUuids: [],
+    createdAt: 1700000000000,
+    description: "",
+    duration: 10,
+    elevation: -1063.605,
+    isLanderXgress: true,
+    location: {
+      lat: -3.645421873728663,
+      lng: -17.47186660766602,
+    },
+    mapCircleControls: {},
+    missionId: 1,
+    name: "Lander",
+    ownerId: 1,
+    poiUuids: [],
+    radius: 5,
+    refUuid: "a1000000-0000-4000-8000-00000000e916",
+    status: "Candidate",
+    updatedAt: 1700000000000,
+    uuid: "a1000000-0000-4000-8000-00000000e915",
+  }),
+  "a1000000-0000-4000-8000-00000000e917": generateBlankStation({
+    actionOrderUuids: [],
+    createdAt: 1700000000000,
+    description: "",
+    duration: 10,
+    elevation: -1063.605,
+    isLanderXgress: true,
+    location: {
+      lat: -3.645421873728663,
+      lng: -17.47186660766602,
+    },
+    mapCircleControls: {},
+    missionId: 1,
+    name: "Lander",
+    ownerId: 1,
+    poiUuids: [],
+    radius: 5,
+    refUuid: "a1000000-0000-4000-8000-00000000e918",
+    status: "Candidate",
+    updatedAt: 1700000000000,
+    uuid: "a1000000-0000-4000-8000-00000000e917",
+  }),
   "12f9ea21-f50d-4406-beac-5c0517421b35": generateBlankStation({
     actionOrderUuids: [
       "fef12ca1-66dd-47ac-bfa6-0b0e77a2eea9",
@@ -757,6 +802,10 @@ const evas: { [uuid: string]: Eva } = {
     refUuid: "f66f9899-d180-4843-a3bf-f4ce9d03ea2e",
     sequence: [
       {
+        type: "station",
+        uuid: "a1000000-0000-4000-8000-00000000e915",
+      },
+      {
         type: "traverse",
         uuid: "5f96866a-e8b5-4fa1-9451-b58b18fa2e49",
       },
@@ -775,6 +824,10 @@ const evas: { [uuid: string]: Eva } = {
       {
         type: "traverse",
         uuid: "b0939224-fc3d-48d8-bacd-e8513a7b9ffc",
+      },
+      {
+        type: "station",
+        uuid: "a1000000-0000-4000-8000-00000000e917",
       },
     ],
     status: "Candidate",

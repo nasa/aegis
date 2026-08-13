@@ -11,13 +11,7 @@ import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import type { RequiredEntityData } from "@mikro-orm/core";
 import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
-import {
-  getEgressLocationUuid,
-  getFirstTraverseItem,
-  getIngressLocationUuid,
-  getLastTraverseItem,
-  isLanderUuid,
-} from "operations/helpers/evaSequence";
+import { isLanderXgressStation } from "operations/helpers/evaSequence";
 
 import {
   STM_Level1_db,
@@ -347,20 +341,18 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 
 export default router;
 
+/**
+ * Check if a mission has any stations placed with walkbacks to lander
+ * @param mission
+ * @returns
+ */
 export function missionHasLanderDependentEntities(mission: Mission): boolean {
   const hasPlacedStation = Object.values(mission.stations ?? {}).some(
-    (station) => station.location != null || (station.walkbackPath?.length ?? 0) > 0
+    (station) =>
+      !isLanderXgressStation(station) &&
+      (station.location != null || (station.walkbackPath?.length ?? 0) > 0)
   );
   if (hasPlacedStation) return true;
-
-  return Object.values(mission.evas ?? {}).some((eva) => {
-    const firstTraverse = mission.traverses?.[getFirstTraverseItem(eva)?.uuid];
-    const lastTraverse = mission.traverses?.[getLastTraverseItem(eva)?.uuid];
-    return Boolean(
-      (isLanderUuid(getEgressLocationUuid(eva)) && firstTraverse) ||
-      (isLanderUuid(getIngressLocationUuid(eva)) && lastTraverse)
-    );
-  });
 }
 
 /**

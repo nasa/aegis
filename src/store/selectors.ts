@@ -1,35 +1,22 @@
 import sortBy from "lodash/sortBy";
-import concat from "lodash/concat";
 import type { RootState } from "store";
 import {
-  getEgressLocationUuid,
-  getIngressLocationUuid,
   getSequenceStationItems,
   getSequenceTraverseItems,
-  isLanderUuid,
+  isLanderXgressStation,
 } from "operations/helpers/evaSequence";
 
 /**
- * Gets all Stations for an EVA.
- * Also includes ingress and egress stations if they are not "lander"
+ * Gets all Stations for an EVA, including the egress and ingress stations.
  */
 export const selectEvaStations = (mission: Mission, evaUuid: string): Station[] => {
   const allStations = mission?.stations ?? {};
-  const evaStations: Station[] = [];
   const eva = mission?.evas?.[evaUuid];
   if (!eva) return [];
-  const sequenceStations = getSequenceStationItems(eva)
+  return getSequenceStationItems(eva)
     .filter((seqItem) => seqItem.uuid)
     .map((stationSeqItem) => allStations[stationSeqItem.uuid])
     .filter(Boolean) as Station[];
-  evaStations.push(...sequenceStations);
-
-  for (const xgressUuid of [getIngressLocationUuid(eva), getEgressLocationUuid(eva)]) {
-    if (isLanderUuid(xgressUuid)) continue;
-    const xgressStation = allStations[xgressUuid];
-    if (xgressStation) evaStations.push(xgressStation);
-  }
-  return evaStations;
 };
 
 /**
@@ -66,7 +53,9 @@ export const selectEvaActions = (
 };
 
 /**
- * Gets all stations that are not in a REX EVA or ingress/egress locations and returns them sorted by name.
+ * Gets all stations available for planning, sorted by name.
+ *
+ * Excludes stations in a REX EVA the lander copy xgress stations.
  */
 export const selectAsPlannedStations = (mission: Mission): Station[] => {
   const allRexEvaUuids = Object.values(mission?.rexes ?? {}).map((rex) => rex.evaUuid);
@@ -75,17 +64,9 @@ export const selectAsPlannedStations = (mission: Mission): Station[] => {
   const allRexEvaStationUuids = allEvas
     .filter((e) => allRexEvaUuids.includes(e.uuid))
     .flatMap((eva) => getSequenceStationItems(eva).map((seq) => seq.uuid));
-  const allIngressEgressStationUuids = allEvas
-    .filter((e) => allRexEvaUuids.includes(e.uuid))
-    .flatMap((eva) =>
-      [getIngressLocationUuid(eva), getEgressLocationUuid(eva)].filter(
-        (uuid) => uuid && !isLanderUuid(uuid)
-      )
-    );
-  // Combine all uuids get stations that we need to filter out
-  const allStationUuids = concat(allRexEvaStationUuids, allIngressEgressStationUuids);
+
   const stationList = Object.values(mission?.stations ?? {}).filter(
-    (station) => !allStationUuids.includes(station.uuid)
+    (station) => !allRexEvaStationUuids.includes(station.uuid) && !isLanderXgressStation(station)
   );
   return sortBy(stationList, (station) => station.name.toLowerCase());
 };
