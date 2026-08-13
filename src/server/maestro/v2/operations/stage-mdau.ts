@@ -27,8 +27,12 @@ const isEntitySubscribed = (
   uuid: string,
   entityKind: string
 ): boolean => {
-  const evaUuid = maps.evaUuidByUuid.get(uuid);
-  if (evaUuid !== undefined && subscribedEvaUuids.has(evaUuid)) return true;
+  const allEvaUuids = maps.evaUuidsByUuid.get(uuid);
+  if (allEvaUuids) {
+    for (const evaUuid of allEvaUuids) {
+      if (subscribedEvaUuids.has(evaUuid)) return true;
+    }
+  }
   serverLogger.warning({
     logId: "socket-maestro-v2",
     logValue:
