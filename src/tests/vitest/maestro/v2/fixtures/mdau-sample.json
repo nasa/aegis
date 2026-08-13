@@ -87,6 +87,7 @@
         ],
         "ingressDuration": 10,
         "egressDuration": 10,
+        "datetime": 1772813064512,
         "updatedAt": 1772813064512
       }
     },

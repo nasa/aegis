@@ -310,6 +310,7 @@ describe("opUpdateMdau() — evas", () => {
           sequenceRefUuids: [],
           ingressDuration: 250,
           egressDuration: 300,
+          datetime: now,
           updatedAt: now,
         },
       },
@@ -319,6 +320,7 @@ describe("opUpdateMdau() — evas", () => {
     expect(updated.name).toBe("Vitest EVA Renamed");
     expect(updated.ingressDuration).toBe(250);
     expect(updated.egressDuration).toBe(300);
+    expect(updated.datetime).toBe(now);
     expect(updated.updatedAt).toBe(now);
   });
 });

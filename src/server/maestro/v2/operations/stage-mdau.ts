@@ -204,11 +204,13 @@ const stageEvas = (
       stage.ingressDuration = mdau.ingressDuration;
     if (mdau.egressDuration !== undefined && mdau.egressDuration !== eva.egressDuration)
       stage.egressDuration = mdau.egressDuration;
-
+    if (mdau.datetime !== undefined && mdau.datetime !== eva.datetime)
+      stage.datetime = mdau.datetime;
     if (
       stage.name !== undefined ||
       stage.ingressDuration !== undefined ||
-      stage.egressDuration !== undefined
+      stage.egressDuration !== undefined ||
+      stage.datetime !== undefined
     )
       stages.push(stage);
   }
