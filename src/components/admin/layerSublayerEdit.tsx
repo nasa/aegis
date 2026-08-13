@@ -142,7 +142,10 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
     const timeLayerJson: TimeLayerJson[] = manifestJson.time_layers;
     const timeLayerManifest: TimeLayerInfo[] = [];
     timeLayerJson.forEach((timeLayer, index) => {
-      const layerBounds: [string, string] = getManifestJsonTimeBounds(timeLayerJson, index);
+      const layerBounds: [string, string] =
+        timeLayer.lowerBound && timeLayer.upperBound
+          ? [timeLayer.lowerBound, timeLayer.upperBound]
+          : getManifestJsonTimeBounds(timeLayerJson, index);
       timeLayerManifest.push({
         datetime: timeLayer.datetime,
         dirName: timeLayer.dirName,
@@ -439,10 +442,12 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
     return "";
   }
 
-  // A COG raster layer is a self-describing GeoTIFF (path ends in .tif/.tiff); it hides the
-  // tile-pyramid fields. The folder dropdown selects by the first path segment, since COG and
-  // PMTiles paths are `<folder>/<file>` while raster-tile paths are just `<folder>`.
-  const isCogLayer = sublayer.type === "tile" && isCogPath(sublayer.path);
+  // A COG raster layer is self-describing either directly or through a time manifest whose
+  // resolved frame target ends in .tif/.tiff.
+  const isCogLayer =
+    sublayer.type === "tile" &&
+    (isCogPath(sublayer.path) ||
+      (sublayer.isTimeBased && isCogPath(sublayer.timeLayerManifest?.[0]?.dirName ?? "")));
   const selectedFolder = sublayer.path ? sublayer.path.split("/")[0] : "";
 
   return (
@@ -592,7 +597,11 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
                     <select
                       id="filePath"
                       onChange={(e) => {
-                        setSublayer({ ...sublayer, path: e.target.value });
+                        setSublayer({
+                          ...sublayer,
+                          path: e.target.value,
+                          name: e.target.value.replace(/\.geojson$/i, ""),
+                        });
                       }}
                       value={sublayer.path || "selectafile"}
                     >

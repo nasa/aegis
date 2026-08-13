@@ -47,6 +47,9 @@ export function getManifestTimeBounds(
   manifestIndex: number
 ): [string, string] {
   const currentLayer = timeLayerManifest[manifestIndex];
+  const explicitBounds = getExplicitTimeBounds(currentLayer);
+  if (explicitBounds) return explicitBounds;
+
   if (manifestIndex === 0) {
     return [
       currentLayer.datetime,
@@ -70,6 +73,9 @@ export function getManifestJsonTimeBounds(
   manifestIndex: number
 ): [string, string] {
   const currentLayer = timeLayerManifest[manifestIndex];
+  const explicitBounds = getExplicitTimeBounds(currentLayer);
+  if (explicitBounds) return explicitBounds;
+
   if (manifestIndex === 0) {
     return [
       currentLayer.datetime,
@@ -86,6 +92,22 @@ export function getManifestJsonTimeBounds(
       findMiddleTime(currentLayer.datetime, timeLayerManifest[manifestIndex + 1].datetime),
     ];
   }
+}
+
+function getExplicitTimeBounds(timeLayer: TimeLayerJson | TimeLayerInfo): [string, string] | null {
+  if (!timeLayer.lowerBound || !timeLayer.upperBound) return null;
+
+  const lowerBound = new Date(timeLayer.lowerBound);
+  const upperBound = new Date(timeLayer.upperBound);
+  if (
+    Number.isNaN(lowerBound.getTime()) ||
+    Number.isNaN(upperBound.getTime()) ||
+    lowerBound > upperBound
+  ) {
+    return null;
+  }
+
+  return [timeLayer.lowerBound, timeLayer.upperBound];
 }
 
 export function checkTimeInBounds(time: string, lowerBound: string, upperBound: string): boolean {
