@@ -8,8 +8,9 @@ shaped as::
     { "time_layers": [ { "datetime": "<ISO-8601>", "dirName": "<tile folder>" }, ... ] }
 
 and expects each ``dirName`` to be a sibling tile pyramid (``{z}/{x}/{y}.png``), plus one
-``tilemapresource.xml`` at the layer root.  AEGIS derives the per-frame time *ranges* itself
-(midpoints between adjacent frames), so the manifest only needs ``datetime`` + ``dirName``.
+``tilemapresource.xml`` at the layer root. A continuous timeline needs only ``datetime`` +
+``dirName``; discontinuous source coverage also writes explicit frame bounds so AEGIS hides the
+layer during unsupported intervals.
 
     <out>/<indir.stem>_singleband_time-aware_data/
         manifest.json
@@ -56,6 +57,8 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
+
+from time_manifest import add_bounds_for_gaps
 
 ROOT = (
     Path(__file__).resolve().parent.parent
@@ -222,7 +225,7 @@ def main() -> None:
         {"dirName": tif.stem, "datetime": parse_datetime(tif.stem, args.datatype)}
         for tif in tifs
     ]
-    time_layers.sort(key=lambda x: x["datetime"])
+    time_layers = add_bounds_for_gaps(time_layers)
 
     if not args.no_tile:
         with tempfile.TemporaryDirectory() as tmp:
