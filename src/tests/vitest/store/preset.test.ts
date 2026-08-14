@@ -4,6 +4,7 @@ import {
   migrateLegacyCircleControlHaloStyles,
   migrateLegacyHaloStyle,
 } from "store/storeUtils/preset";
+import { defaultGridStyle, defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 type LegacyHaloStyle = MapSublayerStyle & {
   labelStrokeColor?: string;
@@ -89,4 +90,11 @@ describe("migrateLegacyHaloStyle", () => {
       labelHaloWidth: 3,
     });
   });
+});
+
+it("uses opaque hex colors for shared and grid halo defaults", () => {
+  expect(defaultSublayerStyle.labelHaloColor).toBe("#000000");
+  expect(defaultSublayerStyle.labelHaloOpacity).toBe(0.2);
+  expect(defaultGridStyle.labelHaloColor).toBe("#000000");
+  expect(defaultGridStyle.labelHaloOpacity).toBe(0.2);
 });
