@@ -21,21 +21,22 @@ export const defaultSublayerStyle: MapSublayerStyle = {
   altOpacity: 1,
   showLabels: true,
   labelColor: "#ffffff",
-  labelHaloColor: "rgba(255,255,255,0.85)",
+  labelHaloColor: "#000000",
   labelHaloWidth: 2,
-  labelHaloOpacity: 0.85,
+  labelHaloOpacity: 0.2,
 };
 
 /**
  * Default style for the mission grid. Kept separate from `defaultSublayerStyle`
- * so grid-specific label defaults (a 4px halo at 10% opacity) don't change how
+ * so grid-specific label defaults (a 4px halo) don't change how
  * vector/circle labels render.
  */
 export const defaultGridStyle: MapSublayerStyle = {
   ...defaultSublayerStyle,
-  color: "rgba(255,255,255,0.4)", // grid line stroke
+  color: "#ffffff",
+  opacity: 0.4,
   labelHaloWidth: 4,
-  labelHaloOpacity: 0.1,
+  labelHaloOpacity: 0.2,
 };
 /**
  * Generate a blank sublayer

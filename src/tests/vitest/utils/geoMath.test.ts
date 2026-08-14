@@ -2,6 +2,7 @@ import {
   addPointsAtMeters,
   calcCentroidofCoordinates,
   getDistanceBetweenTwoCoordinates,
+  getGridCoordinatesFromPoint,
   getSegmentBearing,
   getSlope,
   getTotalDistance,
@@ -12,6 +13,16 @@ import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
 
 describe("Geomath Functions", () => {
   const earthRadius = 6371000; //6378137;
+
+  test("uses the LGRS display port for LGRS grid coordinates", () => {
+    expect(getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true)).toBe("B95 D44");
+  });
+
+  test("uses the full ACC identifier for dynamic LGRS grids", () => {
+    expect(
+      getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true, undefined, true)
+    ).toBe("AZM B95 D44");
+  });
 
   test("Returns 0 distance between two identical coordinates", () => {
     const point: AEGISPoint = { lat: 0, lng: 0 };
@@ -158,6 +169,10 @@ describe("Geomath Functions", () => {
 });
 
 describe("getTrueBearingFromLatLngPoints()", () => {
+  test("returns 0 when both coordinates are identical", () => {
+    expect(getTrueBearingFromLatLngPoints({ lat: 0, lng: 0 }, { lat: 0, lng: 0 })).toBe(0);
+  });
+
   test("returns 0 for a due-north segment", () => {
     expect(getTrueBearingFromLatLngPoints({ lat: 0, lng: 0 }, { lat: 1, lng: 0 })).toBeCloseTo(
       0,
@@ -231,6 +246,12 @@ describe("getSegmentBearing()", () => {
     const lgrs = getSegmentBearing(horizontalWest, horizontalEast, true);
     const mercator = getSegmentBearing(horizontalWest, horizontalEast, false);
     expect(Math.abs(lgrs - mercator)).toBeGreaterThan(1);
+  });
+
+  test("returns 0 when the segment has no direction", () => {
+    const point: AEGISPoint = { lat: -89, lng: -133 };
+    expect(getSegmentBearing(point, point, true)).toBe(0);
+    expect(getSegmentBearing(point, point, false)).toBe(0);
   });
 });
 

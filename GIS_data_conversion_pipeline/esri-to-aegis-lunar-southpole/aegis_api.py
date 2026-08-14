@@ -134,7 +134,7 @@ class AegisApiClient:
     ) -> dict | None:
         """Upsert the mission's grid. With upsert_full_grid the server writes the grid's
         coordinate JSON into the mission Data/ folder and stores the grid metadata on the
-        mission Automerge doc (mission.grid)."""
+        mission Automerge doc (mission.serverFileGrid)."""
         resp = self._request(
             "POST",
             "/api/v1/grid",

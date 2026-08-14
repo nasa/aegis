@@ -16,7 +16,7 @@ import { setAllSliceStores } from "store/crossActions";
 import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
-import { loadAndReturnGrid } from "utils/mapping/grid";
+import { clearLoadedGrid, getGridRenderMode, loadAndReturnGrid } from "utils/mapping/grid";
 import { setGridCornerPoint } from "store/map";
 import { clientLogger } from "utils/logging/clientLogger";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -63,6 +63,7 @@ const Main: React.FunctionComponent = () => {
       isArchived: mission.isArchived,
       name: mission.name,
       serverFileGrid: mission.serverFileGrid,
+      gridRenderMode: mission.gridRenderMode,
     }),
     deepEqual
   );
@@ -158,7 +159,12 @@ const Main: React.FunctionComponent = () => {
 
   // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
-    if (!partialMission?.serverFileGrid) return;
+    if (!partialMission) return;
+    if (getGridRenderMode(partialMission) === "dynamic-lgrs" || !partialMission.serverFileGrid) {
+      clearLoadedGrid();
+      dispatch(setGridCornerPoint(null));
+      return;
+    }
 
     const loadGridAsync = async () => {
       const newGrid: MissionGrid = await loadAndReturnGrid(intMissionId);
@@ -170,7 +176,7 @@ const Main: React.FunctionComponent = () => {
     };
 
     loadGridAsync();
-  }, [dispatch, intMissionId, partialMission?.serverFileGrid]);
+  }, [dispatch, intMissionId, partialMission]);
 
   useEffect(() => {
     if (!partialMission?.name) return;

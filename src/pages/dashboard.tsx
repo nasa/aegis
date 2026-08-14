@@ -23,7 +23,7 @@ import { setGridCornerPoint } from "store/map";
 import { setSelectedEvaUuid } from "store/eva";
 import { setSelectedRexUuid } from "store/rex";
 import { setSectionSelected } from "store/interface";
-import { loadAndReturnGrid } from "utils/mapping/grid";
+import { clearLoadedGrid, getGridRenderMode, loadAndReturnGrid } from "utils/mapping/grid";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import { clientLogger } from "utils/logging/clientLogger";
@@ -39,7 +39,11 @@ const Main = (): JSX.Element => {
 
   const automergeRepo = useRepo();
   const partialMission = useMissionDocSelector(
-    (doc) => ({ name: doc.name, serverFileGrid: doc.serverFileGrid }),
+    (doc) => ({
+      name: doc.name,
+      serverFileGrid: doc.serverFileGrid,
+      gridRenderMode: doc.gridRenderMode,
+    }),
     deepEqual
   );
   const isVersionChecked = useAppSelector(
@@ -123,7 +127,12 @@ const Main = (): JSX.Element => {
 
   // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
-    if (!partialMission?.serverFileGrid) return;
+    if (!partialMission) return;
+    if (getGridRenderMode(partialMission) === "dynamic-lgrs" || !partialMission.serverFileGrid) {
+      clearLoadedGrid();
+      dispatch(setGridCornerPoint(null));
+      return;
+    }
 
     const loadGridAsync = async () => {
       const newGrid: MissionGrid = await loadAndReturnGrid(intMissionId);
@@ -135,7 +144,7 @@ const Main = (): JSX.Element => {
     };
 
     loadGridAsync();
-  }, [dispatch, intMissionId, partialMission?.serverFileGrid]);
+  }, [dispatch, intMissionId, partialMission]);
 
   useEffect(() => {
     if (!partialMission?.name) return;

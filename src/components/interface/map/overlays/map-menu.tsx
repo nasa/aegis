@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import styles from "./map-menu.module.css";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { globalGrid, getGridBaseSpacingMeters } from "utils/mapping/grid";
+import { getGridBaseSpacingMeters } from "utils/mapping/grid";
+import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 
 const GRID_SPACING_OPTIONS: { label: string; value: GridSpacingMode }[] = [
   { label: "Auto", value: "auto" },
@@ -13,6 +14,21 @@ const GRID_SPACING_OPTIONS: { label: string; value: GridSpacingMode }[] = [
   { label: "100m", value: 100 },
   { label: "1km", value: 1000 },
 ];
+
+export function getCompatibleGridLabelInterval(
+  gridSpacingMode: GridSpacingMode,
+  gridLabelInterval: GridSpacingMode
+): GridSpacingMode {
+  if (gridSpacingMode === "auto") return "auto";
+  if (
+    typeof gridSpacingMode === "number" &&
+    typeof gridLabelInterval === "number" &&
+    gridLabelInterval < gridSpacingMode
+  ) {
+    return gridSpacingMode;
+  }
+  return gridLabelInterval;
+}
 
 export const MapMenu: FunctionComponent<{
   mapDisplayPois: MapSubmenuMarkers;
@@ -84,7 +100,13 @@ export const MapMenu: FunctionComponent<{
   // Base grid spacing (metres) drives which fixed-spacing options are selectable.
   // Derived from the loaded grid geometry so it always matches what's drawn.
   const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
-  const baseGridSpacing = getGridBaseSpacingMeters(globalGrid, planetRadius);
+  const resolvedGrid = useResolvedMissionGrid();
+  let baseGridSpacing = 0;
+  if (resolvedGrid.kind === "dynamic-lgrs") {
+    baseGridSpacing = 10;
+  } else if (resolvedGrid.kind === "server-file") {
+    baseGridSpacing = getGridBaseSpacingMeters(resolvedGrid.grid, planetRadius);
+  }
 
   //if the selected pos source list contains a uuid that isn't in selected rex's pos sources list this means that the selected rex has changed.
   //If this is true, set default pos sources to task and crew
@@ -611,7 +633,12 @@ export const MapMenu: FunctionComponent<{
                       disabled ? `Grid resolution is ${Math.round(baseGridSpacing)} m` : undefined
                     }
                     onClick={() => {
-                      if (!disabled) setGridSpacingMode(opt.value);
+                      if (!disabled) {
+                        setGridSpacingMode(opt.value);
+                        setGridLabelInterval(
+                          getCompatibleGridLabelInterval(opt.value, gridLabelInterval)
+                        );
+                      }
                     }}
                   >
                     {opt.label}
