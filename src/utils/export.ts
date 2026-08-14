@@ -92,7 +92,8 @@ export const makeExportActions = (params: {
         action.location,
         mission.planetRadius,
         mission.usingLGRSCoordinates,
-        missionGrid
+        missionGrid,
+        true
       ),
       rexUuid,
     };
@@ -133,7 +134,8 @@ export const makeExportPois = (params: {
         poi.location,
         mission.planetRadius,
         mission.usingLGRSCoordinates,
-        missionGrid
+        missionGrid,
+        true
       ),
     };
     return exportPoi;
@@ -208,7 +210,8 @@ export const makeExportStations = (params: {
         station.location,
         mission.planetRadius,
         mission.usingLGRSCoordinates,
-        missionGrid
+        missionGrid,
+        true
       ),
       actionOrderRefUuids: station.actionOrderUuids?.map(
         (actionOrderUuid) => mission.actions[actionOrderUuid]?.refUuid
@@ -400,7 +403,8 @@ export const makeExportMission = (params: {
       mission.landerLocation,
       mission.planetRadius,
       mission.usingLGRSCoordinates,
-      missionGrid
+      missionGrid,
+      true
     ),
   };
 
