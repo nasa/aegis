@@ -107,7 +107,7 @@ describe("grid label interval compatibility", () => {
   it("promotes a finer fixed label interval when grid spacing becomes coarser", () => {
     expect(getCompatibleGridLabelInterval(1000, 100)).toBe(1000);
     expect(getCompatibleGridLabelInterval(1000, "auto")).toBe("auto");
-    expect(getCompatibleGridLabelInterval("auto", 100)).toBe(100);
+    expect(getCompatibleGridLabelInterval("auto", 100)).toBe("auto");
   });
 });
 

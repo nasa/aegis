@@ -19,6 +19,7 @@ export function getCompatibleGridLabelInterval(
   gridSpacingMode: GridSpacingMode,
   gridLabelInterval: GridSpacingMode
 ): GridSpacingMode {
+  if (gridSpacingMode === "auto") return "auto";
   if (
     typeof gridSpacingMode === "number" &&
     typeof gridLabelInterval === "number" &&
