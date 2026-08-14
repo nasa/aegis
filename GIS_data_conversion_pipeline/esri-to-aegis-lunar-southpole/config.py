@@ -120,14 +120,16 @@ OUT_SLOPE_RGBA_NAME = "slope_rgba.tif"  # scratch, removed after tiling
 VIEWSHED_VALUE_VISIBLE = 1
 VIEWSHED_VALUE_NONVISIBLE = 2
 VIEWSHED_NODATA = 255
-VIEWSHED_FILL_COLOR = "#FFA77F"
+VIEWSHED_FILL_COLOR = (
+    "#FFA77F"  # derived from the GIS .lyrx that was provided by the GIS team.
+)
 VIEWSHED_FILL_OPACITY = 1.0
 
 # The source Reclassify operation assigns class 0 to terrain at or above 20
 # degrees and nodata to lower-slope terrain. Keep-out zones use fixed red below.
 KEEPOUT_VALUE_KEEPOUT = 0
 KEEPOUT_NODATA = 255
-KEEPOUT_FILL_COLOR = "#FF0000"
+KEEPOUT_FILL_COLOR = "#301F42"  # received from Isaac on the GIS team 2026-08-05
 KEEPOUT_FILL_OPACITY = 1.0
 
 # DEM-derived product layers (Layers/<name>/). Slope is intentionally omitted from the
@@ -165,10 +167,10 @@ TRI_RAMP_BY_RESOLUTION = {
 GRID_EXTENT_DEFAULT = "10km"
 GRID_PRECISION_DEFAULT = 100
 GRID_DEFAULT_NAME = "LGRS"
-# The AEGIS mission-grid GeoJSON produced by the grid step (kept in the output ROOT, not in
-# Data/, so it is not mis-registered as a vector layer; the register step POSTs it to the grid
-# API, which writes the active grid's coordinate JSON into Data/ itself).
+# The AEGIS mission-grid GeoJSON produced by the grid step. It is kept in Data/ alongside the
+# active grid coordinates, but excluded from normal vector-sublayer registration.
 OUT_GRID_SOURCE_NAME = "grid_source.geojson"
+OUT_GRID_SOURCE_PATH = Path(OUT_DATA_DIRNAME) / OUT_GRID_SOURCE_NAME
 
 
 def tri_ramp_for_resolution(resolution: float | None) -> Path:

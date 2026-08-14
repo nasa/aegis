@@ -369,6 +369,7 @@ describe("sendMDAU sample payload — evas", () => {
     expect(eva.name).toBe(src.name);
     expect(eva.ingressDuration).toBe(src.ingressDuration);
     expect(eva.egressDuration).toBe(src.egressDuration);
+    expect(eva.datetime).toBe(src.datetime);
     expect(eva.updatedAt).toBe(src.updatedAt);
   });
 });

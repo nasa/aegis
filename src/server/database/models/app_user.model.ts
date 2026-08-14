@@ -1,35 +1,30 @@
-import { BeforeCreate, Entity, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
-
+import { defineEntity, p } from "@mikro-orm/postgresql";
 import * as bcrypt from "bcryptjs";
 
-@Entity()
-export class App_User_db implements AppUser_db_type {
-  @PrimaryKey({ type: MikroTypes.integer })
-  id!: number;
+export const App_User_dbSchema = defineEntity({
+  name: "App_User_db",
+  properties: {
+    id: p.integer().primary(),
+    username: p.text(),
+    password: p.text(),
+    isSuperAdmin: p.boolean().nullable().default(false),
+    isAdmin: p.boolean().nullable().default(false),
+    permissionList: p.json<Permission[]>().nullable(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  @Property({ type: MikroTypes.text })
-  username!: string;
-  @Property({ type: MikroTypes.text })
-  password!: string;
-  @Property({ type: MikroTypes.boolean, nullable: true, default: false })
-  isSuperAdmin: boolean;
-  @Property({ type: MikroTypes.boolean, nullable: true, default: false })
-  isAdmin: boolean;
-  @Property({ type: MikroTypes.json, nullable: true })
-  permissionList?: Permission[];
-
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  updatedAt!: Date;
-
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number; //used for optimistic locking
-
-  @BeforeCreate()
+export class App_User_db extends App_User_dbSchema.class implements AppUser_db_type {
   async beforeCreate(): Promise<void> {
     const salt = await bcrypt.genSalt();
     this.password = bcrypt.hashSync(this.password, salt);
   }
 }
+
+App_User_dbSchema.setClass(App_User_db);
+
+App_User_dbSchema.addHook("beforeCreate", async ({ entity }) =>
+  (entity as App_User_db).beforeCreate()
+);

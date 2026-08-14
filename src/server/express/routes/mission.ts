@@ -19,7 +19,6 @@ import {
   Traverse_db,
   Preset_db,
   Rex_db,
-  Grid_db,
   Folder_db,
 } from "server/database/models/_allModels";
 import { globalValues } from "../global";
@@ -259,9 +258,6 @@ export async function deleteBackupDbMissionAndRelatedEntities(
 
       // Delete Presets
       await em.nativeDelete(Preset_db, { missionId });
-
-      // Delete Grids
-      await em.nativeDelete(Grid_db, { missionId });
 
       // Delete Folders
       await em.nativeDelete(Folder_db, { missionId });

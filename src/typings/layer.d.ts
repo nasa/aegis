@@ -77,6 +77,8 @@ interface LegendItem {
 interface TimeLayerJson {
   datetime: string;
   dirName: string;
+  lowerBound?: string;
+  upperBound?: string;
 }
 
 // datetime, lowerBound, and upperBound should be ISO strings

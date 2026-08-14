@@ -16,7 +16,7 @@ import { setAllSliceStores } from "store/crossActions";
 import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
-import { loadAndReturnGrid } from "utils/mapping/grid";
+import { clearLoadedGrid, getGridRenderMode, loadAndReturnGrid } from "utils/mapping/grid";
 import { setGridCornerPoint } from "store/map";
 import { clientLogger } from "utils/logging/clientLogger";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -62,7 +62,8 @@ const Main: React.FunctionComponent = () => {
       actionSystemVersion: mission.actionSystemVersion,
       isArchived: mission.isArchived,
       name: mission.name,
-      activeGridUuid: mission.activeGridUuid,
+      serverFileGrid: mission.serverFileGrid,
+      gridRenderMode: mission.gridRenderMode,
     }),
     deepEqual
   );
@@ -158,13 +159,15 @@ const Main: React.FunctionComponent = () => {
 
   // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
-    if (!partialMission?.activeGridUuid) return;
+    if (!partialMission) return;
+    if (getGridRenderMode(partialMission) === "dynamic-lgrs" || !partialMission.serverFileGrid) {
+      clearLoadedGrid();
+      dispatch(setGridCornerPoint(null));
+      return;
+    }
 
     const loadGridAsync = async () => {
-      const newGrid: MissionGrid = await loadAndReturnGrid(
-        intMissionId,
-        partialMission?.activeGridUuid
-      );
+      const newGrid: MissionGrid = await loadAndReturnGrid(intMissionId);
       if (newGrid?.coordinates && newGrid.coordinates.length > 0) {
         dispatch(setGridCornerPoint(newGrid.coordinates[0][0]));
       } else {
@@ -173,7 +176,7 @@ const Main: React.FunctionComponent = () => {
     };
 
     loadGridAsync();
-  }, [dispatch, intMissionId, partialMission?.activeGridUuid]);
+  }, [dispatch, intMissionId, partialMission]);
 
   useEffect(() => {
     if (!partialMission?.name) return;

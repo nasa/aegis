@@ -1,57 +1,32 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-@Entity()
-export class Eva_db implements Eva_db_type {
-  @PrimaryKey({ type: MikroTypes.string, unique: true })
-  uuid!: string;
+export const Eva_dbSchema = defineEntity({
+  name: "Eva_db",
+  properties: {
+    uuid: p.string().unique().primary(),
+    refUuid: p.string().defaultRaw("uuid_generate_v4()"),
+    missionId: p.integer(),
+    name: p.text(),
+    status: p.string().$type<StationStatus>(),
+    sequence: p.json<EvaSequenceItem[]>().nullable(),
+    description: p.text(),
+    duration: p.float().nullable(),
+    traverseRate: p.float().nullable(),
+    egressDuration: p.float().nullable(),
+    ingressDuration: p.float().nullable(),
+    egressLocationUuid: p.string().nullable(),
+    ingressLocationUuid: p.string().nullable(),
+    traverseColor: p.string().nullable(),
+    ownerId: p.integer().nullable(),
+    datetime: p.string().nullable(),
+    showEditWarning: p.boolean().default(false),
+    editWarningMsg: p.text().nullable(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  @Property({
-    type: MikroTypes.string,
-    nullable: false,
-    defaultRaw: "uuid_generate_v4()",
-  })
-  refUuid: string;
+export class Eva_db extends Eva_dbSchema.class implements Eva_db_type {}
 
-  @Property({ type: MikroTypes.integer })
-  missionId!: number;
-
-  @Property({ type: MikroTypes.text })
-  name!: string;
-  @Property({ type: MikroTypes.string })
-  status!: StationStatus;
-  @Property({ type: MikroTypes.json, nullable: true })
-  sequence!: EvaSequenceItem[];
-  @Property({ type: MikroTypes.text })
-  description!: string;
-  @Property({ type: MikroTypes.float, nullable: true })
-  duration!: number;
-  @Property({ type: MikroTypes.float, nullable: true })
-  traverseRate!: number;
-  @Property({ type: MikroTypes.float, nullable: true })
-  egressDuration: number;
-  @Property({ type: MikroTypes.float, nullable: true })
-  ingressDuration: number;
-  @Property({ type: MikroTypes.string, nullable: true })
-  egressLocationUuid!: string;
-  @Property({ type: MikroTypes.string, nullable: true })
-  ingressLocationUuid!: string;
-  @Property({ type: MikroTypes.string, nullable: true })
-  traverseColor: string;
-  @Property({ type: MikroTypes.integer, nullable: true })
-  ownerId: number;
-  @Property({ type: MikroTypes.string, nullable: true })
-  datetime: string;
-  @Property({ type: MikroTypes.boolean, nullable: false, default: false })
-  showEditWarning: boolean;
-  @Property({ type: MikroTypes.text, nullable: true })
-  editWarningMsg: string;
-
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  updatedAt!: Date;
-
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number; //used for optimistic locking
-}
+Eva_dbSchema.setClass(Eva_db);

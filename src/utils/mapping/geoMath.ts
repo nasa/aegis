@@ -1,6 +1,7 @@
 import meanBy from "lodash/meanBy";
 import isEqual from "lodash/isEqual";
-import { getBearingFromLatLngPoints, getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
+import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
 
 /**
  * This uses the 'haversine' formula to calculate the great-circle distance between two points
@@ -29,7 +30,9 @@ export function getDistanceBetweenTwoCoordinates(
 }
 
 /**
- * Find the grid coordinates of a point depending on which grid should be used
+ * Find the grid coordinates of a point depending on which grid should be used.
+ * LGRS display values come from the pinned LGRS port; surf-nav is only used
+ * below for LPS grid-north bearings.
  * @param {AEGISPoint} point - the point to find coordinates for
  * @param {number} radius - The radius of the planet in question (usually meters)
  * @reference http://www.movable-type.co.uk/scripts/latlong.html
@@ -38,12 +41,13 @@ export function getGridCoordinatesFromPoint(
   point: AEGISPoint,
   radius: number,
   usingLGRSCoordinates: boolean,
-  globalGrid?: MissionGridPoint[][]
+  globalGrid?: MissionGridPoint[][],
+  dynamicLgrs = false
 ): string {
   if (!point) return null;
 
   if (usingLGRSCoordinates) {
-    return getLGRSCoordsFromLatLng(point.lat, point.lng);
+    return getSouthLpsDisplayCoordinate(point, dynamicLgrs ? "full" : "condensed");
   } else if (globalGrid) {
     return findGlobalGridCoordsFromPoint(globalGrid, point, radius);
   } else {
@@ -247,6 +251,8 @@ export function getTrueBearingFromLatLngPoints(
   origin: AEGISPoint,
   destination: AEGISPoint
 ): number {
+  if (origin.lat === destination.lat && origin.lng === destination.lng) return 0;
+
   const lat1 = deg2rad(origin.lat);
   const lat2 = deg2rad(destination.lat);
   const dLon = deg2rad(destination.lng - origin.lng);

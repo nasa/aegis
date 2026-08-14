@@ -62,8 +62,9 @@ a layer's type from the folder's **contents**, not from any stored flag:
   app's `SublayerImportable` type via `npm run schema:create`) — emit only allowed keys. Raster
   folders also carry a `tilemapresource.xml` (bbox/zoom). Both are auto-imported by the admin and
   read by `register.py`.
-- **`manifest.json`** (time-aware): `{ time_layers: [{ datetime, dirName }] }`; AEGIS allows **one**
-  time-based sublayer per mission.
+- **`manifest.json`** (time-aware): `{ time_layers: [{ datetime, dirName }] }`; entries may also
+  carry `lowerBound` / `upperBound` when source coverage has gaps, otherwise AEGIS derives
+  midpoint bounds. AEGIS allows **one** time-based sublayer per mission.
 
 ## `register.py` (HTTP registration — replaces admin clicking)
 

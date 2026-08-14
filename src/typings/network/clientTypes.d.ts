@@ -1,11 +1,10 @@
 type GridUpsertRequest = {
-  grids: MissionGrid[];
+  grid: MissionGrid;
   missionId: number;
   upsertFullGrid: boolean;
 };
 
 type GridDeleteRequest = {
-  gridUuid: string;
   missionId: number;
 };
 
@@ -52,6 +51,7 @@ type MissionFields = Pick<
   | "projResUnitsPerPixel"
   | "actionSystemVersion"
   | "usingLGRSCoordinates"
+  | "gridRenderMode"
 >;
 type MissionFieldsUpdate = Partial<MissionFields>;
 

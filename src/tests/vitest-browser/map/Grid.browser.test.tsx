@@ -4,7 +4,7 @@
  * Mocks:
  *  - `useCoordConverters` — avoids Automerge dependency
  *  - `utils/useDocSelector` — provides mutable planetRadius
- *  - `utils/mapping/grid` — provides a mutable globalGrid fixture
+ *  - `useResolvedMissionGrid` — provides a mutable resolved-grid fixture
  *  - `utils/mapping/geoMath` — stubs `findClosestPointInGlobalGrid` /
  *    `adjustGridIndex` so test assertions don't depend on real geometry math
  *
@@ -20,6 +20,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Provider } from "react-redux";
+import { CookiesProvider, Cookies } from "react-cookie";
 import { configureStore } from "@reduxjs/toolkit";
 import Map from "ol/Map";
 import View from "ol/View";
@@ -27,6 +28,7 @@ import type VectorLayer from "ol/layer/Vector";
 import type VectorSource from "ol/source/Vector";
 
 import { MapContext } from "components/interface/map/MapProvider";
+import { MapMenuProvider } from "components/interface/map/MapMenuProvider";
 import { Grid } from "components/interface/map/behaviors/Grid";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { presetSlice } from "store/preset";
@@ -45,7 +47,13 @@ vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
   }),
 }));
 
-const mockMissionDoc: { planetRadius: number } = { planetRadius: 1737400 };
+const mockMissionDoc: Partial<Mission> = {
+  planetRadius: 1737400,
+  projIsCustom: true,
+  projProj4String:
+    "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=1737400 +b=1737400 +units=m +no_defs",
+  gridRenderMode: "server-file",
+};
 
 vi.mock("utils/useDocSelector", () => ({
   useMissionDocSelector: <TSel,>(selector: (doc: unknown) => TSel): TSel =>
@@ -55,6 +63,13 @@ vi.mock("utils/useDocSelector", () => ({
 
 // Mutable globalGrid fixture — vi.hoisted() so it's available inside the mock factory.
 const mockGrid = vi.hoisted(() => ({ current: null as MissionGrid | null }));
+
+vi.mock("components/interface/map/hooks/useResolvedMissionGrid", () => ({
+  useResolvedMissionGrid: (): ResolvedMissionGrid => {
+    if (mockMissionDoc.gridRenderMode === "dynamic-lgrs") return { kind: "dynamic-lgrs" };
+    return mockGrid.current ? { kind: "server-file", grid: mockGrid.current } : { kind: "none" };
+  },
+}));
 
 // Use a stable Proxy as the exported globalGrid value.
 // Since the ESM binding captures the proxy reference (never null), it passes
@@ -71,7 +86,11 @@ vi.mock("utils/mapping/grid", () => {
       return mockGrid.current != null && prop in mockGrid.current;
     },
   });
-  return { globalGrid: globalGridProxy, loadAndReturnGrid: async (): Promise<null> => null };
+  return {
+    globalGrid: globalGridProxy,
+    loadAndReturnGrid: async (): Promise<null> => null,
+    getGridBaseSpacingMeters: () => 0,
+  };
 });
 
 // Call counter so findClosestPointInGlobalGrid returns distinct start/end indices.
@@ -127,7 +146,7 @@ function makeGridControl(visible: boolean, labelsVisible: boolean): MapGridContr
       brightness: 0,
       saturation: 0,
       blendMode: "normal",
-      color: "rgba(255,255,255,0.4)",
+      color: "#ffffff",
       weight: 1,
       fillColor: "",
       fillOpacity: 0,
@@ -158,15 +177,11 @@ function makeGrid(rows = 3, cols = 3): MissionGrid {
     coordinates.push(row);
   }
   return {
-    gridInformation: {
-      uuid: "grid-uuid",
-      missionId: 22,
+    gridDefinition: {
       numRows: rows,
       numCols: cols,
-      spacing: 1000,
       name: "Test Grid",
       fileName: "test.json",
-      isActiveGrid: true,
     },
     coordinates,
   };
@@ -196,9 +211,13 @@ let store: ReturnType<typeof makeStore>;
 function renderGrid(mode: "editor" | "dashboard" | "minimap" = "editor") {
   harness.render(
     <Provider store={store}>
-      <MapContext.Provider value={{ map, mode }}>
-        <Grid />
-      </MapContext.Provider>
+      <CookiesProvider cookies={new Cookies()}>
+        <MapMenuProvider>
+          <MapContext.Provider value={{ map, mode }}>
+            <Grid />
+          </MapContext.Provider>
+        </MapMenuProvider>
+      </CookiesProvider>
     </Provider>
   );
 }
@@ -214,6 +233,7 @@ function findLayerAtZIndex(zIndex: number): VectorLayer<VectorSource> | null {
 
 beforeEach(() => {
   mockGrid.current = null;
+  mockMissionDoc.gridRenderMode = "server-file";
   geoMathCalls.count = 0;
   harness = createReactHarness();
 
@@ -319,6 +339,31 @@ describe("Grid", () => {
     const lineLayer = findLayerAtZIndex(Z_INDEX.GRID_LINES)!;
     // 3 rows + 3 cols = 6 line features for a 3×3 grid
     expect(lineLayer.getSource()!.getFeatures().length).toBeGreaterThan(0);
+  });
+
+  it("adds dynamic lines and labels without a server grid", () => {
+    mockMissionDoc.gridRenderMode = "dynamic-lgrs";
+    store = makeStore({
+      preset: {
+        ...presetSlice.getInitialState(),
+        selectedPresetUuid: PRESET_UUID,
+        presets: [
+          {
+            uuid: PRESET_UUID,
+            mapGridControl: makeGridControl(true, true),
+          } as unknown as Preset,
+        ],
+      },
+    } as PartialPreloadedState);
+
+    renderGrid();
+
+    expect(
+      findLayerAtZIndex(Z_INDEX.GRID_LINES)!.getSource()!.getFeatures().length
+    ).toBeGreaterThan(0);
+    expect(
+      findLayerAtZIndex(Z_INDEX.GRID_LABELS)!.getSource()!.getFeatures().length
+    ).toBeGreaterThan(0);
   });
 
   it("label source is empty when labelsVisible=false", () => {

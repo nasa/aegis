@@ -19,23 +19,44 @@ import { unByKey } from "ol/Observable";
 
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { globalGrid } from "utils/mapping/grid";
+import { defaultGridStyle } from "store/storeUtils/sublayer";
+import { getGridBaseSpacingMeters } from "utils/mapping/grid";
 import { adjustGridIndex, findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
+import {
+  createDynamicLgrsRenderPlan,
+  isCanonicalSouthLpsMission,
+  lpsToMapCap,
+  mapCapToLps,
+  type LpsExtent,
+} from "utils/lgrs/dynamicGrid";
 
 import { useMapContext } from "../MapProvider";
+import { useMapMenuContext } from "../MapMenuProvider";
 import { withAlpha } from "../utils/layers/layerFactory";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useCoordConverters } from "../hooks/useCoordConverters";
+import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { Z_INDEX } from "../utils/zIndex";
+
+// Hide labels once adjacent labels would be closer than this many screen pixels.
+const LABEL_MIN_PX = 60;
 
 export function Grid(): null {
   const { map, mode } = useMapContext();
   const config = MODE_CONFIGS[mode];
   const { toMapCoord, toAegisPoint } = useCoordConverters();
+  const { gridSpacingMode, gridLabelInterval } = useMapMenuContext();
+  const resolvedGrid = useResolvedMissionGrid();
 
-  const planetRadius = useMissionDocSelector((doc) => doc.planetRadius, refEqual) as
-    | number
-    | undefined;
+  const projectionConfig = useMissionDocSelector(
+    (doc) => ({
+      planetRadius: doc.planetRadius,
+      projIsCustom: doc.projIsCustom,
+      projProj4String: doc.projProj4String,
+    }),
+    deepEqual
+  );
+  const planetRadius = projectionConfig?.planetRadius;
 
   const selectedPresetUuid = useAppSelector((s) => s.preset.selectedPresetUuid, refEqual);
   const mapGridControl = useAppSelector(
@@ -79,18 +100,89 @@ export function Grid(): null {
     const lineLayer = lineLayerRef.current;
     const labelLayer = labelLayerRef.current;
     if (!lineLayer || !labelLayer) return;
-    if (!globalGrid?.coordinates || !planetRadius || !mapGridControl?.visible) {
+    if (!mapGridControl?.visible || resolvedGrid.kind === "none") {
       lineLayer.getSource()!.clear();
       labelLayer.getSource()!.clear();
       return;
     }
 
-    const gridCoordinates = globalGrid.coordinates;
+    const lineSource = lineLayer.getSource()!;
+    const labelSource = labelLayer.getSource()!;
+    lineSource.clear();
+    labelSource.clear();
+
+    const gridStyle = { ...defaultGridStyle, ...(mapGridControl.style ?? {}) };
+    const lineStyle = new Style({
+      stroke: new Stroke({
+        color: gridStyle.color.startsWith("rgba(")
+          ? gridStyle.color
+          : withAlpha(gridStyle.color, gridStyle.opacity),
+        width: gridStyle.weight,
+      }),
+    });
+    const buildLabelStyle = (text: string) => {
+      const haloWidth = gridStyle.labelHaloWidth ?? defaultGridStyle.labelHaloWidth;
+      return new Style({
+        text: new Text({
+          text,
+          font: "12px sans-serif",
+          fill: new Fill({
+            color: gridStyle.labelColor ?? defaultGridStyle.labelColor,
+          }),
+          stroke:
+            haloWidth > 0
+              ? new Stroke({
+                  color: withAlpha(
+                    gridStyle.labelHaloColor ?? defaultGridStyle.labelHaloColor,
+                    gridStyle.labelHaloOpacity ?? defaultGridStyle.labelHaloOpacity
+                  ),
+                  width: haloWidth,
+                })
+              : undefined,
+          offsetX: 5,
+          offsetY: -8,
+          textAlign: "left",
+        }),
+      });
+    };
+
+    const extent = map.getView().calculateExtent(map.getSize());
+    const resolution = map.getView().getResolution() ?? 0;
+
+    if (resolvedGrid.kind === "dynamic-lgrs") {
+      if (!projectionConfig || !isCanonicalSouthLpsMission(projectionConfig)) return;
+      const min = mapCapToLps([extent[0], extent[1]]);
+      const max = mapCapToLps([extent[2], extent[3]]);
+      const lpsExtent: LpsExtent = [min[0], min[1], max[0], max[1]];
+      const plan = createDynamicLgrsRenderPlan({
+        extent: lpsExtent,
+        gridSpacingMode,
+        gridLabelInterval,
+        mapResolution: resolution,
+        labelsVisible: !!mapGridControl.labelsVisible && config.grid.labelsEnabled,
+      });
+
+      for (const line of plan.lines) {
+        const feature = new Feature(
+          new LineString([lpsToMapCap(line.start), lpsToMapCap(line.end)])
+        );
+        feature.setStyle(lineStyle);
+        lineSource.addFeature(feature);
+      }
+      for (const { coordinate, label } of plan.labels) {
+        const feature = new Feature(new Point(lpsToMapCap(coordinate)));
+        feature.setStyle(buildLabelStyle(label.text));
+        labelSource.addFeature(feature);
+      }
+      return;
+    }
+
+    if (!planetRadius) return;
+    const gridCoordinates = resolvedGrid.grid.coordinates;
     const numRows = gridCoordinates.length;
     const numCols = gridCoordinates[0].length;
 
     // Compute visible bounds in AEGISPoint space
-    const extent = map.getView().calculateExtent(map.getSize());
     const topLeft = toAegisPoint([extent[0], extent[3]]);
     const bottomRight = toAegisPoint([extent[2], extent[1]]);
 
@@ -98,16 +190,50 @@ export function Grid(): null {
     const endGridIdx = findClosestPointInGlobalGrid(gridCoordinates, bottomRight, planetRadius);
     if (!startGridIdx || !endGridIdx) return;
 
-    // Adaptive density: target ~100 visible grid cells at any zoom.
-    // ceil ensures we always reduce density rather than straddle a threshold.
+    // Base spacing (metres between adjacent grid lines), derived from the grid
+    // geometry — the single source of truth (see getGridBaseSpacingMeters).
+    const baseSpacing = getGridBaseSpacingMeters(resolvedGrid.grid, planetRadius);
+
     const basePointsShown =
       (endGridIdx.row - startGridIdx.row) * (endGridIdx.col - startGridIdx.col);
-    const lineZoomLevel = Math.max(1, Math.ceil(Math.sqrt(basePointsShown / 100)));
 
-    // Labels target ~25 visible, and must be a multiple of lineZoomLevel
-    // so label positions are a strict subset of line positions.
-    const rawLabelInterval = Math.ceil(Math.sqrt(basePointsShown / 25));
-    const labelZoomLevel = Math.ceil(rawLabelInterval / lineZoomLevel) * lineZoomLevel;
+    // --- Line stride ---
+    // Fixed mode draws every Nth grid line at a fixed real-world spacing,
+    // independent of zoom. Auto mode targets ~100 visible cells at any zoom.
+    let lineZoomLevel: number;
+    if (gridSpacingMode !== "auto" && baseSpacing > 0) {
+      lineZoomLevel = Math.max(1, Math.round(gridSpacingMode / baseSpacing));
+    } else {
+      lineZoomLevel = Math.max(1, Math.ceil(Math.sqrt(basePointsShown / 100)));
+    }
+
+    // --- Label stride + overlap cutoff ---
+    // Labels are always placed on a multiple of the line stride so they sit on
+    // drawn lines. The auto label interval hides labels when they would overlap
+    // (the "zoom-out cutoff"); a fixed label interval is always shown.
+    let labelZoomLevel: number;
+    let hideLabels = false;
+    if (gridSpacingMode === "auto") {
+      // Adaptive labels target ~25 visible.
+      const rawLabelInterval = Math.ceil(Math.sqrt(basePointsShown / 25));
+      labelZoomLevel = Math.ceil(rawLabelInterval / lineZoomLevel) * lineZoomLevel;
+    } else if (gridLabelInterval === "auto") {
+      // A label on every drawn line, hidden once they would overlap.
+      labelZoomLevel = lineZoomLevel;
+      if (baseSpacing > 0 && resolution > 0) {
+        const pxSpacing = (labelZoomLevel * baseSpacing) / resolution;
+        if (pxSpacing < LABEL_MIN_PX) hideLabels = true;
+      }
+    } else if (baseSpacing > 0) {
+      // Fixed label interval, aligned up to a multiple of the line stride.
+      const rawLabelStride = Math.max(1, Math.round(gridLabelInterval / baseSpacing));
+      labelZoomLevel = Math.max(
+        lineZoomLevel,
+        Math.ceil(rawLabelStride / lineZoomLevel) * lineZoomLevel
+      );
+    } else {
+      labelZoomLevel = lineZoomLevel;
+    }
 
     const startIndex = adjustGridIndex(startGridIdx, numRows, numCols, lineZoomLevel, true);
     const endIndex = adjustGridIndex(endGridIdx, numRows, numCols, lineZoomLevel, false);
@@ -115,19 +241,7 @@ export function Grid(): null {
     const labelStartIndex = adjustGridIndex(startGridIdx, numRows, numCols, labelZoomLevel, true);
     const labelEndIndex = adjustGridIndex(endGridIdx, numRows, numCols, labelZoomLevel, false);
 
-    const gridStyle = mapGridControl.style;
-
     // --- Lines ---
-    const lineSource = lineLayer.getSource()!;
-    lineSource.clear();
-
-    const lineStyle = new Style({
-      stroke: new Stroke({
-        color: gridStyle?.color || "rgba(255,255,255,0.4)",
-        width: gridStyle?.weight || 1,
-      }),
-    });
-
     // Horizontal lines (rows)
     for (let i = endIndex.row; i >= startIndex.row; i -= lineZoomLevel) {
       if (i < 0 || i >= numRows) continue;
@@ -159,10 +273,7 @@ export function Grid(): null {
     }
 
     // --- Labels ---
-    const labelSource = labelLayer.getSource()!;
-    labelSource.clear();
-
-    if (!mapGridControl.labelsVisible || !config.grid.labelsEnabled) return;
+    if (!mapGridControl.labelsVisible || !config.grid.labelsEnabled || hideLabels) return;
 
     for (let i = labelEndIndex.row; i >= labelStartIndex.row; i -= labelZoomLevel) {
       for (let j = labelStartIndex.col; j <= labelEndIndex.col; j += labelZoomLevel) {
@@ -173,47 +284,49 @@ export function Grid(): null {
 
         const coord = toMapCoord(point.coordinates);
         const labelFeature = new Feature(new Point(coord));
-        const strokeWidth = gridStyle?.labelStrokeWidth ?? 3;
-        labelFeature.setStyle(
-          new Style({
-            text: new Text({
-              text: point.name,
-              font: "12px sans-serif",
-              fill: new Fill({
-                color: gridStyle?.labelColor ?? gridStyle?.color ?? "#ffffff",
-              }),
-              stroke:
-                strokeWidth > 0
-                  ? new Stroke({
-                      color: withAlpha(
-                        gridStyle?.labelStrokeColor ?? "#ffffff",
-                        gridStyle?.labelStrokeOpacity ?? 0.85
-                      ),
-                      width: strokeWidth,
-                    })
-                  : undefined,
-              offsetX: 5,
-              offsetY: -8,
-              textAlign: "left",
-            }),
-          })
-        );
+        labelFeature.setStyle(buildLabelStyle(point.name));
         labelSource.addFeature(labelFeature);
       }
     }
-  }, [map, mapGridControl, planetRadius, toMapCoord, toAegisPoint, config.grid.labelsEnabled]);
+  }, [
+    map,
+    mapGridControl,
+    planetRadius,
+    projectionConfig,
+    resolvedGrid,
+    toMapCoord,
+    toAegisPoint,
+    config.grid.labelsEnabled,
+    gridSpacingMode,
+    gridLabelInterval,
+  ]);
 
   // --- Listen for view changes to rebuild grid ---
   useEffect(() => {
     rebuildGrid();
 
     const view = map.getView();
+    let animationFrame: number | null = null;
+    const scheduleRebuild = () => {
+      if (animationFrame !== null) return;
+      animationFrame = requestAnimationFrame(() => {
+        animationFrame = null;
+        rebuildGrid();
+      });
+    };
+    const finalRebuild = () => {
+      if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+      rebuildGrid();
+    };
     const keys: EventsKey[] = [
-      view.on("change:center", rebuildGrid),
-      view.on("change:resolution", rebuildGrid),
+      view.on("change:center", scheduleRebuild),
+      view.on("change:resolution", scheduleRebuild),
+      map.on("moveend", finalRebuild),
     ];
 
     return () => {
+      if (animationFrame !== null) cancelAnimationFrame(animationFrame);
       for (const key of keys) unByKey(key);
     };
   }, [map, rebuildGrid]);

@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config({ override: true, quiet: true });
+import * as fs from "node:fs";
 import { isValidAutomergeUrl, Repo } from "@automerge/automerge-repo/slim";
 import type { DocHandle, StorageAdapterInterface } from "@automerge/automerge-repo/slim";
 import { PostgresStorageAdapter } from "server/automerge/automerge-repo-storage-postgres";
@@ -12,6 +13,7 @@ import {
   DEFAULT_ACTION_DEFINITION_LABELS,
   DEFAULT_ACTION_DEFINITION_CONJUNCTIONS,
 } from "store/storeUtils/mission";
+import { migrateLegacyCircleControlHaloStyles } from "store/storeUtils/preset";
 import { missionValidator } from "utils/validateSchemaServer";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
@@ -245,6 +247,8 @@ getORM()
         );
         stationsRecord = {};
         for (const dbStation of dbStations) {
+          const mapCircleControls = structuredClone(dbStation.mapCircleControls);
+          migrateLegacyCircleControlHaloStyles(mapCircleControls);
           const convertedStation: Station = {
             uuid: dbStation.uuid,
             refUuid: dbStation.refUuid,
@@ -263,7 +267,7 @@ getORM()
             walkbackTraverseRate: dbStation.walkbackTraverseRate,
             duration: dbStation.duration,
             icon: dbStation.icon,
-            mapCircleControls: dbStation.mapCircleControls,
+            mapCircleControls,
             poiUuids: dbStation.poi.map((p: Poi_db) => p.uuid),
             createdAt: dbStation.createdAt.getTime(), // Make dates numeric
             updatedAt: dbStation.updatedAt.getTime(), // Make dates numeric
@@ -454,11 +458,169 @@ getORM()
       });
     };
 
+    // Migration: rename legacy circle-label stroke properties to halo properties.
+    const automergeMigration20260807MigrateLegacyCircleHaloStyles = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      docHandle.change((mission: Mission) => {
+        for (const station of Object.values(mission.stations ?? {})) {
+          migrateLegacyCircleControlHaloStyles(station.mapCircleControls);
+        }
+      });
+    };
+
+    // Migration: pull the mission's grid metadata out of the legacy grid_db table and onto
+    // the mission doc as `mission.serverFileGrid`, and remove the legacy `activeGridUuid` pointer.
+    // Grid coordinate arrays remain on disk (Data/<fileName>) and are NOT moved.
+    const automergeMigration20260722GridToMissionDoc = async (docHandle: DocHandle<Mission>) => {
+      const doc = docHandle.doc();
+      const missionId = doc.id;
+
+      // Idempotent: already migrated (has grid metadata, no legacy pointer) → skip.
+      if ("serverFileGrid" in doc && !("activeGridUuid" in doc)) return;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const legacyActiveUuid: string | null = (doc as any).activeGridUuid ?? null;
+
+      // Read any legacy grid_db rows for this mission (raw SQL — the model is gone).
+      type LegacyGridRow = {
+        uuid: string;
+        numRows: number | null;
+        numCols: number | null;
+        spacing: number | string | null;
+        name: string | null;
+        fileName: string | null;
+        isActiveGrid: boolean | null;
+      };
+      let rows: LegacyGridRow[] = [];
+      let tableExists = true;
+      try {
+        const em = globalValues.orm.em.fork();
+        rows = (await em.getConnection().execute(
+          `select "uuid", "num_rows" as "numRows", "num_cols" as "numCols", "spacing",
+                  "name", "file_name" as "fileName", "is_active_grid" as "isActiveGrid"
+           from "grid_db" where "mission_id" = ?`,
+          [missionId]
+        )) as LegacyGridRow[];
+      } catch {
+        // Table no longer exists (drop migration already ran) — cannot recover metadata.
+        tableExists = false;
+      }
+
+      // Resolve the effective grid row. The mission doc's activeGridUuid is the runtime
+      // source of truth for which grid the mission displayed; grid_db.is_active_grid can
+      // drift from it (e.g. a hotfix grid activated on the doc while the flag stayed on the
+      // old grid). Prefer the doc pointer, then the flag, then single-row / ambiguous fallbacks.
+      let chosen: LegacyGridRow | undefined;
+      let outcome: string;
+      if (legacyActiveUuid) chosen = rows.find((r) => r.uuid === legacyActiveUuid);
+      if (!chosen) chosen = rows.find((r) => r.isActiveGrid);
+      if (!chosen && rows.length === 1) chosen = rows[0];
+      if (!chosen && rows.length > 1) {
+        chosen = rows[0];
+        outcome = `ambiguous (${rows.length} grids, none active) — kept first`;
+      }
+
+      let definition: MissionGridDefinition | null = null;
+      if (chosen) {
+        definition = {
+          numRows: Number(chosen.numRows) || 0,
+          numCols: Number(chosen.numCols) || 0,
+          name: chosen.name ?? "",
+          fileName: chosen.fileName ?? "",
+        };
+        outcome ??= "migrated";
+        // Warn (don't fail) if the coordinate file is missing on disk.
+        const filePath = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/${definition.fileName}`;
+        if (!definition.fileName || !fs.existsSync(filePath)) {
+          outcome = `migrated (coordinate file missing: ${definition.fileName || "<none>"})`;
+        }
+
+        const unusedFileNames = new Set(
+          rows
+            .filter((row) => row.uuid !== chosen.uuid)
+            .map((row) => row.fileName)
+            .filter(
+              (fileName): fileName is string => !!fileName && fileName !== definition.fileName
+            )
+        );
+        for (const fileName of unusedFileNames) {
+          const filePath = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/${fileName}`;
+          fs.rmSync(filePath, { force: true });
+        }
+      } else if (!tableExists && legacyActiveUuid) {
+        outcome = "grid_db already dropped — metadata unrecoverable, cleared";
+        serverLogger.error(
+          {
+            logId: "automerge-migration",
+            logValue: `Mission ${missionId} had activeGridUuid ${legacyActiveUuid} but grid_db is gone; grid cleared`,
+          },
+          new Error(`Grid metadata unrecoverable for mission ${missionId}`)
+        );
+      } else {
+        outcome = "no grid";
+      }
+
+      docHandle.change((m: Mission) => {
+        m.serverFileGrid = definition;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ("activeGridUuid" in m) delete (m as any).activeGridUuid;
+      });
+
+      serverLogger.debug({
+        logId: "automerge-migration",
+        logValue: `Mission ${missionId} grid migration: ${outcome}`,
+      });
+    };
+
+    // Migration: legacy missions with LGRS enabled use dynamic rendering by default.
+    const automergeMigration20260809AddGridRenderMode = async (docHandle: DocHandle<Mission>) => {
+      docHandle.change((mission: Mission) => {
+        if (mission.gridRenderMode === undefined) {
+          mission.gridRenderMode = mission.usingLGRSCoordinates ? "dynamic-lgrs" : "server-file";
+        }
+      });
+    };
+
+    const automergeMigration20260810RenameStationLabelStrokeToHalo = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      docHandle.change((mission: Mission) => {
+        for (const station of Object.values(mission.stations)) {
+          for (const control of Object.values(station.mapCircleControls)) {
+            const style = control.style as MapSublayerStyle & {
+              labelStrokeColor?: string;
+              labelStrokeWidth?: number;
+              labelStrokeOpacity?: number;
+            };
+            if ("labelStrokeColor" in style) {
+              if (style.labelHaloColor === undefined) style.labelHaloColor = style.labelStrokeColor;
+              delete style.labelStrokeColor;
+            }
+            if ("labelStrokeWidth" in style) {
+              if (style.labelHaloWidth === undefined) style.labelHaloWidth = style.labelStrokeWidth;
+              delete style.labelStrokeWidth;
+            }
+            if ("labelStrokeOpacity" in style) {
+              if (style.labelHaloOpacity === undefined) {
+                style.labelHaloOpacity = style.labelStrokeOpacity;
+              }
+              delete style.labelStrokeOpacity;
+            }
+          }
+        }
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
       automergeMigration20260528AddMaestroDocId,
       automergeMigration20260717AddActionNaming,
+      automergeMigration20260807MigrateLegacyCircleHaloStyles,
+      automergeMigration20260722GridToMissionDoc,
+      automergeMigration20260809AddGridRenderMode,
+      automergeMigration20260810RenameStationLabelStrokeToHalo,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {

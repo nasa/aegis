@@ -14,6 +14,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     maestroDocId: null,
     isArchived: false,
     usingLGRSCoordinates: false,
+    gridRenderMode: "server-file",
     description: "",
     actionSystemVersion: 1,
     actionDefinitions: null,
@@ -27,7 +28,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     walkbackRate: 2,
     equipmentItems: {},
     geographicUnits: {},
-    activeGridUuid: null,
+    serverFileGrid: null,
     planetRadius: 1737400, // moon
     initialZoom: 14,
     demFilePath: "",

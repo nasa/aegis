@@ -18,15 +18,16 @@ import { validators } from "components/interface/form/formValidators";
 import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
-import { globalGrid } from "utils/mapping/grid";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
-import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
+  const resolvedGrid = useResolvedMissionGrid();
   const partialMission = useMissionDocSelector(
     (mission) => ({
       usingLGRSCoordinates: mission.usingLGRSCoordinates,
@@ -83,10 +84,15 @@ const Info_Panel: FunctionComponent<{
   const gridCornerPoint = useAppSelector((state) => state.map.gridCornerPoint, refEqual);
   const poiGridCoordinates = useMemo(() => {
     if (selectedPoi?.location && partialMission.usingLGRSCoordinates) {
-      return getLGRSCoordsFromLatLng(selectedPoi.location.lat, selectedPoi.location.lng);
-    } else if (selectedPoi?.location && globalGrid?.coordinates && gridCornerPoint) {
+      return (
+        getSouthLpsDisplayCoordinate(
+          selectedPoi.location,
+          resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
+        ) ?? "Not set"
+      );
+    } else if (selectedPoi?.location && resolvedGrid.kind === "server-file" && gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
-        globalGrid.coordinates,
+        resolvedGrid.grid.coordinates,
         selectedPoi.location,
         partialMission.planetRadius
       );
@@ -98,6 +104,7 @@ const Info_Panel: FunctionComponent<{
     partialMission.usingLGRSCoordinates,
     partialMission.planetRadius,
     gridCornerPoint,
+    resolvedGrid,
   ]);
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;

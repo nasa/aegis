@@ -634,6 +634,7 @@ describe("maestro namespace socket handlers", () => {
             ],
             ingressDuration: 300,
             egressDuration: 240,
+            datetime: now,
             updatedAt: now,
             rexUuid,
           },

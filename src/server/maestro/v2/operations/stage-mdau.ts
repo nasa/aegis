@@ -27,8 +27,12 @@ const isEntitySubscribed = (
   uuid: string,
   entityKind: string
 ): boolean => {
-  const evaUuid = maps.evaUuidByUuid.get(uuid);
-  if (evaUuid !== undefined && subscribedEvaUuids.has(evaUuid)) return true;
+  const allEvaUuids = maps.evaUuidsByUuid.get(uuid);
+  if (allEvaUuids) {
+    for (const evaUuid of allEvaUuids) {
+      if (subscribedEvaUuids.has(evaUuid)) return true;
+    }
+  }
   serverLogger.warning({
     logId: "socket-maestro-v2",
     logValue:
@@ -204,11 +208,13 @@ const stageEvas = (
       stage.ingressDuration = mdau.ingressDuration;
     if (mdau.egressDuration !== undefined && mdau.egressDuration !== eva.egressDuration)
       stage.egressDuration = mdau.egressDuration;
-
+    if (mdau.datetime !== undefined && mdau.datetime !== eva.datetime)
+      stage.datetime = mdau.datetime;
     if (
       stage.name !== undefined ||
       stage.ingressDuration !== undefined ||
-      stage.egressDuration !== undefined
+      stage.egressDuration !== undefined ||
+      stage.datetime !== undefined
     )
       stages.push(stage);
   }

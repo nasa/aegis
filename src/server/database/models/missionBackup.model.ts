@@ -1,11 +1,14 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-@Entity({ tableName: "mission_backup_db" })
-export class MissionBackup_db {
-  @PrimaryKey({ type: MikroTypes.integer })
-  missionId!: number;
+export const MissionBackup_dbSchema = defineEntity({
+  name: "MissionBackup_db",
+  tableName: "mission_backup_db",
+  properties: {
+    missionId: p.integer().primary().autoincrement(false),
+    data: p.json<object>().columnType("jsonb"),
+  },
+});
 
-  @Property({ type: MikroTypes.json, columnType: "jsonb" })
-  data!: object;
-}
+export class MissionBackup_db extends MissionBackup_dbSchema.class {}
+
+MissionBackup_dbSchema.setClass(MissionBackup_db);

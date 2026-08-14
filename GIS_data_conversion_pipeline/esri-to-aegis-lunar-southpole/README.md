@@ -43,12 +43,14 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **vector**        | landing-ellipse shapefile                                       | `Data/ellipse.geojson`                    | reproject to EPSG:4326                                                      |
 | **rasters**       | custom rasters (`--in-raster`, repeatable)                      | `Layers/<name>/` tile pyramid each        | stretch (if float) → tile                                                   |
 | **vectors**       | custom vectors (`--in-vector`, repeatable)                      | `Data/<stem>.geojson` each                | shp → reproject; geojson copied                                             |
+| **horizons**      | horizon shapefile directory (`--in-horizon-shapefile-dir`)      | `Data/MP026_Horizon_*.geojson`            | find horizon `.shp` files → reproject using the supplied `.prj`             |
 | **vectortiles**   | ArcGIS vector-tile cache (`--in-esri-vector-tiles`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
 | **contours**      | the DEM (`--contours`)                                          | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
 | **cogs**          | custom rasters (`--in-cog`, repeatable)                         | `Layers/<name>/<name>_cog.tif` each       | single-band floats stretch to display-ready 8-bit → COG (deflate)           |
+| **time-cogs**     | time raster directories (`--in-time-cog-dir`, repeatable)       | `Layers/<name>/<window>/<frame>_cog.tif`  | matching-grid frames → deflate COGs + time manifest; optional RGBA shadows  |
 | **viewshed-cogs** | classified viewsheds (`--in-viewshed-raster`, repeatable)       | `Layers/<name>/<name>_cog.tif` each       | class 1 transparent; class 2 opaque `#FFA77F`; nodata transparent           |
 | **keepout-cogs**  | classified slope keep-out masks (`--in-keepout-raster`)         | `Layers/<name>/<name>_cog.tif` each       | class 0 opaque `#FF0000`; nodata transparent                                |
-| **grid**          | `--grid` + lander `--lander-lat/--lander-lng`                   | `grid_source.geojson` (10 km dflt)        | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
+| **grid**          | `--grid` + lander `--lander-lat/--lander-lng`                   | `Data/grid_source.geojson` (10 km dflt)   | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
 | **register**      | the built `<out>` + `--mission-id`                              | mission fields + sublayers + active grid  | POST fields + layers/sublayers + grid                                       |
 | **box**           | the built `<out>` + `--mission-name`                            | zips uploaded to Box (parallel)           | zip `Data/` + each layer → upload                                           |
 
@@ -68,6 +70,7 @@ are present (default), or pick explicitly with `--steps`. Each run writes a
 | [`grid/generate_lgrs.py`](grid/)                  | lander `--lat/--lng` + `--extent`    | raw LGRS grid GeoJSON (feeds `convert_lgrs.py`)  |
 | [`grid/convert_lgrs.py`](grid/)                   | raw LGRS GeoJSON (generated or ESRI) | AEGIS mission-grid GeoJSON (`Cleaned_*.geojson`) |
 | [`timeaware/singleband_timeaware.py`](timeaware/) | dir of single-band time rasters      | tiled time layers + `manifest.json`              |
+| [`timeaware/timeaware_cogs.py`](timeaware/)       | one or more time raster directories  | nested COG time layer + `manifest.json`          |
 | [`../mercator/tile_mercator.py`](../mercator/)    | Earth/Moon non-polar raster          | Web-Mercator / geodetic tile pyramid             |
 
 ---
@@ -161,6 +164,32 @@ pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --steps r
 pixi run python esri-to-aegis-lunar-southpole/main.py --list
 pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --summary
 ```
+
+### Import horizon lines
+
+The MS3 MP026 horizon delivery contains six `MP026_Horizon_*.shp` line layers. Their
+`.prj` files declare lunar geographic coordinates (`GCS_Moon_2000`), and the matching
+delivered GeoJSON files have the same longitude/latitude ranges. Use the shapefiles for
+ingest so the pipeline verifies and applies the authoritative CRS rather than relying on
+a GeoJSON CRS member that may be absent in a later delivery.
+
+```bash
+# Write the six AEGIS-ready GeoJSON files into missionFiles/<mission-id>/Data/.
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+  --mission-id <mission-id> \
+  --in-horizon-shapefile-dir "F:/tempF/MS3_data_drop/AEGIS_MS3_MP026_GIS_Data_20260805/01_AEGIS/00_GIS_Files/00_Vector/00_Shapefiles" \
+  --steps horizons
+
+# Optionally create Vector header/sublayer records without changing the mission's GIS fields.
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+  --mission-id <mission-id> \
+  --steps register \
+  --register-no-mission-fields --register-no-grid --register-no-external-nac
+```
+
+`--in-vector` copies an existing GeoJSON unchanged, so use it only when its coordinates are
+already known to be lunar longitude/latitude. The `horizons` step deliberately uses the
+companion shapefiles and their CRS metadata to avoid importing projected metres as degrees.
 
 ### Convert a classified viewshed to a transparent COG
 
@@ -340,8 +369,8 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
 
 ```text
 <out>/
-├── grid_source.geojson           # AEGIS mission-grid GeoJSON (register POSTs it; not in Data/)
 ├── Data/
+│   ├── grid_source.geojson       # AEGIS mission-grid GeoJSON (register POSTs it; not a vector layer)
 │   ├── <source>_deflate_cog.tif  # demFilePath (keeps the source filename, e.g. mp2-sfs-dem_MoonSP_COG_deflate_cog.tif)
 │   ├── ellipse.geojson           # vector sublayer (if a vector step ran)
 │   ├── LGRS.json                 # active grid coordinates (written by the grid API on register)
@@ -391,9 +420,9 @@ already-registered `(header, path)` pairs):
   plus the ellipse + custom GeoJSON as `vector` sublayers (`path = <file>.geojson`) and the shared
   external NAC (`path = <S3 base URL>`). bbox/zoom come from each `tilemapresource.xml`;
   name/description/legend from each `properties.json`.
-- **Mission grid** — `POST /api/v1/grid` (with `upsertFullGrid`) uploads `grid_source.geojson`
+- **Mission grid** — `POST /api/v1/grid` (with `upsertFullGrid`) uploads `Data/grid_source.geojson`
   as the **active** grid: the server writes its coordinates to `Data/LGRS.json` and sets the
-  mission's `activeGridUuid`. Replaces the manual upload at `/admin/mission_grid/<id>`.
+  mission's `serverFileGrid`. Replaces the manual upload at `/admin/mission_grid/<id>`.
 
 `--summary` prints the exact field values without calling the API. `--dry-run` previews the
 register/box actions. Run `register` alone with `--steps register` to (re)register an
@@ -511,6 +540,8 @@ Other AEGIS import targets produced by the standalone converters:
 
 - **Mission grid** — upload `Cleaned_*.geojson` from `grid/convert_lgrs.py` at the mission
   grid admin (`/admin/mission_grid/<id>`).
-- **Time-aware layer** — register the `*_singleband_time-aware_data/` folder (containing
-  `manifest.json`) as a tile sublayer; AEGIS marks it `isTimeBased`. Only **one** time-based
-  sublayer is allowed per mission.
+- **Time-aware layer** — register either the legacy `*_singleband_time-aware_data/` tile folder
+  or a `time-cogs` output folder (both contain `manifest.json`) as a tile sublayer; AEGIS marks it
+  `isTimeBased`. A manifest `dirName` may point to a frame tile directory or a nested `.tif` COG,
+  so existing tile-based missions require no migration. Only **one** time-based sublayer is
+  allowed per mission.

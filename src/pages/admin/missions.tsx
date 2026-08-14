@@ -286,15 +286,6 @@ const MissionList = ({
                   STM
                 </button>
                 <button
-                  className={adminCommon.button}
-                  type="button"
-                  onClick={() => {
-                    navigate(`/admin/mission_grid/${mission.id}`);
-                  }}
-                >
-                  Grid
-                </button>
-                <button
                   className={styles.buttonSecondary}
                   type="button"
                   onClick={() => {

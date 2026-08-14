@@ -228,6 +228,142 @@ def build_cog_sublayer(
     return sub
 
 
+def _parse_manifest_datetime(value: str) -> datetime:
+    """Parse an ISO-8601 manifest time as UTC for fallback bound calculation."""
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _midpoint_iso(first: str, second: str) -> str:
+    """Format the midpoint of two manifest timestamps as UTC ISO-8601."""
+    midpoint = (
+        _parse_manifest_datetime(first)
+        + (_parse_manifest_datetime(second) - _parse_manifest_datetime(first)) / 2
+    )
+    return (
+        midpoint.astimezone(timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z")
+    )
+
+
+def read_time_manifest(layer_dir: Path) -> list[dict] | None:
+    """Return valid manifest entries independent of their time-slice source type."""
+    manifest_path = layer_dir / "manifest.json"
+    if not manifest_path.exists():
+        return None
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        entries = manifest["time_layers"]
+    except (KeyError, TypeError, ValueError, OSError):
+        return None
+    if not isinstance(entries, list) or not entries:
+        return None
+
+    for entry in entries:
+        if not isinstance(entry, dict):
+            return None
+        datetime_value = entry.get("datetime")
+        dir_name = entry.get("dirName")
+        if not isinstance(datetime_value, str) or not isinstance(dir_name, str):
+            return None
+        try:
+            _parse_manifest_datetime(datetime_value)
+        except ValueError:
+            return None
+    return entries
+
+
+def read_time_cog_manifest(layer_dir: Path) -> list[dict] | None:
+    """Return manifest entries only when each target is an in-folder COG file."""
+    entries = read_time_manifest(layer_dir)
+    if entries is None:
+        return None
+
+    root = layer_dir.resolve()
+    for entry in entries:
+        dir_name = entry["dirName"]
+        target = (root / dir_name).resolve()
+        if (
+            not target.is_relative_to(root)
+            or not target.is_file()
+            or target.suffix.lower() not in (".tif", ".tiff")
+        ):
+            return None
+    return entries
+
+
+def _time_bounds(entries: list[dict], index: int) -> tuple[str, str]:
+    """Use declared bounds where available, otherwise retain legacy midpoint bounds."""
+    entry = entries[index]
+    lower_bound = entry.get("lowerBound")
+    upper_bound = entry.get("upperBound")
+    if isinstance(lower_bound, str) and isinstance(upper_bound, str):
+        try:
+            if _parse_manifest_datetime(lower_bound) <= _parse_manifest_datetime(
+                upper_bound
+            ):
+                return lower_bound, upper_bound
+        except ValueError:
+            pass
+
+    current = entry["datetime"]
+    if len(entries) == 1:
+        return current, current
+    if index == 0:
+        return current, _midpoint_iso(current, entries[1]["datetime"])
+    if index == len(entries) - 1:
+        return _midpoint_iso(entries[index - 1]["datetime"], current), current
+    return (
+        _midpoint_iso(entries[index - 1]["datetime"], current),
+        _midpoint_iso(current, entries[index + 1]["datetime"]),
+    )
+
+
+def build_time_cog_sublayer(mission_id: int, layer_uuid: str, layer_dir: Path) -> dict:
+    """Build a time-based tile sublayer whose resolved paths are nested COG files."""
+    entries = read_time_cog_manifest(layer_dir)
+    if entries is None:
+        raise ValueError(f"Invalid nested COG manifest: {layer_dir / 'manifest.json'}")
+
+    sub = _blank_sublayer(mission_id, layer_uuid)
+    sub["name"] = layer_dir.name
+    sub["path"] = layer_dir.name
+    sub["tilePattern"] = ""
+    sub["isTimeBased"] = True
+    sub["timeLayerManifest"] = _build_time_layer_manifest(entries)
+    _apply_properties(sub, layer_dir)
+    return sub
+
+
+def _build_time_layer_manifest(entries: list[dict]) -> list[dict]:
+    """Normalize optional source bounds into the stored AEGIS time-layer manifest."""
+    return [
+        {
+            "datetime": entry["datetime"],
+            "dirName": entry["dirName"],
+            "lowerBound": _time_bounds(entries, index)[0],
+            "upperBound": _time_bounds(entries, index)[1],
+        }
+        for index, entry in enumerate(entries)
+    ]
+
+
+def build_time_raster_sublayer(
+    mission_id: int, layer_uuid: str, layer_dir: Path
+) -> dict:
+    """Build a time-tile sublayer whose frame targets are tile directories."""
+    entries = read_time_manifest(layer_dir)
+    if entries is None:
+        raise ValueError(f"Invalid time-layer manifest: {layer_dir / 'manifest.json'}")
+
+    sub = build_raster_sublayer(mission_id, layer_uuid, layer_dir)
+    sub["isTimeBased"] = True
+    sub["timeLayerManifest"] = _build_time_layer_manifest(entries)
+    _apply_properties(sub, layer_dir)
+    return sub
+
+
 def _apply_properties(sub: dict, layer_dir: Path) -> None:
     """Overlay an optional properties.json (name/description/legend) onto a self-describing sublayer."""
     props = read_properties(layer_dir / "properties.json")
@@ -297,10 +433,19 @@ def classify_layer_dir(layer_dir: Path) -> tuple[str, Path] | None:
     Returns ``(kind, artifact)`` where kind is one of:
       - ``"vector-tile"`` → the ``.pmtiles`` archive inside the folder
       - ``"cog"``         → the ``.tif``/``.tiff`` GeoTIFF inside the folder
+        - ``"time-cog"``    → the folder's manifest-backed nested COG frames
+        - ``"time-raster"`` → the folder's manifest-backed tile-pyramid frames
       - ``"raster"``      → the folder itself (a ``tilemapresource.xml`` tile pyramid)
     Returns ``None`` if the folder matches none of these (skipped). This mirrors the AEGIS admin,
     which infers a layer's type from its folder contents rather than a stored flag.
     """
+    if read_time_cog_manifest(layer_dir) is not None:
+        return ("time-cog", layer_dir)
+    if (
+        read_time_manifest(layer_dir) is not None
+        and (layer_dir / "tilemapresource.xml").exists()
+    ):
+        return ("time-raster", layer_dir)
     pmtiles = sorted(layer_dir.glob("*.pmtiles"))
     if pmtiles:
         return ("vector-tile", pmtiles[0])
@@ -317,11 +462,15 @@ def classify_layer_dir(layer_dir: Path) -> tuple[str, Path] | None:
 
 
 def find_vector_files(data_dir: Path) -> list[Path]:
-    """GeoJSON files under Data/ (the grid's coordinate JSON is .json, so it is excluded)."""
+    """Vector GeoJSON files under Data/, excluding the pipeline's mission-grid source."""
     if not data_dir.exists():
         return []
     return sorted(
-        f for f in data_dir.iterdir() if f.is_file() and f.suffix.lower() == ".geojson"
+        f
+        for f in data_dir.iterdir()
+        if f.is_file()
+        and f.suffix.lower() == ".geojson"
+        and f.name != config.OUT_GRID_SOURCE_NAME
     )
 
 
@@ -349,14 +498,15 @@ def find_dem_file(data_dir: Path) -> Path | None:
 
 
 def build_mission_grid(
-    geojson_path: Path, mission_id: int, existing_grids: list[dict]
+    geojson_path: Path, mission_id: int, existing_grid: dict | None
 ) -> dict:
-    """Build a MissionGrid (gridInformation + 2D coordinates) from an AEGIS grid GeoJSON.
+    """Build a MissionGrid (gridDefinition + 2D coordinates) from an AEGIS grid GeoJSON.
 
     Mirrors the admin's gridUpload.tsx transform: a FeatureCollection of Point features with
     row/column/id/L_coord/R_coord is turned into a ``coordinates[row][col]`` array with the
-    row index inverted (``row_total - row - 1``) and ``[lon,lat]`` → ``{lat,lng}``. Reuses an
-    existing grid's uuid/fileName when one of the same name exists, so re-runs update in place.
+    row index inverted (``row_total - row - 1``) and ``[lon,lat]`` → ``{lat,lng}``. Reuses the
+    existing grid's fileName when present so re-runs update in place. There is one grid per
+    mission; its metadata is stored on the mission Automerge doc (``mission.serverFileGrid``).
     """
     fc = json.loads(geojson_path.read_text(encoding="utf-8"))
     # The raw GeoJSON's internal name is just the scratch filename ("raw_grid"); use a clean,
@@ -382,27 +532,15 @@ def build_mission_grid(
             "name": label,
         }
 
-    prior = next(
-        (
-            g["gridInformation"]
-            for g in existing_grids
-            if g.get("gridInformation", {}).get("name") == name
-        ),
-        None,
-    )
-    grid_uuid = prior["uuid"] if prior else str(uuidlib.uuid4())
-    file_name = prior["fileName"] if prior else f"{name}.json"
+    prior = (existing_grid or {}).get("gridDefinition") or {}
+    file_name = prior.get("fileName") or f"{name}.json"
 
     return {
-        "gridInformation": {
-            "uuid": grid_uuid,
-            "missionId": mission_id,
+        "gridDefinition": {
             "numRows": row_total,
             "numCols": col_total,
-            "spacing": 0,
             "name": name,
             "fileName": file_name,
-            "isActiveGrid": True,
         },
         "coordinates": coordinates,
     }
@@ -448,6 +586,8 @@ def register_mission(
     )
     raster_dirs: list[Path] = []
     cog_layers: list[tuple[Path, Path]] = []
+    time_cog_dirs: list[Path] = []
+    time_raster_dirs: list[Path] = []
     vector_tile_layers: list[tuple[Path, Path]] = []
     for d in layer_dirs:
         kind = classify_layer_dir(d)
@@ -457,11 +597,22 @@ def register_mission(
             raster_dirs.append(d)
         elif kind[0] == "cog":
             cog_layers.append((d, kind[1]))
+        elif kind[0] == "time-cog":
+            time_cog_dirs.append(d)
+        elif kind[0] == "time-raster":
+            time_raster_dirs.append(d)
         elif kind[0] == "vector-tile":
             vector_tile_layers.append((d, kind[1]))
     vector_files = find_vector_files(data_dir)
 
-    if not (raster_dirs or vector_files or vector_tile_layers or cog_layers):
+    if not (
+        raster_dirs
+        or vector_files
+        or vector_tile_layers
+        or cog_layers
+        or time_cog_dirs
+        or time_raster_dirs
+    ):
         print(
             f"  [warn] no tile/COG/PMTiles layers under {layers_dir} or vectors under {data_dir}.\n"
             "         For a register-only run, pass --out pointing at the locally-built "
@@ -472,6 +623,8 @@ def register_mission(
     has_any = bool(
         raster_dirs
         or cog_layers
+        or time_cog_dirs
+        or time_raster_dirs
         or vector_files
         or vector_tile_layers
         or include_external_nac
@@ -490,6 +643,14 @@ def register_mission(
     for layer_dir, cog_file in cog_layers:
         sublayers.append(
             build_cog_sublayer(mission_id, all_layers_uuid, layer_dir, cog_file)
+        )
+    for layer_dir in time_cog_dirs:
+        sublayers.append(
+            build_time_cog_sublayer(mission_id, all_layers_uuid, layer_dir)
+        )
+    for layer_dir in time_raster_dirs:
+        sublayers.append(
+            build_time_raster_sublayer(mission_id, all_layers_uuid, layer_dir)
         )
     for geojson_file in vector_files:
         sublayers.append(
@@ -530,13 +691,14 @@ def register_mission(
         if dry_run:
             print(f"  [dry-run] would register active grid from {grid_geojson.name}")
         else:
-            existing = client.get_grids(mission_id)
+            existing = client.get_grid(mission_id)
             grid = build_mission_grid(grid_geojson, mission_id, existing)
-            client.upsert_grids(mission_id, [grid], upsert_full_grid=True)
-            gi = grid["gridInformation"]
+            client.upsert_grid(mission_id, grid, upsert_full_grid=True)
+            grid_definition = grid["gridDefinition"]
             print(
-                f"  registered active grid '{gi['name']}' "
-                f"({gi['numRows']}x{gi['numCols']}) -> Data/{gi['fileName']}"
+                f"  registered active grid '{grid_definition['name']}' "
+                f"({grid_definition['numRows']}x{grid_definition['numCols']}) "
+                f"-> Data/{grid_definition['fileName']}"
             )
     elif grid_geojson:
         print(f"  [warn] grid source not found: {grid_geojson}", file=sys.stderr)
@@ -605,7 +767,7 @@ def main() -> None:
             dem_resolution=args.dem_resolution,
         )
 
-    grid_geojson = None if not args.grid else (args.out / config.OUT_GRID_SOURCE_NAME)
+    grid_geojson = None if not args.grid else (args.out / config.OUT_GRID_SOURCE_PATH)
 
     client = AegisApiClient(args.aegis_url, token)
     register_mission(

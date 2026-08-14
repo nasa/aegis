@@ -11,7 +11,6 @@ import {
   STM_Level2_db,
   STM_Level3_db,
   Sublayer_db,
-  Grid_db,
   STM_Rule_db,
   Folder_db,
 } from "server/database/models/_allModels";
@@ -104,7 +103,6 @@ const dumpMissionData = async (missionId: number): Promise<MissionDump> => {
     layers: await em.find(Layer_db, { missionId }),
     sublayers: await em.find(Sublayer_db, { missionId }),
     presets: await em.find(Preset_db, { missionId }),
-    grids: await em.find(Grid_db, { missionId }),
     folders: await em.find(Folder_db, { missionId }),
   };
 
@@ -129,7 +127,6 @@ const dumpMissionData = async (missionId: number): Promise<MissionDump> => {
       stmLevel2s: data.stmLevel2s,
       stmLevel3s: data.stmLevel3s,
       stmRules: data.stmRules,
-      grids: data.grids,
       folders: data.folders,
     },
   };

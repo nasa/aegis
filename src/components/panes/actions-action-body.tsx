@@ -43,9 +43,9 @@ import {
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkDocAddCollectionId, thunkDocAddRexActionMass } from "store/thunk/thunkRex";
-import { globalGrid } from "utils/mapping/grid";
-import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 
 const RightActionBody: FunctionComponent<{
   editMode: boolean;
@@ -57,6 +57,7 @@ const RightActionBody: FunctionComponent<{
   allowRexEdit: boolean;
 }> = ({ editMode, action, parentType, parentLocation, parentElevation, rexUuid, allowRexEdit }) => {
   const dispatch = useAppDispatch();
+  const resolvedGrid = useResolvedMissionGrid();
   const partialMission = useMissionDocSelector(
     (mission) => ({
       usingLGRSCoordinates: mission.usingLGRSCoordinates,
@@ -90,10 +91,19 @@ const RightActionBody: FunctionComponent<{
 
   const actionGridCoordinates = useAppSelector((state) => {
     if (action.location && partialMission.usingLGRSCoordinates) {
-      return getLGRSCoordsFromLatLng(action.location.lat, action.location.lng);
-    } else if (action.location && globalGrid?.coordinates && state.map.gridCornerPoint) {
+      return (
+        getSouthLpsDisplayCoordinate(
+          action.location,
+          resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
+        ) ?? "Not set"
+      );
+    } else if (
+      action.location &&
+      resolvedGrid.kind === "server-file" &&
+      state.map.gridCornerPoint
+    ) {
       return findGlobalGridCoordsFromPoint(
-        globalGrid.coordinates,
+        resolvedGrid.grid.coordinates,
         action.location,
         partialMission.planetRadius
       );

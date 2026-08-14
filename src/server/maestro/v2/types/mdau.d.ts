@@ -62,6 +62,7 @@ export declare namespace MDAU {
     sequenceRefUuids: EvaSequenceItem[];
     ingressDuration: number;
     egressDuration: number;
+    datetime: number | null;
     updatedAt: number;
     rexUuid?: string;
   };

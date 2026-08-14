@@ -37,6 +37,7 @@ GENERATE_LGRS = ROOT / "grid" / "generate_lgrs.py"
 CONVERT_LGRS = ROOT / "grid" / "convert_lgrs.py"
 ARCGIS_CACHE_TO_PMTILES = ROOT / "vectortile" / "arcgis_cache_to_pmtiles.py"
 DEM_TO_CONTOURS_PMTILES = ROOT / "vectortile" / "dem_to_contours_pmtiles.py"
+TIMEAWARE_COGS = ROOT / "timeaware" / "timeaware_cogs.py"
 
 
 # ---------------------------------------------------------------------------
@@ -452,6 +453,28 @@ def step_vectors(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             tee(f"  [skip] unsupported vector format: {vector}", file=sys.stderr)
 
 
+def step_horizons(p: config.PipelinePaths, args: argparse.Namespace) -> None:
+    """Delivered horizon shapefiles → CRS-safe GeoJSON files in Data/."""
+    banner("horizons — shapefiles → GeoJSON in Data/")
+    source_dir = args.in_horizon_shapefile_dir
+    if source_dir is None or not source_dir.is_dir():
+        raise SystemExit(
+            "--in-horizon-shapefile-dir must point to the delivered shapefile directory."
+        )
+
+    sources = sorted(
+        path for path in source_dir.glob("*.shp") if "horizon" in path.stem.lower()
+    )
+    if not sources:
+        raise SystemExit(f"No horizon shapefiles found in {source_dir}")
+
+    p.data.mkdir(parents=True, exist_ok=True)
+    for source in sources:
+        out = p.data / f"{source.stem}.geojson"
+        tee(f"  horizon: {source} → {out}")
+        run([PYTHON, SHP_TO_GEOJSON, source, out, "--to-epsg", "4326"])
+
+
 def step_grid(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """LGRS mission grid from the lander location → AEGIS grid GeoJSON (default 10 km square)."""
     banner(
@@ -464,7 +487,8 @@ def step_grid(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         )
         return
 
-    grid_out = p.out / config.OUT_GRID_SOURCE_NAME
+    p.data.mkdir(parents=True, exist_ok=True)
+    grid_out = p.out / config.OUT_GRID_SOURCE_PATH
     scratch = p.out / "scratch_grid"
     scratch.mkdir(parents=True, exist_ok=True)
     raw = scratch / "raw_grid.geojson"
@@ -494,6 +518,10 @@ def step_grid(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             )
             sys.exit(1)
         shutil.move(str(cleaned), str(grid_out))
+        legacy_grid_out = p.out / config.OUT_GRID_SOURCE_NAME
+        if legacy_grid_out != grid_out and legacy_grid_out.is_file():
+            legacy_grid_out.unlink()
+            tee(f"  removed legacy grid source {legacy_grid_out}")
         tee(f"  grid → {grid_out}")
     finally:
         raw.unlink(missing_ok=True)
@@ -717,6 +745,55 @@ def step_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
                     stretched.parent.rmdir()
                 except OSError:
                     pass
+
+
+def step_time_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
+    """Time-series rasters -> one manifest-driven nested COG layer."""
+    banner("time-cogs — time-series rasters -> nested COGs + manifest")
+    if not args.in_time_cog_dir:
+        raise SystemExit("--in-time-cog-dir must be provided for the time-cogs step.")
+    if not args.out_time_cog:
+        raise SystemExit("--out-time-cog is required with --in-time-cog-dir.")
+
+    for source_dir in args.in_time_cog_dir:
+        require_input(
+            source_dir, "time-aware COG source directory", "--in-time-cog-dir"
+        )
+        if not source_dir.is_dir():
+            raise SystemExit(f"Time-aware COG source is not a directory: {source_dir}")
+
+    base_name = args.out_time_cog
+    if (
+        not base_name
+        or base_name in {".", ".."}
+        or "/" in base_name
+        or "\\" in base_name
+    ):
+        raise SystemExit(f"Invalid time-aware COG layer name: {base_name!r}")
+
+    layer_name = p.layer_name(base_name)
+    layer_dir = p.layers / layer_name
+    p.layers.mkdir(parents=True, exist_ok=True)
+    command: list[str | Path] = [
+        PYTHON,
+        TIMEAWARE_COGS,
+        *args.in_time_cog_dir,
+        "--out",
+        layer_dir,
+        "--datatype",
+        args.time_cog_datatype,
+        "--name",
+        layer_name,
+    ]
+    if args.time_cog_illumination_alpha:
+        command += [
+            "--illumination-alpha",
+            "--illumination-opacity",
+            str(args.time_cog_illumination_opacity),
+        ]
+    if args.overwrite:
+        command.append("--overwrite")
+    run(command)
 
 
 def _classified_mask_layer_name(raster: Path) -> str:
@@ -961,7 +1038,7 @@ def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         )
 
     grid_geojson = (
-        None if args.register_no_grid else (p.out / config.OUT_GRID_SOURCE_NAME)
+        None if args.register_no_grid else (p.out / config.OUT_GRID_SOURCE_PATH)
     )
 
     client = AegisApiClient(args.aegis_url, token)
@@ -1015,6 +1092,10 @@ STEPS: list[tuple[str, str]] = [
     ),
     ("vectors", "Custom vectors (--in-vector, shp/geojson) → GeoJSON in Data/"),
     (
+        "horizons",
+        "Horizon shapefiles (--in-horizon-shapefile-dir) → GeoJSON in Data/",
+    ),
+    (
         "vectortiles",
         "ArcGIS vector-tile caches (--in-esri-vector-tiles) → Layers/<name>/<name>.pmtiles",
     ),
@@ -1022,6 +1103,10 @@ STEPS: list[tuple[str, str]] = [
     (
         "cogs",
         "Custom rasters (--in-cog) → Cloud-Optimised GeoTIFF in Layers/<name>/<name>_cog.tif",
+    ),
+    (
+        "time-cogs",
+        "Time-series rasters (--in-time-cog-dir) → one nested COG layer + manifest",
     ),
     (
         "viewshed-cogs",
@@ -1047,9 +1132,11 @@ STEP_FNS = {
     "vector": step_vector,
     "rasters": step_rasters,
     "vectors": step_vectors,
+    "horizons": step_horizons,
     "vectortiles": step_vectortiles,
     "contours": step_contours,
     "cogs": step_cogs,
+    "time-cogs": step_time_cogs,
     "viewshed-cogs": step_viewshed_cogs,
     "keepout-cogs": step_keepout_cogs,
     "grid": step_grid,
@@ -1068,9 +1155,11 @@ DATA_STEPS = {
     "vector",
     "rasters",
     "vectors",
+    "horizons",
     "vectortiles",
     "contours",
     "cogs",
+    "time-cogs",
     "viewshed-cogs",
     "keepout-cogs",
     "grid",
@@ -1094,12 +1183,16 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
         chosen.append("rasters")
     if args.in_vector:
         chosen.append("vectors")
+    if args.in_horizon_shapefile_dir:
+        chosen.append("horizons")
     if args.in_esri_vector_tiles:
         chosen.append("vectortiles")
     if args.contours and p.dem_in.exists():
         chosen.append("contours")
     if args.in_cog:
         chosen.append("cogs")
+    if args.in_time_cog_dir:
+        chosen.append("time-cogs")
     if args.in_viewshed_raster:
         chosen.append("viewshed-cogs")
     if args.in_keepout_raster:

@@ -1,51 +1,30 @@
-import { Entity, OneToMany, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { Collection } from "@mikro-orm/core";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-import { Action_db } from "./_allModels";
+import { Action_db as ActionEntity } from "./action.model";
 
-@Entity()
-export class Traverse_db implements Traverse_db_type {
-  @PrimaryKey({ type: MikroTypes.string, unique: true })
-  uuid!: string;
-  @Property({
-    type: MikroTypes.string,
-    nullable: false,
-    defaultRaw: "uuid_generate_v4()",
-  })
-  refUuid: string; // assigned on creation and is preserved when duplication for a rex
+export const Traverse_dbSchema = defineEntity({
+  name: "Traverse_db",
+  properties: {
+    uuid: p.string().unique().primary(),
+    refUuid: p.string().defaultRaw("uuid_generate_v4()"),
+    missionId: p.integer(),
+    action: () => p.oneToMany(ActionEntity).mappedBy("traverse"),
+    name: p.text(),
+    path: p.json<AEGISPoint[]>().nullable(),
+    pathSegmentDistances: p.json<number[]>().nullable(),
+    pathSegmentElevations: p.json<number[][]>().nullable(),
+    duration: p.float().nullable(),
+    description: p.text(),
+    status: p.string().$type<TraverseStatus>().nullable(),
+    traverseRate: p.float().nullable().default(null),
+    color: p.string().nullable(),
+    actionOrderUuids: p.json<string[]>().nullable(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  @Property({ type: MikroTypes.integer })
-  missionId!: number;
-  @OneToMany(() => Action_db, (i: Action_db) => i.traverse) //one traverse has many actions
-  action = new Collection<Action_db>(this);
+export class Traverse_db extends Traverse_dbSchema.class implements Traverse_db_type {}
 
-  @Property({ type: MikroTypes.text })
-  name!: string;
-  @Property({ type: MikroTypes.json, nullable: true })
-  path: AEGISPoint[];
-  @Property({ type: MikroTypes.json, nullable: true })
-  pathSegmentDistances: number[];
-  @Property({ type: MikroTypes.json, nullable: true })
-  pathSegmentElevations: number[][];
-  @Property({ type: MikroTypes.float, nullable: true })
-  duration: number;
-  @Property({ type: MikroTypes.text })
-  description: string;
-  @Property({ type: MikroTypes.string, nullable: true })
-  status: TraverseStatus;
-  @Property({ type: MikroTypes.float, nullable: true, default: null })
-  traverseRate: number;
-  @Property({ type: MikroTypes.string, nullable: true })
-  color: string;
-  @Property({ type: MikroTypes.json, nullable: true })
-  actionOrderUuids: string[];
-
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  updatedAt!: Date;
-
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number; //used for optimistic locking
-}
+Traverse_dbSchema.setClass(Traverse_db);

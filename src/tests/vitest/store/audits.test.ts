@@ -87,9 +87,9 @@ describe("auditPresetsAgainstLayers", () => {
     const legacyStyle = {
       ...defaultSublayerStyle,
       labelColor: undefined,
-      labelStrokeColor: "rgba(255,255,255,0.85)",
-      labelStrokeWidth: undefined,
-      labelStrokeOpacity: undefined,
+      labelHaloColor: undefined,
+      labelHaloWidth: undefined,
+      labelHaloOpacity: undefined,
       opacity: 0.5,
     } as unknown as MapSublayerStyle;
     const state = buildState(legacyStyle);

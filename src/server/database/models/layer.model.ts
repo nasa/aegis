@@ -1,22 +1,17 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-@Entity()
-export class Layer_db implements Layer_db_type {
-  @PrimaryKey({ type: MikroTypes.uuid })
-  uuid: string;
+export const Layer_dbSchema = defineEntity({
+  name: "Layer_db",
+  properties: {
+    uuid: p.uuid().primary(),
+    missionId: p.integer(),
+    name: p.text().nullable(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  @Property({ type: MikroTypes.integer })
-  missionId!: number;
+export class Layer_db extends Layer_dbSchema.class implements Layer_db_type {}
 
-  @Property({ type: MikroTypes.text, nullable: true })
-  name!: string;
-
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  updatedAt!: Date;
-
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number; //used for optimistic locking
-}
+Layer_dbSchema.setClass(Layer_db);

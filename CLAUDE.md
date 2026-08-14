@@ -58,10 +58,11 @@ Keep comments short. Write comments that explain what the code does or why — n
 After every batch of code changes, run:
 
 ```bash
+./node_modules/.bin/prettier --config .prettierrc.json --write <changed-files>
 npm run test:all
 ```
 
-This runs lint (JS/TS + CSS) → tsc → build → vitest → vitest:browser in sequence. Fix any failures before reporting the task complete. Do not skip lint — this project has non-standard CSS and JS/TS lint rules that will fail on patterns that look valid (e.g. specific import ordering, CSS property conventions). If lint fails, read the error output carefully and fix exactly what it reports rather than guessing at the rule.
+Format every changed file with the root `.prettierrc.json` before the full check; use the direct Prettier command above and replace `<changed-files>` with the files changed in the batch. This runs lint (JS/TS + CSS) → tsc → build → vitest → vitest:browser in sequence. Fix any failures before reporting the task complete. Do not skip lint — this project has non-standard CSS and JS/TS lint rules that will fail on patterns that look valid (e.g. specific import ordering, CSS property conventions). If lint fails, read the error output carefully and fix exactly what it reports rather than guessing at the rule.
 
 ## Map / OpenLayers
 
@@ -171,6 +172,30 @@ The app organizes around these core entities. Since the Automerge entity migrati
 - **Preset** — saved UI/map configurations; REST/DB backed.
 
 > **Note**: "DB model (legacy)" means a MikroORM model still exists and is used by `src/server/automerge/migration.ts` to seed Automerge docs from existing PostgreSQL data, but is no longer written at runtime.
+
+### EVA / REX Relationship and `uuid` vs `refUuid`
+
+Every EVA, station, traverse, and action carries **two** identifiers:
+
+- **`uuid`** — globally unique per entity instance. Always the key in `mission.evas`, `mission.stations`, `mission.traverses`, `mission.actions`.
+- **`refUuid`** — a stable identity that is **preserved across REX duplication**. It is only unique _within a scope_ (see below), never globally.
+
+**Executing an EVA creates a REX.** A REX ("realtime execution") is created from an as-planned EVA. Creating it **deep-duplicates** the EVA plus every station, traverse, and action belonging to that EVA. The duplicates keep their original `refUuid` values but receive **new `uuid`s**. Creating a second REX from the same EVA repeats the process, producing another parallel copy.
+
+This yields a set of **scopes** for any given mission:
+
+- the **as-planned** scope (EVAs not referenced by any `rex.evaUuid`), and
+- one scope **per REX** (the EVA at `rex.evaUuid` and it's entities).
+
+A single `refUuid` therefore resolves to one `uuid` _per scope_: `ref-s1` may exist as `uuid-s1` as-planned, `uuid-s1-rex-a` under REX A, and `uuid-s1-rex-b` under REX B. **Any `refUuid` → `uuid` lookup must be scoped by `rexUuid` (or `null` for as-planned).**
+
+**Sharing rules — stations and actions are many-to-many with EVAs; traverses are not:**
+
+- A **station** may belong to zero EVAs, or to **several** as-planned EVAs at once (in their `sequence`, and/or as their `ingressLocationUuid` / `egressLocationUuid`).
+- An **action** hangs off a station or a traverse, and therefore belongs to it's parent's entity's EVA — so a station's actions can likewise belong to **multiple** EVAs.
+- A **traverse** is unique to exactly one EVA and is never shared between as-planned EVAs. (REX duplication still produces a per-REX copy with the same `refUuid`.)
+
+Deleting cascades along the same relationship: deleting an as-planned EVA also deletes every REX whose EVA shares its `refUuid`, together with that REX EVA's stations, traverses, and actions (see `src/operations/stage/stage-eva.ts`).
 
 ## Technology Stack
 

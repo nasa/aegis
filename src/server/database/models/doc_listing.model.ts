@@ -1,13 +1,14 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/decorators/legacy";
-import { types as MikroTypes } from "@mikro-orm/core";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-@Entity()
-export class Doc_Listing_db implements DocListing_db_type {
-  @PrimaryKey({ type: MikroTypes.integer, autoincrement: true })
-  missionId: number;
-  @Property({ type: MikroTypes.text, nullable: true })
-  automergeUrl: string;
+export const Doc_Listing_dbSchema = defineEntity({
+  name: "Doc_Listing_db",
+  properties: {
+    missionId: p.integer().autoincrement().primary(),
+    automergeUrl: p.text().nullable(),
+    version: p.integer().version(),
+  },
+});
 
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number; //used for optimistic locking
-}
+export class Doc_Listing_db extends Doc_Listing_dbSchema.class implements DocListing_db_type {}
+
+Doc_Listing_dbSchema.setClass(Doc_Listing_db);

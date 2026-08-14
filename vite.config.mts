@@ -2,7 +2,7 @@
 import dotenv from "dotenv";
 dotenv.config({ override: true, quiet: true });
 import { UserConfig, defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -12,6 +12,23 @@ import wasm from "vite-plugin-wasm";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+export const aliases = {
+  components: path.resolve(__dirname, "./src/components"),
+  "http-client": path.resolve(__dirname, "./src/http-client"),
+  pages: path.resolve(__dirname, "./src/pages"),
+  store: path.resolve(__dirname, "./src/store"),
+  styles: path.resolve(__dirname, "./src/styles"),
+  tests: path.resolve(__dirname, "./src/tests"),
+  typings: path.resolve(__dirname, "./src/typings"),
+  utils: path.resolve(__dirname, "./src/utils"),
+  packages: path.resolve(__dirname, "./src/packages"),
+  assets: path.resolve(__dirname, "./src/assets"),
+  public: path.resolve(__dirname, "./src/public"),
+  server: path.resolve(__dirname, "./src/server"),
+  client: path.resolve(__dirname, "./src/client"),
+  operations: path.resolve(__dirname, "./src/operations"),
+};
+
 export const config: UserConfig = {
   root: "./src",
   envDir: "../",
@@ -19,21 +36,7 @@ export const config: UserConfig = {
   plugins: [react(), svgr(), wasm()],
   resolve: {
     //alias paths so that the import statements are shorter and start from the src folder
-    alias: {
-      components: path.resolve(__dirname, "./src/components"),
-      "http-client": path.resolve(__dirname, "./src/http-client"),
-      pages: path.resolve(__dirname, "./src/pages"),
-      store: path.resolve(__dirname, "./src/store"),
-      styles: path.resolve(__dirname, "./src/styles"),
-      tests: path.resolve(__dirname, "./src/tests"),
-      typings: path.resolve(__dirname, "./src/typings"),
-      utils: path.resolve(__dirname, "./src/utils"),
-      packages: path.resolve(__dirname, "./src/packages"),
-      assets: path.resolve(__dirname, "./src/assets"),
-      public: path.resolve(__dirname, "./src/public"),
-      client: path.resolve(__dirname, "./src/client"),
-      operations: path.resolve(__dirname, "./src/operations"),
-    },
+    alias: aliases,
   },
   // Server configurations for running vite as a server (only happens in local dev). On docker/production, nginx serves the front end
   server: {

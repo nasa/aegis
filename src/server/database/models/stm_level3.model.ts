@@ -1,26 +1,20 @@
-import { Entity, PrimaryKey, Property, ManyToOne } from "@mikro-orm/decorators/legacy";
-import { types as MikroTypes } from "@mikro-orm/postgresql";
+import { defineEntity, p } from "@mikro-orm/postgresql";
 
-import { STM_Level2_db } from "./_allModels";
+import { STM_Level2_db as STMLevel2Entity } from "./stm_level2.model";
 
-@Entity()
-export class STM_Level3_db implements STMLevel3_db_type {
-  @PrimaryKey({ type: MikroTypes.string })
-  uuid!: string;
+export const STM_Level3_dbSchema = defineEntity({
+  name: "STM_Level3_db",
+  properties: {
+    uuid: p.string().primary(),
+    level2: () => p.manyToOne(STMLevel2Entity).updateRule("cascade"),
+    name: p.text(),
+    numbering: p.string(),
+    createdAt: p.datetime(3),
+    updatedAt: p.datetime(3),
+    version: p.integer().version(),
+  },
+});
 
-  @ManyToOne(() => STM_Level2_db) //many level3s have one level2
-  level2!: STM_Level2_db;
+export class STM_Level3_db extends STM_Level3_dbSchema.class implements STMLevel3_db_type {}
 
-  @Property({ type: MikroTypes.text })
-  name!: string;
-  @Property({ type: MikroTypes.string })
-  numbering!: string;
-
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  createdAt!: Date;
-  @Property({ type: MikroTypes.datetime, length: 3 })
-  updatedAt!: Date;
-
-  @Property({ type: MikroTypes.integer, version: true })
-  version!: number; //used for optimistic locking
-}
+STM_Level3_dbSchema.setClass(STM_Level3_db);
