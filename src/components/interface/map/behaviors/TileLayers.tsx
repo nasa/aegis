@@ -168,7 +168,7 @@ export function TileLayers(): null {
         applyVisualStyle(existing, sublayerToRender.visualStyle);
         const baseResolution = map.getView().getResolutionForZoom(0);
         if (sublayerToRender.type === "vector") {
-          if (existing.get("movableLabels")) {
+          if (existing.get("movableLabels") && !existing.get("thematicLabels")) {
             (existing as VectorImageLayer).setStyle(
               createGazetteerLabelStyle(sublayerToRender.visualStyle)
             );

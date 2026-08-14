@@ -22,6 +22,7 @@ import {
   createOlLayer,
   createCogLayer,
   buildVectorStyleFn,
+  createThematicLabelFeatures,
   isGazetteerFeatures,
   isGazetteerSublayer,
   withAlpha,
@@ -479,6 +480,24 @@ describe("buildVectorStyleFn", () => {
     expect(lineStyle.getFill()).toBeNull();
   });
 
+  it("does not create OpenLayers' default black fill at zero opacity", () => {
+    const fn = buildVectorStyleFn(makeStyle({ fillColor: "#00ff00", fillOpacity: 0 }));
+    const style = fn(
+      new Feature(
+        new Polygon([
+          [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0, 0],
+          ],
+        ])
+      ),
+      0
+    );
+    expect(style.getFill()).toBeNull();
+  });
+
   it("converts hex fillColor to rgba with the configured fillOpacity", () => {
     const fn = buildVectorStyleFn(makeStyle({ fillColor: "#3399cc", fillOpacity: 0.25 }));
     const style = fn(
@@ -514,6 +533,44 @@ describe("buildVectorStyleFn", () => {
     const style = fn(feat, 0);
     const fillColor = style.getFill()!.getColor() as string;
     expect(fillColor).toBe("rgba(171,205,239,1)");
+  });
+
+  it("uses a feature color when the preset has no fill color", () => {
+    const fn = buildVectorStyleFn(makeStyle({ fillColor: "none", fillOpacity: 0.5 }));
+    const feat = new Feature(
+      new Polygon([
+        [
+          [0, 0],
+          [1, 0],
+          [1, 1],
+          [0, 0],
+        ],
+      ])
+    );
+    feat.set("color", "rgb(56, 168, 0)");
+    expect(fn(feat, 0).getFill()!.getColor()).toBe("rgba(56, 168, 0,0.5)");
+  });
+
+  it("creates a draggable label anchor for a colored geomorphic unit", () => {
+    const unit = new Feature(
+      new Polygon([
+        [
+          [0, 0],
+          [4, 0],
+          [4, 4],
+          [0, 4],
+          [0, 0],
+        ],
+      ])
+    );
+    unit.setProperties({ Unit: "ci", color: "rgb(56, 168, 0)" });
+
+    const labels = createThematicLabelFeatures([unit]);
+
+    expect(labels).toHaveLength(1);
+    expect(labels[0].get("gazetteerLabel")).toBe("ci");
+    expect(labels[0].get("originalCoordinates")).toEqual([2, 2]);
+    expect(unit.get("hasMovableThematicLabel")).toBe(true);
   });
 
   it("renders a text label when feature has 'name' property", () => {

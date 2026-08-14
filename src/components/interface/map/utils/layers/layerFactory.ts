@@ -25,8 +25,8 @@ import type { Layer as OLLayer } from "ol/layer";
 import type { Coordinate } from "ol/coordinate";
 import type { FeatureLoader } from "ol/featureloader";
 import { Style, Fill, Stroke, Text } from "ol/style";
-import type { Feature } from "ol";
-import type { Geometry } from "ol/geom";
+import Feature from "ol/Feature";
+import type { Geometry, LineString, MultiLineString, MultiPolygon, Polygon } from "ol/geom";
 import Point from "ol/geom/Point";
 
 import { buildLegacyResolutions } from "../parsers/leafletShim";
@@ -196,7 +196,15 @@ function createVectorLayer(input: LayerFactoryInput): VectorImageLayer | VectorL
     // before ol/format/GeoJSON transforms coordinates (see buildGeoJSONLoader).
     url,
     loader: buildGeoJSONLoader(url, projCode, (features) => {
-      if (!isGazetteer && !isGazetteerFeatures(features)) return;
+      if (!isGazetteer && !isGazetteerFeatures(features)) {
+        const thematicLabels = createThematicLabelFeatures(features);
+        if (thematicLabels.length === 0) return;
+
+        features.push(...thematicLabels);
+        layer.set("movableLabels", true);
+        layer.set("thematicLabels", true);
+        return;
+      }
 
       for (const feature of features) {
         const geometry = feature.getGeometry();
@@ -294,6 +302,80 @@ export function isGazetteerFeatures(features: Feature<Geometry>[]): boolean {
 
 export function isGazetteerSublayer(sublayer: Pick<Sublayer, "name">): boolean {
   return /(?:^|[^a-z0-9])(?:gazetteer|nomenclature)(?:$|[^a-z0-9])/i.test(sublayer.name);
+}
+
+function getVectorLabel(feature: Feature<Geometry>): string | number | undefined {
+  return (
+    feature.get("label") ??
+    feature.get("name") ??
+    feature.get("NAME") ??
+    feature.get("Unit") ??
+    undefined
+  );
+}
+
+function getRenderedVectorLabel(feature: Feature<Geometry>): string | number | undefined {
+  return (
+    feature.get("label") ??
+    feature.get("elevation") ??
+    feature.get("ELEVATION") ??
+    feature.get("elev") ??
+    feature.get("Contour") ??
+    feature.get("name") ??
+    feature.get("NAME") ??
+    feature.get("Unit") ??
+    undefined
+  );
+}
+
+function getThematicLabelCoordinate(geometry: Geometry): Coordinate | undefined {
+  switch (geometry.getType()) {
+    case "Polygon":
+      return (geometry as Polygon).getInteriorPoint().getCoordinates();
+    case "MultiPolygon": {
+      const polygons = (geometry as MultiPolygon).getPolygons();
+      const largest = polygons.reduce(
+        (selected, polygon) => (polygon.getArea() > selected.getArea() ? polygon : selected),
+        polygons[0]
+      );
+      return largest?.getInteriorPoint().getCoordinates();
+    }
+    case "LineString":
+      return (geometry as LineString).getCoordinateAt(0.5);
+    case "MultiLineString": {
+      const lines = (geometry as MultiLineString).getLineStrings();
+      const longest = lines.reduce(
+        (selected, line) => (line.getLength() > selected.getLength() ? line : selected),
+        lines[0]
+      );
+      return longest?.getCoordinateAt(0.5);
+    }
+    default:
+      return undefined;
+  }
+}
+
+/** Build draggable label anchors for styled non-point GeoJSON features. */
+export function createThematicLabelFeatures(features: Feature<Geometry>[]): Feature<Point>[] {
+  return features.flatMap((feature, index) => {
+    const geometry = feature.getGeometry();
+    const label = getVectorLabel(feature);
+    const sourceColor = feature.get("fillColor") ?? feature.get("color");
+    if (!geometry || label == null || typeof sourceColor !== "string") return [];
+
+    const coordinate = getThematicLabelCoordinate(geometry)?.slice(0, 2);
+    if (!coordinate) return [];
+
+    feature.set("hasMovableThematicLabel", true, true);
+    const labelFeature = new Feature<Point>({
+      geometry: new Point(coordinate),
+      gazetteerLabel: String(label),
+      originalCoordinates: [...coordinate],
+      thematicLabel: true,
+    });
+    labelFeature.setId(`thematic-label-${feature.getId() ?? index}`);
+    return [labelFeature];
+  });
 }
 
 function createPmtilesLayer(input: LayerFactoryInput): VectorTileLayer {
@@ -424,8 +506,13 @@ export function buildVectorStyleFn(
   // Cache styles to avoid creating new Style/Stroke/Fill/Text objects per feature per frame.
   // Key: geomType + labelText + resolvedFillColor + style params that affect output.
   const styleCache: { [key: string]: Style } = {};
+  const thematicLabelStyle = createGazetteerLabelStyle(style);
 
   return (feature: Feature<Geometry>, resolution: number) => {
+    if (feature.get("thematicLabel") === true) {
+      return thematicLabelStyle(feature, resolution) as Style;
+    }
+
     const geomType = feature.getGeometry()?.getType();
 
     // When zoomed out past labelMinZoom, suppress labels so dense layers (e.g.
@@ -439,19 +526,17 @@ export function buildVectorStyleFn(
     // Generic `label` lets any vector source opt into a per-feature label. Elevation/name
     // variants are kept for backward compatibility (contour PMTiles carry `elev`; delivered
     // contour GeoJSONs use `Contour`).
-    const genericLabel = feature.get("label");
-    const name = feature.get("name") || feature.get("NAME") || "";
-    const elevation =
-      feature.get("elevation") ??
-      feature.get("ELEVATION") ??
-      feature.get("elev") ??
-      feature.get("Contour");
+    const genericLabel = getRenderedVectorLabel(feature);
 
     // Labels are opt-out per sublayer (style.showLabels); undefined = show (legacy default).
     // Also gated by resolution so they thin out / disappear when zoomed far out.
     let labelText = "";
-    if (style.showLabels !== false && labelsAllowedAtZoom) {
-      const value = genericLabel ?? elevation ?? (name || null);
+    if (
+      style.showLabels !== false &&
+      labelsAllowedAtZoom &&
+      feature.get("hasMovableThematicLabel") !== true
+    ) {
+      const value = genericLabel;
       if (value != null) labelText = String(value);
     }
 
@@ -461,6 +546,9 @@ export function buildVectorStyleFn(
     if (resolvedFillColor?.startsWith("prop:")) {
       const propName = resolvedFillColor.slice(5);
       resolvedFillColor = feature.get(propName) || style.color || "#3399CC";
+    } else if (!resolvedFillColor || resolvedFillColor === "none") {
+      const sourceColor = feature.get("fillColor") ?? feature.get("color");
+      if (typeof sourceColor === "string") resolvedFillColor = sourceColor;
     }
 
     // Build cache key from all values that affect the output style
@@ -498,13 +586,8 @@ export function buildVectorStyleFn(
           lineDash: style.isDashed ? [style.dashLen, style.dashLen] : undefined,
         }),
         fill:
-          geomType === "Polygon" || geomType === "MultiPolygon"
-            ? new Fill({
-                color:
-                  style.fillOpacity > 0
-                    ? withAlpha(resolvedFillColor, style.fillOpacity)
-                    : undefined,
-              })
+          (geomType === "Polygon" || geomType === "MultiPolygon") && style.fillOpacity > 0
+            ? new Fill({ color: withAlpha(resolvedFillColor, style.fillOpacity) })
             : undefined,
         text: textStyle,
       });
@@ -520,6 +603,9 @@ export function withAlpha(color: string, alpha: number): string {
   // If already rgba, replace the alpha
   if (color.startsWith("rgba")) {
     return color.replace(/[\d.]+\)$/, `${alpha})`);
+  }
+  if (color.startsWith("rgb(")) {
+    return color.replace(/^rgb\((.*)\)$/, `rgba($1,${alpha})`);
   }
   // Convert hex to rgba — expand 3-char shorthand (#abc → #aabbcc)
   if (color.startsWith("#")) {
