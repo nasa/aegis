@@ -58,9 +58,9 @@ export const LastEditedNumeric: FunctionComponent<{
     <div
       className={styles.updatedAt}
       data-tooltip-id={"aegis-last-edited"}
-      data-le-updated={longDateFromDateNumeric(updatedAt)}
-      data-le-created={longDateFromDateNumeric(createdAt)}
-      data-le-info={info ? JSON.stringify(info) : undefined}
+      data-tooltip-le-updated={longDateFromDateNumeric(updatedAt)}
+      data-tooltip-le-created={longDateFromDateNumeric(createdAt)}
+      data-tooltip-le-info={info ? JSON.stringify(info) : undefined}
     >
       {updatedAt ? dayjs(updatedAt).fromNow() : "N/A"}
     </div>
