@@ -6,7 +6,7 @@
  *
  * Supports four sublayer types:
  *   - tile:        Raster TMS/XYZ via TileLayer + XYZ source
- *   - vector:      GeoJSON via VectorImageLayer (canvas-batched for performance)
+ *   - vector:      GeoJSON via VectorImageLayer, or VectorLayer for draggable labels
  *   - vector-tile: PMTiles (MVT) via VectorTileLayer + PMTilesVectorSource
  *   - cog:         Cloud Optimized GeoTIFF via WebGLTileLayer + GeoTIFFSource
  */
@@ -14,6 +14,7 @@
 import TileLayer from "ol/layer/Tile";
 import VectorTileLayer from "ol/layer/VectorTile";
 import WebGLTileLayer from "ol/layer/WebGLTile";
+import VectorLayer from "ol/layer/Vector";
 import { VectorImage as VectorImageLayer } from "ol/layer";
 import XYZ from "ol/source/XYZ";
 import VectorSource from "ol/source/Vector";
@@ -22,12 +23,16 @@ import GeoJSON from "ol/format/GeoJSON";
 import TileGrid from "ol/tilegrid/TileGrid";
 import type { Layer as OLLayer } from "ol/layer";
 import type { Coordinate } from "ol/coordinate";
+import type { FeatureLoader } from "ol/featureloader";
 import { Style, Fill, Stroke, Text } from "ol/style";
 import type { Feature } from "ol";
 import type { Geometry } from "ol/geom";
+import Point from "ol/geom/Point";
 
 import { buildLegacyResolutions } from "../parsers/leafletShim";
+import { resolveGeoJSONDataProjection } from "../parsers/geojsonProjection";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
+import { createGazetteerLabelStyle, getGazetteerLabel } from "../styles/gazetteerLabels";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -179,33 +184,116 @@ function createTileLayer(input: LayerFactoryInput): TileLayer<XYZ> {
   });
 }
 
-function createVectorLayer(input: LayerFactoryInput): VectorImageLayer {
+function createVectorLayer(input: LayerFactoryInput): VectorImageLayer | VectorLayer {
   const { sublayer, missionId, projCode, style, projConfig } = input;
 
   const url = buildFullUrl(sublayer, missionId, "data");
+  const isGazetteer = isGazetteerSublayer(sublayer);
 
-  return new VectorImageLayer({
-    source: new VectorSource({
-      url,
-      format: new GeoJSON({
-        dataProjection: "EPSG:4326",
-        featureProjection: projCode,
-      }),
+  const source = new VectorSource({
+    // `url` is kept (informational — getUrl() reflects it) but the actual fetch/parse
+    // is done by the custom `loader`, which resolves a per-document data projection
+    // before ol/format/GeoJSON transforms coordinates (see buildGeoJSONLoader).
+    url,
+    loader: buildGeoJSONLoader(url, projCode, (features) => {
+      if (!isGazetteer && !isGazetteerFeatures(features)) return;
+
+      for (const feature of features) {
+        const geometry = feature.getGeometry();
+        if (geometry instanceof Point) {
+          const name = feature.get("name");
+          if (getGazetteerLabel(feature) == null && typeof name === "string") {
+            feature.set("gazetteerLabel", name);
+          }
+          feature.set("originalCoordinates", [...geometry.getCoordinates()]);
+        }
+      }
+      layer.set("movableLabels", true);
+      layer.setDeclutter(true);
+      layer.setStyle(createGazetteerLabelStyle(style));
     }),
-    style: buildVectorStyleFn(style, baseResolutionFromProjConfig(projConfig)),
+  });
+
+  const LayerClass = isGazetteer ? VectorLayer : VectorImageLayer;
+  const layer = new LayerClass({
+    source,
+    style: isGazetteer
+      ? createGazetteerLabelStyle(style)
+      : buildVectorStyleFn(style, baseResolutionFromProjConfig(projConfig)),
     imageRatio: 1.5,
-    // declutter is intentionally OFF for GeoJSON layers — it suppresses
+    // Declutter is intentionally OFF for ordinary GeoJSON layers — it suppresses
     // entire features (stroke + fill) when their text labels overlap, which
     // makes dense contour layers invisible. Text labels use `overflow: true`
     // in the style function, so they render even outside their geometry and
-    // don't need decluttering.
-    declutter: false,
+    // don't need decluttering. Gazetteer layers contain labels only and use
+    // VectorLayer so decluttering and synchronous feature hit detection share
+    // the live map frame used by Translate.
+    declutter: isGazetteer,
     properties: {
       name: sublayer.name,
       uuid: sublayer.uuid,
       sublayerType: "vector",
+      movableLabels: isGazetteer,
     },
   });
+  return layer;
+}
+
+/**
+ * Build a `VectorSource` loader that fetches a GeoJSON document and resolves its
+ * source coordinate space (`dataProjection`) per-document via
+ * `resolveGeoJSONDataProjection` — see that module for the compatibility rule. This
+ * replaces a hardcoded `dataProjection: "EPSG:4326"`, which mis-renders the small set
+ * of legacy GeoJSON files that carry raw projected meter coordinates (see
+ * `docs/MS3_20260812_VECTOR_IMPORT_AUDIT.md`).
+ */
+function buildGeoJSONLoader(
+  url: string,
+  projCode: string,
+  onFeaturesLoaded?: (features: Feature<Geometry>[]) => void
+): FeatureLoader {
+  return function (this: VectorSource, _extent, _resolution, _projection, success, failure) {
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then((json) => {
+        let dataProjection: string;
+        try {
+          dataProjection = resolveGeoJSONDataProjection(json, projCode);
+        } catch (error) {
+          console.error(`[layerFactory] ${url}:`, error);
+          this.removeLoadedExtent(_extent);
+          failure?.();
+          return;
+        }
+        const format = new GeoJSON({ dataProjection, featureProjection: projCode });
+        const features = format.readFeatures(json) as Feature<Geometry>[];
+        onFeaturesLoaded?.(features);
+        this.addFeatures(features);
+        success?.(features);
+      })
+      .catch((error) => {
+        console.error(`[layerFactory] Failed to load GeoJSON ${url}:`, error);
+        this.removeLoadedExtent(_extent);
+        failure?.();
+      });
+  };
+}
+
+export function isGazetteerFeatures(features: Feature<Geometry>[]): boolean {
+  return (
+    features.length > 0 &&
+    features.every(
+      (feature) =>
+        feature.getGeometry()?.getType() === "Point" && getGazetteerLabel(feature) != null
+    )
+  );
+}
+
+export function isGazetteerSublayer(sublayer: Pick<Sublayer, "name">): boolean {
+  return /(?:^|[^a-z0-9])(?:gazetteer|nomenclature)(?:$|[^a-z0-9])/i.test(sublayer.name);
 }
 
 function createPmtilesLayer(input: LayerFactoryInput): VectorTileLayer {

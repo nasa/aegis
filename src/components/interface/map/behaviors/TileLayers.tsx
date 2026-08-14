@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { Layer as OLLayer } from "ol/layer";
 import type { VectorImage as VectorImageLayer } from "ol/layer";
 import type VectorTileLayer from "ol/layer/VectorTile";
+import { Translate } from "ol/interaction";
 import MVT from "ol/format/MVT";
 import { PMTilesVectorSource } from "ol-pmtiles";
 import { PMTiles } from "pmtiles";
@@ -30,6 +31,7 @@ import {
   type LayerFactoryInput,
   type TileGridConfig,
 } from "../utils/layers/layerFactory";
+import { createGazetteerLabelStyle, getGazetteerLabel } from "../utils/styles/gazetteerLabels";
 import { applyVisualStyle, clearVisualStyle } from "../utils/visualStyleApplicator";
 import { getLayersToShow, type SublayerToRender } from "../utils/getLayersToShow";
 
@@ -94,6 +96,19 @@ export function TileLayers(): null {
   const prevMapRef = useRef<typeof map | null>(null);
 
   useEffect(() => {
+    const translate = new Translate({
+      layers: (layer) => layer.get("movableLabels") === true,
+      filter: (feature) =>
+        getGazetteerLabel(feature) != null && feature.get("originalCoordinates") != null,
+      hitTolerance: 5,
+    });
+    map.addInteraction(translate);
+    return () => {
+      map.removeInteraction(translate);
+    };
+  }, [map]);
+
+  useEffect(() => {
     // If the map instance changed, the old layers belong to the disposed map.
     // Clear our tracking so the reconciliation re-adds them to the new map.
     if (prevMapRef.current !== null && prevMapRef.current !== map) {
@@ -153,9 +168,15 @@ export function TileLayers(): null {
         applyVisualStyle(existing, sublayerToRender.visualStyle);
         const baseResolution = map.getView().getResolutionForZoom(0);
         if (sublayerToRender.type === "vector") {
-          (existing as VectorImageLayer).setStyle(
-            buildVectorStyleFn(sublayerToRender.visualStyle, baseResolution)
-          );
+          if (existing.get("movableLabels")) {
+            (existing as VectorImageLayer).setStyle(
+              createGazetteerLabelStyle(sublayerToRender.visualStyle)
+            );
+          } else {
+            (existing as VectorImageLayer).setStyle(
+              buildVectorStyleFn(sublayerToRender.visualStyle, baseResolution)
+            );
+          }
         } else if (sublayerToRender.type === "vector-tile") {
           (existing as VectorTileLayer).setStyle(
             buildVectorStyleFn(sublayerToRender.visualStyle, baseResolution)

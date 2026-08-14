@@ -42,7 +42,7 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **products**      | the DEM (`--in-dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/`  | derive from DEM → colorize → tile (`--dem-products`)                        |
 | **vector**        | landing-ellipse shapefile                                       | `Data/ellipse.geojson`                    | reproject to EPSG:4326                                                      |
 | **rasters**       | custom rasters (`--in-raster`, repeatable)                      | `Layers/<name>/` tile pyramid each        | stretch (if float) → tile                                                   |
-| **vectors**       | custom vectors (`--in-vector`, repeatable)                      | `Data/<stem>.geojson` each                | shp → reproject; geojson copied                                             |
+| **vectors**       | one custom vector (`--in-vector`)                               | `Data/<name>.geojson` + audit JSON        | shp/GeoJSON → CRS-safe geographic normalization                             |
 | **horizons**      | horizon shapefile directory (`--in-horizon-shapefile-dir`)      | `Data/MP026_Horizon_*.geojson`            | find horizon `.shp` files → reproject using the supplied `.prj`             |
 | **vectortiles**   | ArcGIS vector-tile cache (`--in-esri-vector-tiles`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
 | **contours**      | the DEM (`--contours`)                                          | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
@@ -288,6 +288,19 @@ pass `--raster-name` once per input to choose stable output names. For example:
 pixi run python esri-to-aegis-lunar-southpole/main.py \
   --mission-id 98 --in-raster F:/tempF/MS3_data_drop/mm2-average.tif \
   --raster-name NAC_mosaic --steps rasters --overwrite
+```
+
+`--in-vector` accepts exactly one shapefile or GeoJSON source per pipeline run. Run the pipeline
+again for each additional source; this keeps repair, expected-count, naming, reporting, and
+registration decisions independent. `--vector-name` selects the output stem,
+`--repair-vector-invalid` enables `make_valid`, and `--expect-vector-features` asserts the output
+feature count. Every run writes `Data/<name>_audit.json` beside the normalized GeoJSON.
+
+```bash
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+  --mission-id 50 --in-vector F:/drop/GeoContacts.shp \
+  --vector-name MS3_Geomorphic_Contacts --expect-vector-features 43 \
+  --steps vectors
 ```
 
 Custom raster layers and COGs use nodata-driven transparency by default. For imagery where black

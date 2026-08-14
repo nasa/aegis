@@ -11,6 +11,7 @@ import { describe, it, expect, vi } from "vitest";
 import TileLayer from "ol/layer/Tile";
 import VectorTileLayer from "ol/layer/VectorTile";
 import WebGLTileLayer from "ol/layer/WebGLTile";
+import VectorLayer from "ol/layer/Vector";
 import { VectorImage as VectorImageLayer } from "ol/layer";
 import XYZ from "ol/source/XYZ";
 import VectorSource from "ol/source/Vector";
@@ -21,6 +22,8 @@ import {
   createOlLayer,
   createCogLayer,
   buildVectorStyleFn,
+  isGazetteerFeatures,
+  isGazetteerSublayer,
   withAlpha,
   type LayerFactoryInput,
   type TileGridConfig,
@@ -251,6 +254,23 @@ describe("createOlLayer", () => {
       expect(layer).toBeInstanceOf(VectorImageLayer);
       const source = (layer as VectorImageLayer).getSource();
       expect(source).toBeInstanceOf(VectorSource);
+    });
+
+    it("creates a decluttered VectorLayer for draggable gazetteer labels", () => {
+      const layer = createOlLayer(
+        makeInput({
+          sublayer: makeSublayerToDraw({
+            type: "vector",
+            path: "nomenclature.geojson",
+            name: "MS3_Nomenclature",
+          }),
+        })
+      );
+
+      expect(layer).toBeInstanceOf(VectorLayer);
+      expect(layer).not.toBeInstanceOf(VectorImageLayer);
+      expect((layer as VectorLayer).getDeclutter()).toBeTruthy();
+      expect(layer?.get("movableLabels")).toBe(true);
     });
 
     it("sets sublayerType=vector and name/uuid properties", () => {
@@ -585,5 +605,54 @@ describe("buildVectorStyleFn", () => {
 
     expect(fn(lineFeat, 0).getText()!.getPlacement()).toBe("line");
     expect(fn(pointFeat, 0).getText()!.getPlacement()).toBe("point");
+  });
+});
+
+describe("isGazetteerFeatures", () => {
+  it("accepts a non-empty point collection with labels", () => {
+    const feature = new Feature(new Point([0, 0]));
+    feature.set("label", "Nobile Crater");
+
+    expect(isGazetteerFeatures([feature])).toBe(true);
+  });
+
+  it("accepts nomenclature features using the demonstrated Feat Name field", () => {
+    const feature = new Feature(new Point([0, 0]));
+    feature.set("Feat Name", "Nobile");
+
+    expect(isGazetteerFeatures([feature])).toBe(true);
+  });
+
+  it("rejects point collections without the gazetteer label field", () => {
+    const feature = new Feature(new Point([0, 0]));
+    feature.set("name", "Boulder 1");
+
+    expect(isGazetteerFeatures([feature])).toBe(false);
+  });
+
+  it("rejects labelled non-point geometry", () => {
+    const feature = new Feature(
+      new LineString([
+        [0, 0],
+        [1, 1],
+      ])
+    );
+    feature.set("label", "Contour");
+
+    expect(isGazetteerFeatures([feature])).toBe(false);
+  });
+});
+
+describe("isGazetteerSublayer", () => {
+  it.each(["Nomenclature", "Lunar Gazetteer", "MS3_Nomenclature"])("recognizes %s", (name) => {
+    expect(isGazetteerSublayer({ name })).toBe(true);
+  });
+
+  it("does not match the term inside another word", () => {
+    expect(isGazetteerSublayer({ name: "NomenclatureArchive" })).toBe(false);
+  });
+
+  it("does not classify unrelated vector layer names", () => {
+    expect(isGazetteerSublayer({ name: "Boulders" })).toBe(false);
   });
 });

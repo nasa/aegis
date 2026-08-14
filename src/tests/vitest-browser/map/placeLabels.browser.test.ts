@@ -11,6 +11,8 @@ import Feature from "ol/Feature";
 import { Point, LineString } from "ol/geom";
 import { Style, Icon } from "ol/style";
 import { createPlaceLabelStyle } from "components/interface/map/testMapPerformant/placeLabels";
+import { createGazetteerLabelStyle } from "components/interface/map/utils/styles/gazetteerLabels";
+import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -106,5 +108,54 @@ describe("createPlaceLabelStyle", () => {
     const dragged = fn(makeLabelFeature("Tsiolkovsky", [50, 50], [0, 0]), 1) as Style;
     expect(base.getZIndex()).toBe(100);
     expect(dragged.getZIndex()).toBe(100);
+  });
+});
+
+describe("createGazetteerLabelStyle", () => {
+  it("uses the configured label color without a background box", () => {
+    const feature = new Feature(new Point([0, 0]));
+    feature.set("Feat Name", "Nobile");
+    const style = createGazetteerLabelStyle({
+      ...defaultSublayerStyle,
+      labelColor: "#ff0000",
+      labelHaloColor: "#00ff00",
+      labelHaloWidth: 1,
+      labelHaloOpacity: 1,
+    })(feature, 1) as Style;
+    const canvas = (style.getImage() as Icon).getImage(1) as HTMLCanvasElement;
+    const pixels = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data;
+    let hasRedText = false;
+
+    for (let index = 0; index < pixels.length; index += 4) {
+      if (pixels[index] === 255 && pixels[index + 1] === 0 && pixels[index + 2] === 0) {
+        hasRedText = true;
+        break;
+      }
+    }
+
+    expect(hasRedText).toBe(true);
+    expect(pixels[3]).toBe(0);
+  });
+
+  it("renders a black and white dashed tether after a label is moved", () => {
+    const feature = new Feature(new Point([100, 100]));
+    feature.set("label", "Nobile");
+    feature.set("originalCoordinates", [0, 0]);
+    const style = createGazetteerLabelStyle(defaultSublayerStyle)(feature, 1) as Style;
+    const canvas = (style.getImage() as Icon).getImage(1) as HTMLCanvasElement;
+    const pixels = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data;
+    let hasBlack = false;
+    let hasWhite = false;
+
+    for (let index = 0; index < pixels.length; index += 4) {
+      const red = pixels[index];
+      const green = pixels[index + 1];
+      const blue = pixels[index + 2];
+      if (red === 0 && green === 0 && blue === 0) hasBlack = true;
+      if (red === 255 && green === 255 && blue === 255) hasWhite = true;
+    }
+
+    expect(hasBlack).toBe(true);
+    expect(hasWhite).toBe(true);
   });
 });
