@@ -32,17 +32,17 @@ one concern (one layer, one interaction, one overlay) and reconciles it against 
 
 ### The three entry points
 
-| File | `mode` | Notes |
-|------|--------|-------|
-| `AegisMapEditor.tsx`    | `"editor"`    | Full feature set. Self-wraps `FeatureSourcesProvider`. Only editor has POI/measurement/interaction/highlight/timeline behaviors and zoom controls. |
-| `AegisMapDashboard.tsx` | `"dashboard"` | Adds `FollowModeProvider` + `FollowMode` behavior. No editing behaviors. |
+| File                    | `mode`        | Notes                                                                                                                                                                                                      |
+| ----------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AegisMapEditor.tsx`    | `"editor"`    | Full feature set. Self-wraps `FeatureSourcesProvider`. Only editor has POI/measurement/interaction/highlight/timeline behaviors and zoom controls.                                                         |
+| `AegisMapDashboard.tsx` | `"dashboard"` | Adds `FollowModeProvider` + `FollowMode` behavior. No editing behaviors.                                                                                                                                   |
 | `AegisMapMinimap.tsx`   | `"minimap"`   | Stripped down. Adds `BigMapBoundsBox` + `AutoFitBounds`. Non-interactive. Has no eyeball menu, but mirrors the dashboard menu's scale-bar + traverse-arrow toggles via `DashboardBoundsProvider` (see §2). |
 
 `MapMode` is defined in `src/typings/map/ol.d.ts` (`"editor" | "dashboard" | "minimap"`).
 
 > **Provider-nesting contract (implicit and load-bearing):** `AegisMapDashboard` and
 > `AegisMapMinimap` do **NOT** self-wrap `FeatureSourcesProvider` or `DashboardBoundsProvider`.
-> The dashboard **page** (`src/pages/dashboard.tsx`) must wrap *both* maps in a single shared
+> The dashboard **page** (`src/pages/dashboard.tsx`) must wrap _both_ maps in a single shared
 > `FeatureSourcesProvider` + `DashboardBoundsProvider` so they share sources and viewport sync.
 > If a dashboard/minimap is rendered without those ancestors, `useContext` throws. Each map
 > still wraps its own `MapMenuProvider`.
@@ -86,6 +86,7 @@ one concern (one layer, one interaction, one overlay) and reconciles it against 
 
 Projections are registered once in `MapProvider` via `proj4.defs()` + `register(proj4)`.
 Three projection paths:
+
 - **Custom non-Mercator** (lunar polar stereographic etc.): `projIsCustom` + a proj4 string +
   custom resolutions/extent. `projCode` = the `projEpsg` value.
 - **Custom "Mercator"**: `projEpsg === "EPSG:3857"` but custom → `projCode` = `AEGIS:{missionId}`.
@@ -95,6 +96,7 @@ Three projection paths:
 `toAegisPoint` / `projCode`. `createCoordConverters()` is a pure factory (testable without React).
 
 Bug-prone details:
+
 - **lng/lat order**: `toMapCoord` packs `[point.lng, point.lat]`; `toAegisPoint` destructures
   `[lng, lat]`. Getting this backwards is the classic coordinate bug.
 - `toMapCoord` returns `[0, 0]` (projection origin) for a null lat/lng — **fails silently**, not
@@ -123,6 +125,7 @@ then adds/updates/removes **without recreating features** (preserves OL identity
 hover, drag state). Used by most marker/line behaviors.
 
 Traps that cause real bugs:
+
 1. **Properties are MERGED, not replaced.** `feature.setProperties(props, /*silent*/true)` only
    sets keys present in the descriptor. **Stale keys are never removed.** This is the root cause
    behind the measurement/traverse "withhold segment arrays while editing then ignore the stale
@@ -169,6 +172,7 @@ components dispatch `updateMapDirective(...)`. Directives: `createMarker`, `edit
 `editPolyline`, and their `cancel*`/`save*` variants.
 
 Key behaviors:
+
 - **`findFeatureOnMap(map, id)`** iterates every layer source by id — OL has no global feature
   registry. **Walkback features use a prefixed id `walkback-${uuid}`** (matches `WalkbackLines`).
   If the feature isn't found, the directive is cleared.
@@ -249,6 +253,7 @@ All OL `Style`/`StyleFunction` objects live in `utils/styles/` — **never inlin
 **Golden rule: never `new Style(...)` inside a style function** — it allocates every frame. Cache
 outside. The style builders each keep a `Map` cache; know its **key**, because a bug often means
 a cache key omits a varying input:
+
 - `markers.ts` (`buildStation/Poi/Action/LanderStyleFunction`): keyed by emoji + selection
   (+ in-progress). **`iconSize` is NOT in the key** — it's captured at builder-creation time, so a
   size change requires rebuilding the whole builder, not re-calling it. Selected marker →
@@ -307,6 +312,7 @@ for the timeline astronaut renders above all vector layers regardless.
 algorithm everywhere; only the numbers/flags differ per mode. Behaviors read from it rather than
 branching on mode. Sections: `map`, `lander`, `station`, `circle`, `traverse`, `markerLabel`,
 `pos`, `grid`. Notable flags that gate behavior:
+
 - editor: fully interactive; `station.zIndexOffset: 2000`; draggable/hoverable stations.
 - dashboard: larger icons, `tooltipOpacity 0.65`, `hoverable: false` (→ in-progress green ring),
   `traverse.selectedWeight: 0` (no selection glow).
@@ -332,6 +338,7 @@ features on `posSource` styled by `buildPosMarkerStyleFunction` (stacked posType
 bars), so they hit-test, edit, and z-order like every other marker (see §12 PosEntries).
 
 Overlay gotchas:
+
 - Dashboard menus are hover-gated (mouseenter/mouseleave on `map.getTargetElement()`); if the
   target element isn't ready when the effect runs, listeners silently don't attach.
 - `MouseCoordinateDisplay` needs BOTH `config.map.showMouseCoords` (editor) AND the eyeball toggle.
@@ -342,27 +349,27 @@ Overlay gotchas:
 
 ## 12. Behavior component reference
 
-| Component | Owns | Mode | Reconciler | Notes |
-|-----------|------|------|-----------|-------|
-| `TileLayers` | all data layers (neg z) | all | layer-level | preset hot-swap, async PMTiles, COG by ext |
-| `Grid` | own line + label layers | all | rebuild on view move | adaptive density; reads module-global `globalGrid` (non-reactive) |
-| `Circles` | own circle layers | all | **full rebuild** each change | dashed altColor = 2× layers; dupes station visibility logic |
-| `TraverseLines` | shared `traverseSource` | all | ✅ | geodesic bearings/distances; edit-drag detach dance |
-| `WalkbackLines` | shared `walkbackSource` | all | ✅ | feature id `walkback-${uuid}`; edit-drag dance |
-| `MeasurementLines` | shared `measurementSource` | editor | ✅ | edit-drag dance; new measurements spawn at viewport thirds |
-| `StationMarkers` | shared `stationSource` | all | ✅ | dashboard in-progress green ring; drag = selected only |
-| `PoiMarkers` | shared `poiSource` | all | ✅ | selected POI always shown; `source.changed()` repaint |
-| `ActionMarkers` | shared `actionSource` | all | ✅ | shown only when parent selected + eyeball on; STM (v2) action label built from the definition via `getActionDisplayName` (not `action.name`) |
-| `LanderMarker` | own source | all | single feature `"lander"` | disabled mid-edit (sits on traverse endpoint) |
-| `MarkerLabels` | shared `labelSource` | editor/dash | layout pass | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition) |
-| `PosEntries` | shared `posSource` (markers) + `posPathSource` (paths) | all | ✅ markers / rebuild paths | only when section=="evas" & selectedRex; epsilon egress skip; keeps edited entry visible |
-| `InteractionManager` | active Translate/Modify | editor | — | one interaction at a time; auto-cancel-on-navigate |
-| `HoverHighlight` | own source | editor | — | clones hovered geometry; POS resolved from REX (not vector) |
-| `SelectionHighlight` | own source + auto-pan | editor | — | one target via priority chain; pans only outside viewport & not mid-edit |
-| `TimelineAstronaut` | `ol/Overlay` | editor | — | `getCoordinateAt(fraction)`; `percentElapsed === 0` is valid |
-| `FollowMode` | drives `view.fit()` | dashboard | — | sorts pos entries newest-first (documented fix); publishes `bigMapExtent` |
-| `AutoFitBounds` | drives `view.fit()` | minimap | — | fits objects + dashboard box |
-| `BigMapBoundsBox` | own source | minimap | rebuild | draws dashboard viewport box |
+| Component            | Owns                                                   | Mode        | Reconciler                   | Notes                                                                                                                                           |
+| -------------------- | ------------------------------------------------------ | ----------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TileLayers`         | all data layers (neg z)                                | all         | layer-level                  | preset hot-swap, async PMTiles, COG by ext                                                                                                      |
+| `Grid`               | own line + label layers                                | all         | rebuild on view move         | resolved server-file/dynamic LGRS source; animation-frame-throttled adaptive density                                                            |
+| `Circles`            | own circle layers                                      | all         | **full rebuild** each change | dashed altColor = 2× layers; dupes station visibility logic                                                                                     |
+| `TraverseLines`      | shared `traverseSource`                                | all         | ✅                           | geodesic bearings/distances; edit-drag detach dance                                                                                             |
+| `WalkbackLines`      | shared `walkbackSource`                                | all         | ✅                           | feature id `walkback-${uuid}`; edit-drag dance                                                                                                  |
+| `MeasurementLines`   | shared `measurementSource`                             | editor      | ✅                           | edit-drag dance; new measurements spawn at viewport thirds                                                                                      |
+| `StationMarkers`     | shared `stationSource`                                 | all         | ✅                           | dashboard in-progress green ring; drag = selected only                                                                                          |
+| `PoiMarkers`         | shared `poiSource`                                     | all         | ✅                           | selected POI always shown; `source.changed()` repaint                                                                                           |
+| `ActionMarkers`      | shared `actionSource`                                  | all         | ✅                           | shown only when parent selected + eyeball on; STM (v2) action label built from the definition via `getActionDisplayName` (not `action.name`)    |
+| `LanderMarker`       | own source                                             | all         | single feature `"lander"`    | disabled mid-edit (sits on traverse endpoint)                                                                                                   |
+| `MarkerLabels`       | shared `labelSource`                                   | editor/dash | layout pass                  | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition) |
+| `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | only when section=="evas" & selectedRex; epsilon egress skip; keeps edited entry visible                                                        |
+| `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                              |
+| `HoverHighlight`     | own source                                             | editor      | —                            | clones hovered geometry; POS resolved from REX (not vector)                                                                                     |
+| `SelectionHighlight` | own source + auto-pan                                  | editor      | —                            | one target via priority chain; pans only outside viewport & not mid-edit                                                                        |
+| `TimelineAstronaut`  | `ol/Overlay`                                           | editor      | —                            | `getCoordinateAt(fraction)`; `percentElapsed === 0` is valid                                                                                    |
+| `FollowMode`         | drives `view.fit()`                                    | dashboard   | —                            | sorts pos entries newest-first (documented fix); publishes `bigMapExtent`                                                                       |
+| `AutoFitBounds`      | drives `view.fit()`                                    | minimap     | —                            | fits objects + dashboard box                                                                                                                    |
+| `BigMapBoundsBox`    | own source                                             | minimap     | rebuild                      | draws dashboard viewport box                                                                                                                    |
 
 ---
 
@@ -391,15 +398,7 @@ Overlay gotchas:
 
 ---
 
-## 14. Docs (in `docs/`)
-
-- `TODO-after-this-MR.md` — backlog.
-- `CONTEXT-MENU-INTERACTIONS.md` — future right-click map interaction plan.
-- `AUTOMERGE-MIGRATION-NOTES.md` (this dir) — entity storage migration notes.
-
----
-
-## 15. Tests
+## 14. Tests
 
 ```bash
 npm run test:vitest            # Unit — src/tests/vitest/map/ (pure utils: reconciler, coord

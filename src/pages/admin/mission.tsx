@@ -14,6 +14,8 @@ import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { maestroCreateDoc } from "http-client/maestro";
 import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
+import { isCanonicalSouthLpsMission } from "utils/lgrs/dynamicGrid";
+import { getGridRenderMode } from "utils/mapping/grid";
 
 type RouteParams = {
   id: string;
@@ -80,6 +82,9 @@ const Mission: React.FunctionComponent = () => {
   const [maestroError, setMaestroError] = useState<string | null>(null);
   const [maestroResponseMeta, setMaestroResponseMeta] = useState<unknown | null>(null);
   const maestroCurrentUser = useAppSelector((state) => state.user.launchpadUser, shallowEqual);
+  const dynamicLgrsCompatible = automergeMission
+    ? isCanonicalSouthLpsMission(automergeMission)
+    : false;
 
   const handleCreateMaestroProject = useCallback(async () => {
     if (!automergeMission?.id) return;
@@ -500,6 +505,39 @@ const Mission: React.FunctionComponent = () => {
                         </label>
                       </div>
                     </div>
+                    <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+                      <legend className={adminStyles.editLabel}>Grid Rendering</legend>
+                      <label className={adminCommon.checkboxItem}>
+                        <input
+                          type="radio"
+                          name="gridRenderMode"
+                          checked={getGridRenderMode(automergeMission) === "server-file"}
+                          onChange={() => {
+                            changeAutomergeMission((m: Mission) => {
+                              m.gridRenderMode = "server-file";
+                            });
+                          }}
+                        />
+                        Server File
+                      </label>
+                      <label className={adminCommon.checkboxItem}>
+                        <input
+                          type="radio"
+                          name="gridRenderMode"
+                          checked={getGridRenderMode(automergeMission) === "dynamic-lgrs"}
+                          disabled={!dynamicLgrsCompatible}
+                          onChange={() => {
+                            changeAutomergeMission((m: Mission) => {
+                              m.gridRenderMode = "dynamic-lgrs";
+                            });
+                          }}
+                        />
+                        Dynamic LGRS
+                      </label>
+                      {!dynamicLgrsCompatible ? (
+                        <p>Dynamic LGRS requires the canonical lunar south-pole projection.</p>
+                      ) : null}
+                    </fieldset>
                   </div>
                 </section>
 
@@ -740,6 +778,7 @@ const Mission: React.FunctionComponent = () => {
                 <AdminMissionGrid
                   missionId={automergeMission.id}
                   grid={automergeMission.serverFileGrid ?? null}
+                  gridRenderMode={getGridRenderMode(automergeMission)}
                 />
               </div>
             </div>

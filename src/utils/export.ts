@@ -7,7 +7,7 @@ import {
   getCalculatedFieldsByStation,
   getCalculatedFieldsByTraverse,
 } from "store/processing/calculatedFields";
-import { globalGrid } from "./mapping/grid";
+import { resolveMissionGrid } from "./mapping/grid";
 import * as jsonKeysSort from "json-keys-sort";
 
 export const makeEquipmentReadable = (params: {
@@ -92,7 +92,8 @@ export const makeExportActions = (params: {
         action.location,
         mission.planetRadius,
         mission.usingLGRSCoordinates,
-        missionGrid
+        missionGrid,
+        true
       ),
       rexUuid,
     };
@@ -133,7 +134,8 @@ export const makeExportPois = (params: {
         poi.location,
         mission.planetRadius,
         mission.usingLGRSCoordinates,
-        missionGrid
+        missionGrid,
+        true
       ),
     };
     return exportPoi;
@@ -208,7 +210,8 @@ export const makeExportStations = (params: {
         station.location,
         mission.planetRadius,
         mission.usingLGRSCoordinates,
-        missionGrid
+        missionGrid,
+        true
       ),
       actionOrderRefUuids: station.actionOrderUuids?.map(
         (actionOrderUuid) => mission.actions[actionOrderUuid]?.refUuid
@@ -400,7 +403,8 @@ export const makeExportMission = (params: {
       mission.landerLocation,
       mission.planetRadius,
       mission.usingLGRSCoordinates,
-      missionGrid
+      missionGrid,
+      true
     ),
   };
 
@@ -461,6 +465,9 @@ export const makeExportString = ({
 }): string => {
   if (!mission) return "";
   let selectedExportedData = {};
+  const resolvedGrid = resolveMissionGrid(mission);
+  const missionGrid =
+    resolvedGrid.kind === "server-file" ? resolvedGrid.grid.coordinates : undefined;
 
   /**
    * Mission
@@ -468,7 +475,7 @@ export const makeExportString = ({
   if (selectMission) {
     const exportMission = makeExportMission({
       mission,
-      missionGrid: globalGrid?.coordinates,
+      missionGrid,
     });
     selectedExportedData = { ...selectedExportedData, exportMission };
   }
@@ -480,7 +487,7 @@ export const makeExportString = ({
     const actions: ExportAction[] = makeExportActions({
       actions: Object.values(mission?.actions ?? {}),
       mission,
-      missionGrid: globalGrid?.coordinates,
+      missionGrid,
     });
     selectedExportedData = { ...selectedExportedData, actions };
   }
@@ -490,7 +497,7 @@ export const makeExportString = ({
   if (selectPois) {
     const pois: ExportPOI[] = makeExportPois({
       pois: Object.values(mission?.pois ?? {}),
-      missionGrid: globalGrid?.coordinates,
+      missionGrid,
       mission,
     });
     selectedExportedData = { ...selectedExportedData, pois };
@@ -501,7 +508,7 @@ export const makeExportString = ({
   if (selectStations) {
     const stations: ExportStation[] = makeExportStations({
       stations: Object.values(mission?.stations ?? {}),
-      missionGrid: globalGrid?.coordinates,
+      missionGrid,
       mission,
     });
     selectedExportedData = { ...selectedExportedData, stations };
@@ -512,7 +519,7 @@ export const makeExportString = ({
   if (selectTraverses) {
     const traverses: ExportTraverse[] = makeExportTraverses({
       traverses: Object.values(mission?.traverses ?? {}),
-      missionGrid: globalGrid?.coordinates,
+      missionGrid,
       mission,
     });
     selectedExportedData = { ...selectedExportedData, traverses };
@@ -523,7 +530,7 @@ export const makeExportString = ({
   if (selectEvas) {
     const evas: ExportEva[] = makeExportEvas({
       evas: Object.values(mission?.evas ?? {}),
-      missionGrid: globalGrid?.coordinates,
+      missionGrid,
       mission,
     });
     selectedExportedData = { ...selectedExportedData, evas };

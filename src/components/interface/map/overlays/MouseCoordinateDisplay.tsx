@@ -2,8 +2,8 @@
  * MouseCoordinateDisplay — shows lat/lng + grid coordinates under the cursor.
  *
  * Listens to `pointermove` on the OL map and converts projected coordinates
- * back to AEGIS lat/lng, then computes grid coordinates using the existing
- * `getGridCoordinatesFromPoint()` utility.
+ * back to AEGIS lat/lng, then computes grid coordinates through the LGRS
+ * display adapter in `getGridCoordinatesFromPoint()`.
  *
  * Editor only.
  */
@@ -14,9 +14,9 @@ import type { MapBrowserEvent } from "ol";
 import { refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridCoordinatesFromPoint } from "utils/mapping/geoMath";
-import { globalGrid } from "utils/mapping/grid";
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
+import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 
 interface MouseCoordinateDisplayProps {
@@ -29,6 +29,7 @@ export function MouseCoordinateDisplay({
   const { map, mode } = useMapContext();
   const config = MODE_CONFIGS[mode];
   const { toAegisPoint } = useCoordConverters();
+  const resolvedGrid = useResolvedMissionGrid();
 
   const planetRadius = useMissionDocSelector((doc) => doc.planetRadius, refEqual);
   const usingLGRS = useMissionDocSelector((doc) => doc.usingLGRSCoordinates, refEqual);
@@ -47,7 +48,8 @@ export function MouseCoordinateDisplay({
         point,
         planetRadius,
         usingLGRS,
-        globalGrid?.coordinates
+        resolvedGrid.kind === "server-file" ? resolvedGrid.grid.coordinates : undefined,
+        resolvedGrid.kind === "dynamic-lgrs"
       );
       setMouseGridCoord(gridCoords);
     };
@@ -56,7 +58,7 @@ export function MouseCoordinateDisplay({
     return () => {
       map.un("pointermove", handleMove);
     };
-  }, [map, config.map.showMouseCoords, toAegisPoint, planetRadius, usingLGRS]);
+  }, [map, config.map.showMouseCoords, toAegisPoint, planetRadius, usingLGRS, resolvedGrid]);
 
   if (!config.map.showMouseCoords) return null;
 
@@ -80,6 +82,7 @@ export function MouseCoordinateDisplay({
             fontSize: "0.8em",
             border: "1px solid var(--grey3, #666)",
             padding: "5px",
+            minWidth: "150px",
           }}
         >
           {mouseGridCoord}

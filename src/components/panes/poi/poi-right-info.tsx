@@ -1,13 +1,7 @@
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import {
-  faCalculator,
-  faGlobe,
-  faLocationDot,
-  faMessage,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCalculator, faLocationDot, faMessage, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
 import {
@@ -24,16 +18,16 @@ import { validators } from "components/interface/form/formValidators";
 import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
-import { globalGrid } from "utils/mapping/grid";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
-import { getLGRSCoordsFromLatLng } from "utils/surf-nav/surfNavWrapper";
+import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
+import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
 }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
+  const resolvedGrid = useResolvedMissionGrid();
   const partialMission = useMissionDocSelector(
     (mission) => ({
       usingLGRSCoordinates: mission.usingLGRSCoordinates,
@@ -60,22 +54,6 @@ const Info_Panel: FunctionComponent<{
     () => (selectedPoiUuid ? docMaps?.pois[selectedPoiUuid] : undefined),
     [docMaps, selectedPoiUuid]
   );
-  const quickMapLinkState = useMissionDocSelector((mission) => {
-    const poi = mission.pois[selectedPoiUuid];
-    if (!poi || !isQuickMapPoint(poi.location) || !isQuickMapPoint(mission.landerLocation)) {
-      return null;
-    }
-    return createQuickMapLinkState({
-      center: poi.location,
-      additionalPoints: [
-        {
-          location: mission.landerLocation,
-          properties: { title: "Lander", "marker-color": "#ffffff" },
-        },
-        { location: poi.location, properties: { title: poi.name } },
-      ],
-    });
-  }, deepEqual);
   const numStationsUsingPoi = useMemo(
     () =>
       selectedPoi && docMaps
@@ -106,10 +84,15 @@ const Info_Panel: FunctionComponent<{
   const gridCornerPoint = useAppSelector((state) => state.map.gridCornerPoint, refEqual);
   const poiGridCoordinates = useMemo(() => {
     if (selectedPoi?.location && partialMission.usingLGRSCoordinates) {
-      return getLGRSCoordsFromLatLng(selectedPoi.location.lat, selectedPoi.location.lng);
-    } else if (selectedPoi?.location && globalGrid?.coordinates && gridCornerPoint) {
+      return (
+        getSouthLpsDisplayCoordinate(
+          selectedPoi.location,
+          resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
+        ) ?? "Not set"
+      );
+    } else if (selectedPoi?.location && resolvedGrid.kind === "server-file" && gridCornerPoint) {
       return findGlobalGridCoordsFromPoint(
-        globalGrid.coordinates,
+        resolvedGrid.grid.coordinates,
         selectedPoi.location,
         partialMission.planetRadius
       );
@@ -121,6 +104,7 @@ const Info_Panel: FunctionComponent<{
     partialMission.usingLGRSCoordinates,
     partialMission.planetRadius,
     gridCornerPoint,
+    resolvedGrid,
   ]);
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
@@ -365,20 +349,6 @@ const Info_Panel: FunctionComponent<{
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>
-              <SubpanelHeading icon={faGlobe}>QuickMap</SubpanelHeading>
-            </div>
-            <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
-              <Button
-                onClick={() => quickMapLinkState && openQuickMap(quickMapLinkState)}
-                label="View POI in QuickMap"
-                toolTip="Opens an external, read-only QuickMap window"
-                style={{ width: "200px" }}
-                enabled={quickMapLinkState != null}
-              />
             </div>
           </div>
           <div className={paneStyles.panelSection}>

@@ -9,6 +9,7 @@ interface Mission {
   missionBanner: string | null;
   isArchived: boolean;
   usingLGRSCoordinates: boolean;
+  gridRenderMode: GridRenderMode;
   actionSystemVersion: number;
   actionDefinitions: ActionDefinitions | null;
   landerLocation: AEGISPoint;
@@ -188,6 +189,13 @@ type MissionGrid = {
   gridDefinition: MissionGridDefinition;
   coordinates: MissionGridPoint[][];
 };
+
+type GridRenderMode = "server-file" | "dynamic-lgrs";
+
+type ResolvedMissionGrid =
+  | { kind: "none" }
+  | { kind: "dynamic-lgrs" }
+  | { kind: "server-file"; grid: MissionGrid };
 
 /**
  * Grid metadata stored on the mission Automerge doc (`mission.serverFileGrid`).

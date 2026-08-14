@@ -2,12 +2,45 @@ import { getGrid } from "http-client/grid";
 import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 
 export let globalGrid: MissionGrid = null;
+const loadedGridListeners = new Set<() => void>();
+
+function setLoadedGrid(grid: MissionGrid): void {
+  if (globalGrid === grid) return;
+  globalGrid = grid;
+  for (const listener of loadedGridListeners) listener();
+}
+
+export function subscribeLoadedGrid(listener: () => void): () => void {
+  loadedGridListeners.add(listener);
+  return () => loadedGridListeners.delete(listener);
+}
+
+export function getLoadedGridSnapshot(): MissionGrid {
+  return globalGrid;
+}
+
+export function getGridRenderMode(mission: { gridRenderMode?: GridRenderMode }): GridRenderMode {
+  return mission.gridRenderMode ?? "server-file";
+}
+
+export function resolveMissionGrid(
+  mission: Pick<Mission, "serverFileGrid"> & { gridRenderMode?: GridRenderMode },
+  serverGrid: MissionGrid = globalGrid
+): ResolvedMissionGrid {
+  if (getGridRenderMode(mission) === "dynamic-lgrs") return { kind: "dynamic-lgrs" };
+  if (!mission.serverFileGrid || !serverGrid?.coordinates?.length) return { kind: "none" };
+  return { kind: "server-file", grid: serverGrid };
+}
+
+export function clearLoadedGrid(): void {
+  setLoadedGrid(null);
+}
 
 /**
  * Derive the base spacing (metres between adjacent grid lines) from the grid
- * geometry. This is the single source of truth for grid resolution — spacing is
- * not stored on the mission doc, so both the resolution menu and the Grid
- * behavior compute it from the loaded coordinate file.
+ * geometry for server-file grids. Spacing is not stored on the mission doc, so
+ * both the resolution menu and the Grid behavior compute it from the loaded
+ * coordinate file when one is used. Dynamic LGRS grids use their own resolution.
  * @returns spacing in metres, or 0 if it can't be determined
  */
 export function getGridBaseSpacingMeters(grid: MissionGrid, planetRadius: number): number {
@@ -28,15 +61,15 @@ export function getGridBaseSpacingMeters(grid: MissionGrid, planetRadius: number
 
 export async function loadAndReturnGrid(missionId: number): Promise<MissionGrid> {
   if (!missionId) {
-    globalGrid = null;
+    setLoadedGrid(null);
     return null;
   }
   const gridData = (await getGrid(missionId, true)).data;
   if (gridData?.coordinates?.length) {
-    globalGrid = gridData;
+    setLoadedGrid(gridData);
     return gridData;
   } else {
-    globalGrid = null;
+    setLoadedGrid(null);
     return null;
   }
 }
