@@ -55,14 +55,8 @@ export const thunkDocCreateRex = appCreateAsyncThunk<
     setEvaDropdownUIState({ asPlannedEvaUuid, dropdownEvaUuid: rexStagedData.evaStage.newEvaUuid })
   );
 
-  // Initialize stationCirclesUIStates
-  // Get all of the new stations staged data that was added
-  const { stationStages, ingressStationStage, egressStationStage } = rexStagedData.evaStage;
-  const allNewStationStages = [...stationStages];
-  if (ingressStationStage) allNewStationStages.push(ingressStationStage);
-  if (egressStationStage) allNewStationStages.push(egressStationStage);
-  // Initialize the stationCirclesUIStates for each new station
-  for (const stationStage of allNewStationStages) {
+  // Initialize the stationCirclesUIStates for each new station.
+  for (const stationStage of rexStagedData.evaStage.stationStages) {
     const sourceCircleUIStates =
       cloneDeep(getState().station.stationCirclesUIStates[stationStage.oldStationUuid]) ?? {};
     dispatch(
