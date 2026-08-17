@@ -40,11 +40,13 @@ import { getLayersToShow, type SublayerToRender } from "../utils/getLayersToShow
 // ---------------------------------------------------------------------------
 
 export function TileLayers(): null {
-  const { map } = useMapContext();
+  const { map, mode } = useMapContext();
   const mapDateTime = useMapDateTime();
 
   // --- Redux state --------------------------------------------------------
   const selectedPresetUuid = useAppSelector((s) => s.preset.selectedPresetUuid, refEqual);
+  // Any active edit directive owns the map's interactions — see InteractionManager.
+  const editActive = useAppSelector((s) => !!s.map.mapDirective, refEqual);
   const selectedPreset = useAppSelector(
     (s) => s.preset.presets.find((p) => p.uuid === selectedPresetUuid),
     deepEqual
@@ -95,7 +97,13 @@ export function TileLayers(): null {
   const prevPresetUuidRef = useRef<string | null>(null);
   const prevMapRef = useRef<typeof map | null>(null);
 
+  // Drag-to-reposition for gazetteer / thematic labels. Mirrors MarkerLabels: the
+  // minimap is non-interactive, and labels are frozen while an edit directive owns
+  // its own Translate/Modify.
   useEffect(() => {
+    if (mode === "minimap") return;
+    if (editActive) return;
+
     const translate = new Translate({
       layers: (layer) => layer.get("movableLabels") === true,
       filter: (feature) =>
@@ -106,7 +114,7 @@ export function TileLayers(): null {
     return () => {
       map.removeInteraction(translate);
     };
-  }, [map]);
+  }, [map, mode, editActive]);
 
   useEffect(() => {
     // If the map instance changed, the old layers belong to the disposed map.

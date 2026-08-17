@@ -231,6 +231,25 @@ non-interactive — the edited item is manipulated only by `InteractionManager`.
 - Layer factory lives in `utils/layers/layerFactory.ts` (`createOlLayer` / `createCogLayer` /
   `buildVectorStyleFn`). Note two different `buildTileGrid` functions exist (`layerFactory` vs
   `parsers/esriPMTiles`) — import carefully.
+- **GeoJSON `dataProjection` is resolved per document**, not hardcoded. `createVectorLayer`
+  installs a custom `VectorSource` loader that fetches the file and asks
+  `utils/parsers/geojsonProjection.ts` whether it is lon/lat or already in the mission's own
+  projected metres (embedded `crs` member first, whole-document coordinate bounds as the
+  fallback). A malformed document or an unrecognized projected CRS **fails the load** rather
+  than being reinterpreted as `EPSG:4326`.
+- **Draggable data-layer labels.** Two flavours, both styled by `utils/styles/gazetteerLabels.ts`
+  and both marked with the layer property `movableLabels`:
+  - _Gazetteer/nomenclature_ — matched by sublayer name (`isGazetteerSublayer`) or by
+    property-sniffing the loaded features (`isGazetteerFeatures`). The whole layer renders as
+    label images; name-matched ones use a plain `VectorLayer` (not `VectorImageLayer`) so
+    Translate hit-tests the live frame.
+  - _Thematic_ — for per-feature-coloured polygon/line classes, `createThematicLabelFeatures`
+    appends a synthetic Point anchor per feature (`thematicLabel: true`) and flags the layer
+    `thematicLabels`; the source feature's inline text is suppressed via
+    `hasMovableThematicLabel`.
+    `TileLayers` owns the `ol/interaction/Translate` for both (skipped on the minimap and while
+    an edit directive is active, same rule as `MarkerLabels`). Dragged positions are **not**
+    persisted — they reset on preset switch or reload.
 - **TMS Y-flip** has two branches: custom tileGrid flips Y manually via
   `getFullTileRange(z).maxY - y` (the `{-y}` URL template does NOT work with custom grids);
   default grid uses `url.replace("{y}", "{-y}")`. A broken TMS layer usually means missing/misbuilt
@@ -268,6 +287,13 @@ a cache key omits a varying input:
   Measurement style hardcodes label colors and ignores stale segment arrays while editing.
 - `posPath.ts`: style cache is **cleared wholesale when size > 500** (crude cap). Has its own
   duplicate `arrowCache`.
+- `gazetteerLabels.ts` (`createGazetteerLabelStyle`): draggable data-layer labels (see §7). Two
+  per-builder caches — the label image keyed `name|colors|dpr`, and the composited
+  label+tether image additionally keyed by the **rounded pixel** offset to the original
+  location (stable while panning, recomputed per zoom step; cleared wholesale past 500).
+  Both the plain and the tethered image anchor on the label's bottom-centre so a label
+  doesn't shift the instant it's dragged. Honours `showLabels` opt-out style
+  (`=== false` hides; undefined shows), matching `buildVectorStyleFn`.
 - `emojiRenderer.ts`: unbounded canvas cache keyed `emoji-size`. A failed lander SVG load caches a
   **blank** canvas permanently (sticky failure until cache clears).
 
@@ -351,7 +377,7 @@ Overlay gotchas:
 
 | Component            | Owns                                                   | Mode        | Reconciler                   | Notes                                                                                                                                           |
 | -------------------- | ------------------------------------------------------ | ----------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TileLayers`         | all data layers (neg z)                                | all         | layer-level                  | preset hot-swap, async PMTiles, COG by ext                                                                                                      |
+| `TileLayers`         | all data layers (neg z) + label Translate              | all         | layer-level                  | preset hot-swap, async PMTiles, COG by ext, per-document GeoJSON CRS, draggable gazetteer/thematic labels                                       |
 | `Grid`               | own line + label layers                                | all         | rebuild on view move         | resolved server-file/dynamic LGRS source; animation-frame-throttled adaptive density                                                            |
 | `Circles`            | own circle layers                                      | all         | **full rebuild** each change | dashed altColor = 2× layers; dupes station visibility logic                                                                                     |
 | `TraverseLines`      | shared `traverseSource`                                | all         | ✅                           | geodesic bearings/distances; edit-drag detach dance                                                                                             |

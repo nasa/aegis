@@ -29,6 +29,7 @@ import { TileLayers } from "components/interface/map/behaviors/TileLayers";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { presetSlice, setPresetPreviewTime } from "store/preset";
 import { missionSlice } from "store/mission";
+import { mapSlice } from "store/map";
 import { interfaceSlice } from "store/interface";
 import { evaSlice } from "store/eva";
 import { generateBlankPreset } from "store/storeUtils/preset";
@@ -200,6 +201,7 @@ function makeStore(preloadedState: PartialPreloadedState = {}) {
     reducer: {
       preset: presetSlice.reducer,
       mission: missionSlice.reducer,
+      map: mapSlice.reducer,
       interface: interfaceSlice.reducer,
       eva: evaSlice.reducer,
     },

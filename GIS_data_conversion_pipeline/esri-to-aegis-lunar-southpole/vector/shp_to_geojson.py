@@ -65,6 +65,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -137,18 +138,22 @@ def _iter_coords(coords):
         yield from _iter_coords(item)
 
 
+def _iter_geometry_coords(geom: dict):
+    """Yield every leaf coordinate tuple in a geometry, descending into GeometryCollections."""
+    if geom.get("type") == "GeometryCollection":
+        for sub in geom.get("geometries", []):
+            yield from _iter_geometry_coords(sub)
+        return
+    yield from _iter_coords(geom.get("coordinates"))
+
+
 def _assert_geographic_bounds(geom: dict, feature_index: int) -> None:
     """Hard-fail if any coordinate in a transformed geometry falls outside lon/lat bounds.
 
     Guards against a silent no-op transform (the exact failure mode this script exists to
     prevent -- see the module docstring) slipping through as "success".
     """
-    geom_type = geom.get("type")
-    if geom_type == "GeometryCollection":
-        for sub in geom.get("geometries", []):
-            _assert_geographic_bounds(sub, feature_index)
-        return
-    for x, y, *_ in _iter_coords(geom.get("coordinates")):
+    for x, y, *_ in _iter_geometry_coords(geom):
         if not (-180 - LON_LAT_TOL <= x <= 180 + LON_LAT_TOL) or not (
             -90 - LON_LAT_TOL <= y <= 90 + LON_LAT_TOL
         ):
@@ -269,7 +274,7 @@ def convert(
             geometry_types[geom_out.get("type", "Unknown")] = (
                 geometry_types.get(geom_out.get("type", "Unknown"), 0) + 1
             )
-            for x, y, *_ in _iter_coords(geom_out.get("coordinates")):
+            for x, y, *_ in _iter_geometry_coords(geom_out):
                 min_x, max_x = min(min_x, x), max(max_x, x)
                 min_y, max_y = min(min_y, y), max(max_y, y)
 
@@ -311,7 +316,10 @@ def convert(
         print(f"  Invalid geometries: {invalid_count}; repaired: {repaired_count}")
     if null_geometry_count:
         print(f"  Omitted {null_geometry_count} feature(s) with null geometry")
-    if features:
+    # Every feature can be non-empty yet contribute no coordinate (e.g. an empty
+    # GeometryCollection), which would leave the accumulators at +/-inf.
+    has_bounds = math.isfinite(min_x) and math.isfinite(min_y)
+    if has_bounds:
         print(
             f"  Output bounds: ({min_x:.7f}, {min_y:.7f}) to ({max_x:.7f}, {max_y:.7f})"
         )
@@ -329,7 +337,7 @@ def convert(
         "repaired_count": repaired_count,
         "null_geometry_count": null_geometry_count,
         "property_keys": sorted(property_keys),
-        "output_bounds": [min_x, min_y, max_x, max_y] if features else None,
+        "output_bounds": [min_x, min_y, max_x, max_y] if has_bounds else None,
     }
 
 
@@ -351,15 +359,6 @@ def main() -> None:
         "input", type=Path, help="Input vector source (.shp, .geojson, or .json)"
     )
     parser.add_argument("output", type=Path, help="Output GeoJSON path")
-    parser.add_argument(
-        "--to-epsg",
-        type=int,
-        default=4326,
-        help=(
-            "Retained for CLI compatibility; output is always tagged EPSG:4326 lon/lat "
-            "(the target CRS is always derived from the source, never overridden)."
-        ),
-    )
     parser.add_argument(
         "--precision",
         type=int,
@@ -385,14 +384,6 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-
-    if args.to_epsg != 4326:
-        print(
-            "ERROR: --to-epsg only accepts 4326 -- the target CRS is always the source's "
-            "own geodetic CRS (Moon-to-Moon), never an arbitrary override.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
 
     if not args.input.exists():
         print(f"ERROR: input file not found: {args.input}", file=sys.stderr)

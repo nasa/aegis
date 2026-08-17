@@ -158,4 +158,35 @@ describe("createGazetteerLabelStyle", () => {
     expect(hasBlack).toBe(true);
     expect(hasWhite).toBe(true);
   });
+
+  it("ends the tether on the label's original location", () => {
+    const dpr = window.devicePixelRatio || 1;
+    const feature = new Feature(new Point([100, 100]));
+    feature.set("label", "Nobile");
+    feature.set("originalCoordinates", [0, 0]);
+    const icon = (createGazetteerLabelStyle(defaultSublayerStyle)(feature, 1) as Style).getImage();
+    const [anchorX, anchorY] = (icon as Icon).getAnchor();
+    const canvas = (icon as Icon).getImage(1) as HTMLCanvasElement;
+
+    // The image is anchored on the label's current position; the original location is
+    // 100 map units to the west and 100 north of it, which at resolution 1 is 100 px
+    // left and 100 px down in canvas space. The anchor dot must land exactly there.
+    const dot = canvas
+      .getContext("2d")!
+      .getImageData(Math.round(anchorX - 100 * dpr), Math.round(anchorY + 100 * dpr), 1, 1).data;
+
+    expect(dot[3]).toBeGreaterThan(0);
+  });
+
+  it("shows labels when showLabels is unset and hides them when it is false", () => {
+    const feature = new Feature(new Point([0, 0]));
+    feature.set("label", "Nobile");
+    const withoutShowLabels: MapSublayerStyle = { ...defaultSublayerStyle };
+    delete withoutShowLabels.showLabels;
+
+    expect(createGazetteerLabelStyle(withoutShowLabels)(feature, 1)).toBeDefined();
+    expect(
+      createGazetteerLabelStyle({ ...defaultSublayerStyle, showLabels: false })(feature, 1)
+    ).toBeUndefined();
+  });
 });

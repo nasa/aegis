@@ -399,7 +399,7 @@ def step_vector(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     banner("vector — ellipse shapefile → GeoJSON")
     require_input(p.ellipse_shp, "ellipse shapefile", "--in-ellipse")
     p.data.mkdir(parents=True, exist_ok=True)
-    run([PYTHON, SHP_TO_GEOJSON, p.ellipse_shp, p.ellipse_out, "--to-epsg", "4326"])
+    run([PYTHON, SHP_TO_GEOJSON, p.ellipse_shp, p.ellipse_out])
 
 
 def step_rasters(p: config.PipelinePaths, args: argparse.Namespace) -> None:
@@ -438,8 +438,10 @@ def step_rasters(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 def step_vectors(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Normalize one custom vector layer to geographic GeoJSON in Data/."""
     banner("vectors — one custom vector → normalized GeoJSON in Data/")
+    if args.in_vector is None:
+        raise SystemExit("The vectors step needs a source: pass --in-vector <PATH>.")
     p.data.mkdir(parents=True, exist_ok=True)
-    vector = Path(args.in_vector)
+    vector = args.in_vector
     require_input(vector, "custom vector", "--in-vector")
     if vector.suffix.lower() not in {".shp", ".geojson", ".json"}:
         raise SystemExit(f"Unsupported --in-vector format: {vector}")
@@ -486,7 +488,7 @@ def step_horizons(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     for source in sources:
         out = p.data / f"{source.stem}.geojson"
         tee(f"  horizon: {source} → {out}")
-        run([PYTHON, SHP_TO_GEOJSON, source, out, "--to-epsg", "4326"])
+        run([PYTHON, SHP_TO_GEOJSON, source, out])
 
 
 def step_grid(p: config.PipelinePaths, args: argparse.Namespace) -> None:
@@ -604,6 +606,9 @@ def _write_contour_properties(
             "mission DEM. Each line is labelled with its elevation in metres."
         ),
     }
+    (layer_dir / "properties.json").write_text(
+        json.dumps(props, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def _build_contour_layer(

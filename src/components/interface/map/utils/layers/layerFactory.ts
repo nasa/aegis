@@ -48,6 +48,9 @@ const LAYER_BASE_URL = "/static/missionFiles";
  */
 const POINT_SYMBOL_RADIUS = 6;
 
+/** Draws nothing. Returned where OL needs a Style but the feature has nothing to render. */
+const EMPTY_STYLE = new Style({});
+
 // ---------------------------------------------------------------------------
 // Input types
 // ---------------------------------------------------------------------------
@@ -242,9 +245,13 @@ function createVectorLayer(input: LayerFactoryInput): VectorImageLayer | VectorL
     // labels use `overflow: true` in the style function, so they render even
     // outside their geometry and don't need decluttering. Gazetteer labels are
     // draggable, so overlaps are resolved by the user — a decluttered-away
-    // label is invisible and therefore impossible to grab. Gazetteer layers
-    // still use VectorLayer (not VectorImageLayer) so feature hit detection is
-    // synchronous against the live map frame used by Translate.
+    // label is invisible and therefore impossible to grab.
+    //
+    // Name-matched gazetteer layers use VectorLayer so hit detection runs against
+    // the live map frame Translate uses. Every other vector sublayer stays on
+    // VectorImageLayer for the canvas batching dense contour/geomorphic sets need;
+    // the draggable thematic anchors those layers may grow at load time hit-test
+    // through the image renderer instead, which is accurate once the map is idle.
     declutter: false,
     properties: {
       name: sublayer.name,
@@ -269,7 +276,14 @@ function buildGeoJSONLoader(
   projCode: string,
   onFeaturesLoaded?: (features: Feature<Geometry>[]) => void
 ): FeatureLoader {
-  return function (this: VectorSource, _extent, _resolution, _projection, success, failure) {
+  return function (this: VectorSource, extent, _resolution, _projection, success, failure) {
+    // OL's own failure path doesn't drop the extent it just marked as loading, so a
+    // failed load would never be retried without this.
+    const fail = () => {
+      this.removeLoadedExtent(extent);
+      failure?.();
+    };
+
     fetch(url)
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -281,8 +295,7 @@ function buildGeoJSONLoader(
           dataProjection = resolveGeoJSONDataProjection(json, projCode);
         } catch (error) {
           console.error(`[layerFactory] ${url}:`, error);
-          this.removeLoadedExtent(_extent);
-          failure?.();
+          fail();
           return;
         }
         const format = new GeoJSON({ dataProjection, featureProjection: projCode });
@@ -293,8 +306,7 @@ function buildGeoJSONLoader(
       })
       .catch((error) => {
         console.error(`[layerFactory] Failed to load GeoJSON ${url}:`, error);
-        this.removeLoadedExtent(_extent);
-        failure?.();
+        fail();
       });
   };
 }
@@ -313,6 +325,10 @@ export function isGazetteerSublayer(sublayer: Pick<Sublayer, "name">): boolean {
   return /(?:^|[^a-z0-9])(?:gazetteer|nomenclature)(?:$|[^a-z0-9])/i.test(sublayer.name);
 }
 
+/**
+ * Text label for a feature, ignoring the elevation properties. Used for the draggable
+ * thematic anchors, where an elevation reading would be meaningless.
+ */
 function getVectorLabel(feature: Feature<Geometry>): string | number | undefined {
   return (
     feature.get("label") ??
@@ -324,6 +340,11 @@ function getVectorLabel(feature: Feature<Geometry>): string | number | undefined
   );
 }
 
+/**
+ * Text label rendered inline on the feature itself. Same chain as `getVectorLabel` with
+ * the elevation variants inserted after the generic `label` (contour PMTiles carry
+ * `elev`; delivered contour GeoJSONs use `Contour`).
+ */
 function getRenderedVectorLabel(feature: Feature<Geometry>): string | number | undefined {
   return (
     feature.get("label") ??
@@ -331,11 +352,7 @@ function getRenderedVectorLabel(feature: Feature<Geometry>): string | number | u
     feature.get("ELEVATION") ??
     feature.get("elev") ??
     feature.get("Contour") ??
-    feature.get("name") ??
-    feature.get("NAME") ??
-    feature.get("Unit") ??
-    feature.get("TYPE") ??
-    undefined
+    getVectorLabel(feature)
   );
 }
 
@@ -384,7 +401,9 @@ export function createThematicLabelFeatures(features: Feature<Geometry>[]): Feat
       originalCoordinates: [...coordinate],
       thematicLabel: true,
     });
-    labelFeature.setId(`thematic-label-${feature.getId() ?? index}`);
+    // Index-qualified: a source can mix features that carry an id with features that
+    // don't, and a bare id could collide with another feature's array position.
+    labelFeature.setId(`thematic-label-${index}-${feature.getId() ?? ""}`);
     return [labelFeature];
   });
 }
@@ -521,7 +540,10 @@ export function buildVectorStyleFn(
 
   return (feature: Feature<Geometry>, resolution: number) => {
     if (feature.get("thematicLabel") === true) {
-      return thematicLabelStyle(feature, resolution) as Style;
+      // A label anchor has no geometry of its own to draw — when the gazetteer style
+      // declines (labels off), render nothing rather than falling through to the
+      // stroke/fill branch below.
+      return thematicLabelStyle(feature, resolution) ?? EMPTY_STYLE;
     }
 
     const geomType = feature.getGeometry()?.getType();
@@ -611,7 +633,7 @@ export function buildVectorStyleFn(
         fill: geomType === "Polygon" || geomType === "MultiPolygon" ? symbolFill : undefined,
         // Unfilled by default: `fillOpacity` defaults to 0, so a point sublayer draws an
         // open ring until an operator raises it. The stroke is deliberately undashed —
-        // a dash pattern on a 5px circle reads as noise.
+        // a dash pattern on a symbol this small reads as noise.
         image: isPoint
           ? new CircleStyle({
               radius: POINT_SYMBOL_RADIUS,
