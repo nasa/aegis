@@ -33,6 +33,7 @@ import { buildLegacyResolutions } from "../parsers/leafletShim";
 import { resolveGeoJSONDataProjection } from "../parsers/geojsonProjection";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import { createGazetteerLabelStyle, getGazetteerLabel } from "../styles/gazetteerLabels";
+import type { DataLayerConfig } from "../modeConfig";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -63,6 +64,8 @@ export interface LayerFactoryInput {
   projCode: string;
   /** Per-sublayer visual controls from the preset. */
   style: MapSublayerStyle;
+  /** Per-mode label sizing / on-off switch from `MODE_CONFIGS[mode].dataLayer`. */
+  dataLayer: DataLayerConfig;
   /** Mission-level projection fields for building custom tile grids. */
   projConfig: TileGridConfig | null;
 }
@@ -196,7 +199,7 @@ function createTileLayer(input: LayerFactoryInput): TileLayer<XYZ> {
 }
 
 function createVectorLayer(input: LayerFactoryInput): VectorImageLayer | VectorLayer {
-  const { sublayer, missionId, projCode, style, projConfig } = input;
+  const { sublayer, missionId, projCode, style, dataLayer, projConfig } = input;
 
   const url = buildFullUrl(sublayer, missionId, "data");
   const isGazetteer = isGazetteerSublayer(sublayer);
@@ -228,7 +231,7 @@ function createVectorLayer(input: LayerFactoryInput): VectorImageLayer | VectorL
         }
       }
       layer.set("movableLabels", true);
-      layer.setStyle(createGazetteerLabelStyle(style));
+      layer.setStyle(createGazetteerLabelStyle(style, dataLayer));
     }),
   });
 
@@ -236,8 +239,8 @@ function createVectorLayer(input: LayerFactoryInput): VectorImageLayer | VectorL
   const layer = new LayerClass({
     source,
     style: isGazetteer
-      ? createGazetteerLabelStyle(style)
-      : buildVectorStyleFn(style, baseResolutionFromProjConfig(projConfig)),
+      ? createGazetteerLabelStyle(style, dataLayer)
+      : buildVectorStyleFn(style, dataLayer, baseResolutionFromProjConfig(projConfig)),
     imageRatio: 1.5,
     // Declutter is intentionally OFF for every vector layer. For ordinary
     // GeoJSON layers it suppresses entire features (stroke + fill) when their
@@ -409,7 +412,7 @@ export function createThematicLabelFeatures(features: Feature<Geometry>[]): Feat
 }
 
 function createPmtilesLayer(input: LayerFactoryInput): VectorTileLayer {
-  const { sublayer, missionId, projCode, projConfig, style } = input;
+  const { sublayer, missionId, projCode, projConfig, style, dataLayer } = input;
 
   const url = buildFullUrl(sublayer, missionId, "tile");
   const tileGrid = buildTileGrid(sublayer, projConfig);
@@ -418,7 +421,7 @@ function createPmtilesLayer(input: LayerFactoryInput): VectorTileLayer {
   // The TileLayers behavior component will asynchronously resolve the
   // PMTiles metadata and attach the source. This avoids blocking render.
   return new VectorTileLayer({
-    style: buildVectorStyleFn(style, baseResolutionFromProjConfig(projConfig)),
+    style: buildVectorStyleFn(style, dataLayer, baseResolutionFromProjConfig(projConfig)),
     declutter: false,
     properties: {
       name: sublayer.name,
@@ -524,6 +527,7 @@ function buildTileGrid(sublayer: Sublayer, projConfig: TileGridConfig | null): T
  * Build the OL style function for a vector / vector-tile sublayer.
  *
  * @param style          Per-sublayer visual controls from the preset.
+ * @param dataLayer      Per-mode label sizing / on-off switch (`MODE_CONFIGS[mode].dataLayer`).
  * @param baseResolution Resolution at zoom 0 (map units per pixel). Passed so the
  *                       style function can convert the current `resolution` into a
  *                       zoom level and honour `style.labelMinZoom`. When omitted,
@@ -531,12 +535,13 @@ function buildTileGrid(sublayer: Sublayer, projConfig: TileGridConfig | null): T
  */
 export function buildVectorStyleFn(
   style: MapSublayerStyle,
+  dataLayer: DataLayerConfig,
   baseResolution?: number
 ): (feature: Feature<Geometry>, resolution: number) => Style {
   // Cache styles to avoid creating new Style/Stroke/Fill/Text objects per feature per frame.
   // Key: geomType + labelText + resolvedFillColor + style params that affect output.
   const styleCache: { [key: string]: Style } = {};
-  const thematicLabelStyle = createGazetteerLabelStyle(style);
+  const thematicLabelStyle = createGazetteerLabelStyle(style, dataLayer);
 
   return (feature: Feature<Geometry>, resolution: number) => {
     if (feature.get("thematicLabel") === true) {
@@ -570,6 +575,7 @@ export function buildVectorStyleFn(
     // Also gated by resolution so they thin out / disappear when zoomed far out.
     let labelText = "";
     if (
+      dataLayer.labelsEnabled &&
       style.showLabels !== false &&
       labelsAllowedAtZoom &&
       feature.get("hasMovableThematicLabel") !== true
@@ -602,7 +608,7 @@ export function buildVectorStyleFn(
 
         textStyle = new Text({
           text: labelText,
-          font: "12px Arial",
+          font: `${dataLayer.featureFontSize}px Arial`,
           fill: new Fill({ color: labelColor }),
           stroke:
             labelHaloWidth > 0

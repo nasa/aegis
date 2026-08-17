@@ -34,6 +34,7 @@ import {
 import { createGazetteerLabelStyle, getGazetteerLabel } from "../utils/styles/gazetteerLabels";
 import { applyVisualStyle, clearVisualStyle } from "../utils/visualStyleApplicator";
 import { getLayersToShow, type SublayerToRender } from "../utils/getLayersToShow";
+import { MODE_CONFIGS, type DataLayerConfig } from "../utils/modeConfig";
 
 // ---------------------------------------------------------------------------
 // Component
@@ -41,6 +42,7 @@ import { getLayersToShow, type SublayerToRender } from "../utils/getLayersToShow
 
 export function TileLayers(): null {
   const { map, mode } = useMapContext();
+  const dataLayerConfig = MODE_CONFIGS[mode].dataLayer;
   const mapDateTime = useMapDateTime();
 
   // --- Redux state --------------------------------------------------------
@@ -178,16 +180,16 @@ export function TileLayers(): null {
         if (sublayerToRender.type === "vector") {
           if (existing.get("movableLabels") && !existing.get("thematicLabels")) {
             (existing as VectorImageLayer).setStyle(
-              createGazetteerLabelStyle(sublayerToRender.visualStyle)
+              createGazetteerLabelStyle(sublayerToRender.visualStyle, dataLayerConfig)
             );
           } else {
             (existing as VectorImageLayer).setStyle(
-              buildVectorStyleFn(sublayerToRender.visualStyle, baseResolution)
+              buildVectorStyleFn(sublayerToRender.visualStyle, dataLayerConfig, baseResolution)
             );
           }
         } else if (sublayerToRender.type === "vector-tile") {
           (existing as VectorTileLayer).setStyle(
-            buildVectorStyleFn(sublayerToRender.visualStyle, baseResolution)
+            buildVectorStyleFn(sublayerToRender.visualStyle, dataLayerConfig, baseResolution)
           );
         }
       } else {
@@ -204,7 +206,8 @@ export function TileLayers(): null {
           sublayerToRender,
           missionId,
           projCode,
-          projConfig ?? null
+          projConfig ?? null,
+          dataLayerConfig
         );
         if (!layer) return;
 
@@ -229,7 +232,7 @@ export function TileLayers(): null {
     // render() ensures tile sources compute their visible tile ranges and
     // start requesting tiles immediately.
     map.render();
-  }, [layersToShow, selectedPresetUuid, missionId, map, projCode, projConfig]);
+  }, [layersToShow, selectedPresetUuid, missionId, map, projCode, projConfig, dataLayerConfig]);
 
   // --- Cleanup on unmount -------------------------------------------------
   useEffect(() => {
@@ -255,13 +258,15 @@ function createLayerForSublayer(
   sublayer: SublayerToRender,
   missionId: number,
   projCode: string,
-  projConfig: TileGridConfig | null
+  projConfig: TileGridConfig | null,
+  dataLayer: DataLayerConfig
 ): OLLayer | null {
   const input: LayerFactoryInput = {
     sublayer,
     missionId,
     projCode,
     style: sublayer.visualStyle,
+    dataLayer,
     projConfig,
   };
 

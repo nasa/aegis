@@ -287,13 +287,15 @@ a cache key omits a varying input:
   Measurement style hardcodes label colors and ignores stale segment arrays while editing.
 - `posPath.ts`: style cache is **cleared wholesale when size > 500** (crude cap). Has its own
   duplicate `arrowCache`.
-- `gazetteerLabels.ts` (`createGazetteerLabelStyle`): draggable data-layer labels (see §7). Two
-  per-builder caches — the label image keyed `name|colors|dpr`, and the composited
-  label+tether image additionally keyed by the **rounded pixel** offset to the original
+- `gazetteerLabels.ts` (`createGazetteerLabelStyle(style, dataLayer)`): draggable data-layer
+  labels (see §7). Two per-builder caches — the label image keyed `name|colors|dpr`, and the
+  composited label+tether image additionally keyed by the **rounded pixel** offset to the original
   location (stable while panning, recomputed per zoom step; cleared wholesale past 500).
   Both the plain and the tethered image anchor on the label's bottom-centre so a label
   doesn't shift the instant it's dragged. Honours `showLabels` opt-out style
-  (`=== false` hides; undefined shows), matching `buildVectorStyleFn`.
+  (`=== false` hides; undefined shows), matching `buildVectorStyleFn`. The font size comes
+  from `dataLayer` (see §10) and is **not** in either cache key — it's captured at
+  builder-creation time, so a size change means rebuilding the builder.
 - `emojiRenderer.ts`: unbounded canvas cache keyed `emoji-size`. A failed lander SVG load caches a
   **blank** canvas permanently (sticky failure until cache clears).
 
@@ -337,13 +339,25 @@ for the timeline astronaut renders above all vector layers regardless.
 `utils/modeConfig.ts` → `MODE_CONFIGS[mode]` (mode from `useMapContext()`). Same rendering
 algorithm everywhere; only the numbers/flags differ per mode. Behaviors read from it rather than
 branching on mode. Sections: `map`, `lander`, `station`, `circle`, `traverse`, `markerLabel`,
-`pos`, `grid`. Notable flags that gate behavior:
+`pos`, `grid`, `dataLayer`, `scaleBar`. Notable flags that gate behavior:
 
 - editor: fully interactive; `station.zIndexOffset: 2000`; draggable/hoverable stations.
-- dashboard: larger icons, `tooltipOpacity 0.65`, `hoverable: false` (→ in-progress green ring),
-  `traverse.selectedWeight: 0` (no selection glow).
+- dashboard: larger icons and label fonts throughout, `tooltipOpacity 0.65`, `hoverable: false`
+  (→ in-progress green ring), `traverse.selectedWeight: 0` (no selection glow).
 - minimap: `map.interactive: false`, tooltips off, no bearings/distances, `pos.drawPathWeight: false`,
-  `grid.labelsEnabled: false`.
+  `grid.labelsEnabled: false`, `dataLayer.labelsEnabled: false`.
+
+**Every** on-map font size is a mode-config number — `circle.labelFontSize`,
+`traverse.bearing/distanceLabelFontSize`, `markerLabel.fontSize`, `grid.labelFontSize`,
+`scaleBar.fontSize`, and `dataLayer.gazetteer/featureFontSize`. Don't hardcode a `px` size in a
+style file; add it here instead.
+
+`dataLayer` (`DataLayerConfig`) is the one section consumed outside the behavior components:
+`layerFactory` takes it on `LayerFactoryInput` and as the 2nd arg of `buildVectorStyleFn`, and
+`gazetteerLabels` takes it as the 2nd arg of `createGazetteerLabelStyle`. Those modules are pure
+and have no `MapMode`, so `TileLayers` reads `MODE_CONFIGS[mode].dataLayer` and threads it
+through. `labelsEnabled: false` suppresses **all** data-layer text — gazetteer place names,
+thematic anchors, and inline feature labels — which is what keeps the minimap uncluttered.
 
 POS path line weight is `pos.drawPathWeight` (editor 2px, dashboard 5px, minimap `false` = off).
 

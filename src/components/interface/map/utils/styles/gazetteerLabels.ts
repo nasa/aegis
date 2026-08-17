@@ -17,15 +17,16 @@ import { Style, Icon } from "ol/style";
 
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 
+import type { DataLayerConfig } from "../modeConfig";
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const LABEL_FONT = "bold 13px sans-serif";
-/** Horizontal breathing room baked into the label image, in CSS px. */
-const LABEL_PADDING = 6;
-/** Height of the label image, in CSS px. Fixed — the font size is fixed too. */
-const LABEL_HEIGHT = 26;
+/** Horizontal breathing room baked into the label image, as a multiple of the font size. */
+const LABEL_PADDING_EMS = 0.46;
+/** Height of the label image, as a multiple of the font size. */
+const LABEL_HEIGHT_EMS = 2;
 /** Below this screen distance the label still covers its anchor, so no tether is drawn. */
 const MIN_TETHER_PX = 2;
 const ANCHOR_DOT_RADIUS = 3;
@@ -46,17 +47,24 @@ export function getGazetteerLabel(feature: Feature): string | undefined {
   return typeof label === "string" && label.trim().length > 0 ? label : undefined;
 }
 
-export function createGazetteerLabelStyle(style: MapSublayerStyle) {
+export function createGazetteerLabelStyle(style: MapSublayerStyle, dataLayer: DataLayerConfig) {
   // Both caches live on the builder, so a preset restyle (which rebuilds the
   // builder) drops them along with the colours they were rendered with.
   const labelCache = new Map<string, Style>();
   const tetherCache = new Map<string, Style>();
+  const fontSize = dataLayer.gazetteerFontSize;
 
   return (feature: Feature, resolution: number): Style | undefined => {
     const name = getGazetteerLabel(feature);
     const geometry = feature.getGeometry();
     // Labels are opt-out (undefined = show), matching `buildVectorStyleFn`.
-    if (style.showLabels === false || !name || !measureContext || !(geometry instanceof Point)) {
+    if (
+      !dataLayer.labelsEnabled ||
+      style.showLabels === false ||
+      !name ||
+      !measureContext ||
+      !(geometry instanceof Point)
+    ) {
       return undefined;
     }
 
@@ -74,6 +82,7 @@ export function createGazetteerLabelStyle(style: MapSublayerStyle) {
     if (!labelStyle) {
       const canvas = renderLabelCanvas(
         name,
+        fontSize,
         labelColor,
         labelHaloColor,
         labelHaloWidth,
@@ -121,6 +130,7 @@ export function createGazetteerLabelStyle(style: MapSublayerStyle) {
 /** Draw the label text (halo + fill) onto a transparent canvas sized to the text. */
 function renderLabelCanvas(
   name: string,
+  fontSize: number,
   labelColor: string,
   labelHaloColor: string,
   labelHaloWidth: number,
@@ -128,26 +138,30 @@ function renderLabelCanvas(
   dpr: number
 ): HTMLCanvasElement | null {
   if (!measureContext) return null;
-  measureContext.font = LABEL_FONT;
-  const width = Math.ceil(measureContext.measureText(name).width + LABEL_PADDING * 4);
+  const font = `bold ${fontSize}px sans-serif`;
+  const height = Math.round(fontSize * LABEL_HEIGHT_EMS);
+  measureContext.font = font;
+  const width = Math.ceil(
+    measureContext.measureText(name).width + fontSize * LABEL_PADDING_EMS * 4
+  );
 
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(width * dpr);
-  canvas.height = Math.round(LABEL_HEIGHT * dpr);
+  canvas.height = Math.round(height * dpr);
   const context = canvas.getContext("2d");
   if (!context) return null;
 
   context.scale(dpr, dpr);
-  context.font = LABEL_FONT;
+  context.font = font;
   context.textBaseline = "middle";
   context.textAlign = "center";
   context.strokeStyle = labelHaloColor;
   context.globalAlpha = labelHaloOpacity;
   context.lineWidth = labelHaloWidth * 2;
-  context.strokeText(name, width / 2, LABEL_HEIGHT / 2);
+  context.strokeText(name, width / 2, height / 2);
   context.globalAlpha = 1;
   context.fillStyle = labelColor;
-  context.fillText(name, width / 2, LABEL_HEIGHT / 2);
+  context.fillText(name, width / 2, height / 2);
 
   return canvas;
 }

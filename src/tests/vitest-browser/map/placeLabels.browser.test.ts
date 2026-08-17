@@ -12,11 +12,14 @@ import { Point, LineString } from "ol/geom";
 import { Style, Icon } from "ol/style";
 import { createPlaceLabelStyle } from "components/interface/map/testMapPerformant/placeLabels";
 import { createGazetteerLabelStyle } from "components/interface/map/utils/styles/gazetteerLabels";
+import { MODE_CONFIGS } from "components/interface/map/utils/modeConfig";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+const EDITOR_DATA_LAYER = MODE_CONFIGS.editor.dataLayer;
 
 function makeLabelFeature(
   name: string | undefined,
@@ -115,13 +118,16 @@ describe("createGazetteerLabelStyle", () => {
   it("uses the configured label color without a background box", () => {
     const feature = new Feature(new Point([0, 0]));
     feature.set("Feat Name", "Nobile");
-    const style = createGazetteerLabelStyle({
-      ...defaultSublayerStyle,
-      labelColor: "#ff0000",
-      labelHaloColor: "#00ff00",
-      labelHaloWidth: 1,
-      labelHaloOpacity: 1,
-    })(feature, 1) as Style;
+    const style = createGazetteerLabelStyle(
+      {
+        ...defaultSublayerStyle,
+        labelColor: "#ff0000",
+        labelHaloColor: "#00ff00",
+        labelHaloWidth: 1,
+        labelHaloOpacity: 1,
+      },
+      EDITOR_DATA_LAYER
+    )(feature, 1) as Style;
     const canvas = (style.getImage() as Icon).getImage(1) as HTMLCanvasElement;
     const pixels = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data;
     let hasRedText = false;
@@ -141,7 +147,10 @@ describe("createGazetteerLabelStyle", () => {
     const feature = new Feature(new Point([100, 100]));
     feature.set("label", "Nobile");
     feature.set("originalCoordinates", [0, 0]);
-    const style = createGazetteerLabelStyle(defaultSublayerStyle)(feature, 1) as Style;
+    const style = createGazetteerLabelStyle(defaultSublayerStyle, EDITOR_DATA_LAYER)(
+      feature,
+      1
+    ) as Style;
     const canvas = (style.getImage() as Icon).getImage(1) as HTMLCanvasElement;
     const pixels = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data;
     let hasBlack = false;
@@ -164,7 +173,9 @@ describe("createGazetteerLabelStyle", () => {
     const feature = new Feature(new Point([100, 100]));
     feature.set("label", "Nobile");
     feature.set("originalCoordinates", [0, 0]);
-    const icon = (createGazetteerLabelStyle(defaultSublayerStyle)(feature, 1) as Style).getImage();
+    const icon = (
+      createGazetteerLabelStyle(defaultSublayerStyle, EDITOR_DATA_LAYER)(feature, 1) as Style
+    ).getImage();
     const [anchorX, anchorY] = (icon as Icon).getAnchor();
     const canvas = (icon as Icon).getImage(1) as HTMLCanvasElement;
 
@@ -184,9 +195,36 @@ describe("createGazetteerLabelStyle", () => {
     const withoutShowLabels: MapSublayerStyle = { ...defaultSublayerStyle };
     delete withoutShowLabels.showLabels;
 
-    expect(createGazetteerLabelStyle(withoutShowLabels)(feature, 1)).toBeDefined();
     expect(
-      createGazetteerLabelStyle({ ...defaultSublayerStyle, showLabels: false })(feature, 1)
+      createGazetteerLabelStyle(withoutShowLabels, EDITOR_DATA_LAYER)(feature, 1)
+    ).toBeDefined();
+    expect(
+      createGazetteerLabelStyle({ ...defaultSublayerStyle, showLabels: false }, EDITOR_DATA_LAYER)(
+        feature,
+        1
+      )
     ).toBeUndefined();
+  });
+
+  it("draws nothing for a mode with data-layer labels off", () => {
+    const feature = new Feature(new Point([0, 0]));
+    feature.set("label", "Nobile");
+
+    expect(
+      createGazetteerLabelStyle(defaultSublayerStyle, MODE_CONFIGS.minimap.dataLayer)(feature, 1)
+    ).toBeUndefined();
+  });
+
+  it("scales the label image with the mode's gazetteer font size", () => {
+    const feature = new Feature(new Point([0, 0]));
+    feature.set("label", "Nobile");
+    const heightFor = (dataLayer: (typeof MODE_CONFIGS)["editor"]["dataLayer"]) => {
+      const style = createGazetteerLabelStyle(defaultSublayerStyle, dataLayer)(feature, 1) as Style;
+      return ((style.getImage() as Icon).getImage(1) as HTMLCanvasElement).height;
+    };
+
+    expect(heightFor(MODE_CONFIGS.dashboard.dataLayer)).toBeGreaterThan(
+      heightFor(EDITOR_DATA_LAYER)
+    );
   });
 });

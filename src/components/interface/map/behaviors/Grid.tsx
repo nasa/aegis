@@ -125,7 +125,7 @@ export function Grid(): null {
       return new Style({
         text: new Text({
           text,
-          font: "12px sans-serif",
+          font: `${config.grid.labelFontSize}px sans-serif`,
           fill: new Fill({
             color: gridStyle.labelColor ?? defaultGridStyle.labelColor,
           }),
@@ -297,6 +297,7 @@ export function Grid(): null {
     toMapCoord,
     toAegisPoint,
     config.grid.labelsEnabled,
+    config.grid.labelFontSize,
     gridSpacingMode,
     gridLabelInterval,
   ]);
