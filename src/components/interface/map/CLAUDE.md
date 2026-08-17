@@ -78,7 +78,11 @@ one concern (one layer, one interaction, one overlay) and reconciles it against 
   into context so the minimap can draw the bounds box + auto-fit. Both maps must share a
   projection for the box to render correctly. Also carries the two eyeball toggles the minimap
   mirrors from the dashboard menu (`showScaleBar`, `showArrows`) — the shared dashboard↔minimap
-  channel for those values (see `MapMenuProvider` above).
+  channel for those values (see `MapMenuProvider` above) — plus `gridSpacing`, the grid line/label
+  spacing in metres that the dashboard `Grid` last drew (see §12 Grid). `setGridSpacing` keeps the
+  previous object when the numbers are unchanged, because the dashboard republishes every
+  animation frame while panning. `useOptionalDashboardBoundsContext()` returns `null` instead of
+  throwing, for behaviors that also run on the editor map.
 
 ---
 
@@ -392,7 +396,7 @@ Overlay gotchas:
 | Component            | Owns                                                   | Mode        | Reconciler                   | Notes                                                                                                                                           |
 | -------------------- | ------------------------------------------------------ | ----------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `TileLayers`         | all data layers (neg z) + label Translate              | all         | layer-level                  | preset hot-swap, async PMTiles, COG by ext, per-document GeoJSON CRS, draggable gazetteer/thematic labels                                       |
-| `Grid`               | own line + label layers                                | all         | rebuild on view move         | resolved server-file/dynamic LGRS source; animation-frame-throttled adaptive density                                                            |
+| `Grid`               | own line + label layers                                | all         | rebuild on view move         | resolved server-file/dynamic LGRS source; animation-frame-throttled adaptive density; dashboard publishes its spacing, minimap mirrors it       |
 | `Circles`            | own circle layers                                      | all         | **full rebuild** each change | dashed altColor = 2× layers; dupes station visibility logic                                                                                     |
 | `TraverseLines`      | shared `traverseSource`                                | all         | ✅                           | geodesic bearings/distances; edit-drag detach dance                                                                                             |
 | `WalkbackLines`      | shared `walkbackSource`                                | all         | ✅                           | feature id `walkback-${uuid}`; edit-drag dance                                                                                                  |
@@ -410,6 +414,14 @@ Overlay gotchas:
 | `FollowMode`         | drives `view.fit()`                                    | dashboard   | —                            | sorts pos entries newest-first (documented fix); publishes `bigMapExtent`                                                                       |
 | `AutoFitBounds`      | drives `view.fit()`                                    | minimap     | —                            | fits objects + dashboard box                                                                                                                    |
 | `BigMapBoundsBox`    | own source                                             | minimap     | rebuild                      | draws dashboard viewport box                                                                                                                    |
+
+> **Grid density is owned by the dashboard.** After each rebuild the dashboard `Grid` publishes the
+> line + label spacing it used (in projection metres) to `DashboardBoundsProvider`; the minimap
+> `Grid` uses that spacing in place of its own auto/fixed calculation, so the bounds box contains
+> as many grid lines as the dashboard shows. The editor map has no provider and is unaffected.
+> One safety valve: because the minimap is far more zoomed out, the inherited spacing is doubled
+> until adjacent lines are ≥ `MINIMAP_MIN_LINE_PX` (3px) apart — doubling keeps the drawn lines a
+> subset of the dashboard's. Both paths (dynamic-LGRS and server-file grid) implement this.
 
 ---
 
