@@ -4,6 +4,7 @@ import {
   isModified,
   makeTraverseRateString,
 } from "utils/component-helpers";
+import { sortActionDefinitionItems } from "components/interface/actionDefDropdown";
 
 describe("getAlertColor", () => {
   test("returns 'var(--alert)' for reportItems with 'error'", () => {
@@ -117,6 +118,22 @@ describe("getActionDisplayName", () => {
     expect(getActionDisplayName({ action, mission: { ...mission, actionSystemVersion: 1 } })).toBe(
       "Legacy Action"
     );
+  });
+});
+
+describe("sortActionDefinitionItems", () => {
+  test("sorts action definitions alphabetically by name", () => {
+    const items = {
+      z: { name: "Zebra", abbr: "z" },
+      a: { name: "Alpha", abbr: "a" },
+      m: { name: "Mango", abbr: "m" },
+    } as ActionDefinitionItems;
+
+    expect(sortActionDefinitionItems(items).map(([_, item]) => item.name)).toEqual([
+      "Alpha",
+      "Mango",
+      "Zebra",
+    ]);
   });
 });
 
