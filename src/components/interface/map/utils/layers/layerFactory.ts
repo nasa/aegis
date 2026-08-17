@@ -24,7 +24,7 @@ import TileGrid from "ol/tilegrid/TileGrid";
 import type { Layer as OLLayer } from "ol/layer";
 import type { Coordinate } from "ol/coordinate";
 import type { FeatureLoader } from "ol/featureloader";
-import { Style, Fill, Stroke, Text } from "ol/style";
+import { Style, Fill, Stroke, Text, Circle as CircleStyle } from "ol/style";
 import Feature from "ol/Feature";
 import type { Geometry, LineString, MultiLineString, MultiPolygon, Polygon } from "ol/geom";
 import Point from "ol/geom/Point";
@@ -39,6 +39,14 @@ import { createGazetteerLabelStyle, getGazetteerLabel } from "../styles/gazettee
 // ---------------------------------------------------------------------------
 
 const LAYER_BASE_URL = "/static/missionFiles";
+
+/**
+ * Screen radius of the circle drawn for `Point`/`MultiPoint` features in a generic
+ * vector sublayer. Fixed rather than preset-driven: `MapSublayerStyle` has no
+ * point-radius field, and `weight` already drives the ring thickness. Sized to read at
+ * the same weight as the 4pt circle the delivered ArcGIS `.lyrx` point renderers use.
+ */
+const POINT_SYMBOL_RADIUS = 6;
 
 // ---------------------------------------------------------------------------
 // Input types
@@ -517,6 +525,9 @@ export function buildVectorStyleFn(
     }
 
     const geomType = feature.getGeometry()?.getType();
+    // OL ignores stroke and fill on point geometry, so a point sublayer needs an
+    // `image` or it renders zero pixels.
+    const isPoint = geomType === "Point" || geomType === "MultiPoint";
 
     // When zoomed out past labelMinZoom, suppress labels so dense layers (e.g.
     // contours) don't turn into an unreadable overlapping mess. zoom = log2(base
@@ -579,10 +590,17 @@ export function buildVectorStyleFn(
                 })
               : undefined,
           placement: geomType === "LineString" ? "line" : "point",
+          // Clear the symbol so a point label sits under its circle rather than on it.
+          offsetY: isPoint ? POINT_SYMBOL_RADIUS + (style.weight || 1) + 8 : 0,
           maxAngle: Math.PI / 4,
           overflow: true,
         });
       }
+
+      const symbolFill =
+        style.fillOpacity > 0
+          ? new Fill({ color: withAlpha(resolvedFillColor, style.fillOpacity) })
+          : undefined;
 
       styleCache[cacheKey] = new Style({
         stroke: new Stroke({
@@ -590,10 +608,20 @@ export function buildVectorStyleFn(
           width: style.weight || 1,
           lineDash: style.isDashed ? [style.dashLen, style.dashLen] : undefined,
         }),
-        fill:
-          (geomType === "Polygon" || geomType === "MultiPolygon") && style.fillOpacity > 0
-            ? new Fill({ color: withAlpha(resolvedFillColor, style.fillOpacity) })
-            : undefined,
+        fill: geomType === "Polygon" || geomType === "MultiPolygon" ? symbolFill : undefined,
+        // Unfilled by default: `fillOpacity` defaults to 0, so a point sublayer draws an
+        // open ring until an operator raises it. The stroke is deliberately undashed —
+        // a dash pattern on a 5px circle reads as noise.
+        image: isPoint
+          ? new CircleStyle({
+              radius: POINT_SYMBOL_RADIUS,
+              stroke: new Stroke({
+                color: style.color || "#3399CC",
+                width: style.weight || 1,
+              }),
+              fill: symbolFill,
+            })
+          : undefined,
         text: textStyle,
       });
     }

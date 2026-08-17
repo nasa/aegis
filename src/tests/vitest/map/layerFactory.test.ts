@@ -16,8 +16,8 @@ import { VectorImage as VectorImageLayer } from "ol/layer";
 import XYZ from "ol/source/XYZ";
 import VectorSource from "ol/source/Vector";
 import Feature from "ol/Feature";
-import { Point, LineString, Polygon } from "ol/geom";
-import { Style } from "ol/style";
+import { Point, MultiPoint, LineString, Polygon } from "ol/geom";
+import { Style, Circle as CircleStyle } from "ol/style";
 import {
   createOlLayer,
   createCogLayer,
@@ -480,6 +480,36 @@ describe("buildVectorStyleFn", () => {
     );
     expect(polyStyle.getFill()).not.toBeNull();
     expect(lineStyle.getFill()).toBeNull();
+  });
+
+  it("draws an unfilled circle symbol for point geometry", () => {
+    const fn = buildVectorStyleFn(makeStyle({ color: "#ff00ff", weight: 3, fillOpacity: 0 }));
+    const image = fn(new Feature(new Point([0, 0])), 0).getImage() as CircleStyle;
+    expect(image).toBeInstanceOf(CircleStyle);
+    expect(image.getRadius()).toBe(6);
+    expect(image.getStroke()!.getColor()).toBe("#ff00ff");
+    expect(image.getStroke()!.getWidth()).toBe(3);
+    expect(image.getFill()).toBeNull();
+  });
+
+  it("fills the point symbol once fillOpacity is raised", () => {
+    const fn = buildVectorStyleFn(makeStyle({ fillColor: "#3399cc", fillOpacity: 0.25 }));
+    const image = fn(new Feature(new MultiPoint([[0, 0]])), 0).getImage() as CircleStyle;
+    expect(image.getFill()!.getColor()).toBe("rgba(51,153,204,0.25)");
+  });
+
+  it("does not create a point symbol for line or polygon geometry", () => {
+    const fn = buildVectorStyleFn(makeStyle());
+    const lineStyle = fn(
+      new Feature(
+        new LineString([
+          [0, 0],
+          [10, 10],
+        ])
+      ),
+      0
+    );
+    expect(lineStyle.getImage()).toBeNull();
   });
 
   it("does not create OpenLayers' default black fill at zero opacity", () => {
