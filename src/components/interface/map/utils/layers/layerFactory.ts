@@ -311,6 +311,7 @@ function getVectorLabel(feature: Feature<Geometry>): string | number | undefined
     feature.get("name") ??
     feature.get("NAME") ??
     feature.get("Unit") ??
+    feature.get("TYPE") ??
     undefined
   );
 }
@@ -325,6 +326,7 @@ function getRenderedVectorLabel(feature: Feature<Geometry>): string | number | u
     feature.get("name") ??
     feature.get("NAME") ??
     feature.get("Unit") ??
+    feature.get("TYPE") ??
     undefined
   );
 }
@@ -526,7 +528,9 @@ export function buildVectorStyleFn(
     }
     // Generic `label` lets any vector source opt into a per-feature label. Elevation/name
     // variants are kept for backward compatibility (contour PMTiles carry `elev`; delivered
-    // contour GeoJSONs use `Contour`).
+    // contour GeoJSONs use `Contour`). `TYPE` is last: it holds the feature class in the
+    // delivered geomorphic sets (contacts, linear features, surface features), which is the
+    // only human-readable text those datasets carry.
     const genericLabel = getRenderedVectorLabel(feature);
 
     // Labels are opt-out per sublayer (style.showLabels); undefined = show (legacy default).

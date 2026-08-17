@@ -575,6 +575,21 @@ describe("buildVectorStyleFn", () => {
     expect(unit.get("hasMovableThematicLabel")).toBe(true);
   });
 
+  it("creates a draggable label anchor from 'TYPE' for a colored linear feature", () => {
+    const line = new Feature(
+      new LineString([
+        [0, 0],
+        [10, 0],
+      ])
+    );
+    line.setProperties({ TYPE: "scarp base", color: "rgb(0, 0, 0)" });
+
+    const labels = createThematicLabelFeatures([line]);
+
+    expect(labels).toHaveLength(1);
+    expect(labels[0].get("gazetteerLabel")).toBe("scarp base");
+  });
+
   it("renders a text label when feature has 'name' property", () => {
     const fn = buildVectorStyleFn(makeStyle());
     const feat = new Feature(new Point([0, 0]));
@@ -620,6 +635,26 @@ describe("buildVectorStyleFn", () => {
     feat.set("elev", 5800);
     feat.set("label", "Rim");
     expect(fn(feat, 0).getText()!.getText()).toBe("Rim");
+  });
+
+  it("labels delivered geomorphic features from the 'TYPE' property", () => {
+    const fn = buildVectorStyleFn(makeStyle());
+    const feat = new Feature(
+      new LineString([
+        [0, 0],
+        [10, 0],
+      ])
+    );
+    feat.set("TYPE", "EHT lineament type 1");
+    expect(fn(feat, 0).getText()!.getText()).toBe("EHT lineament type 1");
+  });
+
+  it("prefers 'Unit' over 'TYPE' when both are present", () => {
+    const fn = buildVectorStyleFn(makeStyle());
+    const feat = new Feature(new Point([0, 0]));
+    feat.set("TYPE", "ignored");
+    feat.set("Unit", "ci");
+    expect(fn(feat, 0).getText()!.getText()).toBe("ci");
   });
 
   it("suppresses labels when style.showLabels is false", () => {
