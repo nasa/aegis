@@ -32,6 +32,8 @@ The delivery is vector-only. It contains ten logical datasets exported as shapef
 
 The workbook says craters and boulders "will be combined." That should mean one logical UI product, not one mixed-geometry file — but with boulders omitted for MS3 the product reduces to craters alone. The workbook also says the geomorphic map includes contacts, units, nomenclature, and related features. The delivered standalone nomenclature is a mission naming layer and should not be merged into the scientific geomorphic feature classes.
 
+A key finding from the delivery is that the nomenclature layer contains the same underlying named-feature inventory as the crater and boulder layers combined, but without the crater and boulder outlines themselves: it is effectively the label/anchor layer for the combined crater-and-boulder naming set, not an additional geometry class to be merged with the scientific map layers.
+
 This delivery does not contain all workbook rows marked Y, such as the DEM, orthomosaic, derived slope/hillshade, contours, viewsheds, or time-aware products. Those are separate source deliveries or pipeline-derived products and are outside this vector-drop audit.
 
 ## Delivered dataset inventory
