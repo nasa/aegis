@@ -49,26 +49,28 @@ export function applyCreateAction(
   }
 
   m.actions[blankAction.uuid] = blankAction;
-  // Push the new uuid onto the live Automerge array of the parent entity
-  // directly so the CRDT sees a per-element append. Initialize the array if
-  // missing to guard against corrupted doc state.
+  // Whole-array reassignment (not `.push()`) — workaround for an Automerge
+  // sequence-index bug where inserts into an actionOrderUuids list can be
+  // reported in A.diff patches but fail to appear in the materialized
+  // doc, producing stale reads server-side. Present in 3.2.6 and still
+  // reproducible in 3.4.1. See src/server/maestro/v2/onChangeListener.ts
+  // debug logging for the diagnostic that proved it. Trade-off: concurrent
+  // adds to the same parent's actionOrderUuids no longer merge — one write
+  // wins. Revisit when a future Automerge release confirms a fix.
   if (actionParentUuid.stationUuid) {
     const station = m.stations[actionParentUuid.stationUuid];
     if (station) {
-      if (!station.actionOrderUuids) station.actionOrderUuids = [];
-      station.actionOrderUuids.push(blankAction.uuid);
+      station.actionOrderUuids = [...(station.actionOrderUuids ?? []), blankAction.uuid];
     }
   } else if (actionParentUuid.poiUuid) {
     const poi = m.pois[actionParentUuid.poiUuid];
     if (poi) {
-      if (!poi.actionOrderUuids) poi.actionOrderUuids = [];
-      poi.actionOrderUuids.push(blankAction.uuid);
+      poi.actionOrderUuids = [...(poi.actionOrderUuids ?? []), blankAction.uuid];
     }
   } else if (actionParentUuid.traverseUuid) {
     const traverse = m.traverses[actionParentUuid.traverseUuid];
     if (traverse) {
-      if (!traverse.actionOrderUuids) traverse.actionOrderUuids = [];
-      traverse.actionOrderUuids.push(blankAction.uuid);
+      traverse.actionOrderUuids = [...(traverse.actionOrderUuids ?? []), blankAction.uuid];
     }
   }
 
@@ -165,29 +167,22 @@ export function applyDeleteActionAndUpdateParent(m: Mission, { uuid }: { uuid: s
   const action = m.actions?.[uuid];
   if (!action) return;
 
+  // Whole-array reassignment (not `.splice()`) — same Automerge workaround
+  // as applyCreateAction above; see the comment there.
   if (action.stationUuid) {
-    const actionOrderUuids = m.stations[action.stationUuid]?.actionOrderUuids;
-    if (actionOrderUuids) {
-      const actionIndex = actionOrderUuids.findIndex((actionUuid) => actionUuid === uuid);
-      if (actionIndex >= 0) {
-        actionOrderUuids.splice(actionIndex, 1);
-      }
+    const station = m.stations[action.stationUuid];
+    if (station?.actionOrderUuids) {
+      station.actionOrderUuids = station.actionOrderUuids.filter((u) => u !== uuid);
     }
   } else if (action.poiUuid) {
-    const actionOrderUuids = m.pois[action.poiUuid]?.actionOrderUuids;
-    if (actionOrderUuids) {
-      const actionIndex = actionOrderUuids.findIndex((actionUuid) => actionUuid === uuid);
-      if (actionIndex >= 0) {
-        actionOrderUuids.splice(actionIndex, 1);
-      }
+    const poi = m.pois[action.poiUuid];
+    if (poi?.actionOrderUuids) {
+      poi.actionOrderUuids = poi.actionOrderUuids.filter((u) => u !== uuid);
     }
   } else if (action.traverseUuid) {
-    const actionOrderUuids = m.traverses[action.traverseUuid]?.actionOrderUuids;
-    if (actionOrderUuids) {
-      const actionIndex = actionOrderUuids.findIndex((actionUuid) => actionUuid === uuid);
-      if (actionIndex >= 0) {
-        actionOrderUuids.splice(actionIndex, 1);
-      }
+    const traverse = m.traverses[action.traverseUuid];
+    if (traverse?.actionOrderUuids) {
+      traverse.actionOrderUuids = traverse.actionOrderUuids.filter((u) => u !== uuid);
     }
   }
 
