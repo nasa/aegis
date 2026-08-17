@@ -495,19 +495,37 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 - Compare category colors, dashes, marker symbols, labels, draw order, and legend wording with
   the delivered `.lyrx` files in ArcGIS.
 
-## Questions for the GIS/product teams
+## Feedback for the GIS team
 
-1. Is empty `LocationFeatures` intentional, or should a populated feature class be redelivered?
-2. Should `map_boundary` be visible in AEGIS or remain an authoring/reference extent only?
-3. May AEGIS repair PSR feature `Id=100`, or should GIS provide a corrected authoritative file?
-4. Does "craters combined with boulders" require a single UI group only, as recommended here,
-   or a single export file?
-5. Should dragged nomenclature positions persist across reloads/users, or is session-local
-   decluttering sufficient for MS3?
-6. Which `.lyrx` symbols must be reproduced exactly, and which may use an OpenLayers
-   approximation?
+Tracked while importing delivery 2 and wiring these layers into the active AEGIS map. This
+section is the list to send back to the GIS team, including outstanding problems from delivery 1
+and open questions for the GIS/product teams.
 
-## Problems with the data drop
+### Delivery 2 contents as received
+
+```text
+ALSST GIS team delivery 2
+├── 00_GIS_Files
+│   ├── 00_Vector
+│   │   ├── 00_Shapefiles      (shapefile version of each dataset)
+│   │   └── 01_GeoJSON
+│   │        GeoContacts.geojson
+│   │        GeoContacts_BuildPolygons8.geojson
+│   │        LinearFeatures.geojson
+│   │        LocationFeatures.geojson
+│   │        map_boundary.geojson
+│   │        MP026_craters_AM-072736.geojson
+│   │        MS3_A03MP026_Nomenclature_v2.geojson
+│   │        MS3_boulders_reviewed_bwd.geojson
+│   │        PSR_overlays.geojson
+│   │        SurfaceFeatures.geojson
+│   └── 02_Tables
+│        export_log_20260812_132444.txt
+│        fgdc_report_summary.pdf
+└── 01_Styles                  (one .lyrx per dataset, ten total)
+```
+
+### Problems with delivery 1
 
 1. `LocationFeatures` is empty despite the workbook including the geomorphic map product. It
    cannot provide the intended pitted-cone, small-crater, or shield-feature point layer.
@@ -520,3 +538,69 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
    with AEGIS's existing GeoJSON loader, which assumes geographic coordinates.
 6. Several workbook rows marked for inclusion are absent from this vector delivery: the DEM,
    orthomosaic, derived slope and hillshade, contours, viewsheds, and time-aware products.
+
+### 1. The GeoJSON copies are not needed
+
+Deliver shapefiles only. The shapefile carries its source CRS in the `.prj`, which is what the
+AEGIS importer needs; the paired GeoJSON exports add no information and cost review time. Every
+projected GeoJSON in this delivery also carries meter coordinates that must not be read as
+longitude/latitude, and two of them are unusable outright (`LocationFeatures.geojson` is empty,
+`PSR_overlays.geojson` is truncated).
+
+### 2. Label-property naming is inconsistent across datasets
+
+Each dataset puts its human-readable label in a differently named property:
+
+| Dataset (AEGIS product name)                    | Property holding the label |
+| ----------------------------------------------- | -------------------------- |
+| Nomenclature (`MS3_A03MP026_Nomenclature_v2`)   | `label`                    |
+| Geomorphic Units (`GeoContacts_BuildPolygons8`) | `Unit`                     |
+| Geomorphic Linear Features (`LinearFeatures`)   | `TYPE` (all caps)          |
+| Geomorphic Surface Features (`SurfaceFeatures`) | `TYPE` (all caps)          |
+
+Because of this, AEGIS now falls back through a fixed chain of property names to find a label. That chain is
+fragile and specific to this drop's spelling choices and will break the moment a future delivery
+uses `Label`, `Name`, or `Class`, for example. **Need: settle on one label property name, spelled
+identically in every dataset, for all future deliveries.** `label` (lowercase) is the preferred
+name because the nomenclature dataset already uses it. Keep the domain-specific attributes
+(`Unit`, `TYPE`, `SIZE`, `CONFIDENCE`) as well — they are useful for styling and filtering — but
+add the one agreed label property alongside them.
+
+### 3. `Geomorphic_Units` has a dead `Type` property
+
+`GeoContacts_BuildPolygons8` carries a valid `Unit` value per feature, but also a `Type` property
+whose values are all `null` or the literal string `"<null>"`. The literal `"<null>"` string is
+worse than an absent property, because consuming code has to special-case it. Either populate
+`Type` with meaningful values or drop the field from the export.
+
+### 4. `MS3_Geomorphic_Contacts` is not usable as delivered
+
+`GeoContacts` contains only a `TYPE` attribute with values such as `inferred` and `approximate`,
+and every feature carries `"color": "rgb(0, 0, 0)"`. The result in AEGIS is a set of unlabelled
+lines with nothing to explain what boundary each line represents or which units it
+separates.
+
+### 5. `Geomorphic_SurfaceFeatures` is likely out of scope
+
+Beyond using `TYPE` for its label, this dataset sits well outside the EVA operating area and consists only of unlabeled areas. Unless there is a planning reason to carry it, it can be dropped from future data deliveries.
+
+### 6. Repeat items still outstanding from delivery 1
+
+These were raised in "Problems with delivery 1" above and are unchanged in delivery 2:
+
+- `LocationFeatures` is still empty.
+- `RasterT_Int_psr2` and `RasterT_Int_psr2_1` are still byte-for-byte duplicates.
+- PSR feature `Id=100` still has a self-intersecting ring.
+- `PSR_overlays.geojson` is still truncated.
+
+### Open questions for the GIS/product teams
+
+1. Is empty `LocationFeatures` intentional, or should a populated feature class be redelivered?
+2. Should `map_boundary` be visible in AEGIS or remain an authoring/reference extent only?
+3. May AEGIS repair PSR feature `Id=100`, or should GIS provide a corrected authoritative file?
+4. Does "craters combined with boulders" require a single UI group only, as recommended here,
+   or a single export file?
+5. Should dragged nomenclature positions persist across reloads/users, or is session-local
+   decluttering sufficient for MS3?
+6. Which `.lyrx` symbols must be reproduced exactly, and which may use an OpenLayers
+   approximation?
