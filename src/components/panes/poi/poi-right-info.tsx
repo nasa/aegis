@@ -1,7 +1,13 @@
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 import paneStyles from "../global-pane-styles.module.css";
-import { faCalculator, faLocationDot, faMessage, faXmark } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCalculator,
+  faGlobe,
+  faLocationDot,
+  faMessage,
+  faXmark,
+} from "@fortawesome/free-solid-svg-icons";
 import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
 import {
@@ -22,6 +28,7 @@ import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
 import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
+import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
@@ -54,6 +61,22 @@ const Info_Panel: FunctionComponent<{
     () => (selectedPoiUuid ? docMaps?.pois[selectedPoiUuid] : undefined),
     [docMaps, selectedPoiUuid]
   );
+  const quickMapLinkState = useMissionDocSelector((mission) => {
+    const poi = mission.pois[selectedPoiUuid];
+    if (!poi || !isQuickMapPoint(poi.location) || !isQuickMapPoint(mission.landerLocation)) {
+      return null;
+    }
+    return createQuickMapLinkState({
+      center: poi.location,
+      additionalPoints: [
+        {
+          location: mission.landerLocation,
+          properties: { title: "Lander", "marker-color": "#ffffff" },
+        },
+        { location: poi.location, properties: { title: poi.name } },
+      ],
+    });
+  }, deepEqual);
   const numStationsUsingPoi = useMemo(
     () =>
       selectedPoi && docMaps
@@ -349,6 +372,20 @@ const Info_Panel: FunctionComponent<{
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faGlobe}>QuickMap</SubpanelHeading>
+            </div>
+            <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+              <Button
+                onClick={() => quickMapLinkState && openQuickMap(quickMapLinkState)}
+                label="View POI in QuickMap"
+                toolTip="Opens an external, read-only QuickMap window"
+                style={{ width: "200px" }}
+                enabled={quickMapLinkState != null}
+              />
             </div>
           </div>
           <div className={paneStyles.panelSection}>
