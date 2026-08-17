@@ -257,7 +257,7 @@ describe("createOlLayer", () => {
       expect(source).toBeInstanceOf(VectorSource);
     });
 
-    it("creates a decluttered VectorLayer for draggable gazetteer labels", () => {
+    it("creates a non-decluttered VectorLayer for draggable gazetteer labels", () => {
       const layer = createOlLayer(
         makeInput({
           sublayer: makeSublayerToDraw({
@@ -270,7 +270,9 @@ describe("createOlLayer", () => {
 
       expect(layer).toBeInstanceOf(VectorLayer);
       expect(layer).not.toBeInstanceOf(VectorImageLayer);
-      expect((layer as VectorLayer).getDeclutter()).toBeTruthy();
+      // Draggable labels must never be decluttered away — a hidden label
+      // cannot be grabbed to resolve the overlap.
+      expect((layer as VectorLayer).getDeclutter()).toBeFalsy();
       expect(layer?.get("movableLabels")).toBe(true);
     });
 

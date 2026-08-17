@@ -217,7 +217,6 @@ function createVectorLayer(input: LayerFactoryInput): VectorImageLayer | VectorL
         }
       }
       layer.set("movableLabels", true);
-      layer.setDeclutter(true);
       layer.setStyle(createGazetteerLabelStyle(style));
     }),
   });
@@ -229,14 +228,16 @@ function createVectorLayer(input: LayerFactoryInput): VectorImageLayer | VectorL
       ? createGazetteerLabelStyle(style)
       : buildVectorStyleFn(style, baseResolutionFromProjConfig(projConfig)),
     imageRatio: 1.5,
-    // Declutter is intentionally OFF for ordinary GeoJSON layers — it suppresses
-    // entire features (stroke + fill) when their text labels overlap, which
-    // makes dense contour layers invisible. Text labels use `overflow: true`
-    // in the style function, so they render even outside their geometry and
-    // don't need decluttering. Gazetteer layers contain labels only and use
-    // VectorLayer so decluttering and synchronous feature hit detection share
-    // the live map frame used by Translate.
-    declutter: isGazetteer,
+    // Declutter is intentionally OFF for every vector layer. For ordinary
+    // GeoJSON layers it suppresses entire features (stroke + fill) when their
+    // text labels overlap, which makes dense contour layers invisible; text
+    // labels use `overflow: true` in the style function, so they render even
+    // outside their geometry and don't need decluttering. Gazetteer labels are
+    // draggable, so overlaps are resolved by the user — a decluttered-away
+    // label is invisible and therefore impossible to grab. Gazetteer layers
+    // still use VectorLayer (not VectorImageLayer) so feature hit detection is
+    // synchronous against the live map frame used by Translate.
+    declutter: false,
     properties: {
       name: sublayer.name,
       uuid: sublayer.uuid,

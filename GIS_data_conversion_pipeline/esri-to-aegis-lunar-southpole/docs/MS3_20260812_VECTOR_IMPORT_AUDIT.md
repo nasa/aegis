@@ -497,14 +497,14 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 
 ## Feedback for the GIS team
 
-Tracked while importing delivery 2 and wiring these layers into the active AEGIS map. This
-section is the list to send back to the GIS team, including outstanding problems from delivery 1
-and open questions for the GIS/product teams.
+Tracked while importing this delivery and wiring these layers into the active AEGIS map. This
+section is the list to send back to the GIS team, including outstanding problems with the
+delivery and open questions for the GIS/product teams.
 
-### Delivery 2 contents as received
+### Delivery contents as received
 
 ```text
-ALSST GIS team delivery 2
+AEGIS_MS3_MP026_GIS_Data_20260812
 ├── 00_GIS_Files
 │   ├── 00_Vector
 │   │   ├── 00_Shapefiles      (shapefile version of each dataset)
@@ -525,19 +525,7 @@ ALSST GIS team delivery 2
 └── 01_Styles                  (one .lyrx per dataset, ten total)
 ```
 
-### Problems with delivery 1
-
-1. `LocationFeatures` is empty despite the workbook including the geomorphic map product. It
-   cannot provide the intended pitted-cone, small-crater, or shield-feature point layer.
-2. `RasterT_Int_psr2.shp` and `RasterT_Int_psr2_1.shp` are byte-for-byte duplicates, creating
-   ambiguity about which PSR source is authoritative.
-3. PSR feature `Id=100` has a self-intersecting ring and requires repair or a corrected
-   redelivery before it can be treated as authoritative geometry.
-4. `PSR_overlays.geojson` is truncated after 32 bytes and cannot be parsed or imported.
-5. The projected GeoJSON exports carry meter-valued coordinates. They are not directly compatible
-   with AEGIS's existing GeoJSON loader, which assumes geographic coordinates.
-6. Several workbook rows marked for inclusion are absent from this vector delivery: the DEM,
-   orthomosaic, derived slope and hillshade, contours, viewsheds, and time-aware products.
+### Problems with delivery
 
 ### 1. The GeoJSON copies are not needed
 
@@ -584,23 +572,14 @@ separates.
 
 Beyond using `TYPE` for its label, this dataset sits well outside the EVA operating area and consists only of unlabeled areas. Unless there is a planning reason to carry it, it can be dropped from future data deliveries.
 
-### 6. Repeat items still outstanding from delivery 1
+### 6. `map_boundary` is not needed
 
-These were raised in "Problems with delivery 1" above and are unchanged in delivery 2:
+AEGIS does not use it. It is a single-polygon authoring/reference extent describing the source
+map's own footprint, not a mission product, and it carries no information a planner acts on.
+Drop it from future deliveries.
 
-- `LocationFeatures` is still empty.
-- `RasterT_Int_psr2` and `RasterT_Int_psr2_1` are still byte-for-byte duplicates.
-- PSR feature `Id=100` still has a self-intersecting ring.
-- `PSR_overlays.geojson` is still truncated.
+### 7. The PSR datasets are duplicated and partly invalid
 
-### Open questions for the GIS/product teams
-
-1. Is empty `LocationFeatures` intentional, or should a populated feature class be redelivered?
-2. Should `map_boundary` be visible in AEGIS or remain an authoring/reference extent only?
-3. May AEGIS repair PSR feature `Id=100`, or should GIS provide a corrected authoritative file?
-4. Does "craters combined with boulders" require a single UI group only, as recommended here,
-   or a single export file?
-5. Should dragged nomenclature positions persist across reloads/users, or is session-local
-   decluttering sufficient for MS3?
-6. Which `.lyrx` symbols must be reproduced exactly, and which may use an OpenLayers
-   approximation?
+- `RasterT_Int_psr2` and `RasterT_Int_psr2_1` are byte-for-byte duplicates.
+- PSR feature `Id=100` has a self-intersecting ring.
+- `PSR_overlays.geojson` is truncated.
