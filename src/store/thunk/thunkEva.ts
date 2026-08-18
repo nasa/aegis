@@ -420,7 +420,7 @@ export const thunkDocReorderStationInEva = appCreateAsyncThunk<{
 
   // Step 1: Determine which station indices to swap and which traverses to update
   //
-  // The egress/ingress slots are pinned, so refuse any swap that would move a
+  // The egress/ingress positions are pinned, so refuse any swap that would move a
   // station into or out of them.
   const evaSequenceSource = { sequence: evaSequence };
   const canMove =
@@ -495,7 +495,7 @@ export const thunkDocChangeIngressEgress = appCreateAsyncThunk<{
     if (!missionDocHandle) return;
     const mission = missionDocHandle.doc();
 
-    // Step 1: Plan the swap (which station enters the slot, which one leaves)
+    // Step 1: Plan the swap (which station enters the position, which one leaves)
     const stageData = stageEvaXgressChange(mission, {
       evaUuid,
       xgressType: type,

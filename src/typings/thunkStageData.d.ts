@@ -92,8 +92,8 @@ type EvaDuplicationStageData = {
    */
   isRexEva: boolean;
   /**
-   * Whether the user's own stations should be duplicated. Lander stand-in
-   * stations in the xgress slots are always duplicated regardless, since they
+   * Whether the user's own stations should be duplicated. Xgress lander
+   * stations are always duplicated regardless, since they
    * are owned by a single EVA.
    */
   includeStations: boolean;

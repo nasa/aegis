@@ -30,7 +30,7 @@ export const generateFullMission = (): Mission => {
   const testStation2 = generateBlankStation({ name: "Vitest Station-2" });
   const testStationMid = generateBlankStation({ name: "Vitest Station-3" });
 
-  /** An auto-managed lander stand-in, as created for an EVA's xgress slot. */
+  /** A d lander station created for an EVA's xgress position. */
   const makeLanderStation = () =>
     generateBlankStation({ name: "Lander", isLanderXgress: true, location: { lat: 0, lng: 0 } });
 
@@ -145,8 +145,6 @@ export const generateFullMission = (): Mission => {
   }
 
   // ====== EVAs ======
-  // Both egress and ingress at the lander, so each gets its own stand-in
-  // station at the head and tail of the sequence.
   const eva1Egress = makeLanderStation();
   const eva1Ingress = makeLanderStation();
   const eva1 = generateBlankEVA({ name: "Vitest Eva-1 Planned with Rex" });
@@ -219,7 +217,6 @@ export const generateFullMission = (): Mission => {
       dupStation.name = station.name + " For Rex";
       allStations.push(dupStation);
 
-      // Lander stand-ins carry no actions, so there may be nothing to duplicate.
       const action = allActions.find((a) => a.stationUuid === seq.uuid);
       if (action) {
         const dupAction = cloneDeep(action);

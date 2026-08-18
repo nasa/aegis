@@ -12,8 +12,8 @@ import { stageDuplicateStation } from "./stage-station";
 /**
  * Plan a change to an EVA's egress or ingress location.
  *
- * The xgress slots hold real stations, so switching between the lander and a
- * station is a create/delete of the station occupying that slot:
+ * Switching between the lander and a different station is a
+ * create/delete of the station occupying that position:
  *
  * | From → To             | As-planned EVA                 | REX EVA                                              |
  * | --------------------- | ------------------------------ | ---------------------------------------------------- |
@@ -25,7 +25,7 @@ import { stageDuplicateStation } from "./stage-station";
  * station and deletes the outgoing one. A planned EVA shares real stations with
  * the rest of the mission and only ever creates/deletes lander copies.
  *
- * Returns `undefined` when the EVA is missing or the slot already holds the
+ * Returns `undefined` when the EVA is missing or the position already holds the
  * requested location.
  */
 export function stageEvaXgressChange(
@@ -33,7 +33,7 @@ export function stageEvaXgressChange(
   args: {
     evaUuid: string;
     xgressType: "egress" | "ingress";
-    /** A station uuid, or `"lander"` to pin the slot to the lander. */
+    /** A station uuid, or `"lander"` to pin the position to the lander. */
     newStationUuidOrLander: string;
     isRexEva: boolean;
     ownerId?: number;

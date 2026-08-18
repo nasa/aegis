@@ -22,8 +22,8 @@ import { applyDeleteActions } from "./apply-action";
  *
  * The sequence is authoritative; these four fields are a transitional mirror
  * kept in sync so readers that have not been migrated off them yet stay
- * correct. Call this after any mutation that changes which stations occupy the
- * xgress slots, or that changes those stations' durations.
+ * correct. Call this after any mutation that changes xgress station,
+ * or that changes xgress stations' durations.
  *
  * Removed once the last reader is migrated.
  */
@@ -52,7 +52,7 @@ export function applySyncEvaXgressMirror(m: Mission, evaUuid: string): void {
 }
 
 /**
- * Re-derive the xgress mirror for every EVA whose xgress slot holds one of the
+ * Re-derive the xgress mirror for every EVA whose xgress position holds one of the
  * given stations. Used after a station's duration changes, since that value is
  * mirrored onto each EVA that egresses/ingresses there.
  */

@@ -20,8 +20,7 @@ import type { AppDispatch } from "utils/useAppDispatch";
  * egress/ingress boundary traverses) then assembles the stage so the caller
  * can apply everything atomically in a single `.change()`.
  *
- * Lander stand-in stations are pinned to the lander, so they are moved rather
- * than given a walkback — a walkback to themselves would be meaningless.
+ * Lander stations don't have walkbacks so they are just moved
  *
  * This function never calls `.change()` itself.
  */

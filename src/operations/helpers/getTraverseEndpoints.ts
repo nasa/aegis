@@ -8,7 +8,7 @@ import type { EvaSequenceSource } from "./evaSequence";
  * Neighbor resolution is delegated to `getTraverseNeighborUuids`, so this
  * function does not need to know where the egress/ingress locations are stored.
  *
- * Lander stand-in stations resolve to the live `landerLocation` rather than to
+ * Lander stations resolve to the live `landerLocation` rather than to
  * their own stored copy of it, so a traverse endpoint stays correct even if the
  * lander has moved and the station has not been repositioned yet.
  *

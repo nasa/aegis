@@ -55,8 +55,8 @@ export function stageCreateRex(
  * Build a `RexDeletionStageData`.
  *
  * Captures: the REX itself, its EVA, every station referenced by the EVA's
- * sequence (the egress/ingress slots included), every traverse in the sequence,
- * and every action attached to those stations and traverses.
+ * sequence, every traverse in the sequence, and every action attached to those
+ * stations and traverses.
  */
 export function stageDeleteRex(
   mission: Mission,

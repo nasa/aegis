@@ -85,8 +85,8 @@ export async function stageTraverseUpdate(
     e.sequence.some((s) => s.uuid === traverseUuid)
   );
 
-  // The endpoint resolver reads the sequence, which now carries the xgress
-  // slots too. Callers pass an override when a sequence write is still pending.
+  // The endpoint resolver reads the sequence.
+  // Callers pass an override when a sequence write is still pending.
   const resolvedEva = { sequence: evaSequenceOverride ?? eva?.sequence ?? [] };
 
   // Build the working path: prefer customPath, then existing traverse path, then lander→lander
@@ -159,9 +159,7 @@ export function stageAdjacentTraverseRenames(
 
   const allEvas = Object.values(mission.evas ?? {});
 
-  // Collect every traverse uuid before or after this station. The egress and
-  // ingress slots are ordinary sequence entries, so their boundary traverses
-  // are picked up by the same scan.
+  // Collect every traverse uuid before or after this station.
   const traverseUuidsToRename = new Set<string>();
   for (const eva of allEvas) {
     for (let i = 0; i < eva.sequence.length; i++) {

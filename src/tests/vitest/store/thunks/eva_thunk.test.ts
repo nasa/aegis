@@ -75,7 +75,7 @@ describe("Thunk EVA Tests", () => {
       expect(eva).toBeDefined();
 
       const evaTraverseUuids = eva.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid);
-      // Shared stations survive; the EVA's own lander stand-ins do not.
+      // Shared stations survive; the EVA's own lander stations do not.
       const evaStationUuids = eva.sequence
         .filter((s) => s.type === "station")
         .map((s) => s.uuid)
@@ -100,7 +100,7 @@ describe("Thunk EVA Tests", () => {
         expect(getMission().stations[stationUuid]).toBeDefined();
       }
 
-      // The lander stand-ins were owned by this EVA, so they go with it.
+      // The lander station were owned by this EVA, so they go with it.
       expect(landerStationUuids.length).toBeGreaterThan(0);
       for (const stationUuid of landerStationUuids) {
         expect(getMission().stations[stationUuid]).toBeUndefined();
@@ -129,7 +129,7 @@ describe("Thunk EVA Tests", () => {
       }
     });
 
-    it("deletes a rex EVA and every station in its sequence, xgress slots included", async () => {
+    it("deletes a rex EVA and every station in its sequence, xgress stations included", async () => {
       const mission = getMission();
       const eva = Object.values(mission.evas).find((e) => e.name === "Vitest Eva-1 Rex Version");
       expect(eva).toBeDefined();
@@ -147,7 +147,7 @@ describe("Thunk EVA Tests", () => {
         expect(getMission().traverses[traverseUuid]).toBeUndefined();
       }
 
-      // every station the REX EVA owned is removed, xgress slots included
+      // every station the REX EVA owned is removed, xgress stations included
       for (const stationUuid of evaStationUuids) {
         expect(getMission().stations[stationUuid]).toBeUndefined();
       }
@@ -236,12 +236,12 @@ describe("Thunk EVA Tests", () => {
   });
 
   describe("thunkDocDuplicateEva", () => {
-    it("duplicates an EVA without stations (traverses + lander stand-ins cloned)", async () => {
+    it("duplicates an EVA without stations (traverses + lander stations cloned)", async () => {
       const mission = getMission();
       const eva = Object.values(mission.evas).find((e) => e.name === "Vitest Eva-2 Planned No Rex");
 
       const numTraversesInEva = eva.sequence.filter((s) => s.type === "traverse").length;
-      // Lander stand-ins are owned by one EVA, so they are copied even when the
+      // Lander stations are owned by one EVA, so they are copied even when the
       // user opts out of duplicating stations.
       const numLanderStationsInEva = eva.sequence.filter(
         (s) => s.type === "station" && mission.stations[s.uuid]?.isLanderXgress
@@ -313,7 +313,6 @@ describe("Thunk EVA Tests", () => {
       expect(Object.keys(getMission().traverses).length).toEqual(
         numTraversesBefore + numTraversesInEva
       );
-      // The xgress slots are ordinary sequence stations, so they are included.
       expect(Object.keys(getMission().stations).length).toEqual(
         numStationsBefore + numStationsInEva
       );
@@ -498,7 +497,7 @@ describe("Thunk EVA Tests", () => {
         );
 
         const newSequence = getMission().evas[eva.uuid].sequence;
-        // The new sequence slot no longer points at the original new station — it
+        // The new sequence position no longer points at the original new station — it
         // points at the duplicate that was created for the rex.
         expect(newSequence[2].uuid).not.toEqual(stationNotInEva.uuid);
         // Old station deleted, new one duplicated -> net zero change in station count
@@ -529,7 +528,7 @@ describe("Thunk EVA Tests", () => {
         expect(mockThunkFetchElevation).toHaveBeenCalledTimes(3);
       });
 
-      it("refuses to move a station into a pinned xgress slot", async () => {
+      it("refuses to move a station into a pinned xgress position", async () => {
         const eva = Object.values(getMission().evas).find((e) => e.sequence.length === 9);
         const originalSequence = [...eva.sequence];
 
@@ -549,20 +548,19 @@ describe("Thunk EVA Tests", () => {
     });
 
     describe("thunkDocChangeIngressEgress", () => {
-      /** The station uuid currently sitting in the EVA's egress/ingress slot. */
-      const xgressSlotUuid = (evaUuid: string, role: "egress" | "ingress"): string => {
+      const xgressStationUuid = (evaUuid: string, role: "egress" | "ingress"): string => {
         const sequence = getMission().evas[evaUuid].sequence;
         return role === "egress" ? sequence[0].uuid : sequence[sequence.length - 1].uuid;
       };
 
-      it("(isRexEva=false) points the slot at the chosen station and drops the lander copy", async () => {
+      it("(isRexEva=false) points the position at the chosen station and drops the lander station", async () => {
         const eva = Object.values(getMission().evas).find(
           (e) => e.name === "Vitest Eva-2 Planned No Rex"
         );
         const stationNotInEva = Object.values(getMission().stations).find(
           (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid) && !s.isLanderXgress
         );
-        const oldIngressUuid = xgressSlotUuid(eva.uuid, "ingress");
+        const oldIngressUuid = xgressStationUuid(eva.uuid, "ingress");
 
         await store.dispatch(
           thunkDocChangeIngressEgress({
@@ -573,16 +571,16 @@ describe("Thunk EVA Tests", () => {
           })
         );
 
-        // The slot now holds the chosen station itself — no copy is made.
-        expect(xgressSlotUuid(eva.uuid, "ingress")).toEqual(stationNotInEva.uuid);
-        // The lander stand-in it replaced was owned by the EVA, so it is gone.
+        // The position now holds the chosen station itself — no copy is made.
+        expect(xgressStationUuid(eva.uuid, "ingress")).toEqual(stationNotInEva.uuid);
+        // The lander station it replaced was owned by the EVA, so it is gone.
         expect(getMission().stations[oldIngressUuid]).toBeUndefined();
         // The deprecated mirror still tracks the sequence.
         expect(getMission().evas[eva.uuid].ingressLocationUuid).toEqual(stationNotInEva.uuid);
         expect(mockThunkFetchElevation).toHaveBeenCalledTimes(1);
       });
 
-      it("(isRexEva=false) switching back to the lander creates a fresh stand-in station", async () => {
+      it("(isRexEva=false) switching back to the lander creates a fresh lander station", async () => {
         const eva = Object.values(getMission().evas).find(
           (e) => e.name === "Vitest Eva-2 Planned No Rex"
         );
@@ -598,7 +596,7 @@ describe("Thunk EVA Tests", () => {
             isRexEva: false,
           })
         );
-        expect(xgressSlotUuid(eva.uuid, "egress")).toEqual(stationNotInEva.uuid);
+        expect(xgressStationUuid(eva.uuid, "egress")).toEqual(stationNotInEva.uuid);
 
         await store.dispatch(
           thunkDocChangeIngressEgress({
@@ -609,7 +607,7 @@ describe("Thunk EVA Tests", () => {
           })
         );
 
-        const newEgress = getMission().stations[xgressSlotUuid(eva.uuid, "egress")];
+        const newEgress = getMission().stations[xgressStationUuid(eva.uuid, "egress")];
         expect(newEgress.isLanderXgress).toBe(true);
         // The shared station is not owned by the EVA, so it survives.
         expect(getMission().stations[stationNotInEva.uuid]).toBeDefined();
@@ -623,7 +621,7 @@ describe("Thunk EVA Tests", () => {
         const newIngressStation = Object.values(getMission().stations).find(
           (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid) && !s.isLanderXgress
         );
-        const oldIngressUuid = xgressSlotUuid(eva.uuid, "ingress");
+        const oldIngressUuid = xgressStationUuid(eva.uuid, "ingress");
         const stationsBefore = Object.keys(getMission().stations).length;
 
         await store.dispatch(
@@ -639,7 +637,7 @@ describe("Thunk EVA Tests", () => {
         expect(getMission().stations[oldIngressUuid]).toBeUndefined();
         // ...and replaced by a private copy of the chosen station (net zero).
         expect(Object.keys(getMission().stations).length).toEqual(stationsBefore);
-        const slotUuid = xgressSlotUuid(eva.uuid, "ingress");
+        const slotUuid = xgressStationUuid(eva.uuid, "ingress");
         expect(slotUuid).not.toEqual(newIngressStation.uuid);
         expect(slotUuid).not.toEqual(oldIngressUuid);
         expect(getMission().stations[newIngressStation.uuid]).toBeDefined();
@@ -652,7 +650,7 @@ describe("Thunk EVA Tests", () => {
         const newEgressStation = Object.values(getMission().stations).find(
           (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid) && !s.isLanderXgress
         );
-        const oldEgressUuid = xgressSlotUuid(eva.uuid, "egress");
+        const oldEgressUuid = xgressStationUuid(eva.uuid, "egress");
         const stationsBefore = Object.keys(getMission().stations).length;
 
         await store.dispatch(
@@ -666,16 +664,16 @@ describe("Thunk EVA Tests", () => {
 
         expect(getMission().stations[oldEgressUuid]).toBeUndefined();
         expect(Object.keys(getMission().stations).length).toEqual(stationsBefore);
-        const slotUuid = xgressSlotUuid(eva.uuid, "egress");
+        const slotUuid = xgressStationUuid(eva.uuid, "egress");
         expect(slotUuid).not.toEqual(newEgressStation.uuid);
         expect(slotUuid).not.toEqual(oldEgressUuid);
       });
 
-      it("is a no-op when the slot already holds the requested location", async () => {
+      it("is a no-op when the position already holds the requested location", async () => {
         const eva = Object.values(getMission().evas).find(
           (e) => e.name === "Vitest Eva-1 Rex Version"
         );
-        // Put a lander stand-in in the ingress slot.
+        // Put a lander copy in the ingress position.
         await store.dispatch(
           thunkDocChangeIngressEgress({
             type: "ingress",
@@ -685,7 +683,7 @@ describe("Thunk EVA Tests", () => {
           })
         );
         const stationsBefore = Object.keys(getMission().stations).length;
-        const slotBefore = xgressSlotUuid(eva.uuid, "ingress");
+        const slotBefore = xgressStationUuid(eva.uuid, "ingress");
 
         await store.dispatch(
           thunkDocChangeIngressEgress({
@@ -697,7 +695,7 @@ describe("Thunk EVA Tests", () => {
         );
 
         expect(Object.keys(getMission().stations).length).toEqual(stationsBefore);
-        expect(xgressSlotUuid(eva.uuid, "ingress")).toEqual(slotBefore);
+        expect(xgressStationUuid(eva.uuid, "ingress")).toEqual(slotBefore);
       });
 
       it("(isRexEva=true) switching to the lander deletes the old station and its actions", async () => {
@@ -716,7 +714,7 @@ describe("Thunk EVA Tests", () => {
             isRexEva: true,
           })
         );
-        const copiedStationUuid = xgressSlotUuid(eva.uuid, "ingress");
+        const copiedStationUuid = xgressStationUuid(eva.uuid, "ingress");
         const stationsBefore = Object.keys(getMission().stations).length;
 
         await store.dispatch(
@@ -728,11 +726,11 @@ describe("Thunk EVA Tests", () => {
           })
         );
 
-        // The REX's private copy is deleted and a lander stand-in takes its
+        // The REX's private copy is deleted and a lander station takes its
         // place, so the station count is unchanged.
         expect(getMission().stations[copiedStationUuid]).toBeUndefined();
         expect(Object.keys(getMission().stations).length).toEqual(stationsBefore);
-        expect(getMission().stations[xgressSlotUuid(eva.uuid, "ingress")].isLanderXgress).toBe(
+        expect(getMission().stations[xgressStationUuid(eva.uuid, "ingress")].isLanderXgress).toBe(
           true
         );
         expect(getMission().evas[eva.uuid].ingressLocationUuid).toEqual("lander");

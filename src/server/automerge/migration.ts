@@ -676,23 +676,29 @@ getORM()
             };
           };
 
-          // Resolve each slot to a station uuid, creating a lander stand-in when
-          // the slot pointed at the lander (or at a station that no longer exists).
-          const resolveXgress = (locationUuid: string, duration: number | null): string => {
-            if (locationUuid && locationUuid !== "lander" && mission.stations?.[locationUuid]) {
+          // Resolve xgress to a station uuid. A 'lander' xgress creates a new lander
+          // station.
+          const resolveXgress = (locationUuid: string, duration: number | null): string | null => {
+            if (locationUuid === "lander") {
+              const landerStation = buildLanderStation(duration);
+              mission.stations[landerStation.uuid] = landerStation;
+              return landerStation.uuid;
+            }
+            if (locationUuid && mission.stations?.[locationUuid]) {
               return locationUuid;
             }
-            // This xgress is at lander, create a new station and return uuid
-            const landerStation = buildLanderStation(duration);
-            mission.stations[landerStation.uuid] = landerStation;
-            return landerStation.uuid;
+            serverLogger.warning({
+              logId: "automerge-migration",
+              logValue: `Mission ${mission.id} EVA ${eva.uuid} xgress station ${locationUuid} not found; skipping xgress station insertion`,
+            });
+            return null;
           };
 
           const egressUuid = resolveXgress(eva.egressLocationUuid, eva.egressDuration);
           const ingressUuid = resolveXgress(eva.ingressLocationUuid, eva.ingressDuration);
 
-          eva.sequence.unshift({ type: "station", uuid: egressUuid }); // Insert egress to eva sequence
-          eva.sequence.push({ type: "station", uuid: ingressUuid }); // Insert ingress to eva sequence
+          if (egressUuid) eva.sequence.unshift({ type: "station", uuid: egressUuid }); // Insert egress to eva sequence
+          if (ingressUuid) eva.sequence.push({ type: "station", uuid: ingressUuid }); // Insert ingress to eva sequence
         }
       });
     };

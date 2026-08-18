@@ -6,7 +6,6 @@ import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 
-/** An auto-managed lander stand-in occupying an EVA xgress slot. */
 const makeLanderStation = (location: AEGISPoint): Station =>
   generateBlankStation({ name: "Lander", isLanderXgress: true, location: { ...location } });
 
@@ -50,7 +49,7 @@ describe("Thunk Mission Tests", () => {
       missionDocHandle.change((m: Mission) => {
         const stations = Object.values(m.stations);
         for (const s of stations) {
-          // Lander stand-ins move with the lander and never get a walkback.
+          // Lander stations move with the lander and never get a walkback.
           if (s.location && !s.isLanderXgress) {
             // Spread proxy refs into plain objects — assigning a live Automerge
             // proxy directly into an array inside .change() throws
@@ -76,7 +75,7 @@ describe("Thunk Mission Tests", () => {
         expect(s.walkbackPath[s.walkbackPath.length - 1]).toEqual(newLanderLoc);
       }
 
-      // Every lander stand-in station moves with the lander.
+      // Every lander station moves with the lander.
       const landerStations = Object.values(getMission().stations).filter((s) => s.isLanderXgress);
       expect(landerStations.length).toBeGreaterThan(0);
       for (const s of landerStations) {

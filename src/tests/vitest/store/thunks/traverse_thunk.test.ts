@@ -136,7 +136,7 @@ describe("Thunk Traverse Tests", () => {
       name: "Vitest Station-3",
       location: { lat: 3, lng: 2.1 },
     });
-    // Station 3 is the egress; the ingress is a lander stand-in.
+    // Station 3 is the egress; the ingress is a lander station.
     const landerIngress: Station = generateBlankStation({
       name: "Lander",
       isLanderXgress: true,
@@ -210,7 +210,7 @@ describe("Thunk Traverse Tests", () => {
       name: "Vitest Station-3",
       location: { lat: 3, lng: 2.1 },
     });
-    // Both EVAs egress and ingress at the lander, each with its own stand-in.
+    // Both EVAs egress and ingress at the lander
     const makeLander = () =>
       generateBlankStation({
         name: "Lander",
@@ -324,7 +324,7 @@ describe("Thunk Traverse Tests", () => {
     });
 
     await store.dispatch(thunkDocSaveTraverse({ traverseUuid: traverse.uuid }));
-    // The traverse runs from the lander stand-in at sequence[0] to the station
+    // The traverse runs from the lander station at sequence[0] to the station
     // at sequence[2], so the derived name is "Lander to Vitest Station-1".
     expect(getMission().traverses[traverse.uuid].name).toEqual("Lander to Vitest Station-1");
   });

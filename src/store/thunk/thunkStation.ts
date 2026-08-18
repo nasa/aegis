@@ -359,7 +359,7 @@ export const thunkDocDeleteStations = appCreateAsyncThunk<
       const allStations = mission?.stations ?? {};
 
       for (const eva of Object.values(mission?.evas ?? {})) {
-        // check if this station is in the eva sequence (xgress slots included)
+        // check if this station is in the eva sequence
         if (eva.sequence.length > 0) {
           const sequenceItem = eva.sequence.find((sequenceItem) =>
             stationUuids.includes(sequenceItem.uuid)

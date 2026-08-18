@@ -104,11 +104,11 @@ describe("evaSequence", () => {
       ingress: generateBlankStation({ uuid: "ingress", name: "Station 2" }),
     };
 
-    it('reports "lander" when the slot holds a lander stand-in', () => {
+    it('reports "lander" when xgress is a lander station', () => {
       expect(getEgressLocationUuid(makeEva(), stations)).toBe(LANDER_UUID);
     });
 
-    it("reports the station uuid when the slot holds a real station", () => {
+    it("reports the station uuid when xgress is a station", () => {
       expect(getIngressLocationUuid(makeEva(), stations)).toBe("ingress");
     });
 
@@ -137,7 +137,7 @@ describe("evaSequence", () => {
   });
 
   describe("getMiddleStationItems()", () => {
-    it("excludes the pinned xgress slots", () => {
+    it("excludes the pinned xgress stations", () => {
       expect(getMiddleStationItems(makeEva()).map((i) => i.uuid)).toEqual(["s1", "s2"]);
     });
 
@@ -177,7 +177,7 @@ describe("evaSequence", () => {
   });
 
   describe("isXgressIndex()", () => {
-    it("is true for the egress and ingress slots", () => {
+    it("is true for the egress and ingress stations", () => {
       const eva = makeEva();
       expect(isXgressIndex(eva, 0)).toBe(true);
       expect(isXgressIndex(eva, 6)).toBe(true);
@@ -190,7 +190,7 @@ describe("evaSequence", () => {
       expect(isXgressIndex(eva, 1)).toBe(false);
     });
 
-    it("is true for both slots of an EVA with no middle stations", () => {
+    it("is true for both stations of an EVA with no middle stations", () => {
       const eva = makeEmptyEva();
       expect(isXgressIndex(eva, 0)).toBe(true);
       expect(isXgressIndex(eva, 2)).toBe(true);

@@ -335,7 +335,6 @@ const pois: { [uuid: string]: POI } = {
 };
 
 const stations: { [uuid: string]: Station } = {
-  // Auto-managed lander stand-ins filling the EVA's egress and ingress slots.
   "a1000000-0000-4000-8000-00000000e915": generateBlankStation({
     actionOrderUuids: [],
     createdAt: 1700000000000,

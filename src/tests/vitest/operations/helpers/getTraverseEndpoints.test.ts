@@ -55,7 +55,7 @@ describe("getTraverseEndpoints", () => {
     });
   });
 
-  it("resolves a lander stand-in to the live lander location", () => {
+  it("resolves a lander station to the live lander location", () => {
     const result = getTraverseEndpoints("t1", makeEva(), stations, LANDER_LOCATION);
     expect(result.locationBefore).toEqual(LANDER_LOCATION);
     expect(result.nameBefore).toBe("Lander");
@@ -63,14 +63,14 @@ describe("getTraverseEndpoints", () => {
     expect(result.nameAfter).toBe("Station 1");
   });
 
-  it("resolves the final traverse into the ingress slot", () => {
+  it("resolves the final traverse into the ingress position", () => {
     const result = getTraverseEndpoints("t3", makeEva(), stations, LANDER_LOCATION);
     expect(result.locationBefore).toEqual(S2_LOCATION);
     expect(result.locationAfter).toEqual(LANDER_LOCATION);
     expect(result.nameAfter).toBe("Lander");
   });
 
-  it("resolves a real station occupying the egress slot", () => {
+  it("resolves a real station occupying the egress position", () => {
     const eva = makeEva({
       sequence: [
         { type: "station", uuid: "realEgress" },

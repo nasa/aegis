@@ -72,8 +72,7 @@ export function applyUpdateMissionByField<
  *  - The walkback path/distances/elevations for every affected station
  *  - The path/distances/elevations for every egress or ingress boundary
  *    traverse that touches the lander
- *  - The location/elevation of every lander stand-in station pinned to the
- *    lander
+ *  - The location/elevation of every lander xgress station
  */
 export function applyLanderLocationUpdateStage(
   m: Mission,

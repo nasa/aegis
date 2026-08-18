@@ -124,8 +124,8 @@ export function stageDuplicateEva(
 }
 
 /**
- * Gets the lander stations sitting in this EVA's xgress slots.
- * Returns empty array if there is no lander station in either slot.
+ * Gets the lander stations sitting in this EVA's xgress positions.
+ * Returns empty array if there is no lander station in either position.
  */
 function getLanderXgressStationItems(mission: Mission, eva: Eva): EvaSequenceItem[] {
   const xgressItems = [getEgressSequenceItem(eva), getIngressSequenceItem(eva)].filter(

@@ -291,7 +291,7 @@ describe("Thunk Station Tests", () => {
       mockAlert.mockRestore();
     });
 
-    test("alerts and aborts when station occupies an EVA ingress slot", async () => {
+    test("alerts and aborts when station occupies an EVA ingress position", async () => {
       const mockAlert = vi.spyOn(window, "alert").mockImplementation(vi.fn());
 
       const egress: Station = generateBlankStation({ name: "Vitest Egress" });
@@ -323,7 +323,7 @@ describe("Thunk Station Tests", () => {
       mockAlert.mockRestore();
     });
 
-    test("alerts and aborts when deleting a lander stand-in station directly", async () => {
+    test("alerts and aborts when deleting a lander station directly", async () => {
       const mockAlert = vi.spyOn(window, "alert").mockImplementation(vi.fn());
 
       const landerStation: Station = generateBlankStation({

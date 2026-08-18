@@ -151,7 +151,7 @@ describe("Apollo 14 seed data", () => {
       // A station tied to an EVA that has an execution REX is hidden from the
       // as-planned station list (see selectAsPlannedStations). The demo seed is a
       // pure planning mission, so all seeded user stations must remain visible.
-      // Lander stand-ins are auto-managed and are never offered for planning.
+      // Lander stations are auto-managed and are never offered for planning.
       const mission = buildApollo14Mission();
       const visibleUuids = new Set(selectAsPlannedStations(mission).map((s) => s.uuid));
       for (const [uuid, station] of Object.entries(mission.stations)) {

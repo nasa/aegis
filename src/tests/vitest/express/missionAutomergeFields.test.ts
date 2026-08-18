@@ -33,7 +33,7 @@ describe("missionHasLanderDependentEntities", () => {
   test("returns true for an EVA with a lander-connected traverse", () => {
     const mission = generateBlankMission();
     const traverse = generateBlankTraverse();
-    // A lander stand-in in the egress slot makes the first traverse lander-bound.
+    // A lander station in the egress position makes the first traverse lander-bound.
     const landerEgress = generateBlankStation({ name: "Lander", isLanderXgress: true });
     const ingress = generateBlankStation({ name: "Station" });
     const eva = generateBlankEVA({
@@ -54,7 +54,6 @@ describe("missionHasLanderDependentEntities", () => {
   test("ignores EVAs that do not touch the lander", () => {
     const mission = generateBlankMission();
     const traverse = generateBlankTraverse();
-    // Both xgress slots hold real, unplaced stations, so nothing depends on the lander.
     const egress = generateBlankStation({ name: "Station A" });
     const ingress = generateBlankStation({ name: "Station B" });
     const eva = generateBlankEVA({
