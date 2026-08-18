@@ -51,7 +51,6 @@ async function fetchURL(url: string): Promise<Response | null> {
   });
 
   if (!res?.ok) return null;
-  if (res.headers.get("content-type")?.toLowerCase().includes("text/html")) return null;
   return res;
 }
 
