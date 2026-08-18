@@ -67,8 +67,10 @@ export type DynamicLgrsRenderPlan = {
 
 type DynamicLgrsRenderOptions = {
   extent: LpsExtent;
-  gridSpacingMode: GridSpacingMode;
-  gridLabelInterval: GridSpacingMode;
+  /** Line spacing in LPS metres, or "auto" to derive one from the visible extent. */
+  gridSpacingMode: "auto" | number;
+  /** Label spacing in LPS metres, or "auto" for a label on every drawn line. */
+  gridLabelInterval: "auto" | number;
   mapResolution: number;
   labelsVisible: boolean;
 };
@@ -157,6 +159,11 @@ export function formatSouthLpsCoordinate(
     lowerLeft,
     precision,
   };
+}
+
+/** LPS metres covered by one screen pixel at the given map resolution. */
+export function lpsMetersPerPixel(mapResolution: number): number {
+  return mapResolution * SURF_NAV_MOON_K0;
 }
 
 export function mapCapToLps([x, y]: [number, number]): LpsCoordinate {
@@ -294,7 +301,7 @@ export function createDynamicLgrsRenderPlan({
       Math.ceil(Math.sqrt(visibleBaseCells / LABEL_TARGET)) * BASE_GRID_SPACING_METERS;
     labelSpacing = Math.ceil(targetSpacing / lineSpacing) * lineSpacing;
   } else if (gridLabelInterval === "auto") {
-    const pixelSpacing = lineSpacing / SURF_NAV_MOON_K0 / mapResolution;
+    const pixelSpacing = lineSpacing / lpsMetersPerPixel(mapResolution);
     hideLabels = hideLabels || !Number.isFinite(pixelSpacing) || pixelSpacing < LABEL_MIN_PX;
   } else {
     labelSpacing = Math.max(lineSpacing, Math.ceil(gridLabelInterval / lineSpacing) * lineSpacing);

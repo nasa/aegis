@@ -6,7 +6,7 @@
  *
  * Supports four sublayer types:
  *   - tile:        Raster TMS/XYZ via TileLayer + XYZ source
- *   - vector:      GeoJSON via VectorImageLayer (canvas-batched for performance)
+ *   - vector:      GeoJSON via VectorImageLayer, or VectorLayer for draggable labels
  *   - vector-tile: PMTiles (MVT) via VectorTileLayer + PMTilesVectorSource
  *   - cog:         Cloud Optimized GeoTIFF via WebGLTileLayer + GeoTIFFSource
  */
@@ -14,6 +14,7 @@
 import TileLayer from "ol/layer/Tile";
 import VectorTileLayer from "ol/layer/VectorTile";
 import WebGLTileLayer from "ol/layer/WebGLTile";
+import VectorLayer from "ol/layer/Vector";
 import { VectorImage as VectorImageLayer } from "ol/layer";
 import XYZ from "ol/source/XYZ";
 import VectorSource from "ol/source/Vector";
@@ -22,18 +23,34 @@ import GeoJSON from "ol/format/GeoJSON";
 import TileGrid from "ol/tilegrid/TileGrid";
 import type { Layer as OLLayer } from "ol/layer";
 import type { Coordinate } from "ol/coordinate";
-import { Style, Fill, Stroke, Text } from "ol/style";
-import type { Feature } from "ol";
-import type { Geometry } from "ol/geom";
+import type { FeatureLoader } from "ol/featureloader";
+import { Style, Fill, Stroke, Text, Circle as CircleStyle } from "ol/style";
+import Feature from "ol/Feature";
+import type { Geometry, LineString, MultiLineString, MultiPolygon, Polygon } from "ol/geom";
+import Point from "ol/geom/Point";
 
 import { buildLegacyResolutions } from "../parsers/leafletShim";
+import { resolveGeoJSONDataProjection } from "../parsers/geojsonProjection";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
+import { createGazetteerLabelStyle, getGazetteerLabel } from "../styles/gazetteerLabels";
+import type { DataLayerConfig } from "../modeConfig";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 const LAYER_BASE_URL = "/static/missionFiles";
+
+/**
+ * Screen radius of the circle drawn for `Point`/`MultiPoint` features in a generic
+ * vector sublayer. Fixed rather than preset-driven: `MapSublayerStyle` has no
+ * point-radius field, and `weight` already drives the ring thickness. Sized to read at
+ * the same weight as the 4pt circle the delivered ArcGIS `.lyrx` point renderers use.
+ */
+const POINT_SYMBOL_RADIUS = 6;
+
+/** Draws nothing. Returned where OL needs a Style but the feature has nothing to render. */
+const EMPTY_STYLE = new Style({});
 
 // ---------------------------------------------------------------------------
 // Input types
@@ -47,6 +64,8 @@ export interface LayerFactoryInput {
   projCode: string;
   /** Per-sublayer visual controls from the preset. */
   style: MapSublayerStyle;
+  /** Per-mode label sizing / on-off switch from `MODE_CONFIGS[mode].dataLayer`. */
+  dataLayer: DataLayerConfig;
   /** Mission-level projection fields for building custom tile grids. */
   projConfig: TileGridConfig | null;
 }
@@ -179,37 +198,221 @@ function createTileLayer(input: LayerFactoryInput): TileLayer<XYZ> {
   });
 }
 
-function createVectorLayer(input: LayerFactoryInput): VectorImageLayer {
-  const { sublayer, missionId, projCode, style, projConfig } = input;
+function createVectorLayer(input: LayerFactoryInput): VectorImageLayer | VectorLayer {
+  const { sublayer, missionId, projCode, style, dataLayer, projConfig } = input;
 
   const url = buildFullUrl(sublayer, missionId, "data");
+  const isGazetteer = isGazetteerSublayer(sublayer);
 
-  return new VectorImageLayer({
-    source: new VectorSource({
-      url,
-      format: new GeoJSON({
-        dataProjection: "EPSG:4326",
-        featureProjection: projCode,
-      }),
+  const source = new VectorSource({
+    // `url` is kept (informational — getUrl() reflects it) but the actual fetch/parse
+    // is done by the custom `loader`, which resolves a per-document data projection
+    // before ol/format/GeoJSON transforms coordinates (see buildGeoJSONLoader).
+    url,
+    loader: buildGeoJSONLoader(url, projCode, (features) => {
+      if (!isGazetteer && !isGazetteerFeatures(features)) {
+        const featureLabels = createFeatureLabelAnchors(features);
+        if (featureLabels.length === 0) return;
+
+        features.push(...featureLabels);
+        layer.set("movableLabels", true);
+        layer.set("featureLabels", true);
+        return;
+      }
+
+      for (const feature of features) {
+        const geometry = feature.getGeometry();
+        if (geometry instanceof Point) {
+          const name = feature.get("name");
+          if (getGazetteerLabel(feature) == null && typeof name === "string") {
+            feature.set("gazetteerLabel", name);
+          }
+          feature.set("originalCoordinates", [...geometry.getCoordinates()]);
+        }
+      }
+      layer.set("movableLabels", true);
+      layer.setStyle(createGazetteerLabelStyle(style, dataLayer));
     }),
-    style: buildVectorStyleFn(style, baseResolutionFromProjConfig(projConfig)),
+  });
+
+  const LayerClass = isGazetteer ? VectorLayer : VectorImageLayer;
+  const layer = new LayerClass({
+    source,
+    style: isGazetteer
+      ? createGazetteerLabelStyle(style, dataLayer)
+      : buildVectorStyleFn(style, dataLayer, baseResolutionFromProjConfig(projConfig)),
     imageRatio: 1.5,
-    // declutter is intentionally OFF for GeoJSON layers — it suppresses
-    // entire features (stroke + fill) when their text labels overlap, which
-    // makes dense contour layers invisible. Text labels use `overflow: true`
-    // in the style function, so they render even outside their geometry and
-    // don't need decluttering.
+    // Declutter is intentionally OFF for every vector layer. For ordinary
+    // GeoJSON layers it suppresses entire features (stroke + fill) when their
+    // text labels overlap, which makes dense contour layers invisible; text
+    // labels use `overflow: true` in the style function, so they render even
+    // outside their geometry and don't need decluttering. Gazetteer labels are
+    // draggable, so overlaps are resolved by the user — a decluttered-away
+    // label is invisible and therefore impossible to grab.
+    //
+    // Name-matched gazetteer layers use VectorLayer so hit detection runs against
+    // the live map frame Translate uses. Every other vector sublayer stays on
+    // VectorImageLayer for the canvas batching dense contour/geomorphic sets need;
+    // the draggable feature label anchors those layers may grow at load time hit-test
+    // through the image renderer instead, which is accurate once the map is idle.
     declutter: false,
     properties: {
       name: sublayer.name,
       uuid: sublayer.uuid,
       sublayerType: "vector",
+      movableLabels: isGazetteer,
     },
+  });
+  return layer;
+}
+
+/**
+ * Build a `VectorSource` loader that fetches a GeoJSON document and resolves its
+ * source coordinate space (`dataProjection`) per-document via
+ * `resolveGeoJSONDataProjection` — see that module for the compatibility rule. This
+ * replaces a hardcoded `dataProjection: "EPSG:4326"`, which mis-renders the small set
+ * of legacy GeoJSON files that carry raw projected meter coordinates (see
+ * `docs/MS3_20260812_VECTOR_IMPORT_AUDIT.md`).
+ */
+function buildGeoJSONLoader(
+  url: string,
+  projCode: string,
+  onFeaturesLoaded?: (features: Feature<Geometry>[]) => void
+): FeatureLoader {
+  return function (this: VectorSource, extent, _resolution, _projection, success, failure) {
+    // OL's own failure path doesn't drop the extent it just marked as loading, so a
+    // failed load would never be retried without this.
+    const fail = () => {
+      this.removeLoadedExtent(extent);
+      failure?.();
+    };
+
+    fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then((json) => {
+        let dataProjection: string;
+        try {
+          dataProjection = resolveGeoJSONDataProjection(json, projCode);
+        } catch (error) {
+          console.error(`[layerFactory] ${url}:`, error);
+          fail();
+          return;
+        }
+        const format = new GeoJSON({ dataProjection, featureProjection: projCode });
+        const features = format.readFeatures(json) as Feature<Geometry>[];
+        onFeaturesLoaded?.(features);
+        this.addFeatures(features);
+        success?.(features);
+      })
+      .catch((error) => {
+        console.error(`[layerFactory] Failed to load GeoJSON ${url}:`, error);
+        fail();
+      });
+  };
+}
+
+export function isGazetteerFeatures(features: Feature<Geometry>[]): boolean {
+  return (
+    features.length > 0 &&
+    features.every(
+      (feature) =>
+        feature.getGeometry()?.getType() === "Point" && getGazetteerLabel(feature) != null
+    )
+  );
+}
+
+export function isGazetteerSublayer(sublayer: Pick<Sublayer, "name">): boolean {
+  return /(?:^|[^a-z0-9])(?:gazetteer|nomenclature)(?:$|[^a-z0-9])/i.test(sublayer.name);
+}
+
+/**
+ * Text label for a feature, ignoring the elevation properties. Used for the draggable
+ * feature label anchors, where an elevation reading would be meaningless.
+ */
+function getVectorLabel(feature: Feature<Geometry>): string | number | undefined {
+  return (
+    feature.get("label") ??
+    feature.get("name") ??
+    feature.get("NAME") ??
+    feature.get("Unit") ??
+    feature.get("TYPE") ??
+    undefined
+  );
+}
+
+/**
+ * Text label rendered inline on the feature itself. Same chain as `getVectorLabel` with
+ * the elevation variants inserted after the generic `label` (contour PMTiles carry
+ * `elev`; delivered contour GeoJSONs use `Contour`).
+ */
+function getRenderedVectorLabel(feature: Feature<Geometry>): string | number | undefined {
+  return (
+    feature.get("label") ??
+    feature.get("elevation") ??
+    feature.get("ELEVATION") ??
+    feature.get("elev") ??
+    feature.get("Contour") ??
+    getVectorLabel(feature)
+  );
+}
+
+function getFeatureLabelCoordinate(geometry: Geometry): Coordinate | undefined {
+  switch (geometry.getType()) {
+    case "Polygon":
+      return (geometry as Polygon).getInteriorPoint().getCoordinates();
+    case "MultiPolygon": {
+      const polygons = (geometry as MultiPolygon).getPolygons();
+      const largest = polygons.reduce(
+        (selected, polygon) => (polygon.getArea() > selected.getArea() ? polygon : selected),
+        polygons[0]
+      );
+      return largest?.getInteriorPoint().getCoordinates();
+    }
+    case "LineString":
+      return (geometry as LineString).getCoordinateAt(0.5);
+    case "MultiLineString": {
+      const lines = (geometry as MultiLineString).getLineStrings();
+      const longest = lines.reduce(
+        (selected, line) => (line.getLength() > selected.getLength() ? line : selected),
+        lines[0]
+      );
+      return longest?.getCoordinateAt(0.5);
+    }
+    default:
+      return undefined;
+  }
+}
+
+/** Build draggable label anchors for styled non-point GeoJSON features. */
+export function createFeatureLabelAnchors(features: Feature<Geometry>[]): Feature<Point>[] {
+  return features.flatMap((feature, index) => {
+    const geometry = feature.getGeometry();
+    const label = getVectorLabel(feature);
+    const sourceColor = feature.get("fillColor") ?? feature.get("color");
+    if (!geometry || label == null || typeof sourceColor !== "string") return [];
+
+    const coordinate = getFeatureLabelCoordinate(geometry)?.slice(0, 2);
+    if (!coordinate) return [];
+
+    feature.set("hasMovableFeatureLabel", true, true);
+    const labelFeature = new Feature<Point>({
+      geometry: new Point(coordinate),
+      gazetteerLabel: String(label),
+      originalCoordinates: [...coordinate],
+      featureLabel: true,
+    });
+    // Index-qualified: a source can mix features that carry an id with features that
+    // don't, and a bare id could collide with another feature's array position.
+    labelFeature.setId(`feature-label-${index}-${feature.getId() ?? ""}`);
+    return [labelFeature];
   });
 }
 
 function createPmtilesLayer(input: LayerFactoryInput): VectorTileLayer {
-  const { sublayer, missionId, projCode, projConfig, style } = input;
+  const { sublayer, missionId, projCode, projConfig, style, dataLayer } = input;
 
   const url = buildFullUrl(sublayer, missionId, "tile");
   const tileGrid = buildTileGrid(sublayer, projConfig);
@@ -218,7 +421,7 @@ function createPmtilesLayer(input: LayerFactoryInput): VectorTileLayer {
   // The TileLayers behavior component will asynchronously resolve the
   // PMTiles metadata and attach the source. This avoids blocking render.
   return new VectorTileLayer({
-    style: buildVectorStyleFn(style, baseResolutionFromProjConfig(projConfig)),
+    style: buildVectorStyleFn(style, dataLayer, baseResolutionFromProjConfig(projConfig)),
     declutter: false,
     properties: {
       name: sublayer.name,
@@ -324,6 +527,7 @@ function buildTileGrid(sublayer: Sublayer, projConfig: TileGridConfig | null): T
  * Build the OL style function for a vector / vector-tile sublayer.
  *
  * @param style          Per-sublayer visual controls from the preset.
+ * @param dataLayer      Per-mode label sizing / on-off switch (`MODE_CONFIGS[mode].dataLayer`).
  * @param baseResolution Resolution at zoom 0 (map units per pixel). Passed so the
  *                       style function can convert the current `resolution` into a
  *                       zoom level and honour `style.labelMinZoom`. When omitted,
@@ -331,14 +535,26 @@ function buildTileGrid(sublayer: Sublayer, projConfig: TileGridConfig | null): T
  */
 export function buildVectorStyleFn(
   style: MapSublayerStyle,
+  dataLayer: DataLayerConfig,
   baseResolution?: number
 ): (feature: Feature<Geometry>, resolution: number) => Style {
   // Cache styles to avoid creating new Style/Stroke/Fill/Text objects per feature per frame.
   // Key: geomType + labelText + resolvedFillColor + style params that affect output.
   const styleCache: { [key: string]: Style } = {};
+  const featureLabelStyle = createGazetteerLabelStyle(style, dataLayer);
 
   return (feature: Feature<Geometry>, resolution: number) => {
+    if (feature.get("featureLabel") === true) {
+      // A label anchor has no geometry of its own to draw — when the gazetteer style
+      // declines (labels off), render nothing rather than falling through to the
+      // stroke/fill branch below.
+      return featureLabelStyle(feature, resolution) ?? EMPTY_STYLE;
+    }
+
     const geomType = feature.getGeometry()?.getType();
+    // OL ignores stroke and fill on point geometry, so a point sublayer needs an
+    // `image` or it renders zero pixels.
+    const isPoint = geomType === "Point" || geomType === "MultiPoint";
 
     // When zoomed out past labelMinZoom, suppress labels so dense layers (e.g.
     // contours) don't turn into an unreadable overlapping mess. zoom = log2(base
@@ -350,20 +566,21 @@ export function buildVectorStyleFn(
     }
     // Generic `label` lets any vector source opt into a per-feature label. Elevation/name
     // variants are kept for backward compatibility (contour PMTiles carry `elev`; delivered
-    // contour GeoJSONs use `Contour`).
-    const genericLabel = feature.get("label");
-    const name = feature.get("name") || feature.get("NAME") || "";
-    const elevation =
-      feature.get("elevation") ??
-      feature.get("ELEVATION") ??
-      feature.get("elev") ??
-      feature.get("Contour");
+    // contour GeoJSONs use `Contour`). `TYPE` is last: it holds the feature class in the
+    // delivered geomorphic sets (contacts, linear features, surface features), which is the
+    // only human-readable text those datasets carry.
+    const genericLabel = getRenderedVectorLabel(feature);
 
     // Labels are opt-out per sublayer (style.showLabels); undefined = show (legacy default).
     // Also gated by resolution so they thin out / disappear when zoomed far out.
     let labelText = "";
-    if (style.showLabels !== false && labelsAllowedAtZoom) {
-      const value = genericLabel ?? elevation ?? (name || null);
+    if (
+      dataLayer.labelsEnabled &&
+      style.showLabels !== false &&
+      labelsAllowedAtZoom &&
+      feature.get("hasMovableFeatureLabel") !== true
+    ) {
+      const value = genericLabel;
       if (value != null) labelText = String(value);
     }
 
@@ -373,6 +590,9 @@ export function buildVectorStyleFn(
     if (resolvedFillColor?.startsWith("prop:")) {
       const propName = resolvedFillColor.slice(5);
       resolvedFillColor = feature.get(propName) || style.color || "#3399CC";
+    } else if (!resolvedFillColor || resolvedFillColor === "none") {
+      const sourceColor = feature.get("fillColor") ?? feature.get("color");
+      if (typeof sourceColor === "string") resolvedFillColor = sourceColor;
     }
 
     // Build cache key from all values that affect the output style
@@ -388,7 +608,7 @@ export function buildVectorStyleFn(
 
         textStyle = new Text({
           text: labelText,
-          font: "12px Arial",
+          font: `${dataLayer.featureFontSize}px Arial`,
           fill: new Fill({ color: labelColor }),
           stroke:
             labelHaloWidth > 0
@@ -398,10 +618,17 @@ export function buildVectorStyleFn(
                 })
               : undefined,
           placement: geomType === "LineString" ? "line" : "point",
+          // Clear the symbol so a point label sits under its circle rather than on it.
+          offsetY: isPoint ? POINT_SYMBOL_RADIUS + (style.weight || 1) + 8 : 0,
           maxAngle: Math.PI / 4,
           overflow: true,
         });
       }
+
+      const symbolFill =
+        style.fillOpacity > 0
+          ? new Fill({ color: withAlpha(resolvedFillColor, style.fillOpacity) })
+          : undefined;
 
       styleCache[cacheKey] = new Style({
         stroke: new Stroke({
@@ -409,15 +636,20 @@ export function buildVectorStyleFn(
           width: style.weight || 1,
           lineDash: style.isDashed ? [style.dashLen, style.dashLen] : undefined,
         }),
-        fill:
-          geomType === "Polygon" || geomType === "MultiPolygon"
-            ? new Fill({
-                color:
-                  style.fillOpacity > 0
-                    ? withAlpha(resolvedFillColor, style.fillOpacity)
-                    : undefined,
-              })
-            : undefined,
+        fill: geomType === "Polygon" || geomType === "MultiPolygon" ? symbolFill : undefined,
+        // Unfilled by default: `fillOpacity` defaults to 0, so a point sublayer draws an
+        // open ring until an operator raises it. The stroke is deliberately undashed —
+        // a dash pattern on a symbol this small reads as noise.
+        image: isPoint
+          ? new CircleStyle({
+              radius: POINT_SYMBOL_RADIUS,
+              stroke: new Stroke({
+                color: style.color || "#3399CC",
+                width: style.weight || 1,
+              }),
+              fill: symbolFill,
+            })
+          : undefined,
         text: textStyle,
       });
     }
@@ -432,6 +664,9 @@ export function withAlpha(color: string, alpha: number): string {
   // If already rgba, replace the alpha
   if (color.startsWith("rgba")) {
     return color.replace(/[\d.]+\)$/, `${alpha})`);
+  }
+  if (color.startsWith("rgb(")) {
+    return color.replace(/^rgb\((.*)\)$/, `rgba($1,${alpha})`);
   }
   // Convert hex to rgba — expand 3-char shorthand (#abc → #aabbcc)
   if (color.startsWith("#")) {

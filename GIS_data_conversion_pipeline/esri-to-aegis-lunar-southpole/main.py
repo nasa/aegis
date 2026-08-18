@@ -61,6 +61,13 @@ from pipeline import steps, summary
 from pipeline.reporting import banner, install_capture, tee, write_conversion_report
 
 
+class SingleUseAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None) -> None:
+        if getattr(namespace, self.dest, None) is not None:
+            parser.error(f"{option_string} may be specified only once")
+        setattr(namespace, self.dest, values)
+
+
 def build_parser() -> argparse.ArgumentParser:
     step_lines = "\n".join(
         f"  {i:2d}  {name:<9}  {desc}" for i, (name, desc) in enumerate(steps.STEPS)
@@ -172,10 +179,30 @@ def build_parser() -> argparse.ArgumentParser:
     inputs.add_argument(
         "--in-vector",
         dest="in_vector",
-        action="append",
-        default=[],
+        action=SingleUseAction,
+        type=Path,
+        default=None,
         metavar="PATH",
-        help="Custom vector layer, shp or geojson (repeatable).",
+        help="One vector layer, shapefile or GeoJSON. Run the pipeline again for another file.",
+    )
+    inputs.add_argument(
+        "--vector-name",
+        dest="vector_name",
+        metavar="NAME",
+        help="Output GeoJSON stem for --in-vector (defaults to the source stem).",
+    )
+    inputs.add_argument(
+        "--repair-vector-invalid",
+        dest="repair_vector_invalid",
+        action="store_true",
+        help="Repair invalid --in-vector geometries with make_valid before normalization.",
+    )
+    inputs.add_argument(
+        "--expect-vector-features",
+        dest="expect_vector_features",
+        type=int,
+        metavar="COUNT",
+        help="Fail unless --in-vector produces exactly COUNT non-empty features.",
     )
     inputs.add_argument(
         "--in-horizon-shapefile-dir",

@@ -16,9 +16,11 @@
  *  - Label features suppressed when labelsVisible=false
  *  - Label features added when labelsVisible=true and gridLabelsEnabled (editor mode)
  *  - Layers removed on unmount
+ *  - Dashboard publishes the spacing it drew; minimap redraws at that spacing
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { useEffect } from "react";
 import { Provider } from "react-redux";
 import { CookiesProvider, Cookies } from "react-cookie";
 import { configureStore } from "@reduxjs/toolkit";
@@ -29,6 +31,11 @@ import type VectorSource from "ol/source/Vector";
 
 import { MapContext } from "components/interface/map/MapProvider";
 import { MapMenuProvider } from "components/interface/map/MapMenuProvider";
+import {
+  DashboardBoundsProvider,
+  useDashboardBoundsContext,
+  type DashboardBoundsContextValue,
+} from "components/interface/map/DashboardBoundsProvider";
 import { Grid } from "components/interface/map/behaviors/Grid";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { presetSlice } from "store/preset";
@@ -71,6 +78,10 @@ vi.mock("components/interface/map/hooks/useResolvedMissionGrid", () => ({
   },
 }));
 
+// Metres between adjacent grid points. 0 (the default) disables every
+// spacing-derived branch.
+const mockBaseSpacing = vi.hoisted(() => ({ current: 0 }));
+
 // Use a stable Proxy as the exported globalGrid value.
 // Since the ESM binding captures the proxy reference (never null), it passes
 // the `!globalGrid` guard in the component.  The proxy's property traps then
@@ -89,7 +100,7 @@ vi.mock("utils/mapping/grid", () => {
   return {
     globalGrid: globalGridProxy,
     loadAndReturnGrid: async (): Promise<null> => null,
-    getGridBaseSpacingMeters: () => 0,
+    getGridBaseSpacingMeters: () => mockBaseSpacing.current,
   };
 });
 
@@ -189,6 +200,22 @@ function makeGrid(rows = 3, cols = 3): MissionGrid {
 
 type PartialPreloadedState = Parameters<typeof configureStore>[0]["preloadedState"];
 
+/** Preloaded preset state with a visible, labelled grid. */
+function visibleGridState(): PartialPreloadedState {
+  return {
+    preset: {
+      ...presetSlice.getInitialState(),
+      selectedPresetUuid: PRESET_UUID,
+      presets: [
+        {
+          uuid: PRESET_UUID,
+          mapGridControl: makeGridControl(true, true),
+        } as unknown as Preset,
+      ],
+    },
+  } as PartialPreloadedState;
+}
+
 function makeStore(preloadedState: PartialPreloadedState = {}) {
   return configureStore({
     reducer: {
@@ -222,6 +249,49 @@ function renderGrid(mode: "editor" | "dashboard" | "minimap" = "editor") {
   );
 }
 
+/** Renders Grid inside a DashboardBoundsProvider and exposes that context via `bounds.ctx`. */
+const bounds: { ctx: DashboardBoundsContextValue | null } = { ctx: null };
+
+function captureBounds(ctx: DashboardBoundsContextValue): void {
+  bounds.ctx = ctx;
+}
+
+function BoundsProbe(): null {
+  const ctx = useDashboardBoundsContext();
+  useEffect(() => captureBounds(ctx), [ctx]);
+  return null;
+}
+
+function gridInBoundsTree(mode: "dashboard" | "minimap"): JSX.Element {
+  return (
+    <Provider store={store}>
+      <CookiesProvider cookies={new Cookies()}>
+        <DashboardBoundsProvider>
+          <BoundsProbe />
+          <MapMenuProvider>
+            <MapContext.Provider value={{ map, mode }}>
+              <Grid />
+            </MapContext.Provider>
+          </MapMenuProvider>
+        </DashboardBoundsProvider>
+      </CookiesProvider>
+    </Provider>
+  );
+}
+
+function renderGridInBounds(mode: "dashboard" | "minimap") {
+  harness.render(gridInBoundsTree(mode));
+}
+
+/** Lets React flush the state update Grid publishes from its effect. */
+function flushPublish(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function lineFeatureCount(): number {
+  return findLayerAtZIndex(Z_INDEX.GRID_LINES)!.getSource()!.getFeatures().length;
+}
+
 function findLayerAtZIndex(zIndex: number): VectorLayer<VectorSource> | null {
   return (
     (map
@@ -234,6 +304,8 @@ function findLayerAtZIndex(zIndex: number): VectorLayer<VectorSource> | null {
 beforeEach(() => {
   mockGrid.current = null;
   mockMissionDoc.gridRenderMode = "server-file";
+  mockBaseSpacing.current = 0;
+  bounds.ctx = null;
   geoMathCalls.count = 0;
   harness = createReactHarness();
 
@@ -424,6 +496,47 @@ describe("Grid", () => {
     renderGrid("minimap"); // gridLabelsEnabled=false for minimap
     const labelLayer = findLayerAtZIndex(Z_INDEX.GRID_LABELS)!;
     expect(labelLayer.getSource()!.getFeatures()).toHaveLength(0);
+  });
+
+  it("dashboard publishes the spacing it drew", async () => {
+    mockGrid.current = makeGrid(3, 3);
+    mockBaseSpacing.current = 10;
+    store = makeStore(visibleGridState());
+
+    renderGridInBounds("dashboard");
+
+    // 3×3 grid over the whole viewport → stride 1 → spacing == base spacing.
+    await flushPublish();
+
+    expect(bounds.ctx!.gridSpacing).toEqual({ line: 10, label: 10 });
+  });
+
+  it("minimap draws the dashboard's spacing instead of its own", async () => {
+    mockGrid.current = makeGrid(3, 3);
+    mockBaseSpacing.current = 10;
+    store = makeStore(visibleGridState());
+
+    renderGridInBounds("minimap");
+    // Auto density on a 3×3 grid → stride 1 → 3 rows + 3 cols.
+    expect(lineFeatureCount()).toBe(6);
+
+    const { flushSync } = await import("react-dom");
+    flushSync(() => bounds.ctx!.setGridSpacing({ line: 20, label: 20 }));
+    renderGridInBounds("minimap");
+
+    // 20 m spacing over a 10 m grid → stride 2 → 2 rows + 2 cols.
+    expect(lineFeatureCount()).toBe(4);
+  });
+
+  it("dashboard publishes a dynamic-lgrs spacing", async () => {
+    mockMissionDoc.gridRenderMode = "dynamic-lgrs";
+    store = makeStore(visibleGridState());
+
+    renderGridInBounds("dashboard");
+    await flushPublish();
+
+    expect(bounds.ctx!.gridSpacing!.line).toBeGreaterThan(0);
+    expect(bounds.ctx!.gridSpacing!.label).toBeGreaterThanOrEqual(bounds.ctx!.gridSpacing!.line);
   });
 
   it("removes both layers on unmount", () => {

@@ -1,35 +1,71 @@
-"""Convert a shapefile to GeoJSON, reprojecting to EPSG:4326, keeping attributes.
+"""Normalize one shapefile or GeoJSON file to AEGIS-loadable GeoJSON.
 
 AEGIS loads vector sublayers as GeoJSON in geographic coordinates and reprojects
 on the client:
 
-    new GeoJSON({ dataProjection: "EPSG:4326", featureProjection: "IAU2000:30166" })
+    new GeoJSON({ dataProjection: "EPSG:4326", featureProjection: projCode })
 
-So this script reprojects the source geometry (e.g. Lunar South Pole
-Stereographic) to EPSG:4326 lon/lat and writes a GeoJSON FeatureCollection,
-carrying every attribute through to ``feature.properties`` for popups/labels.
+So this script must land every output feature in **longitude/latitude degrees**.
+For a body-specific (lunar) projected source CRS, the correct operation is a
+**Moon-to-Moon** transform: source CRS -> that CRS's own geodetic (lon/lat) CRS,
+derived via ``pyproj.CRS.geodetic_crs``. Naively asking PROJ/Fiona to transform a
+lunar projected CRS straight to Earth ``EPSG:4326`` is a **no-op that silently
+"succeeds"**: PROJ detects the source and target ellipsoids belong to different
+celestial bodies, refuses the datum shift, and Fiona returns the untransformed
+input coordinates -- so meter-valued coordinates get written into a file labeled
+EPSG:4326 with no error. See ``docs/MS3_20260812_VECTOR_IMPORT_AUDIT.md`` for the
+full writeup and a worked example.
 
-For the A03MP026 landing ellipse the source has a body-specific stereographic
-CRS on a 1737400 m sphere; the lon/lat output is interpreted by AEGIS against
-the lunar body, so the planar→geographic transform is what matters (it is the
-inverse of the stereographic projection), not any Earth datum.
+The lon/lat degrees this script writes are numerically the same regardless of
+which body's ellipsoid produced them (the geodetic CRS derived from the lunar
+stereographic CRS is a lunar geographic CRS) -- AEGIS's client-side reprojection
+(``featureProjection: <mission's lunar cap-grid projCode>``) is what turns them
+back into lunar cap-grid meters, so tagging the *output* file as "EPSG:4326" is
+a naming convention, not a claim about Earth.
+
+Supports:
+  - Projected lunar shapefiles (e.g. Moon 2000 South Pole Stereographic,
+    ``ESRI:103878``) -> reprojected to that CRS's geodetic lon/lat.
+  - Already-geographic lunar shapefiles (e.g. ``ESRI:104903``) -> coordinates
+    pass through unchanged (their "geodetic_crs" is themselves).
+    - GeoJSON with a usable projected or geographic CRS -> handled through the
+        same Fiona normalization path as shapefiles.
+  - Optional polygon repair (``--repair-invalid``) via Shapely ``make_valid``
+    for known-invalid deliveries (e.g. a self-intersecting ring), applied
+    BEFORE reprojection (geometry repair is CRS-agnostic; simpler to validate
+    in the source's own units).
+
+Refuses instead of guessing:
+    - No usable CRS on the source: hard error.
+  - Any output coordinate outside [-180, 180] / [-90, 90] after transform:
+    hard error (would indicate an unexpected CRS/transform failure).
+    - Projected GeoJSON without a usable CRS is rejected by the geographic-bounds
+        check rather than copied into ``Data/`` unchanged.
 
 Uses fiona (which bundles its own GDAL/OGR) plus pyproj for the coordinate
-transform — both provided as conda-forge binaries by the pixi env, so run it
-under ``pixi run`` (fiona is not importable under a bare ``.venv``/``uv``).
+transform and CRS introspection -- both provided as conda-forge binaries by the
+pixi env, so run it under ``pixi run`` (fiona is not importable under a bare
+``.venv``/``uv``). Shapely (used only for ``--repair-invalid``) is a pure-Python
+wheel already pulled in transitively via geopandas.
 
 Usage:
     cd GIS_data_conversion_pipeline
 
-    pixi run python esri-to-aegis-lunar-southpole/vector/shp_to_geojson.py \\
-        <drop>/A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp \\
-        <out>/Data/ellipse.geojson --to-epsg 4326
+    pixi run python esri-to-aegis-lunar-southpole/vector/shp_to_geojson.py \
+        <drop>/A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp \
+        <out>/Data/ellipse.geojson
+
+    # Repair a known-invalid polygon delivery (PSR self-intersection) and
+    # assert the feature count survives the repair:
+    pixi run python esri-to-aegis-lunar-southpole/vector/shp_to_geojson.py \
+        RasterT_Int_psr2.shp psr.geojson --repair-invalid --expect-features 98
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -53,6 +89,20 @@ except ImportError:  # pragma: no cover - guidance path
     )
     sys.exit(1)
 
+try:
+    from pyproj import CRS
+except ImportError:  # pragma: no cover - guidance path
+    print(
+        "ERROR: pyproj is required.\n"
+        "Run this script under the pixi env:\n"
+        "  pixi run python esri-to-aegis-lunar-southpole/vector/shp_to_geojson.py ...",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+
+LON_LAT_TOL = 1e-6  # allow float round-off just past the exact bound
+
 
 def _to_plain(obj):
     """Recursively convert fiona Geometry/Properties (and OrderedDicts, tuples)
@@ -63,13 +113,11 @@ def _to_plain(obj):
     ``json.dumps``. Both expose a mapping interface (and Geometry has
     ``__geo_interface__``), so normalize them here.
     """
-    # fiona Geometry exposes a GeoJSON mapping via __geo_interface__
     geo = getattr(obj, "__geo_interface__", None)
     if geo is not None and not isinstance(obj, (dict, list, tuple)):
         return _to_plain(geo)
     if isinstance(obj, dict):
         return {key: _to_plain(value) for key, value in obj.items()}
-    # Catch fiona Properties / other Mapping types that aren't plain dict
     items = getattr(obj, "items", None)
     if callable(items) and not isinstance(obj, (str, bytes)):
         return {key: _to_plain(value) for key, value in obj.items()}
@@ -78,62 +126,180 @@ def _to_plain(obj):
     return obj
 
 
+def _iter_coords(coords):
+    """Yield every (x, y[, z...]) leaf tuple from a nested GeoJSON coordinates array."""
+    if not coords:
+        return
+    first = coords[0]
+    if isinstance(first, (int, float)):
+        yield coords
+        return
+    for item in coords:
+        yield from _iter_coords(item)
+
+
+def _iter_geometry_coords(geom: dict):
+    """Yield every leaf coordinate tuple in a geometry, descending into GeometryCollections."""
+    if geom.get("type") == "GeometryCollection":
+        for sub in geom.get("geometries", []):
+            yield from _iter_geometry_coords(sub)
+        return
+    yield from _iter_coords(geom.get("coordinates"))
+
+
+def _assert_geographic_bounds(geom: dict, feature_index: int) -> None:
+    """Hard-fail if any coordinate in a transformed geometry falls outside lon/lat bounds.
+
+    Guards against a silent no-op transform (the exact failure mode this script exists to
+    prevent -- see the module docstring) slipping through as "success".
+    """
+    for x, y, *_ in _iter_geometry_coords(geom):
+        if not (-180 - LON_LAT_TOL <= x <= 180 + LON_LAT_TOL) or not (
+            -90 - LON_LAT_TOL <= y <= 90 + LON_LAT_TOL
+        ):
+            raise SystemExit(
+                f"ERROR: feature {feature_index} produced an out-of-range coordinate "
+                f"({x}, {y}) after reprojection -- the source CRS transform likely failed "
+                "silently (Moon-to-Earth no-op) or the source geometry is corrupt. Refusing "
+                "to write a GeoJSON with non-geographic coordinates."
+            )
+
+
+def _validate_geometry(geom: dict, repair_invalid: bool) -> tuple[dict, bool, bool]:
+    """Return ``(geometry, was_invalid, was_repaired)`` using Shapely validation."""
+    from shapely.geometry import mapping, shape
+    from shapely.validation import make_valid
+
+    shp = shape(geom)
+    if shp.is_valid:
+        return geom, False, False
+    if not repair_invalid:
+        return geom, True, False
+    repaired = make_valid(shp)
+    if repaired.is_empty or not repaired.is_valid:
+        raise SystemExit("ERROR: make_valid did not produce a non-empty valid geometry")
+    return _to_plain(mapping(repaired)), True, True
+
+
 def convert(
     src_path: Path,
     dst_path: Path,
-    to_epsg: int,
     precision: int | None,
-) -> None:
-    dst_crs = f"EPSG:{to_epsg}"
+    *,
+    repair_invalid: bool = False,
+    expect_features: int | None = None,
+) -> dict:
+    """Normalize one Fiona-supported vector source to GeoJSON at ``dst_path``.
 
+    Returns a machine-readable audit summary dict (source CRS, output bounds, feature
+    count, geometry types, invalid/repaired counts, property names).
+    """
     with fiona.open(src_path) as src:
-        src_crs = src.crs_wkt or (src.crs.to_wkt() if src.crs else None)
-        if not src_crs:
+        src_crs_wkt = src.crs_wkt or (src.crs.to_wkt() if src.crs else None)
+        if not src_crs_wkt:
             print(
-                "ERROR: source has no CRS (.prj missing?). Cannot reproject safely.",
+                "ERROR: source has no usable CRS. Cannot normalize it safely.",
                 file=sys.stderr,
             )
             sys.exit(1)
 
+        src_crs_obj = CRS.from_wkt(src_crs_wkt)
+        # The Moon-to-Moon fix: transform to the SOURCE CRS's OWN geodetic (lon/lat) CRS,
+        # never to Earth EPSG:4326. For an already-geographic source, geodetic_crs is the
+        # CRS itself, so this is a no-op passthrough (correct -- it's already lon/lat).
+        dst_crs_obj = src_crs_obj.geodetic_crs
+        if dst_crs_obj is None:
+            print(
+                f"ERROR: could not derive a geodetic CRS from the source CRS:\n  {src_crs_wkt}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        dst_crs_wkt = dst_crs_obj.to_wkt()
+
         print("-" * 60)
-        print("Shapefile → GeoJSON")
+        print("Vector -> GeoJSON (Moon-to-Moon)")
         print("-" * 60)
         print(f"  Source:      {src_path}")
         print(f"  Destination: {dst_path}")
         print(f"  Features:    {len(src)}")
         print(f"  Geometry:    {src.schema.get('geometry')}")
-        print(f"  Source CRS:  {str(src_crs)[:80]}...")
-        print(f"  Target CRS:  {dst_crs}")
+        print(f"  Source CRS:  {src_crs_obj.name}")
+        print(f"  Target CRS:  {dst_crs_obj.name} (source's own geodetic CRS, lon/lat)")
         print()
 
         features: list[dict] = []
-        for feat in src:
+        geometry_types: dict[str, int] = {}
+        property_keys: set[str] = set()
+        invalid_count = 0
+        repaired_count = 0
+        null_geometry_count = 0
+        min_x = min_y = float("inf")
+        max_x = max_y = float("-inf")
+
+        for index, feat in enumerate(src):
             geom = feat["geometry"]
             if geom is None:
+                null_geometry_count += 1
                 continue
-            # fiona.transform.transform_geom handles the inverse stereographic
-            # → lon/lat transform using the source's full CRS definition.
-            geom_out = transform_geom(
-                src_crs,
-                dst_crs,
-                geom,
-                precision=precision if precision is not None else -1,
+
+            geom, was_invalid, was_repaired = _validate_geometry(
+                _to_plain(geom), repair_invalid
             )
+            if was_invalid:
+                invalid_count += 1
+                if was_repaired:
+                    repaired_count += 1
+                    print(
+                        f"  [repair] feature {index} (Id={feat['properties'].get('Id', index)}) "
+                        "had an invalid geometry -- repaired with make_valid"
+                    )
+
+            # fiona.transform.transform_geom handles the planar -> geodetic transform
+            # using the source's full CRS definition (its OWN body's ellipsoid).
+            try:
+                geom_out = _to_plain(
+                    transform_geom(
+                        src_crs_wkt,
+                        dst_crs_wkt,
+                        geom,
+                        precision=precision if precision is not None else -1,
+                    )
+                )
+            except Exception as error:
+                raise SystemExit(
+                    f"ERROR: feature {index} could not be transformed safely: {error}"
+                ) from error
+            _assert_geographic_bounds(geom_out, index)
+
+            geometry_types[geom_out.get("type", "Unknown")] = (
+                geometry_types.get(geom_out.get("type", "Unknown"), 0) + 1
+            )
+            for x, y, *_ in _iter_geometry_coords(geom_out):
+                min_x, max_x = min(min_x, x), max(max_x, x)
+                min_y, max_y = min(min_y, y), max(max_y, y)
+
             props = dict(feat["properties"])
+            property_keys.update(props.keys())
             features.append(
                 {
                     "type": "Feature",
-                    "geometry": _to_plain(geom_out),
+                    "geometry": geom_out,
                     "properties": _to_plain(props),
                 }
             )
+
+    if expect_features is not None and len(features) != expect_features:
+        raise SystemExit(
+            f"ERROR: expected {expect_features} feature(s) after conversion, got "
+            f"{len(features)}. Refusing to write a GeoJSON with an unexpected feature count."
+        )
 
     fc = {
         "type": "FeatureCollection",
         "name": src_path.stem,
         "crs": {
             "type": "name",
-            "properties": {"name": f"urn:ogc:def:crs:EPSG::{to_epsg}"},
+            "properties": {"name": "urn:ogc:def:crs:EPSG::4326"},
         },
         "features": features,
     }
@@ -142,40 +308,79 @@ def convert(
     dst_path.write_text(json.dumps(fc, ensure_ascii=False), encoding="utf-8")
 
     size_kb = dst_path.stat().st_size / 1024
-    print(f"  Wrote {len(features)} feature(s) → {dst_path} ({size_kb:.1f} KB)")
+    print(f"\n  Wrote {len(features)} feature(s) -> {dst_path} ({size_kb:.1f} KB)")
     if features:
-        sample_props = features[0]["properties"]
-        print(f"  Property keys carried: {sorted(sample_props.keys())}")
+        print(f"  Property keys carried: {sorted(property_keys)}")
+    print(f"  Geometry types: {geometry_types}")
+    if invalid_count:
+        print(f"  Invalid geometries: {invalid_count}; repaired: {repaired_count}")
+    if null_geometry_count:
+        print(f"  Omitted {null_geometry_count} feature(s) with null geometry")
+    # Every feature can be non-empty yet contribute no coordinate (e.g. an empty
+    # GeometryCollection), which would leave the accumulators at +/-inf.
+    has_bounds = math.isfinite(min_x) and math.isfinite(min_y)
+    if has_bounds:
+        print(
+            f"  Output bounds: ({min_x:.7f}, {min_y:.7f}) to ({max_x:.7f}, {max_y:.7f})"
+        )
     print()
+
+    return {
+        "source": str(src_path),
+        "destination": str(dst_path),
+        "source_crs": src_crs_obj.name,
+        "target_crs": dst_crs_obj.name,
+        "source_feature_count": len(features) + null_geometry_count,
+        "feature_count": len(features),
+        "geometry_types": geometry_types,
+        "invalid_count": invalid_count,
+        "repaired_count": repaired_count,
+        "null_geometry_count": null_geometry_count,
+        "property_keys": sorted(property_keys),
+        "output_bounds": [min_x, min_y, max_x, max_y] if has_bounds else None,
+    }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Convert a shapefile to GeoJSON, reprojecting to EPSG:4326 and\n"
-            "preserving attributes as feature properties. For AEGIS vector\n"
-            "sublayers (dataProjection EPSG:4326, featureProjection set on load)."
+            "Normalize one shapefile or GeoJSON to AEGIS-loadable lon/lat GeoJSON, preserving\n"
+            "attributes as feature properties. Performs a Moon-to-Moon transform (source\n"
+            "CRS -> its own geodetic CRS), never a Moon-to-Earth EPSG:4326 no-op."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Example (from GIS_data_conversion_pipeline/):\n"
             "  pixi run python esri-to-aegis-lunar-southpole/vector/shp_to_geojson.py \\\n"
-            "      A03MP026_Ellipse.shp ellipse.geojson --to-epsg 4326\n"
+            "      A03MP026_Ellipse.shp ellipse.geojson\n"
         ),
     )
-    parser.add_argument("input", type=Path, help="Input shapefile (.shp)")
-    parser.add_argument("output", type=Path, help="Output GeoJSON path")
     parser.add_argument(
-        "--to-epsg",
-        type=int,
-        default=4326,
-        help="Target EPSG code (default: 4326 = WGS84 lon/lat)",
+        "input", type=Path, help="Input vector source (.shp, .geojson, or .json)"
     )
+    parser.add_argument("output", type=Path, help="Output GeoJSON path")
     parser.add_argument(
         "--precision",
         type=int,
         default=None,
         help="Round output coordinates to N decimal places (default: full precision)",
+    )
+    parser.add_argument(
+        "--repair-invalid",
+        action="store_true",
+        help="Repair invalid polygon geometries with Shapely make_valid before reprojecting.",
+    )
+    parser.add_argument(
+        "--expect-features",
+        type=int,
+        default=None,
+        help="Hard-fail if the output feature count doesn't match this value.",
+    )
+    parser.add_argument(
+        "--audit-out",
+        type=Path,
+        default=None,
+        help="Optional path to write the machine-readable audit summary JSON.",
     )
 
     args = parser.parse_args()
@@ -185,16 +390,27 @@ def main() -> None:
         sys.exit(1)
 
     print("=" * 60)
-    print("Shapefile → GeoJSON (reproject + attributes)")
+    print("Vector -> GeoJSON (Moon-to-Moon reproject + attributes)")
     print("=" * 60)
     print()
 
-    convert(args.input, args.output, args.to_epsg, args.precision)
+    audit = convert(
+        args.input,
+        args.output,
+        args.precision,
+        repair_invalid=args.repair_invalid,
+        expect_features=args.expect_features,
+    )
+
+    if args.audit_out:
+        args.audit_out.parent.mkdir(parents=True, exist_ok=True)
+        args.audit_out.write_text(json.dumps(audit, indent=2) + "\n", encoding="utf-8")
+        print(f"  Audit summary written: {args.audit_out}")
 
     print("Load in AEGIS as a 'vector' sublayer:")
     print(
         '  new GeoJSON({ dataProjection: "EPSG:4326", '
-        'featureProjection: "IAU2000:30166" })'
+        'featureProjection: "<mission projCode>" })'
     )
 
 

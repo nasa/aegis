@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { Layer as OLLayer } from "ol/layer";
 import type { VectorImage as VectorImageLayer } from "ol/layer";
 import type VectorTileLayer from "ol/layer/VectorTile";
+import { Translate } from "ol/interaction";
 import MVT from "ol/format/MVT";
 import { PMTilesVectorSource } from "ol-pmtiles";
 import { PMTiles } from "pmtiles";
@@ -30,19 +31,24 @@ import {
   type LayerFactoryInput,
   type TileGridConfig,
 } from "../utils/layers/layerFactory";
+import { createGazetteerLabelStyle, getGazetteerLabel } from "../utils/styles/gazetteerLabels";
 import { applyVisualStyle, clearVisualStyle } from "../utils/visualStyleApplicator";
 import { getLayersToShow, type SublayerToRender } from "../utils/getLayersToShow";
+import { MODE_CONFIGS, type DataLayerConfig } from "../utils/modeConfig";
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export function TileLayers(): null {
-  const { map } = useMapContext();
+  const { map, mode } = useMapContext();
+  const dataLayerConfig = MODE_CONFIGS[mode].dataLayer;
   const mapDateTime = useMapDateTime();
 
   // --- Redux state --------------------------------------------------------
   const selectedPresetUuid = useAppSelector((s) => s.preset.selectedPresetUuid, refEqual);
+  // Any active edit directive owns the map's interactions — see InteractionManager.
+  const editActive = useAppSelector((s) => !!s.map.mapDirective, refEqual);
   const selectedPreset = useAppSelector(
     (s) => s.preset.presets.find((p) => p.uuid === selectedPresetUuid),
     deepEqual
@@ -92,6 +98,25 @@ export function TileLayers(): null {
   const activeLayersRef = useRef(new Map<string, OLLayer>());
   const prevPresetUuidRef = useRef<string | null>(null);
   const prevMapRef = useRef<typeof map | null>(null);
+
+  // Drag-to-reposition for gazetteer / feature labels. Mirrors MarkerLabels: the
+  // minimap is non-interactive, and labels are frozen while an edit directive owns
+  // its own Translate/Modify.
+  useEffect(() => {
+    if (mode === "minimap") return;
+    if (editActive) return;
+
+    const translate = new Translate({
+      layers: (layer) => layer.get("movableLabels") === true,
+      filter: (feature) =>
+        getGazetteerLabel(feature) != null && feature.get("originalCoordinates") != null,
+      hitTolerance: 5,
+    });
+    map.addInteraction(translate);
+    return () => {
+      map.removeInteraction(translate);
+    };
+  }, [map, mode, editActive]);
 
   useEffect(() => {
     // If the map instance changed, the old layers belong to the disposed map.
@@ -153,12 +178,18 @@ export function TileLayers(): null {
         applyVisualStyle(existing, sublayerToRender.visualStyle);
         const baseResolution = map.getView().getResolutionForZoom(0);
         if (sublayerToRender.type === "vector") {
-          (existing as VectorImageLayer).setStyle(
-            buildVectorStyleFn(sublayerToRender.visualStyle, baseResolution)
-          );
+          if (existing.get("movableLabels") && !existing.get("featureLabels")) {
+            (existing as VectorImageLayer).setStyle(
+              createGazetteerLabelStyle(sublayerToRender.visualStyle, dataLayerConfig)
+            );
+          } else {
+            (existing as VectorImageLayer).setStyle(
+              buildVectorStyleFn(sublayerToRender.visualStyle, dataLayerConfig, baseResolution)
+            );
+          }
         } else if (sublayerToRender.type === "vector-tile") {
           (existing as VectorTileLayer).setStyle(
-            buildVectorStyleFn(sublayerToRender.visualStyle, baseResolution)
+            buildVectorStyleFn(sublayerToRender.visualStyle, dataLayerConfig, baseResolution)
           );
         }
       } else {
@@ -175,7 +206,8 @@ export function TileLayers(): null {
           sublayerToRender,
           missionId,
           projCode,
-          projConfig ?? null
+          projConfig ?? null,
+          dataLayerConfig
         );
         if (!layer) return;
 
@@ -200,7 +232,7 @@ export function TileLayers(): null {
     // render() ensures tile sources compute their visible tile ranges and
     // start requesting tiles immediately.
     map.render();
-  }, [layersToShow, selectedPresetUuid, missionId, map, projCode, projConfig]);
+  }, [layersToShow, selectedPresetUuid, missionId, map, projCode, projConfig, dataLayerConfig]);
 
   // --- Cleanup on unmount -------------------------------------------------
   useEffect(() => {
@@ -226,13 +258,15 @@ function createLayerForSublayer(
   sublayer: SublayerToRender,
   missionId: number,
   projCode: string,
-  projConfig: TileGridConfig | null
+  projConfig: TileGridConfig | null,
+  dataLayer: DataLayerConfig
 ): OLLayer | null {
   const input: LayerFactoryInput = {
     sublayer,
     missionId,
     projCode,
     style: sublayer.visualStyle,
+    dataLayer,
     projConfig,
   };
 

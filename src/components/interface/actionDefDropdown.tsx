@@ -7,6 +7,11 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { refEqual } from "utils/useAppSelector";
 import { getActionDefinitionLabel } from "store/selectors";
 
+export const sortActionDefinitionItems = (
+  items: ActionDefinitionItems
+): [string, ActionDefinitionItem][] =>
+  Object.entries(items).sort(([, a], [, b]) => a.name.localeCompare(b.name));
+
 export const ActionDefDropdown: FunctionComponent<{
   actionDefinitionItems: ActionDefinitionItems;
   type: ActionDefinitionType;
@@ -78,7 +83,7 @@ export const ActionDefDropdown: FunctionComponent<{
           >
             {emptyLabel}
           </div>
-          {Object.entries(actionDefinitionItems).map(([uuid, actionDef]) => (
+          {sortActionDefinitionItems(actionDefinitionItems).map(([uuid, actionDef]) => (
             <div
               key={uuid}
               ref={selectedUuid === uuid ? selectedItemRef : null}

@@ -11,6 +11,24 @@
 // Config shape
 // ---------------------------------------------------------------------------
 
+/**
+ * Label parameters for GIS data sublayers (GeoJSON / PMTiles), applied by the
+ * layer factory and the gazetteer label style. Split out because those modules
+ * take it directly — they are pure and have no `MapMode` of their own.
+ */
+export interface DataLayerConfig {
+  /**
+   * When false, no data-layer label is drawn at all — gazetteer place names,
+   * feature label anchors, and the inline feature labels alike. Off on the minimap,
+   * where they cover more of the map than they inform.
+   */
+  labelsEnabled: boolean;
+  /** Font size (px) for draggable gazetteer / feature place-name labels. */
+  gazetteerFontSize: number;
+  /** Font size (px) for inline feature labels (contour elevations, point types). */
+  featureFontSize: number;
+}
+
 export interface ModeConfig {
   mode: MapMode;
 
@@ -93,7 +111,12 @@ export interface ModeConfig {
   // Grid labels
   grid: {
     labelsEnabled: boolean;
+    /** Font size (px) for grid coordinate labels. */
+    labelFontSize: number;
   };
+
+  // GIS data sublayer labels
+  dataLayer: DataLayerConfig;
 
   // Scale bar
   scaleBar: {
@@ -160,6 +183,12 @@ const EDITOR_CONFIG: ModeConfig = {
   },
   grid: {
     labelsEnabled: true,
+    labelFontSize: 12,
+  },
+  dataLayer: {
+    labelsEnabled: true,
+    gazetteerFontSize: 13,
+    featureFontSize: 12,
   },
   scaleBar: {
     fontSize: 13,
@@ -220,6 +249,12 @@ const DASHBOARD_CONFIG: ModeConfig = {
   },
   grid: {
     labelsEnabled: true,
+    labelFontSize: 18,
+  },
+  dataLayer: {
+    labelsEnabled: true,
+    gazetteerFontSize: 20,
+    featureFontSize: 18,
   },
   scaleBar: {
     fontSize: 18,
@@ -280,6 +315,12 @@ const MINIMAP_CONFIG: ModeConfig = {
   },
   grid: {
     labelsEnabled: false,
+    labelFontSize: 11,
+  },
+  dataLayer: {
+    labelsEnabled: false,
+    gazetteerFontSize: 11,
+    featureFontSize: 11,
   },
   scaleBar: {
     fontSize: 18,
