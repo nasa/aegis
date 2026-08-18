@@ -216,9 +216,9 @@ const Main: React.FunctionComponent = () => {
                 delayHide={500}
                 render={({ activeAnchor }) => {
                   if (!activeAnchor) return null;
-                  const updated = activeAnchor.getAttribute("data-le-updated");
-                  const created = activeAnchor.getAttribute("data-le-created");
-                  const infoRaw = activeAnchor.getAttribute("data-le-info");
+                  const updated = activeAnchor.getAttribute("data-tooltip-le-updated");
+                  const created = activeAnchor.getAttribute("data-tooltip-le-created");
+                  const infoRaw = activeAnchor.getAttribute("data-tooltip-le-info");
                   let info: LastEditedInfoLine[] = [];
                   if (infoRaw) {
                     try {
@@ -227,7 +227,7 @@ const Main: React.FunctionComponent = () => {
                     } catch (err) {
                       clientLogger.warning({
                         logId: "lastEditedTooltip:parseError",
-                        message: "Failed to parse data-le-info",
+                        message: "Failed to parse data-tooltip-le-info",
                         error: err instanceof Error ? err.message : String(err),
                       });
                     }

@@ -167,8 +167,8 @@ const generateInitialPosEntries = (m: Mission, rex: Rex): void => {
   if (!egressLocation) return;
 
   const now = Date.now();
-  rex.posEntries = [];
-  for (const posSource of rex.posSources) {
+  // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket
+  rex.posEntries = rex.posSources.map((posSource) => {
     const newPosEntry: PosEntry = {
       uuid: uuidv4(),
       location: egressLocation,
@@ -179,6 +179,6 @@ const generateInitialPosEntries = (m: Mission, rex: Rex): void => {
       createdAt: now,
       updatedAt: now,
     };
-    rex.posEntries.push(newPosEntry);
-  }
+    return newPosEntry;
+  });
 };

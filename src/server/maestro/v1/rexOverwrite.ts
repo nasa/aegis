@@ -97,8 +97,8 @@ export async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
         }
 
         if (egressLocation) {
-          rexEntity.posEntries = [];
-          for (const posSource of rexEntity.posSources) {
+          // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket
+          rexEntity.posEntries = rexEntity.posSources.map((posSource) => {
             const newPosEntry: PosEntry = {
               uuid: uuidv4(),
               location: egressLocation,
@@ -109,8 +109,8 @@ export async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
               createdAt: new Date().getTime(),
               updatedAt: new Date().getTime(),
             };
-            rexEntity.posEntries.push(newPosEntry);
-          }
+            return newPosEntry;
+          });
         }
       }
     }

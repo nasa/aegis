@@ -37,12 +37,20 @@ export const thunkDocUpdatePosEntryWithLocation = appCreateAsyncThunk<{
       rex.posEntries[posEntryIndex].location = location;
       rex.posEntries[posEntryIndex].updatedAt = getAccurateNow().getTime();
     } else {
-      // New entry — push the in-edit one from store with the location applied
-      rex.posEntries.push({
-        ...posEntryInEdit,
-        location,
-        updatedAt: getAccurateNow().getTime(),
-      });
+      // New entry — append the in-edit one from store with the location applied.
+      // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket.
+      // Existing entries are serialized through JSON first to fully detach them from the live
+      // Automerge proxy — spreading proxy objects directly back into the doc throws
+      // "Cannot create a reference to an existing document object".
+      const existingPosEntries: PosEntry[] = JSON.parse(JSON.stringify(rex.posEntries));
+      rex.posEntries = [
+        ...existingPosEntries,
+        {
+          ...posEntryInEdit,
+          location,
+          updatedAt: getAccurateNow().getTime(),
+        },
+      ];
       createdNewEntry = true;
     }
     rex.updatedAt = getAccurateNow().getTime();
@@ -126,8 +134,14 @@ export const thunkDocDeletePosEntryByUuid = appCreateAsyncThunk<{
   missionDocHandle.change((m: Mission) => {
     const rex = m.rexes[selectedRexUuid];
     if (!rex) return;
-    const idx = rex.posEntries?.findIndex((c) => c.uuid === posEntryUuid);
-    if (idx !== undefined && idx >= 0) rex.posEntries.splice(idx, 1);
+    // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket.
+    // Serialize through JSON first to fully detach elements from the live Automerge proxy —
+    // filtering proxy objects directly and reassigning them back throws
+    // "Cannot create a reference to an existing document object".
+    if (rex.posEntries) {
+      const existingPosEntries: PosEntry[] = JSON.parse(JSON.stringify(rex.posEntries));
+      rex.posEntries = existingPosEntries.filter((c) => c.uuid !== posEntryUuid);
+    }
     rex.updatedAt = getAccurateNow().getTime();
   });
 
@@ -155,8 +169,12 @@ export const thunkDocCreatePosType = appCreateAsyncThunk<void>(
     missionDocHandle.change((m: Mission) => {
       const rex = m.rexes[selectedRexUuid];
       if (!rex) return;
-      if (!rex.posTypes) rex.posTypes = [];
-      rex.posTypes.push(blankPosType);
+      // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket.
+      // Existing pos types are serialized through JSON first to fully detach them from the live
+      // Automerge proxy — spreading proxy objects directly back into the doc throws
+      // "Cannot create a reference to an existing document object".
+      const existingPosTypes: PosType[] = JSON.parse(JSON.stringify(rex.posTypes ?? []));
+      rex.posTypes = [...existingPosTypes, blankPosType];
       rex.updatedAt = getAccurateNow().getTime();
     });
 

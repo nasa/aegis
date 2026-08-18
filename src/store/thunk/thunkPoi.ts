@@ -63,15 +63,12 @@ export const thunkDocDeletePoi = appCreateAsyncThunk<{
 
   // Step 2: Apply all deletions atomically in a single .change()
   missionDocHandle.change((m: Mission) => {
-    // Strip poi reference from all stations (in-place splice so automerge
-    // sees a single-element removal, not a full array replacement).
+    // Strip poi reference from all stations.
+    // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket
     for (const s of stationsWithThisPoi) {
       const station = m.stations[s.uuid];
-      if (!station) continue;
-      const idx = station.poiUuids?.findIndex((uuid) => uuid === poiUuid);
-      if (idx !== undefined && idx >= 0) {
-        station.poiUuids.splice(idx, 1);
-      }
+      if (!station?.poiUuids) continue;
+      station.poiUuids = station.poiUuids.filter((uuid) => uuid !== poiUuid);
     }
     applyDeleteActions(m, actionUuidsToDelete);
     applyDeletePois(m, [poiUuid]);
