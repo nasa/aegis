@@ -70,7 +70,7 @@
     "automerge:integrity:run": "node ./.local/automerge/dist/integrityCheck.js"
   },
   "dependencies": {
-    "@automerge/automerge": "3.2.6",
+    "@automerge/automerge": "3.4.1",
     "@automerge/automerge-repo": "2.5.6",
     "@automerge/automerge-repo-network-websocket": "2.5.6",
     "@automerge/automerge-repo-react-hooks": "2.5.6",
