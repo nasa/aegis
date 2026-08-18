@@ -83,25 +83,22 @@ type EvaDuplicationStageData = {
   /**
    * Detached plain-object clone of the new EVA, with its `sequence` array
    * already populated with the NEW station/traverse uuids (from
-   * `stationStages`/`traverseStages`) and its `ingressLocationUuid` /
-   * `egressLocationUuid` already remapped to the new ingress/egress station
-   * uuids when applicable.
+   * `stationStages`/`traverseStages`).
    */
   newEva: Eva;
   /**
    * True when this duplication is being performed to create a REX. Affects
-   * naming (new name is blank), refUuid preservation, and whether ingress /
-   * egress stations are duplicated.
+   * naming (new name is blank) and refUuid preservation.
    */
   isRexEva: boolean;
-  /** Whether stations from the source EVA's sequence should be duplicated. */
+  /**
+   * Whether the user's own stations should be duplicated. Lander stand-in
+   * stations in the xgress slots are always duplicated regardless, since they
+   * are owned by a single EVA.
+   */
   includeStations: boolean;
   stationStages: StationDuplicationStageData[];
   traverseStages: TraverseDuplicationStageData[];
-  /** Present only when isRexEva && source's ingressLocationUuid !== "lander". */
-  ingressStationStage?: StationDuplicationStageData;
-  /** Present only when isRexEva && source's egressLocationUuid !== "lander". */
-  egressStationStage?: StationDuplicationStageData;
 };
 
 /**
@@ -134,14 +131,13 @@ type RexCreationStageData = {
  * Stage describing everything to delete when a REX is removed. Built sync
  * from the doc mission so the apply step can drop everything in one .change().
  *
- * Includes the REX's EVA, all sequence stations & traverses, all child actions,
- * and any non-lander ingress/egress stations specific to the REX's EVA.
+ * Includes the REX's EVA, all sequence stations & traverses, and all child actions.
  */
 type RexDeletionStageData = {
   rexUuid: string;
   /** The EVA owned by this REX (will be deleted alongside it). */
   evaUuid: string;
-  /** All station uuids attached to the REX (sequence + ingress/egress). */
+  /** All station uuids in the REX EVA's sequence. */
   stationUuids: string[];
   /** All traverse uuids in the REX's EVA sequence. */
   traverseUuids: string[];
@@ -181,18 +177,6 @@ type TraverseUpdateArgs = {
      * doc yet — passed through to getTraverseEndpoints.
      */
     stationOverride?: { uuid: string; location: AEGISPoint; name: string };
-    /**
-     * Override the egress location UUID used to resolve the traverse's start
-     * endpoint. Use when the EVA's egressLocationUuid is a pending write that
-     * hasn't been committed to the doc yet (e.g. thunkDocChangeIngressEgress).
-     */
-    egressUuid?: string;
-    /**
-     * Override the ingress location UUID used to resolve the traverse's end
-     * endpoint. Use when the EVA's ingressLocationUuid is a pending write that
-     * hasn't been committed to the doc yet (e.g. thunkDocChangeIngressEgress).
-     */
-    ingressUuid?: string;
   };
 };
 
@@ -215,8 +199,8 @@ type TraverseUpdateStageData = {
 
 /**
  * Describes everything to update when a station moves to a new location:
- * the station itself, its walkback path, and all adjacent traverses (both
- * EVA sequence traverses and egress/ingress boundary traverses).
+ * the station itself, its walkback path, and all adjacent EVA sequence
+ * traverses.
  * Built synchronously from a doc snapshot; async elevation fetches run before
  * this is applied.
  */
@@ -227,7 +211,7 @@ type StationLocationUpdateStageData = {
   newWalkbackPath: AEGISPoint[];
   newWalkbackPathSegmentDistances: number[];
   newWalkbackPathSegmentElevations: number[][] | null;
-  /** All adjacent EVA sequence traverses + egress/ingress boundary traverses to update. */
+  /** All adjacent EVA sequence traverses to update. */
   traverseUpdates: TraverseUpdateStageData[];
 };
 
@@ -248,8 +232,8 @@ type WalkbackUpdateStageData = {
 /**
  * Describes everything to update when the lander moves to a new location:
  * the mission's landerLocation + landerElevationMeters, the walkback for
- * every station that has one, and the egress/ingress boundary traverses for
- * EVAs whose first/last traverse touches the lander.
+ * every station that has one, the boundary traverses for EVAs that egress or
+ * ingress at the lander, and the location of every lander xgress station.
  *
  * Built asynchronously by `stageLanderLocationUpdate` after all elevation
  * fetches complete; consumed by `applyLanderLocationUpdateStage` inside a
@@ -260,6 +244,38 @@ type LanderLocationUpdateStageData = {
   newElevation: number | null;
   walkbackUpdates: WalkbackUpdateStageData[];
   traverseUpdates: TraverseUpdateStageData[];
+  /**
+   * Uuids of the lander stations that must be moved to the new lander
+   * location. Their elevation becomes the stage's `newElevation`.
+   */
+  landerXgressStationUuids: string[];
+};
+
+// ─── EVA xgress change stage ──────────────────────────────────────────────
+
+/**
+ * Everything needed to change an EVA's egress or ingress station.
+ * Built synchronously by `stageEvaXgressChange`; the caller resolves
+ * the boundary traverse from `newSequence` before applying it all in one
+ * `.change()`.
+ */
+type EvaXgressChangeStageData = {
+  evaUuid: string;
+  role: "egress" | "ingress";
+  /** Index in `eva.sequence` of the xgress being replaced. */
+  sequenceIndex: number;
+  /** Uuid of the new xgress station after the change. */
+  newStationUuid: string;
+  /** The EVA's sequence as it will look after the change. */
+  newSequence: EvaSequenceItem[];
+  /** A freshly built lander station to insert (when switching to the lander). */
+  newLanderStation?: Station;
+  /** A duplication of the chosen station, when this is a REX EVA. */
+  stationStage?: StationDuplicationStageData;
+  /** The outgoing station if it must be removed. */
+  stationUuidToDelete?: string;
+  /** Actions hanging off the outgoing station. */
+  actionUuidsToDelete: string[];
 };
 
 // ─── EVA deletion stage ────────────────────────────────────────────────────

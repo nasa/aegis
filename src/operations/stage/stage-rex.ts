@@ -1,10 +1,5 @@
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { generateBlankRex } from "store/storeUtils/rex";
-import {
-  getEgressLocationUuid,
-  getIngressLocationUuid,
-  isLanderUuid,
-} from "operations/helpers/evaSequence";
 
 import { stageDuplicateEva } from "./stage-eva";
 
@@ -60,8 +55,8 @@ export function stageCreateRex(
  * Build a `RexDeletionStageData`.
  *
  * Captures: the REX itself, its EVA, every station referenced by the EVA's
- * sequence, any non-lander ingress/egress stations, every traverse in the sequence, and
- * every action attached to those stations and traverses.
+ * sequence (the egress/ingress slots included), every traverse in the sequence,
+ * and every action attached to those stations and traverses.
  */
 export function stageDeleteRex(
   mission: Mission,
@@ -78,9 +73,6 @@ export function stageDeleteRex(
     for (const item of eva.sequence ?? []) {
       if (item.type === "station") stationUuids.push(item.uuid);
       else if (item.type === "traverse") traverseUuids.push(item.uuid);
-    }
-    for (const xgressUuid of [getIngressLocationUuid(eva), getEgressLocationUuid(eva)]) {
-      if (xgressUuid && !isLanderUuid(xgressUuid)) stationUuids.push(xgressUuid);
     }
   }
 

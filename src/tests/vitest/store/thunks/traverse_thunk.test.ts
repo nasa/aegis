@@ -136,14 +136,21 @@ describe("Thunk Traverse Tests", () => {
       name: "Vitest Station-3",
       location: { lat: 3, lng: 2.1 },
     });
+    // Station 3 is the egress; the ingress is a lander stand-in.
+    const landerIngress: Station = generateBlankStation({
+      name: "Lander",
+      isLanderXgress: true,
+      location: { lat: 3, lng: 3 },
+    });
     const eva = generateBlankEVA({ name: "Vitest Eva-1" });
-    eva.egressLocationUuid = station3.uuid;
     eva.sequence = [
+      { uuid: station3.uuid, type: "station" },
       { uuid: traverse2.uuid, type: "traverse" },
       { uuid: station1.uuid, type: "station" },
       { uuid: traverse.uuid, type: "traverse" },
       { uuid: station2.uuid, type: "station" },
       { uuid: traverse3.uuid, type: "traverse" },
+      { uuid: landerIngress.uuid, type: "station" },
     ];
     getMissionDocHandle().change((m) => {
       m.traverses[traverse.uuid] = traverse;
@@ -152,6 +159,7 @@ describe("Thunk Traverse Tests", () => {
       m.stations[station1.uuid] = station1;
       m.stations[station2.uuid] = station2;
       m.stations[station3.uuid] = station3;
+      m.stations[landerIngress.uuid] = landerIngress;
       m.evas[eva.uuid] = eva;
     });
 
@@ -202,8 +210,21 @@ describe("Thunk Traverse Tests", () => {
       name: "Vitest Station-3",
       location: { lat: 3, lng: 2.1 },
     });
+    // Both EVAs egress and ingress at the lander, each with its own stand-in.
+    const makeLander = () =>
+      generateBlankStation({
+        name: "Lander",
+        isLanderXgress: true,
+        location: { lat: 3, lng: 3 },
+      });
+    const eva1Egress = makeLander();
+    const eva1Ingress = makeLander();
+    const eva2Egress = makeLander();
+    const eva2Ingress = makeLander();
+
     const eva1 = generateBlankEVA({ name: "Vitest Eva-1" });
     eva1.sequence = [
+      { uuid: eva1Egress.uuid, type: "station" },
       { uuid: traverse1.uuid, type: "traverse" },
       { uuid: station1.uuid, type: "station" },
       { uuid: traverse2.uuid, type: "traverse" },
@@ -211,15 +232,18 @@ describe("Thunk Traverse Tests", () => {
       { uuid: traverse3.uuid, type: "traverse" },
       { uuid: station3.uuid, type: "station" },
       { uuid: traverse4.uuid, type: "traverse" },
+      { uuid: eva1Ingress.uuid, type: "station" },
     ];
     // eva2 shares station1 and station2 but has its own traverses
     const eva2 = generateBlankEVA({ name: "Vitest Eva-2" });
     eva2.sequence = [
+      { uuid: eva2Egress.uuid, type: "station" },
       { uuid: traverse5.uuid, type: "traverse" },
       { uuid: station1.uuid, type: "station" },
       { uuid: traverse6.uuid, type: "traverse" },
       { uuid: station2.uuid, type: "station" },
       { uuid: traverse7.uuid, type: "traverse" },
+      { uuid: eva2Ingress.uuid, type: "station" },
     ];
     getMissionDocHandle().change((m) => {
       m.traverses[traverse1.uuid] = traverse1;
@@ -232,6 +256,9 @@ describe("Thunk Traverse Tests", () => {
       m.stations[station1.uuid] = station1;
       m.stations[station2.uuid] = station2;
       m.stations[station3.uuid] = station3;
+      for (const lander of [eva1Egress, eva1Ingress, eva2Egress, eva2Ingress]) {
+        m.stations[lander.uuid] = lander;
+      }
       m.evas[eva1.uuid] = eva1;
       m.evas[eva2.uuid] = eva2;
     });
@@ -267,19 +294,25 @@ describe("Thunk Traverse Tests", () => {
     expect(t7.name).toEqual("Vitest Station-2 to Lander");
   });
 
-  it("thunkDocSaveTraverse() updates the traverse name based on surrounding station/ingress/egress", async () => {
+  it("thunkDocSaveTraverse() updates the traverse name based on its neighbouring stations", async () => {
     const traverse: Traverse = generateBlankTraverse({ name: "Vitest Traverse-1 Modified" });
     const station = generateBlankStation({ name: "Vitest Station-1" });
+    const landerEgress = generateBlankStation({
+      name: "Lander",
+      isLanderXgress: true,
+      location: { lat: 3, lng: 3 },
+    });
     const eva = generateBlankEVA({ name: "Vitest Eva-1" });
     eva.sequence = [
+      { uuid: landerEgress.uuid, type: "station" },
       { uuid: traverse.uuid, type: "traverse" },
       { uuid: station.uuid, type: "station" },
-      { uuid: "randomTraverseUuid", type: "traverse" },
     ];
 
     getMissionDocHandle().change((m) => {
       m.traverses[traverse.uuid] = traverse;
       m.stations[station.uuid] = station;
+      m.stations[landerEgress.uuid] = landerEgress;
       m.evas[eva.uuid] = eva;
     });
 
@@ -291,8 +324,8 @@ describe("Thunk Traverse Tests", () => {
     });
 
     await store.dispatch(thunkDocSaveTraverse({ traverseUuid: traverse.uuid }));
-    // Traverse is at sequence[0] (egress="lander"), followed by the station at
-    // sequence[1] (Vitest Station-1). So the derived name is "Lander to Vitest Station-1".
+    // The traverse runs from the lander stand-in at sequence[0] to the station
+    // at sequence[2], so the derived name is "Lander to Vitest Station-1".
     expect(getMission().traverses[traverse.uuid].name).toEqual("Lander to Vitest Station-1");
   });
 

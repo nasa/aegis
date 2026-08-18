@@ -1,4 +1,4 @@
-import { getTraverseNeighborUuids, isLanderUuid } from "./evaSequence";
+import { getTraverseNeighborUuids, isLanderUuid, isLanderXgressStation } from "./evaSequence";
 import type { EvaSequenceSource } from "./evaSequence";
 
 /**
@@ -7,6 +7,10 @@ import type { EvaSequenceSource } from "./evaSequence";
  *
  * Neighbor resolution is delegated to `getTraverseNeighborUuids`, so this
  * function does not need to know where the egress/ingress locations are stored.
+ *
+ * Lander stand-in stations resolve to the live `landerLocation` rather than to
+ * their own stored copy of it, so a traverse endpoint stays correct even if the
+ * lander has moved and the station has not been repositioned yet.
  *
  * The optional `stationOverride` lets callers substitute a different location/name
  * for a specific station UUID — used when a station is being edited and
@@ -20,7 +24,7 @@ export function getTraverseEndpoints(
   landerLocation: AEGISPoint,
   stationOverride?: { uuid: string; location: AEGISPoint; name: string }
 ): TraverseEndpointsResult {
-  const resolve = (
+  const getLocationAndName = (
     uuid: string | undefined
   ): { location: AEGISPoint | undefined; name: string } => {
     if (uuid === undefined) return { location: undefined, name: "" };
@@ -29,12 +33,15 @@ export function getTraverseEndpoints(
       return { location: stationOverride.location, name: stationOverride.name };
     }
     const station = stations?.[uuid];
+    if (isLanderXgressStation(station)) {
+      return { location: landerLocation, name: station.name || "Lander" };
+    }
     return { location: station?.location, name: station?.name ?? "" };
   };
 
   const { beforeUuid, afterUuid } = getTraverseNeighborUuids(eva, traverseUuid);
-  const before = resolve(beforeUuid);
-  const after = resolve(afterUuid);
+  const before = getLocationAndName(beforeUuid);
+  const after = getLocationAndName(afterUuid);
 
   return {
     locationBefore: before.location,

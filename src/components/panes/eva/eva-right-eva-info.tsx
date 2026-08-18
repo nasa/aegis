@@ -353,7 +353,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                                   type: "egress",
                                   evaUuid: selectedEvaUuid,
                                   newStationUuidOrLander: val,
-                                  oldStationUuidOrLander: egressData.uuid,
                                   isRexEva: !!rexEvaName,
                                 })
                               );
@@ -402,7 +401,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                                   type: "ingress",
                                   evaUuid: selectedEvaUuid,
                                   newStationUuidOrLander: val,
-                                  oldStationUuidOrLander: ingressData.uuid,
                                   isRexEva: !!rexEvaName,
                                 })
                               );

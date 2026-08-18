@@ -133,8 +133,16 @@ export function applyInsertEvaSequenceItems(
 ): void {
   const eva = m.evas[evaUuid];
   if (!eva) return;
-  //Fixme need to do full array replacement
-  eva.sequence.splice(insertAt, 0, ...items.map((item) => cloneDeep(item)));
+  // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket.
+  // Serialize through JSON first to fully detach elements from the live Automerge proxy —
+  // slicing/spreading proxy objects directly back into the doc throws
+  // "Cannot create a reference to an existing document object".
+  const existingSequence: EvaSequenceItem[] = JSON.parse(JSON.stringify(eva.sequence));
+  eva.sequence = [
+    ...existingSequence.slice(0, insertAt),
+    ...items.map((item) => cloneDeep(item)),
+    ...existingSequence.slice(insertAt),
+  ];
   eva.updatedAt = getAccurateNow().getTime();
   applySyncEvaXgressMirror(m, evaUuid);
 }

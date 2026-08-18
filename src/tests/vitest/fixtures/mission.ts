@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from "uuid";
  *
  * **Combined entity counts:**
  * - POIs: 4 (1 named + 3 with lat/lng)
- * - Stations: 6 (2 named + 4 with lat/lng) + rex duplicates
+ * - Stations: 7 (3 named + 4 with lat/lng) + 4 lander xgress + rex duplicates
  * - Traverses: 8 (2 named + 6 base) + rex duplicates
  * - Actions: ~20 (4 named + 3 poi + 4 station + 6 traverse + rex duplicates)
  * - EVAs: 4 (testEva, eva1, eva2, eva1ForRex)
@@ -28,6 +28,11 @@ export const generateFullMission = (): Mission => {
   // ====== STATIONS (named) ======
   const testStation = generateBlankStation({ name: "Vitest Station-1" });
   const testStation2 = generateBlankStation({ name: "Vitest Station-2" });
+  const testStationMid = generateBlankStation({ name: "Vitest Station-3" });
+
+  /** An auto-managed lander stand-in, as created for an EVA's xgress slot. */
+  const makeLanderStation = () =>
+    generateBlankStation({ name: "Lander", isLanderXgress: true, location: { lat: 0, lng: 0 } });
 
   // ====== POI (named) ======
   const testPoi = generateBlankPoi({ name: "Vitest POI-1" });
@@ -63,13 +68,15 @@ export const generateFullMission = (): Mission => {
   testPoi.actionOrderUuids = [poiAction.uuid];
   testTraverse.actionOrderUuids = [traverseAction.uuid];
 
-  // ====== EVA — sequence + non-lander egress/ingress ======
+  // ====== EVA — sequence bookended by non-lander egress/ingress stations ======
   const testEva = generateBlankEVA({
     name: "Vitest EVA-1",
     sequence: [
-      { type: "traverse", uuid: testTraverse.uuid },
       { type: "station", uuid: testStation.uuid },
+      { type: "traverse", uuid: testTraverse.uuid },
+      { type: "station", uuid: testStationMid.uuid },
       { type: "traverse", uuid: testTraverse2.uuid },
+      { type: "station", uuid: testStation2.uuid },
     ],
     egressLocationUuid: testStation.uuid,
     ingressLocationUuid: testStation2.uuid,
@@ -138,8 +145,13 @@ export const generateFullMission = (): Mission => {
   }
 
   // ====== EVAs ======
+  // Both egress and ingress at the lander, so each gets its own stand-in
+  // station at the head and tail of the sequence.
+  const eva1Egress = makeLanderStation();
+  const eva1Ingress = makeLanderStation();
   const eva1 = generateBlankEVA({ name: "Vitest Eva-1 Planned with Rex" });
   eva1.sequence = [
+    { uuid: eva1Egress.uuid, type: "station" },
     { uuid: baseTraverses[0].uuid, type: "traverse" },
     { uuid: extraStations[0].uuid, type: "station" },
     { uuid: baseTraverses[1].uuid, type: "traverse" },
@@ -147,20 +159,34 @@ export const generateFullMission = (): Mission => {
     { uuid: baseTraverses[2].uuid, type: "traverse" },
     { uuid: extraStations[2].uuid, type: "station" },
     { uuid: baseTraverses[3].uuid, type: "traverse" },
+    { uuid: eva1Ingress.uuid, type: "station" },
   ];
 
+  const eva2Egress = makeLanderStation();
+  const eva2Ingress = makeLanderStation();
   const eva2 = generateBlankEVA({ name: "Vitest Eva-2 Planned No Rex" });
   eva2.traverseRate = 2;
   eva2.sequence = [
+    { uuid: eva2Egress.uuid, type: "station" },
     { uuid: baseTraverses[4].uuid, type: "traverse" },
     { uuid: extraStations[3].uuid, type: "station" },
     { uuid: baseTraverses[5].uuid, type: "traverse" },
+    { uuid: eva2Ingress.uuid, type: "station" },
   ];
 
   // Duplicate EVA-1 with fresh entities for the REX record, so the rex EVA
   // doesn't share traverses/stations with the planned EVA.
   const allTraverses: Traverse[] = [...baseTraverses, testTraverse, testTraverse2];
-  const allStations: Station[] = [...extraStations, testStation, testStation2];
+  const allStations: Station[] = [
+    ...extraStations,
+    testStation,
+    testStation2,
+    testStationMid,
+    eva1Egress,
+    eva1Ingress,
+    eva2Egress,
+    eva2Ingress,
+  ];
 
   const eva1ForRex = cloneDeep(eva1);
   eva1ForRex.name = "Vitest Eva-1 Rex Version";
@@ -193,15 +219,18 @@ export const generateFullMission = (): Mission => {
       dupStation.name = station.name + " For Rex";
       allStations.push(dupStation);
 
+      // Lander stand-ins carry no actions, so there may be nothing to duplicate.
       const action = allActions.find((a) => a.stationUuid === seq.uuid);
-      if (!action)
-        throw new Error(`Fixture: action for station ${seq.uuid} not found in allActions`);
-      const dupAction = cloneDeep(action);
-      dupAction.uuid = uuidv4();
-      dupAction.stationUuid = dupStation.uuid;
-      dupAction.name = action.name + " For Rex";
-      dupStation.actionOrderUuids = [dupAction.uuid];
-      allActions.push(dupAction);
+      if (action) {
+        const dupAction = cloneDeep(action);
+        dupAction.uuid = uuidv4();
+        dupAction.stationUuid = dupStation.uuid;
+        dupAction.name = action.name + " For Rex";
+        dupStation.actionOrderUuids = [dupAction.uuid];
+        allActions.push(dupAction);
+      } else {
+        dupStation.actionOrderUuids = [];
+      }
 
       seq.uuid = dupStation.uuid;
     }

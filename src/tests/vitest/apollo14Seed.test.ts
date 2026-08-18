@@ -70,12 +70,9 @@ describe("Apollo 14 seed data", () => {
       const evaUuids = new Set(Object.keys(mission.evas));
 
       for (const eva of Object.values(mission.evas)) {
-        // xgress locations are either the literal "lander" or an existing station.
-        for (const xgress of [eva.egressLocationUuid, eva.ingressLocationUuid]) {
-          if (xgress !== "lander") {
-            expect(stationUuids.has(xgress)).toBe(true);
-          }
-        }
+        // The sequence starts and ends with the egress/ingress stations.
+        expect(eva.sequence[0]?.type).toBe("station");
+        expect(eva.sequence[eva.sequence.length - 1]?.type).toBe("station");
 
         // Every sequence item resolves to a station or traverse of its type.
         for (const item of eva.sequence) {
@@ -150,13 +147,18 @@ describe("Apollo 14 seed data", () => {
       }
     });
 
-    it("keeps every seeded station visible in the planning view", () => {
+    it("keeps every seeded user station visible in the planning view", () => {
       // A station tied to an EVA that has an execution REX is hidden from the
       // as-planned station list (see selectAsPlannedStations). The demo seed is a
-      // pure planning mission, so all seeded stations must remain visible.
+      // pure planning mission, so all seeded user stations must remain visible.
+      // Lander stand-ins are auto-managed and are never offered for planning.
       const mission = buildApollo14Mission();
       const visibleUuids = new Set(selectAsPlannedStations(mission).map((s) => s.uuid));
-      for (const uuid of Object.keys(mission.stations)) {
+      for (const [uuid, station] of Object.entries(mission.stations)) {
+        if (station.isLanderXgress) {
+          expect(visibleUuids.has(uuid), `Lander station ${uuid} must not be planned`).toBe(false);
+          continue;
+        }
         expect(visibleUuids.has(uuid), `Seeded station ${uuid} is hidden from planning`).toBe(true);
       }
     });

@@ -4,6 +4,7 @@ import * as thunkStation from "store/thunk/thunkStation";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { setMissionAutomergeDocHandle, getMissionDocHandle } from "client/automergeDocHandles";
 
 const mockThunkCancelMarkerMapDirective = vi.fn();
@@ -290,16 +291,24 @@ describe("Thunk Station Tests", () => {
       mockAlert.mockRestore();
     });
 
-    test("alerts and aborts when station is used as EVA ingress", async () => {
+    test("alerts and aborts when station occupies an EVA ingress slot", async () => {
       const mockAlert = vi.spyOn(window, "alert").mockImplementation(vi.fn());
 
+      const egress: Station = generateBlankStation({ name: "Vitest Egress" });
       const station: Station = generateBlankStation({ name: "Vitest Ingress Station" });
+      const traverse = generateBlankTraverse({ name: "Vitest Traverse" });
       const eva: Eva = generateBlankEVA({
         name: "Vitest EVA-Ingress",
-        ingressLocationUuid: station.uuid,
+        sequence: [
+          { type: "station", uuid: egress.uuid },
+          { type: "traverse", uuid: traverse.uuid },
+          { type: "station", uuid: station.uuid },
+        ],
       });
       getMissionDocHandle().change((m) => {
+        m.stations[egress.uuid] = egress;
         m.stations[station.uuid] = station;
+        m.traverses[traverse.uuid] = traverse;
         m.evas[eva.uuid] = eva;
       });
       const store = createCustomTestStore({});
@@ -309,30 +318,30 @@ describe("Thunk Station Tests", () => {
       // Station must NOT have been deleted
       expect(getMission().stations[station.uuid]).toBeDefined();
       expect(mockAlert).toHaveBeenCalledTimes(1);
-      expect(mockAlert.mock.calls[0][0]).toContain("ingress");
+      expect(mockAlert.mock.calls[0][0]).toContain("being used by an EVA");
 
       mockAlert.mockRestore();
     });
 
-    test("alerts and aborts when station is used as EVA egress", async () => {
+    test("alerts and aborts when deleting a lander stand-in station directly", async () => {
       const mockAlert = vi.spyOn(window, "alert").mockImplementation(vi.fn());
 
-      const station: Station = generateBlankStation({ name: "Vitest Egress Station" });
-      const eva: Eva = generateBlankEVA({
-        name: "Vitest EVA-Egress",
-        egressLocationUuid: station.uuid,
+      const landerStation: Station = generateBlankStation({
+        name: "Lander",
+        isLanderXgress: true,
       });
       getMissionDocHandle().change((m) => {
-        m.stations[station.uuid] = station;
-        m.evas[eva.uuid] = eva;
+        m.stations[landerStation.uuid] = landerStation;
       });
       const store = createCustomTestStore({});
 
-      await store.dispatch(thunkStation.thunkDocDeleteStations({ stationUuids: [station.uuid] }));
+      await store.dispatch(
+        thunkStation.thunkDocDeleteStations({ stationUuids: [landerStation.uuid] })
+      );
 
-      expect(getMission().stations[station.uuid]).toBeDefined();
+      expect(getMission().stations[landerStation.uuid]).toBeDefined();
       expect(mockAlert).toHaveBeenCalledTimes(1);
-      expect(mockAlert.mock.calls[0][0]).toContain("egress");
+      expect(mockAlert.mock.calls[0][0]).toContain("egress or ingress");
 
       mockAlert.mockRestore();
     });
