@@ -174,8 +174,12 @@ export function applyDeletePosSource(
 ): void {
   const rex = m.rexes[rexUuid];
   if (!rex || !rex.posSources) return;
-  const index = rex.posSources.findIndex((ps) => ps.uuid === posSourceUuid);
-  if (index !== -1) rex.posSources.splice(index, 1);
+  // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket.
+  // Serialize through JSON first to fully detach elements from the live Automerge proxy —
+  // filtering proxy objects directly and reassigning them back throws
+  // "Cannot create a reference to an existing document object".
+  const existingPosSources: PosSource[] = JSON.parse(JSON.stringify(rex.posSources));
+  rex.posSources = existingPosSources.filter((ps) => ps.uuid !== posSourceUuid);
   rex.updatedAt = getAccurateNow().getTime();
 }
 
@@ -188,7 +192,11 @@ export function applyDeletePosType(
 ): void {
   const rex = m.rexes[rexUuid];
   if (!rex?.posTypes) return;
-  const index = rex.posTypes.findIndex((item) => item.uuid === posTypeUuid);
-  if (index !== -1) rex.posTypes.splice(index, 1);
+  // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket.
+  // Serialize through JSON first to fully detach elements from the live Automerge proxy —
+  // filtering proxy objects directly and reassigning them back throws
+  // "Cannot create a reference to an existing document object".
+  const existingPosTypes: PosType[] = JSON.parse(JSON.stringify(rex.posTypes));
+  rex.posTypes = existingPosTypes.filter((item) => item.uuid !== posTypeUuid);
   rex.updatedAt = getAccurateNow().getTime();
 }

@@ -67,9 +67,12 @@ export function applyPushEvaSequenceItems(
 ): void {
   const eva = m.evas[evaUuid];
   if (!eva) return;
-  for (const item of items) {
-    eva.sequence.push(cloneDeep(item));
-  }
+  // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket.
+  // Existing elements are serialized through JSON first to fully detach them from the live
+  // Automerge proxy — spreading proxy objects directly back into the doc throws
+  // "Cannot create a reference to an existing document object".
+  const existingSequence: EvaSequenceItem[] = JSON.parse(JSON.stringify(eva.sequence));
+  eva.sequence = [...existingSequence, ...items.map((item) => cloneDeep(item))];
   eva.updatedAt = getAccurateNow().getTime();
 }
 
@@ -80,7 +83,15 @@ export function applySpliceEvaSequence(
 ): void {
   const eva = m.evas[evaUuid];
   if (!eva) return;
-  eva.sequence.splice(start, deleteCount);
+  // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket.
+  // Serialize through JSON first to fully detach elements from the live Automerge proxy —
+  // slicing/spreading proxy objects directly back into the doc throws
+  // "Cannot create a reference to an existing document object".
+  const existingSequence: EvaSequenceItem[] = JSON.parse(JSON.stringify(eva.sequence));
+  eva.sequence = [
+    ...existingSequence.slice(0, start),
+    ...existingSequence.slice(start + deleteCount),
+  ];
   eva.updatedAt = getAccurateNow().getTime();
 }
 

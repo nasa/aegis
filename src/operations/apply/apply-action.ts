@@ -400,7 +400,8 @@ export function applyAddGeographicUnit(
       template.geographicUnitsUsage = [geographicUnitUuid];
     } else {
       if (template.geographicUnitsUsage.some((u) => u === geographicUnitUuid)) return;
-      template.geographicUnitsUsage.push(geographicUnitUuid);
+      // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket
+      template.geographicUnitsUsage = [...template.geographicUnitsUsage, geographicUnitUuid];
     }
     template.updatedAt = getAccurateNow().getTime();
   } else if (actionUuid) {
@@ -411,7 +412,8 @@ export function applyAddGeographicUnit(
       action.geographicUnitsUsage = [geographicUnitUuid];
     } else {
       if (action.geographicUnitsUsage.some((u) => u === geographicUnitUuid)) return;
-      action.geographicUnitsUsage.push(geographicUnitUuid);
+      // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket
+      action.geographicUnitsUsage = [...action.geographicUnitsUsage, geographicUnitUuid];
     }
     action.updatedAt = getAccurateNow().getTime();
   }
@@ -431,14 +433,18 @@ export function applyRemoveGeographicUnit(
   if (actionTemplateUuid) {
     const template = m.actionTemplates[actionTemplateUuid];
     if (!template?.geographicUnitsUsage) return;
-    const indexToRemove = template.geographicUnitsUsage.findIndex((u) => u === geographicUnitUuid);
-    if (indexToRemove >= 0) template.geographicUnitsUsage.splice(indexToRemove, 1);
+    // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket
+    template.geographicUnitsUsage = template.geographicUnitsUsage.filter(
+      (u) => u !== geographicUnitUuid
+    );
     template.updatedAt = getAccurateNow().getTime();
   } else if (actionUuid) {
     const action = m.actions[actionUuid];
     if (!action?.geographicUnitsUsage) return;
-    const indexToRemove = action.geographicUnitsUsage.findIndex((u) => u === geographicUnitUuid);
-    if (indexToRemove >= 0) action.geographicUnitsUsage.splice(indexToRemove, 1);
+    // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket
+    action.geographicUnitsUsage = action.geographicUnitsUsage.filter(
+      (u) => u !== geographicUnitUuid
+    );
     action.updatedAt = getAccurateNow().getTime();
   }
 }
