@@ -67,6 +67,11 @@ export declare namespace MDAU {
 
   type MdauAction = {
     refUuid: string;
+    name: string;
+    descriptionTask: string;
+    duration: number | null;
+    actionDefinition: ActionDefinition | null;
+    stmAction: boolean;
     actors: string[]; // crewAssigned in AEGIS
     updatedAt: number;
     rexUuid?: string;
