@@ -78,7 +78,11 @@ one concern (one layer, one interaction, one overlay) and reconciles it against 
   into context so the minimap can draw the bounds box + auto-fit. Both maps must share a
   projection for the box to render correctly. Also carries the two eyeball toggles the minimap
   mirrors from the dashboard menu (`showScaleBar`, `showArrows`) — the shared dashboard↔minimap
-  channel for those values (see `MapMenuProvider` above).
+  channel for those values (see `MapMenuProvider` above) — plus `gridSpacing`, the grid line/label
+  spacing in metres that the dashboard `Grid` last drew (see §12 Grid). `setGridSpacing` keeps the
+  previous object when the numbers are unchanged, because the dashboard republishes every
+  animation frame while panning. `useOptionalDashboardBoundsContext()` returns `null` instead of
+  throwing, for behaviors that also run on the editor map.
 
 ---
 
@@ -231,6 +235,25 @@ non-interactive — the edited item is manipulated only by `InteractionManager`.
 - Layer factory lives in `utils/layers/layerFactory.ts` (`createOlLayer` / `createCogLayer` /
   `buildVectorStyleFn`). Note two different `buildTileGrid` functions exist (`layerFactory` vs
   `parsers/esriPMTiles`) — import carefully.
+- **GeoJSON `dataProjection` is resolved per document**, not hardcoded. `createVectorLayer`
+  installs a custom `VectorSource` loader that fetches the file and asks
+  `utils/parsers/geojsonProjection.ts` whether it is lon/lat or already in the mission's own
+  projected metres (embedded `crs` member first, whole-document coordinate bounds as the
+  fallback). A malformed document or an unrecognized projected CRS **fails the load** rather
+  than being reinterpreted as `EPSG:4326`.
+- **Draggable data-layer labels.** Two flavours, both styled by `utils/styles/gazetteerLabels.ts`
+  and both marked with the layer property `movableLabels`:
+  - _Gazetteer/nomenclature_ — matched by sublayer name (`isGazetteerSublayer`) or by
+    property-sniffing the loaded features (`isGazetteerFeatures`). The whole layer renders as
+    label images; name-matched ones use a plain `VectorLayer` (not `VectorImageLayer`) so
+    Translate hit-tests the live frame.
+  - _Feature_ — for per-feature-coloured polygon/line classes, `createFeatureLabelAnchors`
+    appends a synthetic Point anchor per feature (`featureLabel: true`) and flags the layer
+    `featureLabels`; the source feature's inline text is suppressed via
+    `hasMovableFeatureLabel`.
+    `TileLayers` owns the `ol/interaction/Translate` for both (skipped on the minimap and while
+    an edit directive is active, same rule as `MarkerLabels`). Dragged positions are **not**
+    persisted — they reset on preset switch or reload.
 - **TMS Y-flip** has two branches: custom tileGrid flips Y manually via
   `getFullTileRange(z).maxY - y` (the `{-y}` URL template does NOT work with custom grids);
   default grid uses `url.replace("{y}", "{-y}")`. A broken TMS layer usually means missing/misbuilt
@@ -268,6 +291,15 @@ a cache key omits a varying input:
   Measurement style hardcodes label colors and ignores stale segment arrays while editing.
 - `posPath.ts`: style cache is **cleared wholesale when size > 500** (crude cap). Has its own
   duplicate `arrowCache`.
+- `gazetteerLabels.ts` (`createGazetteerLabelStyle(style, dataLayer)`): draggable data-layer
+  labels (see §7). Two per-builder caches — the label image keyed `name|colors|dpr`, and the
+  composited label+tether image additionally keyed by the **rounded pixel** offset to the original
+  location (stable while panning, recomputed per zoom step; cleared wholesale past 500).
+  Both the plain and the tethered image anchor on the label's bottom-centre so a label
+  doesn't shift the instant it's dragged. Honours `showLabels` opt-out style
+  (`=== false` hides; undefined shows), matching `buildVectorStyleFn`. The font size comes
+  from `dataLayer` (see §10) and is **not** in either cache key — it's captured at
+  builder-creation time, so a size change means rebuilding the builder.
 - `emojiRenderer.ts`: unbounded canvas cache keyed `emoji-size`. A failed lander SVG load caches a
   **blank** canvas permanently (sticky failure until cache clears).
 
@@ -311,13 +343,25 @@ for the timeline astronaut renders above all vector layers regardless.
 `utils/modeConfig.ts` → `MODE_CONFIGS[mode]` (mode from `useMapContext()`). Same rendering
 algorithm everywhere; only the numbers/flags differ per mode. Behaviors read from it rather than
 branching on mode. Sections: `map`, `lander`, `station`, `circle`, `traverse`, `markerLabel`,
-`pos`, `grid`. Notable flags that gate behavior:
+`pos`, `grid`, `dataLayer`, `scaleBar`. Notable flags that gate behavior:
 
 - editor: fully interactive; `station.zIndexOffset: 2000`; draggable/hoverable stations.
-- dashboard: larger icons, `tooltipOpacity 0.65`, `hoverable: false` (→ in-progress green ring),
-  `traverse.selectedWeight: 0` (no selection glow).
+- dashboard: larger icons and label fonts throughout, `tooltipOpacity 0.65`, `hoverable: false`
+  (→ in-progress green ring), `traverse.selectedWeight: 0` (no selection glow).
 - minimap: `map.interactive: false`, tooltips off, no bearings/distances, `pos.drawPathWeight: false`,
-  `grid.labelsEnabled: false`.
+  `grid.labelsEnabled: false`, `dataLayer.labelsEnabled: false`.
+
+**Every** on-map font size is a mode-config number — `circle.labelFontSize`,
+`traverse.bearing/distanceLabelFontSize`, `markerLabel.fontSize`, `grid.labelFontSize`,
+`scaleBar.fontSize`, and `dataLayer.gazetteer/featureFontSize`. Don't hardcode a `px` size in a
+style file; add it here instead.
+
+`dataLayer` (`DataLayerConfig`) is the one section consumed outside the behavior components:
+`layerFactory` takes it on `LayerFactoryInput` and as the 2nd arg of `buildVectorStyleFn`, and
+`gazetteerLabels` takes it as the 2nd arg of `createGazetteerLabelStyle`. Those modules are pure
+and have no `MapMode`, so `TileLayers` reads `MODE_CONFIGS[mode].dataLayer` and threads it
+through. `labelsEnabled: false` suppresses **all** data-layer text — gazetteer place names,
+feature label anchors, and inline feature labels — which is what keeps the minimap uncluttered.
 
 POS path line weight is `pos.drawPathWeight` (editor 2px, dashboard 5px, minimap `false` = off).
 
@@ -351,8 +395,8 @@ Overlay gotchas:
 
 | Component            | Owns                                                   | Mode        | Reconciler                   | Notes                                                                                                                                           |
 | -------------------- | ------------------------------------------------------ | ----------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TileLayers`         | all data layers (neg z)                                | all         | layer-level                  | preset hot-swap, async PMTiles, COG by ext                                                                                                      |
-| `Grid`               | own line + label layers                                | all         | rebuild on view move         | resolved server-file/dynamic LGRS source; animation-frame-throttled adaptive density                                                            |
+| `TileLayers`         | all data layers (neg z) + label Translate              | all         | layer-level                  | preset hot-swap, async PMTiles, COG by ext, per-document GeoJSON CRS, draggable gazetteer/feature labels                                        |
+| `Grid`               | own line + label layers                                | all         | rebuild on view move         | resolved server-file/dynamic LGRS source; animation-frame-throttled adaptive density; dashboard publishes its spacing, minimap mirrors it       |
 | `Circles`            | own circle layers                                      | all         | **full rebuild** each change | dashed altColor = 2× layers; dupes station visibility logic                                                                                     |
 | `TraverseLines`      | shared `traverseSource`                                | all         | ✅                           | geodesic bearings/distances; edit-drag detach dance                                                                                             |
 | `WalkbackLines`      | shared `walkbackSource`                                | all         | ✅                           | feature id `walkback-${uuid}`; edit-drag dance                                                                                                  |
@@ -370,6 +414,14 @@ Overlay gotchas:
 | `FollowMode`         | drives `view.fit()`                                    | dashboard   | —                            | sorts pos entries newest-first (documented fix); publishes `bigMapExtent`                                                                       |
 | `AutoFitBounds`      | drives `view.fit()`                                    | minimap     | —                            | fits objects + dashboard box                                                                                                                    |
 | `BigMapBoundsBox`    | own source                                             | minimap     | rebuild                      | draws dashboard viewport box                                                                                                                    |
+
+> **Grid density is owned by the dashboard.** After each rebuild the dashboard `Grid` publishes the
+> line + label spacing it used (in projection metres) to `DashboardBoundsProvider`; the minimap
+> `Grid` uses that spacing in place of its own auto/fixed calculation, so the bounds box contains
+> as many grid lines as the dashboard shows. The editor map has no provider and is unaffected.
+> One safety valve: because the minimap is far more zoomed out, the inherited spacing is doubled
+> until adjacent lines are ≥ `MINIMAP_MIN_LINE_PX` (3px) apart — doubling keeps the drawn lines a
+> subset of the dashboard's. Both paths (dynamic-LGRS and server-file grid) implement this.
 
 ---
 
