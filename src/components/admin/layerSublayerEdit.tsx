@@ -33,15 +33,12 @@ function isPmtilesPath(path: string): boolean {
 }
 
 /**
- * Fetch a layer sidecar file (tilemapresource.xml / manifest.json / properties.json).
+ * Fetch a URL and return the response, or null if the request fails or the payload is not
+ * the expected resource.
  *
- * A missing sidecar 404s under the local dev server, but the deployed nginx rewrites any
- * unmatched path to the SPA (`try_files $uri $uri/ /index.html`), so the miss arrives as
- * index.html with a 200. Treat an HTML body as "sidecar not present".
- *
- * @returns the response, or null when the sidecar is absent or unreachable
+ * This is a generic fetch helper used for metadata files and other URL-based inputs.
  */
-async function fetchSidecar(url: string): Promise<Response | null> {
+async function fetchURL(url: string): Promise<Response | null> {
   const res = await fetch(url, {
     headers: {
       "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -143,7 +140,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
       });
 
     // try to read the manifest
-    const res = await fetchSidecar(`${folderName}/manifest.json`);
+    const res = await fetchURL(`${folderName}/manifest.json`);
 
     if (!res) {
       // there must not be a manifest.json file
@@ -193,7 +190,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
     let maxZoom = null;
     let boxArray: number[] = [];
     //read in the timemapresource.xml
-    const res = await fetchSidecar(`${rootPath}/tilemapresource.xml`);
+    const res = await fetchURL(`${rootPath}/tilemapresource.xml`);
     if (!res) return;
 
     const xmlFileContent = await res.text();
@@ -245,7 +242,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
     rootPath: string,
     detectedSource?: Pick<Sublayer, "type" | "path" | "tilePattern">
   ) {
-    const res = await fetchSidecar(`${rootPath}/properties.json`);
+    const res = await fetchURL(`${rootPath}/properties.json`);
     if (!res) return;
 
     let partialSublayerJson: unknown;
@@ -304,7 +301,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
       ? folderName
       : `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}`;
 
-    // Each sidecar is independent — a failure reading one must not stop the others from loading.
+    // Each metadata file is independent — a failure reading one must not stop the others from loading.
     const loaders = [
       () => loadTileMapResourceFromFile(rootPath),
       () => loadManifestFromFile(rootPath),
@@ -314,7 +311,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
       try {
         await load();
       } catch (e) {
-        console.error(`Could not preload sidecar data from ${rootPath}`, e);
+        console.error(`Could not preload metadata from ${rootPath}`, e);
       }
     }
   }
@@ -322,7 +319,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
   /**
    * A user picked an internal folder from Layers/. Inspect its contents to determine the layer
    * type (a `.pmtiles` → vector-tile, a `.tif`/`.tiff` → COG raster, otherwise a raster tile
-   * pyramid), set the path accordingly, and preload metadata sidecars.
+   * pyramid), set the path accordingly, and preload metadata files.
    */
   async function selectInternalFolder(folder: string) {
     if (folder === "") {
@@ -391,7 +388,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
     }
 
     // Pull bounding box / zoom / manifest / name / description / legend from the folder's
-    // sidecar files (tilemapresource.xml / manifest.json / properties.json) where present.
+    // metadata files (tilemapresource.xml / manifest.json / properties.json) where present.
     await preloadDataFromFiles(folder, detectedSource);
   }
 

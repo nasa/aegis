@@ -19,11 +19,11 @@
 export interface DataLayerConfig {
   /**
    * When false, no data-layer label is drawn at all — gazetteer place names,
-   * thematic anchors, and the inline feature labels alike. Off on the minimap,
+   * feature label anchors, and the inline feature labels alike. Off on the minimap,
    * where they cover more of the map than they inform.
    */
   labelsEnabled: boolean;
-  /** Font size (px) for draggable gazetteer / thematic place-name labels. */
+  /** Font size (px) for draggable gazetteer / feature place-name labels. */
   gazetteerFontSize: number;
   /** Font size (px) for inline feature labels (contour elevations, point types). */
   featureFontSize: number;

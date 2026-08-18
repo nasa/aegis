@@ -211,12 +211,12 @@ function createVectorLayer(input: LayerFactoryInput): VectorImageLayer | VectorL
     url,
     loader: buildGeoJSONLoader(url, projCode, (features) => {
       if (!isGazetteer && !isGazetteerFeatures(features)) {
-        const thematicLabels = createThematicLabelFeatures(features);
-        if (thematicLabels.length === 0) return;
+        const featureLabels = createFeatureLabelAnchors(features);
+        if (featureLabels.length === 0) return;
 
-        features.push(...thematicLabels);
+        features.push(...featureLabels);
         layer.set("movableLabels", true);
-        layer.set("thematicLabels", true);
+        layer.set("featureLabels", true);
         return;
       }
 
@@ -253,7 +253,7 @@ function createVectorLayer(input: LayerFactoryInput): VectorImageLayer | VectorL
     // Name-matched gazetteer layers use VectorLayer so hit detection runs against
     // the live map frame Translate uses. Every other vector sublayer stays on
     // VectorImageLayer for the canvas batching dense contour/geomorphic sets need;
-    // the draggable thematic anchors those layers may grow at load time hit-test
+    // the draggable feature label anchors those layers may grow at load time hit-test
     // through the image renderer instead, which is accurate once the map is idle.
     declutter: false,
     properties: {
@@ -330,7 +330,7 @@ export function isGazetteerSublayer(sublayer: Pick<Sublayer, "name">): boolean {
 
 /**
  * Text label for a feature, ignoring the elevation properties. Used for the draggable
- * thematic anchors, where an elevation reading would be meaningless.
+ * feature label anchors, where an elevation reading would be meaningless.
  */
 function getVectorLabel(feature: Feature<Geometry>): string | number | undefined {
   return (
@@ -359,7 +359,7 @@ function getRenderedVectorLabel(feature: Feature<Geometry>): string | number | u
   );
 }
 
-function getThematicLabelCoordinate(geometry: Geometry): Coordinate | undefined {
+function getFeatureLabelCoordinate(geometry: Geometry): Coordinate | undefined {
   switch (geometry.getType()) {
     case "Polygon":
       return (geometry as Polygon).getInteriorPoint().getCoordinates();
@@ -387,26 +387,26 @@ function getThematicLabelCoordinate(geometry: Geometry): Coordinate | undefined 
 }
 
 /** Build draggable label anchors for styled non-point GeoJSON features. */
-export function createThematicLabelFeatures(features: Feature<Geometry>[]): Feature<Point>[] {
+export function createFeatureLabelAnchors(features: Feature<Geometry>[]): Feature<Point>[] {
   return features.flatMap((feature, index) => {
     const geometry = feature.getGeometry();
     const label = getVectorLabel(feature);
     const sourceColor = feature.get("fillColor") ?? feature.get("color");
     if (!geometry || label == null || typeof sourceColor !== "string") return [];
 
-    const coordinate = getThematicLabelCoordinate(geometry)?.slice(0, 2);
+    const coordinate = getFeatureLabelCoordinate(geometry)?.slice(0, 2);
     if (!coordinate) return [];
 
-    feature.set("hasMovableThematicLabel", true, true);
+    feature.set("hasMovableFeatureLabel", true, true);
     const labelFeature = new Feature<Point>({
       geometry: new Point(coordinate),
       gazetteerLabel: String(label),
       originalCoordinates: [...coordinate],
-      thematicLabel: true,
+      featureLabel: true,
     });
     // Index-qualified: a source can mix features that carry an id with features that
     // don't, and a bare id could collide with another feature's array position.
-    labelFeature.setId(`thematic-label-${index}-${feature.getId() ?? ""}`);
+    labelFeature.setId(`feature-label-${index}-${feature.getId() ?? ""}`);
     return [labelFeature];
   });
 }
@@ -541,14 +541,14 @@ export function buildVectorStyleFn(
   // Cache styles to avoid creating new Style/Stroke/Fill/Text objects per feature per frame.
   // Key: geomType + labelText + resolvedFillColor + style params that affect output.
   const styleCache: { [key: string]: Style } = {};
-  const thematicLabelStyle = createGazetteerLabelStyle(style, dataLayer);
+  const featureLabelStyle = createGazetteerLabelStyle(style, dataLayer);
 
   return (feature: Feature<Geometry>, resolution: number) => {
-    if (feature.get("thematicLabel") === true) {
+    if (feature.get("featureLabel") === true) {
       // A label anchor has no geometry of its own to draw — when the gazetteer style
       // declines (labels off), render nothing rather than falling through to the
       // stroke/fill branch below.
-      return thematicLabelStyle(feature, resolution) ?? EMPTY_STYLE;
+      return featureLabelStyle(feature, resolution) ?? EMPTY_STYLE;
     }
 
     const geomType = feature.getGeometry()?.getType();
@@ -578,7 +578,7 @@ export function buildVectorStyleFn(
       dataLayer.labelsEnabled &&
       style.showLabels !== false &&
       labelsAllowedAtZoom &&
-      feature.get("hasMovableThematicLabel") !== true
+      feature.get("hasMovableFeatureLabel") !== true
     ) {
       const value = genericLabel;
       if (value != null) labelText = String(value);

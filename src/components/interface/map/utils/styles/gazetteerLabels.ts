@@ -1,7 +1,7 @@
 /**
  * Gazetteer Label Styles — style function for draggable place-name labels on a
  * GeoJSON data sublayer (nomenclature, plus the synthetic anchors created for
- * thematic polygon/line classes).
+ * feature polygon/line classes).
  *
  * Each feature is a Point carrying the label text and the `originalCoordinates`
  * it was loaded at. The label box is drawn with its bottom-centre on the

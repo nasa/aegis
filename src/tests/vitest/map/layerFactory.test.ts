@@ -22,7 +22,7 @@ import {
   createOlLayer,
   createCogLayer,
   buildVectorStyleFn,
-  createThematicLabelFeatures,
+  createFeatureLabelAnchors,
   isGazetteerFeatures,
   isGazetteerSublayer,
   withAlpha,
@@ -623,12 +623,12 @@ describe("buildVectorStyleFn", () => {
     );
     unit.setProperties({ Unit: "ci", color: "rgb(56, 168, 0)" });
 
-    const labels = createThematicLabelFeatures([unit]);
+    const labels = createFeatureLabelAnchors([unit]);
 
     expect(labels).toHaveLength(1);
     expect(labels[0].get("gazetteerLabel")).toBe("ci");
     expect(labels[0].get("originalCoordinates")).toEqual([2, 2]);
-    expect(unit.get("hasMovableThematicLabel")).toBe(true);
+    expect(unit.get("hasMovableFeatureLabel")).toBe(true);
   });
 
   it("creates a draggable label anchor from 'TYPE' for a colored linear feature", () => {
@@ -640,7 +640,7 @@ describe("buildVectorStyleFn", () => {
     );
     line.setProperties({ TYPE: "scarp base", color: "rgb(0, 0, 0)" });
 
-    const labels = createThematicLabelFeatures([line]);
+    const labels = createFeatureLabelAnchors([line]);
 
     expect(labels).toHaveLength(1);
     expect(labels[0].get("gazetteerLabel")).toBe("scarp base");

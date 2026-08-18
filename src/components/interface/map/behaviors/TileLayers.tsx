@@ -99,7 +99,7 @@ export function TileLayers(): null {
   const prevPresetUuidRef = useRef<string | null>(null);
   const prevMapRef = useRef<typeof map | null>(null);
 
-  // Drag-to-reposition for gazetteer / thematic labels. Mirrors MarkerLabels: the
+  // Drag-to-reposition for gazetteer / feature labels. Mirrors MarkerLabels: the
   // minimap is non-interactive, and labels are frozen while an edit directive owns
   // its own Translate/Modify.
   useEffect(() => {
@@ -178,7 +178,7 @@ export function TileLayers(): null {
         applyVisualStyle(existing, sublayerToRender.visualStyle);
         const baseResolution = map.getView().getResolutionForZoom(0);
         if (sublayerToRender.type === "vector") {
-          if (existing.get("movableLabels") && !existing.get("thematicLabels")) {
+          if (existing.get("movableLabels") && !existing.get("featureLabels")) {
             (existing as VectorImageLayer).setStyle(
               createGazetteerLabelStyle(sublayerToRender.visualStyle, dataLayerConfig)
             );

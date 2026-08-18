@@ -247,10 +247,10 @@ non-interactive — the edited item is manipulated only by `InteractionManager`.
     property-sniffing the loaded features (`isGazetteerFeatures`). The whole layer renders as
     label images; name-matched ones use a plain `VectorLayer` (not `VectorImageLayer`) so
     Translate hit-tests the live frame.
-  - _Thematic_ — for per-feature-coloured polygon/line classes, `createThematicLabelFeatures`
-    appends a synthetic Point anchor per feature (`thematicLabel: true`) and flags the layer
-    `thematicLabels`; the source feature's inline text is suppressed via
-    `hasMovableThematicLabel`.
+  - _Feature_ — for per-feature-coloured polygon/line classes, `createFeatureLabelAnchors`
+    appends a synthetic Point anchor per feature (`featureLabel: true`) and flags the layer
+    `featureLabels`; the source feature's inline text is suppressed via
+    `hasMovableFeatureLabel`.
     `TileLayers` owns the `ol/interaction/Translate` for both (skipped on the minimap and while
     an edit directive is active, same rule as `MarkerLabels`). Dragged positions are **not**
     persisted — they reset on preset switch or reload.
@@ -361,7 +361,7 @@ style file; add it here instead.
 `gazetteerLabels` takes it as the 2nd arg of `createGazetteerLabelStyle`. Those modules are pure
 and have no `MapMode`, so `TileLayers` reads `MODE_CONFIGS[mode].dataLayer` and threads it
 through. `labelsEnabled: false` suppresses **all** data-layer text — gazetteer place names,
-thematic anchors, and inline feature labels — which is what keeps the minimap uncluttered.
+feature label anchors, and inline feature labels — which is what keeps the minimap uncluttered.
 
 POS path line weight is `pos.drawPathWeight` (editor 2px, dashboard 5px, minimap `false` = off).
 
@@ -395,7 +395,7 @@ Overlay gotchas:
 
 | Component            | Owns                                                   | Mode        | Reconciler                   | Notes                                                                                                                                           |
 | -------------------- | ------------------------------------------------------ | ----------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TileLayers`         | all data layers (neg z) + label Translate              | all         | layer-level                  | preset hot-swap, async PMTiles, COG by ext, per-document GeoJSON CRS, draggable gazetteer/thematic labels                                       |
+| `TileLayers`         | all data layers (neg z) + label Translate              | all         | layer-level                  | preset hot-swap, async PMTiles, COG by ext, per-document GeoJSON CRS, draggable gazetteer/feature labels                                        |
 | `Grid`               | own line + label layers                                | all         | rebuild on view move         | resolved server-file/dynamic LGRS source; animation-frame-throttled adaptive density; dashboard publishes its spacing, minimap mirrors it       |
 | `Circles`            | own circle layers                                      | all         | **full rebuild** each change | dashed altColor = 2× layers; dupes station visibility logic                                                                                     |
 | `TraverseLines`      | shared `traverseSource`                                | all         | ✅                           | geodesic bearings/distances; edit-drag detach dance                                                                                             |

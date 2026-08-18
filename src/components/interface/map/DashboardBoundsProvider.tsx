@@ -11,7 +11,7 @@
  * stay in sync live. Other eyeball settings remain scoped per-map.
  *
  * Finally it carries the grid spacing the dashboard drew, so the minimap can
- * render the same real-world spacing and show as many grid lines inside the
+ * render the same ground spacing and show as many grid lines inside the
  * bounds box as the dashboard shows.
  *
  * Only used on the dashboard page. Wrap both maps in this provider.
@@ -33,7 +33,7 @@ import type { Extent } from "ol/extent";
 // Context
 // ---------------------------------------------------------------------------
 
-/** Grid line/label spacing, in the real-world metres of the mission projection. */
+/** Grid line/label spacing, in ground metres of the mission projection. */
 export interface GridSpacingMeters {
   /** Distance between adjacent drawn grid lines. */
   line: number;

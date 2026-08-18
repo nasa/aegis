@@ -7,7 +7,7 @@
  *
  * Density is decided by the dashboard: the dashboard map publishes the spacing it
  * drew to `DashboardBoundsProvider` and the minimap redraws at that same
- * real-world spacing, so the bounds box on the minimap contains as many grid lines
+ * ground spacing, so the bounds box on the minimap contains as many grid lines
  * as the dashboard shows. The editor map is unaffected (no provider).
  *
  * Returns null — headless behavior component.
@@ -236,8 +236,8 @@ export function Grid(): null {
         (endGridIdx.row - startGridIdx.row) * (endGridIdx.col - startGridIdx.col);
 
       // --- Line stride ---
-      // The minimap mirrors the dashboard's real-world spacing. Otherwise fixed mode
-      // draws every Nth grid line at a fixed real-world spacing, independent of zoom,
+      // The minimap mirrors the dashboard's ground spacing. Otherwise fixed mode
+      // draws every Nth grid line at a fixed ground spacing, independent of zoom,
       // and auto mode targets ~100 visible cells at any zoom.
       let lineZoomLevel: number;
       if (inheritedSpacing && baseSpacing > 0) {
