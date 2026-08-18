@@ -32,6 +32,28 @@ function isPmtilesPath(path: string): boolean {
   return path?.toLowerCase().endsWith(".pmtiles") ?? false;
 }
 
+/**
+ * Fetch a URL and return the response, or null if the request fails or the payload is not
+ * the expected resource.
+ *
+ * This is a generic fetch helper used for metadata files and other URL-based inputs.
+ */
+async function fetchURL(url: string): Promise<Response | null> {
+  const res = await fetch(url, {
+    headers: {
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache", // legacy support
+      Expires: "0", // legacy support
+    },
+  }).catch((e): null => {
+    console.error(`Could not fetch ${url}`, e);
+    return null;
+  });
+
+  if (!res?.ok) return null;
+  return res;
+}
+
 /** Render a single sublayer record from the DB */
 function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditHandle>) {
   const [sublayer, setSublayer] = useState<Sublayer>(props.sublayer);
@@ -111,20 +133,17 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
    * @param folderName string
    */
   async function loadManifestFromFile(folderName: string) {
-    // try to read the manifest
-    const res = await fetch(`${folderName}/manifest.json`, {
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache", // legacy support
-        Expires: "0", // legacy support
-      },
-    });
-
-    if (!res.ok) {
-      // there must not be a manifest.json file
+    const clearManifest = () =>
       setSublayer((state) => {
         return { ...state, timeLayerManifest: null, isTimeBased: false };
       });
+
+    // try to read the manifest
+    const res = await fetchURL(`${folderName}/manifest.json`);
+
+    if (!res) {
+      // there must not be a manifest.json file
+      clearManifest();
       return;
     }
 
@@ -133,13 +152,17 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
       manifestJson = await res.json();
     } catch (e) {
       console.error("Something went wrong reading manifest.json", e);
-      setSublayer((state) => {
-        return { ...state, timeLayerManifest: null, isTimeBased: false };
-      });
+      clearManifest();
       return;
     }
 
     const timeLayerJson: TimeLayerJson[] = manifestJson.time_layers;
+    if (!Array.isArray(timeLayerJson) || timeLayerJson.length === 0) {
+      // a manifest.json without time_layers describes a non time-based layer
+      clearManifest();
+      return;
+    }
+
     const timeLayerManifest: TimeLayerInfo[] = [];
     timeLayerJson.forEach((timeLayer, index) => {
       const layerBounds: [string, string] =
@@ -166,14 +189,8 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
     let maxZoom = null;
     let boxArray: number[] = [];
     //read in the timemapresource.xml
-    const res = await fetch(`${rootPath}/tilemapresource.xml`, {
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache", // legacy support
-        Expires: "0", // legacy support
-      },
-    });
-    if (res.status !== 200) return;
+    const res = await fetchURL(`${rootPath}/tilemapresource.xml`);
+    if (!res) return;
 
     const xmlFileContent = await res.text();
     if (xmlFileContent) {
@@ -182,6 +199,12 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
 
       //get bounding box
       const xmlBoundingBox = doc.querySelector("BoundingBox");
+      const xmlTileSetsEl = doc.querySelector("TileSets");
+      if (!xmlBoundingBox || !xmlTileSetsEl) {
+        console.error(`${rootPath}/tilemapresource.xml is not a valid tile map resource`);
+        return;
+      }
+
       boxArray = [
         parseFloat(xmlBoundingBox.getAttribute("minx")),
         parseFloat(xmlBoundingBox.getAttribute("miny")),
@@ -190,7 +213,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
       ];
 
       //get min/max zoom
-      const xmlTileSets = doc.querySelector("TileSets").children;
+      const xmlTileSets = xmlTileSetsEl.children;
       for (const xmltileset of xmlTileSets) {
         const zoom = +xmltileset.getAttribute("href");
         if (!maxZoom) {
@@ -218,14 +241,8 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
     rootPath: string,
     detectedSource?: Pick<Sublayer, "type" | "path" | "tilePattern">
   ) {
-    const res = await fetch(`${rootPath}/properties.json`, {
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache", // legacy support
-        Expires: "0", // legacy support
-      },
-    });
-    if (res.status !== 200) return;
+    const res = await fetchURL(`${rootPath}/properties.json`);
+    if (!res) return;
 
     let partialSublayerJson: unknown;
     try {
@@ -279,22 +296,29 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
     // clear errors from the last properties.json loaded, if there were any
     setPropertiesErrs([]);
 
-    if (isExternal) {
-      await loadTileMapResourceFromFile(folderName);
-      await loadManifestFromFile(folderName);
-      await loadSublayerPropertiesFromFile(folderName, detectedSource);
-    } else {
-      const rootPath = `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}`;
-      await loadTileMapResourceFromFile(rootPath);
-      await loadManifestFromFile(rootPath);
-      await loadSublayerPropertiesFromFile(rootPath, detectedSource);
+    const rootPath = isExternal
+      ? folderName
+      : `/static/missionFiles/${props.missionId.toString()}/Layers/${folderName}`;
+
+    // Each metadata file is independent — a failure reading one must not stop the others from loading.
+    const loaders = [
+      () => loadTileMapResourceFromFile(rootPath),
+      () => loadManifestFromFile(rootPath),
+      () => loadSublayerPropertiesFromFile(rootPath, detectedSource),
+    ];
+    for (const load of loaders) {
+      try {
+        await load();
+      } catch (e) {
+        console.error(`Could not preload metadata from ${rootPath}`, e);
+      }
     }
   }
 
   /**
    * A user picked an internal folder from Layers/. Inspect its contents to determine the layer
    * type (a `.pmtiles` → vector-tile, a `.tif`/`.tiff` → COG raster, otherwise a raster tile
-   * pyramid), set the path accordingly, and preload metadata sidecars.
+   * pyramid), set the path accordingly, and preload metadata files.
    */
   async function selectInternalFolder(folder: string) {
     if (folder === "") {
@@ -363,7 +387,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
     }
 
     // Pull bounding box / zoom / manifest / name / description / legend from the folder's
-    // sidecar files (tilemapresource.xml / manifest.json / properties.json) where present.
+    // metadata files (tilemapresource.xml / manifest.json / properties.json) where present.
     await preloadDataFromFiles(folder, detectedSource);
   }
 
