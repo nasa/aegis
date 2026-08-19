@@ -400,6 +400,18 @@ describe("sendMDAU sample payload — actions", () => {
       expect(action.crewAssigned).toEqual(src.actors);
     }
   });
+
+  it("writes name / descriptionTask / duration / stmAction for every sampled action", () => {
+    const doc = built.handle.doc();
+    for (const refUuid in mdau.aegisAction) {
+      const src = mdau.aegisAction[refUuid];
+      const action = doc.actions[built.actionUuidByRef.get(refUuid)!];
+      expect(action.name).toBe(src.name);
+      expect(action.descriptionTask).toBe(src.descriptionTask);
+      expect(action.duration).toBe(src.duration);
+      expect(action.stmAction).toBe(src.stmAction);
+    }
+  });
 });
 
 describe("sendMDAU sample payload — rexes", () => {

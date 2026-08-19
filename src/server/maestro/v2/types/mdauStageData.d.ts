@@ -1,13 +1,16 @@
 import type { MDAU } from "./mdau";
 
-/** A diffed set of fields to write to a single station. Always carries `uuid`. */
+/**
+ * A diffed set of fields to write to a single station. Always carries `uuid`;
+ * every other key is optional and will only have a value if there is a diff
+ */
 export interface StationStage {
   uuid: string;
   name?: string;
   duration?: number;
   /** Reordered action uuids (reorder-only; already validated). */
   actionOrderUuids?: string[];
-  updatedAt: number;
+  updatedAt?: number;
 }
 
 /** A diffed set of fields to write to a single traverse. */
@@ -15,7 +18,7 @@ export interface TraverseStage {
   uuid: string;
   duration?: number;
   actionOrderUuids?: string[];
-  updatedAt: number;
+  updatedAt?: number;
 }
 
 /** A diffed set of fields to write to a single EVA. */
@@ -23,14 +26,19 @@ export interface EvaStage {
   uuid: string;
   name?: string;
   datetime?: number | null;
-  updatedAt: number;
+  updatedAt?: number;
 }
 
 /** A diffed set of fields to write to a single action. */
 export interface ActionStage {
   uuid: string;
+  name?: string;
+  descriptionTask?: string | null;
+  duration?: number | null;
+  actionDefinition?: ActionDefinition | null;
+  stmAction?: boolean;
   crewAssigned?: Crew[];
-  updatedAt: number;
+  updatedAt?: number;
 }
 
 /**
@@ -40,6 +48,7 @@ export interface ActionStage {
  */
 export interface RexStage {
   uuid: string;
+  updatedAt: number;
   /** Verbatim scalar fields to overwrite on the rex. */
   fields: Partial<
     Pick<

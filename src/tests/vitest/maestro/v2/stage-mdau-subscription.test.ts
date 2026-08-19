@@ -75,6 +75,11 @@ const actionPayload = (refUuid: string, actors: string[]): MDAU.MaestroDataAegis
   aegisAction: {
     [refUuid]: {
       refUuid,
+      name: "Vitest Action",
+      descriptionTask: null,
+      duration: null,
+      actionDefinition: null,
+      stmAction: false,
       actors,
       updatedAt: 1_700_000_000_000,
     },

@@ -29,7 +29,7 @@ export const applyMdauStations = (m: Mission, stage: MdauStageData): void => {
     if (s.name !== undefined) station.name = s.name;
     if (s.duration !== undefined) station.duration = s.duration;
     if (s.actionOrderUuids) station.actionOrderUuids = s.actionOrderUuids;
-    station.updatedAt = s.updatedAt;
+    if (s.updatedAt !== undefined) station.updatedAt = s.updatedAt;
   }
 };
 
@@ -39,7 +39,7 @@ export const applyMdauTraverses = (m: Mission, stage: MdauStageData): void => {
     if (!traverse) continue;
     if (t.duration !== undefined) traverse.duration = t.duration;
     if (t.actionOrderUuids) traverse.actionOrderUuids = t.actionOrderUuids;
-    traverse.updatedAt = t.updatedAt;
+    if (t.updatedAt !== undefined) traverse.updatedAt = t.updatedAt;
   }
 };
 
@@ -49,7 +49,7 @@ export const applyMdauEvas = (m: Mission, stage: MdauStageData): void => {
     if (!eva) continue;
     if (e.name !== undefined) eva.name = e.name;
     if (e.datetime !== undefined) eva.datetime = e.datetime;
-    eva.updatedAt = e.updatedAt;
+    if (e.updatedAt !== undefined) eva.updatedAt = e.updatedAt;
   }
 };
 
@@ -57,8 +57,13 @@ export const applyMdauActions = (m: Mission, stage: MdauStageData): void => {
   for (const a of stage.actions) {
     const action = m.actions[a.uuid];
     if (!action) continue;
+    if (a.name !== undefined) action.name = a.name;
+    if (a.descriptionTask !== undefined) action.descriptionTask = a.descriptionTask;
+    if (a.duration !== undefined) action.duration = a.duration;
+    if (a.stmAction !== undefined) action.stmAction = a.stmAction;
+    if (a.actionDefinition !== undefined) action.actionDefinition = a.actionDefinition;
     if (a.crewAssigned !== undefined) action.crewAssigned = a.crewAssigned;
-    action.updatedAt = a.updatedAt;
+    if (a.updatedAt !== undefined) action.updatedAt = a.updatedAt;
   }
 };
 
@@ -132,7 +137,7 @@ export const applyMdauRexes = (m: Mission, stage: MdauStageData): void => {
     if (f.isRunning !== undefined) rex.isRunning = f.isRunning;
     if (f.maestroControlled !== undefined) rex.maestroControlled = f.maestroControlled;
 
-    rex.updatedAt = Date.now();
+    rex.updatedAt = rexStage.updatedAt;
   }
 };
 
