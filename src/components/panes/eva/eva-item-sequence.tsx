@@ -16,6 +16,7 @@ import { RexStatusMenu } from "../rex/rex-status-menu";
 import { setSelectedEvaSequenceItemUuid, setSelectedEvaUuid } from "store/eva";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getSequenceItemRowStyles } from "utils/component-helpers";
+import { getEgressStationUuid, getIngressStationUuid } from "operations/helpers/evaSequence";
 
 export const EvaSequence: FunctionComponent<{
   evaUuid: string;
@@ -77,13 +78,13 @@ export const EvaEgressIngressListing: FunctionComponent<{
 
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
 
-  const xgressIdentifier = isEgress ? "egress" : "ingress";
+  // The xgress station's own uuid — REX status is an ordinary station entry.
+  const xgressStationUuid = isEgress ? getEgressStationUuid(eva) : getIngressStationUuid(eva);
 
   const xgressRexStatus = useMissionDocSelector((mission) => {
-    if (!mission?.rexes || !eva?.uuid) return null;
+    if (!mission?.rexes || !eva?.uuid || !xgressStationUuid) return null;
     const rex = Object.values(mission.rexes).find((rex) => rex.evaUuid === eva.uuid);
-    if (!rex || !rex.xgressEntries) return null;
-    return rex.xgressEntries[xgressIdentifier]?.rexStatus;
+    return rex?.stationEntries?.[xgressStationUuid]?.rexStatus ?? null;
   }, deepEqual);
 
   if (!eva) return null;
@@ -135,8 +136,8 @@ export const EvaEgressIngressListing: FunctionComponent<{
         <RexStatusMenu
           rexStatus={xgressRexStatus}
           divClassName={evaStyles.rexStatusWrapper}
-          entryType="xgress"
-          uuid={xgressIdentifier}
+          entryType="station"
+          uuid={xgressStationUuid}
           editPerms={!!(editPerms && rexIfExecuting)} // the !! converts result into boolean
           maestroControlled={rexIfExecuting?.maestroControlled}
         />

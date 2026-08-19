@@ -188,8 +188,17 @@ function buildMissionFromSample(): BuiltMission {
   const rexSample = mdau.aegisRexes ? Object.values(mdau.aegisRexes)[0] : undefined;
   let rexEva: Eva | undefined;
   let rex: Rex | undefined;
+  let rexEgressStation: Station | undefined;
+  let rexIngressStation: Station | undefined;
   if (rexSample) {
     const rexSequence: { type: "station" | "traverse"; uuid: string }[] = [];
+
+    // Egress and ingress are real lander-pinned stations bookending the
+    // sequence, so the rex EVA has the expected station/traverse/station shape.
+    rexEgressStation = generateBlankStation({ name: "rex-egress", isLanderXgress: true });
+    rexIngressStation = generateBlankStation({ name: "rex-ingress", isLanderXgress: true });
+    stations.push(rexEgressStation, rexIngressStation);
+    rexSequence.push({ type: "station", uuid: rexEgressStation.uuid });
 
     for (const refUuid in stationActionRefs) {
       const station = generateBlankStation({ refUuid, name: `rex-${refUuid.slice(0, 6)}` });
@@ -223,12 +232,12 @@ function buildMissionFromSample(): BuiltMission {
       rexSequence.push({ type: "traverse", uuid: traverse.uuid });
     }
 
+    rexSequence.push({ type: "station", uuid: rexIngressStation.uuid });
+
     // The rex-owned EVA shares the aegisEva refUuid (its dedicated instance).
     rexEva = generateBlankEVA({
       refUuid: evaRefUuid ?? "rex-eva-ref",
       name: "rex-eva",
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: rexSequence,
     });
     evas.push(rexEva);
@@ -429,19 +438,6 @@ describe("sendMDAU sample payload — rexes", () => {
       expect(uuid, `rex action entry uuid for refUuid ${refUuid}`).toBeDefined();
       expect(rex.actionEntries?.[uuid!]?.rexStatus).toBe(
         src.actionEntriesByRefUuid[refUuid].rexStatus
-      );
-    }
-  });
-
-  it("passes xgress entries through verbatim by key", () => {
-    if (!mdau.aegisRexes || !built.rexUuid) return;
-    const doc = built.handle.doc();
-    const src = Object.values(mdau.aegisRexes)[0];
-    const rex = doc.rexes[built.rexUuid];
-
-    for (const xgressKey in src.xgressEntries) {
-      expect(rex.xgressEntries?.[xgressKey]?.rexStatus).toBe(
-        src.xgressEntries[xgressKey].rexStatus
       );
     }
   });

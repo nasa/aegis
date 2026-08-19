@@ -152,11 +152,13 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
     expect(warnSpy).toHaveBeenCalled();
   });
 
-  it("accepts a station referenced only as another EVA's ingress/egress location", () => {
+  it("accepts a station occupying another EVA's ingress/egress position", () => {
     const station = generateBlankStation({ name: "Xgress", duration: 15 });
-    // The station is in evaA's sequence, but is only the ingress location of evaB.
+    // The station is mid-sequence in evaA and sits at evaB's ingress position.
+    // Xgress locations are ordinary sequence members, so both are found the
+    // same way.
     const evaA = generateBlankEVA({ sequence: [{ type: "station", uuid: station.uuid }] });
-    const evaB = generateBlankEVA({ sequence: [], ingressLocationUuid: station.uuid });
+    const evaB = generateBlankEVA({ sequence: [{ type: "station", uuid: station.uuid }] });
     const mission = buildMission({ evas: [evaA, evaB], stations: [station] });
 
     const stage = stageMdau(
@@ -367,7 +369,6 @@ describe("stageMdau() subscription check — rex scopes", () => {
       maestroControlled: true,
       updatedAt: 1_700_000_000_000,
       maestroActivityPropertiesByRefUuid: {},
-      xgressEntries: {},
       stationEntriesByRefUuid: {},
       traverseEntriesByRefUuid: {},
       actionEntriesByRefUuid: {},

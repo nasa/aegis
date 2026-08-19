@@ -567,7 +567,6 @@ describe("maestro namespace socket handlers", () => {
       petValueAtStartStop: "+00:00:00",
       petRunning: false,
       isRunning: false,
-      xgressEntries: null,
       maestroControlled: true,
       maestroEventId: null,
       maestroEventUrl: null,

@@ -31,6 +31,19 @@ import {
   Rex_db,
 } from "server/database/models/_allModels";
 
+/**
+ * A REX plus the legacy `xgressEntries` map.
+ *
+ * `xgressEntries` was removed from `Rex` when egress/ingress became real
+ * stations, but it still exists as a `rex_db` column and on docs that predate
+ * the fold migration. This type carries it through the DB seed step so
+ * `automergeMigration20260819FoldXgressRexEntries` can resolve each entry onto
+ * its station and then strip the field.
+ */
+type RexWithLegacyXgressEntries = Rex & {
+  xgressEntries?: { [role: string]: { rexStatus: RexStatus } } | null;
+};
+
 // This is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
 initializeBase64Wasm(automergeWasmBase64);
 
@@ -340,12 +353,15 @@ getORM()
         }
       }
 
-      let rexesRecord: Record<string, Rex> | undefined;
+      // Seeded as the legacy shape: `xgressEntries` rides along so the fold
+      // migration can resolve it onto the xgress stations, which do not exist
+      // in the sequence yet at this point.
+      let rexesRecord: Record<string, RexWithLegacyXgressEntries> | undefined;
       if (needsRexes) {
         const dbRexes = await em.find(Rex_db, { missionId: docListing.missionId });
         rexesRecord = {};
         for (const dbRex of dbRexes) {
-          const convertedRex: Rex = {
+          const convertedRex: RexWithLegacyXgressEntries = {
             uuid: dbRex.uuid,
             ownerId: dbRex.ownerId,
             missionId: dbRex.missionId,
@@ -703,6 +719,54 @@ getORM()
       });
     };
 
+    // Migration: Fold each REX's `xgressEntries` into its `stationEntries`.
+    //
+    // The old map was keyed by the literal strings "egress" / "ingress" because
+    // the xgress locations were EVA fields rather than sequence members. They
+    // are real stations now, so their REX status belongs alongside every other
+    // station's, keyed by the station uuid.
+    //
+    // Depends on the xgress-station migration above having already placed those
+    // stations in the sequence.
+    const automergeMigration20260819FoldXgressRexEntries = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      docHandle.change((mission: Mission) => {
+        for (const rex of Object.values(mission.rexes ?? {})) {
+          // The field is gone from `Rex` but still present on docs that have not
+          // run this migration, and on any REX just seeded from `rex_db`.
+          const legacyRex = rex as RexWithLegacyXgressEntries;
+          // Idempotency guard: nothing to do once the field is gone.
+          if (!("xgressEntries" in legacyRex)) continue;
+
+          const entries = legacyRex.xgressEntries;
+          const eva = mission.evas?.[rex.evaUuid];
+          if (entries && eva) {
+            const uuidByRole: { [role: string]: string | undefined } = {
+              egress: eva.sequence?.[0]?.uuid,
+              ingress: eva.sequence?.[eva.sequence.length - 1]?.uuid,
+            };
+            for (const [role, entry] of Object.entries(entries)) {
+              const stationUuid = uuidByRole[role];
+              if (!stationUuid) {
+                serverLogger.warning({
+                  logId: "automerge-migration",
+                  logValue: `Mission ${mission.id} REX ${rex.uuid} could not resolve xgress entry "${role}" to a station; dropping it`,
+                });
+                continue;
+              }
+              if (!rex.stationEntries) rex.stationEntries = {};
+              // Never clobber a real station entry that is already there.
+              if (rex.stationEntries[stationUuid]) continue;
+              rex.stationEntries[stationUuid] = { rexStatus: entry.rexStatus };
+            }
+          }
+
+          delete legacyRex.xgressEntries;
+        }
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
@@ -713,6 +777,7 @@ getORM()
       automergeMigration20260809AddGridRenderMode,
       automergeMigration20260810RenameStationLabelStrokeToHalo,
       automergeMigration20260806XgressStations,
+      automergeMigration20260819FoldXgressRexEntries,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {

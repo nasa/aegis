@@ -133,10 +133,6 @@ beforeAll(async () => {
     actionEntriesByRefUuid: {
       [testStationAction.refUuid]: { rexStatus: "complete", markerId: "marker-123" },
     },
-    xgressEntries: {
-      egress: { rexStatus: "complete" },
-      ingress: { rexStatus: "in-progress" },
-    },
   };
 });
 
@@ -327,15 +323,9 @@ describe("validateRexOverwrite", () => {
       });
     });
 
-    test("Fails if xgressEntries contains invalid typeRefUuid", () => {
-      const result = validateRexOverwrite({
-        ...validRexOverwrite,
-        xgressEntries: { invalidType: { rexStatus: "complete" } },
-      });
-      expect(result).toContain(
-        "Invalid typeRefUuid: invalidType for xgress. Must be 'egress' or 'ingress'."
-      );
-    });
+    // TODO(MR3): a coverage test for inbound xgress status belongs here once the
+    // v1 contract is settled. `xgressEntries` left RexOverwrite when egress and
+    // ingress became real stations, so there is no rule left to exercise.
 
     test("Returns null for a valid payload", () => {
       const result = validateRexOverwrite(validRexOverwrite);

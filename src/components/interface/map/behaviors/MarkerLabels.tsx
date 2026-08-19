@@ -175,21 +175,6 @@ export function MarkerLabels(): null {
     for (const [uuid, entry] of Object.entries(runningRex.traverseEntries ?? {})) {
       if (entry.rexStatus === "in-progress") uuids.push(uuid);
     }
-    const eva = m.evas?.[runningRex.evaUuid];
-    if (
-      runningRex.xgressEntries?.egress?.rexStatus === "in-progress" &&
-      eva?.egressLocationUuid &&
-      eva.egressLocationUuid !== "lander"
-    ) {
-      uuids.push(eva.egressLocationUuid);
-    }
-    if (
-      runningRex.xgressEntries?.ingress?.rexStatus === "in-progress" &&
-      eva?.ingressLocationUuid &&
-      eva.ingressLocationUuid !== "lander"
-    ) {
-      uuids.push(eva.ingressLocationUuid);
-    }
     return uuids;
   }, deepEqual);
 

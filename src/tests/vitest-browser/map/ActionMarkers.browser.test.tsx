@@ -430,7 +430,6 @@ describe("ActionMarkers", () => {
         evaUuid: EVA_UUID,
         stationEntries: { [STATION_UUID]: { rexStatus: "in-progress" } },
         traverseEntries: {},
-        xgressEntries: {},
       },
     } as unknown as Mission["rexes"];
 
@@ -462,7 +461,6 @@ describe("ActionMarkers", () => {
         evaUuid: EVA_UUID,
         stationEntries: {},
         traverseEntries: { [TRAVERSE_UUID]: { rexStatus: "in-progress" } },
-        xgressEntries: {},
       },
     } as unknown as Mission["rexes"];
 
@@ -494,7 +492,6 @@ describe("ActionMarkers", () => {
         evaUuid: EVA_UUID,
         stationEntries: { [STATION_UUID]: { rexStatus: "pending" } },
         traverseEntries: {},
-        xgressEntries: {},
       },
     } as unknown as Mission["rexes"];
 

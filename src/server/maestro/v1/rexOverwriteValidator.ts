@@ -149,12 +149,9 @@ export const validateRexOverwrite = (rexOverwrite: RexOverwrite): string | null 
       }
     }
   }
-  for (const xgressRefUuid in rexOverwrite.xgressEntries) {
-    // xgress refUuid should be either "egress" or "ingress"
-    if (xgressRefUuid !== "egress" && xgressRefUuid !== "ingress") {
-      return `Invalid typeRefUuid: ${xgressRefUuid} for xgress. Must be 'egress' or 'ingress'.`;
-    }
-  }
+  // TODO(MR3): `xgressEntries` was removed from RexOverwrite when egress/ingress
+  // became real stations, so there is nothing left to validate here. Restore a
+  // check once the v1 xgress contract is settled with the Maestro team.
 
   return null; // everything is valid
 };

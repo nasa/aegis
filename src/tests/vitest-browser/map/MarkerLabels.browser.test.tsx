@@ -593,7 +593,6 @@ describe("MarkerLabels", () => {
         evaUuid: EVA_UUID,
         stationEntries: { [STATION_A_UUID]: { rexStatus: "in-progress" } },
         traverseEntries: {},
-        xgressEntries: {},
       },
     } as unknown as Mission["rexes"];
 
@@ -626,7 +625,6 @@ describe("MarkerLabels", () => {
         evaUuid: EVA_UUID,
         stationEntries: { [STATION_A_UUID]: { rexStatus: "pending" } },
         traverseEntries: {},
-        xgressEntries: {},
       },
     } as unknown as Mission["rexes"];
 

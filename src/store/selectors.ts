@@ -99,13 +99,6 @@ export const selectConvertMaestroActivityPropertiesByRefUuidToUuid = (
     }
   }
 
-  // Handle xgress entries
-  for (const [key, value] of Object.entries(maestroActivityPropertiesByRefUuid)) {
-    if (key.endsWith("gress")) {
-      activityProperties[key] = { ...value };
-    }
-  }
-
   // Return the new object with uuid keys
   return activityProperties;
 };

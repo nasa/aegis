@@ -261,11 +261,6 @@ const stageMaestroActivityProperties = (
   if (!byRefUuid) return null;
   const result: MaestroActivityProperties = {};
   for (const [key, value] of Object.entries(byRefUuid)) {
-    // xgress keys are not refUuids — pass through verbatim.
-    if (key.endsWith("gress")) {
-      result[key] = { ...value };
-      continue;
-    }
     const uuid = resolveSequenceUuid(maps, key, rexUuid);
     if (uuid) result[uuid] = { ...value };
   }
@@ -333,12 +328,6 @@ const stageRexes = (
       actionEntries[uuid] = { ...mdau.actionEntriesByRefUuid[refUuid] };
     }
 
-    // xgress entries are keyed by xgress uuid (not refUuid) — verbatim.
-    const xgressEntries: RexStage["xgressEntries"] = {};
-    for (const xgressUuid in mdau.xgressEntries) {
-      xgressEntries[xgressUuid] = { ...mdau.xgressEntries[xgressUuid] };
-    }
-
     stages.push({
       uuid: rexUuid,
       fields: {
@@ -356,7 +345,6 @@ const stageRexes = (
       ),
       stationEntries,
       traverseEntries,
-      xgressEntries,
       actionEntries,
     });
   }

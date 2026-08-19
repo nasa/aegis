@@ -114,7 +114,6 @@ function makeRunningRex(
     posSources: [],
     stationEntries,
     traverseEntries: {},
-    xgressEntries: {},
     updatedAt: new Date().toISOString(),
     ...overrides,
   } as unknown as Rex;

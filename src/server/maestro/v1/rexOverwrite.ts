@@ -157,15 +157,12 @@ export async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
       rexEntity.actionEntries[actionUuid] = updatedActionEntry;
     }
 
-    // Apply xgress entries
-    for (const refUuid in rexOverwrite.xgressEntries) {
-      if (!rexEntity.xgressEntries) rexEntity.xgressEntries = {};
-      const updatedXgressEntry: ActivityEntry = {
-        ...rexEntity.xgressEntries[refUuid],
-        ...rexOverwrite.xgressEntries[refUuid],
-      };
-      rexEntity.xgressEntries[refUuid] = updatedXgressEntry;
-    }
+    // TODO(MR3): egress/ingress REX status is now an ordinary station entry
+    // keyed by the xgress station uuid. v1 still sends `xgressEntries` keyed by
+    // the literal "egress"/"ingress" role and has no way to express the new
+    // shape, so inbound xgress status is dropped here. Decide with the Maestro
+    // team whether to resolve the roles onto stations (as v2 now does) or to
+    // retire the capability along with v1.
 
     // Update top-level fields
     rexEntity.petStartStopTimestamp = rexOverwrite.petStartStopTimestamp;

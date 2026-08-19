@@ -129,7 +129,6 @@ function makeRex(overrides: Partial<Rex> = {}): Rex {
     stationEntries: null,
     traverseEntries: null,
     actionEntries: null,
-    xgressEntries: null,
     maestroControlled: false,
     maestroEventId: null,
     maestroEventUrl: null,

@@ -370,12 +370,15 @@ describe("opUpdateMdau() — rexes", () => {
     const traverse = generateBlankTraverse({ name: "Vitest Path" });
     const action = generateBlankAction({ stationUuid: station.uuid });
     station.actionOrderUuids = [action.uuid];
+    // Egress and ingress are real lander-pinned stations at either end.
+    const egressStation = generateBlankStation({ name: "Egress", isLanderXgress: true });
+    const ingressStation = generateBlankStation({ name: "Ingress", isLanderXgress: true });
     const eva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [
+        { type: "station", uuid: egressStation.uuid },
         { type: "station", uuid: station.uuid },
         { type: "traverse", uuid: traverse.uuid },
+        { type: "station", uuid: ingressStation.uuid },
       ],
     });
     const rex = generateBlankRex({ evaUuid: eva.uuid, isRunning: false, posEntries: [] });
@@ -383,16 +386,18 @@ describe("opUpdateMdau() — rexes", () => {
     const handle = getMissionDocHandle();
     handle.change((m) => {
       m.stations[station.uuid] = station;
+      m.stations[egressStation.uuid] = egressStation;
+      m.stations[ingressStation.uuid] = ingressStation;
       m.traverses[traverse.uuid] = traverse;
       m.actions[action.uuid] = action;
       m.evas[eva.uuid] = eva;
       m.rexes[rex.uuid] = rex;
     });
-    return { handle, station, traverse, action, eva, rex };
+    return { handle, station, egressStation, ingressStation, traverse, action, eva, rex };
   };
 
   it("writes rex scalar fields and resolves entry maps to uuids", () => {
-    const { handle, station, traverse, action, rex } = buildRexMission();
+    const { handle, station, egressStation, traverse, action, rex } = buildRexMission();
 
     const mdauRex: MDAU.MdauRex = {
       uuid: rex.uuid,
@@ -405,12 +410,17 @@ describe("opUpdateMdau() — rexes", () => {
       maestroActivityPropertiesByRefUuid: {
         [station.refUuid]: { color: "#ff0000", number: "1" },
       },
-      xgressEntries: { "xgress-1": { rexStatus: "complete" } },
       stationEntriesByRefUuid: {
         [station.refUuid]: {
           rexStatus: "in-progress",
           maestroPercentCompleteEv1: 50,
           maestroPercentCompleteEv2: 25,
+        },
+        // Egress/ingress arrive as ordinary stations, keyed by their refUuid.
+        [egressStation.refUuid]: {
+          rexStatus: "complete",
+          maestroPercentCompleteEv1: 100,
+          maestroPercentCompleteEv2: 100,
         },
       },
       traverseEntriesByRefUuid: {
@@ -442,7 +452,8 @@ describe("opUpdateMdau() — rexes", () => {
     expect(updated.stationEntries?.[station.uuid]?.rexStatus).toBe("in-progress");
     expect(updated.traverseEntries?.[traverse.uuid]?.rexStatus).toBe("pending");
     expect(updated.actionEntries?.[action.uuid]?.markerId).toBe("M-001");
-    expect(updated.xgressEntries?.["xgress-1"]?.rexStatus).toBe("complete");
+    // The egress station resolves like any other station.
+    expect(updated.stationEntries?.[egressStation.uuid]?.rexStatus).toBe("complete");
 
     // maestroActivityProperties resolved to uuid keys
     expect(updated.maestroActivityPropertiesByRefUuid?.[station.uuid]?.color).toBe("#ff0000");
@@ -474,7 +485,6 @@ describe("opUpdateMdau() — rexes", () => {
           maestroControlled: true,
           updatedAt: Date.now(),
           maestroActivityPropertiesByRefUuid: {},
-          xgressEntries: {},
           stationEntriesByRefUuid: {},
           traverseEntriesByRefUuid: {},
           actionEntriesByRefUuid: {},
@@ -504,7 +514,6 @@ describe("opUpdateMdau() — rexes", () => {
           maestroControlled: true,
           updatedAt: Date.now(),
           maestroActivityPropertiesByRefUuid: {},
-          xgressEntries: {},
           stationEntriesByRefUuid: {},
           traverseEntriesByRefUuid: {},
           actionEntriesByRefUuid: {},
@@ -670,7 +679,6 @@ describe("opUpdateMdau() — subscription gating", () => {
           maestroControlled: true,
           updatedAt: Date.now(),
           maestroActivityPropertiesByRefUuid: {},
-          xgressEntries: {},
           stationEntriesByRefUuid: {},
           traverseEntriesByRefUuid: {},
           actionEntriesByRefUuid: {},

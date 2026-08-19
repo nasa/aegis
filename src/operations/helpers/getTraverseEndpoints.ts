@@ -8,9 +8,14 @@ import type { EvaSequenceSource } from "./evaSequence";
  * Neighbor resolution is delegated to `getTraverseNeighborUuids`, so this
  * function does not need to know where the egress/ingress locations are stored.
  *
- * Lander stations resolve to the live `landerLocation` rather than to
- * their own stored copy of it, so a traverse endpoint stays correct even if the
- * lander has moved and the station has not been repositioned yet.
+ * Lander stations resolve to their own stored location. Moving the lander
+ * repositions every `isLanderXgress` station in the same change, so that copy is
+ * always current.
+ *
+ * `landerLocation` is only used for the legacy `"lander"` sentinel uuid, which
+ * no code path can put in a sequence any more. Both the parameter and the
+ * sentinel branch are dead and are removed once the deprecated
+ * `egressLocationUuid` / `ingressLocationUuid` fields go.
  *
  * The optional `stationOverride` lets callers substitute a different location/name
  * for a specific station UUID — used when a station is being edited and
@@ -34,7 +39,7 @@ export function getTraverseEndpoints(
     }
     const station = stations?.[uuid];
     if (isLanderXgressStation(station)) {
-      return { location: landerLocation, name: station.name || "Lander" };
+      return { location: station.location, name: station.name || "Lander" };
     }
     return { location: station?.location, name: station?.name ?? "" };
   };

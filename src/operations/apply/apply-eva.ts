@@ -51,23 +51,6 @@ export function applySyncEvaXgressMirror(m: Mission, evaUuid: string): void {
   if (eva.ingressDuration !== ingress.duration) eva.ingressDuration = ingress.duration;
 }
 
-/**
- * Re-derive the xgress mirror for every EVA whose xgress position holds one of the
- * given stations. Used after a station's duration changes, since that value is
- * mirrored onto each EVA that egresses/ingresses there.
- */
-export function applySyncEvaXgressMirrorForStations(m: Mission, stationUuids: string[]): void {
-  if (stationUuids.length === 0) return;
-  const affected = new Set(stationUuids);
-  for (const eva of Object.values(m.evas ?? {})) {
-    const egressUuid = getEgressStationUuid(eva);
-    const ingressUuid = getIngressStationUuid(eva);
-    if ((egressUuid && affected.has(egressUuid)) || (ingressUuid && affected.has(ingressUuid))) {
-      applySyncEvaXgressMirror(m, eva.uuid);
-    }
-  }
-}
-
 /** Insert/replace an EVA in the doc. */
 export function applyUpsertEva(m: Mission, eva: Eva): void {
   m.evas[eva.uuid] = cloneDeep(eva);

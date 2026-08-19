@@ -15,7 +15,6 @@ type Rex = {
   stationEntries: ActivityEntries | null;
   traverseEntries: ActivityEntries | null;
   actionEntries: ActionEntries | null;
-  xgressEntries: XgressEntries | null;
   maestroControlled: boolean;
   maestroEventId: string | null;
   maestroEventUrl: string | null;
@@ -90,14 +89,6 @@ interface ActionEntries {
   [actionUuid: string]: ActionEntry;
 }
 
-interface XgressEntry {
-  rexStatus: RexStatus;
-}
-
-interface XgressEntries {
-  [xgressUuid: string]: XgressEntry;
-}
-
 // properties from REX that maestro should include in /rexOverwrite endpoint
 type RexOverwrite = Pick<
   Rex,
@@ -106,7 +97,6 @@ type RexOverwrite = Pick<
   | "petValueAtStartStop"
   | "petRunning"
   | "isRunning"
-  | "xgressEntries"
   | "maestroControlled"
   | "maestroEventId"
   | "maestroEventUrl"

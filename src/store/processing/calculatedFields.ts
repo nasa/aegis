@@ -398,7 +398,7 @@ export const getCalculatedTimeOfSequenceItem = (params: {
   // go through eva sequence and calculate things
   const evaSequence = eva.sequence;
 
-  let runningEvaSeconds = eva.egressDuration * 60; // start with egress duration
+  let runningEvaSeconds = 0;
   let halfTime = 0;
   for (const seqItem of evaSequence) {
     let thisTraverseCalculatedTime: number;
@@ -495,8 +495,8 @@ export const getCalculatedFieldsByEva = (params: {
     totalMass: 0,
   };
 
-  let runningEvaSeconds = eva.egressDuration * 60; // start with egress duration
-  let manualEvaSeconds = eva.egressDuration * 60; // start with egress duration
+  let runningEvaSeconds = 0;
+  let manualEvaSeconds = 0;
   for (const seqItem of evaSequence) {
     let thisStationCalculatedFields: StationCalculatedFields;
     let thisStation: Station;
@@ -592,10 +592,7 @@ export const getCalculatedFieldsByEva = (params: {
   }
 
   evaCalculatedFields.totalEvaTime =
-    evaCalculatedFields.totalDwellTime +
-    evaCalculatedFields.totalTraverseTime +
-    eva.egressDuration +
-    eva.ingressDuration;
+    evaCalculatedFields.totalDwellTime + evaCalculatedFields.totalTraverseTime;
 
   // check if nominal time exceeds limit
   if (eva.duration && evaCalculatedFields.totalEvaTime > eva.duration) {

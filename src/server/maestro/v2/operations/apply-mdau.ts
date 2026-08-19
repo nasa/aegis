@@ -120,17 +120,6 @@ export const applyMdauRexes = (m: Mission, stage: MdauStageData): void => {
       }
     }
 
-    // xgress entries.
-    if (Object.keys(rexStage.xgressEntries).length > 0) {
-      if (!rex.xgressEntries) rex.xgressEntries = {};
-      for (const xgressUuid in rexStage.xgressEntries) {
-        rex.xgressEntries[xgressUuid] = {
-          ...rex.xgressEntries[xgressUuid],
-          ...rexStage.xgressEntries[xgressUuid],
-        };
-      }
-    }
-
     // maestroActivityProperties (resolved to uuid keys).
     if (rexStage.maestroActivityProperties !== null) {
       rex.maestroActivityPropertiesByRefUuid = rexStage.maestroActivityProperties;

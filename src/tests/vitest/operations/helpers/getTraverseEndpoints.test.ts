@@ -8,18 +8,19 @@ const S2_LOCATION: AEGISPoint = { lat: 2, lng: 2 };
 const EGRESS_LOCATION: AEGISPoint = { lat: 3, lng: 3 };
 
 const stations: { [uuid: string]: Station } = {
+  // Lander xgress stations are repositioned in the same change that moves the
+  // lander, so their stored location always matches it.
   egress: generateBlankStation({
     uuid: "egress",
     name: "Lander",
     isLanderXgress: true,
-    // Deliberately stale: the resolver must prefer the live lander location.
-    location: { lat: 99, lng: 99 },
+    location: LANDER_LOCATION,
   }),
   ingress: generateBlankStation({
     uuid: "ingress",
     name: "Lander",
     isLanderXgress: true,
-    location: { lat: 99, lng: 99 },
+    location: LANDER_LOCATION,
   }),
   s1: generateBlankStation({ uuid: "s1", name: "Station 1", location: S1_LOCATION }),
   s2: generateBlankStation({ uuid: "s2", name: "Station 2", location: S2_LOCATION }),
@@ -55,7 +56,7 @@ describe("getTraverseEndpoints", () => {
     });
   });
 
-  it("resolves a lander station to the live lander location", () => {
+  it("resolves a lander station to the lander location", () => {
     const result = getTraverseEndpoints("t1", makeEva(), stations, LANDER_LOCATION);
     expect(result.locationBefore).toEqual(LANDER_LOCATION);
     expect(result.nameBefore).toBe("Lander");

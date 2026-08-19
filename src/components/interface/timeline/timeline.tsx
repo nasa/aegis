@@ -383,7 +383,7 @@ const NavTimeline: FunctionComponent = () => {
         }
       }
       //set selected uuid if we have one
-      if (sequenceUuid && sequenceUuid !== "egress" && sequenceUuid !== "ingress") {
+      if (sequenceUuid) {
         dispatch(setSelectedPosEntryUuid(null));
         dispatch(thunkSelectEVASequenceItem({ sequenceItemUuid: sequenceUuid }));
         return;

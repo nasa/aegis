@@ -99,8 +99,6 @@ const DashTimeline: FunctionComponent = () => {
     minElevationMeters: 0,
     landerElevationMeters: 0,
     elevationResolutionMeters: 0,
-    egressDurationMins: 0,
-    ingressDurationMins: 0,
   });
   const containerRef: MutableRefObject<HTMLDivElement> = useRef(null);
   const [pixelsPerSecondY, setPixelsPerSecondY] = useState(0);

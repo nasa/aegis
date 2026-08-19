@@ -7,6 +7,7 @@ import {
 } from "store/station";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mapping/geoMath";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
+import { isLanderXgressStation } from "operations/helpers/evaSequence";
 import { thunkFetchElevation } from "./thunkElevation";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
@@ -355,6 +356,20 @@ export const thunkDocDeleteStations = appCreateAsyncThunk<
 
     // Step 1: Validate, gather all child action uuids from the doc snapshot,
     // and pre-fire non-automerge folder removal side-effects.
+
+    // Cannot directly delete an xgress station. Xgress stations are deleted in
+    // the REX/EVA delete rather than here.
+    const landerXgressUuids = stationUuids.filter((uuid) =>
+      isLanderXgressStation(mission?.stations?.[uuid])
+    );
+    if (landerXgressUuids.length > 0) {
+      const message =
+        "Cannot delete an EVA's egress or ingress location directly.\nStation not deleted.\n" +
+        "Change the EVA's egress/ingress location instead.";
+      alert(message);
+      return rejectWithValue(message);
+    }
+
     if (!skipValidation) {
       const allStations = mission?.stations ?? {};
 

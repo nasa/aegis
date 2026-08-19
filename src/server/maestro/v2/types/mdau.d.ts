@@ -132,14 +132,6 @@ export declare namespace MDAU {
       };
     };
     /**
-     * Lander activities/sequence items
-     */
-    xgressEntries: {
-      [xgressUuid: string]: {
-        rexStatus: AegisRexStatus;
-      };
-    };
-    /**
      * Station activities/sequence items
      */
     stationEntriesByRefUuid: {
