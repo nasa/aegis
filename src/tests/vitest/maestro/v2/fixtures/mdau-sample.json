@@ -114,81 +114,161 @@
     "aegisAction": {
       "16dd5aaf-5b56-4894-9f2a-a868562ffb53": {
         "refUuid": "16dd5aaf-5b56-4894-9f2a-a868562ffb53",
+        "name": "Sample Action 1",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV1"],
         "updatedAt": 1755118160751
       },
       "1b0840b1-7880-4f74-84c2-510b67e5d886": {
         "refUuid": "1b0840b1-7880-4f74-84c2-510b67e5d886",
+        "name": "Sample Action 2",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV1", "EV2"],
         "updatedAt": 1755026002803
       },
       "426f0a95-3596-48fa-93e0-8cae517afa4f": {
         "refUuid": "426f0a95-3596-48fa-93e0-8cae517afa4f",
+        "name": "Sample Action 3",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV1", "EV2"],
         "updatedAt": 1755026002803
       },
       "43ef4f44-87b6-4f83-8dda-10d6c63aaa2c": {
         "refUuid": "43ef4f44-87b6-4f83-8dda-10d6c63aaa2c",
+        "name": "Sample Action 4",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV2"],
         "updatedAt": 1755026002802
       },
       "4c83a975-7022-4e97-a6ea-04235dec71f7": {
         "refUuid": "4c83a975-7022-4e97-a6ea-04235dec71f7",
+        "name": "Sample Action 5",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV1"],
         "updatedAt": 1770675134176
       },
       "568b1277-4e39-435c-98a3-2254815f0de6": {
         "refUuid": "568b1277-4e39-435c-98a3-2254815f0de6",
+        "name": "Sample Action 6",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV1", "EV2"],
         "updatedAt": 1755026002802
       },
       "6e2ee00b-0bd4-44fb-a238-329c5e7714b3": {
         "refUuid": "6e2ee00b-0bd4-44fb-a238-329c5e7714b3",
+        "name": "Sample Action 7",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV2"],
         "updatedAt": 1755026002802
       },
       "71b661ca-5099-4049-a009-33d89b02a968": {
         "refUuid": "71b661ca-5099-4049-a009-33d89b02a968",
+        "name": "Sample Action 8",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV2"],
         "updatedAt": 1755118076101
       },
       "8897a17f-c2bb-4d7c-94a2-2237a3848cec": {
         "refUuid": "8897a17f-c2bb-4d7c-94a2-2237a3848cec",
+        "name": "Sample Action 9",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV1"],
         "updatedAt": 1759347291194
       },
       "91f218a2-6ee8-4619-9a7d-5970f147288f": {
         "refUuid": "91f218a2-6ee8-4619-9a7d-5970f147288f",
+        "name": "Sample Action 10",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV1"],
         "updatedAt": 1784819072279
       },
       "a4cf7ec7-d582-47b8-a9cf-72c30b5372e4": {
         "refUuid": "a4cf7ec7-d582-47b8-a9cf-72c30b5372e4",
+        "name": "Sample Action 11",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV1", "EV2"],
         "updatedAt": 1755026002803
       },
       "a7c24de7-c9a2-4720-bcb4-ef0382f17714": {
         "refUuid": "a7c24de7-c9a2-4720-bcb4-ef0382f17714",
+        "name": "Sample Action 12",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV2"],
         "updatedAt": 1755118135014
       },
       "b425252f-10f1-4d4d-aadc-16b0a7544dc5": {
         "refUuid": "b425252f-10f1-4d4d-aadc-16b0a7544dc5",
+        "name": "Sample Action 13",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV1"],
         "updatedAt": 1758210789869
       },
       "d4eaae4b-b20b-4aec-942f-6b1b89bd6e6c": {
         "refUuid": "d4eaae4b-b20b-4aec-942f-6b1b89bd6e6c",
+        "name": "Sample Action 14",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV1"],
         "updatedAt": 1770844830350
       },
       "e763a705-fba4-4bb9-bbeb-b5d437b0d1a4": {
         "refUuid": "e763a705-fba4-4bb9-bbeb-b5d437b0d1a4",
+        "name": "Sample Action 15",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV2"],
         "updatedAt": 1785352626875
       },
       "eb99fc4d-4731-4b15-a097-cec6a3c5cac4": {
         "refUuid": "eb99fc4d-4731-4b15-a097-cec6a3c5cac4",
+        "name": "Sample Action 16",
+        "descriptionTask": null,
+        "duration": null,
+        "actionDefinition": null,
+        "stmAction": false,
         "actors": ["EV1"],
         "updatedAt": 1785353894796
       }

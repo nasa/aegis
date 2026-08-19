@@ -43,6 +43,16 @@ const isEntitySubscribed = (
 };
 
 /**
+ * Whether a stage carries anything worth writing. Every field on a stage is
+ * assigned only when the incoming value differs from the doc, so the presence
+ * of any key other than the identifying `uuid` means there is a change —
+ * including fields deliberately set to `null`. Stays correct as fields are
+ * added to any of the stage types.
+ */
+const hasStagedChange = (stage: { uuid: string }): boolean =>
+  Object.keys(stage).some((key) => key !== "uuid");
+
+/**
  * Convert an incoming `actionOrderRefUuids` into resolved `actionOrderUuids`.
  * Maestro may only REORDER existing actions — no additions/deletions. Returns
  * the new order, or `null` if invalid or unchanged.
@@ -109,10 +119,12 @@ const stageStations = (
     }
     if (!isEntitySubscribed(maps, subscribedEvaUuids, uuid, "station")) continue;
 
-    const stage: StationStage = { uuid, updatedAt: mdau.updatedAt };
+    const stage: StationStage = { uuid };
     if (mdau.name !== undefined && mdau.name !== station.name) stage.name = mdau.name;
     if (mdau.duration !== undefined && mdau.duration !== station.duration)
       stage.duration = mdau.duration;
+    if (mdau.updatedAt !== undefined && mdau.updatedAt !== station.updatedAt)
+      stage.updatedAt = mdau.updatedAt;
 
     if (mdau.actionOrderRefUuids != null) {
       const newOrder = stageActionOrder(
@@ -124,9 +136,7 @@ const stageStations = (
       if (newOrder) stage.actionOrderUuids = newOrder;
     }
 
-    // Only keep the stage if something beyond uuid/updatedAt changed.
-    if (stage.name !== undefined || stage.duration !== undefined || stage.actionOrderUuids)
-      stages.push(stage);
+    if (hasStagedChange(stage)) stages.push(stage);
   }
   return stages;
 };
@@ -152,9 +162,11 @@ const stageTraverses = (
     }
     if (!isEntitySubscribed(maps, subscribedEvaUuids, uuid, "traverse")) continue;
 
-    const stage: TraverseStage = { uuid, updatedAt: mdau.updatedAt };
+    const stage: TraverseStage = { uuid };
     if (mdau.duration !== undefined && mdau.duration !== traverse.duration)
       stage.duration = mdau.duration;
+    if (mdau.updatedAt !== undefined && mdau.updatedAt !== traverse.updatedAt)
+      stage.updatedAt = mdau.updatedAt;
 
     if (mdau.actionOrderRefUuids != null) {
       const newOrder = stageActionOrder(
@@ -166,7 +178,7 @@ const stageTraverses = (
       if (newOrder) stage.actionOrderUuids = newOrder;
     }
 
-    if (stage.duration !== undefined || stage.actionOrderUuids) stages.push(stage);
+    if (hasStagedChange(stage)) stages.push(stage);
   }
   return stages;
 };
@@ -202,11 +214,14 @@ const stageEvas = (
     }
     if (!isEntitySubscribed(maps, subscribedEvaUuids, uuid, "eva")) continue;
 
-    const stage: EvaStage = { uuid, updatedAt: mdau.updatedAt };
+    const stage: EvaStage = { uuid };
     if (mdau.name !== undefined && mdau.name !== eva.name) stage.name = mdau.name;
     if (mdau.datetime !== undefined && mdau.datetime !== eva.datetime)
       stage.datetime = mdau.datetime;
-    if (stage.name !== undefined || stage.datetime !== undefined) stages.push(stage);
+    if (mdau.updatedAt !== undefined && mdau.updatedAt !== eva.updatedAt)
+      stage.updatedAt = mdau.updatedAt;
+
+    if (hasStagedChange(stage)) stages.push(stage);
   }
   return stages;
 };
@@ -232,12 +247,26 @@ const stageActions = (
     }
     if (!isEntitySubscribed(maps, subscribedEvaUuids, uuid, "action")) continue;
 
-    const stage: ActionStage = { uuid, updatedAt: mdau.updatedAt };
+    const stage: ActionStage = { uuid };
+    if (mdau.name !== undefined && mdau.name !== action.name) stage.name = mdau.name;
+    if (mdau.descriptionTask !== undefined && mdau.descriptionTask !== action.descriptionTask)
+      stage.descriptionTask = mdau.descriptionTask;
+    if (mdau.duration !== undefined && mdau.duration !== action.duration)
+      stage.duration = mdau.duration;
+    if (mdau.stmAction !== undefined && mdau.stmAction !== action.stmAction)
+      stage.stmAction = mdau.stmAction;
+    if (
+      mdau.actionDefinition !== undefined &&
+      !isEqual(mdau.actionDefinition, action.actionDefinition)
+    )
+      stage.actionDefinition = mdau.actionDefinition;
     // `actors` maps to AEGIS `crewAssigned`.
     if (mdau.actors !== undefined && !isEqual(mdau.actors, action.crewAssigned ?? []))
       stage.crewAssigned = mdau.actors as Crew[];
+    if (mdau.updatedAt !== undefined && mdau.updatedAt !== action.updatedAt)
+      stage.updatedAt = mdau.updatedAt;
 
-    if (stage.crewAssigned) stages.push(stage);
+    if (hasStagedChange(stage)) stages.push(stage);
   }
   return stages;
 };
@@ -320,6 +349,7 @@ const stageRexes = (
 
     stages.push({
       uuid: rexUuid,
+      updatedAt: mdau.updatedAt,
       fields: {
         petStartStopTimestamp: mdau.petStartStopTimestamp,
         petValueAtStartStop: mdau.petValueAtStartStop,

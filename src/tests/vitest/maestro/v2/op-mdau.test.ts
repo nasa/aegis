@@ -127,13 +127,43 @@ describe("opUpdateMdau() — stations", () => {
           name: "Vitest Alpha",
           duration: 10,
           actionOrderRefUuids: null,
-          updatedAt: Date.now() + 5000,
+          updatedAt: before,
         },
       },
     });
 
     // updatedAt must be untouched because no field changed.
     expect(handle.doc().stations[station.uuid].updatedAt).toBe(before);
+  });
+
+  it("writes when only updatedAt changed", () => {
+    const station = generateBlankStation({ name: "Vitest Alpha", duration: 10 });
+    const eva = generateBlankEVA({
+      egressLocationUuid: "lander",
+      ingressLocationUuid: "lander",
+      sequence: [{ type: "station", uuid: station.uuid }],
+    });
+
+    const handle = getMissionDocHandle();
+    handle.change((m) => {
+      m.stations[station.uuid] = station;
+      m.evas[eva.uuid] = eva;
+    });
+    const newUpdatedAt = handle.doc().stations[station.uuid].updatedAt + 5000;
+
+    runMdau(handle, {
+      aegisStations: {
+        [station.refUuid]: {
+          refUuid: station.refUuid,
+          name: "Vitest Alpha",
+          duration: 10,
+          actionOrderRefUuids: null,
+          updatedAt: newUpdatedAt,
+        },
+      },
+    });
+
+    expect(handle.doc().stations[station.uuid].updatedAt).toBe(newUpdatedAt);
   });
 
   it("cascades adjacent traverse renames when a station name changes", () => {
@@ -402,6 +432,11 @@ describe("opUpdateMdau() — actions", () => {
       aegisAction: {
         [action.refUuid]: {
           refUuid: action.refUuid,
+          name: action.name,
+          descriptionTask: action.descriptionTask,
+          duration: action.duration,
+          actionDefinition: action.actionDefinition,
+          stmAction: action.stmAction,
           actors: ["EV1", "EV2"],
           updatedAt: now,
         },
@@ -411,6 +446,127 @@ describe("opUpdateMdau() — actions", () => {
     const updated = handle.doc().actions[action.uuid];
     expect(updated.crewAssigned).toEqual(["EV1", "EV2"]);
     expect(updated.updatedAt).toBe(now);
+  });
+
+  /**
+   * Build a mission with one action on one station, plus a set of mission
+   * actionDefinitions the incoming actionDefinition can be validated against.
+   */
+  const buildActionMission = () => {
+    const station = generateBlankStation({ name: "Vitest Alpha" });
+    const action = generateBlankAction({ stationUuid: station.uuid, crewAssigned: ["EV1"] });
+    station.actionOrderUuids = [action.uuid];
+    const eva = generateBlankEVA({
+      egressLocationUuid: "lander",
+      ingressLocationUuid: "lander",
+      sequence: [{ type: "station", uuid: station.uuid }],
+    });
+
+    const handle = getMissionDocHandle();
+    handle.change((m) => {
+      m.actionDefinitions = {
+        verbs: { "verb-1": { name: "Collect", abbr: "COL" } },
+        nouns: { "noun-1": { name: "Regolith", abbr: "REG" } },
+        adjectives: { "adj-1": { name: "Shadowed", abbr: "SHD" } },
+      };
+      m.stations[station.uuid] = station;
+      m.actions[action.uuid] = action;
+      m.evas[eva.uuid] = eva;
+    });
+    return { handle, action };
+  };
+
+  /** A full MdauAction with every field, overridable per-test. */
+  const mdauAction = (
+    action: Action,
+    overrides: Partial<MDAU.MdauAction> = {}
+  ): MDAU.MdauAction => ({
+    refUuid: action.refUuid,
+    name: action.name,
+    descriptionTask: action.descriptionTask,
+    duration: action.duration,
+    actionDefinition: action.actionDefinition,
+    stmAction: action.stmAction,
+    actors: action.crewAssigned,
+    updatedAt: Date.now(),
+    ...overrides,
+  });
+
+  it("writes name, descriptionTask, duration and stmAction", () => {
+    const { handle, action } = buildActionMission();
+    const now = Date.now();
+
+    runMdau(handle, {
+      aegisAction: {
+        [action.refUuid]: mdauAction(action, {
+          name: "Renamed Action",
+          descriptionTask: "Scoop the sample",
+          duration: 17,
+          stmAction: true,
+          updatedAt: now,
+        }),
+      },
+    });
+
+    const updated = handle.doc().actions[action.uuid];
+    expect(updated.name).toBe("Renamed Action");
+    expect(updated.descriptionTask).toBe("Scoop the sample");
+    expect(updated.duration).toBe(17);
+    expect(updated.stmAction).toBe(true);
+    expect(updated.updatedAt).toBe(now);
+  });
+
+  it("writes an actionDefinition whose uuids all exist in the mission", () => {
+    const { handle, action } = buildActionMission();
+
+    runMdau(handle, {
+      aegisAction: {
+        [action.refUuid]: mdauAction(action, {
+          actionDefinition: { verbUuid: "verb-1", nounUuid: "noun-1", adjectiveUuid: "adj-1" },
+        }),
+      },
+    });
+
+    expect(handle.doc().actions[action.uuid].actionDefinition).toEqual({
+      verbUuid: "verb-1",
+      nounUuid: "noun-1",
+      adjectiveUuid: "adj-1",
+    });
+  });
+
+  it("clears the actionDefinition when Maestro sends null", () => {
+    const { handle, action } = buildActionMission();
+    handle.change((m) => {
+      m.actions[action.uuid].actionDefinition = { verbUuid: "verb-1" };
+    });
+
+    runMdau(handle, {
+      aegisAction: { [action.refUuid]: mdauAction(action, { actionDefinition: null }) },
+    });
+
+    expect(handle.doc().actions[action.uuid].actionDefinition).toBeNull();
+  });
+
+  it("does not stage an action when nothing at all differs", () => {
+    const { handle, action } = buildActionMission();
+    const originalUpdatedAt = handle.doc().actions[action.uuid].updatedAt;
+
+    runMdau(handle, {
+      aegisAction: { [action.refUuid]: mdauAction(action, { updatedAt: originalUpdatedAt }) },
+    });
+
+    expect(handle.doc().actions[action.uuid].updatedAt).toBe(originalUpdatedAt);
+  });
+
+  it("stages an action when only updatedAt differs", () => {
+    const { handle, action } = buildActionMission();
+    const newUpdatedAt = handle.doc().actions[action.uuid].updatedAt + 5000;
+
+    runMdau(handle, {
+      aegisAction: { [action.refUuid]: mdauAction(action, { updatedAt: newUpdatedAt }) },
+    });
+
+    expect(handle.doc().actions[action.uuid].updatedAt).toBe(newUpdatedAt);
   });
 });
 
@@ -462,6 +618,7 @@ describe("opUpdateMdau() — rexes", () => {
 
   it("writes rex scalar fields and resolves entry maps to uuids", () => {
     const { handle, station, egressStation, traverse, action, rex } = buildRexMission();
+    const rexUpdatedAt = Date.now() + 5000;
 
     const mdauRex: MDAU.MdauRex = {
       uuid: rex.uuid,
@@ -470,7 +627,7 @@ describe("opUpdateMdau() — rexes", () => {
       petRunning: true,
       isRunning: true,
       maestroControlled: true,
-      updatedAt: Date.now(),
+      updatedAt: rexUpdatedAt,
       maestroActivityPropertiesByRefUuid: {
         [station.refUuid]: { color: "#ff0000", number: "1" },
       },
@@ -510,6 +667,7 @@ describe("opUpdateMdau() — rexes", () => {
     expect(updated.isRunning).toBe(true);
     expect(updated.maestroControlled).toBe(true);
     expect(updated.petStartStopTimestamp).toBe("2025-01-21T17:06:59.000Z");
+    expect(updated.updatedAt).toBe(rexUpdatedAt);
 
     // Entry maps resolved to uuids
     expect(updated.stationEntries?.[station.uuid]?.rexStatus).toBe("in-progress");
@@ -693,6 +851,11 @@ describe("opUpdateMdau() — subscription gating", () => {
       aegisAction: {
         [action.refUuid]: {
           refUuid: action.refUuid,
+          name: action.name,
+          descriptionTask: action.descriptionTask,
+          duration: action.duration,
+          actionDefinition: action.actionDefinition,
+          stmAction: action.stmAction,
           actors: ["EV1", "EV2"],
           updatedAt: Date.now(),
         },

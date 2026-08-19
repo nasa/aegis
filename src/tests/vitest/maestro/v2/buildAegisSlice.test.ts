@@ -375,6 +375,36 @@ describe("buildAegisSliceForMaestro", () => {
       refUuid: ingressStation.refUuid,
     });
   });
+
+  it("passes the action-definition catalog, labels and conjunctions through", async () => {
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+
+    const actionDefinitions: ActionDefinitions = {
+      verbs: { "verb-1": { name: "Collect", abbr: "COL" } },
+      nouns: { "noun-1": { name: "Regolith", abbr: "REG" } },
+      adjectives: { "adj-1": { name: "Shadowed", abbr: "SHD" } },
+    };
+    const actionDefinitionLabels: Mission["actionDefinitionLabels"] = {
+      verb: { singular: "Task", plural: "Tasks" },
+      noun: { singular: "Focus", plural: "Foci" },
+      adjective: { singular: "Trait", plural: "Traits" },
+    };
+    const actionDefinitionConjunctions: Mission["actionDefinitionConjunctions"] = {
+      verbToNoun: "of",
+      nounToAdjective: "in",
+    };
+
+    const mockCoreData = buildMockCoreData({ evas: [evaSubscribed] });
+    mockCoreData.actionDefinitions = actionDefinitions;
+    mockCoreData.actionDefinitionLabels = actionDefinitionLabels;
+    mockCoreData.actionDefinitionConjunctions = actionDefinitionConjunctions;
+    mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
+
+    const mission = (await buildAegisSliceForMaestro(MISSION_ID)).aegisMissions[MISSION_ID];
+    expect(mission.actionDefinitions).toEqual(actionDefinitions);
+    expect(mission.actionDefinitionLabels).toEqual(actionDefinitionLabels);
+    expect(mission.actionDefinitionConjunctions).toEqual(actionDefinitionConjunctions);
+  });
 });
 
 describe("buildAegisSliceForMaestro — docHandle path", () => {
