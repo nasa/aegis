@@ -17,7 +17,8 @@ import {
   removeEvaFromSubscriptions,
 } from "server/maestro/v2/sockets-maestro-emitters";
 import { opUpdateMdau } from "server/maestro/v2/operations/op-mdau";
-import { mdauValidator } from "utils/validateSchemaServer";
+import { mdauDataValidator } from "server/maestro/v2/mdauValidator";
+import { mdauValidator as mdauSchemaValidator } from "utils/validateSchemaServer";
 import { emssTokenIsValid } from "utils/permissions";
 import { buildAegisSliceForMaestro } from "server/maestro/v2/buildAegisSlice";
 import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
@@ -211,12 +212,12 @@ export const setupMaestroNamespace = (
           // Validate the incoming MDAU payload against the generated schema.
           // Reject the whole payload if it fails so we never write malformed
           // data into the Automerge doc.
-          if (!mdauValidator(mdau)) {
-            const validationError = JSON.stringify(mdauValidator.errors);
+          if (!mdauSchemaValidator(mdau)) {
+            const validationError = JSON.stringify(mdauSchemaValidator.errors);
             serverLogger.error(
               {
                 logId: "socket-maestro-v2",
-                logValue: `sendMDAU - invalid MDAU payload for mission ${missionId}`,
+                logValue: `sendMDAU - invalid schema on MDAU payload for mission ${missionId}`,
               },
               new Error(validationError)
             );
@@ -237,6 +238,24 @@ export const setupMaestroNamespace = (
             callback?.({
               status: "error",
               message: `No doc handle available for mission ${missionId}`,
+            });
+            return;
+          }
+
+          // Validate the payload's contents. Reject the whole payload on failure
+          const dataErrors = mdauDataValidator(docHandle.doc(), mdau);
+          if (dataErrors.length > 0) {
+            const validationError = JSON.stringify(dataErrors);
+            serverLogger.error(
+              {
+                logId: "socket-maestro-v2",
+                logValue: `sendMDAU - invalid data on MDAU payload for mission ${missionId}`,
+              },
+              new Error(validationError)
+            );
+            callback?.({
+              status: "error",
+              message: `Invalid MDAU payload: ${validationError}`,
             });
             return;
           }

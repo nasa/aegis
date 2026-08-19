@@ -41,6 +41,9 @@ export const setMaestroSnapshot = (missionId: number, mission: Mission): void =>
       actionSystemVersion: mission.actionSystemVersion,
       createdAt: mission.createdAt,
       updatedAt: mission.updatedAt,
+      actionDefinitions: mission.actionDefinitions,
+      actionDefinitionLabels: mission.actionDefinitionLabels,
+      actionDefinitionConjunctions: mission.actionDefinitionConjunctions,
     },
   };
   maestroDataSnapshots.set(missionId, snapshot);
@@ -67,6 +70,12 @@ const MAESTRO_RELEVANT_MISSION_FIELDS = [
   "actionSystemVersion",
   "createdAt",
   "updatedAt",
+  // Object-valued fields. Automerge keeps unchanged sub-objects referentially
+  // stable, so the `!==` comparison in computeMaestroDiff detects nested edits
+  // (e.g. renaming a single verb) without a deep-equality check.
+  "actionDefinitions",
+  "actionDefinitionLabels",
+  "actionDefinitionConjunctions",
 ] as const satisfies readonly (keyof AegisSlice.AegisMission)[];
 type MaestroRelevantMissionField = (typeof MAESTRO_RELEVANT_MISSION_FIELDS)[number];
 
