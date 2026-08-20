@@ -7,11 +7,10 @@ import { Tooltip } from "react-tooltip";
 import { isLoggedIn } from "http-client/login";
 import { useNavigate } from "react-router";
 import Header from "components/interface/header";
-import { LeftControlPanel, NavGutter } from "components/interface/side-controls";
-import { RightControlPanel } from "components/interface/side-controls";
-import { BottomControlPanel } from "components/interface/side-controls";
+import { NavGutter } from "components/interface/side-controls";
 import SocketClient from "components/page/socketClient";
-import { AegisMapEditor } from "components/interface/map/AegisMapEditor";
+import { MissionDockviewLayout } from "components/interface/dockview/MissionDockviewLayout";
+import { MapMenuProvider } from "components/interface/map/MapMenuProvider";
 import { setAllSliceStores } from "store/crossActions";
 import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
@@ -38,9 +37,6 @@ const Main: React.FunctionComponent = () => {
     (state) => state.interface.sectionSelectedLabel,
     refEqual
   );
-  const hasMissionLayers = useAppSelector((state) => {
-    return state.mission.layers?.length > 0;
-  }, refEqual);
   const isVersionChecked = useAppSelector(
     // if this value exists then it has already been checked via sockets
     (state) => !!state.connection.socketStatus.lastStatusFromServer.serverVersion,
@@ -259,19 +255,9 @@ const Main: React.FunctionComponent = () => {
                   </div>
                 </div>
               ) : (
-                <div className={styles.body}>
-                  <div className={styles.bodyLeft}>
-                    <div className={styles.leftUpper}>
-                      <div className={styles.leftControl}>
-                        <NavGutter selectedNavItem={interfaceStateLabel} />
-                        <LeftControlPanel />
-                      </div>
-                      <div className={styles.mapBody}>{hasMissionLayers && <AegisMapEditor />}</div>
-                    </div>
-                    <BottomControlPanel />
-                  </div>
-                  <RightControlPanel />
-                </div>
+                <MapMenuProvider>
+                  <MissionDockviewLayout />
+                </MapMenuProvider>
               )}
             </div>
           )}

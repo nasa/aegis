@@ -6,8 +6,6 @@
  * hover/selection highlights, timeline astronaut, and UI overlays.
  */
 import { AegisMap } from "./AegisMap";
-import { FeatureSourcesProvider } from "./FeatureSourcesProvider";
-import { MapMenuProvider } from "./MapMenuProvider";
 import { TileLayers } from "./behaviors/TileLayers";
 import { LanderMarker } from "./behaviors/LanderMarker";
 import { Circles } from "./behaviors/Circles";
@@ -32,28 +30,24 @@ interface AegisMapEditorProps {
 
 export function AegisMapEditor({ className }: AegisMapEditorProps): JSX.Element {
   return (
-    <MapMenuProvider>
-      <FeatureSourcesProvider>
-        <AegisMap mode="editor" className={className}>
-          <TileLayers />
-          <Grid />
-          <Circles />
-          <TraverseLines />
-          <WalkbackLines />
-          <MeasurementLines />
-          <StationMarkers />
-          <PoiMarkers />
-          <ActionMarkers />
-          <LanderMarker />
-          <MarkerLabels />
-          <PosEntries />
-          <InteractionManager />
-          <HoverHighlight />
-          <SelectionHighlight />
-          <TimelineAstronaut />
-          <MapOverlays />
-        </AegisMap>
-      </FeatureSourcesProvider>
-    </MapMenuProvider>
+    <AegisMap mode="editor" className={className}>
+      <TileLayers />
+      <Grid />
+      <Circles />
+      <TraverseLines />
+      <WalkbackLines />
+      <MeasurementLines />
+      <StationMarkers />
+      <PoiMarkers />
+      <ActionMarkers />
+      <LanderMarker />
+      <MarkerLabels />
+      <PosEntries />
+      <InteractionManager />
+      <HoverHighlight />
+      <SelectionHighlight />
+      <TimelineAstronaut />
+      <MapOverlays />
+    </AegisMap>
   );
 }

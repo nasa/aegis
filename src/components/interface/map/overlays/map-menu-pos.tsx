@@ -1,5 +1,5 @@
-import type { FunctionComponent } from "react";
-import { useEffect, useState } from "react";
+import type { CSSProperties, FunctionComponent, PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import posMenuStyles from "./map-menu-pos.module.css";
 import {
   faBan,
@@ -82,6 +82,97 @@ export const MapPositionMenu: FunctionComponent = () => {
 
   const [showPosList, setShowPosList] = useState(false);
   const [showMenu, setShowMenu] = useState(true);
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  const [openSize, setOpenSize] = useState<{ width: number; height: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef<{
+    pointerId: number;
+    pointerX: number;
+    pointerY: number;
+    left: number;
+    top: number;
+  } | null>(null);
+  const toggleRightEdgeRef = useRef<number | null>(null);
+
+  const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("[data-rex-menu-close]")) return;
+    const container = containerRef.current;
+    const offsetParent = container?.offsetParent as HTMLElement | null;
+    if (!container || !offsetParent) return;
+    const containerBox = container.getBoundingClientRect();
+    const parentBox = offsetParent.getBoundingClientRect();
+    dragStartRef.current = {
+      pointerId: event.pointerId,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      left: containerBox.left - parentBox.left,
+      top: containerBox.top - parentBox.top,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+
+  const drag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = dragStartRef.current;
+    const container = containerRef.current;
+    const offsetParent = container?.offsetParent as HTMLElement | null;
+    if (!start || !container || !offsetParent || start.pointerId !== event.pointerId) return;
+    setPosition({
+      left: Math.max(
+        0,
+        Math.min(
+          start.left + event.clientX - start.pointerX,
+          offsetParent.clientWidth - container.offsetWidth
+        )
+      ),
+      top: Math.max(
+        0,
+        Math.min(
+          start.top + event.clientY - start.pointerY,
+          offsetParent.clientHeight - container.offsetHeight
+        )
+      ),
+    });
+  };
+
+  const stopDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragStartRef.current?.pointerId !== event.pointerId) return;
+    dragStartRef.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
+  const toggleMenu = () => {
+    const container = containerRef.current;
+    const offsetParent = container?.offsetParent as HTMLElement | null;
+    if (container && offsetParent) {
+      const containerBox = container.getBoundingClientRect();
+      const parentBox = offsetParent.getBoundingClientRect();
+      toggleRightEdgeRef.current = containerBox.right - parentBox.left;
+      if (showMenu) {
+        setOpenSize({ width: container.clientWidth, height: container.clientHeight });
+      }
+      setPosition({
+        left: containerBox.left - parentBox.left,
+        top: containerBox.top - parentBox.top,
+      });
+    }
+    setShowMenu((current) => !current);
+  };
+
+  useLayoutEffect(() => {
+    const rightEdge = toggleRightEdgeRef.current;
+    const container = containerRef.current;
+    if (rightEdge === null || !container) return;
+    setPosition((current) =>
+      current
+        ? {
+            left: Math.max(0, rightEdge - container.offsetWidth),
+            top: current.top,
+          }
+        : current
+    );
+    toggleRightEdgeRef.current = null;
+  }, [showMenu]);
 
   // reset the pos entry in edit when pos source or pos type list changes
   // this covers when the rex selection changes too
@@ -130,9 +221,27 @@ export const MapPositionMenu: FunctionComponent = () => {
   const posMapClass = selectedRexIsExecuting
     ? posMenuStyles.mapPosDisplayExecuting
     : posMenuStyles.mapPosDisplay;
+  const containerStyle: CSSProperties = position
+    ? { left: position.left, top: position.top, right: "auto" }
+    : {};
+
+  if (!showMenu) {
+    containerStyle.width = "auto";
+    containerStyle.height = "auto";
+  } else if (openSize) {
+    containerStyle.width = openSize.width;
+    containerStyle.height = openSize.height;
+  }
 
   return (
-    <div className={posMenuStyles.mapPosDisplayContainer}>
+    <div
+      ref={containerRef}
+      className={`${posMenuStyles.mapPosDisplayContainer} ${
+        showMenu ? posMenuStyles.mapPosDisplayContainerOpen : ""
+      }`}
+      style={containerStyle}
+      data-testid="rex-map-menu"
+    >
       <div
         className={`${posMapClass} ${showMenu ? posMenuStyles.menuOpen : posMenuStyles.menuClosed}`}
       >
@@ -140,7 +249,7 @@ export const MapPositionMenu: FunctionComponent = () => {
           <div
             className={posMenuStyles.menuIcon}
             onClick={(e) => {
-              setShowMenu(!showMenu);
+              toggleMenu();
               e.stopPropagation();
             }}
             data-tooltip-id="aegis-tooltip"
@@ -157,16 +266,24 @@ export const MapPositionMenu: FunctionComponent = () => {
         )}
 
         <div className={`${!showMenu && posMenuStyles.hideMenu} ${posMenuStyles.menuContainer}`}>
-          <div className={posMenuStyles.titleContainer}>
+          <div
+            className={posMenuStyles.titleContainer}
+            onPointerDown={startDrag}
+            onPointerMove={drag}
+            onPointerUp={stopDrag}
+            onPointerCancel={stopDrag}
+            data-testid="rex-map-menu-drag-handle"
+          >
             {evaAndRexName}
             <div
               className={posMenuStyles.menuIconOpen}
               onClick={(e) => {
-                setShowMenu(!showMenu);
+                toggleMenu();
                 e.stopPropagation();
               }}
               data-tooltip-id="aegis-tooltip"
               data-tooltip-content="Map View Settings"
+              data-rex-menu-close
             >
               <FontAwesomeIcon
                 icon={showMenu ? faXmark : faCrosshairs}

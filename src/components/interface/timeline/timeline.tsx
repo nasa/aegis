@@ -127,7 +127,6 @@ const NavTimeline: FunctionComponent = () => {
     refEqual
   );
   const showElevation = useAppSelector((state) => state.interface.timelineShowElevation, refEqual);
-  const rightPanelIsOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
 
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
   const paperDataRef: MutableRefObject<PaperData> = useRef(null);
@@ -279,7 +278,6 @@ const NavTimeline: FunctionComponent = () => {
     showElevation,
     graphSequenceItems,
     selectedPosEntryUuid,
-    rightPanelIsOpen,
     runningRexPetTime,
     processEvaDataFromStoreCallback, //this will trigger if the storeRef changes
     processPosEntriesFromStore, //this will trigger if the posRef changes
@@ -393,7 +391,40 @@ const NavTimeline: FunctionComponent = () => {
     return () => paper.project.remove();
     // do not include initHoverValues in the dependencies array
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rightPanelIsOpen]);
+  }, []);
+
+  useLayoutEffect(() => {
+    const canvasElement = canvas.current;
+    const container = canvasElement?.parentElement;
+    if (!canvasElement || !container) return;
+
+    let animationFrame: number | null = null;
+    const resizeCanvas = () => {
+      if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => {
+        animationFrame = null;
+        const width = canvasElement.clientWidth;
+        const height = canvasElement.clientHeight;
+        if (
+          width <= 0 ||
+          height <= 0 ||
+          (paper.view.size.width === width && paper.view.size.height === height)
+        ) {
+          return;
+        }
+        paper.view.viewSize = new paper.Size(width, height);
+      });
+    };
+
+    const resizeObserver = new ResizeObserver(resizeCanvas);
+    resizeObserver.observe(container);
+    resizeCanvas();
+
+    return () => {
+      resizeObserver.disconnect();
+      if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+    };
+  }, []);
 
   // populated the flattenedGraphData ref walkback data based on the selected station
   useEffect(() => {
