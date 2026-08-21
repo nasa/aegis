@@ -21,6 +21,7 @@ import pg from "pg";
 import { PostgresStorageAdapter } from "server/automerge/automerge-repo-storage-postgres";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
+import { closeRasterCache } from "server/raster/rasterCache";
 
 // this is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
 initializeBase64Wasm(automergeWasmBase64);
@@ -226,6 +227,17 @@ initializeBase64Wasm(automergeWasmBase64);
         logId: "server",
         logValue: "HTTP server already closed (by Socket.IO)",
       });
+    }
+
+    try {
+      await closeRasterCache();
+      serverLogger.debug({ logId: "server", logValue: "Raster cache closed" });
+    } catch (err) {
+      serverLogger.error(
+        { logId: "server", logValue: "Error closing raster cache" },
+        err instanceof Error ? err : new Error(String(err))
+      );
+      hasErrors = true;
     }
 
     // Close database connections

@@ -1,4 +1,5 @@
 import { geographicToPixel } from "./coordTransform";
+import { getRasterProjections } from "./projection";
 import { openRaster } from "./rasterReader";
 import type {
   PixelPoint,
@@ -73,6 +74,13 @@ export const sampleRasterPoints = async (
   }
 
   const { image, metadata } = await openRaster(descriptor.absolutePath);
+  const projections =
+    descriptor.projection && descriptor.geographicProjection
+      ? {
+          projection: descriptor.projection,
+          geographicProjection: descriptor.geographicProjection,
+        }
+      : getRasterProjections(metadata);
   const sampleIndex = descriptor.sampleIndex ?? 0;
   if (
     !Number.isInteger(sampleIndex) ||
@@ -85,10 +93,10 @@ export const sampleRasterPoints = async (
   const pixels = points.map((point) =>
     geographicToPixel(
       point,
-      descriptor.projection,
+      projections.projection,
       metadata.origin,
       metadata.resolution,
-      descriptor.geographicProjection
+      projections.geographicProjection
     )
   );
   const samples: RasterSample[] = pixels.map((pixel) =>
