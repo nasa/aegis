@@ -13,6 +13,17 @@ Express API** that reads the DEM GeoTIFF directly off the shared static volume. 
 support ordinary GeoTIFFs, including both tiled and striped files. Cloud Optimized GeoTIFF (COG)
 layout is an optional performance and interoperability improvement, not an input requirement.
 
+The same scope also updates the **Mission** section of the admin UI as one cohesive raster-
+configuration batch:
+
+- replace the free-text DEM path and manually entered DEM resolution with a validated dropdown
+  of GeoTIFFs found directly in that mission's `Data/` folder;
+- derive and display DEM resolution from the selected file's georeferencing instead of asking an
+  administrator to type it; and
+- add a second validated dropdown for the absolute-slope analytical GeoTIFF now emitted as
+  `Data/slope_degrees_uint16_cog.tif`, including validation of its adjacent
+  `Data/slope_degrees_uint16_cog.json` encoding metadata.
+
 The implementation is split into a reusable **analytical raster sampler** and a thin elevation
 profile wrapper. Elevation is the first consumer, but the same sampler can later read numeric
 values such as slope, aspect, or terrain classes from other GeoTIFF bands without duplicating
@@ -196,10 +207,12 @@ remain correct but may decode more pixels per requested point.
 - Use the authorized query mission ID as the only mission ID. The current route authorizes
   `req.query.missionId` but constructs the file path from `req.body.missionId`; do not preserve
   that mismatch. Prefer removing `missionId` and `demFilepath` from the request body and resolving
-  the configured raster from trusted server-side mission metadata.
-- Until server-side mission lookup is introduced, require body/query mission IDs to match,
-  resolve the candidate path with `path.resolve`, and verify it remains inside that mission's
-  directory. Never pass a client-supplied relative path directly to the filesystem.
+  `demFilePath` from trusted server-side mission metadata. The admin work in §4 introduces this
+  lookup and validation as part of the migration; there should be no interim client-supplied path
+  mode in the completed implementation.
+- Resolve the configured path with `path.resolve` and verify it remains inside that mission's
+  `Data/` directory. Never pass a client-supplied or persisted relative path directly to the
+  filesystem without this containment check.
 - Validate that coordinates, distances, and resolution are finite; resolution is positive; array
   lengths match; the selected sample exists; and total requested sample count is below a hard
   limit. These checks protect the API event loop and memory from malformed or excessive work.
@@ -234,7 +247,7 @@ remain correct but may decode more pixels per requested point.
 
 ---
 
-## 3.7 Threading / Event-Loop Blocking Analysis
+### 3.7 Threading / Event-Loop Blocking Analysis
 
 **Question:** Should the elevation work run in a subprocess/worker so it doesn't block the
 Node main thread?
@@ -300,7 +313,7 @@ sampled**:
 
 ### What to measure before deciding
 
-Add lightweight instrumentation during rollout (behind the same switch from §8):
+Add lightweight instrumentation during rollout (behind the same switch from §9):
 
 - Per-request wall time and **synchronous CPU time** for elevation sampling (e.g. wrap the
   decode/transform loop with `performance.now()` and log via `serverLogger`).
@@ -313,9 +326,148 @@ concurrency, **Option A alone is sufficient** and no subprocess/worker is warran
 
 ---
 
-## 4. GeoTIFF Compatibility + Analytical Raster Contract
+## 4. Mission Admin: Analytical Raster Configuration
 
-### 4.1 COG is optional
+Treat the DEM selector and the new absolute-slope selector as **one implementation batch**. They
+share the same file discovery, server-side inspection, validation, UI states, and tests; do not
+land one as another free-text field while postponing the common infrastructure.
+
+### 4.1 Mission fields and migration behavior
+
+- Keep `demFilePath`, but change its editor from `InLineEditInput` to a dropdown populated from
+  GeoTIFFs directly inside `missionFiles/<missionId>/Data/`. Persist paths in the existing
+  mission-relative form (`Data/<filename>`), never an absolute filesystem path.
+- Add `absoluteSlopeFilePath: string` to `Mission`, initialized to `""` for old and new missions.
+  This field identifies the analytical raster, not the separately colorized slope display layer.
+  Add it to `MissionFields` so `POST /api/v1/missionAutomerge/fields` and the conversion pipeline's
+  registration flow can configure it.
+- Remove the editable `demResolution` control from the admin. During this migration, retain
+  `demResolution` in the mission document as a **derived compatibility field**, because existing
+  timeline, preference, and elevation code reads it. Whenever a DEM is selected, set it from the
+  inspected native pixel size in the same Automerge change as `demFilePath`; display it as
+  read-only metadata. A later cleanup may remove the persisted field after all consumers read
+  validated raster metadata directly.
+- Existing missions require no document migration: blank slope means “not configured,” and the
+  first inspection of their current DEM path can backfill/correct `demResolution`. If a legacy
+  `demFilePath` no longer exists or fails validation, preserve the stored value long enough to
+  show an explicit invalid-current-selection state rather than silently clearing it.
+- The pipeline `register` step should set `absoluteSlopeFilePath` when
+  `Data/slope_degrees_uint16_cog.tif` was generated. It should continue setting the DEM path, but
+  derive DEM resolution from the produced GeoTIFF (or use the same shared inspection contract)
+  rather than treating `--dem-resolution` as independently authoritative mission metadata.
+
+### 4.2 Discovery and inspection API
+
+Do not have the browser infer analytical validity from filename extensions or parse large TIFFs.
+Add an admin-only server endpoint that lists and inspects candidate files under the authorized
+mission's `Data/` directory. It may extend the existing file API or be a dedicated raster-config
+route, but it must return the normal `WrappedResponse<T>` shape rather than copy the current file
+route's inconsistent response behavior.
+
+Discovery rules:
+
+- list only immediate, regular files ending in `.tif` or `.tiff`, case-insensitively;
+- return stable, case-insensitive filename ordering and mission-relative `Data/<filename>` paths;
+- resolve real paths and enforce containment under the authorized mission `Data/` directory;
+- do not accept arbitrary directories or absolute paths from the client; and
+- inspect on demand or cache by absolute path + `mtimeMs`, reusing the raster metadata/cache layer
+  from §3 rather than opening each large file repeatedly.
+
+Return enough normalized metadata for selection and display: filename/path, dimensions, band
+count, sample type/bit depth, native X/Y pixel size, units, CRS identity/definition, bounds,
+NoData, scale/offset, block layout, and validation errors/warnings. File size and modification
+time are useful diagnostics but are not validity criteria.
+
+### 4.3 Validation profiles
+
+Selection-time validation should be a **lightweight compatibility check**, not a second GIS
+quality-assurance pipeline. The conversion pipeline owns comprehensive validation of generated
+products. The admin only needs enough inspection to prevent selecting a file that the application
+clearly cannot use and to derive the metadata it needs.
+
+**Common requirements**
+
+- the file has a `.tif` or `.tiff` extension and geotiff.js can open its metadata;
+- it has at least one numeric band that the sampler can read;
+- dimensions, georeferencing, pixel size, and CRS metadata required by the sampler are present;
+- the file uses a compression and sample type supported by the selected geotiff.js version; and
+- the configured path remains contained within the mission's `Data/` directory.
+
+Do not scan the raster, sample arbitrary pixels, verify scientific accuracy, or perform expensive
+whole-file checks when the administrator opens the page or changes a selection. Any decode error
+encountered during real sampling must still produce a clear runtime error. Deeper checks belong in
+the pipeline and its contract tests.
+
+**DEM profile**
+
+- derive `demResolution` from the GeoTIFF's native pixel size and display it read-only. Provide an
+  explicit refresh/reinspect action that recomputes and persists this value for the currently
+  selected DEM, even when the dropdown selection has not changed;
+- record the band, scale/offset, and NoData metadata that runtime sampling will use; and
+- reject only metadata shapes the implementation cannot interpret, such as missing
+  georeferencing or a resolution that cannot be expressed in metres per pixel.
+
+**Absolute-slope profile**
+
+- require an adjacent JSON file with the same basename (`<name>.json`);
+- validate only the JSON fields required to decode samples: units, data type, scale, offset, and
+  NoData;
+- reject obvious metadata conflicts between the JSON and TIFF; and
+- compare the slope raster's CRS and grid metadata with the selected DEM and flag a clear
+  incompatibility. This is a metadata comparison, not a raster-content analysis.
+
+The current pipeline output is a single-band UInt16 COG with `scale = 0.01`, `offset = 0`,
+`noData = 65535`, and units of degrees. The validation contract should be metadata-driven rather
+than hard-code that filename or those exact encoding values, so another valid mission product can
+be selected.
+
+### 4.4 Mission admin UX
+
+In `src/pages/admin/mission.tsx`, replace the current DEM controls with an **Analytical Rasters**
+section (or retain the DEM heading with both controls grouped beneath it):
+
+1. **Elevation / DEM GeoTIFF** dropdown — all discovered `.tif`/`.tiff` files, with invalid files
+   disabled or clearly marked and their reason available.
+2. **Absolute slope GeoTIFF** dropdown — the same candidates evaluated with the slope profile;
+   include a “Not configured” option.
+3. Read-only metadata for each selection: resolution, dimensions, CRS, data type, NoData, and for
+   slope the decoded units/scale/offset and companion JSON filename.
+4. Loading, empty-folder, inspection-error, invalid-current-selection, and file-disappeared states.
+5. A refresh/reinspect action that rescans the `Data/` folder and re-inspects the currently
+   selected files. For the DEM, it must recompute and persist `demResolution` even if the same
+   file remains selected. This supports existing missions and missions with only one TIFF, where
+   changing the dropdown cannot be used to trigger recalculation.
+
+Selecting a candidate must wait for successful server validation, then persist the path and any
+derived compatibility metadata in one Automerge change. Do not briefly save an unvalidated path.
+If changing the DEM makes the configured slope incompatible, require the administrator to choose
+a compatible slope (or explicitly clear it) rather than leave a silently mismatched pair.
+
+Rename/delete behavior also needs a defined failure mode: the existing Mission Data Files manager
+can rename or remove a selected TIFF/JSON. At minimum the raster section must revalidate after a
+file-list refresh and visibly report a broken selection; preferably rename/delete warns when the
+file is referenced, and deleting a selected file requires confirmation. Runtime sampling must
+still reject missing or newly invalid files server-side.
+
+### 4.5 Admin and contract tests
+
+- Route tests: authorization, traversal/symlink containment, case-insensitive extension filtering,
+  deterministic ordering, unreadable/unsupported TIFF metadata, and cache invalidation.
+- Lightweight validation tests: usable DEM metadata, valid scaled slope + JSON, missing/malformed
+  required JSON fields, and clearly incompatible CRS/grid metadata.
+- Browser/component tests: dropdown population, disabled invalid choices with reasons, successful
+  atomic selection, derived read-only DEM resolution, refreshing and persisting resolution
+  without changing the selected DEM, clearing slope, rescanning files, and stale selected files.
+- Pipeline contract tests own the deeper checks: generated TIFF/JSON metadata and encoding are
+  correct, the complete raster is readable, expected value ranges/NoData are valid, and generated
+  DEM/slope grids align. Also verify those products pass the lightweight server check and that
+  registration writes both analytical raster paths plus the derived DEM resolution.
+
+---
+
+## 5. GeoTIFF Compatibility + Analytical Raster Contract
+
+### 5.1 COG is optional
 
 - COG and non-COG GeoTIFFs use the same sampling path.
 - Tiled GeoTIFFs are generally more efficient for sparse point access than striped files.
@@ -328,7 +480,7 @@ concurrency, **Option A alone is sufficient** and no subprocess/worker is warran
   compression codec is a format-support error, not evidence that the file must be converted to
   COG.
 
-### 4.2 Future analytical rasters
+### 5.2 Future analytical rasters
 
 The reusable sampler accepts a trusted internal descriptor containing at least:
 
@@ -342,15 +494,16 @@ Do not expose arbitrary file paths through a generic public endpoint. Add domain
 server-side operations such as elevation-profile or slope-at-points that select a registered
 raster descriptor and then call the shared sampler.
 
-The current slope pipeline colorizes Float32 slope degrees into RGBA display products and deletes
-the intermediate numeric raster. Reading absolute slope therefore requires a separate analytical
-output. Retain or emit a compressed, preferably tiled Float32 GeoTIFF containing slope degrees
-alongside the colorized display layer. It may be a COG for consistency or remote access, but the
-Node sampler does not require COG layout.
+The pipeline now emits `Data/slope_degrees_uint16_cog.tif` plus
+`Data/slope_degrees_uint16_cog.json` alongside the colorized display product. The TIFF stores
+scaled UInt16 absolute slope values; the JSON defines the exact scale, offset, NoData, units, and
+color ramp. The generic sampler must apply this metadata rather than assume raw samples are
+already degrees. A COG is useful for consistency and remote access, but the Node sampler does not
+require COG layout.
 
 ---
 
-## 5. Docker / Infrastructure Changes
+## 6. Docker / Infrastructure Changes
 
 1. **`docker-compose.yml`** — remove the `gdal` service block. The API service (`apiv1`)
    **already** mounts the static directory (`${STATIC_DIR}:/${STATIC_DIR}`), so the DEM files
@@ -375,7 +528,7 @@ Node sampler does not require COG layout.
 
 ---
 
-## 6. Files to Add / Change / Delete (summary)
+## 7. Files to Add / Change / Delete (summary)
 
 ### Add
 
@@ -387,11 +540,19 @@ Node sampler does not require COG layout.
 - `src/server/elevation/readElevationProfile.ts`
 - `src/server/elevation/geoInterpolation.ts`
 - `src/server/elevation/constants.ts`
-- Unit tests under `src/tests/vitest/server/raster/` and `server/elevation/` (see §7).
+- A server route/module for authorized analytical-raster discovery and validation.
+- Unit tests under `src/tests/vitest/server/raster/` and `server/elevation/` (see §8).
 
 ### Change
 
 - `src/server/express/routes/elevation.ts` — call native module instead of GDAL fetch.
+- `src/pages/admin/mission.tsx` — land the DEM dropdown, derived metadata display, and absolute-
+  slope dropdown together.
+- `src/typings/mission.d.ts`, `src/store/storeUtils/mission.ts`, and
+  `src/typings/network/clientTypes.d.ts` — add `absoluteSlopeFilePath`; retain `demResolution` as
+  derived compatibility metadata rather than an editable field.
+- `GIS_data_conversion_pipeline/esri-to-aegis-lunar-southpole/register.py` — register the generated
+  absolute-slope raster and derive DEM resolution from the generated TIFF.
 - `docker-compose.yml`, `docker-compose.services.yml`, `docker-compose.services.public.yml`.
 - `package.json` — add a directly tested `"geotiff"` runtime dependency.
 - GIS pipeline — retain/emit analytical numeric GeoTIFF products needed by future samplers, such
@@ -416,7 +577,7 @@ Node sampler does not require COG layout.
 
 ---
 
-## 7. Testing Strategy
+## 8. Testing Strategy
 
 1. **Golden-value parity tests.** Before removing the Python service, capture its output for a
    representative set of paths against a known mission DEM (single point, short traverse, long
@@ -437,30 +598,34 @@ Node sampler does not require COG layout.
 4. **Fixture rasters** — commit tiny deterministic tiled and striped GeoTIFFs with the lunar CRS,
    Float32 values, NoData, multiple bands/samples, and optionally an overview. At least one fixture
    should be a non-COG GeoTIFF to make compatibility a tested contract.
-5. Run the full gate per `CLAUDE.md`: format changed files with Prettier, then `npm run
+5. **Admin/configuration tests** — include the discovery, validation, selection, derived-
+   resolution, slope-companion, and pipeline contract coverage from §4.5.
+6. Run the full gate per `CLAUDE.md`: format changed files with Prettier, then `npm run
 test:all`.
 
 ---
 
-## 8. Rollout / Cutover
+## 9. Rollout / Cutover
 
-1. Land the Node implementation **behind the existing route** but keep the GDAL container
+1. Land the shared raster inspector plus the DEM and absolute-slope admin selectors as one batch.
+   Validate and backfill existing configured DEMs before changing the runtime engine.
+2. Land the Node implementation **behind the existing route** but keep the GDAL container
    available (do not delete yet).
-2. Add a temporary env/config switch (e.g. `ELEVATION_ENGINE=node|gdal`) so we can flip back
+3. Add a temporary env/config switch (e.g. `ELEVATION_ENGINE=node|gdal`) so we can flip back
    instantly if a parity issue appears in a real environment.
-3. In preview/staging, optionally shadow a bounded sample of requests: return GDAL results while
+4. In preview/staging, optionally shadow a bounded sample of requests: return GDAL results while
    also running Node and logging pixel/value differences. This catches real-data mismatches more
    reliably than exercising each engine separately.
-4. Verify tiled, striped, COG, and non-COG GeoTIFFs used by existing missions. Include single
+5. Verify tiled, striped, COG, and non-COG GeoTIFFs used by existing missions. Include single
    points, traverses, NoData edges, station elevations, and the measurement tool.
-5. Flip default to `node`; monitor duration, block/sample counts, event-loop delay, decoder
+6. Flip default to `node`; monitor duration, block/sample counts, event-loop delay, decoder
    failures, and parity logs.
-6. After a bake-in period, remove the GDAL container, the Python service, the switch, and the
-   unused types (§6 "Delete").
+7. After a bake-in period, remove the GDAL container, the Python service, the switch, and the
+   unused types (§7 "Delete").
 
 ---
 
-## 9. Risks & Open Questions
+## 10. Risks & Open Questions
 
 - **CRS fidelity.** The raster projection must be reproduced exactly. The current GDAL path uses
   the raster's embedded CRS; validate any mission/resource proj4 definition against it. Confirm
@@ -479,15 +644,24 @@ test:all`.
   Port the complete calculation consistently; the hard-coded radius cancels from its
   distance/radius ratio, while mixing radii would alter results.
 - **Static volume path.** Verify the API container actually has the mission files mounted and at
-  what path, then align the route's base path constant accordingly (§5.1).
+  what path, then align the route's base path constant accordingly (§6, item 1).
 - **Untrusted workload/path input.** Resolve registered resources server-side, enforce path
   containment, and cap points/window area before raster work begins.
+- **Configuration drift.** Selected files can be renamed, deleted, or replaced after validation.
+  Cache by path + mtime, revalidate replacements, expose broken references in admin, and fail
+  runtime requests clearly rather than continuing with stale metadata.
+- **Resolution semantics.** `demResolution` currently drives traverse densification. Define it as
+  native square-pixel ground resolution in metres; reject or explicitly support rasters whose CRS
+  units, rotation, or unequal X/Y pixel sizes cannot produce that single value.
+- **Slope metadata ownership.** Treat the adjacent JSON as part of the selected analytical-slope
+  resource. Define whether TIFF tags or JSON win before accepting files that specify both; the
+  recommended initial behavior is to require agreement and reject conflicts.
 - **Build compatibility.** Test geotiff.js filesystem reads and any worker `Pool` from the built
   esbuild artifact, not only from Vitest/source execution.
 
 ---
 
-## 10. Estimated Effort
+## 11. Estimated Effort
 
 | Task                                                   | Rough size |
 | ------------------------------------------------------ | ---------- |
@@ -496,7 +670,9 @@ test:all`.
 | Route rewrite + wrapping                               | S          |
 | Event-loop/CPU instrumentation (§3.7) + optional pool  | S          |
 | Request validation + resource/path containment         | S          |
-| Analytical slope GeoTIFF pipeline output               | S–M        |
+| Shared raster discovery + validation API               | M          |
+| DEM + absolute-slope admin selector batch              | M          |
+| Pipeline registration/metadata contract updates        | S          |
 | Docker/compose/env cleanup                             | S          |
 | Golden parity + tiled/striped fixture tests            | M          |
 | Cutover switch + docs update                           | S          |
