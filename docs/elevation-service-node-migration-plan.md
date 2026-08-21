@@ -1,12 +1,9 @@
-# Plan: Replace the GDAL Elevation Container with a Native Node Implementation
+# Completed Migration: Native Node Elevation Sampling
 
 ## 1. Goal
 
-Today, AEGIS gets elevation data from an **external Docker container ("gdal")** that runs a
-thin [`waitress`](https://pypi.org/project/waitress/) + Flask Python service
-(`src/server/python/elevationService.py`). The AEGIS Express API makes an HTTP call to this
-service, which uses GDAL + `great_circle_calculator` to sample a DEM GeoTIFF and returns
-per-segment elevation arrays.
+AEGIS previously got elevation data from an external GDAL/Python container. The Express API now
+reads mission DEM GeoTIFFs directly with the native Node raster modules.
 
 This plan replaces that container with a **native Node implementation inside the existing
 Express API** that reads the DEM GeoTIFF directly off the shared static volume. The reader will
@@ -19,14 +16,43 @@ service with Node inside the existing Express API. The mission's existing `demFi
 
 ### Implementation progress
 
+- Commit `8de50b43` (`Add native Node raster and elevation modules`) contains the completed first
+  implementation batch.
 - [x] Promote the native raster sampler, block reader, bounded open-handle cache, coordinate
       transform, elevation interpolation, and elevation profile wrapper into production modules.
 - [x] Add focused tests for interpolation parity, pixel truncation/coordinate validation,
       segment-boundary behavior, NoData sentinel conversion, and pre-allocation sample limits.
-- [ ] Replace the Express elevation route with the native implementation.
-- [ ] Add route, raster-fixture, cache, and end-to-end golden parity coverage.
-- [ ] Remove the GDAL/Python runtime and all associated Compose, environment, CI, and debug
+- [x] Replace the Express elevation route with the native implementation, using the authorized
+      mission document for `demFilePath` and `demResolution` and ignoring spoofable body values.
+- [x] Derive supported lunar stereographic/equirectangular proj4 definitions from embedded
+      GeoTIFF GeoKeys and enforce lexical plus real-path containment under the mission `Data/`
+      directory.
+- [x] Add route integration, CRS derivation, request validation, and path/symlink containment
+      tests.
+- [x] Add deterministic tiled/striped raster fixtures, cache tests, and end-to-end golden parity
+      coverage.
+- [x] Remove the GDAL/Python runtime and all associated Compose, environment, CI, and debug
       configuration.
+- [x] Audit all 45 current Automerge missions and every locally available configured DEM.
+
+### Compatibility audit and fixtures
+
+The migration audited all 45 current Automerge mission documents. Their persisted display
+configuration contains seven historical variants, including blank fields, lunar Mercator,
+Earth Web Mercator, and lunar south-pole stereographic strings. Runtime sampling deliberately
+does not trust those evolving display strings; it derives the sampling CRS from each DEM.
+
+Fourteen locally available configured DEMs represented seven distinct GeoKey records and three
+sampling CRS families: custom lunar equirectangular, custom lunar south-pole stereographic, and
+standard EPSG:3857. Standard EPSG rasters frequently omit redundant ellipsoid GeoKeys, so the
+derivation path resolves both `ProjectedCSTypeGeoKey` and `GeographicTypeGeoKey` before requiring
+custom ellipsoid parameters. The remaining configured DEMs were absent from this workstation and
+therefore could not be decoded locally; missing runtime files continue to fail explicitly.
+
+The test suite is hermetic. Tiny committed tiled and striped GeoTIFFs exercise block reads,
+multiple bands, NoData, and cache behavior. Small Apollo 14 and mission 50 extracts preserve
+GDAL-derived coordinates and expected values in `src/tests/vitest/fixtures/raster/`; ongoing tests
+do not require mission data, Python, GDAL, a running server, or `STATIC_DIR`.
 
 A **subsequent branch** will update the **Mission** section of the admin UI as one cohesive
 raster-configuration batch:
