@@ -13,8 +13,23 @@ Express API** that reads the DEM GeoTIFF directly off the shared static volume. 
 support ordinary GeoTIFFs, including both tiled and striped files. Cloud Optimized GeoTIFF (COG)
 layout is an optional performance and interoperability improvement, not an input requirement.
 
-The same scope also updates the **Mission** section of the admin UI as one cohesive raster-
-configuration batch:
+The native-runtime cutover in this branch is intentionally limited to replacing the Docker GDAL
+service with Node inside the existing Express API. The mission's existing `demFilePath` and
+`demResolution` fields remain the configuration contract for this branch.
+
+### Implementation progress
+
+- [x] Promote the native raster sampler, block reader, bounded open-handle cache, coordinate
+      transform, elevation interpolation, and elevation profile wrapper into production modules.
+- [x] Add focused tests for interpolation parity, pixel truncation/coordinate validation,
+      segment-boundary behavior, NoData sentinel conversion, and pre-allocation sample limits.
+- [ ] Replace the Express elevation route with the native implementation.
+- [ ] Add route, raster-fixture, cache, and end-to-end golden parity coverage.
+- [ ] Remove the GDAL/Python runtime and all associated Compose, environment, CI, and debug
+      configuration.
+
+A **subsequent branch** will update the **Mission** section of the admin UI as one cohesive
+raster-configuration batch:
 
 - replace the free-text DEM path and manually entered DEM resolution with a validated dropdown
   of GeoTIFFs found directly in that mission's `Data/` folder;
@@ -119,9 +134,9 @@ what both ordinary GeoTIFFs and COGs provide:
   be verified against the exact geotiff.js version selected for the server; unsupported legacy
   compression should fail with a clear validation error rather than imply that COG is required.
 
-Add `geotiff` as an explicit runtime dependency. The current lockfile contains geotiff.js 2.1.3
-only as a transitive OpenLayers development dependency. Select and pin the server version after a
-small Node 22 + esbuild compatibility spike instead of assuming a 3.x upgrade is harmless.
+`geotiff` 2.1.3 is now pinned as an explicit runtime dependency after the Node/esbuild prototype
+spike. Keep that version through the cutover rather than combining this migration with a major
+decoder upgrade.
 
 Supporting libraries (all already present or tiny):
 
@@ -206,10 +221,9 @@ remain correct but may decode more pixels per requested point.
   `WrappedResponse<number[][]>` response shape **unchanged** so the client contract is stable.
 - Use the authorized query mission ID as the only mission ID. The current route authorizes
   `req.query.missionId` but constructs the file path from `req.body.missionId`; do not preserve
-  that mismatch. Prefer removing `missionId` and `demFilepath` from the request body and resolving
-  `demFilePath` from trusted server-side mission metadata. The admin work in §4 introduces this
-  lookup and validation as part of the migration; there should be no interim client-supplied path
-  mode in the completed implementation.
+  that mismatch. Resolve `demFilePath` from trusted server-side mission metadata. The client may
+  continue sending the legacy body fields during this branch, but the server must ignore its
+  `missionId`, `demFilepath`, and `resolutionMeters` values.
 - Resolve the configured path with `path.resolve` and verify it remains inside that mission's
   `Data/` directory. Never pass a client-supplied or persisted relative path directly to the
   filesystem without this containment check.
@@ -313,7 +327,7 @@ sampled**:
 
 ### What to measure before deciding
 
-Add lightweight instrumentation during rollout (behind the same switch from §9):
+Add lightweight instrumentation for the new Node implementation:
 
 - Per-request wall time and **synchronous CPU time** for elevation sampling (e.g. wrap the
   decode/transform loop with `performance.now()` and log via `serverLogger`).
@@ -326,9 +340,11 @@ concurrency, **Option A alone is sufficient** and no subprocess/worker is warran
 
 ---
 
-## 4. Mission Admin: Analytical Raster Configuration
+## 4. Follow-up Branch: Mission Admin and Analytical Raster Configuration
 
-Treat the DEM selector and the new absolute-slope selector as **one implementation batch**. They
+**Everything in this section is deferred to a subsequent branch and is not part of the native
+elevation-runtime cutover.** Treat the DEM selector and the new absolute-slope selector as one
+implementation batch in that follow-up. They
 share the same file discovery, server-side inspection, validation, UI states, and tests; do not
 land one as another free-text field while postponing the common infrastructure.
 
@@ -530,7 +546,7 @@ require COG layout.
 
 ## 7. Files to Add / Change / Delete (summary)
 
-### Add
+### Add in this branch
 
 - `src/server/raster/sampleRasterPoints.ts`
 - `src/server/raster/rasterReader.ts`
@@ -540,12 +556,19 @@ require COG layout.
 - `src/server/elevation/readElevationProfile.ts`
 - `src/server/elevation/geoInterpolation.ts`
 - `src/server/elevation/constants.ts`
-- A server route/module for authorized analytical-raster discovery and validation.
 - Unit tests under `src/tests/vitest/server/raster/` and `server/elevation/` (see §8).
 
-### Change
+### Change in this branch
 
 - `src/server/express/routes/elevation.ts` — call native module instead of GDAL fetch.
+- `docker-compose.yml`, `docker-compose.services.yml`, `docker-compose.services.public.yml`.
+- `package.json` — add a directly tested `"geotiff"` runtime dependency.
+- `README.md` — update the "Public GDAL image" section and elevation description.
+- `CLAUDE.md` — update the elevation flow description (no more GDAL container).
+
+### Deferred to the subsequent admin/absolute-slope branch
+
+- A server route/module for authorized analytical-raster discovery and validation.
 - `src/pages/admin/mission.tsx` — land the DEM dropdown, derived metadata display, and absolute-
   slope dropdown together.
 - `src/typings/mission.d.ts`, `src/store/storeUtils/mission.ts`, and
@@ -553,14 +576,9 @@ require COG layout.
   derived compatibility metadata rather than an editable field.
 - `GIS_data_conversion_pipeline/esri-to-aegis-lunar-southpole/register.py` — register the generated
   absolute-slope raster and derive DEM resolution from the generated TIFF.
-- `docker-compose.yml`, `docker-compose.services.yml`, `docker-compose.services.public.yml`.
-- `package.json` — add a directly tested `"geotiff"` runtime dependency.
-- GIS pipeline — retain/emit analytical numeric GeoTIFF products needed by future samplers, such
-  as Float32 slope degrees, separately from colorized display products.
-- `README.md` — update the "Public GDAL image" section and elevation description.
-- `CLAUDE.md` — update the elevation flow description (no more GDAL container).
+- GIS pipeline and admin contract tests for analytical slope configuration.
 
-### Delete (after cutover verified)
+### Delete (in the hard-cutover branch)
 
 - `docker/gdal/Dockerfile`
 - `src/server/python/elevationService.py`
@@ -579,11 +597,13 @@ require COG layout.
 
 ## 8. Testing Strategy
 
-1. **Golden-value parity tests.** Before removing the Python service, capture its output for a
+1. **Golden-value parity tests.** Before implementing the cutover, capture the Python service's
+   output as committed test fixtures for a
    representative set of paths against a known mission DEM (single point, short traverse, long
    traverse, out-of-bounds point, NoData point). Assert the Node implementation returns the same
    values (allowing a tiny epsilon only if interpolation rounding differs; aim for exact pixel
-   match).
+   match). The Python service and GDAL container do not remain available at runtime after the
+   cutover.
 2. **Unit tests (Vitest)** for:
    - `geoInterpolation.ts` — great-circle `intermediate_point` port vs. the Python reference
      values.
@@ -598,30 +618,39 @@ require COG layout.
 4. **Fixture rasters** — commit tiny deterministic tiled and striped GeoTIFFs with the lunar CRS,
    Float32 values, NoData, multiple bands/samples, and optionally an overview. At least one fixture
    should be a non-COG GeoTIFF to make compatibility a tested contract.
-5. **Admin/configuration tests** — include the discovery, validation, selection, derived-
-   resolution, slope-companion, and pipeline contract coverage from §4.5.
-6. Run the full gate per `CLAUDE.md`: format changed files with Prettier, then `npm run
+5. Run the full gate per `CLAUDE.md`: format changed files with Prettier, then `npm run
 test:all`.
 
 ---
 
 ## 9. Rollout / Cutover
 
-1. Land the shared raster inspector plus the DEM and absolute-slope admin selectors as one batch.
-   Validate and backfill existing configured DEMs before changing the runtime engine.
-2. Land the Node implementation **behind the existing route** but keep the GDAL container
-   available (do not delete yet).
-3. Add a temporary env/config switch (e.g. `ELEVATION_ENGINE=node|gdal`) so we can flip back
-   instantly if a parity issue appears in a real environment.
-4. In preview/staging, optionally shadow a bounded sample of requests: return GDAL results while
-   also running Node and logging pixel/value differences. This catches real-data mismatches more
-   reliably than exercising each engine separately.
-5. Verify tiled, striped, COG, and non-COG GeoTIFFs used by existing missions. Include single
+This is a **hard cutover**, not a dual-engine rollout. The completed branch contains only the
+native Node elevation runtime. It must not include an engine switch, a GDAL fallback, shadow
+requests, or a bake-in period with both implementations deployed.
+
+The work may still be committed in reviewable implementation tranches on this branch, but the
+branch is not deployable until all hard-cutover steps are complete:
+
+1. Implement and test the native raster sampler and elevation profile wrapper. Use committed
+   golden outputs captured from the old Python implementation for parity tests; do not preserve
+   the Python service as a runtime fallback.
+2. Replace the existing elevation route implementation directly with the Node implementation.
+   The public route and response contract remain stable, but there is only one execution path.
+3. Resolve the configured DEM from the authorized mission's existing server-side metadata and
+   enforce mission-directory containment. No admin UI or mission-schema changes are required for
+   this cutover.
+4. Verify tiled, striped, COG, and non-COG GeoTIFFs used by existing missions. Include single
    points, traverses, NoData edges, station elevations, and the measurement tool.
-6. Flip default to `node`; monitor duration, block/sample counts, event-loop delay, decoder
-   failures, and parity logs.
-7. After a bake-in period, remove the GDAL container, the Python service, the switch, and the
-   unused types (§7 "Delete").
+5. In the same branch, remove the GDAL container and image configuration, Python elevation
+   service, Python interpolation package, GDAL environment variables, CI jobs, debug
+   configuration, and obsolete internal request types listed in §7.
+6. Run the full build and test gate against the final Node-only system. Deployment of this branch
+   is the cutover; rollback means reverting the deployment, not switching engines at runtime.
+
+The analytical-raster discovery API, DEM dropdown and derived-resolution admin UX, absolute-slope
+mission field/dropdown, and pipeline registration changes in §4 are implemented in the next
+branch after this runtime cutover.
 
 ---
 
@@ -670,15 +699,20 @@ test:all`.
 | Route rewrite + wrapping                               | S          |
 | Event-loop/CPU instrumentation (§3.7) + optional pool  | S          |
 | Request validation + resource/path containment         | S          |
-| Shared raster discovery + validation API               | M          |
-| DEM + absolute-slope admin selector batch              | M          |
-| Pipeline registration/metadata contract updates        | S          |
 | Docker/compose/env cleanup                             | S          |
 | Golden parity + tiled/striped fixture tests            | M          |
-| Cutover switch + docs update                           | S          |
+| Hard-cutover cleanup + docs update                     | S          |
 
-_Recommend implementing behind a switch, proving parity with golden tests, then deleting the
-container and Python service in a follow-up._
+Follow-up branch:
+
+| Task                                            | Rough size |
+| ----------------------------------------------- | ---------- |
+| Shared raster discovery + validation API        | M          |
+| DEM + absolute-slope admin selector batch       | M          |
+| Pipeline registration/metadata contract updates | S          |
+
+_Implement in reviewable commits, but merge and deploy only the completed hard cutover: prove
+parity with golden tests and remove the GDAL/Python runtime in this branch._
 
 ```
 
