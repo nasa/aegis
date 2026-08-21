@@ -3,11 +3,12 @@ import { faEye, faCaretRight, faCaretDown, faXmark } from "@fortawesome/free-sol
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 import styles from "./map-menu.module.css";
+import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridBaseSpacingMeters } from "utils/mapping/grid";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
-import { useMissionDockview } from "components/interface/dockview/MissionDockviewContext";
+import { setMapMenuIsOpen } from "store/interface";
 import { useMapMenuContext, useMapMenuSetters } from "../MapMenuProvider";
 
 const GRID_SPACING_OPTIONS: { label: string; value: GridSpacingMode }[] = [
@@ -734,14 +735,14 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
 };
 
 export const MapMenuLauncher: FunctionComponent = () => {
-  const { openMapMenu } = useMissionDockview();
+  const dispatch = useAppDispatch();
 
   return (
     <button
       className={styles.menuLauncher}
       onClick={(event) => {
         event.stopPropagation();
-        openMapMenu();
+        dispatch(setMapMenuIsOpen(true));
       }}
       aria-label="Open map item visibility"
       data-testid="map-menu-launcher"
@@ -756,7 +757,7 @@ export const MapMenuLauncher: FunctionComponent = () => {
 export const MapMenuPanel: FunctionComponent = () => {
   const display = useMapMenuContext();
   const setters = useMapMenuSetters();
-  const { closeMapMenu } = useMissionDockview();
+  const dispatch = useAppDispatch();
 
   return (
     <MapMenu
@@ -785,7 +786,7 @@ export const MapMenuPanel: FunctionComponent = () => {
       gridLabelInterval={display.gridLabelInterval}
       setGridLabelInterval={setters.setGridLabelInterval}
       floating={true}
-      onClose={closeMapMenu}
+      onClose={() => dispatch(setMapMenuIsOpen(false))}
     />
   );
 };

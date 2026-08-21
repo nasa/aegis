@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FunctionComponent } from "react";
+import { useCallback, useEffect, useState, type FunctionComponent } from "react";
 import {
   DockviewReact,
   type DockviewApi,
@@ -16,9 +16,10 @@ import {
 import { AegisMapEditor } from "components/interface/map/AegisMapEditor";
 import { FeatureSourcesProvider } from "components/interface/map/FeatureSourcesProvider";
 import { MapMenuPanel } from "components/interface/map/overlays/map-menu";
+import { setMapMenuIsOpen } from "store/interface";
+import { useAppDispatch } from "utils/useAppDispatch";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 
-import { MissionDockviewContext } from "./MissionDockviewContext";
 import styles from "./missionDockviewLayout.module.css";
 
 const LEFT_OPEN_WIDTH = 400;
@@ -84,14 +85,20 @@ function getMapBounds(api: DockviewApi) {
 }
 
 export function MissionDockviewLayout(): JSX.Element {
+  const dispatch = useAppDispatch();
   const [api, setApi] = useState<DockviewApi | null>(null);
   const leftPanelIsOpen = useAppSelector((state) => state.interface.leftPanelIsOpen, refEqual);
   const bottomPanelIsOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
   const rightPanelIsOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
+  const mapMenuIsOpen = useAppSelector((state) => state.interface.mapMenuIsOpen, refEqual);
 
-  const openMapMenu = useCallback(() => {
+  useEffect(() => {
     if (!api) return;
     const existingPanel = api.getPanel("map-menu");
+    if (!mapMenuIsOpen) {
+      if (existingPanel) api.removePanel(existingPanel);
+      return;
+    }
     if (existingPanel) {
       existingPanel.api.setActive();
       return;
@@ -119,13 +126,7 @@ export function MissionDockviewLayout(): JSX.Element {
       maximumWidth: mapBounds.width,
       maximumHeight: mapBounds.height,
     });
-  }, [api]);
-
-  const closeMapMenu = useCallback(() => {
-    if (!api) return;
-    const panel = api.getPanel("map-menu");
-    if (panel) api.removePanel(panel);
-  }, [api]);
+  }, [api, mapMenuIsOpen]);
 
   const onReady = useCallback((event: DockviewReadyEvent) => {
     const dockviewApi = event.api;
@@ -182,7 +183,7 @@ export function MissionDockviewLayout(): JSX.Element {
 
   useEffect(() => {
     if (!api) return;
-    const disposable = api.onDidLayoutChange(() => {
+    const layoutDisposable = api.onDidLayoutChange(() => {
       const mapBounds = getMapBounds(api);
       const menuPanel = api.getPanel("map-menu");
       if (!mapBounds || !menuPanel) return;
@@ -193,8 +194,14 @@ export function MissionDockviewLayout(): JSX.Element {
         maximumHeight: mapBounds.height,
       });
     });
-    return () => disposable.dispose();
-  }, [api]);
+    const removeDisposable = api.onDidRemovePanel((panel) => {
+      if (panel.id === "map-menu") dispatch(setMapMenuIsOpen(false));
+    });
+    return () => {
+      layoutDisposable.dispose();
+      removeDisposable.dispose();
+    };
+  }, [api, dispatch]);
 
   const transformFloatingGroupDrag = useCallback(
     ({ group, proposed }: FloatingGroupDragContext) => {
@@ -215,21 +222,17 @@ export function MissionDockviewLayout(): JSX.Element {
     [api]
   );
 
-  const contextValue = useMemo(() => ({ openMapMenu, closeMapMenu }), [openMapMenu, closeMapMenu]);
-
   return (
-    <MissionDockviewContext.Provider value={contextValue}>
-      <div className={styles.container} data-testid="mission-dockview">
-        <DockviewReact
-          components={components}
-          onReady={onReady}
-          locked={true}
-          disableDnd={true}
-          floatingGroupBounds="boundedWithinViewport"
-          floatingGroupDragHandle="titlebar"
-          transformFloatingGroupDrag={transformFloatingGroupDrag}
-        />
-      </div>
-    </MissionDockviewContext.Provider>
+    <div className={styles.container} data-testid="mission-dockview">
+      <DockviewReact
+        components={components}
+        onReady={onReady}
+        locked={true}
+        disableDnd={true}
+        floatingGroupBounds="boundedWithinViewport"
+        floatingGroupDragHandle="titlebar"
+        transformFloatingGroupDrag={transformFloatingGroupDrag}
+      />
+    </div>
   );
 }

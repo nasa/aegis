@@ -7,6 +7,7 @@ export const initialState: InterfaceState = {
   leftPanelIsOpen: true,
   rightPanelIsOpen: true,
   bottomPanelIsOpen: true,
+  mapMenuIsOpen: false,
   autoRightPanelOpen: true,
   autoBottomPanelOpen: true,
   elevationPendingItemUuids: [],
@@ -34,6 +35,9 @@ export const interfaceSlice = createSlice({
     },
     setBottomPanelIsOpen: (state, action: { payload: boolean }) => {
       state.bottomPanelIsOpen = action.payload;
+    },
+    setMapMenuIsOpen: (state, action: { payload: boolean }) => {
+      state.mapMenuIsOpen = action.payload;
     },
     setAutoRightPanelOpen: (state, action: { payload: boolean }) => {
       state.autoRightPanelOpen = action.payload;
@@ -144,6 +148,7 @@ export const {
   setLeftPanelIsOpen,
   setRightPanelIsOpen,
   setBottomPanelIsOpen,
+  setMapMenuIsOpen,
   setAutoRightPanelOpen,
   setAutoBottomPanelOpen,
   insertElevationPending,
