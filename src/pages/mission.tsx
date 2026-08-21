@@ -256,6 +256,7 @@ const Main: React.FunctionComponent = () => {
                 </div>
               ) : (
                 <MapMenuProvider>
+                  {/* Context is shared by the map and its separate floating Dockview menu panel. */}
                   <MissionDockviewLayout />
                 </MapMenuProvider>
               )}

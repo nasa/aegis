@@ -82,6 +82,10 @@ export const MapPositionMenu: FunctionComponent = () => {
 
   const [showPosList, setShowPosList] = useState(false);
   const [showMenu, setShowMenu] = useState(true);
+
+  // Dragging switches the initially right-anchored menu to explicit parent-relative coordinates.
+  // The drag handlers keep it within the map, while the toggle measurements preserve its
+  // right edge and user-resized open dimensions when collapsing or expanding.
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   const [openSize, setOpenSize] = useState<{ width: number; height: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
