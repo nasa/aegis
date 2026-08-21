@@ -14,7 +14,7 @@ export type RasterSample =
 
 export type RasterDescriptor = {
   absolutePath: string;
-  projection: string;
+  projection?: string;
   geographicProjection?: string;
   sampleIndex?: number;
 };
