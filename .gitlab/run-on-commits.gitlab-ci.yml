@@ -480,12 +480,6 @@ docker:build:nginx:
     MAP_ENV_VARS_TO_BUILD_ARGS: |
       GIT_COMMIT
 
-docker:build:gdal:
-  extends: .kaniko-build-template
-  variables:
-    SERVICE_NAME: gdal
-    MULTISTAGE_TARGET: base
-
 docker:build:apiv1:
   extends: .kaniko-build-template
   variables:
@@ -517,14 +511,11 @@ docker:retag:
       artifacts: false
     - job: docker:build:nginx
       artifacts: false
-    - job: docker:build:gdal
-      artifacts: false
     - job: docker:build:apiv1
       artifacts: false
   variables:
     RETAG_SERVICE_IMAGES: |
       nginx
-      gdal
       apiv1
 
 # Retag for dev environments — does NOT require tests to pass.
@@ -535,14 +526,11 @@ docker:retag:dev:
     - make-dotenv:fit
     - job: docker:build:nginx
       artifacts: false
-    - job: docker:build:gdal
-      artifacts: false
     - job: docker:build:apiv1
       artifacts: false
   variables:
     RETAG_SERVICE_IMAGES: |
       nginx
-      gdal
       apiv1
 
 deploy:artifactize-committed-files:

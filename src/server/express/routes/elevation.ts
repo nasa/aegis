@@ -1,27 +1,82 @@
+import path from "node:path";
+import { performance } from "node:perf_hooks";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
 import express from "express";
+import { asError } from "@emss/utils";
 
+import { readElevationProfile } from "server/elevation/readElevationProfile";
+import { resolveMissionDemPath } from "server/elevation/resolveMissionDem";
+import { getAutomergeMissionHandle } from "./missionAutomerge";
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
-import { asError } from "@emss/utils";
 
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
   const { missionId } = query;
-  const queryObj = {
-    missionId: missionId ? parseInt(missionId as string) : undefined,
+  if (typeof missionId !== "string" || !/^\d+$/.test(missionId)) return { missionId: undefined };
+  const parsedMissionId = Number(missionId);
+  return {
+    missionId:
+      Number.isSafeInteger(parsedMissionId) && parsedMissionId > 0 ? parsedMissionId : undefined,
   };
-  return queryObj;
 };
 
-// post
+const validateRequest = (
+  postData: ElevationProfilePostData,
+  resolutionMeters: number
+): { path: { lat: number; lng: number }[]; steps: number[] } => {
+  if (!Array.isArray(postData?.path) || postData.path.length < 2) {
+    throw new Error("Elevation path must contain at least two points");
+  }
+  if (
+    !postData.path.every(
+      (point) =>
+        point &&
+        Number.isFinite(point.lat) &&
+        Number.isFinite(point.lng) &&
+        point.lat >= -90 &&
+        point.lat <= 90 &&
+        point.lng >= -180 &&
+        point.lng <= 180
+    )
+  ) {
+    throw new Error("Elevation path contains invalid coordinates");
+  }
+  if (
+    !Array.isArray(postData.pathSegmentDistances) ||
+    postData.pathSegmentDistances.length !== postData.path.length - 1 ||
+    !postData.pathSegmentDistances.every((distance) => Number.isFinite(distance) && distance >= 0)
+  ) {
+    throw new Error("Elevation path segment distances are invalid");
+  }
+  if (!Number.isFinite(resolutionMeters) || resolutionMeters <= 0) {
+    throw new Error("Mission DEM resolution must be positive");
+  }
+
+  return {
+    path: postData.path as { lat: number; lng: number }[],
+    steps: postData.pathSegmentDistances.map((distance) => Math.ceil(distance / resolutionMeters)),
+  };
+};
+
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
+  if (!queryObj.missionId) {
+    serverLogger.apiRoute({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "elevation",
+      appUsername: req.session?.appUser?.username,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
+    return;
+  }
   const emssToken = req.headers["emss-token"] as string;
-
   const viewPermission = hasPerms({
     missionId: queryObj.missionId,
     permission: "view",
@@ -41,116 +96,57 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
-  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
-    serverLogger.apiRoute({
-      logLevel: "notice",
-      httpMethod: "POST",
-      responseStatus: 400,
-      routeName: "elevation",
-      appUsername: req.session?.appUser?.username,
-      missionId: queryObj.missionId,
-      message: "Invalid mission ID",
-    });
-    res.status(400).json({ status: "error", message: "Invalid mission ID" });
-    return;
-  }
-  const postData: ElevationProfilePostData = req.body;
-
-  // The "/static" path is mapped in the docker-compose file for the GDAL container. This maps to the public static folder in the project.
-  const rasterFilePath = `/static/missionFiles/${postData.missionId}/${postData.demFilepath}`;
-
-  let initRes: globalThis.Response = null;
-  let initResJson: WrappedResponse<number[][]> = null;
-
   try {
-    const path = postData.path;
-
-    // create steps out of distances / dem resolution
-    const steps = postData.pathSegmentDistances.map((dist) =>
-      Math.ceil(dist / postData.resolutionMeters).toString()
-    );
-
-    const requestBody: ElevationGdalRequestBody = {
-      rasterFilePath,
-      axes: "z",
-      band: 1,
-      path,
-      steps,
-    };
-
-    initRes = await fetch(
-      `http://${process.env.GDAL_HOST}:${process.env.GDAL_PORT}/pathToElevationProfile`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      }
-    );
-
-    try {
-      initResJson = await initRes.json();
-      // convert all elevations to numbers
-      initResJson.data = initResJson.data?.map((segment) =>
-        segment.map((elevation) => parseFloat(String(elevation)))
-      );
-    } catch (e) {
-      serverLogger.apiRoute({
-        logLevel: "error",
-        httpMethod: "POST",
-        responseStatus: 500,
-        routeName: "elevation",
-        appUsername: req.session?.appUser?.username,
-        missionId: queryObj.missionId,
-        message: "Error parsing initResJson. " + e + " | Response: " + JSON.stringify(initRes),
-        error: asError(e),
-      });
-      res.status(500).json({
-        status: "error",
-        message: "Error parsing initResJson. " + e + " | Response: " + JSON.stringify(initRes),
+    const missionHandle = await getAutomergeMissionHandle(queryObj.missionId);
+    if (!missionHandle) {
+      res.status(404).json({
+        status: "failure",
+        message: `Mission ${queryObj.missionId} not found`,
       });
       return;
     }
+    const mission = missionHandle.doc();
+    const resolutionMeters = mission.demResolution ?? 10;
+    const { path: elevationPath, steps } = validateRequest(req.body, resolutionMeters);
+    const rasterPath = await resolveMissionDemPath(
+      process.env.STATIC_DIR ? path.resolve(process.env.STATIC_DIR) : undefined,
+      queryObj.missionId,
+      mission.demFilePath
+    );
 
-    if (initResJson.status === "success") {
-      res.status(200).json({
-        status: "success",
-        data: initResJson.data,
-        message: "Success POSTing the job to docker.",
-      });
-    } else {
-      serverLogger.apiRoute({
-        logLevel: "error",
-        httpMethod: "POST",
-        responseStatus: 500,
-        routeName: "elevation",
-        appUsername: req.session?.appUser?.username,
-        missionId: queryObj.missionId,
-        message: "Error POSTing the job to docker. Error: " + initResJson.message,
-        error: new Error("Error POSTing the job to docker. Error: " + initResJson.message),
-      });
-      res.status(500).json({
-        status: "error",
-        message: "Error POSTing the job to docker. Error: " + initResJson.message,
-      });
-    }
-  } catch (e) {
+    const startedAt = performance.now();
+    const result = await readElevationProfile({ absolutePath: rasterPath }, elevationPath, steps);
+    const durationMs = performance.now() - startedAt;
+    serverLogger.debug({
+      logId: "elevation",
+      logValue: `Sampled ${result.samplesRead} points from ${result.blocksRead} blocks in ${durationMs.toFixed(1)} ms`,
+      missionId: queryObj.missionId,
+    });
+    res.status(200).json({
+      status: "success",
+      data: result.elevations,
+      message: "Elevation profile sampled",
+    });
+  } catch (error) {
+    const message = asError(error).message;
+    const isClientError =
+      message.includes("must") ||
+      message.includes("invalid") ||
+      message.includes("limit") ||
+      message.includes("configured") ||
+      message.includes("contain");
+    const responseStatus = isClientError ? 400 : 500;
     serverLogger.apiRoute({
-      logLevel: "error",
+      logLevel: responseStatus === 400 ? "notice" : "error",
       httpMethod: "POST",
-      responseStatus: 500,
+      responseStatus,
       routeName: "elevation",
       appUsername: req.session?.appUser?.username,
       missionId: queryObj.missionId,
-      message: "Error POSTing the job to docker. " + e + " | Response: " + JSON.stringify(initRes),
-      error: asError(e),
+      message,
+      error: asError(error),
     });
-    res.status(500).json({
-      status: "error",
-      message: "Error POSTing the job to docker. " + e + " | Response: " + JSON.stringify(initRes),
-    });
-    return;
+    res.status(responseStatus).json({ status: "error", message });
   }
 });
 

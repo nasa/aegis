@@ -74,7 +74,7 @@ AEGIS includes a GIS data processing pipeline that can generate the full set of 
    placeholder values let the app run locally; Box.com and EMSS/Maestro integrations
    will not work with them, but local development (including the Apollo 14 demo) does
    not need them.
-4. Start the required Docker services (PostgreSQL + GDAL): `npm run docker:services:public`.
+4. Start PostgreSQL: `npm run docker:services:public`.
 
 ### Step 1: Seed the database
 
@@ -185,18 +185,17 @@ We need to setup the local environment before spinning up the app.
 
 ### Step 2, Option 1: Development with service containers (PREFERRED)
 
-This is for doing local development with the database and GDAL containers running. The GDAL
-container powers elevation-profile generation; if you don't need elevation features, the app runs
-fine without GDAL and those features will simply return an error.
+This is for doing local development with PostgreSQL in Docker. Elevation profiles are sampled by
+the Node API directly from mission GeoTIFFs under `STATIC_DIR`.
 
-1. Run Docker only starting the service containers (gdal and database): `npm run docker:services`
+1. Run Docker only starting the database service: `npm run docker:services`
 2. Run `npm run dev` to start the API and frontend.
 3. Open [http://localhost:4000](http://localhost:4000) with your browser (note lack of https).
 4. Continue to **Step 3: Setting up GIS products for local development**
 
 ### Step 2, Option 2: Development with No Docker
 
-This is for doing local development when you don't have Docker installed on your laptop yet. Note that `gdal` functions won't work in this mode but those functions are used in limited portions of AEGIS so development is still possible in this mode.
+This is for doing local development when you don't have Docker installed on your laptop yet.
 
 1. Download PostgreSQL Binaries from the official url https://www.enterprisedb.com/download-postgresql-binaries
 2. Choose the latest binaries from installer version for Win x86-64 for Windows Operating System. Current latest version available is 17.4. This will be a higher version than the docker container AEGIS uses, but this shouldn't matter.
@@ -354,35 +353,6 @@ docker logs <container name> -f
 
 # Restart individual services
 docker restart <container name>
-```
-
-## GDAL image sources
-
-The GDAL container powers elevation-profile generation. Which image is used depends on the command
-you run to start the service containers:
-
-- `npm run docker:services` — **internal NASA devs.** Builds the GDAL image locally from the private
-  EE base image (`eegitlabregistry.fit.nasa.gov/emss/docker-images/deploy:gdal`, via
-  `docker/gdal/Dockerfile`); requires private-registry access.
-- `npm run docker:services:public` — **open-source / external users.** Pulls a prebuilt public image
-  (`bfeistnasa/aegis-gdal:latest`) from Docker Hub (~1.6 GB on first run), no private-registry access
-  needed. This override lives in `docker-compose.services.public.yml`.
-
-Both start the same database + GDAL containers; only the GDAL image source differs. The pipeline
-builds its own GDAL image from the private base via `docker/gdal/Dockerfile` and the base
-`docker-compose.yml`.
-
-### Updating the public GDAL image
-
-To publish or refresh the public Docker Hub image (maintainers only, requires push access to the
-`bfeistnasa` Docker Hub org):
-
-```bash
-# From an environment that already has a working aegis GDAL image built locally
-# (e.g. the pipeline artifact or a previously-built aegis-dev-gdal:latest):
-docker tag aegis-dev-gdal:latest bfeistnasa/aegis-gdal:latest
-docker login                       # log in to the bfeistnasa Docker Hub account
-docker push bfeistnasa/aegis-gdal:latest
 ```
 
 ## Load Testing
