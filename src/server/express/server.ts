@@ -21,8 +21,8 @@ import pg from "pg";
 import { PostgresStorageAdapter } from "server/automerge/automerge-repo-storage-postgres";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
-import { closeElevationWorkerPool } from "server/elevation/elevationWorkerPool";
 import { closeRasterCache } from "server/raster/rasterCache";
+import { closeRasterSamplingWorkerPool } from "server/raster/rasterSamplingWorkerPool";
 
 // this is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
 initializeBase64Wasm(automergeWasmBase64);
@@ -231,11 +231,11 @@ initializeBase64Wasm(automergeWasmBase64);
     }
 
     try {
-      await closeElevationWorkerPool();
-      serverLogger.debug({ logId: "server", logValue: "Elevation worker pool closed" });
+      await closeRasterSamplingWorkerPool();
+      serverLogger.debug({ logId: "server", logValue: "Raster sampling worker pool closed" });
     } catch (err) {
       serverLogger.error(
-        { logId: "server", logValue: "Error closing elevation worker pool" },
+        { logId: "server", logValue: "Error closing raster sampling worker pool" },
         err instanceof Error ? err : new Error(String(err))
       );
       hasErrors = true;

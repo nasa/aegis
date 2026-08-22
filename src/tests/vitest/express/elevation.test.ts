@@ -9,9 +9,11 @@ vi.mock("server/express/routes/missionAutomerge", () => ({
   getAutomergeMissionHandle: mocks.getAutomergeMissionHandle,
 }));
 vi.mock("utils/permissions", () => ({ hasPerms: mocks.hasPerms }));
-vi.mock("server/elevation/elevationWorkerPool", () => ({
-  ElevationWorkerPoolUnavailableError: class extends Error {},
+vi.mock("server/elevation/readElevationProfile", () => ({
   readElevationProfileInWorker: mocks.readElevationProfileInWorker,
+}));
+vi.mock("server/raster/rasterSamplingWorkerPool", () => ({
+  RasterSamplingWorkerPoolUnavailableError: class extends Error {},
 }));
 vi.mock("server/elevation/resolveMissionDem", () => ({
   resolveMissionDemPath: mocks.resolveMissionDemPath,

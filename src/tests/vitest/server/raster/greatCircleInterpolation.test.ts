@@ -1,6 +1,6 @@
-import { intermediatePoint, interpolateSegment } from "server/elevation/geoInterpolation";
+import { intermediatePoint, interpolateSegment } from "server/raster/greatCircleInterpolation";
 
-describe("elevation interpolation", () => {
+describe("great-circle interpolation", () => {
   it("matches the Python great-circle reference midpoint", () => {
     const midpoint = intermediatePoint({ lat: -85, lng: -20 }, { lat: -84.5, lng: -19 }, 0.5);
 

@@ -6,11 +6,9 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 import { asError } from "@emss/utils";
 
-import {
-  ElevationWorkerPoolUnavailableError,
-  readElevationProfileInWorker,
-} from "server/elevation/elevationWorkerPool";
+import { readElevationProfileInWorker } from "server/elevation/readElevationProfile";
 import { resolveMissionDemPath } from "server/elevation/resolveMissionDem";
+import { RasterSamplingWorkerPoolUnavailableError } from "server/raster/rasterSamplingWorkerPool";
 import { getAutomergeMissionHandle } from "./missionAutomerge";
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -136,7 +134,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     const message = asError(error).message;
-    const isWorkerUnavailable = error instanceof ElevationWorkerPoolUnavailableError;
+    const isWorkerUnavailable = error instanceof RasterSamplingWorkerPoolUnavailableError;
     const isClientError =
       message.includes("must") ||
       message.includes("invalid") ||
