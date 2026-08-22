@@ -6,7 +6,10 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 import { asError } from "@emss/utils";
 
-import { readElevationProfile } from "server/elevation/readElevationProfile";
+import {
+  ElevationWorkerPoolUnavailableError,
+  readElevationProfileInWorker,
+} from "server/elevation/elevationWorkerPool";
 import { resolveMissionDemPath } from "server/elevation/resolveMissionDem";
 import { getAutomergeMissionHandle } from "./missionAutomerge";
 import { hasPerms } from "utils/permissions";
@@ -115,11 +118,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     );
 
     const startedAt = performance.now();
-    const result = await readElevationProfile({ absolutePath: rasterPath }, elevationPath, steps);
+    const result = await readElevationProfileInWorker(
+      { absolutePath: rasterPath },
+      elevationPath,
+      steps
+    );
     const durationMs = performance.now() - startedAt;
     serverLogger.debug({
       logId: "elevation",
-      logValue: `Sampled ${result.samplesRead} points from ${result.blocksRead} blocks in ${durationMs.toFixed(1)} ms`,
+      logValue: `Worker ${result.workerId} sampled ${result.samplesRead} points from ${result.blocksRead} blocks in ${result.executionDurationMs.toFixed(1)} ms after ${result.queueDurationMs.toFixed(1)} ms queued (${durationMs.toFixed(1)} ms total)`,
       missionId: queryObj.missionId,
     });
     res.status(200).json({
@@ -129,15 +136,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     const message = asError(error).message;
+    const isWorkerUnavailable = error instanceof ElevationWorkerPoolUnavailableError;
     const isClientError =
       message.includes("must") ||
       message.includes("invalid") ||
       message.includes("limit") ||
       message.includes("configured") ||
       message.includes("contain");
-    const responseStatus = isClientError ? 400 : 500;
+    const responseStatus = isWorkerUnavailable ? 503 : isClientError ? 400 : 500;
     serverLogger.apiRoute({
-      logLevel: responseStatus === 400 ? "notice" : "error",
+      logLevel: responseStatus === 400 ? "notice" : responseStatus === 503 ? "warning" : "error",
       httpMethod: "POST",
       responseStatus,
       routeName: "elevation",

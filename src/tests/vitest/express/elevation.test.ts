@@ -1,7 +1,7 @@
 const mocks = vi.hoisted(() => ({
   getAutomergeMissionHandle: vi.fn(),
   hasPerms: vi.fn(),
-  readElevationProfile: vi.fn(),
+  readElevationProfileInWorker: vi.fn(),
   resolveMissionDemPath: vi.fn(),
 }));
 
@@ -9,8 +9,9 @@ vi.mock("server/express/routes/missionAutomerge", () => ({
   getAutomergeMissionHandle: mocks.getAutomergeMissionHandle,
 }));
 vi.mock("utils/permissions", () => ({ hasPerms: mocks.hasPerms }));
-vi.mock("server/elevation/readElevationProfile", () => ({
-  readElevationProfile: mocks.readElevationProfile,
+vi.mock("server/elevation/elevationWorkerPool", () => ({
+  ElevationWorkerPoolUnavailableError: class extends Error {},
+  readElevationProfileInWorker: mocks.readElevationProfileInWorker,
 }));
 vi.mock("server/elevation/resolveMissionDem", () => ({
   resolveMissionDemPath: mocks.resolveMissionDemPath,
@@ -44,10 +45,13 @@ describe("native elevation route", () => {
       doc: () => ({ demFilePath: "Data/trusted.tif", demResolution: 5 }),
     });
     mocks.resolveMissionDemPath.mockResolvedValue("/static/missionFiles/42/Data/trusted.tif");
-    mocks.readElevationProfile.mockResolvedValue({
+    mocks.readElevationProfileInWorker.mockResolvedValue({
       elevations: [[100, 101, 102, 103]],
       samplesRead: 4,
       blocksRead: 1,
+      workerId: 1,
+      queueDurationMs: 1,
+      executionDurationMs: 2,
     });
   });
 
@@ -78,7 +82,7 @@ describe("native elevation route", () => {
       42,
       "Data/trusted.tif"
     );
-    expect(mocks.readElevationProfile).toHaveBeenCalledWith(
+    expect(mocks.readElevationProfileInWorker).toHaveBeenCalledWith(
       { absolutePath: "/static/missionFiles/42/Data/trusted.tif" },
       expect.any(Array),
       [4]
@@ -94,7 +98,7 @@ describe("native elevation route", () => {
       });
 
     expect(response.status).toBe(400);
-    expect(mocks.readElevationProfile).not.toHaveBeenCalled();
+    expect(mocks.readElevationProfileInWorker).not.toHaveBeenCalled();
   });
 
   it("preserves authorization failure behavior", async () => {
@@ -129,6 +133,6 @@ describe("native elevation route", () => {
       });
 
     expect(response.status).toBe(400);
-    expect(mocks.readElevationProfile).not.toHaveBeenCalled();
+    expect(mocks.readElevationProfileInWorker).not.toHaveBeenCalled();
   });
 });
