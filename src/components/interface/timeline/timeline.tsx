@@ -242,6 +242,7 @@ const NavTimeline: FunctionComponent = () => {
         paperDataRef,
         paperGroupsRef,
         storeRef,
+        graphSequenceItems,
         selectedEvaSequenceItemUuid
       );
       if (showDistanceFromLander) {
@@ -322,6 +323,7 @@ const NavTimeline: FunctionComponent = () => {
         paperDataRef,
         paperGroupsRef,
         storeRef,
+        graphSequenceItems,
         flattenedGraphData,
         event.point,
         setHoverValues,
