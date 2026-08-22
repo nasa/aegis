@@ -1,13 +1,13 @@
 import { EventEmitter } from "node:events";
 
 import {
-  ElevationWorkerPool,
-  ElevationWorkerPoolUnavailableError,
-} from "server/elevation/elevationWorkerPool";
+  RasterSamplingWorkerPool,
+  RasterSamplingWorkerPoolUnavailableError,
+} from "server/raster/rasterSamplingWorkerPool";
 import type {
-  ElevationWorkerRequest,
-  ElevationWorkerResponse,
-} from "server/elevation/elevationWorkerPool";
+  RasterSamplingWorkerRequest,
+  RasterSamplingWorkerResponse,
+} from "server/raster/rasterSamplingWorkerPool";
 import type { RasterMetadata } from "server/raster/types";
 
 const metadata: RasterMetadata = {
@@ -23,10 +23,10 @@ const metadata: RasterMetadata = {
 };
 
 class FakeWorker extends EventEmitter {
-  readonly requests: ElevationWorkerRequest[] = [];
+  readonly requests: RasterSamplingWorkerRequest[] = [];
   readonly terminate = vi.fn(async () => 0);
 
-  postMessage(request: ElevationWorkerRequest): void {
+  postMessage(request: RasterSamplingWorkerRequest): void {
     this.requests.push(request);
   }
 
@@ -36,11 +36,16 @@ class FakeWorker extends EventEmitter {
 
   succeed(requestIndex = 0): void {
     const request = this.requests[requestIndex];
-    const response: ElevationWorkerResponse = {
+    const response: RasterSamplingWorkerResponse = {
       id: request.id,
       status: "success",
       result: {
-        elevations: [[10, 11]],
+        samples: [
+          [
+            { status: "value", value: 10 },
+            { status: "value", value: 11 },
+          ],
+        ],
         metadata,
         samplesRead: 2,
         blocksRead: 1,
@@ -56,10 +61,10 @@ const path = [
   { lat: 1, lng: 1 },
 ];
 
-describe("ElevationWorkerPool", () => {
+describe("RasterSamplingWorkerPool", () => {
   it("reuses a persistent worker and runs queued jobs in order", async () => {
     const worker = new FakeWorker();
-    const pool = new ElevationWorkerPool({
+    const pool = new RasterSamplingWorkerPool({
       size: 1,
       maxQueueSize: 2,
       workerFactory: () => worker,
@@ -71,7 +76,12 @@ describe("ElevationWorkerPool", () => {
 
     worker.succeed();
     await expect(first).resolves.toMatchObject({
-      elevations: [[10, 11]],
+      samples: [
+        [
+          { status: "value", value: 10 },
+          { status: "value", value: 11 },
+        ],
+      ],
       workerId: 1,
       samplesRead: 2,
     });
@@ -85,7 +95,7 @@ describe("ElevationWorkerPool", () => {
 
   it("rejects work when the bounded queue is full", async () => {
     const worker = new FakeWorker();
-    const pool = new ElevationWorkerPool({
+    const pool = new RasterSamplingWorkerPool({
       size: 1,
       maxQueueSize: 1,
       workerFactory: () => worker,
@@ -94,7 +104,7 @@ describe("ElevationWorkerPool", () => {
     const active = pool.run(descriptor, path, [2]);
     const queued = pool.run(descriptor, path, [2]);
     await expect(pool.run(descriptor, path, [2])).rejects.toBeInstanceOf(
-      ElevationWorkerPoolUnavailableError
+      RasterSamplingWorkerPoolUnavailableError
     );
 
     worker.succeed();
@@ -108,7 +118,7 @@ describe("ElevationWorkerPool", () => {
     const firstWorker = new FakeWorker();
     const replacementWorker = new FakeWorker();
     const workers = [firstWorker, replacementWorker];
-    const pool = new ElevationWorkerPool({
+    const pool = new RasterSamplingWorkerPool({
       size: 1,
       workerFactory: () => workers.shift()!,
     });
@@ -117,7 +127,7 @@ describe("ElevationWorkerPool", () => {
     const queued = pool.run(descriptor, path, [2]);
     firstWorker.emit("error", new Error("decoder crashed"));
 
-    await expect(failed).rejects.toBeInstanceOf(ElevationWorkerPoolUnavailableError);
+    await expect(failed).rejects.toBeInstanceOf(RasterSamplingWorkerPoolUnavailableError);
     expect(replacementWorker.requests).toHaveLength(1);
     replacementWorker.succeed();
     await expect(queued).resolves.toMatchObject({ workerId: 2 });

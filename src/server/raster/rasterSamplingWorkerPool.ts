@@ -2,10 +2,10 @@ import { availableParallelism } from "node:os";
 import { performance } from "node:perf_hooks";
 import { Worker } from "node:worker_threads";
 
-import type { ElevationProfileResult } from "./readElevationProfile";
-import type { GeographicPoint, RasterDescriptor } from "server/raster/types";
+import type { RasterProfileSamplingResult } from "./sampleRasterProfile";
+import type { GeographicPoint, RasterDescriptor } from "./types";
 
-export type ElevationWorkerRequest = {
+export type RasterSamplingWorkerRequest = {
   id: number;
   descriptor: RasterDescriptor;
   path: GeographicPoint[];
@@ -18,24 +18,24 @@ type SerializedWorkerError = {
   stack?: string;
 };
 
-export type ElevationWorkerResponse =
-  | { id: number; status: "success"; result: ElevationProfileResult }
+export type RasterSamplingWorkerResponse =
+  | { id: number; status: "success"; result: RasterProfileSamplingResult }
   | { id: number; status: "error"; error: SerializedWorkerError };
 
 // Narrow interface shared by Node Workers and the lightweight test double.
 type WorkerLike = {
-  on(event: "message", listener: (response: ElevationWorkerResponse) => void): WorkerLike;
+  on(event: "message", listener: (response: RasterSamplingWorkerResponse) => void): WorkerLike;
   on(event: "error", listener: (error: Error) => void): WorkerLike;
   on(event: "exit", listener: (code: number) => void): WorkerLike;
-  postMessage(request: ElevationWorkerRequest): void;
+  postMessage(request: RasterSamplingWorkerRequest): void;
   terminate(): Promise<number>;
 };
 
 type Job = {
   // postMessage uses structured cloning, so requests contain only plain data.
-  request: ElevationWorkerRequest;
+  request: RasterSamplingWorkerRequest;
   queuedAt: number;
-  resolve: (result: ElevationWorkerResult) => void;
+  resolve: (result: RasterSamplingWorkerResult) => void;
   reject: (error: Error) => void;
 };
 
@@ -48,20 +48,20 @@ type WorkerSlot = {
   timeout?: NodeJS.Timeout;
 };
 
-export type ElevationWorkerResult = ElevationProfileResult & {
+export type RasterSamplingWorkerResult = RasterProfileSamplingResult & {
   workerId: number;
   queueDurationMs: number;
   executionDurationMs: number;
 };
 
-export class ElevationWorkerPoolUnavailableError extends Error {
+export class RasterSamplingWorkerPoolUnavailableError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "ElevationWorkerPoolUnavailableError";
+    this.name = "RasterSamplingWorkerPoolUnavailableError";
   }
 }
 
-type ElevationWorkerPoolOptions = {
+type RasterSamplingWorkerPoolOptions = {
   size?: number;
   maxQueueSize?: number;
   jobTimeoutMs?: number;
@@ -73,13 +73,12 @@ const positiveIntegerFromEnvironment = (name: string, fallback: number): number 
   return Number.isSafeInteger(value) && value > 0 ? value : fallback;
 };
 
-// ELEVATION_WORKERS overrides this default. Reserve one logical CPU for the API and cap the
-// default at four workers in case we ever get more CPUs for AEGIS prod. With our current 2 cores,
-// this algorithm gives us 1 worker, which is enough to keep the API responsive while reading elevation.
+// RASTER_SAMPLING_WORKERS overrides this default. Reserve one logical CPU for the API and cap
+// the default at four workers. With two cores, one worker keeps the API responsive while sampling.
 const defaultPoolSize = Math.min(4, Math.max(1, availableParallelism() - 1));
 
 /**
- * Runs CPU-heavy elevation profiles outside the API event loop.
+ * Runs CPU-heavy raster profile sampling outside the API event loop.
  *
  * Workers are persistent because starting a thread for every request is expensive. Each worker
  * accepts one job at a time; excess jobs wait in a bounded FIFO queue. Messages crossing the
@@ -89,7 +88,7 @@ const defaultPoolSize = Math.min(4, Math.max(1, availableParallelism() - 1));
  * continue on healthy workers. Call close() during server shutdown to reject outstanding work
  * and terminate every thread.
  */
-export class ElevationWorkerPool {
+export class RasterSamplingWorkerPool {
   private readonly size: number;
   private readonly maxQueueSize: number;
   private readonly jobTimeoutMs: number;
@@ -101,35 +100,36 @@ export class ElevationWorkerPool {
   private started = false;
   private closing = false;
 
-  constructor(options: ElevationWorkerPoolOptions = {}) {
+  constructor(options: RasterSamplingWorkerPoolOptions = {}) {
     this.size =
-      options.size ?? positiveIntegerFromEnvironment("ELEVATION_WORKERS", defaultPoolSize);
+      options.size ?? positiveIntegerFromEnvironment("RASTER_SAMPLING_WORKERS", defaultPoolSize);
     this.maxQueueSize =
-      options.maxQueueSize ?? positiveIntegerFromEnvironment("ELEVATION_MAX_QUEUE", 32);
+      options.maxQueueSize ?? positiveIntegerFromEnvironment("RASTER_SAMPLING_MAX_QUEUE", 32);
     this.jobTimeoutMs =
-      options.jobTimeoutMs ?? positiveIntegerFromEnvironment("ELEVATION_JOB_TIMEOUT_MS", 60_000);
+      options.jobTimeoutMs ??
+      positiveIntegerFromEnvironment("RASTER_SAMPLING_JOB_TIMEOUT_MS", 60_000);
     this.workerFactory =
       options.workerFactory ??
       // esbuild emits the worker entry point beside api.js in development and production.
-      (() => new Worker(new URL("./elevationWorker.js", import.meta.url)) as WorkerLike);
+      (() => new Worker(new URL("./rasterSamplingWorker.js", import.meta.url)) as WorkerLike);
   }
 
-  /** Submits a profile and resolves when a worker returns its result. */
+  /** Submits a raster profile and resolves when a worker returns its result. */
   run(
     descriptor: RasterDescriptor,
     path: GeographicPoint[],
     steps: number[]
-  ): Promise<ElevationWorkerResult> {
+  ): Promise<RasterSamplingWorkerResult> {
     if (this.closing) {
       return Promise.reject(
-        new ElevationWorkerPoolUnavailableError("Elevation workers are closed")
+        new RasterSamplingWorkerPoolUnavailableError("Raster sampling workers are closed")
       );
     }
     this.start();
     const idleWorker = this.workers.find((slot) => !slot.job);
     if (!idleWorker && this.queue.length >= this.maxQueueSize) {
       return Promise.reject(
-        new ElevationWorkerPoolUnavailableError("Elevation worker queue is full")
+        new RasterSamplingWorkerPoolUnavailableError("Raster sampling worker queue is full")
       );
     }
 
@@ -148,7 +148,9 @@ export class ElevationWorkerPool {
   async close(): Promise<void> {
     if (this.closing) return;
     this.closing = true;
-    const closedError = new ElevationWorkerPoolUnavailableError("Elevation workers are closed");
+    const closedError = new RasterSamplingWorkerPoolUnavailableError(
+      "Raster sampling workers are closed"
+    );
     this.queue.splice(0).forEach((job) => job.reject(closedError));
     this.workers.forEach((slot) => {
       if (slot.timeout) clearTimeout(slot.timeout);
@@ -160,7 +162,7 @@ export class ElevationWorkerPool {
   }
 
   private start(): void {
-    // Start lazily so processes that never sample elevation do not create threads.
+    // Start lazily so processes that never sample rasters do not create threads.
     if (this.started) return;
     this.started = true;
     for (let index = 0; index < this.size; index += 1) this.addWorker();
@@ -171,7 +173,7 @@ export class ElevationWorkerPool {
     const worker = this.workerFactory();
     const slot: WorkerSlot = { worker, workerId: this.nextWorkerId++ };
     this.workers.push(slot);
-    worker.on("message", (response: ElevationWorkerResponse) =>
+    worker.on("message", (response: RasterSamplingWorkerResponse) =>
       this.handleResponse(slot, response)
     );
     // An uncaught worker error terminates that thread. The exit event may follow, so failure
@@ -179,7 +181,10 @@ export class ElevationWorkerPool {
     worker.on("error", (error: Error) => this.handleWorkerFailure(slot, error));
     worker.on("exit", (code: number) => {
       if (code !== 0) {
-        this.handleWorkerFailure(slot, new Error(`Elevation worker exited with code ${code}`));
+        this.handleWorkerFailure(
+          slot,
+          new Error(`Raster sampling worker exited with code ${code}`)
+        );
       }
     });
   }
@@ -191,8 +196,8 @@ export class ElevationWorkerPool {
       // JavaScript running inside a worker cannot be interrupted safely; terminate the thread.
       this.handleWorkerFailure(
         slot,
-        new ElevationWorkerPoolUnavailableError(
-          `Elevation worker exceeded the ${this.jobTimeoutMs} ms timeout`
+        new RasterSamplingWorkerPoolUnavailableError(
+          `Raster sampling worker exceeded the ${this.jobTimeoutMs} ms timeout`
         )
       );
       slot.worker.terminate().catch((): undefined => undefined);
@@ -201,11 +206,14 @@ export class ElevationWorkerPool {
     slot.worker.postMessage(job.request);
   }
 
-  private handleResponse(slot: WorkerSlot, response: ElevationWorkerResponse): void {
+  private handleResponse(slot: WorkerSlot, response: RasterSamplingWorkerResponse): void {
     const job = slot.job;
     if (!job || response.id !== job.request.id) {
       // IDs prevent a stale or malformed message from resolving the wrong caller's promise.
-      this.handleWorkerFailure(slot, new Error("Elevation worker returned an unexpected response"));
+      this.handleWorkerFailure(
+        slot,
+        new Error("Raster sampling worker returned an unexpected response")
+      );
       slot.worker.terminate().catch((): undefined => undefined);
       return;
     }
@@ -234,9 +242,9 @@ export class ElevationWorkerPool {
     this.workers.splice(index, 1);
     if (slot.timeout) clearTimeout(slot.timeout);
     slot.job?.reject(
-      error instanceof ElevationWorkerPoolUnavailableError
+      error instanceof RasterSamplingWorkerPoolUnavailableError
         ? error
-        : new ElevationWorkerPoolUnavailableError(error.message)
+        : new RasterSamplingWorkerPoolUnavailableError(error.message)
     );
     if (!this.closing) {
       this.addWorker();
@@ -265,12 +273,12 @@ export class ElevationWorkerPool {
   }
 }
 
-const elevationWorkerPool = new ElevationWorkerPool();
+const rasterSamplingWorkerPool = new RasterSamplingWorkerPool();
 
-export const readElevationProfileInWorker = (
+export const sampleRasterProfileInWorker = (
   descriptor: RasterDescriptor,
   path: GeographicPoint[],
   steps: number[]
-): Promise<ElevationWorkerResult> => elevationWorkerPool.run(descriptor, path, steps);
+): Promise<RasterSamplingWorkerResult> => rasterSamplingWorkerPool.run(descriptor, path, steps);
 
-export const closeElevationWorkerPool = (): Promise<void> => elevationWorkerPool.close();
+export const closeRasterSamplingWorkerPool = (): Promise<void> => rasterSamplingWorkerPool.close();
