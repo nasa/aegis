@@ -34,6 +34,10 @@ service with Node inside the existing Express API. The mission's existing `demFi
 - [x] Remove the GDAL/Python runtime and all associated Compose, environment, CI, and debug
       configuration.
 - [x] Audit all 45 current Automerge missions and every locally available configured DEM.
+- [x] Move complete elevation profile jobs to a bounded persistent `worker_threads` pool so
+      interpolation, projection, decompression, and raster extraction do not block the API event
+      loop. The pool has queue limits, execution timeouts, worker replacement, and graceful
+      shutdown.
 
 ### Compatibility audit and fixtures
 
@@ -335,7 +339,22 @@ sampled**:
 | **C. `worker_threads` (in-process)** | Move the whole sample-a-profile job to a worker thread (optionally via a pool like `piscina`).            | Keeps everything in one process; can transfer typed arrays with zero-copy; full isolation of CPU work. | More plumbing; must marshal args/results; still shares the process (a crash can affect the API).                                              |
 | **D. Separate subprocess/service**   | Keep an out-of-process elevation service (essentially what GDAL is today, but in Node).                   | Full isolation; can scale/restart independently.                                                       | Re-introduces the very cross-process hop and ops burden this migration is trying to remove. **Not recommended** — it undoes the main benefit. |
 
-### Recommendation
+### Implemented follow-up
+
+Profiling-oriented review confirmed that Deflate decoding, projection, interpolation, and raster
+extraction all perform synchronous CPU work. The complete profile job now runs in a small,
+persistent `worker_threads` pool rather than moving decompression alone to a geotiff.js pool.
+Authorization, mission lookup, request validation, and trusted path resolution remain on the API
+thread. Worker-local raster caches retain open handles without sharing unsafe decoder state across
+threads.
+
+The pool defaults to `min(4, max(1, availableParallelism() - 1))` workers, a 32-job queue, and a
+60-second execution timeout. Deployments can tune these with `ELEVATION_WORKERS`,
+`ELEVATION_MAX_QUEUE`, and `ELEVATION_JOB_TIMEOUT_MS`. Saturation and timeouts return HTTP 503;
+worker failures reject the active request and replace the failed worker. Logs separate queue,
+execution, and total wall time.
+
+### Original recommendation
 
 - **Start with Option A (main thread).** For the dominant workload (single points, station
   elevations, typical traverses) the CPU cost is small and offloading would add complexity and
