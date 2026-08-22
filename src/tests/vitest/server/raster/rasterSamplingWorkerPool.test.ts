@@ -114,6 +114,87 @@ describe("RasterSamplingWorkerPool", () => {
     await pool.close();
   });
 
+  it("rejects weighted capacity and releases it after completion", async () => {
+    const worker = new FakeWorker();
+    const pool = new RasterSamplingWorkerPool({
+      size: 1,
+      maxAdmittedWeight: 4,
+      workerFactory: () => worker,
+    });
+
+    const active = pool.run(descriptor, path, [4]);
+    await expect(pool.run(descriptor, path, [2])).rejects.toMatchObject({
+      code: "RASTER_SAMPLING_BUSY",
+    });
+    expect(pool.snapshot().admittedWeight).toBe(4);
+    worker.succeed();
+    await active;
+    expect(pool.snapshot().admittedWeight).toBe(0);
+    await pool.close();
+  });
+
+  it("supersedes older queued generations without replacing the worker", async () => {
+    const worker = new FakeWorker();
+    const pool = new RasterSamplingWorkerPool({ size: 1, workerFactory: () => worker });
+    const active = pool.run(descriptor, path, [2], {
+      supersession: { streamKey: "user:1:mission:2:measurement:abc", generation: 1 },
+    });
+    const queued = pool.run(descriptor, path, [2], {
+      supersession: { streamKey: "user:1:mission:2:measurement:abc", generation: 2 },
+    });
+    const latest = pool.run(descriptor, path, [2], {
+      supersession: { streamKey: "user:1:mission:2:measurement:abc", generation: 3 },
+    });
+
+    await expect(queued).rejects.toMatchObject({ code: "RASTER_SAMPLING_SUPERSEDED" });
+    expect(worker.terminate).not.toHaveBeenCalled();
+    expect(pool.snapshot()).toMatchObject({ queueDepth: 1, admittedWeight: 4 });
+    worker.succeed();
+    await active;
+    worker.succeed(1);
+    await latest;
+    expect(pool.snapshot()).toMatchObject({ admittedWeight: 0, supersededQueuedJobs: 1 });
+    await pool.close();
+  });
+
+  it("expires queued work before dispatch and releases capacity", async () => {
+    vi.useFakeTimers();
+    const worker = new FakeWorker();
+    const pool = new RasterSamplingWorkerPool({
+      size: 1,
+      queueDeadlineMs: 100,
+      workerFactory: () => worker,
+    });
+    const active = pool.run(descriptor, path, [2]);
+    const queued = pool.run(descriptor, path, [2]);
+    const queuedExpectation = expect(queued).rejects.toMatchObject({
+      code: "RASTER_SAMPLING_QUEUE_DEADLINE",
+    });
+    await vi.advanceTimersByTimeAsync(100);
+    await queuedExpectation;
+    expect(worker.requests).toHaveLength(1);
+    expect(pool.snapshot()).toMatchObject({ queueDepth: 0, admittedWeight: 2 });
+    worker.succeed();
+    await active;
+    await pool.close();
+    vi.useRealTimers();
+  });
+
+  it("cancels queued work without replacing the worker", async () => {
+    const worker = new FakeWorker();
+    const pool = new RasterSamplingWorkerPool({ size: 1, workerFactory: () => worker });
+    const active = pool.run(descriptor, path, [2]);
+    const controller = new AbortController();
+    const queued = pool.run(descriptor, path, [2], { signal: controller.signal });
+    controller.abort();
+    await expect(queued).rejects.toMatchObject({ code: "RASTER_SAMPLING_CANCELLED" });
+    expect(pool.snapshot()).toMatchObject({ queueDepth: 0, admittedWeight: 2 });
+    expect(worker.terminate).not.toHaveBeenCalled();
+    worker.succeed();
+    await active;
+    await pool.close();
+  });
+
   it("rejects the active job and replaces a failed worker", async () => {
     const firstWorker = new FakeWorker();
     const replacementWorker = new FakeWorker();

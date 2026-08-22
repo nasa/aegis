@@ -32,16 +32,13 @@ import { Style, Circle as CircleStyle, Fill, Stroke } from "ol/style";
 import throttle from "lodash/throttle";
 
 import { useAppSelector, refEqual } from "utils/useAppSelector";
-import { useMissionDocSelector } from "utils/useDocSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { updateMapDirective } from "store/map";
 import { thunkDocUpdateTraverse, thunkDocResetTraverse } from "store/thunk/thunkTraverse";
 import { thunkDocUpdateWalkback, thunkDocResetWalkback } from "store/thunk/thunkStation";
 import { thunkUpdateMeasurementPath } from "store/thunk/thunkMeasurement";
-import { upsertMeasurement } from "store/measure";
-import { getSegmentBearing, getTotalDistance } from "utils/mapping/geoMath";
+import { cancelAllMeasurementElevations } from "store/thunk/measurementElevationScheduler";
 
-import { store } from "store";
 import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkDocUpdateStationLocation } from "store/thunk/thunkStation";
 import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
@@ -152,20 +149,7 @@ export function InteractionManager(): null {
   const selectionKey = `${sectionSelected}|${bottomSectionSelected}|${selectedPoiUuid}|${selectedStationUuid}|${selectedSeqItemUuid}|${selectedMeasurementUuid}`;
   const selectionKeyAtEditStartRef = useRef<string | null>(null);
 
-  // Read planetRadius from the doc for distance calculations in measurement edits.
-  const planetRadiusRef = useRef<number>(1737400);
-  const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
-  useEffect(() => {
-    if (planetRadius != null) planetRadiusRef.current = planetRadius;
-  }, [planetRadius]);
-
-  // Coordinate frame for segment bearings during measurement edits (LPS grid
-  // for lunar/LGRS missions, true-north azimuth otherwise).
-  const usingLGRSCoordinatesRef = useRef<boolean>(false);
-  const usingLGRSCoordinates = useMissionDocSelector((m) => m.usingLGRSCoordinates, refEqual);
-  useEffect(() => {
-    usingLGRSCoordinatesRef.current = !!usingLGRSCoordinates;
-  }, [usingLGRSCoordinates]);
+  useEffect(() => () => cancelAllMeasurementElevations(), []);
 
   // Track the active interaction so we can clean up on directive change
   const activeRef = useRef<ActiveInteraction | null>(null);
@@ -411,31 +395,6 @@ export function InteractionManager(): null {
           } else if (mapDirective.mapItemType === "walkback") {
             dispatch(thunkDocUpdateWalkback({ path, stationUuid: mapDirective.uuid }));
           } else if (mapDirective.mapItemType === "measurement") {
-            // Synchronous update: distances + bearings immediately for timeline
-            const measurements = store.getState().measure.measurements;
-            const measurement = measurements.find((m) => m.uuid === mapDirective.uuid);
-            if (!measurement) return;
-            const pathSegmentDistances: number[] = [];
-            for (let i = 1; i < path.length; i++) {
-              pathSegmentDistances.push(
-                getTotalDistance([path[i - 1], path[i]], planetRadiusRef.current)
-              );
-            }
-            const pathSegmentBearings: number[] = [];
-            for (let i = 1; i < path.length; i++) {
-              pathSegmentBearings.push(
-                getSegmentBearing(path[i - 1], path[i], usingLGRSCoordinatesRef.current)
-              );
-            }
-            dispatch(
-              upsertMeasurement({
-                ...measurement,
-                path,
-                pathSegmentDistances,
-                pathSegmentBearings,
-              })
-            );
-            // Async elevation fetch — updates the elevation profile when response arrives
             dispatch(thunkUpdateMeasurementPath({ path, measurementUuid: mapDirective.uuid }));
           }
         }, 100);
@@ -476,8 +435,8 @@ export function InteractionManager(): null {
 
         // Full save on modify end: includes elevation + endpoint snapping for traverses
         const handleModifyEnd = async () => {
-          // Flush any pending throttled save first
-          throttledSave.flush();
+          if (mapDirective.mapItemType === "measurement") throttledSave.cancel();
+          else throttledSave.flush();
           const geomEnd = feature.getGeometry();
           if (!(geomEnd instanceof LineString)) return;
           const path = geomEnd.getCoordinates().map((c) => toAegisPoint(c));
@@ -487,7 +446,13 @@ export function InteractionManager(): null {
           } else if (mapDirective.mapItemType === "walkback") {
             dispatch(thunkDocUpdateWalkback({ path, stationUuid: mapDirective.uuid }));
           } else if (mapDirective.mapItemType === "measurement") {
-            dispatch(thunkUpdateMeasurementPath({ path, measurementUuid: mapDirective.uuid }));
+            dispatch(
+              thunkUpdateMeasurementPath({
+                path,
+                measurementUuid: mapDirective.uuid,
+                final: true,
+              })
+            );
           }
         };
 

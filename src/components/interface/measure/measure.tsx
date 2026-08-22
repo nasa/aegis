@@ -15,6 +15,7 @@ import throttle from "lodash/throttle";
 import isNil from "lodash/isNil";
 import { clearMapItemHover } from "store/hover";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { retryMeasurementElevation } from "store/thunk/measurementElevationScheduler";
 
 const initHoverValues: MeasureHoverValues = {
   totalDistanceMeters: null,
@@ -36,6 +37,13 @@ const Measure: FunctionComponent = () => {
       ? state.map.mapDirective
       : null;
   }, deepEqual);
+  const elevationStatus = useAppSelector(
+    (state) =>
+      selectedMeasurement
+        ? state.measure.elevationStatusByUuid[selectedMeasurement.uuid]
+        : undefined,
+    deepEqual
+  );
 
   const usingLGRSCoordinates = useMissionDocSelector(
     (mission) => mission.usingLGRSCoordinates,
@@ -87,7 +95,8 @@ const Measure: FunctionComponent = () => {
       measurePaperGroupsRef,
       measureDerivedValuesRef,
       selectedMeasurement?.pathSegmentDistances,
-      selectedMeasurement?.pathSegmentElevations
+      selectedMeasurement?.pathSegmentElevations,
+      selectedMeasurement?.elevationPathSegmentDistances
     );
 
     setHoverValues({
@@ -209,6 +218,33 @@ const Measure: FunctionComponent = () => {
                 )}
               </div>
               <MeasureHoverValues hoverValues={hoverValues} />
+              {elevationStatus?.status === "loading" && (
+                <div className={styles.elevationStatus} role="status">
+                  Updating elevation…
+                </div>
+              )}
+              {elevationStatus?.status === "delayed" && (
+                <div className={styles.elevationStatus} role="status">
+                  Elevation update delayed—server busy
+                </div>
+              )}
+              {elevationStatus?.status === "stale" && (
+                <div className={styles.elevationStatus} role="status">
+                  Showing previous elevation
+                </div>
+              )}
+              {elevationStatus?.status === "error" && (
+                <div className={styles.elevationStatus} role="alert">
+                  Elevation unavailable
+                  <button
+                    className={styles.elevationRetry}
+                    type="button"
+                    onClick={() => retryMeasurementElevation(dispatch, selectedMeasurement.uuid)}
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -230,7 +266,8 @@ function initMeasurePaperRefs(
   measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
   measureDerivedValuesRef: MutableRefObject<MeasureDerivedValues>,
   pathSegmentDistances: number[],
-  pathSegmentElevations: number[][]
+  pathSegmentElevations: number[][],
+  elevationPathSegmentDistances?: number[]
 ): void {
   //init groups
   measurePaperGroupsRef.current = {
@@ -302,8 +339,9 @@ function initMeasurePaperRefs(
     }
   }
 
+  const graphDistances = elevationPathSegmentDistances ?? pathSegmentDistances;
   measureDerivedValuesRef.current.totalDistanceMeters =
-    pathSegmentDistances?.reduce((a, b) => a + b, 0) ?? 0;
+    graphDistances?.reduce((a, b) => a + b, 0) ?? 0;
 
   //calculate paper vars. These are pixel and spacing variables that help determine where to draw things
   const paperVars = measurePaperDataRef.current.paperVars; //save this to a shorter reference so it reduces the variable name when used below

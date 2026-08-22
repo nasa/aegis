@@ -1,9 +1,25 @@
-import { availableParallelism } from "node:os";
 import { performance } from "node:perf_hooks";
 import { Worker } from "node:worker_threads";
 
+import {
+  DEFAULT_RASTER_SAMPLING_JOB_TIMEOUT_MS,
+  DEFAULT_RASTER_SAMPLING_MAX_ADMITTED_SAMPLES,
+  DEFAULT_RASTER_SAMPLING_MAX_QUEUE,
+  DEFAULT_RASTER_SAMPLING_QUEUE_DEADLINE_MS,
+  DEFAULT_RASTER_SAMPLING_WORKERS,
+  validateRasterProfileRequest,
+} from "./constants";
+import {
+  RasterSamplingCancelledError,
+  RasterSamplingError,
+  RasterSamplingSupersededError,
+  RasterSamplingWorkerPoolUnavailableError,
+  type RasterSamplingErrorCode,
+} from "./rasterSamplingErrors";
 import type { RasterProfileSamplingResult } from "./sampleRasterProfile";
 import type { GeographicPoint, RasterDescriptor } from "./types";
+
+export { RasterSamplingWorkerPoolUnavailableError } from "./rasterSamplingErrors";
 
 export type RasterSamplingWorkerRequest = {
   id: number;
@@ -16,6 +32,7 @@ type SerializedWorkerError = {
   name: string;
   message: string;
   stack?: string;
+  code?: string;
 };
 
 export type RasterSamplingWorkerResponse =
@@ -31,10 +48,29 @@ type WorkerLike = {
   terminate(): Promise<number>;
 };
 
+export type RasterSamplingSupersession = {
+  streamKey: string;
+  generation: number;
+};
+
+export type RasterSamplingRunOptions = {
+  signal?: AbortSignal;
+  supersession?: RasterSamplingSupersession;
+  queueDeadlineMs?: number;
+};
+
 type Job = {
   // postMessage uses structured cloning, so requests contain only plain data.
   request: RasterSamplingWorkerRequest;
+  cost: number;
   queuedAt: number;
+  queueDeadlineAt: number;
+  supersession?: RasterSamplingSupersession;
+  signal?: AbortSignal;
+  abortListener?: () => void;
+  queueTimer?: NodeJS.Timeout;
+  settled: boolean;
+  active: boolean;
   resolve: (result: RasterSamplingWorkerResult) => void;
   reject: (error: Error) => void;
 };
@@ -54,28 +90,30 @@ export type RasterSamplingWorkerResult = RasterProfileSamplingResult & {
   executionDurationMs: number;
 };
 
-export class RasterSamplingWorkerPoolUnavailableError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "RasterSamplingWorkerPoolUnavailableError";
-  }
-}
+export type RasterSamplingWorkerPoolSnapshot = {
+  workerCount: number;
+  activeWorkers: number;
+  queueDepth: number;
+  activeWeight: number;
+  queuedWeight: number;
+  admittedWeight: number;
+  maxQueueSize: number;
+  maxAdmittedWeight: number;
+  supersededQueuedJobs: number;
+  cancelledQueuedJobs: number;
+  queueDeadlineCount: number;
+  executionTimeoutCount: number;
+  workerRestartCount: number;
+};
 
-type RasterSamplingWorkerPoolOptions = {
+export type RasterSamplingWorkerPoolOptions = {
   size?: number;
   maxQueueSize?: number;
+  maxAdmittedWeight?: number;
+  queueDeadlineMs?: number;
   jobTimeoutMs?: number;
   workerFactory?: () => WorkerLike;
 };
-
-const positiveIntegerFromEnvironment = (name: string, fallback: number): number => {
-  const value = Number(process.env[name]);
-  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
-};
-
-// RASTER_SAMPLING_WORKERS overrides this default. Reserve one logical CPU for the API and cap
-// the default at four workers. With two cores, one worker keeps the API responsive while sampling.
-const defaultPoolSize = Math.min(4, Math.max(1, availableParallelism() - 1));
 
 /**
  * Runs CPU-heavy raster profile sampling outside the API event loop.
@@ -91,6 +129,8 @@ const defaultPoolSize = Math.min(4, Math.max(1, availableParallelism() - 1));
 export class RasterSamplingWorkerPool {
   private readonly size: number;
   private readonly maxQueueSize: number;
+  private readonly maxAdmittedWeight: number;
+  private readonly queueDeadlineMs: number;
   private readonly jobTimeoutMs: number;
   private readonly workerFactory: () => WorkerLike;
   private readonly workers: WorkerSlot[] = [];
@@ -99,15 +139,20 @@ export class RasterSamplingWorkerPool {
   private nextWorkerId = 1;
   private started = false;
   private closing = false;
+  private admittedWeight = 0;
+  private supersededQueuedJobs = 0;
+  private cancelledQueuedJobs = 0;
+  private queueDeadlineCount = 0;
+  private executionTimeoutCount = 0;
+  private workerRestartCount = 0;
 
   constructor(options: RasterSamplingWorkerPoolOptions = {}) {
-    this.size =
-      options.size ?? positiveIntegerFromEnvironment("RASTER_SAMPLING_WORKERS", defaultPoolSize);
-    this.maxQueueSize =
-      options.maxQueueSize ?? positiveIntegerFromEnvironment("RASTER_SAMPLING_MAX_QUEUE", 32);
-    this.jobTimeoutMs =
-      options.jobTimeoutMs ??
-      positiveIntegerFromEnvironment("RASTER_SAMPLING_JOB_TIMEOUT_MS", 60_000);
+    this.size = options.size ?? DEFAULT_RASTER_SAMPLING_WORKERS;
+    this.maxQueueSize = options.maxQueueSize ?? DEFAULT_RASTER_SAMPLING_MAX_QUEUE;
+    this.maxAdmittedWeight =
+      options.maxAdmittedWeight ?? DEFAULT_RASTER_SAMPLING_MAX_ADMITTED_SAMPLES;
+    this.queueDeadlineMs = options.queueDeadlineMs ?? DEFAULT_RASTER_SAMPLING_QUEUE_DEADLINE_MS;
+    this.jobTimeoutMs = options.jobTimeoutMs ?? DEFAULT_RASTER_SAMPLING_JOB_TIMEOUT_MS;
     this.workerFactory =
       options.workerFactory ??
       // esbuild emits the worker entry point beside api.js in development and production.
@@ -118,43 +163,94 @@ export class RasterSamplingWorkerPool {
   run(
     descriptor: RasterDescriptor,
     path: GeographicPoint[],
-    steps: number[]
+    steps: number[],
+    options: RasterSamplingRunOptions = {}
   ): Promise<RasterSamplingWorkerResult> {
     if (this.closing) {
       return Promise.reject(
-        new RasterSamplingWorkerPoolUnavailableError("Raster sampling workers are closed")
+        new RasterSamplingWorkerPoolUnavailableError(
+          "Raster sampling workers are closed",
+          "RASTER_SAMPLING_CLOSED"
+        )
       );
     }
+    if (options.signal?.aborted) return Promise.reject(new RasterSamplingCancelledError());
+
+    const cost = validateRasterProfileRequest(path.length, steps);
+    this.validateSupersession(options.supersession);
     this.start();
+    const superseded = options.supersession
+      ? this.removeSupersededQueuedJobs(options.supersession)
+      : 0;
+    this.supersededQueuedJobs += superseded;
+
     const idleWorker = this.workers.find((slot) => !slot.job);
     if (!idleWorker && this.queue.length >= this.maxQueueSize) {
-      return Promise.reject(
-        new RasterSamplingWorkerPoolUnavailableError("Raster sampling worker queue is full")
-      );
+      return Promise.reject(this.busyError("Raster sampling worker queue is full"));
+    }
+    if (this.admittedWeight + cost > this.maxAdmittedWeight) {
+      return Promise.reject(this.busyError("Raster sampling capacity is full"));
     }
 
     return new Promise((resolve, reject) => {
+      const queuedAt = performance.now();
+      const queueDeadlineMs = options.queueDeadlineMs ?? this.queueDeadlineMs;
       const job: Job = {
         request: { id: this.nextJobId++, descriptor, path, steps },
-        queuedAt: performance.now(),
+        cost,
+        queuedAt,
+        queueDeadlineAt: queuedAt + queueDeadlineMs,
+        supersession: options.supersession,
+        signal: options.signal,
+        settled: false,
+        active: false,
         resolve,
         reject,
       };
+      this.admittedWeight += cost;
+      if (options.signal) {
+        job.abortListener = () => this.cancelJob(job);
+        options.signal.addEventListener("abort", job.abortListener, { once: true });
+      }
       if (idleWorker) this.dispatch(idleWorker, job);
-      else this.queue.push(job);
+      else {
+        this.queue.push(job);
+        job.queueTimer = setTimeout(() => this.expireQueuedJob(job), queueDeadlineMs);
+        job.queueTimer.unref();
+      }
     });
+  }
+
+  snapshot(): RasterSamplingWorkerPoolSnapshot {
+    const activeJobs = this.workers.flatMap((slot) => (slot.job ? [slot.job] : []));
+    return {
+      workerCount: this.workers.length,
+      activeWorkers: activeJobs.length,
+      queueDepth: this.queue.length,
+      activeWeight: activeJobs.reduce((total, job) => total + job.cost, 0),
+      queuedWeight: this.queue.reduce((total, job) => total + job.cost, 0),
+      admittedWeight: this.admittedWeight,
+      maxQueueSize: this.maxQueueSize,
+      maxAdmittedWeight: this.maxAdmittedWeight,
+      supersededQueuedJobs: this.supersededQueuedJobs,
+      cancelledQueuedJobs: this.cancelledQueuedJobs,
+      queueDeadlineCount: this.queueDeadlineCount,
+      executionTimeoutCount: this.executionTimeoutCount,
+      workerRestartCount: this.workerRestartCount,
+    };
   }
 
   async close(): Promise<void> {
     if (this.closing) return;
     this.closing = true;
-    const closedError = new RasterSamplingWorkerPoolUnavailableError(
-      "Raster sampling workers are closed"
+    const error = new RasterSamplingWorkerPoolUnavailableError(
+      "Raster sampling workers are closed",
+      "RASTER_SAMPLING_CLOSED"
     );
-    this.queue.splice(0).forEach((job) => job.reject(closedError));
+    this.queue.splice(0).forEach((job) => this.finishJob(job, error));
     this.workers.forEach((slot) => {
       if (slot.timeout) clearTimeout(slot.timeout);
-      slot.job?.reject(closedError);
+      if (slot.job) this.finishJob(slot.job, error);
       slot.job = undefined;
     });
     const workers = this.workers.splice(0);
@@ -173,37 +269,66 @@ export class RasterSamplingWorkerPool {
     const worker = this.workerFactory();
     const slot: WorkerSlot = { worker, workerId: this.nextWorkerId++ };
     this.workers.push(slot);
-    worker.on("message", (response: RasterSamplingWorkerResponse) =>
-      this.handleResponse(slot, response)
-    );
+    worker.on("message", (response) => this.handleResponse(slot, response));
     // An uncaught worker error terminates that thread. The exit event may follow, so failure
     // handling first verifies that the slot is still registered.
-    worker.on("error", (error: Error) => this.handleWorkerFailure(slot, error));
-    worker.on("exit", (code: number) => {
+    worker.on("error", (error) => this.handleWorkerFailure(slot, error));
+    worker.on("exit", (code) => {
       if (code !== 0) {
         this.handleWorkerFailure(
           slot,
-          new Error(`Raster sampling worker exited with code ${code}`)
+          new RasterSamplingWorkerPoolUnavailableError(
+            `Raster sampling worker exited with code ${code}`,
+            "RASTER_SAMPLING_WORKER_FAILED"
+          )
         );
       }
     });
   }
 
   private dispatch(slot: WorkerSlot, job: Job): void {
+    if (performance.now() >= job.queueDeadlineAt) {
+      this.queueDeadlineCount += 1;
+      this.finishJob(
+        job,
+        new RasterSamplingWorkerPoolUnavailableError(
+          "Raster sampling queue deadline exceeded",
+          "RASTER_SAMPLING_QUEUE_DEADLINE",
+          250
+        )
+      );
+      this.dispatchNext(slot);
+      return;
+    }
+    if (job.queueTimer) clearTimeout(job.queueTimer);
+    job.queueTimer = undefined;
+    job.active = true;
     slot.job = job;
     slot.startedAt = performance.now();
     slot.timeout = setTimeout(() => {
       // JavaScript running inside a worker cannot be interrupted safely; terminate the thread.
+      this.executionTimeoutCount += 1;
       this.handleWorkerFailure(
         slot,
         new RasterSamplingWorkerPoolUnavailableError(
-          `Raster sampling worker exceeded the ${this.jobTimeoutMs} ms timeout`
+          `Raster sampling worker exceeded the ${this.jobTimeoutMs} ms timeout`,
+          "RASTER_SAMPLING_TIMEOUT"
         )
       );
       slot.worker.terminate().catch((): undefined => undefined);
     }, this.jobTimeoutMs);
     slot.timeout.unref();
-    slot.worker.postMessage(job.request);
+    try {
+      slot.worker.postMessage(job.request);
+    } catch (error) {
+      this.handleWorkerFailure(
+        slot,
+        new RasterSamplingWorkerPoolUnavailableError(
+          error instanceof Error ? error.message : "Unable to dispatch raster sampling job",
+          "RASTER_SAMPLING_WORKER_FAILED"
+        )
+      );
+    }
   }
 
   private handleResponse(slot: WorkerSlot, response: RasterSamplingWorkerResponse): void {
@@ -212,23 +337,30 @@ export class RasterSamplingWorkerPool {
       // IDs prevent a stale or malformed message from resolving the wrong caller's promise.
       this.handleWorkerFailure(
         slot,
-        new Error("Raster sampling worker returned an unexpected response")
+        new RasterSamplingWorkerPoolUnavailableError(
+          "Raster sampling worker returned an unexpected response",
+          "RASTER_SAMPLING_WORKER_FAILED"
+        )
       );
       slot.worker.terminate().catch((): undefined => undefined);
       return;
     }
     if (slot.timeout) clearTimeout(slot.timeout);
     const completedAt = performance.now();
-    if (response.status === "success") {
-      job.resolve({
-        ...response.result,
-        workerId: slot.workerId,
-        queueDurationMs: (slot.startedAt ?? completedAt) - job.queuedAt,
-        executionDurationMs: completedAt - (slot.startedAt ?? completedAt),
-      });
-    } else {
-      job.reject(this.deserializeError(response.error));
-    }
+    const result =
+      response.status === "success"
+        ? {
+            ...response.result,
+            workerId: slot.workerId,
+            queueDurationMs: (slot.startedAt ?? completedAt) - job.queuedAt,
+            executionDurationMs: completedAt - (slot.startedAt ?? completedAt),
+          }
+        : undefined;
+    this.finishJob(
+      job,
+      response.status === "error" ? this.deserializeError(response.error) : null,
+      result
+    );
     slot.job = undefined;
     slot.startedAt = undefined;
     slot.timeout = undefined;
@@ -241,12 +373,19 @@ export class RasterSamplingWorkerPool {
     if (index === -1) return;
     this.workers.splice(index, 1);
     if (slot.timeout) clearTimeout(slot.timeout);
-    slot.job?.reject(
-      error instanceof RasterSamplingWorkerPoolUnavailableError
-        ? error
-        : new RasterSamplingWorkerPoolUnavailableError(error.message)
-    );
+    if (slot.job) {
+      this.finishJob(
+        slot.job,
+        error instanceof RasterSamplingError
+          ? error
+          : new RasterSamplingWorkerPoolUnavailableError(
+              error.message,
+              "RASTER_SAMPLING_WORKER_FAILED"
+            )
+      );
+    }
     if (!this.closing) {
+      this.workerRestartCount += 1;
       this.addWorker();
       this.dispatchQueuedJobs();
     }
@@ -265,8 +404,85 @@ export class RasterSamplingWorkerPool {
       });
   }
 
+  private removeSupersededQueuedJobs(supersession: RasterSamplingSupersession): number {
+    let removed = 0;
+    for (let index = this.queue.length - 1; index >= 0; index -= 1) {
+      const queued = this.queue[index];
+      if (
+        queued.supersession?.streamKey === supersession.streamKey &&
+        queued.supersession.generation < supersession.generation
+      ) {
+        this.queue.splice(index, 1);
+        this.finishJob(queued, new RasterSamplingSupersededError());
+        removed += 1;
+      }
+    }
+    return removed;
+  }
+
+  private cancelJob(job: Job): void {
+    if (job.active) {
+      // Active work is allowed to finish so ordinary disconnects do not churn workers.
+      return;
+    }
+    const index = this.queue.indexOf(job);
+    if (index === -1) return;
+    this.queue.splice(index, 1);
+    this.cancelledQueuedJobs += 1;
+    this.finishJob(job, new RasterSamplingCancelledError());
+  }
+
+  private expireQueuedJob(job: Job): void {
+    const index = this.queue.indexOf(job);
+    if (index === -1) return;
+    this.queue.splice(index, 1);
+    this.queueDeadlineCount += 1;
+    this.finishJob(
+      job,
+      new RasterSamplingWorkerPoolUnavailableError(
+        "Raster sampling queue deadline exceeded",
+        "RASTER_SAMPLING_QUEUE_DEADLINE",
+        250
+      )
+    );
+  }
+
+  private finishJob(job: Job, error: Error | null, result?: RasterSamplingWorkerResult): void {
+    if (job.queueTimer) clearTimeout(job.queueTimer);
+    if (job.signal && job.abortListener) {
+      job.signal.removeEventListener("abort", job.abortListener);
+    }
+    if (job.active || this.queue.indexOf(job) === -1) {
+      this.admittedWeight = Math.max(0, this.admittedWeight - job.cost);
+    }
+    job.active = false;
+    if (job.settled) return;
+    job.settled = true;
+    if (error) job.reject(error);
+    else if (result) job.resolve(result);
+  }
+
+  private validateSupersession(supersession?: RasterSamplingSupersession): void {
+    if (!supersession) return;
+    if (
+      supersession.streamKey.length < 1 ||
+      supersession.streamKey.length > 256 ||
+      !/^[A-Za-z0-9:_-]+$/.test(supersession.streamKey) ||
+      !Number.isSafeInteger(supersession.generation) ||
+      supersession.generation < 0
+    ) {
+      throw new TypeError("Invalid raster sampling supersession metadata");
+    }
+  }
+
+  private busyError(message: string): RasterSamplingWorkerPoolUnavailableError {
+    return new RasterSamplingWorkerPoolUnavailableError(message, "RASTER_SAMPLING_BUSY", 250);
+  }
+
   private deserializeError(error: SerializedWorkerError): Error {
-    const result = new Error(error.message);
+    const result = error.code
+      ? new RasterSamplingError(error.code as RasterSamplingErrorCode, error.message)
+      : new Error(error.message);
     result.name = error.name;
     result.stack = error.stack;
     return result;
@@ -278,7 +494,12 @@ const rasterSamplingWorkerPool = new RasterSamplingWorkerPool();
 export const sampleRasterProfileInWorker = (
   descriptor: RasterDescriptor,
   path: GeographicPoint[],
-  steps: number[]
-): Promise<RasterSamplingWorkerResult> => rasterSamplingWorkerPool.run(descriptor, path, steps);
+  steps: number[],
+  options?: RasterSamplingRunOptions
+): Promise<RasterSamplingWorkerResult> =>
+  rasterSamplingWorkerPool.run(descriptor, path, steps, options);
+
+export const getRasterSamplingWorkerPoolSnapshot = (): RasterSamplingWorkerPoolSnapshot =>
+  rasterSamplingWorkerPool.snapshot();
 
 export const closeRasterSamplingWorkerPool = (): Promise<void> => rasterSamplingWorkerPool.close();

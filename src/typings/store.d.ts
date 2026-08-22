@@ -96,6 +96,7 @@ interface InterfaceState {
   autoRightPanelOpen: boolean;
   autoBottomPanelOpen: boolean;
   elevationPendingItemUuids: string[];
+  elevationPendingRequests: Record<string, string>;
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
   folders: Folder[];
@@ -148,12 +149,23 @@ interface Measurement {
   path: AEGISPoint[];
   pathSegmentDistances: number[]; //meters
   pathSegmentElevations: number[][]; //meters
+  elevationPathSegmentDistances?: number[];
   pathSegmentBearings: number[]; //degrees
 }
 
 interface MeasureState {
   measurements: Measurement[];
   selectedMeasurementUuid: string;
+  elevationStatusByUuid: Record<string, MeasurementElevationState>;
+}
+
+type MeasurementElevationStatus = "idle" | "loading" | "delayed" | "stale" | "error";
+
+interface MeasurementElevationState {
+  generation: number;
+  displayedGeneration: number;
+  status: MeasurementElevationStatus;
+  retryAfterMs?: number;
 }
 
 interface WholeStoreState {

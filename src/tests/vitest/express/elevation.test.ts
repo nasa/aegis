@@ -3,6 +3,7 @@ const mocks = vi.hoisted(() => ({
   hasPerms: vi.fn(),
   readElevationProfileInWorker: vi.fn(),
   resolveMissionDemPath: vi.fn(),
+  getRasterSamplingWorkerPoolSnapshot: vi.fn(),
 }));
 
 vi.mock("server/express/routes/missionAutomerge", () => ({
@@ -13,7 +14,16 @@ vi.mock("server/elevation/readElevationProfile", () => ({
   readElevationProfileInWorker: mocks.readElevationProfileInWorker,
 }));
 vi.mock("server/raster/rasterSamplingWorkerPool", () => ({
-  RasterSamplingWorkerPoolUnavailableError: class extends Error {},
+  RasterSamplingWorkerPoolUnavailableError: class extends Error {
+    constructor(
+      message: string,
+      readonly code = "RASTER_SAMPLING_BUSY",
+      readonly retryAfterMs?: number
+    ) {
+      super(message);
+    }
+  },
+  getRasterSamplingWorkerPoolSnapshot: mocks.getRasterSamplingWorkerPoolSnapshot,
 }));
 vi.mock("server/elevation/resolveMissionDem", () => ({
   resolveMissionDemPath: mocks.resolveMissionDemPath,
@@ -47,6 +57,11 @@ describe("native elevation route", () => {
       doc: () => ({ demFilePath: "Data/trusted.tif", demResolution: 5 }),
     });
     mocks.resolveMissionDemPath.mockResolvedValue("/static/missionFiles/42/Data/trusted.tif");
+    mocks.getRasterSamplingWorkerPoolSnapshot.mockReturnValue({
+      queueDepth: 0,
+      queuedWeight: 0,
+      activeWorkers: 1,
+    });
     mocks.readElevationProfileInWorker.mockResolvedValue({
       elevations: [[100, 101, 102, 103]],
       samplesRead: 4,
@@ -87,7 +102,8 @@ describe("native elevation route", () => {
     expect(mocks.readElevationProfileInWorker).toHaveBeenCalledWith(
       { absolutePath: "/static/missionFiles/42/Data/trusted.tif" },
       expect.any(Array),
-      [4]
+      [4],
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
   });
 
@@ -100,6 +116,7 @@ describe("native elevation route", () => {
       });
 
     expect(response.status).toBe(400);
+    expect(response.body.code).toBe("ELEVATION_INVALID_REQUEST");
     expect(mocks.readElevationProfileInWorker).not.toHaveBeenCalled();
   });
 
@@ -116,6 +133,7 @@ describe("native elevation route", () => {
     const response = await supertest(app).post("/api/v1/elevation?missionId=42junk").send({});
 
     expect(response.status).toBe(400);
+    expect(response.body.code).toBe("ELEVATION_INVALID_REQUEST");
     expect(mocks.hasPerms).not.toHaveBeenCalled();
   });
 
@@ -134,7 +152,46 @@ describe("native elevation route", () => {
         pathSegmentDistances: [20],
       });
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(422);
+    expect(response.body.code).toBe("ELEVATION_DEM_UNAVAILABLE");
     expect(mocks.readElevationProfileInWorker).not.toHaveBeenCalled();
+  });
+
+  it("rejects excessive sample cost before worker invocation", async () => {
+    const response = await supertest(app)
+      .post("/api/v1/elevation?missionId=42")
+      .send({
+        path: [
+          { lat: -85, lng: 10 },
+          { lat: -85.1, lng: 10.1 },
+        ],
+        pathSegmentDistances: [500_005],
+      });
+
+    expect(response.status).toBe(422);
+    expect(response.body.code).toBe("ELEVATION_TOO_MANY_SAMPLES");
+    expect(mocks.readElevationProfileInWorker).not.toHaveBeenCalled();
+  });
+
+  it("returns retry metadata for global saturation", async () => {
+    const BusyError = (await import("server/raster/rasterSamplingWorkerPool"))
+      .RasterSamplingWorkerPoolUnavailableError;
+    mocks.readElevationProfileInWorker.mockRejectedValue(
+      new BusyError("queue full", "RASTER_SAMPLING_BUSY", 250)
+    );
+
+    const response = await supertest(app)
+      .post("/api/v1/elevation?missionId=42")
+      .send({
+        path: [
+          { lat: -85, lng: 10 },
+          { lat: -85.1, lng: 10.1 },
+        ],
+        pathSegmentDistances: [20],
+      });
+
+    expect(response.status).toBe(503);
+    expect(response.headers["retry-after"]).toBe("1");
+    expect(response.body).toMatchObject({ code: "ELEVATION_BUSY", retryAfterMs: 250 });
   });
 });

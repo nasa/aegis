@@ -132,3 +132,20 @@
   border-radius: 50%;
   margin: 0 0 0 8px;
 }
+
+.elevationStatus {
+  margin: 4px;
+  color: var(--grey5);
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+
+.elevationRetry {
+  margin-left: 4px;
+  padding: 1px 4px;
+  color: var(--grey5);
+  background: transparent;
+  border: 1px solid var(--grey4);
+  border-radius: 2px;
+  cursor: pointer;
+}

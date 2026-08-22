@@ -2,6 +2,14 @@ import { insertElevationPending, removeElevationPending } from "store/interface"
 import appCreateAsyncThunk from "./thunkUtil";
 import { getElevationProfile, getElevationSinglePoint } from "http-client/elevation";
 import { getMissionDocHandle } from "client/automergeDocHandles";
+import { ElevationClientError } from "http-client/elevation";
+
+export type ElevationThunkError = {
+  message: string;
+  code?: ElevationErrorCode;
+  retryAfterMs?: number;
+  aborted?: boolean;
+};
 
 /**
  * Gets elevation fom API endpoint
@@ -15,45 +23,70 @@ export const thunkFetchElevation = appCreateAsyncThunk<
     path: AEGISPoint[];
     pathSegmentDistances: number[];
     uuid: string;
+    streamId?: string;
+    generation?: number;
+    signal?: AbortSignal;
+    trackGlobalPending?: boolean;
   },
   number | number[][],
-  false
->("getElevation", async ({ path, pathSegmentDistances, uuid }, { dispatch, rejectWithValue }) => {
-  //get elevation for a single point or a path
-  const missionDocHandle = getMissionDocHandle();
-  if (!missionDocHandle) return rejectWithValue(false);
-  const mission = missionDocHandle.doc();
-  if (!mission.demFilePath) {
-    throw new Error("No DEM file path found");
+  ElevationThunkError | false
+>(
+  "getElevation",
+  async (
+    { path, pathSegmentDistances, uuid, streamId, generation, signal, trackGlobalPending = true },
+    { dispatch, rejectWithValue, requestId }
+  ) => {
+    //get elevation for a single point or a path
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return rejectWithValue(false);
+    const mission = missionDocHandle.doc();
+    if (!mission.demFilePath) {
+      throw new Error("No DEM file path found");
+    }
+
+    if (trackGlobalPending) dispatch(insertElevationPending({ uuid, requestId }));
+
+    try {
+      let newElevationProfile: WrappedResponse<number[][] | number>;
+      if (path.length === 1) {
+        newElevationProfile = await getElevationSinglePoint(
+          mission.id,
+          mission.demFilePath,
+          path[0],
+          mission.planetRadius,
+          { signal }
+        );
+      } else {
+        const elevationResolutionMeters = mission.demResolution || 10;
+        newElevationProfile = await getElevationProfile(
+          mission.id,
+          mission.demFilePath,
+          path,
+          pathSegmentDistances,
+          elevationResolutionMeters,
+          mission.planetRadius,
+          { signal, streamId, generation }
+        );
+      }
+
+      if (newElevationProfile.status !== "success") {
+        throw new Error("API elevation returned failure");
+      }
+      return newElevationProfile.data;
+    } catch (error) {
+      if (error instanceof ElevationClientError) {
+        return rejectWithValue({
+          message: error.message,
+          code: error.code,
+          retryAfterMs: error.retryAfterMs,
+        });
+      }
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return rejectWithValue({ message: "Elevation request aborted", aborted: true });
+      }
+      throw error;
+    } finally {
+      if (trackGlobalPending) dispatch(removeElevationPending({ uuid, requestId }));
+    }
   }
-
-  dispatch(insertElevationPending(uuid));
-
-  // generate new elevation profile via api
-  let newElevationProfile: WrappedResponse<number[][] | number>;
-  if (path.length === 1) {
-    newElevationProfile = await getElevationSinglePoint(
-      mission.id,
-      mission.demFilePath,
-      path[0],
-      mission.planetRadius
-    );
-  } else {
-    const elevationResolutionMeters = mission.demResolution || 10; // resolution in meters, default 10
-    newElevationProfile = await getElevationProfile(
-      mission.id,
-      mission.demFilePath,
-      path,
-      pathSegmentDistances,
-      elevationResolutionMeters,
-      mission.planetRadius
-    );
-  }
-  dispatch(removeElevationPending(uuid));
-
-  if (newElevationProfile.status !== "success") {
-    throw new Error("API elevation returned failure");
-  }
-
-  return newElevationProfile.data;
-});
+);

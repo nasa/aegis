@@ -63,7 +63,10 @@ const __dirname = path.dirname(__filename);
 
 const app: Application = express();
 
-app.use(express.json({ limit: "40mb" }));
+const globalJsonParser = express.json({ limit: "40mb" });
+app.use((req, res, next) =>
+  req.path === "/api/v1/elevation" ? next() : globalJsonParser(req, res, next)
+);
 app.use(cors());
 app.use(express.urlencoded({ limit: "40mb", extended: true }));
 app.use(

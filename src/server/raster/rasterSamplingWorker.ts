@@ -26,6 +26,7 @@ parentPort.on("message", async (request: RasterSamplingWorkerRequest) => {
         name: workerError.name,
         message: workerError.message,
         stack: workerError.stack,
+        code: "code" in workerError ? String(workerError.code) : undefined,
       },
     };
   }

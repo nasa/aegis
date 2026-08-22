@@ -1,6 +1,7 @@
 import { NODATA_SENTINEL } from "./constants";
 import {
   sampleRasterProfileInWorker,
+  type RasterSamplingRunOptions,
   type RasterSamplingWorkerResult,
 } from "server/raster/rasterSamplingWorkerPool";
 import { sampleRasterProfile } from "server/raster/sampleRasterProfile";
@@ -37,9 +38,10 @@ export const readElevationProfile = async (
 export const readElevationProfileInWorker = async (
   descriptor: RasterDescriptor,
   path: GeographicPoint[],
-  steps: number[]
+  steps: number[],
+  options?: RasterSamplingRunOptions
 ): Promise<ElevationProfileWorkerResult> => {
-  const result = await sampleRasterProfileInWorker(descriptor, path, steps);
+  const result = await sampleRasterProfileInWorker(descriptor, path, steps, options);
   return {
     ...asElevationProfile(result),
     workerId: result.workerId,

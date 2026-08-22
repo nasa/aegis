@@ -10,6 +10,7 @@ export const initialState: InterfaceState = {
   autoRightPanelOpen: true,
   autoBottomPanelOpen: true,
   elevationPendingItemUuids: [],
+  elevationPendingRequests: {},
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
   folders: [],
@@ -41,12 +42,19 @@ export const interfaceSlice = createSlice({
     setAutoBottomPanelOpen: (state, action: { payload: boolean }) => {
       state.autoBottomPanelOpen = action.payload;
     },
-    insertElevationPending: (state, action: { payload: string }) => {
-      state.elevationPendingItemUuids.push(action.payload);
+    insertElevationPending: (state, action: { payload: { uuid: string; requestId: string } }) => {
+      state.elevationPendingRequests[action.payload.requestId] = action.payload.uuid;
+      if (!state.elevationPendingItemUuids.includes(action.payload.uuid)) {
+        state.elevationPendingItemUuids.push(action.payload.uuid);
+      }
     },
-    removeElevationPending: (state, action: { payload: string }) => {
-      const index = state.elevationPendingItemUuids.indexOf(action.payload);
-      if (index > -1) state.elevationPendingItemUuids.splice(index, 1);
+    removeElevationPending: (state, action: { payload: { uuid: string; requestId: string } }) => {
+      delete state.elevationPendingRequests[action.payload.requestId];
+      if (!Object.values(state.elevationPendingRequests).includes(action.payload.uuid)) {
+        state.elevationPendingItemUuids = state.elevationPendingItemUuids.filter(
+          (uuid) => uuid !== action.payload.uuid
+        );
+      }
     },
     setShowDistanceFromLander: (state, action: { payload: boolean }) => {
       state.timelineShowDistanceFromLander = action.payload;

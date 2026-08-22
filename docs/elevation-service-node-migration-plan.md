@@ -347,10 +347,11 @@ Authorization, mission lookup, request validation, and trusted path resolution r
 thread. Worker-local raster caches retain open handles without sharing unsafe decoder state across
 threads.
 
-The pool defaults to `min(4, max(1, availableParallelism() - 1))` workers, a 32-job queue, and a
-60-second execution timeout. The shared raster sampling pool can also serve other analytical
-rasters, such as absolute slope. Deployments can tune it with `RASTER_SAMPLING_WORKERS`,
-`RASTER_SAMPLING_MAX_QUEUE`, and `RASTER_SAMPLING_JOB_TIMEOUT_MS`. Saturation and timeouts return HTTP 503;
+The pool defaults to `min(4, max(1, availableParallelism() - 1))` workers, six queued jobs,
+200,000 admitted samples, a 3-second queue deadline, and a 15-second execution timeout. Elevation
+requests additionally use a 2,000-vertex limit, a 1 MB body limit, and a weighted rate limiter.
+These values are centralized in the raster and elevation constants files. Saturation and timeouts
+return HTTP 503;
 worker failures reject the active request and replace the failed worker. Logs separate queue,
 execution, and total wall time.
 

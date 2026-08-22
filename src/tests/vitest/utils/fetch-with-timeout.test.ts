@@ -74,4 +74,20 @@ describe("clientFetchWithTimeout", () => {
 
     await expect(clientFetchWithTimeout("https://example.com")).rejects.toThrow("Fetch failed");
   });
+
+  it("propagates an external abort signal", async () => {
+    const controller = new AbortController();
+    const abortError = new DOMException("Aborted", "AbortError");
+    (global.fetch as Mock).mockImplementationOnce(
+      (_url: string, { signal }: { signal: AbortSignal }) =>
+        new Promise((_, reject) => signal.addEventListener("abort", () => reject(abortError)))
+    );
+
+    const promise = clientFetchWithTimeout("https://example.com", {
+      signal: controller.signal,
+    });
+    controller.abort();
+
+    await expect(promise).rejects.toThrow("Aborted");
+  });
 });
