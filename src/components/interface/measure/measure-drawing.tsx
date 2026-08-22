@@ -14,6 +14,7 @@ export function drawGraphAxes(
   const paperVars = measurePaperDataRef.current.paperVars;
   const axisGroup = measurePaperGroupsRef.current.axisGroup;
   const paperStyles = measurePaperDataRef.current.styles;
+  const graphBottom = paperVars.slopeTop + paperVars.slopeHeight;
 
   //draw top and bottom lines
   const topLine = new paper.Path.Line({
@@ -22,26 +23,23 @@ export function drawGraphAxes(
     strokeColor: paperStyles.grey3,
   });
   const bottomLine = new paper.Path.Line({
-    from: new paper.Point(paperVars.drawingLeft, paperVars.graphHeight + 20),
-    to: new paper.Point(paperVars.drawingLeft + paperVars.drawingWidth, paperVars.graphHeight),
+    from: new paper.Point(paperVars.drawingLeft, graphBottom),
+    to: new paper.Point(paperVars.drawingLeft + paperVars.drawingWidth, graphBottom),
     strokeColor: paperStyles.grey3,
   });
   const leftLine = new paper.Path.Line({
     from: new paper.Point(paperVars.drawingLeft, paperVars.drawingTop),
-    to: new paper.Point(paperVars.drawingLeft, paperVars.graphHeight + 20),
+    to: new paper.Point(paperVars.drawingLeft, graphBottom),
     strokeColor: paperStyles.grey3,
   });
   const rightLine = new paper.Path.Line({
     from: new paper.Point(paperVars.drawingLeft + paperVars.drawingWidth, paperVars.drawingTop),
-    to: new paper.Point(paperVars.drawingLeft + paperVars.drawingWidth, paperVars.graphHeight),
+    to: new paper.Point(paperVars.drawingLeft + paperVars.drawingWidth, graphBottom),
     strokeColor: paperStyles.grey3,
   });
   const background = new paper.Path.Rectangle({
     from: new paper.Point(paperVars.drawingLeft + 1, paperVars.drawingTop + 1),
-    to: new paper.Point(
-      paperVars.drawingLeft + paperVars.drawingWidth - 1,
-      paperVars.graphHeight + 19
-    ),
+    to: new paper.Point(paperVars.drawingLeft + paperVars.drawingWidth - 1, graphBottom - 1),
     fillColor: paperStyles.grey1,
   });
   axisGroup.addChildren([topLine, bottomLine, leftLine, rightLine, background]);
@@ -201,6 +199,118 @@ export function drawElevationProfile(
   diamond2.rotate(45);
 }
 
+// Matches mission 50's Data/slope_degrees_uint16_cog.json GIS color ramp.
+const SLOPE_COLORS = [
+  "#313695",
+  "#4575b4",
+  "#74add1",
+  "#abd9e9",
+  "#e0f3f8",
+  "#ffffbf",
+  "#fee090",
+  "#fdae61",
+  "#f46d43",
+  "#d73027",
+  "#301f42",
+];
+
+const getSlopeClassIndex = (slopeDegrees: number): number =>
+  Math.min(Math.floor(Math.abs(slopeDegrees) / 2), SLOPE_COLORS.length - 1);
+
+const drawSlopePattern = (
+  group: paper.Group,
+  left: number,
+  right: number,
+  top: number,
+  height: number,
+  patternClass: number,
+  color: paper.Color
+): void => {
+  if (patternClass === 0 || right - left < 2) return;
+
+  const addHatch = (descending: boolean) => {
+    for (let x = left - height; x < right; x += 6) {
+      const startX = Math.max(left, x);
+      const endX = Math.min(right, x + height);
+      if (endX <= startX) continue;
+      const startOffset = startX - x;
+      const endOffset = endX - x;
+      group.addChild(
+        new paper.Path.Line({
+          from: new paper.Point(
+            startX,
+            descending ? top + startOffset : top + height - startOffset
+          ),
+          to: new paper.Point(endX, descending ? top + endOffset : top + height - endOffset),
+          strokeColor: color,
+          strokeWidth: 1,
+          opacity: 0.45,
+        })
+      );
+    }
+  };
+
+  if (patternClass === 1) {
+    for (let x = left + 3; x < right; x += 6) {
+      group.addChild(
+        new paper.Path.Circle({
+          center: new paper.Point(x, top + height / 2),
+          radius: 1,
+          fillColor: color,
+          opacity: 0.55,
+        })
+      );
+    }
+    return;
+  }
+
+  addHatch(patternClass !== 3);
+  if (patternClass >= 4) addHatch(false);
+};
+
+export function drawPathSlope(
+  measurePaperDataRef: MutableRefObject<MeasurePaperData>,
+  measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
+  measureDerivedValuesRef: MutableRefObject<MeasureDerivedValues>
+): void {
+  const paperVars = measurePaperDataRef.current.paperVars;
+  const paperStyles = measurePaperDataRef.current.styles;
+  const slopeGroup = measurePaperGroupsRef.current.slopeGroup;
+  const graphData = measureDerivedValuesRef.current.elevationGraphValues ?? [];
+  slopeGroup.removeChildren();
+
+  for (let index = 0; index < graphData.length - 1; index++) {
+    const start = graphData[index];
+    const end = graphData[index + 1];
+    const startDistance = start.distanceMeters;
+    const endDistance = end.distanceMeters;
+    if (startDistance == null || endDistance == null || endDistance <= startDistance) continue;
+
+    const slopeDegrees = ((start.slopeDegrees ?? 0) + (end.slopeDegrees ?? 0)) / 2;
+    const slopeClass = getSlopeClassIndex(slopeDegrees);
+    const right = Math.min(
+      paperVars.drawingLeft + paperVars.drawingWidth,
+      Math.max(end.xPixel, start.xPixel + 1)
+    );
+    slopeGroup.addChild(
+      new paper.Path.Rectangle({
+        from: new paper.Point(start.xPixel, paperVars.slopeTop),
+        to: new paper.Point(right, paperVars.slopeTop + paperVars.slopeHeight),
+        fillColor: new paper.Color(SLOPE_COLORS[slopeClass]),
+      })
+    );
+    drawSlopePattern(
+      slopeGroup,
+      start.xPixel,
+      right,
+      paperVars.slopeTop,
+      paperVars.slopeHeight,
+      Math.min(Math.floor(slopeClass / 2), 4),
+      paperStyles.grey1
+    );
+  }
+}
+
 export function drawMeasureSegmentDistances(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
   measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
@@ -210,6 +320,7 @@ export function drawMeasureSegmentDistances(
 ): void {
   const paperVars = measurePaperDataRef.current.paperVars;
   const paperStyles = measurePaperDataRef.current.styles;
+  const graphBottom = paperVars.slopeTop + paperVars.slopeHeight;
 
   const lineSegmentMarksGroup = measurePaperGroupsRef.current.lineSegmentMarksGroup;
   lineSegmentMarksGroup.removeChildren();
@@ -232,7 +343,7 @@ export function drawMeasureSegmentDistances(
     const segmentXLoc = locX + (segmentDistance / totalDistance) * paperVars.drawingWidth;
     const line = new paper.Path.Line({
       from: new paper.Point(segmentXLoc, paperVars.drawingTop),
-      to: new paper.Point(segmentXLoc, paperVars.graphHeight + 20),
+      to: new paper.Point(segmentXLoc, graphBottom),
       strokeColor: paperStyles.grey5,
     });
     lineSegmentMarksGroup.addChild(line);
@@ -247,7 +358,7 @@ export function drawMeasureSegmentDistances(
     const rightXLoc = locX + (segmentDistance / totalDistance) * paperVars.drawingWidth;
     const labelLocX = (leftLocX + rightXLoc) / 2;
     const distanceLabel = new paper.PointText({
-      point: new paper.Point(labelLocX, paperVars.graphHeight + 30),
+      point: new paper.Point(labelLocX, graphBottom + 27),
       justification: "center",
       fontFamily: measurePaperDataRef.current.styles.gNavigatorFontFamilyActivity,
       fontSize: 12,
@@ -255,15 +366,15 @@ export function drawMeasureSegmentDistances(
       content: `${segmentDistance.toFixed(0)} m`,
     });
     const leftSegmentArrow = drawLineWithArrowhead(
-      new paper.Point(leftLocX, paperVars.graphHeight + 25),
-      new paper.Point(labelLocX - 30, paperVars.graphHeight + 25),
+      new paper.Point(leftLocX, graphBottom + 22),
+      new paper.Point(labelLocX - 30, graphBottom + 22),
       paperStyles.grey4,
       1,
       "start"
     );
     const rightSegmentArrow = drawLineWithArrowhead(
-      new paper.Point(labelLocX + 30, paperVars.graphHeight + 25),
-      new paper.Point(rightXLoc, paperVars.graphHeight + 25),
+      new paper.Point(labelLocX + 30, graphBottom + 22),
+      new paper.Point(rightXLoc, graphBottom + 22),
       paperStyles.grey4,
       1,
       "end"
@@ -276,7 +387,7 @@ export function drawMeasureSegmentDistances(
     if (usingLGRSCoordinates && pathSegmentBearings && pathSegmentBearings.length > i) {
       const segmentBearing = pathSegmentBearings[i];
       const bearingLabel = new paper.PointText({
-        point: new paper.Point(labelLocX, paperVars.graphHeight + 15),
+        point: new paper.Point(labelLocX, graphBottom + 12),
         justification: "center",
         fontFamily: measurePaperDataRef.current.styles.gNavigatorFontFamilyActivity,
         fontSize: 12,
@@ -362,7 +473,7 @@ export const drawMouseHover = (
 
   const hoverLine = new paper.Path.Line({
     from: new paper.Point(hoverPoint.x, paperVars.drawingTop),
-    to: new paper.Point(hoverPoint.x, paperVars.graphHeight + 20),
+    to: new paper.Point(hoverPoint.x, paperVars.slopeTop + paperVars.slopeHeight),
     strokeColor: paperStyles.brightBlue,
   });
   hoverGroup.addChild(hoverLine);
@@ -392,13 +503,13 @@ export const drawMouseHover = (
 
   //draw bottom distance label
   const labelBackground = new paper.Path.Rectangle({
-    point: new paper.Point(hoverPoint.x - 30, paperVars.graphHeight + 20),
+    point: new paper.Point(hoverPoint.x - 30, paperVars.slopeTop + paperVars.slopeHeight + 17),
     size: new paper.Size(60, 20),
     fillColor: paperStyles.grey2,
   });
   hoverGroup.addChild(labelBackground);
   const distanceLabel = new paper.PointText({
-    point: new paper.Point(hoverPoint.x, paperVars.graphHeight + 30),
+    point: new paper.Point(hoverPoint.x, paperVars.slopeTop + paperVars.slopeHeight + 27),
     justification: "center",
     fontFamily: measurePaperDataRef.current.styles.gNavigatorFontFamilyActivity,
     fontSize: 12,
