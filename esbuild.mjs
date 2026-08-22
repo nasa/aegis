@@ -26,6 +26,9 @@ const watchPlugin = {
 const context = await esbuild.context({
   entryPoints: {
     api: "src/server/express/server.ts",
+    // The API starts this separately built module in Node worker threads. Keeping it beside
+    // api.js lets elevation profiling run outside the API's main JavaScript event loop.
+    elevationWorker: "src/server/elevation/elevationWorker.ts",
   },
   bundle: true,
   sourcemap: true,
