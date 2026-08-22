@@ -4,6 +4,7 @@ import { drawMeterMarker } from "../timeline/timeline-drawing";
 import type { Dispatch } from "@reduxjs/toolkit";
 import { clearMapItemHover, setMeasurementHover } from "store/hover";
 import { getHoverValue } from "utils/paper";
+import { drawSlopeBand } from "utils/paperSlope";
 
 export function drawGraphAxes(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
@@ -199,75 +200,6 @@ export function drawElevationProfile(
   diamond2.rotate(45);
 }
 
-// Matches mission 50's Data/slope_degrees_uint16_cog.json GIS color ramp.
-const SLOPE_COLORS = [
-  "#313695",
-  "#4575b4",
-  "#74add1",
-  "#abd9e9",
-  "#e0f3f8",
-  "#ffffbf",
-  "#fee090",
-  "#fdae61",
-  "#f46d43",
-  "#d73027",
-  "#301f42",
-];
-
-const getSlopeClassIndex = (slopeDegrees: number): number =>
-  Math.min(Math.floor(Math.abs(slopeDegrees) / 2), SLOPE_COLORS.length - 1);
-
-const drawSlopePattern = (
-  group: paper.Group,
-  left: number,
-  right: number,
-  top: number,
-  height: number,
-  patternClass: number,
-  color: paper.Color
-): void => {
-  if (patternClass === 0 || right - left < 2) return;
-
-  const addHatch = (descending: boolean) => {
-    for (let x = left - height; x < right; x += 6) {
-      const startX = Math.max(left, x);
-      const endX = Math.min(right, x + height);
-      if (endX <= startX) continue;
-      const startOffset = startX - x;
-      const endOffset = endX - x;
-      group.addChild(
-        new paper.Path.Line({
-          from: new paper.Point(
-            startX,
-            descending ? top + startOffset : top + height - startOffset
-          ),
-          to: new paper.Point(endX, descending ? top + endOffset : top + height - endOffset),
-          strokeColor: color,
-          strokeWidth: 1,
-          opacity: 0.45,
-        })
-      );
-    }
-  };
-
-  if (patternClass === 1) {
-    for (let x = left + 3; x < right; x += 6) {
-      group.addChild(
-        new paper.Path.Circle({
-          center: new paper.Point(x, top + height / 2),
-          radius: 1,
-          fillColor: color,
-          opacity: 0.55,
-        })
-      );
-    }
-    return;
-  }
-
-  addHatch(patternClass !== 3);
-  if (patternClass >= 4) addHatch(false);
-};
-
 export function drawPathSlope(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
   measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
@@ -278,37 +210,14 @@ export function drawPathSlope(
   const slopeGroup = measurePaperGroupsRef.current.slopeGroup;
   const graphData = measureDerivedValuesRef.current.elevationGraphValues ?? [];
   slopeGroup.removeChildren();
-
-  for (let index = 0; index < graphData.length - 1; index++) {
-    const start = graphData[index];
-    const end = graphData[index + 1];
-    const startDistance = start.distanceMeters;
-    const endDistance = end.distanceMeters;
-    if (startDistance == null || endDistance == null || endDistance <= startDistance) continue;
-
-    const slopeDegrees = ((start.slopeDegrees ?? 0) + (end.slopeDegrees ?? 0)) / 2;
-    const slopeClass = getSlopeClassIndex(slopeDegrees);
-    const right = Math.min(
-      paperVars.drawingLeft + paperVars.drawingWidth,
-      Math.max(end.xPixel, start.xPixel + 1)
-    );
-    slopeGroup.addChild(
-      new paper.Path.Rectangle({
-        from: new paper.Point(start.xPixel, paperVars.slopeTop),
-        to: new paper.Point(right, paperVars.slopeTop + paperVars.slopeHeight),
-        fillColor: new paper.Color(SLOPE_COLORS[slopeClass]),
-      })
-    );
-    drawSlopePattern(
-      slopeGroup,
-      start.xPixel,
-      right,
-      paperVars.slopeTop,
-      paperVars.slopeHeight,
-      Math.min(Math.floor(slopeClass / 2), 4),
-      paperStyles.grey1
-    );
-  }
+  drawSlopeBand(
+    slopeGroup,
+    graphData,
+    paperVars.slopeTop,
+    paperVars.slopeHeight,
+    paperStyles.grey1,
+    paperVars.drawingLeft + paperVars.drawingWidth
+  );
 }
 
 export function drawMeasureSegmentDistances(
