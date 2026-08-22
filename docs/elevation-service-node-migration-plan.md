@@ -202,8 +202,7 @@ src/server/raster/
   types.ts                    # raster descriptor, sample selection, result/validity types
 
 src/server/elevation/
-  readElevationProfile.ts     # profile-specific orchestration and response shape
-  geoInterpolation.ts         # great-circle intermediate_point port + step densifier
+  readElevationProfile.ts     # elevation-specific response adapter
   constants.ts                # legacy NODATA_SENTINEL = -1100101
 ```
 
@@ -349,8 +348,9 @@ thread. Worker-local raster caches retain open handles without sharing unsafe de
 threads.
 
 The pool defaults to `min(4, max(1, availableParallelism() - 1))` workers, a 32-job queue, and a
-60-second execution timeout. Deployments can tune these with `ELEVATION_WORKERS`,
-`ELEVATION_MAX_QUEUE`, and `ELEVATION_JOB_TIMEOUT_MS`. Saturation and timeouts return HTTP 503;
+60-second execution timeout. The shared raster sampling pool can also serve other analytical
+rasters, such as absolute slope. Deployments can tune it with `RASTER_SAMPLING_WORKERS`,
+`RASTER_SAMPLING_MAX_QUEUE`, and `RASTER_SAMPLING_JOB_TIMEOUT_MS`. Saturation and timeouts return HTTP 503;
 worker failures reject the active request and replace the failed worker. Logs separate queue,
 execution, and total wall time.
 
@@ -599,7 +599,7 @@ require COG layout.
 - `src/server/raster/rasterCache.ts`
 - `src/server/raster/types.ts`
 - `src/server/elevation/readElevationProfile.ts`
-- `src/server/elevation/geoInterpolation.ts`
+- `src/server/raster/greatCircleInterpolation.ts`
 - `src/server/elevation/constants.ts`
 - Unit tests under `src/tests/vitest/server/raster/` and `server/elevation/` (see §8).
 
@@ -650,13 +650,15 @@ require COG layout.
    match). The Python service and GDAL container do not remain available at runtime after the
    cutover.
 2. **Unit tests (Vitest)** for:
-   - `geoInterpolation.ts` — great-circle `intermediate_point` port vs. the Python reference
-     values.
-   - `coordTransform.ts` — lat/lon → pixel for known DEM corners/center.
-   - `rasterReader.ts` — tiled and striped windows, block deduplication, multiple samples, numeric
-     types, NoData, and out-of-bounds behavior.
-   - `readElevationProfile.ts` — missing samples convert to `-1100101`; pixel conversion uses
-     truncation and retains segment-boundary duplicates.
+
+- `greatCircleInterpolation.ts` — great-circle `intermediate_point` port vs. the Python reference
+  values.
+- `coordTransform.ts` — lat/lon → pixel for known DEM corners/center.
+- `rasterReader.ts` — tiled and striped windows, block deduplication, multiple samples, numeric
+  types, NoData, and out-of-bounds behavior.
+- `readElevationProfile.ts` — missing samples convert to `-1100101`; pixel conversion uses
+  truncation and retains segment-boundary duplicates.
+
 3. **Route test** — `elevation.ts` returns the correct `WrappedResponse<number[][]>` shape and
    preserves auth behavior (existing `elevation_thunk.test.ts` mocks the http-client, so the
    client side needs no change).
