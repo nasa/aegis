@@ -73,9 +73,10 @@ const positiveIntegerFromEnvironment = (name: string, fallback: number): number 
   return Number.isSafeInteger(value) && value > 0 ? value : fallback;
 };
 
-// RASTER_SAMPLING_WORKERS overrides this default. Reserve one logical CPU for the API and cap
-// the default at four workers. With two cores, one worker keeps the API responsive while sampling.
-const defaultPoolSize = Math.min(4, Math.max(1, availableParallelism() - 1));
+// Reserve one logical CPU for the API and cap the default at 1 worker.
+// With two cores, one worker keeps the API responsive while sampling.
+const MAX_WORKERS = 1;
+const defaultPoolSize = Math.min(MAX_WORKERS, Math.max(1, availableParallelism() - 1));
 
 /**
  * Runs CPU-heavy raster profile sampling outside the API event loop.
