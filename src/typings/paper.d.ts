@@ -165,6 +165,7 @@ interface GraphData {
 
 interface GraphSequenceData extends GraphData {
   type: "station" | "traverse";
+  slopeXY: GraphDataItem[];
 }
 interface GraphSequenceItems {
   [uuid: string]: GraphSequenceData;
