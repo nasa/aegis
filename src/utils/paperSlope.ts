@@ -1,18 +1,33 @@
 import paper from "paper";
 
-// Matches mission 50's Data/slope_degrees_uint16_cog.json GIS color ramp.
+// Previous ColorBrewer RdYlBu ramp.
+// const SLOPE_COLORS = [
+//   "#313695",
+//   "#4575b4",
+//   "#74add1",
+//   "#abd9e9",
+//   "#e0f3f8",
+//   "#ffffbf",
+//   "#fee090",
+//   "#fdae61",
+//   "#f46d43",
+//   "#d73027",
+//   "#301f42",
+// ];
+
+// ColorBrewer YlOrRd interpolated to ten classes, with the GIS purple above 20 degrees.
 const SLOPE_COLORS = [
-  "#313695",
-  "#4575b4",
-  "#74add1",
-  "#abd9e9",
-  "#e0f3f8",
-  "#ffffbf",
-  "#fee090",
-  "#fdae61",
-  "#f46d43",
-  "#d73027",
-  "#301f42",
+  "#ffffcc", // 0.021-2 degrees
+  "#ffefa5", // 2.001-4 degrees
+  "#fedd7f", // 4.001-6 degrees
+  "#febf5a", // 6.001-8 degrees
+  "#fd9d43", // 8.001-10 degrees
+  "#fc7134", // 10.001-12 degrees
+  "#f43d25", // 12.001-14 degrees
+  "#db141e", // 14.001-16 degrees
+  "#b60026", // 16.001-18 degrees
+  "#800026", // 18.001-20 degrees
+  "#301f42", // Above 20 degrees
 ];
 
 const getSlopeClassIndex = (slopeDegrees: number): number =>
