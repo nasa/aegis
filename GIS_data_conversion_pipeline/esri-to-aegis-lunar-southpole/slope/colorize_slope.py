@@ -5,32 +5,11 @@ raster as a plain float32 GeoTIFF (degrees). ``gdal2tiles`` refuses to tile
 float32 data directly. Before tiling, the raster must be converted to an 8-bit
 RGBA image using the project's standard slope colour ramp.
 
-The colour ramp lives in **``AMPES_Slope 1.lyrx``** (ArcGIS Pro layer file,
-JSON format). This script parses that file directly — no intermediate ``.txt``
-ramp file is created. It writes a ``gdaldem color-relief`` colour table to a
-temporary file (automatically cleaned up), runs ``gdaldem color-relief``, and
-produces a single 8-bit RGBA GeoTIFF ready for ``raster_to_tiles.py``.
-
-Colour standard (from ``AMPES_Slope 1.lyrx``, ``CIMRasterClassifyColorizer``,
-``classificationMethod = Manual``):
-
-  ┌──────────────┬───────────────────┬───────────┐
-  │ Class (°)    │ RGB               │ Meaning   │
-  ├──────────────┼───────────────────┼───────────┤
-  │ 0 – 2        │ (49, 54, 149)     │ dark blue │
-  │ 2.001 – 4    │ (69, 117, 180)    │           │
-  │ 4.001 – 6    │ (116, 173, 209)   │           │
-  │ 6.001 – 8    │ (171, 217, 233)   │           │
-  │ 8.001 – 10   │ (224, 243, 248)   │           │
-  │ 10.001 – 12  │ (255, 255, 191)   │ pale yel. │
-  │ 12.001 – 14  │ (254, 224, 144)   │           │
-  │ 14.001 – 16  │ (253, 174, 97)    │           │
-  │ 16.001 – 18  │ (244, 109, 67)    │           │
-  │ 18.001 – 20  │ (215, 48, 39)     │ red       │
-  │ > 20         │ (48, 31, 66)      │ dark purp.│
-  └──────────────┴───────────────────┴───────────┘
-
-  ColorBrewer RdYlBu 10-class reversed + dark-purple AMPES hazard cap (>20°).
+This legacy delivered-raster path parses an ArcGIS Pro ``.lyrx`` file directly,
+writes a temporary ``gdaldem color-relief`` table, and produces a single 8-bit
+RGBA GeoTIFF ready for ``raster_to_tiles.py``. No palette values are hardcoded
+here. DEM-derived slope products use the canonical palette in
+``products/default_color_ramps/slope.txt``.
 
 Provenance note
 ---------------
@@ -154,7 +133,7 @@ def _build_color_table(
     (e.g. "2.001 – 4"), so the class boundary is visually identical to ArcGIS.
     """
     lines = [
-        "# gdaldem color-relief table — generated from AMPES_Slope 1.lyrx",
+        "# gdaldem color-relief table generated from the supplied .lyrx",
         "# Format: <value> <R> <G> <B> <A>",
         "# nodata → transparent",
         "nv 0 0 0 0",
