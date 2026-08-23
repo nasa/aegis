@@ -1,9 +1,6 @@
 import { interpolateSegment } from "./greatCircleInterpolation";
 import { sampleRasterPoints } from "./sampleRasterPoints";
-
-const MAX_RASTER_PROFILE_SAMPLES = 100_000;
-
-const MAX_RASTER_PROFILE_SAMPLES = 100_000;
+import { MAX_RASTER_PROFILE_SAMPLES } from "./constants";
 
 export type RasterProfileSamplingResult = {
   samples: RasterSample[][];
@@ -26,10 +23,10 @@ export const sampleRasterProfile = async (
   // Degenerate counts still produce both endpoints to match interpolateSegment's contract.
   let totalSamples = 0;
   steps.forEach((segmentSteps) => {
-    if (!Number.isSafeInteger(segmentSteps) || segmentSteps < 0) {
-      throw new Error("Steps must be non-negative safe integers");
+    if (!Number.isSafeInteger(segmentSteps) || segmentSteps < 2) {
+      throw new Error("Steps must be safe integers of at least two endpoint samples");
     }
-    totalSamples += segmentSteps <= 1 ? 2 : segmentSteps;
+    totalSamples += segmentSteps;
   });
   if (totalSamples > MAX_RASTER_PROFILE_SAMPLES) {
     throw new Error(`Raster profile exceeds the ${MAX_RASTER_PROFILE_SAMPLES} sample limit`);

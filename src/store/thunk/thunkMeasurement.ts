@@ -1,11 +1,22 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { thunkFetchElevation } from "./thunkElevation";
+import { thunkFetchTerrainProfile } from "./thunkTerrainProfile";
 import { getSegmentBearing, getTotalDistance } from "utils/mapping/geoMath";
 import { removeMeasurement, setSelectedMeasurementUuid, upsertMeasurement } from "store/measure";
 import { v4 as uuidv4 } from "uuid";
 import { updateMapDirective } from "store/map";
 import { getAccurateNow } from "utils/formatting";
 import { getMissionDocHandle } from "client/automergeDocHandles";
+import type { CompleteTerrainProfile } from "utils/terrainProfile";
+import isEqual from "lodash/isEqual";
+
+const latestMeasurementProfileRequest = new Map<string, number>();
+let nextMeasurementProfileRequest = 0;
+
+const profileMatchesSegmentCount = (
+  profile: unknown[][] | null,
+  segmentCount: number
+): profile is unknown[][] =>
+  profile?.length === segmentCount && profile.every((segment) => segment.length >= 2);
 
 export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   {
@@ -20,6 +31,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   const mission = missionDocHandle.doc();
 
   const measurement = getState().measure.measurements.find((t) => t.uuid === measurementUuid);
+  if (!measurement) return;
 
   //calculate new path distances
   const pathSegmentDistances: number[] = [];
@@ -27,39 +39,67 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
     pathSegmentDistances.push(getTotalDistance([path[i - 1], path[i]], mission.planetRadius));
   }
 
-  //get elevation of path
-  const elevationResponse = await dispatch(
-    thunkFetchElevation({
+  const pathSegmentBearings: number[] = [];
+  for (let i = 1; i < path.length; i++) {
+    pathSegmentBearings.push(getSegmentBearing(path[i - 1], path[i], mission.usingLGRSCoordinates));
+  }
+
+  const pendingElevations = profileMatchesSegmentCount(
+    measurement.pathSegmentElevations,
+    pathSegmentDistances.length
+  )
+    ? measurement.pathSegmentElevations
+    : null;
+  const pendingAbsoluteSlopes =
+    pendingElevations &&
+    profileMatchesSegmentCount(
+      measurement.pathSegmentAbsoluteSlopes,
+      pathSegmentDistances.length
+    ) &&
+    measurement.pathSegmentAbsoluteSlopes.every(
+      (segment, index) => segment.length === pendingElevations[index].length
+    )
+      ? measurement.pathSegmentAbsoluteSlopes
+      : null;
+
+  dispatch(
+    upsertMeasurement({
+      ...measurement,
       path,
-      pathSegmentDistances: pathSegmentDistances,
+      pathSegmentDistances,
+      pathSegmentElevations: pendingElevations,
+      pathSegmentAbsoluteSlopes: pendingAbsoluteSlopes,
+      pathSegmentBearings,
+    })
+  );
+
+  const requestId = ++nextMeasurementProfileRequest;
+  latestMeasurementProfileRequest.set(measurementUuid, requestId);
+  const profileResponse = await dispatch(
+    thunkFetchTerrainProfile({
+      path,
+      pathSegmentDistances,
       uuid: measurementUuid,
     })
   );
 
-  //calculate new path bearings
-  const pathSegmentBearings: number[] = [];
-  for (let i = 1; i < path.length; i++) {
-    const bearing = getSegmentBearing(path[i - 1], path[i], mission.usingLGRSCoordinates);
-    pathSegmentBearings.push(bearing);
-  }
+  if (latestMeasurementProfileRequest.get(measurementUuid) !== requestId) return;
+  latestMeasurementProfileRequest.delete(measurementUuid);
+  const currentMeasurement = getState().measure.measurements.find(
+    (item) => item.uuid === measurementUuid
+  );
+  if (!currentMeasurement || !isEqual(currentMeasurement.path, path)) return;
 
-  /**
-   * The response from thunkGetElevation is a PayloadAction.
-   *  get the value by using .payload which will be either the return value
-   *  or false if the thunk was unfulfilled.
-   */
-  let newElevationProfile = measurement.pathSegmentElevations ?? null;
-  if (elevationResponse?.meta?.requestStatus === "fulfilled") {
-    //good response from the thunk, cast as our number type
-    newElevationProfile = elevationResponse.payload as number[][];
-  }
+  if (profileResponse.meta.requestStatus !== "fulfilled") return;
+  const profile = profileResponse.payload as CompleteTerrainProfile;
 
   const newMeasurement: Measurement = {
-    ...measurement,
+    ...currentMeasurement,
     path,
-    pathSegmentDistances: pathSegmentDistances,
-    pathSegmentElevations: newElevationProfile,
-    pathSegmentBearings: pathSegmentBearings,
+    pathSegmentDistances,
+    pathSegmentElevations: profile.elevationsMeters,
+    pathSegmentAbsoluteSlopes: profile.terrainSlopesDegrees,
+    pathSegmentBearings,
   };
 
   //update the store
@@ -107,25 +147,17 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
 
     const distance = getTotalDistance(path, mission.planetRadius);
 
-    //get elevation traverse
-    const elevationResponse = await dispatch(
-      thunkFetchElevation({
+    const profileResponse = await dispatch(
+      thunkFetchTerrainProfile({
         path,
         pathSegmentDistances: [distance],
         uuid: measurementUuid,
       })
     );
-
-    /**
-     * The response from thunkFetchElevation is a PayloadAction.
-     *  get the value by using .payload which will be either the return value
-     *  or false if the thunk was unfulfilled.
-     */
-    let newElevationProfile = null;
-    if (elevationResponse.meta.requestStatus === "fulfilled") {
-      //good response from the thunk, cast as our number type
-      newElevationProfile = elevationResponse.payload as number[][];
-    }
+    const profile =
+      profileResponse.meta.requestStatus === "fulfilled"
+        ? (profileResponse.payload as CompleteTerrainProfile)
+        : null;
 
     const pathSegmentBearings: number[] = [];
     for (let i = 1; i < path.length; i++) {
@@ -144,7 +176,8 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
       color,
       path,
       pathSegmentDistances: [distance],
-      pathSegmentElevations: newElevationProfile,
+      pathSegmentElevations: profile?.elevationsMeters ?? null,
+      pathSegmentAbsoluteSlopes: profile?.terrainSlopesDegrees ?? null,
       pathSegmentBearings,
     };
     dispatch(upsertMeasurement(newMeasurement));

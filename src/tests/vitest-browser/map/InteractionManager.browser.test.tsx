@@ -630,6 +630,78 @@ describe("InteractionManager", () => {
     ]);
   });
 
+  it.each([
+    ["traverse", "traverse-final", "thunkDocUpdateTraverse"],
+    ["walkback", "walkback-station-final", "thunkDocUpdateWalkback"],
+    ["measurement", "measurement-final", "thunkUpdateMeasurementPath"],
+  ] as const)(
+    "editPolyline performs throttled %s updates and one final save",
+    async (mapItemType, featureId, thunkName) => {
+      const { LineString } = await import("ol/geom");
+      const traverseThunks = await import("store/thunk/thunkTraverse");
+      const stationThunks = await import("store/thunk/thunkStation");
+      const measurementThunks = await import("store/thunk/thunkMeasurement");
+      const saveThunk =
+        thunkName === "thunkDocUpdateTraverse"
+          ? vi.mocked(traverseThunks.thunkDocUpdateTraverse)
+          : thunkName === "thunkDocUpdateWalkback"
+            ? vi.mocked(stationThunks.thunkDocUpdateWalkback)
+            : vi.mocked(measurementThunks.thunkUpdateMeasurementPath);
+      const source = new VectorSource();
+      const feature = new Feature(
+        new LineString([
+          [0, 0],
+          [5, 5],
+          [10, 10],
+        ])
+      );
+      feature.setId(featureId);
+      source.addFeature(feature);
+      map.addLayer(new VectorLayer({ source }));
+
+      store = makeStore({
+        map: {
+          ...mapSlice.getInitialState(),
+          mapDirective: {
+            uuid: mapItemType === "walkback" ? "station-final" : featureId,
+            mapItemType,
+            mapAction: "editPolyline",
+          },
+        },
+      } as PartialPreloadedState);
+
+      renderInteractionManager();
+      const geom = feature.getGeometry() as InstanceType<typeof LineString>;
+      geom.setCoordinates([
+        [0, 0],
+        [7, 3],
+        [10, 10],
+      ]);
+      expect(saveThunk).toHaveBeenCalledOnce();
+
+      // Queue a trailing update inside the throttle window. modifyend must
+      // cancel it rather than flushing it before the final update.
+      geom.setCoordinates([
+        [0, 0],
+        [8, 4],
+        [10, 10],
+      ]);
+
+      const modify = map.getInteractions().item(0);
+      modify.dispatchEvent("modifyend");
+      await Promise.resolve();
+
+      expect(saveThunk).toHaveBeenCalledTimes(2);
+      expect(saveThunk).toHaveBeenLastCalledWith(
+        mapItemType === "traverse"
+          ? expect.objectContaining({ traverseUuid: featureId })
+          : mapItemType === "walkback"
+            ? expect.objectContaining({ stationUuid: "station-final" })
+            : expect.objectContaining({ measurementUuid: featureId })
+      );
+    }
+  );
+
   it("editPolyline does not pin measurement endpoints (free-form)", async () => {
     const { LineString } = await import("ol/geom");
     const source = new VectorSource();

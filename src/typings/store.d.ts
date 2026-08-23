@@ -148,7 +148,8 @@ interface Measurement {
   color: string;
   path: AEGISPoint[];
   pathSegmentDistances: number[]; //meters
-  pathSegmentElevations: number[][]; //meters
+  pathSegmentElevations: number[][] | null; //meters
+  pathSegmentAbsoluteSlopes: (number | null)[][] | null; //degrees
   pathSegmentBearings: number[]; //degrees
 }
 

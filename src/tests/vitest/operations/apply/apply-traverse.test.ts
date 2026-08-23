@@ -6,6 +6,7 @@ import {
 import {
   applyDuplicateTraverse,
   applyDeleteTraverses,
+  applyTraverseUpdatesStage,
   applyUpdateTraverseByField,
 } from "operations/apply/apply-traverse";
 import { generateBlankAction } from "store/storeUtils/action";
@@ -33,6 +34,34 @@ afterAll(() => {
 });
 
 describe("apply-traverse", () => {
+  it("applies aligned elevation and terrain-slope profiles atomically", () => {
+    const traverse = generateBlankTraverse();
+    getMissionDocHandle().change((m) => {
+      m.traverses[traverse.uuid] = traverse;
+    });
+
+    withMissionChange((m) =>
+      applyTraverseUpdatesStage(m, [
+        {
+          traverseUuid: traverse.uuid,
+          profileRevision: 1,
+          newPath: [
+            { lat: 1, lng: 2 },
+            { lat: 3, lng: 4 },
+          ],
+          newPathSegmentDistances: [25],
+          newPathSegmentElevations: [[10, 11]],
+          newPathSegmentAbsoluteSlopes: [[null, 2.5]],
+          updatedAt: 123,
+        },
+      ])
+    );
+
+    const updated = getMission().traverses[traverse.uuid];
+    expect(updated.pathSegmentElevations).toEqual([[10, 11]]);
+    expect(updated.pathSegmentAbsoluteSlopes).toEqual([[null, 2.5]]);
+  });
+
   describe("applyUpdateTraverseByField()", () => {
     it("updates the specified field on an existing traverse", () => {
       const traverse = generateBlankTraverse({ name: "Vitest Original Traverse" });
@@ -268,6 +297,7 @@ describe("apply-traverse", () => {
         path: [{ lat: 1, lng: 2 }],
         pathSegmentDistances: [100],
         pathSegmentElevations: [[10, 20]],
+        pathSegmentAbsoluteSlopes: [[1, 2]],
       });
       getMissionDocHandle().change((m) => {
         m.traverses[traverse.uuid] = traverse;
