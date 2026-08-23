@@ -71,6 +71,8 @@ export const getRasterProjections = (
 };
 
 export const validateRasterUnitsInMeters = (metadata: Pick<RasterMetadata, "geoKeys">): void => {
+  // Repeats the linear-units check from getRasterProjections since callers may
+  // invoke this standalone, without having gone through getRasterProjections first.
   const projectedUnits = numberKey(metadata.geoKeys, "ProjLinearUnitsGeoKey", 9001);
   if (projectedUnits !== 9001) throw new Error("Raster CRS linear units must be metres");
 

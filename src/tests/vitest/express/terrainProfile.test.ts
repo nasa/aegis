@@ -17,6 +17,7 @@ vi.mock("server/elevation/resolveMissionDem", () => ({
 }));
 vi.mock("server/raster/rasterSamplingWorkerPool", () => ({
   RasterSamplingWorkerPoolUnavailableError: class extends Error {},
+  RasterSamplingWorkerPoolSupersededError: class extends Error {},
 }));
 
 import express from "express";

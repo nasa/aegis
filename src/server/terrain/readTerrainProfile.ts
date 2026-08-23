@@ -59,7 +59,7 @@ export const readTerrainProfile = async (
       Math.abs(sampled.metadata.resolution[1])
     );
     if (Math.abs(nativeSamplingResolution - descriptor.expectedResolutionMeters) > tolerance) {
-      throw new Error("Mission DEM resolution does not match the raster metadata");
+      throw new Error("Mission DEM resolution is invalid: it does not match the raster metadata");
     }
   }
 

@@ -36,5 +36,5 @@ export function normalizeTerrainProfile(
     }
   }
 
-  return profile as CompleteTerrainProfile;
+  return profile;
 }

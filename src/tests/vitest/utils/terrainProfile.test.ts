@@ -32,4 +32,35 @@ describe("normalizeTerrainProfile", () => {
       )
     ).toBeNull();
   });
+
+  it("rejects a missing profile", () => {
+    expect(normalizeTerrainProfile(undefined, path, [100])).toBeNull();
+  });
+
+  it("rejects a segment with fewer than two samples", () => {
+    expect(
+      normalizeTerrainProfile(
+        { elevationsMeters: [[10]], terrainSlopesDegrees: [[null]] },
+        path,
+        [100]
+      )
+    ).toBeNull();
+  });
+
+  it("rejects non-finite elevation or slope samples", () => {
+    expect(
+      normalizeTerrainProfile(
+        { elevationsMeters: [[10, NaN]], terrainSlopesDegrees: [[null, 4.5]] },
+        path,
+        [100]
+      )
+    ).toBeNull();
+    expect(
+      normalizeTerrainProfile(
+        { elevationsMeters: [[10, 11]], terrainSlopesDegrees: [[null, Infinity]] },
+        path,
+        [100]
+      )
+    ).toBeNull();
+  });
 });

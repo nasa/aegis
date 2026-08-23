@@ -191,6 +191,11 @@ describe("buildDistanceTerrainSlopeProfile", () => {
     expect(buildDistanceTerrainSlopeProfile(undefined, [10])).toEqual([]);
     expect(buildDistanceTerrainSlopeProfile(null, [10])).toEqual([]);
   });
+
+  it("rejects a profile containing a negative or non-finite slope sample", () => {
+    expect(buildDistanceTerrainSlopeProfile([[2, -4]], [10], [[100, 101]])).toEqual([]);
+    expect(buildDistanceTerrainSlopeProfile([[2, Infinity]], [10], [[100, 101]])).toEqual([]);
+  });
 });
 
 describe("getGraphSlopeAtX", () => {
