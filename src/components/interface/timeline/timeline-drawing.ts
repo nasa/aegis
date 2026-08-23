@@ -686,6 +686,7 @@ function drawSequenceTraverse(
 ): void {
   const sequenceItemGroup = new paper.Group();
   const paperVars = paperDataRef.current.paperVars;
+  const paperStyles = paperDataRef.current.styles;
   const slopeHeight = 10;
   drawSlopeBand(sequenceItemGroup, pathGradeData, paperVars.sequenceTop, slopeHeight, xEnd);
   drawSlopeBand(
@@ -695,7 +696,13 @@ function drawSequenceTraverse(
     slopeHeight,
     xEnd
   );
-  drawSlopeSeparator(sequenceItemGroup, xStart, xEnd, paperVars.sequenceTop + slopeHeight);
+  drawSlopeSeparator(
+    sequenceItemGroup,
+    xStart,
+    xEnd,
+    paperVars.sequenceTop + slopeHeight,
+    paperStyles.grey3
+  );
 
   if (pathGradeData.length <= 1 && terrainSlopeData.length <= 1) {
     sequenceItemGroup.addChild(

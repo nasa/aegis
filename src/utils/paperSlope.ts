@@ -46,13 +46,14 @@ export function drawSlopeSeparator(
   group: paper.Group,
   left: number,
   right: number,
-  y: number
+  y: number,
+  strokeColor: paper.Color
 ): void {
   group.addChild(
     new paper.Path.Line({
       from: new paper.Point(left, y),
       to: new paper.Point(right, y),
-      strokeColor: new paper.Color("black"),
+      strokeColor,
       strokeWidth: 1,
     })
   );

@@ -114,6 +114,6 @@ describe("readTerrainProfile", () => {
         ],
         [2]
       )
-    ).rejects.toThrow("resolution does not match");
+    ).rejects.toThrow("resolution is invalid");
   });
 });

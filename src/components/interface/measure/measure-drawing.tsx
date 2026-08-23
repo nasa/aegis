@@ -224,6 +224,7 @@ export function drawTerrainSlope(
   measureDerivedValuesRef: MutableRefObject<MeasureDerivedValues>
 ): void {
   const paperVars = measurePaperDataRef.current.paperVars;
+  const paperStyles = measurePaperDataRef.current.styles;
   const group = measurePaperGroupsRef.current.terrainSlopeGroup;
   group.removeChildren();
   drawSlopeBand(
@@ -238,7 +239,8 @@ export function drawTerrainSlope(
     group,
     paperVars.drawingLeft,
     paperVars.drawingLeft + paperVars.drawingWidth,
-    paperVars.terrainSlopeTop
+    paperVars.terrainSlopeTop,
+    paperStyles.grey3
   );
 }
 
@@ -414,48 +416,33 @@ export const drawMouseHover = (
     ((hoverPoint.x - paperVars.drawingLeft) / paperVars.drawingWidth) *
     derivedValues.totalDistanceMeters;
 
-  if (!derivedValues.elevationGraphValues?.length) {
-    setHoverValues({
-      totalDistanceMeters: derivedValues.totalDistanceMeters,
-      distanceFromStartMeters,
-      elevationMeters: null,
-      pathGradeDegrees: null,
-      terrainSlopeDegrees: getGraphSlopeAtX(
-        derivedValues.terrainSlopeGraphValues ?? [],
-        hoverPoint.x
-      ),
-    } satisfies MeasureHoverValues);
-    dispatch(
-      setMeasurementHover({
-        measurementUuid: selectedMeasurementUuid,
-        measurementPercentDistance: (hoverPoint.x - paperVars.drawingLeft) / paperVars.drawingWidth,
-      })
-    );
-    return;
-  }
-
-  //get hover values and draw diamonds
-  const elevationHoverData = getHoverValue(derivedValues.elevationGraphValues, hoverPoint.x);
+  //get hover values and draw diamonds, when elevation data is available
+  const hasElevationData = !!derivedValues.elevationGraphValues?.length;
+  const elevationHoverData = hasElevationData
+    ? getHoverValue(derivedValues.elevationGraphValues, hoverPoint.x)
+    : null;
 
   const newHoverValues: MeasureHoverValues = {
     totalDistanceMeters: derivedValues.totalDistanceMeters,
     distanceFromStartMeters,
-    elevationMeters: elevationHoverData.val,
-    pathGradeDegrees: elevationHoverData.slope,
+    elevationMeters: elevationHoverData?.val ?? null,
+    pathGradeDegrees: elevationHoverData?.slope ?? null,
     terrainSlopeDegrees: getGraphSlopeAtX(
       derivedValues.terrainSlopeGraphValues ?? [],
       hoverPoint.x
     ),
   };
 
-  //draw diamonds
-  const diamond = new paper.Path.Rectangle({
-    point: new paper.Point(hoverPoint.x - 3, elevationHoverData.y - 3),
-    size: 6,
-    fillColor: paperStyles.green,
-  });
-  diamond.rotate(45);
-  hoverGroup.addChild(diamond);
+  if (elevationHoverData) {
+    //draw diamond
+    const diamond = new paper.Path.Rectangle({
+      point: new paper.Point(hoverPoint.x - 3, elevationHoverData.y - 3),
+      size: 6,
+      fillColor: paperStyles.green,
+    });
+    diamond.rotate(45);
+    hoverGroup.addChild(diamond);
+  }
 
   //draw bottom distance label
   const labelBackground = new paper.Path.Rectangle({

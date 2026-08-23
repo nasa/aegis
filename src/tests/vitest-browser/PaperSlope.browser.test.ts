@@ -36,14 +36,14 @@ describe("drawSlopeBand", () => {
     expect(group.children[0].className).toBe("Path");
   });
 
-  it("draws a one-pixel black separator between slope rows", () => {
+  it("draws a one-pixel separator between slope rows using the given color", () => {
     const group = new paper.Group();
-    drawSlopeSeparator(group, 4, 24, 10);
+    drawSlopeSeparator(group, 4, 24, 10, new paper.Color("#616574"));
 
     expect(group.children).toHaveLength(1);
     const separator = group.children[0] as paper.Path;
     expect(separator.strokeWidth).toBe(1);
-    expect(separator.strokeColor.toCSS(true)).toBe("#000000");
+    expect(separator.strokeColor.toCSS(true)).toBe("#616574");
     expect([separator.firstSegment.point.x, separator.firstSegment.point.y]).toEqual([4, 10]);
     expect([separator.lastSegment.point.x, separator.lastSegment.point.y]).toEqual([24, 10]);
   });

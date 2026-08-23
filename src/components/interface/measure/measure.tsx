@@ -15,8 +15,11 @@ import throttle from "lodash/throttle";
 import isNil from "lodash/isNil";
 import { clearMapItemHover } from "store/hover";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { buildDistanceElevationProfile, calculateWindowedPathSlopes } from "utils/paper";
-import { buildDistanceTerrainSlopeProfile } from "utils/paper";
+import {
+  buildDistanceElevationProfile,
+  buildDistanceTerrainSlopeProfile,
+  calculateWindowedPathSlopes,
+} from "utils/paper";
 import SlopeLegend from "../slope-legend";
 
 const initHoverValues: MeasureHoverValues = {
