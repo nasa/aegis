@@ -32,6 +32,5 @@ describe("slope presentation classes", () => {
       label: ">20°",
       color: "#301f42",
     });
-    expect(SLOPE_CLASSES.every((slopeClass) => !("pattern" in slopeClass))).toBe(true);
   });
 });

@@ -41,6 +41,7 @@ import { stageTraverseUpdate } from "operations/stage/stage-traverse";
 import { applyDuplicateStationStage, applyDeleteStations } from "operations/apply/apply-station";
 import { applyDeleteActions } from "operations/apply/apply-action";
 import { setStationCircleUIStates } from "store/station";
+import { clientLogger } from "utils/logging/clientLogger";
 import type { CompleteTerrainProfile } from "utils/terrainProfile";
 import { areTraverseProfileUpdatesCurrent } from "operations/helpers/traverseProfileRevision";
 
@@ -275,7 +276,13 @@ export const thunkDocDeleteStationFromEva = appCreateAsyncThunk<{
     : null;
 
   // Step 2: Apply everything in a single .change()
-  if (adjacentTraverseUpdate && !areTraverseProfileUpdatesCurrent([adjacentTraverseUpdate])) return;
+  if (adjacentTraverseUpdate && !areTraverseProfileUpdatesCurrent([adjacentTraverseUpdate])) {
+    clientLogger.debug({
+      logId: "thunk-eva",
+      logValue: `thunkDocDeleteStationFromEva: superseded traverse profile for eva ${evaUuid}, skipping apply`,
+    });
+    return;
+  }
   missionDocHandle.change((m: Mission) => {
     applyDeleteActions(m, [...traverseActionUuidsToDelete, ...stationActionUuidsToDelete]);
     applyDeleteTraverses(m, [traverseUuidToDelete]);
@@ -365,7 +372,13 @@ export const thunkDocChangeStationInEva = appCreateAsyncThunk<{
     const validTraverseUpdates = traverseUpdates.filter(Boolean) as TraverseUpdateStageData[];
 
     // Step 2: Apply everything in a single .change()
-    if (!areTraverseProfileUpdatesCurrent(validTraverseUpdates)) return;
+    if (!areTraverseProfileUpdatesCurrent(validTraverseUpdates)) {
+      clientLogger.debug({
+        logId: "thunk-eva",
+        logValue: `thunkDocChangeStationInEva: superseded traverse profile for eva ${evaUuid}, skipping apply`,
+      });
+      return;
+    }
     missionDocHandle.change((m: Mission) => {
       if (stagedStationData) {
         applyDuplicateStationStage(m, stagedStationData);
@@ -448,7 +461,13 @@ export const thunkDocReorderStationInEva = appCreateAsyncThunk<{
   const validTraverseUpdates = traverseStagedData.filter(Boolean) as TraverseUpdateStageData[];
 
   // Step 2: Apply sequence swap + all traverse updates in a single .change()
-  if (!areTraverseProfileUpdatesCurrent(validTraverseUpdates)) return;
+  if (!areTraverseProfileUpdatesCurrent(validTraverseUpdates)) {
+    clientLogger.debug({
+      logId: "thunk-eva",
+      logValue: `thunkDocReorderStationInEva: superseded traverse profile for eva ${evaUuid}, skipping apply`,
+    });
+    return;
+  }
   missionDocHandle.change((m: Mission) => {
     applySwapEvaSequenceItems(m, { evaUuid, indexA: stationIndexToSwap, indexB: stationIndex });
     applyTraverseUpdatesStage(m, validTraverseUpdates);
@@ -518,7 +537,13 @@ export const thunkDocChangeIngressEgress = appCreateAsyncThunk<{
       : null;
 
     // Step 2: Apply everything in a single .change()
-    if (stagedTraverseData && !areTraverseProfileUpdatesCurrent([stagedTraverseData])) return;
+    if (stagedTraverseData && !areTraverseProfileUpdatesCurrent([stagedTraverseData])) {
+      clientLogger.debug({
+        logId: "thunk-eva",
+        logValue: `thunkDocChangeIngressEgress: superseded traverse profile for eva ${evaUuid}, skipping apply`,
+      });
+      return;
+    }
     missionDocHandle.change((m: Mission) => {
       if (stationStage) {
         applyDuplicateStationStage(m, stationStage);

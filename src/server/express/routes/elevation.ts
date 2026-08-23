@@ -1,12 +1,13 @@
+import path from "node:path";
 import { performance } from "node:perf_hooks";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
 import express from "express";
-import { asError } from "@emss/utils";
 
 import { NODATA_SENTINEL } from "server/elevation/constants";
 import { resolveMissionDemPath } from "server/elevation/resolveMissionDem";
+import { samplesForDistance } from "server/raster/constants";
 import {
   RasterSamplingWorkerPoolUnavailableError,
   sampleRasterProfileInWorker,
@@ -14,6 +15,7 @@ import {
 import { getAutomergeMissionHandle } from "./missionAutomerge";
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
+import { respondWithRasterRouteError } from "./rasterRouteError";
 
 const router = express.Router();
 
@@ -62,7 +64,7 @@ const validateRequest = (
   return {
     path: postData.path as { lat: number; lng: number }[],
     steps: postData.pathSegmentDistances.map((distance) =>
-      Math.max(2, Math.ceil(distance / resolutionMeters) + 1)
+      samplesForDistance(distance, resolutionMeters)
     ),
   };
 };
@@ -148,26 +150,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       message: "Elevation profile sampled",
     });
   } catch (error) {
-    const message = asError(error).message;
-    const isWorkerUnavailable = error instanceof RasterSamplingWorkerPoolUnavailableError;
-    const isClientError =
-      message.includes("must") ||
-      message.includes("invalid") ||
-      message.includes("limit") ||
-      message.includes("configured") ||
-      message.includes("contain");
-    const responseStatus = isWorkerUnavailable ? 503 : isClientError ? 400 : 500;
-    serverLogger.apiRoute({
-      logLevel: responseStatus === 400 ? "notice" : responseStatus === 503 ? "warning" : "error",
-      httpMethod: "POST",
-      responseStatus,
-      routeName: "elevation",
-      appUsername: req.session?.appUser?.username,
-      missionId: queryObj.missionId,
-      message,
-      error: asError(error),
-    });
-    res.status(responseStatus).json({ status: "error", message });
+    respondWithRasterRouteError(res, req, "elevation", queryObj.missionId, error);
   }
 });
 

@@ -155,7 +155,7 @@ interface GraphDataItem {
   yPixel: number; //the y pixel on the graph
   val: number; //the y value that is represented (ex: distance from lander in meters)
   distanceMeters?: number; //physical x value, when the graph is distance-based
-  slopeDegrees?: number; //local slope calculated over a physical-distance window
+  slopeDegrees?: number | null; //local slope calculated over a physical-distance window
 }
 
 interface DistanceElevationDataItem {

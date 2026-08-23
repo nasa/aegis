@@ -4,8 +4,6 @@
  * Mocks:
  *  - `useCoordConverters` — avoids Automerge dependency
  *  - All thunk save-position functions (HTTP side effects)
- *  - `client/automergeDocHandles` (used by measurement throttled path)
- *  - `store` singleton import used by measurement path handler
  *
  * Verifies:
  *  - No cursor change and no interactions added when mapDirective is null
@@ -55,15 +53,6 @@ vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
   }),
 }));
 
-// Mutable mock Automerge doc — tests can mutate this before rendering.
-const mockMissionDoc: Partial<Mission> = { planetRadius: 1737400 };
-
-vi.mock("utils/useDocSelector", () => ({
-  useMissionDocSelector: <TSel,>(selector: (doc: unknown) => TSel): TSel =>
-    selector(mockMissionDoc as Mission),
-  useDocSelector: (): undefined => undefined,
-}));
-
 // Stub all save-position thunks — we only care that the directive is cleared,
 // not that the HTTP call fires in unit tests.
 vi.mock("store/thunk/thunkStation", () => ({
@@ -98,19 +87,6 @@ vi.mock("store/thunk/thunkTraverse", () => ({
 
 vi.mock("store/thunk/thunkMeasurement", () => ({
   thunkUpdateMeasurementPath: vi.fn(() => ({ type: "mock/thunkUpdateMeasurementPath" })),
-}));
-
-vi.mock("client/automergeDocHandles", () => ({
-  getMissionDocHandle: () => ({
-    doc: () => ({ planetRadius: 1737400 }),
-  }),
-}));
-
-// Minimal store singleton mock (used by measurement throttle path)
-vi.mock("store", () => ({
-  store: {
-    getState: () => ({ measure: { measurements: [] as unknown[] } }),
-  },
 }));
 
 // ---------------------------------------------------------------------------

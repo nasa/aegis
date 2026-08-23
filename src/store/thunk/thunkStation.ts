@@ -30,6 +30,7 @@ import { generateBlankStation } from "store/storeUtils/station";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import { getMissionDocHandle } from "client/automergeDocHandles";
+import { clientLogger } from "utils/logging/clientLogger";
 import type { CompleteTerrainProfile } from "utils/terrainProfile";
 import {
   areTraverseProfileUpdatesCurrent,
@@ -261,9 +262,21 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
     traverseUpdates: stagedTraverseData,
   };
 
-  if (latestStationLocationRequest.get(stationUuid) !== requestId) return;
+  if (latestStationLocationRequest.get(stationUuid) !== requestId) {
+    clientLogger.debug({
+      logId: "thunk-station",
+      logValue: `thunkDocUpdateStationLocation: stale request for station ${stationUuid}, skipping apply`,
+    });
+    return;
+  }
   latestStationLocationRequest.delete(stationUuid);
-  if (!areTraverseProfileUpdatesCurrent(stagedTraverseData)) return;
+  if (!areTraverseProfileUpdatesCurrent(stagedTraverseData)) {
+    clientLogger.debug({
+      logId: "thunk-station",
+      logValue: `thunkDocUpdateStationLocation: superseded traverse profile for station ${stationUuid}, skipping apply`,
+    });
+    return;
+  }
 
   // ── Step 2: Apply everything atomically in a single .change() ──────────────
   missionDocHandle.change((m: Mission) => applyStationLocationUpdateStage(m, stagedStationData));
@@ -332,7 +345,13 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
     newElevationProfile = elevationResponse.payload as number[][];
   }
 
-  if (latestWalkbackProfileRequest.get(stationUuid) !== requestId) return;
+  if (latestWalkbackProfileRequest.get(stationUuid) !== requestId) {
+    clientLogger.debug({
+      logId: "thunk-station",
+      logValue: `thunkDocUpdateWalkback: stale request for station ${stationUuid}, skipping apply`,
+    });
+    return;
+  }
   latestWalkbackProfileRequest.delete(stationUuid);
 
   // Step 2: Apply single change to automerge
@@ -371,6 +390,11 @@ export const thunkDocResetWalkback = appCreateAsyncThunk<{
     getDistanceBetweenTwoCoordinates(newPath[0], newPath[1], mission.planetRadius),
   ];
 
+  // Shares the walkback request counter with thunkDocUpdateWalkback so a reset and an
+  // in-flight drag update racing on the same station resolve to whichever started last.
+  const requestId = ++nextWalkbackProfileRequest;
+  latestWalkbackProfileRequest.set(stationUuid, requestId);
+
   // Get elevation
   let newElevationProfile = null;
   const elevationResponse = await dispatch(
@@ -383,6 +407,15 @@ export const thunkDocResetWalkback = appCreateAsyncThunk<{
   if (elevationResponse.meta.requestStatus === "fulfilled") {
     newElevationProfile = elevationResponse.payload as number[][];
   }
+
+  if (latestWalkbackProfileRequest.get(stationUuid) !== requestId) {
+    clientLogger.debug({
+      logId: "thunk-station",
+      logValue: `thunkDocResetWalkback: stale request for station ${stationUuid}, skipping apply`,
+    });
+    return;
+  }
+  latestWalkbackProfileRequest.delete(stationUuid);
 
   // Step 2: Write the reset walkback path, distances, and elevation atomically
   missionDocHandle.change((m: Mission) => {
@@ -629,7 +662,13 @@ export const thunkDocUpdateStationIngressEgress = appCreateAsyncThunk<{
   const validUpdates = traverseUpdates.filter(Boolean) as TraverseUpdateStageData[];
   if (validUpdates.length === 0) return;
 
-  if (!areTraverseProfileUpdatesCurrent(validUpdates)) return;
+  if (!areTraverseProfileUpdatesCurrent(validUpdates)) {
+    clientLogger.debug({
+      logId: "thunk-station",
+      logValue: `thunkDocUpdateStationIngressEgress: superseded traverse profile for station ${stationUuid}, skipping apply`,
+    });
+    return;
+  }
   getMissionDocHandle()?.change((m: Mission) => applyTraverseUpdatesStage(m, validUpdates));
 
   // No Step 3: this thunk has no UI side-effects of its own.

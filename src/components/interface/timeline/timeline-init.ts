@@ -235,10 +235,12 @@ function calcPathGrade(
   paperDataRef: MutableRefObject<PaperData>
 ): GraphDataItem[] {
   const paperVars = paperDataRef.current.paperVars;
-  const xLocMax = xLocStart + totalDurationMins * 60 * paperVars.pixelsPerSecondX;
-  const xLocMaxRounded = totalDurationMins
-    ? roundPixelToNearestMinute(xLocMax, paperVars.pixelsPerSecondX, paperVars.timelineLeft)
-    : xLocStartRounded;
+  const xLocMaxRounded = calcXLocMaxRounded(
+    paperVars,
+    xLocStart,
+    xLocStartRounded,
+    totalDurationMins
+  );
   const profile = buildDistanceElevationProfile(
     segmentedElevationMeters,
     segmentedDistancesMeters ?? []
@@ -268,10 +270,12 @@ export function calcTerrainSlope(
   paperDataRef: MutableRefObject<PaperData>
 ): GraphDataItem[] {
   const paperVars = paperDataRef.current.paperVars;
-  const xLocMax = xLocStart + totalDurationMins * 60 * paperVars.pixelsPerSecondX;
-  const xLocMaxRounded = totalDurationMins
-    ? roundPixelToNearestMinute(xLocMax, paperVars.pixelsPerSecondX, paperVars.timelineLeft)
-    : xLocStartRounded;
+  const xLocMaxRounded = calcXLocMaxRounded(
+    paperVars,
+    xLocStart,
+    xLocStartRounded,
+    totalDurationMins
+  );
   const profile = buildDistanceTerrainSlopeProfile(
     segmentedSlopes,
     segmentedDistances ?? [],
@@ -505,10 +509,12 @@ function calcElevation(
 ): GraphDataItem[] {
   const paperVars = paperDataRef.current.paperVars;
   //determine the end x pixel location using total duration. Round to nearest minute
-  const xLocMax = xLocStart + totalDurationMins * 60 * paperVars.pixelsPerSecondX;
-  const xLocMaxRounded = totalDurationMins
-    ? roundPixelToNearestMinute(xLocMax, paperVars.pixelsPerSecondX, paperVars.timelineLeft)
-    : xLocStartRounded;
+  const xLocMaxRounded = calcXLocMaxRounded(
+    paperVars,
+    xLocStart,
+    xLocStartRounded,
+    totalDurationMins
+  );
   const totalDist = segmentedDistancesMeters
     ? segmentedDistancesMeters.reduce((accumulator, currentValue) => accumulator + currentValue, 0)
     : 0;
@@ -581,6 +587,21 @@ function calcElevation(
     }
   }
   return graphData_elevation;
+}
+
+/**
+ * Determines the end x pixel location for a path using its total duration, rounded to the nearest minute
+ */
+function calcXLocMaxRounded(
+  paperVars: PaperData["paperVars"],
+  xLocStart: number,
+  xLocStartRounded: number,
+  totalDurationMins: number
+): number {
+  const xLocMax = xLocStart + totalDurationMins * 60 * paperVars.pixelsPerSecondX;
+  return totalDurationMins
+    ? roundPixelToNearestMinute(xLocMax, paperVars.pixelsPerSecondX, paperVars.timelineLeft)
+    : xLocStartRounded;
 }
 
 /**
