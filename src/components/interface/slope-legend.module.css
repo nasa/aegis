@@ -1,0 +1,64 @@
+.keyContainer {
+  padding: 4px;
+}
+
+.keyButton,
+.closeButton {
+  border: 1px solid var(--grey3);
+  border-radius: var(--panelRadius);
+  color: var(--grey4);
+  background: var(--grey2);
+  cursor: pointer;
+}
+
+.keyButton {
+  padding: 2px 8px;
+  font-size: 0.75rem;
+}
+
+.dialog {
+  width: min(420px, calc(100vw - 32px));
+  border: 1px solid var(--grey3);
+  border-radius: var(--panelRadius);
+  padding: 0;
+  background: var(--grey2);
+}
+
+.dialog::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(25px, 1fr));
+  gap: 6px;
+  padding: 12px;
+  color: var(--grey4);
+  font-size: 0.75rem;
+}
+
+.heading {
+  grid-column: 1 / -1;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.item {
+  min-width: 0;
+  text-align: center;
+}
+
+.swatch {
+  height: 12px;
+  border: 1px solid var(--grey3);
+}
+
+.rows {
+  grid-column: 1 / -1;
+}
+
+.closeButton {
+  grid-column: 1 / -1;
+  justify-self: end;
+  padding: 4px 10px;
+}

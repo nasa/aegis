@@ -16,12 +16,15 @@ import isNil from "lodash/isNil";
 import { clearMapItemHover } from "store/hover";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { buildDistanceElevationProfile, calculateWindowedPathSlopes } from "utils/paper";
+import { buildDistanceTerrainSlopeProfile } from "utils/paper";
+import SlopeLegend from "../slope-legend";
 
 const initHoverValues: MeasureHoverValues = {
   totalDistanceMeters: null,
   distanceFromStartMeters: null,
   elevationMeters: null,
-  slopeDegrees: null,
+  pathGradeDegrees: null,
+  terrainSlopeDegrees: null,
 };
 
 const Measure: FunctionComponent = () => {
@@ -56,6 +59,7 @@ const Measure: FunctionComponent = () => {
     minElevationMeters: null,
     relativeElevationsMeters: null,
     elevationGraphValues: null,
+    terrainSlopeGraphValues: null,
     totalDistanceMeters: null,
   });
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
@@ -88,7 +92,8 @@ const Measure: FunctionComponent = () => {
       measurePaperGroupsRef,
       measureDerivedValuesRef,
       selectedMeasurement?.pathSegmentDistances,
-      selectedMeasurement?.pathSegmentElevations
+      selectedMeasurement?.pathSegmentElevations,
+      selectedMeasurement?.pathSegmentAbsoluteSlopes ?? null
     );
 
     setHoverValues({
@@ -104,6 +109,11 @@ const Measure: FunctionComponent = () => {
     );
     MeasureDrawing.drawElevationProfile(measurePaperDataRef, measureDerivedValuesRef);
     MeasureDrawing.drawPathSlope(
+      measurePaperDataRef,
+      measurePaperGroupsRef,
+      measureDerivedValuesRef
+    );
+    MeasureDrawing.drawTerrainSlope(
       measurePaperDataRef,
       measurePaperGroupsRef,
       measureDerivedValuesRef
@@ -215,6 +225,7 @@ const Measure: FunctionComponent = () => {
                 )}
               </div>
               <MeasureHoverValues hoverValues={hoverValues} />
+              <SlopeLegend />
             </>
           )}
         </div>
@@ -236,12 +247,14 @@ function initMeasurePaperRefs(
   measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
   measureDerivedValuesRef: MutableRefObject<MeasureDerivedValues>,
   pathSegmentDistances: number[],
-  pathSegmentElevations: number[][]
+  pathSegmentElevations: number[][],
+  pathSegmentAbsoluteSlopes: (number | null)[][] | null
 ): void {
   //init groups
   measurePaperGroupsRef.current = {
     axisGroup: new paper.Group(),
-    slopeGroup: new paper.Group(),
+    pathGradeGroup: new paper.Group(),
+    terrainSlopeGroup: new paper.Group(),
     lineSegmentMarksGroup: new paper.Group(),
     hoverGroup: new paper.Group(),
   };
@@ -272,8 +285,10 @@ function initMeasurePaperRefs(
       drawingTop: null,
       drawingLeft: null,
       graphHeight: null, //just the graph area that has the line graphs
-      slopeTop: null,
-      slopeHeight: 10,
+      pathGradeTop: null,
+      pathGradeHeight: 10,
+      terrainSlopeTop: null,
+      terrainSlopeHeight: 10,
       pixelsPerMeterDistanceX: null,
       pixelsPerMeterElevationY: null,
       startElevationFromGraphTop: null,
@@ -322,9 +337,10 @@ function initMeasurePaperRefs(
   paperVars.drawingHeight = paperVars.canvasHeight - 20;
   paperVars.drawingTop = 10;
   paperVars.drawingLeft = 10;
-  const slopeAreaHeight = 20;
+  const slopeAreaHeight = 30;
   paperVars.graphHeight = paperVars.drawingHeight - paperVars.drawingTop - slopeAreaHeight;
-  paperVars.slopeTop = paperVars.drawingTop + paperVars.graphHeight;
+  paperVars.pathGradeTop = paperVars.drawingTop + paperVars.graphHeight;
+  paperVars.terrainSlopeTop = paperVars.pathGradeTop + paperVars.pathGradeHeight;
   paperVars.pixelsPerMeterDistanceX =
     measureDerivedValuesRef.current.totalDistanceMeters > 0
       ? paperVars.drawingWidth / measureDerivedValuesRef.current.totalDistanceMeters
@@ -346,6 +362,33 @@ function initMeasurePaperRefs(
     pathSegmentDistances,
     paperVars.drawingLeft
   );
+  measureDerivedValuesRef.current.terrainSlopeGraphValues = calcTerrainSlopeGraphValues(
+    pathSegmentAbsoluteSlopes,
+    pathSegmentElevations,
+    pathSegmentDistances,
+    paperVars.drawingLeft,
+    paperVars.pixelsPerMeterDistanceX
+  );
+}
+
+export function calcTerrainSlopeGraphValues(
+  segmentedSlopes: (number | null)[][] | null,
+  segmentedElevations: number[][] | null,
+  segmentDistances: number[],
+  xLocStart: number,
+  pixelsPerMeter: number
+): GraphDataItem[] {
+  return buildDistanceTerrainSlopeProfile(
+    segmentedSlopes,
+    segmentDistances ?? [],
+    segmentedElevations
+  ).map(({ distanceMeters, slopeDegrees }) => ({
+    xPixel: xLocStart + distanceMeters * pixelsPerMeter,
+    yPixel: 0,
+    val: slopeDegrees ?? 0,
+    distanceMeters,
+    slopeDegrees,
+  }));
 }
 
 function calcElevationGraphValues(

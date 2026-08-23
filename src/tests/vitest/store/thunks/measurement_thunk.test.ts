@@ -14,6 +14,9 @@ const mockThunkFetchElevation = vi.fn().mockReturnValue({
 vi.mock("store/thunk/thunkElevation", () => ({
   thunkFetchElevation: () => mockThunkFetchElevation,
 }));
+vi.mock("store/thunk/thunkTerrainProfile", () => ({
+  thunkFetchTerrainProfile: () => mockThunkFetchElevation,
+}));
 
 beforeAll(() => {
   /**
@@ -42,6 +45,7 @@ describe("Thunk Measurement Tests", () => {
       path: [{ lat: 1, lng: 2 }],
       pathSegmentDistances: [0],
       pathSegmentElevations: [[0, 0]],
+      pathSegmentAbsoluteSlopes: [[0, 0]],
       pathSegmentBearings: [0],
       uuid: "uuid",
       createdAt: "createdAt",
@@ -60,6 +64,72 @@ describe("Thunk Measurement Tests", () => {
     const storeState = store.getState();
     expect(storeState.measure.measurements[0].path).toEqual(newPath);
     expect(storeState.measure.measurements[0].pathSegmentDistances.length).toEqual(1);
+    expect(storeState.measure.measurements[0].pathSegmentElevations).toEqual([[0, 0]]);
+    expect(storeState.measure.measurements[0].pathSegmentAbsoluteSlopes).toEqual([[0, 0]]);
+  });
+
+  test("thunkUpdateMeasurementPath() clears incompatible pending profiles", async () => {
+    const measurement: Measurement = {
+      path: [
+        { lat: 1, lng: 2 },
+        { lat: 1.1, lng: 2.1 },
+      ],
+      pathSegmentDistances: [1],
+      pathSegmentElevations: [[0, 1]],
+      pathSegmentAbsoluteSlopes: [[2, 3]],
+      pathSegmentBearings: [0],
+      uuid: "changed-segments",
+      createdAt: "createdAt",
+      color: "#000000",
+    };
+    const store = createCustomTestStore({
+      measure: { ...measureInitialState, measurements: [measurement] },
+    });
+
+    await store.dispatch(
+      thunkUpdateMeasurementPath({
+        measurementUuid: measurement.uuid,
+        path: [
+          { lat: 1, lng: 2 },
+          { lat: 1.1, lng: 2.1 },
+          { lat: 1.2, lng: 2.2 },
+        ],
+      })
+    );
+
+    expect(store.getState().measure.measurements[0].pathSegmentElevations).toBeNull();
+    expect(store.getState().measure.measurements[0].pathSegmentAbsoluteSlopes).toBeNull();
+  });
+  test("thunkUpdateMeasurementPath() stores a combined profile", async () => {
+    mockThunkFetchElevation.mockReturnValueOnce({
+      meta: { requestStatus: "fulfilled" },
+      payload: { elevationsMeters: [[1, 2]], terrainSlopesDegrees: [[null, 3]] },
+    });
+    const measurement: Measurement = {
+      path: [
+        { lat: 1, lng: 2 },
+        { lat: 1.1, lng: 2.1 },
+      ],
+      pathSegmentDistances: [1],
+      pathSegmentElevations: null,
+      pathSegmentAbsoluteSlopes: null,
+      pathSegmentBearings: [0],
+      uuid: "profile-uuid",
+      createdAt: "createdAt",
+      color: "#000000",
+    };
+    const store = createCustomTestStore({
+      measure: { ...measureInitialState, measurements: [measurement] },
+    });
+    const path = [
+      { lat: 1, lng: 2 },
+      { lat: 1.2, lng: 2.2 },
+    ];
+
+    await store.dispatch(thunkUpdateMeasurementPath({ path, measurementUuid: measurement.uuid }));
+
+    expect(store.getState().measure.measurements[0].pathSegmentElevations).toEqual([[1, 2]]);
+    expect(store.getState().measure.measurements[0].pathSegmentAbsoluteSlopes).toEqual([[null, 3]]);
   });
   test("thunkAddNewMeasurement()", async () => {
     const store = createCustomTestStore({
@@ -78,6 +148,7 @@ describe("Thunk Measurement Tests", () => {
       path: [{ lat: 1, lng: 2 }],
       pathSegmentDistances: [0],
       pathSegmentElevations: [[0, 0]],
+      pathSegmentAbsoluteSlopes: [[0, 0]],
       pathSegmentBearings: [0],
       uuid: "uuid",
       createdAt: "createdAt",

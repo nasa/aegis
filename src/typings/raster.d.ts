@@ -21,6 +21,7 @@ type RasterDescriptor = {
   geographicProjection?: string;
   // Zero-based band index; elevation is normally stored in the first band.
   sampleIndex?: number;
+  expectedResolutionMeters?: number;
 };
 
 type RasterMetadata = {
@@ -35,11 +36,21 @@ type RasterMetadata = {
   isTiled: boolean;
   samplesPerPixel: number;
   noData: number | null;
+  scale: number;
+  offset: number;
   geoKeys: Record<string, unknown>;
 };
 
 type RasterSamplingResult = {
   metadata: RasterMetadata;
   samples: RasterSample[];
+  blocksRead: number;
+};
+
+type RasterNeighborhoodSamplingResult = {
+  metadata: RasterMetadata;
+  centerSamples: RasterSample[];
+  neighborhoods: RasterSample[][];
+  uniquePixelsRead: number;
   blocksRead: number;
 };

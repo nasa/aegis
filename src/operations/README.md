@@ -73,7 +73,7 @@ Thunks will eventually delegate their core doc mutation to the corresponding `op
 ## Hard rules (ESLint-enforced)
 
 1. `apply*` may only call other `apply*`. No `.change()`. No `getMissionDocHandle`. No thunks.
-2. `stage*` receives a `Mission` parameter; never calls `.change()`; may only import the allow-listed read-only thunks (currently `thunkFetchElevation`).
+2. `stage*` receives a `Mission` parameter; never calls `.change()`; may only import the allow-listed read-only profile thunks (`thunkFetchElevation` and `thunkFetchTerrainProfile`).
 3. `op*` functions in `src/operations/` own the `.change()` call for shared client/server operations. They receive a `DocHandle<Mission>` directly.
 4. Outside `src/store/thunk/**`, `src/operations/**`, and `automergeDocHandles.ts`, `missionDocHandle.change()` is forbidden in components. Use `withMissionChange` instead.
 5. An `op*` function or thunk runs at most one `.change()` per logical operation.
@@ -92,13 +92,18 @@ Before committing an `op*` function or thunk, verify:
 
 Most stages are **pure sync** (`stageDuplicateEva`, `stageDeleteRex`, etc.) — they read the passed-in `Mission`, allocate uuids, and return a plain data plan. This is the default tier and should be preferred whenever possible.
 
-A small number of stages are **async** because they need to enrich the stage data with values from a read-only API (currently: elevation profile from `thunkFetchElevation`). `stageTraverseUpdate` and `stageLanderLocationUpdate` are the canonical examples. Async stages still:
+A small number of stages are **async** because they need to enrich the stage data with values from a read-only API (currently elevation or combined terrain profiles). `stageTraverseUpdate` and `stageLanderLocationUpdate` are the canonical examples. Async stages still:
 
 - Receive `mission: Mission` as a parameter (no `getMissionDocHandle()` calls).
 - Never call `.change()` themselves.
 - Never call any mutation thunk — only the explicit allow-list of read-only data thunks.
 
 The caller still `await`s the stage and applies it inside a single sync `.change()` callback.
+
+Async traverse-profile operations claim shared per-traverse revisions before I/O and verify them
+immediately before `.change()`. Compound operations use all-or-nothing cancellation: if any claimed
+traverse was superseded, the entire operation is discarded rather than applying partial topology
+or endpoint changes with mismatched profiles.
 
 ## Why?
 

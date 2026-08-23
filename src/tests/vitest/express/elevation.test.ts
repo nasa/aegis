@@ -97,7 +97,7 @@ describe("native elevation route", () => {
     expect(mocks.sampleRasterProfileInWorker).toHaveBeenCalledWith(
       { absolutePath: path.join(staticDirectory, "missionFiles", "42", "Data", "trusted.tif") },
       expect.any(Array),
-      [4]
+      [5]
     );
   });
 

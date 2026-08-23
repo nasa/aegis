@@ -8,6 +8,7 @@ import {
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mapping/geoMath";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
 import { thunkFetchElevation } from "./thunkElevation";
+import { thunkFetchTerrainProfile } from "./thunkTerrainProfile";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import { generateUniqueName } from "utils/names/unique-name";
@@ -27,6 +28,16 @@ import { generateBlankStation } from "store/storeUtils/station";
 import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import { getMissionDocHandle } from "client/automergeDocHandles";
+import type { CompleteTerrainProfile } from "utils/terrainProfile";
+import {
+  areTraverseProfileUpdatesCurrent,
+  claimTraverseProfileRevisions,
+} from "operations/helpers/traverseProfileRevision";
+
+const latestStationLocationRequest = new Map<string, number>();
+let nextStationLocationRequest = 0;
+const latestWalkbackProfileRequest = new Map<string, number>();
+let nextWalkbackProfileRequest = 0;
 
 export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
@@ -37,6 +48,8 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
   const mission = missionDocHandle.doc();
   const station = mission.stations?.[stationUuid];
   if (!station) return;
+  const requestId = ++nextStationLocationRequest;
+  latestStationLocationRequest.set(stationUuid, requestId);
 
   // ── Step 1: Build walkback path, collect all adjacent traverses, fetch all elevations in parallel, and build the stage ──
   const landerLocation = mission.landerLocation;
@@ -148,8 +161,11 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
   const recalculatedTraversePaths = traversesToUpdate.map(({ traverseUuid, evaSequence }) =>
     buildTraversePath(traverseUuid, evaSequence, mission)
   );
+  const traverseProfileRevisions = claimTraverseProfileRevisions(
+    traversesToUpdate.map(({ traverseUuid }) => traverseUuid)
+  );
 
-  const [stationElevResult, walkbackElevResult, ...traverseElevResults] = await Promise.all([
+  const [stationElevResult, walkbackElevResult, ...traverseProfileResults] = await Promise.all([
     // Station elevation
     dispatch(
       thunkFetchElevation({ path: [location], pathSegmentDistances: [0], uuid: stationUuid })
@@ -166,7 +182,7 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
     ...traversesToUpdate.map(({ traverseUuid }, idx) => {
       const { path, distances } = recalculatedTraversePaths[idx];
       return dispatch(
-        thunkFetchElevation({ path, pathSegmentDistances: distances, uuid: traverseUuid })
+        thunkFetchTerrainProfile({ path, pathSegmentDistances: distances, uuid: traverseUuid })
       );
     }),
   ]);
@@ -185,13 +201,18 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
   const stagedTraverseData: TraverseUpdateStageData[] = traversesToUpdate.map(
     ({ traverseUuid, renameTraverse }, idx) => {
       const { path, distances, nameBefore, nameAfter } = recalculatedTraversePaths[idx];
-      const elevResult = traverseElevResults[idx];
+      const profileResult = traverseProfileResults[idx];
+      const profile =
+        profileResult.meta.requestStatus === "fulfilled"
+          ? (profileResult.payload as CompleteTerrainProfile)
+          : null;
       return {
         traverseUuid,
+        profileRevision: traverseProfileRevisions.get(traverseUuid)!,
         newPath: path,
         newPathSegmentDistances: distances,
-        newPathSegmentElevations:
-          elevResult.meta.requestStatus === "fulfilled" ? (elevResult.payload as number[][]) : null,
+        newPathSegmentElevations: profile?.elevationsMeters ?? null,
+        newPathSegmentAbsoluteSlopes: profile?.terrainSlopesDegrees ?? null,
         newName: renameTraverse ? `${nameBefore} to ${nameAfter}` : undefined,
         updatedAt: getAccurateNow().getTime(),
       } satisfies TraverseUpdateStageData;
@@ -207,6 +228,10 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
     newWalkbackPathSegmentElevations: newWalkbackElevations,
     traverseUpdates: stagedTraverseData,
   };
+
+  if (latestStationLocationRequest.get(stationUuid) !== requestId) return;
+  latestStationLocationRequest.delete(stationUuid);
+  if (!areTraverseProfileUpdatesCurrent(stagedTraverseData)) return;
 
   // ── Step 2: Apply everything atomically in a single .change() ──────────────
   missionDocHandle.change((m: Mission) => applyStationLocationUpdateStage(m, stagedStationData));
@@ -245,6 +270,8 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
 
   const station = mission.stations?.[stationUuid];
   const landerLocation = mission.landerLocation;
+  const requestId = ++nextWalkbackProfileRequest;
+  latestWalkbackProfileRequest.set(stationUuid, requestId);
   // Set starting station
   if (station && !isEqual(newPath.at(0), station.location)) {
     newPath[0] = station.location;
@@ -272,6 +299,9 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
   if (elevationResponse.meta.requestStatus === "fulfilled") {
     newElevationProfile = elevationResponse.payload as number[][];
   }
+
+  if (latestWalkbackProfileRequest.get(stationUuid) !== requestId) return;
+  latestWalkbackProfileRequest.delete(stationUuid);
 
   // Step 2: Apply single change to automerge
   // Save walkback to automerge

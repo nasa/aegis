@@ -109,6 +109,55 @@ export function buildDistanceElevationProfile(
   return profile;
 }
 
+/** Place each terrain-slope sample at its physical distance along a segmented path. */
+export function buildDistanceTerrainSlopeProfile(
+  segmentedSlopes: (number | null)[][] | null | undefined,
+  segmentDistances: number[],
+  segmentedElevations: number[][] | null = null
+): { distanceMeters: number; slopeDegrees: number | null }[] {
+  if (
+    !segmentedSlopes ||
+    !segmentedElevations ||
+    segmentedSlopes.length !== segmentDistances.length ||
+    segmentedElevations.length !== segmentDistances.length
+  ) {
+    return [];
+  }
+
+  const profile: { distanceMeters: number; slopeDegrees: number | null }[] = [];
+  let segmentStartDistance = 0;
+  for (const [segmentIndex, slopes] of segmentedSlopes.entries()) {
+    const elevations = segmentedElevations[segmentIndex];
+    const segmentDistance = segmentDistances[segmentIndex];
+    if (
+      !Array.isArray(slopes) ||
+      !Array.isArray(elevations) ||
+      slopes.length !== elevations.length ||
+      slopes.length === 0 ||
+      !Number.isFinite(segmentDistance) ||
+      segmentDistance < 0 ||
+      !slopes.every((value) => value === null || Number.isFinite(value))
+    ) {
+      return [];
+    }
+
+    for (const [sampleIndex, slopeDegrees] of slopes.entries()) {
+      const fraction = slopes.length === 1 ? 1 : sampleIndex / (slopes.length - 1);
+      const item = {
+        distanceMeters: segmentStartDistance + segmentDistance * fraction,
+        slopeDegrees,
+      };
+      if (profile.at(-1)?.distanceMeters === item.distanceMeters) {
+        profile[profile.length - 1] = item;
+      } else {
+        profile.push(item);
+      }
+    }
+    segmentStartDistance += segmentDistance;
+  }
+  return profile;
+}
+
 /**
  * Calculate local path grade with a least-squares fit over a fixed distance window.
  * The wider baseline suppresses single-cell DEM noise without making the result
