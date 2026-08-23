@@ -385,7 +385,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--slope-float-cog",
         action="store_true",
         help=(
-            "Create Data/slope_degrees_uint16_cog.tif and adjacent ramp JSON from --in-dem. "
+            "Create Data/slope_degrees_uint16_cog.tif from --in-dem. "
             "Values are degrees × 100 (0.01-degree precision) and are not colorized."
         ),
     )

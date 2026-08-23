@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Create a compact UInt16 analytical slope COG and exact color-ramp JSON."""
+"""Create a compact UInt16 analytical slope COG."""
 
 from __future__ import annotations
 
 import argparse
-import json
-import re
 import sys
 import tempfile
 from pathlib import Path
@@ -24,50 +22,7 @@ SCALE = 0.01
 NODATA = 65535
 
 
-def parse_ramp(path: Path) -> tuple[list[dict], list[int]]:
-    """Parse a GDAL color-relief table without compacting its exact stops."""
-    stops: list[dict] = []
-    nodata_color = [0, 0, 0, 0]
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.split("#", 1)[0].strip()
-        if not line:
-            continue
-        parts = [part for part in re.split(r"[\s,]+", line) if part]
-        if len(parts) < 4:
-            continue
-        rgba = [int(value) for value in parts[1:5]]
-        if len(rgba) == 3:
-            rgba.append(255)
-        if parts[0].lower() == "nv":
-            nodata_color = rgba
-        else:
-            stops.append({"value": float(parts[0]), "rgba": rgba})
-    return stops, nodata_color
-
-
-def write_ramp_json(ramp: Path, output: Path) -> None:
-    stops, nodata_color = parse_ramp(ramp)
-    payload = {
-        "version": 1,
-        "units": "degrees",
-        "encoding": {
-            "dataType": "uint16",
-            "scale": SCALE,
-            "offset": 0,
-            "noData": NODATA,
-            "decode": "degrees = storedValue * scale + offset",
-        },
-        "colorRamp": {
-            "interpolation": "linear",
-            "noDataRgba": nodata_color,
-            "stops": stops,
-        },
-        "sourceRamp": ramp.name,
-    }
-    output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-
-
-def build(dem: Path, output: Path, ramp: Path, ramp_output: Path) -> None:
+def build(dem: Path, output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(
         dir=output.parent, prefix="slope-build-"
@@ -111,22 +66,14 @@ def build(dem: Path, output: Path, ramp: Path, ramp_output: Path) -> None:
                 "OVERVIEWS=NONE",
             ],
         )
-    write_ramp_json(ramp, ramp_output)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dem", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--ramp", type=Path, required=True)
-    parser.add_argument("--ramp-out", type=Path, required=True)
     args = parser.parse_args()
-    build(
-        args.dem.resolve(),
-        args.out.resolve(),
-        args.ramp.resolve(),
-        args.ramp_out.resolve(),
-    )
+    build(args.dem.resolve(), args.out.resolve())
 
 
 if __name__ == "__main__":

@@ -127,10 +127,6 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
             "Slope values (UInt16 × 0.01°)",
             f"Data/{p.slope_float_cog_out.name}  {mark(p.slope_float_cog_out)}",
         )
-        row(
-            "Slope color ramp",
-            f"Data/{p.slope_ramp_out.name}  {mark(p.slope_ramp_out)}",
-        )
     if p.layer_prefix:
         row("layer prefix", f"{p.layer_prefix}_  (folders + AEGIS layer names)")
     for name in _raster_layer_names(args):

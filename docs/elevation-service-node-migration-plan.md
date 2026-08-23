@@ -66,8 +66,7 @@ raster-configuration batch:
 - derive and display DEM resolution from the selected file's georeferencing instead of asking an
   administrator to type it; and
 - add a second validated dropdown for the absolute-slope analytical GeoTIFF now emitted as
-  `Data/slope_degrees_uint16_cog.tif`, including validation of its adjacent
-  `Data/slope_degrees_uint16_cog.json` encoding metadata.
+  `Data/slope_degrees_uint16_cog.tif`, using its embedded scale, offset, and NoData metadata.
 
 The implementation is split into a reusable **analytical raster sampler** and a thin elevation
 profile wrapper. Elevation is the first consumer, but the same sampler can later read numeric
@@ -470,17 +469,16 @@ the pipeline and its contract tests.
 
 **Absolute-slope profile**
 
-- require an adjacent JSON file with the same basename (`<name>.json`);
-- validate only the JSON fields required to decode samples: units, data type, scale, offset, and
-  NoData;
-- reject obvious metadata conflicts between the JSON and TIFF; and
+- require the expected numeric data type plus embedded scale, offset, and NoData metadata needed
+  to decode samples;
 - compare the slope raster's CRS and grid metadata with the selected DEM and flag a clear
   incompatibility. This is a metadata comparison, not a raster-content analysis.
 
 The current pipeline output is a single-band UInt16 COG with `scale = 0.01`, `offset = 0`,
-`noData = 65535`, and units of degrees. The validation contract should be metadata-driven rather
-than hard-code that filename or those exact encoding values, so another valid mission product can
-be selected.
+`noData = 65535`, and decoded values in degrees. The validation contract should read the encoding
+from the TIFF metadata rather than hard-code that filename or those exact values, so another valid
+mission product can be selected. Color assignment remains application-owned and uses the same
+default slope palette as the measurement and timeline graphs.
 
 ### 4.4 Mission admin UX
 
@@ -492,7 +490,7 @@ section (or retain the DEM heading with both controls grouped beneath it):
 2. **Absolute slope GeoTIFF** dropdown — the same candidates evaluated with the slope profile;
    include a “Not configured” option.
 3. Read-only metadata for each selection: resolution, dimensions, CRS, data type, NoData, and for
-   slope the decoded units/scale/offset and companion JSON filename.
+   slope the decoded units/scale/offset.
 4. Loading, empty-folder, inspection-error, invalid-current-selection, and file-disappeared states.
 5. A refresh/reinspect action that rescans the `Data/` folder and re-inspects the currently
    selected files. For the DEM, it must recompute and persist `demResolution` even if the same
@@ -514,15 +512,15 @@ still reject missing or newly invalid files server-side.
 
 - Route tests: authorization, traversal/symlink containment, case-insensitive extension filtering,
   deterministic ordering, unreadable/unsupported TIFF metadata, and cache invalidation.
-- Lightweight validation tests: usable DEM metadata, valid scaled slope + JSON, missing/malformed
-  required JSON fields, and clearly incompatible CRS/grid metadata.
+- Lightweight validation tests: usable DEM metadata, valid scaled slope metadata, missing or
+  unsupported encoding metadata, and clearly incompatible CRS/grid metadata.
 - Browser/component tests: dropdown population, disabled invalid choices with reasons, successful
   atomic selection, derived read-only DEM resolution, refreshing and persisting resolution
   without changing the selected DEM, clearing slope, rescanning files, and stale selected files.
-- Pipeline contract tests own the deeper checks: generated TIFF/JSON metadata and encoding are
-  correct, the complete raster is readable, expected value ranges/NoData are valid, and generated
-  DEM/slope grids align. Also verify those products pass the lightweight server check and that
-  registration writes both analytical raster paths plus the derived DEM resolution.
+- Pipeline contract tests own the deeper checks: generated TIFF metadata and encoding are correct,
+  the complete raster is readable, expected value ranges/NoData are valid, and generated DEM/slope
+  grids align. Also verify those products pass the lightweight server check and that registration
+  writes both analytical raster paths plus the derived DEM resolution.
 
 ---
 
@@ -555,12 +553,11 @@ Do not expose arbitrary file paths through a generic public endpoint. Add domain
 server-side operations such as elevation-profile or slope-at-points that select a registered
 raster descriptor and then call the shared sampler.
 
-The pipeline now emits `Data/slope_degrees_uint16_cog.tif` plus
-`Data/slope_degrees_uint16_cog.json` alongside the colorized display product. The TIFF stores
-scaled UInt16 absolute slope values; the JSON defines the exact scale, offset, NoData, units, and
-color ramp. The generic sampler must apply this metadata rather than assume raw samples are
-already degrees. A COG is useful for consistency and remote access, but the Node sampler does not
-require COG layout.
+The pipeline now emits `Data/slope_degrees_uint16_cog.tif` alongside the colorized display product.
+The TIFF stores scaled UInt16 absolute slope values and embeds its scale, offset, and NoData
+metadata. The generic sampler must apply this metadata rather than assume raw samples are already
+degrees. The application owns the color ramp instead of loading a raster-specific sidecar. A COG
+is useful for consistency and remote access, but the Node sampler does not require COG layout.
 
 ---
 
@@ -729,9 +726,9 @@ branch after this runtime cutover.
 - **Resolution semantics.** `demResolution` currently drives traverse densification. Define it as
   native square-pixel ground resolution in metres; reject or explicitly support rasters whose CRS
   units, rotation, or unequal X/Y pixel sizes cannot produce that single value.
-- **Slope metadata ownership.** Treat the adjacent JSON as part of the selected analytical-slope
-  resource. Define whether TIFF tags or JSON win before accepting files that specify both; the
-  recommended initial behavior is to require agreement and reject conflicts.
+- **Slope metadata ownership.** Treat the TIFF's embedded sample type, scale, offset, and NoData
+  tags as authoritative. Keep color classification application-owned so analytical products do
+  not require a palette sidecar.
 - **Build compatibility.** Test geotiff.js filesystem reads and any worker `Pool` from the built
   esbuild artifact, not only from Vitest/source execution.
 

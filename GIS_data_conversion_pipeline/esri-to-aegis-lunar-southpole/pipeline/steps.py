@@ -212,40 +212,27 @@ def step_dem(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 
 
 def step_slope_float_cog(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """Derive a native-grid UInt16 slope COG and exact color-ramp JSON in Data/."""
-    banner("slope-float-cog — DEM → compact analytical slope COG + ramp JSON")
+    """Derive a native-grid UInt16 analytical slope COG in Data/."""
+    banner("slope-float-cog — DEM → compact analytical slope COG")
     require_input(p.dem_in, "DEM GeoTIFF", "--in-dem")
     p.data.mkdir(parents=True, exist_ok=True)
-    outputs_exist = p.slope_float_cog_out.exists() and p.slope_ramp_out.exists()
-    if outputs_exist:
+    # Remove the obsolete sidecar emitted by earlier pipeline versions.
+    p.slope_float_cog_out.with_suffix(".json").unlink(missing_ok=True)
+    if p.slope_float_cog_out.exists():
         if not args.overwrite:
-            tee(
-                "  [skip] slope COG and ramp JSON already built (use --overwrite to rebuild)"
-            )
+            tee("  [skip] slope COG already built (use --overwrite to rebuild)")
             return
     p.slope_float_cog_out.unlink(missing_ok=True)
-    p.slope_ramp_out.unlink(missing_ok=True)
-
-    scratch = p.out / "scratch_slope_values"
-    scratch.mkdir(parents=True, exist_ok=True)
-    try:
-        ramp = slope_ramp(p, scratch)
-        run(
-            [
-                PYTHON,
-                DEM_TO_SLOPE_VALUE_COG,
-                "--dem",
-                p.dem_in,
-                "--out",
-                p.slope_float_cog_out,
-                "--ramp",
-                ramp,
-                "--ramp-out",
-                p.slope_ramp_out,
-            ]
-        )
-    finally:
-        shutil.rmtree(scratch, ignore_errors=True)
+    run(
+        [
+            PYTHON,
+            DEM_TO_SLOPE_VALUE_COG,
+            "--dem",
+            p.dem_in,
+            "--out",
+            p.slope_float_cog_out,
+        ]
+    )
 
 
 def slope_ramp(p: config.PipelinePaths, scratch: Path) -> Path:
