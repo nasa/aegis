@@ -24,6 +24,7 @@ import {
   getCalculatedFieldsByTraverse,
 } from "store/processing/calculatedFields";
 import { processEvaDataFromStore } from "./common-timeline";
+import SlopeLegend from "../slope-legend";
 
 /**
  * Renders the navigation timeline presented at the bottom of the window
@@ -139,10 +140,10 @@ const NavTimeline: FunctionComponent = () => {
   const initHoverValues: TimelineHoverValues = {
     distanceFromLanderMeters: null,
     elevationMeters: null,
-    slopeDegrees: null,
+    pathGradeDegrees: null,
+    terrainSlopeDegrees: null,
     walkbackDistanceFromLanderMeters: null,
     walkbackElevationMeters: null,
-    walkbackSlopeDegrees: null,
   };
   const [hoverValues, setHoverValues] = useState<TimelineHoverValues>(initHoverValues);
 
@@ -451,6 +452,7 @@ const NavTimeline: FunctionComponent = () => {
         setRexPetTime={setRunningRexPetTime}
       />
       <TimelineHoverValues hoverValues={hoverValues} />
+      <SlopeLegend />
       <div className={styles.canvasContainer}>
         <div className={styles.timelineBodyItem}>
           <canvas ref={canvas} data-paper-resize />

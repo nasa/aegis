@@ -16,6 +16,14 @@ vi.mock("store/thunk/thunkElevation", () => ({
   thunkFetchElevation: (...args: unknown[]) => mockThunkFetchElevationFactory(...args),
 }));
 
+const mockThunkFetchTerrainProfile = vi.fn().mockReturnValue({
+  meta: { requestStatus: "rejected" },
+});
+const mockThunkFetchTerrainProfileFactory = vi.fn((..._args) => mockThunkFetchTerrainProfile);
+vi.mock("store/thunk/thunkTerrainProfile", () => ({
+  thunkFetchTerrainProfile: (...args: unknown[]) => mockThunkFetchTerrainProfileFactory(...args),
+}));
+
 const getMission = (): Mission => getMissionDocHandle().doc();
 
 let store: StoreType;
@@ -243,13 +251,11 @@ describe("Thunk Mission Tests", () => {
       // the second pass would overwrite with a path snapped from a stale clone,
       // potentially corrupting the midpoint.
       expect(updated.path[1]).toEqual(midpoint);
-      // Exactly one elevation fetch must have been dispatched for this traverse uuid
-      // (not two — one per EVA). mockThunkFetchElevationFactory records the args
-      // passed to thunkFetchElevation(), including the uuid field.
-      const elevCallsForTraverse = mockThunkFetchElevationFactory.mock.calls.filter(
+      // Exactly one combined profile fetch must be dispatched for this traverse uuid.
+      const profileCallsForTraverse = mockThunkFetchTerrainProfileFactory.mock.calls.filter(
         (call) => (call[0] as { uuid?: string })?.uuid === sharedTraverse.uuid
       );
-      expect(elevCallsForTraverse).toHaveLength(1);
+      expect(profileCallsForTraverse).toHaveLength(1);
     });
 
     it("skips evas with empty sequences (no traverse to update)", async () => {

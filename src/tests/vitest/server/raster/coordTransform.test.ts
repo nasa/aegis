@@ -5,7 +5,7 @@ const LUNAR_SOUTH_POLE =
 const LUNAR_GEOGRAPHIC = "+proj=longlat +a=1737400 +b=1737400 +no_defs";
 
 describe("geographicToPixel", () => {
-  it("uses longitude/latitude axis order and truncates toward zero", () => {
+  it("uses longitude/latitude axis order and selects the containing pixel", () => {
     expect(
       geographicToPixel(
         { lat: -90, lng: 0 },
@@ -27,5 +27,16 @@ describe("geographicToPixel", () => {
         LUNAR_GEOGRAPHIC
       )
     ).toThrow("finite numbers");
+  });
+
+  it("keeps fractional coordinates outside the top-left boundary out of bounds", () => {
+    expect(
+      geographicToPixel(
+        { lat: -0.2, lng: -0.2 },
+        "+proj=longlat +datum=WGS84 +no_defs",
+        [0, 0],
+        [1, 1]
+      )
+    ).toEqual({ x: -1, y: -1 });
   });
 });

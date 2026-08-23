@@ -12,7 +12,7 @@ import cloneDeep from "lodash/cloneDeep";
 import appCreateAsyncThunk from "./thunkUtil";
 import { generateUniqueName } from "utils/names/unique-name";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
-import { thunkFetchElevation } from "./thunkElevation";
+import { thunkFetchTerrainProfile } from "./thunkTerrainProfile";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
@@ -41,6 +41,8 @@ import { stageTraverseUpdate } from "operations/stage/stage-traverse";
 import { applyDuplicateStationStage, applyDeleteStations } from "operations/apply/apply-station";
 import { applyDeleteActions } from "operations/apply/apply-action";
 import { setStationCircleUIStates } from "store/station";
+import type { CompleteTerrainProfile } from "utils/terrainProfile";
+import { areTraverseProfileUpdatesCurrent } from "operations/helpers/traverseProfileRevision";
 
 export const thunkDocDeleteEva = appCreateAsyncThunk<{
   evaUuid: string;
@@ -111,17 +113,16 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
     const traversePath: AEGISPoint[] = [cloneDeep(landerLocation), cloneDeep(landerLocation)];
     const traversePathSegmentDistances: number[] = [0];
 
-    // Fetch elevation for the lander→lander path before the .change()
-    const elevationResponse = await dispatch(
-      thunkFetchElevation({
+    const profileResponse = await dispatch(
+      thunkFetchTerrainProfile({
         path: traversePath,
         pathSegmentDistances: traversePathSegmentDistances,
         uuid: newTraverse.uuid,
       })
     );
-    const elevationProfile =
-      elevationResponse.meta.requestStatus === "fulfilled"
-        ? (elevationResponse.payload as number[][])
+    const profile =
+      profileResponse.meta.requestStatus === "fulfilled"
+        ? (profileResponse.payload as CompleteTerrainProfile)
         : null;
 
     // Build the fully-populated traverse
@@ -130,7 +131,8 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
       name: "Lander to Lander",
       path: traversePath,
       pathSegmentDistances: traversePathSegmentDistances,
-      pathSegmentElevations: elevationProfile,
+      pathSegmentElevations: profile?.elevationsMeters ?? null,
+      pathSegmentAbsoluteSlopes: profile?.terrainSlopesDegrees ?? null,
     };
 
     // Step 2: Upsert both the EVA and fully-populated traverse in a single .change()
@@ -273,6 +275,7 @@ export const thunkDocDeleteStationFromEva = appCreateAsyncThunk<{
     : null;
 
   // Step 2: Apply everything in a single .change()
+  if (adjacentTraverseUpdate && !areTraverseProfileUpdatesCurrent([adjacentTraverseUpdate])) return;
   missionDocHandle.change((m: Mission) => {
     applyDeleteActions(m, [...traverseActionUuidsToDelete, ...stationActionUuidsToDelete]);
     applyDeleteTraverses(m, [traverseUuidToDelete]);
@@ -362,6 +365,7 @@ export const thunkDocChangeStationInEva = appCreateAsyncThunk<{
     const validTraverseUpdates = traverseUpdates.filter(Boolean) as TraverseUpdateStageData[];
 
     // Step 2: Apply everything in a single .change()
+    if (!areTraverseProfileUpdatesCurrent(validTraverseUpdates)) return;
     missionDocHandle.change((m: Mission) => {
       if (stagedStationData) {
         applyDuplicateStationStage(m, stagedStationData);
@@ -444,6 +448,7 @@ export const thunkDocReorderStationInEva = appCreateAsyncThunk<{
   const validTraverseUpdates = traverseStagedData.filter(Boolean) as TraverseUpdateStageData[];
 
   // Step 2: Apply sequence swap + all traverse updates in a single .change()
+  if (!areTraverseProfileUpdatesCurrent(validTraverseUpdates)) return;
   missionDocHandle.change((m: Mission) => {
     applySwapEvaSequenceItems(m, { evaUuid, indexA: stationIndexToSwap, indexB: stationIndex });
     applyTraverseUpdatesStage(m, validTraverseUpdates);
@@ -513,6 +518,7 @@ export const thunkDocChangeIngressEgress = appCreateAsyncThunk<{
       : null;
 
     // Step 2: Apply everything in a single .change()
+    if (stagedTraverseData && !areTraverseProfileUpdatesCurrent([stagedTraverseData])) return;
     missionDocHandle.change((m: Mission) => {
       if (stationStage) {
         applyDuplicateStationStage(m, stationStage);

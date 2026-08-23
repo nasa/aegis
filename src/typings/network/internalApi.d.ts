@@ -12,3 +12,14 @@ type ElevationProfilePostData = {
   resolutionMeters: number;
   radius: number;
 };
+
+type TerrainProfilePostData = {
+  path: AEGISPoint[];
+  pathSegmentDistances: number[];
+  entityKey?: string;
+};
+
+type TerrainProfile = {
+  elevationsMeters: number[][];
+  terrainSlopesDegrees: (number | null)[][];
+};

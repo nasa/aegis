@@ -1,7 +1,9 @@
 import type { Mock } from "vitest";
 import {
   buildDistanceElevationProfile,
+  buildDistanceTerrainSlopeProfile,
   calculateWindowedPathSlopes,
+  getGraphSlopeAtX,
   getHoverValue,
 } from "../../../utils/paper";
 import { getSlope } from "../../../utils/mapping/geoMath";
@@ -154,6 +156,67 @@ describe("buildDistanceElevationProfile", () => {
       { distanceMeters: 30, elevationMeters: 20 },
       { distanceMeters: 50, elevationMeters: 30 },
     ]);
+  });
+});
+
+describe("buildDistanceTerrainSlopeProfile", () => {
+  it("places stored samples by distance and preserves null gaps", () => {
+    expect(
+      buildDistanceTerrainSlopeProfile(
+        [
+          [2, null, 4],
+          [4, 8],
+        ],
+        [20, 30],
+        [
+          [100, 101, 102],
+          [102, 103],
+        ]
+      )
+    ).toEqual([
+      { distanceMeters: 0, slopeDegrees: 2 },
+      { distanceMeters: 10, slopeDegrees: null },
+      { distanceMeters: 20, slopeDegrees: 4 },
+      { distanceMeters: 50, slopeDegrees: 8 },
+    ]);
+  });
+
+  it("rejects outer and inner profile shape mismatches", () => {
+    expect(buildDistanceTerrainSlopeProfile([[2]], [10, 20], [[100]])).toEqual([]);
+    expect(buildDistanceTerrainSlopeProfile([[2]], [10], null)).toEqual([]);
+    expect(buildDistanceTerrainSlopeProfile([[2, 4]], [10], [[100]])).toEqual([]);
+  });
+
+  it("normalizes a missing legacy profile to no graph data", () => {
+    expect(buildDistanceTerrainSlopeProfile(undefined, [10])).toEqual([]);
+    expect(buildDistanceTerrainSlopeProfile(null, [10])).toEqual([]);
+  });
+});
+
+describe("getGraphSlopeAtX", () => {
+  const data: GraphDataItem[] = [
+    { xPixel: 0, yPixel: 0, val: -4, slopeDegrees: -4 },
+    { xPixel: 10, yPixel: 0, val: 0, slopeDegrees: null },
+    { xPixel: 20, yPixel: 0, val: 8, slopeDegrees: 8 },
+  ];
+
+  it("preserves signed values and interpolates available intervals", () => {
+    expect(getGraphSlopeAtX(data, 0)).toBe(-4);
+    expect(
+      getGraphSlopeAtX(
+        [
+          { xPixel: 0, yPixel: 0, val: -4, slopeDegrees: -4 },
+          { xPixel: 10, yPixel: 0, val: -2, slopeDegrees: -2 },
+        ],
+        5
+      )
+    ).toBe(-3);
+  });
+
+  it("does not interpolate across null gaps", () => {
+    expect(getGraphSlopeAtX(data, 5)).toBeNull();
+    expect(getGraphSlopeAtX(data, 10)).toBeNull();
+    expect(getGraphSlopeAtX(data, 15)).toBeNull();
   });
 });
 

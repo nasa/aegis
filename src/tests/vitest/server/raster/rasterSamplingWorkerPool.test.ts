@@ -3,6 +3,7 @@ import { EventEmitter } from "node:events";
 import {
   RasterSamplingWorkerPool,
   RasterSamplingWorkerPoolUnavailableError,
+  RasterSamplingWorkerPoolSupersededError,
 } from "server/raster/rasterSamplingWorkerPool";
 import type {
   RasterSamplingWorkerMessage,
@@ -19,6 +20,8 @@ const metadata: RasterMetadata = {
   isTiled: false,
   samplesPerPixel: 1,
   noData: null,
+  scale: 1,
+  offset: 0,
   geoKeys: {},
 };
 
@@ -46,8 +49,10 @@ class FakeWorker extends EventEmitter {
 
   succeed(requestIndex = 0): void {
     const request = this.requests[requestIndex];
+    if (request.type !== "raster-profile") throw new Error("Expected a raster-profile request");
     const response: RasterSamplingWorkerResponse = {
       id: request.id,
+      type: "raster-profile",
       status: "success",
       result: {
         samples: [
@@ -66,6 +71,24 @@ class FakeWorker extends EventEmitter {
 
   closeSuccessfully(): void {
     this.emit("message", { status: "closed" });
+  }
+
+  succeedTerrain(requestIndex = 0): void {
+    const request = this.requests[requestIndex];
+    if (request.type !== "terrain-profile") throw new Error("Expected a terrain-profile request");
+    const response: RasterSamplingWorkerResponse = {
+      id: request.id,
+      type: request.type,
+      status: "success",
+      result: {
+        elevationsMeters: [[10, 11]],
+        terrainSlopesDegrees: [[1, null]],
+        centerSamples: 2,
+        uniqueDemPixels: 12,
+        blocksRead: 2,
+      },
+    };
+    this.emit("message", response);
   }
 }
 
@@ -198,6 +221,84 @@ describe("RasterSamplingWorkerPool", () => {
     const replacementJob = pool.run(descriptor, path, [2]);
     replacementWorker.succeed();
     await expect(replacementJob).resolves.toMatchObject({ workerId: 2 });
+    await pool.close();
+  });
+
+  it("dispatches terrain profiles through the same worker and reports queue metrics", async () => {
+    const worker = new FakeWorker();
+    const pool = new RasterSamplingWorkerPool({ size: 1, workerFactory: () => worker });
+
+    const resultPromise = pool.runTerrain(descriptor, path, [2]);
+    expect(worker.requests[0]).toMatchObject({ type: "terrain-profile", samplesPerSegment: [2] });
+    worker.succeedTerrain();
+
+    await expect(resultPromise).resolves.toMatchObject({
+      elevationsMeters: [[10, 11]],
+      terrainSlopesDegrees: [[1, null]],
+      centerSamples: 2,
+      uniqueDemPixels: 12,
+      blocksRead: 2,
+      workerId: 1,
+      queueDurationMs: expect.any(Number),
+      executionDurationMs: expect.any(Number),
+    });
+    await pool.close();
+  });
+
+  it("replaces queued terrain work with the same coalescing key", async () => {
+    const worker = new FakeWorker();
+    const pool = new RasterSamplingWorkerPool({
+      size: 1,
+      maxQueueSize: 1,
+      workerFactory: () => worker,
+    });
+
+    const active = pool.runTerrain(descriptor, path, [2], "mission:traverse-a");
+    const superseded = pool.runTerrain(descriptor, path, [3], "mission:traverse-b");
+    const replacement = pool.runTerrain(descriptor, path, [4], "mission:traverse-b");
+
+    await expect(superseded).rejects.toBeInstanceOf(RasterSamplingWorkerPoolSupersededError);
+    expect(worker.requests).toHaveLength(1);
+    worker.succeedTerrain();
+    await active;
+    expect(worker.requests[1]).toMatchObject({ samplesPerSegment: [4] });
+    worker.succeedTerrain(1);
+    await replacement;
+    await pool.close();
+  });
+
+  it("keeps differently keyed terrain work in FIFO order", async () => {
+    const worker = new FakeWorker();
+    const pool = new RasterSamplingWorkerPool({ size: 1, workerFactory: () => worker });
+
+    const active = pool.runTerrain(descriptor, path, [2], "mission:active");
+    const firstQueued = pool.runTerrain(descriptor, path, [3], "mission:first");
+    const secondQueued = pool.runTerrain(descriptor, path, [4], "mission:second");
+
+    worker.succeedTerrain();
+    await active;
+    expect(worker.requests[1]).toMatchObject({ samplesPerSegment: [3] });
+    worker.succeedTerrain(1);
+    await firstQueued;
+    expect(worker.requests[2]).toMatchObject({ samplesPerSegment: [4] });
+    worker.succeedTerrain(2);
+    await secondQueued;
+    await pool.close();
+  });
+
+  it("does not cancel active terrain work when the same key is submitted", async () => {
+    const worker = new FakeWorker();
+    const pool = new RasterSamplingWorkerPool({ size: 1, workerFactory: () => worker });
+
+    const active = pool.runTerrain(descriptor, path, [2], "mission:traverse-a");
+    const queued = pool.runTerrain(descriptor, path, [3], "mission:traverse-a");
+
+    expect(worker.requests).toHaveLength(1);
+    worker.succeedTerrain();
+    await expect(active).resolves.toMatchObject({ elevationsMeters: [[10, 11]] });
+    expect(worker.requests[1]).toMatchObject({ samplesPerSegment: [3] });
+    worker.succeedTerrain(1);
+    await queued;
     await pool.close();
   });
 });

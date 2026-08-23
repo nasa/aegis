@@ -25,6 +25,6 @@ export const geographicToPixel = (
     throw new Error("Coordinate transformation produced a non-finite raster position");
   }
 
-  // Sampling is nearest-cell lookup rather than interpolation between elevation cells.
-  return { x: Math.trunc(pixelX), y: Math.trunc(pixelY) };
+  // Select the containing cell; floor keeps fractional coordinates outside the top/left bounds.
+  return { x: Math.floor(pixelX), y: Math.floor(pixelY) };
 };

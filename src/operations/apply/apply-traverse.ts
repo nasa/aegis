@@ -130,6 +130,7 @@ export function applyTraverseUpdatesStage(m: Mission, updates: TraverseUpdateSta
     traverse.path = cloneDeep(update.newPath);
     traverse.pathSegmentDistances = update.newPathSegmentDistances;
     traverse.pathSegmentElevations = update.newPathSegmentElevations;
+    traverse.pathSegmentAbsoluteSlopes = update.newPathSegmentAbsoluteSlopes;
     if (update.newName !== undefined) traverse.name = update.newName;
     traverse.updatedAt = update.updatedAt;
   }

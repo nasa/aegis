@@ -5,8 +5,10 @@ import { v4 as uuidv4 } from "uuid";
 import { getAccurateNow } from "utils/formatting";
 import { getTotalDistance } from "utils/mapping/geoMath";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
-import { thunkFetchElevation } from "store/thunk/thunkElevation";
+import { claimTraverseProfileRevision } from "operations/helpers/traverseProfileRevision";
+import { thunkFetchTerrainProfile } from "store/thunk/thunkTerrainProfile";
 import type { AppDispatch } from "utils/useAppDispatch";
+import type { CompleteTerrainProfile } from "utils/terrainProfile";
 
 import { stageDuplicateActions } from "./stage-actions";
 
@@ -63,7 +65,7 @@ export function stageDuplicateTraverse(
 /**
  * Build a `TraverseUpdateStageData` for a single traverse: snaps its endpoints
  * to their neighboring stations/lander, recalculates per-segment distances,
- * and fetches the elevation profile.
+ * and fetches the combined elevation and terrain-slope profile.
  *
  * Returns `null` when the traverse or its parent EVA cannot be found.
  */
@@ -86,6 +88,7 @@ export async function stageTraverseUpdate(
 
   const traverse = mission?.traverses?.[traverseUuid];
   if (!traverse) return null;
+  const profileRevision = claimTraverseProfileRevision(traverseUuid);
 
   const eva = Object.values(mission?.evas ?? {}).find((e) =>
     e.sequence.some((s) => s.uuid === traverseUuid)
@@ -124,21 +127,21 @@ export async function stageTraverseUpdate(
     pathSegmentDistances.push(getTotalDistance([newPath[i - 1], newPath[i]], mission.planetRadius));
   }
 
-  // Fetch elevation profile
-  const elevationResponse = await dispatch(
-    thunkFetchElevation({ path: newPath, pathSegmentDistances, uuid: traverseUuid })
+  const profileResponse = await dispatch(
+    thunkFetchTerrainProfile({ path: newPath, pathSegmentDistances, uuid: traverseUuid })
   );
-
-  const newPathSegmentElevations =
-    elevationResponse.meta.requestStatus === "fulfilled"
-      ? (elevationResponse.payload as number[][])
+  const profile =
+    profileResponse.meta.requestStatus === "fulfilled"
+      ? (profileResponse.payload as CompleteTerrainProfile)
       : null;
 
   return {
     traverseUuid,
+    profileRevision,
     newPath,
     newPathSegmentDistances: pathSegmentDistances,
-    newPathSegmentElevations,
+    newPathSegmentElevations: profile?.elevationsMeters ?? null,
+    newPathSegmentAbsoluteSlopes: profile?.terrainSlopesDegrees ?? null,
     newName: renameTraverse ? `${nameBefore} to ${nameAfter}` : undefined,
     updatedAt: getAccurateNow().getTime(),
   } satisfies TraverseUpdateStageData;

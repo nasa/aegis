@@ -34,6 +34,9 @@ const mockThunkFetchElevation = vi.fn().mockReturnValue({
 vi.mock("store/thunk/thunkElevation", () => ({
   thunkFetchElevation: () => mockThunkFetchElevation,
 }));
+vi.mock("store/thunk/thunkTerrainProfile", () => ({
+  thunkFetchTerrainProfile: () => mockThunkFetchElevation,
+}));
 
 // Spy on traverse update thunks. We don't care about the path math in these
 // EVA tests, only that the right traverse-uuid get updated as expected.

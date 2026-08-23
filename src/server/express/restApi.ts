@@ -10,6 +10,7 @@ import { RequestContext } from "@mikro-orm/postgresql";
 import authRoutes from "./routes/auth";
 import allRoutes from "./routes/all";
 import elevation from "./routes/elevation";
+import terrainProfile from "./routes/terrainProfile";
 import layerRoutes from "./routes/layer";
 import missionRoutes from "./routes/mission";
 import missionHomepageItemsRoutes from "./routes/missionHomepageItems";
@@ -115,6 +116,7 @@ app.get("/api/v1/version", (req, res) => {
 app.use("/api/v1/auth/", authRoutes);
 app.use("/api/v1/all", allRoutes);
 app.use("/api/v1/elevation", elevation);
+app.use("/api/v1/terrain-profile", terrainProfile);
 app.use("/api/v1/grid", gridRoutes);
 app.use("/api/v1/layer", layerRoutes);
 app.use("/api/v1/mission", missionRoutes);

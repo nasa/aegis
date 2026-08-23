@@ -14,6 +14,8 @@ const metadata: RasterMetadata = {
   isTiled: false,
   samplesPerPixel: 1,
   noData: null,
+  scale: 1,
+  offset: 0,
   geoKeys: {},
 };
 
@@ -39,7 +41,7 @@ describe("sampleRasterProfile", () => {
         { lat: 1, lng: 1 },
         { lat: 2, lng: 2 },
       ],
-      [1, 1]
+      [2, 2]
     );
 
     expect(result.samples).toEqual([

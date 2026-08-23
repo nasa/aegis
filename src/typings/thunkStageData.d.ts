@@ -203,9 +203,12 @@ type TraverseUpdateArgs = {
  */
 type TraverseUpdateStageData = {
   traverseUuid: string;
+  /** Revision claimed before profile I/O; checked immediately before the atomic apply. */
+  profileRevision: number;
   newPath: AEGISPoint[];
   newPathSegmentDistances: number[];
   newPathSegmentElevations: number[][] | null;
+  newPathSegmentAbsoluteSlopes: (number | null)[][] | null;
   /** When present, the traverse name is also updated. */
   newName?: string;
   updatedAt: number;

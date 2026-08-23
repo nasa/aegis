@@ -45,6 +45,7 @@ interface Traverse {
   path: AEGISPoint[] | null;
   pathSegmentDistances: number[] | null; //meters
   pathSegmentElevations: number[][] | null; //meters
+  pathSegmentAbsoluteSlopes?: (number | null)[][] | null; //degrees
   duration: number | null; //minutes
   description: string;
   traverseRate?: number | null; // km/h

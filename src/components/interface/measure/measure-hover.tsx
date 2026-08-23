@@ -30,7 +30,13 @@ const MeasureHoverValues: FunctionComponent<{
         <div className={timelineStyles.timelineHoverValueItem}>
           <div className={timelineStyles.timelineHoverValueTitle}>Path Grade (°)</div>
           <div className={timelineStyles.timelineHoverValue}>
-            {hoverValues.slopeDegrees?.toFixed(1)}
+            {hoverValues.pathGradeDegrees?.toFixed(1) ?? "—"}
+          </div>
+        </div>
+        <div className={timelineStyles.timelineHoverValueItem}>
+          <div className={timelineStyles.timelineHoverValueTitle}>Terrain Slope (°)</div>
+          <div className={timelineStyles.timelineHoverValue}>
+            {hoverValues.terrainSlopeDegrees?.toFixed(1) ?? "—"}
           </div>
         </div>
       </div>

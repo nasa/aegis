@@ -69,3 +69,16 @@ export const getRasterProjections = (
 
   throw new Error(`Unsupported custom raster coordinate transform ${transform}`);
 };
+
+export const validateRasterUnitsInMeters = (metadata: Pick<RasterMetadata, "geoKeys">): void => {
+  const projectedUnits = numberKey(metadata.geoKeys, "ProjLinearUnitsGeoKey", 9001);
+  if (projectedUnits !== 9001) throw new Error("Raster CRS linear units must be metres");
+
+  const verticalUnits = metadata.geoKeys.VerticalUnitsGeoKey;
+  if (
+    verticalUnits !== undefined &&
+    (typeof verticalUnits !== "number" || !Number.isFinite(verticalUnits) || verticalUnits !== 9001)
+  ) {
+    throw new Error("Raster elevation units must be metres");
+  }
+};

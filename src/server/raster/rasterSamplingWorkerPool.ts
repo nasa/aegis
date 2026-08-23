@@ -3,14 +3,25 @@ import { performance } from "node:perf_hooks";
 import { Worker } from "node:worker_threads";
 
 import type { RasterProfileSamplingResult } from "./sampleRasterProfile";
+import type { TerrainProfileResult } from "server/terrain/readTerrainProfile";
 
-export type RasterSamplingWorkerRequest = {
-  type: "sample";
+type RasterProfileWorkerRequest = {
   id: number;
+  type: "raster-profile";
   descriptor: RasterDescriptor;
   path: GeographicPoint[];
   steps: number[];
 };
+
+type TerrainProfileWorkerRequest = {
+  id: number;
+  type: "terrain-profile";
+  descriptor: RasterDescriptor;
+  path: GeographicPoint[];
+  samplesPerSegment: number[];
+};
+
+export type RasterSamplingWorkerRequest = RasterProfileWorkerRequest | TerrainProfileWorkerRequest;
 
 type RasterSamplingWorkerShutdownRequest = {
   type: "shutdown";
@@ -27,7 +38,13 @@ type SerializedWorkerError = {
 };
 
 export type RasterSamplingWorkerResponse =
-  | { id: number; status: "success"; result: RasterProfileSamplingResult }
+  | {
+      id: number;
+      type: "raster-profile";
+      status: "success";
+      result: RasterProfileSamplingResult;
+    }
+  | { id: number; type: "terrain-profile"; status: "success"; result: TerrainProfileResult }
   | { id: number; status: "error"; error: SerializedWorkerError }
   | { status: "closed" }
   | { status: "close-error"; error: SerializedWorkerError };
@@ -45,8 +62,9 @@ type Job = {
   // postMessage uses structured cloning, so requests contain only plain data.
   request: RasterSamplingWorkerRequest;
   queuedAt: number;
-  resolve: (result: RasterSamplingWorkerResult) => void;
+  resolve: (result: WorkerJobResult) => void;
   reject: (error: Error) => void;
+  coalescingKey?: string;
 };
 
 type WorkerSlot = {
@@ -67,10 +85,25 @@ export type RasterSamplingWorkerResult = RasterProfileSamplingResult & {
   executionDurationMs: number;
 };
 
+export type TerrainProfileSamplingWorkerResult = TerrainProfileResult & {
+  workerId: number;
+  queueDurationMs: number;
+  executionDurationMs: number;
+};
+
+type WorkerJobResult = RasterSamplingWorkerResult | TerrainProfileSamplingWorkerResult;
+
 export class RasterSamplingWorkerPoolUnavailableError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "RasterSamplingWorkerPoolUnavailableError";
+  }
+}
+
+export class RasterSamplingWorkerPoolSupersededError extends RasterSamplingWorkerPoolUnavailableError {
+  constructor() {
+    super("Raster sampling job was superseded by newer queued work");
+    this.name = "RasterSamplingWorkerPoolSupersededError";
   }
 }
 
@@ -136,6 +169,37 @@ export class RasterSamplingWorkerPool {
     path: GeographicPoint[],
     steps: number[]
   ): Promise<RasterSamplingWorkerResult> {
+    return this.runJob({
+      id: this.nextJobId++,
+      type: "raster-profile",
+      descriptor,
+      path,
+      steps,
+    }) as Promise<RasterSamplingWorkerResult>;
+  }
+
+  runTerrain(
+    descriptor: RasterDescriptor,
+    path: GeographicPoint[],
+    samplesPerSegment: number[],
+    coalescingKey?: string
+  ): Promise<TerrainProfileSamplingWorkerResult> {
+    return this.runJob(
+      {
+        id: this.nextJobId++,
+        type: "terrain-profile",
+        descriptor,
+        path,
+        samplesPerSegment,
+      },
+      coalescingKey
+    ) as Promise<TerrainProfileSamplingWorkerResult>;
+  }
+
+  private runJob(
+    request: RasterSamplingWorkerRequest,
+    coalescingKey?: string
+  ): Promise<WorkerJobResult> {
     if (this.closing) {
       return Promise.reject(
         new RasterSamplingWorkerPoolUnavailableError("Raster sampling workers are closed")
@@ -145,7 +209,10 @@ export class RasterSamplingWorkerPool {
     // Each worker owns its own raster cache and decoder. Dispatching whole profiles avoids
     // repeatedly transferring sample arrays between threads and preserves cache locality.
     const idleWorker = this.workers.find((slot) => !slot.job);
-    if (!idleWorker && this.queue.length >= this.maxQueueSize) {
+    const queuedJobIndex = coalescingKey
+      ? this.queue.findIndex((job) => job.coalescingKey === coalescingKey)
+      : -1;
+    if (!idleWorker && queuedJobIndex === -1 && this.queue.length >= this.maxQueueSize) {
       return Promise.reject(
         new RasterSamplingWorkerPoolUnavailableError("Raster sampling worker queue is full")
       );
@@ -153,13 +220,18 @@ export class RasterSamplingWorkerPool {
 
     return new Promise((resolve, reject) => {
       const job: Job = {
-        request: { type: "sample", id: this.nextJobId++, descriptor, path, steps },
+        request,
         queuedAt: performance.now(),
         resolve,
         reject,
+        coalescingKey,
       };
       if (idleWorker) this.dispatch(idleWorker, job);
-      else this.queue.push(job);
+      else if (queuedJobIndex !== -1) {
+        const supersededJob = this.queue[queuedJobIndex];
+        this.queue[queuedJobIndex] = job;
+        supersededJob.reject(new RasterSamplingWorkerPoolSupersededError());
+      } else this.queue.push(job);
     });
   }
 
@@ -240,7 +312,11 @@ export class RasterSamplingWorkerPool {
 
     const job = slot.job;
     if (this.closing && !job) return;
-    if (!job || response.id !== job.request.id) {
+    if (
+      !job ||
+      response.id !== job.request.id ||
+      (response.status === "success" && response.type !== job.request.type)
+    ) {
       // IDs prevent a stale or malformed message from resolving the wrong caller's promise.
       this.handleWorkerFailure(
         slot,
@@ -343,5 +419,13 @@ export const sampleRasterProfileInWorker = (
   path: GeographicPoint[],
   steps: number[]
 ): Promise<RasterSamplingWorkerResult> => rasterSamplingWorkerPool.run(descriptor, path, steps);
+
+export const sampleTerrainProfileInWorker = (
+  descriptor: RasterDescriptor,
+  path: GeographicPoint[],
+  samplesPerSegment: number[],
+  coalescingKey?: string
+): Promise<TerrainProfileSamplingWorkerResult> =>
+  rasterSamplingWorkerPool.runTerrain(descriptor, path, samplesPerSegment, coalescingKey);
 
 export const closeRasterSamplingWorkerPool = (): Promise<void> => rasterSamplingWorkerPool.close();

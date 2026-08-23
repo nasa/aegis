@@ -292,6 +292,7 @@ getORM()
             path: dbTraverse.path,
             pathSegmentDistances: dbTraverse.pathSegmentDistances,
             pathSegmentElevations: dbTraverse.pathSegmentElevations,
+            pathSegmentAbsoluteSlopes: null,
             status: dbTraverse.status,
             duration: dbTraverse.duration,
             description: dbTraverse.description,

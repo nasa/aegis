@@ -15,11 +15,11 @@ import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankAction } from "store/storeUtils/action";
 import { setMissionAutomergeDocHandle, getMissionDocHandle } from "client/automergeDocHandles";
 
-const mockThunkFetchElevation = vi.fn().mockReturnValue({
+const mockThunkFetchTerrainProfile = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
-vi.mock("store/thunk/thunkElevation", () => ({
-  thunkFetchElevation: () => mockThunkFetchElevation,
+vi.mock("store/thunk/thunkTerrainProfile", () => ({
+  thunkFetchTerrainProfile: () => mockThunkFetchTerrainProfile,
 }));
 
 const getMission = (): Mission => getMissionDocHandle().doc();
@@ -47,6 +47,59 @@ afterAll(() => {
 });
 
 describe("Thunk Traverse Tests", () => {
+  it("keeps the newer path when direct traverse profile requests overlap", async () => {
+    const traverse = generateBlankTraverse({
+      path: [
+        { lat: 0, lng: 0 },
+        { lat: 1, lng: 1 },
+      ],
+    });
+    getMissionDocHandle().change((m) => {
+      m.traverses[traverse.uuid] = traverse;
+    });
+
+    let resolveOlderProfile: (value: {
+      meta: { requestStatus: "fulfilled" };
+      payload: { elevationsMeters: number[][]; terrainSlopesDegrees: number[][] };
+    }) => void;
+    const olderProfile = new Promise<{
+      meta: { requestStatus: "fulfilled" };
+      payload: { elevationsMeters: number[][]; terrainSlopesDegrees: number[][] };
+    }>((resolve) => {
+      resolveOlderProfile = resolve;
+    });
+    mockThunkFetchTerrainProfile
+      .mockReturnValueOnce(() => olderProfile)
+      .mockReturnValueOnce({
+        meta: { requestStatus: "fulfilled" },
+        payload: { elevationsMeters: [[20]], terrainSlopesDegrees: [[2]] },
+      });
+
+    const store = createCustomTestStore({});
+    const olderPath = [
+      { lat: 2, lng: 2 },
+      { lat: 3, lng: 3 },
+    ];
+    const newerPath = [
+      { lat: 4, lng: 4 },
+      { lat: 5, lng: 5 },
+    ];
+    const olderOperation = store.dispatch(
+      thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path: olderPath })
+    );
+    await Promise.resolve();
+    await store.dispatch(thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path: newerPath }));
+
+    resolveOlderProfile!({
+      meta: { requestStatus: "fulfilled" },
+      payload: { elevationsMeters: [[10]], terrainSlopesDegrees: [[1]] },
+    });
+    await olderOperation;
+
+    expect(getMission().traverses[traverse.uuid].path).toEqual(newerPath);
+    expect(getMission().traverses[traverse.uuid].pathSegmentElevations).toEqual([[20]]);
+  });
+
   it("thunkDocUpdateTraverse() updates path/distances/name and persists to automerge", async () => {
     const traverseEgress: Traverse = generateBlankTraverse({ name: "Vitest Traverse-1" });
     const traverseIngress: Traverse = generateBlankTraverse({ name: "Vitest Traverse-1" });
@@ -88,6 +141,21 @@ describe("Thunk Traverse Tests", () => {
       { lat: 1.6, lng: 2.6 },
       station2.location,
     ];
+    mockThunkFetchTerrainProfile.mockReturnValueOnce({
+      meta: { requestStatus: "fulfilled" },
+      payload: {
+        elevationsMeters: [
+          [1, 2],
+          [2, 3],
+          [3, 4],
+        ],
+        terrainSlopesDegrees: [
+          [null, 2],
+          [2, 3],
+          [3, null],
+        ],
+      },
+    });
     await store.dispatch(
       thunkDocUpdateTraverse({
         path: newPath,
@@ -105,8 +173,18 @@ describe("Thunk Traverse Tests", () => {
       station2.location,
     ]);
     expect(resultTraverse.pathSegmentDistances.length).toEqual(3);
+    expect(resultTraverse.pathSegmentElevations).toEqual([
+      [1, 2],
+      [2, 3],
+      [3, 4],
+    ]);
+    expect(resultTraverse.pathSegmentAbsoluteSlopes).toEqual([
+      [null, 2],
+      [2, 3],
+      [3, null],
+    ]);
     expect(resultTraverse.updatedAt).not.toBeNull();
-    expect(mockThunkFetchElevation).toHaveBeenCalledTimes(1);
+    expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
 
     //update with no path -> falls back to a traverse not in any EVA, gets lander/lander
     await store.dispatch(thunkDocUpdateTraverse({ path: null, traverseUuid: traverseNoEva.uuid }));
@@ -117,7 +195,7 @@ describe("Thunk Traverse Tests", () => {
       { lat: 3, lng: 3 },
       { lat: 3, lng: 3 },
     ]);
-    expect(mockThunkFetchElevation).toHaveBeenCalledTimes(2);
+    expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(2);
   });
 
   it("thunkDocResetTraverse() resets traverse path to its surrounding station locations", async () => {

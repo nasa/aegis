@@ -2,6 +2,9 @@ import appCreateAsyncThunk from "./thunkUtil";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import { stageLanderLocationUpdate } from "operations/stage/stage-lander";
 import { applyLanderLocationUpdateStage } from "operations/apply/apply-mission";
+import { areTraverseProfileUpdatesCurrent } from "operations/helpers/traverseProfileRevision";
+
+let latestLanderLocationRequest = 0;
 
 export const thunkDocUpdateLanderLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
@@ -10,11 +13,14 @@ export const thunkDocUpdateLanderLocation = appCreateAsyncThunk<{
   if (!missionDocHandle) return;
   const mission = missionDocHandle.doc();
   if (!mission) return;
+  const requestId = ++latestLanderLocationRequest;
 
   // Step 1: Fetch all elevations in parallel and build the full stage.
   // No .change() calls happen here — stageLanderLocationUpdate only reads the
   // doc and dispatches read-only thunkFetchElevation calls.
   const stage = await stageLanderLocationUpdate(mission, dispatch, location);
+  if (requestId !== latestLanderLocationRequest) return;
+  if (!areTraverseProfileUpdatesCurrent(stage.traverseUpdates)) return;
 
   // Step 2: Apply everything atomically in a single .change():
   //  - mission.landerLocation + landerElevationMeters
