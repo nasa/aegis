@@ -264,6 +264,7 @@ getORM()
             walkbackPath: dbStation.walkbackPath,
             walkbackPathSegmentDistances: dbStation.walkbackPathSegmentDistances,
             walkbackPathSegmentElevations: dbStation.walkbackPathSegmentElevations,
+            walkbackPathSegmentAbsoluteSlopes: null,
             walkbackTraverseRate: dbStation.walkbackTraverseRate,
             duration: dbStation.duration,
             icon: dbStation.icon,
@@ -293,6 +294,7 @@ getORM()
             path: dbTraverse.path,
             pathSegmentDistances: dbTraverse.pathSegmentDistances,
             pathSegmentElevations: dbTraverse.pathSegmentElevations,
+            pathSegmentAbsoluteSlopes: null,
             status: dbTraverse.status,
             duration: dbTraverse.duration,
             description: dbTraverse.description,
@@ -612,6 +614,27 @@ getORM()
       });
     };
 
+    const automergeMigration20260823AddAbsoluteSlopeRaster = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      docHandle.change((mission: Mission) => {
+        const doc = mission as Partial<Mission>;
+        if (!("absoluteSlopeFilePath" in doc)) doc.absoluteSlopeFilePath = "";
+        for (const station of Object.values(mission.stations ?? {})) {
+          const legacyStation = station as Partial<Station>;
+          if (!("walkbackPathSegmentAbsoluteSlopes" in legacyStation)) {
+            legacyStation.walkbackPathSegmentAbsoluteSlopes = null;
+          }
+        }
+        for (const traverse of Object.values(mission.traverses ?? {})) {
+          const legacyTraverse = traverse as Partial<Traverse>;
+          if (!("pathSegmentAbsoluteSlopes" in legacyTraverse)) {
+            legacyTraverse.pathSegmentAbsoluteSlopes = null;
+          }
+        }
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
@@ -621,6 +644,7 @@ getORM()
       automergeMigration20260722GridToMissionDoc,
       automergeMigration20260809AddGridRenderMode,
       automergeMigration20260810RenameStationLabelStrokeToHalo,
+      automergeMigration20260823AddAbsoluteSlopeRaster,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {

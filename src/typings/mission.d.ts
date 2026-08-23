@@ -24,6 +24,7 @@ interface Mission {
   serverFileGrid: MissionGridDefinition | null;
   _metadata?: string; // Meant for JsonExport file export only
   demFilePath: string;
+  absoluteSlopeFilePath: string;
   demResolution: number | null;
   projIsCustom: boolean;
   projEpsg: string;

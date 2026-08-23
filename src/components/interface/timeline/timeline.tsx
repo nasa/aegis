@@ -141,6 +141,7 @@ const NavTimeline: FunctionComponent = () => {
     distanceFromLanderMeters: null,
     elevationMeters: null,
     slopeDegrees: null,
+    absoluteSlopeDegrees: null,
     walkbackDistanceFromLanderMeters: null,
     walkbackElevationMeters: null,
     walkbackSlopeDegrees: null,

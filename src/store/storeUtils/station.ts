@@ -26,6 +26,7 @@ export const generateBlankStation = (partialStation?: Partial<Station>): Station
     walkbackPath: null,
     walkbackPathSegmentDistances: null,
     walkbackPathSegmentElevations: null,
+    walkbackPathSegmentAbsoluteSlopes: null,
     walkbackTraverseRate: null,
     mapCircleControls: {},
     createdAt: getAccurateNow().getTime(),

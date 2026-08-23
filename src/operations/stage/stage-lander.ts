@@ -3,6 +3,7 @@ import cloneDeep from "lodash/cloneDeep";
 import { getAccurateNow } from "utils/formatting";
 import { getTotalDistance } from "utils/mapping/geoMath";
 import { thunkFetchElevation } from "store/thunk/thunkElevation";
+import { thunkFetchPathProfiles } from "store/thunk/thunkPathProfiles";
 import type { AppDispatch } from "utils/useAppDispatch";
 
 /**
@@ -134,7 +135,7 @@ export async function stageLanderLocationUpdate(
     Promise.all(
       walkbackPlans.map(({ stationUuid, newWalkbackPath, distances }) =>
         dispatch(
-          thunkFetchElevation({
+          thunkFetchPathProfiles({
             path: newWalkbackPath,
             pathSegmentDistances: distances,
             uuid: `${stationUuid}_walkback`,
@@ -146,7 +147,7 @@ export async function stageLanderLocationUpdate(
     Promise.all(
       traversePlans.map(({ traverseUuid, newPath, distances }) =>
         dispatch(
-          thunkFetchElevation({
+          thunkFetchPathProfiles({
             path: newPath,
             pathSegmentDistances: distances,
             uuid: traverseUuid,
@@ -158,26 +159,34 @@ export async function stageLanderLocationUpdate(
 
   // ── Assemble walkback stage data ─────────────────────────────────────────
   const walkbackUpdates: WalkbackUpdateStageData[] = walkbackPlans.map((plan, i) => {
-    const elevResult = walkbackElevResults[i];
+    const profileResult = walkbackElevResults[i];
+    const profiles =
+      profileResult.meta.requestStatus === "fulfilled" && profileResult.payload !== false
+        ? profileResult.payload
+        : null;
     return {
       stationUuid: plan.stationUuid,
       newWalkbackPath: plan.newWalkbackPath,
       newWalkbackPathSegmentDistances: plan.distances,
-      newWalkbackPathSegmentElevations:
-        elevResult.meta.requestStatus === "fulfilled" ? (elevResult.payload as number[][]) : null,
+      newWalkbackPathSegmentElevations: profiles?.elevations ?? null,
+      newWalkbackPathSegmentAbsoluteSlopes: profiles?.absoluteSlopes ?? null,
     } satisfies WalkbackUpdateStageData;
   });
 
   // ── Assemble traverse stage data ─────────────────────────────────────────
   const now = getAccurateNow().getTime();
   const traverseUpdates: TraverseUpdateStageData[] = traversePlans.map((plan, i) => {
-    const elevResult = traverseElevResults[i];
+    const profileResult = traverseElevResults[i];
+    const profiles =
+      profileResult.meta.requestStatus === "fulfilled" && profileResult.payload !== false
+        ? profileResult.payload
+        : null;
     return {
       traverseUuid: plan.traverseUuid,
       newPath: plan.newPath,
       newPathSegmentDistances: plan.distances,
-      newPathSegmentElevations:
-        elevResult.meta.requestStatus === "fulfilled" ? (elevResult.payload as number[][]) : null,
+      newPathSegmentElevations: profiles?.elevations ?? null,
+      newPathSegmentAbsoluteSlopes: profiles?.absoluteSlopes ?? null,
       updatedAt: now,
     } satisfies TraverseUpdateStageData;
   });

@@ -45,6 +45,7 @@ interface Traverse {
   path: AEGISPoint[] | null;
   pathSegmentDistances: number[] | null; //meters
   pathSegmentElevations: number[][] | null; //meters
+  pathSegmentAbsoluteSlopes: (number | null)[][] | null; //degrees
   duration: number | null; //minutes
   description: string;
   traverseRate?: number | null; // km/h
@@ -54,7 +55,7 @@ interface Traverse {
   updatedAt?: number;
 }
 
-type Traverse_db_type = Omit<Traverse, "createdAt" | "updatedAt"> & {
+type Traverse_db_type = Omit<Traverse, "createdAt" | "updatedAt" | "pathSegmentAbsoluteSlopes"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -82,6 +83,7 @@ interface Station {
   walkbackPath: AEGISPoint[] | null;
   walkbackPathSegmentDistances: number[] | null; //meters
   walkbackPathSegmentElevations: number[][] | null; //meters
+  walkbackPathSegmentAbsoluteSlopes: (number | null)[][] | null; //degrees
   walkbackTraverseRate: number | null; // km/h
   icon: string | null;
   mapCircleControls: MapCircleControls;
@@ -95,7 +97,10 @@ interface Station {
   updatedAt?: number;
 }
 
-type Station_db_type = Omit<Station, "createdAt" | "updatedAt"> & {
+type Station_db_type = Omit<
+  Station,
+  "createdAt" | "updatedAt" | "walkbackPathSegmentAbsoluteSlopes"
+> & {
   createdAt?: Date;
   updatedAt?: Date;
 };

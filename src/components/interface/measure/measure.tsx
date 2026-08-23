@@ -15,13 +15,18 @@ import throttle from "lodash/throttle";
 import isNil from "lodash/isNil";
 import { clearMapItemHover } from "store/hover";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { buildDistanceElevationProfile, calculateWindowedPathSlopes } from "utils/paper";
+import {
+  buildDistanceElevationProfile,
+  buildDistanceValueProfile,
+  calculateWindowedPathSlopes,
+} from "utils/paper";
 
 const initHoverValues: MeasureHoverValues = {
   totalDistanceMeters: null,
   distanceFromStartMeters: null,
   elevationMeters: null,
   slopeDegrees: null,
+  absoluteSlopeDegrees: null,
 };
 
 const Measure: FunctionComponent = () => {
@@ -56,6 +61,7 @@ const Measure: FunctionComponent = () => {
     minElevationMeters: null,
     relativeElevationsMeters: null,
     elevationGraphValues: null,
+    absoluteSlopeGraphValues: null,
     totalDistanceMeters: null,
   });
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
@@ -88,7 +94,8 @@ const Measure: FunctionComponent = () => {
       measurePaperGroupsRef,
       measureDerivedValuesRef,
       selectedMeasurement?.pathSegmentDistances,
-      selectedMeasurement?.pathSegmentElevations
+      selectedMeasurement?.pathSegmentElevations,
+      selectedMeasurement?.pathSegmentAbsoluteSlopes
     );
 
     setHoverValues({
@@ -104,6 +111,11 @@ const Measure: FunctionComponent = () => {
     );
     MeasureDrawing.drawElevationProfile(measurePaperDataRef, measureDerivedValuesRef);
     MeasureDrawing.drawPathSlope(
+      measurePaperDataRef,
+      measurePaperGroupsRef,
+      measureDerivedValuesRef
+    );
+    MeasureDrawing.drawAbsoluteSlope(
       measurePaperDataRef,
       measurePaperGroupsRef,
       measureDerivedValuesRef
@@ -236,12 +248,14 @@ function initMeasurePaperRefs(
   measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
   measureDerivedValuesRef: MutableRefObject<MeasureDerivedValues>,
   pathSegmentDistances: number[],
-  pathSegmentElevations: number[][]
+  pathSegmentElevations: number[][],
+  pathSegmentAbsoluteSlopes: (number | null)[][]
 ): void {
   //init groups
   measurePaperGroupsRef.current = {
     axisGroup: new paper.Group(),
     slopeGroup: new paper.Group(),
+    absoluteSlopeGroup: new paper.Group(),
     lineSegmentMarksGroup: new paper.Group(),
     hoverGroup: new paper.Group(),
   };
@@ -274,6 +288,7 @@ function initMeasurePaperRefs(
       graphHeight: null, //just the graph area that has the line graphs
       slopeTop: null,
       slopeHeight: 10,
+      absoluteSlopeTop: null,
       pixelsPerMeterDistanceX: null,
       pixelsPerMeterElevationY: null,
       startElevationFromGraphTop: null,
@@ -322,9 +337,10 @@ function initMeasurePaperRefs(
   paperVars.drawingHeight = paperVars.canvasHeight - 20;
   paperVars.drawingTop = 10;
   paperVars.drawingLeft = 10;
-  const slopeAreaHeight = 20;
+  const slopeAreaHeight = 30;
   paperVars.graphHeight = paperVars.drawingHeight - paperVars.drawingTop - slopeAreaHeight;
   paperVars.slopeTop = paperVars.drawingTop + paperVars.graphHeight;
+  paperVars.absoluteSlopeTop = paperVars.slopeTop + paperVars.slopeHeight;
   paperVars.pixelsPerMeterDistanceX =
     measureDerivedValuesRef.current.totalDistanceMeters > 0
       ? paperVars.drawingWidth / measureDerivedValuesRef.current.totalDistanceMeters
@@ -346,6 +362,16 @@ function initMeasurePaperRefs(
     pathSegmentDistances,
     paperVars.drawingLeft
   );
+  measureDerivedValuesRef.current.absoluteSlopeGraphValues = buildDistanceValueProfile(
+    pathSegmentAbsoluteSlopes ?? [],
+    pathSegmentDistances ?? []
+  ).map(({ distanceMeters, value }) => ({
+    xPixel: paperVars.drawingLeft + distanceMeters * paperVars.pixelsPerMeterDistanceX,
+    yPixel: 0,
+    val: value,
+    distanceMeters,
+    slopeDegrees: value,
+  }));
 }
 
 function calcElevationGraphValues(

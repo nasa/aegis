@@ -32,6 +32,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     planetRadius: 1737400, // moon
     initialZoom: 14,
     demFilePath: "",
+    absoluteSlopeFilePath: "",
     demResolution: 0,
     projIsCustom: false,
     projEpsg: "",

@@ -566,6 +566,30 @@ const Mission: React.FunctionComponent = () => {
                         />
                       </div>
                     </div>
+                    <div id="absoluteSlopeFilePathDiv">
+                      <div className={adminStyles.editDiv}>
+                        <InLineEditInput
+                          value={automergeMission.absoluteSlopeFilePath}
+                          editing={true}
+                          fieldProps={{
+                            name: "absoluteSlopeFilePath",
+                            ariaLabel: "Absolute Slope File Path",
+                            style: { width: "100%" },
+                            label: {
+                              label: "Absolute Slope File Path",
+                              className: adminStyles.editLabel,
+                            },
+                          }}
+                          onSubmit={(value) => {
+                            changeAutomergeMission((m: Mission) => {
+                              m.absoluteSlopeFilePath = value || "";
+                            });
+                          }}
+                          key={`${automergeMission.id}-absoluteSlopeFilePath`}
+                          debounceSubmit={false}
+                        />
+                      </div>
+                    </div>
                     <div id="demResolutionDiv">
                       <div className={adminStyles.editDiv}>
                         <InLineEditInput

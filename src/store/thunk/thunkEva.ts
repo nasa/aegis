@@ -13,6 +13,7 @@ import appCreateAsyncThunk from "./thunkUtil";
 import { generateUniqueName } from "utils/names/unique-name";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { thunkFetchElevation } from "./thunkElevation";
+import { thunkFetchAbsoluteSlope } from "./thunkAbsoluteSlope";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
@@ -112,16 +113,28 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
     const traversePathSegmentDistances: number[] = [0];
 
     // Fetch elevation for the lander→lander path before the .change()
-    const elevationResponse = await dispatch(
-      thunkFetchElevation({
-        path: traversePath,
-        pathSegmentDistances: traversePathSegmentDistances,
-        uuid: newTraverse.uuid,
-      })
-    );
+    const [elevationResponse, slopeResponse] = await Promise.all([
+      dispatch(
+        thunkFetchElevation({
+          path: traversePath,
+          pathSegmentDistances: traversePathSegmentDistances,
+          uuid: newTraverse.uuid,
+        })
+      ),
+      dispatch(
+        thunkFetchAbsoluteSlope({
+          path: traversePath,
+          pathSegmentDistances: traversePathSegmentDistances,
+        })
+      ),
+    ]);
     const elevationProfile =
       elevationResponse.meta.requestStatus === "fulfilled"
         ? (elevationResponse.payload as number[][])
+        : null;
+    const absoluteSlopeProfile =
+      slopeResponse.meta.requestStatus === "fulfilled"
+        ? (slopeResponse.payload as (number | null)[][] | null)
         : null;
 
     // Build the fully-populated traverse
@@ -131,6 +144,7 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
       path: traversePath,
       pathSegmentDistances: traversePathSegmentDistances,
       pathSegmentElevations: elevationProfile,
+      pathSegmentAbsoluteSlopes: absoluteSlopeProfile,
     };
 
     // Step 2: Upsert both the EVA and fully-populated traverse in a single .change()

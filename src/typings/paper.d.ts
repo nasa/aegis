@@ -12,6 +12,7 @@ interface PaperGroups {
 interface MeasurePaperGroups {
   axisGroup: paper.Group;
   slopeGroup: paper.Group;
+  absoluteSlopeGroup: paper.Group;
   lineSegmentMarksGroup: paper.Group;
   hoverGroup: paper.Group;
 }
@@ -69,6 +70,7 @@ interface MeasurePaperData {
     graphHeight: number; //just the graph area that has the line graphs
     slopeTop: number;
     slopeHeight: number;
+    absoluteSlopeTop: number;
     pixelsPerMeterDistanceX: number;
     pixelsPerMeterElevationY: number;
     startElevationFromGraphTop: number;
@@ -81,6 +83,7 @@ interface MeasureDerivedValues {
   maxElevationMeters: number;
   relativeElevationsMeters: number[][];
   elevationGraphValues: GraphDataItem[];
+  absoluteSlopeGraphValues: GraphDataItem[];
   totalDistanceMeters: number;
 }
 
@@ -125,6 +128,7 @@ interface Path_PaperJS {
   subdividedDurationsMins?: number[]; //currently used for walkbacks only. traverses are calculated with a rounded traverse rate
   subdividedDistFromLanderMeters: number[]; //dist from lander values at each subdivided point
   segmentedElevationMeters: number[][]; //Not subdivided. First dimension is the original segments. 2nd dimension is elevations at the DEM resolution
+  segmentedAbsoluteSlopeDegrees: (number | null)[][]; //Sampled from the configured analytical slope raster
   segmentedDistancesMeters: number[]; //Not subdivided. Distance between the original segments
 }
 
@@ -132,6 +136,7 @@ interface TimelineHoverValues {
   distanceFromLanderMeters: number;
   elevationMeters: number;
   slopeDegrees: number;
+  absoluteSlopeDegrees: number;
   walkbackDistanceFromLanderMeters: number;
   walkbackElevationMeters: number;
   walkbackSlopeDegrees: number;
@@ -142,6 +147,7 @@ interface MeasureHoverValues {
   distanceFromStartMeters: number;
   elevationMeters: number;
   slopeDegrees: number;
+  absoluteSlopeDegrees: number;
 }
 
 interface GraphDataItem {
@@ -156,6 +162,10 @@ interface DistanceElevationDataItem {
   distanceMeters: number;
   elevationMeters: number;
 }
+interface DistanceValueDataItem {
+  distanceMeters: number;
+  value: number;
+}
 interface GraphData {
   distanceFromLanderXY: GraphDataItem[];
   elevationXY: GraphDataItem[];
@@ -166,6 +176,7 @@ interface GraphData {
 interface GraphSequenceData extends GraphData {
   type: "station" | "traverse";
   slopeXY: GraphDataItem[];
+  absoluteSlopeXY: GraphDataItem[];
 }
 interface GraphSequenceItems {
   [uuid: string]: GraphSequenceData;

@@ -2,17 +2,17 @@ import paper from "paper";
 
 // Previous ColorBrewer RdYlBu ramp.
 // const SLOPE_COLORS = [
-//   "#313695",
-//   "#4575b4",
-//   "#74add1",
-//   "#abd9e9",
-//   "#e0f3f8",
-//   "#ffffbf",
-//   "#fee090",
-//   "#fdae61",
-//   "#f46d43",
-//   "#d73027",
-//   "#301f42",
+//   "#313695", // 0.021-2 degrees
+//   "#4575b4", // 2.001-4 degrees
+//   "#74add1", // 4.001-6 degrees
+//   "#abd9e9", // 6.001-8 degrees
+//   "#e0f3f8", // 8.001-10 degrees
+//   "#ffffbf", // 10.001-12 degrees
+//   "#fee090", // 12.001-14 degrees
+//   "#fdae61", // 14.001-16 degrees
+//   "#f46d43", // 16.001-18 degrees
+//   "#d73027", // 18.001-20 degrees
+//   "#301f42", // Above 20 degrees
 // ];
 
 // ColorBrewer YlOrRd interpolated to ten classes, with the GIS purple above 20 degrees.

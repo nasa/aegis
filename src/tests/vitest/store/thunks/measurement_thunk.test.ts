@@ -11,8 +11,15 @@ import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 const mockThunkFetchElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
+const mockThunkFetchAbsoluteSlope = vi.fn().mockReturnValue({
+  meta: { requestStatus: "fulfilled" },
+  payload: null as (number | null)[][] | null,
+});
 vi.mock("store/thunk/thunkElevation", () => ({
   thunkFetchElevation: () => mockThunkFetchElevation,
+}));
+vi.mock("store/thunk/thunkAbsoluteSlope", () => ({
+  thunkFetchAbsoluteSlope: () => mockThunkFetchAbsoluteSlope,
 }));
 
 beforeAll(() => {
@@ -42,6 +49,7 @@ describe("Thunk Measurement Tests", () => {
       path: [{ lat: 1, lng: 2 }],
       pathSegmentDistances: [0],
       pathSegmentElevations: [[0, 0]],
+      pathSegmentAbsoluteSlopes: null,
       pathSegmentBearings: [0],
       uuid: "uuid",
       createdAt: "createdAt",
@@ -78,6 +86,7 @@ describe("Thunk Measurement Tests", () => {
       path: [{ lat: 1, lng: 2 }],
       pathSegmentDistances: [0],
       pathSegmentElevations: [[0, 0]],
+      pathSegmentAbsoluteSlopes: null,
       pathSegmentBearings: [0],
       uuid: "uuid",
       createdAt: "createdAt",

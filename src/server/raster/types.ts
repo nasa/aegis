@@ -28,6 +28,8 @@ export type RasterMetadata = {
   isTiled: boolean;
   samplesPerPixel: number;
   noData: number | null;
+  scale: number;
+  offset: number;
   geoKeys: Record<string, unknown>;
 };
 

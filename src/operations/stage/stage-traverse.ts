@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getAccurateNow } from "utils/formatting";
 import { getTotalDistance } from "utils/mapping/geoMath";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
-import { thunkFetchElevation } from "store/thunk/thunkElevation";
+import { thunkFetchPathProfiles } from "store/thunk/thunkPathProfiles";
 import type { AppDispatch } from "utils/useAppDispatch";
 
 import { stageDuplicateActions } from "./stage-actions";
@@ -124,21 +124,20 @@ export async function stageTraverseUpdate(
     pathSegmentDistances.push(getTotalDistance([newPath[i - 1], newPath[i]], mission.planetRadius));
   }
 
-  // Fetch elevation profile
-  const elevationResponse = await dispatch(
-    thunkFetchElevation({ path: newPath, pathSegmentDistances, uuid: traverseUuid })
+  const profilesResponse = await dispatch(
+    thunkFetchPathProfiles({ path: newPath, pathSegmentDistances, uuid: traverseUuid })
   );
-
-  const newPathSegmentElevations =
-    elevationResponse.meta.requestStatus === "fulfilled"
-      ? (elevationResponse.payload as number[][])
+  const profiles =
+    profilesResponse.meta.requestStatus === "fulfilled" && profilesResponse.payload !== false
+      ? profilesResponse.payload
       : null;
 
   return {
     traverseUuid,
     newPath,
     newPathSegmentDistances: pathSegmentDistances,
-    newPathSegmentElevations,
+    newPathSegmentElevations: profiles?.elevations ?? null,
+    newPathSegmentAbsoluteSlopes: profiles?.absoluteSlopes ?? null,
     newName: renameTraverse ? `${nameBefore} to ${nameAfter}` : undefined,
     updatedAt: getAccurateNow().getTime(),
   } satisfies TraverseUpdateStageData;

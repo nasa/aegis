@@ -24,6 +24,15 @@ export const readRasterMetadata = (image: RasterImage): RasterMetadata => {
   if (resolution[0] === 0 || resolution[1] === 0) {
     throw new Error("Raster resolution must be non-zero");
   }
+  const bandMetadata = image.getGDALMetadata(0) as Record<string, string> | null;
+  const normalizedBandMetadata = Object.fromEntries(
+    Object.entries(bandMetadata ?? {}).map(([key, value]) => [key.toLowerCase(), value])
+  );
+  const scale = Number(normalizedBandMetadata.scale ?? 1);
+  const offset = Number(normalizedBandMetadata.offset ?? 0);
+  if (!Number.isFinite(scale) || !Number.isFinite(offset)) {
+    throw new Error("Raster scale or offset metadata is invalid");
+  }
 
   return {
     width: image.getWidth(),
@@ -34,6 +43,8 @@ export const readRasterMetadata = (image: RasterImage): RasterMetadata => {
     isTiled: image.isTiled,
     samplesPerPixel: image.getSamplesPerPixel(),
     noData: image.getGDALNoData(),
+    scale,
+    offset,
     geoKeys: (image.getGeoKeys() ?? {}) as Record<string, unknown>,
   };
 };

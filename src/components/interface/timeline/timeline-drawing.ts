@@ -548,6 +548,7 @@ export function drawSequenceBottomSection(
         xLocRounded,
         endXLocRounded,
         graphSequenceItems.current[sequenceItem.uuid]?.slopeXY ?? [],
+        graphSequenceItems.current[sequenceItem.uuid]?.absoluteSlopeXY ?? [],
         selectedEvaSequenceItemUuid === sequenceItem.uuid
           ? paperDataRef.current.styles.yellow
           : paperDataRef.current.styles.grey2
@@ -680,15 +681,24 @@ function drawSequenceTraverse(
   xStart: number,
   xEnd: number,
   slopeData: GraphDataItem[],
+  absoluteSlopeData: GraphDataItem[],
   color: paper.Color
 ): void {
   const sequenceItemGroup = new paper.Group();
   const paperVars = paperDataRef.current.paperVars;
-  const slopeHeight = 10;
+  const slopeHeight = 8;
   drawSlopeBand(
     sequenceItemGroup,
     slopeData,
-    paperVars.sequenceTop + (paperVars.sequenceHeight - slopeHeight) / 2,
+    paperVars.sequenceTop + 1,
+    slopeHeight,
+    paperDataRef.current.styles.grey1,
+    xEnd
+  );
+  drawSlopeBand(
+    sequenceItemGroup,
+    absoluteSlopeData,
+    paperVars.sequenceTop + slopeHeight + 2,
     slopeHeight,
     paperDataRef.current.styles.grey1,
     xEnd
@@ -697,8 +707,8 @@ function drawSequenceTraverse(
   if (slopeData.length <= 1) {
     sequenceItemGroup.addChild(
       new paper.Path.Line({
-        from: new paper.Point(xStart, paperVars.sequenceTop + 10),
-        to: new paper.Point(xEnd, paperVars.sequenceTop + 10),
+        from: new paper.Point(xStart, paperVars.sequenceTop + 5),
+        to: new paper.Point(xEnd, paperVars.sequenceTop + 5),
         strokeColor: color,
         strokeWidth: 1.5,
         dashArray: [5, 2],
@@ -707,8 +717,8 @@ function drawSequenceTraverse(
   } else if (color === paperDataRef.current.styles.yellow) {
     sequenceItemGroup.addChild(
       new paper.Path.Rectangle({
-        from: new paper.Point(xStart, paperVars.sequenceTop + 4),
-        to: new paper.Point(xEnd, paperVars.sequenceTop + 16),
+        from: new paper.Point(xStart, paperVars.sequenceTop),
+        to: new paper.Point(xEnd, paperVars.sequenceTop + paperVars.sequenceHeight),
         strokeColor: color,
         strokeWidth: 1.5,
       })
@@ -869,6 +879,7 @@ export const drawMouseHover = (
       distanceFromLanderMeters: null,
       elevationMeters: null,
       slopeDegrees: null,
+      absoluteSlopeDegrees: null,
       walkbackDistanceFromLanderMeters: null,
       walkbackElevationMeters: null,
       walkbackSlopeDegrees: null,
@@ -906,6 +917,10 @@ export const drawMouseHover = (
     const slopeData = graphSequenceItems.current[sequenceUuid]?.slopeXY;
     if (sequenceType === "traverse" && slopeData?.length > 1) {
       newHoverValues.slopeDegrees = getHoverValue(slopeData, hoverPoint.x).slope;
+    }
+    const absoluteSlopeData = graphSequenceItems.current[sequenceUuid]?.absoluteSlopeXY;
+    if (sequenceType === "traverse" && absoluteSlopeData?.length > 1) {
+      newHoverValues.absoluteSlopeDegrees = getHoverValue(absoluteSlopeData, hoverPoint.x).val;
     }
 
     // find the GraphDataItem of the walkbackDistanceFromLander with the closest x value compared to xLoc

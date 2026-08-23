@@ -12,3 +12,8 @@ type ElevationProfilePostData = {
   resolutionMeters: number;
   radius: number;
 };
+
+type AbsoluteSlopeProfilePostData = {
+  path: AEGISPoint[];
+  pathSegmentDistances: number[];
+};

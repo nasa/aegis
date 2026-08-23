@@ -64,8 +64,14 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: TimelineHoverValues 
           <div className={styles.timelineHoverValue}>{hoverValues.elevationMeters?.toFixed(0)}</div>
         </div>
         <div className={styles.timelineHoverValueItem}>
-          <div className={styles.timelineHoverValueTitle}>Slope (deg):</div>
+          <div className={styles.timelineHoverValueTitle}>Path Slope (deg):</div>
           <div className={styles.timelineHoverValue}>{hoverValues.slopeDegrees?.toFixed(1)}</div>
+        </div>
+        <div className={styles.timelineHoverValueItem}>
+          <div className={styles.timelineHoverValueTitle}>Abs Slope (deg):</div>
+          <div className={styles.timelineHoverValue}>
+            {hoverValues.absoluteSlopeDegrees?.toFixed(1)}
+          </div>
         </div>
         <div className={styles.timelineHoverValueItem}>
           <div className={styles.timelineHoverValueTitle}>Walkbk Dist (m):</div>

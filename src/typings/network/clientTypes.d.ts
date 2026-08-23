@@ -37,6 +37,7 @@ type MissionFields = Pick<
   | "planetRadius"
   | "initialZoom"
   | "demFilePath"
+  | "absoluteSlopeFilePath"
   | "demResolution"
   | "projIsCustom"
   | "projEpsg"

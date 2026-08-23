@@ -206,6 +206,7 @@ type TraverseUpdateStageData = {
   newPath: AEGISPoint[];
   newPathSegmentDistances: number[];
   newPathSegmentElevations: number[][] | null;
+  newPathSegmentAbsoluteSlopes: (number | null)[][] | null;
   /** When present, the traverse name is also updated. */
   newName?: string;
   updatedAt: number;
@@ -227,6 +228,7 @@ type StationLocationUpdateStageData = {
   newWalkbackPath: AEGISPoint[];
   newWalkbackPathSegmentDistances: number[];
   newWalkbackPathSegmentElevations: number[][] | null;
+  newWalkbackPathSegmentAbsoluteSlopes: (number | null)[][] | null;
   /** All adjacent EVA sequence traverses + egress/ingress boundary traverses to update. */
   traverseUpdates: TraverseUpdateStageData[];
 };
@@ -243,6 +245,7 @@ type WalkbackUpdateStageData = {
   newWalkbackPath: AEGISPoint[];
   newWalkbackPathSegmentDistances: number[];
   newWalkbackPathSegmentElevations: number[][] | null;
+  newWalkbackPathSegmentAbsoluteSlopes: (number | null)[][] | null;
 };
 
 /**

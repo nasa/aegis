@@ -18,6 +18,7 @@ export const generateBlankTraverse = (partialTraverse?: Partial<Traverse>): Trav
     path: [],
     pathSegmentDistances: null,
     pathSegmentElevations: null,
+    pathSegmentAbsoluteSlopes: null,
     status: null,
     color: null,
     actionOrderUuids: [],

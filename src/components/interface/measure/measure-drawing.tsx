@@ -15,7 +15,7 @@ export function drawGraphAxes(
   const paperVars = measurePaperDataRef.current.paperVars;
   const axisGroup = measurePaperGroupsRef.current.axisGroup;
   const paperStyles = measurePaperDataRef.current.styles;
-  const graphBottom = paperVars.slopeTop + paperVars.slopeHeight;
+  const graphBottom = paperVars.absoluteSlopeTop + paperVars.slopeHeight;
 
   //draw top and bottom lines
   const topLine = new paper.Path.Line({
@@ -220,6 +220,24 @@ export function drawPathSlope(
   );
 }
 
+export function drawAbsoluteSlope(
+  measurePaperDataRef: MutableRefObject<MeasurePaperData>,
+  measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
+  measureDerivedValuesRef: MutableRefObject<MeasureDerivedValues>
+): void {
+  const paperVars = measurePaperDataRef.current.paperVars;
+  const slopeGroup = measurePaperGroupsRef.current.absoluteSlopeGroup;
+  slopeGroup.removeChildren();
+  drawSlopeBand(
+    slopeGroup,
+    measureDerivedValuesRef.current.absoluteSlopeGraphValues ?? [],
+    paperVars.absoluteSlopeTop,
+    paperVars.slopeHeight,
+    measurePaperDataRef.current.styles.grey1,
+    paperVars.drawingLeft + paperVars.drawingWidth
+  );
+}
+
 export function drawMeasureSegmentDistances(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
   measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
@@ -229,7 +247,7 @@ export function drawMeasureSegmentDistances(
 ): void {
   const paperVars = measurePaperDataRef.current.paperVars;
   const paperStyles = measurePaperDataRef.current.styles;
-  const graphBottom = paperVars.slopeTop + paperVars.slopeHeight;
+  const graphBottom = paperVars.absoluteSlopeTop + paperVars.slopeHeight;
 
   const lineSegmentMarksGroup = measurePaperGroupsRef.current.lineSegmentMarksGroup;
   lineSegmentMarksGroup.removeChildren();
@@ -382,13 +400,16 @@ export const drawMouseHover = (
 
   const hoverLine = new paper.Path.Line({
     from: new paper.Point(hoverPoint.x, paperVars.drawingTop),
-    to: new paper.Point(hoverPoint.x, paperVars.slopeTop + paperVars.slopeHeight),
+    to: new paper.Point(hoverPoint.x, paperVars.absoluteSlopeTop + paperVars.slopeHeight),
     strokeColor: paperStyles.brightBlue,
   });
   hoverGroup.addChild(hoverLine);
 
   //get hover values and draw diamonds
   const elevationHoverData = getHoverValue(derivedValues.elevationGraphValues, hoverPoint.x);
+  const absoluteSlopeData = derivedValues.absoluteSlopeGraphValues;
+  const absoluteSlopeDegrees =
+    absoluteSlopeData?.length > 0 ? getHoverValue(absoluteSlopeData, hoverPoint.x).val : null;
   // calc distance using paperVars.drawingWidth and paperVars.drawingWidth as total distance
   const distanceFromStartMeters =
     ((hoverPoint.x - paperVars.drawingLeft) / paperVars.drawingWidth) *
@@ -399,6 +420,7 @@ export const drawMouseHover = (
     distanceFromStartMeters,
     elevationMeters: elevationHoverData.val,
     slopeDegrees: elevationHoverData.slope,
+    absoluteSlopeDegrees,
   };
 
   //draw diamonds
@@ -412,13 +434,16 @@ export const drawMouseHover = (
 
   //draw bottom distance label
   const labelBackground = new paper.Path.Rectangle({
-    point: new paper.Point(hoverPoint.x - 30, paperVars.slopeTop + paperVars.slopeHeight + 17),
+    point: new paper.Point(
+      hoverPoint.x - 30,
+      paperVars.absoluteSlopeTop + paperVars.slopeHeight + 17
+    ),
     size: new paper.Size(60, 20),
     fillColor: paperStyles.grey2,
   });
   hoverGroup.addChild(labelBackground);
   const distanceLabel = new paper.PointText({
-    point: new paper.Point(hoverPoint.x, paperVars.slopeTop + paperVars.slopeHeight + 27),
+    point: new paper.Point(hoverPoint.x, paperVars.absoluteSlopeTop + paperVars.slopeHeight + 27),
     justification: "center",
     fontFamily: measurePaperDataRef.current.styles.gNavigatorFontFamilyActivity,
     fontSize: 12,

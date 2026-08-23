@@ -9,6 +9,8 @@ import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mappin
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
 import { stageTraverseUpdate } from "operations/stage/stage-traverse";
 import { thunkFetchElevation } from "./thunkElevation";
+import { thunkFetchAbsoluteSlope } from "./thunkAbsoluteSlope";
+import { thunkFetchPathProfiles } from "./thunkPathProfiles";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import { applyTraverseUpdatesStage } from "operations/apply/apply-traverse";
@@ -188,7 +190,7 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
     ),
     // Walkback elevation
     dispatch(
-      thunkFetchElevation({
+      thunkFetchPathProfiles({
         path: newWalkbackPath,
         pathSegmentDistances: walkbackSegmentDistances,
         uuid: `${stationUuid}_walkback`,
@@ -198,7 +200,7 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
     ...traversesToUpdate.map(({ traverseUuid }, idx) => {
       const { path, distances } = recalculatedTraversePaths[idx];
       return dispatch(
-        thunkFetchElevation({ path, pathSegmentDistances: distances, uuid: traverseUuid })
+        thunkFetchPathProfiles({ path, pathSegmentDistances: distances, uuid: traverseUuid })
       );
     }),
   ]);
@@ -209,21 +211,25 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
       ? (stationElevResult.payload as number)
       : null;
 
-  const newWalkbackElevations =
-    walkbackElevResult.meta.requestStatus === "fulfilled"
-      ? (walkbackElevResult.payload as number[][])
+  const walkbackProfiles =
+    walkbackElevResult.meta.requestStatus === "fulfilled" && walkbackElevResult.payload !== false
+      ? walkbackElevResult.payload
       : null;
 
   const stagedTraverseData: TraverseUpdateStageData[] = traversesToUpdate.map(
     ({ traverseUuid, renameTraverse }, idx) => {
       const { path, distances, nameBefore, nameAfter } = recalculatedTraversePaths[idx];
-      const elevResult = traverseElevResults[idx];
+      const profileResult = traverseElevResults[idx];
+      const profiles =
+        profileResult.meta.requestStatus === "fulfilled" && profileResult.payload !== false
+          ? profileResult.payload
+          : null;
       return {
         traverseUuid,
         newPath: path,
         newPathSegmentDistances: distances,
-        newPathSegmentElevations:
-          elevResult.meta.requestStatus === "fulfilled" ? (elevResult.payload as number[][]) : null,
+        newPathSegmentElevations: profiles?.elevations ?? null,
+        newPathSegmentAbsoluteSlopes: profiles?.absoluteSlopes ?? null,
         newName: renameTraverse ? `${nameBefore} to ${nameAfter}` : undefined,
         updatedAt: getAccurateNow().getTime(),
       } satisfies TraverseUpdateStageData;
@@ -236,7 +242,8 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
     newElevation,
     newWalkbackPath,
     newWalkbackPathSegmentDistances: walkbackSegmentDistances,
-    newWalkbackPathSegmentElevations: newWalkbackElevations,
+    newWalkbackPathSegmentElevations: walkbackProfiles?.elevations ?? null,
+    newWalkbackPathSegmentAbsoluteSlopes: walkbackProfiles?.absoluteSlopes ?? null,
     traverseUpdates: stagedTraverseData,
   };
 
@@ -304,6 +311,13 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
   if (elevationResponse.meta.requestStatus === "fulfilled") {
     newElevationProfile = elevationResponse.payload as number[][];
   }
+  const slopeResponse = await dispatch(
+    thunkFetchAbsoluteSlope({ path: newPath, pathSegmentDistances })
+  );
+  const newAbsoluteSlopeProfile =
+    slopeResponse.meta.requestStatus === "fulfilled"
+      ? (slopeResponse.payload as (number | null)[][] | null)
+      : null;
 
   // Step 2: Apply single change to automerge
   // Save walkback to automerge
@@ -313,6 +327,7 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
     s.walkbackPath = cloneDeep(newPath);
     s.walkbackPathSegmentDistances = pathSegmentDistances;
     s.walkbackPathSegmentElevations = newElevationProfile;
+    s.walkbackPathSegmentAbsoluteSlopes = newAbsoluteSlopeProfile;
   });
 
   // No Step 3: this thunk has no UI side-effects of its own.
@@ -353,6 +368,13 @@ export const thunkDocResetWalkback = appCreateAsyncThunk<{
   if (elevationResponse.meta.requestStatus === "fulfilled") {
     newElevationProfile = elevationResponse.payload as number[][];
   }
+  const slopeResponse = await dispatch(
+    thunkFetchAbsoluteSlope({ path: newPath, pathSegmentDistances: newPathSegmentDistances })
+  );
+  const newAbsoluteSlopeProfile =
+    slopeResponse.meta.requestStatus === "fulfilled"
+      ? (slopeResponse.payload as (number | null)[][] | null)
+      : null;
 
   // Step 2: Write the reset walkback path, distances, and elevation atomically
   missionDocHandle.change((m: Mission) => {
@@ -361,6 +383,7 @@ export const thunkDocResetWalkback = appCreateAsyncThunk<{
     s.walkbackPath = newPath;
     s.walkbackPathSegmentDistances = newPathSegmentDistances;
     s.walkbackPathSegmentElevations = newElevationProfile;
+    s.walkbackPathSegmentAbsoluteSlopes = newAbsoluteSlopeProfile;
   });
 
   // No Step 3: this thunk has no UI side-effects of its own.

@@ -161,6 +161,7 @@ export const processEvaDataFromStore = ({
               subdividedDurationsMins: [],
               subdividedDistFromLanderMeters: [],
               segmentedElevationMeters: station.walkbackPathSegmentElevations,
+              segmentedAbsoluteSlopeDegrees: station.walkbackPathSegmentAbsoluteSlopes,
               segmentedDistancesMeters: station.walkbackPathSegmentDistances,
             };
 
@@ -243,6 +244,7 @@ export const processEvaDataFromStore = ({
         subdividedDistFromLanderMeters: [],
         segmentedDistancesMeters: traverse.pathSegmentDistances,
         segmentedElevationMeters: traverse.pathSegmentElevations,
+        segmentedAbsoluteSlopeDegrees: traverse.pathSegmentAbsoluteSlopes,
       };
 
       //set the traverse rate for the sequence item in meters per second

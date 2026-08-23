@@ -129,7 +129,7 @@ export const sampleRasterPoints = async (
         }
         samples[index] = isNoData(value, metadata.noData)
           ? { status: "missing", reason: "nodata" }
-          : { status: "value", value };
+          : { status: "value", value: value * metadata.scale + metadata.offset };
       });
     }
   };

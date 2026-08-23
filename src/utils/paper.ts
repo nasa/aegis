@@ -109,6 +109,31 @@ export function buildDistanceElevationProfile(
   return profile;
 }
 
+/** Place finite analytical-raster samples at their physical distance along a segmented path. */
+export function buildDistanceValueProfile(
+  segmentedValues: (number | null)[][],
+  segmentDistances: number[]
+): DistanceValueDataItem[] {
+  const profile: DistanceValueDataItem[] = [];
+  let segmentStartDistance = 0;
+
+  for (const [segmentIndex, values] of (segmentedValues ?? []).entries()) {
+    const segmentDistance = segmentDistances[segmentIndex];
+    if (!Number.isFinite(segmentDistance) || segmentDistance < 0 || values.length === 0) continue;
+
+    for (const [valueIndex, value] of values.entries()) {
+      if (!Number.isFinite(value)) continue;
+      const fraction = values.length === 1 ? 1 : valueIndex / (values.length - 1);
+      const item = { distanceMeters: segmentStartDistance + segmentDistance * fraction, value };
+      if (profile.at(-1)?.distanceMeters === item.distanceMeters)
+        profile[profile.length - 1] = item;
+      else profile.push(item);
+    }
+    segmentStartDistance += segmentDistance;
+  }
+  return profile;
+}
+
 /**
  * Calculate local path slope with a least-squares fit over a fixed distance window.
  * The wider baseline suppresses single-cell DEM noise without making the result

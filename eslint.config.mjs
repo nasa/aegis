@@ -296,12 +296,12 @@ export default [
                 "stage* helpers must receive a Mission as a parameter — they cannot call missionDocHandle.change() or read the live doc directly. See src/operations/README.md.",
             },
             {
-              // Allow only read-only data-fetching thunks (currently: thunkFetchElevation).
+              // Allow only read-only data-fetching thunks.
               // Mutation thunks would break the single-.change() atomicity guarantee.
               group: ["store/thunk/**", "**/store/thunk/**"],
-              allowImportNames: ["thunkFetchElevation"],
+              allowImportNames: ["thunkFetchElevation", "thunkFetchPathProfiles"],
               message:
-                "stage* helpers may only import read-only data-fetching thunks (currently: thunkFetchElevation). Any thunk that calls .change() would break the single-patch atomicity guarantee. See src/operations/README.md.",
+                "stage* helpers may only import approved read-only data-fetching thunks. Any thunk that calls .change() would break the single-patch atomicity guarantee. See src/operations/README.md.",
             },
           ],
         },

@@ -129,6 +129,7 @@ export function applyStationLocationUpdateStage(
   station.walkbackPath = cloneDeep(stage.newWalkbackPath);
   station.walkbackPathSegmentDistances = stage.newWalkbackPathSegmentDistances;
   station.walkbackPathSegmentElevations = stage.newWalkbackPathSegmentElevations;
+  station.walkbackPathSegmentAbsoluteSlopes = stage.newWalkbackPathSegmentAbsoluteSlopes;
 
   // Update all adjacent traverses
   applyTraverseUpdatesStage(m, stage.traverseUpdates);

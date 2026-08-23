@@ -16,6 +16,12 @@ const MeasureHoverValues: FunctionComponent<{
           </div>
         </div>
         <div className={timelineStyles.timelineHoverValueItem}>
+          <div className={timelineStyles.timelineHoverValueTitle}>Absolute Slope (°)</div>
+          <div className={timelineStyles.timelineHoverValue}>
+            {hoverValues.absoluteSlopeDegrees?.toFixed(1)}
+          </div>
+        </div>
+        <div className={timelineStyles.timelineHoverValueItem}>
           <div className={timelineStyles.timelineHoverValueTitle}>Distance (m)</div>
           <div className={timelineStyles.timelineHoverValue}>
             {hoverValues.distanceFromStartMeters?.toFixed(0)}

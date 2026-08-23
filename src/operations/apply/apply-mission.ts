@@ -91,6 +91,7 @@ export function applyLanderLocationUpdateStage(
     station.walkbackPath = cloneDeep(wb.newWalkbackPath);
     station.walkbackPathSegmentDistances = wb.newWalkbackPathSegmentDistances;
     station.walkbackPathSegmentElevations = wb.newWalkbackPathSegmentElevations;
+    station.walkbackPathSegmentAbsoluteSlopes = wb.newWalkbackPathSegmentAbsoluteSlopes;
   }
 
   // 3. Update affected traverses

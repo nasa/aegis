@@ -1,5 +1,6 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkFetchElevation } from "./thunkElevation";
+import { thunkFetchAbsoluteSlope } from "./thunkAbsoluteSlope";
 import { getSegmentBearing, getTotalDistance } from "utils/mapping/geoMath";
 import { removeMeasurement, setSelectedMeasurementUuid, upsertMeasurement } from "store/measure";
 import { v4 as uuidv4 } from "uuid";
@@ -28,13 +29,16 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   }
 
   //get elevation of path
-  const elevationResponse = await dispatch(
-    thunkFetchElevation({
-      path,
-      pathSegmentDistances: pathSegmentDistances,
-      uuid: measurementUuid,
-    })
-  );
+  const [elevationResponse, slopeResponse] = await Promise.all([
+    dispatch(
+      thunkFetchElevation({
+        path,
+        pathSegmentDistances,
+        uuid: measurementUuid,
+      })
+    ),
+    dispatch(thunkFetchAbsoluteSlope({ path, pathSegmentDistances })),
+  ]);
 
   //calculate new path bearings
   const pathSegmentBearings: number[] = [];
@@ -53,12 +57,17 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
     //good response from the thunk, cast as our number type
     newElevationProfile = elevationResponse.payload as number[][];
   }
+  let newAbsoluteSlopeProfile = measurement.pathSegmentAbsoluteSlopes ?? null;
+  if (slopeResponse?.meta?.requestStatus === "fulfilled") {
+    newAbsoluteSlopeProfile = slopeResponse.payload as (number | null)[][] | null;
+  }
 
   const newMeasurement: Measurement = {
     ...measurement,
     path,
     pathSegmentDistances: pathSegmentDistances,
     pathSegmentElevations: newElevationProfile,
+    pathSegmentAbsoluteSlopes: newAbsoluteSlopeProfile,
     pathSegmentBearings: pathSegmentBearings,
   };
 
@@ -108,13 +117,16 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
     const distance = getTotalDistance(path, mission.planetRadius);
 
     //get elevation traverse
-    const elevationResponse = await dispatch(
-      thunkFetchElevation({
-        path,
-        pathSegmentDistances: [distance],
-        uuid: measurementUuid,
-      })
-    );
+    const [elevationResponse, slopeResponse] = await Promise.all([
+      dispatch(
+        thunkFetchElevation({
+          path,
+          pathSegmentDistances: [distance],
+          uuid: measurementUuid,
+        })
+      ),
+      dispatch(thunkFetchAbsoluteSlope({ path, pathSegmentDistances: [distance] })),
+    ]);
 
     /**
      * The response from thunkFetchElevation is a PayloadAction.
@@ -126,6 +138,10 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
       //good response from the thunk, cast as our number type
       newElevationProfile = elevationResponse.payload as number[][];
     }
+    const newAbsoluteSlopeProfile =
+      slopeResponse.meta.requestStatus === "fulfilled"
+        ? (slopeResponse.payload as (number | null)[][] | null)
+        : null;
 
     const pathSegmentBearings: number[] = [];
     for (let i = 1; i < path.length; i++) {
@@ -145,6 +161,7 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
       path,
       pathSegmentDistances: [distance],
       pathSegmentElevations: newElevationProfile,
+      pathSegmentAbsoluteSlopes: newAbsoluteSlopeProfile,
       pathSegmentBearings,
     };
     dispatch(upsertMeasurement(newMeasurement));

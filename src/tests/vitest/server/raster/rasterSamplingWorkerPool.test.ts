@@ -19,6 +19,8 @@ const metadata: RasterMetadata = {
   isTiled: false,
   samplesPerPixel: 1,
   noData: null,
+  scale: 1,
+  offset: 0,
   geoKeys: {},
 };
 

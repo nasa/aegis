@@ -51,4 +51,44 @@ describe("sampleRasterPoints", () => {
       { status: "missing", reason: "out-of-bounds" },
     ]);
   });
+
+  it("applies embedded raster scale and offset after NoData detection", async () => {
+    const rasterReader = await import("server/raster/rasterReader");
+    const openRasterSpy = vi.spyOn(rasterReader, "openRaster").mockResolvedValueOnce({
+      image: {
+        readRasters: vi.fn().mockResolvedValue(new Uint16Array([1234, 65535])),
+      } as never,
+      metadata: {
+        width: 2,
+        height: 1,
+        origin: [0, 1],
+        resolution: [1, -1],
+        blockSize: [2, 1],
+        isTiled: false,
+        samplesPerPixel: 1,
+        noData: 65535,
+        scale: 0.01,
+        offset: 0,
+        geoKeys: {},
+      },
+    });
+
+    const result = await sampleRasterPoints(
+      {
+        absolutePath: "scaled-slope.tif",
+        projection: "+proj=longlat +datum=WGS84 +no_defs",
+        geographicProjection: "+proj=longlat +datum=WGS84 +no_defs",
+      },
+      [
+        { lng: 0.25, lat: 0.75 },
+        { lng: 1.25, lat: 0.75 },
+      ]
+    );
+
+    expect(result.samples).toEqual([
+      { status: "value", value: 12.34 },
+      { status: "missing", reason: "nodata" },
+    ]);
+    openRasterSpy.mockRestore();
+  });
 });
