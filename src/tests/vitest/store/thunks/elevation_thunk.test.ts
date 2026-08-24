@@ -6,8 +6,8 @@ let store: StoreType;
 
 // mock all calls to the db so no transactions are actually made
 // CAUTION, the import line must be below the vi.mock
-vi.mock("http-client/elevation");
-import * as httpClient_elevation from "http-client/elevation";
+vi.mock("http-client/terrainProfile");
+import * as httpClientTerrainProfile from "http-client/terrainProfile";
 import { thunkFetchElevation } from "store/thunk/thunkElevation";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
@@ -37,7 +37,7 @@ describe("Thunk Elevation Tests", () => {
     const thunkRes = await store.dispatch(
       thunkFetchElevation({ path: [point], pathSegmentDistances: [0], uuid: dummyUuid })
     );
-    expect(httpClient_elevation.getElevationSinglePoint).toHaveBeenCalledTimes(0);
+    expect(httpClientTerrainProfile.getElevationSinglePoint).toHaveBeenCalledTimes(0);
     expect(thunkRes.meta.requestStatus).toBe("rejected");
     expect(thunkRes.payload).toBeFalsy();
   });
@@ -51,7 +51,7 @@ describe("Thunk Elevation Tests", () => {
     await store.dispatch(
       thunkFetchElevation({ path: [point], pathSegmentDistances: [0], uuid: dummyUuid })
     );
-    expect(httpClient_elevation.getElevationSinglePoint).toHaveBeenCalledTimes(1);
+    expect(httpClientTerrainProfile.getElevationSinglePoint).toHaveBeenCalledTimes(1);
     expect(store.getState().interface.elevationPendingItemUuids.includes(dummyUuid)).toBeFalsy();
   });
   it("thunkFetchElevation for path", async () => {
@@ -67,7 +67,7 @@ describe("Thunk Elevation Tests", () => {
     await store.dispatch(
       thunkFetchElevation({ path: path, pathSegmentDistances: [0], uuid: dummyUuid })
     );
-    expect(httpClient_elevation.getElevationProfile).toHaveBeenCalledTimes(1);
+    expect(httpClientTerrainProfile.getElevationProfile).toHaveBeenCalledTimes(1);
     expect(store.getState().interface.elevationPendingItemUuids.includes(dummyUuid)).toBeFalsy();
   });
 });
