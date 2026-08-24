@@ -1,39 +1,39 @@
 import paper from "paper";
 
-// Previous ColorBrewer RdYlBu ramp.
-// const SLOPE_COLORS = [
-//   "#313695",
-//   "#4575b4",
-//   "#74add1",
-//   "#abd9e9",
-//   "#e0f3f8",
-//   "#ffffbf",
-//   "#fee090",
-//   "#fdae61",
-//   "#f46d43",
-//   "#d73027",
-//   "#301f42",
-// ];
-
-// ColorBrewer YlOrRd interpolated to ten classes, with the GIS purple above 20 degrees.
+// ColorBrewer RdYlBu ramp, with the GIS purple above 20 degrees. This is the standard slope color ramp defined by the XI4 GIS team even though slope is not a diverging variable. The ramp is reversed so that the steepest slopes are red and the shallowest slopes are blue.
 export const SLOPE_CLASSES: ReadonlyArray<{
   minExclusive: number;
   maxInclusive: number;
   label: string;
   color: string;
 }> = [
-  { minExclusive: -Infinity, maxInclusive: 2, label: "0–2°", color: "#ffffcc" },
-  { minExclusive: 2, maxInclusive: 4, label: ">2–4°", color: "#ffefa5" },
-  { minExclusive: 4, maxInclusive: 6, label: ">4–6°", color: "#fedd7f" },
-  { minExclusive: 6, maxInclusive: 8, label: ">6–8°", color: "#febf5a" },
-  { minExclusive: 8, maxInclusive: 10, label: ">8–10°", color: "#fd9d43" },
-  { minExclusive: 10, maxInclusive: 12, label: ">10–12°", color: "#fc7134" },
-  { minExclusive: 12, maxInclusive: 14, label: ">12–14°", color: "#f43d25" },
-  { minExclusive: 14, maxInclusive: 16, label: ">14–16°", color: "#db141e" },
-  { minExclusive: 16, maxInclusive: 18, label: ">16–18°", color: "#b60026" },
-  { minExclusive: 18, maxInclusive: 20, label: ">18–20°", color: "#800026" },
+  { minExclusive: -Infinity, maxInclusive: 2, label: "0–2°", color: "#313695" },
+  { minExclusive: 2, maxInclusive: 4, label: ">2–4°", color: "#4575b4" },
+  { minExclusive: 4, maxInclusive: 6, label: ">4–6°", color: "#74add1" },
+  { minExclusive: 6, maxInclusive: 8, label: ">6–8°", color: "#abd9e9" },
+  { minExclusive: 8, maxInclusive: 10, label: ">8–10°", color: "#e0f3f8" },
+  { minExclusive: 10, maxInclusive: 12, label: ">10–12°", color: "#ffffbf" },
+  { minExclusive: 12, maxInclusive: 14, label: ">12–14°", color: "#fee090" },
+  { minExclusive: 14, maxInclusive: 16, label: ">14–16°", color: "#fdae61" },
+  { minExclusive: 16, maxInclusive: 18, label: ">16–18°", color: "#f46d43" },
+  { minExclusive: 18, maxInclusive: 20, label: ">18–20°", color: "#d73027" },
   { minExclusive: 20, maxInclusive: Infinity, label: ">20°", color: "#301f42" },
 ];
+
+// ColorBrewer YlOrRd interpolated to ten classes, with the GIS purple above 20 degrees.
+// const YL_OR_RD_SLOPE_CLASSES = [
+//   { minExclusive: -Infinity, maxInclusive: 2, label: "0–2°", color: "#ffffcc" },
+//   { minExclusive: 2, maxInclusive: 4, label: ">2–4°", color: "#ffefa5" },
+//   { minExclusive: 4, maxInclusive: 6, label: ">4–6°", color: "#fedd7f" },
+//   { minExclusive: 6, maxInclusive: 8, label: ">6–8°", color: "#febf5a" },
+//   { minExclusive: 8, maxInclusive: 10, label: ">8–10°", color: "#fd9d43" },
+//   { minExclusive: 10, maxInclusive: 12, label: ">10–12°", color: "#fc7134" },
+//   { minExclusive: 12, maxInclusive: 14, label: ">12–14°", color: "#f43d25" },
+//   { minExclusive: 14, maxInclusive: 16, label: ">14–16°", color: "#db141e" },
+//   { minExclusive: 16, maxInclusive: 18, label: ">16–18°", color: "#b60026" },
+//   { minExclusive: 18, maxInclusive: 20, label: ">18–20°", color: "#800026" },
+//   { minExclusive: 20, maxInclusive: Infinity, label: ">20°", color: "#301f42" },
+// ];
 
 export const getSlopeClass = (slopeDegrees: number): (typeof SLOPE_CLASSES)[number] | undefined => {
   const magnitude = Math.abs(slopeDegrees);

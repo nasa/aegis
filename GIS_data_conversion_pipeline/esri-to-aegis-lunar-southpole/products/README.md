@@ -30,14 +30,15 @@ symbology. When a `.lyrx` is provided (see "Provided symbology" below), it is co
 used instead. The ramps are GDAL `color-relief` text files (`value R G B [A]`, with `nv` =
 no-data), copied from the legacy `lunar_utils/aegis/default_color_ramps/`.
 
-| File                                    | Legacy source            | Notes                                                                                                   |
-| --------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `slope.txt`                             | `slope_color11_blue.txt` | **Identical to the MS3 GIS standard** `AMPES_Slope 1.lyrx` (RdYlBu-10 reversed + dark-purple >20° cap). |
-| `aspect.txt`                            | `AspectColors.txt`       | ColorBrewer Set1, 8 ordinal directions (N…NW).                                                          |
-| `tri.txt`                               | `tri_7class.txt`         | 7-class. **TRI is resolution-dependent** — see ARCHIVE below.                                           |
-| `viewshed.txt`                          | `viewshed_color.txt`     | No generator here; kept as the AEGIS viewshed standard.                                                 |
-| `comm_mask_4glte.txt`                   | `4GLTE_Comm_Mask.txt`    | No generator here; kept as the AEGIS comm-mask standard.                                                |
-| `ARCHIVE/TRIColors_{1m,5m,10m}_DEM.txt` | same                     | Resolution-specific TRI ramps — pass via `--tri-ramp` to match your DEM.                                |
+| File                                    | Legacy source            | Notes                                                                              |
+| --------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------- |
+| `slope.txt`                             | `AMPES_Slope 1.lyrx`     | **Identical to the MS3 GIS standard** (RdYlBu-10 reversed + dark-purple >20° cap). |
+| `slope_constant_color.txt`              | `slope_color11_blue.txt` | Archived previous constant-color slope ramp.                                       |
+| `aspect.txt`                            | `AspectColors.txt`       | ColorBrewer Set1, 8 ordinal directions (N…NW).                                     |
+| `tri.txt`                               | `tri_7class.txt`         | 7-class. **TRI is resolution-dependent** — see ARCHIVE below.                      |
+| `viewshed.txt`                          | `viewshed_color.txt`     | No generator here; kept as the AEGIS viewshed standard.                            |
+| `comm_mask_4glte.txt`                   | `4GLTE_Comm_Mask.txt`    | No generator here; kept as the AEGIS comm-mask standard.                           |
+| `ARCHIVE/TRIColors_{1m,5m,10m}_DEM.txt` | same                     | Resolution-specific TRI ramps — pass via `--tri-ramp` to match your DEM.           |
 
 ## Provided symbology (`.lyrx`)
 
