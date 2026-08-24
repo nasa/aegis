@@ -78,3 +78,4 @@ python-dotenv = ">=1.0.0"
 
 [tool.pixi.tasks]
 lgrs-reference-corpus = "python esri-to-aegis-lunar-southpole/grid/generate_lgrs_reference_corpus.py"
+terrain-slope-reference-corpus = "python esri-to-aegis-lunar-southpole/products/generate_terrain_slope_reference_corpus.py"
