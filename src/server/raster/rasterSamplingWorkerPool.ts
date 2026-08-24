@@ -2,16 +2,8 @@ import { availableParallelism } from "node:os";
 import { performance } from "node:perf_hooks";
 import { Worker } from "node:worker_threads";
 
-import type { RasterProfileSamplingResult } from "./sampleRasterProfile";
+import type { GeographicPoint, RasterDescriptor } from "./types";
 import type { TerrainProfileResult } from "server/terrain/readTerrainProfile";
-
-type RasterProfileWorkerRequest = {
-  id: number;
-  type: "raster-profile";
-  descriptor: RasterDescriptor;
-  path: GeographicPoint[];
-  steps: number[];
-};
 
 type TerrainProfileWorkerRequest = {
   id: number;
@@ -21,7 +13,7 @@ type TerrainProfileWorkerRequest = {
   samplesPerSegment: number[];
 };
 
-export type RasterSamplingWorkerRequest = RasterProfileWorkerRequest | TerrainProfileWorkerRequest;
+export type RasterSamplingWorkerRequest = TerrainProfileWorkerRequest;
 
 type RasterSamplingWorkerShutdownRequest = {
   type: "shutdown";
@@ -38,12 +30,6 @@ type SerializedWorkerError = {
 };
 
 export type RasterSamplingWorkerResponse =
-  | {
-      id: number;
-      type: "raster-profile";
-      status: "success";
-      result: RasterProfileSamplingResult;
-    }
   | { id: number; type: "terrain-profile"; status: "success"; result: TerrainProfileResult }
   | { id: number; status: "error"; error: SerializedWorkerError }
   | { status: "closed" }
@@ -77,21 +63,13 @@ type WorkerSlot = {
   shutdownComplete?: (error?: Error) => void;
 };
 
-export type RasterSamplingWorkerResult = RasterProfileSamplingResult & {
-  // Timing is measured in the parent process so callers can distinguish capacity waits from
-  // GeoTIFF decoding and coordinate conversion time.
-  workerId: number;
-  queueDurationMs: number;
-  executionDurationMs: number;
-};
-
 export type TerrainProfileSamplingWorkerResult = TerrainProfileResult & {
   workerId: number;
   queueDurationMs: number;
   executionDurationMs: number;
 };
 
-type WorkerJobResult = RasterSamplingWorkerResult | TerrainProfileSamplingWorkerResult;
+type WorkerJobResult = TerrainProfileSamplingWorkerResult;
 
 export class RasterSamplingWorkerPoolUnavailableError extends Error {
   constructor(message: string) {
@@ -161,21 +139,6 @@ export class RasterSamplingWorkerPool {
       options.workerFactory ??
       // esbuild emits the worker entry point beside api.js in development and production.
       (() => new Worker(new URL("./rasterSamplingWorker.js", import.meta.url)) as WorkerLike);
-  }
-
-  /** Submits a raster profile and resolves when a worker returns its result. */
-  run(
-    descriptor: RasterDescriptor,
-    path: GeographicPoint[],
-    steps: number[]
-  ): Promise<RasterSamplingWorkerResult> {
-    return this.runJob({
-      id: this.nextJobId++,
-      type: "raster-profile",
-      descriptor,
-      path,
-      steps,
-    }) as Promise<RasterSamplingWorkerResult>;
   }
 
   runTerrain(
@@ -413,12 +376,6 @@ export class RasterSamplingWorkerPool {
 }
 
 const rasterSamplingWorkerPool = new RasterSamplingWorkerPool();
-
-export const sampleRasterProfileInWorker = (
-  descriptor: RasterDescriptor,
-  path: GeographicPoint[],
-  steps: number[]
-): Promise<RasterSamplingWorkerResult> => rasterSamplingWorkerPool.run(descriptor, path, steps);
 
 export const sampleTerrainProfileInWorker = (
   descriptor: RasterDescriptor,
