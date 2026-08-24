@@ -1,6 +1,12 @@
-const sampleRasterNeighborhoods = vi.hoisted(() => vi.fn());
+const { sampleRasterNeighborhoods, sampleRasterPoints } = vi.hoisted(() => ({
+  sampleRasterNeighborhoods: vi.fn(),
+  sampleRasterPoints: vi.fn(),
+}));
 
-vi.mock("server/raster/sampleRasterPoints", () => ({ sampleRasterNeighborhoods }));
+vi.mock("server/raster/sampleRasterPoints", () => ({
+  sampleRasterNeighborhoods,
+  sampleRasterPoints,
+}));
 
 import { readTerrainProfile } from "server/terrain/readTerrainProfile";
 
@@ -20,6 +26,8 @@ const metadata: RasterMetadata = {
 const value = (number: number): RasterSample => ({ status: "value", value: number });
 
 describe("readTerrainProfile", () => {
+  beforeEach(() => vi.clearAllMocks());
+
   it("shares sample positions and preserves segment boundaries and endpoint duplication", async () => {
     const centers = [value(1), value(2), value(3), value(3), value(4)];
     sampleRasterNeighborhoods.mockResolvedValue({
@@ -72,6 +80,34 @@ describe("readTerrainProfile", () => {
     );
     expect(result.elevationsMeters).toEqual([[14, 16]]);
     expect(result.terrainSlopesDegrees).toEqual([[null, 0]]);
+  });
+
+  it("reads only center samples when only elevation is requested", async () => {
+    sampleRasterPoints.mockResolvedValue({
+      metadata,
+      samples: [value(2), value(3)],
+      uniquePixelsRead: 2,
+      blocksRead: 1,
+    });
+
+    const result = await readTerrainProfile(
+      { absolutePath: "fixture.tif" },
+      [
+        { lat: 0, lng: 0 },
+        { lat: 1, lng: 1 },
+      ],
+      [2],
+      true
+    );
+
+    expect(sampleRasterPoints).toHaveBeenCalledOnce();
+    expect(sampleRasterNeighborhoods).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      elevationsMeters: [[14, 16]],
+      terrainSlopesDegrees: [],
+      centerSamples: 2,
+      uniqueDemPixels: 2,
+    });
   });
 
   it("rejects non-metre vertical units", async () => {

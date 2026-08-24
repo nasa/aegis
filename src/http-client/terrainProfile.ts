@@ -1,12 +1,24 @@
 import { clientFetchWithTimeout } from "utils/fetch-with-timeout";
 
-export async function getTerrainProfile(
-  missionId: number,
-  path: AEGISPoint[],
-  pathSegmentDistances: number[],
-  entityKey?: string
-): Promise<WrappedResponse<TerrainProfile>> {
-  const postData: TerrainProfilePostData = { path, pathSegmentDistances, entityKey };
+export async function getTerrainProfile({
+  missionId,
+  path,
+  pathSegmentDistances,
+  entityKey,
+  getElevationOnly = false,
+}: {
+  missionId: number;
+  path: AEGISPoint[];
+  pathSegmentDistances: number[];
+  entityKey?: string;
+  getElevationOnly?: boolean;
+}): Promise<WrappedResponse<TerrainProfile>> {
+  const postData: TerrainProfilePostData = {
+    path,
+    pathSegmentDistances,
+    entityKey,
+    getElevationOnly,
+  };
   const res = await clientFetchWithTimeout(`/api/v1/terrain-profile?missionId=${missionId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -27,28 +39,40 @@ export async function getTerrainProfile(
   return (await res.json()) as WrappedResponse<TerrainProfile>;
 }
 
-export async function getElevationProfile(
-  missionId: number,
-  _demFilepath: string,
-  path: AEGISPoint[],
-  pathSegmentDistances: number[],
-  _resolutionMeters: number,
-  _radius: number
-): Promise<WrappedResponse<number[][]>> {
-  const response = await getTerrainProfile(missionId, path, pathSegmentDistances);
+export async function getElevationProfile({
+  missionId,
+  path,
+  pathSegmentDistances,
+}: {
+  missionId: number;
+  path: AEGISPoint[];
+  pathSegmentDistances: number[];
+}): Promise<WrappedResponse<number[][]>> {
+  const response = await getTerrainProfile({
+    missionId,
+    path,
+    pathSegmentDistances,
+    getElevationOnly: true,
+  });
   return { ...response, data: response.data?.elevationsMeters };
 }
 
-export async function getElevationSinglePoint(
-  missionId: number,
-  _demFilepath: string,
-  point: AEGISPoint,
-  _radius: number
-): Promise<WrappedResponse<number>> {
+export async function getElevationSinglePoint({
+  missionId,
+  point,
+}: {
+  missionId: number;
+  point: AEGISPoint;
+}): Promise<WrappedResponse<number>> {
   if (!Number.isFinite(point.lat) || !Number.isFinite(point.lng)) {
     return { status: "error", message: "Invalid point" };
   }
 
-  const response = await getTerrainProfile(missionId, [point, point], [0]);
+  const response = await getTerrainProfile({
+    missionId,
+    path: [point, point],
+    pathSegmentDistances: [0],
+    getElevationOnly: true,
+  });
   return { ...response, data: response.data?.elevationsMeters[0]?.[0] };
 }

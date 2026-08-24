@@ -62,12 +62,10 @@ const Mission: React.FunctionComponent = () => {
     }
 
     const elevation = (
-      await getElevationSinglePoint(
-        automergeMission.id,
-        automergeMission.demFilePath,
-        automergeMission.landerLocation,
-        automergeMission.planetRadius
-      )
+      await getElevationSinglePoint({
+        missionId: automergeMission.id,
+        point: automergeMission.landerLocation,
+      })
     ).data;
 
     // save back out to automerge doc

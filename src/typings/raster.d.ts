@@ -44,6 +44,7 @@ type RasterMetadata = {
 type RasterSamplingResult = {
   metadata: RasterMetadata;
   samples: RasterSample[];
+  uniquePixelsRead: number;
   blocksRead: number;
 };
 

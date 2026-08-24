@@ -188,7 +188,11 @@ describe("RasterSamplingWorkerPool", () => {
     const pool = new RasterSamplingWorkerPool({ size: 1, workerFactory: () => worker });
 
     const resultPromise = pool.runTerrain(descriptor, path, [2]);
-    expect(worker.requests[0]).toMatchObject({ type: "terrain-profile", samplesPerSegment: [2] });
+    expect(worker.requests[0]).toMatchObject({
+      type: "terrain-profile",
+      samplesPerSegment: [2],
+      getElevationOnly: false,
+    });
     worker.succeedTerrain();
 
     await expect(resultPromise).resolves.toMatchObject({
@@ -201,6 +205,17 @@ describe("RasterSamplingWorkerPool", () => {
       queueDurationMs: expect.any(Number),
       executionDurationMs: expect.any(Number),
     });
+    await pool.close();
+  });
+
+  it("passes elevation-only sampling through to the worker", async () => {
+    const worker = new FakeWorker();
+    const pool = new RasterSamplingWorkerPool({ size: 1, workerFactory: () => worker });
+
+    const resultPromise = pool.runTerrain(descriptor, path, [2], undefined, true);
+    expect(worker.requests[0]).toMatchObject({ getElevationOnly: true });
+    worker.succeedTerrain();
+    await resultPromise;
     await pool.close();
   });
 
