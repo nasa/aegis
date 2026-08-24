@@ -1,5 +1,6 @@
 import { isLoggedIn, login, logout } from "http-client/login";
 import { boxDownloadFile } from "http-client/box";
+import { getElevationProfile, getElevationSinglePoint } from "http-client/terrainProfile";
 
 // Helper to mock fetch responses
 const mockFetchResponse = (data: unknown) => {
@@ -132,5 +133,70 @@ describe("Box download", () => {
       elapsedSeconds: 20,
       fileName: "large.zip",
     });
+  });
+});
+
+describe("Terrain profile elevation compatibility", () => {
+  test("extracts an elevation profile from the combined terrain response", async () => {
+    mockFetchResponse({
+      status: "success",
+      message: "Terrain profile sampled",
+      data: {
+        elevationsMeters: [[100, 101]],
+        terrainSlopesDegrees: [[2, 3]],
+      },
+    });
+
+    const response = await getElevationProfile(
+      42,
+      "ignored.tif",
+      [
+        { lat: -85, lng: 10 },
+        { lat: -85.1, lng: 10.1 },
+      ],
+      [20],
+      5,
+      1737400
+    );
+
+    expect(response.data).toEqual([[100, 101]]);
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/v1/terrain-profile?missionId=42",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          path: [
+            { lat: -85, lng: 10 },
+            { lat: -85.1, lng: 10.1 },
+          ],
+          pathSegmentDistances: [20],
+        }),
+      })
+    );
+  });
+
+  test("extracts one elevation using a zero-length terrain profile", async () => {
+    mockFetchResponse({
+      status: "success",
+      message: "Terrain profile sampled",
+      data: {
+        elevationsMeters: [[123, 123]],
+        terrainSlopesDegrees: [[4, 4]],
+      },
+    });
+    const point = { lat: -85, lng: 10 };
+
+    const response = await getElevationSinglePoint(42, "ignored.tif", point, 1737400);
+
+    expect(response.data).toBe(123);
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/v1/terrain-profile?missionId=42",
+      expect.objectContaining({
+        body: JSON.stringify({
+          path: [point, point],
+          pathSegmentDistances: [0],
+        }),
+      })
+    );
   });
 });

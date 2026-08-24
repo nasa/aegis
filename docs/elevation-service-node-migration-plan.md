@@ -95,9 +95,9 @@ COG_COMPRESS = "deflate"`, with a `_cog` filename marker), so the input format w
 
 ```
 Browser
-  └─ http-client/elevation.ts  (getElevationProfile / getElevationSinglePoint)
-       └─ POST /api/v1/elevation?missionId=…
-            └─ src/server/express/routes/elevation.ts
+  └─ http-client/terrainProfile.ts  (including elevation compatibility functions)
+    └─ POST /api/v1/terrain-profile?missionId=…
+      └─ src/server/express/routes/terrainProfile.ts
                  └─ fetch http://${GDAL_HOST}:${GDAL_PORT}/pathToElevationProfile
                       └─ elevationService.py  (GDAL + great_circle_calculator)
                            └─ reads /static/missionFiles/<missionId>/<demFilePath>
@@ -109,9 +109,9 @@ Browser
 | --------------------------------------------- | ------------------------------------------------------------ |
 | `src/server/python/elevationService.py`       | Flask/waitress service; the algorithm we must port to TS     |
 | `src/server/python/great_circle_calculator/`  | Great-circle interpolation used to densify each path segment |
-| `src/server/express/routes/elevation.ts`      | Express route; currently proxies to the GDAL container       |
-| `src/http-client/elevation.ts`                | Client wrappers (unchanged shape; keeps working)             |
-| `src/typings/network/internalApi.d.ts`        | `ElevationProfilePostData`, `ElevationGdalRequestBody`       |
+| `src/server/express/routes/terrainProfile.ts` | Express route for combined terrain profiles                  |
+| `src/http-client/terrainProfile.ts`           | Combined client plus elevation compatibility functions       |
+| `src/typings/network/internalApi.d.ts`        | `TerrainProfilePostData` and `TerrainProfile`                |
 | `docker/gdal/Dockerfile`                      | Builds the GDAL image                                        |
 | `docker-compose.yml`                          | Declares the `gdal` service + `/static` volume mount         |
 | `docker-compose.services.yml` / `.public.yml` | Build/pull the GDAL image locally / from Docker Hub          |
@@ -186,10 +186,8 @@ Supporting libraries (all already present or tiny):
   > because it cancels in the ratio `sin((1 - f)·delta) / sin(delta)` used to place the
   > intermediate point — but to guarantee identical golden values we mirror the complete Python
   > calculation consistently. Do not mix a mission radius into only part of the calculation.
-  > `ElevationProfilePostData.radius` is already sent by the client (`http-client/elevation.ts`)
-  > but is **not** used by the current GDAL interpolation path; keep it in the payload for
-  > backward compatibility but do not feed it into `intermediate_point` unless we deliberately
-  > choose to diverge from the Python behavior (which would change golden values).
+  > The client-side single-point compatibility function uses the mission radius only to construct
+  > a short two-point profile request. Server interpolation does not use the mission radius.
 
 ### 3.2 New module layout
 
