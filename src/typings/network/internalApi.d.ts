@@ -4,15 +4,6 @@ interface WrappedResponse<T> {
   data?: T;
 }
 
-type ElevationProfilePostData = {
-  missionId: number;
-  demFilepath: string;
-  path: AEGISPoint[];
-  pathSegmentDistances: number[];
-  resolutionMeters: number;
-  radius: number;
-};
-
 type TerrainProfilePostData = {
   path: AEGISPoint[];
   pathSegmentDistances: number[];

@@ -35,14 +35,14 @@ The current flow is:
 
 ```text
 Traverse or measurement path
-  -> POST /api/v1/elevation
+   -> POST /api/v1/terrain-profile
   -> validate against authorized mission metadata
   -> resolve mission.demFilePath inside missionFiles/<id>/Data
   -> bounded raster worker pool
   -> great-circle path densification
   -> geographic-to-DEM pixel transform
   -> block-deduplicated GeoTIFF reads
-  -> segmented elevation arrays
+   -> segmented elevation and terrain-slope arrays
   -> browser elevation graph and along-track slope regression
 ```
 
@@ -438,8 +438,8 @@ benefit.
 2. Densify the path once using a shared interpolation helper.
 3. Transform each interpolated point once and calculate both outputs from the resulting center
    pixels and neighborhoods.
-4. Make terrain profiles the worker's single DEM sampling result. The existing elevation route
-   remains an interface-compatible adapter that returns only `elevationsMeters`.
+4. Make terrain profiles the worker's single DEM sampling result. Existing elevation callers use
+   client-side compatibility functions that return only `elevationsMeters`.
 5. Return useful instrumentation:
    - center samples;
    - unique DEM pixels;
@@ -451,10 +451,10 @@ benefit.
 
 ### Phase 3: Expose the combined API contract
 
-Expose `/api/v1/terrain-profile` as the combined contract. Preserve `/api/v1/elevation` for
-existing callers, but implement it through the same terrain-profile sampler and discard
-`terrainSlopesDegrees` from its response. This keeps existing client and thunk interfaces stable
-without maintaining a second server-side DEM sampling implementation.
+Expose `/api/v1/terrain-profile` as the only DEM profile HTTP contract. Preserve the existing
+elevation function signatures in the terrain-profile HTTP client as compatibility adapters; they
+call the combined endpoint and discard `terrainSlopesDegrees`. This keeps thunk interfaces stable
+without maintaining a second HTTP route or server-side sampling implementation.
 
 In either case:
 

@@ -1,6 +1,6 @@
 import { insertElevationPending, removeElevationPending } from "store/interface";
 import appCreateAsyncThunk from "./thunkUtil";
-import { getElevationProfile, getElevationSinglePoint } from "http-client/elevation";
+import { getElevationProfile, getElevationSinglePoint } from "http-client/terrainProfile";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 
 /**

@@ -3,7 +3,7 @@ import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { Link, useParams } from "react-router";
 import adminStyles from "components/admin/admin.module.css";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
-import { getElevationSinglePoint } from "http-client/elevation";
+import { getElevationSinglePoint } from "http-client/terrainProfile";
 import FileManager from "components/admin/fileManager";
 import { InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
