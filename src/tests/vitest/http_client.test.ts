@@ -147,17 +147,14 @@ describe("Terrain profile elevation compatibility", () => {
       },
     });
 
-    const response = await getElevationProfile(
-      42,
-      "ignored.tif",
-      [
+    const response = await getElevationProfile({
+      missionId: 42,
+      path: [
         { lat: -85, lng: 10 },
         { lat: -85.1, lng: 10.1 },
       ],
-      [20],
-      5,
-      1737400
-    );
+      pathSegmentDistances: [20],
+    });
 
     expect(response.data).toEqual([[100, 101]]);
     expect(global.fetch).toHaveBeenCalledWith(
@@ -170,6 +167,7 @@ describe("Terrain profile elevation compatibility", () => {
             { lat: -85.1, lng: 10.1 },
           ],
           pathSegmentDistances: [20],
+          getElevationOnly: true,
         }),
       })
     );
@@ -186,7 +184,10 @@ describe("Terrain profile elevation compatibility", () => {
     });
     const point = { lat: -85, lng: 10 };
 
-    const response = await getElevationSinglePoint(42, "ignored.tif", point, 1737400);
+    const response = await getElevationSinglePoint({
+      missionId: 42,
+      point,
+    });
 
     expect(response.data).toBe(123);
     expect(global.fetch).toHaveBeenCalledWith(
@@ -195,6 +196,7 @@ describe("Terrain profile elevation compatibility", () => {
         body: JSON.stringify({
           path: [point, point],
           pathSegmentDistances: [0],
+          getElevationOnly: true,
         }),
       })
     );

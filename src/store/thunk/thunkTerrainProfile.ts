@@ -17,7 +17,12 @@ export const thunkFetchTerrainProfile = appCreateAsyncThunk<
 
     dispatch(insertElevationPending(uuid));
     try {
-      const response = await getTerrainProfile(mission.id, path, pathSegmentDistances, uuid);
+      const response = await getTerrainProfile({
+        missionId: mission.id,
+        path,
+        pathSegmentDistances,
+        entityKey: uuid,
+      });
       if (response.status !== "success") throw new Error("API terrain profile returned failure");
       const profile = normalizeTerrainProfile(response.data, path, pathSegmentDistances);
       if (!profile) throw new Error("API terrain profile returned misaligned data");

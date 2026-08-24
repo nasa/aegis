@@ -164,7 +164,15 @@ export const sampleRasterPoints = async (
   const sampleIndex = descriptor.sampleIndex ?? 0;
   const pixels = transformPoints(descriptor, points, metadata);
   const result = await sampleRasterPixels(raster, pixels, sampleIndex);
-  return { metadata, ...result };
+  const uniquePixelsRead = new Set(
+    pixels
+      .filter(
+        (pixel) =>
+          pixel.x >= 0 && pixel.y >= 0 && pixel.x < metadata.width && pixel.y < metadata.height
+      )
+      .map(pixelKey)
+  ).size;
+  return { metadata, uniquePixelsRead, ...result };
 };
 
 export const sampleRasterNeighborhoods = async (

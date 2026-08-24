@@ -32,22 +32,16 @@ export const thunkFetchElevation = appCreateAsyncThunk<
   // generate new elevation profile via api
   let newElevationProfile: WrappedResponse<number[][] | number>;
   if (path.length === 1) {
-    newElevationProfile = await getElevationSinglePoint(
-      mission.id,
-      mission.demFilePath,
-      path[0],
-      mission.planetRadius
-    );
+    newElevationProfile = await getElevationSinglePoint({
+      missionId: mission.id,
+      point: path[0],
+    });
   } else {
-    const elevationResolutionMeters = mission.demResolution || 10; // resolution in meters, default 10
-    newElevationProfile = await getElevationProfile(
-      mission.id,
-      mission.demFilePath,
+    newElevationProfile = await getElevationProfile({
+      missionId: mission.id,
       path,
       pathSegmentDistances,
-      elevationResolutionMeters,
-      mission.planetRadius
-    );
+    });
   }
   dispatch(removeElevationPending(uuid));
 
