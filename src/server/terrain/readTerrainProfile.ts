@@ -1,7 +1,7 @@
 import { MAX_RASTER_PROFILE_SAMPLES } from "server/raster/constants";
 import { interpolateSegment } from "server/raster/greatCircleInterpolation";
 import { validateRasterUnitsInMeters } from "server/raster/projection";
-import { sampleRasterNeighborhoods } from "server/raster/sampleRasterPoints";
+import { sampleRasterNeighborhoods, sampleRasterPoints } from "server/raster/sampleRasterPoints";
 import {
   sampleTerrainProfileInWorker,
   type TerrainProfileSamplingWorkerResult,
@@ -47,10 +47,14 @@ const elevationMeters = (sample: RasterSample, scale: number, offset: number): n
 export const readTerrainProfile = async (
   descriptor: RasterDescriptor,
   path: GeographicPoint[],
-  samplesPerSegment: number[]
+  samplesPerSegment: number[],
+  getElevationOnly = false
 ): Promise<TerrainProfileResult> => {
   const segments = validateAndInterpolate(path, samplesPerSegment);
-  const sampled = await sampleRasterNeighborhoods(descriptor, segments.flat());
+  const points = segments.flat();
+  const sampled = getElevationOnly
+    ? await sampleRasterPoints(descriptor, points)
+    : await sampleRasterNeighborhoods(descriptor, points);
   validateRasterUnitsInMeters(sampled.metadata);
   if (descriptor.expectedResolutionMeters !== undefined) {
     const tolerance = Math.max(1e-6, descriptor.expectedResolutionMeters * 1e-6);
@@ -65,25 +69,29 @@ export const readTerrainProfile = async (
 
   let offset = 0;
   const elevationsMeters = segments.map((segment) => {
-    const values = sampled.centerSamples
+    const centerSamples = "centerSamples" in sampled ? sampled.centerSamples : sampled.samples;
+    const values = centerSamples
       .slice(offset, offset + segment.length)
       .map((sample) => elevationMeters(sample, sampled.metadata.scale, sampled.metadata.offset));
     offset += segment.length;
     return values;
   });
   offset = 0;
-  const terrainSlopesDegrees = segments.map((segment) => {
-    const values = sampled.neighborhoods
-      .slice(offset, offset + segment.length)
-      .map((neighborhood) => calculateTerrainSlopeDegrees(neighborhood, sampled.metadata));
-    offset += segment.length;
-    return values;
-  });
+  const terrainSlopesDegrees =
+    "neighborhoods" in sampled
+      ? segments.map((segment) => {
+          const values = sampled.neighborhoods
+            .slice(offset, offset + segment.length)
+            .map((neighborhood) => calculateTerrainSlopeDegrees(neighborhood, sampled.metadata));
+          offset += segment.length;
+          return values;
+        })
+      : [];
 
   return {
     elevationsMeters,
     terrainSlopesDegrees,
-    centerSamples: sampled.centerSamples.length,
+    centerSamples: points.length,
     uniqueDemPixels: sampled.uniquePixelsRead,
     blocksRead: sampled.blocksRead,
   };
@@ -93,13 +101,15 @@ export const readTerrainProfileInWorker = async (
   descriptor: RasterDescriptor,
   path: GeographicPoint[],
   samplesPerSegment: number[],
-  coalescingKey?: string
+  coalescingKey?: string,
+  getElevationOnly = false
 ): Promise<TerrainProfileWorkerResult> => {
   const result = await sampleTerrainProfileInWorker(
     descriptor,
     path,
     samplesPerSegment,
-    coalescingKey
+    coalescingKey,
+    getElevationOnly
   );
   return result;
 };

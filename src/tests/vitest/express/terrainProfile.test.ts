@@ -92,7 +92,8 @@ describe("terrain profile route", () => {
       },
       validBody.path,
       [5],
-      "42:traverse_abc-123"
+      "42:traverse_abc-123",
+      false
     );
   });
 
@@ -105,7 +106,8 @@ describe("terrain profile route", () => {
       expect.any(Object),
       validBody.path,
       [2],
-      "42:traverse_abc-123"
+      "42:traverse_abc-123",
+      false
     );
   });
 
@@ -117,7 +119,22 @@ describe("terrain profile route", () => {
       expect.any(Object),
       body.path,
       [5],
-      undefined
+      undefined,
+      false
+    );
+  });
+
+  it("requests center-only sampling for elevation-only profiles", async () => {
+    await supertest(app)
+      .post("/api/v1/terrain-profile?missionId=42")
+      .send({ ...validBody, getElevationOnly: true });
+
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledWith(
+      expect.any(Object),
+      validBody.path,
+      [5],
+      "42:traverse_abc-123",
+      true
     );
   });
 
@@ -142,6 +159,11 @@ describe("terrain profile route", () => {
       "oversized entity key",
       "/api/v1/terrain-profile?missionId=42",
       { ...validBody, entityKey: "a".repeat(65) },
+    ],
+    [
+      "invalid elevation-only flag",
+      "/api/v1/terrain-profile?missionId=42",
+      { ...validBody, getElevationOnly: "true" },
     ],
   ])("rejects %s before queueing", async (_name, url, body) => {
     const response = await supertest(app).post(url).send(body);

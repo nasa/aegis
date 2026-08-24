@@ -40,7 +40,8 @@ const handleMessage = async (request: RasterSamplingWorkerMessage): Promise<void
     const result = await readTerrainProfile(
       request.descriptor,
       request.path,
-      request.samplesPerSegment
+      request.samplesPerSegment,
+      request.getElevationOnly
     );
     response = { id: request.id, type: request.type, status: "success", result };
   } catch (error) {

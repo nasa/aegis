@@ -26,7 +26,12 @@ const missionIdFromRequest = (req: Request): number | undefined => {
 export const validateTerrainProfileRequest = (
   postData: TerrainProfilePostData,
   resolutionMeters: number
-): { path: { lat: number; lng: number }[]; samplesPerSegment: number[]; entityKey?: string } => {
+): {
+  path: { lat: number; lng: number }[];
+  samplesPerSegment: number[];
+  entityKey?: string;
+  getElevationOnly: boolean;
+} => {
   if (!Array.isArray(postData?.path) || postData.path.length < 2) {
     throw new Error("Terrain profile path must contain at least two points");
   }
@@ -60,6 +65,9 @@ export const validateTerrainProfileRequest = (
   ) {
     throw new Error("Terrain profile entity key must be 1-64 safe characters");
   }
+  if (postData.getElevationOnly !== undefined && typeof postData.getElevationOnly !== "boolean") {
+    throw new Error("Terrain profile elevation-only flag must be a boolean");
+  }
 
   const samplesPerSegment = postData.pathSegmentDistances.map((distance) =>
     samplesForDistance(distance, resolutionMeters)
@@ -68,7 +76,12 @@ export const validateTerrainProfileRequest = (
   if (totalSamples > MAX_RASTER_PROFILE_SAMPLES) {
     throw new Error(`Terrain profile exceeds the ${MAX_RASTER_PROFILE_SAMPLES} sample limit`);
   }
-  return { path: postData.path, samplesPerSegment, entityKey: postData.entityKey };
+  return {
+    path: postData.path,
+    samplesPerSegment,
+    entityKey: postData.entityKey,
+    getElevationOnly: postData.getElevationOnly ?? false,
+  };
 };
 
 router.post("/", async (req: Request, res: Response): Promise<void> => {
@@ -101,6 +114,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       path: profilePath,
       samplesPerSegment,
       entityKey,
+      getElevationOnly,
     } = validateTerrainProfileRequest(req.body, mission.demResolution ?? 10);
     const rasterPath = await resolveMissionDemPath(
       process.env.STATIC_DIR ? path.resolve(process.env.STATIC_DIR) : undefined,
@@ -111,7 +125,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       { absolutePath: rasterPath, expectedResolutionMeters: mission.demResolution ?? 10 },
       profilePath,
       samplesPerSegment,
-      entityKey ? `${missionId}:${entityKey}` : undefined
+      entityKey ? `${missionId}:${entityKey}` : undefined,
+      getElevationOnly
     );
     const totalRouteDurationMs = performance.now() - routeStartedAt;
     serverLogger.debug({

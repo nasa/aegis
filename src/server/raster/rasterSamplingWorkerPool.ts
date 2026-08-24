@@ -13,6 +13,7 @@ type TerrainProfileWorkerRequest = {
   descriptor: RasterDescriptor;
   path: GeographicPoint[];
   samplesPerSegment: number[];
+  getElevationOnly: boolean;
 };
 
 export type RasterSamplingWorkerRequest = TerrainProfileWorkerRequest;
@@ -191,7 +192,8 @@ export class RasterSamplingWorkerPool {
     descriptor: RasterDescriptor,
     path: GeographicPoint[],
     samplesPerSegment: number[],
-    coalescingKey?: string
+    coalescingKey?: string,
+    getElevationOnly = false
   ): Promise<TerrainProfileSamplingWorkerResult> {
     return this.runJob(
       {
@@ -200,6 +202,7 @@ export class RasterSamplingWorkerPool {
         descriptor,
         path,
         samplesPerSegment,
+        getElevationOnly,
       },
       coalescingKey
     ) as Promise<TerrainProfileSamplingWorkerResult>;
@@ -508,8 +511,15 @@ export const sampleTerrainProfileInWorker = (
   descriptor: RasterDescriptor,
   path: GeographicPoint[],
   samplesPerSegment: number[],
-  coalescingKey?: string
+  coalescingKey?: string,
+  getElevationOnly = false
 ): Promise<TerrainProfileSamplingWorkerResult> =>
-  rasterSamplingWorkerPool.runTerrain(descriptor, path, samplesPerSegment, coalescingKey);
+  rasterSamplingWorkerPool.runTerrain(
+    descriptor,
+    path,
+    samplesPerSegment,
+    coalescingKey,
+    getElevationOnly
+  );
 
 export const closeRasterSamplingWorkerPool = (): Promise<void> => rasterSamplingWorkerPool.close();

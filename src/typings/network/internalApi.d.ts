@@ -8,6 +8,7 @@ type TerrainProfilePostData = {
   path: AEGISPoint[];
   pathSegmentDistances: number[];
   entityKey?: string;
+  getElevationOnly?: boolean;
 };
 
 type TerrainProfile = {

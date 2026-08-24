@@ -453,8 +453,9 @@ benefit.
 
 Expose `/api/v1/terrain-profile` as the only DEM profile HTTP contract. Preserve the existing
 elevation function signatures in the terrain-profile HTTP client as compatibility adapters; they
-call the combined endpoint and discard `terrainSlopesDegrees`. This keeps thunk interfaces stable
-without maintaining a second HTTP route or server-side sampling implementation.
+call the combined endpoint with `getElevationOnly: true`. The server then reads center pixels only
+and skips neighborhood slope calculation. This keeps thunk interfaces stable without maintaining
+a second HTTP route or server-side sampling implementation.
 
 In either case:
 
