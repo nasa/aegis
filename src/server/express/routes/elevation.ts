@@ -5,13 +5,9 @@ import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import { NODATA_SENTINEL } from "server/elevation/constants";
 import { resolveMissionDemPath } from "server/elevation/resolveMissionDem";
 import { samplesForDistance } from "server/raster/constants";
-import {
-  RasterSamplingWorkerPoolUnavailableError,
-  sampleRasterProfileInWorker,
-} from "server/raster/rasterSamplingWorkerPool";
+import { readTerrainProfileInWorker } from "server/terrain/readTerrainProfile";
 import { getAutomergeMissionHandle } from "./missionAutomerge";
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -106,20 +102,9 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const missionHandle = await getAutomergeMissionHandle(queryObj.missionId);
     if (!missionHandle) {
-      const error = new Error(`Mission ${queryObj.missionId} not found`);
-      serverLogger.apiRoute({
-        logLevel: "error",
-        httpMethod: "POST",
-        responseStatus: 404,
-        routeName: "elevation",
-        appUsername: req.session?.appUser?.username,
-        missionId: queryObj.missionId,
-        message: error.message,
-        error,
-      });
       res.status(404).json({
         status: "failure",
-        message: error.message,
+        message: `Mission ${queryObj.missionId} not found`,
       });
       return;
     }
@@ -133,20 +118,20 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     );
 
     const startedAt = performance.now();
-    const result = await readElevationProfileInWorker(
-      { absolutePath: rasterPath },
+    const result = await readTerrainProfileInWorker(
+      { absolutePath: rasterPath, expectedResolutionMeters: resolutionMeters },
       elevationPath,
       steps
     );
     const durationMs = performance.now() - startedAt;
     serverLogger.debug({
       logId: "elevation",
-      logValue: `Worker ${result.workerId} sampled ${result.samplesRead} points from ${result.blocksRead} blocks in ${result.executionDurationMs.toFixed(1)} ms after ${result.queueDurationMs.toFixed(1)} ms queued (${durationMs.toFixed(1)} ms total)`,
+      logValue: `Worker ${result.workerId} sampled ${result.centerSamples} centers (${result.uniqueDemPixels} unique DEM pixels) from ${result.blocksRead} blocks in ${result.executionDurationMs.toFixed(1)} ms after ${result.queueDurationMs.toFixed(1)} ms queued (${durationMs.toFixed(1)} ms total)`,
       missionId: queryObj.missionId,
     });
     res.status(200).json({
       status: "success",
-      data: result.elevations,
+      data: result.elevationsMeters,
       message: "Elevation profile sampled",
     });
   } catch (error) {
@@ -155,21 +140,3 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 export default router;
-
-const readElevationProfileInWorker = async (
-  descriptor: RasterDescriptor,
-  elevationPath: GeographicPoint[],
-  steps: number[]
-) => {
-  const result = await sampleRasterProfileInWorker(descriptor, elevationPath, steps);
-  return {
-    ...result,
-    elevations: result.samples.map((segment) =>
-      segment.map((sample) =>
-        sample.status === "value"
-          ? sample.value * result.metadata.scale + result.metadata.offset
-          : NODATA_SENTINEL
-      )
-    ),
-  };
-};

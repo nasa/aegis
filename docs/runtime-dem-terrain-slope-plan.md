@@ -431,16 +431,15 @@ Prefer extending the existing block sampler over issuing nine `readRasters` call
 point. Per-point reads would repeatedly decode the same blocks and defeat the expected performance
 benefit.
 
-### Phase 2: Add a combined worker job
+### Phase 2: Replace elevation-only sampling with a combined worker job
 
 1. Add a terrain-profile function under `src/server/terrain/` that returns segmented elevation and
    terrain-slope arrays plus raster metrics.
-2. Densify the path once using `sampleRasterProfile`'s existing interpolation semantics or a
-   shared extracted helper.
+2. Densify the path once using a shared interpolation helper.
 3. Transform each interpolated point once and calculate both outputs from the resulting center
    pixels and neighborhoods.
-4. Extend the worker request/response to a discriminated job union, for example
-   `type: "raster-profile" | "terrain-profile"`, rather than duplicating worker-pool machinery.
+4. Make terrain profiles the worker's single DEM sampling result. The existing elevation route
+   remains an interface-compatible adapter that returns only `elevationsMeters`.
 5. Return useful instrumentation:
    - center samples;
    - unique DEM pixels;
@@ -452,12 +451,12 @@ benefit.
 
 ### Phase 3: Expose the combined API contract
 
-Two compatible routing choices are acceptable:
+Expose `/api/v1/terrain-profile` as the combined contract. Preserve `/api/v1/elevation` for
+existing callers, but implement it through the same terrain-profile sampler and discard
+`terrainSlopesDegrees` from its response. This keeps existing client and thunk interfaces stable
+without maintaining a second server-side DEM sampling implementation.
 
-- evolve `/api/v1/elevation` to return a named combined object; or
-- add `/api/v1/terrain-profile` and migrate callers before retiring the old elevation-only route.
-
-Prefer the second choice if compatibility with deployed clients matters. In either case:
+In either case:
 
 1. Resolve only the authorized mission's `demFilePath` server-side.
 2. Keep path-containment and GeoTIFF-extension checks.
