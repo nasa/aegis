@@ -38,7 +38,7 @@ describe("slope presentation classes", () => {
     expect(COLORBLIND_SLOPE_CLASSES).toHaveLength(7);
     expect(getSlopeClass(1, "colorblind")).toMatchObject({
       label: "0–2°",
-      color: "#ffffff",
+      color: "#ffffcc",
     });
     expect(getSlopeClass(6, "colorblind")?.label).toBe(">4–8°");
     expect(getSlopeClass(20.001, "colorblind")).toMatchObject({

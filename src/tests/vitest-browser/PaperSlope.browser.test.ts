@@ -51,7 +51,7 @@ describe("drawSlopeBand", () => {
     );
 
     const band = group.children[0] as paper.Path;
-    expect(band.fillColor.toCSS(true)).toBe("#ffffff");
+    expect(band.fillColor.toCSS(true)).toBe("#ffffcc");
   });
 
   it("draws a one-pixel separator between slope rows using the given color", () => {
