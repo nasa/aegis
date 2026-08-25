@@ -1,11 +1,9 @@
 /**
  * /maestro/v2 namespace — Maegistro v2 API client connections
  *
- * Mounted on the new /api/socket Socket.IO server. Auth is enforced once at
+ * Mounted on the /api/socket Socket.IO server. Auth is enforced once at
  * connection time via namespace middleware. All handlers in this file can
  * assume the socket is EMSS-authenticated.
- *
- * Fully isolated from v1 — imports only from `server/maestro/v2/*`.
  */
 import { serverLogger } from "utils/logging/serverLogger";
 import remove from "lodash/remove";

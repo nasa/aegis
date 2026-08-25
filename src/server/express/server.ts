@@ -10,7 +10,6 @@ import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket
 import app from "./restApi";
 
 import { setupSocketIO } from "./sockets";
-import { setupMaestroNamespace as setupMaestroNamespaceV1 } from "../maestro/v1/sockets-maestro";
 import { setupMaestroNamespace as setupMaestroNamespaceV2 } from "../maestro/v2/sockets-maestro";
 import { globalValues } from "./global";
 import { MikroORM } from "@mikro-orm/postgresql";
@@ -33,29 +32,7 @@ initializeBase64Wasm(automergeWasmBase64);
   // parent http server
   const server: NetServer = createServer();
 
-  // Legacy Socket.IO server for Maegistro v1 on /api/v1/socketio.
-  // This server is dedicated to the legacy v1 /maestro namespace only — it must stay
-  // running until Maestro production clients migrate off v1. Nothing else should use it.
-  serverLogger.debug({
-    logId: "server",
-    logValue: "Starting Socket.IO on /api/v1/socketio for Maegistro v1 (legacy)",
-  });
-  globalValues.socketioLegacy = new SocketServer<
-    ClientToServerEvents,
-    ServerToClientEvents,
-    DefaultEventsMap,
-    {}
-  >(server, {
-    transports: ["websocket"],
-    path: "/api/v1/socketio",
-    addTrailingSlash: false,
-    // Reduce ping interval and timeout from Socket.IO defaults
-    // to detect dead connections within ~10s
-    pingInterval: 5000,
-    pingTimeout: 5000,
-  });
-
-  // New Socket.IO server on /api/socket for all current AEGIS internal traffic and Maegistro v2.
+  // Socket.IO server on /api/socket for all AEGIS internal traffic and Maegistro v2.
   serverLogger.debug({ logId: "server", logValue: "Starting Socket.IO on /api/socket" });
   globalValues.socketio = new SocketServer<
     ClientToServerEvents,
@@ -79,9 +56,7 @@ initializeBase64Wasm(automergeWasmBase64);
   };
 
   setupSocketIO();
-  // v1 Maegistro lives on the legacy socket server.
-  setupMaestroNamespaceV1(globalValues.socketioLegacy);
-  // v2 Maegistro lives on the new /api/socket server under the /maestro/v2 namespace.
+  // v2 Maegistro lives on the /api/socket server under the /maestro/v2 namespace.
   setupMaestroNamespaceV2(globalValues.socketio);
 
   // express request handler
@@ -96,9 +71,8 @@ initializeBase64Wasm(automergeWasmBase64);
 
   // upgrade an already established client/server connection to a
   //    different protocol (over the same transport protocol).
-  // Socket.IO's own upgrade listeners (auto-attached during SocketServer
-  // construction above) handle /api/socket and /api/v1/socketio; this one
-  // handles the Automerge WS.
+  // Socket.IO's own upgrade listener (auto-attached during SocketServer
+  // construction above) handles /api/socket; this one handles the Automerge WS.
   server.on("upgrade", (request, socket, head) => {
     if (request.url === "/api/automergeSocket/") {
       wss.handleUpgrade(request, socket, head, (ws) => {
