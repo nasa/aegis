@@ -5,11 +5,9 @@ raster as a plain float32 GeoTIFF (degrees). ``gdal2tiles`` refuses to tile
 float32 data directly. Before tiling, the raster must be converted to an 8-bit
 RGBA image using the project's standard slope colour ramp.
 
-This legacy delivered-raster path parses an ArcGIS Pro ``.lyrx`` file directly,
-writes a temporary ``gdaldem color-relief`` table, and produces a single 8-bit
-RGBA GeoTIFF ready for ``raster_to_tiles.py``. No palette values are hardcoded
-here. DEM-derived slope products use the canonical palette in
-``products/default_color_ramps/slope.txt``.
+This legacy delivered-raster path either parses an ArcGIS Pro ``.lyrx`` file or
+uses an existing GDAL color-relief ramp, then produces a single 8-bit RGBA
+GeoTIFF ready for ``raster_to_tiles.py``. No palette values are hardcoded here.
 
 Provenance note
 ---------------
@@ -193,39 +191,48 @@ def _find_lyrx_next_to(raster: Path) -> Path | None:
 def colorize(
     input_path: Path,
     output_path: Path,
-    lyrx_path: Path,
-    resampling: str = "near",
+    *,
+    lyrx_path: Path | None = None,
+    ramp_path: Path | None = None,
 ) -> None:
-    """Parse lyrx, write a temp colour table, run gdaldem color-relief."""
+    """Resolve a colour table and run gdaldem color-relief."""
+
+    if (lyrx_path is None) == (ramp_path is None):
+        raise ValueError("Exactly one of lyrx_path or ramp_path is required")
 
     print("=" * 60)
     print("Slope raster → 8-bit RGBA (lyrx colorize)")
     print("=" * 60)
     print(f"  Input:  {input_path.resolve()}")
     print(f"  Output: {output_path.resolve()}")
-    print(f"  lyrx:   {lyrx_path.resolve()}")
+    if lyrx_path is not None:
+        print(f"  lyrx:   {lyrx_path.resolve()}")
+    else:
+        print(f"  ramp:   {ramp_path.resolve()}")
     print()
 
-    # Parse
-    print("Parsing .lyrx … ", end="", flush=True)
-    breaks = _parse_lyrx(lyrx_path)
-    print(f"{len(breaks)} class breaks found")
-    for ub, r, g, b in breaks:
-        print(f"    ≤ {ub:>8.3f}°  →  RGB({r:3d}, {g:3d}, {b:3d})")
-    print()
+    tmp_path: Path | None = None
+    color_table_path = ramp_path
+    if lyrx_path is not None:
+        print("Parsing .lyrx … ", end="", flush=True)
+        breaks = _parse_lyrx(lyrx_path)
+        print(f"{len(breaks)} class breaks found")
+        for ub, r, g, b in breaks:
+            print(f"    ≤ {ub:>8.3f}°  →  RGB({r:3d}, {g:3d}, {b:3d})")
+        print()
 
-    color_table = _build_color_table(breaks)
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            suffix=".txt",
+            prefix="aegis_slope_ramp_",
+            delete=False,
+            encoding="utf-8",
+        ) as tmp:
+            tmp.write(_build_color_table(breaks))
+            tmp_path = Path(tmp.name)
+            color_table_path = tmp_path
 
-    # Write temp colour table file (cleaned up automatically)
-    with tempfile.NamedTemporaryFile(
-        mode="w",
-        suffix=".txt",
-        prefix="aegis_slope_ramp_",
-        delete=False,
-        encoding="utf-8",
-    ) as tmp:
-        tmp.write(color_table)
-        tmp_path = Path(tmp.name)
+    assert color_table_path is not None
 
     try:
         gdaldem = _find_gdaldem()
@@ -235,7 +242,7 @@ def colorize(
             gdaldem,
             "color-relief",
             str(input_path),
-            str(tmp_path),
+            str(color_table_path),
             str(output_path),
             "-alpha",  # add alpha channel → RGBA (nodata = transparent)
             # NOTE: do NOT use -exact_color_entry here. The slope raster is
@@ -270,7 +277,8 @@ def colorize(
             sys.exit(result.returncode)
 
     finally:
-        tmp_path.unlink(missing_ok=True)
+        if tmp_path is not None:
+            tmp_path.unlink(missing_ok=True)
 
     print(f"\n  Output written: {output_path.resolve()}")
     print()
@@ -296,7 +304,8 @@ def make_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Output 8-bit RGBA GeoTIFF (suitable for raster_to_tiles.py)",
     )
-    p.add_argument(
+    source = p.add_mutually_exclusive_group()
+    source.add_argument(
         "--lyrx",
         type=Path,
         default=None,
@@ -306,6 +315,12 @@ def make_parser() -> argparse.ArgumentParser:
             "If omitted, the script looks for any .lyrx file in the same "
             "directory as the input raster."
         ),
+    )
+    source.add_argument(
+        "--ramp",
+        type=Path,
+        default=None,
+        help="Existing GDAL color-relief ramp. Takes the place of .lyrx conversion.",
     )
     return p
 
@@ -318,8 +333,15 @@ def main() -> None:
         print(f"ERROR: input file not found: {input_path}", file=sys.stderr)
         sys.exit(1)
 
+    ramp_path: Path | None = args.ramp
+    if ramp_path is not None:
+        ramp_path = ramp_path.resolve()
+        if not ramp_path.exists():
+            print(f"ERROR: ramp file not found: {ramp_path}", file=sys.stderr)
+            sys.exit(1)
+
     lyrx_path: Path | None = args.lyrx
-    if lyrx_path is None:
+    if lyrx_path is None and ramp_path is None:
         lyrx_path = _find_lyrx_next_to(input_path)
         if lyrx_path is None:
             print(
@@ -329,7 +351,7 @@ def main() -> None:
             )
             sys.exit(1)
         print(f"  Auto-detected lyrx: {lyrx_path}")
-    else:
+    elif lyrx_path is not None:
         lyrx_path = lyrx_path.resolve()
         if not lyrx_path.exists():
             print(f"ERROR: lyrx file not found: {lyrx_path}", file=sys.stderr)
@@ -339,6 +361,7 @@ def main() -> None:
         input_path=input_path,
         output_path=args.output.resolve(),
         lyrx_path=lyrx_path,
+        ramp_path=ramp_path,
     )
 
 

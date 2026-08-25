@@ -36,6 +36,24 @@ describe("drawSlopeBand", () => {
     expect(group.children[0].className).toBe("Path");
   });
 
+  it("uses white for the colorblind graph's zero-to-two-degree class", () => {
+    const group = new paper.Group();
+    drawSlopeBand(
+      group,
+      [
+        { xPixel: 0, yPixel: 0, val: 1, distanceMeters: 0, slopeDegrees: 1 },
+        { xPixel: 20, yPixel: 0, val: 1, distanceMeters: 20, slopeDegrees: 1 },
+      ],
+      0,
+      10,
+      Infinity,
+      "colorblind"
+    );
+
+    const band = group.children[0] as paper.Path;
+    expect(band.fillColor.toCSS(true)).toBe("#ffffff");
+  });
+
   it("draws a one-pixel separator between slope rows using the given color", () => {
     const group = new paper.Group();
     drawSlopeSeparator(group, 4, 24, 10, new paper.Color("#616574"));

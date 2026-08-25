@@ -87,6 +87,7 @@ type InterfaceSection =
   | "stmViewer"
   | "stmRules";
 type BottomInterfaceSection = "timeline" | "measure";
+type SlopeColorMode = "standard" | "colorblind";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
   bottomSectionSelectedLabel: BottomInterfaceSection;
@@ -99,6 +100,7 @@ interface InterfaceState {
   elevationPendingItemUuids: string[];
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
+  slopeColorMode: SlopeColorMode;
   folders: Folder[];
   foldersInterface: FolderInterface[];
 }

@@ -50,6 +50,7 @@ const Measure: FunctionComponent = () => {
   );
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
+  const slopeColorMode = useAppSelector((state) => state.interface.slopeColorMode, refEqual);
 
   const [hoverValues, setHoverValues] = useState<MeasureHoverValues>(initHoverValues);
 
@@ -114,12 +115,14 @@ const Measure: FunctionComponent = () => {
     MeasureDrawing.drawPathSlope(
       measurePaperDataRef,
       measurePaperGroupsRef,
-      measureDerivedValuesRef
+      measureDerivedValuesRef,
+      slopeColorMode
     );
     MeasureDrawing.drawTerrainSlope(
       measurePaperDataRef,
       measurePaperGroupsRef,
-      measureDerivedValuesRef
+      measureDerivedValuesRef,
+      slopeColorMode
     );
 
     //draw the line segment marks
@@ -130,7 +133,7 @@ const Measure: FunctionComponent = () => {
       selectedMeasurement?.pathSegmentBearings,
       usingLGRSCoordinates
     );
-  }, [selectedMeasurement, setHoverValues, usingLGRSCoordinates]);
+  }, [selectedMeasurement, setHoverValues, slopeColorMode, usingLGRSCoordinates]);
 
   // Draw the timeline when the measure uuid changes
   useEffect(() => {
