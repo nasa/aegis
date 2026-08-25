@@ -7,10 +7,6 @@ import { updateMapDirective } from "store/map";
 import { getAccurateNow } from "utils/formatting";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import type { CompleteTerrainProfile } from "utils/terrainProfile";
-import isEqual from "lodash/isEqual";
-
-const latestMeasurementProfileRequest = new Map<string, number>();
-let nextMeasurementProfileRequest = 0;
 
 const profileMatchesSegmentCount = (
   profile: unknown[][] | null,
@@ -73,8 +69,6 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
     })
   );
 
-  const requestId = ++nextMeasurementProfileRequest;
-  latestMeasurementProfileRequest.set(measurementUuid, requestId);
   const profileResponse = await dispatch(
     thunkFetchTerrainProfile({
       path,
@@ -83,23 +77,25 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
     })
   );
 
-  if (latestMeasurementProfileRequest.get(measurementUuid) !== requestId) return;
-  latestMeasurementProfileRequest.delete(measurementUuid);
+  if (profileResponse.meta.requestStatus !== "fulfilled") return;
+
   const currentMeasurement = getState().measure.measurements.find(
     (item) => item.uuid === measurementUuid
   );
-  if (!currentMeasurement || !isEqual(currentMeasurement.path, path)) return;
+  if (!currentMeasurement) return;
 
-  if (profileResponse.meta.requestStatus !== "fulfilled") return;
   const profile = profileResponse.payload as CompleteTerrainProfile;
+  const currentSegmentCount = currentMeasurement.pathSegmentDistances.length;
+  if (
+    !profileMatchesSegmentCount(profile.elevationsMeters, currentSegmentCount) ||
+    !profileMatchesSegmentCount(profile.terrainSlopesDegrees, currentSegmentCount)
+  )
+    return;
 
   const newMeasurement: Measurement = {
     ...currentMeasurement,
-    path,
-    pathSegmentDistances,
     pathSegmentElevations: profile.elevationsMeters,
     pathSegmentAbsoluteSlopes: profile.terrainSlopesDegrees,
-    pathSegmentBearings,
   };
 
   //update the store
