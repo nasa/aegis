@@ -7,15 +7,13 @@ import {
   thunkUpdateMeasurementPath,
 } from "store/thunk/thunkMeasurement";
 import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
+import type { CompleteTerrainProfile } from "utils/terrainProfile";
 
-const mockThunkFetchElevation = vi.fn().mockReturnValue({
+const mockThunkFetchTerrainProfile = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
-vi.mock("store/thunk/thunkElevation", () => ({
-  thunkFetchElevation: () => mockThunkFetchElevation,
-}));
 vi.mock("store/thunk/thunkTerrainProfile", () => ({
-  thunkFetchTerrainProfile: () => mockThunkFetchElevation,
+  thunkFetchTerrainProfile: () => mockThunkFetchTerrainProfile,
 }));
 
 beforeAll(() => {
@@ -101,7 +99,7 @@ describe("Thunk Measurement Tests", () => {
     expect(store.getState().measure.measurements[0].pathSegmentAbsoluteSlopes).toBeNull();
   });
   test("thunkUpdateMeasurementPath() stores a combined profile", async () => {
-    mockThunkFetchElevation.mockReturnValueOnce({
+    mockThunkFetchTerrainProfile.mockReturnValueOnce({
       meta: { requestStatus: "fulfilled" },
       payload: { elevationsMeters: [[1, 2]], terrainSlopesDegrees: [[null, 3]] },
     });
@@ -130,6 +128,85 @@ describe("Thunk Measurement Tests", () => {
 
     expect(store.getState().measure.measurements[0].pathSegmentElevations).toEqual([[1, 2]]);
     expect(store.getState().measure.measurements[0].pathSegmentAbsoluteSlopes).toEqual([[null, 3]]);
+  });
+  test("thunkUpdateMeasurementPath() applies each newer completed profile", async () => {
+    let resolveFirst: (value: {
+      meta: { requestStatus: string };
+      payload: CompleteTerrainProfile;
+    }) => void;
+    let resolveSecond: (value: {
+      meta: { requestStatus: string };
+      payload: CompleteTerrainProfile;
+    }) => void;
+    const firstResponse = new Promise<{
+      meta: { requestStatus: string };
+      payload: CompleteTerrainProfile;
+    }>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const secondResponse = new Promise<{
+      meta: { requestStatus: string };
+      payload: CompleteTerrainProfile;
+    }>((resolve) => {
+      resolveSecond = resolve;
+    });
+    mockThunkFetchTerrainProfile
+      .mockImplementationOnce(() => firstResponse)
+      .mockImplementationOnce(() => secondResponse);
+
+    const measurement: Measurement = {
+      path: [
+        { lat: 1, lng: 2 },
+        { lat: 1.1, lng: 2.1 },
+      ],
+      pathSegmentDistances: [1],
+      pathSegmentElevations: [[0, 1]],
+      pathSegmentAbsoluteSlopes: [[2, 3]],
+      pathSegmentBearings: [0],
+      uuid: "ordered-preview-uuid",
+      createdAt: "createdAt",
+      color: "#000000",
+    };
+    const store = createCustomTestStore({
+      measure: { ...measureInitialState, measurements: [measurement] },
+    });
+    const firstPath = [
+      { lat: 1, lng: 2 },
+      { lat: 1.2, lng: 2.2 },
+    ];
+    const secondPath = [
+      { lat: 1, lng: 2 },
+      { lat: 1.3, lng: 2.3 },
+    ];
+
+    const firstDispatch = store.dispatch(
+      thunkUpdateMeasurementPath({
+        path: firstPath,
+        measurementUuid: measurement.uuid,
+      })
+    );
+    const secondDispatch = store.dispatch(
+      thunkUpdateMeasurementPath({
+        path: secondPath,
+        measurementUuid: measurement.uuid,
+      })
+    );
+
+    resolveFirst!({
+      meta: { requestStatus: "fulfilled" },
+      payload: { elevationsMeters: [[4, 5]], terrainSlopesDegrees: [[6, 7]] },
+    });
+    await firstDispatch;
+    expect(store.getState().measure.measurements[0].path).toEqual(secondPath);
+    expect(store.getState().measure.measurements[0].pathSegmentElevations).toEqual([[4, 5]]);
+
+    resolveSecond!({
+      meta: { requestStatus: "fulfilled" },
+      payload: { elevationsMeters: [[8, 9]], terrainSlopesDegrees: [[10, 11]] },
+    });
+    await secondDispatch;
+    expect(store.getState().measure.measurements[0].path).toEqual(secondPath);
+    expect(store.getState().measure.measurements[0].pathSegmentElevations).toEqual([[8, 9]]);
   });
   test("thunkAddNewMeasurement()", async () => {
     const store = createCustomTestStore({
