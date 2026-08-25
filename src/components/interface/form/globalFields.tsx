@@ -356,7 +356,9 @@ export const InLineEditInput: FunctionComponent<{
         <Form
           //only called if all validation passes
           onSubmit={(formValues) => {
-            const newValue = formValues[fieldProps.name];
+            // final-form omits cleared fields from formValues, yielding undefined.
+            // Automerge rejects undefined, so normalize to an empty string.
+            const newValue = formValues[fieldProps.name] ?? "";
             if (debounceSubmit && debouncedSubmitRef.current) {
               // Debounced update for Redux
               debouncedSubmitRef.current(newValue);
@@ -432,7 +434,9 @@ export const TextArea: FunctionComponent<{
         <Form
           //only called if all validation passes
           onSubmit={(formValues) => {
-            const newValue = formValues[fieldProps.name];
+            // final-form omits cleared fields from formValues, yielding undefined.
+            // Automerge rejects undefined, so normalize to an empty string.
+            const newValue = formValues[fieldProps.name] ?? "";
             if (debounceSubmit && debouncedSubmitRef.current) {
               // Debounced update for Redux
               debouncedSubmitRef.current(newValue);

@@ -136,7 +136,9 @@ export const CollaborationInputField: FunctionComponent<{
           <Form
             // Form submission is only preformed if all validation passes
             onSubmit={(formValues) => {
-              const newValue = formValues[fieldProps.name];
+              // final-form omits cleared fields from formValues, yielding undefined.
+              // Automerge rejects undefined, so normalize to an empty string.
+              const newValue = formValues[fieldProps.name] ?? "";
               lastValidValueRef.current = newValue; // Update last valid value on successful submission
               onSubmit(newValue);
             }}
@@ -331,7 +333,9 @@ export const CollaborationTextArea: FunctionComponent<{
           <Form
             // Form submission is only preformed if all validation passes
             onSubmit={(formValues) => {
-              const newValue = formValues[fieldProps.name];
+              // final-form omits cleared fields from formValues, yielding undefined.
+              // Automerge rejects undefined, so normalize to an empty string.
+              const newValue = formValues[fieldProps.name] ?? "";
               lastValidValueRef.current = newValue; // Update last valid value on successful submission
               onSubmit(newValue);
             }}
@@ -543,7 +547,9 @@ export const ValidatedInputField: FunctionComponent<{
           <Form
             // Form submission is only preformed if all validation passes
             onSubmit={(formValues) => {
-              const newValue = formValues[fieldProps.name];
+              // final-form omits cleared fields from formValues, yielding undefined.
+              // Automerge rejects undefined, so normalize to an empty string.
+              const newValue = formValues[fieldProps.name] ?? "";
               onSubmit(newValue);
             }}
             initialValues={{ [fieldProps.name]: valueToShow }}
@@ -738,7 +744,9 @@ export const ValidatedTextArea: FunctionComponent<{
           <Form
             // Form submission is only preformed if all validation passes
             onSubmit={(formValues) => {
-              const newValue = formValues[fieldProps.name];
+              // final-form omits cleared fields from formValues, yielding undefined.
+              // Automerge rejects undefined, so normalize to an empty string.
+              const newValue = formValues[fieldProps.name] ?? "";
               onSubmit(newValue);
             }}
             initialValues={{ [fieldProps.name]: valueToShow }}
