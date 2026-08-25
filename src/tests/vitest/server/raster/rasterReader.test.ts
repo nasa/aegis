@@ -12,6 +12,7 @@ type ImageOptions = {
   origin?: number[];
   resolution?: number[];
   geoKeys?: Record<string, unknown>;
+  gdalMetadata?: Record<string, unknown>;
 };
 
 const makeImage = (options: ImageOptions = {}): RasterImage =>
@@ -28,6 +29,7 @@ const makeImage = (options: ImageOptions = {}): RasterImage =>
     isTiled: true,
     getSamplesPerPixel: vi.fn(() => 2),
     getGDALNoData: vi.fn(() => -9999),
+    getGDALMetadata: vi.fn(() => options.gdalMetadata),
     getGeoKeys: vi.fn(() => options.geoKeys),
   }) as unknown as RasterImage;
 
@@ -57,6 +59,8 @@ describe("openRaster", () => {
         isTiled: true,
         samplesPerPixel: 2,
         noData: -9999,
+        scale: 1,
+        offset: 0,
         geoKeys: { ProjectedCSTypeGeoKey: 3857 },
       },
     });
