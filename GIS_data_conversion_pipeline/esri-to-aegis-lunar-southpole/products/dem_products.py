@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Derive standardized AEGIS raster products from a DEM (slope, hillshade, aspect, TRI).
+"""Derive standardized AEGIS raster products from a DEM.
 
 This lets us **control our own standardized products** straight from a DEM input rather
 than depending on whatever the GIS team happens to deliver.  Each product is produced as
 an 8-bit raster ready for ``common/tile_to_cap_grid.py``:
 
     slope      → degrees, colorized via default_color_ramps/slope.txt       (RGBA)
+    slope_colorblind → degrees, colorized via slope_colorblind.txt           (RGBA)
     hillshade  → shaded relief, grayscale, no colour ramp                   (single band)
     aspect     → slope-facing azimuth, colorized via aspect.txt             (RGBA)
     tri        → Terrain Ruggedness Index (m), colorized via tri.txt        (RGBA)
@@ -64,6 +65,7 @@ RAMPS = ROOT / "default_color_ramps"
 # Default colour ramp per product. Hillshade is grayscale → no ramp.
 DEFAULT_RAMPS: dict[str, Path | None] = {
     "slope": RAMPS / "slope.txt",
+    "slope_colorblind": RAMPS / "slope_colorblind.txt",
     "aspect": RAMPS / "aspect.txt",
     "tri": RAMPS / "tri.txt",
     "hillshade": None,
@@ -72,12 +74,13 @@ DEFAULT_RAMPS: dict[str, Path | None] = {
 # gdal.DEMProcessing's processing keyword per product (TRI must be upper-case "TRI").
 GDAL_MODE = {
     "slope": "slope",
+    "slope_colorblind": "slope",
     "aspect": "aspect",
     "tri": "TRI",
     "hillshade": "hillshade",
 }
 
-ALL_PRODUCTS = ["slope", "hillshade", "aspect", "tri"]
+ALL_PRODUCTS = ["slope", "slope_colorblind", "hillshade", "aspect", "tri"]
 
 
 def _progress(label: str):
@@ -133,7 +136,8 @@ def make_product(dem: Path, product: str, ramp: Path | None, out_dir: Path) -> P
         print(f"  wrote {out_path}")
         return out_path
 
-    # slope / aspect / tri: process to an intermediate float raster, then colorize → RGBA.
+    # slope / slope_colorblind / aspect / tri: process to an intermediate float raster,
+    # then colorize → RGBA.
     # The intermediate lives next to the outputs (NOT %TEMP%: a big DEM would drop a
     # multi-GB uncompressed float there, often on a small system drive) and is compressed.
     processed = out_dir / f"_{product}_float.tif"
@@ -173,6 +177,12 @@ def make_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--slope-ramp", type=Path, default=None, help="Override slope colour ramp."
+    )
+    p.add_argument(
+        "--slope-colorblind-ramp",
+        type=Path,
+        default=None,
+        help="Override the colorblind slope colour ramp.",
     )
     p.add_argument(
         "--aspect-ramp", type=Path, default=None, help="Override aspect colour ramp."
@@ -244,6 +254,7 @@ def main() -> None:
 
     overrides = {
         "slope": args.slope_ramp,
+        "slope_colorblind": args.slope_colorblind_ramp,
         "aspect": args.aspect_ramp,
         "tri": args.tri_ramp,
     }

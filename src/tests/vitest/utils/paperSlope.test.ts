@@ -1,4 +1,4 @@
-import { getSlopeClass, SLOPE_CLASSES } from "../../../utils/paperSlope";
+import { COLORBLIND_SLOPE_CLASSES, getSlopeClass, SLOPE_CLASSES } from "../../../utils/paperSlope";
 
 vi.mock("paper", () => ({ default: {} }));
 
@@ -29,6 +29,19 @@ describe("slope presentation classes", () => {
     expect(SLOPE_CLASSES.at(-1)).toEqual({
       minExclusive: 20,
       maxInclusive: Infinity,
+      label: ">20°",
+      color: "#301f42",
+    });
+  });
+
+  it("uses seven colorblind classes with a white graph class from zero to two degrees", () => {
+    expect(COLORBLIND_SLOPE_CLASSES).toHaveLength(7);
+    expect(getSlopeClass(1, "colorblind")).toMatchObject({
+      label: "0–2°",
+      color: "#ffffff",
+    });
+    expect(getSlopeClass(6, "colorblind")?.label).toBe(">4–8°");
+    expect(getSlopeClass(20.001, "colorblind")).toMatchObject({
       label: ">20°",
       color: "#301f42",
     });

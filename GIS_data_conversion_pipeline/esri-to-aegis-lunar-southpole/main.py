@@ -367,9 +367,12 @@ def build_parser() -> argparse.ArgumentParser:
         dest="dem_products",
         nargs="+",
         default=None,
-        choices=["hillshade", "slope", "aspect", "tri"],
+        choices=["hillshade", "slope", "slope_colorblind", "aspect", "tri"],
         metavar="PRODUCT",
-        help="DEM-derived products to build (default: hillshade aspect tri; add slope to derive it from the DEM).",
+        help=(
+            "DEM-derived products to build (default: hillshade aspect tri; add slope or "
+            "slope_colorblind to derive either slope rendering from the DEM)."
+        ),
     )
     dem_products.add_argument(
         "--dem-products-as-cog",

@@ -24,7 +24,6 @@ import {
   getCalculatedFieldsByTraverse,
 } from "store/processing/calculatedFields";
 import { processEvaDataFromStore } from "./common-timeline";
-import SlopeLegend from "../slope-legend";
 
 /**
  * Renders the navigation timeline presented at the bottom of the window
@@ -128,6 +127,7 @@ const NavTimeline: FunctionComponent = () => {
     refEqual
   );
   const showElevation = useAppSelector((state) => state.interface.timelineShowElevation, refEqual);
+  const slopeColorMode = useAppSelector((state) => state.interface.slopeColorMode, refEqual);
 
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
   const paperDataRef: MutableRefObject<PaperData> = useRef(null);
@@ -243,7 +243,8 @@ const NavTimeline: FunctionComponent = () => {
         paperGroupsRef,
         storeRef,
         graphSequenceItems,
-        selectedEvaSequenceItemUuid
+        selectedEvaSequenceItemUuid,
+        slopeColorMode
       );
       if (showDistanceFromLander) {
         TimelineDrawing.drawLanderDistanceGraph(paperDataRef, graphSequenceItems);
@@ -278,6 +279,7 @@ const NavTimeline: FunctionComponent = () => {
     selectedEvaSequenceItemUuid,
     showDistanceFromLander,
     showElevation,
+    slopeColorMode,
     graphSequenceItems,
     selectedPosEntryUuid,
     runningRexPetTime,
@@ -452,7 +454,6 @@ const NavTimeline: FunctionComponent = () => {
         setRexPetTime={setRunningRexPetTime}
       />
       <TimelineHoverValues hoverValues={hoverValues} />
-      <SlopeLegend />
       <div className={styles.canvasContainer}>
         <div className={styles.timelineBodyItem}>
           <canvas ref={canvas} data-paper-resize />

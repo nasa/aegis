@@ -225,31 +225,45 @@ def slope_ramp(p: config.PipelinePaths, scratch: Path) -> Path:
 
 
 def step_slope(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """Slope float raster → colorize (lyrx ramp) → tile to one cap-grid layer."""
-    banner("slope — slope float → colorize → cap-grid tile layer")
+    """Slope float raster → standard and colorblind cap-grid tile layers."""
+    banner("slope — slope float → standard + colorblind cap-grid tile layers")
     require_input(p.slope_in, "slope raster", "--in-slope")
-    if not clear_layer_dir(p.slope_layer, args.overwrite):
-        return
 
     scratch = p.out / "scratch"
     scratch.mkdir(parents=True, exist_ok=True)
-    colorize_cmd: list[str | Path] = [PYTHON, COLORIZE_SLOPE, p.slope_in, p.slope_rgba]
-    if p.lyrx.exists():
-        colorize_cmd += ["--lyrx", p.lyrx]
-    else:
-        tee(f"  (no --lyrx at {p.lyrx}; colorize_slope will auto-detect next to input)")
     try:
-        run(colorize_cmd)
-        run([PYTHON, TILE_TO_CAP_GRID, p.slope_rgba, p.slope_layer])
-        write_properties(
-            p.slope_layer,
-            "slope",
-            p.layer_name(config.OUT_SLOPE_LAYER_NAME),
-            ramp=slope_ramp(p, scratch),
-            units=config.PRODUCT_UNITS["slope"],
+        standard_ramp = slope_ramp(p, scratch)
+        variants = (
+            (
+                p.slope_layer,
+                p.slope_rgba,
+                config.OUT_SLOPE_LAYER_NAME,
+                standard_ramp,
+            ),
+            (
+                p.slope_colorblind_layer,
+                p.slope_colorblind_rgba,
+                config.OUT_SLOPE_COLORBLIND_LAYER_NAME,
+                config.DEFAULT_COLOR_RAMPS_DIR / "slope_colorblind.txt",
+            ),
         )
+        for layer, rgba, base_name, ramp in variants:
+            if not clear_layer_dir(layer, args.overwrite):
+                continue
+            require_input(ramp, f"{base_name} colour ramp", "")
+            run([PYTHON, COLORIZE_SLOPE, p.slope_in, rgba, "--ramp", ramp])
+            run([PYTHON, TILE_TO_CAP_GRID, rgba, layer])
+            write_properties(
+                layer,
+                "slope",
+                p.layer_name(base_name),
+                ramp=ramp,
+                units=config.PRODUCT_UNITS["slope"],
+            )
+            rgba.unlink(missing_ok=True)
     finally:
         p.slope_rgba.unlink(missing_ok=True)
+        p.slope_colorblind_rgba.unlink(missing_ok=True)
         for leftover in scratch.glob("*.txt"):
             leftover.unlink(missing_ok=True)
         try:
@@ -274,9 +288,9 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Derive standardized products from the DEM → colorize → tile or COG (one layer each).
 
     Which products to build comes from ``--dem-products`` (default ``config.PRODUCTS_DEFAULT`` =
-    hillshade/aspect/tri; pass ``--dem-products hillshade slope aspect tri`` to also derive slope
-    from the DEM when no GIS-delivered slope raster is available). The TRI colour ramp is
-    chosen to match ``--dem-resolution`` so its legend bins are correct.
+    hillshade/aspect/tri; pass ``--dem-products slope_colorblind`` to derive the accessible
+    slope layer directly from the DEM without a .lyrx). The TRI colour ramp is chosen to match
+    ``--dem-resolution`` so its legend bins are correct.
 
     With ``--dem-products-as-cog`` the colorized rasters are converted to Cloud-Optimised GeoTIFFs
     in ``Layers/<name>/<name>_cog.tif`` instead of being tiled — OL renders them directly via HTTP
@@ -293,6 +307,7 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         "aspect": config.OUT_ASPECT_LAYER_NAME,
         "tri": config.OUT_TRI_LAYER_NAME,
         "slope": config.OUT_SLOPE_LAYER_NAME,
+        "slope_colorblind": config.OUT_SLOPE_COLORBLIND_LAYER_NAME,
     }
 
     # Rebuild only what's missing (or everything with --overwrite): dem_products on a
@@ -328,6 +343,8 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         ramp_resolvers = {
             "hillshade": lambda: None,
             "slope": lambda: slope_ramp(p, scratch),
+            "slope_colorblind": lambda: config.DEFAULT_COLOR_RAMPS_DIR
+            / "slope_colorblind.txt",
             "aspect": lambda: config.DEFAULT_COLOR_RAMPS_DIR / "aspect.txt",
             "tri": lambda: config.tri_ramp_for_resolution(args.dem_resolution),
         }
@@ -345,7 +362,7 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         ]
         for product in to_build:
             if ramp_for[product] is not None:
-                dem_cmd += [f"--{product}-ramp", ramp_for[product]]
+                dem_cmd += [f"--{product.replace('_', '-')}-ramp", ramp_for[product]]
         run(dem_cmd)
 
         for i, product in enumerate(to_build):
@@ -375,12 +392,13 @@ def step_products(p: config.PipelinePaths, args: argparse.Namespace) -> None:
                 )
                 run([PYTHON, TILE_TO_CAP_GRID, src_tif, layer_dir])
 
+            processing = "slope" if product == "slope_colorblind" else product
             write_properties(
                 layer_dir,
-                product,
+                processing,
                 lname,
                 ramp=ramp_for[product],
-                units=config.PRODUCT_UNITS.get(product),
+                units=config.PRODUCT_UNITS.get(processing),
             )
     finally:
         for product in products:
@@ -1095,10 +1113,10 @@ def step_box(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 STEPS: list[tuple[str, str]] = [
     ("stage", "Remove .sr.lock files; create Layers/ and Data/"),
     ("dem", "DEM GeoTIFF → clean COG (demFilePath)"),
-    ("slope", "Slope float → colorize → tile to one cap-grid layer"),
+    ("slope", "Slope float → standard + colorblind cap-grid tile layers"),
     (
         "products",
-        "DEM → hillshade/aspect/tri → colorize → tile or COG (one layer each; --dem-products-as-cog for COG)",
+        "DEM → slope/slope_colorblind/hillshade/aspect/tri → tile or COG",
     ),
     ("vector", "Landing-ellipse shapefile → GeoJSON"),
     (

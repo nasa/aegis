@@ -203,7 +203,8 @@ export function drawElevationProfile(
 export function drawPathSlope(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
   measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
-  measureDerivedValuesRef: MutableRefObject<MeasureDerivedValues>
+  measureDerivedValuesRef: MutableRefObject<MeasureDerivedValues>,
+  slopeColorMode: SlopeColorMode
 ): void {
   const paperVars = measurePaperDataRef.current.paperVars;
   const slopeGroup = measurePaperGroupsRef.current.pathGradeGroup;
@@ -214,14 +215,16 @@ export function drawPathSlope(
     graphData,
     paperVars.pathGradeTop,
     paperVars.pathGradeHeight,
-    paperVars.drawingLeft + paperVars.drawingWidth
+    paperVars.drawingLeft + paperVars.drawingWidth,
+    slopeColorMode
   );
 }
 
 export function drawTerrainSlope(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
   measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
-  measureDerivedValuesRef: MutableRefObject<MeasureDerivedValues>
+  measureDerivedValuesRef: MutableRefObject<MeasureDerivedValues>,
+  slopeColorMode: SlopeColorMode
 ): void {
   const paperVars = measurePaperDataRef.current.paperVars;
   const paperStyles = measurePaperDataRef.current.styles;
@@ -232,7 +235,8 @@ export function drawTerrainSlope(
     measureDerivedValuesRef.current.terrainSlopeGraphValues ?? [],
     paperVars.terrainSlopeTop,
     paperVars.terrainSlopeHeight,
-    paperVars.drawingLeft + paperVars.drawingWidth
+    paperVars.drawingLeft + paperVars.drawingWidth,
+    slopeColorMode
   );
 
   drawSlopeSeparator(

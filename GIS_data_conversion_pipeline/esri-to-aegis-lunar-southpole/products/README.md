@@ -7,15 +7,16 @@ instead of depending on whatever a GIS drop happens to include.
 cd GIS_data_conversion_pipeline
 pixi run python esri-to-aegis-lunar-southpole/products/dem_products.py \
     --dem /path/to/dem.tif --out /path/to/products \
-    --products slope hillshade aspect tri
+  --products slope slope_colorblind hillshade aspect tri
 ```
 
-| Product       | Engine (`gdal.DEMProcessing`) | Colour ramp                      | Output             |
-| ------------- | ----------------------------- | -------------------------------- | ------------------ |
-| **slope**     | `slope` → `color-relief`      | `default_color_ramps/slope.txt`  | 8-bit RGBA GeoTIFF |
-| **hillshade** | `hillshade`                   | none (grayscale)                 | 8-bit grayscale    |
-| **aspect**    | `aspect` → `color-relief`     | `default_color_ramps/aspect.txt` | 8-bit RGBA GeoTIFF |
-| **tri**       | `TRI` → `color-relief`        | `default_color_ramps/tri.txt`    | 8-bit RGBA GeoTIFF |
+| Product              | Engine (`gdal.DEMProcessing`) | Colour ramp                                | Output             |
+| -------------------- | ----------------------------- | ------------------------------------------ | ------------------ |
+| **slope**            | `slope` → `color-relief`      | `default_color_ramps/slope.txt`            | 8-bit RGBA GeoTIFF |
+| **slope_colorblind** | `slope` → `color-relief`      | `default_color_ramps/slope_colorblind.txt` | 8-bit RGBA GeoTIFF |
+| **hillshade**        | `hillshade`                   | none (grayscale)                           | 8-bit grayscale    |
+| **aspect**           | `aspect` → `color-relief`     | `default_color_ramps/aspect.txt`           | 8-bit RGBA GeoTIFF |
+| **tri**              | `TRI` → `color-relief`        | `default_color_ramps/tri.txt`              | 8-bit RGBA GeoTIFF |
 
 Then tile each with [`../common/tile_to_cap_grid.py`](../common/tile_to_cap_grid.py) and
 write a legend with [`../properties/write_properties.py`](../properties/). `main.py`'s
@@ -33,6 +34,7 @@ no-data), copied from the legacy `lunar_utils/aegis/default_color_ramps/`.
 | File                                    | Legacy source            | Notes                                                                              |
 | --------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------- |
 | `slope.txt`                             | `AMPES_Slope 1.lyrx`     | **Identical to the MS3 GIS standard** (RdYlBu-10 reversed + dark-purple >20° cap). |
+| `slope_colorblind.txt`                  | AEGIS accessibility ramp | Seven classes; transparent 0–2°, YlOrRd through 20°, then dark purple.             |
 | `slope_constant_color.txt`              | `slope_color11_blue.txt` | Archived previous constant-color slope ramp.                                       |
 | `aspect.txt`                            | `AspectColors.txt`       | ColorBrewer Set1, 8 ordinal directions (N…NW).                                     |
 | `tri.txt`                               | `tri_7class.txt`         | 7-class. **TRI is resolution-dependent** — see ARCHIVE below.                      |

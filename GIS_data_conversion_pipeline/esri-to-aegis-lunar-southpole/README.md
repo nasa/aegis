@@ -35,24 +35,24 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 
 ## Pipeline data types (`main.py` steps)
 
-| Type              | Input                                                           | Output                                    | Process                                                                     |
-| ----------------- | --------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
-| **dem**           | DEM GeoTIFF                                                     | `Data/<source>_deflate_cog.tif` (COG)     | re-emit as clean COG (keeps source name)                                    |
-| **slope**         | slope float raster (°) + `.lyrx` ramp                           | `Layers/slope/` tile pyramid              | colorize → tile                                                             |
-| **products**      | the DEM (`--in-dem`)                                            | `Layers/{hillshade,aspect,tri[,slope]}/`  | derive from DEM → colorize → tile (`--dem-products`)                        |
-| **vector**        | landing-ellipse shapefile                                       | `Data/ellipse.geojson`                    | reproject to EPSG:4326                                                      |
-| **rasters**       | custom rasters (`--in-raster`, repeatable)                      | `Layers/<name>/` tile pyramid each        | stretch (if float) → tile                                                   |
-| **vectors**       | one custom vector (`--in-vector`)                               | `Data/<name>.geojson` + audit JSON        | shp/GeoJSON → CRS-safe geographic normalization                             |
-| **horizons**      | horizon shapefile directory (`--in-horizon-shapefile-dir`)      | `Data/MP026_Horizon_*.geojson`            | find horizon `.shp` files → reproject using the supplied `.prj`             |
-| **vectortiles**   | ArcGIS vector-tile cache (`--in-esri-vector-tiles`, repeatable) | `Layers/<name>/<name>.pmtiles` each       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
-| **contours**      | the DEM (`--contours`)                                          | `Layers/contours_{major,minor}m/` PMTiles | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
-| **cogs**          | custom rasters (`--in-cog`, repeatable)                         | `Layers/<name>/<name>_cog.tif` each       | single-band floats stretch to display-ready 8-bit → COG (deflate)           |
-| **time-cogs**     | time raster directories (`--in-time-cog-dir`, repeatable)       | `Layers/<name>/<window>/<frame>_cog.tif`  | matching-grid frames → deflate COGs + time manifest; optional RGBA shadows  |
-| **viewshed-cogs** | classified viewsheds (`--in-viewshed-raster`, repeatable)       | `Layers/<name>/<name>_cog.tif` each       | class 1 transparent; class 2 opaque `#FFA77F`; nodata transparent           |
-| **keepout-cogs**  | classified slope keep-out masks (`--in-keepout-raster`)         | `Layers/<name>/<name>_cog.tif` each       | class 0 opaque `#FF0000`; nodata transparent                                |
-| **grid**          | `--grid` + lander `--lander-lat/--lander-lng`                   | `Data/grid_source.geojson` (10 km dflt)   | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
-| **register**      | the built `<out>` + `--mission-id`                              | mission fields + sublayers + active grid  | POST fields + layers/sublayers + grid                                       |
-| **box**           | the built `<out>` + `--mission-name`                            | zips uploaded to Box (parallel)           | zip `Data/` + each layer → upload                                           |
+| Type              | Input                                                           | Output                                                    | Process                                                                     |
+| ----------------- | --------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **dem**           | DEM GeoTIFF                                                     | `Data/<source>_deflate_cog.tif` (COG)                     | re-emit as clean COG (keeps source name)                                    |
+| **slope**         | slope float raster (°) + `.lyrx` ramp                           | `Layers/slope/` tile pyramid                              | colorize → tile                                                             |
+| **products**      | the DEM (`--in-dem`)                                            | `Layers/{hillshade,aspect,tri[,slope,slope_colorblind]}/` | derive from DEM → colorize → tile (`--dem-products`)                        |
+| **vector**        | landing-ellipse shapefile                                       | `Data/ellipse.geojson`                                    | reproject to EPSG:4326                                                      |
+| **rasters**       | custom rasters (`--in-raster`, repeatable)                      | `Layers/<name>/` tile pyramid each                        | stretch (if float) → tile                                                   |
+| **vectors**       | one custom vector (`--in-vector`)                               | `Data/<name>.geojson` + audit JSON                        | shp/GeoJSON → CRS-safe geographic normalization                             |
+| **horizons**      | horizon shapefile directory (`--in-horizon-shapefile-dir`)      | `Data/MP026_Horizon_*.geojson`                            | find horizon `.shp` files → reproject using the supplied `.prj`             |
+| **vectortiles**   | ArcGIS vector-tile cache (`--in-esri-vector-tiles`, repeatable) | `Layers/<name>/<name>.pmtiles` each                       | pack Compact Cache V2 bundles → PMTiles (carries `esri_tile_info`)          |
+| **contours**      | the DEM (`--contours`)                                          | `Layers/contours_{major,minor}m/` PMTiles                 | `gdal_contour` → MVT (cap grid) → PMTiles; `label`-labelled majors + minors |
+| **cogs**          | custom rasters (`--in-cog`, repeatable)                         | `Layers/<name>/<name>_cog.tif` each                       | single-band floats stretch to display-ready 8-bit → COG (deflate)           |
+| **time-cogs**     | time raster directories (`--in-time-cog-dir`, repeatable)       | `Layers/<name>/<window>/<frame>_cog.tif`                  | matching-grid frames → deflate COGs + time manifest; optional RGBA shadows  |
+| **viewshed-cogs** | classified viewsheds (`--in-viewshed-raster`, repeatable)       | `Layers/<name>/<name>_cog.tif` each                       | class 1 transparent; class 2 opaque `#FFA77F`; nodata transparent           |
+| **keepout-cogs**  | classified slope keep-out masks (`--in-keepout-raster`)         | `Layers/<name>/<name>_cog.tif` each                       | class 0 opaque `#FF0000`; nodata transparent                                |
+| **grid**          | `--grid` + lander `--lander-lat/--lander-lng`                   | `Data/grid_source.geojson` (10 km dflt)                   | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered          |
+| **register**      | the built `<out>` + `--mission-id`                              | mission fields + sublayers + active grid                  | POST fields + layers/sublayers + grid                                       |
+| **box**           | the built `<out>` + `--mission-name`                            | zips uploaded to Box (parallel)                           | zip `Data/` + each layer → upload                                           |
 
 Every tile layer also gets a `properties.json` (name/description/legend) that the AEGIS
 admin auto-imports — see [`properties/`](properties/). The **register** step reads those
@@ -354,6 +354,10 @@ DEM with `--dem-products hillshade slope aspect tri`. The **TRI** colour ramp is
 resolution-dependent — the step auto-selects
 `default_color_ramps/ARCHIVE/TRIColors_{1m,5m,10m}_DEM.txt` to match `--dem-resolution`
 (falling back to the legacy `tri.txt`), so set `--dem-resolution` to your DEM's m/px.
+
+To build only the seven-class accessible slope layer from a DEM, use
+`--dem-products slope_colorblind --dem-products-only`. This always uses the built-in
+`default_color_ramps/slope_colorblind.txt`; no `.lyrx` input is needed.
 
 **COG products (`--dem-products-as-cog`).** By default each product is tiled into a PNG/TMS
 pyramid. Pass `--dem-products-as-cog` to emit each colorized product as a

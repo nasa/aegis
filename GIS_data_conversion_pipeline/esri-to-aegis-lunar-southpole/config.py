@@ -113,7 +113,9 @@ def dem_output_name(dem_in: Path) -> str:
 
 
 OUT_SLOPE_LAYER_NAME = "slope"
+OUT_SLOPE_COLORBLIND_LAYER_NAME = "slope_colorblind"
 OUT_SLOPE_RGBA_NAME = "slope_rgba.tif"  # scratch, removed after tiling
+OUT_SLOPE_COLORBLIND_RGBA_NAME = "slope_colorblind_rgba.tif"  # scratch
 
 # Delivered viewshed rasters use these class values. The GIS .lyrx uses 50%
 # opacity, but the AEGIS layer opacity control owns transparency at runtime.
@@ -267,6 +269,8 @@ class PipelinePaths:
     ellipse_out: Path
     slope_layer: Path
     slope_rgba: Path
+    slope_colorblind_layer: Path
+    slope_colorblind_rgba: Path
     # Optional prefix applied to every generated layer FOLDER + its AEGIS layer name
     # (e.g. "LOLA" → Layers/LOLA_hillshade, name "LOLA_hillshade"). Empty = no prefix.
     layer_prefix: str = ""
@@ -329,5 +333,7 @@ def resolve_paths(
         ellipse_out=data / OUT_ELLIPSE_NAME,
         slope_layer=layers / prefixed(OUT_SLOPE_LAYER_NAME),
         slope_rgba=out / OUT_SLOPE_RGBA_NAME,
+        slope_colorblind_layer=layers / prefixed(OUT_SLOPE_COLORBLIND_LAYER_NAME),
+        slope_colorblind_rgba=out / OUT_SLOPE_COLORBLIND_RGBA_NAME,
         layer_prefix=prefix,
     )
