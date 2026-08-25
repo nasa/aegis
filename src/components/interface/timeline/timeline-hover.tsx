@@ -7,6 +7,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { Button } from "components/interface/form/globalFields";
 import { faChartArea, faChartLine } from "@fortawesome/free-solid-svg-icons";
 import { setShowDistanceFromLander, setShowElevation } from "store/interface";
+import SlopeLegend from "../slope-legend";
 
 const TimelineHoverValues: FunctionComponent<{ hoverValues: TimelineHoverValues }> = ({
   hoverValues,
@@ -24,6 +25,7 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: TimelineHoverValues 
   return (
     <div className={styles.timelineHoverContainer}>
       <div className={styles.timelineOptions}>
+        <SlopeLegend />
         <Button
           icon={faChartLine}
           onClick={() => {

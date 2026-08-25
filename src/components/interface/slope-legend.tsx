@@ -1,10 +1,16 @@
 import { useId, useRef, type FunctionComponent, type MouseEvent } from "react";
-import { SLOPE_CLASSES } from "utils/paperSlope";
+import { setSlopeColorMode } from "store/interface";
+import { getSlopeClasses } from "utils/paperSlope";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { refEqual, useAppSelector } from "utils/useAppSelector";
 import styles from "./slope-legend.module.css";
 
 const SlopeLegend: FunctionComponent = () => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const headingId = useId();
+  const dispatch = useAppDispatch();
+  const colorMode = useAppSelector((state) => state.interface.slopeColorMode, refEqual);
+  const slopeClasses = getSlopeClasses(colorMode);
 
   const handleDialogClick = (event: MouseEvent<HTMLDialogElement>) => {
     if (event.target === dialogRef.current) dialogRef.current.close();
@@ -20,6 +26,16 @@ const SlopeLegend: FunctionComponent = () => {
       >
         Key
       </button>
+      <button
+        className={styles.colorblindButton}
+        type="button"
+        aria-pressed={colorMode === "colorblind"}
+        onClick={() =>
+          dispatch(setSlopeColorMode(colorMode === "colorblind" ? "standard" : "colorblind"))
+        }
+      >
+        Colorblind
+      </button>
       <dialog
         ref={dialogRef}
         className={styles.dialog}
@@ -31,7 +47,7 @@ const SlopeLegend: FunctionComponent = () => {
           <div className={styles.heading} id={headingId}>
             Slope color = absolute degrees
           </div>
-          {SLOPE_CLASSES.map((slopeClass) => (
+          {slopeClasses.map((slopeClass) => (
             <div className={styles.item} key={slopeClass.label}>
               <div
                 className={styles.swatch}

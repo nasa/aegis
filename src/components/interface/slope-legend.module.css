@@ -1,8 +1,11 @@
 .keyContainer {
+  display: flex;
+  gap: 4px;
   padding: 4px;
 }
 
 .keyButton,
+.colorblindButton,
 .closeButton {
   border: 1px solid var(--grey3);
   border-radius: var(--panelRadius);
@@ -14,6 +17,16 @@
 .keyButton {
   padding: 2px 8px;
   font-size: 0.75rem;
+}
+
+.colorblindButton {
+  padding: 2px 5px;
+  font-size: 0.7rem;
+}
+
+.colorblindButton[aria-pressed="true"] {
+  border-color: var(--eva);
+  color: var(--eva);
 }
 
 .dialog {

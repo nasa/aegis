@@ -517,7 +517,8 @@ export function drawSequenceBottomSection(
   paperGroupsRef: MutableRefObject<PaperGroups>,
   storeRef: MutableRefObject<EvaCalculated_PaperJS>,
   graphSequenceItems: MutableRefObject<GraphSequenceItems>,
-  selectedEvaSequenceItemUuid: string
+  selectedEvaSequenceItemUuid: string,
+  slopeColorMode: SlopeColorMode
 ): void {
   const paperVars = paperDataRef.current.paperVars;
 
@@ -551,7 +552,8 @@ export function drawSequenceBottomSection(
         graphSequenceItems.current[sequenceItem.uuid]?.terrainSlopeXY ?? [],
         selectedEvaSequenceItemUuid === sequenceItem.uuid
           ? paperDataRef.current.styles.yellow
-          : paperDataRef.current.styles.grey2
+          : paperDataRef.current.styles.grey2,
+        slopeColorMode
       );
     }
 
@@ -682,19 +684,28 @@ function drawSequenceTraverse(
   xEnd: number,
   pathGradeData: GraphDataItem[],
   terrainSlopeData: GraphDataItem[],
-  color: paper.Color
+  color: paper.Color,
+  slopeColorMode: SlopeColorMode
 ): void {
   const sequenceItemGroup = new paper.Group();
   const paperVars = paperDataRef.current.paperVars;
   const paperStyles = paperDataRef.current.styles;
   const slopeHeight = 10;
-  drawSlopeBand(sequenceItemGroup, pathGradeData, paperVars.sequenceTop, slopeHeight, xEnd);
+  drawSlopeBand(
+    sequenceItemGroup,
+    pathGradeData,
+    paperVars.sequenceTop,
+    slopeHeight,
+    xEnd,
+    slopeColorMode
+  );
   drawSlopeBand(
     sequenceItemGroup,
     terrainSlopeData,
     paperVars.sequenceTop + slopeHeight,
     slopeHeight,
-    xEnd
+    xEnd,
+    slopeColorMode
   );
   drawSlopeSeparator(
     sequenceItemGroup,

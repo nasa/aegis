@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { configureStore } from "@reduxjs/toolkit";
 import SlopeLegend from "components/interface/slope-legend";
-import { SLOPE_CLASSES } from "utils/paperSlope";
+import { Provider } from "react-redux";
+import { interfaceSlice } from "store/interface";
+import { COLORBLIND_SLOPE_CLASSES, SLOPE_CLASSES } from "utils/paperSlope";
 import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowserHarness";
 
 describe("SlopeLegend", () => {
@@ -8,7 +11,12 @@ describe("SlopeLegend", () => {
 
   beforeEach(() => {
     harness = createReactHarness();
-    harness.render(<SlopeLegend />);
+    const store = configureStore({ reducer: { interface: interfaceSlice.reducer } });
+    harness.render(
+      <Provider store={store}>
+        <SlopeLegend />
+      </Provider>
+    );
   });
 
   afterEach(() => harness.unmount());
@@ -35,7 +43,9 @@ describe("SlopeLegend", () => {
   });
 
   it("closes with Escape and a backdrop click", () => {
-    const button = document.querySelector("button");
+    const button = Array.from(document.querySelectorAll("button")).find(
+      (candidate) => candidate.textContent === "Key"
+    );
     const dialog = document.querySelector("dialog") as HTMLDialogElement;
 
     button?.click();
@@ -45,5 +55,21 @@ describe("SlopeLegend", () => {
     button?.click();
     dialog.click();
     expect(dialog.open).toBe(false);
+  });
+
+  it("toggles the shared colorblind legend", async () => {
+    const buttons = Array.from(document.querySelectorAll("button"));
+    const keyButton = buttons.find((button) => button.textContent === "Key");
+    const toggle = buttons.find((button) => button.textContent === "Colorblind");
+
+    expect(toggle?.getAttribute("aria-pressed")).toBe("false");
+    toggle?.click();
+    await vi.waitFor(() => expect(toggle?.getAttribute("aria-pressed")).toBe("true"));
+
+    keyButton?.click();
+    for (const slopeClass of COLORBLIND_SLOPE_CLASSES) {
+      expect(document.body.textContent).toContain(slopeClass.label);
+    }
+    expect(document.querySelectorAll("[title]")).toHaveLength(7);
   });
 });
