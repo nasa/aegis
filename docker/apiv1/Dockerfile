@@ -73,6 +73,6 @@ ENTRYPOINT ["/sbin/tini", "--"]
 # This image is intended to be run with docker-compose.
 # Migration runs in three phases so every historical database dump can cross the two
 # SQL-to-Automerge data boundaries safely. First, create initial Automerge documents before
-# mission_db is removed. Second, run document backfills before grid_db is removed. Finally,
-# apply all remaining MikroORM migrations and start the API.
-CMD ["/bin/sh", "-c", "npm run migration:run && npm run api"]
+# mission_db is removed. Second, create the Automerge migration ledger and run pending document
+# backfills before grid_db is removed. Finally, apply all remaining migrations and start the API.
+CMD ["/bin/sh", "-c", "npm run migration:up && npm run api"]

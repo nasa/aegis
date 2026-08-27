@@ -324,6 +324,7 @@ test-automerge-migrate:
     # compare snapshots; fail if they differ
     - echo "Comparing snapshots"
     - diff automerge_native_db_migrate1.txt automerge_native_db_migrate2.txt || exit 1
+    - test "$(psql -h "$DB_HOST" -U postgres -d "$DB_NAME" -Atc 'select count(*) from automerge_migration_db')" -eq 7
   artifacts:
     when: always
     paths:
