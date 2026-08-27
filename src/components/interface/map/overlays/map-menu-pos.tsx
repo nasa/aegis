@@ -1,5 +1,5 @@
 import type { CSSProperties, FunctionComponent, PointerEvent as ReactPointerEvent } from "react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import posMenuStyles from "./map-menu-pos.module.css";
 import {
   faBan,
@@ -83,9 +83,8 @@ export const MapPositionMenu: FunctionComponent = () => {
   const [showPosList, setShowPosList] = useState(false);
   const [showMenu, setShowMenu] = useState(true);
 
-  // Dragging switches the initially right-anchored menu to explicit parent-relative coordinates.
-  // The drag handlers keep it within the map, while the toggle measurements preserve its
-  // right edge and user-resized open dimensions when collapsing or expanding.
+  // Dragging switches the open menu to explicit parent-relative coordinates. Toggling restores
+  // the fixed top-right anchor while preserving user-resized open dimensions.
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   const [openSize, setOpenSize] = useState<{ width: number; height: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -96,7 +95,6 @@ export const MapPositionMenu: FunctionComponent = () => {
     left: number;
     top: number;
   } | null>(null);
-  const toggleRightEdgeRef = useRef<number | null>(null);
 
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest("[data-rex-menu-close]")) return;
@@ -147,36 +145,12 @@ export const MapPositionMenu: FunctionComponent = () => {
 
   const toggleMenu = () => {
     const container = containerRef.current;
-    const offsetParent = container?.offsetParent as HTMLElement | null;
-    if (container && offsetParent) {
-      const containerBox = container.getBoundingClientRect();
-      const parentBox = offsetParent.getBoundingClientRect();
-      toggleRightEdgeRef.current = containerBox.right - parentBox.left;
-      if (showMenu) {
-        setOpenSize({ width: container.clientWidth, height: container.clientHeight });
-      }
-      setPosition({
-        left: containerBox.left - parentBox.left,
-        top: containerBox.top - parentBox.top,
-      });
+    if (showMenu && container) {
+      setOpenSize({ width: container.clientWidth, height: container.clientHeight });
     }
+    setPosition(null);
     setShowMenu((current) => !current);
   };
-
-  useLayoutEffect(() => {
-    const rightEdge = toggleRightEdgeRef.current;
-    const container = containerRef.current;
-    if (rightEdge === null || !container) return;
-    setPosition((current) =>
-      current
-        ? {
-            left: Math.max(0, rightEdge - container.offsetWidth),
-            top: current.top,
-          }
-        : current
-    );
-    toggleRightEdgeRef.current = null;
-  }, [showMenu]);
 
   // reset the pos entry in edit when pos source or pos type list changes
   // this covers when the rex selection changes too
