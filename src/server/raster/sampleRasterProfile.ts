@@ -3,6 +3,8 @@ import { sampleRasterPoints } from "./sampleRasterPoints";
 
 const MAX_RASTER_PROFILE_SAMPLES = 100_000;
 
+const MAX_RASTER_PROFILE_SAMPLES = 100_000;
+
 export type RasterProfileSamplingResult = {
   samples: RasterSample[][];
   metadata: RasterMetadata;
