@@ -12,7 +12,6 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 
 import { getAutomergeDocListing } from "server/express/routes/docListing";
-import { upsertBackupDbMissions } from "server/express/routes/mission";
 import { missionValidator } from "utils/validateSchemaServer";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
@@ -198,9 +197,8 @@ const seed = async (): Promise<void> => {
   // writing synchronously on create. This script calls process.exit() as soon as it
   // finishes, so without flush() the seeded document could be lost before the timer
   // fires. flush() bypasses the debounce and awaits the storage write for every cached
-  // handle. Then back the mission up to the mission-backup table.
+  // handle.
   await automergeRepo.flush();
-  await upsertBackupDbMissions([mission]);
 
   serverLogger.info({
     logId: LOG_ID,

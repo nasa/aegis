@@ -17,7 +17,6 @@ import { migrateLegacyCircleControlHaloStyles } from "store/storeUtils/preset";
 import { missionValidator } from "utils/validateSchemaServer";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
-import { upsertBackupDbMissions } from "server/express/routes/mission";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
 import { QueryOrder } from "@mikro-orm/postgresql";
@@ -666,33 +665,6 @@ getORM()
     // Note: flush() is marked @experimental in automerge-repo but is the correct mechanism
     // and is also used internally by Repo.shutdown().
     await automergeRepo.flush();
-
-    // Save a copy of each automerge doc back to the backup missions table
-    serverLogger.debug({
-      logId: "automerge-migration",
-      logValue: "Saving updated automerge docs to the backup db table",
-    });
-    for (const docHandle of allDocHandles) {
-      const mission: Mission = docHandle.doc();
-      try {
-        await upsertBackupDbMissions([mission]);
-      } catch (e) {
-        serverLogger.error(
-          {
-            logId: "automerge-migration",
-            logValue: `Error saving mission ${mission.id} to the backup db table`,
-          },
-          e instanceof Error ? e : new Error(String(e))
-        );
-        process.exitCode = 1; // error
-        process.exit();
-      }
-      serverLogger.debug({
-        logId: "automerge-migration",
-        logValue: `${mission.id} - ${mission.name} backed up to the db`,
-      });
-    }
-    serverLogger.debug({ logId: "automerge-migration", logValue: "Backups complete." });
 
     serverLogger.info({
       logId: "automerge-migration",
