@@ -286,10 +286,10 @@ export const config: DotenvConfig<typeof environments> = {
    */
   VITE_PUBLIC_CONSOLE_LOG_LEVEL: {
     local: "debug",
-    default: "off",
+    default: "debug",
   },
   VITE_PUBLIC_REMOTE_LOG_LEVEL: {
     local: "off",
-    default: "info",
+    default: "debug",
   },
 };
