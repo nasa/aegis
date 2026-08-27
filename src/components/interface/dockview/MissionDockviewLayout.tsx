@@ -14,7 +14,6 @@ import {
   RightControlPanel,
 } from "components/interface/side-controls";
 import { AegisMapEditor } from "components/interface/map/AegisMapEditor";
-import { FeatureSourcesProvider } from "components/interface/map/FeatureSourcesProvider";
 import { MapMenuPanel } from "components/interface/map/overlays/map-menu";
 import { setMapMenuIsOpen } from "store/interface";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -48,9 +47,7 @@ const LeftPanel: FunctionComponent = () => {
 
 const MapPanel: FunctionComponent = () => (
   <div className={styles.mapPanel} data-testid="mission-panel-map">
-    <FeatureSourcesProvider>
-      <AegisMapEditor />
-    </FeatureSourcesProvider>
+    <AegisMapEditor />
   </div>
 );
 
