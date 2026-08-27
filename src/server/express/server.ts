@@ -19,7 +19,6 @@ import config from "server/database/mikro-orm.config";
 import { serverLogger } from "utils/logging/serverLogger";
 import pg from "pg";
 import { getAutomergeDocListing } from "./routes/docListing";
-import { addDbBackupListener } from "./routes/mission";
 import { PostgresStorageAdapter } from "server/automerge/automerge-repo-storage-postgres";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
@@ -145,30 +144,26 @@ initializeBase64Wasm(automergeWasmBase64);
     });
   });
 
-  // attach db backup listeners to all existing automerge docs
+  // preload automerge repo cache for all existing docs
   getAutomergeDocListing().then(async (docListings) => {
     // process sequentially to avoid overwhelming the system
     for (const docInfo of docListings) {
       if (!isValidAutomergeUrl(docInfo.automergeUrl)) continue;
-      // get docHandle for each document/mission and add listeners
       const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
         docInfo.automergeUrl
       );
       // Wait till handler is ready in-case it has to get the doc for the first time
       // This will load the full WASM and replay operations. It will be slower, but
       // subsequent calls will be faster. Do this work upfront on server startup
-      // Even if we do not need to add a backup listener in the future, this may be worth
-      // keeping so the server already has the doc replayed in memory
       await missionDocHandle.whenReady();
-      addDbBackupListener(missionDocHandle);
       serverLogger.debug({
         logId: "server",
-        logValue: `attached db backup listeners for ${docInfo.missionId}`,
+        logValue: `loaded automerge doc for ${docInfo.missionId}`,
       });
     }
     serverLogger.info({
       logId: "server",
-      logValue: `all db backup listeners attached`,
+      logValue: `all automerge docs loaded`,
     });
   });
 

@@ -23,14 +23,11 @@ import {
 } from "server/database/models/_allModels";
 import { globalValues } from "../global";
 
-import type { DocHandle, DocHandleChangePayload } from "@automerge/automerge-repo";
-import throttle from "lodash/throttle";
 import path from "node:path";
 import fs from "fs";
-import { missionValidator, SCHEMA_DIR } from "utils/validateSchemaServer";
+import { SCHEMA_DIR } from "utils/validateSchemaServer";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
-import { diff } from "deep-diff";
 
 const router = express.Router();
 
@@ -283,88 +280,3 @@ export async function deleteBackupDbMissionAndRelatedEntities(
   await em.flush();
   return deletedMissionIds;
 }
-
-/**
- * adds a listener to a docHandle that will backup the automerge payload to the database.
- * @param docHandle the docHandle to add the listener to
- */
-export const addDbBackupListener = (docHandle: DocHandle<Mission>): void => {
-  docHandle.on("change", throttledDbBackup);
-};
-
-// throttled backup the automerge payload to the database.
-const throttledDbBackup = throttle(
-  (payload: DocHandleChangePayload<Mission>) => {
-    const missionToSave = payload.doc;
-    // console.log(diff(payload.patchInfo.before, payload.patchInfo.after));
-    // validate contents before saving to the DB
-    const isValid = missionValidator(structuredClone(missionToSave));
-    if (!isValid && missionValidator.errors?.length > 0) {
-      // log the validation errors
-      serverLogger.error(
-        {
-          logId: "Automerge",
-          logValue: `DB Backup Validation Schema Errors: ${JSON.stringify(missionValidator.errors)}`,
-          missionId: missionToSave.id,
-        },
-        new Error(`Mission ${missionToSave.id} failed validation. Not saving backup to DB.`)
-      );
-      // log a full snapshot of the bad data
-      serverLogger.error(
-        {
-          logId: "Automerge",
-          logValue: JSON.stringify(missionToSave),
-          missionId: missionToSave.id,
-        },
-        new Error(`Mission ${missionToSave.id} received invalid data from automerge`)
-      );
-      // log the last diff that got throttled. Is not representative of a diff between valid and invalid data,
-      serverLogger.error(
-        {
-          logId: "Automerge",
-          logValue: JSON.stringify(diff(payload.patchInfo.before, payload.patchInfo.after)),
-          missionId: missionToSave.id,
-        },
-        new Error(`Mission ${missionToSave.id} last throttled diff from automerge`)
-      );
-
-      // automatically overwrite the current automerge doc with the
-      // last known good version of the mission from our backup db
-      restoreLastKnownGoodFromBackupDb(missionToSave.id, payload.handle);
-    } else {
-      // data is valid. save to the DB
-      serverLogger.debug({ logId: "mission", logValue: "pushing change to db backup" });
-      upsertBackupDbMissions([missionToSave]);
-    }
-  },
-  3000, // throttle saving to DB by 3 seconds. DB is just backup so it's okay to be slower
-  { leading: false, trailing: true }
-);
-
-const restoreLastKnownGoodFromBackupDb = async (
-  missionId: number,
-  docHandle: DocHandle<Mission>
-) => {
-  try {
-    const lastKnownGoodMission = (await getBackupDbMissions([missionId]))[0];
-    // overwrite the automerge doc with the last known good mission
-    docHandle.change((doc) => {
-      // First, delete all existing properties in case there are any extra properties
-      for (const key in doc) {
-        delete doc[key as keyof Mission];
-      }
-      // Then assign the new properties
-      Object.assign(doc, lastKnownGoodMission);
-    });
-    serverLogger.warning({
-      logId: "Automerge",
-      logValue: `Restored last known good mission from backup DB`,
-      missionId,
-    });
-  } catch (e) {
-    serverLogger.error(
-      { logId: "Automerge", logValue: e.toString(), missionId },
-      new Error(`Failed to restore last known good mission from backup DB`)
-    );
-  }
-};

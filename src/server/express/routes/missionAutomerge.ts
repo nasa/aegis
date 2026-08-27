@@ -9,11 +9,7 @@ import { asError } from "@emss/utils";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import type { RequiredEntityData } from "@mikro-orm/core";
-import {
-  addDbBackupListener,
-  deleteBackupDbMissionAndRelatedEntities,
-  upsertBackupDbMissions,
-} from "./mission";
+import { deleteBackupDbMissionAndRelatedEntities, upsertBackupDbMissions } from "./mission";
 import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
 
@@ -414,10 +410,6 @@ export async function createAutomergeMission(
   // Add mission to the mission DB as backup.
   const automergeMission: Mission = missionDocHandle.doc();
   await upsertBackupDbMissions([automergeMission]); // add new mission to database
-
-  // Attach listeners to this doc handle. Wait until after the mission is in the DB
-  // Any subsequent changes will trigger updates to the backup copy of mission in the DB
-  addDbBackupListener(missionDocHandle);
 
   return dbReference as AutomergeDocListing;
 }
