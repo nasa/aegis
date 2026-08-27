@@ -109,6 +109,9 @@ z:db-export:oxygen:
 
     - cd /opt/aegis
 
+    - sudo docker compose ps
+    - sudo docker compose stats --no-stream
+
     # print last 100 lines to job output
     - sudo docker compose logs nginx --tail 100
     - sudo docker compose logs database --tail 100
