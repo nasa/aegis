@@ -76,13 +76,9 @@
 }
 
 .drawerBottom {
-  position: absolute;
-  z-index: 60;
+  position: relative;
   width: 64px;
   height: 13px;
-  left: 50%;
-  top: 0;
-  transform: translateX(-50%);
 }
 
 .drawerBottomTab {
@@ -112,13 +108,9 @@
 }
 
 .drawerRight {
-  position: absolute;
-  z-index: 60;
+  position: relative;
   width: 13px;
   height: 64px;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
 }
 
 .drawerRightTab {
@@ -155,15 +147,12 @@
 
 .drawerLeft {
   position: relative;
-  height: 58px;
-  left: 2px;
-  top: 50vh;
-  margin-top: -40px;
+  width: 13px;
+  height: 64px;
 }
 
 .drawerLeftTab {
-  top: -19px;
-  right: -10px;
+  inset: 0;
   width: 13px;
   height: 64px;
   z-index: 55;

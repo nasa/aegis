@@ -36,7 +36,6 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 
 /* This control sits at the left side of the screen and loads the selected component based on the NavGutter icon selected */
 export const LeftControlPanel: FunctionComponent = () => {
-  const dispatch = useAppDispatch();
   const leftPanelOpen = useAppSelector((state) => state.interface.leftPanelIsOpen, refEqual);
   const interfaceStateLabel = useAppSelector(
     (state) => state.interface.sectionSelectedLabel,
@@ -63,25 +62,6 @@ export const LeftControlPanel: FunctionComponent = () => {
           <ActiveComponent />
         </div>
       )}
-      <div
-        className={styles.drawerLeft}
-        onClick={() => dispatch(setLeftPanelIsOpen(!leftPanelOpen))}
-      >
-        <div className={styles.drawerLeftTab}>
-          {leftPanelOpen ? (
-            <FontAwesomeIcon className={styles.drawerLeftIcon} color="white" icon={faChevronLeft} />
-          ) : (
-            <FontAwesomeIcon
-              className={styles.drawerLeftIcon}
-              color="white"
-              icon={faChevronRight}
-            />
-          )}
-          <div className={styles.drawerLeftSvg}>
-            <img src="/images/drawerNub.svg" alt="Open/Close Timeline" />
-          </div>
-        </div>
-      </div>
     </>
   );
 };
@@ -115,28 +95,6 @@ export const BottomControlPanel: FunctionComponent = () => {
 
   return (
     <>
-      <div
-        className={styles.drawerBottom}
-        onClick={() => {
-          dispatch(setBottomPanelIsOpen(!bottomPanelOpen));
-          dispatch(setAutoBottomPanelOpen(false));
-        }}
-      >
-        <div className={styles.drawerBottomTab}>
-          {bottomPanelOpen ? (
-            <FontAwesomeIcon
-              className={styles.drawerBottomIcon}
-              color="white"
-              icon={faChevronDown}
-            />
-          ) : (
-            <FontAwesomeIcon className={styles.drawerBottomIcon} color="white" icon={faChevronUp} />
-          )}
-          <div className={styles.drawerBottomSvg}>
-            <img src="/images/drawerNub.svg" alt="Open/Close Timeline" />
-          </div>
-        </div>
-      </div>
       {bottomPanelOpen && (
         <div className={styles.activeComponentBottom}>
           <BottomGutter />
@@ -149,7 +107,6 @@ export const BottomControlPanel: FunctionComponent = () => {
 
 /* This control sits at the right side of the screen and displays the active pane for that position */
 export const RightControlPanel: FunctionComponent = () => {
-  const dispatch = useAppDispatch();
   const interfaceStateLabel = useAppSelector(
     (state) => state.interface.sectionSelectedLabel,
     refEqual
@@ -172,33 +129,6 @@ export const RightControlPanel: FunctionComponent = () => {
 
   return (
     <>
-      <div
-        className={styles.drawerRight}
-        onClick={() => {
-          dispatch(setRightPanelIsOpen(!rightPanelOpen));
-          dispatch(setAutoRightPanelOpen(false));
-        }}
-      >
-        <div className={styles.drawerRightTab}>
-          {rightPanelOpen ? (
-            <FontAwesomeIcon
-              className={styles.drawerRightIcon}
-              color="white"
-              icon={faChevronRight}
-            />
-          ) : (
-            <FontAwesomeIcon
-              className={styles.drawerRightIcon}
-              color="white"
-              icon={faChevronLeft}
-            />
-          )}
-          <div className={styles.drawerRightSvg}>
-            <img src="/images/drawerNub.svg" alt="Open/Close Timeline" />
-          </div>
-        </div>
-      </div>
-
       {rightPanelOpen && (
         <div className={styles.rightControl}>
           <div className={styles.activeComponentRight}>
@@ -207,6 +137,78 @@ export const RightControlPanel: FunctionComponent = () => {
         </div>
       )}
     </>
+  );
+};
+
+export const LeftDrawerTab: FunctionComponent = () => {
+  const dispatch = useAppDispatch();
+  const leftPanelOpen = useAppSelector((state) => state.interface.leftPanelIsOpen, refEqual);
+
+  return (
+    <div className={styles.drawerLeft} onClick={() => dispatch(setLeftPanelIsOpen(!leftPanelOpen))}>
+      <div className={styles.drawerLeftTab}>
+        <FontAwesomeIcon
+          className={styles.drawerLeftIcon}
+          color="white"
+          icon={leftPanelOpen ? faChevronLeft : faChevronRight}
+        />
+        <div className={styles.drawerLeftSvg}>
+          <img src="/images/drawerNub.svg" alt="Open/Close Left Panel" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const BottomDrawerTab: FunctionComponent = () => {
+  const dispatch = useAppDispatch();
+  const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
+
+  return (
+    <div
+      className={styles.drawerBottom}
+      onClick={() => {
+        dispatch(setBottomPanelIsOpen(!bottomPanelOpen));
+        dispatch(setAutoBottomPanelOpen(false));
+      }}
+    >
+      <div className={styles.drawerBottomTab}>
+        <FontAwesomeIcon
+          className={styles.drawerBottomIcon}
+          color="white"
+          icon={bottomPanelOpen ? faChevronDown : faChevronUp}
+        />
+        <div className={styles.drawerBottomSvg}>
+          <img src="/images/drawerNub.svg" alt="Open/Close Bottom Panel" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const RightDrawerTab: FunctionComponent = () => {
+  const dispatch = useAppDispatch();
+  const rightPanelOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
+
+  return (
+    <div
+      className={styles.drawerRight}
+      onClick={() => {
+        dispatch(setRightPanelIsOpen(!rightPanelOpen));
+        dispatch(setAutoRightPanelOpen(false));
+      }}
+    >
+      <div className={styles.drawerRightTab}>
+        <FontAwesomeIcon
+          className={styles.drawerRightIcon}
+          color="white"
+          icon={rightPanelOpen ? faChevronRight : faChevronLeft}
+        />
+        <div className={styles.drawerRightSvg}>
+          <img src="/images/drawerNub.svg" alt="Open/Close Right Panel" />
+        </div>
+      </div>
+    </div>
   );
 };
 

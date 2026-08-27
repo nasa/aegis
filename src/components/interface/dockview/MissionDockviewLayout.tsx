@@ -8,9 +8,12 @@ import {
 import "dockview-react/dist/styles/dockview.css";
 
 import {
+  BottomDrawerTab,
   BottomControlPanel,
+  LeftDrawerTab,
   LeftControlPanel,
   NavGutter,
+  RightDrawerTab,
   RightControlPanel,
 } from "components/interface/side-controls";
 import { AegisMapEditor } from "components/interface/map/AegisMapEditor";
@@ -24,15 +27,16 @@ import styles from "./missionDockviewLayout.module.css";
 const LEFT_OPEN_WIDTH = 400;
 const LEFT_CLOSED_WIDTH = 40;
 const BOTTOM_OPEN_HEIGHT = 256;
-const BOTTOM_CLOSED_HEIGHT = 13;
+const BOTTOM_CLOSED_HEIGHT = 0;
 const RIGHT_OPEN_WIDTH = 480;
-const RIGHT_CLOSED_WIDTH = 13;
+const RIGHT_CLOSED_WIDTH = 0;
 const MAP_MENU_WIDTH = 390;
 const MAP_MENU_HEIGHT = 620;
 const MAP_MENU_MIN_WIDTH = 300;
 const MAP_MENU_MIN_HEIGHT = 220;
 const MAP_MENU_LEFT_OFFSET = 45;
 const MAP_MENU_TOP_OFFSET = 10;
+const PANEL_SEPARATOR_SIZE = 1;
 
 const LeftPanel: FunctionComponent = () => {
   const selectedNavItem = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
@@ -133,6 +137,7 @@ export function MissionDockviewLayout(): JSX.Element {
         id: "left",
         component: "left",
         initialWidth: LEFT_OPEN_WIDTH,
+        minimumWidth: LEFT_CLOSED_WIDTH,
         position: { referencePanel: map, direction: "left" },
       });
       const bottom = dockviewApi.addPanel({
@@ -230,6 +235,30 @@ export function MissionDockviewLayout(): JSX.Element {
         floatingGroupDragHandle="titlebar"
         transformFloatingGroupDrag={transformFloatingGroupDrag}
       />
+      <div
+        className={styles.leftDrawer}
+        style={{ left: leftPanelIsOpen ? LEFT_OPEN_WIDTH : LEFT_CLOSED_WIDTH }}
+      >
+        <LeftDrawerTab />
+      </div>
+      <div
+        className={styles.bottomDrawer}
+        style={{
+          right: rightPanelIsOpen ? RIGHT_OPEN_WIDTH : RIGHT_CLOSED_WIDTH,
+          bottom:
+            (bottomPanelIsOpen ? BOTTOM_OPEN_HEIGHT : BOTTOM_CLOSED_HEIGHT) - PANEL_SEPARATOR_SIZE,
+        }}
+      >
+        <BottomDrawerTab />
+      </div>
+      <div
+        className={styles.rightDrawer}
+        style={{
+          right: (rightPanelIsOpen ? RIGHT_OPEN_WIDTH : RIGHT_CLOSED_WIDTH) - PANEL_SEPARATOR_SIZE,
+        }}
+      >
+        <RightDrawerTab />
+      </div>
     </div>
   );
 }
