@@ -28,7 +28,6 @@ export async function teardown(): Promise<void> {
   delete from "stm_level2_db" where name like '%Vitest%';
   delete from "stm_level1_db" where name like '%Vitest%';
   delete from "doc_listing_db" where automerge_url like '%Vitest%';
-  delete from "mission_backup_db" where data->>'name' like '%Vitest%';
   delete from "app_user_db" where username like '%Vitest%';`;
   await em.getConnection().execute(sql);
 

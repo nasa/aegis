@@ -6,7 +6,6 @@ import type { AutomergeUrl, ChangeFn, DocHandleChangePayload } from "@automerge/
 import { applyChange, diff } from "deep-diff";
 import type { ErrorObject } from "ajv";
 import Ajv from "ajv";
-import { getMissionBackup } from "http-client/mission";
 import adminCommon from "./adminCommon.module.css";
 
 type RouteParams = {
@@ -123,16 +122,6 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
                 }}
               >
                 Paste AM Doc to Console
-              </button>
-              <button
-                className={adminCommon.button}
-                type="button"
-                onClick={async () => {
-                  const missionRes = await getMissionBackup(automergeMission?.id);
-                  console.log(missionRes);
-                }}
-              >
-                Paste Backup DB Copy to Console
               </button>
             </div>
           </div>
