@@ -3,12 +3,13 @@ import { getCachedRaster } from "./rasterCache";
 
 type RasterImage = Awaited<ReturnType<typeof getCachedRaster>>["image"];
 
-export type OpenRaster = {
+export const openRaster = async (
+  absolutePath: string
+): Promise<{
   image: RasterImage;
   metadata: RasterMetadata;
-};
-
-export const readRasterMetadata = (image: RasterImage): RasterMetadata => {
+}> => {
+  const { image } = await getCachedRaster(absolutePath);
   const fileDirectory = image.getFileDirectory() as {
     ModelTransformation?: ArrayLike<number>;
   };
@@ -27,7 +28,7 @@ export const readRasterMetadata = (image: RasterImage): RasterMetadata => {
     throw new Error("Raster resolution must be non-zero");
   }
 
-  return {
+  const metadata: RasterMetadata = {
     width: image.getWidth(),
     height: image.getHeight(),
     origin: [origin[0], origin[1]],
@@ -41,9 +42,5 @@ export const readRasterMetadata = (image: RasterImage): RasterMetadata => {
     noData: image.getGDALNoData(),
     geoKeys: (image.getGeoKeys() ?? {}) as Record<string, unknown>,
   };
-};
-
-export const openRaster = async (absolutePath: string): Promise<OpenRaster> => {
-  const { image } = await getCachedRaster(absolutePath);
-  return { image, metadata: readRasterMetadata(image) };
+  return { image, metadata };
 };
