@@ -112,10 +112,6 @@ def dem_output_name(dem_in: Path) -> str:
     return f"{dem_in.stem}_{DEM_COMPRESS}_cog.tif"
 
 
-OUT_SLOPE_FLOAT_COG_NAME = "slope_degrees_uint16_cog.tif"
-OUT_SLOPE_RAMP_NAME = "slope_degrees_uint16_cog.json"
-
-
 OUT_SLOPE_LAYER_NAME = "slope"
 OUT_SLOPE_RGBA_NAME = "slope_rgba.tif"  # scratch, removed after tiling
 
@@ -268,8 +264,6 @@ class PipelinePaths:
     data: Path
     # Output products
     dem_out: Path
-    slope_float_cog_out: Path
-    slope_ramp_out: Path
     ellipse_out: Path
     slope_layer: Path
     slope_rgba: Path
@@ -332,8 +326,6 @@ def resolve_paths(
         layers=layers,
         data=data,
         dem_out=data / dem_output_name(dem_in_resolved),
-        slope_float_cog_out=data / OUT_SLOPE_FLOAT_COG_NAME,
-        slope_ramp_out=data / OUT_SLOPE_RAMP_NAME,
         ellipse_out=data / OUT_ELLIPSE_NAME,
         slope_layer=layers / prefixed(OUT_SLOPE_LAYER_NAME),
         slope_rgba=out / OUT_SLOPE_RGBA_NAME,

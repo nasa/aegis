@@ -382,14 +382,6 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     dem_products.add_argument(
-        "--slope-float-cog",
-        action="store_true",
-        help=(
-            "Create Data/slope_degrees_uint16_cog.tif and adjacent ramp JSON from --in-dem. "
-            "Values are degrees × 100 (0.01-degree precision) and are not colorized."
-        ),
-    )
-    dem_products.add_argument(
         "--dem-products-only",
         dest="dem_products_only",
         action="store_true",
