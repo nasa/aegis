@@ -9,9 +9,25 @@ import { asError } from "@emss/utils";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import type { RequiredEntityData } from "@mikro-orm/core";
-import { deleteBackupDbMissionAndRelatedEntities, upsertBackupDbMissions } from "./mission";
 import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
+
+import {
+  STM_Level1_db,
+  STM_Level2_db,
+  STM_Level3_db,
+  STM_Rule_db,
+  Station_db,
+  Poi_db,
+  Action_db,
+  Eva_db,
+  Layer_db,
+  Sublayer_db,
+  Traverse_db,
+  Preset_db,
+  Rex_db,
+  Folder_db,
+} from "server/database/models/_allModels";
 
 /**
  * Endpoint for working with the mission document in automerge
@@ -407,10 +423,6 @@ export async function createAutomergeMission(
   // Assign it the one from our newly inserted record
   missionDocHandle.change((m: Mission) => (m.id = dbReference.missionId));
 
-  // Add mission to the mission DB as backup.
-  const automergeMission: Mission = missionDocHandle.doc();
-  await upsertBackupDbMissions([automergeMission]); // add new mission to database
-
   return dbReference as AutomergeDocListing;
 }
 
@@ -442,8 +454,8 @@ export async function deleteAutomergeMissions(missionIds: number[]): Promise<num
     // delete the doc from the automerge repo storage system
     globalValues.automergeRepo.delete(automergeUrl as AutomergeUrl);
 
-    // delete from mission db backup table, and also all records in other tables associated with this mission
-    await deleteBackupDbMissionAndRelatedEntities([missionId]);
+    // delete all records in other tables associated with this mission
+    await deleteMissionRelatedEntities([missionId]);
 
     // delete from files
     await deleteFile(`missionFiles/${missionId.toString()}`);
@@ -451,5 +463,87 @@ export async function deleteAutomergeMissions(missionIds: number[]): Promise<num
     deletedMissionIds.push(missionId);
   }
 
+  return deletedMissionIds;
+}
+
+/**
+ * Deletes all database entities related to the given missions.
+ * @param missionIds mission IDs to delete
+ * @returns the ids of the deleted missions
+ */
+export async function deleteMissionRelatedEntities(missionIds: number[]): Promise<number[]> {
+  const em = globalValues.orm.em;
+  const deletedMissionIds = [];
+
+  for (const missionId of missionIds) {
+    try {
+      // Delete STM Rules first (they reference STM Level 3)
+      await em.nativeDelete(STM_Rule_db, { missionId });
+
+      // Find all Level 1s for this mission - they link to the mission directly
+      const stmLevel1s = await em.find(STM_Level1_db, { missionId });
+
+      // For each Level 1, we need to:
+      // 1. Find its Level 2s
+      // 2. For each Level 2, delete its Level 3s
+      // 3. Then delete the Level 2s
+      // 4. Then delete the Level 1s
+
+      for (const level1 of stmLevel1s) {
+        // Find Level 2s related to this Level 1
+        const level2s = await em.find(STM_Level2_db, { level1: level1 });
+
+        // For each Level 2, delete its Level 3s
+        for (const level2 of level2s) {
+          await em.nativeDelete(STM_Level3_db, { level2: level2 });
+        }
+
+        // Now delete all Level 2s for this Level 1
+        await em.nativeDelete(STM_Level2_db, { level1: level1 });
+      }
+
+      // Now delete all Level 1s for this mission
+      await em.nativeDelete(STM_Level1_db, { missionId });
+
+      // Delete actions
+      await em.nativeDelete(Action_db, { missionId });
+
+      // Delete REXes
+      await em.nativeDelete(Rex_db, { missionId });
+
+      // Delete EVAs
+      await em.nativeDelete(Eva_db, { missionId });
+
+      // Delete traverses
+      await em.nativeDelete(Traverse_db, { missionId });
+
+      // Delete sublayers (they reference layers)
+      await em.nativeDelete(Sublayer_db, { missionId });
+
+      // Delete layers
+      await em.nativeDelete(Layer_db, { missionId });
+
+      // Delete Presets
+      await em.nativeDelete(Preset_db, { missionId });
+
+      // Delete Folders
+      await em.nativeDelete(Folder_db, { missionId });
+
+      // Delete POIs and stations
+      await em.nativeDelete(Poi_db, { missionId });
+      await em.nativeDelete(Station_db, { missionId });
+
+      deletedMissionIds.push(missionId);
+    } catch (error) {
+      serverLogger.error(
+        { logId: "mission", logValue: `Error deleting mission ${missionId}` },
+        error instanceof Error ? error : new Error(String(error))
+      );
+      throw error;
+    }
+  }
+
+  // Flush to commit the changes
+  await em.flush();
   return deletedMissionIds;
 }

@@ -21,7 +21,6 @@ import isEqual from "lodash/isEqual";
 import { deleteAutomergeMissions } from "server/express/routes/missionAutomerge";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { createMockAutomergeRepo } from "../helpers/mockAutomergeRepo";
-import { upsertBackupDbMissions } from "server/express/routes/mission";
 import DocListingFactory from "../fixtures/entityFactories/DocListingFactory";
 import { seedDatabaseAndGenerateAutomergeMission } from "../fixtures/database";
 
@@ -169,9 +168,6 @@ describe("Mission Duplication Tests", () => {
         },
       ],
     });
-
-    // Write the mission to the mission_backup_db table (required for cleanup in afterAll)
-    await upsertBackupDbMissions([missionDocHandle.doc() as unknown as Mission]);
 
     // Initialize UUID maps to track the mapping between original and duplicate entities
     uuidMaps = initializeUuidMaps();

@@ -9,7 +9,6 @@ import { Eva_db, Eva_dbSchema } from "./eva.model";
 import { Folder_db, Folder_dbSchema } from "./folder.model";
 import { Grid_db, Grid_dbSchema } from "./grid.model";
 import { Layer_db, Layer_dbSchema } from "./layer.model";
-import { MissionBackup_db, MissionBackup_dbSchema } from "./missionBackup.model";
 import { Poi_db, Poi_dbSchema } from "./poi.model";
 import { Preset_db, Preset_dbSchema } from "./preset.model";
 import { Rex_db, Rex_dbSchema } from "./rex.model";
@@ -31,7 +30,6 @@ export const allSchemas = [
   Folder_dbSchema,
   Grid_dbSchema,
   Layer_dbSchema,
-  MissionBackup_dbSchema,
   Poi_dbSchema,
   Preset_dbSchema,
   Rex_dbSchema,
@@ -46,7 +44,6 @@ export const allSchemas = [
 
 export {
   App_User_db,
-  MissionBackup_db,
   Station_db,
   Poi_db,
   Action_db,
