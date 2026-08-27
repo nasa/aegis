@@ -488,11 +488,7 @@ def find_dem_file(data_dir: Path) -> Path | None:
         if f.is_file()
         and f.suffix.lower() in (".tif", ".tiff")
         and f.stem.endswith("_cog")
-        and f.name
-        not in {
-            config.OUT_SLOPE_FLOAT_COG_NAME,
-            "slope_degrees_float32_cog.tif",
-        }
+        and f.name not in {"slope_degrees_float32_cog.tif"}
     )
     return tifs[0] if tifs else None
 

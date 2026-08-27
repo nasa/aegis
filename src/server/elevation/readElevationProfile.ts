@@ -1,10 +1,11 @@
-import { NODATA_SENTINEL } from "./constants";
 import {
   sampleRasterProfileInWorker,
   type RasterSamplingWorkerResult,
 } from "server/raster/rasterSamplingWorkerPool";
 import { sampleRasterProfile } from "server/raster/sampleRasterProfile";
 import type { GeographicPoint, RasterDescriptor, RasterMetadata } from "server/raster/types";
+
+export const NODATA_SENTINEL = -1100101;
 
 export type ElevationProfileResult = {
   elevations: number[][];

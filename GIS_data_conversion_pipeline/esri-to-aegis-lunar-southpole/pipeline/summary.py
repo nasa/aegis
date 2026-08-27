@@ -122,15 +122,6 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
     tee("\n  ┌─ Products ────────────────────────────────────────────────────┐")
     row("DEM (demFilePath)", f"Data/{p.dem_out.name}  {mark(p.dem_out)}")
     row("demResolution", str(args.dem_resolution))
-    if args.slope_float_cog or p.slope_float_cog_out.exists():
-        row(
-            "Slope values (UInt16 × 0.01°)",
-            f"Data/{p.slope_float_cog_out.name}  {mark(p.slope_float_cog_out)}",
-        )
-        row(
-            "Slope color ramp",
-            f"Data/{p.slope_ramp_out.name}  {mark(p.slope_ramp_out)}",
-        )
     if p.layer_prefix:
         row("layer prefix", f"{p.layer_prefix}_  (folders + AEGIS layer names)")
     for name in _raster_layer_names(args):

@@ -31,7 +31,6 @@ COLORIZE_VIEWSHED = ROOT / "viewshed" / "colorize_viewshed.py"
 COLORIZE_CLASSIFIED_MASK = ROOT / "common" / "colorize_classified_mask.py"
 SHP_TO_GEOJSON = ROOT / "vector" / "shp_to_geojson.py"
 DEM_PRODUCTS = ROOT / "products" / "dem_products.py"
-DEM_TO_SLOPE_VALUE_COG = ROOT / "products" / "dem_to_slope_value_cog.py"
 LYRX_TO_RAMP = ROOT / "products" / "lyrx_to_ramp.py"
 WRITE_PROPERTIES = ROOT / "properties" / "write_properties.py"
 GENERATE_LGRS = ROOT / "grid" / "generate_lgrs.py"
@@ -209,43 +208,6 @@ def step_dem(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             p.dem_out,
         ]
     )
-
-
-def step_slope_float_cog(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """Derive a native-grid UInt16 slope COG and exact color-ramp JSON in Data/."""
-    banner("slope-float-cog — DEM → compact analytical slope COG + ramp JSON")
-    require_input(p.dem_in, "DEM GeoTIFF", "--in-dem")
-    p.data.mkdir(parents=True, exist_ok=True)
-    outputs_exist = p.slope_float_cog_out.exists() and p.slope_ramp_out.exists()
-    if outputs_exist:
-        if not args.overwrite:
-            tee(
-                "  [skip] slope COG and ramp JSON already built (use --overwrite to rebuild)"
-            )
-            return
-    p.slope_float_cog_out.unlink(missing_ok=True)
-    p.slope_ramp_out.unlink(missing_ok=True)
-
-    scratch = p.out / "scratch_slope_values"
-    scratch.mkdir(parents=True, exist_ok=True)
-    try:
-        ramp = slope_ramp(p, scratch)
-        run(
-            [
-                PYTHON,
-                DEM_TO_SLOPE_VALUE_COG,
-                "--dem",
-                p.dem_in,
-                "--out",
-                p.slope_float_cog_out,
-                "--ramp",
-                ramp,
-                "--ramp-out",
-                p.slope_ramp_out,
-            ]
-        )
-    finally:
-        shutil.rmtree(scratch, ignore_errors=True)
 
 
 def slope_ramp(p: config.PipelinePaths, scratch: Path) -> Path:
@@ -1133,10 +1095,6 @@ def step_box(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 STEPS: list[tuple[str, str]] = [
     ("stage", "Remove .sr.lock files; create Layers/ and Data/"),
     ("dem", "DEM GeoTIFF → clean COG (demFilePath)"),
-    (
-        "slope-float-cog",
-        "DEM → native-resolution UInt16 slope COG + ramp JSON in Data/",
-    ),
     ("slope", "Slope float → colorize → tile to one cap-grid layer"),
     (
         "products",
@@ -1187,7 +1145,6 @@ STEPS: list[tuple[str, str]] = [
 STEP_FNS = {
     "stage": step_stage,
     "dem": step_dem,
-    "slope-float-cog": step_slope_float_cog,
     "slope": step_slope,
     "products": step_products,
     "vector": step_vector,
@@ -1211,7 +1168,6 @@ STEP_NAMES = [name for name, _ in STEPS]
 DATA_STEPS = {
     "stage",
     "dem",
-    "slope-float-cog",
     "slope",
     "products",
     "vector",
@@ -1237,8 +1193,6 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
     if p.dem_in.exists():
         # --dem-products-only: derive products from the DEM but don't emit the mission DEM COG.
         chosen += ["products"] if args.dem_products_only else ["dem", "products"]
-        if args.slope_float_cog:
-            chosen.append("slope-float-cog")
     if p.slope_in.exists():
         chosen.append("slope")
     if p.ellipse_shp.exists():

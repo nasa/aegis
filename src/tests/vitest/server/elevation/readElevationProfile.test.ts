@@ -2,8 +2,7 @@ const sampleRasterPoints = vi.hoisted(() => vi.fn());
 
 vi.mock("server/raster/sampleRasterPoints", () => ({ sampleRasterPoints }));
 
-import { NODATA_SENTINEL } from "server/elevation/constants";
-import { readElevationProfile } from "server/elevation/readElevationProfile";
+import { NODATA_SENTINEL, readElevationProfile } from "server/elevation/readElevationProfile";
 import type { RasterMetadata } from "server/raster/types";
 
 const descriptor = { absolutePath: "fixture.tif", projection: "+proj=longlat" };

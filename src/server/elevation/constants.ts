@@ -1,1 +1,0 @@
-export const NODATA_SENTINEL = -1100101;

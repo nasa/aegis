@@ -2,8 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { NODATA_SENTINEL } from "server/elevation/constants";
-import { readElevationProfile } from "server/elevation/readElevationProfile";
+import { NODATA_SENTINEL, readElevationProfile } from "server/elevation/readElevationProfile";
 import { closeRasterCache } from "server/raster/rasterCache";
 import { sampleRasterPoints } from "server/raster/sampleRasterPoints";
 
