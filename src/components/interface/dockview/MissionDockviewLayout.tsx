@@ -30,10 +30,8 @@ const BOTTOM_OPEN_HEIGHT = 256;
 const BOTTOM_CLOSED_HEIGHT = 0;
 const RIGHT_OPEN_WIDTH = 480;
 const RIGHT_CLOSED_WIDTH = 0;
-const MAP_MENU_WIDTH = 390;
-const MAP_MENU_HEIGHT = 620;
-const MAP_MENU_MIN_WIDTH = 300;
-const MAP_MENU_MIN_HEIGHT = 220;
+const MAP_MENU_WIDTH = 285;
+const MAP_MENU_HEIGHT = 356;
 const MAP_MENU_LEFT_OFFSET = 45;
 const MAP_MENU_TOP_OFFSET = 10;
 const PANEL_SEPARATOR_SIZE = 1;
@@ -85,6 +83,22 @@ function getMapBounds(api: DockviewApi) {
   return api.getPanel("map")?.group.api.boundingBox;
 }
 
+function setMapMenuSize(
+  panel: ReturnType<DockviewApi["getPanel"]>,
+  mapBounds: { width: number; height: number }
+) {
+  if (!panel) return;
+  const width = Math.min(MAP_MENU_WIDTH, mapBounds.width);
+  const height = Math.min(MAP_MENU_HEIGHT, mapBounds.height);
+  panel.api.setConstraints({
+    minimumWidth: width,
+    minimumHeight: height,
+    maximumWidth: width,
+    maximumHeight: height,
+  });
+  panel.api.setSize({ width, height });
+}
+
 export function MissionDockviewLayout(): JSX.Element {
   const dispatch = useAppDispatch();
   const [api, setApi] = useState<DockviewApi | null>(null);
@@ -121,12 +135,8 @@ export function MissionDockviewLayout(): JSX.Element {
         dragHandle: "titlebar",
       },
     });
-    panel.api.setConstraints({
-      minimumWidth: Math.min(MAP_MENU_MIN_WIDTH, mapBounds.width),
-      minimumHeight: Math.min(MAP_MENU_MIN_HEIGHT, mapBounds.height),
-      maximumWidth: mapBounds.width,
-      maximumHeight: mapBounds.height,
-    });
+    panel.group.header.hidden = true;
+    setMapMenuSize(panel, mapBounds);
   }, [api, mapMenuIsOpen]);
 
   const onReady = useCallback((event: DockviewReadyEvent) => {
@@ -189,12 +199,7 @@ export function MissionDockviewLayout(): JSX.Element {
       const mapBounds = getMapBounds(api);
       const menuPanel = api.getPanel("map-menu");
       if (!mapBounds || !menuPanel) return;
-      menuPanel.api.setConstraints({
-        minimumWidth: Math.min(MAP_MENU_MIN_WIDTH, mapBounds.width),
-        minimumHeight: Math.min(MAP_MENU_MIN_HEIGHT, mapBounds.height),
-        maximumWidth: mapBounds.width,
-        maximumHeight: mapBounds.height,
-      });
+      setMapMenuSize(menuPanel, mapBounds);
     });
     const removeDisposable = api.onDidRemovePanel((panel) => {
       if (panel.id === "map-menu") dispatch(setMapMenuIsOpen(false));

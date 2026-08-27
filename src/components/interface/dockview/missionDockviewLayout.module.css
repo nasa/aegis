@@ -97,6 +97,23 @@
   overflow: hidden;
 }
 
+.container :global(.dv-resize-container-with-titlebar > .dv-floating-titlebar) {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 30px;
+  left: 30px;
+  height: 30px;
+  background: transparent;
+  border: 0;
+  cursor: move;
+}
+
+.container :global(.dv-resize-container-with-titlebar > .dv-grid-view) {
+  height: 100%;
+  flex: none;
+}
+
 .container :global(.dv-resize-container .dv-tabs-and-actions-container) {
   border-bottom: 1px solid var(--grey3);
 }

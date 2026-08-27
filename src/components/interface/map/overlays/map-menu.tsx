@@ -150,7 +150,14 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
           e.stopPropagation();
         }}
       >
-        <div className={styles.menuHeaderEyeIcon}>
+        <div
+          className={styles.menuHeaderEyeIcon}
+          onClick={(event) => {
+            if (!floating) return;
+            event.stopPropagation();
+            onClose?.();
+          }}
+        >
           <FontAwesomeIcon icon={faEye} size="sm" />
         </div>
         {showMenu && (
@@ -736,15 +743,17 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
 
 export const MapMenuLauncher: FunctionComponent = () => {
   const dispatch = useAppDispatch();
+  const mapMenuIsOpen = useAppSelector((state) => state.interface.mapMenuIsOpen, refEqual);
 
   return (
     <button
       className={styles.menuLauncher}
       onClick={(event) => {
         event.stopPropagation();
-        dispatch(setMapMenuIsOpen(true));
+        dispatch(setMapMenuIsOpen(!mapMenuIsOpen));
       }}
-      aria-label="Open map item visibility"
+      aria-label={`${mapMenuIsOpen ? "Close" : "Open"} map item visibility`}
+      aria-pressed={mapMenuIsOpen}
       data-testid="map-menu-launcher"
       type="button"
     >

@@ -3,6 +3,7 @@
   top: 10px;
   right: 10px;
   z-index: 100;
+  box-sizing: border-box;
   border: 2px solid rgb(0 0 0 / 20%);
   border-radius: var(--radius);
 }
@@ -13,8 +14,77 @@
   min-height: 150px;
   max-width: calc(100% - 10px);
   max-height: calc(100% - 10px);
-  overflow: auto;
-  resize: both;
+  overflow: hidden;
+}
+
+.resizeHandle {
+  position: absolute;
+  z-index: 1;
+  touch-action: none;
+}
+
+.resizeHandleN,
+.resizeHandleS {
+  right: 8px;
+  left: 8px;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.resizeHandleN {
+  top: -4px;
+}
+
+.resizeHandleS {
+  bottom: -4px;
+}
+
+.resizeHandleE,
+.resizeHandleW {
+  top: 8px;
+  bottom: 8px;
+  width: 8px;
+  cursor: ew-resize;
+}
+
+.resizeHandleE {
+  right: -4px;
+}
+
+.resizeHandleW {
+  left: -4px;
+}
+
+.resizeHandleNE,
+.resizeHandleSE,
+.resizeHandleSW,
+.resizeHandleNW {
+  width: 12px;
+  height: 12px;
+}
+
+.resizeHandleNE {
+  top: -4px;
+  right: -4px;
+  cursor: nesw-resize;
+}
+
+.resizeHandleSE {
+  right: -4px;
+  bottom: -4px;
+  cursor: nwse-resize;
+}
+
+.resizeHandleSW {
+  bottom: -4px;
+  left: -4px;
+  cursor: nesw-resize;
+}
+
+.resizeHandleNW {
+  top: -4px;
+  left: -4px;
+  cursor: nwse-resize;
 }
 
 .mapPosDisplay {
@@ -52,7 +122,9 @@
 .menuContainer {
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 400px);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   row-gap: 10px;
 }
 .bottomTriangle {
@@ -164,11 +236,19 @@
 }
 .posTableContainer {
   flex: 1 1 auto;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 .posTable {
   border-collapse: collapse;
   width: 100%;
+}
+.allPositionsContainer {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 .posTable td {
   padding: 2px 3px 2px 3px;

@@ -31,6 +31,10 @@ import { generateBlankPosEntry } from "store/storeUtils/rex";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 
+type ResizeDirection = "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw";
+
+const resizeDirections: ResizeDirection[] = ["n", "ne", "e", "se", "s", "sw", "w", "nw"];
+
 export const MapPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
@@ -95,6 +99,16 @@ export const MapPositionMenu: FunctionComponent = () => {
     left: number;
     top: number;
   } | null>(null);
+  const resizeStartRef = useRef<{
+    pointerId: number;
+    direction: ResizeDirection;
+    pointerX: number;
+    pointerY: number;
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest("[data-rex-menu-close]")) return;
@@ -140,7 +154,81 @@ export const MapPositionMenu: FunctionComponent = () => {
   const stopDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (dragStartRef.current?.pointerId !== event.pointerId) return;
     dragStartRef.current = null;
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const startResize = (event: ReactPointerEvent<HTMLDivElement>, direction: ResizeDirection) => {
+    const container = containerRef.current;
+    const offsetParent = container?.offsetParent as HTMLElement | null;
+    if (!container || !offsetParent) return;
+    const containerBox = container.getBoundingClientRect();
+    const parentBox = offsetParent.getBoundingClientRect();
+    const start = {
+      pointerId: event.pointerId,
+      direction,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      left: containerBox.left - parentBox.left,
+      top: containerBox.top - parentBox.top,
+      width: containerBox.width,
+      height: containerBox.height,
+    };
+    resizeStartRef.current = start;
+    setPosition({ left: start.left, top: start.top });
+    setOpenSize({ width: start.width, height: start.height });
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const resize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = resizeStartRef.current;
+    const container = containerRef.current;
+    const offsetParent = container?.offsetParent as HTMLElement | null;
+    if (!start || !container || !offsetParent || start.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - start.pointerX;
+    const deltaY = event.clientY - start.pointerY;
+    const minWidth = Math.min(300, offsetParent.clientWidth);
+    const minHeight = Math.min(150, offsetParent.clientHeight);
+    let left = start.left;
+    let top = start.top;
+    let width = start.width;
+    let height = start.height;
+
+    if (start.direction.includes("e")) {
+      width = Math.max(
+        minWidth,
+        Math.min(start.width + deltaX, offsetParent.clientWidth - start.left)
+      );
+    }
+    if (start.direction.includes("w")) {
+      left = Math.max(0, Math.min(start.left + deltaX, start.left + start.width - minWidth));
+      width = start.left + start.width - left;
+    }
+    if (start.direction.includes("s")) {
+      height = Math.max(
+        minHeight,
+        Math.min(start.height + deltaY, offsetParent.clientHeight - start.top)
+      );
+    }
+    if (start.direction.includes("n")) {
+      top = Math.max(0, Math.min(start.top + deltaY, start.top + start.height - minHeight));
+      height = start.top + start.height - top;
+    }
+
+    setPosition({ left, top });
+    setOpenSize({ width, height });
+  };
+
+  const stopResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (resizeStartRef.current?.pointerId !== event.pointerId) return;
+    resizeStartRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   const toggleMenu = () => {
@@ -220,6 +308,18 @@ export const MapPositionMenu: FunctionComponent = () => {
       style={containerStyle}
       data-testid="rex-map-menu"
     >
+      {showMenu &&
+        resizeDirections.map((direction) => (
+          <div
+            key={direction}
+            className={`${posMenuStyles.resizeHandle} ${posMenuStyles[`resizeHandle${direction.toUpperCase()}`]}`}
+            onPointerDown={(event) => startResize(event, direction)}
+            onPointerMove={resize}
+            onPointerUp={stopResize}
+            onPointerCancel={stopResize}
+            data-testid={`rex-map-menu-resize-${direction}`}
+          />
+        ))}
       <div
         className={`${posMapClass} ${showMenu ? posMenuStyles.menuOpen : posMenuStyles.menuClosed}`}
       >
@@ -537,8 +637,12 @@ export const MapPositionMenu: FunctionComponent = () => {
                     />
                   </td>
                 </tr>
-                {showPosList && posEntries && (
-                  <>
+              </tbody>
+            </table>
+            {showPosList && posEntries && (
+              <div className={posMenuStyles.allPositionsContainer}>
+                <table className={posMenuStyles.posTable}>
+                  <tbody>
                     {posEntries.map((posEntry, index, posEntries) => {
                       return (
                         <PositionRow
@@ -550,10 +654,10 @@ export const MapPositionMenu: FunctionComponent = () => {
                         />
                       );
                     })}
-                  </>
-                )}
-              </tbody>
-            </table>
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </div>
