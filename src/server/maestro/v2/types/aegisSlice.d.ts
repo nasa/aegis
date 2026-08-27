@@ -59,6 +59,7 @@ export declare namespace AegisSlice {
     calculatedFields: CalculatedFieldItems;
     description: string;
     actionOrderRefUuids: string[];
+    isLanderXgress: boolean;
     updatedAt: number;
     createdAt: number;
   };
