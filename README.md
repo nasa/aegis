@@ -262,14 +262,29 @@ npm run test:all
 
 **Apply migrations**
 
-You've made changes to the database schema or automerge schema and now you want to apply them.
+Use the complete migration command after pulling changes that modify either the PostgreSQL schema
+or the Automerge document schema:
 
 ```sh
 npm run migration:up
-npm run schema:create
-npm run automerge:migration:build
+```
+
+`migration:up` handles the required ordering automatically. It applies the early MikroORM
+migrations, bootstraps any missing Automerge documents from the legacy `mission_db` table, runs
+pending versioned Automerge migrations while their required legacy tables still exist, and then
+applies the remaining MikroORM migrations.
+
+To run only the pending Automerge migrations against a database whose relational migrations and
+Automerge migration ledger are already present, use:
+
+```sh
 npm run automerge:migration
 ```
+
+Automerge migrations live in `src/server/automerge/migrations/`. Add each migration as a separate
+timestamped `MigrationYYYYMMDDHHMMSS.ts` file and register it in
+`src/server/automerge/migrations/index.ts`. Once a migration has run in a shared environment, do
+not modify its version, name, or behavior; add a new migration instead.
 
 **Create or reset to a fresh database (with prod data)**
 
