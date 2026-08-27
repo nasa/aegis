@@ -6,11 +6,20 @@ import type { RasterProfileSamplingResult } from "./sampleRasterProfile";
 import type { GeographicPoint, RasterDescriptor } from "./types";
 
 export type RasterSamplingWorkerRequest = {
+  type: "sample";
   id: number;
   descriptor: RasterDescriptor;
   path: GeographicPoint[];
   steps: number[];
 };
+
+type RasterSamplingWorkerShutdownRequest = {
+  type: "shutdown";
+};
+
+export type RasterSamplingWorkerMessage =
+  | RasterSamplingWorkerRequest
+  | RasterSamplingWorkerShutdownRequest;
 
 type SerializedWorkerError = {
   name: string;
@@ -20,14 +29,16 @@ type SerializedWorkerError = {
 
 export type RasterSamplingWorkerResponse =
   | { id: number; status: "success"; result: RasterProfileSamplingResult }
-  | { id: number; status: "error"; error: SerializedWorkerError };
+  | { id: number; status: "error"; error: SerializedWorkerError }
+  | { status: "closed" }
+  | { status: "close-error"; error: SerializedWorkerError };
 
 // Narrow interface shared by Node Workers and the lightweight test double.
 type WorkerLike = {
   on(event: "message", listener: (response: RasterSamplingWorkerResponse) => void): WorkerLike;
   on(event: "error", listener: (error: Error) => void): WorkerLike;
   on(event: "exit", listener: (code: number) => void): WorkerLike;
-  postMessage(request: RasterSamplingWorkerRequest): void;
+  postMessage(request: RasterSamplingWorkerMessage): void;
   terminate(): Promise<number>;
 };
 
@@ -46,9 +57,12 @@ type WorkerSlot = {
   job?: Job;
   startedAt?: number;
   timeout?: NodeJS.Timeout;
+  shutdownComplete?: (error?: Error) => void;
 };
 
 export type RasterSamplingWorkerResult = RasterProfileSamplingResult & {
+  // Timing is measured in the parent process so callers can distinguish capacity waits from
+  // GeoTIFF decoding and coordinate conversion time.
   workerId: number;
   queueDurationMs: number;
   executionDurationMs: number;
@@ -76,6 +90,7 @@ const positiveIntegerFromEnvironment = (name: string, fallback: number): number 
 // RASTER_SAMPLING_WORKERS overrides this default. Reserve one logical CPU for the API and cap
 // the default at four workers. With two cores, one worker keeps the API responsive while sampling.
 const defaultPoolSize = Math.min(4, Math.max(1, availableParallelism() - 1));
+const WORKER_SHUTDOWN_TIMEOUT_MS = 5_000;
 
 /**
  * Runs CPU-heavy raster profile sampling outside the API event loop.
@@ -85,8 +100,8 @@ const defaultPoolSize = Math.min(4, Math.max(1, availableParallelism() - 1));
  * thread boundary are copied using Node's structured clone algorithm.
  *
  * A failed or timed-out worker is removed and replaced. Only its active job fails; queued jobs
- * continue on healthy workers. Call close() during server shutdown to reject outstanding work
- * and terminate every thread.
+ * continue on healthy workers. Call close() during server shutdown to reject outstanding work,
+ * close each worker-local raster cache, and terminate every thread.
  */
 export class RasterSamplingWorkerPool {
   private readonly size: number;
@@ -99,6 +114,7 @@ export class RasterSamplingWorkerPool {
   private nextWorkerId = 1;
   private started = false;
   private closing = false;
+  private closePromise?: Promise<void>;
 
   constructor(options: RasterSamplingWorkerPoolOptions = {}) {
     this.size =
@@ -126,6 +142,8 @@ export class RasterSamplingWorkerPool {
       );
     }
     this.start();
+    // Each worker owns its own raster cache and decoder. Dispatching whole profiles avoids
+    // repeatedly transferring sample arrays between threads and preserves cache locality.
     const idleWorker = this.workers.find((slot) => !slot.job);
     if (!idleWorker && this.queue.length >= this.maxQueueSize) {
       return Promise.reject(
@@ -135,7 +153,7 @@ export class RasterSamplingWorkerPool {
 
     return new Promise((resolve, reject) => {
       const job: Job = {
-        request: { id: this.nextJobId++, descriptor, path, steps },
+        request: { type: "sample", id: this.nextJobId++, descriptor, path, steps },
         queuedAt: performance.now(),
         resolve,
         reject,
@@ -145,9 +163,14 @@ export class RasterSamplingWorkerPool {
     });
   }
 
-  async close(): Promise<void> {
-    if (this.closing) return;
+  close(): Promise<void> {
+    if (this.closePromise) return this.closePromise;
     this.closing = true;
+    this.closePromise = this.closeWorkers();
+    return this.closePromise;
+  }
+
+  private async closeWorkers(): Promise<void> {
     const closedError = new RasterSamplingWorkerPoolUnavailableError(
       "Raster sampling workers are closed"
     );
@@ -158,7 +181,9 @@ export class RasterSamplingWorkerPool {
       slot.job = undefined;
     });
     const workers = this.workers.splice(0);
-    await Promise.allSettled(workers.map(({ worker }) => worker.terminate()));
+    const results = await Promise.allSettled(workers.map((slot) => this.shutdownWorker(slot)));
+    const failure = results.find((result) => result.status === "rejected");
+    if (failure?.status === "rejected") throw failure.reason;
   }
 
   private start(): void {
@@ -180,12 +205,7 @@ export class RasterSamplingWorkerPool {
     // handling first verifies that the slot is still registered.
     worker.on("error", (error: Error) => this.handleWorkerFailure(slot, error));
     worker.on("exit", (code: number) => {
-      if (code !== 0) {
-        this.handleWorkerFailure(
-          slot,
-          new Error(`Raster sampling worker exited with code ${code}`)
-        );
-      }
+      this.handleWorkerFailure(slot, new Error(`Raster sampling worker exited with code ${code}`));
     });
   }
 
@@ -203,11 +223,23 @@ export class RasterSamplingWorkerPool {
       slot.worker.terminate().catch((): undefined => undefined);
     }, this.jobTimeoutMs);
     slot.timeout.unref();
-    slot.worker.postMessage(job.request);
+    try {
+      slot.worker.postMessage(job.request);
+    } catch (error) {
+      this.handleWorkerFailure(slot, error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   private handleResponse(slot: WorkerSlot, response: RasterSamplingWorkerResponse): void {
+    if (response.status === "closed" || response.status === "close-error") {
+      slot.shutdownComplete?.(
+        response.status === "close-error" ? this.deserializeError(response.error) : undefined
+      );
+      return;
+    }
+
     const job = slot.job;
+    if (this.closing && !job) return;
     if (!job || response.id !== job.request.id) {
       // IDs prevent a stale or malformed message from resolving the wrong caller's promise.
       this.handleWorkerFailure(
@@ -238,8 +270,8 @@ export class RasterSamplingWorkerPool {
   private handleWorkerFailure(slot: WorkerSlot, error: Error): void {
     // Both "error" and "exit" can report one failure. Removing the slot makes this idempotent.
     const index = this.workers.indexOf(slot);
-    if (index === -1) return;
-    this.workers.splice(index, 1);
+    if (index !== -1) this.workers.splice(index, 1);
+    else if (!this.closing) return;
     if (slot.timeout) clearTimeout(slot.timeout);
     slot.job?.reject(
       error instanceof RasterSamplingWorkerPoolUnavailableError
@@ -250,6 +282,37 @@ export class RasterSamplingWorkerPool {
       this.addWorker();
       this.dispatchQueuedJobs();
     }
+    slot.shutdownComplete?.(error);
+  }
+
+  private async shutdownWorker(slot: WorkerSlot): Promise<void> {
+    let cleanupError: Error | undefined;
+    await new Promise<void>((resolve) => {
+      const timeout = setTimeout(() => {
+        cleanupError = new Error(
+          `Raster sampling worker ${slot.workerId} did not close within ${WORKER_SHUTDOWN_TIMEOUT_MS} ms`
+        );
+        slot.shutdownComplete = undefined;
+        resolve();
+      }, WORKER_SHUTDOWN_TIMEOUT_MS);
+      slot.shutdownComplete = (error) => {
+        cleanupError = error;
+        clearTimeout(timeout);
+        slot.shutdownComplete = undefined;
+        resolve();
+      };
+      try {
+        slot.worker.postMessage({ type: "shutdown" });
+      } catch (error) {
+        cleanupError = error instanceof Error ? error : new Error(String(error));
+        clearTimeout(timeout);
+        slot.shutdownComplete = undefined;
+        resolve();
+      }
+    });
+
+    await slot.worker.terminate();
+    if (cleanupError) throw cleanupError;
   }
 
   private dispatchNext(slot: WorkerSlot): void {

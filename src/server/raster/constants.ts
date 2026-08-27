@@ -1,1 +1,0 @@
-export const MAX_RASTER_PROFILE_SAMPLES = 100_000;

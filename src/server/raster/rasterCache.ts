@@ -12,7 +12,9 @@ type CacheEntry = {
 };
 
 const MAX_OPEN_RASTERS = 8;
+// Map insertion order supplies a small least-recently-used cache without a separate linked list.
 const entries = new Map<string, CacheEntry>();
+// Concurrent requests for the same file share one open operation and file descriptor.
 const pending = new Map<string, Promise<CacheEntry>>();
 
 const closeTiff = async (tiff: OpenTiff): Promise<void> => {
@@ -37,11 +39,13 @@ export const getCachedRaster = async (
   const key = `${absolutePath}:${fileStat.mtimeMs}:${fileStat.size}`;
   const cached = entries.get(key);
   if (cached) {
+    // Reinsert the entry so it becomes the most recently used item in Map iteration order.
     entries.delete(key);
     entries.set(key, cached);
     return cached;
   }
 
+  // File metadata is part of the key so replacing a raster invalidates its open decoder.
   const stale = [...entries.entries()].find(([, entry]) =>
     entry.key.startsWith(`${absolutePath}:`)
   );
@@ -53,6 +57,8 @@ export const getCachedRaster = async (
   let opening = pending.get(key);
   if (!opening) {
     opening = (async () => {
+      // getImage() selects the primary image; overview images are not used for exact elevation
+      // lookup because their downsampling would alter source cell values.
       const tiff = await fromFile(absolutePath);
       try {
         const image = await tiff.getImage();

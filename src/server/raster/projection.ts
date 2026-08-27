@@ -2,6 +2,7 @@ import type { RasterMetadata } from "./types";
 
 type GeoKeys = Record<string, unknown>;
 
+// GeoTIFF stores CRS parameters as numeric GeoKeys rather than a ready-to-use proj4 string.
 const numberKey = (geoKeys: GeoKeys, key: string, fallback?: number): number => {
   const value = geoKeys[key];
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -17,6 +18,7 @@ const ellipsoidParameters = (geoKeys: GeoKeys): string => {
 
 const getGeographicProjection = (geoKeys: GeoKeys): string => {
   const geographicCrs = numberKey(geoKeys, "GeographicTypeGeoKey", 32767);
+  // 32767 is GeoTIFF's user-defined sentinel; other values are registered EPSG codes.
   if (geographicCrs !== 32767) return `EPSG:${geographicCrs}`;
 
   const ellipsoid = ellipsoidParameters(geoKeys);
@@ -34,15 +36,19 @@ export const getRasterProjections = (
   const projectedCrs = numberKey(geoKeys, "ProjectedCSTypeGeoKey", 32767);
   const geographicProjection = getGeographicProjection(geoKeys);
   if (projectedCrs !== 32767) {
+    // A registered CRS lets proj4 obtain the complete projection definition from its EPSG entry.
     return { projection: `EPSG:${projectedCrs}`, geographicProjection };
   }
 
+  // Lunar products commonly use custom ellipsoids and therefore carry projection parameters
+  // directly in the GeoTIFF. Build only the transforms emitted by the supported data pipeline.
   const ellipsoid = ellipsoidParameters(geoKeys);
   const falseEasting = numberKey(geoKeys, "ProjFalseEastingGeoKey", 0);
   const falseNorthing = numberKey(geoKeys, "ProjFalseNorthingGeoKey", 0);
   const transform = numberKey(geoKeys, "ProjCoordTransGeoKey");
 
   if (transform === 15) {
+    // GeoTIFF coordinate transformation code 15 is polar stereographic.
     const latitudeOrigin = numberKey(geoKeys, "ProjNatOriginLatGeoKey");
     const centralMeridian = numberKey(geoKeys, "ProjStraightVertPoleLongGeoKey", 0);
     const scale = numberKey(geoKeys, "ProjScaleAtNatOriginGeoKey", 1);
@@ -53,6 +59,7 @@ export const getRasterProjections = (
   }
 
   if (transform === 17) {
+    // GeoTIFF coordinate transformation code 17 is equirectangular.
     const standardParallel = numberKey(geoKeys, "ProjStdParallel1GeoKey", 0);
     const latitudeOrigin = numberKey(geoKeys, "ProjCenterLatGeoKey", 0);
     const centralMeridian = numberKey(geoKeys, "ProjCenterLongGeoKey", 0);

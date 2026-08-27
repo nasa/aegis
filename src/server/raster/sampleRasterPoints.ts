@@ -27,6 +27,8 @@ const isNoData = (value: number, noData: number | null): boolean => {
   if (noData === null) return false;
   if (Number.isNaN(noData)) return Number.isNaN(value);
 
+  // Some floating-point rasters decode extreme GDAL sentinel values with small rounding changes.
+  // Treat the same order-of-magnitude sentinel as missing without hiding ordinary elevations.
   const rangeFactor = Math.abs(noData) > 1_000_000_000 ? 10 : 1;
   return (
     Math.abs(value) >= Math.abs(noData / rangeFactor) &&
@@ -43,6 +45,8 @@ const groupPixelsByBlock = (pixels: PixelPoint[], metadata: RasterMetadata): Map
       return;
     }
 
+    // Reading one cell still requires decoding its containing compressed tile/strip. Grouping
+    // requested cells by that storage block prevents repeated decompression of nearby samples.
     const blockX = Math.floor(pixel.x / blockWidth);
     const blockY = Math.floor(pixel.y / blockHeight);
     const key = `${blockX}:${blockY}`;
@@ -81,6 +85,8 @@ export const sampleRasterPoints = async (
           geographicProjection: descriptor.geographicProjection,
         }
       : getRasterProjections(metadata);
+  // A GeoTIFF pixel may contain several bands. Elevation products normally use band zero, while
+  // sampleIndex allows callers to select another band explicitly.
   const sampleIndex = descriptor.sampleIndex ?? 0;
   if (
     !Number.isInteger(sampleIndex) ||
@@ -99,6 +105,8 @@ export const sampleRasterPoints = async (
       projections.geographicProjection
     )
   );
+  // Initialize every result before reading. Out-of-coverage cells stay out-of-bounds; in-bounds
+  // cells remain NoData unless a decoded source value replaces them below.
   const samples: RasterSample[] = pixels.map((pixel) =>
     pixel.x < 0 || pixel.y < 0 || pixel.x >= metadata.width || pixel.y >= metadata.height
       ? { status: "missing", reason: "out-of-bounds" }
@@ -114,6 +122,7 @@ export const sampleRasterPoints = async (
     while (nextBlock < blocks.length) {
       const block = blocks[nextBlock++];
       const raster = await image.readRasters({
+        // GeoTIFF windows use [left, top, right, bottom], with right/bottom exclusive.
         window: [block.left, block.top, block.right, block.bottom],
         samples: [sampleIndex],
         interleave: true,
@@ -122,6 +131,7 @@ export const sampleRasterPoints = async (
 
       const width = block.right - block.left;
       block.points.forEach(({ index, pixel }) => {
+        // readRasters returns the window as a row-major one-dimensional array.
         const offset = (pixel.y - block.top) * width + pixel.x - block.left;
         const value = raster[offset];
         if (!Number.isFinite(value) && !Number.isNaN(value)) {
@@ -134,6 +144,7 @@ export const sampleRasterPoints = async (
     }
   };
 
+  // A small amount of parallel block I/O improves throughput without flooding the decoder or disk.
   await Promise.all(
     Array.from({ length: Math.min(BLOCK_READ_CONCURRENCY, blocks.length) }, () => readBlock())
   );

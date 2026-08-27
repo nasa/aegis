@@ -5,6 +5,7 @@ import {
   RasterSamplingWorkerPoolUnavailableError,
 } from "server/raster/rasterSamplingWorkerPool";
 import type {
+  RasterSamplingWorkerMessage,
   RasterSamplingWorkerRequest,
   RasterSamplingWorkerResponse,
 } from "server/raster/rasterSamplingWorkerPool";
@@ -25,8 +26,18 @@ const metadata: RasterMetadata = {
 class FakeWorker extends EventEmitter {
   readonly requests: RasterSamplingWorkerRequest[] = [];
   readonly terminate = vi.fn(async () => 0);
+  shutdownRequests = 0;
 
-  postMessage(request: RasterSamplingWorkerRequest): void {
+  constructor(private readonly acknowledgeShutdown = true) {
+    super();
+  }
+
+  postMessage(request: RasterSamplingWorkerMessage): void {
+    if (request.type === "shutdown") {
+      this.shutdownRequests += 1;
+      if (this.acknowledgeShutdown) queueMicrotask(() => this.closeSuccessfully());
+      return;
+    }
     this.requests.push(request);
   }
 
@@ -52,6 +63,10 @@ class FakeWorker extends EventEmitter {
       },
     };
     this.emit("message", response);
+  }
+
+  closeSuccessfully(): void {
+    this.emit("message", { status: "closed" });
   }
 }
 
@@ -90,6 +105,40 @@ describe("RasterSamplingWorkerPool", () => {
     worker.succeed(1);
     await expect(second).resolves.toMatchObject({ workerId: 1 });
     await pool.close();
+    expect(worker.shutdownRequests).toBe(1);
+    expect(worker.terminate).toHaveBeenCalledOnce();
+  });
+
+  it("waits for worker cache cleanup before terminating", async () => {
+    const worker = new FakeWorker(false);
+    const pool = new RasterSamplingWorkerPool({ size: 1, workerFactory: () => worker });
+    const active = pool.run(descriptor, path, [2]);
+    worker.succeed();
+    await active;
+
+    const closing = pool.close();
+    expect(worker.shutdownRequests).toBe(1);
+    expect(worker.terminate).not.toHaveBeenCalled();
+
+    worker.closeSuccessfully();
+    await closing;
+    expect(worker.terminate).toHaveBeenCalledOnce();
+  });
+
+  it("shares one cleanup operation across concurrent close calls", async () => {
+    const worker = new FakeWorker(false);
+    const pool = new RasterSamplingWorkerPool({ size: 1, workerFactory: () => worker });
+    const active = pool.run(descriptor, path, [2]);
+    worker.succeed();
+    await active;
+
+    const firstClose = pool.close();
+    const secondClose = pool.close();
+    expect(secondClose).toBe(firstClose);
+    expect(worker.shutdownRequests).toBe(1);
+
+    worker.closeSuccessfully();
+    await Promise.all([firstClose, secondClose]);
     expect(worker.terminate).toHaveBeenCalledOnce();
   });
 
@@ -131,6 +180,25 @@ describe("RasterSamplingWorkerPool", () => {
     expect(replacementWorker.requests).toHaveLength(1);
     replacementWorker.succeed();
     await expect(queued).resolves.toMatchObject({ workerId: 2 });
+    await pool.close();
+  });
+
+  it("replaces a worker that exits cleanly but unexpectedly", async () => {
+    const firstWorker = new FakeWorker();
+    const replacementWorker = new FakeWorker();
+    const workers = [firstWorker, replacementWorker];
+    const pool = new RasterSamplingWorkerPool({
+      size: 1,
+      workerFactory: () => workers.shift()!,
+    });
+
+    const failed = pool.run(descriptor, path, [2]);
+    firstWorker.emit("exit", 0);
+
+    await expect(failed).rejects.toBeInstanceOf(RasterSamplingWorkerPoolUnavailableError);
+    const replacementJob = pool.run(descriptor, path, [2]);
+    replacementWorker.succeed();
+    await expect(replacementJob).resolves.toMatchObject({ workerId: 2 });
     await pool.close();
   });
 });

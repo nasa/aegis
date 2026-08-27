@@ -11,6 +11,8 @@ export const intermediatePoint = (
   if (fraction === 0) return { ...start };
   if (fraction === 1) return { ...end };
 
+  // Treat coordinates as points on a sphere. Linear latitude/longitude interpolation bends
+  // away from the shortest surface route and behaves poorly near poles and the antimeridian.
   const lon1 = toRadians(start.lng);
   const lat1 = toRadians(start.lat);
   const lon2 = toRadians(end.lng);
@@ -22,6 +24,8 @@ export const intermediatePoint = (
   const delta = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
   if (delta === 0) return { ...start };
 
+  // Spherical linear interpolation (slerp) blends the endpoint unit vectors along their
+  // great-circle arc, after which the vector is converted back to latitude/longitude.
   const a = Math.sin((1 - fraction) * delta) / Math.sin(delta);
   const b = Math.sin(fraction * delta) / Math.sin(delta);
   const x = a * Math.cos(lat1) * Math.cos(lon1) + b * Math.cos(lat2) * Math.cos(lon2);
@@ -39,6 +43,7 @@ export const interpolateSegment = (
   end: GeographicPoint,
   steps: number
 ): GeographicPoint[] => {
+  // A segment always includes both endpoints so each returned profile segment is self-contained.
   if (steps <= 1) return [{ ...start }, { ...end }];
   return Array.from({ length: steps }, (_, index) =>
     intermediatePoint(start, end, index / (steps - 1))

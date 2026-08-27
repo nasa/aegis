@@ -1,7 +1,8 @@
-import { MAX_RASTER_PROFILE_SAMPLES } from "./constants";
 import { interpolateSegment } from "./greatCircleInterpolation";
 import { sampleRasterPoints } from "./sampleRasterPoints";
 import type { GeographicPoint, RasterDescriptor, RasterMetadata, RasterSample } from "./types";
+
+const MAX_RASTER_PROFILE_SAMPLES = 100_000;
 
 export type RasterProfileSamplingResult = {
   samples: RasterSample[][];
@@ -20,6 +21,8 @@ export const sampleRasterProfile = async (
     throw new Error("Steps must contain one value for each path segment");
   }
 
+  // `steps[n]` is the requested sample count for the path leg from path[n] to path[n + 1].
+  // Degenerate counts still produce both endpoints to match interpolateSegment's contract.
   let totalSamples = 0;
   steps.forEach((segmentSteps) => {
     if (!Number.isSafeInteger(segmentSteps) || segmentSteps < 0) {
@@ -31,10 +34,13 @@ export const sampleRasterProfile = async (
     throw new Error(`Raster profile exceeds the ${MAX_RASTER_PROFILE_SAMPLES} sample limit`);
   }
 
+  // Flatten all legs into one point request so shared GeoTIFF blocks are decoded only once.
   const segments = steps.map((segmentSteps, index) =>
     interpolateSegment(path[index], path[index + 1], segmentSteps)
   );
   const result = await sampleRasterPoints(descriptor, segments.flat());
+  // Restore the per-leg shape expected by profile consumers. Adjacent legs intentionally retain
+  // their shared endpoint in both arrays.
   let sampleOffset = 0;
   const samples = segments.map((segment) => {
     const segmentSamples = result.samples.slice(sampleOffset, sampleOffset + segment.length);
