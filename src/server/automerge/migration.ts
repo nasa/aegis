@@ -180,6 +180,13 @@ const runMigration = async () => {
     // and is also used internally by Repo.shutdown().
     await automergeRepo.flush();
 
+    await lockClient.query(
+      `insert into "automerge_migration_db" ("version", "name")
+       select "version", "name"
+       from unnest($1::bigint[], $2::text[]) as completed("version", "name")`,
+      [pendingMigrations.map(({ version }) => version), pendingMigrations.map(({ name }) => name)]
+    );
+
     serverLogger.info({
       logId: "automerge-migration",
       logValue: "All processes complete. Exiting.",
