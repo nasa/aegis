@@ -99,14 +99,7 @@ export function StationMarkers(): null {
     const runningRex = Object.values(m.rexes ?? {}).find((r) => r.isRunning);
     const eva = runningRex ? m.evas?.[runningRex.evaUuid] : null;
     if (!eva?.sequence) return [];
-    const uuids = eva.sequence.filter((item) => item.type === "station").map((item) => item.uuid);
-    if (eva.egressLocationUuid && eva.egressLocationUuid !== "lander") {
-      uuids.push(eva.egressLocationUuid);
-    }
-    if (eva.ingressLocationUuid && eva.ingressLocationUuid !== "lander") {
-      uuids.push(eva.ingressLocationUuid);
-    }
-    return uuids;
+    return eva.sequence.filter((item) => item.type === "station").map((item) => item.uuid);
   }, deepEqual);
 
   // Refs
@@ -138,7 +131,8 @@ export function StationMarkers(): null {
     if (config.station.limitToRunningEva) {
       const set = new Set(runningEvaStationUuids ?? []);
       return allStations.filter(
-        (s) => set.has(s.uuid) && s.location?.lat != null && s.location?.lng != null
+        (s) =>
+          set.has(s.uuid) && !s.isLanderXgress && s.location?.lat != null && s.location?.lng != null
       );
     }
 
@@ -149,12 +143,6 @@ export function StationMarkers(): null {
       const stationItems = selectedEva.sequence?.filter((item) => item.type === "station") ?? [];
       for (const item of stationItems) {
         if (item.uuid) uuidsToShow.add(item.uuid);
-      }
-      if (selectedEva.egressLocationUuid !== "lander") {
-        uuidsToShow.add(selectedEva.egressLocationUuid);
-      }
-      if (selectedEva.ingressLocationUuid !== "lander") {
-        uuidsToShow.add(selectedEva.ingressLocationUuid);
       }
     } else if (
       selectedStationUuid &&
@@ -190,8 +178,13 @@ export function StationMarkers(): null {
       uuidsToShow.add(mapDirective.uuid);
     }
 
+    // Lander copies don't get their own marker
     return allStations.filter(
-      (s) => uuidsToShow.has(s.uuid) && s.location?.lat != null && s.location?.lng != null
+      (s) =>
+        uuidsToShow.has(s.uuid) &&
+        !s.isLanderXgress &&
+        s.location?.lat != null &&
+        s.location?.lng != null
     );
   }, [
     config.station.limitToRunningEva,
@@ -303,7 +296,7 @@ export function StationMarkers(): null {
     // Translate; reference stations must not be draggable.
     if (editActive) return;
 
-    // Only allow dragging the currently selected station
+    // Only allow dragging the currently selected station.
     const translate = new Translate({
       features: new Collection<Feature>([]),
       filter: (feature) => {

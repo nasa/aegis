@@ -138,7 +138,7 @@ describe("Thunk Traverse Tests", () => {
     });
     // Station 3 is the egress; the ingress is a lander station.
     const landerIngress: Station = generateBlankStation({
-      name: "Lander",
+      name: "Lander Ingress",
       isLanderXgress: true,
       location: { lat: 3, lng: 3 },
     });
@@ -211,16 +211,16 @@ describe("Thunk Traverse Tests", () => {
       location: { lat: 3, lng: 2.1 },
     });
     // Both EVAs egress and ingress at the lander
-    const makeLander = () =>
+    const makeLander = (xgressType: "egress" | "ingress") =>
       generateBlankStation({
-        name: "Lander",
+        name: xgressType === "egress" ? "Lander Egress" : "Lander Ingress",
         isLanderXgress: true,
         location: { lat: 3, lng: 3 },
       });
-    const eva1Egress = makeLander();
-    const eva1Ingress = makeLander();
-    const eva2Egress = makeLander();
-    const eva2Ingress = makeLander();
+    const eva1Egress = makeLander("egress");
+    const eva1Ingress = makeLander("ingress");
+    const eva2Egress = makeLander("egress");
+    const eva2Ingress = makeLander("ingress");
 
     const eva1 = generateBlankEVA({ name: "Vitest Eva-1" });
     eva1.sequence = [
@@ -277,10 +277,10 @@ describe("Thunk Traverse Tests", () => {
     expect(t2.path).toEqual([station1.location, station2.location]);
     expect(t3.path).toEqual([station2.location, station3.location]);
     expect(t4.path).toEqual([station3.location, { lat: 3, lng: 3 }]);
-    expect(t1.name).toEqual("Lander to Vitest Station-1");
+    expect(t1.name).toEqual("Lander Egress to Vitest Station-1");
     expect(t2.name).toEqual("Vitest Station-1 to Vitest Station-2");
     expect(t3.name).toEqual("Vitest Station-2 to Vitest Station-3");
-    expect(t4.name).toEqual("Vitest Station-3 to Lander");
+    expect(t4.name).toEqual("Vitest Station-3 to Lander Ingress");
 
     // eva2 traverses — must also be updated when dispatching for their shared stations
     const t5 = getMission().traverses[traverse5.uuid];
@@ -289,16 +289,16 @@ describe("Thunk Traverse Tests", () => {
     expect(t5.path).toEqual([{ lat: 3, lng: 3 }, station1.location]);
     expect(t6.path).toEqual([station1.location, station2.location]);
     expect(t7.path).toEqual([station2.location, { lat: 3, lng: 3 }]);
-    expect(t5.name).toEqual("Lander to Vitest Station-1");
+    expect(t5.name).toEqual("Lander Egress to Vitest Station-1");
     expect(t6.name).toEqual("Vitest Station-1 to Vitest Station-2");
-    expect(t7.name).toEqual("Vitest Station-2 to Lander");
+    expect(t7.name).toEqual("Vitest Station-2 to Lander Ingress");
   });
 
   it("thunkDocSaveTraverse() updates the traverse name based on its neighbouring stations", async () => {
     const traverse: Traverse = generateBlankTraverse({ name: "Vitest Traverse-1 Modified" });
     const station = generateBlankStation({ name: "Vitest Station-1" });
     const landerEgress = generateBlankStation({
-      name: "Lander",
+      name: "Lander Egress",
       isLanderXgress: true,
       location: { lat: 3, lng: 3 },
     });
@@ -325,8 +325,8 @@ describe("Thunk Traverse Tests", () => {
 
     await store.dispatch(thunkDocSaveTraverse({ traverseUuid: traverse.uuid }));
     // The traverse runs from the lander station at sequence[0] to the station
-    // at sequence[2], so the derived name is "Lander to Vitest Station-1".
-    expect(getMission().traverses[traverse.uuid].name).toEqual("Lander to Vitest Station-1");
+    // at sequence[2], so the derived name is "Lander Egress to Vitest Station-1".
+    expect(getMission().traverses[traverse.uuid].name).toEqual("Lander Egress to Vitest Station-1");
   });
 
   it("thunkUICancelTraverse() is a no-op for traverses without an active polyline-edit directive", async () => {

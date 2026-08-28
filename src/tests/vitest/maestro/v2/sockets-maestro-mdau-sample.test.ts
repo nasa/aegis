@@ -175,8 +175,6 @@ function buildMissionFromSample(): BuiltMission {
     asPlannedEva = generateBlankEVA({
       refUuid: evaRefUuid,
       name: "orig-eva",
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: asPlannedSequence,
     });
     evas.push(asPlannedEva);
@@ -367,7 +365,7 @@ describe("sendMDAU sample payload — traverses", () => {
 });
 
 describe("sendMDAU sample payload — evas", () => {
-  it("writes name / durations for the as-planned eva", () => {
+  it("writes name / datetime for the as-planned eva", () => {
     if (!mdau.aegisEva || !built.asPlannedEvaUuid) return;
     const doc = built.handle.doc();
     const refUuid = Object.keys(mdau.aegisEva)[0];
@@ -376,8 +374,7 @@ describe("sendMDAU sample payload — evas", () => {
     expect(eva).toBeDefined();
     expect(typeof eva.name).toBe("string");
     expect(eva.name).toBe(src.name);
-    expect(eva.ingressDuration).toBe(src.ingressDuration);
-    expect(eva.egressDuration).toBe(src.egressDuration);
+    // TODO(MR3): inbound xgress durations are dropped, so nothing to assert here.
     expect(eva.datetime).toBe(src.datetime);
     expect(eva.updatedAt).toBe(src.updatedAt);
   });
@@ -462,8 +459,6 @@ describe("sendMDAU sample payload — rexes", () => {
     const fresh = buildMissionFromSample();
 
     const otherEva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [],
     });
     const otherRex = generateBlankRex({ evaUuid: otherEva.uuid, isRunning: true });

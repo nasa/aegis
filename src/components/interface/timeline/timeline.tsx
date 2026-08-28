@@ -20,8 +20,8 @@ import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../../page/petInterval";
 import { getStmUuids } from "store/storeUtils/store";
 import {
-  getCalculatedFieldsByStation,
-  getCalculatedFieldsByTraverse,
+  getCalcFieldsForStation,
+  getCalcFieldsForTraverse,
 } from "store/processing/calculatedFields";
 import { processEvaDataFromStore } from "./common-timeline";
 
@@ -89,7 +89,7 @@ const NavTimeline: FunctionComponent = () => {
         (a) => a.stationUuid === stationSeqItem.uuid && a.enabled
       );
       allStationCalculatedFields.push(
-        getCalculatedFieldsByStation({
+        getCalcFieldsForStation({
           station,
           missionWalkbackRate: partialMission.walkbackRate,
           stationActions,
@@ -111,7 +111,7 @@ const NavTimeline: FunctionComponent = () => {
         (a) => a.traverseUuid === traverse?.uuid && a.enabled
       );
       allTraverseCalculatedFields.push(
-        getCalculatedFieldsByTraverse({
+        getCalcFieldsForTraverse({
           traverse,
           missionTraverseRate: partialMission.traverseRate,
           evaTraverseRate: traverseEva?.traverseRate,

@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { getEgressStationUuid } from "operations/helpers/evaSequence";
 import type { MdauStageData } from "../types/mdauStageData";
 
 /**
@@ -47,8 +48,6 @@ export const applyMdauEvas = (m: Mission, stage: MdauStageData): void => {
     const eva = m.evas[e.uuid];
     if (!eva) continue;
     if (e.name !== undefined) eva.name = e.name;
-    if (e.ingressDuration !== undefined) eva.ingressDuration = e.ingressDuration;
-    if (e.egressDuration !== undefined) eva.egressDuration = e.egressDuration;
     if (e.datetime !== undefined) eva.datetime = e.datetime;
     eva.updatedAt = e.updatedAt;
   }
@@ -144,15 +143,10 @@ export const applyMdauRexes = (m: Mission, stage: MdauStageData): void => {
 const generateInitialPosEntries = (m: Mission, rex: Rex): void => {
   if (rex.posEntries && rex.posEntries.length > 0) return;
 
-  let egressLocation: AEGISPoint | null = null;
   const rexEva = m.evas?.[rex.evaUuid];
   // Spread the point to detach it from the live Automerge proxy before re-insert.
-  if (rexEva?.egressLocationUuid === "lander") {
-    egressLocation = m.landerLocation ? { ...m.landerLocation } : null;
-  } else if (rexEva?.egressLocationUuid) {
-    const loc = m.stations?.[rexEva.egressLocationUuid]?.location;
-    egressLocation = loc ? { ...loc } : null;
-  }
+  const loc = m.stations?.[getEgressStationUuid(rexEva?.sequence)]?.location;
+  const egressLocation: AEGISPoint | null = loc ? { ...loc } : null;
   if (!egressLocation) return;
 
   const now = Date.now();

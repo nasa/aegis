@@ -1,8 +1,8 @@
 import {
-  getCalculatedFieldsByPoi,
-  getCalculatedFieldsByTraverse,
-  getCalculatedFieldsByStation,
-  getCalculatedFieldsByEva,
+  getCalcFieldsForPoi,
+  getCalcFieldsForTraverse,
+  getCalcFieldsForStation,
+  getCalcFieldsForEva,
 } from "store/processing/calculatedFields";
 import isEqual from "lodash/isEqual";
 import { generateBlankAction } from "store/storeUtils/action";
@@ -38,7 +38,7 @@ describe("Calculated fields", () => {
     for (const p of pois) {
       const actions = poiActions_all;
       const poiActions = actions.filter((a) => a.poiUuid === p.uuid && a.enabled);
-      allCalculatedFields.push(getCalculatedFieldsByPoi({ poiActions, poiUuid: p.uuid }));
+      allCalculatedFields.push(getCalcFieldsForPoi({ poiActions, poiUuid: p.uuid }));
     }
 
     //check poi that has no actions
@@ -91,7 +91,7 @@ describe("Calculated fields", () => {
         (a) => a.stationUuid === s.uuid && a.enabled
       );
       allCalculatedFields.push(
-        getCalculatedFieldsByStation({
+        getCalcFieldsForStation({
           station: s,
           missionWalkbackRate: blankMission.walkbackRate,
           stationActions,
@@ -193,7 +193,7 @@ describe("Calculated fields", () => {
         (a) => a.traverseUuid === traverse.uuid && a.enabled
       );
       allCalculatedFields.push(
-        getCalculatedFieldsByTraverse({
+        getCalcFieldsForTraverse({
           traverse,
           missionTraverseRate: mission.traverseRate,
           evaTraverseRate: traverseEva.traverseRate,
@@ -205,7 +205,7 @@ describe("Calculated fields", () => {
     expect(t1CalcFields).toEqual({
       uuid: traverse1.uuid,
       reportItems: [],
-      durationMinutes: 10,
+      movementDurationMinutes: 10,
       distanceMeters: 500,
       ascentDescent: { totalMetersClimbed: 2, totalMetersDescended: 0 },
       actionCount: 0,
@@ -215,12 +215,13 @@ describe("Calculated fields", () => {
       totalEv2Time: 0,
       totalMass: 0,
       totalUnassignedTime: 0,
+      totalEquipmentItems: {},
       bearings: [],
     });
     const t2CalcFields = allCalculatedFields.find((c) => c.uuid === traverse2.uuid);
-    expect(t2CalcFields.durationMinutes).toEqual(30);
+    expect(t2CalcFields.movementDurationMinutes).toEqual(30);
     const t3CalcFields = allCalculatedFields.find((c) => c.uuid === traverse3.uuid);
-    expect(t3CalcFields.durationMinutes).toEqual(15);
+    expect(t3CalcFields.movementDurationMinutes).toEqual(15);
     expect(t3CalcFields.reportItems).toEqual([]);
   });
 
@@ -235,8 +236,6 @@ describe("Calculated fields", () => {
     const station2: Station = generateBlankStation({ name: "Vitest Station-1" });
     const eva: Eva = generateBlankEVA({
       name: "Vitest Eva-1",
-      egressDuration: null,
-      ingressDuration: null,
     });
     eva.sequence = [
       { uuid: station1.uuid, type: "station" },
@@ -251,7 +250,7 @@ describe("Calculated fields", () => {
     const allEvaCalculatedFields: EvaCalculatedFields[] = [];
     for (const e of evas) {
       allEvaCalculatedFields.push(
-        getCalculatedFieldsByEva({
+        getCalcFieldsForEva({
           eva: e,
           evaStations: stations,
           missionWalkbackRate: mission.walkbackRate,
@@ -273,14 +272,16 @@ describe("Calculated fields", () => {
       totalDwellTime: 0,
       actionCount: 0,
       totalMass: 0,
-      totalTraverseTime: 10,
+      totalTraverseMovementTime: 10,
       totalTraverseDistanceMeters: 500,
       totalTraverseAscentDescent: {
         totalMetersClimbed: 2,
         totalMetersDescended: 0,
       },
-      totalEvaTime: 10,
-      equipmentItems: {},
+      totalResolvedEvaTime: 40,
+      totalResolvedStationTime: 30,
+      totalResolvedTraverseTime: 10,
+      totalEquipmentItems: {},
       sequenceItemsCalculatedData: [
         {
           uuid: station1.uuid,
@@ -288,6 +289,7 @@ describe("Calculated fields", () => {
           endSeconds: 0,
           manualStartSeconds: 0,
           manualEndSeconds: 900,
+          resolvedDurationMins: 15,
         },
         {
           uuid: traverse.uuid,
@@ -295,6 +297,7 @@ describe("Calculated fields", () => {
           endSeconds: 600,
           manualStartSeconds: 900,
           manualEndSeconds: 1500,
+          resolvedDurationMins: 10,
         },
         {
           uuid: station2.uuid,
@@ -302,6 +305,7 @@ describe("Calculated fields", () => {
           endSeconds: 600,
           manualStartSeconds: 1500,
           manualEndSeconds: 2400,
+          resolvedDurationMins: 15,
         },
       ],
     };

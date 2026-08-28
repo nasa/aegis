@@ -24,9 +24,15 @@ let testMissionsPartial: Partial<Mission>[];
 let testRexes: Rex[];
 let testEva: Eva;
 let testStation: Station;
+let testEgressStation: Station;
+let testIngressStation: Station;
 let testTraverse: Traverse;
+let testTraverse2: Traverse;
 let testStationAction: Action;
 let validRexOverwrite: RexOverwrite;
+
+/** Egress/ingress stations sit at the lander, so pos entries seed from here. */
+const LANDER_LOCATION: AEGISPoint = { lat: -3.6, lng: -17.4 };
 
 const getMissionDoc = async (): Promise<Mission> => {
   const handle = await globalValues.automergeRepo.find(
@@ -66,15 +72,30 @@ beforeAll(async () => {
 
   testStation = generateBlankStation({ name: "Vitest RexOverwrite Station" });
   testTraverse = generateBlankTraverse({ name: "Vitest RexOverwrite Traverse" });
+  testTraverse2 = generateBlankTraverse({ name: "Vitest RexOverwrite Traverse 2" });
   testStationAction = generateBlankAction({
     name: "Vitest RexOverwrite Station Action",
     stationUuid: testStation.uuid,
   });
+  // Egress and ingress are real lander-pinned stations bookending the sequence.
+  testEgressStation = generateBlankStation({
+    name: "Egress",
+    isLanderXgress: true,
+    location: { ...LANDER_LOCATION },
+  });
+  testIngressStation = generateBlankStation({
+    name: "Ingress",
+    isLanderXgress: true,
+    location: { ...LANDER_LOCATION },
+  });
   testEva = generateBlankEVA({
     name: "Vitest RexOverwrite Eva",
     sequence: [
+      { type: "station", uuid: testEgressStation.uuid },
       { type: "traverse", uuid: testTraverse.uuid },
       { type: "station", uuid: testStation.uuid },
+      { type: "traverse", uuid: testTraverse2.uuid },
+      { type: "station", uuid: testIngressStation.uuid },
     ],
   });
   testRexes = [
@@ -88,8 +109,16 @@ beforeAll(async () => {
       id: testAutomergeDocListings[0].missionId,
       name: "Vitest Test Mission RexOverwrite",
       isArchived: false,
-      stations: { [testStation.uuid]: testStation },
-      traverses: { [testTraverse.uuid]: testTraverse },
+      landerLocation: { ...LANDER_LOCATION },
+      stations: {
+        [testStation.uuid]: testStation,
+        [testEgressStation.uuid]: testEgressStation,
+        [testIngressStation.uuid]: testIngressStation,
+      },
+      traverses: {
+        [testTraverse.uuid]: testTraverse,
+        [testTraverse2.uuid]: testTraverse2,
+      },
       actions: { [testStationAction.uuid]: testStationAction },
       evas: { [testEva.uuid]: testEva },
       rexes: {
@@ -346,10 +375,12 @@ describe("overwriteRex", () => {
     const updatedRex = mission.rexes[testRexes[0].uuid];
     expect(updatedRex).toBeDefined();
     expect(updatedRex.isRunning).toBe(true);
-    // Starting a rex creates initial pos entries (one per source, each
-    // containing all pos types). Default rex has 3 sources + 3 types.
+    // Starting a rex creates initial pos entries at the egress station's
+    // location (one per source, each containing all pos types). Default rex has
+    // 3 sources + 3 types.
     expect(updatedRex.posEntries.length).toBe(3);
     expect(updatedRex.posEntries[0].posTypeUuids.length).toBe(3);
+    expect(updatedRex.posEntries[0].location).toEqual(LANDER_LOCATION);
 
     // Previously running rex was stopped
     expect(mission.rexes[testRexes[1].uuid].isRunning).toBe(false);

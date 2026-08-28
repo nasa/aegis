@@ -1,7 +1,7 @@
 import { decodeEmoji } from "utils/formatting";
 import {
-  getMaestroCalculatedFieldsForStation,
-  getMaestroCalculatedFieldsForTraverse,
+  getMaestroCalcFieldsForStation,
+  getMaestroCalcFieldsForTraverse,
 } from "store/processing/calculatedFields";
 import { makeEquipmentReadable, makeReadableActionDefinition } from "utils/export";
 import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
@@ -150,16 +150,14 @@ const formatEvasForMaestro = (
         }
         return { type: seqItem.type, refUuid };
       }),
-      ingressLocationRefUuid:
-        eva.ingressLocationUuid === "lander"
-          ? "lander"
-          : (mission.stations[eva.ingressLocationUuid]?.refUuid ?? ""),
-      ingressDuration: eva.ingressDuration ?? 0,
-      egressLocationRefUuid:
-        eva.egressLocationUuid === "lander"
-          ? "lander"
-          : (mission.stations[eva.egressLocationUuid]?.refUuid ?? ""),
-      egressDuration: eva.egressDuration ?? 0,
+      // Egress and ingress are ordinary stations at the ends of
+      // `sequenceRefUuids` now, so these four fields carry nothing the sequence
+      // does not. They stay in the payload as nulls until the Maestro contract
+      // is renegotiated.
+      ingressLocationRefUuid: null as string | null,
+      ingressDuration: null as number | null,
+      egressLocationRefUuid: null as string | null,
+      egressDuration: null as number | null,
       createdAt: new Date(eva.createdAt).toISOString(),
       updatedAt: new Date(eva.updatedAt).toISOString(),
       ...(rex && { rexUuid: rex.uuid }),
@@ -184,7 +182,7 @@ const formatStationsForMaestro = (
       refUuid: station.refUuid,
       iconEmojiDecoded: decodeEmoji(station.icon),
       duration: station.duration,
-      calculatedFields: getMaestroCalculatedFieldsForStation(stationActions),
+      calculatedFields: getMaestroCalcFieldsForStation(stationActions),
       description: station.description,
       actionOrderRefUuids:
         station.actionOrderUuids?.map((uuid) => mission.actions[uuid]?.refUuid).filter(Boolean) ??
@@ -218,7 +216,7 @@ const formatTraversesForMaestro = (
       createdAt: new Date(traverse.createdAt).toISOString(),
       updatedAt: new Date(traverse.updatedAt).toISOString(),
       duration: traverse.duration,
-      calculatedFields: getMaestroCalculatedFieldsForTraverse({
+      calculatedFields: getMaestroCalcFieldsForTraverse({
         traverse,
         missionTraverseRate: mission.traverseRate,
         evaTraverseRate: traverseEva?.traverseRate,

@@ -204,19 +204,9 @@ const stageEvas = (
 
     const stage: EvaStage = { uuid, updatedAt: mdau.updatedAt };
     if (mdau.name !== undefined && mdau.name !== eva.name) stage.name = mdau.name;
-    if (mdau.ingressDuration !== undefined && mdau.ingressDuration !== eva.ingressDuration)
-      stage.ingressDuration = mdau.ingressDuration;
-    if (mdau.egressDuration !== undefined && mdau.egressDuration !== eva.egressDuration)
-      stage.egressDuration = mdau.egressDuration;
     if (mdau.datetime !== undefined && mdau.datetime !== eva.datetime)
       stage.datetime = mdau.datetime;
-    if (
-      stage.name !== undefined ||
-      stage.ingressDuration !== undefined ||
-      stage.egressDuration !== undefined ||
-      stage.datetime !== undefined
-    )
-      stages.push(stage);
+    if (stage.name !== undefined || stage.datetime !== undefined) stages.push(stage);
   }
   return stages;
 };

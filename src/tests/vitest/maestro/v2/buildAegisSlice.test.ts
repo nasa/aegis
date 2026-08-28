@@ -24,8 +24,8 @@ vi.mock("utils/export", () => ({
 }));
 
 vi.mock("store/processing/calculatedFields", () => ({
-  getMaestroCalculatedFieldsForStation: vi.fn().mockReturnValue({}),
-  getMaestroCalculatedFieldsForTraverse: vi.fn().mockReturnValue({}),
+  getMaestroCalcFieldsForStation: vi.fn().mockReturnValue({}),
+  getMaestroCalcFieldsForTraverse: vi.fn().mockReturnValue({}),
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -1,10 +1,6 @@
 import sortBy from "lodash/sortBy";
 import type { RootState } from "store";
-import {
-  getSequenceStationItems,
-  getSequenceTraverseItems,
-  isLanderXgressStation,
-} from "operations/helpers/evaSequence";
+import { getSequenceStationUuids, getSequenceTraverseUuids } from "operations/helpers/evaSequence";
 
 /**
  * Gets all Stations for an EVA, including the egress and ingress stations.
@@ -13,9 +9,8 @@ export const selectEvaStations = (mission: Mission, evaUuid: string): Station[] 
   const allStations = mission?.stations ?? {};
   const eva = mission?.evas?.[evaUuid];
   if (!eva) return [];
-  return getSequenceStationItems(eva)
-    .filter((seqItem) => seqItem.uuid)
-    .map((stationSeqItem) => allStations[stationSeqItem.uuid])
+  return getSequenceStationUuids(eva.sequence)
+    .map((stationUuid) => allStations[stationUuid])
     .filter(Boolean) as Station[];
 };
 
@@ -27,9 +22,8 @@ export const selectEvaTraverses = (mission: Mission, evaUuid: string): Traverse[
   const eva = mission?.evas?.[evaUuid];
   if (!eva?.sequence) return [];
 
-  const traverseSeqItems = getSequenceTraverseItems(eva);
-  const traverses = traverseSeqItems
-    .map((traverseSeqItem) => allTraverses[traverseSeqItem.uuid])
+  const traverses = getSequenceTraverseUuids(eva.sequence)
+    .map((traverseUuid) => allTraverses[traverseUuid])
     .filter(Boolean) as Traverse[];
 
   return traverses;
@@ -45,9 +39,8 @@ export const selectEvaActions = (
 ): Action[] => {
   if (!eva?.sequence) return [];
 
-  const stationSeqItems = getSequenceStationItems(eva);
-  const actionArrays = stationSeqItems.map((stationSeqItem) =>
-    Object.values(allActionRecords).filter((a) => a.stationUuid === stationSeqItem.uuid)
+  const actionArrays = getSequenceStationUuids(eva.sequence).map((stationUuid) =>
+    Object.values(allActionRecords).filter((a) => a.stationUuid === stationUuid)
   );
   return actionArrays.flat();
 };
@@ -63,10 +56,10 @@ export const selectAsPlannedStations = (mission: Mission): Station[] => {
 
   const allRexEvaStationUuids = allEvas
     .filter((e) => allRexEvaUuids.includes(e.uuid))
-    .flatMap((eva) => getSequenceStationItems(eva).map((seq) => seq.uuid));
+    .flatMap((eva) => getSequenceStationUuids(eva.sequence));
 
   const stationList = Object.values(mission?.stations ?? {}).filter(
-    (station) => !allRexEvaStationUuids.includes(station.uuid) && !isLanderXgressStation(station)
+    (station) => !allRexEvaStationUuids.includes(station.uuid) && !station.isLanderXgress
   );
   return sortBy(stationList, (station) => station.name.toLowerCase());
 };

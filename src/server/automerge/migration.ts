@@ -15,7 +15,6 @@ import {
   DEFAULT_ACTION_DEFINITION_CONJUNCTIONS,
 } from "store/storeUtils/mission";
 import { migrateLegacyCircleControlHaloStyles } from "store/storeUtils/preset";
-import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import { missionValidator } from "utils/validateSchemaServer";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
@@ -36,12 +35,27 @@ import {
  *
  * `xgressEntries` was removed from `Rex` when egress/ingress became real
  * stations, but it still exists as a `rex_db` column and on docs that predate
- * the fold migration. This type carries it through the DB seed step so
- * `automergeMigration20260819FoldXgressRexEntries` can resolve each entry onto
- * its station and then strip the field.
+ * the xgress-station migration. This type carries it through the DB seed step
+ * so that migration can resolve each entry onto its station and then strip the
+ * field.
  */
 type RexWithLegacyXgressEntries = Rex & {
   xgressEntries?: { [role: string]: { rexStatus: RexStatus } } | null;
+};
+
+/**
+ * An EVA plus the legacy egress/ingress location and duration fields.
+ *
+ * These were removed from `Eva` when egress/ingress became real stations at the
+ * ends of the sequence, but they still exist on docs that predate the
+ * xgress-station migration. That migration reads them to build the stations and
+ * strips them in the same pass.
+ */
+type EvaWithLegacyXgress = Eva & {
+  egressLocationUuid?: string;
+  ingressLocationUuid?: string;
+  egressDuration?: number | null;
+  ingressDuration?: number | null;
 };
 
 // This is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
@@ -329,7 +343,7 @@ getORM()
         );
         evasRecord = {};
         for (const dbEva of dbEvas) {
-          const convertedEva: Eva = {
+          const convertedEva: EvaWithLegacyXgress = {
             uuid: dbEva.uuid,
             refUuid: dbEva.refUuid,
             missionId: dbEva.missionId,
@@ -630,32 +644,28 @@ getORM()
     };
 
     // Migration: Turn each EVA's egress/ingress location into a real Station at
-    // the start and end of its sequence.
-    //
-    // The sequence goes from `traverse, station, …, traverse` to
-    // `station, traverse, station, …, traverse, station`. An EVA that egressed
-    // or ingressed at the lander gets a new auto-managed station pinned to the
-    // lander; one that used a real station reuses that station's uuid.
-    //
-    // The legacy `egressLocationUuid` / `ingressLocationUuid` / `egressDuration`
-    // / `ingressDuration` fields are left in place as a mirror for readers that
-    // have not been migrated yet.
+    // the start and end of its sequence, then drop the legacy fields that
+    // described that location, and fold each REX's `xgressEntries` into its
+    // `stationEntries`.
     const automergeMigration20260806XgressStations = async (docHandle: DocHandle<Mission>) => {
       docHandle.change((mission: Mission) => {
-        for (const eva of Object.values(mission.evas ?? {})) {
-          // Idempotency guard: already migrated when the sequence starts with a station.
-          if (eva.sequence?.[0]?.type === "station") continue;
-          if (!eva.sequence || eva.sequence.length === 0) continue;
+        for (const evaValue of Object.values(mission.evas ?? {})) {
+          const eva = evaValue as EvaWithLegacyXgress;
+          // Only build stations when the sequence doesn't already
+          // start with one.
+          const alreadyMigrated = eva.sequence?.[0]?.type === "station";
+          if (alreadyMigrated || !eva.sequence || eva.sequence.length === 0) {
+            delete eva.egressLocationUuid;
+            delete eva.ingressLocationUuid;
+            delete eva.egressDuration;
+            delete eva.ingressDuration;
+            continue;
+          }
 
-          const buildLanderStation = (duration: number | null): Station => {
-            const mapCircleControls: MapCircleControls = {};
-            for (const circleUuid of Object.keys(mission.circleDefinitions ?? {})) {
-              mapCircleControls[circleUuid] = {
-                uuid: circleUuid,
-                visible: false,
-                style: { ...defaultSublayerStyle },
-              };
-            }
+          const buildLanderStation = (
+            xgressType: "egress" | "ingress",
+            duration: number | null
+          ): Station => {
             // Copy the lander location field by field: it is read off a live
             // Automerge proxy, which structuredClone cannot clone.
             const landerLocation: AEGISPoint = {
@@ -673,7 +683,7 @@ getORM()
               missionId: mission.id,
               poiUuids: [],
               actionOrderUuids: [],
-              name: "Lander",
+              name: xgressType === "egress" ? "Lander Egress" : "Lander Ingress",
               status: "Candidate",
               description: "",
               radius: 5,
@@ -683,8 +693,8 @@ getORM()
               walkbackPathSegmentDistances: null,
               walkbackPathSegmentElevations: null,
               walkbackTraverseRate: null,
-              icon: "1f680", // Rocket
-              mapCircleControls,
+              icon: "landerIcon",
+              mapCircleControls: {},
               isLanderXgress: true,
               duration: duration ?? 10,
               createdAt: now,
@@ -694,9 +704,13 @@ getORM()
 
           // Resolve xgress to a station uuid. A 'lander' xgress creates a new lander
           // station.
-          const resolveXgress = (locationUuid: string, duration: number | null): string | null => {
+          const resolveXgress = (
+            xgressType: "egress" | "ingress",
+            locationUuid: string,
+            duration: number | null
+          ): string | null => {
             if (locationUuid === "lander") {
-              const landerStation = buildLanderStation(duration);
+              const landerStation = buildLanderStation(xgressType, duration);
               mission.stations[landerStation.uuid] = landerStation;
               return landerStation.uuid;
             }
@@ -710,28 +724,27 @@ getORM()
             return null;
           };
 
-          const egressUuid = resolveXgress(eva.egressLocationUuid, eva.egressDuration);
-          const ingressUuid = resolveXgress(eva.ingressLocationUuid, eva.ingressDuration);
+          const egressUuid = resolveXgress(
+            "egress",
+            eva.egressLocationUuid ?? "lander",
+            eva.egressDuration ?? null
+          );
+          const ingressUuid = resolveXgress(
+            "ingress",
+            eva.ingressLocationUuid ?? "lander",
+            eva.ingressDuration ?? null
+          );
 
           if (egressUuid) eva.sequence.unshift({ type: "station", uuid: egressUuid }); // Insert egress to eva sequence
           if (ingressUuid) eva.sequence.push({ type: "station", uuid: ingressUuid }); // Insert ingress to eva sequence
-        }
-      });
-    };
 
-    // Migration: Fold each REX's `xgressEntries` into its `stationEntries`.
-    //
-    // The old map was keyed by the literal strings "egress" / "ingress" because
-    // the xgress locations were EVA fields rather than sequence members. They
-    // are real stations now, so their REX status belongs alongside every other
-    // station's, keyed by the station uuid.
-    //
-    // Depends on the xgress-station migration above having already placed those
-    // stations in the sequence.
-    const automergeMigration20260819FoldXgressRexEntries = async (
-      docHandle: DocHandle<Mission>
-    ) => {
-      docHandle.change((mission: Mission) => {
+          // Strip the legacy fields
+          delete eva.egressLocationUuid;
+          delete eva.ingressLocationUuid;
+          delete eva.egressDuration;
+          delete eva.ingressDuration;
+        }
+
         for (const rex of Object.values(mission.rexes ?? {})) {
           // The field is gone from `Rex` but still present on docs that have not
           // run this migration, and on any REX just seeded from `rex_db`.
@@ -777,7 +790,6 @@ getORM()
       automergeMigration20260809AddGridRenderMode,
       automergeMigration20260810RenameStationLabelStrokeToHalo,
       automergeMigration20260806XgressStations,
-      automergeMigration20260819FoldXgressRexEntries,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {

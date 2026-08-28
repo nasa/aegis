@@ -43,10 +43,14 @@ export declare namespace AegisSlice {
     refUuid: string;
     description: string;
     sequenceRefUuids: EvaSequenceItem[];
-    ingressLocationRefUuid: string;
-    ingressDuration: number;
-    egressLocationRefUuid: string;
-    egressDuration: number;
+    /** @deprecated Always null. Egress/ingress are stations in `sequenceRefUuids`. */
+    ingressLocationRefUuid: string | null;
+    /** @deprecated Always null. Ingress dwell is the ingress station's duration. */
+    ingressDuration: number | null;
+    /** @deprecated Always null. Egress/ingress are stations in `sequenceRefUuids`. */
+    egressLocationRefUuid: string | null;
+    /** @deprecated Always null. Egress dwell is the egress station's duration. */
+    egressDuration: number | null;
     createdAt: string;
     updatedAt: string;
   };

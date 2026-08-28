@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { getEgressStationUuid } from "operations/helpers/evaSequence";
 import {
   getAutomergeMissions,
   getAutomergeMissionHandle,
@@ -86,15 +87,10 @@ export async function overwriteRex(rexOverwrite: RexOverwrite): Promise<Rex[]> {
     // Generate initial crew position entries when transitioning to running
     if (rexOverwrite.isRunning && !rexEntity.isRunning) {
       if (!rexEntity.posEntries || rexEntity.posEntries.length === 0) {
-        let egressLocation: AEGISPoint | null = null;
         const rexEva = mission.evas?.[rexEntity.evaUuid];
         // Spread location (same as cloning in this case) so we remove the automerge proxy ref
-        if (rexEva?.egressLocationUuid === "lander") {
-          egressLocation = mission.landerLocation ? { ...mission.landerLocation } : null;
-        } else if (rexEva?.egressLocationUuid) {
-          const loc = mission.stations?.[rexEva.egressLocationUuid]?.location;
-          egressLocation = loc ? { ...loc } : null;
-        }
+        const loc = mission.stations?.[getEgressStationUuid(rexEva?.sequence)]?.location;
+        const egressLocation: AEGISPoint | null = loc ? { ...loc } : null;
 
         if (egressLocation) {
           // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket

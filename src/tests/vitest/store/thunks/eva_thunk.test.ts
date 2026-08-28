@@ -575,8 +575,6 @@ describe("Thunk EVA Tests", () => {
         expect(xgressStationUuid(eva.uuid, "ingress")).toEqual(stationNotInEva.uuid);
         // The lander station it replaced was owned by the EVA, so it is gone.
         expect(getMission().stations[oldIngressUuid]).toBeUndefined();
-        // The deprecated mirror still tracks the sequence.
-        expect(getMission().evas[eva.uuid].ingressLocationUuid).toEqual(stationNotInEva.uuid);
         expect(mockThunkFetchElevation).toHaveBeenCalledTimes(1);
       });
 
@@ -611,7 +609,6 @@ describe("Thunk EVA Tests", () => {
         expect(newEgress.isLanderXgress).toBe(true);
         // The shared station is not owned by the EVA, so it survives.
         expect(getMission().stations[stationNotInEva.uuid]).toBeDefined();
-        expect(getMission().evas[eva.uuid].egressLocationUuid).toEqual("lander");
       });
 
       it("(isRexEva=true) duplicates the new station and deletes the old one for ingress", async () => {
@@ -733,7 +730,6 @@ describe("Thunk EVA Tests", () => {
         expect(getMission().stations[xgressStationUuid(eva.uuid, "ingress")].isLanderXgress).toBe(
           true
         );
-        expect(getMission().evas[eva.uuid].ingressLocationUuid).toEqual("lander");
       });
     });
   });

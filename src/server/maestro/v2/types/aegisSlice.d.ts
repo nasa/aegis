@@ -43,10 +43,6 @@ export declare namespace AegisSlice {
     refUuid: string;
     description: string;
     sequenceRefUuids: EvaSequenceItem[];
-    ingressLocationRefUuid: string;
-    ingressDuration: number;
-    egressLocationRefUuid: string;
-    egressDuration: number;
     datetime: number | null;
     createdAt: number;
     updatedAt: number;

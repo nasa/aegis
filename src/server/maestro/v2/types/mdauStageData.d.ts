@@ -22,8 +22,6 @@ export interface TraverseStage {
 export interface EvaStage {
   uuid: string;
   name?: string;
-  ingressDuration?: number;
-  egressDuration?: number;
   datetime?: number | null;
   updatedAt: number;
 }

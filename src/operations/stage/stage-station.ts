@@ -31,8 +31,11 @@ export function stageDuplicateStation(
     const now = getAccurateNow().getTime();
     newStation.createdAt = now;
     newStation.updatedAt = now;
-    const allStationNames = Object.values(mission.stations ?? {}).map((s) => s.name);
-    newStation.name = makeUniqueStringCopy(sourceStation.name, allStationNames);
+    // Only non-lander stations get a unique name.
+    if (!sourceStation.isLanderXgress) {
+      const allStationNames = Object.values(mission.stations ?? {}).map((s) => s.name);
+      newStation.name = makeUniqueStringCopy(sourceStation.name, allStationNames);
+    }
   }
   // The new station gets a fresh action ordering — populated by the actions
   // stage below.
