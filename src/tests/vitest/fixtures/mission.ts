@@ -30,9 +30,13 @@ export const generateFullMission = (): Mission => {
   const testStation2 = generateBlankStation({ name: "Vitest Station-2" });
   const testStationMid = generateBlankStation({ name: "Vitest Station-3" });
 
-  /** A d lander station created for an EVA's xgress position. */
-  const makeLanderStation = () =>
-    generateBlankStation({ name: "Lander", isLanderXgress: true, location: { lat: 0, lng: 0 } });
+  /** A lander station created for an EVA's xgress position. */
+  const makeLanderStation = (xgressType: "egress" | "ingress") =>
+    generateBlankStation({
+      name: xgressType === "egress" ? "Lander Egress" : "Lander Ingress",
+      isLanderXgress: true,
+      location: { lat: 0, lng: 0 },
+    });
 
   // ====== POI (named) ======
   const testPoi = generateBlankPoi({ name: "Vitest POI-1" });
@@ -78,8 +82,6 @@ export const generateFullMission = (): Mission => {
       { type: "traverse", uuid: testTraverse2.uuid },
       { type: "station", uuid: testStation2.uuid },
     ],
-    egressLocationUuid: testStation.uuid,
-    ingressLocationUuid: testStation2.uuid,
   });
 
   // ====== REX — entries referencing named entities ======
@@ -145,8 +147,8 @@ export const generateFullMission = (): Mission => {
   }
 
   // ====== EVAs ======
-  const eva1Egress = makeLanderStation();
-  const eva1Ingress = makeLanderStation();
+  const eva1Egress = makeLanderStation("egress");
+  const eva1Ingress = makeLanderStation("ingress");
   const eva1 = generateBlankEVA({ name: "Vitest Eva-1 Planned with Rex" });
   eva1.sequence = [
     { uuid: eva1Egress.uuid, type: "station" },
@@ -160,8 +162,8 @@ export const generateFullMission = (): Mission => {
     { uuid: eva1Ingress.uuid, type: "station" },
   ];
 
-  const eva2Egress = makeLanderStation();
-  const eva2Ingress = makeLanderStation();
+  const eva2Egress = makeLanderStation("egress");
+  const eva2Ingress = makeLanderStation("ingress");
   const eva2 = generateBlankEVA({ name: "Vitest Eva-2 Planned No Rex" });
   eva2.traverseRate = 2;
   eva2.sequence = [

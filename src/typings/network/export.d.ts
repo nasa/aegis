@@ -75,8 +75,6 @@ interface ExportEva extends Eva {
   _itemType: string;
   sequenceReadable: (ExportStation | ExportTraverse)[]; // stations and traverses in order
   sequenceRefUuids: EvaSequenceItemRefUuid[];
-  egressLocationRefUuid: string; // station refUuid or "lander"
-  ingressLocationRefUuid: string; // station refUuid or "lander"
   calculatedFields: ExportEvaCalculatedFields;
   rexUuid: string | null; // the rex uuid if this eva is in a rex
 }

@@ -85,7 +85,9 @@ describe("Thunk Mission Tests", () => {
       // EVAs egressing at the lander: their first traverse starts at the new
       // lander location.
       const evaFromLander = Object.values(getMission().evas).find(
-        (e) => e.egressLocationUuid === "lander" && e.sequence.length > 0
+        (e) =>
+          e.sequence.length > 0 &&
+          getMission().stations[e.sequence[0].uuid]?.isLanderXgress === true
       );
       if (evaFromLander) {
         const traverseFromLander = getMission().traverses[evaFromLander.sequence[1].uuid];
@@ -98,7 +100,9 @@ describe("Thunk Mission Tests", () => {
       // EVAs ingressing at the lander: their last traverse ends at the new
       // lander location.
       const evaToLander = Object.values(getMission().evas).find(
-        (e) => e.ingressLocationUuid === "lander" && e.sequence.length > 0
+        (e) =>
+          e.sequence.length > 0 &&
+          getMission().stations[e.sequence[e.sequence.length - 1].uuid]?.isLanderXgress === true
       );
       if (evaToLander) {
         const lastTraverseSeq = evaToLander.sequence[evaToLander.sequence.length - 2];
@@ -288,13 +292,10 @@ describe("Thunk Mission Tests", () => {
     });
 
     it("skips evas with empty sequences (no traverse to update)", async () => {
-      // Set all evas to have empty sequence with lander egress/ingress
       const missionDocHandle = getMissionDocHandle();
       missionDocHandle.change((m: Mission) => {
         for (const e of Object.values(m.evas)) {
           e.sequence = [];
-          e.egressLocationUuid = "lander";
-          e.ingressLocationUuid = "lander";
         }
       });
 

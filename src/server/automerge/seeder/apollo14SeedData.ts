@@ -341,6 +341,7 @@ const stations: { [uuid: string]: Station } = {
     description: "",
     duration: 10,
     elevation: -1063.605,
+    icon: "landerIcon",
     isLanderXgress: true,
     location: {
       lat: -3.645421873728663,
@@ -348,7 +349,7 @@ const stations: { [uuid: string]: Station } = {
     },
     mapCircleControls: {},
     missionId: 1,
-    name: "Lander",
+    name: "Lander Egress",
     ownerId: 1,
     poiUuids: [],
     radius: 5,
@@ -363,6 +364,7 @@ const stations: { [uuid: string]: Station } = {
     description: "",
     duration: 10,
     elevation: -1063.605,
+    icon: "landerIcon",
     isLanderXgress: true,
     location: {
       lat: -3.645421873728663,
@@ -370,7 +372,7 @@ const stations: { [uuid: string]: Station } = {
     },
     mapCircleControls: {},
     missionId: 1,
-    name: "Lander",
+    name: "Lander Ingress",
     ownerId: 1,
     poiUuids: [],
     radius: 5,
@@ -510,7 +512,7 @@ const traverses: { [uuid: string]: Traverse } = {
     description: "",
     duration: null,
     missionId: 1,
-    name: "Lander to Cone Crater",
+    name: "Lander Egress to Cone Crater",
     path: [
       {
         lat: -3.645421873728663,
@@ -602,7 +604,7 @@ const traverses: { [uuid: string]: Traverse } = {
     description: "",
     duration: null,
     missionId: 1,
-    name: "Station 2 to Lander",
+    name: "Station 2 to Lander Ingress",
     path: [
       {
         lat: -3.5999043567467957,
@@ -791,10 +793,6 @@ const evas: { [uuid: string]: Eva } = {
     datetime: null,
     description: "",
     duration: 240,
-    egressDuration: 10,
-    egressLocationUuid: "lander",
-    ingressDuration: 10,
-    ingressLocationUuid: "lander",
     missionId: 1,
     name: "Aqua",
     ownerId: 1,

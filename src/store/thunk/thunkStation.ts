@@ -7,7 +7,6 @@ import {
 } from "store/station";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mapping/geoMath";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
-import { isLanderXgressStation } from "operations/helpers/evaSequence";
 import { thunkFetchElevation } from "./thunkElevation";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
@@ -129,9 +128,8 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
 
     const { locationBefore, locationAfter, nameBefore, nameAfter } = getTraverseEndpoints(
       traverseUuid,
-      { ...eva, sequence: evaSequence },
+      evaSequence,
       mission.stations,
-      mission.landerLocation,
       { uuid: stationUuid, location, name: station.name ?? "" }
     );
 
@@ -359,8 +357,8 @@ export const thunkDocDeleteStations = appCreateAsyncThunk<
 
     // Cannot directly delete an xgress station. Xgress stations are deleted in
     // the REX/EVA delete rather than here.
-    const landerXgressUuids = stationUuids.filter((uuid) =>
-      isLanderXgressStation(mission?.stations?.[uuid])
+    const landerXgressUuids = stationUuids.filter(
+      (uuid) => mission?.stations?.[uuid]?.isLanderXgress
     );
     if (landerXgressUuids.length > 0) {
       const message =
@@ -536,6 +534,8 @@ export const thunkDocSyncStationsWithMission = appCreateAsyncThunk<void>(
 
     // Step 1: Compute all new mapCircleControls and circleUIStates
     allStations.forEach((station) => {
+      // Lander stations have no mapCircleControls, skip.
+      if (station.isLanderXgress) return;
       const oldStationCircleUIStates = getState().station.stationCirclesUIStates[station.uuid];
       const newStationCircleUIStates: CircleUIStates = cloneDeep(oldStationCircleUIStates) || {};
       const newMapCircleControls: MapCircleControls = cloneDeep(station.mapCircleControls) || {};

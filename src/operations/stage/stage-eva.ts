@@ -5,11 +5,10 @@ import { clientLogger } from "utils/logging/clientLogger";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { generateUniqueName } from "utils/names/unique-name";
 import {
-  getEgressSequenceItem,
-  getIngressSequenceItem,
-  getSequenceStationItems,
-  getSequenceTraverseItems,
-  isLanderXgressStation,
+  getEgressStationUuid,
+  getIngressStationUuid,
+  getSequenceStationUuids,
+  getSequenceTraverseUuids,
 } from "operations/helpers/evaSequence";
 
 import { stageDuplicateStation } from "./stage-station";
@@ -62,12 +61,12 @@ export function stageDuplicateEva(
   //
   // If xgress is at lander then they are always duplicated regardless of the `includeStations` flag.
   const stagedStationData: StationDuplicationStageData[] = [];
-  const stationItemsToDuplicate = args.includeStations
-    ? getSequenceStationItems(sourceEva)
-    : getLanderXgressStationItems(mission, sourceEva);
-  for (const stationItem of stationItemsToDuplicate) {
+  const stationUuidsToDuplicate = args.includeStations
+    ? getSequenceStationUuids(sourceEva.sequence)
+    : getLanderXgressStationUuids(mission, sourceEva);
+  for (const sourceStationUuid of stationUuidsToDuplicate) {
     const st = stageDuplicateStation(mission, {
-      sourceStationUuid: stationItem.uuid,
+      sourceStationUuid,
       preserveRefUuid: args.isRexEva,
     });
     if (st) stagedStationData.push(st);
@@ -75,8 +74,7 @@ export function stageDuplicateEva(
 
   // Stage duplications for every traverse in the sequence
   const stagedTraverseData: TraverseDuplicationStageData[] = [];
-  const seqTraverseUuids = getSequenceTraverseItems(sourceEva).map((s) => s.uuid);
-  for (const traverseUuid of seqTraverseUuids) {
+  for (const traverseUuid of getSequenceTraverseUuids(sourceEva.sequence)) {
     const ts = stageDuplicateTraverse(mission, {
       sourceTraverseUuid: traverseUuid,
       preserveRefUuid: args.isRexEva,
@@ -127,11 +125,10 @@ export function stageDuplicateEva(
  * Gets the lander stations sitting in this EVA's xgress positions.
  * Returns empty array if there is no lander station in either position.
  */
-function getLanderXgressStationItems(mission: Mission, eva: Eva): EvaSequenceItem[] {
-  const xgressItems = [getEgressSequenceItem(eva), getIngressSequenceItem(eva)].filter(
-    (item): item is EvaSequenceItem => item !== null
+function getLanderXgressStationUuids(mission: Mission, eva: Eva): string[] {
+  return [getEgressStationUuid(eva.sequence), getIngressStationUuid(eva.sequence)].filter(
+    (uuid) => uuid && mission.stations?.[uuid]?.isLanderXgress
   );
-  return xgressItems.filter((item) => isLanderXgressStation(mission.stations?.[item.uuid]));
 }
 
 /**
@@ -155,7 +152,7 @@ export function stageDeleteEva(
   if (!eva) return undefined;
 
   // Collect traverse uuids in this EVA
-  const traverseUuids: string[] = getSequenceTraverseItems(eva).map((s) => s.uuid);
+  const traverseUuids: string[] = getSequenceTraverseUuids(eva.sequence);
 
   // Collect all actions hanging off those traverses
   const traverseActionUuids: string[] = Object.values(mission.actions ?? {})
@@ -168,8 +165,8 @@ export function stageDeleteEva(
   // If deleting a rex, all stations must be deleted.
   // Otherwise only delete the lander xgress stations since those are copies.
   stationUuids = args.forRex
-    ? getSequenceStationItems(eva).map((s) => s.uuid)
-    : getLanderXgressStationItems(mission, eva).map((item) => item.uuid);
+    ? getSequenceStationUuids(eva.sequence)
+    : getLanderXgressStationUuids(mission, eva);
   stationUuids = [...new Set(stationUuids)];
 
   if (stationUuids.length > 0) {
@@ -199,7 +196,7 @@ export function stageDeleteEva(
       const rexEva = mission.evas?.[rexEvaUuid];
       if (!rexEva) continue;
 
-      const rexTraverseUuids = getSequenceTraverseItems(rexEva).map((s) => s.uuid);
+      const rexTraverseUuids = getSequenceTraverseUuids(rexEva.sequence);
       traverseUuids.push(...rexTraverseUuids);
 
       const rexTraverseActionUuids = Object.values(mission.actions ?? {})
@@ -207,7 +204,7 @@ export function stageDeleteEva(
         .map((a) => a.uuid);
       traverseActionUuids.push(...rexTraverseActionUuids);
 
-      const rexStationUuids = getSequenceStationItems(rexEva).map((s) => s.uuid);
+      const rexStationUuids = getSequenceStationUuids(rexEva.sequence);
       stationUuids.push(...rexStationUuids);
 
       const rexStationActionUuids = Object.values(mission.actions ?? {})

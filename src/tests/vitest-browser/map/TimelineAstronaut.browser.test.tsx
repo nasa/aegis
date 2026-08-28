@@ -107,8 +107,6 @@ function makeEva(uuid: string, sequence: { uuid: string; type: string }[]): Eva 
     uuid,
     name: "E",
     traverseColor: "#abc",
-    egressLocationUuid: "lander",
-    ingressLocationUuid: "lander",
     sequence,
     updatedAt: new Date().toISOString(),
   } as unknown as Eva;

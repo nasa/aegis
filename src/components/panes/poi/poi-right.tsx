@@ -22,7 +22,7 @@ import Report_Panel from "../report";
 import { getAlertColor } from "utils/component-helpers";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
-import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
+import { getCalcFieldsForPoi } from "store/processing/calculatedFields";
 import isNull from "lodash/isNull";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
@@ -48,7 +48,7 @@ const PoiEditorRight: FunctionComponent = () => {
     const poiActions = Object.values(docMaps.actions).filter(
       (a) => a.poiUuid === selectedPoiUuid && a.enabled
     );
-    return getCalculatedFieldsByPoi({ poiUuid: selectedPoiUuid, poiActions })?.reportItems ?? [];
+    return getCalcFieldsForPoi({ poiUuid: selectedPoiUuid, poiActions })?.reportItems ?? [];
   }, [docMaps, selectedPoiUuid]);
   const otherPoiNames = useMemo(
     () =>

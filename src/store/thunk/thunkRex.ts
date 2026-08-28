@@ -269,7 +269,7 @@ export const thunkDocCreateInitialPosEntries = appCreateAsyncThunk<{ rexUuid: st
     // Step 1: Build the new pos entries from the running REX's pos sources and types.
     const rex = doc.rexes?.[rexUuid];
     const rexEva = doc.evas?.[rex.evaUuid];
-    const egressStation = doc.stations?.[getEgressStationUuid(rexEva)];
+    const egressStation = doc.stations?.[getEgressStationUuid(rexEva?.sequence)];
 
     const newPosEntries: PosEntry[] = [];
     for (const posSource of rex?.posSources ?? []) {

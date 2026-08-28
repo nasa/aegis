@@ -1,9 +1,7 @@
 import {
-  LANDER_UUID,
-  getEgressSequenceItem,
+  getEgressStationUuid,
   getIngressIndex,
-  getIngressSequenceItem,
-  isLanderXgressStation,
+  getIngressStationUuid,
 } from "operations/helpers/evaSequence";
 import { generateLanderXgressStation } from "store/storeUtils/station";
 
@@ -43,17 +41,19 @@ export function stageEvaXgressChange(
   const eva = mission.evas?.[evaUuid];
   if (!eva) return undefined;
 
-  const sequenceItem =
-    xgressType === "egress" ? getEgressSequenceItem(eva) : getIngressSequenceItem(eva);
-  const sequenceIndex = xgressType === "egress" ? 0 : getIngressIndex(eva);
-  if (!sequenceItem || sequenceIndex === -1) return undefined;
+  const oldStationUuid =
+    xgressType === "egress"
+      ? getEgressStationUuid(eva.sequence)
+      : getIngressStationUuid(eva.sequence);
+  const sequenceIndex = xgressType === "egress" ? 0 : getIngressIndex(eva.sequence);
+  if (!oldStationUuid || sequenceIndex === -1) return undefined;
 
-  const oldStation = mission.stations?.[sequenceItem.uuid];
-  const oldIsLanderCopy = isLanderXgressStation(oldStation);
-  const toLander = newStationUuidOrLander === LANDER_UUID;
+  const oldStation = mission.stations?.[oldStationUuid];
+  const oldIsLanderCopy = oldStation?.isLanderXgress === true;
+  const toLander = newStationUuidOrLander === "lander";
 
   // No-op when the new uuid is the same as the old one
-  const currentLocationUuid = oldIsLanderCopy ? LANDER_UUID : sequenceItem.uuid;
+  const currentLocationUuid = oldIsLanderCopy ? "lander" : oldStationUuid;
   if (currentLocationUuid === newStationUuidOrLander) return undefined;
 
   // ── Handle the new station ───────────────────────────────────────────
@@ -64,6 +64,7 @@ export function stageEvaXgressChange(
   if (toLander) {
     // Changing to lander. Create a new station
     newLanderStation = generateLanderXgressStation(mission, {
+      xgressType,
       ownerId: args.ownerId,
       duration: oldStation?.duration, // Set duration of the new lander copy to the old station's duration
     });
@@ -85,7 +86,7 @@ export function stageEvaXgressChange(
   // ── Handle the old station ──────────────────────────────────────────
   // Old station is deleted if it was a lander, or if this is a rex eva.
   const needToDeleteOldStation = oldIsLanderCopy || isRexEva;
-  const stationUuidToDelete = needToDeleteOldStation ? sequenceItem.uuid : undefined;
+  const stationUuidToDelete = needToDeleteOldStation ? oldStationUuid : undefined;
   const actionUuidsToDelete = stationUuidToDelete
     ? Object.values(mission.actions ?? {})
         .filter((a) => a.stationUuid === stationUuidToDelete)

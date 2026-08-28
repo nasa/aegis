@@ -37,8 +37,6 @@ function buildEvaWithStation(
   overrides: Partial<Eva> = {}
 ): Eva {
   return generateBlankEVA({
-    egressLocationUuid: "lander",
-    ingressLocationUuid: "lander",
     sequence: [
       { type: "traverse", uuid: traverseBefore.uuid },
       { type: "station", uuid: station.uuid },
@@ -81,8 +79,6 @@ describe("opUpdateMdau() — stations", () => {
   it("updates a station's name and duration by refUuid (as-planned)", () => {
     const station = generateBlankStation({ name: "Vitest Alpha", duration: 10 });
     const eva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ type: "station", uuid: station.uuid }],
     });
 
@@ -114,8 +110,6 @@ describe("opUpdateMdau() — stations", () => {
   it("does not write when nothing changed", () => {
     const station = generateBlankStation({ name: "Vitest Alpha", duration: 10 });
     const eva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ type: "station", uuid: station.uuid }],
     });
 
@@ -180,8 +174,6 @@ describe("opUpdateMdau() — stations", () => {
     const actionB = generateBlankAction({ stationUuid: station.uuid });
     station.actionOrderUuids = [actionA.uuid, actionB.uuid];
     const eva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ type: "station", uuid: station.uuid }],
     });
 
@@ -217,8 +209,6 @@ describe("opUpdateMdau() — stations", () => {
     const actionA = generateBlankAction({ stationUuid: station.uuid });
     station.actionOrderUuids = [actionA.uuid];
     const eva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ type: "station", uuid: station.uuid }],
     });
 
@@ -244,6 +234,78 @@ describe("opUpdateMdau() — stations", () => {
 
     expect(handle.doc().stations[station.uuid].actionOrderUuids).toEqual([actionA.uuid]);
   });
+
+  it("writes updates to a lander xgress station at the egress/ingress ends", () => {
+    // Lander xgress stations are ordinary sequence members at index 0 and the
+    // last index, so an MDAU update must reach them like any other station.
+    const landerLocation: AEGISPoint = { lat: 1, lng: 2 };
+    const egressStation = generateBlankStation({
+      name: "Lander Egress",
+      isLanderXgress: true,
+      duration: 20,
+      location: { ...landerLocation },
+    });
+    const ingressStation = generateBlankStation({
+      name: "Lander Ingress",
+      isLanderXgress: true,
+      duration: 20,
+      location: { ...landerLocation },
+    });
+    const middleStation = generateBlankStation({ name: "Vitest Alpha" });
+    const traverseOut = generateBlankTraverse({ name: "Lander Egress to Vitest Alpha" });
+    const traverseBack = generateBlankTraverse({ name: "Vitest Alpha to Lander Ingress" });
+    const eva = generateBlankEVA({
+      sequence: [
+        { type: "station", uuid: egressStation.uuid },
+        { type: "traverse", uuid: traverseOut.uuid },
+        { type: "station", uuid: middleStation.uuid },
+        { type: "traverse", uuid: traverseBack.uuid },
+        { type: "station", uuid: ingressStation.uuid },
+      ],
+    });
+
+    const handle = getMissionDocHandle();
+    handle.change((m) => {
+      m.stations[egressStation.uuid] = egressStation;
+      m.stations[middleStation.uuid] = middleStation;
+      m.stations[ingressStation.uuid] = ingressStation;
+      m.traverses[traverseOut.uuid] = traverseOut;
+      m.traverses[traverseBack.uuid] = traverseBack;
+      m.evas[eva.uuid] = eva;
+    });
+
+    const now = Date.now();
+    runMdau(handle, {
+      aegisStations: {
+        [egressStation.refUuid]: {
+          refUuid: egressStation.refUuid,
+          name: "Renamed Egress",
+          duration: 30,
+          actionOrderRefUuids: null,
+          updatedAt: now,
+        },
+        [ingressStation.refUuid]: {
+          refUuid: ingressStation.refUuid,
+          name: "Renamed Ingress",
+          duration: 35,
+          actionOrderRefUuids: null,
+          updatedAt: now,
+        },
+      },
+    });
+
+    const doc = handle.doc();
+    expect(doc.stations[egressStation.uuid].name).toBe("Renamed Egress");
+    expect(doc.stations[egressStation.uuid].duration).toBe(30);
+    expect(doc.stations[egressStation.uuid].updatedAt).toBe(now);
+    expect(doc.stations[ingressStation.uuid].name).toBe("Renamed Ingress");
+    expect(doc.stations[ingressStation.uuid].duration).toBe(35);
+    expect(doc.stations[ingressStation.uuid].updatedAt).toBe(now);
+
+    // Renaming an xgress station cascades to its single adjacent traverse.
+    expect(doc.traverses[traverseOut.uuid].name).toContain("Renamed Egress");
+    expect(doc.traverses[traverseBack.uuid].name).toContain("Renamed Ingress");
+  });
 });
 
 // ── opUpdateMdau: traverses ──────────────────────────────────────────────────
@@ -252,8 +314,6 @@ describe("opUpdateMdau() — traverses", () => {
   it("updates a traverse's duration by refUuid", () => {
     const traverse = generateBlankTraverse({ name: "Vitest Path", duration: 5 });
     const eva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ type: "traverse", uuid: traverse.uuid }],
     });
 
@@ -284,13 +344,9 @@ describe("opUpdateMdau() — traverses", () => {
 // ── opUpdateMdau: evas ───────────────────────────────────────────────────────
 
 describe("opUpdateMdau() — evas", () => {
-  it("updates an as-planned EVA's name and ingress/egress durations", () => {
+  it("updates an as-planned EVA's name and datetime", () => {
     const eva = generateBlankEVA({
       name: "Vitest EVA",
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
-      ingressDuration: 100,
-      egressDuration: 100,
       sequence: [],
     });
 
@@ -308,8 +364,6 @@ describe("opUpdateMdau() — evas", () => {
           maestroEventId: "evt-1",
           maestroEventUrl: "https://maestro.example/1",
           sequenceRefUuids: [],
-          ingressDuration: 250,
-          egressDuration: 300,
           datetime: now,
           updatedAt: now,
         },
@@ -318,8 +372,6 @@ describe("opUpdateMdau() — evas", () => {
 
     const updated = handle.doc().evas[eva.uuid];
     expect(updated.name).toBe("Vitest EVA Renamed");
-    expect(updated.ingressDuration).toBe(250);
-    expect(updated.egressDuration).toBe(300);
     expect(updated.datetime).toBe(now);
     expect(updated.updatedAt).toBe(now);
   });
@@ -333,8 +385,6 @@ describe("opUpdateMdau() — actions", () => {
     const action = generateBlankAction({ stationUuid: station.uuid, crewAssigned: ["EV1"] });
     station.actionOrderUuids = [action.uuid];
     const eva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ type: "station", uuid: station.uuid }],
     });
 
@@ -370,9 +420,19 @@ describe("opUpdateMdau() — rexes", () => {
     const traverse = generateBlankTraverse({ name: "Vitest Path" });
     const action = generateBlankAction({ stationUuid: station.uuid });
     station.actionOrderUuids = [action.uuid];
-    // Egress and ingress are real lander-pinned stations at either end.
-    const egressStation = generateBlankStation({ name: "Egress", isLanderXgress: true });
-    const ingressStation = generateBlankStation({ name: "Ingress", isLanderXgress: true });
+    // Egress and ingress are real lander-pinned stations at either end. Their
+    // location mirrors the lander's, and posEntries seed from it.
+    const landerLocation: AEGISPoint = { lat: 1, lng: 2 };
+    const egressStation = generateBlankStation({
+      name: "Egress",
+      isLanderXgress: true,
+      location: { ...landerLocation },
+    });
+    const ingressStation = generateBlankStation({
+      name: "Ingress",
+      isLanderXgress: true,
+      location: { ...landerLocation },
+    });
     const eva = generateBlankEVA({
       sequence: [
         { type: "station", uuid: egressStation.uuid },
@@ -464,8 +524,6 @@ describe("opUpdateMdau() — rexes", () => {
 
     // Add a second, already-running rex to a second EVA.
     const otherEva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [],
     });
     const otherRex = generateBlankRex({ evaUuid: otherEva.uuid, isRunning: true });
@@ -497,11 +555,8 @@ describe("opUpdateMdau() — rexes", () => {
     expect(doc.rexes[otherRex.uuid].isRunning).toBe(false);
   });
 
-  it("generates initial posEntries from the egress lander location when starting", () => {
-    const { handle, rex } = buildRexMission();
-    handle.change((m) => {
-      m.landerLocation = { lat: 1, lng: 2 };
-    });
+  it("generates initial posEntries from the egress station's location when starting", () => {
+    const { handle, rex, egressStation } = buildRexMission();
 
     runMdau(handle, {
       aegisRexes: {
@@ -523,6 +578,9 @@ describe("opUpdateMdau() — rexes", () => {
 
     const updated = handle.doc().rexes[rex.uuid];
     expect(updated.posEntries?.length).toBe(rex.posSources.length);
+    for (const entry of updated.posEntries) {
+      expect(entry.location).toEqual(egressStation.location);
+    }
   });
 });
 
@@ -532,8 +590,6 @@ describe("opUpdateMdau() — subscription gating", () => {
   it("ignores station data for an EVA that Maestro is not subscribed to", () => {
     const station = generateBlankStation({ name: "Vitest Alpha", duration: 10 });
     const eva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ type: "station", uuid: station.uuid }],
     });
 
@@ -569,13 +625,9 @@ describe("opUpdateMdau() — subscription gating", () => {
     const subscribedStation = generateBlankStation({ name: "Subscribed", duration: 10 });
     const unsubscribedStation = generateBlankStation({ name: "Unsubscribed", duration: 10 });
     const subscribedEva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ type: "station", uuid: subscribedStation.uuid }],
     });
     const unsubscribedEva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ type: "station", uuid: unsubscribedStation.uuid }],
     });
 
@@ -622,8 +674,6 @@ describe("opUpdateMdau() — subscription gating", () => {
     const action = generateBlankAction({ stationUuid: station.uuid, crewAssigned: ["EV1"] });
     station.actionOrderUuids = [action.uuid];
     const eva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ type: "station", uuid: station.uuid }],
     });
 
@@ -653,8 +703,6 @@ describe("opUpdateMdau() — subscription gating", () => {
 
   it("ignores rex data for an unsubscribed EVA", () => {
     const eva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [],
     });
     const rex = generateBlankRex({ evaUuid: eva.uuid, isRunning: false, maestroControlled: false });
