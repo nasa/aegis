@@ -115,7 +115,6 @@ z:db-export:oxygen:
     # print last 100 lines to job output
     - sudo docker compose logs nginx --tail 100
     - sudo docker compose logs database --tail 100
-    - sudo docker compose logs gdal --tail 100
     - sudo docker compose logs apiv1 --tail 100
     - sudo journalctl --unit=rsyslog -n 200 --no-pager
 
@@ -123,7 +122,6 @@ z:db-export:oxygen:
     # limit, and generally make the job log un-readably long
     - sudo docker compose logs nginx > "${LOG_ARTIFACTS}/nginx"
     - sudo docker compose logs database > "${LOG_ARTIFACTS}/database"
-    - sudo docker compose logs gdal > "${LOG_ARTIFACTS}/gdal"
     - sudo docker compose logs apiv1 > "${LOG_ARTIFACTS}/apiv1"
     - sudo journalctl --unit=rsyslog --no-pager > "${LOG_ARTIFACTS}/host-rsyslog"
 

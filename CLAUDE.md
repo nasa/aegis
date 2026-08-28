@@ -18,7 +18,7 @@ npm run vite:dev
 # Backend only (with hot reload)
 npm run api:dev
 
-# Start required Docker services (PostgreSQL + GDAL)
+# Start required Docker services (PostgreSQL)
 npm run docker:services
 
 # Build everything
@@ -113,6 +113,9 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
 ### Backend
 
 - **Express 5** REST API on port 4001. Routes are organized by resource under `src/server/express/routes/`. REST routes cover infrastructure and admin concerns (auth, users, doc listings, elevation, STM rules, folders, grids, layers, presets, mission management utilities). Entity create/read/update/delete for action/eva/poi/rex/station/traverse is **not** handled via REST — those operations go through Automerge.
+- **Elevation sampling** runs natively in the API through `src/server/raster/` and
+  `src/server/elevation/`. It reads each mission's configured GeoTIFF directly from `STATIC_DIR`;
+  there is no separate GDAL/Python runtime service.
 - **MikroORM 6** with PostgreSQL. Entity models live in `src/server/database/models/`. DB models still exist for legacy entities (action, eva, poi, rex, station, traverse) and are used by the Automerge migration script, but these entities are no longer read/written via ORM at runtime. Every request runs inside a `RequestContext` middleware for ORM isolation.
 - **Socket.io** runs on **two separate Socket.IO server instances**:
   - **New server** (path `/api/socket`) — hosts the default AEGIS namespace and the Maestro v2 namespace.
