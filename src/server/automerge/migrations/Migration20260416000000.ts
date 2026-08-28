@@ -7,7 +7,7 @@ import {
   Rex_db,
   Station_db,
   Traverse_db,
-} from "server/database/models/_allModels";
+} from "server/database/models/_legacyModels";
 import { migrateLegacyCircleControlHaloStyles } from "store/storeUtils/preset";
 import { serverLogger } from "utils/logging/serverLogger";
 
