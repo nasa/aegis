@@ -52,6 +52,7 @@ export default defineConfig(
           "src/server/automerge/migration.ts",
           "src/server/automerge/integrityCheck.ts",
           "src/server/automerge/automerge-repo-storage-postgres.ts",
+          "src/server/automerge/seeder/seedApollo14.ts",
         ],
       },
       globalSetup: [path.resolve(__dirname, "./vitest.globalSetup.ts")],
