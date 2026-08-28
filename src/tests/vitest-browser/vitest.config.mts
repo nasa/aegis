@@ -51,7 +51,22 @@ export default defineConfig(
         provider: "v8",
         reporter: ["text", "text-summary"],
         include: ["src/**/*.{js,jsx,ts,tsx}"],
-        exclude: ["src/**/*.d.ts", "src/**/*.test.ts", "src/**/*.test.tsx", "src/tests/**"],
+        exclude: [
+          "src/**/*.d.ts",
+          "src/**/*.test.ts",
+          "src/**/*.test.tsx",
+          "src/tests/**",
+          "src/server/database/migrations/**",
+          // Rollup's native WASM parser (used by coverage-v8 remapCoverage) cannot
+          // parse TypeScript syntax such as `import type { }`. These server entry-point
+          // files use TypeScript-only syntax and are not unit-testable anyway.
+          "src/server/express/server.ts",
+          "src/server/automerge/bootstrap.ts",
+          "src/server/automerge/migration.ts",
+          "src/server/automerge/integrityCheck.ts",
+          "src/server/automerge/automerge-repo-storage-postgres.ts",
+          "src/server/automerge/seeder/seedApollo14.ts",
+        ],
       },
       testTimeout: 15000,
     },

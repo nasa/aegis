@@ -49,9 +49,11 @@ export default defineConfig(
           // parse TypeScript syntax such as `import type { }`. These server entry-point
           // files use TypeScript-only syntax and are not unit-testable anyway.
           "src/server/express/server.ts",
+          "src/server/automerge/bootstrap.ts",
           "src/server/automerge/migration.ts",
           "src/server/automerge/integrityCheck.ts",
           "src/server/automerge/automerge-repo-storage-postgres.ts",
+          "src/server/automerge/seeder/seedApollo14.ts",
         ],
       },
       globalSetup: [path.resolve(__dirname, "./vitest.globalSetup.ts")],
