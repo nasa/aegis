@@ -455,8 +455,6 @@ describe("checkMissionIntegrity()", () => {
       const mission = makeEmptyMission();
       const eva = generateBlankEVA({
         name: "Vitest EVA-1",
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
         sequence: [],
       });
       const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
@@ -566,8 +564,6 @@ describe("checkMissionIntegrity()", () => {
       const action = generateBlankAction({ name: "Vitest A1" });
       const eva = generateBlankEVA({
         name: "Vitest EVA-1",
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
         sequence: [],
       });
       const rex = generateBlankRex({

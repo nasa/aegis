@@ -1,8 +1,8 @@
 import type { FunctionComponent, MutableRefObject } from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  getCalculatedFieldsByStation,
-  getCalculatedFieldsByTraverse,
+  getCalcFieldsForStation,
+  getCalcFieldsForTraverse,
 } from "store/processing/calculatedFields";
 import { deepEqual } from "utils/useAppSelector";
 import { processEvaDataFromStore } from "../../interface/timeline/common-timeline";
@@ -57,7 +57,7 @@ const DashTimeline: FunctionComponent = () => {
         (a) => a.stationUuid === stationSeqItem.uuid && a.enabled
       );
       allStationCalculatedFields.push(
-        getCalculatedFieldsByStation({
+        getCalcFieldsForStation({
           station,
           missionWalkbackRate: partialMission.walkbackRate,
           stationActions,
@@ -78,7 +78,7 @@ const DashTimeline: FunctionComponent = () => {
         (a) => a.traverseUuid === traverseSeqItem.uuid && a.enabled
       );
       allTraverseCalculatedFields.push(
-        getCalculatedFieldsByTraverse({
+        getCalcFieldsForTraverse({
           traverse,
           missionTraverseRate: partialMission.traverseRate,
           evaTraverseRate: traverseEva?.traverseRate,

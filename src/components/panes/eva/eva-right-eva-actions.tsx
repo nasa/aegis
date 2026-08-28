@@ -6,7 +6,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { useAppSelector, refEqual, deepEqual, shallowEqual } from "utils/useAppSelector";
 import { ActionsTopSection, ActionsListHeadings, ActionList } from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
-import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
+import { getCalcFieldsForEva } from "store/processing/calculatedFields";
 import { EmojiRenderer } from "components/interface/emojis";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getHighlightedActions } from "store/selectors";
@@ -58,7 +58,7 @@ const Actions_Panel: FunctionComponent = () => {
     if (!docMaps) return undefined;
     const sequenceStationUuids = new Set(sequenceStations.map((s) => s.uuid));
     const sequenceTraverseUuids = new Set(sequenceTraverses.map((t) => t.uuid));
-    const evaCalculatedFields = getCalculatedFieldsByEva({
+    const evaCalculatedFields = getCalcFieldsForEva({
       eva: selectedEva,
       evaStations: sequenceStations,
       missionWalkbackRate: partialMission.walkbackRate,
@@ -76,6 +76,7 @@ const Actions_Panel: FunctionComponent = () => {
       totalUnassignedTime: evaCalculatedFields.totalUnassignedTime,
       totalDwellTime: evaCalculatedFields.totalDwellTime,
       totalMass: evaCalculatedFields.totalMass,
+      totalEquipmentItems: evaCalculatedFields.totalEquipmentItems,
     };
   }, [
     selectedEva,

@@ -63,37 +63,38 @@ export const processEvaDataFromStore = ({
       icon: null,
     };
 
-    //get station or traverse
+    // Get station or traverse
     if (sequenceItem.type === "station") {
       const station = evaStations.find((s) => s?.uuid === sequenceItem.uuid);
-      if (!station) continue; //skip if station doesn't exist (happens when station hasn't been selected yet when editing sequence)
+      if (!station) continue; // Skip if station doesn't exist (happens when station hasn't been selected yet when editing sequence)
 
       EVASequenceItemForTimeline.name = station.name;
       EVASequenceItemForTimeline.stationElevation = station.elevation ? station.elevation : null;
       EVASequenceItemForTimeline.icon = station.icon;
 
-      //get traverse rate for this sequence item in meters per second (eva rate falling back to mission rate)
+      // Get traverse rate for this sequence item in meters per second (eva rate falling back to mission rate)
       const traverseRate = isNumber(selectedEva.traverseRate)
         ? selectedEva.traverseRate
         : partialMission.traverseRate;
-      EVASequenceItemForTimeline.traverseRateMSec = traverseRate * (1000 / 3600); //convert to m/sec
+      EVASequenceItemForTimeline.traverseRateMSec = traverseRate * (1000 / 3600); // Convert to m/sec
 
-      // get calculatedFieldValues for this station
+      // Get calculatedFieldValues for this station
       const stationCalculatedFields = stationCalculatedFieldsInSelectedEva.find(
         (calculated) => calculated?.uuid === station.uuid
       );
 
-      //calculate duration from actions assigned to station
-      // note: this is the "dwell time" which is crew member time spent at the station that is the longest
-      const durationMinutes = isNotNumber(station?.duration)
+      // Calculate duration from actions assigned to station
+      // Note: this is the "dwell time" which is crew member time spent at the station that is the longest
+      // Can be overridden by a manual duration
+      const resolvedDurationMinutes = isNotNumber(station?.duration)
         ? stationCalculatedFields?.totalDwellTime
         : station.duration;
 
-      EVASequenceItemForTimeline.totalDurationMins = durationMinutes;
-      storeRef.current.evaLengthCalculatedMins += durationMinutes; //add to sum for total length calculated
+      EVASequenceItemForTimeline.totalDurationMins = resolvedDurationMinutes;
+      storeRef.current.evaLengthCalculatedMins += resolvedDurationMinutes; // Add to sum for total length calculated
 
       if (partialMission.landerLocation) {
-        //calculate distance to lander
+        // Calculate distance to lander
         const landerDistance = getDistanceBetweenTwoCoordinates(
           station.location,
           partialMission.landerLocation,
@@ -104,7 +105,7 @@ export const processEvaDataFromStore = ({
           storeRef.current.maxDistFromLanderMeters = landerDistance;
         EVASequenceItemForTimeline.stationDistFromLanderMeters = landerDistance;
 
-        //calculate walkback path if this station has a walkback
+        // Calculate walkback path if this station has a walkback
         if (station.walkbackPath) {
           const walkback: Path_PaperJS = {
             subdividedPath: null,
@@ -115,7 +116,7 @@ export const processEvaDataFromStore = ({
             segmentedDistancesMeters: station.walkbackPathSegmentDistances,
           };
 
-          //find max/min of elevation
+          // Find max/min of elevation
           if (station.walkbackPathSegmentElevations) {
             for (const elevationSegment of station.walkbackPathSegmentElevations) {
               for (const elevation of elevationSegment) {
@@ -135,7 +136,7 @@ export const processEvaDataFromStore = ({
             }
           }
 
-          // subdivide each segment by for greater accuracy
+          // Subdivide each segment by for greater accuracy
           const divisor = stationCalculatedFields.walkbackDistanceMeters * 0.01; //meters
           const newWalkbackPath: AEGISPoint[] = addPointsAtMeters(
             station.walkbackPath,
@@ -144,9 +145,9 @@ export const processEvaDataFromStore = ({
           );
           walkback.subdividedPath = newWalkbackPath;
 
-          //loop through new subdivided walkback path
+          // Loop through new subdivided walkback path
           for (let i = 0; i < newWalkbackPath.length; i++) {
-            //calculate distance from lander. Track max distance
+            // Calculate distance from lander. Track max distance
             const landerDistance = getDistanceBetweenTwoCoordinates(
               newWalkbackPath[i],
               partialMission.landerLocation,
@@ -157,7 +158,7 @@ export const processEvaDataFromStore = ({
               storeRef.current.maxDistFromLanderMeters = landerDistance;
             walkback.subdividedDistFromLanderMeters.push(landerDistance);
 
-            //calculate duration. distance is in m, rate is in km/h, duration is in minutes
+            // Calculate duration. distance is in m, rate is in km/h, duration is in minutes
             if (i !== newWalkbackPath.length - 1) {
               const distanceSegment = getDistanceBetweenTwoCoordinates(
                 newWalkbackPath[i],
@@ -176,14 +177,14 @@ export const processEvaDataFromStore = ({
             }
           }
 
-          //set walkback data
+          // Set walkback data
           EVASequenceItemForTimeline.stationWalkback = walkback;
         }
       }
     } else if (sequenceItem.type === "traverse") {
       const traverse = evaTraverses.find((t) => t?.uuid === sequenceItem?.uuid);
 
-      if (!traverse || traverse?.path?.length < 2) continue; //skip traverses with less than 2 points
+      if (!traverse || traverse?.path?.length < 2) continue; // Skip traverses with less than 2 points
       EVASequenceItemForTimeline.name = traverse.name;
       EVASequenceItemForTimeline.traverse = {
         subdividedPath: null,
@@ -193,13 +194,13 @@ export const processEvaDataFromStore = ({
         segmentedElevationMeters: traverse.pathSegmentElevations,
       };
 
-      //set the traverse rate for the sequence item in meters per second
-      //(traverse field value, falling back to eva rate, falling back to mission rate)
+      // Set the traverse rate for the sequence item in meters per second
+      // (traverse field value, falling back to eva rate, falling back to mission rate)
       const traverseRate =
         traverse.traverseRate || selectedEva.traverseRate || partialMission.traverseRate;
       EVASequenceItemForTimeline.traverseRateMSec = traverseRate * (1000 / 3600);
 
-      //find max/min of elevation
+      // Find max/min of elevation
       if (traverse.pathSegmentElevations) {
         for (const elevationSegment of traverse.pathSegmentElevations) {
           for (const elevation of elevationSegment) {
@@ -218,12 +219,12 @@ export const processEvaDataFromStore = ({
           }
         }
       }
-      // get calculatedFieldValues for this traverse
+      // Get calculatedFieldValues for this traverse
       const calculatedFields = traverseCalculatedFieldsInSelectedEva.find(
         (calculated) => calculated?.uuid === traverse.uuid
       );
 
-      //subdivide each traverse segment for greater accuracy
+      // Subdivide each traverse segment for greater accuracy
       const divisor = calculatedFields.distanceMeters * 0.01; //meters
       const newTraverse: AEGISPoint[] = addPointsAtMeters(
         traverse.path,
@@ -234,11 +235,11 @@ export const processEvaDataFromStore = ({
 
       const durationIsManual = !isNotNumber(traverse.duration);
 
-      //loop through new subdivided traverse
+      // Loop through new subdivided traverse
       let calculatedDuration = 0;
       for (let i = 0; i < newTraverse.length; i++) {
         if (partialMission.landerLocation) {
-          //calculate distance from lander. Track max distance
+          // Calculate distance from lander. Track max distance
           const landerDistance = getDistanceBetweenTwoCoordinates(
             newTraverse[i],
             partialMission.landerLocation,
@@ -249,7 +250,7 @@ export const processEvaDataFromStore = ({
           EVASequenceItemForTimeline.traverse.subdividedDistFromLanderMeters.push(landerDistance);
         }
 
-        //calculate duration. distance is in m, rate is in km/h, duration is in minutes
+        // Calculate duration. distance is in m, rate is in km/h, duration is in minutes
         if (i !== newTraverse.length - 1) {
           const distanceSegment = getDistanceBetweenTwoCoordinates(
             newTraverse[i],
@@ -267,15 +268,16 @@ export const processEvaDataFromStore = ({
       }
 
       if (durationIsManual) {
-        // assign total duration for the traverse and add it to the eva total duration
+        // Assign total duration for the traverse and add it to the eva total duration
         EVASequenceItemForTimeline.totalDurationMins = traverse.duration;
         storeRef.current.evaLengthCalculatedMins += traverse.duration;
       } else {
-        // add traverse action durations onto the total duration for the traverse        // note: this is the "dwell time" which is crew member time spent at the traverse actions that is the longest
+        // Add traverse action durations onto the total duration for the traverse
+        // note: this is the "dwell time"
         const actionDurationMins = calculatedFields?.totalDwellTime;
         const calcTraversePlusActionDuration = Math.ceil(calculatedDuration) + actionDurationMins;
 
-        // assign total duration for the traverse and add it to the eva total duration
+        // Assign total duration for the traverse and add it to the eva total duration
         EVASequenceItemForTimeline.totalDurationMins = calcTraversePlusActionDuration;
         storeRef.current.evaLengthCalculatedMins += calcTraversePlusActionDuration;
       }
@@ -283,7 +285,7 @@ export const processEvaDataFromStore = ({
     storeRef.current.sequenceItems.push(EVASequenceItemForTimeline);
   }
 
-  //loop through any crew positions (for rex) to check max graph ranges
+  // Loop through any crew positions (for rex) to check max graph ranges
   if (!selectedRex?.posEntries) return;
   for (const posEntry of selectedRex.posEntries) {
     if (!posEntry.location) continue; //new crew pos don't have location yet

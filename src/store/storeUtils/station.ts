@@ -1,7 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { getAccurateNow } from "utils/formatting";
 import cloneDeep from "lodash/cloneDeep";
-import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 /**
  * Generate a blank station
@@ -20,6 +19,7 @@ export const generateBlankStation = (partialStation?: Partial<Station>): Station
     status: "Candidate",
     description: "",
     icon: null,
+    isLanderXgress: false,
     radius: 5,
     location: null,
     elevation: null,
@@ -36,29 +36,22 @@ export const generateBlankStation = (partialStation?: Partial<Station>): Station
 };
 
 /**
- * Build a lander station to be used as xgress for an EVA
+ * Build a lander station to be used as xgress for an EVA.
  */
 export function generateLanderXgressStation(
   mission: Mission,
-  args?: { ownerId?: number; duration?: number | null }
+  args: { xgressType: "egress" | "ingress"; ownerId?: number; duration?: number | null }
 ): Station {
-  // Mirror the circle controls a user-created station gets so lander stations
-  // render consistently with the rest of the map.
-  const mapCircleControls: MapCircleControls = {};
-  for (const uuid of Object.keys(mission.circleDefinitions ?? {})) {
-    mapCircleControls[uuid] = { uuid, visible: false, style: cloneDeep(defaultSublayerStyle) };
-  }
-
   return generateBlankStation({
     uuid: uuidv4(),
     refUuid: uuidv4(),
     missionId: mission.id,
-    ownerId: args?.ownerId ?? 0,
-    name: "Lander",
+    ownerId: args.ownerId ?? 0,
+    name: args.xgressType === "egress" ? "Lander Egress" : "Lander Ingress",
+    icon: "landerIcon",
     isLanderXgress: true,
     location: cloneDeep(mission.landerLocation),
     elevation: mission.landerElevationMeters ?? null,
-    duration: args?.duration ?? 10,
-    mapCircleControls,
+    duration: args.duration ?? 10,
   });
 }

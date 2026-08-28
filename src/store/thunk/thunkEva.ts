@@ -41,11 +41,9 @@ import { stageEvaXgressChange } from "operations/stage/stage-eva-xgress";
 import { stageDuplicateStation } from "operations/stage/stage-station";
 import { stageTraverseUpdate } from "operations/stage/stage-traverse";
 import {
-  canMoveStationDown,
-  canMoveStationUp,
-  getFirstTraverseItem,
+  canMoveStation,
   getIngressIndex,
-  getLastTraverseItem,
+  getXgressTraverseUuid,
 } from "operations/helpers/evaSequence";
 import { generateLanderXgressStation } from "store/storeUtils/station";
 import {
@@ -116,8 +114,14 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
     const newTraverse: Traverse = generateBlankTraverse({ missionId: blankEva.missionId });
 
     // Add new xgress stations at the lander
-    const egressStation = generateLanderXgressStation(mission, { ownerId: ownerId ?? undefined });
-    const ingressStation = generateLanderXgressStation(mission, { ownerId: ownerId ?? undefined });
+    const egressStation = generateLanderXgressStation(mission, {
+      xgressType: "egress",
+      ownerId: ownerId ?? undefined,
+    });
+    const ingressStation = generateLanderXgressStation(mission, {
+      xgressType: "ingress",
+      ownerId: ownerId ?? undefined,
+    });
 
     blankEva.sequence.push(
       { type: "station", uuid: egressStation.uuid },
@@ -146,7 +150,7 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
     // Build the fully-populated traverse
     const populatedTraverse: Traverse = {
       ...newTraverse,
-      name: "Lander to Lander",
+      name: `${egressStation.name} to ${ingressStation.name}`,
       path: traversePath,
       pathSegmentDistances: traversePathSegmentDistances,
       pathSegmentElevations: elevationProfile,
@@ -219,7 +223,7 @@ export const thunkDocAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
 
     // Insert new station just before the ingress station at the end.
     // The traverse to the ingress station now points to the new station.
-    const ingressIndex = getIngressIndex(eva);
+    const ingressIndex = getIngressIndex(eva.sequence);
     if (ingressIndex === -1) return;
 
     // Step 2: Upsert traverse and insert the station+traverse before ingress
@@ -422,12 +426,7 @@ export const thunkDocReorderStationInEva = appCreateAsyncThunk<{
   //
   // The egress/ingress positions are pinned, so refuse any swap that would move a
   // station into or out of them.
-  const evaSequenceSource = { sequence: evaSequence };
-  const canMove =
-    direction === "up"
-      ? canMoveStationUp(evaSequenceSource, stationIndex)
-      : canMoveStationDown(evaSequenceSource, stationIndex);
-  if (!canMove) return;
+  if (!canMoveStation(evaSequence, stationIndex, direction)) return;
 
   let stationIndexToSwap: number;
   let traverseUuidsToUpdate: string[];
@@ -506,10 +505,7 @@ export const thunkDocChangeIngressEgress = appCreateAsyncThunk<{
     if (!stageData) return;
 
     // Re-snap the boundary traverse against the new sequence
-    const boundaryTraverseUuid =
-      type === "ingress"
-        ? getLastTraverseItem({ sequence: stageData.newSequence })?.uuid
-        : getFirstTraverseItem({ sequence: stageData.newSequence })?.uuid;
+    const boundaryTraverseUuid = getXgressTraverseUuid(stageData.newSequence, type);
 
     // The incoming station may not be in the doc yet (only staged) if it was duplicated.
     // Grab the incoming station to pass to the traverse update stage.

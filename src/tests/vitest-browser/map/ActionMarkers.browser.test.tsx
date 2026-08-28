@@ -419,8 +419,6 @@ describe("ActionMarkers", () => {
       [EVA_UUID]: {
         uuid: EVA_UUID,
         sequence: [{ type: "station", uuid: STATION_UUID }],
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
       },
     } as unknown as Mission["evas"];
     mockMissionDoc.rexes = {
@@ -450,8 +448,6 @@ describe("ActionMarkers", () => {
       [EVA_UUID]: {
         uuid: EVA_UUID,
         sequence: [{ type: "traverse", uuid: TRAVERSE_UUID }],
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
       },
     } as unknown as Mission["evas"];
     mockMissionDoc.rexes = {
@@ -481,8 +477,6 @@ describe("ActionMarkers", () => {
       [EVA_UUID]: {
         uuid: EVA_UUID,
         sequence: [{ type: "station", uuid: STATION_UUID }],
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
       },
     } as unknown as Mission["evas"];
     mockMissionDoc.rexes = {

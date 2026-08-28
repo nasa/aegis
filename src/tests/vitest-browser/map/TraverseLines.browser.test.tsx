@@ -104,8 +104,6 @@ function makeEva(uuid: string, traverseUuids: string[]): Eva {
     uuid,
     name: "Test EVA",
     traverseColor: "#aabbcc",
-    egressLocationUuid: "lander",
-    ingressLocationUuid: "lander",
     sequence: traverseUuids.map((u) => ({ uuid: u, type: "traverse" })),
     updatedAt: new Date().toISOString(),
   } as unknown as Eva;

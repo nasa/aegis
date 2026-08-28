@@ -4,10 +4,8 @@ import { getAccurateNow } from "utils/formatting";
 import { getTotalDistance } from "utils/mapping/geoMath";
 import {
   getEgressStationUuid,
-  getFirstTraverseItem,
   getIngressStationUuid,
-  getLastTraverseItem,
-  isLanderXgressStation,
+  getXgressTraverseUuid,
 } from "operations/helpers/evaSequence";
 import { thunkFetchElevation } from "store/thunk/thunkElevation";
 import type { AppDispatch } from "utils/useAppDispatch";
@@ -38,7 +36,7 @@ export async function stageLanderLocationUpdate(
 
   // Stations pinned to the lander move with it instead of getting a walkback.
   const landerXgressStationUuids = Object.values(mission.stations ?? {})
-    .filter((station) => isLanderXgressStation(station))
+    .filter((station) => station.isLanderXgress)
     .map((station) => station.uuid);
   const landerXgressStationUuidSet = new Set(landerXgressStationUuids);
 
@@ -111,14 +109,14 @@ export async function stageLanderLocationUpdate(
   const traversePlans: TraversePlan[] = [];
 
   for (const eva of Object.values(mission.evas ?? {})) {
-    const firstTraverse = getFirstTraverseItem(eva);
-    const lastTraverse = getLastTraverseItem(eva);
-    if (!firstTraverse || !lastTraverse) continue;
+    const firstUuid = getXgressTraverseUuid(eva.sequence, "egress");
+    const lastUuid = getXgressTraverseUuid(eva.sequence, "ingress");
+    if (!firstUuid || !lastUuid) continue;
 
-    const firstUuid = firstTraverse.uuid;
-    const lastUuid = lastTraverse.uuid;
-    const egressIsLander = landerXgressStationUuidSet.has(getEgressStationUuid(eva) ?? "");
-    const ingressIsLander = landerXgressStationUuidSet.has(getIngressStationUuid(eva) ?? "");
+    const egressIsLander = landerXgressStationUuidSet.has(getEgressStationUuid(eva.sequence) ?? "");
+    const ingressIsLander = landerXgressStationUuidSet.has(
+      getIngressStationUuid(eva.sequence) ?? ""
+    );
 
     // When both egress and ingress touch the lander and they resolve to the
     // same traverse (single-item sequence), snap both endpoints in one plan.

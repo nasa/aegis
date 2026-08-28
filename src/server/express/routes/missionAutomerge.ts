@@ -11,7 +11,6 @@ import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import type { RequiredEntityData } from "@mikro-orm/core";
 import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
-import { isLanderXgressStation } from "operations/helpers/evaSequence";
 
 import {
   STM_Level1_db,
@@ -347,7 +346,7 @@ export default router;
 export function missionHasLanderDependentEntities(mission: Mission): boolean {
   return Object.values(mission.stations ?? {}).some(
     (station) =>
-      !isLanderXgressStation(station) &&
+      !station.isLanderXgress &&
       (station.location != null || (station.walkbackPath?.length ?? 0) > 0)
   );
 }

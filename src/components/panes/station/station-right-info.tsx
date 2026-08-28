@@ -31,7 +31,7 @@ import { validators, regExValidators } from "components/interface/form/formValid
 import CalculatedDwell from "../calculated-dwell";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { setOriginalPoints, updateMapDirective } from "store/map";
-import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+import { getCalcFieldsForStation } from "store/processing/calculatedFields";
 import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
@@ -41,8 +41,11 @@ import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/qu
 
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
-}> = ({ editMode }) => {
+  isLanderXgress?: boolean;
+}> = ({ editMode, isLanderXgress = false }) => {
   const dispatch = useAppDispatch();
+  /** Lander copies are pinned to the lander so some fields won't be editable. */
+  const locationEditMode = editMode && !isLanderXgress;
   const resolvedGrid = useResolvedMissionGrid();
   const partialMission = useMissionDocSelector(
     (mission) => ({
@@ -119,17 +122,8 @@ const Info_Panel: FunctionComponent<{
   const countEvasUsingThisStation = useMissionDocSelector((mission) => {
     let numEvas = 0;
     Object.values(mission?.evas ?? {}).forEach((eva) => {
-      if (
-        eva.ingressLocationUuid === selectedStationUuid ||
-        eva.egressLocationUuid === selectedStationUuid
-      ) {
+      if (eva.sequence.some((sequenceItem) => sequenceItem.uuid === selectedStationUuid)) {
         numEvas++;
-      } else {
-        eva.sequence.forEach((sequenceItem) => {
-          if (sequenceItem.uuid === selectedStationUuid) {
-            numEvas++;
-          }
-        });
       }
     });
     return numEvas;
@@ -140,7 +134,7 @@ const Info_Panel: FunctionComponent<{
     const stationActions = Object.values(docMaps.actions).filter(
       (a) => a.stationUuid === selectedStation?.uuid && a.enabled
     );
-    return getCalculatedFieldsByStation({
+    return getCalcFieldsForStation({
       station: selectedStation,
       missionWalkbackRate: partialMission.walkbackRate,
       stationActions,
@@ -186,7 +180,7 @@ const Info_Panel: FunctionComponent<{
 
   //get names
   const consumablesDisplay: EquipmentItemDisplay[] = [];
-  Object.entries(calculatedFields?.equipmentItems).forEach(([uuid, equipItemUsage]) => {
+  Object.entries(calculatedFields?.totalEquipmentItems).forEach(([uuid, equipItemUsage]) => {
     //find item in mission
     const missionEquipItem = partialMission.equipmentItems[uuid];
     if (missionEquipItem?.singleUse) {
@@ -280,13 +274,20 @@ const Info_Panel: FunctionComponent<{
   }, [dispatch, selectedStation.uuid]);
 
   useEffect(() => {
+    if (isLanderXgress) return;
     if (!selectedStation.walkbackPath) {
       // if there is no walkback, set the walkback to the default
       if (selectedStation.location && partialMission.landerLocation) {
         handleResetWalkback();
       }
     }
-  }, [selectedStation, dispatch, handleResetWalkback, partialMission.landerLocation]);
+  }, [
+    selectedStation,
+    dispatch,
+    handleResetWalkback,
+    partialMission.landerLocation,
+    isLanderXgress,
+  ]);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -379,7 +380,7 @@ const Info_Panel: FunctionComponent<{
 
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faCalculator}>Calculated Totals</SubpanelHeading>
+              <SubpanelHeading icon={faCalculator}>Totals</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
@@ -392,7 +393,13 @@ const Info_Panel: FunctionComponent<{
                     style={{ cursor: "pointer" }}
                   >
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
+                      <div
+                        className={paneStyles.displayFieldLabel}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-content="Total number of actions on this station"
+                      >
+                        Number of Actions:
+                      </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
@@ -402,7 +409,13 @@ const Info_Panel: FunctionComponent<{
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Total Action Time (mins):</div>
+                      <div
+                        className={paneStyles.displayFieldLabel}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-content="Total of all action times. It does not account for crew assignment"
+                      >
+                        Action Time (mins):
+                      </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
@@ -416,7 +429,13 @@ const Info_Panel: FunctionComponent<{
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Total Mass (g):</div>
+                      <div
+                        className={paneStyles.displayFieldLabel}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-content="Total mass from all actions on this traverse"
+                      >
+                        Mass (g):
+                      </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
@@ -448,9 +467,9 @@ const Info_Panel: FunctionComponent<{
             <div className={paneStyles.panelSectionTitle}>
               <SubpanelHeading icon={faLocationDot}>Location</SubpanelHeading>
             </div>
-            {editMode ? (
+            {locationEditMode ? (
               <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
-                {editMode && mapAction === null && (
+                {mapAction === null && (
                   <>
                     {!selectedStation.location ? (
                       <Button
@@ -504,7 +523,7 @@ const Info_Panel: FunctionComponent<{
                     )}
                   </>
                 )}
-                {editMode && mapAction === "createMarker" && (
+                {mapAction === "createMarker" && (
                   <Button
                     onClick={() => {
                       handleCancelCreate();
@@ -514,7 +533,7 @@ const Info_Panel: FunctionComponent<{
                     style={{ width: "70px" }}
                   />
                 )}
-                {editMode && mapAction === "editMarker" && (
+                {mapAction === "editMarker" && (
                   <>
                     <Button
                       onClick={() => {
@@ -535,7 +554,7 @@ const Info_Panel: FunctionComponent<{
                 <div className={paneStyles.panelColumnTable}>
                   <ValidatedLatLngField
                     value={selectedStation.location}
-                    editMode={editMode}
+                    editMode={locationEditMode}
                     fieldPropsLat={{
                       name: "Lat",
                       ariaLabel: "LatitudeStation",
@@ -604,204 +623,219 @@ const Info_Panel: FunctionComponent<{
             </div>
           </div>
 
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>
-              <SubpanelHeading icon={faRoute}>Walkback</SubpanelHeading>
-            </div>
-            {editMode ? (
-              <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
-                {!selectedStation.location && (
-                  <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
-                    <div className={paneStyles.panelText}>Station Location not set</div>
-                  </div>
-                )}
-                {!partialMission.landerLocation && (
-                  <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
-                    <div className={paneStyles.panelText}>Mission lander location not set</div>
-                  </div>
-                )}
+          {!isLanderXgress && (
+            <div className={paneStyles.panelSection}>
+              <div className={paneStyles.panelSectionTitle}>
+                <SubpanelHeading icon={faRoute}>Walkback</SubpanelHeading>
+              </div>
+              {editMode ? (
+                <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+                  {!selectedStation.location && (
+                    <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
+                      <div className={paneStyles.panelText}>Station Location not set</div>
+                    </div>
+                  )}
+                  {!partialMission.landerLocation && (
+                    <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
+                      <div className={paneStyles.panelText}>Mission lander location not set</div>
+                    </div>
+                  )}
 
-                {editMode &&
-                  selectedStation.location &&
-                  partialMission.landerLocation &&
-                  mapAction === null &&
-                  (saveButtonState === "pending" ? (
-                    <span className={stationStyles.statusLoading} />
-                  ) : (
-                    <>
-                      <Button
-                        onClick={() => {
-                          handleEditWalkback();
-                        }}
-                        label="Edit Path on Map"
-                        style={{ width: "115px" }}
-                      />
-
-                      <Button
-                        onClick={() => {
-                          handleResetWalkback();
-                        }}
-                        label="Reset Path"
-                        style={{ width: "85px" }}
-                      />
-                    </>
-                  ))}
-                {editMode &&
-                  mapAction === "editPolyline" &&
-                  (saveButtonState === "pending" ? (
-                    <>
+                  {selectedStation.location &&
+                    partialMission.landerLocation &&
+                    mapAction === null &&
+                    (saveButtonState === "pending" ? (
                       <span className={stationStyles.statusLoading} />
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        onClick={() => {
-                          handleSaveEditWalkback();
-                        }}
-                        icon={faFloppyDisk}
-                        label="Finished"
-                        style={{ width: "90px" }}
-                      />
-
-                      <Button
-                        onClick={() => {
-                          handleCancelEditWalkback();
-                        }}
-                        icon={faXmark}
-                        label="Cancel"
-                        style={{ width: "75px" }}
-                      />
-                    </>
-                  ))}
-              </div>
-            ) : (
-              <div className={paneStyles.sectionButtonRowEmpty} />
-            )}
-
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelSection2Column}>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Distance (m):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {!selectedStation.location ? (
-                          <>N/A</>
-                        ) : (
-                          formatNumberWithCommas(calculatedFields?.walkbackDistanceMeters)
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Time (mins):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {!selectedStation.location ? (
-                          <>N/A</>
-                        ) : (
-                          Math.ceil(calculatedFields?.walkbackDurationMinutes)
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Total Ascent (m):</div>
-                    </div>
-
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {!selectedStation.location ? (
-                          <>N/A</>
-                        ) : (
-                          formatNumberWithCommas(
-                            calculatedFields?.walkbackAscentDescent.totalMetersClimbed
-                          )
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Total Descent (m):</div>
-                    </div>
-
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {!selectedStation.location ? (
-                          <>N/A</>
-                        ) : (
-                          formatNumberWithCommas(
-                            calculatedFields?.walkbackAscentDescent.totalMetersDescended
-                          )
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className={paneStyles.panelSectionRow} style={{ marginTop: "6px" }}>
-              <div className={paneStyles.panelSection2Column}>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldLabel}>
-                        Walkback Traverse Rate (km/h):
-                      </div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldValue}>
-                        <ValidatedInputField
-                          value={selectedStation.walkbackTraverseRate?.toString()}
-                          editMode={editMode}
-                          fieldProps={{
-                            name: "walkbackTraverseRate",
-                            ariaLabel: "Average Walkback Traverse Rate",
-                            validators: [validators.mustBeNumber, validators.maxLength(4)],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
+                    ) : (
+                      <>
+                        <Button
+                          onClick={() => {
+                            handleEditWalkback();
                           }}
-                          onSubmit={(val: string) => {
-                            withMissionChange((m) =>
-                              applyUpdateStationByField(m, {
-                                stationUuid: selectedStation.uuid,
-                                fieldName: "walkbackTraverseRate",
-                                value: toDecimal(val),
-                              })
-                            );
-                          }}
-                          key={`${selectedStation.uuid}-walkbackTraverseRate`}
+                          label="Edit Path on Map"
+                          style={{ width: "115px" }}
                         />
+
+                        <Button
+                          onClick={() => {
+                            handleResetWalkback();
+                          }}
+                          label="Reset Path"
+                          style={{ width: "85px" }}
+                        />
+                      </>
+                    ))}
+                  {mapAction === "editPolyline" &&
+                    (saveButtonState === "pending" ? (
+                      <>
+                        <span className={stationStyles.statusLoading} />
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          onClick={() => {
+                            handleSaveEditWalkback();
+                          }}
+                          icon={faFloppyDisk}
+                          label="Finished"
+                          style={{ width: "90px" }}
+                        />
+
+                        <Button
+                          onClick={() => {
+                            handleCancelEditWalkback();
+                          }}
+                          icon={faXmark}
+                          label="Cancel"
+                          style={{ width: "75px" }}
+                        />
+                      </>
+                    ))}
+                </div>
+              ) : (
+                <div className={paneStyles.sectionButtonRowEmpty} />
+              )}
+
+              <div className={paneStyles.panelSectionRow}>
+                <div className={paneStyles.panelSection2Column}>
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldLabel}>Distance (m):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {!selectedStation.location ? (
+                            <>N/A</>
+                          ) : (
+                            formatNumberWithCommas(calculatedFields?.walkbackDistanceMeters)
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldLabel}>Time (mins):</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {!selectedStation.location ? (
+                            <>N/A</>
+                          ) : (
+                            Math.ceil(calculatedFields?.walkbackMovementDurationMinutes)
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div style={{ color: "var(--grey5)" }} className={paneStyles.inputFieldLabel}>
-                        {makeTraverseRateString(
-                          selectedStation.walkbackTraverseRate,
-                          null,
-                          partialMission.walkbackRate
-                        )}
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div
+                          className={paneStyles.displayFieldLabel}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-content="Total elevation assent in meters for this walkback"
+                        >
+                          Ascent (m):
+                        </div>
+                      </div>
+
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {!selectedStation.location ? (
+                            <>N/A</>
+                          ) : (
+                            formatNumberWithCommas(
+                              calculatedFields?.walkbackAscentDescent.totalMetersClimbed
+                            )
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div
+                          className={paneStyles.displayFieldLabel}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-content="Total elevation descent in meters for this walkback"
+                        >
+                          Descent (m):
+                        </div>
+                      </div>
+
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {!selectedStation.location ? (
+                            <>N/A</>
+                          ) : (
+                            formatNumberWithCommas(
+                              calculatedFields?.walkbackAscentDescent.totalMetersDescended
+                            )
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className={paneStyles.panelSectionRow} style={{ marginTop: "6px" }}>
+                <div className={paneStyles.panelSection2Column}>
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.inputFieldLabel}>
+                          Walkback Traverse Rate (km/h):
+                        </div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.inputFieldValue}>
+                          <ValidatedInputField
+                            value={selectedStation.walkbackTraverseRate?.toString()}
+                            editMode={locationEditMode}
+                            fieldProps={{
+                              name: "walkbackTraverseRate",
+                              ariaLabel: "Average Walkback Traverse Rate",
+                              validators: [validators.mustBeNumber, validators.maxLength(4)],
+                              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                                e.target.value = e.target.value.replace(
+                                  regExValidators.regExNumber,
+                                  ""
+                                );
+                              },
+                            }}
+                            onSubmit={(val: string) => {
+                              withMissionChange((m) =>
+                                applyUpdateStationByField(m, {
+                                  stationUuid: selectedStation.uuid,
+                                  fieldName: "walkbackTraverseRate",
+                                  value: toDecimal(val),
+                                })
+                              );
+                            }}
+                            key={`${selectedStation.uuid}-walkbackTraverseRate`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div
+                          style={{ color: "var(--grey5)" }}
+                          className={paneStyles.inputFieldLabel}
+                        >
+                          {makeTraverseRateString(
+                            selectedStation.walkbackTraverseRate,
+                            null,
+                            partialMission.walkbackRate
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>

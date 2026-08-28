@@ -6,18 +6,7 @@ import {
 import { mergeEquipmentItems } from "store/storeUtils/store";
 import { isNotNumber } from "utils/formatting";
 
-type CalculatedActionFields = {
-  totalDuration: number;
-  totalEv1Duration: number;
-  totalEv2Duration: number;
-  totalUnassignedDuration: number;
-  totalDwellTime: number;
-  actionCount: number;
-  totalMass: number;
-  totalEquipmentItems: EquipmentItemUsages;
-};
-
-export const getCalculatedFieldsByPoi = (params: {
+export const getCalcFieldsForPoi = (params: {
   poiUuid: string;
   poiActions: Action[];
 }): PoiCalculatedFields => {
@@ -31,6 +20,7 @@ export const getCalculatedFieldsByPoi = (params: {
   let totalDwellTime = 0;
   let actionCount = 0;
   let totalMass = 0;
+  let totalEquipmentItems: EquipmentItemUsages = {};
   poiActions.forEach((action) => {
     totalDuration += action.duration;
     if (action.crewAssigned && action.crewAssigned.includes("EV1")) {
@@ -44,6 +34,7 @@ export const getCalculatedFieldsByPoi = (params: {
     }
 
     totalDwellTime = totalEv1Duration > totalEv2Duration ? totalEv1Duration : totalEv2Duration;
+    totalEquipmentItems = mergeEquipmentItems(action.equipmentItemsUsage, totalEquipmentItems);
     actionCount++;
     totalMass += action.mass;
   });
@@ -69,42 +60,43 @@ export const getCalculatedFieldsByPoi = (params: {
     totalDwellTime: totalDwellTime,
     actionCount,
     totalMass,
+    totalEquipmentItems,
   };
 
   return newCalculatedFields;
 };
 
 // Function to calculate all necessary fields for actions
-const calcActionsFields = (actions: Action[]): CalculatedActionFields => {
-  let totalDuration = 0;
-  let totalEv1Duration = 0;
-  let totalEv2Duration = 0;
-  let totalUnassignedDuration = 0;
+const getCalcFieldsForActions = (actions: Action[]): ActionsCalculatedFields => {
+  let totalActionTime = 0;
+  let totalEv1Time = 0;
+  let totalEv2Time = 0;
+  let totalUnassignedTime = 0;
   let totalDwellTime = 0;
   let totalMass = 0;
   let actionCount = 0;
   let totalEquipmentItems: EquipmentItemUsages = {};
   actions.forEach((action) => {
-    totalDuration += action.duration;
+    totalActionTime += action.duration;
     if (action.crewAssigned?.includes("EV1")) {
-      totalEv1Duration += action.duration;
+      totalEv1Time += action.duration;
     }
     if (action.crewAssigned?.includes("EV2")) {
-      totalEv2Duration += action.duration;
+      totalEv2Time += action.duration;
     }
     if (!action.crewAssigned || action.crewAssigned.length === 0) {
-      totalUnassignedDuration += action.duration;
+      totalUnassignedTime += action.duration;
     }
-    totalDwellTime = totalEv1Duration > totalEv2Duration ? totalEv1Duration : totalEv2Duration;
+    totalDwellTime = totalEv1Time > totalEv2Time ? totalEv1Time : totalEv2Time;
     totalEquipmentItems = mergeEquipmentItems(action.equipmentItemsUsage, totalEquipmentItems);
     actionCount++;
     totalMass += action.mass;
   });
   return {
-    totalDuration,
-    totalEv1Duration,
-    totalEv2Duration,
-    totalUnassignedDuration,
+    totalActionTime,
+    totalEv1Time,
+    totalEv2Time,
+    totalUnassignedTime,
     totalDwellTime,
     actionCount,
     totalMass,
@@ -127,7 +119,7 @@ const calcTraverseEffectiveRate = (
   return traverseRate;
 };
 
-export const getCalculatedFieldsByStation = (params: {
+export const getCalcFieldsForStation = (params: {
   station: Station;
   missionWalkbackRate: number;
   stationActions: Action[];
@@ -136,15 +128,15 @@ export const getCalculatedFieldsByStation = (params: {
 
   //calculate total station time
   const {
-    totalDuration,
-    totalEv1Duration,
-    totalEv2Duration,
-    totalUnassignedDuration,
+    totalActionTime,
+    totalEv1Time,
+    totalEv2Time,
+    totalUnassignedTime,
     totalDwellTime,
     actionCount,
     totalMass,
     totalEquipmentItems,
-  } = calcActionsFields(stationActions);
+  } = getCalcFieldsForActions(stationActions);
 
   //generate station report messages
   if (!station) return;
@@ -194,7 +186,7 @@ export const getCalculatedFieldsByStation = (params: {
   }
 
   // check if station has any unassigned action time
-  if (totalUnassignedDuration > 0) {
+  if (totalUnassignedTime > 0) {
     newReportItems.push({
       message: "Station has actions with no crew assigned. Dwell time calculation is incorrect",
       type: "error",
@@ -226,22 +218,22 @@ export const getCalculatedFieldsByStation = (params: {
   const newCalculatedFields: StationCalculatedFields = {
     uuid: station.uuid,
     reportItems: newReportItems,
-    totalActionTime: totalDuration,
-    totalEv1Time: totalEv1Duration,
-    totalEv2Time: totalEv2Duration,
-    totalUnassignedTime: totalUnassignedDuration,
+    totalActionTime,
+    totalEv1Time,
+    totalEv2Time,
+    totalUnassignedTime,
     totalDwellTime: totalDwellTime,
     actionCount,
-    walkbackDurationMinutes,
+    walkbackMovementDurationMinutes: walkbackDurationMinutes,
     walkbackDistanceMeters,
     walkbackAscentDescent,
-    equipmentItems: totalEquipmentItems,
+    totalEquipmentItems,
     totalMass,
   };
   return newCalculatedFields;
 };
 
-export const getCalculatedFieldsByTraverse = (params: {
+export const getCalcFieldsForTraverse = (params: {
   traverse: Traverse;
   missionTraverseRate: number;
   evaTraverseRate: number;
@@ -263,14 +255,15 @@ export const getCalculatedFieldsByTraverse = (params: {
 
   //calculate total traverse action time
   const {
-    totalDuration: actionTotalDuration,
-    totalEv1Duration,
-    totalEv2Duration,
-    totalUnassignedDuration,
+    totalActionTime: actionTotalDuration,
+    totalEv1Time,
+    totalEv2Time,
+    totalUnassignedTime,
     totalDwellTime,
     actionCount,
     totalMass,
-  } = calcActionsFields(traverseActions);
+    totalEquipmentItems,
+  } = getCalcFieldsForActions(traverseActions);
 
   const newReportItems: ReportItem[] = [];
 
@@ -330,13 +323,14 @@ export const getCalculatedFieldsByTraverse = (params: {
     uuid: traverse.uuid,
     reportItems: newReportItems,
     totalActionTime: actionTotalDuration,
-    totalEv1Time: totalEv1Duration,
-    totalEv2Time: totalEv2Duration,
-    totalUnassignedTime: totalUnassignedDuration,
+    totalEv1Time,
+    totalEv2Time,
+    totalUnassignedTime,
     totalDwellTime: totalDwellTime,
     actionCount,
     totalMass,
-    durationMinutes: traverseDurationMins,
+    totalEquipmentItems,
+    movementDurationMinutes: traverseDurationMins,
     distanceMeters,
     ascentDescent,
     bearings: pathSegmentBearings,
@@ -345,31 +339,7 @@ export const getCalculatedFieldsByTraverse = (params: {
   return newCalculatedFields;
 };
 
-// Smaller function to only calculate necessary fields that Maestro needs
-// when sending data over sockets
-export const getMaestroCalculatedFieldsForStation = (
-  stationActions: Action[]
-): { totalDwellTime: number } => {
-  const { totalDwellTime } = calcActionsFields(stationActions);
-  return { totalDwellTime };
-};
-
-// Smaller function to only calculate necessary fields that Maestro needs
-// when sending data over sockets
-export const getMaestroCalculatedFieldsForTraverse = (params: {
-  traverse: Traverse;
-  missionTraverseRate: number;
-  evaTraverseRate?: number;
-  traverseActions: Action[];
-}): { totalDwellTime: number; durationMinutes: number } => {
-  const { traverse, missionTraverseRate, evaTraverseRate, traverseActions } = params;
-  const { totalDwellTime } = calcActionsFields(traverseActions);
-  const traverseRate = calcTraverseEffectiveRate(traverse, missionTraverseRate, evaTraverseRate);
-  const durationMinutes = calcPathDurationMins(traverse.pathSegmentDistances, traverseRate);
-  return { totalDwellTime, durationMinutes };
-};
-
-export const getCalculatedTimeOfSequenceItem = (params: {
+export const getCalcTimeForSequenceItem = (params: {
   evaUuid: string;
   sequenceItemUuid: string;
   evas: Eva[];
@@ -409,26 +379,26 @@ export const getCalculatedTimeOfSequenceItem = (params: {
       if (station) {
         stationActions = actions.filter((a) => a.stationUuid === station.uuid && a.enabled);
       }
-      thisStationCalculatedTime = getCalculatedFieldsByStation({
+      thisStationCalculatedTime = getCalcFieldsForStation({
         station,
         missionWalkbackRate,
         stationActions,
-      }).totalDwellTime;
+      })?.totalDwellTime;
     } else if (seqItem.type === "traverse") {
       const traverse = traverses.find((traverse) => traverse.uuid === seqItem.uuid);
       const traverseEva = evas.find((eva) =>
-        eva.sequence.some((seqItem) => seqItem.uuid === traverse.uuid)
+        eva.sequence.some((item) => item.uuid === traverse?.uuid)
       );
       let traverseActions: Action[] = [];
       if (traverse) {
         traverseActions = actions.filter((a) => a.traverseUuid === traverse.uuid && a.enabled);
       }
-      thisTraverseCalculatedTime = getCalculatedFieldsByTraverse({
+      thisTraverseCalculatedTime = getCalcFieldsForTraverse({
         traverse,
         missionTraverseRate,
         evaTraverseRate: traverseEva?.traverseRate,
         traverseActions,
-      }).durationMinutes;
+      })?.movementDurationMinutes;
     }
 
     if (thisStationCalculatedTime) {
@@ -448,7 +418,7 @@ export const getCalculatedTimeOfSequenceItem = (params: {
   return new Date(finalTimeInSeconds).toISOString();
 };
 
-export const getCalculatedFieldsByEva = (params: {
+export const getCalcFieldsForEva = (params: {
   eva: Eva;
   evaStations: Station[];
   missionWalkbackRate: number;
@@ -477,22 +447,32 @@ export const getCalculatedFieldsByEva = (params: {
   const evaCalculatedFields: EvaCalculatedFields = {
     uuid: eva.uuid,
     reportItems: [], // report items for the eva itself
+
+    // action fields
     totalActionTime: 0,
     totalEv1Time: 0,
     totalEv2Time: 0,
     totalUnassignedTime: 0,
     totalDwellTime: 0,
     actionCount: 0,
-    totalTraverseTime: 0,
+    totalMass: 0,
+    totalEquipmentItems: {},
+
+    // traverse
+    totalTraverseMovementTime: 0,
     totalTraverseDistanceMeters: 0,
     totalTraverseAscentDescent: {
       totalMetersClimbed: 0,
       totalMetersDescended: 0,
     },
-    totalEvaTime: 0,
-    equipmentItems: {},
+
+    // resolved durations
+    totalResolvedEvaTime: 0,
+    totalResolvedStationTime: 0,
+    totalResolvedTraverseTime: 0,
+
+    // sequence items calculated data
     sequenceItemsCalculatedData: [],
-    totalMass: 0,
   };
 
   let runningEvaSeconds = 0;
@@ -502,17 +482,55 @@ export const getCalculatedFieldsByEva = (params: {
     let thisStation: Station;
     let thisTraverseCalculatedFields: TraverseCalculatedFields;
     let thisTraverse: Traverse;
+
     if (seqItem.type === "station") {
       thisStation = evaStations.find((station) => station.uuid === seqItem.uuid);
       let stationActions: Action[] = [];
       if (thisStation) {
         stationActions = evaActions.filter((a) => a.stationUuid === thisStation.uuid && a.enabled);
       }
-      thisStationCalculatedFields = getCalculatedFieldsByStation({
+      thisStationCalculatedFields = getCalcFieldsForStation({
         station: thisStation,
         missionWalkbackRate,
         stationActions,
       });
+
+      // A sequence item can hold an empty uuid while the user is still picking
+      // a station, so there is nothing to total up for this item yet.
+      if (!thisStationCalculatedFields) continue;
+
+      // Add in all the calc action fields from this sequence
+      evaCalculatedFields.totalActionTime += thisStationCalculatedFields.totalActionTime;
+      evaCalculatedFields.totalEv1Time += thisStationCalculatedFields.totalEv1Time;
+      evaCalculatedFields.totalEv2Time += thisStationCalculatedFields.totalEv2Time;
+      evaCalculatedFields.totalUnassignedTime += thisStationCalculatedFields.totalUnassignedTime;
+      evaCalculatedFields.totalDwellTime += thisStationCalculatedFields.totalDwellTime;
+      evaCalculatedFields.actionCount += thisStationCalculatedFields.actionCount;
+      evaCalculatedFields.totalMass += thisStationCalculatedFields.totalMass;
+      evaCalculatedFields.totalEquipmentItems = mergeEquipmentItems(
+        thisStationCalculatedFields.totalEquipmentItems,
+        evaCalculatedFields.totalEquipmentItems
+      );
+
+      // Either the calculated duration or if overridden by the manual field
+      // then it shows the manual estimated duration
+      const resolvedStationDurationMins = !isNotNumber(thisStation?.duration)
+        ? thisStation.duration
+        : thisStationCalculatedFields.totalDwellTime;
+      evaCalculatedFields.totalResolvedEvaTime += Math.ceil(resolvedStationDurationMins);
+      evaCalculatedFields.totalResolvedStationTime += Math.ceil(resolvedStationDurationMins);
+
+      // Set the sequence item calculated data
+      evaCalculatedFields.sequenceItemsCalculatedData.push({
+        uuid: seqItem.uuid,
+        startSeconds: runningEvaSeconds,
+        endSeconds: runningEvaSeconds + thisStationCalculatedFields.totalDwellTime * 60,
+        manualStartSeconds: manualEvaSeconds,
+        manualEndSeconds: manualEvaSeconds + resolvedStationDurationMins * 60,
+        resolvedDurationMins: resolvedStationDurationMins,
+      });
+      runningEvaSeconds += thisStationCalculatedFields.totalDwellTime * 60;
+      manualEvaSeconds += resolvedStationDurationMins * 60;
     } else if (seqItem.type === "traverse") {
       thisTraverse = evaTraverses.find((traverse) => traverse.uuid === seqItem.uuid);
       let traverseActions: Action[] = [];
@@ -521,40 +539,17 @@ export const getCalculatedFieldsByEva = (params: {
           (a) => a.traverseUuid === thisTraverse.uuid && a.enabled
         );
       }
-      thisTraverseCalculatedFields = getCalculatedFieldsByTraverse({
+      thisTraverseCalculatedFields = getCalcFieldsForTraverse({
         traverse: thisTraverse,
         missionTraverseRate,
         evaTraverseRate: eva.traverseRate,
         traverseActions,
       });
-    }
 
-    if (thisStationCalculatedFields) {
-      evaCalculatedFields.totalActionTime += thisStationCalculatedFields.totalActionTime;
-      evaCalculatedFields.totalEv1Time += thisStationCalculatedFields.totalEv1Time;
-      evaCalculatedFields.totalEv2Time += thisStationCalculatedFields.totalEv2Time;
-      evaCalculatedFields.totalUnassignedTime += thisStationCalculatedFields.totalUnassignedTime;
-      evaCalculatedFields.totalDwellTime += thisStationCalculatedFields.totalDwellTime;
-      evaCalculatedFields.actionCount += thisStationCalculatedFields.actionCount;
-      evaCalculatedFields.totalMass += thisStationCalculatedFields.totalMass;
-      evaCalculatedFields.equipmentItems = mergeEquipmentItems(
-        thisStationCalculatedFields.equipmentItems,
-        evaCalculatedFields.equipmentItems
-      );
+      // Same as above: an unresolved traverse contributes nothing.
+      if (!thisTraverseCalculatedFields) continue;
 
-      const manualDurationAddition = !isNotNumber(thisStation?.duration)
-        ? thisStation.duration * 60
-        : thisStationCalculatedFields.totalDwellTime * 60;
-      evaCalculatedFields.sequenceItemsCalculatedData.push({
-        uuid: seqItem.uuid,
-        startSeconds: runningEvaSeconds,
-        endSeconds: runningEvaSeconds + thisStationCalculatedFields.totalDwellTime * 60,
-        manualStartSeconds: manualEvaSeconds,
-        manualEndSeconds: manualEvaSeconds + manualDurationAddition,
-      });
-      runningEvaSeconds += thisStationCalculatedFields.totalDwellTime * 60;
-      manualEvaSeconds += manualDurationAddition;
-    } else if (thisTraverseCalculatedFields) {
+      // Add in all the calc action fields from this sequence
       evaCalculatedFields.totalActionTime += thisTraverseCalculatedFields.totalActionTime;
       evaCalculatedFields.totalEv1Time += thisTraverseCalculatedFields.totalEv1Time;
       evaCalculatedFields.totalEv2Time += thisTraverseCalculatedFields.totalEv2Time;
@@ -563,43 +558,53 @@ export const getCalculatedFieldsByEva = (params: {
       evaCalculatedFields.actionCount += thisTraverseCalculatedFields.actionCount;
       evaCalculatedFields.totalMass += thisTraverseCalculatedFields.totalMass;
       runningEvaSeconds += thisTraverseCalculatedFields.totalDwellTime * 60;
+      evaCalculatedFields.totalEquipmentItems = mergeEquipmentItems(
+        thisTraverseCalculatedFields.totalEquipmentItems,
+        evaCalculatedFields.totalEquipmentItems
+      );
 
-      evaCalculatedFields.totalTraverseTime += thisTraverseCalculatedFields.durationMinutes;
+      // Add in all the traverse-specific calculated fields for the eva
+      evaCalculatedFields.totalTraverseMovementTime +=
+        thisTraverseCalculatedFields.movementDurationMinutes;
       evaCalculatedFields.totalTraverseDistanceMeters +=
         thisTraverseCalculatedFields.distanceMeters;
       evaCalculatedFields.totalTraverseAscentDescent.totalMetersClimbed +=
         thisTraverseCalculatedFields.ascentDescent.totalMetersClimbed;
       evaCalculatedFields.totalTraverseAscentDescent.totalMetersDescended +=
         thisTraverseCalculatedFields.ascentDescent.totalMetersDescended;
-      const totalTraverseDuration =
-        (thisTraverseCalculatedFields.totalDwellTime +
-          thisTraverseCalculatedFields.durationMinutes) *
-        60;
+      // Traverse action time + movement time
+      const totalCalcTraverseDurationMins =
+        thisTraverseCalculatedFields.totalDwellTime +
+        thisTraverseCalculatedFields.movementDurationMinutes;
 
-      const manualTraverseDuration = !isNotNumber(thisTraverse?.duration)
-        ? thisTraverse.duration * 60
-        : totalTraverseDuration;
+      // Either the calculated duration or if overridden by the manual field
+      // then it shows the manual estimated duration
+      const resolvedTraverseDurationMins = !isNotNumber(thisTraverse?.duration)
+        ? thisTraverse.duration
+        : totalCalcTraverseDurationMins;
+      evaCalculatedFields.totalResolvedEvaTime += Math.ceil(resolvedTraverseDurationMins);
+      evaCalculatedFields.totalResolvedTraverseTime += Math.ceil(resolvedTraverseDurationMins);
+
+      // Set the sequence item calculated data
       evaCalculatedFields.sequenceItemsCalculatedData.push({
         uuid: seqItem.uuid,
         startSeconds: runningEvaSeconds,
-        endSeconds: runningEvaSeconds + totalTraverseDuration,
+        endSeconds: runningEvaSeconds + totalCalcTraverseDurationMins * 60,
         manualStartSeconds: manualEvaSeconds,
-        manualEndSeconds: manualEvaSeconds + manualTraverseDuration,
+        manualEndSeconds: manualEvaSeconds + resolvedTraverseDurationMins * 60,
+        resolvedDurationMins: resolvedTraverseDurationMins,
       });
-      runningEvaSeconds += totalTraverseDuration;
-      manualEvaSeconds += manualTraverseDuration;
+      runningEvaSeconds += totalCalcTraverseDurationMins * 60;
+      manualEvaSeconds += resolvedTraverseDurationMins * 60;
     }
   }
 
-  evaCalculatedFields.totalEvaTime =
-    evaCalculatedFields.totalDwellTime + evaCalculatedFields.totalTraverseTime;
-
   // check if nominal time exceeds limit
-  if (eva.duration && evaCalculatedFields.totalEvaTime > eva.duration) {
+  if (eva.duration && evaCalculatedFields.totalResolvedEvaTime > eva.duration) {
     newReportItems.push({
       message:
         "Calculated EVA duration exceeds set EVA duration by " +
-        Math.ceil(evaCalculatedFields.totalEvaTime - eva.duration) +
+        Math.ceil(evaCalculatedFields.totalResolvedEvaTime - eva.duration) +
         " minutes",
       type: "warning",
     } as ReportItem);
@@ -608,4 +613,28 @@ export const getCalculatedFieldsByEva = (params: {
   evaCalculatedFields.reportItems = newReportItems;
 
   return evaCalculatedFields;
+};
+
+// Smaller function to only calculate necessary fields that Maestro needs
+// when sending data over sockets
+export const getMaestroCalcFieldsForStation = (
+  stationActions: Action[]
+): { totalDwellTime: number } => {
+  const { totalDwellTime } = getCalcFieldsForActions(stationActions);
+  return { totalDwellTime };
+};
+
+// Smaller function to only calculate necessary fields that Maestro needs
+// when sending data over sockets
+export const getMaestroCalcFieldsForTraverse = (params: {
+  traverse: Traverse;
+  missionTraverseRate: number;
+  evaTraverseRate?: number;
+  traverseActions: Action[];
+}): { totalDwellTime: number; durationMinutes: number } => {
+  const { traverse, missionTraverseRate, evaTraverseRate, traverseActions } = params;
+  const { totalDwellTime } = getCalcFieldsForActions(traverseActions);
+  const traverseRate = calcTraverseEffectiveRate(traverse, missionTraverseRate, evaTraverseRate);
+  const durationMinutes = calcPathDurationMins(traverse.pathSegmentDistances, traverseRate);
+  return { totalDwellTime, durationMinutes };
 };

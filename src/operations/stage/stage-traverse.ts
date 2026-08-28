@@ -87,7 +87,7 @@ export async function stageTraverseUpdate(
 
   // The endpoint resolver reads the sequence.
   // Callers pass an override when a sequence write is still pending.
-  const resolvedEva = { sequence: evaSequenceOverride ?? eva?.sequence ?? [] };
+  const resolvedSequence = evaSequenceOverride ?? eva?.sequence ?? [];
 
   // Build the working path: prefer customPath, then existing traverse path, then lander→lander
   let newPath: AEGISPoint[];
@@ -102,9 +102,8 @@ export async function stageTraverseUpdate(
   // Snap endpoints to their neighboring station/lander locations
   const { locationBefore, locationAfter, nameBefore, nameAfter } = getTraverseEndpoints(
     traverseUuid,
-    resolvedEva,
+    resolvedSequence,
     mission.stations,
-    mission.landerLocation,
     stationOverride
   );
 
@@ -180,9 +179,8 @@ export function stageAdjacentTraverseRenames(
     if (!eva) continue;
     const { nameBefore, nameAfter } = getTraverseEndpoints(
       traverseUuid,
-      eva,
+      eva.sequence,
       mission.stations,
-      mission.landerLocation,
       { uuid: stationUuid, location: station.location, name: newName }
     );
     traverseRenames.push({ traverseUuid, newName: `${nameBefore} to ${nameAfter}` });

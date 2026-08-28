@@ -1,12 +1,6 @@
 import cloneDeep from "lodash/cloneDeep";
 
 import { getAccurateNow } from "utils/formatting";
-import {
-  LANDER_UUID,
-  getEgressStationUuid,
-  getIngressStationUuid,
-  isLanderXgressStation,
-} from "operations/helpers/evaSequence";
 
 import {
   applyDuplicateStationStage,
@@ -16,45 +10,9 @@ import {
 import { applyDuplicateTraverseStage, applyDeleteTraverses } from "./apply-traverse";
 import { applyDeleteActions } from "./apply-action";
 
-/**
- * Re-derive the deprecated `egressLocationUuid` / `ingressLocationUuid` /
- * `egressDuration` / `ingressDuration` fields from the EVA's sequence.
- *
- * The sequence is authoritative; these four fields are a transitional mirror
- * kept in sync so readers that have not been migrated off them yet stay
- * correct. Call this after any mutation that changes xgress station,
- * or that changes xgress stations' durations.
- *
- * Removed once the last reader is migrated.
- */
-export function applySyncEvaXgressMirror(m: Mission, evaUuid: string): void {
-  const eva = m.evas?.[evaUuid];
-  if (!eva) return;
-
-  const resolve = (stationUuid: string | undefined) => {
-    if (!stationUuid) return { locationUuid: LANDER_UUID, duration: null as number | null };
-    const station = m.stations?.[stationUuid];
-    return {
-      locationUuid: isLanderXgressStation(station) ? LANDER_UUID : stationUuid,
-      duration: station?.duration ?? null,
-    };
-  };
-
-  const egress = resolve(getEgressStationUuid(eva));
-  const ingress = resolve(getIngressStationUuid(eva));
-
-  if (eva.egressLocationUuid !== egress.locationUuid) eva.egressLocationUuid = egress.locationUuid;
-  if (eva.ingressLocationUuid !== ingress.locationUuid) {
-    eva.ingressLocationUuid = ingress.locationUuid;
-  }
-  if (eva.egressDuration !== egress.duration) eva.egressDuration = egress.duration;
-  if (eva.ingressDuration !== ingress.duration) eva.ingressDuration = ingress.duration;
-}
-
 /** Insert/replace an EVA in the doc. */
 export function applyUpsertEva(m: Mission, eva: Eva): void {
   m.evas[eva.uuid] = cloneDeep(eva);
-  applySyncEvaXgressMirror(m, eva.uuid);
 }
 
 /**
@@ -104,7 +62,6 @@ export function applyUpdateEvaByField<K extends keyof Eva>(
   if (!preserveUpdatedAt) {
     eva.updatedAt = getAccurateNow().getTime();
   }
-  if (fieldName === "sequence") applySyncEvaXgressMirror(m, evaUuid);
 }
 
 /**
@@ -127,7 +84,6 @@ export function applyInsertEvaSequenceItems(
     ...existingSequence.slice(insertAt),
   ];
   eva.updatedAt = getAccurateNow().getTime();
-  applySyncEvaXgressMirror(m, evaUuid);
 }
 
 /** Splice an EVA's sequence. */
@@ -147,7 +103,6 @@ export function applySpliceEvaSequence(
     ...existingSequence.slice(start + deleteCount),
   ];
   eva.updatedAt = getAccurateNow().getTime();
-  applySyncEvaXgressMirror(m, evaUuid);
 }
 
 /** Swap two items in an EVA's sequence. */
@@ -164,7 +119,6 @@ export function applySwapEvaSequenceItems(
   eva.sequence[indexA] = b;
   eva.sequence[indexB] = a;
   eva.updatedAt = getAccurateNow().getTime();
-  applySyncEvaXgressMirror(m, evaUuid);
 }
 
 /**
@@ -191,8 +145,6 @@ export function applyEvaXgressChangeStage(m: Mission, stage: EvaXgressChangeStag
   if (stage.stationUuidToDelete) {
     applyDeleteStations(m, [stage.stationUuidToDelete]);
   }
-
-  applySyncEvaXgressMirror(m, stage.evaUuid);
 }
 
 /** Delete a list of EVAs from the doc. */
@@ -214,7 +166,6 @@ export function applyDuplicateEvaStage(m: Mission, stage: EvaDuplicationStageDat
     applyDuplicateTraverseStage(m, traverseStage);
   }
   m.evas[stage.newEvaUuid] = stage.newEva;
-  applySyncEvaXgressMirror(m, stage.newEvaUuid);
 }
 
 /**

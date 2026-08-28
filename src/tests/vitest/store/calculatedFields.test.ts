@@ -1,8 +1,8 @@
 import {
-  getCalculatedFieldsByPoi,
-  getCalculatedFieldsByTraverse,
-  getCalculatedFieldsByStation,
-  getCalculatedFieldsByEva,
+  getCalcFieldsForPoi,
+  getCalcFieldsForTraverse,
+  getCalcFieldsForStation,
+  getCalcFieldsForEva,
 } from "store/processing/calculatedFields";
 import isEqual from "lodash/isEqual";
 import { generateBlankAction } from "store/storeUtils/action";
@@ -38,7 +38,7 @@ describe("Calculated fields", () => {
     for (const p of pois) {
       const actions = poiActions_all;
       const poiActions = actions.filter((a) => a.poiUuid === p.uuid && a.enabled);
-      allCalculatedFields.push(getCalculatedFieldsByPoi({ poiActions, poiUuid: p.uuid }));
+      allCalculatedFields.push(getCalcFieldsForPoi({ poiActions, poiUuid: p.uuid }));
     }
 
     //check poi that has no actions
@@ -91,7 +91,7 @@ describe("Calculated fields", () => {
         (a) => a.stationUuid === s.uuid && a.enabled
       );
       allCalculatedFields.push(
-        getCalculatedFieldsByStation({
+        getCalcFieldsForStation({
           station: s,
           missionWalkbackRate: blankMission.walkbackRate,
           stationActions,
@@ -193,7 +193,7 @@ describe("Calculated fields", () => {
         (a) => a.traverseUuid === traverse.uuid && a.enabled
       );
       allCalculatedFields.push(
-        getCalculatedFieldsByTraverse({
+        getCalcFieldsForTraverse({
           traverse,
           missionTraverseRate: mission.traverseRate,
           evaTraverseRate: traverseEva.traverseRate,
@@ -205,7 +205,7 @@ describe("Calculated fields", () => {
     expect(t1CalcFields).toEqual({
       uuid: traverse1.uuid,
       reportItems: [],
-      durationMinutes: 10,
+      movementDurationMinutes: 10,
       distanceMeters: 500,
       ascentDescent: { totalMetersClimbed: 2, totalMetersDescended: 0 },
       actionCount: 0,
@@ -215,12 +215,13 @@ describe("Calculated fields", () => {
       totalEv2Time: 0,
       totalMass: 0,
       totalUnassignedTime: 0,
+      totalEquipmentItems: {},
       bearings: [],
     });
     const t2CalcFields = allCalculatedFields.find((c) => c.uuid === traverse2.uuid);
-    expect(t2CalcFields.durationMinutes).toEqual(30);
+    expect(t2CalcFields.movementDurationMinutes).toEqual(30);
     const t3CalcFields = allCalculatedFields.find((c) => c.uuid === traverse3.uuid);
-    expect(t3CalcFields.durationMinutes).toEqual(15);
+    expect(t3CalcFields.movementDurationMinutes).toEqual(15);
     expect(t3CalcFields.reportItems).toEqual([]);
   });
 
@@ -235,8 +236,6 @@ describe("Calculated fields", () => {
     const station2: Station = generateBlankStation({ name: "Vitest Station-1" });
     const eva: Eva = generateBlankEVA({
       name: "Vitest Eva-1",
-      egressDuration: null,
-      ingressDuration: null,
     });
     eva.sequence = [
       { uuid: station1.uuid, type: "station" },
@@ -251,7 +250,7 @@ describe("Calculated fields", () => {
     const allEvaCalculatedFields: EvaCalculatedFields[] = [];
     for (const e of evas) {
       allEvaCalculatedFields.push(
-        getCalculatedFieldsByEva({
+        getCalcFieldsForEva({
           eva: e,
           evaStations: stations,
           missionWalkbackRate: mission.walkbackRate,
@@ -273,14 +272,16 @@ describe("Calculated fields", () => {
       totalDwellTime: 0,
       actionCount: 0,
       totalMass: 0,
-      totalTraverseTime: 10,
+      totalTraverseMovementTime: 10,
       totalTraverseDistanceMeters: 500,
       totalTraverseAscentDescent: {
         totalMetersClimbed: 2,
         totalMetersDescended: 0,
       },
-      totalEvaTime: 10,
-      equipmentItems: {},
+      totalResolvedEvaTime: 40,
+      totalResolvedStationTime: 30,
+      totalResolvedTraverseTime: 10,
+      totalEquipmentItems: {},
       sequenceItemsCalculatedData: [
         {
           uuid: station1.uuid,
@@ -288,6 +289,7 @@ describe("Calculated fields", () => {
           endSeconds: 0,
           manualStartSeconds: 0,
           manualEndSeconds: 900,
+          resolvedDurationMins: 15,
         },
         {
           uuid: traverse.uuid,
@@ -295,6 +297,7 @@ describe("Calculated fields", () => {
           endSeconds: 600,
           manualStartSeconds: 900,
           manualEndSeconds: 1500,
+          resolvedDurationMins: 10,
         },
         {
           uuid: station2.uuid,
@@ -302,9 +305,54 @@ describe("Calculated fields", () => {
           endSeconds: 600,
           manualStartSeconds: 1500,
           manualEndSeconds: 2400,
+          resolvedDurationMins: 15,
         },
       ],
     };
     expect(evaCalcFields).toEqual(expectedEvaCalcFields);
+  });
+
+  test("getCalcFieldsForEva skips sequence items whose entity does not resolve", async () => {
+    // Adding a station to an EVA inserts a placeholder sequence item with an
+    // empty uuid until the user picks a station, so the calculator has to
+    // tolerate sequence items that resolve to nothing.
+    const mission = generateBlankMission({ name: "Vitest Mission-1", traverseRate: 3 });
+    const traverse = generateBlankTraverse({
+      name: "Vitest Traverse-1",
+      pathSegmentDistances: [500],
+      pathSegmentElevations: [[2, 4]],
+    });
+    const station1: Station = generateBlankStation({ name: "Vitest Station-1" });
+    const station2: Station = generateBlankStation({ name: "Vitest Station-2" });
+    const eva: Eva = generateBlankEVA({ name: "Vitest Eva-1" });
+    eva.sequence = [
+      { uuid: station1.uuid, type: "station" },
+      { uuid: traverse.uuid, type: "traverse" },
+      { uuid: "", type: "station" }, // station not chosen yet
+      { uuid: "", type: "traverse" }, // traverse not built yet
+      { uuid: station2.uuid, type: "station" },
+    ];
+
+    const evaCalcFields = getCalcFieldsForEva({
+      eva,
+      evaStations: [station1, station2],
+      missionWalkbackRate: mission.walkbackRate,
+      missionTraverseRate: mission.traverseRate,
+      evaActions: [],
+      evaTraverses: [traverse],
+    });
+
+    // The unresolved items contribute nothing and are absent from the output,
+    // while the resolvable items total up exactly as they do without them.
+    expect(evaCalcFields.sequenceItemsCalculatedData.map((d) => d.uuid)).toEqual([
+      station1.uuid,
+      traverse.uuid,
+      station2.uuid,
+    ]);
+    expect(evaCalcFields.totalTraverseMovementTime).toEqual(10);
+    expect(evaCalcFields.totalTraverseDistanceMeters).toEqual(500);
+    expect(evaCalcFields.totalResolvedEvaTime).toEqual(40);
+    expect(evaCalcFields.totalResolvedStationTime).toEqual(30);
+    expect(evaCalcFields.totalResolvedTraverseTime).toEqual(10);
   });
 });

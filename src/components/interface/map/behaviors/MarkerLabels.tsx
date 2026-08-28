@@ -36,6 +36,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { selectAsPlannedStations } from "store/selectors";
 import { hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
 import { getActionDisplayName } from "utils/component-helpers";
+import { getEgressStationUuid } from "operations/helpers/evaSequence";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -200,8 +201,7 @@ export function MarkerLabels(): null {
     const rex = m.rexes?.[selectedRexUuid];
     if (!rex) return null;
     const eva = m.evas?.[rex.evaUuid];
-    if (!eva || eva.egressLocationUuid === "lander") return null;
-    return m.stations?.[eva.egressLocationUuid]?.location ?? null;
+    return m.stations?.[getEgressStationUuid(eva?.sequence)]?.location ?? null;
   }, deepEqual);
 
   const landerLocation = useMissionDocSelector(
@@ -325,12 +325,6 @@ export function MarkerLabels(): null {
         for (const item of stationItems) {
           if (item.uuid) uuidsToShow.add(item.uuid);
         }
-        if (selectedEva.egressLocationUuid !== "lander") {
-          uuidsToShow.add(selectedEva.egressLocationUuid);
-        }
-        if (selectedEva.ingressLocationUuid !== "lander") {
-          uuidsToShow.add(selectedEva.ingressLocationUuid);
-        }
       } else if (
         selectedStationUuid &&
         (sectionSelected === "station" || sectionSelected === "evas")
@@ -352,8 +346,10 @@ export function MarkerLabels(): null {
       }
 
       for (const station of allStations) {
+        // Lander copies have no marker, so they get no label either
         if (
           uuidsToShow.has(station.uuid) &&
+          !station.isLanderXgress &&
           station.location?.lat != null &&
           station.location?.lng != null
         ) {
@@ -511,8 +507,13 @@ export function MarkerLabels(): null {
 
     // Hover tooltip — show label for hovered marker even when showLabels is off
     if (hoverMapItemUuid && hoverMapItemType) {
+      // Hovering a lander copy resolves to the lander itself
+      const hoveredIsLanderXgress =
+        hoverMapItemType === "station" &&
+        allStations.some((s) => s.uuid === hoverMapItemUuid && s.isLanderXgress);
+
       const hoverLabelId =
-        hoverMapItemType === "lander"
+        hoverMapItemType === "lander" || hoveredIsLanderXgress
           ? "lander"
           : hoverMapItemType === "station"
             ? `station-${hoverMapItemUuid}`
@@ -523,7 +524,7 @@ export function MarkerLabels(): null {
                 : null;
 
       if (hoverLabelId && !infos.some((i) => i.id === hoverLabelId)) {
-        if (hoverMapItemType === "lander") {
+        if (hoverMapItemType === "lander" || hoveredIsLanderXgress) {
           if (landerLocation && landerLocation.lat != null && landerLocation.lng != null) {
             infos.push({
               id: "lander",
