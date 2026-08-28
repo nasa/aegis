@@ -311,4 +311,48 @@ describe("Calculated fields", () => {
     };
     expect(evaCalcFields).toEqual(expectedEvaCalcFields);
   });
+
+  test("getCalcFieldsForEva skips sequence items whose entity does not resolve", async () => {
+    // Adding a station to an EVA inserts a placeholder sequence item with an
+    // empty uuid until the user picks a station, so the calculator has to
+    // tolerate sequence items that resolve to nothing.
+    const mission = generateBlankMission({ name: "Vitest Mission-1", traverseRate: 3 });
+    const traverse = generateBlankTraverse({
+      name: "Vitest Traverse-1",
+      pathSegmentDistances: [500],
+      pathSegmentElevations: [[2, 4]],
+    });
+    const station1: Station = generateBlankStation({ name: "Vitest Station-1" });
+    const station2: Station = generateBlankStation({ name: "Vitest Station-2" });
+    const eva: Eva = generateBlankEVA({ name: "Vitest Eva-1" });
+    eva.sequence = [
+      { uuid: station1.uuid, type: "station" },
+      { uuid: traverse.uuid, type: "traverse" },
+      { uuid: "", type: "station" }, // station not chosen yet
+      { uuid: "", type: "traverse" }, // traverse not built yet
+      { uuid: station2.uuid, type: "station" },
+    ];
+
+    const evaCalcFields = getCalcFieldsForEva({
+      eva,
+      evaStations: [station1, station2],
+      missionWalkbackRate: mission.walkbackRate,
+      missionTraverseRate: mission.traverseRate,
+      evaActions: [],
+      evaTraverses: [traverse],
+    });
+
+    // The unresolved items contribute nothing and are absent from the output,
+    // while the resolvable items total up exactly as they do without them.
+    expect(evaCalcFields.sequenceItemsCalculatedData.map((d) => d.uuid)).toEqual([
+      station1.uuid,
+      traverse.uuid,
+      station2.uuid,
+    ]);
+    expect(evaCalcFields.totalTraverseMovementTime).toEqual(10);
+    expect(evaCalcFields.totalTraverseDistanceMeters).toEqual(500);
+    expect(evaCalcFields.totalResolvedEvaTime).toEqual(40);
+    expect(evaCalcFields.totalResolvedStationTime).toEqual(30);
+    expect(evaCalcFields.totalResolvedTraverseTime).toEqual(10);
+  });
 });

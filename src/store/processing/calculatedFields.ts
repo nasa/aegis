@@ -383,11 +383,11 @@ export const getCalcTimeForSequenceItem = (params: {
         station,
         missionWalkbackRate,
         stationActions,
-      }).totalDwellTime;
+      })?.totalDwellTime;
     } else if (seqItem.type === "traverse") {
       const traverse = traverses.find((traverse) => traverse.uuid === seqItem.uuid);
       const traverseEva = evas.find((eva) =>
-        eva.sequence.some((seqItem) => seqItem.uuid === traverse.uuid)
+        eva.sequence.some((item) => item.uuid === traverse?.uuid)
       );
       let traverseActions: Action[] = [];
       if (traverse) {
@@ -398,7 +398,7 @@ export const getCalcTimeForSequenceItem = (params: {
         missionTraverseRate,
         evaTraverseRate: traverseEva?.traverseRate,
         traverseActions,
-      }).movementDurationMinutes;
+      })?.movementDurationMinutes;
     }
 
     if (thisStationCalculatedTime) {
@@ -495,6 +495,10 @@ export const getCalcFieldsForEva = (params: {
         stationActions,
       });
 
+      // A sequence item can hold an empty uuid while the user is still picking
+      // a station, so there is nothing to total up for this item yet.
+      if (!thisStationCalculatedFields) continue;
+
       // Add in all the calc action fields from this sequence
       evaCalculatedFields.totalActionTime += thisStationCalculatedFields.totalActionTime;
       evaCalculatedFields.totalEv1Time += thisStationCalculatedFields.totalEv1Time;
@@ -541,6 +545,9 @@ export const getCalcFieldsForEva = (params: {
         evaTraverseRate: eva.traverseRate,
         traverseActions,
       });
+
+      // Same as above: an unresolved traverse contributes nothing.
+      if (!thisTraverseCalculatedFields) continue;
 
       // Add in all the calc action fields from this sequence
       evaCalculatedFields.totalActionTime += thisTraverseCalculatedFields.totalActionTime;
