@@ -110,7 +110,7 @@ export function buildDistanceElevationProfile(
 }
 
 /**
- * Calculate local path slope with a least-squares fit over a fixed distance window.
+ * Calculate local path grade with a least-squares fit over a fixed distance window.
  * The wider baseline suppresses single-cell DEM noise without making the result
  * dependent on canvas width or sample density.
  */

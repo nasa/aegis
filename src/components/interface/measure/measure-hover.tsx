@@ -28,7 +28,7 @@ const MeasureHoverValues: FunctionComponent<{
           </div>
         </div>
         <div className={timelineStyles.timelineHoverValueItem}>
-          <div className={timelineStyles.timelineHoverValueTitle}>Path Slope (°)</div>
+          <div className={timelineStyles.timelineHoverValueTitle}>Path Grade (°)</div>
           <div className={timelineStyles.timelineHoverValue}>
             {hoverValues.slopeDegrees?.toFixed(1)}
           </div>
