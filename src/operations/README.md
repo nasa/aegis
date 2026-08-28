@@ -35,7 +35,7 @@ export function opDeleteStation(
 
 `op*` functions receive a `DocHandle<Mission>` as their first argument.
 
-- **Server side** — call the op directly with an explicit handle (usually looked up from `globalValues.maestro.docHandles`):
+- **Server side** — call the op directly with an explicit handle (usually looked up from `globalValues.maestroV2.docHandles`):
 
   ```typescript
   opUpdateMdau(docHandle, mdau);

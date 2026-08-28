@@ -1,152 +1,111 @@
 /**
  * Position-agnostic accessors for an EVA's sequence.
  *
- * The sequence currently holds only the middle of an EVA: it starts and ends
- * with a traverse, and the egress/ingress locations live outside it on
- * `eva.egressLocationUuid` / `eva.ingressLocationUuid`. These helpers hide that
- * shape so callers never index the sequence directly.
+ * The sequence holds the entire EVA itinerary and both starts and ends with a
+ * station: `station, traverse, station, …, traverse, station`. Index `0` is the
+ * egress location and the last index is the ingress location.
  *
- * When egress/ingress become real `Station` entries at index `0` and
- * `length - 1`, only this file changes.
+ * When an EVA egresses or ingresses at the lander, the station is an
+ * auto-managed copy pinned to the lander (`station.isLanderXgress`).
+ *
+ * Callers must never index the sequence directly — go through these helpers so
+ * the shape stays changeable in one place.
+ *
+ * Each helper takes the sequence array itself, so callers pass `eva?.sequence`
+ * or a pending sequence they have not written to the doc yet.
  */
 
-/** Sentinel uuid meaning "the mission's lander" rather than a station. */
-export const LANDER_UUID = "lander";
-
-/**
- * Minimum shape these helpers need. `Eva` satisfies it structurally, and
- * callers holding a pending or overridden sequence can build one inline.
- */
-export type EvaSequenceSource = {
-  sequence: readonly EvaSequenceItem[];
-  egressLocationUuid?: string;
-  ingressLocationUuid?: string;
-};
-
-/** True when a location uuid refers to the lander instead of a station. */
-export function isLanderUuid(uuid: string | undefined): boolean {
-  return uuid === LANDER_UUID;
+/** The uuid of the station at the egress position, if any. */
+export function getEgressStationUuid(
+  sequence: readonly EvaSequenceItem[] | undefined
+): string | undefined {
+  const item = sequence?.[0];
+  return item?.type === "station" ? item.uuid : undefined;
 }
 
-/** Station uuid or `"lander"` occupying the egress slot. */
-export function getEgressLocationUuid(eva: EvaSequenceSource | undefined): string | undefined {
-  return eva?.egressLocationUuid;
+/** The uuid of the station at the ingress position, if any. */
+export function getIngressStationUuid(
+  sequence: readonly EvaSequenceItem[] | undefined
+): string | undefined {
+  const item = sequence?.[(sequence?.length ?? 0) - 1];
+  return item?.type === "station" ? item.uuid : undefined;
 }
 
-/** Station uuid or `"lander"` occupying the ingress slot. */
-export function getIngressLocationUuid(eva: EvaSequenceSource | undefined): string | undefined {
-  return eva?.ingressLocationUuid;
+/** Sequence index of the ingress station, or `-1` when there is none. */
+export function getIngressIndex(sequence: readonly EvaSequenceItem[] | undefined): number {
+  const last = (sequence?.length ?? 0) - 1;
+  return sequence?.[last]?.type === "station" ? last : -1;
 }
 
-/** The egress slot as a sequence item, or `null` when it is the lander. */
-export function getEgressSequenceItem(eva: EvaSequenceSource | undefined): EvaSequenceItem | null {
-  const uuid = getEgressLocationUuid(eva);
-  if (!uuid || isLanderUuid(uuid)) return null;
-  return { type: "station", uuid };
+/** Every station uuid in the sequence, in sequence order. */
+export function getSequenceStationUuids(
+  sequence: readonly EvaSequenceItem[] | undefined
+): string[] {
+  return (sequence ?? []).filter((item) => item.type === "station").map((item) => item.uuid);
 }
 
-/** The ingress slot as a sequence item, or `null` when it is the lander. */
-export function getIngressSequenceItem(eva: EvaSequenceSource | undefined): EvaSequenceItem | null {
-  const uuid = getIngressLocationUuid(eva);
-  if (!uuid || isLanderUuid(uuid)) return null;
-  return { type: "station", uuid };
-}
-
-/** Every station item in the sequence, in sequence order. */
-export function getSequenceStationItems(eva: EvaSequenceSource | undefined): EvaSequenceItem[] {
-  return (eva?.sequence ?? []).filter((item) => item.type === "station");
-}
-
-/** Every traverse item in the sequence, in sequence order. */
-export function getSequenceTraverseItems(eva: EvaSequenceSource | undefined): EvaSequenceItem[] {
-  return (eva?.sequence ?? []).filter((item) => item.type === "traverse");
-}
-
-/** The traverse leaving the egress location, or `null` when there is none. */
-export function getFirstTraverseItem(eva: EvaSequenceSource | undefined): EvaSequenceItem | null {
-  return getSequenceTraverseItems(eva)[0] ?? null;
-}
-
-/** The traverse arriving at the ingress location, or `null` when there is none. */
-export function getLastTraverseItem(eva: EvaSequenceSource | undefined): EvaSequenceItem | null {
-  const traverses = getSequenceTraverseItems(eva);
-  return traverses[traverses.length - 1] ?? null;
+/** Every traverse uuid in the sequence, in sequence order. */
+export function getSequenceTraverseUuids(
+  sequence: readonly EvaSequenceItem[] | undefined
+): string[] {
+  return (sequence ?? []).filter((item) => item.type === "traverse").map((item) => item.uuid);
 }
 
 /**
- * Inclusive index range of the stations the user may reorder.
- *
- * Under the current shape — `[traverse, station, …, station, traverse]` —
- * every station in the sequence is reorderable, so the range spans
- * `1 … length - 2`.
+ * The traverse leaving the egress location, or the one arriving at the ingress
+ * location. An EVA with a single traverse returns it for both.
  */
-export function getMovableStationIndexRange(eva: EvaSequenceSource | undefined): {
-  first: number;
-  last: number;
-} {
-  const length = eva?.sequence?.length ?? 0;
-  return { first: 1, last: length - 2 };
-}
-
-/** True when `index` holds the first reorderable station. */
-export function isFirstMovableStationIndex(
-  eva: EvaSequenceSource | undefined,
-  index: number
-): boolean {
-  return index === getMovableStationIndexRange(eva).first;
-}
-
-/** True when `index` holds the last reorderable station. */
-export function isLastMovableStationIndex(
-  eva: EvaSequenceSource | undefined,
-  index: number
-): boolean {
-  return index === getMovableStationIndexRange(eva).last;
-}
-
-/**
- * True when `index` holds a station that is pinned to the egress or ingress
- * slot and therefore cannot be reordered or removed.
- *
- * Always false under the current shape, where the xgress locations live
- * outside the sequence.
- */
-export function isXgressIndex(eva: EvaSequenceSource | undefined, index: number): boolean {
-  const item = eva?.sequence?.[index];
-  if (item?.type !== "station") return false;
-  const { first, last } = getMovableStationIndexRange(eva);
-  return index < first || index > last;
-}
-
-/** True when the station at `index` can be swapped with the station before it. */
-export function canMoveStationUp(eva: EvaSequenceSource | undefined, index: number): boolean {
-  return index > getMovableStationIndexRange(eva).first;
-}
-
-/** True when the station at `index` can be swapped with the station after it. */
-export function canMoveStationDown(eva: EvaSequenceSource | undefined, index: number): boolean {
-  return index < getMovableStationIndexRange(eva).last;
+export function getXgressTraverseUuid(
+  sequence: readonly EvaSequenceItem[] | undefined,
+  xgressType: "egress" | "ingress"
+): string | undefined {
+  const item = sequence?.[xgressType === "egress" ? 1 : (sequence?.length ?? 0) - 2];
+  return item?.type === "traverse" ? item.uuid : undefined;
 }
 
 /**
  * Resolve the location uuids on either side of a traverse within an EVA
- * sequence. Either value may be `"lander"`.
+ * sequence. Either value may be a lander-copy station uuid.
  *
  * Both are `undefined` when the traverse is not part of the sequence.
  */
 export function getTraverseNeighborUuids(
-  eva: EvaSequenceSource | undefined,
+  sequence: readonly EvaSequenceItem[] | undefined,
   traverseUuid: string
 ): { beforeUuid: string | undefined; afterUuid: string | undefined } {
-  const sequence = eva?.sequence ?? [];
-  const index = sequence.findIndex(
+  const index = (sequence ?? []).findIndex(
     (item) => item.type === "traverse" && item.uuid === traverseUuid
   );
   if (index === -1) return { beforeUuid: undefined, afterUuid: undefined };
 
-  return {
-    beforeUuid: index === 0 ? getEgressLocationUuid(eva) : sequence[index - 1].uuid,
-    afterUuid:
-      index === sequence.length - 1 ? getIngressLocationUuid(eva) : sequence[index + 1].uuid,
-  };
+  return { beforeUuid: sequence[index - 1]?.uuid, afterUuid: sequence[index + 1]?.uuid };
+}
+
+/**
+ * True when `index` holds a station pinned to the egress or ingress position,
+ * and which therefore cannot be reordered or removed from the sequence.
+ */
+export function isXgressIndex(
+  sequence: readonly EvaSequenceItem[] | undefined,
+  index: number
+): boolean {
+  if (sequence?.[index]?.type !== "station") return false;
+  return index === 0 || index === sequence.length - 1;
+}
+
+/**
+ * True when the station at `index` can be swapped with the station before it
+ * (`"up"`) or after it (`"down"`).
+ *
+ * The sequence is `station, traverse, station, …, traverse, station`, so the
+ * egress (`0`) and ingress (`length - 1`) positions are pinned and the
+ * re-orderable stations span `2 … length - 3`.
+ */
+export function canMoveStation(
+  sequence: readonly EvaSequenceItem[] | undefined,
+  index: number,
+  direction: "up" | "down"
+): boolean {
+  if (sequence?.[index]?.type !== "station" || isXgressIndex(sequence, index)) return false;
+  return direction === "up" ? index > 2 : index < sequence.length - 3;
 }

@@ -64,7 +64,7 @@ export const buildMdauRefUuidMaps = (mission: Mission): MdauRefUuidMaps => {
   }
 
   // Map every station/traverse uuid → the rexUuid whose EVA sequence contains
-  // it (if any). Also captures ingress/egress stations referenced by the EVA.
+  // it (if any).
   // In the same loop, index every entity uuid → its rex uuids.
   const rexUuidBySequenceUuid = new Map<string, string>();
   for (const eva of Object.values(mission.evas ?? {})) {
@@ -75,14 +75,6 @@ export const buildMdauRefUuidMaps = (mission: Mission): MdauRefUuidMaps => {
     for (const seqItem of eva.sequence ?? []) {
       addToEvaUuid(seqItem.uuid, eva.uuid);
       if (rexUuid) rexUuidBySequenceUuid.set(seqItem.uuid, rexUuid);
-    }
-    if (eva.ingressLocationUuid && eva.ingressLocationUuid !== "lander") {
-      addToEvaUuid(eva.ingressLocationUuid, eva.uuid);
-      if (rexUuid) rexUuidBySequenceUuid.set(eva.ingressLocationUuid, rexUuid);
-    }
-    if (eva.egressLocationUuid && eva.egressLocationUuid !== "lander") {
-      addToEvaUuid(eva.egressLocationUuid, eva.uuid);
-      if (rexUuid) rexUuidBySequenceUuid.set(eva.egressLocationUuid, rexUuid);
     }
   }
 

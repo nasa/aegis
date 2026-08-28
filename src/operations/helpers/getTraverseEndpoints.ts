@@ -1,5 +1,4 @@
-import { getTraverseNeighborUuids, isLanderUuid } from "./evaSequence";
-import type { EvaSequenceSource } from "./evaSequence";
+import { getTraverseNeighborUuids } from "./evaSequence";
 
 /**
  * Resolves the before/after locations and names for a traverse's endpoints
@@ -15,16 +14,14 @@ import type { EvaSequenceSource } from "./evaSequence";
 
 export function getTraverseEndpoints(
   traverseUuid: string,
-  eva: EvaSequenceSource | undefined,
+  sequence: readonly EvaSequenceItem[] | undefined,
   stations: { [uuid: string]: Station } | undefined,
-  landerLocation: AEGISPoint,
   stationOverride?: { uuid: string; location: AEGISPoint; name: string }
 ): TraverseEndpointsResult {
-  const resolve = (
+  const getLocationAndName = (
     uuid: string | undefined
   ): { location: AEGISPoint | undefined; name: string } => {
     if (uuid === undefined) return { location: undefined, name: "" };
-    if (isLanderUuid(uuid)) return { location: landerLocation, name: "Lander" };
     if (stationOverride && uuid === stationOverride.uuid) {
       return { location: stationOverride.location, name: stationOverride.name };
     }
@@ -32,9 +29,9 @@ export function getTraverseEndpoints(
     return { location: station?.location, name: station?.name ?? "" };
   };
 
-  const { beforeUuid, afterUuid } = getTraverseNeighborUuids(eva, traverseUuid);
-  const before = resolve(beforeUuid);
-  const after = resolve(afterUuid);
+  const { beforeUuid, afterUuid } = getTraverseNeighborUuids(sequence, traverseUuid);
+  const before = getLocationAndName(beforeUuid);
+  const after = getLocationAndName(afterUuid);
 
   return {
     locationBefore: before.location,

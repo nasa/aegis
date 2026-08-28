@@ -78,9 +78,8 @@ export const thunkDocResetTraverse = appCreateAsyncThunk<{
 
   const { locationBefore, locationAfter } = getTraverseEndpoints(
     traverseUuid,
-    selectedEva,
-    mission.stations,
-    mission.landerLocation
+    selectedEva?.sequence,
+    mission.stations
   );
   const newPath = [locationBefore, locationAfter];
 
@@ -184,9 +183,8 @@ export const thunkDocSaveTraverse = appCreateAsyncThunk<{ traverseUuid: string }
     const selectedEva = mission?.evas?.[getState().eva.selectedEvaUuid];
     const { nameBefore, nameAfter } = getTraverseEndpoints(
       traverseUuid,
-      selectedEva,
-      mission.stations,
-      mission.landerLocation
+      selectedEva?.sequence,
+      mission.stations
     );
 
     // Step 2: Apply the single .change() directly (only if name changed)

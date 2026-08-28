@@ -600,7 +600,6 @@ describe("maestro namespace socket handlers", () => {
       const evaRefUuid = "eva-ref-1";
       const actionRefUuid = "action-ref-1";
       const rexUuid = "rex-uuid-1";
-      const xgressUuid = "xgress-uuid-1";
 
       const fullMdau: MDAU.MaestroDataAegisUses = {
         aegisStations: {
@@ -632,8 +631,6 @@ describe("maestro namespace socket handlers", () => {
               { type: "station", refUuid: stationRefUuid },
               { type: "traverse", refUuid: traverseRefUuid },
             ],
-            ingressDuration: 300,
-            egressDuration: 240,
             datetime: now,
             updatedAt: now,
             rexUuid,
@@ -659,9 +656,6 @@ describe("maestro namespace socket handlers", () => {
             maestroActivityPropertiesByRefUuid: {
               [stationRefUuid]: { color: "#ff0000", number: "1" },
               [traverseRefUuid]: { color: "#00ff00", number: "2" },
-            },
-            xgressEntries: {
-              [xgressUuid]: { rexStatus: "complete" },
             },
             stationEntriesByRefUuid: {
               [stationRefUuid]: {

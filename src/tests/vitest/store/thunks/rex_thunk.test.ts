@@ -331,18 +331,6 @@ describe("Thunk Rex Tests", () => {
       );
       expect(getMission().rexes[runningRex.uuid].actionEntries[actionUuid].mass).toBe(999);
 
-      // xgress states
-      await store.dispatch(
-        thunkDocAddRexStatusEntry({
-          entryType: "xgress",
-          uuid: "ingress",
-          rexStatus: "in-progress",
-        })
-      );
-      expect(getMission().rexes[runningRex.uuid].xgressEntries["ingress"].rexStatus).toBe(
-        "in-progress"
-      );
-
       // Sanity: redux store rex slice still selected
       expect(store.getState().rex.selectedRexUuid).toBe(runningRex.uuid);
     });
@@ -354,7 +342,10 @@ describe("Thunk Rex Tests", () => {
         name: "Vitest Egress Station",
         location: { lat: 10, lng: 20 },
       });
-      const eva = generateBlankEVA({ name: "Vitest Eva", egressLocationUuid: station.uuid });
+      const eva = generateBlankEVA({
+        name: "Vitest Eva",
+        sequence: [{ type: "station", uuid: station.uuid }],
+      });
       const rex = generateBlankRex({ name: "Vitest Running", isRunning: true, evaUuid: eva.uuid });
       getMissionDocHandle().change((m) => {
         m.stations[station.uuid] = station;
@@ -374,11 +365,23 @@ describe("Thunk Rex Tests", () => {
       expect(entries[0].posTypeUuids.length).toBe(rex.posTypes.length);
     });
 
-    it("places pos entries at the lander location when egress is 'lander'", async () => {
-      const eva = generateBlankEVA({ name: "Vitest Eva", egressLocationUuid: "lander" });
+    it("places pos entries at the lander station's location when egressing at the lander", async () => {
+      // A lander egress is an ordinary station that happens to be pinned to the
+      // lander; moving the lander repositions it, so its stored location is
+      // authoritative here.
+      const landerStation = generateBlankStation({
+        name: "Egress",
+        isLanderXgress: true,
+        location: { lat: 1, lng: 2 },
+      });
+      const eva = generateBlankEVA({
+        name: "Vitest Eva",
+        sequence: [{ type: "station", uuid: landerStation.uuid }],
+      });
       const rex = generateBlankRex({ name: "Vitest Running", isRunning: true, evaUuid: eva.uuid });
       getMissionDocHandle().change((m) => {
         m.landerLocation = { lat: 1, lng: 2 };
+        m.stations[landerStation.uuid] = landerStation;
         m.evas[eva.uuid] = eva;
         m.rexes[rex.uuid] = rex;
       });
@@ -391,12 +394,17 @@ describe("Thunk Rex Tests", () => {
     });
 
     it("appends to existing pos entries rather than replacing them", async () => {
-      const eva = generateBlankEVA({ name: "Vitest Eva", egressLocationUuid: "lander" });
+      const landerStation = generateBlankStation({ name: "Egress", isLanderXgress: true });
+      const eva = generateBlankEVA({
+        name: "Vitest Eva",
+        sequence: [{ type: "station", uuid: landerStation.uuid }],
+      });
       const rex = generateBlankRex({ name: "Vitest Running", isRunning: true, evaUuid: eva.uuid });
       const preExisting = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
       rex.posEntries = [preExisting];
       getMissionDocHandle().change((m) => {
         m.landerLocation = { lat: 0, lng: 0 };
+        m.stations[landerStation.uuid] = landerStation;
         m.evas[eva.uuid] = eva;
         m.rexes[rex.uuid] = rex;
       });

@@ -3,11 +3,9 @@ import cloneDeep from "lodash/cloneDeep";
 import { getAccurateNow } from "utils/formatting";
 import { getTotalDistance } from "utils/mapping/geoMath";
 import {
-  getEgressLocationUuid,
-  getFirstTraverseItem,
-  getIngressLocationUuid,
-  getLastTraverseItem,
-  isLanderUuid,
+  getEgressStationUuid,
+  getIngressStationUuid,
+  getXgressTraverseUuid,
 } from "operations/helpers/evaSequence";
 import { thunkFetchElevation } from "store/thunk/thunkElevation";
 import type { AppDispatch } from "utils/useAppDispatch";
@@ -19,6 +17,8 @@ import type { AppDispatch } from "utils/useAppDispatch";
  * Fetches all required elevations in parallel (lander, per-station walkbacks,
  * egress/ingress boundary traverses) then assembles the stage so the caller
  * can apply everything atomically in a single `.change()`.
+ *
+ * Lander stations don't have walkbacks so they are just moved
  *
  * This function never calls `.change()` itself.
  */
@@ -34,8 +34,15 @@ export async function stageLanderLocationUpdate(
     distances: number[];
   };
 
+  // Stations pinned to the lander move with it instead of getting a walkback.
+  const landerXgressStationUuids = Object.values(mission.stations ?? {})
+    .filter((station) => station.isLanderXgress)
+    .map((station) => station.uuid);
+  const landerXgressStationUuidSet = new Set(landerXgressStationUuids);
+
   const walkbackPlans: WalkbackPlan[] = Object.values(mission.stations ?? {})
     .filter((station) => !!station.location) // skip stations without a placed location
+    .filter((station) => !landerXgressStationUuidSet.has(station.uuid))
     .map((station) => {
       const stationWalkbackPath = station.walkbackPath;
       let newWalkbackPath: AEGISPoint[];
@@ -102,14 +109,14 @@ export async function stageLanderLocationUpdate(
   const traversePlans: TraversePlan[] = [];
 
   for (const eva of Object.values(mission.evas ?? {})) {
-    const firstTraverse = getFirstTraverseItem(eva);
-    const lastTraverse = getLastTraverseItem(eva);
-    if (!firstTraverse || !lastTraverse) continue;
+    const firstUuid = getXgressTraverseUuid(eva.sequence, "egress");
+    const lastUuid = getXgressTraverseUuid(eva.sequence, "ingress");
+    if (!firstUuid || !lastUuid) continue;
 
-    const firstUuid = firstTraverse.uuid;
-    const lastUuid = lastTraverse.uuid;
-    const egressIsLander = isLanderUuid(getEgressLocationUuid(eva));
-    const ingressIsLander = isLanderUuid(getIngressLocationUuid(eva));
+    const egressIsLander = landerXgressStationUuidSet.has(getEgressStationUuid(eva.sequence) ?? "");
+    const ingressIsLander = landerXgressStationUuidSet.has(
+      getIngressStationUuid(eva.sequence) ?? ""
+    );
 
     // When both egress and ingress touch the lander and they resolve to the
     // same traverse (single-item sequence), snap both endpoints in one plan.
@@ -199,5 +206,6 @@ export async function stageLanderLocationUpdate(
         : null,
     walkbackUpdates,
     traverseUpdates,
+    landerXgressStationUuids,
   } satisfies LanderLocationUpdateStageData;
 }

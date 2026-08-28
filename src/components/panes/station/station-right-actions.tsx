@@ -4,7 +4,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { useAppSelector, refEqual, shallowEqual } from "utils/useAppSelector";
 import Actions from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
-import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+import { getCalcFieldsForStation } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateStationByField } from "operations/apply/apply-station";
@@ -40,7 +40,7 @@ const Actions_Panel: FunctionComponent<{
     const stationActions = Object.values(docMaps.actions).filter(
       (a) => a.stationUuid === selectedStation?.uuid && a.enabled
     );
-    const calculatedFields = getCalculatedFieldsByStation({
+    const calculatedFields = getCalcFieldsForStation({
       station: selectedStation,
       missionWalkbackRate,
       stationActions,
@@ -53,6 +53,7 @@ const Actions_Panel: FunctionComponent<{
       totalUnassignedTime: calculatedFields.totalUnassignedTime,
       totalDwellTime: calculatedFields.totalDwellTime,
       totalMass: calculatedFields.totalMass,
+      totalEquipmentItems: calculatedFields.totalEquipmentItems,
     };
   }, [docMaps, selectedStation, missionWalkbackRate]);
 

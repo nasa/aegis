@@ -91,6 +91,7 @@ vi.mock("store/thunk/thunkStation", () => ({
 
 const STATION_A_UUID = "station-a-uuid";
 const STATION_B_UUID = "station-b-uuid";
+const LANDER_EGRESS_UUID = "lander-egress-uuid";
 const EVA_UUID = "eva-uuid-1";
 const FOLDER_UUID = "station-folder-1";
 
@@ -111,8 +112,6 @@ function makeEva(uuid: string, stationUuids: string[]): Eva {
     uuid,
     name: "Test EVA",
     traverseColor: "#ff0000",
-    egressLocationUuid: "lander",
-    ingressLocationUuid: "lander",
     sequence: stationUuids.map((u) => ({ uuid: u, type: "station" })),
     updatedAt: new Date().toISOString(),
   } as unknown as Eva;
@@ -257,6 +256,40 @@ describe("StationMarkers", () => {
     const features = stationSource!.getFeatures();
     expect(features).toHaveLength(1);
     expect(features[0].getId()).toBe(STATION_A_UUID);
+  });
+
+  it("never renders lander xgress stations, even when in the selected EVA sequence", () => {
+    // The standalone LanderMarker already occupies the lander coordinate, so a
+    // lander copy must not add a second marker on top of it.
+    const stationA = makeStation(STATION_A_UUID, 10, 20);
+    const landerEgress = {
+      ...makeStation(LANDER_EGRESS_UUID, 0, 0),
+      isLanderXgress: true,
+    } as unknown as Station;
+    const eva = makeEva(EVA_UUID, [LANDER_EGRESS_UUID, STATION_A_UUID]);
+    mockMissionDoc.stations = {
+      [STATION_A_UUID]: stationA,
+      [LANDER_EGRESS_UUID]: landerEgress,
+    } as unknown as Mission["stations"];
+    mockMissionDoc.evas = { [EVA_UUID]: eva } as unknown as Mission["evas"];
+
+    store = makeStore({
+      eva: {
+        ...evaSlice.getInitialState(),
+        selectedEvaUuid: EVA_UUID,
+      },
+      interface: {
+        ...interfaceSlice.getInitialState(),
+        sectionSelectedLabel: "evas",
+      },
+    } as PartialPreloadedState);
+
+    renderStationMarkers();
+
+    const features = stationSource!.getFeatures();
+    expect(features).toHaveLength(1);
+    expect(features[0].getId()).toBe(STATION_A_UUID);
+    expect(stationSource!.getFeatureById(LANDER_EGRESS_UUID)).toBeNull();
   });
 
   it("shows multiple EVA-sequence station features", () => {

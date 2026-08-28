@@ -10,7 +10,7 @@ import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { getRexStatusDisplayProperties, getSequenceItemRowStyles } from "utils/component-helpers";
 import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
-import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
+import { getCalcFieldsForTraverse } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const SequenceItemTraverse: FunctionComponent<{
@@ -48,7 +48,7 @@ const SequenceItemTraverse: FunctionComponent<{
     const traverseActions = Object.values(mission.actions ?? {}).filter(
       (a) => a.traverseUuid === traverseUuid && a.enabled
     );
-    return getCalculatedFieldsByTraverse({
+    return getCalcFieldsForTraverse({
       traverse: mission.traverses ? mission.traverses[traverseUuid] : undefined,
       missionTraverseRate,
       evaTraverseRate: traverseEvaTraverseRate,
@@ -83,7 +83,8 @@ const SequenceItemTraverse: FunctionComponent<{
 
   const displayTraverseDuration = useCallback(() => {
     const traverseCalculatedTime = thisTraverseCalculatedFields
-      ? thisTraverseCalculatedFields.durationMinutes + thisTraverseCalculatedFields.totalActionTime
+      ? thisTraverseCalculatedFields.movementDurationMinutes +
+        thisTraverseCalculatedFields.totalDwellTime
       : null;
     const durationMinutes = isNotNumber(traverseDurationAndName?.duration)
       ? traverseCalculatedTime

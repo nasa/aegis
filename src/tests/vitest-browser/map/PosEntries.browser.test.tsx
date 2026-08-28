@@ -129,7 +129,6 @@ function makeRex(overrides: Partial<Rex> = {}): Rex {
     stationEntries: null,
     traverseEntries: null,
     actionEntries: null,
-    xgressEntries: null,
     maestroControlled: false,
     maestroEventId: null,
     maestroEventUrl: null,
@@ -188,8 +187,6 @@ function preloaded({
     [EVA_UUID]: {
       uuid: EVA_UUID,
       name: "EVA",
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
     },
   } as unknown as Mission["evas"];
 
