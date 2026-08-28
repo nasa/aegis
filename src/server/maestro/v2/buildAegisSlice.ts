@@ -180,6 +180,7 @@ const formatStationsForMaestro = (
       actionOrderRefUuids:
         station.actionOrderUuids?.map((uuid) => mission.actions[uuid]?.refUuid).filter(Boolean) ??
         [],
+      isLanderXgress: station.isLanderXgress,
       createdAt: station.createdAt,
       updatedAt: station.updatedAt,
       ...(rex && { rexUuid: rex.uuid }),

@@ -190,9 +190,6 @@ function buildMissionFromSample(): BuiltMission {
   let rexIngressStation: Station | undefined;
   if (rexSample) {
     const rexSequence: { type: "station" | "traverse"; uuid: string }[] = [];
-
-    // Egress and ingress are real lander-pinned stations bookending the
-    // sequence, so the rex EVA has the expected station/traverse/station shape.
     rexEgressStation = generateBlankStation({ name: "rex-egress", isLanderXgress: true });
     rexIngressStation = generateBlankStation({ name: "rex-ingress", isLanderXgress: true });
     stations.push(rexEgressStation, rexIngressStation);
@@ -374,7 +371,6 @@ describe("sendMDAU sample payload — evas", () => {
     expect(eva).toBeDefined();
     expect(typeof eva.name).toBe("string");
     expect(eva.name).toBe(src.name);
-    // TODO(MR3): inbound xgress durations are dropped, so nothing to assert here.
     expect(eva.datetime).toBe(src.datetime);
     expect(eva.updatedAt).toBe(src.updatedAt);
   });
