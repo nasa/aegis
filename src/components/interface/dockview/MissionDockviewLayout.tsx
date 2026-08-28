@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useState, type FunctionComponent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FunctionComponent,
+} from "react";
 import {
   DockviewReact,
   type DockviewApi,
@@ -83,6 +90,18 @@ function getMapBounds(api: DockviewApi) {
   return api.getPanel("map")?.group.api.boundingBox;
 }
 
+function setFixedPanelWidth(panel: ReturnType<DockviewApi["getPanel"]>, width: number) {
+  if (!panel) return;
+  panel.api.setConstraints({ minimumWidth: width, maximumWidth: width });
+  panel.api.setSize({ width });
+}
+
+function setFixedPanelHeight(panel: ReturnType<DockviewApi["getPanel"]>, height: number) {
+  if (!panel) return;
+  panel.api.setConstraints({ minimumHeight: height, maximumHeight: height });
+  panel.api.setSize({ height });
+}
+
 function setMapMenuSize(
   panel: ReturnType<DockviewApi["getPanel"]>,
   mapBounds: { width: number; height: number }
@@ -101,6 +120,10 @@ function setMapMenuSize(
 
 export function MissionDockviewLayout(): JSX.Element {
   const dispatch = useAppDispatch();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const leftDrawerRef = useRef<HTMLDivElement>(null);
+  const bottomDrawerRef = useRef<HTMLDivElement>(null);
+  const rightDrawerRef = useRef<HTMLDivElement>(null);
   const [api, setApi] = useState<DockviewApi | null>(null);
   const leftPanelIsOpen = useAppSelector((state) => state.interface.leftPanelIsOpen, refEqual);
   const bottomPanelIsOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
@@ -147,21 +170,24 @@ export function MissionDockviewLayout(): JSX.Element {
         id: "left",
         component: "left",
         initialWidth: LEFT_OPEN_WIDTH,
-        minimumWidth: LEFT_CLOSED_WIDTH,
+        minimumWidth: LEFT_OPEN_WIDTH,
+        maximumWidth: LEFT_OPEN_WIDTH,
         position: { referencePanel: map, direction: "left" },
       });
       const bottom = dockviewApi.addPanel({
         id: "bottom",
         component: "bottom",
         initialHeight: BOTTOM_OPEN_HEIGHT,
-        minimumHeight: BOTTOM_CLOSED_HEIGHT,
+        minimumHeight: BOTTOM_OPEN_HEIGHT,
+        maximumHeight: BOTTOM_OPEN_HEIGHT,
         position: { direction: "below" },
       });
       const right = dockviewApi.addPanel({
         id: "right",
         component: "right",
         initialWidth: RIGHT_OPEN_WIDTH,
-        minimumWidth: RIGHT_CLOSED_WIDTH,
+        minimumWidth: RIGHT_OPEN_WIDTH,
+        maximumWidth: RIGHT_OPEN_WIDTH,
         position: { direction: "right" },
       });
 
@@ -174,39 +200,77 @@ export function MissionDockviewLayout(): JSX.Element {
 
   useEffect(() => {
     if (!api) return;
-    api.getPanel("left")?.api.setSize({
-      width: leftPanelIsOpen ? LEFT_OPEN_WIDTH : LEFT_CLOSED_WIDTH,
-    });
+    setFixedPanelWidth(api.getPanel("left"), leftPanelIsOpen ? LEFT_OPEN_WIDTH : LEFT_CLOSED_WIDTH);
   }, [api, leftPanelIsOpen]);
 
   useEffect(() => {
     if (!api) return;
-    api.getPanel("bottom")?.api.setSize({
-      height: bottomPanelIsOpen ? BOTTOM_OPEN_HEIGHT : BOTTOM_CLOSED_HEIGHT,
-    });
+    setFixedPanelHeight(
+      api.getPanel("bottom"),
+      bottomPanelIsOpen ? BOTTOM_OPEN_HEIGHT : BOTTOM_CLOSED_HEIGHT
+    );
   }, [api, bottomPanelIsOpen]);
 
   useEffect(() => {
     if (!api) return;
-    api.getPanel("right")?.api.setSize({
-      width: rightPanelIsOpen ? RIGHT_OPEN_WIDTH : RIGHT_CLOSED_WIDTH,
-    });
+    setFixedPanelWidth(
+      api.getPanel("right"),
+      rightPanelIsOpen ? RIGHT_OPEN_WIDTH : RIGHT_CLOSED_WIDTH
+    );
   }, [api, rightPanelIsOpen]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!api) return;
-    const layoutDisposable = api.onDidLayoutChange(() => {
+    const updateLayout = () => {
+      const container = containerRef.current;
+      const leftPanel = container?.querySelector<HTMLElement>("[data-testid='mission-panel-left']");
+      const bottomPanel = container?.querySelector<HTMLElement>(
+        "[data-testid='mission-panel-bottom']"
+      );
+      const rightPanel = container?.querySelector<HTMLElement>(
+        "[data-testid='mission-panel-right']"
+      );
+      if (container && leftPanel && bottomPanel && rightPanel) {
+        const containerRect = container.getBoundingClientRect();
+        const leftRect = leftPanel.getBoundingClientRect();
+        const bottomRect = bottomPanel.getBoundingClientRect();
+        const rightRect = rightPanel.getBoundingClientRect();
+
+        if (leftDrawerRef.current) {
+          leftDrawerRef.current.style.left = `${leftRect.right - containerRect.left}px`;
+          leftDrawerRef.current.style.top = `${leftRect.top - containerRect.top + leftRect.height / 2}px`;
+        }
+        if (bottomDrawerRef.current) {
+          bottomDrawerRef.current.style.left = `${bottomRect.left - containerRect.left}px`;
+          bottomDrawerRef.current.style.top = `${bottomRect.top - containerRect.top + PANEL_SEPARATOR_SIZE}px`;
+          bottomDrawerRef.current.style.width = `${bottomRect.width}px`;
+        }
+        if (rightDrawerRef.current) {
+          rightDrawerRef.current.style.left = `${rightRect.left - containerRect.left - PANEL_SEPARATOR_SIZE}px`;
+          rightDrawerRef.current.style.top = `${rightRect.top - containerRect.top + rightRect.height / 2}px`;
+        }
+      }
+
       const mapBounds = getMapBounds(api);
       const menuPanel = api.getPanel("map-menu");
-      if (!mapBounds || !menuPanel) return;
-      setMapMenuSize(menuPanel, mapBounds);
-    });
+      if (mapBounds && menuPanel) setMapMenuSize(menuPanel, mapBounds);
+    };
+
+    const layoutDisposable = api.onDidLayoutChange(updateLayout);
+    const dimensionDisposables = ["left", "map", "bottom", "right"].map((id) =>
+      api.getPanel(id)?.api.onDidDimensionsChange(updateLayout)
+    );
     const removeDisposable = api.onDidRemovePanel((panel) => {
       if (panel.id === "map-menu") dispatch(setMapMenuIsOpen(false));
     });
+    const resizeObserver = new ResizeObserver(updateLayout);
+    if (containerRef.current) resizeObserver.observe(containerRef.current);
+    updateLayout();
     return () => {
       layoutDisposable.dispose();
+      for (const disposable of dimensionDisposables) disposable?.dispose();
       removeDisposable.dispose();
+      resizeObserver.disconnect();
     };
   }, [api, dispatch]);
 
@@ -230,7 +294,7 @@ export function MissionDockviewLayout(): JSX.Element {
   );
 
   return (
-    <div className={styles.container} data-testid="mission-dockview">
+    <div ref={containerRef} className={styles.container} data-testid="mission-dockview">
       <DockviewReact
         components={components}
         onReady={onReady}
@@ -240,28 +304,17 @@ export function MissionDockviewLayout(): JSX.Element {
         floatingGroupDragHandle="titlebar"
         transformFloatingGroupDrag={transformFloatingGroupDrag}
       />
-      <div
-        className={styles.leftDrawer}
-        style={{ left: leftPanelIsOpen ? LEFT_OPEN_WIDTH : LEFT_CLOSED_WIDTH }}
-      >
+      <div ref={leftDrawerRef} className={styles.leftDrawer} data-testid="mission-drawer-left">
         <LeftDrawerTab />
       </div>
       <div
+        ref={bottomDrawerRef}
         className={styles.bottomDrawer}
-        style={{
-          right: rightPanelIsOpen ? RIGHT_OPEN_WIDTH : RIGHT_CLOSED_WIDTH,
-          bottom:
-            (bottomPanelIsOpen ? BOTTOM_OPEN_HEIGHT : BOTTOM_CLOSED_HEIGHT) - PANEL_SEPARATOR_SIZE,
-        }}
+        data-testid="mission-drawer-bottom"
       >
         <BottomDrawerTab />
       </div>
-      <div
-        className={styles.rightDrawer}
-        style={{
-          right: (rightPanelIsOpen ? RIGHT_OPEN_WIDTH : RIGHT_CLOSED_WIDTH) - PANEL_SEPARATOR_SIZE,
-        }}
-      >
+      <div ref={rightDrawerRef} className={styles.rightDrawer} data-testid="mission-drawer-right">
         <RightDrawerTab />
       </div>
     </div>

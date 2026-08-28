@@ -1,7 +1,7 @@
 .mapPosDisplayContainer {
   position: absolute;
   top: 10px;
-  right: 10px;
+  right: 0;
   z-index: 100;
   box-sizing: border-box;
   border: 2px solid rgb(0 0 0 / 20%);
@@ -12,7 +12,7 @@
   width: 384px;
   min-width: 300px;
   min-height: 150px;
-  max-width: calc(100% - 10px);
+  max-width: 100%;
   max-height: calc(100% - 10px);
   overflow: hidden;
 }

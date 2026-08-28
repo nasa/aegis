@@ -82,27 +82,36 @@
 }
 
 .drawerBottomTab {
-  inset: 0;
+  position: absolute;
+  top: -13px;
+  left: 0;
   height: 13px;
   width: 64px;
-  position: absolute;
   cursor: pointer;
 }
 
 .drawerBottomSvg {
-  position: relative;
-  left: 0;
-  top: -22px;
-  transform: rotate(90deg);
-  z-index: 1;
+  position: absolute;
+  inset: 0;
+  width: 64px;
+  height: 13px;
+  z-index: 55;
+}
+
+.drawerBottomSvg img {
+  display: block;
+  width: 13px;
+  height: 64px;
+  transform: translateX(64px) rotate(90deg);
+  transform-origin: top left;
 }
 
 .drawerBottomIcon {
-  position: relative;
+  position: absolute;
   width: 12px;
   height: 12px;
-  left: 28px;
-  top: -5px;
+  left: 26px;
+  top: 1px;
   background: transparent;
   z-index: 60;
 }
@@ -123,7 +132,7 @@
 
 .drawerRightSvg {
   position: relative;
-  left: -1px;
+  left: -12px;
   top: -20px;
   z-index: 55;
 }
@@ -132,7 +141,7 @@
   position: relative;
   width: 12px;
   height: 12px;
-  left: 0;
+  left: -10px;
   top: 19px;
   background: transparent;
   z-index: 60;
