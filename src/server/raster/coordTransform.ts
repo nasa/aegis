@@ -1,7 +1,5 @@
 import proj4 from "proj4";
 
-import type { GeographicPoint, PixelPoint } from "./types";
-
 export const geographicToPixel = (
   point: GeographicPoint,
   rasterProjection: string,

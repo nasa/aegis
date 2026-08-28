@@ -1,20 +1,20 @@
-export type GeographicPoint = {
+type GeographicPoint = {
   // Coordinates use the geographic CRS associated with the raster, usually longitude/latitude.
   lat: number;
   lng: number;
 };
 
-export type PixelPoint = {
+type PixelPoint = {
   // Zero-based image column and row, not projected map coordinates.
   x: number;
   y: number;
 };
 
-export type RasterSample =
+type RasterSample =
   | { status: "value"; value: number }
   | { status: "missing"; reason: "out-of-bounds" | "nodata" };
 
-export type RasterDescriptor = {
+type RasterDescriptor = {
   absolutePath: string;
   // Projection overrides support products whose GeoTIFF keys are absent or incomplete.
   projection?: string;
@@ -23,7 +23,7 @@ export type RasterDescriptor = {
   sampleIndex?: number;
 };
 
-export type RasterMetadata = {
+type RasterMetadata = {
   width: number;
   height: number;
   // Projected coordinate at the upper-left pixel origin.
@@ -38,7 +38,7 @@ export type RasterMetadata = {
   geoKeys: Record<string, unknown>;
 };
 
-export type RasterSamplingResult = {
+type RasterSamplingResult = {
   metadata: RasterMetadata;
   samples: RasterSample[];
   blocksRead: number;

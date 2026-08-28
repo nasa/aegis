@@ -3,7 +3,6 @@ import { performance } from "node:perf_hooks";
 import { Worker } from "node:worker_threads";
 
 import type { RasterProfileSamplingResult } from "./sampleRasterProfile";
-import type { GeographicPoint, RasterDescriptor } from "./types";
 
 export type RasterSamplingWorkerRequest = {
   type: "sample";

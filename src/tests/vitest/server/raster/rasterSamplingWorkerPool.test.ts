@@ -9,7 +9,6 @@ import type {
   RasterSamplingWorkerRequest,
   RasterSamplingWorkerResponse,
 } from "server/raster/rasterSamplingWorkerPool";
-import type { RasterMetadata } from "server/raster/types";
 
 const metadata: RasterMetadata = {
   width: 2,

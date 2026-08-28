@@ -1,5 +1,3 @@
-import type { RasterMetadata } from "./types";
-
 type GeoKeys = Record<string, unknown>;
 
 // GeoTIFF stores CRS parameters as numeric GeoKeys rather than a ready-to-use proj4 string.

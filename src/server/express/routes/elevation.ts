@@ -1,4 +1,5 @@
 import path from "node:path";
+import { realpath, stat } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
@@ -6,9 +7,10 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 import { asError } from "@emss/utils";
 
-import { readElevationProfileInWorker } from "server/elevation/readElevationProfile";
-import { resolveMissionDemPath } from "server/elevation/resolveMissionDem";
-import { RasterSamplingWorkerPoolUnavailableError } from "server/raster/rasterSamplingWorkerPool";
+import {
+  RasterSamplingWorkerPoolUnavailableError,
+  sampleRasterProfileInWorker,
+} from "server/raster/rasterSamplingWorkerPool";
 import { getAutomergeMissionHandle } from "./missionAutomerge";
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -100,9 +102,20 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const missionHandle = await getAutomergeMissionHandle(queryObj.missionId);
     if (!missionHandle) {
+      const error = new Error(`Mission ${queryObj.missionId} not found`);
+      serverLogger.apiRoute({
+        logLevel: "error",
+        httpMethod: "POST",
+        responseStatus: 404,
+        routeName: "elevation",
+        appUsername: req.session?.appUser?.username,
+        missionId: queryObj.missionId,
+        message: error.message,
+        error,
+      });
       res.status(404).json({
         status: "failure",
-        message: `Mission ${queryObj.missionId} not found`,
+        message: error.message,
       });
       return;
     }
@@ -157,3 +170,70 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 export default router;
+
+const NODATA_SENTINEL = -1100101;
+
+const readElevationProfileInWorker = async (
+  descriptor: RasterDescriptor,
+  elevationPath: GeographicPoint[],
+  steps: number[]
+) => {
+  const result = await sampleRasterProfileInWorker(descriptor, elevationPath, steps);
+  return {
+    ...result,
+    elevations: result.samples.map((segment) =>
+      segment.map((sample) => (sample.status === "value" ? sample.value : NODATA_SENTINEL))
+    ),
+  };
+};
+
+const resolveMissionDemPath = async (
+  staticDirectory: string | undefined,
+  missionId: number,
+  demFilePath: string
+): Promise<string> => {
+  if (!staticDirectory) throw new Error("STATIC_DIR is not configured");
+  if (!demFilePath) throw new Error("Mission does not have a DEM configured");
+  if (path.isAbsolute(demFilePath)) throw new Error("Mission DEM path must be relative");
+
+  const lexicalDataDirectory = path.resolve(
+    staticDirectory,
+    "missionFiles",
+    missionId.toString(),
+    "Data"
+  );
+  const configuredPath = path.resolve(
+    staticDirectory,
+    "missionFiles",
+    missionId.toString(),
+    demFilePath
+  );
+  const lexicalRelativePath = path.relative(lexicalDataDirectory, configuredPath);
+  if (
+    lexicalRelativePath === "" ||
+    lexicalRelativePath.startsWith(`..${path.sep}`) ||
+    lexicalRelativePath === ".." ||
+    path.isAbsolute(lexicalRelativePath)
+  ) {
+    throw new Error("Mission DEM path must remain inside the mission Data directory");
+  }
+
+  const dataDirectory = await realpath(lexicalDataDirectory);
+  const rasterPath = await realpath(configuredPath);
+  const relativePath = path.relative(dataDirectory, rasterPath);
+  if (
+    relativePath === "" ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    relativePath === ".." ||
+    path.isAbsolute(relativePath)
+  ) {
+    throw new Error("Mission DEM path must remain inside the mission Data directory");
+  }
+
+  const rasterStat = await stat(rasterPath);
+  if (!rasterStat.isFile()) throw new Error("Mission DEM path is not a regular file");
+  if (![".tif", ".tiff"].includes(path.extname(rasterPath).toLowerCase())) {
+    throw new Error("Mission DEM must be a GeoTIFF");
+  }
+  return rasterPath;
+};

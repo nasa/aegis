@@ -1,6 +1,5 @@
 import { interpolateSegment } from "./greatCircleInterpolation";
 import { sampleRasterPoints } from "./sampleRasterPoints";
-import type { GeographicPoint, RasterDescriptor, RasterMetadata, RasterSample } from "./types";
 
 const MAX_RASTER_PROFILE_SAMPLES = 100_000;
 

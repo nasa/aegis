@@ -1,4 +1,3 @@
-import type { RasterMetadata } from "./types";
 import { getCachedRaster } from "./rasterCache";
 
 type RasterImage = Awaited<ReturnType<typeof getCachedRaster>>["image"];

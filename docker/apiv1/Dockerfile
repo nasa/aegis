@@ -45,7 +45,7 @@ FROM base AS prod
 
 # Copy over only stuff we need to keep the image small
 # esbuild bundle from the build stage
-COPY --from=build /app/.local/express/dist/api /app/.local/express/dist/api
+COPY --from=build /app/.local/express/dist/api/api.js /app/.local/express/dist/api/api.js
 COPY --from=build /app/.local/automerge/dist/migration.js /app/.local/automerge/dist/migration.js
 # tsconfig, mikro config, and db migrations/models required for ts-node / mikro
 COPY --from=build /app/src/server/database /app/src/server/database

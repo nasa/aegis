@@ -1,5 +1,3 @@
-import type { GeographicPoint } from "./types";
-
 const toRadians = (degrees: number): number => (degrees * Math.PI) / 180;
 const toDegrees = (radians: number): number => (radians * 180) / Math.PI;
 

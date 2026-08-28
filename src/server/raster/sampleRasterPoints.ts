@@ -1,14 +1,6 @@
 import { geographicToPixel } from "./coordTransform";
 import { getRasterProjections } from "./projection";
 import { openRaster } from "./rasterReader";
-import type {
-  PixelPoint,
-  RasterDescriptor,
-  RasterMetadata,
-  RasterSample,
-  RasterSamplingResult,
-  GeographicPoint,
-} from "./types";
 
 type Block = {
   left: number;

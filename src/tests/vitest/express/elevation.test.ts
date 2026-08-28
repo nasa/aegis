@@ -1,22 +1,20 @@
+import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
 const mocks = vi.hoisted(() => ({
   getAutomergeMissionHandle: vi.fn(),
   hasPerms: vi.fn(),
-  readElevationProfileInWorker: vi.fn(),
-  resolveMissionDemPath: vi.fn(),
+  sampleRasterProfileInWorker: vi.fn(),
 }));
 
 vi.mock("server/express/routes/missionAutomerge", () => ({
   getAutomergeMissionHandle: mocks.getAutomergeMissionHandle,
 }));
 vi.mock("utils/permissions", () => ({ hasPerms: mocks.hasPerms }));
-vi.mock("server/elevation/readElevationProfile", () => ({
-  readElevationProfileInWorker: mocks.readElevationProfileInWorker,
-}));
 vi.mock("server/raster/rasterSamplingWorkerPool", () => ({
   RasterSamplingWorkerPoolUnavailableError: class extends Error {},
-}));
-vi.mock("server/elevation/resolveMissionDem", () => ({
-  resolveMissionDemPath: mocks.resolveMissionDemPath,
+  sampleRasterProfileInWorker: mocks.sampleRasterProfileInWorker,
 }));
 
 import express from "express";
@@ -40,21 +38,38 @@ app.use((req, _res, next) => {
 app.use("/api/v1/elevation", elevationRouter);
 
 describe("native elevation route", () => {
-  beforeEach(() => {
+  let staticDirectory: string;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
+    staticDirectory = await mkdtemp(path.join(os.tmpdir(), "aegis-dem-"));
+    vi.stubEnv("STATIC_DIR", staticDirectory);
+    await mkdir(path.join(staticDirectory, "missionFiles", "42", "Data"), { recursive: true });
+    await writeFile(path.join(staticDirectory, "missionFiles", "42", "Data", "trusted.tif"), "");
     mocks.hasPerms.mockReturnValue(true);
     mocks.getAutomergeMissionHandle.mockResolvedValue({
       doc: () => ({ demFilePath: "Data/trusted.tif", demResolution: 5 }),
     });
-    mocks.resolveMissionDemPath.mockResolvedValue("/static/missionFiles/42/Data/trusted.tif");
-    mocks.readElevationProfileInWorker.mockResolvedValue({
-      elevations: [[100, 101, 102, 103]],
+    mocks.sampleRasterProfileInWorker.mockResolvedValue({
+      samples: [
+        [
+          { status: "value", value: 100 },
+          { status: "value", value: 101 },
+          { status: "value", value: 102 },
+          { status: "value", value: 103 },
+        ],
+      ],
       samplesRead: 4,
       blocksRead: 1,
       workerId: 1,
       queueDurationMs: 1,
       executionDurationMs: 2,
     });
+  });
+
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    await rm(staticDirectory, { recursive: true, force: true });
   });
 
   it("uses the authorized mission metadata and ignores spoofed body raster settings", async () => {
@@ -79,13 +94,8 @@ describe("native elevation route", () => {
       message: "Elevation profile sampled",
     });
     expect(mocks.getAutomergeMissionHandle).toHaveBeenCalledWith(42);
-    expect(mocks.resolveMissionDemPath).toHaveBeenCalledWith(
-      expect.any(String),
-      42,
-      "Data/trusted.tif"
-    );
-    expect(mocks.readElevationProfileInWorker).toHaveBeenCalledWith(
-      { absolutePath: "/static/missionFiles/42/Data/trusted.tif" },
+    expect(mocks.sampleRasterProfileInWorker).toHaveBeenCalledWith(
+      { absolutePath: path.join(staticDirectory, "missionFiles", "42", "Data", "trusted.tif") },
       expect.any(Array),
       [4]
     );
@@ -100,7 +110,7 @@ describe("native elevation route", () => {
       });
 
     expect(response.status).toBe(400);
-    expect(mocks.readElevationProfileInWorker).not.toHaveBeenCalled();
+    expect(mocks.sampleRasterProfileInWorker).not.toHaveBeenCalled();
   });
 
   it("preserves authorization failure behavior", async () => {
@@ -135,6 +145,82 @@ describe("native elevation route", () => {
       });
 
     expect(response.status).toBe(400);
-    expect(mocks.readElevationProfileInWorker).not.toHaveBeenCalled();
+    expect(mocks.sampleRasterProfileInWorker).not.toHaveBeenCalled();
+  });
+
+  it("maps missing raster samples to the legacy sentinel", async () => {
+    mocks.sampleRasterProfileInWorker.mockResolvedValue({
+      samples: [
+        [
+          { status: "value", value: 100 },
+          { status: "missing", reason: "nodata" },
+        ],
+      ],
+      samplesRead: 2,
+      blocksRead: 1,
+      workerId: 1,
+      queueDurationMs: 1,
+      executionDurationMs: 2,
+    });
+
+    const response = await supertest(app)
+      .post("/api/v1/elevation?missionId=42")
+      .send({
+        path: [
+          { lat: -85, lng: 10 },
+          { lat: -85.1, lng: 10.1 },
+        ],
+        pathSegmentDistances: [5],
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([[100, -1100101]]);
+  });
+
+  it("rejects configured paths outside the mission Data directory", async () => {
+    mocks.getAutomergeMissionHandle.mockResolvedValue({
+      doc: () => ({ demFilePath: "other.tif", demResolution: 5 }),
+    });
+    await writeFile(path.join(staticDirectory, "missionFiles", "42", "other.tif"), "");
+
+    const response = await supertest(app)
+      .post("/api/v1/elevation?missionId=42")
+      .send({
+        path: [
+          { lat: -85, lng: 10 },
+          { lat: -85.1, lng: 10.1 },
+        ],
+        pathSegmentDistances: [5],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain("Data directory");
+  });
+
+  it("rejects symlinks that escape the mission Data directory", async () => {
+    const outside = path.join(staticDirectory, "outside");
+    await mkdir(outside);
+    await writeFile(path.join(outside, "dem.tif"), "");
+    await symlink(
+      outside,
+      path.join(staticDirectory, "missionFiles", "42", "Data", "linked"),
+      "junction"
+    );
+    mocks.getAutomergeMissionHandle.mockResolvedValue({
+      doc: () => ({ demFilePath: "Data/linked/dem.tif", demResolution: 5 }),
+    });
+
+    const response = await supertest(app)
+      .post("/api/v1/elevation?missionId=42")
+      .send({
+        path: [
+          { lat: -85, lng: 10 },
+          { lat: -85.1, lng: 10.1 },
+        ],
+        pathSegmentDistances: [5],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain("Data directory");
   });
 });

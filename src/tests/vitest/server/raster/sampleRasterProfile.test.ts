@@ -3,7 +3,6 @@ const sampleRasterPoints = vi.hoisted(() => vi.fn());
 vi.mock("server/raster/sampleRasterPoints", () => ({ sampleRasterPoints }));
 
 import { sampleRasterProfile } from "server/raster/sampleRasterProfile";
-import type { RasterMetadata } from "server/raster/types";
 
 const descriptor = { absolutePath: "fixture.tif", projection: "+proj=longlat" };
 const metadata: RasterMetadata = {
