@@ -7,6 +7,8 @@ import { AUTOMERGE_MIGRATIONS, getPendingAutomergeMigrations } from "server/auto
 import pg from "pg";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
+import { legacyAutomergeSchemas } from "server/database/models/_legacyModels";
+import { allSchemas } from "server/database/models/_allModels";
 
 import { getAutomergeDocListing } from "server/express/routes/docListing";
 import { missionValidator } from "utils/validateSchemaServer";
@@ -62,7 +64,11 @@ const runMigration = async () => {
     // This is only required on the server since esbuild does not initialize the WASM module.
     // Keep it after the pending check so the normal no-op startup path remains inexpensive.
     initializeBase64Wasm(automergeWasmBase64);
-    globalValues.orm = await MikroORM.init(config);
+    globalValues.orm = await MikroORM.init({
+      ...config,
+      entities: [...allSchemas, ...legacyAutomergeSchemas],
+      entitiesTs: [...allSchemas, ...legacyAutomergeSchemas],
+    });
     const storageAdapter: StorageAdapterInterface = new PostgresStorageAdapter(
       "automerge_native_db",
       dbPool

@@ -17,15 +17,9 @@ import {
   STM_Level2_db,
   STM_Level3_db,
   STM_Rule_db,
-  Station_db,
-  Poi_db,
-  Action_db,
-  Eva_db,
   Layer_db,
   Sublayer_db,
-  Traverse_db,
   Preset_db,
-  Rex_db,
   Folder_db,
 } from "server/database/models/_allModels";
 
@@ -496,18 +490,6 @@ export async function deleteMissionRelatedEntities(missionIds: number[]): Promis
       // Now delete all Level 1s for this mission
       await em.nativeDelete(STM_Level1_db, { missionId });
 
-      // Delete actions
-      await em.nativeDelete(Action_db, { missionId });
-
-      // Delete REXes
-      await em.nativeDelete(Rex_db, { missionId });
-
-      // Delete EVAs
-      await em.nativeDelete(Eva_db, { missionId });
-
-      // Delete traverses
-      await em.nativeDelete(Traverse_db, { missionId });
-
       // Delete sublayers (they reference layers)
       await em.nativeDelete(Sublayer_db, { missionId });
 
@@ -519,10 +501,6 @@ export async function deleteMissionRelatedEntities(missionIds: number[]): Promis
 
       // Delete Folders
       await em.nativeDelete(Folder_db, { missionId });
-
-      // Delete POIs and stations
-      await em.nativeDelete(Poi_db, { missionId });
-      await em.nativeDelete(Station_db, { missionId });
 
       deletedMissionIds.push(missionId);
     } catch (error) {
