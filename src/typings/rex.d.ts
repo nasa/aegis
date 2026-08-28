@@ -88,21 +88,3 @@ interface ActionEntry {
 interface ActionEntries {
   [actionUuid: string]: ActionEntry;
 }
-
-// properties from REX that maestro should include in /rexOverwrite endpoint
-type RexOverwrite = Pick<
-  Rex,
-  | "uuid"
-  | "petStartStopTimestamp"
-  | "petValueAtStartStop"
-  | "petRunning"
-  | "isRunning"
-  | "maestroControlled"
-  | "maestroEventId"
-  | "maestroEventUrl"
-  | "maestroActivityPropertiesByRefUuid"
-> & {
-  stationEntriesByRefUuid: { [stationOrTraverseRefUuid: string]: ActivityEntry } | null;
-  traverseEntriesByRefUuid: { [stationOrTraverseRefUuid: string]: ActivityEntry } | null;
-  actionEntriesByRefUuid: { [actionRefUuid: string]: ActionEntry } | null;
-};

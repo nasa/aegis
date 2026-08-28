@@ -471,10 +471,23 @@ test.describe("Mission 22 — Dashboard Integration", () => {
     await page.goto(DASHBOARD_URL);
     await waitForPageReady(page);
 
-    const noEva = await page
-      .getByText("No EVA is currently running.")
-      .isVisible()
-      .catch(() => false);
+    // The loading overlay hides before React commits either dashboard branch,
+    // so poll until one of the two terminal states is on screen. Reading the
+    // "no EVA" message immediately makes the skip decision on an empty page and
+    // sends the test on to wait for a viewport that will never render.
+    const noEvaMessage = page.getByText("No EVA is currently running.");
+    await expect
+      .poll(
+        async () => {
+          const hasMaps = (await page.locator(".ol-viewport").count()) > 0;
+          const hasNoEvaMessage = await noEvaMessage.isVisible().catch(() => false);
+          return hasMaps || hasNoEvaMessage;
+        },
+        { timeout: 15000 }
+      )
+      .toBe(true);
+
+    const noEva = await noEvaMessage.isVisible().catch(() => false);
 
     test.skip(
       noEva,

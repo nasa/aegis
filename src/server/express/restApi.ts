@@ -25,11 +25,6 @@ import appUsersRoutes from "./routes/appUsers";
 import timeRoutes from "./routes/time";
 import folderRoutes from "./routes/folder";
 
-import rexByEvaRef from "../maestro/v1/routes/getRexesByEvaRef";
-import getMissions from "../maestro/v1/routes/getMissions";
-import readableEvaRoutes from "../maestro/v1/routes/eva";
-import readableMissionRoutes from "../maestro/v1/routes/mission";
-
 import rexByEvaRefV2 from "../maestro/v2/routes/getRexesByEvaRef";
 import getMissionsV2 from "../maestro/v2/routes/getMissions";
 import readableEvaRoutesV2 from "../maestro/v2/routes/eva";
@@ -142,12 +137,6 @@ app.use("/api/v1/environmentConfig", environmentConfigRoute);
 
 // require emssToken auth only
 app.use("/api/v1/emss/enableEmssApi", enableEmssApi);
-
-// Maegistro V1
-app.use("/api/v1/readable/eva", readableEvaRoutes);
-app.use("/api/v1/readable/mission", readableMissionRoutes);
-app.use("/api/v1/emss/getRexesByEvaRef", rexByEvaRef);
-app.use("/api/v1/emss/getMissions", getMissions);
 
 // Maegistro V2
 app.use("/api/v1/maestro/v2/eva", readableEvaRoutesV2);

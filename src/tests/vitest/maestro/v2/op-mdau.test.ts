@@ -234,6 +234,78 @@ describe("opUpdateMdau() — stations", () => {
 
     expect(handle.doc().stations[station.uuid].actionOrderUuids).toEqual([actionA.uuid]);
   });
+
+  it("writes updates to a lander xgress station at the egress/ingress ends", () => {
+    // Lander xgress stations are ordinary sequence members at index 0 and the
+    // last index, so an MDAU update must reach them like any other station.
+    const landerLocation: AEGISPoint = { lat: 1, lng: 2 };
+    const egressStation = generateBlankStation({
+      name: "Lander Egress",
+      isLanderXgress: true,
+      duration: 20,
+      location: { ...landerLocation },
+    });
+    const ingressStation = generateBlankStation({
+      name: "Lander Ingress",
+      isLanderXgress: true,
+      duration: 20,
+      location: { ...landerLocation },
+    });
+    const middleStation = generateBlankStation({ name: "Vitest Alpha" });
+    const traverseOut = generateBlankTraverse({ name: "Lander Egress to Vitest Alpha" });
+    const traverseBack = generateBlankTraverse({ name: "Vitest Alpha to Lander Ingress" });
+    const eva = generateBlankEVA({
+      sequence: [
+        { type: "station", uuid: egressStation.uuid },
+        { type: "traverse", uuid: traverseOut.uuid },
+        { type: "station", uuid: middleStation.uuid },
+        { type: "traverse", uuid: traverseBack.uuid },
+        { type: "station", uuid: ingressStation.uuid },
+      ],
+    });
+
+    const handle = getMissionDocHandle();
+    handle.change((m) => {
+      m.stations[egressStation.uuid] = egressStation;
+      m.stations[middleStation.uuid] = middleStation;
+      m.stations[ingressStation.uuid] = ingressStation;
+      m.traverses[traverseOut.uuid] = traverseOut;
+      m.traverses[traverseBack.uuid] = traverseBack;
+      m.evas[eva.uuid] = eva;
+    });
+
+    const now = Date.now();
+    runMdau(handle, {
+      aegisStations: {
+        [egressStation.refUuid]: {
+          refUuid: egressStation.refUuid,
+          name: "Renamed Egress",
+          duration: 30,
+          actionOrderRefUuids: null,
+          updatedAt: now,
+        },
+        [ingressStation.refUuid]: {
+          refUuid: ingressStation.refUuid,
+          name: "Renamed Ingress",
+          duration: 35,
+          actionOrderRefUuids: null,
+          updatedAt: now,
+        },
+      },
+    });
+
+    const doc = handle.doc();
+    expect(doc.stations[egressStation.uuid].name).toBe("Renamed Egress");
+    expect(doc.stations[egressStation.uuid].duration).toBe(30);
+    expect(doc.stations[egressStation.uuid].updatedAt).toBe(now);
+    expect(doc.stations[ingressStation.uuid].name).toBe("Renamed Ingress");
+    expect(doc.stations[ingressStation.uuid].duration).toBe(35);
+    expect(doc.stations[ingressStation.uuid].updatedAt).toBe(now);
+
+    // Renaming an xgress station cascades to its single adjacent traverse.
+    expect(doc.traverses[traverseOut.uuid].name).toContain("Renamed Egress");
+    expect(doc.traverses[traverseBack.uuid].name).toContain("Renamed Ingress");
+  });
 });
 
 // ── opUpdateMdau: traverses ──────────────────────────────────────────────────
@@ -292,10 +364,6 @@ describe("opUpdateMdau() — evas", () => {
           maestroEventId: "evt-1",
           maestroEventUrl: "https://maestro.example/1",
           sequenceRefUuids: [],
-          // TODO(MR3): these are still on the inbound contract but are dropped.
-          // Xgress dwell belongs on the xgress stations' `duration` now.
-          ingressDuration: 250,
-          egressDuration: 300,
           datetime: now,
           updatedAt: now,
         },

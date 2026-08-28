@@ -153,13 +153,36 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
   });
 
   it("accepts a station occupying another EVA's ingress/egress position", () => {
+    // Here the shared station is mid-sequence in evaA and sits at evaB's ingress (last) position
     const station = generateBlankStation({ name: "Xgress", duration: 15 });
-    // The station is mid-sequence in evaA and sits at evaB's ingress position.
-    // Xgress locations are ordinary sequence members, so both are found the
-    // same way.
-    const evaA = generateBlankEVA({ sequence: [{ type: "station", uuid: station.uuid }] });
-    const evaB = generateBlankEVA({ sequence: [{ type: "station", uuid: station.uuid }] });
-    const mission = buildMission({ evas: [evaA, evaB], stations: [station] });
+    const egressA = generateBlankStation({ name: "Lander Egress A", isLanderXgress: true });
+    const ingressA = generateBlankStation({ name: "Lander Ingress A", isLanderXgress: true });
+    const egressB = generateBlankStation({ name: "Lander Egress B", isLanderXgress: true });
+    const traverseA1 = generateBlankTraverse({ name: "Lander Egress A to Xgress" });
+    const traverseA2 = generateBlankTraverse({ name: "Xgress to Lander Ingress A" });
+    const traverseB1 = generateBlankTraverse({ name: "Lander Egress B to Xgress" });
+
+    const evaA = generateBlankEVA({
+      sequence: [
+        { type: "station", uuid: egressA.uuid },
+        { type: "traverse", uuid: traverseA1.uuid },
+        { type: "station", uuid: station.uuid },
+        { type: "traverse", uuid: traverseA2.uuid },
+        { type: "station", uuid: ingressA.uuid },
+      ],
+    });
+    const evaB = generateBlankEVA({
+      sequence: [
+        { type: "station", uuid: egressB.uuid },
+        { type: "traverse", uuid: traverseB1.uuid },
+        { type: "station", uuid: station.uuid },
+      ],
+    });
+    const mission = buildMission({
+      evas: [evaA, evaB],
+      stations: [station, egressA, ingressA, egressB],
+      traverses: [traverseA1, traverseA2, traverseB1],
+    });
 
     const stage = stageMdau(
       mission,
@@ -169,6 +192,48 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
 
     expect(stage.stations).toHaveLength(1);
     expect(stage.stations[0].uuid).toBe(station.uuid);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it("accepts a lander xgress station at the egress position of a subscribed EVA", () => {
+    const egress = generateBlankStation({
+      name: "Lander Egress",
+      isLanderXgress: true,
+      duration: 15,
+    });
+    const middle = generateBlankStation({ name: "Vitest Middle" });
+    const ingress = generateBlankStation({
+      name: "Lander Ingress",
+      isLanderXgress: true,
+      duration: 15,
+    });
+    const traverseOut = generateBlankTraverse({ name: "Lander Egress to Vitest Middle" });
+    const traverseBack = generateBlankTraverse({ name: "Vitest Middle to Lander Ingress" });
+
+    const eva = generateBlankEVA({
+      sequence: [
+        { type: "station", uuid: egress.uuid },
+        { type: "traverse", uuid: traverseOut.uuid },
+        { type: "station", uuid: middle.uuid },
+        { type: "traverse", uuid: traverseBack.uuid },
+        { type: "station", uuid: ingress.uuid },
+      ],
+    });
+    const mission = buildMission({
+      evas: [eva],
+      stations: [egress, middle, ingress],
+      traverses: [traverseOut, traverseBack],
+    });
+
+    const stage = stageMdau(
+      mission,
+      stationPayload(egress.refUuid, "Renamed Egress"),
+      new Set([eva.uuid])
+    );
+
+    expect(stage.stations).toHaveLength(1);
+    expect(stage.stations[0].uuid).toBe(egress.uuid);
+    expect(stage.stations[0].name).toBe("Renamed Egress");
     expect(warnSpy).not.toHaveBeenCalled();
   });
 });
