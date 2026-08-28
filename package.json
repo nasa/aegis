@@ -29,7 +29,7 @@
     "test:loadtest": "node ./.local/express/dist/loadTest/startLoadTest.js",
     "seed": "npx mikro-orm seeder:run",
     "seed:demo": "npm run migration:fresh && npm run automerge:seed:build && npm run automerge:seed",
-    "migration:up": "npm run automerge:migration:build && node ./.local/automerge/dist/migrationPrepare.js Migration20260416000000-manual && node ./.local/automerge/dist/bootstrap.js && node ./.local/automerge/dist/migrationPrepare.js Migration20260722000000-manual && node ./.local/automerge/dist/migration.js && npx mikro-orm migration:up",
+    "migration:up": "npm run schema:create && npm run automerge:migration:build && node ./.local/automerge/dist/migrationPrepare.js Migration20260416000000-manual && node ./.local/automerge/dist/bootstrap.js && node ./.local/automerge/dist/migrationPrepare.js Migration20260722000000-manual && node ./.local/automerge/dist/migration.js && npx mikro-orm migration:up",
     "migration:down": "npx mikro-orm migration:down",
     "migration:create": "npx mikro-orm migration:create && npx prettier --write ./src/server/database/migrations/Migration20*.ts --ignore-path .prettierignore",
     "migration:fresh": "npx mikro-orm migration:fresh --seed",
