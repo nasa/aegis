@@ -4,7 +4,6 @@ import { Worker } from "node:worker_threads";
 
 import { serverLogger } from "utils/logging/serverLogger";
 
-import type { GeographicPoint, RasterDescriptor } from "./types";
 import type { TerrainProfileResult } from "server/terrain/readTerrainProfile";
 
 type TerrainProfileWorkerRequest = {
