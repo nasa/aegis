@@ -2,7 +2,6 @@ import { availableParallelism } from "node:os";
 import { performance } from "node:perf_hooks";
 import { Worker } from "node:worker_threads";
 
-import type { GeographicPoint, RasterDescriptor } from "./types";
 import type { TerrainProfileResult } from "server/terrain/readTerrainProfile";
 
 type TerrainProfileWorkerRequest = {
