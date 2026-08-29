@@ -136,7 +136,7 @@ export function buildDistanceTerrainSlopeProfile(
       slopes.length === 0 ||
       !Number.isFinite(segmentDistance) ||
       segmentDistance < 0 ||
-      !slopes.every((value) => value === null || Number.isFinite(value))
+      !slopes.every((value) => value === null || (Number.isFinite(value) && value >= 0))
     ) {
       return [];
     }
@@ -156,6 +156,32 @@ export function buildDistanceTerrainSlopeProfile(
     segmentStartDistance += segmentDistance;
   }
   return profile;
+}
+
+/** Interpolate a graph's slope value without bridging missing-data gaps. */
+export function getGraphSlopeAtX(graphArray: GraphDataItem[], hoverPointX: number): number | null {
+  if (graphArray.length === 0) return null;
+
+  const exactPoint = graphArray.find(({ xPixel }) => xPixel === hoverPointX);
+  if (exactPoint) return exactPoint.slopeDegrees ?? null;
+
+  let pointBefore: GraphDataItem | undefined;
+  let pointAfter: GraphDataItem | undefined;
+  for (const point of graphArray) {
+    if (point.xPixel < hoverPointX) pointBefore = point;
+    else if (point.xPixel > hoverPointX) {
+      pointAfter = point;
+      break;
+    }
+  }
+  if (!pointBefore || !pointAfter) {
+    return (pointBefore ?? pointAfter)?.slopeDegrees ?? null;
+  }
+  if (pointBefore.slopeDegrees == null || pointAfter.slopeDegrees == null) return null;
+
+  const fraction =
+    (hoverPointX - pointBefore.xPixel) / (pointAfter.xPixel - pointBefore.xPixel || 1);
+  return pointBefore.slopeDegrees + (pointAfter.slopeDegrees - pointBefore.slopeDegrees) * fraction;
 }
 
 /**
