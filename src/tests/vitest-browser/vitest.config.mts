@@ -29,6 +29,12 @@ export default defineConfig(
       // and hooks deref null inside their providers.
       dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
     },
+    optimizeDeps: {
+      // Paper.js is CommonJS and is not reliably found by Vitest's initial browser
+      // dependency scan. Pre-bundle it so Vite does not reload tests mid-run.
+      include: ["paper"],
+      needsInterop: ["paper"],
+    },
     test: {
       globals: true,
       browser: {
