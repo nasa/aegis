@@ -26,17 +26,13 @@ async function openMissionMap(page: Page): Promise<void> {
 
 /** Open the eyeball (Map Item Visibility) menu. */
 async function openEyeballMenu(page: Page): Promise<void> {
-  // The eyeball menu header is a clickable div. When closed, "Map Item Visibility"
-  // text is NOT visible. We click the eye icon area to open it.
-  const menuTitle = page.getByText("Map Item Visibility");
-  const isOpen = await menuTitle.isVisible().catch(() => false);
+  const menuPanel = page.getByTestId("map-menu-floating-panel");
+  const isOpen = await menuPanel.isVisible().catch(() => false);
   if (!isOpen) {
-    // Click the eye icon in the menu header to open
-    // The menu container has a header with an eye icon as the first clickable element
-    // in the top-right corner of the map area
-    await page.locator("[class*='menuHeader']").first().click();
-    await expect(menuTitle).toBeVisible({ timeout: 3000 });
+    await page.getByTestId("map-menu-launcher").click();
   }
+  await expect(menuPanel).toBeVisible();
+  await expect(menuPanel.getByText("Map Item Visibility", { exact: true })).toBeVisible();
 }
 
 /** Wait for the OL map to have painted pixels (tiles loaded). */
@@ -155,26 +151,29 @@ test.describe("Mission 22 — Eyeball Menu", () => {
   test("eyeball menu opens and shows 'Map Item Visibility' title", async ({ page }) => {
     await openMissionMap(page);
     await openEyeballMenu(page);
-    await expect(page.getByText("Map Item Visibility")).toBeVisible();
+    const menuPanel = page.getByTestId("map-menu-floating-panel");
+    await expect(menuPanel.getByText("Map Item Visibility", { exact: true })).toBeVisible();
   });
 
   test("eyeball menu shows POIs, Stations, Actions, Positions labels", async ({ page }) => {
     await openMissionMap(page);
     await openEyeballMenu(page);
 
-    await expect(page.getByText("POIs")).toBeVisible();
-    await expect(page.getByText("Stations")).toBeVisible();
-    await expect(page.getByText("Actions")).toBeVisible();
+    const menuPanel = page.getByTestId("map-menu-floating-panel");
+    await expect(menuPanel.getByText("POIs")).toBeVisible();
+    await expect(menuPanel.getByText("Stations")).toBeVisible();
+    await expect(menuPanel.getByText("Actions")).toBeVisible();
     // "Positions" may be within a collapsible section
-    await expect(page.getByText("Positions")).toBeVisible();
+    await expect(menuPanel.getByText("Positions")).toBeVisible();
   });
 
   test("eyeball menu shows Scale Bar and Mouse Lat/Lon toggles", async ({ page }) => {
     await openMissionMap(page);
     await openEyeballMenu(page);
 
-    await expect(page.getByText("Scale Bar")).toBeVisible();
-    await expect(page.getByText("Mouse Lat/Lon")).toBeVisible();
+    const menuPanel = page.getByTestId("map-menu-floating-panel");
+    await expect(menuPanel.getByText("Scale Bar")).toBeVisible();
+    await expect(menuPanel.getByText("Mouse Lat/Lon")).toBeVisible();
   });
 
   test("eyeball menu shows Stations sub-toggles: Labels, Walkbacks, Circles", async ({ page }) => {
@@ -183,8 +182,9 @@ test.describe("Mission 22 — Eyeball Menu", () => {
 
     // Station row has Labels, Walkbacks, Circles sub-toggles
     // Note: "Labels" appears for POIs, Stations, and Actions rows
-    await expect(page.getByText("Walkbacks")).toBeVisible();
-    await expect(page.getByText("Circles")).toBeVisible();
+    const menuPanel = page.getByTestId("map-menu-floating-panel");
+    await expect(menuPanel.getByText("Walkbacks")).toBeVisible();
+    await expect(menuPanel.getByText("Circles")).toBeVisible();
   });
 
   test("toggling scale bar off hides the scale bar from the map", async ({ page }) => {
@@ -199,7 +199,7 @@ test.describe("Mission 22 — Eyeball Menu", () => {
 
     // Click the eye icon next to "Scale Bar" to toggle it off
     // The Scale Bar row has an eye icon to its left
-    const scaleBarRow = page.getByText("Scale Bar");
+    const scaleBarRow = page.getByTestId("map-menu-floating-panel").getByText("Scale Bar");
     const scaleBarContainer = scaleBarRow.locator("..");
     // Find the eye icon within the same parent container
     await scaleBarContainer.locator("[class*='menuEyeIcon'], [class*='Eye']").first().click();
@@ -212,7 +212,7 @@ test.describe("Mission 22 — Eyeball Menu", () => {
     await openMissionMap(page);
     await openEyeballMenu(page);
 
-    const scaleBarRow = page.getByText("Scale Bar");
+    const scaleBarRow = page.getByTestId("map-menu-floating-panel").getByText("Scale Bar");
     const scaleBarContainer = scaleBarRow.locator("..");
     const eyeIcon = scaleBarContainer.locator("[class*='menuEyeIcon'], [class*='Eye']").first();
 
@@ -232,14 +232,15 @@ test.describe("Mission 22 — Eyeball Menu", () => {
     await openMissionMap(page);
     await openEyeballMenu(page);
 
-    const title = page.getByText("Map Item Visibility");
+    const menuPanel = page.getByTestId("map-menu-floating-panel");
+    const title = menuPanel.getByText("Map Item Visibility", { exact: true });
     await expect(title).toBeVisible();
 
     // Click the close (X) icon in the header
     await page.locator("[class*='menuHeaderClose']").first().click();
 
     // The menu content should be hidden
-    await expect(title).not.toBeVisible({ timeout: 3000 });
+    await expect(menuPanel).not.toBeVisible({ timeout: 3000 });
   });
 });
 
