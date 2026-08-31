@@ -420,8 +420,6 @@ describe("opUpdateMdau() — rexes", () => {
     const traverse = generateBlankTraverse({ name: "Vitest Path" });
     const action = generateBlankAction({ stationUuid: station.uuid });
     station.actionOrderUuids = [action.uuid];
-    // Egress and ingress are real lander-pinned stations at either end. Their
-    // location mirrors the lander's, and posEntries seed from it.
     const landerLocation: AEGISPoint = { lat: 1, lng: 2 };
     const egressStation = generateBlankStation({
       name: "Egress",
@@ -476,7 +474,6 @@ describe("opUpdateMdau() — rexes", () => {
           maestroPercentCompleteEv1: 50,
           maestroPercentCompleteEv2: 25,
         },
-        // Egress/ingress arrive as ordinary stations, keyed by their refUuid.
         [egressStation.refUuid]: {
           rexStatus: "complete",
           maestroPercentCompleteEv1: 100,
@@ -512,7 +509,6 @@ describe("opUpdateMdau() — rexes", () => {
     expect(updated.stationEntries?.[station.uuid]?.rexStatus).toBe("in-progress");
     expect(updated.traverseEntries?.[traverse.uuid]?.rexStatus).toBe("pending");
     expect(updated.actionEntries?.[action.uuid]?.markerId).toBe("M-001");
-    // The egress station resolves like any other station.
     expect(updated.stationEntries?.[egressStation.uuid]?.rexStatus).toBe("complete");
 
     // maestroActivityProperties resolved to uuid keys

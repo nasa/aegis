@@ -30,7 +30,7 @@ describe("missionHasLanderDependentEntities", () => {
     expect(missionHasLanderDependentEntities(mission)).toBe(true);
   });
 
-  test("ignores lander xgress stations, which move with the lander", () => {
+  test("returns true for a placed lander xgress station", () => {
     const mission = generateBlankMission();
     const landerEgress = generateBlankStation({
       name: "Lander",
@@ -39,7 +39,7 @@ describe("missionHasLanderDependentEntities", () => {
     });
     mission.stations[landerEgress.uuid] = landerEgress;
 
-    expect(missionHasLanderDependentEntities(mission)).toBe(false);
+    expect(missionHasLanderDependentEntities(mission)).toBe(true);
   });
 
   test("returns true for an EVA whose sequence holds a placed station", () => {
@@ -62,22 +62,14 @@ describe("missionHasLanderDependentEntities", () => {
     expect(missionHasLanderDependentEntities(mission)).toBe(true);
   });
 
-  test("returns false for an EVA whose stations are all unplaced", () => {
+  test("returns false for a mission whose stations are all unplaced", () => {
     const mission = generateBlankMission();
     const traverse = generateBlankTraverse();
-    const egress = generateBlankStation({ name: "Station A" });
-    const ingress = generateBlankStation({ name: "Station B" });
-    const eva = generateBlankEVA({
-      sequence: [
-        { type: "station", uuid: egress.uuid },
-        { type: "traverse", uuid: traverse.uuid },
-        { type: "station", uuid: ingress.uuid },
-      ],
-    });
+    const station1 = generateBlankStation({ name: "Station A" });
+    const station2 = generateBlankStation({ name: "Station B" });
     mission.traverses[traverse.uuid] = traverse;
-    mission.stations[egress.uuid] = egress;
-    mission.stations[ingress.uuid] = ingress;
-    mission.evas[eva.uuid] = eva;
+    mission.stations[station1.uuid] = station1;
+    mission.stations[station2.uuid] = station2;
 
     expect(missionHasLanderDependentEntities(mission)).toBe(false);
   });

@@ -345,9 +345,7 @@ export default router;
  */
 export function missionHasLanderDependentEntities(mission: Mission): boolean {
   return Object.values(mission.stations ?? {}).some(
-    (station) =>
-      !station.isLanderXgress &&
-      (station.location != null || (station.walkbackPath?.length ?? 0) > 0)
+    (station) => station.location != null || (station.walkbackPath?.length ?? 0) > 0
   );
 }
 

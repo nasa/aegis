@@ -359,7 +359,7 @@ describe("buildAegisSliceForMaestro", () => {
     expect(result.aegisStations[ingressStation.refUuid]).toBeDefined();
     expect(result.aegisStations[middleStation.refUuid]).toBeDefined();
 
-    // Modified fields on a lander station reach Maestro unchanged.
+    // Fields on a lander station reach Maestro unchanged.
     expect(result.aegisStations[egressStation.refUuid].name).toBe("Vitest Lander Egress");
     expect(result.aegisStations[egressStation.refUuid].duration).toBe(20);
     expect(result.aegisStations[ingressStation.refUuid].name).toBe("Vitest Lander Ingress");

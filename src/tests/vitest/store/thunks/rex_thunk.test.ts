@@ -366,9 +366,6 @@ describe("Thunk Rex Tests", () => {
     });
 
     it("places pos entries at the lander station's location when egressing at the lander", async () => {
-      // A lander egress is an ordinary station that happens to be pinned to the
-      // lander; moving the lander repositions it, so its stored location is
-      // authoritative here.
       const landerStation = generateBlankStation({
         name: "Egress",
         isLanderXgress: true,
