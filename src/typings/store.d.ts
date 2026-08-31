@@ -93,6 +93,7 @@ interface InterfaceState {
   leftPanelIsOpen: boolean;
   rightPanelIsOpen: boolean;
   bottomPanelIsOpen: boolean;
+  mapMenuIsOpen: boolean;
   autoRightPanelOpen: boolean;
   autoBottomPanelOpen: boolean;
   elevationPendingItemUuids: string[];

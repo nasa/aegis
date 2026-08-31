@@ -1,0 +1,124 @@
+.container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.leftDrawer,
+.bottomDrawer,
+.rightDrawer {
+  position: absolute;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.leftDrawer,
+.rightDrawer {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.leftDrawer > *,
+.bottomDrawer > *,
+.rightDrawer > * {
+  pointer-events: auto;
+}
+
+.bottomDrawer {
+  left: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.leftPanel,
+.mapPanel,
+.bottomPanel,
+.rightPanel,
+.mapMenuPanel {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.leftPanel {
+  display: flex;
+  overflow: hidden;
+  background: black;
+  border-right: 1px solid var(--grey1);
+}
+
+.mapPanel {
+  position: relative;
+  overflow: hidden;
+}
+
+.bottomPanel {
+  position: relative;
+  overflow: hidden;
+  background: black;
+}
+
+.rightPanel {
+  position: relative;
+  overflow: hidden;
+  background: black;
+  border-left: 1px solid var(--grey1);
+}
+
+.mapMenuPanel {
+  overflow: auto;
+  background-color: var(--grey2);
+}
+
+/* stylelint-disable selector-class-pattern */
+.container :global(.dv-dockview) {
+  --dv-group-view-background-color: transparent;
+  --dv-tabs-and-actions-container-background-color: var(--grey2);
+  --dv-tabs-and-actions-container-height: 26px;
+  --dv-separator-border: 0;
+  --dv-sash-color: transparent;
+  --dv-active-sash-color: transparent;
+  --dv-floating-border: 1px solid var(--grey3);
+  --dv-floating-titlebar-height: 14px;
+  --dv-floating-titlebar-background-color: var(--grey2);
+  --dv-floating-titlebar-border-bottom: 1px solid var(--grey3);
+}
+
+.container :global(.dv-groupview:not(.dv-groupview-floating) > .dv-tabs-and-actions-container) {
+  display: none;
+}
+
+.container :global(.dv-groupview:not(.dv-groupview-floating) > .dv-content-container) {
+  height: 100%;
+  overflow: hidden;
+}
+
+.container :global(.dv-resize-container-with-titlebar > .dv-floating-titlebar) {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 30px;
+  left: 30px;
+  height: 30px;
+  background: transparent;
+  border: 0;
+  cursor: move;
+}
+
+.container :global(.dv-resize-container-with-titlebar > .dv-grid-view) {
+  height: 100%;
+  flex: none;
+}
+
+.container :global(.dv-resize-container .dv-tabs-and-actions-container) {
+  border-bottom: 1px solid var(--grey3);
+}
+
+.container :global(.dv-resize-container .dv-tab) {
+  pointer-events: none;
+}
+/* stylelint-enable selector-class-pattern */

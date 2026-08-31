@@ -24,12 +24,13 @@ async function openMissionMap(page: Page): Promise<void> {
 }
 
 async function openEyeballMenu(page: Page): Promise<void> {
-  const menuTitle = page.getByText("Map Item Visibility");
-  const isOpen = await menuTitle.isVisible().catch(() => false);
+  const menuPanel = page.getByTestId("map-menu-floating-panel");
+  const isOpen = await menuPanel.isVisible().catch(() => false);
   if (!isOpen) {
-    await page.locator("[class*='menuHeader']").first().click();
-    await expect(menuTitle).toBeVisible({ timeout: 3000 });
+    await page.getByTestId("map-menu-launcher").click();
   }
+  await expect(menuPanel).toBeVisible();
+  await expect(menuPanel.getByText("Map Item Visibility", { exact: true })).toBeVisible();
 }
 
 // ===========================================================================
@@ -308,7 +309,8 @@ test.describe("Mission 22 — Eyeball Menu State", () => {
 
     // Open eyeball menu
     await openEyeballMenu(page);
-    await expect(page.getByText("Map Item Visibility")).toBeVisible();
+    const menuPanel = page.getByTestId("map-menu-floating-panel");
+    await expect(menuPanel.getByText("Map Item Visibility", { exact: true })).toBeVisible();
 
     // Switch sections
     await page.getByLabel("station Section", { exact: true }).click();
@@ -320,9 +322,9 @@ test.describe("Mission 22 — Eyeball Menu State", () => {
     // Menu items should still be present — "Map Item Visibility" title confirms
     // the menu is open, then check for specific menu-only items like "Walkbacks"
     // (which only appear in the eyeball menu, not in panel titles)
-    await expect(page.getByText("Map Item Visibility")).toBeVisible();
-    await expect(page.getByText("Walkbacks")).toBeVisible();
-    await expect(page.getByText("Scale Bar")).toBeVisible();
+    await expect(menuPanel.getByText("Map Item Visibility", { exact: true })).toBeVisible();
+    await expect(menuPanel.getByText("Walkbacks")).toBeVisible();
+    await expect(menuPanel.getByText("Scale Bar")).toBeVisible();
   });
 
   test("eyeball toggles produce no JS errors", async ({ page }) => {
@@ -333,7 +335,9 @@ test.describe("Mission 22 — Eyeball Menu State", () => {
     await openEyeballMenu(page);
 
     // Click each "Labels" toggle to test state changes
-    const labelsButtons = page.getByText("Labels", { exact: true });
+    const labelsButtons = page
+      .getByTestId("map-menu-floating-panel")
+      .getByText("Labels", { exact: true });
     const count = await labelsButtons.count();
 
     for (let i = 0; i < count; i++) {
@@ -361,7 +365,8 @@ test.describe("Mission 22 — Eyeball Menu State", () => {
     await openEyeballMenu(page);
 
     // Toggle Walkbacks off and on
-    const walkbacks = page.getByText("Walkbacks", { exact: true });
+    const menuPanel = page.getByTestId("map-menu-floating-panel");
+    const walkbacks = menuPanel.getByText("Walkbacks", { exact: true });
     if (await walkbacks.isVisible()) {
       await walkbacks.click();
       await page.waitForTimeout(300);
@@ -370,7 +375,7 @@ test.describe("Mission 22 — Eyeball Menu State", () => {
     }
 
     // Toggle Circles off and on
-    const circles = page.getByText("Circles", { exact: true });
+    const circles = menuPanel.getByText("Circles", { exact: true });
     if (await circles.isVisible()) {
       await circles.click();
       await page.waitForTimeout(300);
@@ -392,7 +397,7 @@ test.describe("Mission 22 — Eyeball Menu State", () => {
     await openEyeballMenu(page);
 
     // The traverse section has Arrows toggle
-    const arrows = page.getByText("Arrows", { exact: true });
+    const arrows = page.getByTestId("map-menu-floating-panel").getByText("Arrows", { exact: true });
     if (await arrows.isVisible()) {
       await arrows.click();
       await page.waitForTimeout(300);
