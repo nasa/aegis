@@ -24,10 +24,11 @@ async function openMissionMap(page: Page): Promise<void> {
 }
 
 async function openEyeballMenu(page: Page): Promise<void> {
-  const menuTitle = page.getByText("Map Item Visibility");
+  const menuTitle = page.getByText("Map Item Visibility", { exact: true });
   const isOpen = await menuTitle.isVisible().catch(() => false);
   if (!isOpen) {
-    await page.locator("[class*='menuHeader']").first().click();
+    await page.getByTestId("map-menu-launcher").click();
+    await expect(page.getByTestId("map-menu-floating-panel")).toBeVisible();
     await expect(menuTitle).toBeVisible({ timeout: 3000 });
   }
 }

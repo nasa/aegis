@@ -26,15 +26,11 @@ async function openMissionMap(page: Page): Promise<void> {
 
 /** Open the eyeball (Map Item Visibility) menu. */
 async function openEyeballMenu(page: Page): Promise<void> {
-  // The eyeball menu header is a clickable div. When closed, "Map Item Visibility"
-  // text is NOT visible. We click the eye icon area to open it.
-  const menuTitle = page.getByText("Map Item Visibility");
+  const menuTitle = page.getByText("Map Item Visibility", { exact: true });
   const isOpen = await menuTitle.isVisible().catch(() => false);
   if (!isOpen) {
-    // Click the eye icon in the menu header to open
-    // The menu container has a header with an eye icon as the first clickable element
-    // in the top-right corner of the map area
-    await page.locator("[class*='menuHeader']").first().click();
+    await page.getByTestId("map-menu-launcher").click();
+    await expect(page.getByTestId("map-menu-floating-panel")).toBeVisible();
     await expect(menuTitle).toBeVisible({ timeout: 3000 });
   }
 }
