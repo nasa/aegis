@@ -6,7 +6,6 @@ import last from "lodash/last";
 import orderBy from "lodash/orderBy";
 import type { Dispatch } from "@reduxjs/toolkit";
 import { getHoverValue } from "utils/paper";
-import { drawSlopeBand } from "utils/paperSlope";
 
 /**
  * Draws the vertical line with the rotated time at the bottom.
@@ -516,7 +515,6 @@ export function drawSequenceBottomSection(
   paperDataRef: MutableRefObject<PaperData>,
   paperGroupsRef: MutableRefObject<PaperGroups>,
   storeRef: MutableRefObject<EvaCalculated_PaperJS>,
-  graphSequenceItems: MutableRefObject<GraphSequenceItems>,
   selectedEvaSequenceItemUuid: string
 ): void {
   const paperVars = paperDataRef.current.paperVars;
@@ -547,7 +545,6 @@ export function drawSequenceBottomSection(
         paperDataRef,
         xLocRounded,
         endXLocRounded,
-        graphSequenceItems.current[sequenceItem.uuid]?.slopeXY ?? [],
         selectedEvaSequenceItemUuid === sequenceItem.uuid
           ? paperDataRef.current.styles.yellow
           : paperDataRef.current.styles.grey2
@@ -604,7 +601,7 @@ export function drawSequenceBottomSection(
       const availableLabel = new paper.PointText({
         point: new paper.Point(availableMiddleX, paperVars.sequenceTop + 14),
         justification: "center",
-        content: "Avail (" + timeHrs + ":" + padZeros(timeMins, 2) + ")",
+        content: "Available (" + timeHrs + ":" + padZeros(timeMins, 2) + ")",
         fillColor: paperDataRef.current.styles.grey2,
         name: "availableLabel",
       });
@@ -679,41 +676,19 @@ function drawSequenceTraverse(
   paperDataRef: MutableRefObject<PaperData>,
   xStart: number,
   xEnd: number,
-  slopeData: GraphDataItem[],
   color: paper.Color
 ): void {
   const sequenceItemGroup = new paper.Group();
   const paperVars = paperDataRef.current.paperVars;
-  const slopeHeight = 10;
-  drawSlopeBand(
-    sequenceItemGroup,
-    slopeData,
-    paperVars.sequenceTop + (paperVars.sequenceHeight - slopeHeight) / 2,
-    slopeHeight,
-    paperDataRef.current.styles.grey1,
-    xEnd
-  );
 
-  if (slopeData.length <= 1) {
-    sequenceItemGroup.addChild(
-      new paper.Path.Line({
-        from: new paper.Point(xStart, paperVars.sequenceTop + 10),
-        to: new paper.Point(xEnd, paperVars.sequenceTop + 10),
-        strokeColor: color,
-        strokeWidth: 1.5,
-        dashArray: [5, 2],
-      })
-    );
-  } else if (color === paperDataRef.current.styles.yellow) {
-    sequenceItemGroup.addChild(
-      new paper.Path.Rectangle({
-        from: new paper.Point(xStart, paperVars.sequenceTop + 4),
-        to: new paper.Point(xEnd, paperVars.sequenceTop + 16),
-        strokeColor: color,
-        strokeWidth: 1.5,
-      })
-    );
-  }
+  const traverseLine = new paper.Path.Line({
+    from: new paper.Point(xStart, paperVars.sequenceTop + 10),
+    to: new paper.Point(xEnd, paperVars.sequenceTop + 10),
+    strokeColor: color,
+    strokeWidth: 1.5,
+    dashArray: [5, 2],
+  });
+  sequenceItemGroup.addChild(traverseLine);
 }
 
 /**
@@ -808,7 +783,6 @@ export const drawMouseHover = (
   paperDataRef: MutableRefObject<PaperData>,
   paperGroupsRef: MutableRefObject<PaperGroups>,
   storeRef: MutableRefObject<EvaCalculated_PaperJS>,
-  graphSequenceItems: MutableRefObject<GraphSequenceItems>,
   flattenedGraphData: MutableRefObject<GraphData>,
   hoverPoint: paper.Point,
   setHoverValues: Function,
@@ -894,6 +868,7 @@ export const drawMouseHover = (
     if (flattenedGraphData.current.elevationXY?.length > 0) {
       const hoverData = getHoverValue(flattenedGraphData.current.elevationXY, hoverPoint.x);
       newHoverValues.elevationMeters = hoverData.val - landerElevationMeters;
+      newHoverValues.slopeDegrees = hoverData.slope;
       const diamond = new paper.Path.Rectangle({
         point: new paper.Point(hoverPoint.x - 3, hoverData.y - 3),
         size: 6,
@@ -901,11 +876,6 @@ export const drawMouseHover = (
       });
       diamond.rotate(45);
       paperGroupsRef.current.hoverLine.addChild(diamond);
-    }
-
-    const slopeData = graphSequenceItems.current[sequenceUuid]?.slopeXY;
-    if (sequenceType === "traverse" && slopeData?.length > 1) {
-      newHoverValues.slopeDegrees = getHoverValue(slopeData, hoverPoint.x).slope;
     }
 
     // find the GraphDataItem of the walkbackDistanceFromLander with the closest x value compared to xLoc

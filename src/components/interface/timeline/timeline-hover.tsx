@@ -54,27 +54,23 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: TimelineHoverValues 
       </div>
       <div className={styles.timelineHoverValues}>
         <div className={styles.timelineHoverValueItem}>
-          <div className={styles.timelineHoverValueTitle}>Lner Dist (m):</div>
+          <div className={styles.timelineHoverValueTitle}>Lander Distance (m)</div>
           <div className={styles.timelineHoverValue}>
             {hoverValues.distanceFromLanderMeters?.toFixed(0)}
           </div>
         </div>
         <div className={styles.timelineHoverValueItem}>
-          <div className={styles.timelineHoverValueTitle}>Rel Elev (m):</div>
+          <div className={styles.timelineHoverValueTitle}>Relative Elevation (m)</div>
           <div className={styles.timelineHoverValue}>{hoverValues.elevationMeters?.toFixed(0)}</div>
         </div>
         <div className={styles.timelineHoverValueItem}>
-          <div className={styles.timelineHoverValueTitle}>Slope (deg):</div>
-          <div className={styles.timelineHoverValue}>{hoverValues.slopeDegrees?.toFixed(1)}</div>
-        </div>
-        <div className={styles.timelineHoverValueItem}>
-          <div className={styles.timelineHoverValueTitle}>Walkbk Dist (m):</div>
+          <div className={styles.timelineHoverValueTitle}>Walkback Dist (m)</div>
           <div className={styles.timelineHoverValue}>
             {hoverValues.walkbackDistanceFromLanderMeters?.toFixed(0)}
           </div>
         </div>
         <div className={styles.timelineHoverValueItem}>
-          <div className={styles.timelineHoverValueTitle}>Walkbk Elev (m):</div>
+          <div className={styles.timelineHoverValueTitle}>Walkback Elevation (m)</div>
           <div className={styles.timelineHoverValue}>
             {hoverValues.walkbackElevationMeters?.toFixed(0)}
           </div>
