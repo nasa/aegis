@@ -63,8 +63,11 @@ export function stageEvaXgressChange(
 
   if (toLander) {
     // Changing to lander. Create a new station
-    newLanderStation = generateLanderXgressStation(mission, {
+    newLanderStation = generateLanderXgressStation({
       xgressType,
+      missionId: mission.id,
+      location: mission.landerLocation,
+      elevation: mission.landerElevationMeters ?? null,
       ownerId: args.ownerId,
       duration: oldStation?.duration, // Set duration of the new lander copy to the old station's duration
     });

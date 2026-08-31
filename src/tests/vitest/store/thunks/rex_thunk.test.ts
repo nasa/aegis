@@ -10,7 +10,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import {
   getMissionDocHandle,
   setMissionAutomergeDocHandle,
@@ -366,10 +366,12 @@ describe("Thunk Rex Tests", () => {
     });
 
     it("places pos entries at the lander station's location when egressing at the lander", async () => {
-      const landerStation = generateBlankStation({
+      const landerStation = generateLanderXgressStation({
+        xgressType: "egress",
         name: "Egress",
-        isLanderXgress: true,
+        missionId: 0,
         location: { lat: 1, lng: 2 },
+        elevation: null,
       });
       const eva = generateBlankEVA({
         name: "Vitest Eva",
@@ -391,7 +393,13 @@ describe("Thunk Rex Tests", () => {
     });
 
     it("appends to existing pos entries rather than replacing them", async () => {
-      const landerStation = generateBlankStation({ name: "Egress", isLanderXgress: true });
+      const landerStation = generateLanderXgressStation({
+        xgressType: "egress",
+        name: "Egress",
+        missionId: 0,
+        location: { lat: 0, lng: 0 },
+        elevation: null,
+      });
       const eva = generateBlankEVA({
         name: "Vitest Eva",
         sequence: [{ type: "station", uuid: landerStation.uuid }],

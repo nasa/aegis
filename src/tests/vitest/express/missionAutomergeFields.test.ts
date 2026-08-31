@@ -1,7 +1,7 @@
 import { missionHasLanderDependentEntities } from "server/express/routes/missionAutomerge";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 describe("missionHasLanderDependentEntities", () => {
@@ -32,10 +32,12 @@ describe("missionHasLanderDependentEntities", () => {
 
   test("returns true for a placed lander xgress station", () => {
     const mission = generateBlankMission();
-    const landerEgress = generateBlankStation({
+    const landerEgress = generateLanderXgressStation({
+      xgressType: "egress",
       name: "Lander",
-      isLanderXgress: true,
+      missionId: 0,
       location: { lat: 1, lng: 2 },
+      elevation: null,
     });
     mission.stations[landerEgress.uuid] = landerEgress;
 
@@ -45,7 +47,13 @@ describe("missionHasLanderDependentEntities", () => {
   test("returns true for an EVA whose sequence holds a placed station", () => {
     const mission = generateBlankMission();
     const traverse = generateBlankTraverse();
-    const landerEgress = generateBlankStation({ name: "Lander", isLanderXgress: true });
+    const landerEgress = generateLanderXgressStation({
+      xgressType: "egress",
+      name: "Lander",
+      missionId: 0,
+      location: { lat: 0, lng: 0 },
+      elevation: null,
+    });
     const ingress = generateBlankStation({ name: "Station", location: { lat: 1, lng: 2 } });
     const eva = generateBlankEVA({
       sequence: [

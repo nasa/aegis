@@ -18,7 +18,7 @@ import { opUpdateMdau } from "server/maestro/v2/operations/op-mdau";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import type { DocHandle } from "@automerge/automerge-repo";
 import type { MDAU } from "server/maestro/v2/types/mdau";
@@ -190,8 +190,20 @@ function buildMissionFromSample(): BuiltMission {
   let rexIngressStation: Station | undefined;
   if (rexSample) {
     const rexSequence: { type: "station" | "traverse"; uuid: string }[] = [];
-    rexEgressStation = generateBlankStation({ name: "rex-egress", isLanderXgress: true });
-    rexIngressStation = generateBlankStation({ name: "rex-ingress", isLanderXgress: true });
+    rexEgressStation = generateLanderXgressStation({
+      xgressType: "egress",
+      name: "rex-egress",
+      missionId: 0,
+      location: { lat: 0, lng: 0 },
+      elevation: null,
+    });
+    rexIngressStation = generateLanderXgressStation({
+      xgressType: "ingress",
+      name: "rex-ingress",
+      missionId: 0,
+      location: { lat: 0, lng: 0 },
+      elevation: null,
+    });
     stations.push(rexEgressStation, rexIngressStation);
     rexSequence.push({ type: "station", uuid: rexEgressStation.uuid });
 

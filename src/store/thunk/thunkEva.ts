@@ -114,12 +114,18 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
     const newTraverse: Traverse = generateBlankTraverse({ missionId: blankEva.missionId });
 
     // Add new xgress stations at the lander
-    const egressStation = generateLanderXgressStation(mission, {
+    const egressStation = generateLanderXgressStation({
       xgressType: "egress",
+      missionId: mission.id,
+      location: mission.landerLocation,
+      elevation: mission.landerElevationMeters ?? null,
       ownerId: ownerId ?? undefined,
     });
-    const ingressStation = generateLanderXgressStation(mission, {
+    const ingressStation = generateLanderXgressStation({
       xgressType: "ingress",
+      missionId: mission.id,
+      location: mission.landerLocation,
+      elevation: mission.landerElevationMeters ?? null,
       ownerId: ownerId ?? undefined,
     });
 

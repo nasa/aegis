@@ -37,21 +37,27 @@ export const generateBlankStation = (partialStation?: Partial<Station>): Station
 
 /**
  * Build a lander station to be used as xgress for an EVA.
+ *
+ * @param args `xgressType` plus the required mission-derived fields and any
+ * other `Station` fields to override
+ * @returns the generated lander xgress station
  */
 export function generateLanderXgressStation(
-  mission: Mission,
-  args: { xgressType: "egress" | "ingress"; ownerId?: number; duration?: number | null }
+  args: Partial<Station> & {
+    xgressType: "egress" | "ingress";
+    missionId: number;
+    location: AEGISPoint;
+    elevation: number | null;
+  }
 ): Station {
+  const { xgressType, ...overrides } = args;
   return generateBlankStation({
-    uuid: uuidv4(),
-    refUuid: uuidv4(),
-    missionId: mission.id,
-    ownerId: args.ownerId ?? 0,
-    name: args.xgressType === "egress" ? "Lander Egress" : "Lander Ingress",
+    name: xgressType === "egress" ? "Lander Egress" : "Lander Ingress",
     icon: "landerIcon",
+    ...overrides,
+    location: cloneDeep(overrides.location),
+    ownerId: overrides.ownerId ?? 0,
+    duration: overrides.duration ?? 10,
     isLanderXgress: true,
-    location: cloneDeep(mission.landerLocation),
-    elevation: mission.landerElevationMeters ?? null,
-    duration: args.duration ?? 10,
   });
 }

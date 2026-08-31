@@ -4,7 +4,7 @@ import { opUpdateMdau } from "server/maestro/v2/operations/op-mdau";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { serverLogger } from "utils/logging/serverLogger";
 import type { DocHandle } from "@automerge/automerge-repo";
@@ -239,17 +239,19 @@ describe("opUpdateMdau() — stations", () => {
     // Lander xgress stations are ordinary sequence members at index 0 and the
     // last index, so an MDAU update must reach them like any other station.
     const landerLocation: AEGISPoint = { lat: 1, lng: 2 };
-    const egressStation = generateBlankStation({
-      name: "Lander Egress",
-      isLanderXgress: true,
+    const egressStation = generateLanderXgressStation({
+      xgressType: "egress",
+      missionId: 0,
       duration: 20,
       location: { ...landerLocation },
+      elevation: null,
     });
-    const ingressStation = generateBlankStation({
-      name: "Lander Ingress",
-      isLanderXgress: true,
+    const ingressStation = generateLanderXgressStation({
+      xgressType: "ingress",
+      missionId: 0,
       duration: 20,
       location: { ...landerLocation },
+      elevation: null,
     });
     const middleStation = generateBlankStation({ name: "Vitest Alpha" });
     const traverseOut = generateBlankTraverse({ name: "Lander Egress to Vitest Alpha" });
@@ -421,15 +423,19 @@ describe("opUpdateMdau() — rexes", () => {
     const action = generateBlankAction({ stationUuid: station.uuid });
     station.actionOrderUuids = [action.uuid];
     const landerLocation: AEGISPoint = { lat: 1, lng: 2 };
-    const egressStation = generateBlankStation({
+    const egressStation = generateLanderXgressStation({
+      xgressType: "egress",
       name: "Egress",
-      isLanderXgress: true,
+      missionId: 0,
       location: { ...landerLocation },
+      elevation: null,
     });
-    const ingressStation = generateBlankStation({
+    const ingressStation = generateLanderXgressStation({
+      xgressType: "ingress",
       name: "Ingress",
-      isLanderXgress: true,
+      missionId: 0,
       location: { ...landerLocation },
+      elevation: null,
     });
     const eva = generateBlankEVA({
       sequence: [

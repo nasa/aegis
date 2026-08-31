@@ -10,7 +10,7 @@ import {
   thunkDocUpdateTraversesAroundStation,
 } from "store/thunk/thunkTraverse";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankAction } from "store/storeUtils/action";
 import { setMissionAutomergeDocHandle, getMissionDocHandle } from "client/automergeDocHandles";
@@ -137,10 +137,11 @@ describe("Thunk Traverse Tests", () => {
       location: { lat: 3, lng: 2.1 },
     });
     // Station 3 is the egress; the ingress is a lander station.
-    const landerIngress: Station = generateBlankStation({
-      name: "Lander Ingress",
-      isLanderXgress: true,
+    const landerIngress: Station = generateLanderXgressStation({
+      xgressType: "ingress",
+      missionId: 0,
       location: { lat: 3, lng: 3 },
+      elevation: null,
     });
     const eva = generateBlankEVA({ name: "Vitest Eva-1" });
     eva.sequence = [
@@ -212,10 +213,11 @@ describe("Thunk Traverse Tests", () => {
     });
     // Both EVAs egress and ingress at the lander
     const makeLander = (xgressType: "egress" | "ingress") =>
-      generateBlankStation({
-        name: xgressType === "egress" ? "Lander Egress" : "Lander Ingress",
-        isLanderXgress: true,
+      generateLanderXgressStation({
+        xgressType,
+        missionId: 0,
         location: { lat: 3, lng: 3 },
+        elevation: null,
       });
     const eva1Egress = makeLander("egress");
     const eva1Ingress = makeLander("ingress");
@@ -297,10 +299,11 @@ describe("Thunk Traverse Tests", () => {
   it("thunkDocSaveTraverse() updates the traverse name based on its neighbouring stations", async () => {
     const traverse: Traverse = generateBlankTraverse({ name: "Vitest Traverse-1 Modified" });
     const station = generateBlankStation({ name: "Vitest Station-1" });
-    const landerEgress = generateBlankStation({
-      name: "Lander Egress",
-      isLanderXgress: true,
+    const landerEgress = generateLanderXgressStation({
+      xgressType: "egress",
+      missionId: 0,
       location: { lat: 3, lng: 3 },
+      elevation: null,
     });
     const eva = generateBlankEVA({ name: "Vitest Eva-1" });
     eva.sequence = [

@@ -1,5 +1,5 @@
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 
 const LANDER_LOCATION: AEGISPoint = { lat: 0, lng: 0 };
 const S1_LOCATION: AEGISPoint = { lat: 1, lng: 1 };
@@ -9,17 +9,19 @@ const EGRESS_LOCATION: AEGISPoint = { lat: 3, lng: 3 };
 const stations: { [uuid: string]: Station } = {
   // Lander xgress stations are repositioned in the same change that moves the
   // lander, so their stored location always matches it.
-  egress: generateBlankStation({
+  egress: generateLanderXgressStation({
+    xgressType: "egress",
     uuid: "egress",
-    name: "Lander Egress",
-    isLanderXgress: true,
+    missionId: 0,
     location: LANDER_LOCATION,
+    elevation: null,
   }),
-  ingress: generateBlankStation({
+  ingress: generateLanderXgressStation({
+    xgressType: "ingress",
     uuid: "ingress",
-    name: "Lander Ingress",
-    isLanderXgress: true,
+    missionId: 0,
     location: LANDER_LOCATION,
+    elevation: null,
   }),
   s1: generateBlankStation({ uuid: "s1", name: "Station 1", location: S1_LOCATION }),
   s2: generateBlankStation({ uuid: "s2", name: "Station 2", location: S2_LOCATION }),

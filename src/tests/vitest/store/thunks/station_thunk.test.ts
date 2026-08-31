@@ -3,7 +3,7 @@ import { initialState as stationInitialState } from "store/station";
 import * as thunkStation from "store/thunk/thunkStation";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { setMissionAutomergeDocHandle, getMissionDocHandle } from "client/automergeDocHandles";
 
@@ -326,9 +326,12 @@ describe("Thunk Station Tests", () => {
     test("alerts and aborts when deleting a lander station directly", async () => {
       const mockAlert = vi.spyOn(window, "alert").mockImplementation(vi.fn());
 
-      const landerStation: Station = generateBlankStation({
+      const landerStation: Station = generateLanderXgressStation({
+        xgressType: "egress",
         name: "Lander",
-        isLanderXgress: true,
+        missionId: 0,
+        location: { lat: 0, lng: 0 },
+        elevation: null,
       });
       getMissionDocHandle().change((m) => {
         m.stations[landerStation.uuid] = landerStation;

@@ -3,7 +3,7 @@ import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankPoi } from "store/storeUtils/poi";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import cloneDeep from "lodash/cloneDeep";
 import { v4 as uuidv4 } from "uuid";
@@ -32,10 +32,11 @@ export const generateFullMission = (): Mission => {
 
   /** A lander station created for an EVA's xgress position. */
   const makeLanderStation = (xgressType: "egress" | "ingress") =>
-    generateBlankStation({
-      name: xgressType === "egress" ? "Lander Egress" : "Lander Ingress",
-      isLanderXgress: true,
+    generateLanderXgressStation({
+      xgressType,
+      missionId: 0,
       location: { lat: 0, lng: 0 },
+      elevation: null,
     });
 
   // ====== POI (named) ======

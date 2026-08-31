@@ -3,11 +3,17 @@ import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
 import { createTestStoreWithAutomergeMission } from "tests/vitest/fixtures/store";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 const makeLanderStation = (location: AEGISPoint): Station =>
-  generateBlankStation({ name: "Lander", isLanderXgress: true, location: { ...location } });
+  generateLanderXgressStation({
+    xgressType: "egress",
+    name: "Lander",
+    missionId: 0,
+    location: { ...location },
+    elevation: null,
+  });
 
 const mockThunkFetchElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },

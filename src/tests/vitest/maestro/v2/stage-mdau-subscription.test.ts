@@ -15,7 +15,7 @@ import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankRex } from "store/storeUtils/rex";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { stageMdau } from "server/maestro/v2/operations/stage-mdau";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -155,9 +155,17 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
   it("accepts a station occupying another EVA's ingress/egress position", () => {
     // Here the shared station is mid-sequence in evaA and sits at evaB's ingress (last) position
     const station = generateBlankStation({ name: "Xgress", duration: 15 });
-    const egressA = generateBlankStation({ name: "Lander Egress A", isLanderXgress: true });
-    const ingressA = generateBlankStation({ name: "Lander Ingress A", isLanderXgress: true });
-    const egressB = generateBlankStation({ name: "Lander Egress B", isLanderXgress: true });
+    const makeLander = (xgressType: "egress" | "ingress", name: string) =>
+      generateLanderXgressStation({
+        xgressType,
+        name,
+        missionId: 0,
+        location: { lat: 0, lng: 0 },
+        elevation: null,
+      });
+    const egressA = makeLander("egress", "Lander Egress A");
+    const ingressA = makeLander("ingress", "Lander Ingress A");
+    const egressB = makeLander("egress", "Lander Egress B");
     const traverseA1 = generateBlankTraverse({ name: "Lander Egress A to Xgress" });
     const traverseA2 = generateBlankTraverse({ name: "Xgress to Lander Ingress A" });
     const traverseB1 = generateBlankTraverse({ name: "Lander Egress B to Xgress" });
@@ -196,16 +204,20 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
   });
 
   it("accepts a lander xgress station at the egress position of a subscribed EVA", () => {
-    const egress = generateBlankStation({
-      name: "Lander Egress",
-      isLanderXgress: true,
+    const egress = generateLanderXgressStation({
+      xgressType: "egress",
+      missionId: 0,
       duration: 15,
+      location: { lat: 0, lng: 0 },
+      elevation: null,
     });
     const middle = generateBlankStation({ name: "Vitest Middle" });
-    const ingress = generateBlankStation({
-      name: "Lander Ingress",
-      isLanderXgress: true,
+    const ingress = generateLanderXgressStation({
+      xgressType: "ingress",
+      missionId: 0,
       duration: 15,
+      location: { lat: 0, lng: 0 },
+      elevation: null,
     });
     const traverseOut = generateBlankTraverse({ name: "Lander Egress to Vitest Middle" });
     const traverseBack = generateBlankTraverse({ name: "Vitest Middle to Lander Ingress" });

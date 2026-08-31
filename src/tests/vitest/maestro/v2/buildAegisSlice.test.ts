@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { buildAegisSliceForMaestro } from "server/maestro/v2/buildAegisSlice";
 import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankRex } from "store/storeUtils/rex";
@@ -303,19 +303,21 @@ describe("buildAegisSliceForMaestro", () => {
 
   it("includes lander xgress stations at the egress and ingress ends of the sequence", async () => {
     const landerLocation: AEGISPoint = { lat: 1, lng: 2 };
-    const egressStation = generateBlankStation({
+    const egressStation = generateLanderXgressStation({
+      xgressType: "egress",
       name: "Vitest Lander Egress",
       missionId: MISSION_ID,
-      isLanderXgress: true,
       duration: 20,
       location: { ...landerLocation },
+      elevation: null,
     });
-    const ingressStation = generateBlankStation({
+    const ingressStation = generateLanderXgressStation({
+      xgressType: "ingress",
       name: "Vitest Lander Ingress",
       missionId: MISSION_ID,
-      isLanderXgress: true,
       duration: 25,
       location: { ...landerLocation },
+      elevation: null,
     });
     const middleStation = generateBlankStation({
       name: "Vitest Middle Station",
