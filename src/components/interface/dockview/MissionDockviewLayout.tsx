@@ -92,14 +92,14 @@ function getMapBounds(api: DockviewApi) {
 
 function setFixedPanelWidth(panel: ReturnType<DockviewApi["getPanel"]>, width: number) {
   if (!panel) return;
-  panel.api.setConstraints({ minimumWidth: width, maximumWidth: width });
-  panel.api.setSize({ width });
+  panel.group.api.setConstraints({ minimumWidth: width, maximumWidth: width });
+  panel.group.api.setSize({ width });
 }
 
 function setFixedPanelHeight(panel: ReturnType<DockviewApi["getPanel"]>, height: number) {
   if (!panel) return;
-  panel.api.setConstraints({ minimumHeight: height, maximumHeight: height });
-  panel.api.setSize({ height });
+  panel.group.api.setConstraints({ minimumHeight: height, maximumHeight: height });
+  panel.group.api.setSize({ height });
 }
 
 function setMapMenuSize(
@@ -109,13 +109,13 @@ function setMapMenuSize(
   if (!panel) return;
   const width = Math.min(MAP_MENU_WIDTH, mapBounds.width);
   const height = Math.min(MAP_MENU_HEIGHT, mapBounds.height);
-  panel.api.setConstraints({
+  panel.group.api.setConstraints({
     minimumWidth: width,
     minimumHeight: height,
     maximumWidth: width,
     maximumHeight: height,
   });
-  panel.api.setSize({ width, height });
+  panel.group.api.setSize({ width, height });
 }
 
 export function MissionDockviewLayout(): JSX.Element {
