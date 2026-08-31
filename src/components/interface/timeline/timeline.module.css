@@ -45,6 +45,9 @@
 }
 
 .timelineHoverValueItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
   padding: 5px;
 }
 
@@ -55,6 +58,7 @@
 
 .timelineHoverValue {
   height: 1em;
+  text-align: right;
 }
 
 .timelineButton {

@@ -1,5 +1,9 @@
 import type { Mock } from "vitest";
-import { getHoverValue } from "../../../utils/paper";
+import {
+  buildDistanceElevationProfile,
+  calculateWindowedPathSlopes,
+  getHoverValue,
+} from "../../../utils/paper";
 import { getSlope } from "../../../utils/mapping/geoMath";
 
 vi.mock("../../../utils/mapping/geoMath");
@@ -24,6 +28,28 @@ describe("getHoverValue", () => {
     expect(result.val).toBe(15); // Midpoint between 10 and 20
     expect(result.slope).toBe(0.1); // Value from mocked getSlope
     expect(getSlope).toHaveBeenCalledWith(0, 10, 100, 20);
+  });
+
+  it("calculates slope using physical distance when available", () => {
+    const graphArray = [
+      { xPixel: 0, yPixel: 100, val: 10, distanceMeters: 0 },
+      { xPixel: 200, yPixel: 50, val: 20, distanceMeters: 100 },
+    ];
+
+    (getSlope as Mock).mockReturnValue(5.71);
+
+    expect(getHoverValue(graphArray, 100).slope).toBe(5.71);
+    expect(getSlope).toHaveBeenCalledWith(0, 10, 100, 20);
+  });
+
+  it("uses the windowed slope represented by the graph", () => {
+    const graphArray = [
+      { xPixel: 0, yPixel: 100, val: 10, distanceMeters: 0, slopeDegrees: 4 },
+      { xPixel: 200, yPixel: 50, val: 20, distanceMeters: 100, slopeDegrees: 6 },
+    ];
+
+    expect(getHoverValue(graphArray, 100).slope).toBe(5);
+    expect(getSlope).not.toHaveBeenCalled();
   });
 
   it("should return the last point data when hover point is beyond the last data point", () => {
@@ -92,5 +118,87 @@ describe("getHoverValue", () => {
     expect(result.val).toBe(20);
     expect(result.slope).toBe(0.1);
     expect(getSlope).toHaveBeenCalledWith(0, 10, 100, 20);
+  });
+});
+
+describe("buildDistanceElevationProfile", () => {
+  it("places samples by distance and removes shared segment endpoints", () => {
+    expect(
+      buildDistanceElevationProfile(
+        [
+          [100, 110, 120],
+          [120, 115],
+        ],
+        [20, 30]
+      )
+    ).toEqual([
+      { distanceMeters: 0, elevationMeters: 100 },
+      { distanceMeters: 10, elevationMeters: 110 },
+      { distanceMeters: 20, elevationMeters: 120 },
+      { distanceMeters: 50, elevationMeters: 115 },
+    ]);
+  });
+
+  it("uses each segment's own sample spacing", () => {
+    expect(
+      buildDistanceElevationProfile(
+        [
+          [0, 10],
+          [10, 20, 30],
+        ],
+        [10, 40]
+      )
+    ).toEqual([
+      { distanceMeters: 0, elevationMeters: 0 },
+      { distanceMeters: 10, elevationMeters: 10 },
+      { distanceMeters: 30, elevationMeters: 20 },
+      { distanceMeters: 50, elevationMeters: 30 },
+    ]);
+  });
+});
+
+describe("calculateWindowedPathSlopes", () => {
+  it("preserves a constant grade at irregular sample spacing", () => {
+    const profile = [0, 7, 18, 31, 50, 72].map((distanceMeters) => ({
+      distanceMeters,
+      elevationMeters: distanceMeters * 0.1,
+    }));
+
+    for (const slope of calculateWindowedPathSlopes(profile, 50)) {
+      expect(slope).toBeCloseTo(5.7106, 3);
+    }
+  });
+
+  it("returns a negative slope for a downhill profile", () => {
+    const profile = [0, 10, 20, 30].map((distanceMeters) => ({
+      distanceMeters,
+      elevationMeters: 10 - distanceMeters * 0.1,
+    }));
+
+    for (const slope of calculateWindowedPathSlopes(profile, 20)) {
+      expect(slope).toBeCloseTo(-5.7106, 3);
+    }
+  });
+
+  it("suppresses alternating single-sample elevation noise", () => {
+    const profile = Array.from({ length: 11 }, (_, index) => ({
+      distanceMeters: index * 10,
+      elevationMeters: index + (index % 2 === 0 ? 1 : -1),
+    }));
+
+    const slopes = calculateWindowedPathSlopes(profile, 50);
+
+    expect(Math.max(...slopes.slice(2, -2)) - Math.min(...slopes.slice(2, -2))).toBeLessThan(1);
+    expect(slopes[5]).toBeCloseTo(5.7106, 1);
+  });
+
+  it("returns zero when there is not enough distance to calculate a slope", () => {
+    expect(calculateWindowedPathSlopes([{ distanceMeters: 0, elevationMeters: 5 }])).toEqual([0]);
+    expect(
+      calculateWindowedPathSlopes([
+        { distanceMeters: 0, elevationMeters: 5 },
+        { distanceMeters: 0, elevationMeters: 10 },
+      ])
+    ).toEqual([0, 0]);
   });
 });
