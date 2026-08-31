@@ -6,6 +6,7 @@ import type { AutomergeUrl, ChangeFn, DocHandleChangePayload } from "@automerge/
 import { applyChange, diff } from "deep-diff";
 import type { ErrorObject } from "ajv";
 import Ajv from "ajv";
+import TransferStationData from "./automerge-transfer-station";
 import adminCommon from "./adminCommon.module.css";
 
 type RouteParams = {
@@ -208,6 +209,8 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
             />
           </div>
         </section>
+
+        <TransferStationData mission={automergeMission} changeMissionDoc={changeMissionDoc} />
       </div>
     </main>
   );
