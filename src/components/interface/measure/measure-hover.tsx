@@ -10,7 +10,7 @@ const MeasureHoverValues: FunctionComponent<{
     <div className={measureStyles.measureHoverContainer}>
       <div className={timelineStyles.timelineHoverValues}>
         <div className={timelineStyles.timelineHoverValueItem}>
-          <div className={timelineStyles.timelineHoverValueTitle}>Tot Distance (m)</div>
+          <div className={timelineStyles.timelineHoverValueTitle}>Total Distance (m)</div>
           <div className={timelineStyles.timelineHoverValue}>
             {hoverValues.totalDistanceMeters?.toFixed(0)}
           </div>
@@ -22,15 +22,9 @@ const MeasureHoverValues: FunctionComponent<{
           </div>
         </div>
         <div className={timelineStyles.timelineHoverValueItem}>
-          <div className={timelineStyles.timelineHoverValueTitle}>Rel Elev (m)</div>
+          <div className={timelineStyles.timelineHoverValueTitle}>Relative Elevation (m)</div>
           <div className={timelineStyles.timelineHoverValue}>
             {hoverValues.elevationMeters?.toFixed(0)}
-          </div>
-        </div>
-        <div className={timelineStyles.timelineHoverValueItem}>
-          <div className={timelineStyles.timelineHoverValueTitle}>Path Grade (°)</div>
-          <div className={timelineStyles.timelineHoverValue}>
-            {hoverValues.slopeDegrees?.toFixed(1)}
           </div>
         </div>
       </div>

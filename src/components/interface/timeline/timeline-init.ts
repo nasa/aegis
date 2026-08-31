@@ -1,6 +1,5 @@
 import type { MutableRefObject } from "react";
 import paper from "paper";
-import { buildDistanceElevationProfile, calculateWindowedPathSlopes } from "utils/paper";
 
 /**
  * Initialize refs for paper. Sets colors and pixel boundaries based on canvas size
@@ -119,7 +118,6 @@ export function initGraphItemsRef(
     );
 
     let graphData_elevation: GraphDataItem[] = []; //elevation profile for the sequence item
-    let graphData_slope: GraphDataItem[] = [];
     let graphData_distFromLndr: GraphDataItem[] = [];
     let graphData_walkback: { distanceFromLander: GraphDataItem[]; elevation: GraphDataItem[] } = {
       distanceFromLander: [],
@@ -166,19 +164,6 @@ export function initGraphItemsRef(
           storeRef
         );
       }
-      if (
-        sequenceItem.traverse.segmentedElevationMeters &&
-        sequenceItem.traverse.segmentedDistancesMeters
-      ) {
-        graphData_slope = calcSlope(
-          sequenceItem.traverse.segmentedElevationMeters,
-          sequenceItem.traverse.segmentedDistancesMeters,
-          sequenceStartPixel,
-          sequenceStartPixelRounded,
-          sequenceItem.totalDurationMins,
-          paperDataRef
-        );
-      }
     }
     //calc dist from lander
     graphData_distFromLndr = calcDistFromLander(
@@ -193,7 +178,6 @@ export function initGraphItemsRef(
       type: sequenceItem.type,
       distanceFromLanderXY: graphData_distFromLndr,
       elevationXY: graphData_elevation,
-      slopeXY: graphData_slope,
       walkbackDistanceFromLanderXY: graphData_walkback.distanceFromLander,
       walkbackElevationXY: graphData_walkback.elevation,
     } as GraphSequenceData;
@@ -209,38 +193,6 @@ export function initGraphItemsRef(
       ...graphData_elevation,
     ];
   }
-}
-
-function calcSlope(
-  segmentedElevationMeters: number[][],
-  segmentedDistancesMeters: number[],
-  xLocStart: number,
-  xLocStartRounded: number,
-  totalDurationMins: number,
-  paperDataRef: MutableRefObject<PaperData>
-): GraphDataItem[] {
-  const paperVars = paperDataRef.current.paperVars;
-  const xLocMax = xLocStart + totalDurationMins * 60 * paperVars.pixelsPerSecondX;
-  const xLocMaxRounded = totalDurationMins
-    ? roundPixelToNearestMinute(xLocMax, paperVars.pixelsPerSecondX, paperVars.timelineLeft)
-    : xLocStartRounded;
-  const profile = buildDistanceElevationProfile(
-    segmentedElevationMeters,
-    segmentedDistancesMeters ?? []
-  );
-  const slopes = calculateWindowedPathSlopes(profile);
-  const totalDistance = profile.at(-1)?.distanceMeters ?? 0;
-
-  if (totalDistance <= 0) return [];
-
-  return profile.map(({ distanceMeters, elevationMeters }, index) => ({
-    xPixel:
-      xLocStartRounded + (distanceMeters / totalDistance) * (xLocMaxRounded - xLocStartRounded),
-    yPixel: 0,
-    val: elevationMeters,
-    distanceMeters,
-    slopeDegrees: slopes[index],
-  }));
 }
 
 /**

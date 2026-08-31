@@ -4,7 +4,6 @@ import { drawMeterMarker } from "../timeline/timeline-drawing";
 import type { Dispatch } from "@reduxjs/toolkit";
 import { clearMapItemHover, setMeasurementHover } from "store/hover";
 import { getHoverValue } from "utils/paper";
-import { drawSlopeBand } from "utils/paperSlope";
 
 export function drawGraphAxes(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
@@ -15,7 +14,6 @@ export function drawGraphAxes(
   const paperVars = measurePaperDataRef.current.paperVars;
   const axisGroup = measurePaperGroupsRef.current.axisGroup;
   const paperStyles = measurePaperDataRef.current.styles;
-  const graphBottom = paperVars.slopeTop + paperVars.slopeHeight;
 
   //draw top and bottom lines
   const topLine = new paper.Path.Line({
@@ -24,23 +22,26 @@ export function drawGraphAxes(
     strokeColor: paperStyles.grey3,
   });
   const bottomLine = new paper.Path.Line({
-    from: new paper.Point(paperVars.drawingLeft, graphBottom),
-    to: new paper.Point(paperVars.drawingLeft + paperVars.drawingWidth, graphBottom),
+    from: new paper.Point(paperVars.drawingLeft, paperVars.graphHeight + 20),
+    to: new paper.Point(paperVars.drawingLeft + paperVars.drawingWidth, paperVars.graphHeight),
     strokeColor: paperStyles.grey3,
   });
   const leftLine = new paper.Path.Line({
     from: new paper.Point(paperVars.drawingLeft, paperVars.drawingTop),
-    to: new paper.Point(paperVars.drawingLeft, graphBottom),
+    to: new paper.Point(paperVars.drawingLeft, paperVars.graphHeight + 20),
     strokeColor: paperStyles.grey3,
   });
   const rightLine = new paper.Path.Line({
     from: new paper.Point(paperVars.drawingLeft + paperVars.drawingWidth, paperVars.drawingTop),
-    to: new paper.Point(paperVars.drawingLeft + paperVars.drawingWidth, graphBottom),
+    to: new paper.Point(paperVars.drawingLeft + paperVars.drawingWidth, paperVars.graphHeight),
     strokeColor: paperStyles.grey3,
   });
   const background = new paper.Path.Rectangle({
     from: new paper.Point(paperVars.drawingLeft + 1, paperVars.drawingTop + 1),
-    to: new paper.Point(paperVars.drawingLeft + paperVars.drawingWidth - 1, graphBottom - 1),
+    to: new paper.Point(
+      paperVars.drawingLeft + paperVars.drawingWidth - 1,
+      paperVars.graphHeight + 19
+    ),
     fillColor: paperStyles.grey1,
   });
   axisGroup.addChildren([topLine, bottomLine, leftLine, rightLine, background]);
@@ -200,26 +201,6 @@ export function drawElevationProfile(
   diamond2.rotate(45);
 }
 
-export function drawPathSlope(
-  measurePaperDataRef: MutableRefObject<MeasurePaperData>,
-  measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
-  measureDerivedValuesRef: MutableRefObject<MeasureDerivedValues>
-): void {
-  const paperVars = measurePaperDataRef.current.paperVars;
-  const paperStyles = measurePaperDataRef.current.styles;
-  const slopeGroup = measurePaperGroupsRef.current.slopeGroup;
-  const graphData = measureDerivedValuesRef.current.elevationGraphValues ?? [];
-  slopeGroup.removeChildren();
-  drawSlopeBand(
-    slopeGroup,
-    graphData,
-    paperVars.slopeTop,
-    paperVars.slopeHeight,
-    paperStyles.grey1,
-    paperVars.drawingLeft + paperVars.drawingWidth
-  );
-}
-
 export function drawMeasureSegmentDistances(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
   measurePaperGroupsRef: MutableRefObject<MeasurePaperGroups>,
@@ -229,7 +210,6 @@ export function drawMeasureSegmentDistances(
 ): void {
   const paperVars = measurePaperDataRef.current.paperVars;
   const paperStyles = measurePaperDataRef.current.styles;
-  const graphBottom = paperVars.slopeTop + paperVars.slopeHeight;
 
   const lineSegmentMarksGroup = measurePaperGroupsRef.current.lineSegmentMarksGroup;
   lineSegmentMarksGroup.removeChildren();
@@ -252,7 +232,7 @@ export function drawMeasureSegmentDistances(
     const segmentXLoc = locX + (segmentDistance / totalDistance) * paperVars.drawingWidth;
     const line = new paper.Path.Line({
       from: new paper.Point(segmentXLoc, paperVars.drawingTop),
-      to: new paper.Point(segmentXLoc, graphBottom),
+      to: new paper.Point(segmentXLoc, paperVars.graphHeight + 20),
       strokeColor: paperStyles.grey5,
     });
     lineSegmentMarksGroup.addChild(line);
@@ -267,7 +247,7 @@ export function drawMeasureSegmentDistances(
     const rightXLoc = locX + (segmentDistance / totalDistance) * paperVars.drawingWidth;
     const labelLocX = (leftLocX + rightXLoc) / 2;
     const distanceLabel = new paper.PointText({
-      point: new paper.Point(labelLocX, graphBottom + 27),
+      point: new paper.Point(labelLocX, paperVars.graphHeight + 30),
       justification: "center",
       fontFamily: measurePaperDataRef.current.styles.gNavigatorFontFamilyActivity,
       fontSize: 12,
@@ -275,15 +255,15 @@ export function drawMeasureSegmentDistances(
       content: `${segmentDistance.toFixed(0)} m`,
     });
     const leftSegmentArrow = drawLineWithArrowhead(
-      new paper.Point(leftLocX, graphBottom + 22),
-      new paper.Point(labelLocX - 30, graphBottom + 22),
+      new paper.Point(leftLocX, paperVars.graphHeight + 25),
+      new paper.Point(labelLocX - 30, paperVars.graphHeight + 25),
       paperStyles.grey4,
       1,
       "start"
     );
     const rightSegmentArrow = drawLineWithArrowhead(
-      new paper.Point(labelLocX + 30, graphBottom + 22),
-      new paper.Point(rightXLoc, graphBottom + 22),
+      new paper.Point(labelLocX + 30, paperVars.graphHeight + 25),
+      new paper.Point(rightXLoc, paperVars.graphHeight + 25),
       paperStyles.grey4,
       1,
       "end"
@@ -296,7 +276,7 @@ export function drawMeasureSegmentDistances(
     if (usingLGRSCoordinates && pathSegmentBearings && pathSegmentBearings.length > i) {
       const segmentBearing = pathSegmentBearings[i];
       const bearingLabel = new paper.PointText({
-        point: new paper.Point(labelLocX, graphBottom + 12),
+        point: new paper.Point(labelLocX, paperVars.graphHeight + 15),
         justification: "center",
         fontFamily: measurePaperDataRef.current.styles.gNavigatorFontFamilyActivity,
         fontSize: 12,
@@ -382,7 +362,7 @@ export const drawMouseHover = (
 
   const hoverLine = new paper.Path.Line({
     from: new paper.Point(hoverPoint.x, paperVars.drawingTop),
-    to: new paper.Point(hoverPoint.x, paperVars.slopeTop + paperVars.slopeHeight),
+    to: new paper.Point(hoverPoint.x, paperVars.graphHeight + 20),
     strokeColor: paperStyles.brightBlue,
   });
   hoverGroup.addChild(hoverLine);
@@ -412,13 +392,13 @@ export const drawMouseHover = (
 
   //draw bottom distance label
   const labelBackground = new paper.Path.Rectangle({
-    point: new paper.Point(hoverPoint.x - 30, paperVars.slopeTop + paperVars.slopeHeight + 17),
+    point: new paper.Point(hoverPoint.x - 30, paperVars.graphHeight + 20),
     size: new paper.Size(60, 20),
     fillColor: paperStyles.grey2,
   });
   hoverGroup.addChild(labelBackground);
   const distanceLabel = new paper.PointText({
-    point: new paper.Point(hoverPoint.x, paperVars.slopeTop + paperVars.slopeHeight + 27),
+    point: new paper.Point(hoverPoint.x, paperVars.graphHeight + 30),
     justification: "center",
     fontFamily: measurePaperDataRef.current.styles.gNavigatorFontFamilyActivity,
     fontSize: 12,

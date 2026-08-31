@@ -15,7 +15,6 @@ import throttle from "lodash/throttle";
 import isNil from "lodash/isNil";
 import { clearMapItemHover } from "store/hover";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { buildDistanceElevationProfile, calculateWindowedPathSlopes } from "utils/paper";
 
 const initHoverValues: MeasureHoverValues = {
   totalDistanceMeters: null,
@@ -103,11 +102,6 @@ const Measure: FunctionComponent = () => {
       measureDerivedValuesRef
     );
     MeasureDrawing.drawElevationProfile(measurePaperDataRef, measureDerivedValuesRef);
-    MeasureDrawing.drawPathSlope(
-      measurePaperDataRef,
-      measurePaperGroupsRef,
-      measureDerivedValuesRef
-    );
 
     //draw the line segment marks
     MeasureDrawing.drawMeasureSegmentDistances(
@@ -241,7 +235,6 @@ function initMeasurePaperRefs(
   //init groups
   measurePaperGroupsRef.current = {
     axisGroup: new paper.Group(),
-    slopeGroup: new paper.Group(),
     lineSegmentMarksGroup: new paper.Group(),
     hoverGroup: new paper.Group(),
   };
@@ -272,8 +265,6 @@ function initMeasurePaperRefs(
       drawingTop: null,
       drawingLeft: null,
       graphHeight: null, //just the graph area that has the line graphs
-      slopeTop: null,
-      slopeHeight: 10,
       pixelsPerMeterDistanceX: null,
       pixelsPerMeterElevationY: null,
       startElevationFromGraphTop: null,
@@ -322,9 +313,7 @@ function initMeasurePaperRefs(
   paperVars.drawingHeight = paperVars.canvasHeight - 20;
   paperVars.drawingTop = 10;
   paperVars.drawingLeft = 10;
-  const slopeAreaHeight = 20;
-  paperVars.graphHeight = paperVars.drawingHeight - paperVars.drawingTop - slopeAreaHeight;
-  paperVars.slopeTop = paperVars.drawingTop + paperVars.graphHeight;
+  paperVars.graphHeight = paperVars.drawingHeight - paperVars.drawingTop;
   paperVars.pixelsPerMeterDistanceX =
     measureDerivedValuesRef.current.totalDistanceMeters > 0
       ? paperVars.drawingWidth / measureDerivedValuesRef.current.totalDistanceMeters
@@ -343,7 +332,6 @@ function initMeasurePaperRefs(
   measureDerivedValuesRef.current.elevationGraphValues = calcElevationGraphValues(
     measurePaperDataRef,
     measureDerivedValuesRef,
-    pathSegmentDistances,
     paperVars.drawingLeft
   );
 }
@@ -351,27 +339,36 @@ function initMeasurePaperRefs(
 function calcElevationGraphValues(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
   measureDerivedValuesRef: MutableRefObject<MeasureDerivedValues>,
-  pathSegmentDistances: number[],
   xLocStart: number
 ): GraphDataItem[] {
   const paperVars = measurePaperDataRef.current.paperVars;
   const pathSegmentElevations = measureDerivedValuesRef.current.relativeElevationsMeters;
   const graphData_elevation: GraphDataItem[] = [];
   if (!pathSegmentElevations || pathSegmentElevations.length === 0) return graphData_elevation;
-  const profile = buildDistanceElevationProfile(pathSegmentElevations, pathSegmentDistances ?? []);
-  const slopes = calculateWindowedPathSlopes(profile);
-
-  for (const [index, { distanceMeters, elevationMeters }] of profile.entries()) {
-    graphData_elevation.push({
-      xPixel: xLocStart + distanceMeters * paperVars.pixelsPerMeterDistanceX,
-      yPixel:
-        paperVars.drawingTop +
-        (measureDerivedValuesRef.current.maxElevationMeters - elevationMeters) *
-          paperVars.pixelsPerMeterElevationY,
-      val: elevationMeters,
-      distanceMeters,
-      slopeDegrees: slopes[index],
-    });
+  let xLoc = xLocStart;
+  let prevXLoc = null;
+  // pixels per elevation entry across all segment elevations
+  //loop through elevations
+  const flatLength = pathSegmentElevations.flat(Infinity).length;
+  if (flatLength <= 1) return graphData_elevation;
+  const pixelsXPerElevationEntry = paperVars.drawingWidth / (flatLength - 1);
+  //loop through path segments
+  for (const [segmentIndex, _segment] of pathSegmentElevations.entries()) {
+    for (const elevation of pathSegmentElevations[segmentIndex]) {
+      // optimize by only drawing one point per x pixel
+      if (Math.round(xLoc) !== Math.round(prevXLoc)) {
+        graphData_elevation.push({
+          xPixel: xLoc,
+          yPixel:
+            paperVars.drawingTop +
+            (measureDerivedValuesRef.current.maxElevationMeters - elevation) *
+              paperVars.pixelsPerMeterElevationY,
+          val: elevation,
+        });
+      }
+      prevXLoc = xLoc;
+      xLoc += pixelsXPerElevationEntry;
+    }
   }
   return graphData_elevation;
 }

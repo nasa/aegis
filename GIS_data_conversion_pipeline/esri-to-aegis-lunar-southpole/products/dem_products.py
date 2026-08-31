@@ -10,11 +10,12 @@ an 8-bit raster ready for ``common/tile_to_cap_grid.py``:
     aspect     → slope-facing azimuth, colorized via aspect.txt             (RGBA)
     tri        → Terrain Ruggedness Index (m), colorized via tri.txt        (RGBA)
 
-Built-in ramps live in ``products/default_color_ramps/`` (the fallbacks). The default slope
-palette is defined by ``default_color_ramps/slope.txt``. When the GIS team delivers product
-symbology as an ArcGIS ``.lyrx``, pass it with ``--slope-lyrx`` / ``--aspect-lyrx`` /
-``--tri-lyrx`` and it is used **instead of** the default ramp (converted on the fly by
-``lyrx_to_ramp.py``). Precedence per product: ``--*-lyrx`` > ``--*-ramp`` > default.
+Built-in ramps live in ``products/default_color_ramps/`` (the fallbacks). When the GIS team
+delivers product symbology as an ArcGIS ``.lyrx``, pass it with ``--slope-lyrx`` /
+``--aspect-lyrx`` / ``--tri-lyrx`` and it is used **instead of** the default ramp (converted
+on the fly by ``lyrx_to_ramp.py``). Precedence per product: ``--*-lyrx`` > ``--*-ramp`` >
+default. ``default_color_ramps/slope.txt`` encodes the same standard as the MS3
+``AMPES_Slope 1.lyrx``, so DEM-derived slope and GIS-delivered slope render identically.
 
 **TRI is resolution-dependent** — the default ``tri.txt`` is the legacy 7-class ramp; for a
 specific DEM resolution prefer a matching ramp from ``products/default_color_ramps/ARCHIVE/``
@@ -94,9 +95,7 @@ def _progress(label: str):
     return cb
 
 
-def _colorize(
-    processed: str, ramp: Path, out_path: Path, label: str = "colorize"
-) -> None:
+def _colorize(processed: str, ramp: Path, out_path: Path, label: str = "colorize") -> None:
     """gdaldem color-relief a single-band raster → 8-bit RGBA GeoTIFF (nodata transparent)."""
     gdal.DEMProcessing(
         destName=str(out_path),
@@ -279,9 +278,7 @@ def main() -> None:
         for product in args.products:
             make_product(dem, product, ramps[product], out_dir)
     else:
-        print(
-            f"\n  deriving {len(args.products)} products in parallel ({workers} workers)"
-        )
+        print(f"\n  deriving {len(args.products)} products in parallel ({workers} workers)")
         with ProcessPoolExecutor(max_workers=workers) as ex:
             futures = {
                 ex.submit(make_product, dem, product, ramps[product], out_dir): product

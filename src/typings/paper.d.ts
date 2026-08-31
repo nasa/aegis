@@ -11,7 +11,6 @@ interface PaperGroups {
 
 interface MeasurePaperGroups {
   axisGroup: paper.Group;
-  slopeGroup: paper.Group;
   lineSegmentMarksGroup: paper.Group;
   hoverGroup: paper.Group;
 }
@@ -67,8 +66,6 @@ interface MeasurePaperData {
     drawingTop: number;
     drawingLeft: number;
     graphHeight: number; //just the graph area that has the line graphs
-    slopeTop: number;
-    slopeHeight: number;
     pixelsPerMeterDistanceX: number;
     pixelsPerMeterElevationY: number;
     startElevationFromGraphTop: number;
@@ -148,13 +145,6 @@ interface GraphDataItem {
   xPixel: number; //the x pixel on the graph
   yPixel: number; //the y pixel on the graph
   val: number; //the y value that is represented (ex: distance from lander in meters)
-  distanceMeters?: number; //physical x value, when the graph is distance-based
-  slopeDegrees?: number; //local slope calculated over a physical-distance window
-}
-
-interface DistanceElevationDataItem {
-  distanceMeters: number;
-  elevationMeters: number;
 }
 interface GraphData {
   distanceFromLanderXY: GraphDataItem[];
@@ -165,7 +155,6 @@ interface GraphData {
 
 interface GraphSequenceData extends GraphData {
   type: "station" | "traverse";
-  slopeXY: GraphDataItem[];
 }
 interface GraphSequenceItems {
   [uuid: string]: GraphSequenceData;
