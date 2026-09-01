@@ -691,8 +691,17 @@ function drawSequenceTraverse(
   const paperVars = paperDataRef.current.paperVars;
   const paperStyles = paperDataRef.current.styles;
   const slopeHeight = 10;
+  const slopeGroup = new paper.Group([
+    new paper.Path.Rectangle({
+      from: new paper.Point(xStart, paperVars.sequenceTop),
+      to: new paper.Point(xEnd, paperVars.sequenceTop + slopeHeight * 2),
+      radius: new paper.Size(3, 3),
+    }),
+  ]);
+  slopeGroup.clipped = true;
+  sequenceItemGroup.addChild(slopeGroup);
   drawSlopeBand(
-    sequenceItemGroup,
+    slopeGroup,
     pathGradeData,
     paperVars.sequenceTop,
     slopeHeight,
@@ -700,7 +709,7 @@ function drawSequenceTraverse(
     slopeColorMode
   );
   drawSlopeBand(
-    sequenceItemGroup,
+    slopeGroup,
     terrainSlopeData,
     paperVars.sequenceTop + slopeHeight,
     slopeHeight,
@@ -708,7 +717,7 @@ function drawSequenceTraverse(
     slopeColorMode
   );
   drawSlopeSeparator(
-    sequenceItemGroup,
+    slopeGroup,
     xStart,
     xEnd,
     paperVars.sequenceTop + slopeHeight,

@@ -70,8 +70,10 @@ export function drawSlopeBand(
   top: number,
   height: number,
   maxX = Infinity,
-  colorMode: SlopeColorMode = "standard"
+  colorMode: SlopeColorMode = "standard",
+  roundedEdge?: "top" | "bottom"
 ): void {
+  const segments: paper.Path[] = [];
   for (let index = 0; index < graphData.length - 1; index++) {
     const start = graphData[index];
     const end = graphData[index + 1];
@@ -83,7 +85,7 @@ export function drawSlopeBand(
     const slopeClass = getSlopeClass((start.slopeDegrees + end.slopeDegrees) / 2, colorMode);
     if (!slopeClass) continue;
     const right = Math.min(maxX, Math.max(end.xPixel, start.xPixel + 1));
-    group.addChild(
+    segments.push(
       new paper.Path.Rectangle({
         from: new paper.Point(start.xPixel, top),
         to: new paper.Point(right, top + height),
@@ -91,4 +93,25 @@ export function drawSlopeBand(
       })
     );
   }
+
+  if (segments.length === 0) return;
+  if (!roundedEdge) {
+    group.addChildren(segments);
+    return;
+  }
+
+  const left = Math.min(...segments.map((segment) => segment.bounds.left));
+  const right = Number.isFinite(maxX)
+    ? maxX
+    : Math.max(...segments.map((segment) => segment.bounds.right));
+  const bottom = top + height;
+  const radius = 3;
+  const clipMask = new paper.Path.Rectangle({
+    from: new paper.Point(left, roundedEdge === "bottom" ? top - radius : top),
+    to: new paper.Point(right, roundedEdge === "top" ? bottom + radius : bottom),
+    radius: new paper.Size(radius, radius),
+  });
+  const clippedBand = new paper.Group([clipMask, ...segments]);
+  clippedBand.clipped = true;
+  group.addChild(clippedBand);
 }
