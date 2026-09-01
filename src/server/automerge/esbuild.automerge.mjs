@@ -52,8 +52,18 @@ const integrityCtx = await esbuild.context({
   outfile: "./.local/automerge/dist/integrityCheck.js",
 });
 
+// Build the standalone schema-validation runner
+const schemaValidateCtx = await esbuild.context({
+  ...sharedOptions,
+  entryPoints: ["src/server/automerge/schemaValidate.ts"],
+  outfile: "./.local/automerge/dist/schemaValidate.js",
+});
+
 await migrationCtx.rebuild();
 await migrationCtx.dispose();
 
 await integrityCtx.rebuild();
 await integrityCtx.dispose();
+
+await schemaValidateCtx.rebuild();
+await schemaValidateCtx.dispose();
