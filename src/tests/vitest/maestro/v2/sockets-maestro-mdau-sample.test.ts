@@ -401,7 +401,7 @@ describe("sendMDAU sample payload — actions", () => {
     }
   });
 
-  it("writes name / descriptionTask / duration / stmAction for every sampled action", () => {
+  it("writes name / descriptionTask / duration / stmAction / enabled for every sampled action", () => {
     const doc = built.handle.doc();
     for (const refUuid in mdau.aegisAction) {
       const src = mdau.aegisAction[refUuid];
@@ -410,6 +410,7 @@ describe("sendMDAU sample payload — actions", () => {
       expect(action.descriptionTask).toBe(src.descriptionTask);
       expect(action.duration).toBe(src.duration);
       expect(action.stmAction).toBe(src.stmAction);
+      expect(action.enabled).toBe(src.enabled);
     }
   });
 });
