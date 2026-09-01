@@ -1,32 +1,17 @@
 import sortBy from "lodash/sortBy";
-import concat from "lodash/concat";
 import type { RootState } from "store";
+import { getSequenceStationUuids, getSequenceTraverseUuids } from "operations/helpers/evaSequence";
 
 /**
- * Gets all Stations for an EVA.
- * Also includes ingress and egress stations if they are not "lander"
+ * Gets all Stations for an EVA, including the egress and ingress stations.
  */
 export const selectEvaStations = (mission: Mission, evaUuid: string): Station[] => {
   const allStations = mission?.stations ?? {};
-  const evaStations: Station[] = [];
   const eva = mission?.evas?.[evaUuid];
   if (!eva) return [];
-  if (eva.sequence) {
-    const sequenceStations = eva.sequence
-      .filter((seqItem) => seqItem.type === "station" && seqItem.uuid)
-      .map((stationSeqItem) => allStations[stationSeqItem.uuid])
-      .filter(Boolean) as Station[];
-    evaStations.push(...sequenceStations);
-  }
-  if (eva.ingressLocationUuid !== "lander") {
-    const ingressStation = allStations[eva.ingressLocationUuid];
-    if (ingressStation) evaStations.push(ingressStation);
-  }
-  if (eva.egressLocationUuid !== "lander") {
-    const egressStation = allStations[eva.egressLocationUuid];
-    if (egressStation) evaStations.push(egressStation);
-  }
-  return evaStations;
+  return getSequenceStationUuids(eva.sequence)
+    .map((stationUuid) => allStations[stationUuid])
+    .filter(Boolean) as Station[];
 };
 
 /**
@@ -37,9 +22,8 @@ export const selectEvaTraverses = (mission: Mission, evaUuid: string): Traverse[
   const eva = mission?.evas?.[evaUuid];
   if (!eva?.sequence) return [];
 
-  const traverseSeqItems = eva.sequence.filter((seqItem) => seqItem.type === "traverse");
-  const traverses = traverseSeqItems
-    .map((traverseSeqItem) => allTraverses[traverseSeqItem.uuid])
+  const traverses = getSequenceTraverseUuids(eva.sequence)
+    .map((traverseUuid) => allTraverses[traverseUuid])
     .filter(Boolean) as Traverse[];
 
   return traverses;
@@ -55,15 +39,16 @@ export const selectEvaActions = (
 ): Action[] => {
   if (!eva?.sequence) return [];
 
-  const stationSeqItems = eva.sequence.filter((seqItem) => seqItem.type === "station");
-  const actionArrays = stationSeqItems.map((stationSeqItem) =>
-    Object.values(allActionRecords).filter((a) => a.stationUuid === stationSeqItem.uuid)
+  const actionArrays = getSequenceStationUuids(eva.sequence).map((stationUuid) =>
+    Object.values(allActionRecords).filter((a) => a.stationUuid === stationUuid)
   );
   return actionArrays.flat();
 };
 
 /**
- * Gets all stations that are not in a REX EVA or ingress/egress locations and returns them sorted by name.
+ * Gets all stations available for planning, sorted by name.
+ *
+ * Excludes stations in a REX EVA the lander copy xgress stations.
  */
 export const selectAsPlannedStations = (mission: Mission): Station[] => {
   const allRexEvaUuids = Object.values(mission?.rexes ?? {}).map((rex) => rex.evaUuid);
@@ -71,19 +56,10 @@ export const selectAsPlannedStations = (mission: Mission): Station[] => {
 
   const allRexEvaStationUuids = allEvas
     .filter((e) => allRexEvaUuids.includes(e.uuid))
-    .flatMap((eva) => eva.sequence?.filter((seq) => seq.type === "station").map((seq) => seq.uuid));
-  const allIngressEgressStationUuids = allEvas
-    .filter((e) => allRexEvaUuids.includes(e.uuid))
-    .flatMap((eva) => {
-      const xgressStationUuids = [];
-      if (eva.ingressLocationUuid !== "lander") xgressStationUuids.push(eva.ingressLocationUuid);
-      if (eva.egressLocationUuid !== "lander") xgressStationUuids.push(eva.egressLocationUuid);
-      return xgressStationUuids;
-    });
-  // Combine all uuids get stations that we need to filter out
-  const allStationUuids = concat(allRexEvaStationUuids, allIngressEgressStationUuids);
+    .flatMap((eva) => getSequenceStationUuids(eva.sequence));
+
   const stationList = Object.values(mission?.stations ?? {}).filter(
-    (station) => !allStationUuids.includes(station.uuid)
+    (station) => !allRexEvaStationUuids.includes(station.uuid) && !station.isLanderXgress
   );
   return sortBy(stationList, (station) => station.name.toLowerCase());
 };
@@ -113,13 +89,6 @@ export const selectConvertMaestroActivityPropertiesByRefUuidToUuid = (
     });
     if (uuid) {
       activityProperties[uuid] = { ...value };
-    }
-  }
-
-  // Handle xgress entries
-  for (const [key, value] of Object.entries(maestroActivityPropertiesByRefUuid)) {
-    if (key.endsWith("gress")) {
-      activityProperties[key] = { ...value };
     }
   }
 

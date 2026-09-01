@@ -31,9 +31,9 @@ import { thunkDocDeleteEva } from "store/thunk/thunkEva";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
 import {
-  getCalculatedFieldsByEva,
-  getCalculatedFieldsByStation,
-  getCalculatedFieldsByTraverse,
+  getCalcFieldsForEva,
+  getCalcFieldsForStation,
+  getCalcFieldsForTraverse,
 } from "store/processing/calculatedFields";
 import isNull from "lodash/isNull";
 import { thunkDocDeleteRex } from "store/thunk/thunkRex";
@@ -127,7 +127,7 @@ const EvaRightEva: FunctionComponent = () => {
     const seqTraverseUuids = new Set(
       selectedEva.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid)
     );
-    return getCalculatedFieldsByEva({
+    return getCalcFieldsForEva({
       eva: selectedEva,
       evaStations: Object.values(docMaps.stations ?? {}).filter((s) => seqStationUuids.has(s.uuid)),
       missionWalkbackRate: partialMission.walkbackRate,
@@ -156,7 +156,7 @@ const EvaRightEva: FunctionComponent = () => {
         (a) => a.traverseUuid === traverse?.uuid && a.enabled
       );
       traverseCalculatedFields.push(
-        getCalculatedFieldsByTraverse({
+        getCalcFieldsForTraverse({
           traverse,
           missionTraverseRate: partialMission.traverseRate,
           evaTraverseRate: selectedEva?.traverseRate,
@@ -182,7 +182,7 @@ const EvaRightEva: FunctionComponent = () => {
         (a) => a.stationUuid === stationUuid && a.enabled
       );
       stationCalculatedFields.push(
-        getCalculatedFieldsByStation({
+        getCalcFieldsForStation({
           station,
           missionWalkbackRate: partialMission.walkbackRate,
           stationActions,

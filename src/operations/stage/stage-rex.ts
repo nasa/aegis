@@ -55,8 +55,8 @@ export function stageCreateRex(
  * Build a `RexDeletionStageData`.
  *
  * Captures: the REX itself, its EVA, every station referenced by the EVA's
- * sequence, any non-lander ingress/egress stations, every traverse in the sequence, and
- * every action attached to those stations and traverses.
+ * sequence, every traverse in the sequence, and every action attached to those
+ * stations and traverses.
  */
 export function stageDeleteRex(
   mission: Mission,
@@ -73,12 +73,6 @@ export function stageDeleteRex(
     for (const item of eva.sequence ?? []) {
       if (item.type === "station") stationUuids.push(item.uuid);
       else if (item.type === "traverse") traverseUuids.push(item.uuid);
-    }
-    if (eva.ingressLocationUuid && eva.ingressLocationUuid !== "lander") {
-      stationUuids.push(eva.ingressLocationUuid);
-    }
-    if (eva.egressLocationUuid && eva.egressLocationUuid !== "lander") {
-      stationUuids.push(eva.egressLocationUuid);
     }
   }
 

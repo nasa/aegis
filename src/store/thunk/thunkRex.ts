@@ -18,6 +18,7 @@ import {
   applyUpsertRexEntryItem,
 } from "operations/apply/apply-rex";
 import { stageCreateRex, stageDeleteRex } from "operations/stage/stage-rex";
+import { getEgressStationUuid } from "operations/helpers/evaSequence";
 import { v4 as uuidv4 } from "uuid";
 import { getAccurateNow } from "utils/formatting";
 import cloneDeep from "lodash/cloneDeep";
@@ -55,14 +56,8 @@ export const thunkDocCreateRex = appCreateAsyncThunk<
     setEvaDropdownUIState({ asPlannedEvaUuid, dropdownEvaUuid: rexStagedData.evaStage.newEvaUuid })
   );
 
-  // Initialize stationCirclesUIStates
-  // Get all of the new stations staged data that was added
-  const { stationStages, ingressStationStage, egressStationStage } = rexStagedData.evaStage;
-  const allNewStationStages = [...stationStages];
-  if (ingressStationStage) allNewStationStages.push(ingressStationStage);
-  if (egressStationStage) allNewStationStages.push(egressStationStage);
-  // Initialize the stationCirclesUIStates for each new station
-  for (const stationStage of allNewStationStages) {
+  // Initialize the stationCirclesUIStates for each new station.
+  for (const stationStage of rexStagedData.evaStage.stationStages) {
     const sourceCircleUIStates =
       cloneDeep(getState().station.stationCirclesUIStates[stationStage.oldStationUuid]) ?? {};
     dispatch(
@@ -134,7 +129,7 @@ export const thunkUIJumpToRunningRex = appCreateAsyncThunk<void>(
 );
 
 export const thunkDocAddRexStatusEntry = appCreateAsyncThunk<{
-  entryType: "station" | "traverse" | "action" | "xgress";
+  entryType: "station" | "traverse" | "action";
   uuid: string;
   rexStatus: RexStatus;
 }>("addRexStatusEntry", async ({ entryType, uuid, rexStatus }) => {
@@ -181,15 +176,6 @@ export const thunkDocAddRexStatusEntry = appCreateAsyncThunk<{
               containerId: null,
               secondaryContainerId: null,
             },
-      })
-    );
-  } else if (entryType === "xgress") {
-    missionDocHandle.change((m: Mission) =>
-      applyUpsertRexEntryItem(m, {
-        rexUuid: runningRex.uuid,
-        mapField: "xgressEntries",
-        itemUuid: uuid,
-        value: { rexStatus },
       })
     );
   }
@@ -283,16 +269,13 @@ export const thunkDocCreateInitialPosEntries = appCreateAsyncThunk<{ rexUuid: st
     // Step 1: Build the new pos entries from the running REX's pos sources and types.
     const rex = doc.rexes?.[rexUuid];
     const rexEva = doc.evas?.[rex.evaUuid];
-    const posEntryLocation: AEGISPoint =
-      rexEva?.egressLocationUuid === "lander"
-        ? doc.landerLocation
-        : doc.stations?.[rexEva?.egressLocationUuid]?.location;
+    const egressStation = doc.stations?.[getEgressStationUuid(rexEva?.sequence)];
 
     const newPosEntries: PosEntry[] = [];
     for (const posSource of rex?.posSources ?? []) {
       const newPosEntry: PosEntry = {
         uuid: uuidv4(),
-        location: posEntryLocation,
+        location: egressStation?.location,
         elevation: null,
         petSeconds: 0,
         posTypeUuids: rex.posTypes.map((posType) => posType.uuid),

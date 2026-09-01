@@ -615,8 +615,10 @@ describe("Mission Duplication Tests", () => {
       }
     });
 
-    test("EVA egress / ingress location references are preserved verbatim", async () => {
-      const originalEvas = Object.values(sourceData.mission.evas ?? {});
+    test("EVA egress / ingress stations are preserved verbatim", async () => {
+      const originalEvas = Object.values(sourceData.mission.evas ?? {}).filter(
+        (eva) => eva.sequence?.length > 0
+      );
       if (originalEvas.length === 0) return;
 
       const duplicatedMission = await getDuplicatedMission();
@@ -624,15 +626,14 @@ describe("Mission Duplication Tests", () => {
         const duplicatedEva = duplicatedMission.evas?.[originalEva.uuid];
         expect(duplicatedEva).toBeDefined();
 
-        expect(duplicatedEva.egressLocationUuid).toEqual(originalEva.egressLocationUuid);
-        expect(duplicatedEva.ingressLocationUuid).toEqual(originalEva.ingressLocationUuid);
-
-        // If not "lander", the referenced station must exist on the dup mission.
-        if (duplicatedEva.egressLocationUuid && duplicatedEva.egressLocationUuid !== "lander") {
-          expect(duplicatedMission.stations?.[duplicatedEva.egressLocationUuid]).toBeDefined();
-        }
-        if (duplicatedEva.ingressLocationUuid && duplicatedEva.ingressLocationUuid !== "lander") {
-          expect(duplicatedMission.stations?.[duplicatedEva.ingressLocationUuid]).toBeDefined();
+        // Egress and ingress are the first and last sequence items.
+        const xgressItems = [
+          duplicatedEva.sequence[0],
+          duplicatedEva.sequence[duplicatedEva.sequence.length - 1],
+        ];
+        for (const item of xgressItems) {
+          expect(item.type).toBe("station");
+          expect(duplicatedMission.stations?.[item.uuid]).toBeDefined();
         }
       }
     });

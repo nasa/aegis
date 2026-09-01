@@ -23,7 +23,7 @@ import { applyUpdatePoiByField } from "operations/apply/apply-poi";
 import { validators } from "components/interface/form/formValidators";
 import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
-import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
+import { getCalcFieldsForPoi } from "store/processing/calculatedFields";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
 import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -92,7 +92,7 @@ const Info_Panel: FunctionComponent<{
     const poiActions = Object.values(docMaps.actions).filter(
       (a) => a.poiUuid === selectedPoi.uuid && a.enabled
     );
-    return getCalculatedFieldsByPoi({
+    return getCalcFieldsForPoi({
       poiUuid: selectedPoi.uuid,
       poiActions,
     });
@@ -189,7 +189,7 @@ const Info_Panel: FunctionComponent<{
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faCalculator}>Calculated Totals</SubpanelHeading>
+              <SubpanelHeading icon={faCalculator}>Totals</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>

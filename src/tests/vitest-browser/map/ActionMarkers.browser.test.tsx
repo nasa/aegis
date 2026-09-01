@@ -419,8 +419,6 @@ describe("ActionMarkers", () => {
       [EVA_UUID]: {
         uuid: EVA_UUID,
         sequence: [{ type: "station", uuid: STATION_UUID }],
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
       },
     } as unknown as Mission["evas"];
     mockMissionDoc.rexes = {
@@ -430,7 +428,6 @@ describe("ActionMarkers", () => {
         evaUuid: EVA_UUID,
         stationEntries: { [STATION_UUID]: { rexStatus: "in-progress" } },
         traverseEntries: {},
-        xgressEntries: {},
       },
     } as unknown as Mission["rexes"];
 
@@ -451,8 +448,6 @@ describe("ActionMarkers", () => {
       [EVA_UUID]: {
         uuid: EVA_UUID,
         sequence: [{ type: "traverse", uuid: TRAVERSE_UUID }],
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
       },
     } as unknown as Mission["evas"];
     mockMissionDoc.rexes = {
@@ -462,7 +457,6 @@ describe("ActionMarkers", () => {
         evaUuid: EVA_UUID,
         stationEntries: {},
         traverseEntries: { [TRAVERSE_UUID]: { rexStatus: "in-progress" } },
-        xgressEntries: {},
       },
     } as unknown as Mission["rexes"];
 
@@ -483,8 +477,6 @@ describe("ActionMarkers", () => {
       [EVA_UUID]: {
         uuid: EVA_UUID,
         sequence: [{ type: "station", uuid: STATION_UUID }],
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
       },
     } as unknown as Mission["evas"];
     mockMissionDoc.rexes = {
@@ -494,7 +486,6 @@ describe("ActionMarkers", () => {
         evaUuid: EVA_UUID,
         stationEntries: { [STATION_UUID]: { rexStatus: "pending" } },
         traverseEntries: {},
-        xgressEntries: {},
       },
     } as unknown as Mission["rexes"];
 

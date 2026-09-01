@@ -98,7 +98,10 @@ export const populateStore = async (params: {
   generatePresetsCirclesUIStates({ wholeStoreState, missionCircleDefinitions });
 
   // Generate station circles UI states for the store (not in the DB)
-  const stationUuids = Object.keys(mission?.stations ?? {});
+  // Lander stations are skipped: their circles come from the selected preset.
+  const stationUuids = Object.values(mission?.stations ?? {})
+    .filter((station) => !station.isLanderXgress)
+    .map((station) => station.uuid);
   generateStationsCirclesUIStates({ wholeStoreState, missionCircleDefinitions, stationUuids });
 
   // Generate eva dropdown selected state from automerge evas (not in the DB)

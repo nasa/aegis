@@ -60,8 +60,6 @@ export declare namespace MDAU {
      */
     maestroEventUrl: string;
     sequenceRefUuids: EvaSequenceItem[];
-    ingressDuration: number;
-    egressDuration: number;
     datetime: number | null;
     updatedAt: number;
     rexUuid?: string;
@@ -129,14 +127,6 @@ export declare namespace MDAU {
          * name is `number`
          */
         number: string;
-      };
-    };
-    /**
-     * Lander activities/sequence items
-     */
-    xgressEntries: {
-      [xgressUuid: string]: {
-        rexStatus: AegisRexStatus;
       };
     };
     /**

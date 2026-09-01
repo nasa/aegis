@@ -15,7 +15,7 @@ import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankRex } from "store/storeUtils/rex";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { stageMdau } from "server/maestro/v2/operations/stage-mdau";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -152,12 +152,45 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
     expect(warnSpy).toHaveBeenCalled();
   });
 
-  it("accepts a station referenced only as another EVA's ingress/egress location", () => {
+  it("accepts a station occupying another EVA's ingress/egress position", () => {
+    // Here the shared station is mid-sequence in evaA and sits at evaB's ingress (last) position
     const station = generateBlankStation({ name: "Xgress", duration: 15 });
-    // The station is in evaA's sequence, but is only the ingress location of evaB.
-    const evaA = generateBlankEVA({ sequence: [{ type: "station", uuid: station.uuid }] });
-    const evaB = generateBlankEVA({ sequence: [], ingressLocationUuid: station.uuid });
-    const mission = buildMission({ evas: [evaA, evaB], stations: [station] });
+    const makeLander = (xgressType: "egress" | "ingress", name: string) =>
+      generateLanderXgressStation({
+        xgressType,
+        name,
+        missionId: 0,
+        location: { lat: 0, lng: 0 },
+        elevation: null,
+      });
+    const egressA = makeLander("egress", "Lander Egress A");
+    const ingressA = makeLander("ingress", "Lander Ingress A");
+    const egressB = makeLander("egress", "Lander Egress B");
+    const traverseA1 = generateBlankTraverse({ name: "Lander Egress A to Xgress" });
+    const traverseA2 = generateBlankTraverse({ name: "Xgress to Lander Ingress A" });
+    const traverseB1 = generateBlankTraverse({ name: "Lander Egress B to Xgress" });
+
+    const evaA = generateBlankEVA({
+      sequence: [
+        { type: "station", uuid: egressA.uuid },
+        { type: "traverse", uuid: traverseA1.uuid },
+        { type: "station", uuid: station.uuid },
+        { type: "traverse", uuid: traverseA2.uuid },
+        { type: "station", uuid: ingressA.uuid },
+      ],
+    });
+    const evaB = generateBlankEVA({
+      sequence: [
+        { type: "station", uuid: egressB.uuid },
+        { type: "traverse", uuid: traverseB1.uuid },
+        { type: "station", uuid: station.uuid },
+      ],
+    });
+    const mission = buildMission({
+      evas: [evaA, evaB],
+      stations: [station, egressA, ingressA, egressB],
+      traverses: [traverseA1, traverseA2, traverseB1],
+    });
 
     const stage = stageMdau(
       mission,
@@ -167,6 +200,52 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
 
     expect(stage.stations).toHaveLength(1);
     expect(stage.stations[0].uuid).toBe(station.uuid);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it("accepts a lander xgress station at the egress position of a subscribed EVA", () => {
+    const egress = generateLanderXgressStation({
+      xgressType: "egress",
+      missionId: 0,
+      duration: 15,
+      location: { lat: 0, lng: 0 },
+      elevation: null,
+    });
+    const middle = generateBlankStation({ name: "Vitest Middle" });
+    const ingress = generateLanderXgressStation({
+      xgressType: "ingress",
+      missionId: 0,
+      duration: 15,
+      location: { lat: 0, lng: 0 },
+      elevation: null,
+    });
+    const traverseOut = generateBlankTraverse({ name: "Lander Egress to Vitest Middle" });
+    const traverseBack = generateBlankTraverse({ name: "Vitest Middle to Lander Ingress" });
+
+    const eva = generateBlankEVA({
+      sequence: [
+        { type: "station", uuid: egress.uuid },
+        { type: "traverse", uuid: traverseOut.uuid },
+        { type: "station", uuid: middle.uuid },
+        { type: "traverse", uuid: traverseBack.uuid },
+        { type: "station", uuid: ingress.uuid },
+      ],
+    });
+    const mission = buildMission({
+      evas: [eva],
+      stations: [egress, middle, ingress],
+      traverses: [traverseOut, traverseBack],
+    });
+
+    const stage = stageMdau(
+      mission,
+      stationPayload(egress.refUuid, "Renamed Egress"),
+      new Set([eva.uuid])
+    );
+
+    expect(stage.stations).toHaveLength(1);
+    expect(stage.stations[0].uuid).toBe(egress.uuid);
+    expect(stage.stations[0].name).toBe("Renamed Egress");
     expect(warnSpy).not.toHaveBeenCalled();
   });
 });
@@ -367,7 +446,6 @@ describe("stageMdau() subscription check — rex scopes", () => {
       maestroControlled: true,
       updatedAt: 1_700_000_000_000,
       maestroActivityPropertiesByRefUuid: {},
-      xgressEntries: {},
       stationEntriesByRefUuid: {},
       traverseEntriesByRefUuid: {},
       actionEntriesByRefUuid: {},
