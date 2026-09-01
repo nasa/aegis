@@ -216,7 +216,8 @@ export function drawPathSlope(
     paperVars.pathGradeTop,
     paperVars.pathGradeHeight,
     paperVars.drawingLeft + paperVars.drawingWidth,
-    slopeColorMode
+    slopeColorMode,
+    "top"
   );
 }
 
@@ -236,7 +237,8 @@ export function drawTerrainSlope(
     paperVars.terrainSlopeTop,
     paperVars.terrainSlopeHeight,
     paperVars.drawingLeft + paperVars.drawingWidth,
-    slopeColorMode
+    slopeColorMode,
+    "bottom"
   );
 
   drawSlopeSeparator(
