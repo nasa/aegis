@@ -270,6 +270,29 @@ describe("checkMissionIntegrity()", () => {
       expect(checkMissionIntegrity(1, mission)).toEqual([]);
     });
 
+    it("reports orphaned missionPriorityUuid on an Action", () => {
+      const mission = makeEmptyMission();
+      const orphanUuid = uuidv4();
+      const action = generateBlankAction({ name: "Vitest A1", missionPriorityUuid: orphanUuid });
+      mission.actions[action.uuid] = action;
+
+      const findings = checkMissionIntegrity(1, mission);
+      expect(findingFields(findings)).toContain("missionPriorityUuid");
+      expect(findings[0].orphanedUuid).toBe(orphanUuid);
+    });
+
+    it("does not report missionPriorityUuid when the priority exists", () => {
+      const mission = makeEmptyMission();
+      const missionPriorityUuid = uuidv4();
+      mission.missionPriorities = {
+        [missionPriorityUuid]: { trace: "SIMD-0001", category: "Vitest Category" },
+      };
+      const action = generateBlankAction({ name: "Vitest A1", missionPriorityUuid });
+      mission.actions[action.uuid] = action;
+
+      expect(checkMissionIntegrity(1, mission)).toEqual([]);
+    });
+
     describe("actionDefinition FK checks", () => {
       it("reports orphaned verbUuid", () => {
         const mission = makeEmptyMission();

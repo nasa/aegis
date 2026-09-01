@@ -21,6 +21,7 @@ interface Mission {
   walkbackRate: number | null;
   equipmentItems: EquipmentItems | null;
   geographicUnits: GeographicUnits | null;
+  missionPriorities: MissionPriorities | null;
   serverFileGrid: MissionGridDefinition | null;
   _metadata?: string; // Meant for JsonExport file export only
   demFilePath: string;
@@ -154,6 +155,18 @@ type GeographicUnits = {
 type GeographicUnit = {
   name: string;
   abbr?: string;
+};
+
+/**
+ * Mission priorities. A flat map of trace rows; the `category` string on each row is what
+ * groups them in the UI. A category exists only for as long as at least one row carries it.
+ */
+type MissionPriorities = {
+  [uuid: string]: MissionPriority;
+};
+type MissionPriority = {
+  trace: string; // identifier ex: SIMD-0005.1
+  category: string; // task name
 };
 
 /*

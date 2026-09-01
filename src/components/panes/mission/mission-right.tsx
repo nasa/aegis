@@ -6,6 +6,7 @@ import {
   faSliders,
   faBullseye,
   faFileExport,
+  faListOl,
   faUserGraduate,
   faPersonDigging,
 } from "@fortawesome/free-solid-svg-icons";
@@ -20,6 +21,7 @@ import ActionTemplates_Panel from "./mission-right-actionTemplates";
 import { RightTabs } from "components/interface/side-controls";
 import Export_Panel from "./mission-right-export";
 import ActionDefinitions_Panel from "./mission-right-actionDefinitions";
+import MissionPriorities_Panel from "./mission-right-missionPriorities";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const MissionPrefsRight: FunctionComponent = () => {
@@ -94,6 +96,12 @@ const MissionPrefsRight: FunctionComponent = () => {
         panel: ActionDefinitions_Panel,
         selectedColor: "white",
         icon: faUserGraduate,
+      },
+      missionPriorities_panel: {
+        title: "Mission Priorities",
+        panel: MissionPriorities_Panel,
+        selectedColor: "white",
+        icon: faListOl,
       },
       actionTemplate_panel: {
         title: "Action Templates",

@@ -14,6 +14,7 @@ import {
   faClock,
   faFont,
   faIcons,
+  faListOl,
   faMessage,
   faPersonDigging,
   faPersonWalkingLuggage,
@@ -45,6 +46,7 @@ import {
   applyUpdateActionTemplateByField,
 } from "operations/apply/apply-mission-actionTemplate";
 import { withMissionChange } from "client/automergeDocHandles";
+import { MissionPriorityDropdown } from "./mission-right-missionPriorities";
 
 const ActionTemplates_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const actionTemplates = useMissionDocSelector((mission) => mission.actionTemplates, deepEqual);
@@ -341,6 +343,41 @@ const ActionTemplateItem: FunctionComponent<{
                       {actionTemplate.stmAction ? "STM" : "Non-STM"}
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+            {partialMission.actionSystemVersion === 2 && (
+              <div className={paneStyles.panelSection}>
+                <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+                  <SubpanelHeading icon={faListOl}>Priority</SubpanelHeading>
+                </div>
+                <div className={paneStyles.panelSectionRow}>
+                  <div className={paneStyles.panelSection2Column}>
+                    <div className={paneStyles.panelColumnTable}>
+                      <div className={paneStyles.panelColumnTableRow}>
+                        <div className={paneStyles.panelColumnTableCell}>
+                          <div className={paneStyles.inputFieldLabel}>Mission Priority:</div>
+                        </div>
+                        <div className={paneStyles.panelColumnTableCell}>
+                          <div className={paneStyles.inputFieldValue}>
+                            <MissionPriorityDropdown
+                              selectedUuid={actionTemplate.missionPriorityUuid}
+                              editMode={editMode}
+                              onSelect={(missionPriorityUuid) => {
+                                withMissionChange((m) =>
+                                  applyUpdateActionTemplateByField(m, {
+                                    actionTemplateUuid,
+                                    fieldName: "missionPriorityUuid",
+                                    value: missionPriorityUuid,
+                                  })
+                                );
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

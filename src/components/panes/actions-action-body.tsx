@@ -46,6 +46,7 @@ import { thunkDocAddCollectionId, thunkDocAddRexActionMass } from "store/thunk/t
 import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
+import { MissionPriorityDropdown } from "./mission/mission-right-missionPriorities";
 
 const RightActionBody: FunctionComponent<{
   editMode: boolean;
@@ -202,6 +203,41 @@ const RightActionBody: FunctionComponent<{
                 {action.stmAction ? "STM" : "Non-STM"}
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {partialMission.actionSystemVersion === 2 && (
+        <div className={paneStyles.panelSection}>
+          <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
+            <SubpanelHeading icon={faListOl}>Priority</SubpanelHeading>
+          </div>
+          <div className={paneStyles.panelSectionRow}>
+            <div className={paneStyles.panelSection2Column}>
+              <div className={paneStyles.panelColumnTable}>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.inputFieldLabel}>Mission Priority:</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.inputFieldValue}>
+                      <MissionPriorityDropdown
+                        selectedUuid={action.missionPriorityUuid}
+                        editMode={editMode}
+                        onSelect={(missionPriorityUuid) => {
+                          withMissionChange((m) =>
+                            applyUpdateActionByField(m, {
+                              actionUuid: action.uuid,
+                              fieldName: "missionPriorityUuid",
+                              value: missionPriorityUuid,
+                            })
+                          );
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

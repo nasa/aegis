@@ -20,6 +20,7 @@ export const generateBlankAction = (partialAction?: Partial<Action>): Action => 
     parentCopyDate: null,
     priority: null,
     stmPriorities: null,
+    missionPriorityUuid: null,
     type: "other",
     description: "",
     descriptionTask: "",

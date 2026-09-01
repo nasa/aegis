@@ -43,6 +43,7 @@ export function checkMissionIntegrity(missionId: number, doc: Mission): Integrit
   // Mission-level dictionaries — used by Action references
   const equipmentItemUuids = new Set(Object.keys(doc.equipmentItems ?? {}));
   const geographicUnitUuids = new Set(Object.keys(doc.geographicUnits ?? {}));
+  const missionPriorityUuids = new Set(Object.keys(doc.missionPriorities ?? {}));
   const verbUuids = new Set(Object.keys(doc.actionDefinitions?.verbs ?? {}));
   const nounUuids = new Set(Object.keys(doc.actionDefinitions?.nouns ?? {}));
   const adjectiveUuids = new Set(Object.keys(doc.actionDefinitions?.adjectives ?? {}));
@@ -90,6 +91,9 @@ export function checkMissionIntegrity(missionId: number, doc: Mission): Integrit
     }
     for (const uuid of action.geographicUnitsUsage ?? []) {
       if (!geographicUnitUuids.has(uuid)) log("geographicUnitsUsage", uuid, "Action", action.uuid);
+    }
+    if (action.missionPriorityUuid && !missionPriorityUuids.has(action.missionPriorityUuid)) {
+      log("missionPriorityUuid", action.missionPriorityUuid, "Action", action.uuid);
     }
     if (action.actionDefinition) {
       const { verbUuid, nounUuid, adjectiveUuid } = action.actionDefinition;
