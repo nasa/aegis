@@ -63,6 +63,7 @@ export const applyMdauActions = (m: Mission, stage: MdauStageData): void => {
     if (a.stmAction !== undefined) action.stmAction = a.stmAction;
     if (a.actionDefinition !== undefined) action.actionDefinition = a.actionDefinition;
     if (a.crewAssigned !== undefined) action.crewAssigned = a.crewAssigned;
+    if (a.enabled !== undefined) action.enabled = a.enabled;
     if (a.updatedAt !== undefined) action.updatedAt = a.updatedAt;
   }
 };

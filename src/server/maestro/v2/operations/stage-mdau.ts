@@ -263,6 +263,7 @@ const stageActions = (
     // `actors` maps to AEGIS `crewAssigned`.
     if (mdau.actors !== undefined && !isEqual(mdau.actors, action.crewAssigned ?? []))
       stage.crewAssigned = mdau.actors as Crew[];
+    if (mdau.enabled !== undefined && mdau.enabled !== action.enabled) stage.enabled = mdau.enabled;
     if (mdau.updatedAt !== undefined && mdau.updatedAt !== action.updatedAt)
       stage.updatedAt = mdau.updatedAt;
 

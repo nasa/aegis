@@ -81,6 +81,7 @@ const actionPayload = (refUuid: string, actors: string[]): MDAU.MaestroDataAegis
       actionDefinition: null,
       stmAction: false,
       actors,
+      enabled: true,
       updatedAt: 1_700_000_000_000,
     },
   },
@@ -281,6 +282,8 @@ describe("stageMdau() subscription check — actions on a shared station", () =>
     expect(stage.actions).toHaveLength(1);
     expect(stage.actions[0].uuid).toBe(action.uuid);
     expect(stage.actions[0].crewAssigned).toEqual(["EV2"]);
+    // The payload's `enabled` matches the action, so it must not be staged.
+    expect(stage.actions[0].enabled).toBeUndefined();
     expect(warnSpy).not.toHaveBeenCalled();
   });
 

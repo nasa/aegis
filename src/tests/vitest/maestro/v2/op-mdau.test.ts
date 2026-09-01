@@ -139,8 +139,6 @@ describe("opUpdateMdau() — stations", () => {
   it("writes when only updatedAt changed", () => {
     const station = generateBlankStation({ name: "Vitest Alpha", duration: 10 });
     const eva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ type: "station", uuid: station.uuid }],
     });
 
@@ -438,6 +436,7 @@ describe("opUpdateMdau() — actions", () => {
           actionDefinition: action.actionDefinition,
           stmAction: action.stmAction,
           actors: ["EV1", "EV2"],
+          enabled: action.enabled,
           updatedAt: now,
         },
       },
@@ -457,8 +456,6 @@ describe("opUpdateMdau() — actions", () => {
     const action = generateBlankAction({ stationUuid: station.uuid, crewAssigned: ["EV1"] });
     station.actionOrderUuids = [action.uuid];
     const eva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ type: "station", uuid: station.uuid }],
     });
 
@@ -488,6 +485,7 @@ describe("opUpdateMdau() — actions", () => {
     actionDefinition: action.actionDefinition,
     stmAction: action.stmAction,
     actors: action.crewAssigned,
+    enabled: action.enabled,
     updatedAt: Date.now(),
     ...overrides,
   });
@@ -545,6 +543,50 @@ describe("opUpdateMdau() — actions", () => {
     });
 
     expect(handle.doc().actions[action.uuid].actionDefinition).toBeNull();
+  });
+
+  it("disables an action when Maestro sends enabled false", () => {
+    const { handle, action } = buildActionMission();
+    expect(handle.doc().actions[action.uuid].enabled).toBe(true);
+
+    runMdau(handle, {
+      aegisAction: { [action.refUuid]: mdauAction(action, { enabled: false }) },
+    });
+
+    expect(handle.doc().actions[action.uuid].enabled).toBe(false);
+  });
+
+  it("re-enables a disabled action when Maestro sends enabled true", () => {
+    const { handle, action } = buildActionMission();
+    handle.change((m) => {
+      m.actions[action.uuid].enabled = false;
+    });
+
+    runMdau(handle, {
+      aegisAction: { [action.refUuid]: mdauAction(action, { enabled: true }) },
+    });
+
+    expect(handle.doc().actions[action.uuid].enabled).toBe(true);
+  });
+
+  it("does not stage an action when enabled matches the doc", () => {
+    const { handle, action } = buildActionMission();
+    const doc = handle.doc().actions[action.uuid];
+    const changeMock = handle.change as unknown as ReturnType<typeof vi.fn>;
+    const changesBefore = changeMock.mock.calls.length;
+
+    runMdau(handle, {
+      aegisAction: {
+        [action.refUuid]: mdauAction(action, {
+          enabled: doc.enabled,
+          updatedAt: doc.updatedAt,
+        }),
+      },
+    });
+
+    // `enabled` must be diffed against the doc, not the empty stage, otherwise
+    // every payload carrying the field would trigger a write.
+    expect(changeMock.mock.calls.length).toBe(changesBefore);
   });
 
   it("does not stage an action when nothing at all differs", () => {
@@ -857,6 +899,7 @@ describe("opUpdateMdau() — subscription gating", () => {
           actionDefinition: action.actionDefinition,
           stmAction: action.stmAction,
           actors: ["EV1", "EV2"],
+          enabled: action.enabled,
           updatedAt: Date.now(),
         },
       },

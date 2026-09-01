@@ -73,6 +73,7 @@ export declare namespace MDAU {
     actionDefinition: ActionDefinition | null;
     stmAction: boolean;
     actors: string[]; // crewAssigned in AEGIS
+    enabled: boolean;
     updatedAt: number;
     rexUuid?: string;
   };
