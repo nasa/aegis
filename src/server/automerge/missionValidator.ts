@@ -1,15 +1,5 @@
 /**
- * schemaValidate.ts
- *
  * Standalone JSON-schema validation for Automerge Mission documents.
- * Connects to the Automerge Postgres storage, reads every mission doc, validates
- * each one against the generated Mission schema, writes a JSON report to
- * .local/schema-validation-report-<timestamp>.json, and exits non-zero if any
- * mission failed validation.
- *
- * Unlike the validation pass inside the migration script, this runner never stops
- * early: every mission is checked and every failure is collected into the report.
- * It does NOT run migrations or modify any document.
  *
  * Build: npm run automerge:validate:build
  * Run:   npm run automerge:validate:run
@@ -98,8 +88,6 @@ getORM()
     const unreadable: { missionId: number; automergeUrl: string; reason: string }[] = [];
     let validCount = 0;
 
-    // Every mission is checked. Nothing short-circuits: a bad doc is recorded and the
-    // loop continues so a single failure can't hide the ones behind it.
     for (const docListing of allDocListings) {
       if (!isValidAutomergeUrl(docListing.automergeUrl)) {
         unreadable.push({
@@ -181,8 +169,7 @@ getORM()
       );
     }
 
-    // Write the JSON report even when everything passed, so the artifact is always
-    // present and a clean run is distinguishable from a run that never produced output.
+    // Write the JSON report even when validation is successful
     const reportDir = path.resolve(".local");
     if (!fs.existsSync(reportDir)) fs.mkdirSync(reportDir, { recursive: true });
     const reportTimestamp = new Date().toISOString().replace(/[:.]/g, "-");

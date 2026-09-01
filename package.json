@@ -69,7 +69,7 @@
     "automerge:integrity:run": "node ./.local/automerge/dist/integrityCheck.js",
     "automerge:validate:build": "node ./src/server/automerge/esbuild.automerge.mjs",
     "automerge:validate": "npm run schema:create && npm run automerge:validate:build && npm run automerge:validate:run",
-    "automerge:validate:run": "node ./.local/automerge/dist/schemaValidate.js"
+    "automerge:validate:run": "node ./.local/automerge/dist/missionValidator.js"
   },
   "dependencies": {
     "@automerge/automerge": "3.4.1",
