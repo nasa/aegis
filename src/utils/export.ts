@@ -1,5 +1,5 @@
 import { decodeEmoji } from "./formatting";
-import { buildActionDefinitionName } from "store/storeUtils/mission";
+import { buildActionDefinitionName, buildMissionPriorityName } from "store/storeUtils/mission";
 import { getGridCoordinatesFromPoint } from "./mapping/geoMath";
 import {
   getCalcFieldsForEva,
@@ -80,6 +80,10 @@ export const makeExportActions = (params: {
       //Verb of noun in adjective
       actionDefinitionReadable: makeReadableActionDefinition({
         action,
+        mission,
+      }),
+      missionPriorityReadable: makeReadableMissionPriority({
+        missionPriorityUuid: action.missionPriorityUuid,
         mission,
       }),
       stmPrioritiesReadable: action.stmPriorities
@@ -434,6 +438,28 @@ export const makeReadableActionDefinition = (params: {
     adjective: adjective,
   };
   return readableActionDefinition;
+};
+
+/**
+ * Resolve an action's mission priority reference into its trace/category values plus the
+ * "<trace> | <category>" display string. Returns null when nothing is selected or the
+ * reference no longer resolves.
+ */
+export const makeReadableMissionPriority = (params: {
+  missionPriorityUuid: string | null | undefined;
+  mission: Pick<Mission, "missionPriorities">;
+}): MissionPriorityReadable | null => {
+  const { missionPriorityUuid, mission } = params;
+  if (!missionPriorityUuid) return null;
+  const missionPriority = mission.missionPriorities?.[missionPriorityUuid];
+  if (!missionPriority) return null;
+
+  return {
+    uuid: missionPriorityUuid,
+    trace: missionPriority.trace,
+    category: missionPriority.category,
+    displayString: buildMissionPriorityName(missionPriority),
+  };
 };
 
 export const makeExportString = ({
