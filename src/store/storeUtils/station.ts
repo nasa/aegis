@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
-
 import { getAccurateNow } from "utils/formatting";
+import cloneDeep from "lodash/cloneDeep";
 
 /**
  * Generate a blank station
@@ -19,6 +19,7 @@ export const generateBlankStation = (partialStation?: Partial<Station>): Station
     status: "Candidate",
     description: "",
     icon: null,
+    isLanderXgress: false,
     radius: 5,
     location: null,
     elevation: null,
@@ -33,3 +34,30 @@ export const generateBlankStation = (partialStation?: Partial<Station>): Station
   };
   return { ...defaultNewStation, ...partialStation };
 };
+
+/**
+ * Build a lander station to be used as xgress for an EVA.
+ *
+ * @param args `xgressType` plus the required mission-derived fields and any
+ * other `Station` fields to override
+ * @returns the generated lander xgress station
+ */
+export function generateLanderXgressStation(
+  args: Partial<Station> & {
+    xgressType: "egress" | "ingress";
+    missionId: number;
+    location: AEGISPoint;
+    elevation: number | null;
+  }
+): Station {
+  const { xgressType, ...overrides } = args;
+  return generateBlankStation({
+    name: xgressType === "egress" ? "Lander Egress" : "Lander Ingress",
+    icon: "landerIcon",
+    ...overrides,
+    location: cloneDeep(overrides.location),
+    ownerId: overrides.ownerId ?? 0,
+    duration: overrides.duration ?? 10,
+    isLanderXgress: true,
+  });
+}

@@ -22,8 +22,6 @@ export interface TraverseStage {
 export interface EvaStage {
   uuid: string;
   name?: string;
-  ingressDuration?: number;
-  egressDuration?: number;
   datetime?: number | null;
   updatedAt: number;
 }
@@ -57,11 +55,11 @@ export interface RexStage {
   startsRunning: boolean;
   /** maestroActivityPropertiesByRefUuid resolved to uuid keys. */
   maestroActivityProperties: MaestroActivityProperties | null;
-  /** Resolved station/traverse activity entries keyed by sequence uuid. */
+  /**
+   * Resolved station/traverse activity entries keyed by sequence uuid.
+   */
   stationEntries: { [uuid: string]: MDAU.AegisActivityEntry };
   traverseEntries: { [uuid: string]: MDAU.AegisActivityEntry };
-  /** xgress entries keyed verbatim (xgress uuids are not refUuids). */
-  xgressEntries: { [xgressUuid: string]: { rexStatus: MDAU.AegisRexStatus } };
   /** Resolved action entries keyed by action uuid. */
   actionEntries: {
     [uuid: string]: {

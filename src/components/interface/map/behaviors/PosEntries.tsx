@@ -37,6 +37,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { setSelectedPosEntryUuid } from "store/rex";
 import { setHoverUuidsForPosEntry, clearMapItemHover } from "store/hover";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
+import { getEgressStationUuid } from "operations/helpers/evaSequence";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -131,8 +132,7 @@ export function PosEntries(): null {
     const rex = m.rexes?.[selectedRexUuid];
     if (!rex) return null;
     const eva = m.evas?.[rex.evaUuid];
-    if (!eva || eva.egressLocationUuid === "lander") return null;
-    return m.stations?.[eva.egressLocationUuid]?.location ?? null;
+    return m.stations?.[getEgressStationUuid(eva?.sequence)]?.location ?? null;
   }, deepEqual);
 
   // --- Layers (one per map) ---

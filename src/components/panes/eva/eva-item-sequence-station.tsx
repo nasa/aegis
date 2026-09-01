@@ -12,6 +12,7 @@ import { setHoverUuidsForSequence } from "store/hover";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import {
+  thunkDocChangeIngressEgress,
   thunkDocChangeStationInEva,
   thunkDocDeleteStationFromEva,
   thunkDocReorderStationInEva,
@@ -19,11 +20,12 @@ import {
 import { getRexStatusDisplayProperties, getSequenceItemRowStyles } from "utils/component-helpers";
 import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
-import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+import { getCalcFieldsForStation } from "store/processing/calculatedFields";
 
 import { selectAsPlannedStations } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { canMoveStation, isXgressIndex } from "operations/helpers/evaSequence";
 
 const SequenceItemStation: FunctionComponent<{
   evaUuid: string;
@@ -45,21 +47,41 @@ const SequenceItemStation: FunctionComponent<{
     deepEqual
   );
   const sequenceIndex = evaSequence.findIndex((s) => s.uuid === stationUuid);
+  const canMoveUp = canMoveStation(evaSequence, sequenceIndex, "up");
+  const canMoveDown = canMoveStation(evaSequence, sequenceIndex, "down");
+
+  // Egress/ingress rows are pinned to the ends of the sequence: they cannot be
+  // reordered or removed, and changing their station goes through the xgress
+  // thunk so lander copies are created/deleted along with the swap.
+  const isXgress = isXgressIndex(evaSequence, sequenceIndex);
+  const xgressType: "egress" | "ingress" | null = !isXgress
+    ? null
+    : sequenceIndex === 0
+      ? "egress"
+      : "ingress";
+  const isAtLander = thisStation?.isLanderXgress === true;
+
+  const landerLabel = `${isAtLander && thisStation?.name ? thisStation.name : "Lander"}${
+    isRexEva && isAtLander ? " (As Executed)" : ""
+  }`;
 
   // Get a list of as-planned stations for the dropdown menu when selecting a station for the eva sequence
   // Only return some of the properties in station to reduce re-renders
-  // Filter out stations already in the sequence and stations without locations
+  // Filter out stations already in the sequence, stations without locations, and lander xgress stations
   const partialStationsForDropdown = useMissionDocSelector((mission) => {
     const sequenceRefUuids = (mission.evas?.[evaUuid]?.sequence ?? [])
       .map((s) => mission.stations[s.uuid]?.refUuid)
       .filter(Boolean);
     const asPlannedStations = selectAsPlannedStations(mission)
-      .map((s) => ({ name: s.name, uuid: s.uuid, refUuid: s.refUuid, location: s.location }))
-      .filter((s) => !sequenceRefUuids.includes(s.refUuid) && !!s.location)
-      .map(({ refUuid: _refUuid, ...rest }) => rest);
+      .filter((s) => !sequenceRefUuids.includes(s.refUuid) && !!s.location && !s.isLanderXgress)
+      .map((s) => ({ name: s.name, uuid: s.uuid, location: s.location }));
 
-    // add on the current station
-    if (!asPlannedStations.map((s) => s.uuid).includes(stationUuid)) {
+    // add on the current station. A lander copy is not selectable as itself —
+    // the row offers a dedicated "Lander" option instead.
+    if (
+      !asPlannedStations.map((s) => s.uuid).includes(stationUuid) &&
+      !thisStation?.isLanderXgress
+    ) {
       const station = thisStation;
       if (station) {
         asPlannedStations.unshift({
@@ -97,7 +119,7 @@ const SequenceItemStation: FunctionComponent<{
     const stationActions = Object.values(mission.actions || {}).filter(
       (a) => a.stationUuid === stationUuid && a.enabled
     );
-    return getCalculatedFieldsByStation({
+    return getCalcFieldsForStation({
       station: mission.stations ? mission.stations[stationUuid] : null,
       missionWalkbackRate,
       stationActions,
@@ -199,6 +221,7 @@ const SequenceItemStation: FunctionComponent<{
           <EmojiRenderer
             iconValue={thisStation?.icon ? thisStation.icon : "2754"}
             customSizeEm={1.4}
+            imageClassName={isAtLander ? evaStyles.landerImage : undefined}
           />
         </div>
 
@@ -239,10 +262,21 @@ const SequenceItemStation: FunctionComponent<{
           <div className={evaStyles.evaItemName}>
             <div className={evaStyles.evaItemLeft}>
               <Dropdown
-                selected={thisStation?.uuid || ""}
+                selected={isAtLander ? "lander" : thisStation?.uuid || ""}
                 arrowStyle={{ top: "1px" }}
                 selectStyle={{ width: "100%" }}
                 onChange={(val) => {
+                  if (xgressType) {
+                    dispatch(
+                      thunkDocChangeIngressEgress({
+                        type: xgressType,
+                        evaUuid,
+                        newStationUuidOrLander: val,
+                        isRexEva,
+                      })
+                    );
+                    return;
+                  }
                   dispatch(
                     thunkDocChangeStationInEva({
                       sequenceIndex: sequenceIndex,
@@ -253,49 +287,61 @@ const SequenceItemStation: FunctionComponent<{
                     })
                   );
                 }}
-                toolTip="Station"
+                toolTip={
+                  xgressType === "egress"
+                    ? "Egress Location"
+                    : xgressType === "ingress"
+                      ? "Ingress Location"
+                      : "Station"
+                }
               >
-                <option value="">-- Select a station --</option>
+                {isXgress ? (
+                  <option value="lander">{landerLabel}</option>
+                ) : (
+                  <option value="">-- Select a station --</option>
+                )}
                 {stationDropdownOptions}
               </Dropdown>
             </div>
-            <div className={evaStyles.evaItemNameButtons}>
-              <div
-                className={`${evaStyles.evaItemNameButton} ${sequenceIndex === 1 && evaStyles.disabled}`}
-                onClick={() => {
-                  if (sequenceIndex === 1) return;
-                  handleMoveStationUp(sequenceIndex);
-                }}
-              >
-                <FontAwesomeIcon icon={faArrowUp} />
+            {/* Xgress rows are pinned to the ends of the sequence and cannot be
+                reordered or removed, so they get no buttons at all. */}
+            {!isXgress && (
+              <div className={evaStyles.evaItemNameButtons}>
+                <div
+                  className={`${evaStyles.evaItemNameButton} ${!canMoveUp && evaStyles.disabled}`}
+                  onClick={() => {
+                    if (!canMoveUp) return;
+                    handleMoveStationUp(sequenceIndex);
+                  }}
+                >
+                  <FontAwesomeIcon icon={faArrowUp} />
+                </div>
+                <div
+                  className={`${evaStyles.evaItemNameButton} ${!canMoveDown && evaStyles.disabled}`}
+                  onClick={() => {
+                    if (!canMoveDown) return;
+                    handleMoveStationDown(sequenceIndex);
+                  }}
+                >
+                  <FontAwesomeIcon icon={faArrowDown} />
+                </div>
+                <div
+                  className={evaStyles.evaItemNameButton}
+                  onClick={() => {
+                    dispatch(
+                      thunkDocDeleteStationFromEva({
+                        evaSequence,
+                        sequenceIndex: sequenceIndex,
+                        evaUuid,
+                        isRexEva,
+                      })
+                    );
+                  }}
+                >
+                  <FontAwesomeIcon icon={faTrash} />
+                </div>
               </div>
-              <div
-                className={`${evaStyles.evaItemNameButton} ${
-                  sequenceIndex === evaSequence.length - 2 && evaStyles.disabled
-                }`}
-                onClick={() => {
-                  if (sequenceIndex === evaSequence.length - 2) return;
-                  handleMoveStationDown(sequenceIndex);
-                }}
-              >
-                <FontAwesomeIcon icon={faArrowDown} />
-              </div>
-              <div
-                className={evaStyles.evaItemNameButton}
-                onClick={() => {
-                  dispatch(
-                    thunkDocDeleteStationFromEva({
-                      evaSequence,
-                      sequenceIndex: sequenceIndex,
-                      evaUuid,
-                      isRexEva,
-                    })
-                  );
-                }}
-              >
-                <FontAwesomeIcon icon={faTrash} />
-              </div>
-            </div>
+            )}
           </div>
         )}
       </div>

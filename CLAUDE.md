@@ -117,21 +117,16 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
   `src/server/elevation/`. It reads each mission's configured GeoTIFF directly from `STATIC_DIR`;
   there is no separate GDAL/Python runtime service.
 - **MikroORM 6** with PostgreSQL. Entity models live in `src/server/database/models/`. DB models still exist for legacy entities (action, eva, poi, rex, station, traverse) and are used by the Automerge migration script, but these entities are no longer read/written via ORM at runtime. Every request runs inside a `RequestContext` middleware for ORM isolation.
-- **Socket.io** runs on **two separate Socket.IO server instances**:
-  - **New server** (path `/api/socket`) — hosts the default AEGIS namespace and the Maestro v2 namespace.
-  - **Legacy server** (path `/api/v1/socketio`) — hosts the Maestro v1 namespace only; retained for backward compatibility with older Maestro clients.
-  - **Default namespace** (`/` on the new server) — handles AEGIS web-client connections: visitor presence, heartbeats (`statusFromServer` every 10s), and `storeUpsert`/`storeDelete` events for non-Automerge entities (Presets, STM Rules, Folders). Handlers are in `src/server/express/sockets.ts`.
-  - **`/maestro` namespace** (on the legacy server, path `/api/v1/socketio`) — Maestro v1. Auth is enforced via EMSS token middleware. Emits `dataAll` (full `AegisSlice.AegisSlice` payload) throttled at 500 ms per mission to the room `maestro{missionId}`. Handlers: `missionJoin`, `missionLeave`, `subscribeToEva`, `unsubscribeToEva`, `getEverything`, `rexOverwrite` (v1-only), `getDebugInfo`. Setup in `src/server/maestro/v1/sockets-maestro.ts`; emission logic in `src/server/maestro/v1/sockets-maestro-emitters.ts`. **Deprecated — no new work should target v1.**
-  - **`/maestro/v2` namespace** (on the new server, path `/api/socket`) — Maestro v2. Same auth and room conventions as v1. Handlers: `missionJoin`, `missionLeave`, `subscribeToEva`, `unsubscribeToEva`, `getEverything`, `sendMDAU` (v2-only; receives `MDAU.MaestroDataAegisUses` and writes back station updates to the Automerge doc), `getDebugInfo`. `rexOverwrite` has been removed. Setup in `src/server/maestro/v2/sockets-maestro.ts`; emission logic in `src/server/maestro/v2/sockets-maestro-emitters.ts`. **This is the target for all new Maestro integration work.**
+- **Socket.io** runs on a single Socket.IO server instance mounted at path `/api/socket`, hosting two namespaces:
+  - **Default namespace** (`/`) — handles AEGIS web-client connections: visitor presence, heartbeats (`statusFromServer` every 10s), and `storeUpsert`/`storeDelete` events for non-Automerge entities (Presets, STM Rules, Folders). Handlers are in `src/server/express/sockets.ts`.
+  - **`/maestro/v2` namespace** — Maestro v2. Auth is enforced via EMSS token middleware. Emits `dataAll` (full `AegisSlice.AegisSlice` payload) throttled at 500 ms per mission to the room `maestro{missionId}`. Handlers: `missionJoin`, `missionLeave`, `subscribeToEva`, `unsubscribeToEva`, `getEverything`, `sendMDAU` (receives `MDAU.MaestroDataAegisUses` and writes back station updates to the Automerge doc), `getDebugInfo`. Setup in `src/server/maestro/v2/sockets-maestro.ts`; emission logic in `src/server/maestro/v2/sockets-maestro-emitters.ts`.
 
 ### Maestro Type Files — Do Not Modify Without Coordination
 
 The following type declaration files define the contract between AEGIS and the external Maestro application. **AI agents must never modify these files.** Any change requires explicit coordination with the Maestro developer team, as both sides must update simultaneously:
 
-- `src/server/maestro/v1/types/aegisSlice.d.ts` — `AegisSlice` namespace (v1 outbound payload shape)
-- `src/server/maestro/v1/types/mdau.d.ts` — `MDAU` namespace (v1 inbound payload shape)
-- `src/server/maestro/v2/types/aegisSlice.d.ts` — `AegisSlice` namespace (v2 outbound payload shape)
-- `src/server/maestro/v2/types/mdau.d.ts` — `MDAU` namespace (v2 inbound payload shape)
+- `src/server/maestro/v2/types/aegisSlice.d.ts` — `AegisSlice` namespace (outbound payload shape)
+- `src/server/maestro/v2/types/mdau.d.ts` — `MDAU` namespace (inbound payload shape)
 
 - **Automerge repo** network adapter mounts at `/api/automergeSocket/` via WebSocket upgrade, using a custom `PostgresStorageAdapter` to persist documents to PostgreSQL.
 - **Authentication** is delegated to `@emss/oauth2-proxy-backend`; secrets and environment config come from `env.secret.ts` (gitignored) and dotenv.

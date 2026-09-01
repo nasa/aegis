@@ -19,8 +19,6 @@ function buildEvaWithStation(
   overrides: Partial<Eva> = {}
 ): Eva {
   return generateBlankEVA({
-    egressLocationUuid: "lander",
-    ingressLocationUuid: "lander",
     sequence: [
       { type: "traverse", uuid: traverseBefore.uuid },
       { type: "station", uuid: station.uuid },
@@ -76,10 +74,7 @@ describe("opUpdateStationName()", () => {
     const station = generateBlankStation({ name: "Vitest Alpha" });
     const traverseBefore = generateBlankTraverse({ name: "Vitest Lander to Alpha" });
     const traverseAfter = generateBlankTraverse({ name: "Vitest Alpha to Lander" });
-    const eva = buildEvaWithStation(station, traverseBefore, traverseAfter, {
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
-    });
+    const eva = buildEvaWithStation(station, traverseBefore, traverseAfter, {});
 
     const handle = getMissionDocHandle();
     handle.change((m) => {

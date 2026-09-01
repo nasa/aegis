@@ -186,13 +186,18 @@ type CalculatedFields = {
 };
 
 type ActionsCalculatedFields = {
+  /** Straight sum of all actions regardless of crew assignment */
   totalActionTime: number;
   totalEv1Time: number;
   totalEv2Time: number;
+  /** Total time of actions that do not have crew assigned */
   totalUnassignedTime: number;
+  /** Max between EV1 and EV2 times */
   totalDwellTime: number;
   actionCount: number;
   totalMass: number;
+  /** Combined equipment usage across all the actions */
+  totalEquipmentItems: EquipmentItemUsages;
 };
 
 type LocationCalculatedFields = CalculatedFields & ActionsCalculatedFields;
@@ -201,15 +206,14 @@ type PoiCalculatedFields = CalculatedFields & ActionsCalculatedFields;
 
 type StationCalculatedFields = CalculatedFields &
   ActionsCalculatedFields & {
-    walkbackDurationMinutes: number;
+    walkbackMovementDurationMinutes: number;
     walkbackDistanceMeters: number;
     walkbackAscentDescent: TotalAscentDescentObj;
-    equipmentItems: EquipmentItemUsages;
   };
 
 type TraverseCalculatedFields = CalculatedFields &
   ActionsCalculatedFields & {
-    durationMinutes: number;
+    movementDurationMinutes: number;
     distanceMeters: number;
     ascentDescent: TotalAscentDescentObj;
     bearings: number[];
@@ -227,15 +231,21 @@ type EvaSequenceItemCalculatedData = {
   endSeconds: number;
   manualStartSeconds: number;
   manualEndSeconds: number;
+  /** The duration of the sequence item, either calculated or manually overridden */
+  resolvedDurationMins: number;
 };
 
 type EvaCalculatedFields = CalculatedFields &
   ActionsCalculatedFields & {
-    totalTraverseTime: number;
+    totalTraverseMovementTime: number;
     totalTraverseDistanceMeters: number;
     totalTraverseAscentDescent: TotalAscentDescentObj;
-    totalEvaTime: number;
-    equipmentItems: EquipmentItemUsages;
+
+    /** The total resolved durations, either calculated or manually overridden */
+    totalResolvedEvaTime: number; // minutes. totalResolvedStationTime + totalResolvedTraverseTime
+    totalResolvedStationTime: number; // minutes
+    totalResolvedTraverseTime: number; // minutes
+
     sequenceItemsCalculatedData: EvaSequenceItemCalculatedData[];
   };
 

@@ -26,6 +26,10 @@ const Station_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
     refEqual
   );
   const stations = useMissionDocSelector((mission) => mission.stations, shallowEqual);
+  const isLanderXgress = useMissionDocSelector(
+    (mission) => mission.stations?.[selectedStationUuid]?.isLanderXgress === true,
+    refEqual
+  );
   const mapCircleControls = useMemo(
     () => stations?.[selectedStationUuid]?.mapCircleControls,
     [stations, selectedStationUuid]
@@ -84,15 +88,23 @@ const Station_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editM
           <div className={paneStyles.panelContainer}>
             <div className={styles.circlesContainer}>
               <div className={styles.circlesBody}>
-                {circleDefinitions && circleUIStates && (
-                  <Circles
-                    editMode={editMode}
-                    mapCircleControls={mapCircleControls}
-                    toggleVisibleFunction={toggleStationCircleVisibleHandler}
-                    circleUIStates={circleUIStates}
-                    circleUIStateSetterFunction={circleUIStateSetterFunction}
-                    styleSetter={styleSetterHandler}
-                  />
+                {isLanderXgress ? (
+                  <div className={styles.circleSubtextLanderStation}>
+                    <div>Proximity circles for the lander are controlled in Presets</div>
+                  </div>
+                ) : (
+                  <>
+                    {circleDefinitions && circleUIStates && (
+                      <Circles
+                        editMode={editMode}
+                        mapCircleControls={mapCircleControls}
+                        toggleVisibleFunction={toggleStationCircleVisibleHandler}
+                        circleUIStates={circleUIStates}
+                        circleUIStateSetterFunction={circleUIStateSetterFunction}
+                        styleSetter={styleSetterHandler}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             </div>
