@@ -13,9 +13,17 @@ interface ExportAction extends Action {
   equipmentItemsUsageReadable: EquipmentItemUsageReadable[] | null;
   geographicalUnitsReadable: string[] | null;
   actionDefinitionReadable: ActionDefinitionReadable | null;
+  missionPriorityReadable: MissionPriorityReadable | null;
   stmPrioritiesReadable: StmPriorityReadable[] | null;
   gridCoordinates: string;
   rexUuid: string | null; // the rex uuid if this action is in an EVA that is in a rex
+}
+
+interface MissionPriorityReadable {
+  uuid: string;
+  trace: string;
+  category: string;
+  displayString: string; // "<trace> | <category>"
 }
 
 interface ActionDefinitionReadable {

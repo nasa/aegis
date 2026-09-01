@@ -21,6 +21,7 @@ vi.mock("server/express/routes/missionAutomerge", async () => {
 vi.mock("utils/export", () => ({
   makeEquipmentReadable: vi.fn().mockReturnValue(""),
   makeReadableActionDefinition: vi.fn().mockReturnValue(""),
+  makeReadableMissionPriority: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock("store/processing/calculatedFields", () => ({
@@ -59,6 +60,9 @@ const buildMockCoreData = (overrides: {
     actionDefinitions: {},
     equipmentItems: {},
     geographicUnits: {},
+    missionPriorities: {
+      "vitest-priority-uuid": { trace: "SIMD-0005.1", category: "Vitest Category" },
+    },
     createdAt: new Date().getTime(),
     updatedAt: new Date().getTime(),
     evas: toRecord(overrides.evas),
@@ -253,6 +257,24 @@ describe("buildAegisSliceForMaestro", () => {
     expect(result.aegisTraverses[traverseWithOrder.refUuid].actionOrderRefUuids).toEqual([
       actionInSubscribed.refUuid,
     ]);
+  });
+
+  it("includes the mission priority master list on the mission", async () => {
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+
+    const mockCoreData = buildMockCoreData({
+      evas: [evaSubscribed],
+      stations: [stationA],
+      traverses: [traverseA],
+      actions: [actionInSubscribed],
+    });
+    mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
+
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
+
+    expect(result.aegisMissions[MISSION_ID].missionPriorities).toEqual({
+      "vitest-priority-uuid": { trace: "SIMD-0005.1", category: "Vitest Category" },
+    });
   });
 
   it("passes datetime fields through as numeric timestamps", async () => {

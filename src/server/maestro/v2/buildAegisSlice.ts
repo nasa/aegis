@@ -3,7 +3,11 @@ import {
   getMaestroCalcFieldsForStation,
   getMaestroCalcFieldsForTraverse,
 } from "store/processing/calculatedFields";
-import { makeEquipmentReadable, makeReadableActionDefinition } from "utils/export";
+import {
+  makeEquipmentReadable,
+  makeReadableActionDefinition,
+  makeReadableMissionPriority,
+} from "utils/export";
 import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
 import { globalValues } from "server/express/global";
 import type { AegisSlice } from "./types/aegisSlice";
@@ -83,6 +87,7 @@ const formatMissionForMaestro = (mission: Mission): AegisSlice.AegisMission =>
     name: mission.name,
     description: mission.description ?? "",
     actionSystemVersion: mission.actionSystemVersion as 1 | 2,
+    missionPriorities: mission.missionPriorities ?? {},
     createdAt: mission.createdAt,
     updatedAt: mission.updatedAt,
   }) satisfies Record<keyof AegisSlice.AegisMission, unknown>;
@@ -246,6 +251,10 @@ const formatActionsForMaestro = (
       }),
       actionDefinitionReadable: makeReadableActionDefinition({
         action,
+        mission,
+      }),
+      missionPriorityReadable: makeReadableMissionPriority({
+        missionPriorityUuid: action.missionPriorityUuid,
         mission,
       }),
       missionId: action.missionId,

@@ -244,6 +244,7 @@ getORM()
             parentCopyDate: dbAction.parentCopyDate,
             priority: dbAction.priority,
             stmPriorities: dbAction.stmPriorities,
+            missionPriorityUuid: null,
             type: dbAction.type,
             description: dbAction.description,
             descriptionTask: dbAction.descriptionTask,
@@ -780,6 +781,36 @@ getORM()
       });
     };
 
+    // Migration: add the mission priority master list plus the per-action/per-template
+    // reference to it. The reference is seeded to null everywhere; the feature is v2-only,
+    // so v1 missions simply keep the null value.
+    const automergeMigration20260901AddMissionPriorities = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      docHandle.change((mission: Mission) => {
+        // The persisted doc predates these (now required) fields; the type says they always
+        // exist, so view it as Partial to add them conditionally without narrowing to `never`.
+        const doc = mission as Partial<Mission>;
+        if (!("missionPriorities" in doc)) doc.missionPriorities = {};
+        // Drop the misspelled key from the original type definition if any doc picked it up.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ("missionPriorites" in doc) delete (doc as any).missionPriorites;
+
+        // Same reasoning as above: view each record as Partial so the `in` guard doesn't
+        // narrow the (already-required) property away to `never`.
+        for (const action of Object.values(mission.actions ?? {})) {
+          const partialAction = action as Partial<Action>;
+          if (!("missionPriorityUuid" in partialAction)) partialAction.missionPriorityUuid = null;
+        }
+        for (const actionTemplate of Object.values(mission.actionTemplates ?? {})) {
+          const partialTemplate = actionTemplate as Partial<ActionTemplate>;
+          if (!("missionPriorityUuid" in partialTemplate)) {
+            partialTemplate.missionPriorityUuid = null;
+          }
+        }
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
@@ -790,6 +821,7 @@ getORM()
       automergeMigration20260809AddGridRenderMode,
       automergeMigration20260810RenameStationLabelStrokeToHalo,
       automergeMigration20260806XgressStations,
+      automergeMigration20260901AddMissionPriorities,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {

@@ -190,6 +190,9 @@ type Action = {
   parentCopyDate?: number | null;
 
   priority: number | null; // 1-10
+  /** uuid of the selected entry in `mission.missionPriorities`. Always null on v1 missions. */
+  missionPriorityUuid: string | null;
+
   /**
    * Allow linkage to any part of the STM hierarchy
    */
@@ -232,9 +235,10 @@ type Action = {
   updatedAt: number;
 };
 
+// missionPriorityUuid is Automerge-only — the legacy Postgres action table has no such column.
 type Action_db_type = Omit<
   Action,
-  "poiUuid" | "stationUuid" | "parentActionUuid" | "traverseUuid"
+  "poiUuid" | "stationUuid" | "parentActionUuid" | "traverseUuid" | "missionPriorityUuid"
 > & {
   poi: Poi_db_type;
   station: Station_db_type;

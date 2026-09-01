@@ -28,6 +28,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     walkbackRate: 2,
     equipmentItems: {},
     geographicUnits: {},
+    missionPriorities: {},
     serverFileGrid: null,
     planetRadius: 1737400, // moon
     initialZoom: 14,
@@ -82,6 +83,7 @@ export const generateBlankActionTemplate = (
     duration: 6,
     stmAction: false,
     stmPriorities: null,
+    missionPriorityUuid: null,
     equipmentItemsUsage: {},
     geographicUnitsUsage: [],
     crewAssigned: [],
@@ -222,3 +224,42 @@ export const generateBlankGeographicUnit = (
   };
   return { ...defaultNewGeographicUnit, ...partialGeographicUnit };
 };
+
+/**
+ * Placeholder trace used for a freshly-created mission priority row. Matches the
+ * "(Equipment Name)" / "(Geographic Unit Name)" convention so the field auto-selects
+ * its contents on focus.
+ */
+export const BLANK_MISSION_PRIORITY_TRACE = "(Trace)";
+
+/**
+ * Generate a blank mission priority (a single trace row within a category).
+ * @param partialMissionPriority any fields that are to be overridden from default
+ * @returns the generated mission priority
+ */
+export const generateBlankMissionPriority = (
+  partialMissionPriority?: Partial<MissionPriority>
+): MissionPriority => {
+  const defaultNewMissionPriority: MissionPriority = {
+    trace: BLANK_MISSION_PRIORITY_TRACE,
+    category: "",
+  };
+  return { ...defaultNewMissionPriority, ...partialMissionPriority };
+};
+
+/**
+ * Join a mission priority into its display form: "<trace> | <category>".
+ */
+export const buildMissionPriorityName = (missionPriority: MissionPriority): string =>
+  `${missionPriority.trace} | ${missionPriority.category}`;
+
+/**
+ * Sort mission priority entries by trace. Numeric collation keeps SIMD-0002 ahead of
+ * SIMD-0010 instead of sorting them lexically.
+ */
+export const sortMissionPriorities = (
+  missionPriorities: MissionPriorities | null
+): [string, MissionPriority][] =>
+  Object.entries(missionPriorities ?? {}).sort(([, a], [, b]) =>
+    a.trace.localeCompare(b.trace, undefined, { numeric: true })
+  );
