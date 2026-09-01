@@ -28,6 +28,7 @@ const mdauWithActionDefinition = (
       actionDefinition,
       stmAction: false,
       actors: ["EV1"],
+      enabled: true,
       updatedAt: 1_700_000_000_000,
     },
   },

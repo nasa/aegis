@@ -38,6 +38,7 @@ export interface ActionStage {
   actionDefinition?: ActionDefinition | null;
   stmAction?: boolean;
   crewAssigned?: Crew[];
+  enabled?: boolean;
   updatedAt?: number;
 }
 
