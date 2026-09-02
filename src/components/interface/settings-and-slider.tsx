@@ -212,6 +212,7 @@ const Settings_subpanel: FunctionComponent<{
           min={0}
           max={12}
           unit={""}
+          tooltip={"Only show labels at this zoom level and higher"}
         />
       )}
       {showSliders.showLabels && (layerStyle?.showLabels ?? true) && showSliders.showLabelColor && (
@@ -253,6 +254,7 @@ const Settings_subpanel: FunctionComponent<{
           min={0}
           max={10}
           unit={"px"}
+          tooltip={"size"}
         />
       )}
       {showSliders.showLabels &&
@@ -265,6 +267,7 @@ const Settings_subpanel: FunctionComponent<{
               (layerStyle?.labelHaloOpacity ?? styleDefaults.labelHaloOpacity) * 100
             )}
             onChange={(e) => setStyle(Number(e.target.value) / 100, "labelHaloOpacity")}
+            tooltip={"opacity"}
           />
         )}
       {showSliders.isDashed && (
@@ -369,7 +372,8 @@ const Slider: FunctionComponent<{
   min?: number;
   max?: number;
   unit?: string;
-}> = ({ display, name, value, onChange, min = 0, max = 100, unit = `%` }) => {
+  tooltip?: string;
+}> = ({ display, name, value, onChange, min = 0, max = 100, unit = `%`, tooltip = "" }) => {
   return (
     <div className={styles.listItem}>
       <div className={styles.listItemText}>{display}</div>
@@ -384,7 +388,7 @@ const Slider: FunctionComponent<{
           max={max}
           name={name}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-content={name}
+          data-tooltip-content={tooltip || name}
           aria-label={name}
           defaultValue={value}
           className={styles.slider}
