@@ -27,7 +27,7 @@ export const Assoc_POIs: FunctionComponent<{
   return (
     <div
       className={assocPoisStyles.poiActionsSectionContainer}
-      style={{ minHeight: poiExpanded ? "200px" : "41px" }}
+      style={{ minHeight: poiExpanded && stationPoiUuids.length > 0 ? "200px" : "41px" }}
     >
       <div
         className={paneStyles.panelContainer}
