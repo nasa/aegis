@@ -82,7 +82,7 @@ services:
 
   oauth2-proxy:
     container_name: "${LOG_DATA_APP_ID}--oauth2"
-    image: quay.io/oauth2-proxy/oauth2-proxy:v7.11.0
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.4
     restart: always
     <<: *send_container_logs_to_syslog
     command:

@@ -6,7 +6,7 @@
 # # # # # # # #
 
 ### Build the React client
-FROM node:24.11.1-alpine3.23 AS build
+FROM node:24.20.0-alpine3.23 AS build
 
 WORKDIR /clientsrc
 
@@ -30,7 +30,7 @@ RUN npm run vite:build
 # # # # # # # #
 # PROD image  #
 # # # # # # # #
-FROM nginx:1.29.0-alpine AS prod
+FROM nginx:1.31.5-alpine AS prod
 
 # Clear out the default nginx static files
 RUN rm -rf /usr/share/nginx/html/*
