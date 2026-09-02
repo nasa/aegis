@@ -225,7 +225,7 @@ const MissionList = ({
       const missionDocHandle = await automergeRepo.find<Mission>(automergeUrl as AutomergeUrl);
       if (missionDocHandle) {
         missionDocHandle.change((mission: Mission) => {
-          mission.isArchived = archive;
+          mission.archivedAt = archive ? new Date().getTime() : null;
           mission.updatedAt = new Date().getTime();
         });
       }
@@ -233,7 +233,7 @@ const MissionList = ({
     }
   }
 
-  const listedMissionRows = (missionType: Mission[], isArchivedTable = false) => {
+  const listedMissionRows = (missionType: Mission[], archivedAtTable = false) => {
     return missionType.map((mission: Mission) => {
       if (
         user?.isSuperAdmin ||
@@ -255,6 +255,9 @@ const MissionList = ({
             </td>
             <td style={{ whiteSpace: "nowrap" }}>
               {mission.createdAt ? new Date(mission.createdAt).toLocaleString() : "—"}
+            </td>
+            <td style={{ whiteSpace: "nowrap" }}>
+              {mission.archivedAt ? new Date(mission.archivedAt).toLocaleString() : "—"}
             </td>
             <td>
               <div className={styles.missionActions}>
@@ -316,24 +319,24 @@ const MissionList = ({
                   className={styles.buttonSecondary}
                   type="button"
                   onClick={() => {
-                    const action = mission.isArchived ? "Unarchive" : "Archive";
+                    const action = mission.archivedAt ? "Unarchive" : "Archive";
                     if (
                       confirm(`Are you sure you want to ${action.toLowerCase()} "${mission.name}"?`)
                     ) {
                       archiveMission({
                         id: mission.id,
-                        archive: !mission.isArchived,
+                        archive: !mission.archivedAt,
                       });
                     }
                   }}
                 >
-                  {mission.isArchived ? "Unarchive" : "Archive"}
+                  {mission.archivedAt ? "Unarchive" : "Archive"}
                 </button>
               </div>
             </td>
-            {isArchivedTable && (
+            {archivedAtTable && (
               <td>
-                {mission.isArchived && (
+                {mission.archivedAt && (
                   <button
                     className={adminCommon.buttonDanger}
                     type="button"
@@ -351,7 +354,7 @@ const MissionList = ({
       } else {
         return (
           <tr key={mission.id}>
-            <td colSpan={isArchivedTable ? 7 : 6}>
+            <td colSpan={archivedAtTable ? 7 : 6}>
               <span style={{ color: "#64748b", fontStyle: "italic", fontSize: "0.9rem" }}>
                 {mission.name} [No Edit Permissions]
               </span>
@@ -363,9 +366,9 @@ const MissionList = ({
   };
 
   const visibleMissions = missions?.filter(
-    (mission: Mission) => mission.isArchived == undefined || mission.isArchived == false
+    (mission: Mission) => mission.archivedAt == undefined || mission.archivedAt == null
   );
-  const archivedMissions = missions?.filter((missions: Mission) => missions.isArchived == true);
+  const archivedMissions = missions?.filter((missions: Mission) => missions.archivedAt !== null);
 
   if (missions.length > 0) {
     return (
@@ -439,6 +442,7 @@ const MissionList = ({
                   <col className={styles.colVersion} />
                   <col className={styles.colDate} />
                   <col className={styles.colDate} />
+                  <col className={styles.colDate} />
                   <col className={styles.colActions} />
                   <col className={styles.colDelete} />
                 </colgroup>
@@ -449,6 +453,7 @@ const MissionList = ({
                     <th style={{ textAlign: "center" }}>Version</th>
                     <th>Updated At</th>
                     <th>Created At</th>
+                    <th>Archived At</th>
                     <th>Actions</th>
                     <th>Delete</th>
                   </tr>
@@ -462,6 +467,7 @@ const MissionList = ({
                     <col className={styles.colId} />
                     <col />
                     <col className={styles.colVersion} />
+                    <col className={styles.colDate} />
                     <col className={styles.colDate} />
                     <col className={styles.colDate} />
                     <col className={styles.colActions} />

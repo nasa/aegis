@@ -6,7 +6,7 @@ import express from "express";
 import { serverLogger } from "utils/logging/serverLogger";
 import { emssTokenIsValid } from "utils/permissions";
 import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
-import type { MissionsWithEvas } from "server/maestro/v2/types/socketioRequests";
+import type { MissionsWithEvas } from "server/maestro/v1/types/socketioRequests";
 
 const router = express.Router();
 

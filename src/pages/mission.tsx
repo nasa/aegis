@@ -56,7 +56,7 @@ const Main: React.FunctionComponent = () => {
   const partialMission = useMissionDocSelector(
     (mission) => ({
       actionSystemVersion: mission.actionSystemVersion,
-      isArchived: mission.isArchived,
+      archivedAt: mission.archivedAt,
       name: mission.name,
       serverFileGrid: mission.serverFileGrid,
       gridRenderMode: mission.gridRenderMode,
@@ -184,7 +184,7 @@ const Main: React.FunctionComponent = () => {
     <>
       {missionPerms && partialMission && storeIsPopulated ? (
         <>
-          {partialMission.isArchived ? (
+          {partialMission.archivedAt ? (
             <div className={styles.archivedBody}>
               This mission has been archived. Please contact the EMSS team if you need to access it.
               <div style={{ marginTop: "3rem" }}>

@@ -2,10 +2,10 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import { Doc_Listing_db } from "server/database/models/_allModels";
-import DocListingFactory from "../../../fixtures/entityFactories/DocListingFactory";
+import DocListingFactory from "../../fixtures/entityFactories/DocListingFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
-import { createMockAutomergeRepo } from "../../../helpers/mockAutomergeRepo";
+import { createMockAutomergeRepo } from "../../helpers/mockAutomergeRepo";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
@@ -23,7 +23,7 @@ beforeAll(async () => {
 
   testAutomergeDocListings = await new DocListingFactory(em)
     .each((record) => {
-      record.automergeUrl = `automerge:VitestTestMissionGetRexesByEvaRefV2`;
+      record.automergeUrl = `automerge:VitestTestMissionGetRexesByEvaRef`;
     })
     .create(1);
 
@@ -36,8 +36,8 @@ beforeAll(async () => {
     generateBlankEVA({ name: "Vitest rex-eva-1", refUuid: sharedRefUuid }),
   ];
   testRexes = [
-    generateBlankRex({ name: "Vitest Rex-0", evaUuid: testEvas[0].uuid, isRunning: false }),
-    generateBlankRex({ name: "Vitest Rex-1", evaUuid: testEvas[1].uuid, isRunning: true }),
+    generateBlankRex({ name: "Vitest Rex-0", evaUuid: testEvas[0].uuid }),
+    generateBlankRex({ name: "Vitest Rex-1", evaUuid: testEvas[1].uuid }),
   ];
 
   const evasRecord: Record<string, Eva> = {};
@@ -48,7 +48,7 @@ beforeAll(async () => {
   testMissionsPartial = [
     {
       id: testAutomergeDocListings[0].missionId,
-      name: "Vitest Test Mission GetRexesByEvaRef V2",
+      name: "Vitest Test Mission GetRexesByEvaRef",
       archivedAt: null,
       evas: evasRecord,
       rexes: rexesRecord,
@@ -58,11 +58,11 @@ beforeAll(async () => {
   globalValues.automergeRepo = createMockAutomergeRepo(testMissionsPartial);
 });
 
-describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
+describe("GET REX BY EVA REF Endpoint", () => {
   describe("Authentication", () => {
     test("Fails without emss-token", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/emss/getRexesByEvaRef")
         .query({ evaRefUuid: testEvas[0].refUuid });
       expect(res.statusCode).toBe(401);
       expect(res.body.status).toBe("failure");
@@ -71,7 +71,7 @@ describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
 
     test("Fails with invalid emss-token", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/emss/getRexesByEvaRef")
         .set("emss-token", "invalid-token")
         .query({ evaRefUuid: testEvas[0].refUuid });
       expect(res.statusCode).toBe(401);
@@ -83,7 +83,7 @@ describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
   describe("Eva Ref validation", () => {
     test("Errors for missing evaRefUuid", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/emss/getRexesByEvaRef")
         .set("emss-token", emssToken);
       expect(res.statusCode).toBe(400);
       expect(res.body.status).toBe("failure");
@@ -94,7 +94,7 @@ describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
   describe("Eva Ref functionality", () => {
     test("Returns empty array for non-existent ref", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/emss/getRexesByEvaRef")
         .set("emss-token", emssToken)
         .query({ evaRefUuid: "non-existent-ref" });
       expect(res.statusCode).toBe(200);
@@ -104,7 +104,7 @@ describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
 
     test("Retrieves rexes for existing ref", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/emss/getRexesByEvaRef")
         .set("emss-token", emssToken)
         .query({ evaRefUuid: testEvas[0].refUuid });
       expect(res.statusCode).toBe(200);
@@ -113,39 +113,6 @@ describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
       expect(res.body.data.length).toBe(2);
       const uuids = res.body.data.map((r: { uuid: string }) => r.uuid);
       expect(uuids).toEqual(expect.arrayContaining([testRexes[0].uuid, testRexes[1].uuid]));
-    });
-
-    test("Returns correct isRunning value for a non-running rex", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
-        .set("emss-token", emssToken)
-        .query({ evaRefUuid: testEvas[0].refUuid });
-      expect(res.statusCode).toBe(200);
-      const rex0 = res.body.data.find((r: { uuid: string }) => r.uuid === testRexes[0].uuid);
-      expect(rex0.isRunning).toBe(false);
-    });
-
-    test("Returns correct isRunning value for a running rex", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
-        .set("emss-token", emssToken)
-        .query({ evaRefUuid: testEvas[0].refUuid });
-      expect(res.statusCode).toBe(200);
-      const rex1 = res.body.data.find((r: { uuid: string }) => r.uuid === testRexes[1].uuid);
-      expect(rex1.isRunning).toBe(true);
-    });
-
-    test("Returns createdAt and updatedAt as numbers", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
-        .set("emss-token", emssToken)
-        .query({ evaRefUuid: testEvas[0].refUuid });
-      expect(res.statusCode).toBe(200);
-      expect(res.body.data.length).toBe(2);
-      for (const rex of res.body.data) {
-        expect(typeof rex.createdAt).toBe("number");
-        expect(typeof rex.updatedAt).toBe("number");
-      }
     });
 
     test("Does not retrieve rex if it has a maestroEventId", async () => {
@@ -158,7 +125,7 @@ describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
       });
 
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/emss/getRexesByEvaRef")
         .set("emss-token", emssToken)
         .query({ evaRefUuid: testEvas[0].refUuid });
       expect(res.statusCode).toBe(200);
