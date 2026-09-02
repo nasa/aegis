@@ -8,6 +8,7 @@ import {
   auditPresetsAgainstLayers,
   auditFolders,
   auditMissionGrid,
+  auditTraverseTerrainProfiles,
 } from "./audits";
 import { getAutomergeDocListing } from "http-client/docListing";
 import type { DocHandle, Repo, AutomergeUrl } from "@automerge/automerge-repo";
@@ -81,6 +82,7 @@ export const populateStore = async (params: {
     await auditFolders({ wholeStoreState, missionDocHandle });
     await auditActions({ wholeStoreState, missionDocHandle });
     await auditMissionGrid({ missionDocHandle });
+    await auditTraverseTerrainProfiles({ missionDocHandle });
   }
 
   // Set the default preset
