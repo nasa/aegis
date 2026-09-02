@@ -796,6 +796,19 @@ getORM()
       });
     };
 
+    // Migration: initialize absolute terrain slopes on traverses created before the field existed.
+    const automergeMigration20260902AddTraverseAbsoluteSlopes = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      docHandle.change((mission: Mission) => {
+        for (const traverse of Object.values(mission.traverses ?? {})) {
+          if (!Object.prototype.hasOwnProperty.call(traverse, "pathSegmentAbsoluteSlopes")) {
+            traverse.pathSegmentAbsoluteSlopes = null;
+          }
+        }
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
@@ -806,6 +819,7 @@ getORM()
       automergeMigration20260809AddGridRenderMode,
       automergeMigration20260810RenameStationLabelStrokeToHalo,
       automergeMigration20260806XgressStations,
+      automergeMigration20260902AddTraverseAbsoluteSlopes,
       automergeMigration20260909AddArchivedAt,
     ];
     // Run all the migrations in the list above
