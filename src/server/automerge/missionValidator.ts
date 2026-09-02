@@ -1,9 +1,5 @@
 /**
  * Standalone JSON-schema validation for Automerge Mission documents.
- *
- * Build: npm run automerge:validate:build
- * Run:   npm run automerge:validate:run
- * Full:  npm run automerge:validate
  */
 import dotenv from "dotenv";
 dotenv.config({ override: true, quiet: true });
