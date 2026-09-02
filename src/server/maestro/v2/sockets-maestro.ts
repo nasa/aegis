@@ -107,7 +107,7 @@ export const setupMaestroNamespace = (
           // Resolve the eva uuid:
           const evaUuid = await getEvaUuid(missionId, evaRefUuid, rexUuid);
           if (!evaUuid) {
-            callback({
+            callback?.({
               status: "error",
               message: `evaUuid not found for this evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
             });
@@ -120,8 +120,8 @@ export const setupMaestroNamespace = (
           if (!subscriptions.includes(evaUuid)) {
             subscriptions.push(evaUuid);
             globalValues.maestroV2.evaSubscriptions.set(missionId, subscriptions);
-            callback({ status: "success" });
           }
+          callback?.({ status: "success" });
         }
       );
 
