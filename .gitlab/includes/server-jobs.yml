@@ -1,3 +1,8 @@
+# Contains server related jobs
+#   Exporting the database
+#   Collecting container logs
+#   Restarting the containers
+
 #
 # Adds jobs to export the database from various servers.
 #

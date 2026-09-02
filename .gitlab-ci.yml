@@ -3,6 +3,10 @@ stages:
 
 default:
   timeout: 10 minutes
+  # Default node image unless a job specifies its own.
+  # Declared here rather than in run-on-commits.gitlab-ci.yml so it applies to
+  # scheduled pipelines too (they do not include that file).
+  image: "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:24.11.1-alpine3.23"
 
 variables:
   HOME: "/tmp" # required for openshift for now
@@ -26,7 +30,10 @@ include:
   # Other jobs that we need for both types of pipelines
   - local: .gitlab/includes/db-import.yml
     rules:
-    - if: $SCHEDULE_TYPE != "audit" # exclude from audit scheduled pipelines
+      - if: $SCHEDULE_TYPE != "audit" # exclude from audit scheduled pipelines
+  - local: .gitlab/includes/build-support.yml
+    rules:
+      - if: $SCHEDULE_TYPE != "audit" # exclude from audit scheduled pipelines
   - project: "emss/gitlab-templates"
     ref: 2.7.1
     file:
