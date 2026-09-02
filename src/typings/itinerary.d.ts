@@ -39,7 +39,7 @@ interface Traverse {
   path: AEGISPoint[] | null;
   pathSegmentDistances: number[] | null; //meters
   pathSegmentElevations: number[][] | null; //meters
-  pathSegmentAbsoluteSlopes?: (number | null)[][] | null; //degrees
+  pathSegmentAbsoluteSlopes: (number | null)[][] | null; //degrees
   duration: number | null; //minutes
   description: string;
   traverseRate?: number | null; // km/h
@@ -49,7 +49,7 @@ interface Traverse {
   updatedAt?: number;
 }
 
-type Traverse_db_type = Omit<Traverse, "createdAt" | "updatedAt"> & {
+type Traverse_db_type = Omit<Traverse, "createdAt" | "updatedAt" | "pathSegmentAbsoluteSlopes"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
