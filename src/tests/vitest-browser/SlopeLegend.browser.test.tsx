@@ -21,7 +21,7 @@ describe("SlopeLegend", () => {
 
   afterEach(() => harness.unmount());
 
-  it("opens the accessible key dialog with both rows and every shared range", () => {
+  it("opens the accessible key dialog with both slope rows and every shared range", () => {
     const button = document.querySelector("button");
     expect(button?.textContent).toBe("Key");
     expect(button?.getAttribute("aria-haspopup")).toBe("dialog");
@@ -32,8 +32,16 @@ describe("SlopeLegend", () => {
     const headingId = dialog?.getAttribute("aria-labelledby");
     expect(headingId).toBeTruthy();
     expect(document.getElementById(headingId)).not.toBeNull();
-    expect(document.body.textContent).toContain("Path Grade · Terrain Slope");
     expect(document.body.textContent).toContain("Slope color = absolute degrees");
+    expect(document.body.textContent).toContain("Path Grade (top)");
+    expect(document.body.textContent).toContain("Terrain Slope (bottom)");
+    expect(document.body.textContent).toContain("uphill or downhill angle of the path");
+    expect(document.body.textContent).toContain("steepness of the terrain beneath the path");
+    const pathGradeExample = document.querySelector('[aria-label="Path Grade example"]');
+    const terrainSlopeExample = document.querySelector('[aria-label="Terrain Slope example"]');
+    expect(pathGradeExample?.children).toHaveLength(24);
+    expect(terrainSlopeExample?.children).toHaveLength(24);
+    expect(pathGradeExample?.innerHTML).not.toBe(terrainSlopeExample?.innerHTML);
     for (const slopeClass of SLOPE_CLASSES) {
       expect(document.body.textContent).toContain(slopeClass.label);
       const swatch = document.querySelector(`[title="${slopeClass.label}"]`) as HTMLElement;
