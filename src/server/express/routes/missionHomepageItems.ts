@@ -70,7 +70,7 @@ async function getHomepageMissionItems(
   // Get missions from automerge documents in parallel
   const allMissions = await getAutomergeMissions(missionIdList);
   // Only include active/non-archived missions
-  const missions = allMissions.filter((mission) => !mission.isArchived);
+  const missions = allMissions.filter((mission) => !mission.archivedAt);
 
   const missionHomepageItems: MissionHomepageItem[] = [];
 

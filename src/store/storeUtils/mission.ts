@@ -12,7 +12,6 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     id: null,
     name: "",
     maestroDocId: null,
-    isArchived: false,
     usingLGRSCoordinates: false,
     gridRenderMode: "server-file",
     description: "",
@@ -58,6 +57,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     stmLevel3Name: "Investigation",
     updatedAt: getAccurateNow().getTime(),
     createdAt: getAccurateNow().getTime(),
+    archivedAt: getAccurateNow().getTime(),
   };
   return { ...defaultNewMission, ...partialMission };
 };

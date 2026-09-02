@@ -64,14 +64,14 @@ beforeAll(async () => {
     {
       id: testAutomergeDocListings[0].missionId,
       name: "Vitest Test Mission Maegistro V2 Eva 1",
-      isArchived: false,
+      archivedAt: null,
       evas: mission1Evas,
       rexes: mission1Rexes,
     },
     {
       id: testAutomergeDocListings[1].missionId,
       name: "Vitest Test Mission Maegistro V2 Eva 2",
-      isArchived: false,
+      archivedAt: null,
       evas: {},
       rexes: {},
     },

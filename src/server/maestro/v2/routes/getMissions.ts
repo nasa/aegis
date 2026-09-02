@@ -54,7 +54,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 export async function getMissionsData(): Promise<MissionsWithEvas> {
   // Get all automerge mission documents first
   const allMissions = await getAutomergeMissions();
-  const activeMissions = allMissions.filter((mission) => !mission.isArchived);
+  const activeMissions = allMissions.filter((mission) => !mission.archivedAt);
 
   const missions: MissionsWithEvas = {};
 

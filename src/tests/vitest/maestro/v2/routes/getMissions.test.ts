@@ -75,7 +75,7 @@ beforeAll(async () => {
     {
       id: testAutomergeDocListings[0].missionId,
       name: "Vitest Test Mission Maegistro V2 1",
-      isArchived: false,
+      archivedAt: null,
       actionSystemVersion: 2,
       evas: mission1Evas,
       rexes: mission1Rexes,
@@ -83,7 +83,7 @@ beforeAll(async () => {
     {
       id: testAutomergeDocListings[1].missionId,
       name: "Vitest Test Mission Maegistro V2 2",
-      isArchived: false,
+      archivedAt: null,
       actionSystemVersion: 2,
       evas: {},
       rexes: {},
@@ -91,7 +91,7 @@ beforeAll(async () => {
     {
       id: testAutomergeDocListings[2].missionId,
       name: "Vitest Test Mission Maegistro V2 3",
-      isArchived: false,
+      archivedAt: null,
       actionSystemVersion: 1,
       evas: mission3Evas,
       rexes: {},

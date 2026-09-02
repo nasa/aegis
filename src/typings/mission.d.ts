@@ -7,7 +7,6 @@ interface Mission {
   description: string | null;
   maestroDocId: string | null;
   missionBanner: string | null;
-  isArchived: boolean;
   usingLGRSCoordinates: boolean;
   gridRenderMode: GridRenderMode;
   actionSystemVersion: number;
@@ -62,6 +61,7 @@ interface Mission {
   rexes: { [uuid: string]: Rex };
   createdAt: number;
   updatedAt: number;
+  archivedAt: number | null;
 }
 
 type ActionDefinitionType = "verbs" | "nouns" | "adjectives";

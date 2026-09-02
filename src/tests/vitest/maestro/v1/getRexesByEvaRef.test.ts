@@ -49,7 +49,7 @@ beforeAll(async () => {
     {
       id: testAutomergeDocListings[0].missionId,
       name: "Vitest Test Mission GetRexesByEvaRef",
-      isArchived: false,
+      archivedAt: null,
       evas: evasRecord,
       rexes: rexesRecord,
     },

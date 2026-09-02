@@ -87,7 +87,7 @@ beforeAll(async () => {
     {
       id: testAutomergeDocListings[0].missionId,
       name: "Vitest Test Mission RexOverwrite",
-      isArchived: false,
+      archivedAt: null,
       stations: { [testStation.uuid]: testStation },
       traverses: { [testTraverse.uuid]: testTraverse },
       actions: { [testStationAction.uuid]: testStationAction },
