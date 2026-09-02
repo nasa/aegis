@@ -4,6 +4,7 @@ import {
   withMissionChange,
 } from "client/automergeDocHandles";
 import {
+  applyAddEquipmentItem,
   applyCreateAction,
   applyDeleteActionAndUpdateParent,
   applyDeleteActions,
@@ -714,6 +715,21 @@ describe("apply-action", () => {
         expect(updatedRex.actionEntries?.[otherActionUuid]).toBeDefined();
         expect(updatedRex.actionEntries?.[otherActionUuid].rexStatus).toBe("pending");
       });
+    });
+  });
+
+  describe("applyAddEquipmentItem()", () => {
+    it("does nothing if no action template found", () => {
+      expect(() =>
+        withMissionChange((m) =>
+          applyAddEquipmentItem(m, {
+            actionUuid: uuidv4(),
+            actionTemplateUuid: "not-uuid",
+            equipmentItemUuid: uuidv4(),
+            quantity: 1,
+          })
+        )
+      ).not.toThrow();
     });
   });
 });
