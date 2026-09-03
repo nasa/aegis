@@ -77,9 +77,17 @@ describe("getActionDisplayName", () => {
       adjectives: { a1: { name: "Crater" } },
     },
     actionDefinitionConjunctions: { verbToNoun: "on", nounToAdjective: "within" },
+    actionDefinitionLabels: {
+      verb: { singular: "verb", plural: "verb" },
+      noun: { singular: "noun", plural: "noun" },
+      adjective: { singular: "adjective", plural: "adjective" },
+    },
   } as unknown as Pick<
     Mission,
-    "actionSystemVersion" | "actionDefinitions" | "actionDefinitionConjunctions"
+    | "actionSystemVersion"
+    | "actionDefinitions"
+    | "actionDefinitionConjunctions"
+    | "actionDefinitionLabels"
   >;
 
   test("builds an STM (v2) action name from the definition + custom conjunctions", () => {

@@ -153,6 +153,7 @@ export function MarkerLabels(): null {
       actionSystemVersion: m.actionSystemVersion,
       actionDefinitions: m.actionDefinitions,
       actionDefinitionConjunctions: m.actionDefinitionConjunctions,
+      actionDefinitionLabels: m.actionDefinitionLabels,
     }),
     deepEqual
   );
