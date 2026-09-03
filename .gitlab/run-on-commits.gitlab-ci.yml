@@ -309,8 +309,9 @@ test-vitest:browser:
         npx vitest run \
           --config src/tests/vitest-browser/vitest.config.mts \
           --coverage \
+          --reporter=default \
           --reporter=blob \
-          --outputFile=.vitest-reports/blob-browser.json
+          --outputFile.blob=.vitest-reports/blob-browser.json
       }
 
       set +e
