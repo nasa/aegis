@@ -788,20 +788,15 @@ getORM()
       docHandle: DocHandle<Mission>
     ) => {
       docHandle.change((mission: Mission) => {
-        // The persisted doc predates these (now required) fields; the type says they always
-        // exist, so view it as Partial to add them conditionally without narrowing to `never`.
         const doc = mission as Partial<Mission>;
+        // Update mission
         if (!("missionPriorities" in doc)) doc.missionPriorities = {};
-        // Drop the misspelled key from the original type definition if any doc picked it up.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ("missionPriorites" in doc) delete (doc as any).missionPriorites;
-
-        // Same reasoning as above: view each record as Partial so the `in` guard doesn't
-        // narrow the (already-required) property away to `never`.
+        // Update actions
         for (const action of Object.values(mission.actions ?? {})) {
           const partialAction = action as Partial<Action>;
           if (!("missionPriorityUuid" in partialAction)) partialAction.missionPriorityUuid = null;
         }
+        // Update action templates
         for (const actionTemplate of Object.values(mission.actionTemplates ?? {})) {
           const partialTemplate = actionTemplate as Partial<ActionTemplate>;
           if (!("missionPriorityUuid" in partialTemplate)) {

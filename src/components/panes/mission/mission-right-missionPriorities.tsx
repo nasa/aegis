@@ -9,9 +9,8 @@ import { Button, Dropdown } from "components/interface/form/globalFields";
 import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
 import { validators } from "components/interface/form/formValidators";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useAppDispatch } from "utils/useAppDispatch";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { withMissionChange } from "client/automergeDocHandles";
+import { withMissionChange, withMissionOp } from "client/automergeDocHandles";
 import {
   applyCreateMissionPriority,
   applyCreateMissionPriorityCategory,
@@ -20,17 +19,26 @@ import {
   getMissionPriorityCategories,
 } from "operations/apply/apply-mission-priority";
 import {
-  thunkDocDeleteMissionPriority,
-  thunkDocDeleteMissionPriorityCategory,
-} from "store/thunk/thunkMissionPriority";
-import {
-  BLANK_MISSION_PRIORITY_TRACE,
-  buildMissionPriorityName,
-  sortMissionPriorities,
-} from "store/storeUtils/mission";
+  opDeleteMissionPriority,
+  opDeleteMissionPriorityCategory,
+} from "operations/op-missionPriority";
+import { buildMissionPriorityName } from "store/storeUtils/mission";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 
-const NEW_CATEGORY_NAME = "New Category";
+/**
+ * Sort mission priority entries by category, then by trace within each category. Numeric
+ * collation keeps SIMD-0002 ahead of SIMD-0010 instead of sorting them lexically.
+ */
+const sortMissionPriorities = (
+  missionPriorities: MissionPriorities | null
+): [string, MissionPriority][] =>
+  Object.entries(missionPriorities ?? {}).sort(([, a], [, b]) => {
+    const categoryComparison = a.category.localeCompare(b.category);
+    if (categoryComparison !== 0) {
+      return categoryComparison;
+    }
+    return a.trace.localeCompare(b.trace, undefined, { numeric: true });
+  });
 
 const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const missionPriorities = useMissionDocSelector(
@@ -56,22 +64,20 @@ const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
             />
           </div>
         ))}
-        {editMode && (
-          <div className={paneStyles.panelContainer}>
+        <div style={{ marginTop: "8px", paddingLeft: "8px" }}>
+          {editMode && (
             <Button
               icon={faPlusCircle}
-              label="Create Category"
-              style={{ width: "150px", marginLeft: "18px", marginTop: "8px" }}
+              label="Add Category"
+              style={{ width: "115px" }}
               onClick={() => {
-                // Categories have no storage of their own, so a new one is created by
-                // inserting its first placeholder trace row.
-                const category = makeUniqueStringCopy(NEW_CATEGORY_NAME, categories, false);
+                const category = makeUniqueStringCopy("New Category", categories, false);
                 withMissionChange((m) => applyCreateMissionPriorityCategory(m, { category }));
               }}
               ariaLabel="createCategoryButton"
             />
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -85,8 +91,6 @@ const MissionPriorityCategory: FunctionComponent<{
   missionPriorities: MissionPriorities | null;
   editMode: boolean;
 }> = ({ category, otherCategories, missionPriorities, editMode }) => {
-  const dispatch = useAppDispatch();
-
   const traces = sortMissionPriorities(missionPriorities).filter(
     ([, missionPriority]) => missionPriority.category === category
   );
@@ -119,7 +123,7 @@ const MissionPriorityCategory: FunctionComponent<{
                       })
                     );
                   }}
-                  focusContents={category.startsWith(NEW_CATEGORY_NAME)}
+                  focusContents={category.startsWith("New Category")}
                   key={`${category}-name`}
                 />
               ) : (
@@ -128,22 +132,17 @@ const MissionPriorityCategory: FunctionComponent<{
             </SubpanelHeading>
           </div>
           <div className={missionStyles.propertyRowTrashContainer}>
-            <div className={missionStyles.propertyRowTrash}>
+            <div className={missionStyles.propertyRowTrash} style={{ fontSize: "1rem" }}>
               {editMode && (
                 <FontAwesomeIcon
                   icon={faTrashAlt}
                   size="sm"
-                  onClick={async (e) => {
+                  onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    const result = await dispatch(
-                      thunkDocDeleteMissionPriorityCategory({ category })
-                    );
-                    if (
-                      thunkDocDeleteMissionPriorityCategory.rejected.match(result) &&
-                      result.payload
-                    ) {
-                      alert(result.payload);
+                    const inUseMessage = withMissionOp(opDeleteMissionPriorityCategory, category);
+                    if (inUseMessage) {
+                      alert(inUseMessage);
                     }
                   }}
                   aria-label="deleteCategoryButton"
@@ -183,15 +182,17 @@ const MissionPriorityCategory: FunctionComponent<{
         </ul>
 
         {editMode && (
-          <Button
-            icon={faPlusCircle}
-            label="Add Trace"
-            style={{ width: "110px", marginLeft: "18px", marginTop: "8px" }}
-            onClick={() => {
-              withMissionChange((m) => applyCreateMissionPriority(m, { category }));
-            }}
-            ariaLabel="addTraceButton"
-          />
+          <div style={{ paddingLeft: "5px" }}>
+            <Button
+              icon={faPlusCircle}
+              label="Add Trace"
+              style={{ width: "100px" }}
+              onClick={() => {
+                withMissionChange((m) => applyCreateMissionPriority(m, { category }));
+              }}
+              ariaLabel="addTraceButton"
+            />
+          </div>
         )}
       </div>
     </div>
@@ -204,8 +205,6 @@ const MissionPriorityItem: FunctionComponent<{
   editMode: boolean;
   evenRow: boolean;
 }> = ({ uuid, missionPriority, editMode, evenRow }) => {
-  const dispatch = useAppDispatch();
-
   const backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
 
   return (
@@ -230,7 +229,7 @@ const MissionPriorityItem: FunctionComponent<{
               );
             }}
             key={`${uuid}-trace`}
-            focusContents={missionPriority.trace === BLANK_MISSION_PRIORITY_TRACE}
+            focusContents={missionPriority.trace === "(Trace)"}
           />
         </div>
         <div className={missionStyles.propertyRowTrashContainer}>
@@ -239,14 +238,12 @@ const MissionPriorityItem: FunctionComponent<{
               <FontAwesomeIcon
                 icon={faTrashAlt}
                 size="sm"
-                onClick={async (e) => {
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  const result = await dispatch(
-                    thunkDocDeleteMissionPriority({ missionPriorityUuid: uuid })
-                  );
-                  if (thunkDocDeleteMissionPriority.rejected.match(result) && result.payload) {
-                    alert(result.payload);
+                  const inUseMessage = withMissionOp(opDeleteMissionPriority, uuid);
+                  if (inUseMessage) {
+                    alert(inUseMessage);
                   }
                 }}
                 aria-label="deleteButton"

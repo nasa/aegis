@@ -160,11 +160,11 @@ const ActionDefinitions: FunctionComponent<{
     ([, a], [, b]) => a.name.localeCompare(b.name)
   );
 
-  let buttonWidth = "135px";
+  let buttonWidth = "90px";
   if (type === "nouns") {
-    buttonWidth = "140px";
+    buttonWidth = "100px";
   } else if (type === "adjectives") {
-    buttonWidth = "150px";
+    buttonWidth = "120px";
   }
 
   return (
@@ -207,7 +207,7 @@ const ActionDefinitions: FunctionComponent<{
           <Button
             icon={faPlusCircle}
             label={`Add ${actionDefinitionLabels.singular}`}
-            style={{ width: buttonWidth, marginLeft: "18px", marginTop: "8px" }}
+            style={{ width: buttonWidth, marginLeft: "8px", marginTop: "8px" }}
             onClick={async () => {
               withMissionChange((m) => applyCreateActionDefinitionItem(m, { type }));
             }}

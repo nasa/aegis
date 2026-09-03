@@ -305,6 +305,13 @@ type ActionDefinition = {
   adjectiveUuid?: string;
 };
 
+// The updated words for noun/verb/adj
+type ActionDefinitionLabels = {
+  verb: { singular: string; plural: string };
+  noun: { singular: string; plural: string };
+  adjective: { singular: string; plural: string };
+};
+
 type TotalAscentDescentObj = {
   totalMetersClimbed: number;
   totalMetersDescended: number;
