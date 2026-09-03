@@ -183,21 +183,23 @@ export const DEFAULT_ACTION_DEFINITION_CONJUNCTIONS: Mission["actionDefinitionCo
 /**
  * Join the parts of an action-definition sentence into a display name.
  * The adjective is optional: when it isn't selected, both the adjective and its
- * leading conjunction are omitted (no trailing "in Unknown"). The verb and noun
- * fall back to "Unknown" so an action always has a stable, non-empty name.
+ * leading conjunction are omitted. The verb and noun
+ * fall back to the definition label so an action always has a stable, non-empty name.
  */
 export const buildActionDefinitionName = ({
   verbName,
   nounName,
   adjectiveName,
   conjunctions,
+  definitionLabels,
 }: {
   verbName?: string;
   nounName?: string;
   adjectiveName?: string;
   conjunctions: { verbToNoun: string; nounToAdjective: string };
+  definitionLabels: ActionDefinitionLabels;
 }): string => {
-  let name = `${verbName || "Unknown"} ${conjunctions.verbToNoun} ${nounName || "Unknown"}`;
+  let name = `${verbName || definitionLabels.verb.singular} ${conjunctions.verbToNoun} ${nounName || definitionLabels.noun.singular}`;
   if (adjectiveName) {
     name += ` ${conjunctions.nounToAdjective} ${adjectiveName}`;
   }
@@ -226,13 +228,6 @@ export const generateBlankGeographicUnit = (
 };
 
 /**
- * Placeholder trace used for a freshly-created mission priority row. Matches the
- * "(Equipment Name)" / "(Geographic Unit Name)" convention so the field auto-selects
- * its contents on focus.
- */
-export const BLANK_MISSION_PRIORITY_TRACE = "(Trace)";
-
-/**
  * Generate a blank mission priority (a single trace row within a category).
  * @param partialMissionPriority any fields that are to be overridden from default
  * @returns the generated mission priority
@@ -241,7 +236,7 @@ export const generateBlankMissionPriority = (
   partialMissionPriority?: Partial<MissionPriority>
 ): MissionPriority => {
   const defaultNewMissionPriority: MissionPriority = {
-    trace: BLANK_MISSION_PRIORITY_TRACE,
+    trace: "(Trace)",
     category: "",
   };
   return { ...defaultNewMissionPriority, ...partialMissionPriority };
@@ -252,14 +247,3 @@ export const generateBlankMissionPriority = (
  */
 export const buildMissionPriorityName = (missionPriority: MissionPriority): string =>
   `${missionPriority.trace} | ${missionPriority.category}`;
-
-/**
- * Sort mission priority entries by trace. Numeric collation keeps SIMD-0002 ahead of
- * SIMD-0010 instead of sorting them lexically.
- */
-export const sortMissionPriorities = (
-  missionPriorities: MissionPriorities | null
-): [string, MissionPriority][] =>
-  Object.entries(missionPriorities ?? {}).sort(([, a], [, b]) =>
-    a.trace.localeCompare(b.trace, undefined, { numeric: true })
-  );

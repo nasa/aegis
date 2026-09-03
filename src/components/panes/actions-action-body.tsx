@@ -219,21 +219,19 @@ const RightActionBody: FunctionComponent<{
                     <div className={paneStyles.inputFieldLabel}>Mission Priority:</div>
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
-                    <div className={paneStyles.inputFieldValue}>
-                      <MissionPriorityDropdown
-                        selectedUuid={action.missionPriorityUuid}
-                        editMode={editMode}
-                        onSelect={(missionPriorityUuid) => {
-                          withMissionChange((m) =>
-                            applyUpdateActionByField(m, {
-                              actionUuid: action.uuid,
-                              fieldName: "missionPriorityUuid",
-                              value: missionPriorityUuid,
-                            })
-                          );
-                        }}
-                      />
-                    </div>
+                    <MissionPriorityDropdown
+                      selectedUuid={action.missionPriorityUuid}
+                      editMode={editMode}
+                      onSelect={(missionPriorityUuid) => {
+                        withMissionChange((m) =>
+                          applyUpdateActionByField(m, {
+                            actionUuid: action.uuid,
+                            fieldName: "missionPriorityUuid",
+                            value: missionPriorityUuid,
+                          })
+                        );
+                      }}
+                    />
                   </div>
                 </div>
               </div>

@@ -51,17 +51,3 @@ export function getMissionPriorityUsages(
 
   return printableList;
 }
-
-/**
- * Collect the uuids of every mission priority row belonging to a category.
- */
-export function getMissionPriorityUuidsInCategory(
-  mission: Pick<Mission, "missionPriorities">,
-  category: string
-): Set<string> {
-  const uuids = new Set<string>();
-  for (const [uuid, missionPriority] of Object.entries(mission.missionPriorities ?? {})) {
-    if (missionPriority.category === category) uuids.add(uuid);
-  }
-  return uuids;
-}
