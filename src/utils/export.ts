@@ -409,21 +409,24 @@ export const makeExportMission = (params: {
 
 export const makeReadableActionDefinition = (params: {
   action: Action;
-  mission: Pick<Mission, "actionDefinitions" | "actionDefinitionConjunctions">;
+  mission: Pick<
+    Mission,
+    "actionDefinitions" | "actionDefinitionConjunctions" | "actionDefinitionLabels"
+  >;
 }): ActionDefinitionReadable => {
   const { action, mission } = params;
-  if (!action?.actionDefinition) return null;
   const actionDefinitions = mission.actionDefinitions;
   const conjunctions = mission.actionDefinitionConjunctions;
+  const definitionLabels = mission.actionDefinitionLabels;
 
-  const verbUuid = action.actionDefinition.verbUuid;
-  const nounUuid = action.actionDefinition.nounUuid;
-  const adjectiveUuid = action.actionDefinition.adjectiveUuid;
+  const verbUuid = action.actionDefinition?.verbUuid;
+  const nounUuid = action.actionDefinition?.nounUuid;
+  const adjectiveUuid = action?.actionDefinition?.adjectiveUuid;
 
-  const verb = verbUuid ? { uuid: verbUuid, ...actionDefinitions.verbs[verbUuid] } : null;
-  const noun = nounUuid ? { uuid: nounUuid, ...actionDefinitions.nouns[nounUuid] } : null;
+  const verb = verbUuid ? { uuid: verbUuid, ...actionDefinitions?.verbs?.[verbUuid] } : null;
+  const noun = nounUuid ? { uuid: nounUuid, ...actionDefinitions?.nouns?.[nounUuid] } : null;
   const adjective = adjectiveUuid
-    ? { uuid: adjectiveUuid, ...actionDefinitions.adjectives[adjectiveUuid] }
+    ? { uuid: adjectiveUuid, ...actionDefinitions?.adjectives?.[adjectiveUuid] }
     : null;
 
   const readableActionDefinition: ActionDefinitionReadable = {
@@ -432,6 +435,7 @@ export const makeReadableActionDefinition = (params: {
       nounName: noun?.name,
       adjectiveName: adjective?.name,
       conjunctions,
+      definitionLabels,
     }),
     verb: verb,
     noun: noun,
