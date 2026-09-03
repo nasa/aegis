@@ -304,11 +304,27 @@ test-vitest:browser:
     # merge-vitest-coverage folds browser-mode coverage into the single
     # cobertura/lcov report. Explicit blob name avoids colliding with the
     # node shards' auto-named blobs when both artifacts extract into the merge.
-    - npx vitest run
-      --config src/tests/vitest-browser/vitest.config.mts
-      --coverage
-      --reporter=blob
-      --outputFile=.vitest-reports/blob-browser.json
+    - |
+      run_browser_tests() {
+        npx vitest run \
+          --config src/tests/vitest-browser/vitest.config.mts \
+          --coverage \
+          --reporter=blob \
+          --outputFile=.vitest-reports/blob-browser.json
+      }
+
+      set +e
+      run_browser_tests 2>&1 | tee /tmp/vitest-browser.log
+      test_status=${PIPESTATUS[0]}
+      set -e
+
+      if grep -q "Vite unexpectedly reloaded a test" /tmp/vitest-browser.log; then
+        echo "Vite changed optimized dependencies; retrying with the warmed cache."
+        rm -rf .vitest-reports
+        run_browser_tests
+      else
+        exit "$test_status"
+      fi
   timeout: 20 minutes
   artifacts:
     paths:
