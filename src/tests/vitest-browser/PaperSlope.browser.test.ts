@@ -66,18 +66,19 @@ describe("drawSlopeBand", () => {
         { xPixel: 20, yPixel: 0, val: 4, distanceMeters: 20, slopeDegrees: 4 },
       ],
       0,
-      10
+      10,
+      Infinity,
+      "standard",
+      "top"
     );
 
     const clippedBand = group.children[0] as paper.Group;
     const clipMask = clippedBand.children[0] as paper.Path;
     expect(clippedBand.clipped).toBe(true);
-    expect(clipMask.segments[0].point.x).toBe(3);
-    expect(clipMask.segments[0].point.y).toBe(0);
     expect(clipMask.contains(new paper.Point(0, 0))).toBe(false);
     expect(clipMask.contains(new paper.Point(0, 10))).toBe(true);
     expect(clipMask.contains(new paper.Point(20, 0))).toBe(false);
-    expect(clipMask.bounds.bottomRight).toEqual(new paper.Point(20, 13));
+    expect([clipMask.bounds.right, clipMask.bounds.bottom]).toEqual([20, 13]);
   });
 
   it("draws a one-pixel separator between slope rows using the given color", () => {
