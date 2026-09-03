@@ -70,11 +70,19 @@ services:
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: ${DB_NAME}
     healthcheck:
-      test: "pg_isready -U postgres && psql --username=postgres --list && psql --username=postgres ${DB_NAME} -c 'SELECT tablename FROM pg_catalog.pg_tables LIMIT 1'"
+      # Probe over TCP (-h 127.0.0.1), never the Unix socket. While the entrypoint replays
+      # /docker-entrypoint-initdb.d/*.sql on a fresh data directory it runs a temporary
+      # server that listens on the socket only. A socket-based probe therefore reports
+      # healthy seconds into a multi-minute restore, letting apiv1 start and run migrations
+      # against a half-loaded database. Only the real server accepts TCP connections.
+      test: "pg_isready -h 127.0.0.1 -U postgres && psql -h 127.0.0.1 --username=postgres --list && psql -h 127.0.0.1 --username=postgres ${DB_NAME} -c 'SELECT tablename FROM pg_catalog.pg_tables LIMIT 1'"
       interval: 30s # how often to check health
       timeout: 5s # fail if it takes longer than this
       retries: 6 # max consecutive failures
-      start_period: 15s # db takes about 20 seconds to come up
+      # Failures inside start_period don't count toward `retries`, and the first success ends
+      # it early. Sized to cover a full restore from a dump on a fresh data directory, which
+      # takes far longer than an ordinary boot.
+      start_period: 5m
     volumes:
       # map the DB data to be stored outside the container
       - ${DOCKER_DB_DATA_DIR}:/var/lib/postgresql/data

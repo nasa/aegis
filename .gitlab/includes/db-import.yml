@@ -24,12 +24,43 @@
     # scripts/upgrade-db.sh, and .gitlab/includes/server-jobs.yml
     - sed -E '/^CREATE EXTENSION.*(postgis|tiger|topology|fuzzystrmatch).*;$/d; /^COMMENT ON EXTENSION (postgis|tiger|topology|fuzzystrmatch).*;$/d; /^CREATE SCHEMA (tiger|tiger_data|topology);$/d; /^ALTER SCHEMA (tiger|tiger_data|topology) OWNER TO .*;$/d; /^COMMENT ON SCHEMA (tiger|tiger_data|topology) .*;$/d; /^COPY (public\.spatial_ref_sys|tiger\.[a-z_]+|topology\.[a-z_]+) .* FROM stdin;$/,/^\\.$/d' "${PROJECT_DIR}/aegis.sql" > /d1/aegis/db-init/aegis.sql
 
+    - echo "Dump staged for restore: $(wc -c < /d1/aegis/db-init/aegis.sql) bytes"
+
     # Stop docker compose, then remove database files
     - sudo /usr/bin/docker compose down --remove-orphans
     - sudo rm -rf /d1/aegis/postgres
 
-    # Bring docker compose back up, which will use the file at /d1/aegis/db-init/aegis.sql, then remove it
+    # Bring docker compose back up, which will use the file at /d1/aegis/db-init/aegis.sql
     - sudo /usr/bin/docker compose up -d
+
+    # Wait for the restore to finish before touching the dump file.
+    #
+    # `docker compose up -d` returns as soon as the database healthcheck passes, which
+    # happens while the restore is still running: the Postgres entrypoint replays
+    # /docker-entrypoint-initdb.d/*.sql against a temporary server that listens on the
+    # Unix socket only. The real server is the first thing to accept TCP connections, so
+    # a TCP probe is what distinguishes "restore finished" from "restore in progress".
+    #
+    # Deleting the dump before this point truncates the file mid-read. The entrypoint runs
+    # under `set -Eeo pipefail`, so it aborts, `restart: always` starts the container again,
+    # PG_VERSION now exists, initialization is skipped entirely, and the environment comes
+    # up with an empty database and a green pipeline.
+    - |
+      echo "Waiting for database restore to complete (up to 10 minutes)..."
+      for i in $(seq 1 120); do
+        if sudo /usr/bin/docker compose exec -T database pg_isready -h 127.0.0.1 -U postgres > /dev/null 2>&1; then
+          echo "Restore complete after ~$((i * 5))s; database is accepting TCP connections."
+          break
+        fi
+        if [ "${i}" -eq 120 ]; then
+          echo "ERROR: database did not finish restoring within 10 minutes."
+          sudo /usr/bin/docker compose logs database --tail 100
+          exit 1
+        fi
+        sleep 5
+      done
+
+    # Only now is it safe to remove the dump, so the next boot doesn't replay it
     - sudo rm -f /d1/aegis/db-init/aegis.sql
 
     # Migrations will be run when the apiv1 container restarts
