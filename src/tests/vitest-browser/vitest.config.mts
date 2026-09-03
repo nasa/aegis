@@ -30,6 +30,13 @@ export default defineConfig(
       dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
     },
     optimizeDeps: {
+      // Browser tests do not have an HTML entry point for Vite's cold-start scan.
+      // Scan every test entry up front so CI does not discover dependencies during
+      // execution, rebuild the optimized-dependency bundle, and reload the tests.
+      entries: [
+        "src/tests/vitest-browser/**/*.browser.test.ts",
+        "src/tests/vitest-browser/**/*.browser.test.tsx",
+      ],
       // Paper.js is CommonJS and is not reliably found by Vitest's initial browser
       // dependency scan. Pre-bundle it so Vite does not reload tests mid-run.
       include: ["paper"],
