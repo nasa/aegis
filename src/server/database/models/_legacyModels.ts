@@ -154,6 +154,8 @@ export const Poi_dbSchema = defineEntity({
 export class Poi_db extends Poi_dbSchema.class implements Poi_db_type {}
 Poi_dbSchema.setClass(Poi_db);
 
+type LegacyXgressEntries = Record<string, { rexStatus: RexStatus }>;
+
 export const Rex_dbSchema = defineEntity({
   name: "Rex_db",
   properties: {
@@ -172,7 +174,7 @@ export const Rex_dbSchema = defineEntity({
     stationEntries: p.json<ActivityEntries>().nullable(),
     traverseEntries: p.json<ActivityEntries>().nullable(),
     actionEntries: p.json<ActionEntries>().nullable(),
-    xgressEntries: p.json<XgressEntries>().nullable(),
+    xgressEntries: p.json<LegacyXgressEntries>().nullable(),
     ownerId: p.integer().nullable(),
     maestroControlled: p.boolean().default(false),
     maestroEventId: p.string().nullable(),

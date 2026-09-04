@@ -11,6 +11,17 @@ import {
 import { migrateLegacyCircleControlHaloStyles } from "store/storeUtils/preset";
 import { serverLogger } from "utils/logging/serverLogger";
 
+type LegacyEva = Eva & {
+  egressDuration?: number | null;
+  ingressDuration?: number | null;
+  egressLocationUuid?: string | null;
+  ingressLocationUuid?: string | null;
+};
+
+type LegacyRex = Rex & {
+  xgressEntries?: Record<string, { rexStatus: RexStatus }> | null;
+};
+
 export const Migration20260416000000: AutomergeMigration = {
   version: 20260416000000,
   name: "move-legacy-entities-into-mission-documents",
@@ -170,7 +181,7 @@ export const Migration20260416000000: AutomergeMigration = {
       }
     }
 
-    let evasRecord: Record<string, Eva> | undefined;
+    let evasRecord: Record<string, LegacyEva> | undefined;
     if (needsEvas) {
       const dbEvas = await em.find(
         Eva_db,
@@ -202,12 +213,12 @@ export const Migration20260416000000: AutomergeMigration = {
       }
     }
 
-    let rexesRecord: Record<string, Rex> | undefined;
+    let rexesRecord: Record<string, LegacyRex> | undefined;
     if (needsRexes) {
       const dbRexes = await em.find(Rex_db, { missionId: docListing.missionId });
       rexesRecord = {};
       for (const dbRex of dbRexes) {
-        const rex: Rex = {
+        const rex: LegacyRex = {
           uuid: dbRex.uuid,
           ownerId: dbRex.ownerId,
           missionId: dbRex.missionId,
