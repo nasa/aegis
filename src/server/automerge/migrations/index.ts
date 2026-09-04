@@ -2,6 +2,7 @@ import { Migration20260416000000 } from "server/automerge/migrations/Migration20
 import { Migration20260528000000 } from "server/automerge/migrations/Migration20260528000000";
 import { Migration20260717000000 } from "server/automerge/migrations/Migration20260717000000";
 import { Migration20260722000000 } from "server/automerge/migrations/Migration20260722000000";
+import { Migration20260806000000 } from "server/automerge/migrations/Migration20260806000000";
 import { Migration20260807000000 } from "server/automerge/migrations/Migration20260807000000";
 import { Migration20260809000000 } from "server/automerge/migrations/Migration20260809000000";
 import { Migration20260810000000 } from "server/automerge/migrations/Migration20260810000000";
@@ -15,6 +16,7 @@ export const AUTOMERGE_MIGRATIONS: readonly AutomergeMigration[] = [
   Migration20260528000000,
   Migration20260717000000,
   Migration20260722000000,
+  Migration20260806000000,
   Migration20260807000000,
   Migration20260809000000,
   Migration20260810000000,
