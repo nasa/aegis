@@ -25,3 +25,6 @@ services:
       # Override what is in .env (which may be "localhost" to support native local dev) such
       # that it is always "database" in a full Docker-Compose setup.
       - DB_HOST=database
+      # Native local development uses a host-relative marker path. Inside Compose,
+      # use the control volume mounted by docker-compose.yml instead.
+      - DATABASE_EPOCH_FILE=/aegis-control/database-epoch

@@ -1,0 +1,24 @@
+.restoreOverlay {
+  position: fixed;
+  z-index: 100000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 75%);
+}
+
+.restoreDialog {
+  width: min(32rem, calc(100vw - 2rem));
+  padding: 2rem;
+  color: #111111;
+  text-align: center;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1rem 3rem rgb(0 0 0 / 40%);
+}
+
+.restoreDialog button {
+  padding: 0.65rem 1rem;
+  font: inherit;
+  cursor: pointer;
+}

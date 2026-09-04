@@ -34,3 +34,17 @@ export async function getAutomergeDocListing(
   const response: WrappedResponse<AutomergeDocListing[]> = await res.json();
   return response;
 }
+
+export async function resolveAutomergeMission(
+  missionId: number,
+  loadTestOptions?: { serverURL?: string; cookies?: string }
+): Promise<WrappedResponse<MissionResolution>> {
+  const base = loadTestOptions?.serverURL || "";
+  const headers: HeadersInit = {};
+  if (loadTestOptions?.cookies) headers.Cookie = loadTestOptions.cookies;
+  const res = await fetch(`${base}/api/v1/docListing/resolve?missionId=${missionId}`, {
+    headers,
+    cache: "no-store",
+  });
+  return res.json();
+}

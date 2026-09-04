@@ -87,6 +87,30 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+router.get("/resolve", async (req: Request, res: Response): Promise<void> => {
+  const { missionId } = parseQuery(req.query);
+  if (!missionId || !hasPerms({ missionId, permission: "view", appUser: req.session.appUser })) {
+    res.status(401).json({ status: "failure", message: "Unauthorized" });
+    return;
+  }
+  const [record] = await getAutomergeDocListing([missionId]);
+  if (!record?.automergeUrl) {
+    res.status(404).json({ status: "failure", message: "Mission document not found" });
+    return;
+  }
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.set("Pragma", "no-cache");
+  res.status(200).json({
+    status: "success",
+    message: "mission document resolved",
+    data: {
+      missionId: record.missionId,
+      automergeUrl: record.automergeUrl,
+      databaseEpoch: globalValues.databaseEpoch,
+    } satisfies MissionResolution,
+  });
+});
+
 export default router;
 
 /**

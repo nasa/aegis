@@ -1,3 +1,5 @@
+import { missionMutationIsAllowed } from "client/databaseEpoch";
+
 let automergeMissionDocHandle: DocHandle<Mission> = null;
 
 /**
@@ -6,6 +8,7 @@ let automergeMissionDocHandle: DocHandle<Mission> = null;
  * Callers should guard with `if (!missionDocHandle) return;`.
  */
 export const getMissionDocHandle = (): DocHandle<Mission> | null => {
+  if (!missionMutationIsAllowed()) return null;
   const handle = automergeMissionDocHandle;
   if (!handle) {
     // Import lazily to avoid circular-dependency issues at module init time.
@@ -49,6 +52,7 @@ export const setMissionAutomergeDocHandle = (docHandle: DocHandle<Mission>): voi
  *          is not available.
  */
 export function withMissionChange<T>(fn: (m: Mission) => T): T | undefined {
+  if (!missionMutationIsAllowed()) return undefined;
   const handle = getMissionDocHandle();
   if (!handle) return undefined;
   let result: T;
@@ -80,6 +84,7 @@ export function withMissionOp<TArgs extends unknown[], TResult>(
   op: (handle: DocHandle<Mission>, ...args: TArgs) => TResult,
   ...args: TArgs
 ): TResult | undefined {
+  if (!missionMutationIsAllowed()) return undefined;
   const handle = getMissionDocHandle();
   if (!handle) return undefined;
   return op(handle, ...args);

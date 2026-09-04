@@ -15,7 +15,10 @@ export const setupSocketIO = (): void => {
     "connection",
     (socket: Socket<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, {}>) => {
       // emit AEGIS app version to client that just connected
-      socket.emit("version", globalValues.appVersion);
+      socket.emit("version", {
+        ...globalValues.appVersion,
+        databaseEpoch: globalValues.databaseEpoch,
+      });
 
       socket.on("visitorJoin", (visitorData: VisitorData) => {
         try {
@@ -135,6 +138,7 @@ const getStatusFromServer = (missionId: number): StatusFromServer => {
     },
     timestamp: Date.now(),
     serverVersion: globalValues.appVersion,
+    databaseEpoch: globalValues.databaseEpoch,
   };
   return serverStatus;
 };

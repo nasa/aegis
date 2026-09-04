@@ -6,12 +6,43 @@ import {
   setLastStatusFromServer,
   setServerVersion,
   setSocketConnectionStatus,
+  setDatabaseEpochStale,
 } from "store/connection";
 import { clientFetchWithTimeout } from "./fetch-with-timeout";
 import isEqual from "lodash/isEqual";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
+import { closeMissionMutationGate, getAcceptedMissionDatabaseEpoch } from "client/databaseEpoch";
+
+/**
+ * Checks whether the database epoch carried by a socket message matches the
+ * one that was accepted at page load.  If they differ, the server has
+ * completed an authoritative database restore since this page was opened.
+ *
+ * On mismatch:
+ *  1. The mutation gate is closed so no further Automerge writes can land on
+ *     the now-stale document.
+ *  2. All in-progress editing state is cleared.
+ *  3. `databaseEpochStale` is set in Redux, which triggers the restore
+ *     overlay in `App.tsx`.
+ *  4. After a 1.5 s grace period the page reloads with a cache-busting query
+ *     parameter so the browser fetches fresh HTML and assets.
+ *
+ * Returns `true` when a mismatch was detected (caller should skip further
+ * processing of the message), `false` when everything is in sync.
+ */
+const handleDatabaseEpoch = (databaseEpoch: string, dispatch: AppDispatch): boolean => {
+  const accepted = getAcceptedMissionDatabaseEpoch().databaseEpoch;
+  if (!accepted || accepted === databaseEpoch) return false;
+  closeMissionMutationGate();
+  dispatch(clearAllEditing());
+  dispatch(setDatabaseEpochStale(true));
+  const reloadUrl = new URL(window.location.href);
+  reloadUrl.searchParams.set("databaseEpochReload", Date.now().toString());
+  window.setTimeout(() => window.location.assign(reloadUrl.toString()), 1500);
+  return true;
+};
 
 export const createClientSocket = (
   serverURL: string,
@@ -112,7 +143,8 @@ export const attachSocketListeners = (
   });
 
   // Incoming AEGIS version number
-  socket.on("version", (serverAppVersion: AppVersion) => {
+  socket.on("version", (serverAppVersion: RuntimeVersion) => {
+    if (handleDatabaseEpoch(serverAppVersion.databaseEpoch, dispatch)) return;
     if (
       connectionStoreRef.current.clientAppVersion.version !== serverAppVersion.version ||
       connectionStoreRef.current.clientAppVersion.gitCommit !== serverAppVersion.gitCommit
@@ -133,6 +165,7 @@ export const attachSocketListeners = (
 
   // Incoming client counts
   socket.on("statusFromServer", (statusFromServer: StatusFromServer) => {
+    if (handleDatabaseEpoch(statusFromServer.databaseEpoch, dispatch)) return;
     if (!isEqual(statusFromServer, connectionStoreRef.current.socketStatus.lastStatusFromServer)) {
       dispatch(setLastStatusFromServer(statusFromServer));
     }

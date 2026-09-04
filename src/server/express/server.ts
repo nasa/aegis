@@ -21,6 +21,8 @@ import { PostgresStorageAdapter } from "server/automerge/automerge-repo-storage-
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { closeRasterSamplingWorkerPool } from "server/raster/rasterSamplingWorkerPool";
+import { readDesiredDatabaseEpoch } from "server/automerge/databaseEpoch";
+import { Automerge_Operational_State_db } from "server/database/models/_allModels";
 
 // this is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
 initializeBase64Wasm(automergeWasmBase64);
@@ -29,6 +31,21 @@ initializeBase64Wasm(automergeWasmBase64);
 (async () => {
   // start the database connection
   globalValues.orm = await MikroORM.init(config);
+
+  const desiredDatabaseEpoch = await readDesiredDatabaseEpoch();
+  const epochState = await globalValues.orm.em.fork().findOne(Automerge_Operational_State_db, {
+    id: 1,
+  });
+  if (
+    !epochState ||
+    epochState.state !== "ready" ||
+    epochState.activeDatabaseEpoch !== desiredDatabaseEpoch
+  ) {
+    throw new Error(
+      `Database epoch is not ready (desired=${desiredDatabaseEpoch}, active=${epochState?.activeDatabaseEpoch}, state=${epochState?.state})`
+    );
+  }
+  globalValues.databaseEpoch = epochState.activeDatabaseEpoch;
 
   // parent http server
   const server: NetServer = createServer();

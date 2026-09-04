@@ -4,7 +4,7 @@ declare type LaunchpadUser = import("@emss/oauth2-proxy-common").EmssUser;
 
 interface ServerToClientEvents {
   statusFromServer: (payload: StatusFromServer) => void;
-  version: (version: AppVersion) => void; // server version sent to client
+  version: (version: RuntimeVersion) => void; // server version sent to client
   storeUpsert: (payload: StoreUpsert) => void;
   storeDelete: (payload: StoreDelete) => void;
   inspectorUpdate: (payload: ServerSocketStatus) => void;
@@ -51,11 +51,24 @@ interface StatusFromServer {
   visitorCounts: VisitorCounts;
   timestamp: number;
   serverVersion: AppVersion;
+  /** Server's current database epoch. Clients compare this against the epoch
+   * accepted at page load; a mismatch triggers an automatic reload. */
+  databaseEpoch: string;
 }
 
 interface AppVersion {
   version: string;
   gitCommit: string;
+}
+
+/**
+ * Extends `AppVersion` with the server's current database epoch.
+ * Sent to the client on the `version` socket event (emitted on connection)
+ * so the client can detect an epoch change the moment it reconnects after
+ * a database restore.
+ */
+interface RuntimeVersion extends AppVersion {
+  databaseEpoch: string;
 }
 
 interface EditEvent {

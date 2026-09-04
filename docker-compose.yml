@@ -58,6 +58,7 @@ services:
       - ./.env
     volumes:
       - ${STATIC_DIR}:/${STATIC_DIR}
+      - ${DOCKER_CONTROL_DIR}:/aegis-control
 
   database:
     container_name: "${LOG_DATA_APP_ID}--database"

@@ -9,12 +9,13 @@ import {
   auditFolders,
   auditMissionGrid,
 } from "./audits";
-import { getAutomergeDocListing } from "http-client/docListing";
+import { resolveAutomergeMission } from "http-client/docListing";
 import type { DocHandle, Repo, AutomergeUrl } from "@automerge/automerge-repo";
 import { isValidAutomergeUrl } from "@automerge/automerge-repo";
 import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { validateMission } from "utils/validateSchemaClient";
 import { clientLogger } from "utils/logging/clientLogger";
+import { acceptMissionDatabaseEpoch, closeMissionMutationGate } from "client/databaseEpoch";
 
 // Populate the entire store state except User and Interface
 // All api calls used in this function must past in the load test options
@@ -54,19 +55,38 @@ export const populateStore = async (params: {
   // Generate folders interface states for the store (using cookies if available)
   generateFoldersInterfaceStates({ wholeStoreState });
 
-  // Get automerge URL and mission doc handle
-  const amDocListing = (await getAutomergeDocListing(missionId, loadTestOptions)).data[0];
-  if (!isValidAutomergeUrl(amDocListing?.automergeUrl)) {
+  // Close the mutation gate before fetching the resolution so that no
+  // Automerge write can race with the fetch and land on an old document URL.
+  closeMissionMutationGate();
+  const resolutionResponse = await resolveAutomergeMission(missionId, loadTestOptions);
+  const resolution = resolutionResponse.data;
+  // The resolution response carries the server's current database epoch and
+  // the canonical Automerge URL for the mission.  Validate all fields before
+  // touching the Automerge repo — a mismatch here means the server is not
+  // ready or the mission does not exist.
+  if (
+    resolutionResponse.status !== "success" ||
+    resolution?.missionId !== missionId ||
+    !resolution.databaseEpoch ||
+    !isValidAutomergeUrl(resolution.automergeUrl)
+  ) {
     throw new Error("Invalid Automerge URL");
   }
-  wholeStoreState.mission.automergeUrl = amDocListing?.automergeUrl; // put url in the store
+  wholeStoreState.mission.automergeUrl = resolution.automergeUrl;
   const missionDocHandle: DocHandle<Mission> = await automergeRepo.find(
-    amDocListing.automergeUrl as AutomergeUrl
+    resolution.automergeUrl as AutomergeUrl
   );
   if (!missionDocHandle) {
     throw new Error("Mission doc handle not found in repo");
   }
   await missionDocHandle.whenReady();
+  // Guard against the Automerge WebSocket repo serving a cached document
+  // from a previous epoch whose URL happens to be reachable.
+  if (missionDocHandle.doc().id !== missionId) {
+    throw new Error("Resolved Automerge document has the wrong mission ID");
+  }
+  // Record the accepted epoch and reopen the gate — writes are safe from here.
+  acceptMissionDatabaseEpoch(resolution.databaseEpoch, resolution.automergeUrl);
   setMissionAutomergeDocHandle(missionDocHandle); // Save doc handle to client global for future access
 
   // Get circle definitions from the mission automerge doc

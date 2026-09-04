@@ -71,5 +71,6 @@ RUN apk add --no-cache \
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # This image is intended to be run with docker-compose.
-# Ensure mikro is migrated *before* the automerge migration
-CMD ["/bin/sh", "-c", "npm run migration:up && npm run automerge:migration:run && npm run api"]
+# Apply relational and document migrations, then complete any requested restore cutover
+# before starting the API.
+CMD ["/bin/sh", "-c", "npm run migration:up && npm run automerge:migration:run && npm run automerge:restore-cutover:run && npm run api"]

@@ -107,6 +107,8 @@ interface ConnectionState {
   socketStatus: ClientSocketStatus;
   browserConnectionStatus: ConnectionStatus;
   clientAppVersion: AppVersion;
+  /** True when the server has advanced to a new database epoch since page load. Triggers the restore overlay and schedules a reload. */
+  databaseEpochStale: boolean;
 }
 
 interface STMState {

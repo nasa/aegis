@@ -59,6 +59,12 @@ const missionValidatorCtx = await esbuild.context({
   outfile: "./.local/automerge/dist/missionValidator.js",
 });
 
+const restoreCutoverCtx = await esbuild.context({
+  ...sharedOptions,
+  entryPoints: ["src/server/automerge/restoreCutover.ts"],
+  outfile: "./.local/automerge/dist/restoreCutover.js",
+});
+
 await migrationCtx.rebuild();
 await migrationCtx.dispose();
 
@@ -67,3 +73,6 @@ await integrityCtx.dispose();
 
 await missionValidatorCtx.rebuild();
 await missionValidatorCtx.dispose();
+
+await restoreCutoverCtx.rebuild();
+await restoreCutoverCtx.dispose();

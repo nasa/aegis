@@ -96,7 +96,7 @@ app.get("/api/v1/user/current", (req, res) => {
 // Serve a successful response. For use with wait-on
 app.get("/api/v1/health", (req, res) => {
   res.set("Cache-Control", "no-store");
-  res.send({ status: "ok" });
+  res.send({ status: "ok", state: "ready", databaseEpoch: globalValues.databaseEpoch });
 });
 
 // get app version

@@ -7,6 +7,7 @@ export const globalValues: GlobalValues = {
   orm: null,
   socketInterval: null, // ensures only 1 interval is running
   appVersion: null,
+  databaseEpoch: null,
   isEmssApiEnabled: true,
   automergeRepo: null,
   maestroV2: {

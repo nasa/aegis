@@ -11,10 +11,12 @@ export const initialState: ConnectionState = {
       },
       timestamp: 0,
       serverVersion: null,
+      databaseEpoch: null,
     },
   },
   browserConnectionStatus: "connected", // start connected because if the user has loaded the app, they have a browser connection.
   clientAppVersion: null,
+  databaseEpochStale: false,
 };
 
 export const connectionSlice = createSlice({
@@ -43,6 +45,15 @@ export const connectionSlice = createSlice({
     setServerVersion: (state, action: { payload: AppVersion }) => {
       state.socketStatus.lastStatusFromServer.serverVersion = action.payload;
     },
+    /**
+     * Marks the client's view of the mission data as stale because the
+     * server has advanced to a new database epoch since this page was loaded.
+     * Setting this to `true` renders the restore overlay in `App.tsx` and
+     * schedules a page reload.
+     */
+    setDatabaseEpochStale: (state, action: { payload: boolean }) => {
+      state.databaseEpochStale = action.payload;
+    },
   },
 });
 
@@ -53,4 +64,5 @@ export const {
   setBrowserConnectionStatus,
   setClientAppVersion,
   setServerVersion,
+  setDatabaseEpochStale,
 } = connectionSlice.actions;

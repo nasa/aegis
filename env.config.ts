@@ -25,6 +25,10 @@ export const config: DotenvConfig<typeof environments> = {
     local: "./.local/db-init",
     default: "/d1/aegis/db-init",
   },
+  DOCKER_CONTROL_DIR: {
+    local: "./.local/control",
+    default: "/d1/aegis/control",
+  },
   STATIC_DIR: {
     local: "../aegis_static",
     default: "/d1/aegis/static",
@@ -42,6 +46,11 @@ export const config: DotenvConfig<typeof environments> = {
   DB_NAME: { default: "aegis" },
   DB_HOST: { local: "localhost", default: "database" },
   DB_PORT: { local: "5432", default: "5432" },
+  DATABASE_EPOCH_FILE: {
+    local: "./.local/control/database-epoch",
+    test: "/tmp/aegis-control/database-epoch",
+    default: "/aegis-control/database-epoch",
+  },
 
   /**
    * Container image info

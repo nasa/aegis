@@ -2,7 +2,15 @@
 // The order of imports is important. Models that are referenced by other models must be imported first.
 import { Action_db, Action_dbSchema } from "./action.model";
 import { App_User_db, App_User_dbSchema } from "./app_user.model";
+import {
+  Automerge_Document_Revision_db,
+  Automerge_Document_Revision_dbSchema,
+} from "./automerge_document_revision.model";
 import { Automerge_Native_db, Automerge_Native_dbSchema } from "./automerge_native.model";
+import {
+  Automerge_Operational_State_db,
+  Automerge_Operational_State_dbSchema,
+} from "./automerge_operational_state.model";
 import { Doc_Listing_db, Doc_Listing_dbSchema } from "./doc_listing.model";
 import { EnvironmentConfig_db, EnvironmentConfig_dbSchema } from "./environmentConfig.model";
 import { Eva_db, Eva_dbSchema } from "./eva.model";
@@ -23,7 +31,9 @@ import { Traverse_db, Traverse_dbSchema } from "./traverse.model";
 export const allSchemas = [
   Action_dbSchema,
   App_User_dbSchema,
+  Automerge_Document_Revision_dbSchema,
   Automerge_Native_dbSchema,
+  Automerge_Operational_State_dbSchema,
   Doc_Listing_dbSchema,
   EnvironmentConfig_dbSchema,
   Eva_dbSchema,
@@ -48,6 +58,8 @@ export {
   Poi_db,
   Action_db,
   Eva_db,
+  Automerge_Document_Revision_db,
+  Automerge_Operational_State_db,
   Layer_db,
   Preset_db,
   Rex_db,

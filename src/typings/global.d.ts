@@ -28,6 +28,10 @@ type GlobalValues = {
   serverSocketStatus: ServerSocketStatus;
   socketInterval: NodeJS.Timeout;
   appVersion: AppVersion;
+  /** Active database epoch UUID, read from the epoch marker file and the
+   * `automerge_operational_state_db` row on startup.  Returned to clients
+   * via the health endpoint and Socket.io events so they can detect restores. */
+  databaseEpoch: string;
   isEmssApiEnabled: boolean;
   automergeRepo: Repo;
   maestroV2: {

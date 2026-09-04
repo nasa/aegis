@@ -28,11 +28,25 @@
     - sudo /usr/bin/docker compose down --remove-orphans
     - sudo rm -rf /d1/aegis/postgres
 
+    # Select a new authoritative database epoch while every application process is down.
+    - DATABASE_EPOCH=$(cat /proc/sys/kernel/random/uuid)
+    - sudo mkdir -p /d1/aegis/control
+    - printf '%s\n' "${DATABASE_EPOCH}" | sudo tee /d1/aegis/control/database-epoch.tmp >/dev/null
+    - sudo mv /d1/aegis/control/database-epoch.tmp /d1/aegis/control/database-epoch
+
     # Bring docker compose back up, which will use the file at /d1/aegis/db-init/aegis.sql, then remove it
     - sudo /usr/bin/docker compose up -d
     - sudo rm -f /d1/aegis/db-init/aegis.sql
-
-    # Migrations will be run when the apiv1 container restarts
+    - >-
+      for attempt in $(seq 1 60); do
+        ACTIVE_DATABASE_EPOCH=$(sudo /usr/bin/docker compose exec -T database
+        psql --username=postgres --dbname="${DB_NAME}" --tuples-only --no-align
+        --command='select active_database_epoch from automerge_operational_state_db where id = 1 and state = '\''ready'\'';'
+        2>/dev/null || true);
+        [ "${ACTIVE_DATABASE_EPOCH}" = "${DATABASE_EPOCH}" ] && break;
+        [ "${attempt}" = 60 ] && echo "Database epoch cutover did not become ready" && exit 1;
+        sleep 5;
+      done
 
 z:db-import:carbon:
   extends:
