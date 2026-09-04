@@ -325,7 +325,9 @@ test-automerge-migrate:
     - echo "Comparing snapshots"
     - diff automerge_native_db_migrate1.txt automerge_native_db_migrate2.txt || exit 1
     - node .gitlab/scripts/dump-table.mjs automerge_migration_db automerge_migration_db.txt
-    - test "$(($(wc -l < automerge_migration_db.txt) - 1))" -eq 7
+    - COMPLETED_MIGRATIONS=$(($(wc -l < automerge_migration_db.txt) - 1))
+    - REGISTERED_MIGRATIONS=$(npx tsx -e 'import { AUTOMERGE_MIGRATIONS } from "./src/server/automerge/migrations/index.ts"; console.log(AUTOMERGE_MIGRATIONS.length)')
+    - test "${COMPLETED_MIGRATIONS}" -eq "${REGISTERED_MIGRATIONS}"
   artifacts:
     when: always
     paths:
