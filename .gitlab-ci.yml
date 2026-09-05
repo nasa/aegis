@@ -6,7 +6,7 @@ default:
   # Default node image unless a job specifies its own.
   # Declared here rather than in run-on-commits.gitlab-ci.yml so it applies to
   # scheduled pipelines too (they do not include that file).
-  image: "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:24.11.1-alpine3.23"
+  image: "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:24.20.0-alpine3.23"
 
 variables:
   HOME: "/tmp" # required for openshift for now
@@ -35,7 +35,7 @@ include:
     rules:
       - if: $SCHEDULE_TYPE != "audit" # exclude from audit scheduled pipelines
   - project: "emss/gitlab-templates"
-    ref: 2.7.1
+    ref: 2.9.0
     file:
       # EMSS shared dev server helpers (carbon, iron, oxygen, etc)
       - "/jobs/emss-shared-dev.gitlab-ci.yml"
