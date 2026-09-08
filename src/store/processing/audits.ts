@@ -286,6 +286,8 @@ export const auditTraverseTerrainProfiles = async ({
   if (traverseUuidsMissingSlopeField.length === 0 && repairedProfiles.size === 0) return;
 
   withMissionChange((m: Mission) => {
+    if (m.id !== mission.id) return;
+
     for (const traverseUuid of traverseUuidsMissingSlopeField) {
       const currentTraverse = m.traverses[traverseUuid];
       if (
@@ -301,6 +303,8 @@ export const auditTraverseTerrainProfiles = async ({
       const currentTraverse = m.traverses[traverse.uuid];
       if (
         !profile ||
+        m.demFilePath !== mission.demFilePath ||
+        m.demResolution !== mission.demResolution ||
         !currentTraverse ||
         currentTraverse.pathSegmentAbsoluteSlopes != null ||
         !isEqual(currentTraverse.path, traverse.path) ||
