@@ -7,6 +7,16 @@ import { updateMapDirective } from "store/map";
 import { getAccurateNow } from "utils/formatting";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import type { CompleteTerrainProfile } from "utils/terrainProfile";
+import type { DocHandle } from "@automerge/automerge-repo";
+
+type MeasurementProfileRevisions = { next: number; applied: number };
+// Browser-local counters, scoped to a mission document, user, and measurement.
+const measurementProfileRevisions = new WeakMap<
+  DocHandle<Mission>,
+  Map<string, MeasurementProfileRevisions>
+>();
+const measurementProfileKey = (username: string | undefined, measurementUuid: string): string =>
+  JSON.stringify([username ?? null, measurementUuid]);
 
 const profileMatchesSegmentCount = (
   profile: unknown[][] | null,
@@ -28,6 +38,19 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
 
   const measurement = getState().measure.measurements.find((t) => t.uuid === measurementUuid);
   if (!measurement) return;
+  const username = getState().user.appUser?.username;
+  const profileKey = measurementProfileKey(username, measurementUuid);
+  let missionRevisions = measurementProfileRevisions.get(missionDocHandle);
+  if (!missionRevisions) {
+    missionRevisions = new Map();
+    measurementProfileRevisions.set(missionDocHandle, missionRevisions);
+  }
+  let revisions = missionRevisions.get(profileKey);
+  if (!revisions) {
+    revisions = { next: 0, applied: 0 };
+    missionRevisions.set(profileKey, revisions);
+  }
+  const profileRevision = ++revisions.next;
 
   //calculate new path distances
   const pathSegmentDistances: number[] = [];
@@ -78,6 +101,8 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   );
 
   if (profileResponse.meta.requestStatus !== "fulfilled") return;
+  if (getMissionDocHandle() !== missionDocHandle || getState().user.appUser?.username !== username)
+    return;
 
   const currentMeasurement = getState().measure.measurements.find(
     (item) => item.uuid === measurementUuid
@@ -91,6 +116,10 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
     !profileMatchesSegmentCount(profile.terrainSlopesDegrees, currentSegmentCount)
   )
     return;
+
+  // Keep live previews advancing even while newer requests are still pending.
+  if (profileRevision <= revisions.applied) return;
+  revisions.applied = profileRevision;
 
   const newMeasurement: Measurement = {
     ...currentMeasurement,
@@ -201,4 +230,10 @@ export const thunkRemoveMeasurement = appCreateAsyncThunk<
 
   dispatch(setSelectedMeasurementUuid(null));
   dispatch(removeMeasurement(measurementUuid));
+  const missionDocHandle = getMissionDocHandle();
+  if (missionDocHandle) {
+    measurementProfileRevisions
+      .get(missionDocHandle)
+      ?.delete(measurementProfileKey(getState().user.appUser?.username, measurementUuid));
+  }
 });
