@@ -7,7 +7,7 @@ import { Repo } from "@automerge/automerge-repo/slim";
 import type { StorageAdapterInterface } from "@automerge/automerge-repo/slim";
 import { MikroORM } from "@mikro-orm/postgresql";
 import pg from "pg";
-import { PostgresStorageAdapter } from "server/automerge/automerge-repo-storage-postgres";
+import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
 import { LegacyMissionDb } from "server/database/models/_legacyModels";
 import config from "server/database/mikro-orm.config";
 
