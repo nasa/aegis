@@ -34,7 +34,7 @@ initializeBase64Wasm(automergeWasmBase64);
 
   globalValues.orm = await MikroORM.init(config);
 
-  // Raw pg pool, shared by the server epoch read and the automerge storage adapter
+  // Raw pg pool used by the automerge storage adapter
   const dbConfig: pg.Pool = new pg.Pool({
     user: "postgres",
     host: process.env.DB_HOST,
@@ -47,27 +47,8 @@ initializeBase64Wasm(automergeWasmBase64);
   // App version
   // ==========================================================================
 
-  const apiv1BootUuid = uuidv4();
-  let postgresStartTime: string;
-  try {
-    const epochResult = await dbConfig.query<{ epoch: string }>(
-      `select to_char(pg_postmaster_start_time() at time zone 'UTC', ` +
-        `'YYYY-MM-DD"T"HH24:MI:SS.USZ') as epoch`
-    );
-    postgresStartTime = epochResult.rows[0]?.epoch;
-    if (!postgresStartTime) {
-      throw new Error("pg_postmaster_start_time() returned no rows");
-    }
-  } catch (error) {
-    // A failure here is unrecoverable. Exit and boot and let the container restart policy retry.
-    serverLogger.critical(
-      { logId: "server", logValue: "Unable to read server epoch from the database" },
-      error instanceof Error ? error : new Error(String(error))
-    );
-    process.exit(1);
-  }
-
-  const serverEpochUuid = `${postgresStartTime}|${apiv1BootUuid}`;
+  // Identifies this API process lifetime. Regenerated on every boot.
+  const serverEpochUuid = uuidv4();
 
   // version and gitCommit are defined in esbuild.mjs and populated at build time
   globalValues.appVersion = {

@@ -38,10 +38,10 @@ vi.mock("@automerge/automerge-repo-network-websocket", () => ({
 
 const { VersionGatedNetworkAdapter } = await import("../../../client/automerge-network-adapter");
 
-// The epoch is `<postgres postmaster start time>|<apiv1 boot uuid>`.
-const PAGE_EPOCH = "2026-09-08T19:05:39.972579Z|8f14e45f-ceea-467a-9c3e-1b2c3d4e5f60";
-// Same database, restarted API — the case a bare `compose up -d` deploy produces.
-const OTHER_EPOCH = "2026-09-08T19:05:39.972579Z|1c8a9b2d-3e4f-4a5b-8c9d-0e1f2a3b4c5d";
+// The epoch is a uuid generated when the API process boots.
+const PAGE_EPOCH = "8f14e45f-ceea-467a-9c3e-1b2c3d4e5f60";
+// A restarted API — the case a bare `compose up -d` deploy produces.
+const OTHER_EPOCH = "1c8a9b2d-3e4f-4a5b-8c9d-0e1f2a3b4c5d";
 const PEER_ID = "test-peer" as PeerId;
 
 const versionResponse = (epoch: string) => ({

@@ -57,9 +57,8 @@ interface AppVersion {
   version: string;
   gitCommit: string;
   /**
-   * Identifies the current server epoch as `<postgres postmaster start
-   * time>|<apiv1 boot uuid>` so it changes when either the database or the API
-   * process restarts
+   * Identifies the current server epoch as a uuid generated at API boot, so it
+   * changes whenever the API process restarts
    */
   serverEpochUuid: string;
 }
