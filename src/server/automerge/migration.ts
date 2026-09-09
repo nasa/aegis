@@ -780,9 +780,13 @@ getORM()
       });
     };
 
-    // Migration: Add archivedAt field (null by default) to all mission docs
+    // Migration: Replace isArchived field to archivedAt (null by default) for all mission docs
     const automergeMigration20260909AddArchivedAt = async (docHandle: DocHandle<Mission>) => {
       docHandle.change((mission: Mission) => {
+        if ("isArchived" in mission) {
+          delete mission.isArchived;
+        }
+
         if (!("archivedAt" in mission)) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (mission as any).archivedAt = null;
