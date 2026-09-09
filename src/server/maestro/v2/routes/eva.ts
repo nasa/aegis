@@ -13,7 +13,7 @@ import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
 
 /**
- * Used by Maegistro v1 and v2
+ * Used by Maegistro v2
  */
 
 interface ReadableEvaParams {

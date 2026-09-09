@@ -72,6 +72,7 @@ export function applyUpdateMissionByField<
  *  - The walkback path/distances/elevations for every affected station
  *  - The path/distances/elevations for every egress or ingress boundary
  *    traverse that touches the lander
+ *  - The location/elevation of every lander xgress station
  */
 export function applyLanderLocationUpdateStage(
   m: Mission,
@@ -93,6 +94,15 @@ export function applyLanderLocationUpdateStage(
     station.walkbackPathSegmentElevations = wb.newWalkbackPathSegmentElevations;
   }
 
-  // 3. Update affected traverses
+  // 3. Update xgress stations at lander
+  for (const stationUuid of stage.landerXgressStationUuids ?? []) {
+    const station = m.stations?.[stationUuid];
+    if (!station) continue;
+    station.location = cloneDeep(stage.newLocation);
+    if (stage.newElevation !== null) station.elevation = stage.newElevation;
+    station.updatedAt = getAccurateNow().getTime();
+  }
+
+  // 4. Update affected traverses
   applyTraverseUpdatesStage(m, stage.traverseUpdates);
 }

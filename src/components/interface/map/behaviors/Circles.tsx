@@ -81,12 +81,6 @@ export function Circles(): null {
       for (const item of stationItems) {
         if (item.uuid) uuidsToShow.add(item.uuid);
       }
-      if (selectedEva.egressLocationUuid !== "lander") {
-        uuidsToShow.add(selectedEva.egressLocationUuid);
-      }
-      if (selectedEva.ingressLocationUuid !== "lander") {
-        uuidsToShow.add(selectedEva.ingressLocationUuid);
-      }
     }
 
     // As-planned stations (filtered by eyeball + folders)
@@ -107,8 +101,13 @@ export function Circles(): null {
       }
     }
 
+    // Lander copies are not rendered as stations, so they get no circles either.
     return allStations.filter(
-      (s) => uuidsToShow.has(s.uuid) && s.location?.lat != null && s.location?.lng != null
+      (s) =>
+        uuidsToShow.has(s.uuid) &&
+        !s.isLanderXgress &&
+        s.location?.lat != null &&
+        s.location?.lng != null
     );
   }, [
     selectedEva,

@@ -7,7 +7,7 @@ import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdatePoiByField } from "operations/apply/apply-poi";
 import Actions from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
-import { getCalculatedFieldsByPoi } from "store/processing/calculatedFields";
+import { getCalcFieldsForPoi } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
@@ -31,7 +31,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     const poiActions = Object.values(docMaps.actions).filter(
       (a) => a.poiUuid === selectedPoiUuid && a.enabled
     );
-    const poiCalculatedFields = getCalculatedFieldsByPoi({
+    const poiCalculatedFields = getCalcFieldsForPoi({
       poiUuid: selectedPoiUuid,
       poiActions,
     });
@@ -43,6 +43,7 @@ const Actions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       totalUnassignedTime: poiCalculatedFields.totalUnassignedTime,
       totalDwellTime: poiCalculatedFields.totalDwellTime,
       totalMass: poiCalculatedFields.totalMass,
+      totalEquipmentItems: poiCalculatedFields.totalEquipmentItems,
     };
   }, [docMaps, selectedPoiUuid]);
 

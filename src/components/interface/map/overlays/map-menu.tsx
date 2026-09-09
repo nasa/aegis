@@ -3,10 +3,13 @@ import { faEye, faCaretRight, faCaretDown, faXmark } from "@fortawesome/free-sol
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 import styles from "./map-menu.module.css";
+import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridBaseSpacingMeters } from "utils/mapping/grid";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
+import { setMapMenuIsOpen } from "store/interface";
+import { useMapMenuContext, useMapMenuSetters } from "../MapMenuProvider";
 
 const GRID_SPACING_OPTIONS: { label: string; value: GridSpacingMode }[] = [
   { label: "Auto", value: "auto" },
@@ -30,7 +33,30 @@ export function getCompatibleGridLabelInterval(
   return gridLabelInterval;
 }
 
-export const MapMenu: FunctionComponent<{
+export const MapMenuPosSourceSync: FunctionComponent = () => {
+  const { setSubmenuPos } = useMapMenuSetters();
+  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
+  const selectedRexPosSources = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return undefined;
+    const selectedRex = mission.rexes[selectedRexUuid];
+    const runningRex = Object.values(mission.rexes).find((rex) => rex.isRunning);
+    return selectedRex?.posSources || runningRex?.posSources;
+  }, deepEqual);
+
+  useEffect(() => {
+    if (!selectedRexPosSources) return;
+    const taskPosSourceUuid = selectedRexPosSources.find((source) => source.abbr === "T")?.uuid;
+    const crewPosSourceUuid = selectedRexPosSources.find((source) => source.abbr === "C")?.uuid;
+    setSubmenuPos((current) => ({
+      ...current,
+      sourceUuids: [taskPosSourceUuid, crewPosSourceUuid].filter((uuid) => uuid !== undefined),
+    }));
+  }, [selectedRexPosSources, setSubmenuPos]);
+
+  return null;
+};
+
+interface MapMenuProps {
   mapDisplayPois: MapSubmenuMarkers;
   setMapDisplayPois: Dispatch<SetStateAction<MapSubmenuMarkers>>;
   mapDisplayStations: MapSubmenuStations;
@@ -55,7 +81,11 @@ export const MapMenu: FunctionComponent<{
   setGridSpacingMode: Dispatch<SetStateAction<GridSpacingMode>>;
   gridLabelInterval: GridSpacingMode;
   setGridLabelInterval: Dispatch<SetStateAction<GridSpacingMode>>;
-}> = ({
+  floating?: boolean;
+  onClose?: () => void;
+}
+
+export const MapMenu: FunctionComponent<MapMenuProps> = ({
   mapDisplayPois,
   setMapDisplayPois,
   mapDisplayStations,
@@ -80,8 +110,10 @@ export const MapMenu: FunctionComponent<{
   setGridSpacingMode,
   gridLabelInterval,
   setGridLabelInterval,
+  floating = false,
+  onClose,
 }) => {
-  const [showMenu, setShowMenu] = useState(false);
+  const [showMenu, setShowMenu] = useState(floating);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset = useAppSelector(
     (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
@@ -108,44 +140,37 @@ export const MapMenu: FunctionComponent<{
     baseGridSpacing = getGridBaseSpacingMeters(resolvedGrid.grid, planetRadius);
   }
 
-  //if the selected pos source list contains a uuid that isn't in selected rex's pos sources list this means that the selected rex has changed.
-  //If this is true, set default pos sources to task and crew
-  useEffect(() => {
-    if (selectedRexPosSources) {
-      const taskPosSourceUuid = selectedRexPosSources.find((s) => s.abbr === "T")?.uuid || null;
-      const crewPosSourceUuid = selectedRexPosSources.find((s) => s.abbr === "C")?.uuid || null;
-      if (taskPosSourceUuid || crewPosSourceUuid) {
-        setMapDisplayPos({
-          ...mapDisplayPos,
-          sourceUuids: [taskPosSourceUuid, crewPosSourceUuid],
-        });
-        return;
-      }
-      // set to "all" by default if no task or crew pos sources
-      setMapDisplayPos({
-        ...mapDisplayPos,
-        sourceUuids: [],
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRexPosSources, setMapDisplayPos]);
-
   return (
     <div className={styles.menuContainer}>
       <div
         className={`${styles.menuHeader} ${showMenu && styles.menuHeaderBorder}`}
         onClick={(e) => {
+          if (floating) return;
           setShowMenu(!showMenu);
           e.stopPropagation();
         }}
       >
-        <div className={styles.menuHeaderEyeIcon}>
+        <div
+          className={styles.menuHeaderEyeIcon}
+          onClick={(event) => {
+            if (!floating) return;
+            event.stopPropagation();
+            onClose?.();
+          }}
+        >
           <FontAwesomeIcon icon={faEye} size="sm" />
         </div>
         {showMenu && (
           <div className={styles.menuHeaderTitleContainer}>
             <div className={styles.menuHeaderTitle}>Map Item Visibility</div>
-            <div className={styles.menuHeaderClose}>
+            <div
+              className={styles.menuHeaderClose}
+              onClick={(event) => {
+                if (!floating) return;
+                event.stopPropagation();
+                onClose?.();
+              }}
+            >
               <FontAwesomeIcon icon={faXmark} />
             </div>
           </div>
@@ -713,6 +738,65 @@ export const MapMenu: FunctionComponent<{
         </div>
       </div>
     </div>
+  );
+};
+
+export const MapMenuLauncher: FunctionComponent = () => {
+  const dispatch = useAppDispatch();
+  const mapMenuIsOpen = useAppSelector((state) => state.interface.mapMenuIsOpen, refEqual);
+
+  return (
+    <button
+      className={styles.menuLauncher}
+      onClick={(event) => {
+        event.stopPropagation();
+        dispatch(setMapMenuIsOpen(!mapMenuIsOpen));
+      }}
+      aria-label={`${mapMenuIsOpen ? "Close" : "Open"} map item visibility`}
+      aria-pressed={mapMenuIsOpen}
+      data-testid="map-menu-launcher"
+      type="button"
+    >
+      <FontAwesomeIcon icon={faEye} size="sm" />
+      <div className={styles.bottomTriangle} />
+    </button>
+  );
+};
+
+export const MapMenuPanel: FunctionComponent = () => {
+  const display = useMapMenuContext();
+  const setters = useMapMenuSetters();
+  const dispatch = useAppDispatch();
+
+  return (
+    <MapMenu
+      mapDisplayPois={display.submenuPois}
+      setMapDisplayPois={setters.setSubmenuPois}
+      mapDisplayStations={display.submenuStations}
+      setMapDisplayStations={setters.setSubmenuStations}
+      mapDisplayActions={display.submenuActions}
+      setMapDisplayActions={setters.setSubmenuActions}
+      showArrows={display.showArrows}
+      setShowArrows={setters.setShowArrows}
+      showBearings={display.showBearings}
+      setShowBearings={setters.setShowBearings}
+      showDistances={display.showDistances}
+      setShowDistances={setters.setShowDistances}
+      mapDisplayPos={display.submenuPos}
+      setMapDisplayPos={setters.setSubmenuPos}
+      showScaleBar={display.showScaleBar}
+      setShowScaleBar={setters.setShowScaleBar}
+      showMouseLatLon={display.showMouseLatLon}
+      setShowMouseLatLon={setters.setShowMouseLatLon}
+      showSunEarth={display.showSunEarth}
+      setShowSunEarth={setters.setShowSunEarth}
+      gridSpacingMode={display.gridSpacingMode}
+      setGridSpacingMode={setters.setGridSpacingMode}
+      gridLabelInterval={display.gridLabelInterval}
+      setGridLabelInterval={setters.setGridLabelInterval}
+      floating={true}
+      onClose={() => dispatch(setMapMenuIsOpen(false))}
+    />
   );
 };
 

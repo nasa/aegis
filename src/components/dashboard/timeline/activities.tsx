@@ -59,12 +59,7 @@ const Activity: FunctionComponent<{
   let ev1PercentComplete = 0;
   let ev2PercentComplete = 0;
   if (sequenceItem.type === "station") {
-    let entry = rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : null;
-    if (sequenceItem.uuid === "egress" || sequenceItem.uuid === "ingress") {
-      entry = rex?.xgressEntries ? rex?.xgressEntries[sequenceItem.uuid] : null;
-    } else {
-      entry = rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : null;
-    }
+    const entry = rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : null;
     complete = entry?.rexStatus === "complete" || entry?.rexStatus === "skipped";
     inProgress = entry?.rexStatus === "in-progress";
     ev1PercentComplete = entry?.maestroPercentCompleteEv1 || 0;
@@ -91,16 +86,7 @@ const Activity: FunctionComponent<{
   const displayNumber = maestroActivityProperties[sequenceItem.uuid]?.number || activityNumber;
   const displayNumberIsNumeric = !isNaN(Number(displayNumber));
 
-  let stationIcon;
-  if (sequenceItem.uuid === "egress" || sequenceItem.uuid === "ingress") {
-    stationIcon = sequenceItem.icon ? (
-      <EmojiRenderer iconValue={sequenceItem.icon} />
-    ) : (
-      <img src="/images/lander.svg" alt="lander" className={styles.landerImage} />
-    );
-  } else {
-    stationIcon = <EmojiRenderer iconValue={sequenceItem.icon ? sequenceItem.icon : "2754"} />;
-  }
+  const stationIcon = <EmojiRenderer iconValue={sequenceItem.icon ? sequenceItem.icon : "2754"} />;
 
   return (
     <div

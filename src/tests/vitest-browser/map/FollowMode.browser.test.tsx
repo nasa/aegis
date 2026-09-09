@@ -92,8 +92,6 @@ function makeEva(uuid: string, stationUuids: string[]): Eva {
     uuid,
     name: "EVA 1",
     traverseColor: "#ff0000",
-    egressLocationUuid: "lander",
-    ingressLocationUuid: "lander",
     sequence: stationUuids.map((u) => ({ uuid: u, type: "station" })),
     updatedAt: new Date().toISOString(),
   } as unknown as Eva;
@@ -114,7 +112,6 @@ function makeRunningRex(
     posSources: [],
     stationEntries,
     traverseEntries: {},
-    xgressEntries: {},
     updatedAt: new Date().toISOString(),
     ...overrides,
   } as unknown as Rex;

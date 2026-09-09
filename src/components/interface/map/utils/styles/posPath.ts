@@ -142,10 +142,13 @@ export function buildPosPathStyleFunction(
     // "latest" segment in Fade Past mode) never accumulate enough length to
     // cross the repeat threshold. Place a single arrow at the path midpoint so
     // arrows always appear wherever a line is drawn.
-    if (!arrowPlaced) {
+    //
+    // Zero-length paths are excluded. This happens when a REX
+    // seeds its initial crew positions
+    const totalLength = geom.getLength();
+    if (!arrowPlaced && totalLength > 0) {
       const mid = geom.getCoordinateAt(0.5);
       // Find the segment containing the midpoint to orient the arrow.
-      const totalLength = geom.getLength();
       let traversed = 0;
       let angle = 0;
       for (let i = 1; i < coords.length; i++) {

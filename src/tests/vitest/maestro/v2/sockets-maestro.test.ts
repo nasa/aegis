@@ -271,6 +271,40 @@ describe("maestro namespace socket handlers", () => {
       expect(subs).toContain(evaRefUuid1);
       expect(subs).toContain(evaRefUuid2);
     });
+
+    it("calls the callback with a success response when the eva is found", async () => {
+      const evaRefUuid = uuidv4();
+      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
+      const callback = vi.fn();
+
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null, callback);
+
+      expect(callback).toHaveBeenCalledWith({ status: "success" });
+    });
+
+    it("calls the callback with an error response when the eva cannot be resolved", async () => {
+      const evaRefUuid = uuidv4();
+      // Not added to evaRegistry, so getEvaUuid will fail to resolve it
+      const callback = vi.fn();
+
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.any(String),
+      });
+      const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
+      expect(subs ?? []).not.toContain(evaRefUuid);
+    });
+
+    it("does not throw when no callback is provided", async () => {
+      const evaRefUuid = uuidv4();
+      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
+
+      await expect(
+        mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null)
+      ).resolves.not.toThrow();
+    });
   });
 
   describe("unsubscribeToEva", () => {
@@ -600,7 +634,6 @@ describe("maestro namespace socket handlers", () => {
       const evaRefUuid = "eva-ref-1";
       const actionRefUuid = "action-ref-1";
       const rexUuid = "rex-uuid-1";
-      const xgressUuid = "xgress-uuid-1";
 
       const fullMdau: MDAU.MaestroDataAegisUses = {
         aegisStations: {
@@ -632,8 +665,6 @@ describe("maestro namespace socket handlers", () => {
               { type: "station", refUuid: stationRefUuid },
               { type: "traverse", refUuid: traverseRefUuid },
             ],
-            ingressDuration: 300,
-            egressDuration: 240,
             datetime: now,
             updatedAt: now,
             rexUuid,
@@ -659,9 +690,6 @@ describe("maestro namespace socket handlers", () => {
             maestroActivityPropertiesByRefUuid: {
               [stationRefUuid]: { color: "#ff0000", number: "1" },
               [traverseRefUuid]: { color: "#00ff00", number: "2" },
-            },
-            xgressEntries: {
-              [xgressUuid]: { rexStatus: "complete" },
             },
             stationEntriesByRefUuid: {
               [stationRefUuid]: {

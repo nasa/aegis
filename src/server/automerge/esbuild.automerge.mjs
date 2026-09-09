@@ -52,8 +52,18 @@ const integrityCtx = await esbuild.context({
   outfile: "./.local/automerge/dist/integrityCheck.js",
 });
 
+// Build the standalone mission validation runner
+const missionValidatorCtx = await esbuild.context({
+  ...sharedOptions,
+  entryPoints: ["src/server/automerge/missionValidator.ts"],
+  outfile: "./.local/automerge/dist/missionValidator.js",
+});
+
 await migrationCtx.rebuild();
 await migrationCtx.dispose();
 
 await integrityCtx.rebuild();
 await integrityCtx.dispose();
+
+await missionValidatorCtx.rebuild();
+await missionValidatorCtx.dispose();

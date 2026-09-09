@@ -13,7 +13,7 @@ import Report_Panel from "../report";
 import Actions_Panel from "./traverse-right-actions";
 import { getAlertColor } from "utils/component-helpers";
 import { RightTabs } from "components/interface/side-controls";
-import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
+import { getCalcFieldsForTraverse } from "store/processing/calculatedFields";
 import isNull from "lodash/isNull";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
@@ -47,7 +47,7 @@ const TraverseEditorRight: FunctionComponent = () => {
     const traverseActions = Object.values(mission.actions).filter(
       (a) => a.traverseUuid === traverse?.uuid && a.enabled
     );
-    return getCalculatedFieldsByTraverse({
+    return getCalcFieldsForTraverse({
       traverse,
       missionTraverseRate,
       evaTraverseRate: traverseEvaTraverseRate,

@@ -23,6 +23,10 @@ COPY . /clientsrc
 # When building this container locally, this is not available so "localDev" will be used as default value
 ARG GIT_COMMIT=localDev
 ENV GIT_COMMIT=$GIT_COMMIT
+ARG VITE_PUBLIC_CONSOLE_LOG_LEVEL
+ENV VITE_PUBLIC_CONSOLE_LOG_LEVEL=$VITE_PUBLIC_CONSOLE_LOG_LEVEL
+ARG VITE_PUBLIC_REMOTE_LOG_LEVEL
+ENV VITE_PUBLIC_REMOTE_LOG_LEVEL=$VITE_PUBLIC_REMOTE_LOG_LEVEL
 
 # Build the React client
 RUN npm run vite:build

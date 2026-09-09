@@ -2,7 +2,11 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { getAccurateNow } from "utils/formatting";
 
-import { applyDuplicateStationStage, applyDeleteStations } from "./apply-station";
+import {
+  applyDuplicateStationStage,
+  applyDeleteStations,
+  applyUpsertStation,
+} from "./apply-station";
 import { applyDuplicateTraverseStage, applyDeleteTraverses } from "./apply-traverse";
 import { applyDeleteActions } from "./apply-action";
 
@@ -60,19 +64,25 @@ export function applyUpdateEvaByField<K extends keyof Eva>(
   }
 }
 
-/** Push items onto an EVA's sequence. */
-export function applyPushEvaSequenceItems(
+/**
+ * Insert items into an EVA's sequence at index, shifting later items right.
+ */
+export function applyInsertEvaSequenceItems(
   m: Mission,
-  { evaUuid, items }: { evaUuid: string; items: EvaSequenceItem[] }
+  { evaUuid, insertAt, items }: { evaUuid: string; insertAt: number; items: EvaSequenceItem[] }
 ): void {
   const eva = m.evas[evaUuid];
   if (!eva) return;
   // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket.
-  // Existing elements are serialized through JSON first to fully detach them from the live
-  // Automerge proxy — spreading proxy objects directly back into the doc throws
+  // Serialize through JSON first to fully detach elements from the live Automerge proxy —
+  // slicing/spreading proxy objects directly back into the doc throws
   // "Cannot create a reference to an existing document object".
   const existingSequence: EvaSequenceItem[] = JSON.parse(JSON.stringify(eva.sequence));
-  eva.sequence = [...existingSequence, ...items.map((item) => cloneDeep(item))];
+  eva.sequence = [
+    ...existingSequence.slice(0, insertAt),
+    ...items.map((item) => cloneDeep(item)),
+    ...existingSequence.slice(insertAt),
+  ];
   eva.updatedAt = getAccurateNow().getTime();
 }
 
@@ -111,6 +121,32 @@ export function applySwapEvaSequenceItems(
   eva.updatedAt = getAccurateNow().getTime();
 }
 
+/**
+ * Apply an `EvaXgressChangeStageData`
+ * Change the EVA's egress or ingress station.
+ */
+export function applyEvaXgressChangeStage(m: Mission, stage: EvaXgressChangeStageData): void {
+  const eva = m.evas?.[stage.evaUuid];
+  if (!eva) return;
+
+  // Insert the incoming station before updating the sequence.
+  if (stage.newLanderStation) {
+    applyUpsertStation(m, stage.newLanderStation);
+  }
+  if (stage.stationStage) {
+    applyDuplicateStationStage(m, stage.stationStage);
+  }
+
+  eva.sequence[stage.sequenceIndex] = { type: "station", uuid: stage.newStationUuid };
+  eva.updatedAt = getAccurateNow().getTime();
+
+  // Remove the outgoing station if it was a duplicate for the EVA.
+  applyDeleteActions(m, stage.actionUuidsToDelete);
+  if (stage.stationUuidToDelete) {
+    applyDeleteStations(m, [stage.stationUuidToDelete]);
+  }
+}
+
 /** Delete a list of EVAs from the doc. */
 export function applyDeleteEvas(m: Mission, evaUuids: string[]): void {
   for (const uuid of evaUuids) {
@@ -128,12 +164,6 @@ export function applyDuplicateEvaStage(m: Mission, stage: EvaDuplicationStageDat
   }
   for (const traverseStage of stage.traverseStages) {
     applyDuplicateTraverseStage(m, traverseStage);
-  }
-  if (stage.ingressStationStage) {
-    applyDuplicateStationStage(m, stage.ingressStationStage);
-  }
-  if (stage.egressStationStage) {
-    applyDuplicateStationStage(m, stage.egressStationStage);
   }
   m.evas[stage.newEvaUuid] = stage.newEva;
 }

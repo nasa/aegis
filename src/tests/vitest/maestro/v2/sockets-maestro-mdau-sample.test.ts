@@ -18,7 +18,7 @@ import { opUpdateMdau } from "server/maestro/v2/operations/op-mdau";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import type { DocHandle } from "@automerge/automerge-repo";
 import type { MDAU } from "server/maestro/v2/types/mdau";
@@ -175,8 +175,6 @@ function buildMissionFromSample(): BuiltMission {
     asPlannedEva = generateBlankEVA({
       refUuid: evaRefUuid,
       name: "orig-eva",
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: asPlannedSequence,
     });
     evas.push(asPlannedEva);
@@ -188,8 +186,26 @@ function buildMissionFromSample(): BuiltMission {
   const rexSample = mdau.aegisRexes ? Object.values(mdau.aegisRexes)[0] : undefined;
   let rexEva: Eva | undefined;
   let rex: Rex | undefined;
+  let rexEgressStation: Station | undefined;
+  let rexIngressStation: Station | undefined;
   if (rexSample) {
     const rexSequence: { type: "station" | "traverse"; uuid: string }[] = [];
+    rexEgressStation = generateLanderXgressStation({
+      xgressType: "egress",
+      name: "rex-egress",
+      missionId: 0,
+      location: { lat: 0, lng: 0 },
+      elevation: null,
+    });
+    rexIngressStation = generateLanderXgressStation({
+      xgressType: "ingress",
+      name: "rex-ingress",
+      missionId: 0,
+      location: { lat: 0, lng: 0 },
+      elevation: null,
+    });
+    stations.push(rexEgressStation, rexIngressStation);
+    rexSequence.push({ type: "station", uuid: rexEgressStation.uuid });
 
     for (const refUuid in stationActionRefs) {
       const station = generateBlankStation({ refUuid, name: `rex-${refUuid.slice(0, 6)}` });
@@ -223,12 +239,12 @@ function buildMissionFromSample(): BuiltMission {
       rexSequence.push({ type: "traverse", uuid: traverse.uuid });
     }
 
+    rexSequence.push({ type: "station", uuid: rexIngressStation.uuid });
+
     // The rex-owned EVA shares the aegisEva refUuid (its dedicated instance).
     rexEva = generateBlankEVA({
       refUuid: evaRefUuid ?? "rex-eva-ref",
       name: "rex-eva",
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: rexSequence,
     });
     evas.push(rexEva);
@@ -358,7 +374,7 @@ describe("sendMDAU sample payload — traverses", () => {
 });
 
 describe("sendMDAU sample payload — evas", () => {
-  it("writes name / durations for the as-planned eva", () => {
+  it("writes name / datetime for the as-planned eva", () => {
     if (!mdau.aegisEva || !built.asPlannedEvaUuid) return;
     const doc = built.handle.doc();
     const refUuid = Object.keys(mdau.aegisEva)[0];
@@ -367,8 +383,6 @@ describe("sendMDAU sample payload — evas", () => {
     expect(eva).toBeDefined();
     expect(typeof eva.name).toBe("string");
     expect(eva.name).toBe(src.name);
-    expect(eva.ingressDuration).toBe(src.ingressDuration);
-    expect(eva.egressDuration).toBe(src.egressDuration);
     expect(eva.datetime).toBe(src.datetime);
     expect(eva.updatedAt).toBe(src.updatedAt);
   });
@@ -433,19 +447,6 @@ describe("sendMDAU sample payload — rexes", () => {
     }
   });
 
-  it("passes xgress entries through verbatim by key", () => {
-    if (!mdau.aegisRexes || !built.rexUuid) return;
-    const doc = built.handle.doc();
-    const src = Object.values(mdau.aegisRexes)[0];
-    const rex = doc.rexes[built.rexUuid];
-
-    for (const xgressKey in src.xgressEntries) {
-      expect(rex.xgressEntries?.[xgressKey]?.rexStatus).toBe(
-        src.xgressEntries[xgressKey].rexStatus
-      );
-    }
-  });
-
   it("stops other running rexes when the sample rex starts", () => {
     if (!mdau.aegisRexes || !built.rexUuid) return;
     const src = Object.values(mdau.aegisRexes)[0];
@@ -466,8 +467,6 @@ describe("sendMDAU sample payload — rexes", () => {
     const fresh = buildMissionFromSample();
 
     const otherEva = generateBlankEVA({
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [],
     });
     const otherRex = generateBlankRex({ evaUuid: otherEva.uuid, isRunning: true });

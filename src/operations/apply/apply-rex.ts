@@ -37,7 +37,7 @@ export function applyUpdateRexByField<K extends keyof Rex>(
 
 /** Upsert into one of a REX's keyed entry maps. */
 export function applyUpsertRexEntryItem<
-  K extends "stationEntries" | "traverseEntries" | "actionEntries" | "xgressEntries",
+  K extends "stationEntries" | "traverseEntries" | "actionEntries",
 >(
   m: Mission,
   {

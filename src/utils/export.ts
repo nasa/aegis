@@ -2,10 +2,10 @@ import { decodeEmoji } from "./formatting";
 import { buildActionDefinitionName } from "store/storeUtils/mission";
 import { getGridCoordinatesFromPoint } from "./mapping/geoMath";
 import {
-  getCalculatedFieldsByEva,
-  getCalculatedFieldsByPoi,
-  getCalculatedFieldsByStation,
-  getCalculatedFieldsByTraverse,
+  getCalcFieldsForEva,
+  getCalcFieldsForPoi,
+  getCalcFieldsForStation,
+  getCalcFieldsForTraverse,
 } from "store/processing/calculatedFields";
 import { resolveMissionGrid } from "./mapping/grid";
 import * as jsonKeysSort from "json-keys-sort";
@@ -119,7 +119,7 @@ export const makeExportPois = (params: {
     const poiActions = Object.values(mission.actions).filter(
       (a) => a.poiUuid === poi.uuid && a.enabled
     );
-    const poiCalculatedFields = getCalculatedFieldsByPoi({
+    const poiCalculatedFields = getCalcFieldsForPoi({
       poiUuid: poi.uuid,
       poiActions,
     });
@@ -158,7 +158,7 @@ export const makeExportStations = (params: {
     const stationActions = Object.values(mission.actions).filter(
       (a) => a.stationUuid === station.uuid && a.enabled
     );
-    const stationCalculatedFields = getCalculatedFieldsByStation({
+    const stationCalculatedFields = getCalcFieldsForStation({
       station,
       missionWalkbackRate: mission.walkbackRate,
       stationActions,
@@ -191,7 +191,7 @@ export const makeExportStations = (params: {
       calculatedFields: {
         ...stationCalculatedFields,
         equipmentItemsReadable: makeEquipmentReadable({
-          equipmentItems: stationCalculatedFields.equipmentItems,
+          equipmentItems: stationCalculatedFields.totalEquipmentItems,
           mission,
         }),
       } as ExportStationCalculatedFields,
@@ -241,7 +241,7 @@ export const makeExportTraverses = (params: {
     const traverseActions = Object.values(mission.actions).filter(
       (a) => a.traverseUuid === traverse.uuid && a.enabled
     );
-    const traverseCalculatedFields = getCalculatedFieldsByTraverse({
+    const traverseCalculatedFields = getCalcFieldsForTraverse({
       traverse: traverse,
       missionTraverseRate: mission.traverseRate,
       evaTraverseRate: traverseEva?.traverseRate,
@@ -299,7 +299,7 @@ export const makeExportEvas = (params: {
     const seqTraverseUuids = new Set(
       eva.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid)
     );
-    const evaCalculatedFields = getCalculatedFieldsByEva({
+    const evaCalculatedFields = getCalcFieldsForEva({
       eva,
       evaStations: Object.values(mission.stations).filter((s) => seqStationUuids.has(s.uuid)),
       missionTraverseRate: mission.traverseRate,
@@ -345,18 +345,10 @@ export const makeExportEvas = (params: {
         };
         return sequenceRefUuid;
       }),
-      egressLocationRefUuid:
-        eva.egressLocationUuid === "lander"
-          ? "lander"
-          : mission.stations[eva.egressLocationUuid]?.refUuid,
-      ingressLocationRefUuid:
-        eva.ingressLocationUuid === "lander"
-          ? "lander"
-          : mission.stations[eva.ingressLocationUuid]?.refUuid,
       calculatedFields: {
         ...evaCalculatedFields,
         equipmentItemsReadable: makeEquipmentReadable({
-          equipmentItems: evaCalculatedFields.equipmentItems,
+          equipmentItems: evaCalculatedFields.totalEquipmentItems,
           mission,
         }),
       },

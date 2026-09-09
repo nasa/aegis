@@ -15,7 +15,11 @@ import { MouseCoordinateDisplay } from "./MouseCoordinateDisplay";
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useMapMenuContext, useMapMenuSetters } from "../MapMenuProvider";
-import { MapMenu } from "components/interface/map/overlays/map-menu";
+import {
+  MapMenu,
+  MapMenuLauncher,
+  MapMenuPosSourceSync,
+} from "components/interface/map/overlays/map-menu";
 import MapPresetMenu from "components/interface/map/overlays/map-menu-preset";
 import { MapPositionMenu } from "components/interface/map/overlays/map-menu-pos";
 import { MapFollowMenu } from "components/interface/map/overlays/map-follow-menu";
@@ -68,34 +72,39 @@ export function MapOverlays(): JSX.Element {
 
   return (
     <>
+      <MapMenuPosSourceSync />
       {/* Eyeball menu — top left */}
       <div className={`${mapStyles.mapViewDisplay} ${menusHidden ? mapStyles.hide : ""}`}>
-        <MapMenu
-          mapDisplayPois={display.submenuPois}
-          setMapDisplayPois={setters.setSubmenuPois}
-          mapDisplayStations={display.submenuStations}
-          setMapDisplayStations={setters.setSubmenuStations}
-          mapDisplayActions={display.submenuActions}
-          setMapDisplayActions={setters.setSubmenuActions}
-          showArrows={display.showArrows}
-          setShowArrows={setters.setShowArrows}
-          showBearings={display.showBearings}
-          setShowBearings={setters.setShowBearings}
-          showDistances={display.showDistances}
-          setShowDistances={setters.setShowDistances}
-          mapDisplayPos={display.submenuPos}
-          setMapDisplayPos={setters.setSubmenuPos}
-          showScaleBar={display.showScaleBar}
-          setShowScaleBar={setters.setShowScaleBar}
-          showMouseLatLon={display.showMouseLatLon}
-          setShowMouseLatLon={setters.setShowMouseLatLon}
-          showSunEarth={display.showSunEarth}
-          setShowSunEarth={setters.setShowSunEarth}
-          gridSpacingMode={display.gridSpacingMode}
-          setGridSpacingMode={setters.setGridSpacingMode}
-          gridLabelInterval={display.gridLabelInterval}
-          setGridLabelInterval={setters.setGridLabelInterval}
-        />
+        {mode === "editor" ? (
+          <MapMenuLauncher />
+        ) : (
+          <MapMenu
+            mapDisplayPois={display.submenuPois}
+            setMapDisplayPois={setters.setSubmenuPois}
+            mapDisplayStations={display.submenuStations}
+            setMapDisplayStations={setters.setSubmenuStations}
+            mapDisplayActions={display.submenuActions}
+            setMapDisplayActions={setters.setSubmenuActions}
+            showArrows={display.showArrows}
+            setShowArrows={setters.setShowArrows}
+            showBearings={display.showBearings}
+            setShowBearings={setters.setShowBearings}
+            showDistances={display.showDistances}
+            setShowDistances={setters.setShowDistances}
+            mapDisplayPos={display.submenuPos}
+            setMapDisplayPos={setters.setSubmenuPos}
+            showScaleBar={display.showScaleBar}
+            setShowScaleBar={setters.setShowScaleBar}
+            showMouseLatLon={display.showMouseLatLon}
+            setShowMouseLatLon={setters.setShowMouseLatLon}
+            showSunEarth={display.showSunEarth}
+            setShowSunEarth={setters.setShowSunEarth}
+            gridSpacingMode={display.gridSpacingMode}
+            setGridSpacingMode={setters.setGridSpacingMode}
+            gridLabelInterval={display.gridLabelInterval}
+            setGridLabelInterval={setters.setGridLabelInterval}
+          />
+        )}
       </div>
 
       {/* Preset selector — top left, right of eyeball */}

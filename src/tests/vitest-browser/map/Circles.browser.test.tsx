@@ -366,8 +366,6 @@ describe("Circles", () => {
       uuid: EVA_UUID,
       name: "EVA 1",
       traverseColor: "#ff0000",
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ uuid: STATION_UUID, type: "station" }],
       updatedAt: new Date().toISOString(),
     } as unknown as Eva;
@@ -396,8 +394,6 @@ describe("Circles", () => {
       uuid: EVA_UUID,
       name: "EVA 1",
       traverseColor: "#ff0000",
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "lander",
       sequence: [{ uuid: STATION_UUID, type: "station" }],
       updatedAt: new Date().toISOString(),
     } as unknown as Eva;

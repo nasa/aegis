@@ -30,16 +30,11 @@ export function FollowMode(): null {
   const { submenuPos: mapDisplayPos } = useMapMenuContext();
 
   const planetRadius = useMissionDocSelector((doc) => doc.planetRadius, refEqual);
-  const landerLocation = useMissionDocSelector((doc) => doc.landerLocation, deepEqual);
 
   const runningRex = useMissionDocSelector(
     (m) => Object.values(m.rexes ?? {}).find((r) => r.isRunning) ?? null,
     deepEqual
   );
-  const runningEva = useMissionDocSelector((m) => {
-    if (!runningRex) return null;
-    return m.evas?.[runningRex.evaUuid] ?? null;
-  }, deepEqual);
   const allStationsFromDoc = useMissionDocSelector(
     (m) => Object.values(m.stations ?? {}),
     deepEqual
@@ -122,7 +117,6 @@ export function FollowMode(): null {
     const points: Coordinate[] = [];
 
     const actionsFromDoc = allActionsFromDoc ?? [];
-    const stationsFromDoc = allStationsFromDoc ?? [];
 
     if (followModeOptions.stations?.follow) {
       for (const station of stationsInProgress) {
@@ -164,24 +158,6 @@ export function FollowMode(): null {
       }
     }
 
-    // Egress/ingress
-    if (runningRex?.xgressEntries?.egress?.rexStatus === "in-progress") {
-      if (runningEva?.egressLocationUuid === "lander" && landerLocation) {
-        points.push(toMapCoord(landerLocation));
-      } else {
-        const station = stationsFromDoc.find((s) => s.uuid === runningEva?.egressLocationUuid);
-        if (station?.location) points.push(toMapCoord(station.location));
-      }
-    }
-    if (runningRex?.xgressEntries?.ingress?.rexStatus === "in-progress") {
-      if (runningEva?.ingressLocationUuid === "lander" && landerLocation) {
-        points.push(toMapCoord(landerLocation));
-      } else {
-        const station = stationsFromDoc.find((s) => s.uuid === runningEva?.ingressLocationUuid);
-        if (station?.location) points.push(toMapCoord(station.location));
-      }
-    }
-
     if (points.length === 0) return;
 
     const extent = boundingExtent(points);
@@ -197,9 +173,6 @@ export function FollowMode(): null {
     mapDisplayPos.show,
     allActionsFromDoc,
     runningRex,
-    runningEva,
-    allStationsFromDoc,
-    landerLocation,
     planetRadius,
     toMapCoord,
     map,

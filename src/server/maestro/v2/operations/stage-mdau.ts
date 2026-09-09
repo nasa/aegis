@@ -204,19 +204,9 @@ const stageEvas = (
 
     const stage: EvaStage = { uuid, updatedAt: mdau.updatedAt };
     if (mdau.name !== undefined && mdau.name !== eva.name) stage.name = mdau.name;
-    if (mdau.ingressDuration !== undefined && mdau.ingressDuration !== eva.ingressDuration)
-      stage.ingressDuration = mdau.ingressDuration;
-    if (mdau.egressDuration !== undefined && mdau.egressDuration !== eva.egressDuration)
-      stage.egressDuration = mdau.egressDuration;
     if (mdau.datetime !== undefined && mdau.datetime !== eva.datetime)
       stage.datetime = mdau.datetime;
-    if (
-      stage.name !== undefined ||
-      stage.ingressDuration !== undefined ||
-      stage.egressDuration !== undefined ||
-      stage.datetime !== undefined
-    )
-      stages.push(stage);
+    if (stage.name !== undefined || stage.datetime !== undefined) stages.push(stage);
   }
   return stages;
 };
@@ -261,11 +251,6 @@ const stageMaestroActivityProperties = (
   if (!byRefUuid) return null;
   const result: MaestroActivityProperties = {};
   for (const [key, value] of Object.entries(byRefUuid)) {
-    // xgress keys are not refUuids — pass through verbatim.
-    if (key.endsWith("gress")) {
-      result[key] = { ...value };
-      continue;
-    }
     const uuid = resolveSequenceUuid(maps, key, rexUuid);
     if (uuid) result[uuid] = { ...value };
   }
@@ -333,12 +318,6 @@ const stageRexes = (
       actionEntries[uuid] = { ...mdau.actionEntriesByRefUuid[refUuid] };
     }
 
-    // xgress entries are keyed by xgress uuid (not refUuid) — verbatim.
-    const xgressEntries: RexStage["xgressEntries"] = {};
-    for (const xgressUuid in mdau.xgressEntries) {
-      xgressEntries[xgressUuid] = { ...mdau.xgressEntries[xgressUuid] };
-    }
-
     stages.push({
       uuid: rexUuid,
       fields: {
@@ -356,7 +335,6 @@ const stageRexes = (
       ),
       stationEntries,
       traverseEntries,
-      xgressEntries,
       actionEntries,
     });
   }

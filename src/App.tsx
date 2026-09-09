@@ -14,14 +14,11 @@ import AdminMissionDuplicate from "pages/admin/missionDuplicate";
 import AdminUser from "pages/admin/user";
 import ServerSocketStatus from "pages/admin/serverSocketStatus";
 import Emss from "pages/admin/emss";
-import MaestroV1 from "pages/admin/maestroV1";
 import MaestroV2 from "pages/admin/maestroV2";
 import EnvironmentConfig from "pages/admin/environmentConfig";
 import ManageAutomergeDoc from "pages/admin/automerge";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { setLaunchpadUser } from "store/user";
-import { setClientAppVersion } from "store/connection";
-import { clientLogger } from "utils/logging/clientLogger";
 
 const TestMapPerformant = React.lazy(() => import("pages/testMapPerformant"));
 
@@ -30,18 +27,6 @@ const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElemen
   if (!(props.launchpadUser instanceof Error)) {
     dispatch(setLaunchpadUser(props.launchpadUser));
   }
-
-  // These values are from the vite.config.mts file and are set at build time
-  dispatch(
-    setClientAppVersion({
-      version: __APP_VERSION__,
-      gitCommit: __GIT_COMMIT__,
-    })
-  );
-  clientLogger.info({
-    logId: "appVersion",
-    version: `AEGIS Client Version: ${__APP_VERSION__}, Git Commit: ${__GIT_COMMIT__}`,
-  });
 
   return (
     <>
@@ -68,7 +53,6 @@ const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElemen
         <Route path="/admin/mission_duplicate/:id" element={<AdminMissionDuplicate />} />
         <Route path="/admin/user" element={<AdminUser />} />
         <Route path="/admin/serverSocketStatus" element={<ServerSocketStatus />} />
-        <Route path="/admin/maestroV1" element={<MaestroV1 />} />
         <Route path="/admin/maestroV2" element={<MaestroV2 />} />
         <Route path="/admin/environmentConfig" element={<EnvironmentConfig />} />
         <Route path="/admin/emss" element={<Emss />} />

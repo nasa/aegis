@@ -10,7 +10,12 @@ export interface MaestroServerToClientEvents {
 export interface MaestroClientToServerEvents {
   missionJoin: (missionId: number, maestroVisitor: MaestroVisitor) => void;
   missionLeave: (missionId: number) => void;
-  subscribeToEva: (missionId: number, evaRefUuid: string, rexUuid: string | null) => void;
+  subscribeToEva: (
+    missionId: number,
+    evaRefUuid: string,
+    rexUuid: string | null,
+    callback?: (response: { status: "success" } | { status: "error"; message: string }) => void
+  ) => void;
   unsubscribeToEva: (missionId: number, evaRefUuid: string, rexUuid: string | null) => void;
   getEverything: (
     missionId: number,

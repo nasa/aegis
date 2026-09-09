@@ -1,11 +1,9 @@
 /**
  * /maestro/v2 namespace — Maegistro v2 API client connections
  *
- * Mounted on the new /api/socket Socket.IO server. Auth is enforced once at
+ * Mounted on the /api/socket Socket.IO server. Auth is enforced once at
  * connection time via namespace middleware. All handlers in this file can
  * assume the socket is EMSS-authenticated.
- *
- * Fully isolated from v1 — imports only from `server/maestro/v2/*`.
  */
 import { serverLogger } from "utils/logging/serverLogger";
 import remove from "lodash/remove";
@@ -104,11 +102,15 @@ export const setupMaestroNamespace = (
 
       socket.on(
         "subscribeToEva",
-        async (missionId: number, evaRefUuid: string, rexUuid: string | null) => {
+        async (missionId: number, evaRefUuid: string, rexUuid: string | null, callback) => {
           const subscriptions = globalValues.maestroV2.evaSubscriptions.get(missionId) ?? [];
           // Resolve the eva uuid:
           const evaUuid = await getEvaUuid(missionId, evaRefUuid, rexUuid);
           if (!evaUuid) {
+            callback?.({
+              status: "error",
+              message: `evaUuid not found for this evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
+            });
             serverLogger.warning({
               logId: "socket-maestro-v2",
               logValue: `subscribeToEva - could not get evaUuid from missionId ${missionId}, evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
@@ -119,6 +121,7 @@ export const setupMaestroNamespace = (
             subscriptions.push(evaUuid);
             globalValues.maestroV2.evaSubscriptions.set(missionId, subscriptions);
           }
+          callback?.({ status: "success" });
         }
       );
 

@@ -5,6 +5,17 @@
   /* padding: 3px 6px 3px 6px; */
   background-color: var(--grey2);
 }
+
+.menuLauncher {
+  position: relative;
+  display: flex;
+  padding: 6px;
+  border: 1px solid var(--grey3);
+  border-radius: 0;
+  background-color: var(--grey2);
+  color: var(--grey5);
+  cursor: pointer;
+}
 .menuHeader {
   display: flex;
   cursor: pointer;

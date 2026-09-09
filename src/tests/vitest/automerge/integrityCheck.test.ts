@@ -345,50 +345,29 @@ describe("checkMissionIntegrity()", () => {
   // ── EVA checks ────────────────────────────────────────────────────────────
 
   describe("EVA integrity", () => {
-    it("reports orphaned egressLocationUuid (non-lander)", () => {
-      const mission = makeEmptyMission();
-      const orphanUuid = uuidv4();
-      const eva = generateBlankEVA({ name: "Vitest EVA-1", egressLocationUuid: orphanUuid });
-      mission.evas[eva.uuid] = eva;
-
-      const findings = checkMissionIntegrity(1, mission);
-      expect(findingFields(findings)).toContain("egressLocationUuid");
-      expect(findings.find((f) => f.field === "egressLocationUuid")!.orphanedUuid).toBe(orphanUuid);
-    });
-
-    it("reports orphaned ingressLocationUuid (non-lander)", () => {
-      const mission = makeEmptyMission();
-      const orphanUuid = uuidv4();
-      const eva = generateBlankEVA({ name: "Vitest EVA-1", ingressLocationUuid: orphanUuid });
-      mission.evas[eva.uuid] = eva;
-
-      const findings = checkMissionIntegrity(1, mission);
-      expect(findingFields(findings)).toContain("ingressLocationUuid");
-    });
-
-    it('does not report ingress or egress LocationUuid === "lander"', () => {
-      const mission = makeEmptyMission();
-      // Use lander for both so neither triggers.
-      const eva = generateBlankEVA({
+    /** `[station, traverse, station]` built from real entities. */
+    const makeWellFormedEva = (mission: Mission) => {
+      const egress = generateBlankStation({ name: "Vitest Egress" });
+      const ingress = generateBlankStation({ name: "Vitest Ingress" });
+      const traverse = generateBlankTraverse({ name: "Vitest T1" });
+      mission.stations[egress.uuid] = egress;
+      mission.stations[ingress.uuid] = ingress;
+      mission.traverses[traverse.uuid] = traverse;
+      return generateBlankEVA({
         name: "Vitest EVA-1",
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
-        sequence: [],
+        sequence: [
+          { type: "station", uuid: egress.uuid },
+          { type: "traverse", uuid: traverse.uuid },
+          { type: "station", uuid: ingress.uuid },
+        ],
       });
-      mission.evas[eva.uuid] = eva;
+    };
 
-      expect(checkMissionIntegrity(1, mission)).toEqual([]);
-    });
-
-    it("reports orphaned station uuid in EVA sequence", () => {
+    it("reports an orphaned station uuid in an EVA sequence", () => {
       const mission = makeEmptyMission();
       const orphanUuid = uuidv4();
-      const eva = generateBlankEVA({
-        name: "Vitest EVA-1",
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
-        sequence: [{ type: "station", uuid: orphanUuid }],
-      });
+      const eva = makeWellFormedEva(mission);
+      eva.sequence[0] = { type: "station", uuid: orphanUuid };
       mission.evas[eva.uuid] = eva;
 
       const findings = checkMissionIntegrity(1, mission);
@@ -398,15 +377,11 @@ describe("checkMissionIntegrity()", () => {
       );
     });
 
-    it("reports orphaned traverse uuid in EVA sequence", () => {
+    it("reports an orphaned traverse uuid in an EVA sequence", () => {
       const mission = makeEmptyMission();
       const orphanUuid = uuidv4();
-      const eva = generateBlankEVA({
-        name: "Vitest EVA-1",
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
-        sequence: [{ type: "traverse", uuid: orphanUuid }],
-      });
+      const eva = makeWellFormedEva(mission);
+      eva.sequence[1] = { type: "traverse", uuid: orphanUuid };
       mission.evas[eva.uuid] = eva;
 
       const findings = checkMissionIntegrity(1, mission);
@@ -415,12 +390,8 @@ describe("checkMissionIntegrity()", () => {
 
     it("skips falsy (empty-string) uuid entries in EVA sequence", () => {
       const mission = makeEmptyMission();
-      const eva = generateBlankEVA({
-        name: "Vitest EVA-1",
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
-        sequence: [{ type: "station", uuid: "" }],
-      });
+      const eva = makeWellFormedEva(mission);
+      eva.sequence[0] = { type: "station", uuid: "" };
       mission.evas[eva.uuid] = eva;
 
       // Empty-string uuid should be silently skipped, not reported as orphan.
@@ -430,22 +401,28 @@ describe("checkMissionIntegrity()", () => {
       expect(findings).toHaveLength(0);
     });
 
-    it("does not report valid station/traverse uuids in EVA sequence", () => {
+    it("reports a sequence that does not alternate station/traverse", () => {
       const mission = makeEmptyMission();
-      const station = generateBlankStation({ name: "Vitest S1" });
-      const traverse = generateBlankTraverse({ name: "Vitest T1" });
-      mission.stations[station.uuid] = station;
-      mission.traverses[traverse.uuid] = traverse;
+      const eva = makeWellFormedEva(mission);
+      // Drop the trailing ingress station, leaving the sequence ending on a traverse.
+      eva.sequence = eva.sequence.slice(0, 2);
+      mission.evas[eva.uuid] = eva;
 
-      const eva = generateBlankEVA({
-        name: "Vitest EVA-1",
-        egressLocationUuid: station.uuid,
-        ingressLocationUuid: station.uuid,
-        sequence: [
-          { type: "traverse", uuid: traverse.uuid },
-          { type: "station", uuid: station.uuid },
-        ],
-      });
+      const findings = checkMissionIntegrity(1, mission);
+      expect(findingFields(findings)).toContain("sequence[] (shape)");
+    });
+
+    it("does not report a well-formed EVA sequence", () => {
+      const mission = makeEmptyMission();
+      const eva = makeWellFormedEva(mission);
+      mission.evas[eva.uuid] = eva;
+
+      expect(checkMissionIntegrity(1, mission)).toEqual([]);
+    });
+
+    it("does not report an EVA with an empty sequence", () => {
+      const mission = makeEmptyMission();
+      const eva = generateBlankEVA({ name: "Vitest EVA-1", sequence: [] });
       mission.evas[eva.uuid] = eva;
 
       expect(checkMissionIntegrity(1, mission)).toEqual([]);
@@ -478,8 +455,6 @@ describe("checkMissionIntegrity()", () => {
       const mission = makeEmptyMission();
       const eva = generateBlankEVA({
         name: "Vitest EVA-1",
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
         sequence: [],
       });
       const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
@@ -589,8 +564,6 @@ describe("checkMissionIntegrity()", () => {
       const action = generateBlankAction({ name: "Vitest A1" });
       const eva = generateBlankEVA({
         name: "Vitest EVA-1",
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
         sequence: [],
       });
       const rex = generateBlankRex({

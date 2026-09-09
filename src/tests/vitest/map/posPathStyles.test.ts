@@ -192,4 +192,31 @@ describe("buildPosPathStyleFunction", () => {
     const arrow = fn(feat, 1).find(isArrow);
     expect(arrow!.getImage()!.getOpacity()).toBeCloseTo(0.6);
   });
+
+  it("draws no arrow on a zero-length path", () => {
+    // Regression: a REX seeds every initial crew position at the same egress
+    // coordinate, so the path collapses to a single point. The midpoint
+    // fallback used to place a stray chevron there with an arbitrary angle.
+    const fn = buildPosPathStyleFunction();
+    const feat = makeFeature(
+      [
+        [100, 100],
+        [100, 100],
+      ],
+      { color: "#ff00ff" }
+    );
+    expect(fn(feat, 1).filter(isArrow)).toHaveLength(0);
+  });
+
+  it("still draws a fallback arrow on a short but non-zero path", () => {
+    const fn = buildPosPathStyleFunction();
+    const feat = makeFeature(
+      [
+        [0, 0],
+        [5, 0],
+      ],
+      { color: "#00ff00" }
+    );
+    expect(fn(feat, 1).filter(isArrow)).toHaveLength(1);
+  });
 });

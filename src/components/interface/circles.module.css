@@ -22,6 +22,12 @@
   margin: 0 0 5px 10px;
 }
 
+.circleSubtextLanderStation {
+  font-size: 0.9em;
+  color: var(--grey4);
+  margin: 0 0 0 10px;
+}
+
 .circleSubtextLink {
   text-decoration: underline;
   cursor: pointer;

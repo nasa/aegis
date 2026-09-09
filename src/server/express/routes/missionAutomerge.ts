@@ -340,22 +340,13 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 
 export default router;
 
+/**
+ * Check if a mission has any stations placed with walkbacks to lander.
+ */
 export function missionHasLanderDependentEntities(mission: Mission): boolean {
-  const hasPlacedStation = Object.values(mission.stations ?? {}).some(
+  return Object.values(mission.stations ?? {}).some(
     (station) => station.location != null || (station.walkbackPath?.length ?? 0) > 0
   );
-  if (hasPlacedStation) return true;
-
-  return Object.values(mission.evas ?? {}).some((eva) => {
-    if (eva.sequence.length === 0) return false;
-
-    const firstTraverse = mission.traverses?.[eva.sequence[0].uuid];
-    const lastTraverse = mission.traverses?.[eva.sequence[eva.sequence.length - 1].uuid];
-    return Boolean(
-      (eva.egressLocationUuid === "lander" && firstTraverse) ||
-      (eva.ingressLocationUuid === "lander" && lastTraverse)
-    );
-  });
 }
 
 /**

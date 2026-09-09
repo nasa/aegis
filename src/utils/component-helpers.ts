@@ -156,8 +156,6 @@ export const getRexStatusDisplayProperties = (
  *
  * Priority for the row background:
  *   selected > rex state > hover > none
- *
- * Egress/ingress rows have no "selected" state — pass `isSelected: false`.
  */
 export const getSequenceItemRowStyles = ({
   rexStatus,

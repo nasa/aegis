@@ -54,6 +54,14 @@ export function HoverHighlight(): null {
     return selectedRexUuid ? (m.rexes?.[selectedRexUuid]?.posEntries ?? []) : [];
   }, deepEqual);
 
+  // Lander copies have no marker of their own, so a hover on one resolves to the
+  // standalone lander feature that actually occupies that coordinate.
+  const hoveredIsLanderXgress = useMissionDocSelector(
+    (m) =>
+      mapHoverItemType === "station" && m.stations?.[mapHoverItemUuid]?.isLanderXgress === true,
+    refEqual
+  );
+
   const sourceRef = useRef(new VectorSource());
   const layerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const featureRef = useRef<Feature | null>(null);
@@ -103,12 +111,13 @@ export function HoverHighlight(): null {
     }
 
     // Find the hovered feature across all layers
+    const featureIdToFind = hoveredIsLanderXgress ? "lander" : mapHoverItemUuid;
     let targetFeature: Feature | null = null;
     map.getLayers().forEach((layer) => {
       if (targetFeature) return;
       const layerSource = (layer as { getSource?: () => VectorSource }).getSource?.();
       if (layerSource?.getFeatureById) {
-        const f = layerSource.getFeatureById(mapHoverItemUuid);
+        const f = layerSource.getFeatureById(featureIdToFind);
         if (f) targetFeature = f as Feature;
       }
     });
@@ -137,7 +146,15 @@ export function HoverHighlight(): null {
         featureRef.current = null;
       }
     };
-  }, [map, mode, mapHoverItemUuid, mapHoverItemType, posEntries, toMapCoord]);
+  }, [
+    map,
+    mode,
+    mapHoverItemUuid,
+    mapHoverItemType,
+    hoveredIsLanderXgress,
+    posEntries,
+    toMapCoord,
+  ]);
 
   return null;
 }

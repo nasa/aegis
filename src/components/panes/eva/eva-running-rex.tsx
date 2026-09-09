@@ -18,7 +18,7 @@ import {
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { setSelectedRexUuid } from "store/rex";
-import EvaItemSequence, { EvaEgressIngressListing } from "./eva-item-sequence";
+import EvaItemSequence from "./eva-item-sequence";
 import { Button } from "components/interface/form/globalFields";
 import { thunkDocAddStationToEva } from "store/thunk/thunkEva";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
@@ -140,17 +140,10 @@ export const EvaSequenceRunningRex: FunctionComponent<{
   const dispatch = useAppDispatch();
   const editMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
 
-  const isRexEva = useMissionDocSelector((mission) => {
-    if (!mission?.rexes) return false;
-    return Object.values(mission.rexes).some((rex) => rex.evaUuid === evaUuid);
-  }, refEqual);
-
   return (
     <>
       <div className={styles.evaSequenceContainer}>
-        <EvaEgressIngressListing evaUuid={evaUuid} isEgress={true} isRexEva={isRexEva} />
         <EvaItemSequence evaUuid={evaUuid} />
-        <EvaEgressIngressListing evaUuid={evaUuid} isEgress={false} isRexEva={isRexEva} />
       </div>
       {editMode && (
         <div className={styles.evaFooterContainer}>

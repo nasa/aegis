@@ -104,12 +104,6 @@ export function checkMissionIntegrity(missionId: number, doc: Mission): Integrit
 
   // ── EVAs ───────────────────────────────────────────────────────────────────
   for (const eva of Object.values(doc.evas ?? {})) {
-    if (eva.egressLocationUuid !== "lander" && !stationUuids.has(eva.egressLocationUuid)) {
-      log("egressLocationUuid", eva.egressLocationUuid, "EVA", eva.uuid);
-    }
-    if (eva.ingressLocationUuid !== "lander" && !stationUuids.has(eva.ingressLocationUuid)) {
-      log("ingressLocationUuid", eva.ingressLocationUuid, "EVA", eva.uuid);
-    }
     // Guard against falsy uuids — empty-string entries in sequence are invalid data,
     // not missing entities, and should not be reported as orphans.
     for (const item of eva.sequence ?? []) {
@@ -118,6 +112,18 @@ export function checkMissionIntegrity(missionId: number, doc: Mission): Integrit
         log("sequence[].uuid (station)", item.uuid, "EVA", eva.uuid);
       } else if (item.type === "traverse" && !traverseUuids.has(item.uuid)) {
         log("sequence[].uuid (traverse)", item.uuid, "EVA", eva.uuid);
+      }
+    }
+
+    // The sequence must alternate station/traverse and start/end with
+    // egress and ingress stations.
+    const sequence = eva.sequence ?? [];
+    if (sequence.length > 0) {
+      const expectedShape =
+        sequence.length % 2 === 1 &&
+        sequence.every((item, i) => item.type === (i % 2 === 0 ? "station" : "traverse"));
+      if (!expectedShape) {
+        log("sequence[] (shape)", `length=${sequence.length}`, "EVA", eva.uuid);
       }
     }
   }

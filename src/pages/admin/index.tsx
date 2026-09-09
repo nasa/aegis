@@ -118,12 +118,6 @@ const Index: React.FunctionComponent = () => {
                 enabled={!!user?.isSuperAdmin}
               />
               <NavCard
-                to="/admin/maestroV1"
-                title="Maegistro v1 Monitor (Legacy)"
-                description="Monitor legacy Maegistro v1 connections on /api/v1/socketio on the /maestro namespace."
-                enabled={!!user?.isSuperAdmin}
-              />
-              <NavCard
                 to="/admin/maestroV2"
                 title="Maegistro v2 Monitor"
                 description="Monitor Maegistro v2 connections on /api/socket on the /maestro/v2 namespace."

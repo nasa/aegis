@@ -18,7 +18,7 @@ npm run vite:dev
 # Backend only (with hot reload)
 npm run api:dev
 
-# Start required Docker services (PostgreSQL + GDAL)
+# Start required Docker services (PostgreSQL)
 npm run docker:services
 
 # Build everything
@@ -84,7 +84,8 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
 | `src/components/interface/map/` | OpenLayers map implementation (active map layer)             |
 | `src/pages/`                    | Top-level page components routed by React Router             |
 | `src/store/`                    | Redux Toolkit slices, thunks, selectors, and store utilities |
-| `src/client/`                   | Automerge mutation helpers (client-side doc operations)      |
+| `src/client/`                   | Automerge doc handle access and the gated network adapter    |
+| `src/operations/`               | Automerge mutation helpers (`apply*`, `stage*`, helpers)     |
 | `src/http-client/`              | Typed `fetch` wrappers for every REST endpoint               |
 | `src/utils/`                    | Shared helpers: logging, formatting, permissions, socket ops |
 | `src/packages/`                 | Lightweight shared utilities (fetchFns, user helpers)        |
@@ -97,41 +98,49 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
 - **React 18** SPA bootstrapped by Vite.
 - **Redux Toolkit** manages UI state only. Slices live in `src/store/` (no `slices/` subdirectory), async operations in `src/store/thunk/`, memoized selectors in `src/store/selectors.ts`. Entity data (missions, EVAs, stations, POIs, etc.) is **not** stored in Redux — it lives exclusively in Automerge documents. Redux slices track only UI state: selected items, expanded panels, navigation state, etc.
 - **OpenLayers** drives the map canvas. Map-related components live under `src/components/interface/map/` (the three entry points are `AegisMapEditor.tsx`, `AegisMapDashboard.tsx`, and `AegisMapMinimap.tsx`). See `src/components/interface/map/CLAUDE.md` for full architecture details.
-- **Automerge** (v3 + automerge-repo) is the primary data layer for all collaborative entities. The repo is initialized in `src/index.tsx` with a WebSocket adapter pointed at `/api/automergeSocket/`. All entity mutations (mission, EVA, station, POI, traverse, action, rex) go through Automerge; mutation helpers are in `src/client/automerge/`. Selectors in `src/store/selectors.ts` read directly from Automerge doc state (e.g. `selectAsPlannedStations(mission: Mission)`) rather than from Redux.
+- **Automerge** (v3 + automerge-repo) is the primary data layer for all collaborative entities. The repo is initialized in `src/index.tsx` with a WebSocket adapter pointed at `/api/automergeSocket/`. All entity mutations (mission, EVA, station, POI, traverse, action, rex) go through Automerge; mutation helpers are in `src/operations/`. Selectors in `src/store/selectors.ts` read directly from Automerge doc state (e.g. `selectAsPlannedStations(mission: Mission)`) rather than from Redux.
 - **Automerge mutation architecture** is organised into three layers to guarantee that each logical operation produces exactly one `.change()` patch (no half-built state visible to peers):
-  - `apply*` (`src/client/automerge/apply/`): inner draft mutators that receive `(m: Mission, args)` and mutate the doc. Pure sync; never call `.change()` or import `missionDocHandle`. _(ESLint-enforced.)_
-  - `stage*` (`src/client/automerge/stage/`): plan builders that receive a `Mission` snapshot and return a typed `*StageData` object (in `src/typings/thunkStageData.d.ts`) with all new uuids pre-allocated. Used for cascading multi-entity operations and any reusable plan-building logic shared across thunks. Two tiers exist:
+  - `apply*` (`src/operations/apply/`): inner draft mutators that receive `(m: Mission, args)` and mutate the doc. Pure sync; never call `.change()` or import `missionDocHandle`. _(ESLint-enforced.)_
+  - `stage*` (`src/operations/stage/`): plan builders that receive a `Mission` snapshot and return a typed `*StageData` object (in `src/typings/thunkStageData.d.ts`) with all new uuids pre-allocated. Used for cascading multi-entity operations and any reusable plan-building logic shared across thunks. Two tiers exist:
     - **Sync stages** (default, most common): pure sync, no I/O. Examples: `stageDuplicateEva`, `stageDeleteRex`.
     - **Async stages** (allowed when needed): may `await` from a small allow-list of read-only data thunks (currently only `thunkGetElevation`). They still never call `.change()` and never call mutation thunks. Example: `stageTraverseUpdate`.
     - _(ESLint-enforced: `automergeDocHandles` blocked entirely; `store/thunk/**` blocked except the explicit allow-list.)_
   - `thunk*` (`src/store/thunk/*`): async orchestrators that may pre-fetch elevation/REST, then run a single `.change()` per logical operation.
   - **`withMissionChange`** (`src/client/automergeDocHandles.ts`): the only sanctioned mutation entry-point for components. Wraps the null-guard and `.change()` call so callers never have to handle either: `withMissionChange((m) => applyFoo(m, args))`. Composing multiple `apply*` inside one call is atomic.
-  - See `src/client/automerge/README.md` for the full convention with examples.
+  - See `src/operations/README.md` for the full convention with examples.
 - **Socket.io** client syncs non-Automerge real-time events (connection status, live notifications, preset/STM/folder upserts).
 - Vite path aliases map `"store"`, `"components"`, `"utils"`, etc. directly to `src/` subdirectories — use these aliases in imports.
 
 ### Backend
 
 - **Express 5** REST API on port 4001. Routes are organized by resource under `src/server/express/routes/`. REST routes cover infrastructure and admin concerns (auth, users, doc listings, elevation, STM rules, folders, grids, layers, presets, mission management utilities). Entity create/read/update/delete for action/eva/poi/rex/station/traverse is **not** handled via REST — those operations go through Automerge.
+- **Elevation sampling** runs natively in the API through `src/server/raster/` and
+  `src/server/elevation/`. It reads each mission's configured GeoTIFF directly from `STATIC_DIR`;
+  there is no separate GDAL/Python runtime service.
 - **MikroORM 6** with PostgreSQL. Entity models live in `src/server/database/models/`. DB models still exist for legacy entities (action, eva, poi, rex, station, traverse) and are used by the Automerge migration script, but these entities are no longer read/written via ORM at runtime. Every request runs inside a `RequestContext` middleware for ORM isolation.
-- **Socket.io** runs on **two separate Socket.IO server instances**:
-  - **New server** (path `/api/socket`) — hosts the default AEGIS namespace and the Maestro v2 namespace.
-  - **Legacy server** (path `/api/v1/socketio`) — hosts the Maestro v1 namespace only; retained for backward compatibility with older Maestro clients.
-  - **Default namespace** (`/` on the new server) — handles AEGIS web-client connections: visitor presence, heartbeats (`statusFromServer` every 10s), and `storeUpsert`/`storeDelete` events for non-Automerge entities (Presets, STM Rules, Folders). Handlers are in `src/server/express/sockets.ts`.
-  - **`/maestro` namespace** (on the legacy server, path `/api/v1/socketio`) — Maestro v1. Auth is enforced via EMSS token middleware. Emits `dataAll` (full `AegisSlice.AegisSlice` payload) throttled at 500 ms per mission to the room `maestro{missionId}`. Handlers: `missionJoin`, `missionLeave`, `subscribeToEva`, `unsubscribeToEva`, `getEverything`, `rexOverwrite` (v1-only), `getDebugInfo`. Setup in `src/server/maestro/v1/sockets-maestro.ts`; emission logic in `src/server/maestro/v1/sockets-maestro-emitters.ts`. **Deprecated — no new work should target v1.**
-  - **`/maestro/v2` namespace** (on the new server, path `/api/socket`) — Maestro v2. Same auth and room conventions as v1. Handlers: `missionJoin`, `missionLeave`, `subscribeToEva`, `unsubscribeToEva`, `getEverything`, `sendMDAU` (v2-only; receives `MDAU.MaestroDataAegisUses` and writes back station updates to the Automerge doc), `getDebugInfo`. `rexOverwrite` has been removed. Setup in `src/server/maestro/v2/sockets-maestro.ts`; emission logic in `src/server/maestro/v2/sockets-maestro-emitters.ts`. **This is the target for all new Maestro integration work.**
+- **Socket.io** runs on a single Socket.IO server instance mounted at path `/api/socket`, hosting two namespaces:
+  - **Default namespace** (`/`) — handles AEGIS web-client connections: visitor presence, heartbeats (`statusFromServer` every 10s), and `storeUpsert`/`storeDelete` events for non-Automerge entities (Presets, STM Rules, Folders). Handlers are in `src/server/express/sockets.ts`.
+  - **`/maestro/v2` namespace** — Maestro v2. Auth is enforced via EMSS token middleware. Emits `dataAll` (full `AegisSlice.AegisSlice` payload) throttled at 500 ms per mission to the room `maestro{missionId}`. Handlers: `missionJoin`, `missionLeave`, `subscribeToEva`, `unsubscribeToEva`, `getEverything`, `sendMDAU` (receives `MDAU.MaestroDataAegisUses` and writes back station updates to the Automerge doc), `getDebugInfo`. Setup in `src/server/maestro/v2/sockets-maestro.ts`; emission logic in `src/server/maestro/v2/sockets-maestro-emitters.ts`.
 
 ### Maestro Type Files — Do Not Modify Without Coordination
 
 The following type declaration files define the contract between AEGIS and the external Maestro application. **AI agents must never modify these files.** Any change requires explicit coordination with the Maestro developer team, as both sides must update simultaneously:
 
-- `src/server/maestro/v1/types/aegisSlice.d.ts` — `AegisSlice` namespace (v1 outbound payload shape)
-- `src/server/maestro/v1/types/mdau.d.ts` — `MDAU` namespace (v1 inbound payload shape)
-- `src/server/maestro/v2/types/aegisSlice.d.ts` — `AegisSlice` namespace (v2 outbound payload shape)
-- `src/server/maestro/v2/types/mdau.d.ts` — `MDAU` namespace (v2 inbound payload shape)
+- `src/server/maestro/v2/types/aegisSlice.d.ts` — `AegisSlice` namespace (outbound payload shape)
+- `src/server/maestro/v2/types/mdau.d.ts` — `MDAU` namespace (inbound payload shape)
 
 - **Automerge repo** network adapter mounts at `/api/automergeSocket/` via WebSocket upgrade, using a custom `PostgresStorageAdapter` to persist documents to PostgreSQL.
 - **Authentication** is delegated to `@emss/oauth2-proxy-backend`; secrets and environment config come from `env.secret.ts` (gitignored) and dotenv.
+
+### Automerge Socket Epoch Gate (`serverEpochUuid`)
+
+A browser tab left open across a server restart holds in-memory Automerge state authored against the pre-restart document. Reconnecting would merge those stale changes back in — most damaging right after a schema migration. The gate prevents that by refusing the reconnect and forcing a full page reload, which discards all client Automerge state (the client `Repo` has no storage adapter, so nothing survives a reload).
+
+- **`serverEpochUuid`** identifies one server lifetime. It is a uuid generated at boot in `src/server/express/server.ts` and carried on `AppVersion` alongside `version`/`gitCommit`, so `GET /api/v1/version` and the Socket.IO `version` event both serve it. Any restart of the apiv1 process — including a normal deploy, where a bare `compose up -d` recreates apiv1 — produces a new value.
+- **Server gate (authoritative)** — the HTTP `upgrade` handler in `src/server/express/server.ts` compares the `?serverEpochUuid=` query parameter against the current value and answers a raw `426 Upgrade Required` on any mismatch or omission. It must `return` silently for every non-Automerge path, since Socket.IO shares the same `upgrade` listener.
+- **Client adapter** — `VersionGatedNetworkAdapter` (`src/client/automerge-network-adapter.ts`) wraps the vendor WebSocket adapter, appends the epoch to the URL, and polls `/api/v1/version` every 5s while disconnected. A matching epoch reconnects; a differing one blocks permanently and redirects to `/versionCheck`. A failed fetch (server down mid-deploy) keeps polling without redirecting. It never emits `close` (that would permanently remove it from the `NetworkSubsystem`) and force-readies after ~1s so a blocked gate cannot hang `whenReady()` callers.
+- **Read-only UI** — `connection.automergeConnectionStatus` feeds `isConnected` in `src/store/selectors.ts`, so losing only the Automerge socket now also disables the Edit toggle and form Save buttons.
+- Note for local development: nodemon restarts the API process, so saving a server file changes the epoch and forces open dev tabs to reload.
 
 ### Data Flow
 
@@ -141,13 +150,13 @@ Browser ──HTTP──▶ Express REST routes ──▶ MikroORM ──▶ Pos
        ──WS──▶   Socket.io handlers
 ```
 
-REST responses are wrapped as `WrappedResponse<T>` with a `status` field (`"ok"` | `"error"`) — match this shape in all new endpoints and `http-client/` functions.
+REST responses are wrapped as `WrappedResponse<T>` with a `status` field (`"success"` | `"failure"` | `"error"`) — match this shape in all new endpoints and `http-client/` functions.
 
 ### Domain Concepts
 
 The app organizes around these core entities. Since the Automerge entity migration, the storage layer differs per entity — see the table below:
 
-| Entity                      | Automerge helpers (`src/client/automerge/apply/`)    | Redux slice (UI state only) | DB model    | REST routes    |
+| Entity                      | Automerge helpers (`src/operations/apply/`)          | Redux slice (UI state only) | DB model    | REST routes    |
 | --------------------------- | ---------------------------------------------------- | --------------------------- | ----------- | -------------- |
 | **Mission**                 | `apply-mission.ts` + sub-files                       | `mission.ts`                | ✅          | ✅             |
 | **EVA**                     | `apply-eva.ts`                                       | `eva.ts`                    | ✅ (legacy) | ❌ removed     |

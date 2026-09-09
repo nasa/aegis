@@ -67,7 +67,6 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     posSources: [posSourceCrew, posSourceTask, posSourceScience],
     stationEntries: null,
     traverseEntries: null,
-    xgressEntries: null,
     actionEntries: null,
     maestroControlled: false,
     maestroEventId: null,

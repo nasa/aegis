@@ -1,6 +1,5 @@
 export const globalValues: GlobalValues = {
   socketio: null,
-  socketioLegacy: null,
   serverSocketStatus: {
     visitorsData: [],
     lastEditEvents: {},
@@ -10,13 +9,6 @@ export const globalValues: GlobalValues = {
   appVersion: null,
   isEmssApiEnabled: true,
   automergeRepo: null,
-  maestroV1: {
-    visitorData: {},
-    socketio: null,
-    docListeners: new Map(),
-    docHandles: new Map(),
-    evaSubscriptions: new Map(),
-  },
   maestroV2: {
     visitorData: {},
     socketio: null,

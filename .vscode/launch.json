@@ -17,22 +17,6 @@
       "webRoot": "${workspaceFolder}/src"
     },
     {
-      "name": "gdal: Remote Attach",
-      "type": "debugpy",
-      "request": "attach",
-      "connect": {
-        "host": "localhost",
-        "port": 5678
-      },
-      "pathMappings": [
-        {
-          "localRoot": "${workspaceFolder}/server/python",
-          "remoteRoot": "/app"
-        }
-      ],
-      "justMyCode": true
-    },
-    {
       "type": "node",
       "request": "launch",
       "name": "Vitest All",

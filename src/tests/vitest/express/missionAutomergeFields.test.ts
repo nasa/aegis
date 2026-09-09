@@ -1,7 +1,7 @@
 import { missionHasLanderDependentEntities } from "server/express/routes/missionAutomerge";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 describe("missionHasLanderDependentEntities", () => {
@@ -30,30 +30,54 @@ describe("missionHasLanderDependentEntities", () => {
     expect(missionHasLanderDependentEntities(mission)).toBe(true);
   });
 
-  test("returns true for an EVA with a lander-connected traverse", () => {
+  test("returns true for a placed lander xgress station", () => {
+    const mission = generateBlankMission();
+    const landerEgress = generateLanderXgressStation({
+      xgressType: "egress",
+      name: "Lander",
+      missionId: 0,
+      location: { lat: 1, lng: 2 },
+      elevation: null,
+    });
+    mission.stations[landerEgress.uuid] = landerEgress;
+
+    expect(missionHasLanderDependentEntities(mission)).toBe(true);
+  });
+
+  test("returns true for an EVA whose sequence holds a placed station", () => {
     const mission = generateBlankMission();
     const traverse = generateBlankTraverse();
+    const landerEgress = generateLanderXgressStation({
+      xgressType: "egress",
+      name: "Lander",
+      missionId: 0,
+      location: { lat: 0, lng: 0 },
+      elevation: null,
+    });
+    const ingress = generateBlankStation({ name: "Station", location: { lat: 1, lng: 2 } });
     const eva = generateBlankEVA({
-      sequence: [{ type: "traverse", uuid: traverse.uuid }],
-      egressLocationUuid: "lander",
-      ingressLocationUuid: "station",
+      sequence: [
+        { type: "station", uuid: landerEgress.uuid },
+        { type: "traverse", uuid: traverse.uuid },
+        { type: "station", uuid: ingress.uuid },
+      ],
     });
     mission.traverses[traverse.uuid] = traverse;
+    mission.stations[landerEgress.uuid] = landerEgress;
+    mission.stations[ingress.uuid] = ingress;
     mission.evas[eva.uuid] = eva;
 
     expect(missionHasLanderDependentEntities(mission)).toBe(true);
   });
 
-  test("ignores EVAs that do not touch the lander", () => {
+  test("returns false for a mission whose stations are all unplaced", () => {
     const mission = generateBlankMission();
     const traverse = generateBlankTraverse();
-    const eva = generateBlankEVA({
-      sequence: [{ type: "traverse", uuid: traverse.uuid }],
-      egressLocationUuid: "station-a",
-      ingressLocationUuid: "station-b",
-    });
+    const station1 = generateBlankStation({ name: "Station A" });
+    const station2 = generateBlankStation({ name: "Station B" });
     mission.traverses[traverse.uuid] = traverse;
-    mission.evas[eva.uuid] = eva;
+    mission.stations[station1.uuid] = station1;
+    mission.stations[station2.uuid] = station2;
 
     expect(missionHasLanderDependentEntities(mission)).toBe(false);
   });

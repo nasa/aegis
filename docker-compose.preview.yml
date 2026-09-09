@@ -14,6 +14,11 @@ services:
       context: .
       dockerfile: ./docker/nginx/Dockerfile
       target: prod
+      args:
+        # .env is excluded from the Docker build context (.dockerignore), so these must be
+        # passed explicitly as build args
+        VITE_PUBLIC_CONSOLE_LOG_LEVEL: ${VITE_PUBLIC_CONSOLE_LOG_LEVEL}
+        VITE_PUBLIC_REMOTE_LOG_LEVEL: ${VITE_PUBLIC_REMOTE_LOG_LEVEL}
 
   apiv1:
     image: aegis-preview-apiv1:latest
@@ -25,10 +30,3 @@ services:
       # Override what is in .env (which may be "localhost" to support native local dev) such
       # that it is always "database" in a full Docker-Compose setup.
       - DB_HOST=database
-
-  gdal:
-    image: aegis-preview-gdal:latest
-    build:
-      context: .
-      dockerfile: ./docker/gdal/Dockerfile
-      target: base

@@ -1,7 +1,7 @@
 import { decodeEmoji } from "utils/formatting";
 import {
-  getMaestroCalculatedFieldsForStation,
-  getMaestroCalculatedFieldsForTraverse,
+  getMaestroCalcFieldsForStation,
+  getMaestroCalcFieldsForTraverse,
 } from "store/processing/calculatedFields";
 import { makeEquipmentReadable, makeReadableActionDefinition } from "utils/export";
 import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
@@ -150,16 +150,6 @@ const formatEvasForMaestro = (
         }
         return { type: seqItem.type, refUuid };
       }),
-      ingressLocationRefUuid:
-        eva.ingressLocationUuid === "lander"
-          ? "lander"
-          : (mission.stations[eva.ingressLocationUuid]?.refUuid ?? ""),
-      ingressDuration: eva.ingressDuration ?? 0,
-      egressLocationRefUuid:
-        eva.egressLocationUuid === "lander"
-          ? "lander"
-          : (mission.stations[eva.egressLocationUuid]?.refUuid ?? ""),
-      egressDuration: eva.egressDuration ?? 0,
       datetime: eva.datetime,
       createdAt: eva.createdAt,
       updatedAt: eva.updatedAt,
@@ -185,11 +175,12 @@ const formatStationsForMaestro = (
       refUuid: station.refUuid,
       iconEmojiDecoded: decodeEmoji(station.icon),
       duration: station.duration,
-      calculatedFields: getMaestroCalculatedFieldsForStation(stationActions),
+      calculatedFields: getMaestroCalcFieldsForStation(stationActions),
       description: station.description,
       actionOrderRefUuids:
         station.actionOrderUuids?.map((uuid) => mission.actions[uuid]?.refUuid).filter(Boolean) ??
         [],
+      isLanderXgress: station.isLanderXgress,
       createdAt: station.createdAt,
       updatedAt: station.updatedAt,
       ...(rex && { rexUuid: rex.uuid }),
@@ -219,7 +210,7 @@ const formatTraversesForMaestro = (
       createdAt: traverse.createdAt,
       updatedAt: traverse.updatedAt,
       duration: traverse.duration,
-      calculatedFields: getMaestroCalculatedFieldsForTraverse({
+      calculatedFields: getMaestroCalcFieldsForTraverse({
         traverse,
         missionTraverseRate: mission.traverseRate,
         evaTraverseRate: traverseEva?.traverseRate,

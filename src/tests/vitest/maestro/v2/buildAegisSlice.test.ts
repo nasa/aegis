@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { buildAegisSliceForMaestro } from "server/maestro/v2/buildAegisSlice";
 import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankRex } from "store/storeUtils/rex";
@@ -24,8 +24,8 @@ vi.mock("utils/export", () => ({
 }));
 
 vi.mock("store/processing/calculatedFields", () => ({
-  getMaestroCalculatedFieldsForStation: vi.fn().mockReturnValue({}),
-  getMaestroCalculatedFieldsForTraverse: vi.fn().mockReturnValue({}),
+  getMaestroCalcFieldsForStation: vi.fn().mockReturnValue({}),
+  getMaestroCalcFieldsForTraverse: vi.fn().mockReturnValue({}),
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -299,6 +299,81 @@ describe("buildAegisSliceForMaestro", () => {
     expect(typeof action.updatedAt).toBe("number");
     expect(action.createdAt).toBe(actionInSubscribed.createdAt);
     expect(action.updatedAt).toBe(actionInSubscribed.updatedAt);
+  });
+
+  it("includes lander xgress stations at the egress and ingress ends of the sequence", async () => {
+    const landerLocation: AEGISPoint = { lat: 1, lng: 2 };
+    const egressStation = generateLanderXgressStation({
+      xgressType: "egress",
+      name: "Vitest Lander Egress",
+      missionId: MISSION_ID,
+      duration: 20,
+      location: { ...landerLocation },
+      elevation: null,
+    });
+    const ingressStation = generateLanderXgressStation({
+      xgressType: "ingress",
+      name: "Vitest Lander Ingress",
+      missionId: MISSION_ID,
+      duration: 25,
+      location: { ...landerLocation },
+      elevation: null,
+    });
+    const middleStation = generateBlankStation({
+      name: "Vitest Middle Station",
+      missionId: MISSION_ID,
+    });
+    const traverseOut = generateBlankTraverse({
+      name: "Vitest Lander Egress to Vitest Middle Station",
+      missionId: MISSION_ID,
+    });
+    const traverseBack = generateBlankTraverse({
+      name: "Vitest Middle Station to Vitest Lander Ingress",
+      missionId: MISSION_ID,
+    });
+
+    const eva = generateBlankEVA({
+      name: "Vitest EVA With Lander Xgress",
+      missionId: MISSION_ID,
+      sequence: [
+        { type: "station", uuid: egressStation.uuid },
+        { type: "traverse", uuid: traverseOut.uuid },
+        { type: "station", uuid: middleStation.uuid },
+        { type: "traverse", uuid: traverseBack.uuid },
+        { type: "station", uuid: ingressStation.uuid },
+      ],
+    });
+
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [eva.uuid]);
+
+    const mockCoreData = buildMockCoreData({
+      evas: [eva],
+      stations: [egressStation, middleStation, ingressStation],
+      traverses: [traverseOut, traverseBack],
+    });
+    mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
+
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
+
+    // All three stations, including both lander xgress ends, must be present.
+    expect(Object.keys(result.aegisStations)).toHaveLength(3);
+    expect(result.aegisStations[egressStation.refUuid]).toBeDefined();
+    expect(result.aegisStations[ingressStation.refUuid]).toBeDefined();
+    expect(result.aegisStations[middleStation.refUuid]).toBeDefined();
+
+    // Fields on a lander station reach Maestro unchanged.
+    expect(result.aegisStations[egressStation.refUuid].name).toBe("Vitest Lander Egress");
+    expect(result.aegisStations[egressStation.refUuid].duration).toBe(20);
+    expect(result.aegisStations[ingressStation.refUuid].name).toBe("Vitest Lander Ingress");
+    expect(result.aegisStations[ingressStation.refUuid].duration).toBe(25);
+
+    // The EVA's sequenceRefUuids keep the xgress stations at either end.
+    const sequenceRefUuids = result.aegisEvas[eva.refUuid].sequenceRefUuids;
+    expect(sequenceRefUuids[0]).toEqual({ type: "station", refUuid: egressStation.refUuid });
+    expect(sequenceRefUuids[sequenceRefUuids.length - 1]).toEqual({
+      type: "station",
+      refUuid: ingressStation.refUuid,
+    });
   });
 });
 

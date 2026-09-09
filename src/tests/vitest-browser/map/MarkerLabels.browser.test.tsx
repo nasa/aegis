@@ -120,8 +120,6 @@ function makeEva(uuid: string, stationUuids: string[]): Eva {
     uuid,
     name: "Test EVA",
     traverseColor: "#ff0000",
-    egressLocationUuid: "lander",
-    ingressLocationUuid: "lander",
     sequence: stationUuids.map((u) => ({ uuid: u, type: "station" })),
     updatedAt: new Date().toISOString(),
   } as unknown as Eva;
@@ -593,7 +591,6 @@ describe("MarkerLabels", () => {
         evaUuid: EVA_UUID,
         stationEntries: { [STATION_A_UUID]: { rexStatus: "in-progress" } },
         traverseEntries: {},
-        xgressEntries: {},
       },
     } as unknown as Mission["rexes"];
 
@@ -626,7 +623,6 @@ describe("MarkerLabels", () => {
         evaUuid: EVA_UUID,
         stationEntries: { [STATION_A_UUID]: { rexStatus: "pending" } },
         traverseEntries: {},
-        xgressEntries: {},
       },
     } as unknown as Mission["rexes"];
 

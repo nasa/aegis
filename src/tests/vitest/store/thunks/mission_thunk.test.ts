@@ -3,7 +3,17 @@ import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
 import { createTestStoreWithAutomergeMission } from "tests/vitest/fixtures/store";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
+
+const makeLanderStation = (location: AEGISPoint): Station =>
+  generateLanderXgressStation({
+    xgressType: "egress",
+    name: "Lander",
+    missionId: 0,
+    location: { ...location },
+    elevation: null,
+  });
 
 const mockThunkFetchElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
@@ -45,7 +55,8 @@ describe("Thunk Mission Tests", () => {
       missionDocHandle.change((m: Mission) => {
         const stations = Object.values(m.stations);
         for (const s of stations) {
-          if (s.location) {
+          // Lander stations move with the lander and never get a walkback.
+          if (s.location && !s.isLanderXgress) {
             // Spread proxy refs into plain objects — assigning a live Automerge
             // proxy directly into an array inside .change() throws
             // "cannot create a reference to an existing document object".
@@ -70,27 +81,38 @@ describe("Thunk Mission Tests", () => {
         expect(s.walkbackPath[s.walkbackPath.length - 1]).toEqual(newLanderLoc);
       }
 
-      // EVAs with `lander` egress: their first traverse should start at the new
+      // Every lander station moves with the lander.
+      const landerStations = Object.values(getMission().stations).filter((s) => s.isLanderXgress);
+      expect(landerStations.length).toBeGreaterThan(0);
+      for (const s of landerStations) {
+        expect(s.location).toEqual(newLanderLoc);
+      }
+
+      // EVAs egressing at the lander: their first traverse starts at the new
       // lander location.
       const evaFromLander = Object.values(getMission().evas).find(
-        (e) => e.egressLocationUuid === "lander" && e.sequence.length > 0
+        (e) =>
+          e.sequence.length > 0 &&
+          getMission().stations[e.sequence[0].uuid]?.isLanderXgress === true
       );
       if (evaFromLander) {
-        const traverseFromLander = getMission().traverses[evaFromLander.sequence[0].uuid];
+        const traverseFromLander = getMission().traverses[evaFromLander.sequence[1].uuid];
         expect(traverseFromLander.path[0]).toEqual(newLanderLoc);
       } else {
         // Fail test, this case did not run
         expect.fail("No EVA with lander egress — lander traverse assertion did not run");
       }
 
-      // EVAs with `lander` ingress: their last traverse should end at the new
+      // EVAs ingressing at the lander: their last traverse ends at the new
       // lander location.
       const evaToLander = Object.values(getMission().evas).find(
-        (e) => e.ingressLocationUuid === "lander" && e.sequence.length > 0
+        (e) =>
+          e.sequence.length > 0 &&
+          getMission().stations[e.sequence[e.sequence.length - 1].uuid]?.isLanderXgress === true
       );
       if (evaToLander) {
-        const lastSeq = evaToLander.sequence[evaToLander.sequence.length - 1];
-        const traverseToLander = getMission().traverses[lastSeq.uuid];
+        const lastTraverseSeq = evaToLander.sequence[evaToLander.sequence.length - 2];
+        const traverseToLander = getMission().traverses[lastTraverseSeq.uuid];
         expect(traverseToLander.path[traverseToLander.path.length - 1]).toEqual(newLanderLoc);
       } else {
         // Fail test, this case did not run
@@ -145,16 +167,22 @@ describe("Thunk Mission Tests", () => {
       const midpoint: AEGISPoint = { lat: 10, lng: 10 };
       traverse.path = [{ ...oldLanderLoc }, { ...midpoint }, { lat: 20, lng: 20 }];
 
+      const egressStation = makeLanderStation(oldLanderLoc);
+      const ingressStation = makeLanderStation(oldLanderLoc);
       const eva = generateBlankEVA({
         name: "Lander Egress EVA",
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
-        sequence: [{ uuid: traverse.uuid, type: "traverse" }],
+        sequence: [
+          { uuid: egressStation.uuid, type: "station" },
+          { uuid: traverse.uuid, type: "traverse" },
+          { uuid: ingressStation.uuid, type: "station" },
+        ],
       });
 
       missionDocHandle.change((m: Mission) => {
         m.landerLocation = { ...oldLanderLoc };
         m.traverses[traverse.uuid] = { ...traverse };
+        m.stations[egressStation.uuid] = { ...egressStation };
+        m.stations[ingressStation.uuid] = { ...ingressStation };
         m.evas[eva.uuid] = { ...eva };
       });
 
@@ -177,16 +205,22 @@ describe("Thunk Mission Tests", () => {
       const midpoint: AEGISPoint = { lat: 5, lng: 5 };
       traverse.path = [{ lat: 20, lng: 20 }, { ...midpoint }, { ...oldLanderLoc }];
 
+      const egressStation = makeLanderStation(oldLanderLoc);
+      const ingressStation = makeLanderStation(oldLanderLoc);
       const eva = generateBlankEVA({
         name: "Lander Ingress EVA",
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
-        sequence: [{ uuid: traverse.uuid, type: "traverse" }],
+        sequence: [
+          { uuid: egressStation.uuid, type: "station" },
+          { uuid: traverse.uuid, type: "traverse" },
+          { uuid: ingressStation.uuid, type: "station" },
+        ],
       });
 
       missionDocHandle.change((m: Mission) => {
         m.landerLocation = { ...oldLanderLoc };
         m.traverses[traverse.uuid] = { ...traverse };
+        m.stations[egressStation.uuid] = { ...egressStation };
+        m.stations[ingressStation.uuid] = { ...ingressStation };
         m.evas[eva.uuid] = { ...eva };
       });
 
@@ -215,20 +249,31 @@ describe("Thunk Mission Tests", () => {
       const sharedTraverse = generateBlankTraverse({ name: "Shared Traverse" });
       sharedTraverse.path = [{ ...oldLanderLoc }, { ...midpoint }, { ...oldLanderLoc }];
 
+      const evaAEgress = makeLanderStation(oldLanderLoc);
+      const evaAIngress = makeLanderStation(oldLanderLoc);
+      const evaBEgress = makeLanderStation(oldLanderLoc);
+      const evaBIngress = makeLanderStation(oldLanderLoc);
       const evaA = generateBlankEVA({
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
-        sequence: [{ uuid: sharedTraverse.uuid, type: "traverse" }],
+        sequence: [
+          { uuid: evaAEgress.uuid, type: "station" },
+          { uuid: sharedTraverse.uuid, type: "traverse" },
+          { uuid: evaAIngress.uuid, type: "station" },
+        ],
       });
       const evaB = generateBlankEVA({
-        egressLocationUuid: "lander",
-        ingressLocationUuid: "lander",
-        sequence: [{ uuid: sharedTraverse.uuid, type: "traverse" }],
+        sequence: [
+          { uuid: evaBEgress.uuid, type: "station" },
+          { uuid: sharedTraverse.uuid, type: "traverse" },
+          { uuid: evaBIngress.uuid, type: "station" },
+        ],
       });
 
       missionDocHandle.change((m: Mission) => {
         m.landerLocation = { ...oldLanderLoc };
         m.traverses[sharedTraverse.uuid] = { ...sharedTraverse };
+        for (const s of [evaAEgress, evaAIngress, evaBEgress, evaBIngress]) {
+          m.stations[s.uuid] = { ...s };
+        }
         m.evas[evaA.uuid] = { ...evaA };
         m.evas[evaB.uuid] = { ...evaB };
       });
@@ -253,13 +298,10 @@ describe("Thunk Mission Tests", () => {
     });
 
     it("skips evas with empty sequences (no traverse to update)", async () => {
-      // Set all evas to have empty sequence with lander egress/ingress
       const missionDocHandle = getMissionDocHandle();
       missionDocHandle.change((m: Mission) => {
         for (const e of Object.values(m.evas)) {
           e.sequence = [];
-          e.egressLocationUuid = "lander";
-          e.ingressLocationUuid = "lander";
         }
       });
 

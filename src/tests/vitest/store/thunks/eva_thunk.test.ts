@@ -15,12 +15,7 @@ import {
   thunkUIChangeEvaDropdown,
   thunkUISetOnlyShowRunningRexEva,
 } from "store/thunk/thunkEva";
-import {
-  getMissionDocHandle,
-  setMissionAutomergeDocHandle,
-  withMissionChange,
-} from "client/automergeDocHandles";
-import { applyUpdateEvaByField } from "operations/apply/apply-eva";
+import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { initialState as evaInitialState } from "store/eva";
 
 const confirmSpy = vi.spyOn(window, "confirm").mockImplementation(() => true);
@@ -80,7 +75,15 @@ describe("Thunk EVA Tests", () => {
       expect(eva).toBeDefined();
 
       const evaTraverseUuids = eva.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid);
-      const evaStationUuids = eva.sequence.filter((s) => s.type === "station").map((s) => s.uuid);
+      // Shared stations survive; the EVA's own lander stations do not.
+      const evaStationUuids = eva.sequence
+        .filter((s) => s.type === "station")
+        .map((s) => s.uuid)
+        .filter((uuid) => !mission.stations[uuid]?.isLanderXgress);
+      const landerStationUuids = eva.sequence
+        .filter((s) => s.type === "station")
+        .map((s) => s.uuid)
+        .filter((uuid) => mission.stations[uuid]?.isLanderXgress);
 
       await store.dispatch(thunkDocDeleteEva({ evaUuid: eva.uuid, forRex: false }));
 
@@ -92,10 +95,15 @@ describe("Thunk EVA Tests", () => {
         expect(getMission().traverses[traverseUuid]).toBeUndefined();
       }
 
-      // Stations should NOT be deleted for a non-rex EVA delete — they are
-      // shared resources and must remain in the mission doc.
+      // Shared stations should NOT be deleted for a non-rex EVA delete.
       for (const stationUuid of evaStationUuids) {
         expect(getMission().stations[stationUuid]).toBeDefined();
+      }
+
+      // The lander station were owned by this EVA, so they go with it.
+      expect(landerStationUuids.length).toBeGreaterThan(0);
+      for (const stationUuid of landerStationUuids) {
+        expect(getMission().stations[stationUuid]).toBeUndefined();
       }
 
       // Any actions whose traverseUuid pointed at the deleted traverses should
@@ -121,56 +129,28 @@ describe("Thunk EVA Tests", () => {
       }
     });
 
-    it("deletes a rex EVA and its sequence stations + ingress/egress", async () => {
+    it("deletes a rex EVA and every station in its sequence, xgress stations included", async () => {
       const mission = getMission();
       const eva = Object.values(mission.evas).find((e) => e.name === "Vitest Eva-1 Rex Version");
       expect(eva).toBeDefined();
 
-      // Point ingress/egress at real stations (not lander) to exercise that branch
-      const stationNotInEva = Object.values(mission.stations).find(
-        (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid)
-      );
-      expect(stationNotInEva).toBeDefined();
-      withMissionChange((m) =>
-        applyUpdateEvaByField(m, {
-          evaUuid: eva.uuid,
-          fieldName: "egressLocationUuid",
-          value: stationNotInEva.uuid,
-        })
-      );
-      withMissionChange((m) =>
-        applyUpdateEvaByField(m, {
-          evaUuid: eva.uuid,
-          fieldName: "ingressLocationUuid",
-          value: stationNotInEva.uuid,
-        })
-      );
-      // refresh local handle to the updated eva
-      const refreshedEva = getMission().evas[eva.uuid];
-      const evaTraverseUuids = refreshedEva.sequence
-        .filter((s) => s.type === "traverse")
-        .map((s) => s.uuid);
-      const evaStationUuids = refreshedEva.sequence
-        .filter((s) => s.type === "station")
-        .map((s) => s.uuid);
+      const evaTraverseUuids = eva.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid);
+      const evaStationUuids = eva.sequence.filter((s) => s.type === "station").map((s) => s.uuid);
 
-      await store.dispatch(thunkDocDeleteEva({ evaUuid: refreshedEva.uuid, forRex: true }));
+      await store.dispatch(thunkDocDeleteEva({ evaUuid: eva.uuid, forRex: true }));
 
       // eva removed
-      expect(getMission().evas[refreshedEva.uuid]).toBeUndefined();
+      expect(getMission().evas[eva.uuid]).toBeUndefined();
 
       // traverses removed
       for (const traverseUuid of evaTraverseUuids) {
         expect(getMission().traverses[traverseUuid]).toBeUndefined();
       }
 
-      // stations in the sequence removed (forRex deletes them)
+      // every station the REX EVA owned is removed, xgress stations included
       for (const stationUuid of evaStationUuids) {
         expect(getMission().stations[stationUuid]).toBeUndefined();
       }
-
-      // ingress/egress station removed
-      expect(getMission().stations[stationNotInEva.uuid]).toBeUndefined();
     });
 
     it("deletes an as-planned EVA together with all rexes pointing at it", async () => {
@@ -256,27 +236,16 @@ describe("Thunk EVA Tests", () => {
   });
 
   describe("thunkDocDuplicateEva", () => {
-    it("duplicates an EVA without stations (traverses cloned, stations untouched)", async () => {
+    it("duplicates an EVA without stations (traverses + lander stations cloned)", async () => {
       const mission = getMission();
-      const eva = Object.values(mission.evas).find((e) => e.sequence.length > 0);
-      // Use lander for ingress/egress so we don't accidentally exercise the
-      // ingress/egress duplication branch.
-      withMissionChange((m) =>
-        applyUpdateEvaByField(m, {
-          evaUuid: eva.uuid,
-          fieldName: "egressLocationUuid",
-          value: "lander",
-        })
-      );
-      withMissionChange((m) =>
-        applyUpdateEvaByField(m, {
-          evaUuid: eva.uuid,
-          fieldName: "ingressLocationUuid",
-          value: "lander",
-        })
-      );
+      const eva = Object.values(mission.evas).find((e) => e.name === "Vitest Eva-2 Planned No Rex");
 
       const numTraversesInEva = eva.sequence.filter((s) => s.type === "traverse").length;
+      // Lander stations are owned by one EVA, so they are copied even when the
+      // user opts out of duplicating stations.
+      const numLanderStationsInEva = eva.sequence.filter(
+        (s) => s.type === "station" && mission.stations[s.uuid]?.isLanderXgress
+      ).length;
       const numEvasBefore = Object.keys(getMission().evas).length;
       const numTraversesBefore = Object.keys(getMission().traverses).length;
       const numStationsBefore = Object.keys(getMission().stations).length;
@@ -289,27 +258,15 @@ describe("Thunk EVA Tests", () => {
       expect(Object.keys(getMission().traverses).length).toEqual(
         numTraversesBefore + numTraversesInEva
       );
-      // Stations should NOT have been duplicated
-      expect(Object.keys(getMission().stations).length).toEqual(numStationsBefore);
+      expect(numLanderStationsInEva).toBe(2);
+      expect(Object.keys(getMission().stations).length).toEqual(
+        numStationsBefore + numLanderStationsInEva
+      );
     });
 
     it("duplicates an EVA with stations (stations + traverses all cloned)", async () => {
       const mission = getMission();
-      const eva = Object.values(mission.evas).find((e) => e.sequence.length > 0);
-      withMissionChange((m) =>
-        applyUpdateEvaByField(m, {
-          evaUuid: eva.uuid,
-          fieldName: "egressLocationUuid",
-          value: "lander",
-        })
-      );
-      withMissionChange((m) =>
-        applyUpdateEvaByField(m, {
-          evaUuid: eva.uuid,
-          fieldName: "ingressLocationUuid",
-          value: "lander",
-        })
-      );
+      const eva = Object.values(mission.evas).find((e) => e.name === "Vitest Eva-2 Planned No Rex");
 
       const numTraversesInEva = eva.sequence.filter((s) => s.type === "traverse").length;
       const numStationsInEva = eva.sequence.filter((s) => s.type === "station").length;
@@ -330,28 +287,11 @@ describe("Thunk EVA Tests", () => {
       );
     });
 
-    it("duplicates an EVA for REX (stations + ingress/egress all cloned, new EVA has blank name)", async () => {
+    it("duplicates an EVA for REX (all sequence stations cloned, new EVA has blank name)", async () => {
       const mission = getMission();
-      let eva = Object.values(mission.evas).find((e) => e.name === "Vitest Eva-1 Planned with Rex");
-      const stationNotInEva = Object.values(mission.stations).find(
-        (s) => !eva.sequence?.map((seq) => seq.uuid).includes(s.uuid)
+      const eva = Object.values(mission.evas).find(
+        (e) => e.name === "Vitest Eva-1 Planned with Rex"
       );
-      withMissionChange((m) =>
-        applyUpdateEvaByField(m, {
-          evaUuid: eva.uuid,
-          fieldName: "egressLocationUuid",
-          value: stationNotInEva.uuid,
-        })
-      );
-      withMissionChange((m) =>
-        applyUpdateEvaByField(m, {
-          evaUuid: eva.uuid,
-          fieldName: "ingressLocationUuid",
-          value: stationNotInEva.uuid,
-        })
-      );
-      // refresh
-      eva = getMission().evas[eva.uuid];
 
       const numTraversesInEva = eva.sequence.filter((s) => s.type === "traverse").length;
       const numStationsInEva = eva.sequence.filter((s) => s.type === "station").length;
@@ -373,9 +313,8 @@ describe("Thunk EVA Tests", () => {
       expect(Object.keys(getMission().traverses).length).toEqual(
         numTraversesBefore + numTraversesInEva
       );
-      // sequence stations + ingress + egress all duplicated
       expect(Object.keys(getMission().stations).length).toEqual(
-        numStationsBefore + numStationsInEva + 2
+        numStationsBefore + numStationsInEva
       );
     });
   });
@@ -395,15 +334,20 @@ describe("Thunk EVA Tests", () => {
     });
 
     describe("thunkDocDeleteStationFromEva", () => {
-      it("removes the first station + its leading traverse", async () => {
-        const eva = Object.values(getMission().evas).find((e) => e.sequence.length === 7);
+      // Sequence: [egress, t, s, t, s, t, s, t, ingress] — removable stations
+      // sit at indices 2, 4 and 6.
+      const findEvaWithThreeStations = () =>
+        Object.values(getMission().evas).find((e) => e.sequence.length === 9);
+
+      it("removes the first removable station + its trailing traverse", async () => {
+        const eva = findEvaWithThreeStations();
         const evaSequence = eva.sequence;
         const traverseCount = Object.keys(getMission().traverses).length;
 
         await store.dispatch(
           thunkDocDeleteStationFromEva({
             evaSequence,
-            sequenceIndex: 1,
+            sequenceIndex: 2,
             evaUuid: eva.uuid,
             isRexEva: false,
           })
@@ -416,14 +360,14 @@ describe("Thunk EVA Tests", () => {
       });
 
       it("removes a middle station + a surrounding traverse", async () => {
-        const eva = Object.values(getMission().evas).find((e) => e.sequence.length === 7);
+        const eva = findEvaWithThreeStations();
         const evaSequence = eva.sequence;
         const traverseCount = Object.keys(getMission().traverses).length;
 
         await store.dispatch(
           thunkDocDeleteStationFromEva({
             evaSequence,
-            sequenceIndex: 3,
+            sequenceIndex: 4,
             evaUuid: eva.uuid,
             isRexEva: false,
           })
@@ -435,15 +379,15 @@ describe("Thunk EVA Tests", () => {
         expect(mockThunkFetchElevation).toHaveBeenCalledTimes(1);
       });
 
-      it("removes the last station + its trailing traverse", async () => {
-        const eva = Object.values(getMission().evas).find((e) => e.sequence.length === 7);
+      it("removes the last removable station + its trailing traverse", async () => {
+        const eva = findEvaWithThreeStations();
         const evaSequence = eva.sequence;
         const traverseCount = Object.keys(getMission().traverses).length;
 
         await store.dispatch(
           thunkDocDeleteStationFromEva({
             evaSequence,
-            sequenceIndex: 5,
+            sequenceIndex: 6,
             evaUuid: eva.uuid,
             isRexEva: false,
           })
@@ -453,18 +397,38 @@ describe("Thunk EVA Tests", () => {
         expect(newSequence.length).toEqual(evaSequence.length - 2);
         expect(Object.keys(getMission().traverses).length).toEqual(traverseCount - 1);
         expect(mockThunkFetchElevation).toHaveBeenCalledTimes(1);
+      });
+
+      it("leaves the pinned egress and ingress stations in place", async () => {
+        const eva = findEvaWithThreeStations();
+        const evaSequence = eva.sequence;
+        const egressUuid = evaSequence[0].uuid;
+        const ingressUuid = evaSequence[evaSequence.length - 1].uuid;
+
+        await store.dispatch(
+          thunkDocDeleteStationFromEva({
+            evaSequence,
+            sequenceIndex: 2,
+            evaUuid: eva.uuid,
+            isRexEva: false,
+          })
+        );
+
+        const newSequence = getMission().evas[eva.uuid].sequence;
+        expect(newSequence[0].uuid).toEqual(egressUuid);
+        expect(newSequence[newSequence.length - 1].uuid).toEqual(ingressUuid);
       });
 
       it("(isRexEva=true) deletes the station record before removing it from the sequence", async () => {
-        const eva = Object.values(getMission().evas).find((e) => e.sequence.length === 7);
+        const eva = findEvaWithThreeStations();
         const evaSequence = eva.sequence;
-        const stationUuidToDelete = evaSequence[1].uuid;
+        const stationUuidToDelete = evaSequence[2].uuid;
         const stationsBefore = Object.keys(getMission().stations).length;
 
         await store.dispatch(
           thunkDocDeleteStationFromEva({
             evaSequence,
-            sequenceIndex: 1,
+            sequenceIndex: 2,
             evaUuid: eva.uuid,
             isRexEva: true,
           })
@@ -494,7 +458,7 @@ describe("Thunk EVA Tests", () => {
 
         await store.dispatch(
           thunkDocChangeStationInEva({
-            sequenceIndex: 1,
+            sequenceIndex: 2,
             newStationUuid: stationNotInEva.uuid,
             evaUuid: eva.uuid,
             isRexEva: false,
@@ -502,7 +466,7 @@ describe("Thunk EVA Tests", () => {
         );
 
         const updatedEva = getMission().evas[eva.uuid];
-        expect(updatedEva.sequence[1].uuid).toEqual(stationNotInEva.uuid);
+        expect(updatedEva.sequence[2].uuid).toEqual(stationNotInEva.uuid);
         // No duplication for non-rex
         expect(Object.keys(getMission().stations).length).toEqual(numStationsBefore);
         expect(mockThunkFetchElevation).toHaveBeenCalledTimes(2);
@@ -520,11 +484,11 @@ describe("Thunk EVA Tests", () => {
               .map((seq) => seq.uuid)
               .includes(s.uuid)
         );
-        const oldStationUuid = eva.sequence[1].uuid;
+        const oldStationUuid = eva.sequence[2].uuid;
 
         await store.dispatch(
           thunkDocChangeStationInEva({
-            sequenceIndex: 1,
+            sequenceIndex: 2,
             newStationUuid: stationNotInEva.uuid,
             oldStationUuid,
             evaUuid: eva.uuid,
@@ -533,9 +497,9 @@ describe("Thunk EVA Tests", () => {
         );
 
         const newSequence = getMission().evas[eva.uuid].sequence;
-        // The new sequence slot no longer points at the original new station — it
+        // The new sequence position no longer points at the original new station — it
         // points at the duplicate that was created for the rex.
-        expect(newSequence[1].uuid).not.toEqual(stationNotInEva.uuid);
+        expect(newSequence[2].uuid).not.toEqual(stationNotInEva.uuid);
         // Old station deleted, new one duplicated -> net zero change in station count
         expect(Object.keys(getMission().stations).length).toEqual(numStationsBefore);
         // Old station removed from doc
@@ -546,35 +510,58 @@ describe("Thunk EVA Tests", () => {
 
     describe("thunkDocReorderStationInEva", () => {
       it("swaps two stations and updates the traverses around them", async () => {
-        const eva = Object.values(getMission().evas).find((e) => e.sequence.length >= 5);
+        const eva = Object.values(getMission().evas).find((e) => e.sequence.length === 9);
         const originalSequence = [...eva.sequence];
 
         await store.dispatch(
           thunkDocReorderStationInEva({
             direction: "up",
             evaSequence: eva.sequence,
-            stationIndex: 3,
+            stationIndex: 4,
             evaUuid: eva.uuid,
           })
         );
 
         const updatedSequence = getMission().evas[eva.uuid].sequence;
-        expect(updatedSequence[1].uuid).toEqual(originalSequence[3].uuid);
-        expect(updatedSequence[3].uuid).toEqual(originalSequence[1].uuid);
+        expect(updatedSequence[2].uuid).toEqual(originalSequence[4].uuid);
+        expect(updatedSequence[4].uuid).toEqual(originalSequence[2].uuid);
         expect(mockThunkFetchElevation).toHaveBeenCalledTimes(3);
+      });
+
+      it("refuses to move a station into a pinned xgress position", async () => {
+        const eva = Object.values(getMission().evas).find((e) => e.sequence.length === 9);
+        const originalSequence = [...eva.sequence];
+
+        // Index 2 is the first movable station; moving it up would displace egress.
+        await store.dispatch(
+          thunkDocReorderStationInEva({
+            direction: "up",
+            evaSequence: eva.sequence,
+            stationIndex: 2,
+            evaUuid: eva.uuid,
+          })
+        );
+
+        const updatedSequence = getMission().evas[eva.uuid].sequence;
+        expect(updatedSequence.map((i) => i.uuid)).toEqual(originalSequence.map((i) => i.uuid));
       });
     });
 
     describe("thunkDocChangeIngressEgress", () => {
-      it("(isRexEva=false) updates ingress, then egress, on a non-rex EVA", async () => {
+      const xgressStationUuid = (evaUuid: string, role: "egress" | "ingress"): string => {
+        const sequence = getMission().evas[evaUuid].sequence;
+        return role === "egress" ? sequence[0].uuid : sequence[sequence.length - 1].uuid;
+      };
+
+      it("(isRexEva=false) points the position at the chosen station and drops the lander station", async () => {
         const eva = Object.values(getMission().evas).find(
           (e) => e.name === "Vitest Eva-2 Planned No Rex"
         );
         const stationNotInEva = Object.values(getMission().stations).find(
-          (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid)
+          (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid) && !s.isLanderXgress
         );
+        const oldIngressUuid = xgressStationUuid(eva.uuid, "ingress");
 
-        // Update ingress (non-rex path so we don't duplicate)
         await store.dispatch(
           thunkDocChangeIngressEgress({
             type: "ingress",
@@ -583,10 +570,22 @@ describe("Thunk EVA Tests", () => {
             isRexEva: false,
           })
         );
-        expect(getMission().evas[eva.uuid].ingressLocationUuid).toEqual(stationNotInEva.uuid);
-        expect(mockThunkFetchElevation).toHaveBeenCalledTimes(1);
 
-        // Update egress
+        // The position now holds the chosen station itself — no copy is made.
+        expect(xgressStationUuid(eva.uuid, "ingress")).toEqual(stationNotInEva.uuid);
+        // The lander station it replaced was owned by the EVA, so it is gone.
+        expect(getMission().stations[oldIngressUuid]).toBeUndefined();
+        expect(mockThunkFetchElevation).toHaveBeenCalledTimes(1);
+      });
+
+      it("(isRexEva=false) switching back to the lander creates a fresh lander station", async () => {
+        const eva = Object.values(getMission().evas).find(
+          (e) => e.name === "Vitest Eva-2 Planned No Rex"
+        );
+        const stationNotInEva = Object.values(getMission().stations).find(
+          (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid) && !s.isLanderXgress
+        );
+
         await store.dispatch(
           thunkDocChangeIngressEgress({
             type: "egress",
@@ -595,30 +594,31 @@ describe("Thunk EVA Tests", () => {
             isRexEva: false,
           })
         );
-        expect(getMission().evas[eva.uuid].egressLocationUuid).toEqual(stationNotInEva.uuid);
-        expect(mockThunkFetchElevation).toHaveBeenCalledTimes(2);
-      });
+        expect(xgressStationUuid(eva.uuid, "egress")).toEqual(stationNotInEva.uuid);
 
-      it("(isRexEva=true) duplicates new station, deletes old non-lander station for ingress", async () => {
-        const eva = Object.values(getMission().evas).find(
-          (e) => e.name === "Vitest Eva-1 Rex Version"
-        );
-        // Find two stations not in the EVA sequence to use as ingress targets
-        const stationsNotInEva = Object.values(getMission().stations).filter(
-          (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid)
-        );
-        const oldIngressStation = stationsNotInEva[0];
-        const newIngressStation = stationsNotInEva[1];
-
-        // Set up: give the EVA a non-lander ingress station to be replaced
-        withMissionChange((m) =>
-          applyUpdateEvaByField(m, {
+        await store.dispatch(
+          thunkDocChangeIngressEgress({
+            type: "egress",
+            newStationUuidOrLander: "lander",
             evaUuid: eva.uuid,
-            fieldName: "ingressLocationUuid",
-            value: oldIngressStation.uuid,
+            isRexEva: false,
           })
         );
 
+        const newEgress = getMission().stations[xgressStationUuid(eva.uuid, "egress")];
+        expect(newEgress.isLanderXgress).toBe(true);
+        // The shared station is not owned by the EVA, so it survives.
+        expect(getMission().stations[stationNotInEva.uuid]).toBeDefined();
+      });
+
+      it("(isRexEva=true) duplicates the new station and deletes the old one for ingress", async () => {
+        const eva = Object.values(getMission().evas).find(
+          (e) => e.name === "Vitest Eva-1 Rex Version"
+        );
+        const newIngressStation = Object.values(getMission().stations).find(
+          (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid) && !s.isLanderXgress
+        );
+        const oldIngressUuid = xgressStationUuid(eva.uuid, "ingress");
         const stationsBefore = Object.keys(getMission().stations).length;
 
         await store.dispatch(
@@ -626,39 +626,28 @@ describe("Thunk EVA Tests", () => {
             type: "ingress",
             evaUuid: eva.uuid,
             newStationUuidOrLander: newIngressStation.uuid,
-            oldStationUuidOrLander: oldIngressStation.uuid,
             isRexEva: true,
           })
         );
 
-        // Old station should be deleted
-        expect(getMission().stations[oldIngressStation.uuid]).toBeUndefined();
-        // A new duplicate station should have been created (net zero change)
+        // The REX EVA owned the outgoing station, so it is deleted...
+        expect(getMission().stations[oldIngressUuid]).toBeUndefined();
+        // ...and replaced by a private copy of the chosen station (net zero).
         expect(Object.keys(getMission().stations).length).toEqual(stationsBefore);
-        // The ingress should now point at the new duplicate (not the original station uuid)
-        const updatedEva = getMission().evas[eva.uuid];
-        expect(updatedEva.ingressLocationUuid).not.toEqual(newIngressStation.uuid);
-        expect(updatedEva.ingressLocationUuid).not.toEqual(oldIngressStation.uuid);
+        const slotUuid = xgressStationUuid(eva.uuid, "ingress");
+        expect(slotUuid).not.toEqual(newIngressStation.uuid);
+        expect(slotUuid).not.toEqual(oldIngressUuid);
+        expect(getMission().stations[newIngressStation.uuid]).toBeDefined();
       });
 
-      it("(isRexEva=true) duplicates new station, deletes old non-lander station for egress", async () => {
+      it("(isRexEva=true) duplicates the new station and deletes the old one for egress", async () => {
         const eva = Object.values(getMission().evas).find(
           (e) => e.name === "Vitest Eva-1 Rex Version"
         );
-        const stationsNotInEva = Object.values(getMission().stations).filter(
-          (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid)
+        const newEgressStation = Object.values(getMission().stations).find(
+          (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid) && !s.isLanderXgress
         );
-        const oldEgressStation = stationsNotInEva[0];
-        const newEgressStation = stationsNotInEva[1];
-
-        withMissionChange((m) =>
-          applyUpdateEvaByField(m, {
-            evaUuid: eva.uuid,
-            fieldName: "egressLocationUuid",
-            value: oldEgressStation.uuid,
-          })
-        );
-
+        const oldEgressUuid = xgressStationUuid(eva.uuid, "egress");
         const stationsBefore = Object.keys(getMission().stations).length;
 
         await store.dispatch(
@@ -666,62 +655,63 @@ describe("Thunk EVA Tests", () => {
             type: "egress",
             evaUuid: eva.uuid,
             newStationUuidOrLander: newEgressStation.uuid,
-            oldStationUuidOrLander: oldEgressStation.uuid,
             isRexEva: true,
           })
         );
 
-        expect(getMission().stations[oldEgressStation.uuid]).toBeUndefined();
+        expect(getMission().stations[oldEgressUuid]).toBeUndefined();
         expect(Object.keys(getMission().stations).length).toEqual(stationsBefore);
-        const updatedEva = getMission().evas[eva.uuid];
-        expect(updatedEva.egressLocationUuid).not.toEqual(newEgressStation.uuid);
-        expect(updatedEva.egressLocationUuid).not.toEqual(oldEgressStation.uuid);
+        const slotUuid = xgressStationUuid(eva.uuid, "egress");
+        expect(slotUuid).not.toEqual(newEgressStation.uuid);
+        expect(slotUuid).not.toEqual(oldEgressUuid);
       });
 
-      it("(isRexEva=true) handles lander→lander no-op (same uuid)", async () => {
+      it("is a no-op when the position already holds the requested location", async () => {
         const eva = Object.values(getMission().evas).find(
           (e) => e.name === "Vitest Eva-1 Rex Version"
         );
-        // Set ingress to lander
-        withMissionChange((m) =>
-          applyUpdateEvaByField(m, {
+        // Put a lander copy in the ingress position.
+        await store.dispatch(
+          thunkDocChangeIngressEgress({
+            type: "ingress",
             evaUuid: eva.uuid,
-            fieldName: "ingressLocationUuid",
-            value: "lander",
+            newStationUuidOrLander: "lander",
+            isRexEva: true,
           })
         );
         const stationsBefore = Object.keys(getMission().stations).length;
+        const slotBefore = xgressStationUuid(eva.uuid, "ingress");
 
         await store.dispatch(
           thunkDocChangeIngressEgress({
             type: "ingress",
             evaUuid: eva.uuid,
             newStationUuidOrLander: "lander",
-            oldStationUuidOrLander: "lander",
             isRexEva: true,
           })
         );
 
-        // Same uuid → early return, no changes
         expect(Object.keys(getMission().stations).length).toEqual(stationsBefore);
-        expect(getMission().evas[eva.uuid].ingressLocationUuid).toEqual("lander");
+        expect(xgressStationUuid(eva.uuid, "ingress")).toEqual(slotBefore);
       });
 
-      it("(isRexEva=true) new=lander, old=non-lander deletes old ingress station", async () => {
+      it("(isRexEva=true) switching to the lander deletes the old station and its actions", async () => {
         const eva = Object.values(getMission().evas).find(
           (e) => e.name === "Vitest Eva-1 Rex Version"
         );
         const stationNotInEva = Object.values(getMission().stations).find(
-          (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid)
-        );
-        withMissionChange((m) =>
-          applyUpdateEvaByField(m, {
-            evaUuid: eva.uuid,
-            fieldName: "ingressLocationUuid",
-            value: stationNotInEva.uuid,
-          })
+          (s) => !eva.sequence.map((seq) => seq.uuid).includes(s.uuid) && !s.isLanderXgress
         );
 
+        await store.dispatch(
+          thunkDocChangeIngressEgress({
+            type: "ingress",
+            evaUuid: eva.uuid,
+            newStationUuidOrLander: stationNotInEva.uuid,
+            isRexEva: true,
+          })
+        );
+        const copiedStationUuid = xgressStationUuid(eva.uuid, "ingress");
         const stationsBefore = Object.keys(getMission().stations).length;
 
         await store.dispatch(
@@ -729,15 +719,17 @@ describe("Thunk EVA Tests", () => {
             type: "ingress",
             evaUuid: eva.uuid,
             newStationUuidOrLander: "lander",
-            oldStationUuidOrLander: stationNotInEva.uuid,
             isRexEva: true,
           })
         );
 
-        // Old non-lander station deleted, new is "lander" so no duplication
-        expect(getMission().stations[stationNotInEva.uuid]).toBeUndefined();
-        expect(Object.keys(getMission().stations).length).toEqual(stationsBefore - 1);
-        expect(getMission().evas[eva.uuid].ingressLocationUuid).toEqual("lander");
+        // The REX's private copy is deleted and a lander station takes its
+        // place, so the station count is unchanged.
+        expect(getMission().stations[copiedStationUuid]).toBeUndefined();
+        expect(Object.keys(getMission().stations).length).toEqual(stationsBefore);
+        expect(getMission().stations[xgressStationUuid(eva.uuid, "ingress")].isLanderXgress).toBe(
+          true
+        );
       });
     });
   });

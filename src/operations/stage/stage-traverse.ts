@@ -75,13 +75,7 @@ export async function stageTraverseUpdate(
   const {
     traverseUuid,
     renameTraverse = false,
-    overrides: {
-      path: customPath,
-      evaSequence: evaSequenceOverride,
-      stationOverride,
-      egressUuid: egressLocationUuidOverride,
-      ingressUuid: ingressLocationUuidOverride,
-    } = {},
+    overrides: { path: customPath, evaSequence: evaSequenceOverride, stationOverride } = {},
   } = args;
 
   const traverse = mission?.traverses?.[traverseUuid];
@@ -91,7 +85,9 @@ export async function stageTraverseUpdate(
     e.sequence.some((s) => s.uuid === traverseUuid)
   );
 
-  const resolvedEvaSequence: EvaSequenceItem[] = evaSequenceOverride ?? eva?.sequence ?? [];
+  // The endpoint resolver reads the sequence.
+  // Callers pass an override when a sequence write is still pending.
+  const resolvedSequence = evaSequenceOverride ?? eva?.sequence ?? [];
 
   // Build the working path: prefer customPath, then existing traverse path, then lander→lander
   let newPath: AEGISPoint[];
@@ -106,11 +102,8 @@ export async function stageTraverseUpdate(
   // Snap endpoints to their neighboring station/lander locations
   const { locationBefore, locationAfter, nameBefore, nameAfter } = getTraverseEndpoints(
     traverseUuid,
-    resolvedEvaSequence,
-    egressLocationUuidOverride ?? eva?.egressLocationUuid,
-    ingressLocationUuidOverride ?? eva?.ingressLocationUuid,
+    resolvedSequence,
     mission.stations,
-    mission.landerLocation,
     stationOverride
   );
 
@@ -165,10 +158,9 @@ export function stageAdjacentTraverseRenames(
 
   const allEvas = Object.values(mission.evas ?? {});
 
-  // Collect every traverse uuid before or after this station
+  // Collect every traverse uuid before or after this station.
   const traverseUuidsToRename = new Set<string>();
   for (const eva of allEvas) {
-    // Traverses immediately before/after this station
     for (let i = 0; i < eva.sequence.length; i++) {
       if (eva.sequence[i].type === "station" && eva.sequence[i].uuid === stationUuid) {
         const traverseBefore = eva.sequence[i - 1];
@@ -176,16 +168,6 @@ export function stageAdjacentTraverseRenames(
         const traverseAfter = eva.sequence[i + 1];
         if (traverseAfter?.type === "traverse") traverseUuidsToRename.add(traverseAfter.uuid);
       }
-    }
-    // Boundary traverses where this station is the ingress/egress location
-    if (eva.egressLocationUuid === stationUuid && eva.sequence[0]?.type === "traverse") {
-      traverseUuidsToRename.add(eva.sequence[0].uuid);
-    }
-    if (
-      eva.ingressLocationUuid === stationUuid &&
-      eva.sequence[eva.sequence.length - 1]?.type === "traverse"
-    ) {
-      traverseUuidsToRename.add(eva.sequence[eva.sequence.length - 1].uuid);
     }
   }
 
@@ -197,11 +179,8 @@ export function stageAdjacentTraverseRenames(
     if (!eva) continue;
     const { nameBefore, nameAfter } = getTraverseEndpoints(
       traverseUuid,
-      eva.sequence as EvaSequenceItem[],
-      eva.egressLocationUuid,
-      eva.ingressLocationUuid,
+      eva.sequence,
       mission.stations,
-      mission.landerLocation,
       { uuid: stationUuid, location: station.location, name: newName }
     );
     traverseRenames.push({ traverseUuid, newName: `${nameBefore} to ${nameAfter}` });

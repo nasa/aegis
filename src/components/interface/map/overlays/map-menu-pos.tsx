@@ -1,5 +1,5 @@
-import type { FunctionComponent } from "react";
-import { useEffect, useState } from "react";
+import type { CSSProperties, FunctionComponent, PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import posMenuStyles from "./map-menu-pos.module.css";
 import {
   faBan,
@@ -30,6 +30,10 @@ import { updateMapDirective } from "store/map";
 import { generateBlankPosEntry } from "store/storeUtils/rex";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+
+type ResizeDirection = "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw";
+
+const resizeDirections: ResizeDirection[] = ["n", "ne", "e", "se", "s", "sw", "w", "nw"];
 
 export const MapPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -83,6 +87,159 @@ export const MapPositionMenu: FunctionComponent = () => {
   const [showPosList, setShowPosList] = useState(false);
   const [showMenu, setShowMenu] = useState(true);
 
+  // Dragging switches the open menu to explicit parent-relative coordinates. Toggling restores
+  // the fixed top-right anchor while preserving user-resized open dimensions.
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  const [openSize, setOpenSize] = useState<{ width: number; height: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef<{
+    pointerId: number;
+    pointerX: number;
+    pointerY: number;
+    left: number;
+    top: number;
+  } | null>(null);
+  const resizeStartRef = useRef<{
+    pointerId: number;
+    direction: ResizeDirection;
+    pointerX: number;
+    pointerY: number;
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("[data-rex-menu-close]")) return;
+    const container = containerRef.current;
+    const offsetParent = container?.offsetParent as HTMLElement | null;
+    if (!container || !offsetParent) return;
+    const containerBox = container.getBoundingClientRect();
+    const parentBox = offsetParent.getBoundingClientRect();
+    dragStartRef.current = {
+      pointerId: event.pointerId,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      left: containerBox.left - parentBox.left,
+      top: containerBox.top - parentBox.top,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+
+  const drag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = dragStartRef.current;
+    const container = containerRef.current;
+    const offsetParent = container?.offsetParent as HTMLElement | null;
+    if (!start || !container || !offsetParent || start.pointerId !== event.pointerId) return;
+    setPosition({
+      left: Math.max(
+        0,
+        Math.min(
+          start.left + event.clientX - start.pointerX,
+          offsetParent.clientWidth - container.offsetWidth
+        )
+      ),
+      top: Math.max(
+        0,
+        Math.min(
+          start.top + event.clientY - start.pointerY,
+          offsetParent.clientHeight - container.offsetHeight
+        )
+      ),
+    });
+  };
+
+  const stopDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragStartRef.current?.pointerId !== event.pointerId) return;
+    dragStartRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const startResize = (event: ReactPointerEvent<HTMLDivElement>, direction: ResizeDirection) => {
+    const container = containerRef.current;
+    const offsetParent = container?.offsetParent as HTMLElement | null;
+    if (!container || !offsetParent) return;
+    const containerBox = container.getBoundingClientRect();
+    const parentBox = offsetParent.getBoundingClientRect();
+    const start = {
+      pointerId: event.pointerId,
+      direction,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      left: containerBox.left - parentBox.left,
+      top: containerBox.top - parentBox.top,
+      width: containerBox.width,
+      height: containerBox.height,
+    };
+    resizeStartRef.current = start;
+    setPosition({ left: start.left, top: start.top });
+    setOpenSize({ width: start.width, height: start.height });
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const resize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = resizeStartRef.current;
+    const container = containerRef.current;
+    const offsetParent = container?.offsetParent as HTMLElement | null;
+    if (!start || !container || !offsetParent || start.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - start.pointerX;
+    const deltaY = event.clientY - start.pointerY;
+    const minWidth = Math.min(300, offsetParent.clientWidth);
+    const minHeight = Math.min(150, offsetParent.clientHeight);
+    let left = start.left;
+    let top = start.top;
+    let width = start.width;
+    let height = start.height;
+
+    if (start.direction.includes("e")) {
+      width = Math.max(
+        minWidth,
+        Math.min(start.width + deltaX, offsetParent.clientWidth - start.left)
+      );
+    }
+    if (start.direction.includes("w")) {
+      left = Math.max(0, Math.min(start.left + deltaX, start.left + start.width - minWidth));
+      width = start.left + start.width - left;
+    }
+    if (start.direction.includes("s")) {
+      height = Math.max(
+        minHeight,
+        Math.min(start.height + deltaY, offsetParent.clientHeight - start.top)
+      );
+    }
+    if (start.direction.includes("n")) {
+      top = Math.max(0, Math.min(start.top + deltaY, start.top + start.height - minHeight));
+      height = start.top + start.height - top;
+    }
+
+    setPosition({ left, top });
+    setOpenSize({ width, height });
+  };
+
+  const stopResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (resizeStartRef.current?.pointerId !== event.pointerId) return;
+    resizeStartRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const toggleMenu = () => {
+    const container = containerRef.current;
+    if (showMenu && container) {
+      setOpenSize({ width: container.clientWidth, height: container.clientHeight });
+    }
+    setPosition(null);
+    setShowMenu((current) => !current);
+  };
+
   // reset the pos entry in edit when pos source or pos type list changes
   // this covers when the rex selection changes too
   useEffect(() => {
@@ -130,9 +287,39 @@ export const MapPositionMenu: FunctionComponent = () => {
   const posMapClass = selectedRexIsExecuting
     ? posMenuStyles.mapPosDisplayExecuting
     : posMenuStyles.mapPosDisplay;
+  const containerStyle: CSSProperties = position
+    ? { left: position.left, top: position.top, right: "auto" }
+    : {};
+
+  if (!showMenu) {
+    containerStyle.width = "auto";
+    containerStyle.height = "auto";
+  } else if (openSize) {
+    containerStyle.width = openSize.width;
+    containerStyle.height = openSize.height;
+  }
 
   return (
-    <div className={posMenuStyles.mapPosDisplayContainer}>
+    <div
+      ref={containerRef}
+      className={`${posMenuStyles.mapPosDisplayContainer} ${
+        showMenu ? posMenuStyles.mapPosDisplayContainerOpen : ""
+      }`}
+      style={containerStyle}
+      data-testid="rex-map-menu"
+    >
+      {showMenu &&
+        resizeDirections.map((direction) => (
+          <div
+            key={direction}
+            className={`${posMenuStyles.resizeHandle} ${posMenuStyles[`resizeHandle${direction.toUpperCase()}`]}`}
+            onPointerDown={(event) => startResize(event, direction)}
+            onPointerMove={resize}
+            onPointerUp={stopResize}
+            onPointerCancel={stopResize}
+            data-testid={`rex-map-menu-resize-${direction}`}
+          />
+        ))}
       <div
         className={`${posMapClass} ${showMenu ? posMenuStyles.menuOpen : posMenuStyles.menuClosed}`}
       >
@@ -140,7 +327,7 @@ export const MapPositionMenu: FunctionComponent = () => {
           <div
             className={posMenuStyles.menuIcon}
             onClick={(e) => {
-              setShowMenu(!showMenu);
+              toggleMenu();
               e.stopPropagation();
             }}
             data-tooltip-id="aegis-tooltip"
@@ -157,16 +344,24 @@ export const MapPositionMenu: FunctionComponent = () => {
         )}
 
         <div className={`${!showMenu && posMenuStyles.hideMenu} ${posMenuStyles.menuContainer}`}>
-          <div className={posMenuStyles.titleContainer}>
+          <div
+            className={posMenuStyles.titleContainer}
+            onPointerDown={startDrag}
+            onPointerMove={drag}
+            onPointerUp={stopDrag}
+            onPointerCancel={stopDrag}
+            data-testid="rex-map-menu-drag-handle"
+          >
             {evaAndRexName}
             <div
               className={posMenuStyles.menuIconOpen}
               onClick={(e) => {
-                setShowMenu(!showMenu);
+                toggleMenu();
                 e.stopPropagation();
               }}
               data-tooltip-id="aegis-tooltip"
               data-tooltip-content="Map View Settings"
+              data-rex-menu-close
             >
               <FontAwesomeIcon
                 icon={showMenu ? faXmark : faCrosshairs}
@@ -442,8 +637,12 @@ export const MapPositionMenu: FunctionComponent = () => {
                     />
                   </td>
                 </tr>
-                {showPosList && posEntries && (
-                  <>
+              </tbody>
+            </table>
+            {showPosList && posEntries && (
+              <div className={posMenuStyles.allPositionsContainer}>
+                <table className={posMenuStyles.posTable}>
+                  <tbody>
                     {posEntries.map((posEntry, index, posEntries) => {
                       return (
                         <PositionRow
@@ -455,10 +654,10 @@ export const MapPositionMenu: FunctionComponent = () => {
                         />
                       );
                     })}
-                  </>
-                )}
-              </tbody>
-            </table>
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </div>

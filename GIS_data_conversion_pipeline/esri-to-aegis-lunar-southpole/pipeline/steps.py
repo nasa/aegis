@@ -241,7 +241,6 @@ def step_slope(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     try:
         run(colorize_cmd)
         run([PYTHON, TILE_TO_CAP_GRID, p.slope_rgba, p.slope_layer])
-        # Legend mirrors the colour treatment actually applied (lyrx symbology if provided).
         write_properties(
             p.slope_layer,
             "slope",

@@ -32,13 +32,25 @@ import {
   applyUpdateEvaByField,
   applySwapEvaSequenceItems,
   applySpliceEvaSequence,
-  applyPushEvaSequenceItems,
+  applyInsertEvaSequenceItems,
+  applyEvaXgressChangeStage,
 } from "operations/apply/apply-eva";
 import { stageDuplicateEva } from "operations/stage/stage-eva";
 import { stageDeleteEva } from "operations/stage/stage-eva";
+import { stageEvaXgressChange } from "operations/stage/stage-eva-xgress";
 import { stageDuplicateStation } from "operations/stage/stage-station";
 import { stageTraverseUpdate } from "operations/stage/stage-traverse";
-import { applyDuplicateStationStage, applyDeleteStations } from "operations/apply/apply-station";
+import {
+  canMoveStation,
+  getIngressIndex,
+  getXgressTraverseUuid,
+} from "operations/helpers/evaSequence";
+import { generateLanderXgressStation } from "store/storeUtils/station";
+import {
+  applyDuplicateStationStage,
+  applyDeleteStations,
+  applyUpsertStation,
+} from "operations/apply/apply-station";
 import { applyDeleteActions } from "operations/apply/apply-action";
 import { setStationCircleUIStates } from "store/station";
 
@@ -89,22 +101,39 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
       existingNames: existingEvaNames,
     });
 
+    const ownerId = getState().user?.appUser?.id ?? null;
     const blankEva: Eva = generateBlankEVA({
       missionId: mission.id,
       name: randomName,
       traverseRate: mission.traverseRate,
       duration: mission.defaultEvaDuration,
-      ownerId: getState().user?.appUser?.id ?? null,
+      ownerId,
     });
 
     // Create an empty traverse and pre-build its path (lander → lander)
     const newTraverse: Traverse = generateBlankTraverse({ missionId: blankEva.missionId });
 
-    // Add the traverse to the sequence
-    blankEva.sequence.push({
-      type: "traverse",
-      uuid: newTraverse.uuid,
+    // Add new xgress stations at the lander
+    const egressStation = generateLanderXgressStation({
+      xgressType: "egress",
+      missionId: mission.id,
+      location: mission.landerLocation,
+      elevation: mission.landerElevationMeters ?? null,
+      ownerId: ownerId ?? undefined,
     });
+    const ingressStation = generateLanderXgressStation({
+      xgressType: "ingress",
+      missionId: mission.id,
+      location: mission.landerLocation,
+      elevation: mission.landerElevationMeters ?? null,
+      ownerId: ownerId ?? undefined,
+    });
+
+    blankEva.sequence.push(
+      { type: "station", uuid: egressStation.uuid },
+      { type: "traverse", uuid: newTraverse.uuid },
+      { type: "station", uuid: ingressStation.uuid }
+    );
 
     // The default lander→lander path has zero-length segments
     const landerLocation = mission.landerLocation;
@@ -127,14 +156,17 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
     // Build the fully-populated traverse
     const populatedTraverse: Traverse = {
       ...newTraverse,
-      name: "Lander to Lander",
+      name: `${egressStation.name} to ${ingressStation.name}`,
       path: traversePath,
       pathSegmentDistances: traversePathSegmentDistances,
       pathSegmentElevations: elevationProfile,
     };
 
-    // Step 2: Upsert both the EVA and fully-populated traverse in a single .change()
+    // Step 2: Upsert the EVA, its two lander stations, and the fully-populated
+    // traverse in a single .change()
     missionDocHandle.change((m: Mission) => {
+      applyUpsertStation(m, egressStation);
+      applyUpsertStation(m, ingressStation);
       applyUpsertEva(m, blankEva);
       applyUpsertTraverse(m, populatedTraverse);
     });
@@ -172,16 +204,6 @@ export const thunkDocDuplicateEva = appCreateAsyncThunk<
   });
   if (!stagedEvaData) return;
 
-  if (isRexEva) {
-    const sourceEva = mission.evas[evaUuid];
-    if (sourceEva.ingressLocationUuid !== "lander" && !stagedEvaData.ingressStationStage) {
-      throw new Error("Error duplicating ingress station in thunkDocDuplicateEva");
-    }
-    if (sourceEva.egressLocationUuid !== "lander" && !stagedEvaData.egressStationStage) {
-      throw new Error("Error duplicating egress station in thunkDocDuplicateEva");
-    }
-  }
-
   // Step 2: Apply the entire stage (EVA + all stations + traverses + actions) atomically
   missionDocHandle.change((m: Mission) => applyDuplicateEvaStage(m, stagedEvaData));
 
@@ -205,11 +227,17 @@ export const thunkDocAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
     // Step 1: Build the blank traverse object to add after the new station
     const newTraverse = generateBlankTraverse({ missionId: eva.missionId });
 
-    // Step 2: Upsert traverse and append the station+traverse to the EVA
+    // Insert new station just before the ingress station at the end.
+    // The traverse to the ingress station now points to the new station.
+    const ingressIndex = getIngressIndex(eva.sequence);
+    if (ingressIndex === -1) return;
+
+    // Step 2: Upsert traverse and insert the station+traverse before ingress
     missionDocHandle.change((m: Mission) => {
       applyUpsertTraverse(m, newTraverse);
-      applyPushEvaSequenceItems(m, {
+      applyInsertEvaSequenceItems(m, {
         evaUuid,
+        insertAt: ingressIndex,
         items: [
           { type: "station", uuid: "" },
           { type: "traverse", uuid: newTraverse.uuid },
@@ -222,6 +250,12 @@ export const thunkDocAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
   }
 );
 
+/**
+ * Delete a station and a connecting traverse from the eva.
+ *
+ * Keep the traverse before, drop the station and the traverse
+ * after, and re-snap the before-traverse to the next station along.
+ */
 export const thunkDocDeleteStationFromEva = appCreateAsyncThunk<{
   evaSequence: EvaSequenceItem[];
   sequenceIndex: number;
@@ -233,19 +267,9 @@ export const thunkDocDeleteStationFromEva = appCreateAsyncThunk<{
   const mission = missionDocHandle.doc();
 
   // Step 1: Determine which traverse to delete, which to update, and splice start
-  let traverseUuidToUpdate: string | null = null;
-  let traverseUuidToDelete: string;
-  let spliceStart: number;
-
-  if (sequenceIndex === 1) {
-    traverseUuidToUpdate = evaSequence[sequenceIndex + 1]?.uuid ?? null;
-    traverseUuidToDelete = evaSequence[sequenceIndex - 1].uuid;
-    spliceStart = sequenceIndex - 1;
-  } else {
-    traverseUuidToUpdate = evaSequence[sequenceIndex - 1]?.uuid ?? null;
-    traverseUuidToDelete = evaSequence[sequenceIndex + 1].uuid;
-    spliceStart = sequenceIndex;
-  }
+  const traverseUuidToUpdate: string | null = evaSequence[sequenceIndex - 1]?.uuid ?? null;
+  const traverseUuidToDelete: string = evaSequence[sequenceIndex + 1].uuid;
+  const spliceStart: number = sequenceIndex;
 
   // Compute what the sequence will look like after the splice (for endpoint lookup)
   const newEvaSequence = evaSequence.filter((_, i) => i !== spliceStart && i !== spliceStart + 1);
@@ -405,6 +429,11 @@ export const thunkDocReorderStationInEva = appCreateAsyncThunk<{
   const mission = missionDocHandle.doc();
 
   // Step 1: Determine which station indices to swap and which traverses to update
+  //
+  // The egress/ingress positions are pinned, so refuse any swap that would move a
+  // station into or out of them.
+  if (!canMoveStation(evaSequence, stationIndex, direction)) return;
+
   let stationIndexToSwap: number;
   let traverseUuidsToUpdate: string[];
 
@@ -452,87 +481,84 @@ export const thunkDocReorderStationInEva = appCreateAsyncThunk<{
   // Step 3: No additional UI side-effects
 });
 
+/**
+ * Change an EVA's egress or ingress station
+ *
+ * This may creates or deletes the stations when dealing with lander stations
+ * or REX EVA stations.
+ * Re-snaps the boundary traverse.
+ */
 export const thunkDocChangeIngressEgress = appCreateAsyncThunk<{
   type: "ingress" | "egress";
   evaUuid: string;
   newStationUuidOrLander: string; // Either a uuid of a station or "lander"
-  oldStationUuidOrLander?: string;
   isRexEva: boolean;
 }>(
   "evaChangeIngressEgress",
-  async (
-    { type, evaUuid, newStationUuidOrLander, oldStationUuidOrLander, isRexEva },
-    { dispatch }
-  ) => {
+  async ({ type, evaUuid, newStationUuidOrLander, isRexEva }, { dispatch, getState }) => {
     const missionDocHandle = getMissionDocHandle();
     if (!missionDocHandle) return;
     const mission = missionDocHandle.doc();
-    const selectedEva = mission.evas?.[evaUuid];
-    if (!selectedEva) return;
-    if (newStationUuidOrLander === oldStationUuidOrLander) return;
 
-    // Step 1: Build station duplication stage if this is a REX EVAs
-    const stationStage =
-      isRexEva && newStationUuidOrLander !== "lander"
-        ? stageDuplicateStation(mission, {
-            sourceStationUuid: newStationUuidOrLander,
-            preserveRefUuid: true,
-          })
-        : undefined;
+    // Step 1: Plan the swap (which station enters the position, which one leaves)
+    const stageData = stageEvaXgressChange(mission, {
+      evaUuid,
+      xgressType: type,
+      newStationUuidOrLander,
+      isRexEva,
+      ownerId: getState().user?.appUser?.id ?? undefined,
+    });
+    if (!stageData) return;
 
-    const stationOrLanderUuidToSet = stationStage
-      ? stationStage.newStationUuid
-      : newStationUuidOrLander;
+    // Re-snap the boundary traverse against the new sequence
+    const boundaryTraverseUuid = getXgressTraverseUuid(stageData.newSequence, type);
 
-    // Gather old station action uuids to delete (for REX EVA when old is not lander)
-    const oldStationActionUuidsToDelete: string[] =
-      isRexEva && oldStationUuidOrLander && oldStationUuidOrLander !== "lander"
-        ? Object.values(mission.actions ?? {})
-            .filter((a) => a.stationUuid === oldStationUuidOrLander)
-            .map((a) => a.uuid)
-        : [];
-
-    // Determine the boundary traverse to update and build its new path
-    const boundaryTraverseUuid =
-      type === "ingress"
-        ? selectedEva.sequence[selectedEva.sequence.length - 1]?.uuid
-        : selectedEva.sequence[0]?.uuid;
+    // The incoming station may not be in the doc yet (only staged) if it was duplicated.
+    // Grab the incoming station to pass to the traverse update stage.
+    // Only one of these will be populated due to the logic in stageEvaXgressChange
+    const incomingStation =
+      stageData.newLanderStation ?? // New lander copy
+      stageData.stationStage?.newStation ?? // New station copy (rex eva)
+      mission.stations?.[stageData.newStationUuid]; // Existing station (as-planned eva)
 
     const stagedTraverseData: TraverseUpdateStageData | null = boundaryTraverseUuid
       ? await stageTraverseUpdate(mission, dispatch, {
           traverseUuid: boundaryTraverseUuid,
           renameTraverse: true,
           overrides: {
-            evaSequence: selectedEva.sequence as EvaSequenceItem[],
-            egressUuid:
-              type === "egress" ? stationOrLanderUuidToSet : selectedEva.egressLocationUuid,
-            ingressUuid:
-              type === "ingress" ? stationOrLanderUuidToSet : selectedEva.ingressLocationUuid,
+            evaSequence: stageData.newSequence,
+            stationOverride: incomingStation
+              ? {
+                  uuid: stageData.newStationUuid,
+                  location: incomingStation.location,
+                  name: incomingStation.name,
+                }
+              : undefined,
           },
         })
       : null;
 
     // Step 2: Apply everything in a single .change()
     missionDocHandle.change((m: Mission) => {
-      if (stationStage) {
-        applyDuplicateStationStage(m, stationStage);
-      }
-      if (isRexEva && oldStationUuidOrLander && oldStationUuidOrLander !== "lander") {
-        applyDeleteActions(m, oldStationActionUuidsToDelete);
-        applyDeleteStations(m, [oldStationUuidOrLander]);
-      }
-      const fieldName = type === "ingress" ? "ingressLocationUuid" : "egressLocationUuid";
-      applyUpdateEvaByField(m, {
-        evaUuid,
-        fieldName,
-        value: stationOrLanderUuidToSet,
-      });
+      applyEvaXgressChangeStage(m, stageData);
       if (stagedTraverseData) {
         applyTraverseUpdatesStage(m, [stagedTraverseData]);
       }
     });
 
-    // Step 3: No additional UI side-effects
+    // Step 3: UI side-effects
+    // If a new station was created, it needs its circle UI state seeded from the
+    // station it was copied from.
+    if (stageData.stationStage) {
+      const sourceCircleUIStates =
+        cloneDeep(getState().station.stationCirclesUIStates[newStationUuidOrLander]) ?? {};
+      dispatch(
+        setStationCircleUIStates({
+          stationUuid: stageData.stationStage.newStationUuid,
+          circleUIStates: sourceCircleUIStates,
+        })
+      );
+    }
   }
 );
 

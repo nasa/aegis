@@ -3,7 +3,7 @@ import paneStyles from "../global-pane-styles.module.css";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import Actions from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
-import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
+import { getCalcFieldsForTraverse } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateTraverseByField } from "operations/apply/apply-traverse";
@@ -34,7 +34,7 @@ const Actions_Panel: FunctionComponent<{
     const traverseActions = Object.values(allActionRecords).filter(
       (a) => a.traverseUuid === selectedTraverse?.uuid && a.enabled
     );
-    const calculatedFields = getCalculatedFieldsByTraverse({
+    const calculatedFields = getCalcFieldsForTraverse({
       traverse: selectedTraverse,
       missionTraverseRate,
       evaTraverseRate: traverseEva?.traverseRate,
@@ -48,6 +48,7 @@ const Actions_Panel: FunctionComponent<{
       totalUnassignedTime: calculatedFields.totalUnassignedTime,
       totalDwellTime: calculatedFields.totalDwellTime,
       totalMass: calculatedFields.totalMass,
+      totalEquipmentItems: calculatedFields.totalEquipmentItems,
     };
   }, deepEqual);
 

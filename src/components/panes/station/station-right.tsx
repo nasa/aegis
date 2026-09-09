@@ -27,7 +27,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDocDeleteStations } from "store/thunk/thunkStation";
 import { validators } from "components/interface/form/formValidators";
 import { RightTabs } from "components/interface/side-controls";
-import { getCalculatedFieldsByStation } from "store/processing/calculatedFields";
+import { getCalcFieldsForStation } from "store/processing/calculatedFields";
 import Station_Circles_Panel from "./station-right-circles";
 import { selectAsPlannedStations } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -55,7 +55,7 @@ const StationEditorRight: FunctionComponent = () => {
     const stationActions = Object.values(mission.actions).filter(
       (a) => a.stationUuid === selectedStationUuid && a.enabled
     );
-    return getCalculatedFieldsByStation({
+    return getCalcFieldsForStation({
       station: mission.stations[selectedStationUuid],
       missionWalkbackRate: mission.walkbackRate,
       stationActions,
@@ -75,6 +75,10 @@ const StationEditorRight: FunctionComponent = () => {
     const asPlannedStationUuids = selectAsPlannedStations(mission).map((station) => station.uuid);
     return !asPlannedStationUuids.includes(selectedStationUuid);
   }, refEqual);
+  const isLanderXgress = useMissionDocSelector(
+    (mission) => mission.stations[selectedStationUuid]?.isLanderXgress === true,
+    refEqual
+  );
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -91,6 +95,7 @@ const StationEditorRight: FunctionComponent = () => {
       panel: Info_Panel,
       panelProps: {
         editMode: isInEditMode,
+        isLanderXgress,
       },
       selectedColor: "white",
       icon: faCircleInfo,
@@ -144,7 +149,8 @@ const StationEditorRight: FunctionComponent = () => {
           <div className={paneStyles.rightTopTitleIcon}>
             <EmojiRenderer iconValue={selectedStation.icon ? selectedStation.icon : "2754"} />
           </div>
-          {isInEditMode && (
+          {/* Lander copies always render the lander SVG, so their icon is not pickable. */}
+          {isInEditMode && !isLanderXgress && (
             <>
               <div className={stationStyles.iconDisplayButton}>
                 <Button
@@ -182,7 +188,7 @@ const StationEditorRight: FunctionComponent = () => {
           <div className={paneStyles.rightTopTitleText}>
             <ValidatedInputField
               value={selectedStation.name}
-              editMode={isInEditMode}
+              editMode={isInEditMode && !isLanderXgress}
               fieldProps={{
                 name: "name",
                 ariaLabel: "Station",

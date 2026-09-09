@@ -18,7 +18,12 @@ export const Rex_dbSchema = defineEntity({
     stationEntries: p.json<ActivityEntries>().nullable(),
     traverseEntries: p.json<ActivityEntries>().nullable(),
     actionEntries: p.json<ActionEntries>().nullable(),
-    xgressEntries: p.json<XgressEntries>().nullable(),
+    /**
+     * Legacy column. Egress/ingress REX status now lives in `stationEntries`
+     * keyed by the real xgress station uuid. Kept so the derelict table keeps
+     * its original shape until it is dropped wholesale.
+     */
+    xgressEntries: p.json<Record<string, { rexStatus: RexStatus }>>().nullable(),
     ownerId: p.integer().nullable(),
     maestroControlled: p.boolean().default(false),
     maestroEventId: p.string().nullable(),

@@ -1,4 +1,5 @@
 import { stageTraverseUpdate } from "operations/stage/stage-traverse";
+import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkUpdateMapDirective } from "./thunkMap";
 import { getMissionDocHandle } from "client/automergeDocHandles";
@@ -74,35 +75,13 @@ export const thunkDocResetTraverse = appCreateAsyncThunk<{
   // Step 1: Derive the straight-line reset path (egress→ingress endpoints) from the doc
   const mission = getMissionDocHandle()?.doc();
   const selectedEva = mission?.evas?.[getState().eva.selectedEvaUuid];
-  const allStations = mission.stations ?? {};
 
-  let fromStationLoc: AEGISPoint;
-  let toStationLoc: AEGISPoint;
-
-  const sequenceIndex = selectedEva.sequence.findIndex(
-    (sequenceItem) => sequenceItem.uuid === traverseUuid
+  const { locationBefore, locationAfter } = getTraverseEndpoints(
+    traverseUuid,
+    selectedEva?.sequence,
+    mission.stations
   );
-  if (sequenceIndex === 0) {
-    //first traverse in sequence. get egress location.
-    if (selectedEva.egressLocationUuid === "lander") {
-      fromStationLoc = mission.landerLocation;
-    } else {
-      fromStationLoc = allStations[selectedEva.egressLocationUuid]?.location;
-    }
-  } else {
-    fromStationLoc = allStations[selectedEva.sequence[sequenceIndex - 1].uuid]?.location;
-  }
-  if (sequenceIndex === selectedEva.sequence.length - 1) {
-    //last traverse in sequence. get ingress location
-    if (selectedEva.ingressLocationUuid === "lander") {
-      toStationLoc = mission.landerLocation;
-    } else {
-      toStationLoc = allStations[selectedEva.ingressLocationUuid]?.location;
-    }
-  } else {
-    toStationLoc = allStations[selectedEva.sequence[sequenceIndex + 1].uuid]?.location;
-  }
-  const newPath = [fromStationLoc, toStationLoc];
+  const newPath = [locationBefore, locationAfter];
 
   // Step 2 (delegated): This thunk makes no .change() call directly — it delegates
   // the elevation fetch and atomic .change() to thunkDocUpdateTraverse.
@@ -199,40 +178,17 @@ export const thunkDocSaveTraverse = appCreateAsyncThunk<{ traverseUuid: string }
     // Step 1: Derive the correct traverse name from surrounding stations in the doc snapshot
     const mission = getMissionDocHandle()?.doc();
     const traverse = mission?.traverses?.[traverseUuid];
-    const allStations = mission.stations ?? {};
     if (!traverse) return;
 
-    let stationNameBefore = "";
-    let stationNameAfter = "";
     const selectedEva = mission?.evas?.[getState().eva.selectedEvaUuid];
-    const selectedEvaSequence = selectedEva?.sequence;
-    if (selectedEvaSequence) {
-      const traverseIndex = selectedEvaSequence.findIndex((item) => item.uuid === traverseUuid);
-      if (traverseIndex !== -1) {
-        if (traverseIndex === 0) {
-          if (selectedEva.egressLocationUuid === "lander") {
-            stationNameBefore = "Lander";
-          } else {
-            stationNameBefore = allStations[selectedEva.egressLocationUuid]?.name ?? "";
-          }
-        } else {
-          stationNameBefore = allStations[selectedEvaSequence[traverseIndex - 1].uuid]?.name ?? "";
-        }
-
-        if (traverseIndex === selectedEvaSequence.length - 1) {
-          if (selectedEva.ingressLocationUuid === "lander") {
-            stationNameAfter = "Lander";
-          } else {
-            stationNameAfter = allStations[selectedEva.ingressLocationUuid]?.name ?? "";
-          }
-        } else {
-          stationNameAfter = allStations[selectedEvaSequence[traverseIndex + 1].uuid]?.name ?? "";
-        }
-      }
-    }
+    const { nameBefore, nameAfter } = getTraverseEndpoints(
+      traverseUuid,
+      selectedEva?.sequence,
+      mission.stations
+    );
 
     // Step 2: Apply the single .change() directly (only if name changed)
-    const newName = `${stationNameBefore} to ${stationNameAfter}`;
+    const newName = `${nameBefore} to ${nameAfter}`;
     if (traverse.name !== newName) {
       getMissionDocHandle()?.change((m: Mission) =>
         applyUpdateTraverseByField(m, {

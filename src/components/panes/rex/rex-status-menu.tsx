@@ -13,7 +13,7 @@ export const RexStatusMenu: FunctionComponent<{
   rexStatus: RexStatus;
   divClassName: string;
   divStyle?: CSSProperties;
-  entryType: "action" | "station" | "traverse" | "xgress";
+  entryType: "action" | "station" | "traverse";
   uuid: string;
   editPerms: boolean;
   maestroControlled: boolean;

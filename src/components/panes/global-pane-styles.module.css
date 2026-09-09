@@ -397,10 +397,10 @@
   font-size: 0.8em;
   font-weight: 400;
   color: var(--grey4);
-  user-select: none;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  cursor: default;
 }
 
 .displayFieldValue {

@@ -80,14 +80,6 @@ services:
       - ${DOCKER_DB_DATA_DIR}:/var/lib/postgresql/data
       - ${DOCKER_DB_INIT_DIR}:/docker-entrypoint-initdb.d
 
-  gdal:
-    container_name: "${LOG_DATA_APP_ID}--gdal"
-    image: ${REGISTRY_IMAGE}/gdal:${IMAGE_VERSION}
-    restart: always
-    <<: *send_container_logs_to_syslog
-    volumes:
-      - ${STATIC_DIR}:/static
-
   oauth2-proxy:
     container_name: "${LOG_DATA_APP_ID}--oauth2"
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.11.0

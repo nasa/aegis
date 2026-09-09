@@ -1,6 +1,7 @@
 import "utils/loadEnv";
 import type { Server as NetServer } from "http";
 import { createServer } from "http";
+import { v4 as uuidv4 } from "uuid";
 import { Server as SocketServer } from "socket.io";
 import type { DefaultEventsMap } from "socket.io";
 import { WebSocketServer } from "isomorphic-ws"; // included in automerge repo network websocket
@@ -10,7 +11,6 @@ import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket
 import app from "./restApi";
 
 import { setupSocketIO } from "./sockets";
-import { setupMaestroNamespace as setupMaestroNamespaceV1 } from "../maestro/v1/sockets-maestro";
 import { setupMaestroNamespace as setupMaestroNamespaceV2 } from "../maestro/v2/sockets-maestro";
 import { globalValues } from "./global";
 import { MikroORM } from "@mikro-orm/postgresql";
@@ -18,44 +18,57 @@ import config from "server/database/mikro-orm.config";
 
 import { serverLogger } from "utils/logging/serverLogger";
 import pg from "pg";
-import { PostgresStorageAdapter } from "server/automerge/automerge-repo-storage-postgres";
+import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
+import { closeRasterSamplingWorkerPool } from "server/raster/rasterSamplingWorkerPool";
 
 // this is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
 initializeBase64Wasm(automergeWasmBase64);
 
 // Wrap in async IIFE to handle top-level await
 (async () => {
-  // start the database connection
+  // ==========================================================================
+  // Database connections
+  // ==========================================================================
+
   globalValues.orm = await MikroORM.init(config);
+
+  // Raw pg pool used by the automerge storage adapter
+  const dbConfig: pg.Pool = new pg.Pool({
+    user: "postgres",
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASS,
+    port: 5432,
+  });
+
+  // ==========================================================================
+  // App version
+  // ==========================================================================
+
+  // Identifies this API process lifetime. Regenerated on every boot.
+  const serverEpochUuid = uuidv4();
+
+  // version and gitCommit are defined in esbuild.mjs and populated at build time
+  globalValues.appVersion = {
+    version: typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "unknown",
+    gitCommit: typeof __GIT_COMMIT__ !== "undefined" ? __GIT_COMMIT__ : "unknown",
+    serverEpochUuid,
+  };
+  serverLogger.info({
+    logId: "server",
+    logValue: `Server epoch: ${serverEpochUuid}`,
+  });
+
+  // ==========================================================================
+  // HTTP server + Socket.IO
+  // ==========================================================================
 
   // parent http server
   const server: NetServer = createServer();
 
-  // Legacy Socket.IO server for Maegistro v1 on /api/v1/socketio.
-  // This server is dedicated to the legacy v1 /maestro namespace only — it must stay
-  // running until Maestro production clients migrate off v1. Nothing else should use it.
-  serverLogger.debug({
-    logId: "server",
-    logValue: "Starting Socket.IO on /api/v1/socketio for Maegistro v1 (legacy)",
-  });
-  globalValues.socketioLegacy = new SocketServer<
-    ClientToServerEvents,
-    ServerToClientEvents,
-    DefaultEventsMap,
-    {}
-  >(server, {
-    transports: ["websocket"],
-    path: "/api/v1/socketio",
-    addTrailingSlash: false,
-    // Reduce ping interval and timeout from Socket.IO defaults
-    // to detect dead connections within ~10s
-    pingInterval: 5000,
-    pingTimeout: 5000,
-  });
-
-  // New Socket.IO server on /api/socket for all current AEGIS internal traffic and Maegistro v2.
+  // Socket.IO server on /api/socket for all AEGIS internal traffic and Maegistro v2.
   serverLogger.debug({ logId: "server", logValue: "Starting Socket.IO on /api/socket" });
   globalValues.socketio = new SocketServer<
     ClientToServerEvents,
@@ -72,16 +85,8 @@ initializeBase64Wasm(automergeWasmBase64);
     pingTimeout: 5000,
   });
 
-  // these values are defined in esbuild.mjs and populated at build time
-  globalValues.appVersion = {
-    version: typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "unknown",
-    gitCommit: typeof __GIT_COMMIT__ !== "undefined" ? __GIT_COMMIT__ : "unknown",
-  };
-
   setupSocketIO();
-  // v1 Maegistro lives on the legacy socket server.
-  setupMaestroNamespaceV1(globalValues.socketioLegacy);
-  // v2 Maegistro lives on the new /api/socket server under the /maestro/v2 namespace.
+  // v2 Maegistro lives on the /api/socket server under the /maestro/v2 namespace.
   setupMaestroNamespaceV2(globalValues.socketio);
 
   // express request handler
@@ -91,31 +96,57 @@ initializeBase64Wasm(automergeWasmBase64);
     serverLogger.info({ logId: "server", logValue: "Server listening on port 4001" });
   });
 
+  // ==========================================================================
+  // Automerge
+  // ==========================================================================
+
   // setup autoMerge sync server
   const wss = new WebSocketServer({ noServer: true });
 
   // upgrade an already established client/server connection to a
   //    different protocol (over the same transport protocol).
-  // Socket.IO's own upgrade listeners (auto-attached during SocketServer
-  // construction above) handle /api/socket and /api/v1/socketio; this one
-  // handles the Automerge WS.
+  // Socket.IO's own upgrade listener (auto-attached during SocketServer
+  // construction above) handles /api/socket; this one handles the Automerge WS.
   server.on("upgrade", (request, socket, head) => {
-    if (request.url === "/api/automergeSocket/") {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit("connection", ws, request);
-      });
+    let url: URL;
+    try {
+      // request.url is always origin-relative, so a placeholder base is required.
+      url = new URL(request.url ?? "", "http://localhost");
+    } catch {
+      return;
     }
+
+    // Socket.IO shares this upgrade event, so only look for the automerge socket
+    // and leave everything else alone.
+    if (url.pathname !== "/api/automergeSocket/") return;
+
+    // The client appends ?serverEpochUuid=<value> from the version it was served
+    // at page load. A missing or stale value means the tab predates the current
+    // server, so the upgrade is refused
+    const clientEpoch = url.searchParams.get("serverEpochUuid");
+    if (clientEpoch !== serverEpochUuid) {
+      serverLogger.warning({
+        logId: "server",
+        logValue: `Rejected automerge upgrade (${
+          clientEpoch ? "epoch mismatch" : "no epoch supplied"
+        }). client epoch: ${clientEpoch ?? "(missing)"}, server epoch: ${serverEpochUuid}`,
+      });
+      socket.write("HTTP/1.1 426 Upgrade Required\r\nConnection: close\r\n\r\n");
+      socket.destroy();
+      return;
+    }
+
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit("connection", ws, request);
+    });
   });
+
+  // ==========================================================================
+  // Automerge repo
+  // ==========================================================================
 
   // hook up the network (socket server) and storage to a new automerge repo
   const networkAdapter = new NodeWSServerAdapter(wss);
-  const dbConfig: pg.Pool = new pg.Pool({
-    user: "postgres",
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASS,
-    port: 5432,
-  });
   const storageAdapter: StorageAdapterInterface = new PostgresStorageAdapter(
     "automerge_native_db",
     dbConfig
@@ -226,6 +257,17 @@ initializeBase64Wasm(automergeWasmBase64);
         logId: "server",
         logValue: "HTTP server already closed (by Socket.IO)",
       });
+    }
+
+    try {
+      await closeRasterSamplingWorkerPool();
+      serverLogger.debug({ logId: "server", logValue: "Raster sampling worker pool closed" });
+    } catch (err) {
+      serverLogger.error(
+        { logId: "server", logValue: "Error closing raster sampling worker pool" },
+        err instanceof Error ? err : new Error(String(err))
+      );
+      hasErrors = true;
     }
 
     // Close database connections

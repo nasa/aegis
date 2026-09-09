@@ -45,6 +45,63 @@ z:db-export:prod:
   variables:
     DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_PROD}
 
+# Validate every Automerge mission document
+#
+# The runner checks every mission before exiting and writes all violations
+# to a JSON report that is kept as a downloadable artifact.
+# The job fails if any mission is invalid or could not be read.
+automerge-schema-validate:
+  stage: stageless
+  tags: ["openshift"]
+  rules:
+    - if: $SCHEDULE_TYPE == "backup"
+      when: always
+  timeout: 30 minutes
+  needs:
+    - install_dependencies
+    - make-dotenv:test
+    - z:db-export:prod
+  variables:
+    # define variables used by Node app
+    DB_HOST: postgres-test-container
+    DB_PASS: test-only-password
+    DB_NAME: aegis
+
+    # plug those same variables into the Postgres container we're spinning up
+    POSTGRES_PASSWORD: test-only-password
+    POSTGRES_DB: aegis
+  services:
+    # DOCKER_IMAGE_DATABASE comes from the make-dotenv:test job artifact
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/${DOCKER_IMAGE_DATABASE}
+      alias: postgres-test-container
+      variables:
+        # OpenShift runs containers as a random non-root UID. The default
+        # PGDATA (/var/lib/postgresql/data) is owned by the postgres user
+        # (UID 70 on alpine) and not writable by an arbitrary UID, so initdb
+        # fails silently and postgres never starts. Redirecting PGDATA to
+        # /tmp lets initdb create the data directory regardless of UID.
+        PGDATA: /tmp/pgdata
+  before_script:
+    # node_modules is shipped as a tarball artifact (see install_dependencies)
+    - tar -xf node_modules.tar
+    # The service container's credentials win over whatever make-dotenv wrote
+    - sed -i '/DB_PASS/d' .env
+    - sed -i '/DB_HOST/d' .env
+    - sed -i '/DB_NAME/d' .env
+    # OpenShift runners can't write to /d1; redirect file uploads to /tmp.
+    - sed -i 's|^STATIC_DIR=.*|STATIC_DIR=/tmp/aegis-static|' .env
+    - mkdir -p /tmp/aegis-static
+  script:
+    - node .gitlab/scripts/load-sql-dump.mjs aegis.sql
+    - npm run automerge:validate
+  artifacts:
+    when: always
+    name: "${CI_JOB_STARTED_AT}-automerge-schema-validation"
+    paths:
+      - .local/schema-validation-report-*.json
+    expire_in: 60 days
+
+# Run the audit on a different schedule than the backups
 npm-audit:
   stage: stageless
   rules:

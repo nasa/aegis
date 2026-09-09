@@ -3,14 +3,12 @@ import {
   ValidatedTextArea,
   ValidatedInputField,
 } from "components/interface/form/globalFieldsAutomerge";
-import { Button, Dropdown, PathColorPickerMenu } from "components/interface/form/globalFields";
+import { Button, PathColorPickerMenu } from "components/interface/form/globalFields";
 import type { FunctionComponent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { useAppDispatch } from "utils/useAppDispatch";
 
 import { useAppSelector, deepEqual, refEqual, shallowEqual } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
-import evaStyles from "./eva.module.css";
 import { makeTraverseRateString } from "utils/component-helpers";
 import {
   formatNumberWithCommas,
@@ -24,34 +22,22 @@ import {
 import {
   faCalculator,
   faMessage,
-  faPersonThroughWindow,
   faQuestionCircle,
   faToolbox,
   faRoute,
   faGlobe,
 } from "@fortawesome/free-solid-svg-icons";
 import { regExValidators, validators } from "components/interface/form/formValidators";
-import CalculatedDwell from "../calculated-dwell";
-import { EmojiRenderer } from "components/interface/emojis";
-import { getCalculatedFieldsByEva } from "store/processing/calculatedFields";
+import { getCalcFieldsForEva } from "store/processing/calculatedFields";
 import { faClock } from "@fortawesome/free-regular-svg-icons";
-import { thunkDocChangeIngressEgress } from "store/thunk/thunkEva";
 
-import { selectAsPlannedStations, selectEvaStations, selectEvaTraverses } from "store/selectors";
-import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
+import { selectEvaStations, selectEvaTraverses } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateEvaByField } from "operations/apply/apply-eva";
 import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
-type XgressData = {
-  uuid: string; // uuid of the xgress station or "lander"
-  icon: string;
-  name: string;
-};
-
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
     (mission) => ({
       walkbackRate: mission.walkbackRate,
@@ -109,7 +95,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     const seqTraverseUuids = new Set(
       selectedEva.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid)
     );
-    return getCalculatedFieldsByEva({
+    return getCalcFieldsForEva({
       eva: selectedEva,
       evaStations: Object.values(docMaps.stations ?? {}).filter((s) => seqStationUuids.has(s.uuid)),
       missionWalkbackRate: partialMission.walkbackRate,
@@ -122,50 +108,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       ),
     });
   }, [selectedEva, docMaps, partialMission.walkbackRate, partialMission.traverseRate]);
-
-  const stationListForXgressDropdown = useMissionDocSelector(
-    (mission) =>
-      selectAsPlannedStations(mission)
-        .filter((station) => station.location)
-        .map((s) => ({ uuid: s.uuid, name: s.name })),
-    deepEqual
-  );
-
-  const folders = useAppSelector(
-    (state) => state.interface.folders.filter((f) => f.type === "station"),
-    deepEqual
-  );
-  const itemsToFolders = folders.reduce<Record<string, string>>((map, folder) => {
-    folder.items?.forEach((itemUuid) => {
-      map[itemUuid] = folder.uuid;
-    });
-    return map;
-  }, {});
-  const stationDropdownOptions = createFolderOrganizedDropdownOptions({
-    items: stationListForXgressDropdown,
-    folders,
-    itemsToFolders,
-  });
-
-  const egressData: XgressData = useMemo(() => {
-    if (!docMaps || !selectedEva) return { uuid: undefined, icon: "1f680", name: "Lander" };
-    const station = docMaps.stations?.[selectedEva.egressLocationUuid];
-    return {
-      uuid: selectedEva.egressLocationUuid,
-      icon: station ? station.icon : "1f680", // Rocket
-      name: station ? station.name : "Lander",
-    };
-  }, [docMaps, selectedEva]);
-
-  const ingressData: XgressData = useMemo(() => {
-    if (!docMaps || !selectedEva) return { uuid: undefined, icon: "1f680", name: "Lander" };
-    const station = docMaps.stations?.[selectedEva.ingressLocationUuid];
-    return {
-      uuid: selectedEva.ingressLocationUuid,
-      icon: station ? station.icon : "1f680", // Rocket
-      name: station ? station.name : "Lander",
-    };
-  }, [docMaps, selectedEva]);
 
   const [evaDate, setEvaDate] = useState(() => {
     const iso = numericDatetimeToISO(selectedEva?.datetime);
@@ -230,7 +172,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
   // Split, sort, and pull names for each equipment item
   // Get names
   const consumablesDisplay: EquipmentItemDisplay[] = [];
-  Object.entries(evaCalculatedFields?.equipmentItems ?? {})?.forEach(([uuid, equipItem]) => {
+  Object.entries(evaCalculatedFields?.totalEquipmentItems ?? {})?.forEach(([uuid, equipItem]) => {
     const missionEquipItem = partialMission.equipmentItems?.[uuid];
     if (missionEquipItem?.singleUse) {
       consumablesDisplay.push({
@@ -302,216 +244,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         }}
                         styleContainer={{ padding: "0px 5px 0px 5px" }}
                       />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "3px" }}>
-              <SubpanelHeading icon={faPersonThroughWindow}>Egress and Ingress</SubpanelHeading>
-            </div>
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelSection2Column}>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldLabel}>EVA Egress Location:</div>
-                    </div>
-                  </div>
-                </div>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldLabel}>EVA Ingress Location:</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelSection2Column}>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldValue}>
-                        {editMode ? (
-                          <Dropdown
-                            selected={egressData.uuid}
-                            arrowStyle={{ top: "1px" }}
-                            containerStyle={{
-                              width: "190px",
-                              marginTop: "3px",
-                              marginBottom: "3px",
-                            }}
-                            selectStyle={{ width: "100%" }}
-                            onChange={(val) => {
-                              dispatch(
-                                thunkDocChangeIngressEgress({
-                                  type: "egress",
-                                  evaUuid: selectedEvaUuid,
-                                  newStationUuidOrLander: val,
-                                  oldStationUuidOrLander: egressData.uuid,
-                                  isRexEva: !!rexEvaName,
-                                })
-                              );
-                            }}
-                            toolTip="Egress Location"
-                          >
-                            {rexEvaName && egressData.uuid !== "lander" ? (
-                              <option value={egressData.uuid}>
-                                {egressData.name} (As Executed)
-                              </option>
-                            ) : (
-                              <></>
-                            )}
-                            <option value="lander">Lander</option>
-                            {stationDropdownOptions}
-                          </Dropdown>
-                        ) : (
-                          <div className={evaStyles.stationWrapperRight}>
-                            <div className={evaStyles.iconCustomSmall}>
-                              <EmojiRenderer iconValue={egressData.icon} />
-                            </div>
-                            <div className={evaStyles.stationNameRight}>{egressData.name}</div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldValue}>
-                        {editMode ? (
-                          <Dropdown
-                            selected={ingressData.uuid}
-                            arrowStyle={{ top: "1px" }}
-                            containerStyle={{
-                              width: "190px",
-                              marginTop: "3px",
-                              marginBottom: "3px",
-                            }}
-                            selectStyle={{ width: "100%" }}
-                            onChange={(val) => {
-                              dispatch(
-                                thunkDocChangeIngressEgress({
-                                  type: "ingress",
-                                  evaUuid: selectedEvaUuid,
-                                  newStationUuidOrLander: val,
-                                  oldStationUuidOrLander: ingressData.uuid,
-                                  isRexEva: !!rexEvaName,
-                                })
-                              );
-                            }}
-                            toolTip="Ingress Location"
-                          >
-                            {rexEvaName && ingressData.uuid !== "lander" ? (
-                              <option value={ingressData.uuid}>
-                                {ingressData.name} (As Executed)
-                              </option>
-                            ) : (
-                              <></>
-                            )}
-                            <option value="lander">Lander</option>
-                            {stationDropdownOptions}
-                          </Dropdown>
-                        ) : (
-                          <div className={evaStyles.stationWrapperRight}>
-                            <div className={evaStyles.iconCustomSmall}>
-                              <EmojiRenderer iconValue={ingressData.icon} />
-                            </div>
-                            <div className={evaStyles.stationNameRight}>{ingressData.name}</div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelSection2Column}>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldLabel}>Egress Duration (mins):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldValue}>
-                        <ValidatedInputField
-                          value={selectedEva.egressDuration?.toString()}
-                          editMode={editMode}
-                          fieldProps={{
-                            name: "egressDuration",
-                            ariaLabel: "Egress Duration",
-                            validators: [
-                              validators.mustBeNumber,
-                              validators.maxLength(3),
-                              validators.mustBeInteger,
-                            ],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
-                          }}
-                          onSubmit={(val: string) => {
-                            withMissionChange((m) =>
-                              applyUpdateEvaByField(m, {
-                                evaUuid: selectedEvaUuid,
-                                fieldName: "egressDuration",
-                                value: toDecimal(val),
-                              })
-                            );
-                          }}
-                          key={`${selectedEva.uuid}-egressDuration`}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldLabel}>Ingress Duration (mins):</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldValue}>
-                        <ValidatedInputField
-                          value={selectedEva.ingressDuration?.toString()}
-                          editMode={editMode}
-                          fieldProps={{
-                            name: "ingressDuration",
-                            ariaLabel: "Ingress Duration",
-                            validators: [
-                              validators.mustBeNumber,
-                              validators.maxLength(3),
-                              validators.mustBeInteger,
-                            ],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
-                          }}
-                          onSubmit={(val: string) => {
-                            withMissionChange((m) =>
-                              applyUpdateEvaByField(m, {
-                                evaUuid: selectedEvaUuid,
-                                fieldName: "ingressDuration",
-                                value: toDecimal(val),
-                              })
-                            );
-                          }}
-                          key={`${selectedEva.uuid}-ingressDuration`}
-                        />
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -671,7 +403,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
 
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faCalculator}>Calculated Totals</SubpanelHeading>
+              <SubpanelHeading icon={faCalculator}>Totals</SubpanelHeading>
             </div>
             {evaCalculatedFields && (
               <div className={paneStyles.panelSectionRow}>
@@ -679,7 +411,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                   <div className={paneStyles.panelColumnTable}>
                     <div className={paneStyles.panelColumnTableRow}>
                       <div className={paneStyles.panelColumnTableCell}>
-                        <div className={paneStyles.displayFieldLabel}>EVA Duration (mins):</div>
+                        <div
+                          className={paneStyles.displayFieldLabel}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-content="Total duration for the EVA. If a duration estimate is recorded, it will be used instead of the calculated duration based on the stations and traverses"
+                        >
+                          EVA Duration (mins):
+                        </div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div
@@ -697,27 +435,39 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                               : undefined
                           }
                         >
-                          {Math.ceil(evaCalculatedFields.totalEvaTime) || 0}
+                          {Math.ceil(evaCalculatedFields.totalResolvedEvaTime) || 0}
                         </div>
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
                       <div className={paneStyles.panelColumnTableCell}>
-                        <div className={paneStyles.displayFieldLabel}>Traverse Time (mins):</div>
+                        <div
+                          className={paneStyles.displayFieldLabel}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-content="Total time spent on traverses. If a manual duration estimate is recorded, it will be used instead of the calculated traverse time that includes action duration"
+                        >
+                          Traverse Time (mins):
+                        </div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldValue}>
-                          {evaCalculatedFields.totalTraverseTime === 0 ? (
+                          {evaCalculatedFields.totalResolvedTraverseTime === 0 ? (
                             <>0</>
                           ) : (
-                            Math.ceil(evaCalculatedFields.totalTraverseTime)
+                            Math.ceil(evaCalculatedFields.totalResolvedTraverseTime)
                           )}
                         </div>
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
                       <div className={paneStyles.panelColumnTableCell}>
-                        <div className={paneStyles.displayFieldLabel}>Traverse Distance (m):</div>
+                        <div
+                          className={paneStyles.displayFieldLabel}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-content="Total distance in meters traversed for this EVA"
+                        >
+                          Traverse Distance (m):
+                        </div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldValue}>
@@ -733,7 +483,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       <div className={paneStyles.panelColumnTable}>
                         <div className={paneStyles.panelColumnTableRow}>
                           <div className={paneStyles.panelColumnTableCell}>
-                            <div className={paneStyles.displayFieldLabel}>Total Ascent (m):</div>
+                            <div
+                              className={paneStyles.displayFieldLabel}
+                              data-tooltip-id="aegis-tooltip"
+                              data-tooltip-content="Total elevation assent in meters for this EVA"
+                            >
+                              Ascent (m):
+                            </div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldValue}>
@@ -745,7 +501,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         </div>
                         <div className={paneStyles.panelColumnTableRow}>
                           <div className={paneStyles.panelColumnTableCell}>
-                            <div className={paneStyles.displayFieldLabel}>Total Descent (m):</div>
+                            <div
+                              className={paneStyles.displayFieldLabel}
+                              data-tooltip-id="aegis-tooltip"
+                              data-tooltip-content="Total elevation descent in meters for this EVA"
+                            >
+                              Descent (m):
+                            </div>
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldValue}>
@@ -759,11 +521,74 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                   </div>
                   <div className={paneStyles.panelColumnTable}>
-                    <CalculatedDwell actionsCalculatedFields={evaCalculatedFields} />
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={`${paneStyles.panelColumnTableCell}`}>
+                        <div
+                          className={paneStyles.displayFieldLabel}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-content="Total time spent at stations. If a manual dwell time is recorded, it will be used instead of the calculated dwell time that is based on action duration"
+                        >
+                          Station Time (mins):
+                        </div>
+                      </div>
+                      <div className={`${paneStyles.panelColumnTableCell}`}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {Math.ceil(evaCalculatedFields.totalResolvedStationTime) || "0"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div
+                          className={paneStyles.displayFieldLabel}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-content="Total time of EV1's assigned actions"
+                        >
+                          EV1 Action Time (mins):
+                        </div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {evaCalculatedFields.totalEv1Time === 0 &&
+                          evaCalculatedFields.totalUnassignedTime !== 0 ? (
+                            <>Incompl.</>
+                          ) : (
+                            <>{Math.ceil(evaCalculatedFields.totalEv1Time) || "0"}</>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div
+                          className={paneStyles.displayFieldLabel}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-content="Total time of EV2's assigned actions"
+                        >
+                          EV2 Action Time (mins):
+                        </div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {evaCalculatedFields.totalEv2Time === 0 &&
+                          evaCalculatedFields.totalUnassignedTime !== 0 ? (
+                            <>Incompl.</>
+                          ) : (
+                            <>{Math.ceil(evaCalculatedFields.totalEv2Time) || "0"}</>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                     <div className={paneStyles.panelColumnTableRow}>&nbsp;</div>
                     <div className={paneStyles.panelColumnTableRow}>
                       <div className={paneStyles.panelColumnTableCell}>
-                        <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
+                        <div
+                          className={paneStyles.displayFieldLabel}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-content="Total number of actions on this EVA"
+                        >
+                          Number of Actions:
+                        </div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldValue}>
@@ -773,8 +598,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
                       <div className={paneStyles.panelColumnTableCell}>
-                        <div className={paneStyles.displayFieldLabel}>
-                          Total Action Time (mins):
+                        <div
+                          className={paneStyles.displayFieldLabel}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-content="Total of all action times. It does not account for crew assignment"
+                        >
+                          Action Time (mins):
                         </div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
@@ -789,7 +618,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     </div>
                     <div className={paneStyles.panelColumnTableRow}>
                       <div className={paneStyles.panelColumnTableCell}>
-                        <div className={paneStyles.displayFieldLabel}>Total Mass (g):</div>
+                        <div
+                          className={paneStyles.displayFieldLabel}
+                          data-tooltip-id="aegis-tooltip"
+                          data-tooltip-content="Total mass from all actions on this EVA"
+                        >
+                          Total Mass (g):
+                        </div>
                       </div>
                       <div className={paneStyles.panelColumnTableCell}>
                         <div className={paneStyles.displayFieldValue}>

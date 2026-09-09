@@ -26,7 +26,7 @@ import { validators, regExValidators } from "components/interface/form/formValid
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { setOriginalPoints, updateMapDirective } from "store/map";
 import { makeTraverseRateString } from "utils/component-helpers";
-import { getCalculatedFieldsByTraverse } from "store/processing/calculatedFields";
+import { getCalcFieldsForTraverse } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateTraverseByField } from "operations/apply/apply-traverse";
@@ -101,7 +101,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
     const traverseActions = Object.values(docMaps.actions).filter(
       (a) => a.traverseUuid === selectedTraverse?.uuid && a.enabled
     );
-    return getCalculatedFieldsByTraverse({
+    return getCalcFieldsForTraverse({
       traverse: selectedTraverse,
       missionTraverseRate,
       evaTraverseRate: traverseEvaTraverseRate,
@@ -207,7 +207,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           </div>
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "4px" }}>
-              <SubpanelHeading icon={faLightbulb}>Movement Estimates</SubpanelHeading>
+              <SubpanelHeading icon={faLightbulb}>Duration Estimates</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
@@ -257,7 +257,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         <div
                           style={{ color: "var(--grey5)" }}
                           className={paneStyles.inputFieldLabel}
-                        >{`Using Calculated Total: ${Math.ceil(calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes)}`}</div>
+                        >{`Using Calculated Total: ${Math.ceil(calculatedFields?.totalDwellTime + calculatedFields?.movementDurationMinutes)}`}</div>
                       )}
                     </div>
                   </div>
@@ -391,11 +391,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Movement Time (mins):</div>
+                      <div
+                        className={paneStyles.displayFieldLabel}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-content="Total time spent moving during the traverse. Does not include dwell time at actions"
+                      >
+                        Movement Time (mins):
+                      </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {Math.ceil(calculatedFields.durationMinutes)}
+                        {Math.ceil(calculatedFields.movementDurationMinutes)}
                       </div>
                     </div>
                   </div>
@@ -448,7 +454,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Total Ascent (m):</div>
+                      <div
+                        className={paneStyles.displayFieldLabel}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-content="Total elevation assent in meters for this traverse"
+                      >
+                        Ascent (m):
+                      </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
@@ -458,7 +470,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Total Descent (m):</div>
+                      <div
+                        className={paneStyles.displayFieldLabel}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-content="Total elevation descent in meters for this traverse"
+                      >
+                        Descent (m):
+                      </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
@@ -495,7 +513,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faCalculator}>Action Calculated Totals</SubpanelHeading>
+              <SubpanelHeading icon={faCalculator}>Totals</SubpanelHeading>
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
@@ -508,7 +526,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     style={{ cursor: "pointer" }}
                   >
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Number of Actions:</div>
+                      <div
+                        className={paneStyles.displayFieldLabel}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-content="Total number of actions on this traverse"
+                      >
+                        Number of Actions:
+                      </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
@@ -518,7 +542,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Total Action Time (mins):</div>
+                      <div
+                        className={paneStyles.displayFieldLabel}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-content="Total of all action times. It does not account for crew assignment"
+                      >
+                        Action Time (mins):
+                      </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
@@ -532,7 +562,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   </div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Total Mass (g):</div>
+                      <div
+                        className={paneStyles.displayFieldLabel}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-content="Total mass from all actions on this traverse"
+                      >
+                        Mass (g):
+                      </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
@@ -547,25 +583,25 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
-              <SubpanelHeading icon={faCalculator}>Total</SubpanelHeading>
-            </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
+                  <div className={paneStyles.panelColumnTableRow}>&nbsp;</div>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>
-                        Total Time of Actions and Movement (mins):
+                      <div
+                        className={paneStyles.displayFieldLabel}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-content="Total of the action dwell time plus movement time"
+                      >
+                        Actions and Movement Time (mins):
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
                         {Math.ceil(
-                          calculatedFields?.totalDwellTime + calculatedFields?.durationMinutes
+                          calculatedFields?.totalDwellTime +
+                            calculatedFields?.movementDurationMinutes
                         )}
                       </div>
                     </div>

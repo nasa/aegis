@@ -13,12 +13,6 @@ const ajv = new Ajv({ verbose: true, allowUnionTypes: true, allErrors: true });
 // You can validate it against it multiple times after that by calling the function
 // Add schemas below that you want to compile and then validate on
 
-// Maegistro V1 for rexOverwrite
-const rexOverwriteSchema = JSON.parse(
-  fs.readFileSync(path.join(SCHEMA_DIR, "rexOverwrite.json"), "utf8")
-);
-export const rexOverwriteSchemaValidator = ajv.compile<RexOverwrite>(rexOverwriteSchema);
-
 const missionSchema = JSON.parse(fs.readFileSync(path.join(SCHEMA_DIR, "mission.json"), "utf8"));
 export const missionValidator = ajv.compile<Mission>(missionSchema);
 

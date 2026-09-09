@@ -102,7 +102,7 @@ const MaestroV2: React.FunctionComponent = () => {
   // ── getEverything ─────────────────────────────────────────────────────────
   const [everythingMissionId, setEverythingMissionId] = useState<string>("");
 
-  // ── sendMDAU (v2's replacement for v1's rexOverwrite) ────────────────────
+  // ── sendMDAU ──────────────────────────────────────────────────────────────
   const [sendMdauMissionId, setSendMdauMissionId] = useState<string>("");
   const [sendMdauJson, setSendMdauJson] = useState<string>(
     JSON.stringify({ aegisStations: {} }, null, 2)
@@ -636,7 +636,7 @@ const MaestroV2: React.FunctionComponent = () => {
               </button>
             </EmitCard>
 
-            {/* sendMDAU (v2's replacement for v1's rexOverwrite) */}
+            {/* sendMDAU */}
             <EmitCard title="sendMDAU">
               <input
                 className={adminCommon.formInput}
