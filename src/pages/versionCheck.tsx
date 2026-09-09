@@ -129,7 +129,7 @@ const VersionCheck: React.FunctionComponent = () => {
 
         <div>
           Current Version:
-          {clientVersion.version} ({clientVersion.gitCommit})
+          {clientVersion.version} ({clientVersion.gitCommit}) | {clientVersion.serverEpochUuid}
         </div>
 
         <br />
