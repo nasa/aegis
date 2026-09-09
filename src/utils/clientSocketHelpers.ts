@@ -34,7 +34,7 @@ export const createClientSocket = (
     transports: ["websocket"],
     upgrade: true,
     path: "/api/socket",
-    reconnectionAttempts: isProductionServerURL(serverURL) ? Infinity : 50,
+    reconnectionAttempts: isProductionServerURL(serverURL) ? Infinity : 500,
     // Allow disabling for self-signed certs when running load testing locally
     rejectUnauthorized: loadTestOptions?.rejectUnauthorized ?? true,
   });

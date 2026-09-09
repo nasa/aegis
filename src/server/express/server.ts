@@ -18,7 +18,7 @@ import config from "server/database/mikro-orm.config";
 
 import { serverLogger } from "utils/logging/serverLogger";
 import pg from "pg";
-import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter";
+import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { closeRasterSamplingWorkerPool } from "server/raster/rasterSamplingWorkerPool";

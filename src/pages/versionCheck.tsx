@@ -5,13 +5,18 @@ import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { clientLogger } from "utils/logging/clientLogger";
 
 /**
- * Append a unique timestamp query parameter to a same-origin URL.
- * So browser cannot serve the response cache and must revalidate against the
- * server.
+ * Set a unique timestamp query parameter on a same-origin URL, so the browser
+ * cannot serve the response from cache and must revalidate against the server.
  */
-const withRevalidationParam = (url: string): string => {
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}_revalidate=${Date.now()}`;
+export const withRevalidationParam = (url: string): string => {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    parsed.searchParams.set("_revalidate", Date.now().toString());
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    // Un-parseable input should still redirect somewhere sane rather than throw.
+    return `/?_revalidate=${Date.now()}`;
+  }
 };
 
 const VersionCheck: React.FunctionComponent = () => {
@@ -125,7 +130,10 @@ const VersionCheck: React.FunctionComponent = () => {
         }}
       >
         <h1>✓ Version Updated</h1>
-        <p>An updated of AEGIS has been loaded. Redirecting you back in {countdown} seconds...</p>
+        <p>
+          An updated version of AEGIS has been loaded. Redirecting you back in {countdown}{" "}
+          seconds...
+        </p>
 
         <div>
           Current Version:
