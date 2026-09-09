@@ -155,26 +155,24 @@ const MissionSelect = ({ appUser }: { appUser: AppUser }) => {
   }, [appUser]);
 
   return (
-    <>
+    <div className={styles.missionSelect}>
       <div className={styles.title}>Select a Mission</div>
-      <div>
-        <div className={`${styles.container}`}>
-          <table className={styles.table}>
-            <tbody>
-              {missionHomepageItems &&
-                missionHomepageItems.map((missionHomepageItem) => {
-                  return (
-                    <MissionHomepageItem
-                      key={missionHomepageItem.id}
-                      missionHomepageItem={missionHomepageItem}
-                    />
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
+      <div className={`${styles.container}`}>
+        <table className={styles.table}>
+          <tbody>
+            {missionHomepageItems &&
+              missionHomepageItems.map((missionHomepageItem) => {
+                return (
+                  <MissionHomepageItem
+                    key={missionHomepageItem.id}
+                    missionHomepageItem={missionHomepageItem}
+                  />
+                );
+              })}
+          </tbody>
+        </table>
       </div>
-    </>
+    </div>
   );
 };
 
