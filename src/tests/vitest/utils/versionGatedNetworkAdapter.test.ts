@@ -155,6 +155,41 @@ describe("VersionGatedNetworkAdapter", () => {
     expect(inner.connectCalls).toBe(connectCallsWhenBlocked);
   });
 
+  test("blocks immediately when the page itself has no epoch", () => {
+    const adapter = new VersionGatedNetworkAdapter({
+      url: "https://example.test/api/automergeSocket/",
+      serverEpochUuid: "",
+    });
+    adapter.connect(PEER_ID);
+
+    // The socket is never opened, so no stale change can reach the server.
+    expect(lastInner().connectCalls).toBe(0);
+    expect(window.location.href).toBe("/versionCheck?returnUrl=%2Fmission%2F34");
+
+    // Still satisfies whenReady() so a blocked gate cannot hang the app.
+    vi.advanceTimersByTime(1000);
+    expect(adapter.isReady()).toBe(true);
+  });
+
+  test("blocks when the server reports no epoch at all", async () => {
+    (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ version: "1.2.1", gitCommit: "abc" }),
+    });
+    const adapter = makeAdapter();
+    adapter.connect(PEER_ID);
+    const inner = lastInner();
+    inner.emit("peer-disconnected", { peerId: "server" as PeerId });
+
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(window.location.href).toBe("/versionCheck?returnUrl=%2Fmission%2F34");
+
+    const connectCallsWhenBlocked = inner.connectCalls;
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(inner.connectCalls).toBe(connectCallsWhenBlocked);
+  });
+
   test("does not forward messages to a disconnected inner adapter", () => {
     const adapter = makeAdapter();
     adapter.connect(PEER_ID);
@@ -166,6 +201,70 @@ describe("VersionGatedNetworkAdapter", () => {
     inner.emit("peer-candidate", { peerId: "server" as PeerId, peerMetadata: {} });
     adapter.send({ type: "sync" } as never);
     expect(inner.sent).toHaveLength(1);
+  });
+
+  test("disconnecting while connected is terminal", async () => {
+    (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(versionResponse(PAGE_EPOCH));
+    const adapter = makeAdapter();
+    adapter.connect(PEER_ID);
+    const inner = lastInner();
+    inner.emit("peer-candidate", { peerId: "server" as PeerId, peerMetadata: {} });
+
+    const onPeerDisconnected = vi.fn();
+    adapter.on("peer-disconnected", onPeerDisconnected);
+
+    // The real vendor adapter emits peer-disconnected synchronously from here.
+    adapter.disconnect();
+    inner.emit("peer-disconnected", { peerId: "server" as PeerId });
+
+    const connectCallsAtDisconnect = inner.connectCalls;
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(onPeerDisconnected).not.toHaveBeenCalled();
+    expect(inner.connectCalls).toBe(connectCallsAtDisconnect);
+    expect(window.location.href).toBe("");
+  });
+
+  test("ignores an epoch check that resolves after disconnect", async () => {
+    let resolveFetch: (value: unknown) => void = () => {};
+    (fetch as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        })
+    );
+    const adapter = makeAdapter();
+    adapter.connect(PEER_ID);
+    const inner = lastInner();
+    const connectCallsAtStart = inner.connectCalls;
+
+    // Kick off a poll, then shut down while its response is still pending.
+    await vi.advanceTimersByTimeAsync(5000);
+    adapter.disconnect();
+
+    resolveFetch(versionResponse(OTHER_EPOCH));
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(inner.connectCalls).toBe(connectCallsAtStart);
+    expect(window.location.href).toBe("");
+  });
+
+  test("aborts the in-flight epoch fetch on disconnect", async () => {
+    let capturedSignal: AbortSignal | undefined;
+    (fetch as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (_url: string, init: RequestInit) => {
+        capturedSignal = init.signal ?? undefined;
+        return new Promise(() => {});
+      }
+    );
+    const adapter = makeAdapter();
+    adapter.connect(PEER_ID);
+
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(capturedSignal?.aborted).toBe(false);
+
+    adapter.disconnect();
+    expect(capturedSignal?.aborted).toBe(true);
   });
 
   test("reports connection status transitions", () => {

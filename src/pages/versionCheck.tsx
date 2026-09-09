@@ -124,8 +124,8 @@ const VersionCheck: React.FunctionComponent = () => {
           flexDirection: "column",
         }}
       >
-        <h1>✓ Version Up to Date</h1>
-        <p>Your version of AEGIS is current. Redirecting you back in {countdown} seconds...</p>
+        <h1>✓ Version Updated</h1>
+        <p>An updated of AEGIS has been loaded. Redirecting you back in {countdown} seconds...</p>
 
         <div>
           Current Version:

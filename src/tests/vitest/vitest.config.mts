@@ -51,7 +51,7 @@ export default defineConfig(
           "src/server/express/server.ts",
           "src/server/automerge/migration.ts",
           "src/server/automerge/integrityCheck.ts",
-          "src/server/automerge/automerge-repo-storage-postgres.ts",
+          "src/server/automerge/automerge-storage-adapter.ts",
           "src/server/automerge/seeder/seedApollo14.ts",
         ],
       },

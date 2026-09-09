@@ -18,7 +18,7 @@ import config from "server/database/mikro-orm.config";
 
 import { serverLogger } from "utils/logging/serverLogger";
 import pg from "pg";
-import { PostgresStorageAdapter } from "server/automerge/automerge-stoarge-adapater";
+import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { closeRasterSamplingWorkerPool } from "server/raster/rasterSamplingWorkerPool";
@@ -146,7 +146,9 @@ initializeBase64Wasm(automergeWasmBase64);
     if (clientEpoch !== serverEpochUuid) {
       serverLogger.warning({
         logId: "server",
-        logValue: `Rejected automerge upgrade. client epoch: ${clientEpoch}, server epoch: ${serverEpochUuid}`,
+        logValue: `Rejected automerge upgrade (${
+          clientEpoch ? "epoch mismatch" : "no epoch supplied"
+        }). client epoch: ${clientEpoch ?? "(missing)"}, server epoch: ${serverEpochUuid}`,
       });
       socket.write("HTTP/1.1 426 Upgrade Required\r\nConnection: close\r\n\r\n");
       socket.destroy();

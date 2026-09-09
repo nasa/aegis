@@ -17,7 +17,7 @@ import fs from "fs";
 import path from "node:path";
 import { isValidAutomergeUrl, Repo } from "@automerge/automerge-repo/slim";
 import type { DocHandle, StorageAdapterInterface } from "@automerge/automerge-repo/slim";
-import { PostgresStorageAdapter } from "server/automerge/automerge-stoarge-adapater";
+import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter";
 import pg from "pg";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";

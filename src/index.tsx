@@ -99,7 +99,7 @@ const repo = new Repo({
       serverEpochUuid: serverAppVersion.serverEpochUuid,
       onConnectionStatusChange: (status) => {
         store.dispatch(setAutomergeConnectionStatus(status));
-        if (status === "disconnected" || status === "failed") {
+        if (status === "disconnected") {
           store.dispatch(clearAllEditing());
         }
       },

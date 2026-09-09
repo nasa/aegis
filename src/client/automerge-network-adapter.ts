@@ -39,6 +39,13 @@ export interface VersionGatedNetworkAdapterOptions {
 }
 
 /**
+ * Stands in for an epoch that is absent rather than merely different. A missing
+ * epoch means one side predates the gate, which is treated exactly like a
+ * mismatch: the socket is never opened and the page is sent through a reload.
+ */
+const MISSING_EPOCH = "(missing)";
+
+/**
  * Wraps the vendor WebSocket adapter and refuses to connect once the server
  * reports a different database epoch than the one this page was loaded with.
  *
@@ -68,6 +75,16 @@ export class VersionGatedNetworkAdapter
   #peerConnected = false;
   /** Set once on an epoch mismatch and never cleared. */
   #blocked = false;
+  /** True between connect() and disconnect(); disconnect() must be terminal. */
+  #active = false;
+  /**
+   * Bumped by every connect() and disconnect(). Work started under an earlier
+   * lifecycle — a pending epoch fetch above all — compares the generation it
+   * captured against this and discards itself when they differ.
+   */
+  #generation = 0;
+  /** Aborts the in-flight epoch fetch, if any, when the lifecycle ends. */
+  #abortController?: AbortController;
   #pollId?: ReturnType<typeof setInterval>;
   #ready = false;
   #readyResolver: () => void;
@@ -90,19 +107,25 @@ export class VersionGatedNetworkAdapter
     // Forward only the events the NetworkSubsystem needs. "close" is
     // deliberately never emitted or forwarded: it permanently removes the
     // adapter from the subsystem.
+    // Events that arrive while inactive are ignored. inner.disconnect() emits
+    // peer-disconnected synchronously, so without this the wrapper would resume
+    // polling — and eventually reconnect — from inside its own disconnect().
     this.#inner.on("peer-candidate", (payload) => {
+      if (!this.#active) return;
       this.#peerConnected = true;
       this.#stopPolling();
       this.#setStatus("connected");
       this.emit("peer-candidate", payload);
     });
     this.#inner.on("peer-disconnected", (payload) => {
+      if (!this.#active) return;
       this.#peerConnected = false;
       this.#setStatus("disconnected");
       this.#startPolling();
       this.emit("peer-disconnected", payload);
     });
     this.#inner.on("message", (payload) => {
+      if (!this.#active) return;
       this.emit("message", payload);
     });
   }
@@ -118,20 +141,39 @@ export class VersionGatedNetworkAdapter
   connect(peerId: PeerId, peerMetadata?: PeerMetadata): void {
     this.peerId = peerId;
     this.peerMetadata = peerMetadata;
+    this.#active = true;
+    this.#generation += 1;
+    this.#abortController = new AbortController();
+
+    // Force-ready first: a page with no epoch blocks immediately below, and a
+    // blocked gate must still satisfy every whenReady() caller.
+    setTimeout(() => this.#forceReady(), FORCE_READY_MS);
+
+    // Without an epoch the server would reject the upgrade anyway, so skip the
+    // doomed socket and go straight to the reload.
+    if (!this.#serverEpochUuid) {
+      this.#setStatus("connecting");
+      this.#block(MISSING_EPOCH);
+      return;
+    }
 
     this.#setStatus("connecting");
     this.#connectInner();
     this.#startPolling();
-
-    setTimeout(() => this.#forceReady(), FORCE_READY_MS);
   }
 
   send(message: Message): void {
-    if (this.#blocked || !this.#peerConnected) return;
+    if (this.#blocked || !this.#active || !this.#peerConnected) return;
     this.#inner.send(message);
   }
 
   disconnect(): void {
+    // Deactivate before touching the inner adapter so the peer-disconnected it
+    // emits, and any epoch fetch already in flight, are both discarded.
+    this.#active = false;
+    this.#generation += 1;
+    this.#abortController?.abort();
+    this.#abortController = undefined;
     this.#stopPolling();
     if (this.#innerConnectStarted) {
       this.#inner.disconnect();
@@ -145,13 +187,14 @@ export class VersionGatedNetworkAdapter
    * (re)connection attempt is driven from here after an epoch check.
    */
   #connectInner(): void {
-    if (this.#blocked || this.#peerConnected || !this.peerId) return;
+    if (this.#blocked || !this.#active || this.#peerConnected) return;
+    if (!this.peerId || !this.#serverEpochUuid) return;
     this.#innerConnectStarted = true;
     this.#inner.connect(this.peerId, this.peerMetadata);
   }
 
   #startPolling(): void {
-    if (this.#blocked || this.#pollId) return;
+    if (this.#blocked || !this.#active || this.#pollId) return;
     this.#pollId = setInterval(() => {
       this.#checkEpoch();
     }, POLL_INTERVAL_MS);
@@ -164,24 +207,35 @@ export class VersionGatedNetworkAdapter
   }
 
   async #checkEpoch(): Promise<void> {
-    if (this.#blocked) return;
+    if (this.#blocked || !this.#active) return;
+    const generation = this.#generation;
 
     let serverVersion: AppVersion;
     try {
       const res = await fetch(`/api/v1/version?_=${Date.now()}`, {
         cache: "no-store",
         headers: { "Cache-Control": "no-cache" },
+        signal: this.#abortController?.signal,
       });
       if (!res.ok) return;
       serverVersion = (await res.json()) as AppVersion;
     } catch {
-      // Server unreachable (down, mid-deploy, proxy error). Keep the page in its
-      // disconnected state and keep polling; reloading now would land the user
-      // on an error page.
+      // Server unreachable (down, mid-deploy, proxy error) or the fetch was
+      // aborted by disconnect(). Keep the page in its disconnected state and
+      // keep polling; reloading now would land the user on an error page.
       return;
     }
 
-    if (!serverVersion?.serverEpochUuid) return;
+    // disconnect() may have run while the response was in flight. Acting on it
+    // now would reconnect or redirect after the adapter was shut down.
+    if (!this.#active || generation !== this.#generation) return;
+
+    // A server that reports no epoch predates the gate. Treat that exactly like
+    // a mismatch rather than waiting for an epoch that will never arrive.
+    if (!serverVersion?.serverEpochUuid) {
+      this.#block(MISSING_EPOCH);
+      return;
+    }
     if (serverVersion.serverEpochUuid === this.#serverEpochUuid) {
       this.#connectInner();
       return;
@@ -200,9 +254,14 @@ export class VersionGatedNetworkAdapter
     }
     this.#setStatus("disconnected");
 
+    const pageEpoch = this.#serverEpochUuid || MISSING_EPOCH;
+    const reason =
+      pageEpoch === MISSING_EPOCH || serverEpoch === MISSING_EPOCH
+        ? "An epoch is missing, so this page predates the gate"
+        : "The server epoch changed";
     clientLogger.warning({
       logId: "automergeGate",
-      logValue: `Server epoch changed; a reload is required. page epoch: ${this.#serverEpochUuid}, server epoch: ${serverEpoch}`,
+      logValue: `${reason}; a reload is required. page epoch: ${pageEpoch}, server epoch: ${serverEpoch}`,
     });
 
     const currentUrl = window.location.pathname + window.location.search;

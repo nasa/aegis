@@ -13,6 +13,19 @@ import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
 
+/**
+ * Callers pass an origin (`https://aegis.fit.nasa.gov`), but load testing may
+ * pass a bare hostname or an otherwise unparsable value, so fall back to
+ * comparing the raw string when `URL` cannot parse it.
+ */
+export const isProductionServerURL = (serverURL: string): boolean => {
+  try {
+    return new URL(serverURL).hostname === "aegis.fit.nasa.gov";
+  } catch {
+    return serverURL === "aegis.fit.nasa.gov";
+  }
+};
+
 export const createClientSocket = (
   serverURL: string,
   loadTestOptions?: { rejectUnauthorized?: boolean } // used for load testing ONLY
@@ -21,7 +34,7 @@ export const createClientSocket = (
     transports: ["websocket"],
     upgrade: true,
     path: "/api/socket",
-    reconnectionAttempts: serverURL === "aegis.fit.nasa.gov" ? Infinity : 50,
+    reconnectionAttempts: isProductionServerURL(serverURL) ? Infinity : 50,
     // Allow disabling for self-signed certs when running load testing locally
     rejectUnauthorized: loadTestOptions?.rejectUnauthorized ?? true,
   });
