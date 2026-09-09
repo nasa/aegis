@@ -127,7 +127,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       if (isoDatetime && isISOString(isoDatetime)) {
         const [date, time] = getDateAndTimeFromISOString(isoDatetime);
         parsedEvaDate = date;
-        parsedEvaTime = time;
+        parsedEvaTime = time.split(".")[0];
       }
       setEvaDate(parsedEvaDate);
       setEvaTime(parsedEvaTime);
