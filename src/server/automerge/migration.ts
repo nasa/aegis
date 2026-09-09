@@ -421,6 +421,7 @@ getORM()
         if (traversesRecord !== undefined) m.traverses = traversesRecord;
         if (evasRecord !== undefined) m.evas = evasRecord;
         if (rexesRecord !== undefined) m.rexes = rexesRecord;
+        m.archivedAt = null;
       });
 
       serverLogger.debug({
