@@ -421,7 +421,6 @@ getORM()
         if (traversesRecord !== undefined) m.traverses = traversesRecord;
         if (evasRecord !== undefined) m.evas = evasRecord;
         if (rexesRecord !== undefined) m.rexes = rexesRecord;
-        m.archivedAt = null;
       });
 
       serverLogger.debug({
@@ -781,6 +780,16 @@ getORM()
       });
     };
 
+    // Migration: Add archivedAt field (null by default) to all mission docs
+    const automergeMigration20260909AddArchivedAt = async (docHandle: DocHandle<Mission>) => {
+      docHandle.change((mission: Mission) => {
+        if (!("archivedAt" in mission)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (mission as any).archivedAt = null;
+        }
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
@@ -791,6 +800,7 @@ getORM()
       automergeMigration20260809AddGridRenderMode,
       automergeMigration20260810RenameStationLabelStrokeToHalo,
       automergeMigration20260806XgressStations,
+      automergeMigration20260909AddArchivedAt,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {
