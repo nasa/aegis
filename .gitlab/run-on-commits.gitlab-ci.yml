@@ -380,6 +380,8 @@ docker:build:nginx:
     GIT_COMMIT: ${CI_COMMIT_SHORT_SHA}
     MAP_ENV_VARS_TO_BUILD_ARGS: |
       GIT_COMMIT
+      VITE_PUBLIC_CONSOLE_LOG_LEVEL
+      VITE_PUBLIC_REMOTE_LOG_LEVEL
 
 docker:build:apiv1:
   extends: .kaniko-build-template

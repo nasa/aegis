@@ -13,6 +13,19 @@ import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
 
+/**
+ * Callers pass an origin (`https://aegis.fit.nasa.gov`), but load testing may
+ * pass a bare hostname or an otherwise unparsable value, so fall back to
+ * comparing the raw string when `URL` cannot parse it.
+ */
+export const isProductionServerURL = (serverURL: string): boolean => {
+  try {
+    return new URL(serverURL).hostname === "aegis.fit.nasa.gov";
+  } catch {
+    return serverURL === "aegis.fit.nasa.gov";
+  }
+};
+
 export const createClientSocket = (
   serverURL: string,
   loadTestOptions?: { rejectUnauthorized?: boolean } // used for load testing ONLY
@@ -21,7 +34,7 @@ export const createClientSocket = (
     transports: ["websocket"],
     upgrade: true,
     path: "/api/socket",
-    reconnectionAttempts: serverURL === "aegis.fit.nasa.gov" ? Infinity : 10,
+    reconnectionAttempts: isProductionServerURL(serverURL) ? Infinity : 500,
     // Allow disabling for self-signed certs when running load testing locally
     rejectUnauthorized: loadTestOptions?.rejectUnauthorized ?? true,
   });
@@ -115,11 +128,13 @@ export const attachSocketListeners = (
   socket.on("version", (serverAppVersion: AppVersion) => {
     if (
       connectionStoreRef.current.clientAppVersion.version !== serverAppVersion.version ||
-      connectionStoreRef.current.clientAppVersion.gitCommit !== serverAppVersion.gitCommit
+      connectionStoreRef.current.clientAppVersion.gitCommit !== serverAppVersion.gitCommit ||
+      connectionStoreRef.current.clientAppVersion.serverEpochUuid !==
+        serverAppVersion.serverEpochUuid
     ) {
       if (connectionStoreRef.current.clientAppVersion?.version) {
         alert(
-          `A new version of AEGIS is available. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.clientAppVersion.version}/${connectionStoreRef.current.clientAppVersion.gitCommit}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit} `
+          `AEGIS has been updated or restarted. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.clientAppVersion.version}/${connectionStoreRef.current.clientAppVersion.gitCommit}/${connectionStoreRef.current.clientAppVersion.serverEpochUuid}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit}/${serverAppVersion.serverEpochUuid} `
         );
 
         // Redirect to version check page with version info and return URL

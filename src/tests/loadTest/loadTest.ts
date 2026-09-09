@@ -77,12 +77,20 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
       formattedCookieStr = cookies.join("; ");
     }
 
+    // Get the server app version so we can pass through the epoch uuid
+    const versionRes = await fetch(`${serverURL}/api/v1/version?_=${Date.now()}`, {
+      cache: "no-store",
+    });
+    const serverAppVersion: AppVersion = await versionRes.json();
+
     // connect to the automerge repo
     const repoClientID = `loadTestClient-${Math.random().toString(36).slice(2, 5)}`;
     const automergeRepo = new Repo({
       network: [
         new BrowserWebSocketClientAdapter(
-          `${serverURL}/api/automergeSocket/`
+          `${serverURL}/api/automergeSocket/?serverEpochUuid=${encodeURIComponent(
+            serverAppVersion.serverEpochUuid
+          )}`
         ) as unknown as NetworkAdapterInterface, // connect back to the server via sockets
       ],
       // storage: new IndexedDBStorageAdapter(),
@@ -106,6 +114,7 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
       setClientAppVersion({
         version: __APP_VERSION__,
         gitCommit: __GIT_COMMIT__,
+        serverEpochUuid: serverAppVersion.serverEpochUuid,
       })
     );
 

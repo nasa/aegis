@@ -56,6 +56,11 @@ interface StatusFromServer {
 interface AppVersion {
   version: string;
   gitCommit: string;
+  /**
+   * Identifies the current server epoch as a uuid generated at API boot, so it
+   * changes whenever the API process restarts
+   */
+  serverEpochUuid: string;
 }
 
 interface EditEvent {

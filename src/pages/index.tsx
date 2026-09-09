@@ -490,7 +490,7 @@ const Home: React.FunctionComponent = () => {
         const serverAppVersion: AppVersion = await res.json();
         if (!isEqual(clientAppVersion, serverAppVersion)) {
           alert(
-            `A new version of AEGIS is available. You will be redirected to a version check page. \nCurrent version: ${clientAppVersion.version}/${clientAppVersion.gitCommit}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit} `
+            `AEGIS has been updated or restarted. You will be redirected to a version check page. \nCurrent version: ${clientAppVersion.version}/${clientAppVersion.gitCommit}/${clientAppVersion.serverEpochUuid}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit}/${serverAppVersion.serverEpochUuid}`
           );
           // Redirect to version check page with version info and return URL
           const currentUrl = window.location.pathname + window.location.search;
