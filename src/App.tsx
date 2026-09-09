@@ -19,8 +19,6 @@ import EnvironmentConfig from "pages/admin/environmentConfig";
 import ManageAutomergeDoc from "pages/admin/automerge";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { setLaunchpadUser } from "store/user";
-import { setClientAppVersion } from "store/connection";
-import { clientLogger } from "utils/logging/clientLogger";
 
 const TestMapPerformant = React.lazy(() => import("pages/testMapPerformant"));
 
@@ -29,18 +27,6 @@ const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElemen
   if (!(props.launchpadUser instanceof Error)) {
     dispatch(setLaunchpadUser(props.launchpadUser));
   }
-
-  // These values are from the vite.config.mts file and are set at build time
-  dispatch(
-    setClientAppVersion({
-      version: __APP_VERSION__,
-      gitCommit: __GIT_COMMIT__,
-    })
-  );
-  clientLogger.info({
-    logId: "appVersion",
-    version: `AEGIS Client Version: ${__APP_VERSION__}, Git Commit: ${__GIT_COMMIT__}`,
-  });
 
   return (
     <>

@@ -14,6 +14,11 @@ services:
       context: .
       dockerfile: ./docker/nginx/Dockerfile
       target: prod
+      args:
+        # .env is excluded from the Docker build context (.dockerignore), so these must be
+        # passed explicitly as build args
+        VITE_PUBLIC_CONSOLE_LOG_LEVEL: ${VITE_PUBLIC_CONSOLE_LOG_LEVEL}
+        VITE_PUBLIC_REMOTE_LOG_LEVEL: ${VITE_PUBLIC_REMOTE_LOG_LEVEL}
 
   apiv1:
     image: aegis-preview-apiv1:latest

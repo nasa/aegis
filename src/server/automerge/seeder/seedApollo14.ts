@@ -6,7 +6,7 @@ import type {
   DocHandle,
   StorageAdapterInterface,
 } from "@automerge/automerge-repo/slim";
-import { PostgresStorageAdapter } from "server/automerge/automerge-repo-storage-postgres";
+import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
 import pg from "pg";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
