@@ -36,6 +36,6 @@ describe("createClientSocket", () => {
 
   test("uses a bounded retry count everywhere else", () => {
     createClientSocket("https://localhost:8000");
-    expect(ioMock.mock.calls[0][1]).toMatchObject({ reconnectionAttempts: 50 });
+    expect(ioMock.mock.calls[0][1]).toMatchObject({ reconnectionAttempts: 500 });
   });
 });
