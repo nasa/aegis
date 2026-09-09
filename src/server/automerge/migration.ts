@@ -3,7 +3,7 @@ dotenv.config({ override: true, quiet: true });
 import * as fs from "node:fs";
 import { isValidAutomergeUrl, Repo } from "@automerge/automerge-repo/slim";
 import type { DocHandle, StorageAdapterInterface } from "@automerge/automerge-repo/slim";
-import { PostgresStorageAdapter } from "server/automerge/automerge-repo-storage-postgres";
+import { PostgresStorageAdapter } from "server/automerge/automerge-stoarge-adapater";
 import pg from "pg";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";

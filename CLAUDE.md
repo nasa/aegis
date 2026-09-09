@@ -131,6 +131,16 @@ The following type declaration files define the contract between AEGIS and the e
 - **Automerge repo** network adapter mounts at `/api/automergeSocket/` via WebSocket upgrade, using a custom `PostgresStorageAdapter` to persist documents to PostgreSQL.
 - **Authentication** is delegated to `@emss/oauth2-proxy-backend`; secrets and environment config come from `env.secret.ts` (gitignored) and dotenv.
 
+### Automerge Socket Epoch Gate (`serverEpochUuid`)
+
+A browser tab left open across a server restart holds in-memory Automerge state authored against the pre-restart document. Reconnecting would merge those stale changes back in — most damaging right after a schema migration. The gate prevents that by refusing the reconnect and forcing a full page reload, which discards all client Automerge state (the client `Repo` has no storage adapter, so nothing survives a reload).
+
+- **`serverEpochUuid`** identifies one server lifetime, formatted `<postgres postmaster start time>|<apiv1 boot uuid>`. Both halves are needed: the postmaster start time catches a database swap or restart while apiv1 keeps running (for example `z:db-import`, which deletes `PGDATA`), and the per-process boot uuid catches a normal deploy, where a bare `compose up -d` recreates apiv1 but leaves the database container untouched. It is assembled at boot in `src/server/express/server.ts` and carried on `AppVersion` alongside `version`/`gitCommit`, so `GET /api/v1/version` and the Socket.IO `version` event both serve it.
+- **Server gate (authoritative)** — the HTTP `upgrade` handler in `src/server/express/server.ts` compares the `?serverEpochUuid=` query parameter against the current value and answers a raw `426 Upgrade Required` on any mismatch or omission. It must `return` silently for every non-Automerge path, since Socket.IO shares the same `upgrade` listener.
+- **Client adapter** — `VersionGatedNetworkAdapter` (`src/client/automerge-network-adapter.ts`) wraps the vendor WebSocket adapter, appends the epoch to the URL, and polls `/api/v1/version` every 5s while disconnected. A matching epoch reconnects; a differing one blocks permanently and redirects to `/versionCheck`. A failed fetch (server down mid-deploy) keeps polling without redirecting. It never emits `close` (that would permanently remove it from the `NetworkSubsystem`) and force-readies after ~1s so a blocked gate cannot hang `whenReady()` callers.
+- **Read-only UI** — `connection.automergeConnectionStatus` feeds `isConnected` in `src/store/selectors.ts`, so losing only the Automerge socket now also disables the Edit toggle and form Save buttons.
+- Note for local development: nodemon restarts the API process, so saving a server file changes the epoch and forces open dev tabs to reload.
+
 ### Data Flow
 
 ```

@@ -1,6 +1,7 @@
 import "utils/loadEnv";
 import type { Server as NetServer } from "http";
 import { createServer } from "http";
+import { v4 as uuidv4 } from "uuid";
 import { Server as SocketServer } from "socket.io";
 import type { DefaultEventsMap } from "socket.io";
 import { WebSocketServer } from "isomorphic-ws"; // included in automerge repo network websocket
@@ -17,7 +18,7 @@ import config from "server/database/mikro-orm.config";
 
 import { serverLogger } from "utils/logging/serverLogger";
 import pg from "pg";
-import { PostgresStorageAdapter } from "server/automerge/automerge-repo-storage-postgres";
+import { PostgresStorageAdapter } from "server/automerge/automerge-stoarge-adapater";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { closeRasterSamplingWorkerPool } from "server/raster/rasterSamplingWorkerPool";
@@ -27,8 +28,61 @@ initializeBase64Wasm(automergeWasmBase64);
 
 // Wrap in async IIFE to handle top-level await
 (async () => {
-  // start the database connection
+  // ==========================================================================
+  // Database connections
+  // ==========================================================================
+
   globalValues.orm = await MikroORM.init(config);
+
+  // Raw pg pool, shared by the server epoch read and the automerge storage adapter
+  const dbConfig: pg.Pool = new pg.Pool({
+    user: "postgres",
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASS,
+    port: 5432,
+  });
+
+  // ==========================================================================
+  // App version
+  // ==========================================================================
+
+  const apiv1BootUuid = uuidv4();
+  let postgresStartTime: string;
+  try {
+    const epochResult = await dbConfig.query<{ epoch: string }>(
+      `select to_char(pg_postmaster_start_time() at time zone 'UTC', ` +
+        `'YYYY-MM-DD"T"HH24:MI:SS.USZ') as epoch`
+    );
+    postgresStartTime = epochResult.rows[0]?.epoch;
+    if (!postgresStartTime) {
+      throw new Error("pg_postmaster_start_time() returned no rows");
+    }
+  } catch (error) {
+    // A failure here is unrecoverable. Exit and boot and let the container restart policy retry.
+    serverLogger.critical(
+      { logId: "server", logValue: "Unable to read server epoch from the database" },
+      error instanceof Error ? error : new Error(String(error))
+    );
+    process.exit(1);
+  }
+
+  const serverEpochUuid = `${postgresStartTime}|${apiv1BootUuid}`;
+
+  // version and gitCommit are defined in esbuild.mjs and populated at build time
+  globalValues.appVersion = {
+    version: typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "unknown",
+    gitCommit: typeof __GIT_COMMIT__ !== "undefined" ? __GIT_COMMIT__ : "unknown",
+    serverEpochUuid,
+  };
+  serverLogger.info({
+    logId: "server",
+    logValue: `Server epoch: ${serverEpochUuid}`,
+  });
+
+  // ==========================================================================
+  // HTTP server + Socket.IO
+  // ==========================================================================
 
   // parent http server
   const server: NetServer = createServer();
@@ -50,12 +104,6 @@ initializeBase64Wasm(automergeWasmBase64);
     pingTimeout: 5000,
   });
 
-  // these values are defined in esbuild.mjs and populated at build time
-  globalValues.appVersion = {
-    version: typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "unknown",
-    gitCommit: typeof __GIT_COMMIT__ !== "undefined" ? __GIT_COMMIT__ : "unknown",
-  };
-
   setupSocketIO();
   // v2 Maegistro lives on the /api/socket server under the /maestro/v2 namespace.
   setupMaestroNamespaceV2(globalValues.socketio);
@@ -67,6 +115,10 @@ initializeBase64Wasm(automergeWasmBase64);
     serverLogger.info({ logId: "server", logValue: "Server listening on port 4001" });
   });
 
+  // ==========================================================================
+  // Automerge
+  // ==========================================================================
+
   // setup autoMerge sync server
   const wss = new WebSocketServer({ noServer: true });
 
@@ -75,22 +127,43 @@ initializeBase64Wasm(automergeWasmBase64);
   // Socket.IO's own upgrade listener (auto-attached during SocketServer
   // construction above) handles /api/socket; this one handles the Automerge WS.
   server.on("upgrade", (request, socket, head) => {
-    if (request.url === "/api/automergeSocket/") {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit("connection", ws, request);
-      });
+    let url: URL;
+    try {
+      // request.url is always origin-relative, so a placeholder base is required.
+      url = new URL(request.url ?? "", "http://localhost");
+    } catch {
+      return;
     }
+
+    // Socket.IO shares this upgrade event, so only look for the automerge socket
+    // and leave everything else alone.
+    if (url.pathname !== "/api/automergeSocket/") return;
+
+    // The client appends ?serverEpochUuid=<value> from the version it was served
+    // at page load. A missing or stale value means the tab predates the current
+    // server, so the upgrade is refused
+    const clientEpoch = url.searchParams.get("serverEpochUuid");
+    if (clientEpoch !== serverEpochUuid) {
+      serverLogger.warning({
+        logId: "server",
+        logValue: `Rejected automerge upgrade. client epoch: ${clientEpoch}, server epoch: ${serverEpochUuid}`,
+      });
+      socket.write("HTTP/1.1 426 Upgrade Required\r\nConnection: close\r\n\r\n");
+      socket.destroy();
+      return;
+    }
+
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit("connection", ws, request);
+    });
   });
+
+  // ==========================================================================
+  // Automerge repo
+  // ==========================================================================
 
   // hook up the network (socket server) and storage to a new automerge repo
   const networkAdapter = new NodeWSServerAdapter(wss);
-  const dbConfig: pg.Pool = new pg.Pool({
-    user: "postgres",
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASS,
-    port: 5432,
-  });
   const storageAdapter: StorageAdapterInterface = new PostgresStorageAdapter(
     "automerge_native_db",
     dbConfig

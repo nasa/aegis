@@ -56,6 +56,12 @@ interface StatusFromServer {
 interface AppVersion {
   version: string;
   gitCommit: string;
+  /**
+   * Identifies the current server epoch as `<postgres postmaster start
+   * time>|<apiv1 boot uuid>` so it changes when either the database or the API
+   * process restarts
+   */
+  serverEpochUuid: string;
 }
 
 interface EditEvent {

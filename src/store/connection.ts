@@ -14,6 +14,7 @@ export const initialState: ConnectionState = {
     },
   },
   browserConnectionStatus: "connected", // start connected because if the user has loaded the app, they have a browser connection.
+  automergeConnectionStatus: "connecting",
   clientAppVersion: null,
 };
 
@@ -37,6 +38,9 @@ export const connectionSlice = createSlice({
     setBrowserConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
       state.browserConnectionStatus = action.payload;
     },
+    setAutomergeConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
+      state.automergeConnectionStatus = action.payload;
+    },
     setClientAppVersion: (state, action: { payload: AppVersion }) => {
       state.clientAppVersion = action.payload;
     },
@@ -51,6 +55,7 @@ export const {
   setSocketConnectionStatus,
   setLastEditEvent,
   setBrowserConnectionStatus,
+  setAutomergeConnectionStatus,
   setClientAppVersion,
   setServerVersion,
 } = connectionSlice.actions;

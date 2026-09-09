@@ -115,11 +115,13 @@ export const attachSocketListeners = (
   socket.on("version", (serverAppVersion: AppVersion) => {
     if (
       connectionStoreRef.current.clientAppVersion.version !== serverAppVersion.version ||
-      connectionStoreRef.current.clientAppVersion.gitCommit !== serverAppVersion.gitCommit
+      connectionStoreRef.current.clientAppVersion.gitCommit !== serverAppVersion.gitCommit ||
+      connectionStoreRef.current.clientAppVersion.serverEpochUuid !==
+        serverAppVersion.serverEpochUuid
     ) {
       if (connectionStoreRef.current.clientAppVersion?.version) {
         alert(
-          `A new version of AEGIS is available. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.clientAppVersion.version}/${connectionStoreRef.current.clientAppVersion.gitCommit}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit} `
+          `AEGIS has been updated or restarted. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.clientAppVersion.version}/${connectionStoreRef.current.clientAppVersion.gitCommit}/${connectionStoreRef.current.clientAppVersion.serverEpochUuid}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit}/${serverAppVersion.serverEpochUuid} `
         );
 
         // Redirect to version check page with version info and return URL

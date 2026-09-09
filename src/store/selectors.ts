@@ -142,12 +142,14 @@ export const getAsPlannedEvaFromRefUuid = (mission: Mission, refUuid: string): E
 };
 
 /**
- * Only returns true if all connections (browser internet, and socket) are connected
+ * Only returns true if all connections (browser internet, socket, and the
+ * Automerge sync socket) are connected
  */
 export const isConnected = (state: RootState): boolean => {
   return (
     state.connection.browserConnectionStatus === "connected" &&
-    state.connection.socketStatus.connectionStatus === "connected"
+    state.connection.socketStatus.connectionStatus === "connected" &&
+    state.connection.automergeConnectionStatus === "connected"
   );
 };
 

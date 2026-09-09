@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button } from "components/interface/form/globalFields";
+import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { clientLogger } from "utils/logging/clientLogger";
 
 /**
@@ -19,9 +20,17 @@ const VersionCheck: React.FunctionComponent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [countdown, setCountdown] = useState(10);
 
+  // The epoch is not a build-time constant: it is whatever the server reported
+  // when this page was loaded, seeded into the store during bootstrap.
+  const loadedEpoch = useAppSelector(
+    (state) => state.connection.clientAppVersion?.serverEpochUuid ?? null,
+    refEqual
+  );
+
   const clientVersion: AppVersion = {
     version: __APP_VERSION__,
     gitCommit: __GIT_COMMIT__,
+    serverEpochUuid: loadedEpoch,
   };
 
   // Decode and validate returnUrl to prevent open redirect vulnerabilities
@@ -70,11 +79,12 @@ const VersionCheck: React.FunctionComponent = () => {
     fetchServerVersion();
   }, []);
 
-  // Check if versions match
+  // Check if versions match.
   const versionsMatch =
     serverVersion &&
     clientVersion.version === serverVersion.version &&
-    clientVersion.gitCommit === serverVersion.gitCommit;
+    clientVersion.gitCommit === serverVersion.gitCommit &&
+    clientVersion.serverEpochUuid === serverVersion.serverEpochUuid;
 
   // Countdown timer when versions match
   useEffect(() => {
@@ -142,10 +152,11 @@ const VersionCheck: React.FunctionComponent = () => {
         flexDirection: "column",
       }}
     >
-      <h1>Version Update Required</h1>
+      <h1>Refresh Required</h1>
       <p>
-        Your version of AEGIS is out of date. Click the button below to fetch the latest version. If
-        that does not work, perform a hard refresh (Ctrl+F5 or Cmd+Shift+R).
+        Your version of AEGIS is out of date, or the AEGIS server has been restarted since this page
+        was opened. Click the button below to fetch the latest version. If that does not work,
+        perform a hard refresh (Ctrl+F5 or Cmd+Shift+R).
       </p>
 
       <div>

@@ -106,6 +106,7 @@ interface InterfaceState {
 interface ConnectionState {
   socketStatus: ClientSocketStatus;
   browserConnectionStatus: ConnectionStatus;
+  automergeConnectionStatus: ConnectionStatus;
   clientAppVersion: AppVersion;
 }
 
