@@ -58,8 +58,14 @@ automerge-schema-validate:
       when: always
   timeout: 30 minutes
   needs:
-    - install_dependencies
-    - make-dotenv:test
+    # install_dependencies and make-dotenv:test come from includes/build-support.yml,
+    # which .gitlab-ci.yml excludes from audit scheduled pipelines. GitLab validates
+    # `needs` against the merged config before job rules are evaluated, so without
+    # `optional` the audit pipeline fails to create with "undefined need".
+    - job: install_dependencies
+      optional: true
+    - job: make-dotenv:test
+      optional: true
     - z:db-export:prod
   variables:
     # define variables used by Node app
