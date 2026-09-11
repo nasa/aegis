@@ -7,7 +7,7 @@
 export declare namespace AegisSlice {
   interface EvaSequenceItem {
     type: "station" | "traverse";
-    refUuid: string;
+    uuid: string;
   }
 
   interface CalculatedFieldItems {
@@ -53,12 +53,14 @@ export declare namespace AegisSlice {
   type AegisEva = {
     missionId: number;
     name: string;
-    refUuid: string;
+    uuid: string;
     description: string;
-    sequenceRefUuids: EvaSequenceItem[];
+    sequence: EvaSequenceItem[];
     datetime: number | null;
     createdAt: number;
     updatedAt: number;
+    /** Present only when this EVA belongs to a REX. */
+    rexUuid?: string;
   };
 
   type AegisEvas = { [evaId: string]: AegisEva };
@@ -66,30 +68,34 @@ export declare namespace AegisSlice {
   type AegisStation = {
     missionId: number;
     name: string;
-    refUuid: string;
+    uuid: string;
     iconEmojiDecoded?: string;
     duration: number | null;
     calculatedFields: CalculatedFieldItems;
     description: string;
-    actionOrderRefUuids: string[];
+    actionOrderUuids: string[];
     isLanderXgress: boolean;
     updatedAt: number;
     createdAt: number;
+    /** Present only when this station belongs to a REX. */
+    rexUuid?: string;
   };
 
   type AegisStations = { [stationId: string]: AegisStation };
 
   type AegisTraverse = {
-    refUuid: string;
+    uuid: string;
     missionId: number;
     name: string;
     description: string;
-    actionOrderRefUuids: string[] | null;
+    actionOrderUuids: string[] | null;
     createdAt: number;
     updatedAt: number;
     iconEmojiDecoded?: string;
     duration: number | null;
     calculatedFields: CalculatedFieldItems;
+    /** Present only when this traverse belongs to a REX. */
+    rexUuid?: string;
   };
 
   type AegisTraverses = { [traverseId: string]: AegisTraverse };
@@ -121,7 +127,7 @@ export declare namespace AegisSlice {
 
   type AegisAction = {
     name: string;
-    refUuid: string;
+    uuid: string;
     descriptionTask: string;
     equipmentItemsUsageReadable: EquipmentItemUsage[];
     actionDefinitionReadable: ActionDefinitionReadable | null | undefined;
@@ -133,9 +139,11 @@ export declare namespace AegisSlice {
     duration: number;
     stmAction: boolean;
     iconEmojiDecoded: string;
-    stationRefUuid?: string;
-    traverseRefUuid?: string;
+    stationUuid?: string;
+    traverseUuid?: string;
     enabled: boolean;
+    /** Present only when this action belongs to a REX. */
+    rexUuid?: string;
   };
 
   type AegisActionsRequest = {
@@ -173,6 +181,7 @@ export declare namespace AegisSlice {
   type AegisEvaWithSequenceReadable = AegisEva & {
     sequenceReadable: (StationWithReadable | TraverseWithReadable | null)[];
   };
+
   type ReadableActions<T extends "Station" | "Traverse"> = {
     actionsReadable: AegisAction[];
     _itemType: T;
