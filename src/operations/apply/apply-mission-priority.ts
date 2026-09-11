@@ -1,34 +1,9 @@
 import cloneDeep from "lodash/cloneDeep";
 import { v4 as uuidv4 } from "uuid";
+import type { MissionPriorityImportCategory } from "components/admin/missionPriorityImportExport";
 
 import { generateBlankMissionPriority } from "store/storeUtils/mission";
 import { getAccurateNow } from "utils/formatting";
-
-/**
- * Mission priorities are stored as a flat map of trace rows. The `category` string on each
- * row is the only thing that groups them, so a category exists exactly as long as at least
- * one row carries its name.
- */
-
-/** Collect the distinct category names currently present on the mission. */
-export function getMissionPriorityCategories(m: Pick<Mission, "missionPriorities">): string[] {
-  const categories = new Set<string>();
-  for (const missionPriority of Object.values(m.missionPriorities ?? {})) {
-    categories.add(missionPriority.category);
-  }
-  return [...categories].sort((a, b) => a.localeCompare(b));
-}
-
-/** True when a category of this name already exists (case-insensitive). */
-export function missionPriorityCategoryExists(
-  m: Pick<Mission, "missionPriorities">,
-  category: string
-): boolean {
-  const normalized = category.trim().toLocaleLowerCase();
-  return getMissionPriorityCategories(m).some(
-    (existing) => existing.trim().toLocaleLowerCase() === normalized
-  );
-}
 
 /**
  * Create a new category by inserting a single placeholder trace row under it. Because
@@ -76,6 +51,29 @@ export function applyUpdateMissionPriorityByField<K extends keyof MissionPriorit
     missionPriority[fieldName] = cloneDeep(value);
     m.updatedAt = getAccurateNow().getTime();
   }
+}
+
+/**
+ * Replace every mission priority on the mission with the supplied categories/traces.
+ *
+ * This is destructive: all existing rows are discarded and fresh uuids are allocated, so
+ * any action or action template that pointed at an old row has its reference cleared.
+ */
+export function applyReplaceAllMissionPriorities(
+  m: Mission,
+  { categories }: { categories: MissionPriorityImportCategory[] }
+): void {
+  const removedUuids = new Set(Object.keys(m.missionPriorities ?? {}));
+
+  m.missionPriorities = {};
+  for (const { category, traces } of categories) {
+    for (const trace of traces) {
+      m.missionPriorities[uuidv4()] = generateBlankMissionPriority({ category, trace });
+    }
+  }
+
+  clearMissionPriorityReferences(m, removedUuids);
+  m.updatedAt = getAccurateNow().getTime();
 }
 
 /**
