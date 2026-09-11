@@ -8,7 +8,7 @@ include:
   # - template: "Verify/Accessibility.gitlab-ci.yml"
 
   - project: "emss/gitlab-templates"
-    ref: 2.7.1
+    ref: 2.9.0
     file:
       # Run standard FIT developer-ecosystem/ci-job-templates with emss
       # stageless overrides.
@@ -218,7 +218,7 @@ merge-vitest-coverage:
 
 test-node-next:
   extends: .test_template
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:25.8.1-alpine
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:25.9.0-alpine
   when: manual
   allow_failure: true
   script:
@@ -241,7 +241,7 @@ test-playwright:
     NUM_SHARDS: 4
   extends: .test_template
   stage: stageless
-  image: mcr.microsoft.com/playwright:v1.61.0-jammy
+  image: mcr.microsoft.com/playwright:v1.63.0-jammy
   needs:
     - install_dependencies
     - make-dotenv:test
@@ -270,7 +270,7 @@ test-playwright:
 
 test-vitest:browser:
   stage: stageless
-  image: mcr.microsoft.com/playwright:v1.61.0-jammy
+  image: mcr.microsoft.com/playwright:v1.63.0-jammy
   needs:
     - install_dependencies
   tags: ["openshift"]
