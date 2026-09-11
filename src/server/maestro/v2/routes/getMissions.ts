@@ -68,7 +68,7 @@ export async function getMissionsData(): Promise<MissionsWithEvas> {
       missionName: mission.name,
       missionActionSystemVersion: mission.actionSystemVersion,
       evas: asPlannedEvas.map((e) => ({
-        refUuid: e.refUuid,
+        uuid: e.uuid,
         evaName: e.name,
       })),
     };

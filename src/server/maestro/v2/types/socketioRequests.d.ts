@@ -4,13 +4,13 @@ export type MissionsWithEvas = {
     missionName: string;
     missionActionSystemVersion: number;
     evas: {
-      refUuid: string;
+      uuid: string;
       evaName: string;
     }[];
   };
 };
 
-// used in getRexesByEvaRef maestro route
+// used in getRexesByEva maestro route
 export type RefRex = {
   uuid: string;
   name: string;
