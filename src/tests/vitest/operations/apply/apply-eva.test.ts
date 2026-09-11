@@ -7,6 +7,7 @@ import {
   applyUpsertEva,
   applyUpdateEvaByField,
   applyInsertEvaSequenceItems,
+  applySwapEvaSequenceItems,
 } from "operations/apply/apply-eva";
 import { generateBlankEVA } from "store/storeUtils/eva";
 
@@ -96,6 +97,14 @@ describe("apply-eva", () => {
     it("is a no-op when EVA doesn't exist", () => {
       withMissionChange((m) =>
         applyInsertEvaSequenceItems(m, { evaUuid: "missing", insertAt: 2, items: [] })
+      );
+    });
+  });
+
+  describe("applySwapEvaSequenceItems()", () => {
+    it("is a no-op when EVA doesn't exist", () => {
+      withMissionChange((m) =>
+        applySwapEvaSequenceItems(m, { evaUuid: "missing", indexA: 1, indexB: 1 })
       );
       expect(Object.keys(getMission().evas).length).toBe(0);
     });
