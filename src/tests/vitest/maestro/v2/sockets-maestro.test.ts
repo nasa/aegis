@@ -236,6 +236,18 @@ describe("maestro namespace socket handlers", () => {
       expect(visitors).toHaveLength(1);
       expect(visitors[0].name).toBe("Vitest TestMaestro Updated");
     });
+
+    it("does nothing when missionId is invalid", async () => {
+      const visitor: MaestroVisitor = {
+        socketId: mockSocket.id,
+        name: "Vitest TestMaestro",
+        connectedAt: Date.now(),
+      };
+
+      mockSocket._handlers["missionJoin"](null, visitor);
+
+      expect(mockSocket.join).not.toHaveBeenCalledWith(getMaestroSocketRoomName(null));
+    });
   });
 
   describe("subscribeToEva", () => {
