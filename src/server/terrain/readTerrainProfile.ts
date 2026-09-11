@@ -18,7 +18,7 @@ export type TerrainProfileResult = {
   blocksRead: number;
 };
 
-export type TerrainProfileWorkerResult = TerrainProfileResult &
+type TerrainProfileWorkerResult = TerrainProfileResult &
   Pick<TerrainProfileSamplingWorkerResult, "workerId" | "queueDurationMs" | "executionDurationMs">;
 
 const validateAndInterpolate = (path: GeographicPoint[], samplesPerSegment: number[]) => {
