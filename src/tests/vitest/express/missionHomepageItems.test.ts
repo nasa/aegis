@@ -41,17 +41,17 @@ beforeAll(async () => {
     {
       id: testAutomergeDocListings[0].missionId,
       name: "Vitest Test Mission 1",
-      isArchived: false,
+      archivedAt: null,
     },
     {
       id: testAutomergeDocListings[1].missionId,
       name: "Vitest Test Mission 2",
-      isArchived: false,
+      archivedAt: null,
     },
     {
       id: testAutomergeDocListings[2].missionId,
       name: "Vitest Test Mission 3",
-      isArchived: false,
+      archivedAt: null,
     },
   ];
   // Last, create mock automerge repo with test missions partials from above
