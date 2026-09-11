@@ -241,9 +241,3 @@ export const generateBlankMissionPriority = (
   };
   return { ...defaultNewMissionPriority, ...partialMissionPriority };
 };
-
-/**
- * Join a mission priority into its display form: "<trace> | <category>".
- */
-export const buildMissionPriorityName = (missionPriority: MissionPriority): string =>
-  `${missionPriority.trace} | ${missionPriority.category}`;

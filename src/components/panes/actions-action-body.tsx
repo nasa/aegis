@@ -216,7 +216,7 @@ const RightActionBody: FunctionComponent<{
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>
                   <div className={paneStyles.panelColumnTableCell}>
-                    <div className={paneStyles.inputFieldLabel}>Mission Priority:</div>
+                    <div className={paneStyles.inputFieldLabel}>Mission Priority Identifier:</div>
                   </div>
                   <div className={paneStyles.panelColumnTableCell}>
                     <MissionPriorityDropdown

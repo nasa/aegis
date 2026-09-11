@@ -1,5 +1,5 @@
 import { decodeEmoji } from "./formatting";
-import { buildActionDefinitionName, buildMissionPriorityName } from "store/storeUtils/mission";
+import { buildActionDefinitionName } from "store/storeUtils/mission";
 import { getGridCoordinatesFromPoint } from "./mapping/geoMath";
 import {
   getCalcFieldsForEva,
@@ -462,7 +462,7 @@ export const makeReadableMissionPriority = (params: {
     uuid: missionPriorityUuid,
     trace: missionPriority.trace,
     category: missionPriority.category,
-    displayString: buildMissionPriorityName(missionPriority),
+    displayString: `${missionPriority.trace} | ${missionPriority.category}`,
   };
 };
 
