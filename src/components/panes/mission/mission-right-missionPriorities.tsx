@@ -16,7 +16,6 @@ import {
   applyCreateMissionPriorityCategory,
   applyRenameMissionPriorityCategory,
   applyUpdateMissionPriorityByField,
-  getMissionPriorityCategories,
 } from "operations/apply/apply-mission-priority";
 import {
   opDeleteMissionPriority,
@@ -46,7 +45,11 @@ const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
     deepEqual
   );
 
-  const categories = getMissionPriorityCategories({ missionPriorities });
+  const categorySet = new Set<string>();
+  for (const missionPriority of Object.values(missionPriorities ?? {})) {
+    categorySet.add(missionPriority.category);
+  }
+  const categories = [...categorySet].sort((a, b) => a.localeCompare(b));
 
   return (
     <div className={paneStyles.rightBody}>

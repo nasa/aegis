@@ -1,0 +1,45 @@
+.exportContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+}
+
+.importExport {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-top: 20px;
+}
+
+.importTextArea {
+  width: 500px;
+  min-height: 8rem;
+  font-family: monospace;
+}
+
+.hint {
+  margin: 8px 0 0;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.formatBlock {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border, #474955);
+  border-radius: 4px;
+  background: var(--admin-bg, #19181b);
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.error {
+  margin: 8px 0 0;
+  color: #f87171;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}

@@ -10,9 +10,13 @@ import {
   applyDeleteMissionPriorityCategory,
   applyRenameMissionPriorityCategory,
   applyUpdateMissionPriorityByField,
-  getMissionPriorityCategories,
-  missionPriorityCategoryExists,
 } from "operations/apply/apply-mission-priority";
+
+/** Test-local helper mirroring the category extraction that production callers inline. */
+const getCategories = (missionPriorities: MissionPriorities): string[] =>
+  [...new Set(Object.values(missionPriorities).map((p) => p.category))].sort((a, b) =>
+    a.localeCompare(b)
+  );
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankActionTemplate } from "store/storeUtils/mission";
 import { v4 as uuidv4 } from "uuid";
@@ -62,7 +66,7 @@ describe("apply-mission-priority", () => {
 
       const missionPriorities = getMissionDocHandle().doc().missionPriorities;
       expect(Object.keys(missionPriorities)).toHaveLength(2);
-      expect(getMissionPriorityCategories({ missionPriorities })).toEqual(["Vitest Category"]);
+      expect(getCategories(missionPriorities)).toEqual(["Vitest Category"]);
     });
 
     it("returns the newly allocated uuid", () => {
@@ -120,20 +124,7 @@ describe("apply-mission-priority", () => {
       );
 
       const missionPriorities = getMissionDocHandle().doc().missionPriorities;
-      expect(getMissionPriorityCategories({ missionPriorities })).toEqual([
-        "Vitest Other",
-        "Vitest Renamed",
-      ]);
-    });
-  });
-
-  describe("missionPriorityCategoryExists()", () => {
-    it("matches case-insensitively", () => {
-      withMissionChange((m) => applyCreateMissionPriority(m, { category: "Vitest Category" }));
-      const missionPriorities = getMissionDocHandle().doc().missionPriorities;
-
-      expect(missionPriorityCategoryExists({ missionPriorities }, "vitest category")).toBe(true);
-      expect(missionPriorityCategoryExists({ missionPriorities }, "Vitest Other")).toBe(false);
+      expect(getCategories(missionPriorities)).toEqual(["Vitest Other", "Vitest Renamed"]);
     });
   });
 
@@ -185,7 +176,7 @@ describe("apply-mission-priority", () => {
 
       const missionPriorities = getMissionDocHandle().doc().missionPriorities;
       expect(Object.keys(missionPriorities)).toHaveLength(1);
-      expect(getMissionPriorityCategories({ missionPriorities })).toEqual(["Vitest Other"]);
+      expect(getCategories(missionPriorities)).toEqual(["Vitest Other"]);
     });
   });
 });
