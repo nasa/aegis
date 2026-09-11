@@ -125,11 +125,16 @@ initializeBase64Wasm(automergeWasmBase64);
     // server, so the upgrade is refused
     const clientEpoch = url.searchParams.get("serverEpochUuid");
     if (clientEpoch !== serverEpochUuid) {
+      const forwardedFor = request.headers["x-forwarded-for"];
+      const clientIp =
+        (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor?.split(",")[0]?.trim()) ??
+        request.socket.remoteAddress ??
+        "(unknown)";
       serverLogger.warning({
         logId: "server",
         logValue: `Rejected automerge upgrade (${
           clientEpoch ? "epoch mismatch" : "no epoch supplied"
-        }). client epoch: ${clientEpoch ?? "(missing)"}, server epoch: ${serverEpochUuid}`,
+        }). client epoch: ${clientEpoch ?? "(missing)"}, server epoch: ${serverEpochUuid}, client ip: ${clientIp}.`,
       });
       socket.write("HTTP/1.1 426 Upgrade Required\r\nConnection: close\r\n\r\n");
       socket.destroy();
