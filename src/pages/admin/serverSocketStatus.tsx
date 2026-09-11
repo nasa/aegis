@@ -15,6 +15,7 @@ import {
   faEye,
   faCaretRight,
   faCaretDown,
+  faCodeCompare,
 } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
 
@@ -22,6 +23,7 @@ const ServerSocketStatus: React.FunctionComponent = () => {
   const navigate = useNavigate();
   const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
   const [serverSocketStatus, setServerSocketStatus] = useState<ServerSocketStatus>(null);
+  const [appVersion, setAppVersion] = useState<AppVersion>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("connecting");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [missionNames, setMissionNames] = useState<Map<number, string>>(new Map());
@@ -65,6 +67,10 @@ const ServerSocketStatus: React.FunctionComponent = () => {
         setLastUpdatedAt(new Date().toISOString());
       });
 
+      socket.current.on("version", (serverAppVersion: AppVersion) => {
+        setAppVersion(serverAppVersion);
+      });
+
       return () => {
         socket.current.off("connect");
         socket.current.off("inspectorUpdate");
@@ -80,6 +86,24 @@ const ServerSocketStatus: React.FunctionComponent = () => {
           ← Admin
         </Link>
         <h1 className={adminCommon.pageTitle}>Visitor Connections</h1>
+
+        <section className={adminCommon.section}>
+          <div className={adminCommon.infoItem}>
+            <div>
+              <FontAwesomeIcon icon={faCodeCompare} className={adminCommon.mutedIcon} />
+              <span className={adminCommon.infoLabel}> Server App Version: </span>
+              <span className={adminCommon.infoValue}>{appVersion?.version}</span>
+            </div>
+            <div>
+              <span className={adminCommon.infoLabel}>Git Commit Hash: </span>
+              <span className={adminCommon.infoValue}>{appVersion?.gitCommit}</span>
+            </div>
+            <div>
+              <span className={adminCommon.infoLabel}>Server Epoch UUID: </span>
+              <span className={adminCommon.infoValue}>{appVersion?.serverEpochUuid}</span>
+            </div>
+          </div>
+        </section>
 
         <section className={adminCommon.section}>
           <div className={adminCommon.infoItem}>
@@ -276,7 +300,8 @@ const PrintUsers: FunctionComponent<{
                   <td>{record.appUser.username || "N/A"}</td>
                   <td>{record.launchpadUser?.ip_address || "N/A"}</td>
                   <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.85em" }}>
-                    {record.clientAppVersion.version} – {record.clientAppVersion.gitCommit}
+                    {record.clientAppVersion.version} – {record.clientAppVersion.gitCommit} –
+                    {record.clientAppVersion.serverEpochUuid}
                   </td>
                   <td>{new Date(record.connectedAt).toUTCString()}</td>
                 </tr>
