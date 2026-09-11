@@ -317,19 +317,6 @@ export function abbreviateString(str: string, maxLength: number): string {
   return str.substring(0, maxLength - 3) + "...";
 }
 
-export const getActionDefinitionTypeString = (type: ActionDefinitionType): string => {
-  switch (type) {
-    case "verbs":
-      return "Verbs";
-    case "nouns":
-      return "Nouns";
-    case "adjectives":
-      return "Adjectives";
-    default:
-      return "";
-  }
-};
-
 export const getISOStringFromDateAndTime = (date: string, time: string): string => {
   if (time.split(":")[0].length === 1) {
     time = `0${time}`;
@@ -341,6 +328,12 @@ export const getDateAndTimeFromISOString = (datetime: string): [string, string] 
   if (!datetime || datetime === "") return ["", ""];
   const [date, time] = datetime.split("T");
   return [date, time.slice(0, -1)];
+};
+
+export const roundUpSecondsFromISOString = (datetime: string): string => {
+  const ms = Date.parse(datetime);
+  const roundedMs = Math.ceil(ms / 1000) * 1000;
+  return new Date(roundedMs).toISOString();
 };
 
 export const isISOString = (isoString: string): boolean => {
