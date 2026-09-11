@@ -18,12 +18,39 @@ type Rex = {
   maestroControlled: boolean;
   maestroEventId: string | null;
   maestroEventUrl: string | null;
-  maestroActivityPropertiesByRefUuid: MaestroActivityPropertiesByRefUuid | null;
+  maestroActivityProperties: MaestroActivityProperties | null;
   createdAt?: number;
   updatedAt?: number;
 };
 
-type Rex_db_type = Omit<Rex, "createdAt" | "updatedAt"> & {
+/**
+ * A REX plus every legacy field that has been removed from `Rex` but still
+ * exists as a `rex_db` column and on docs that predate the migration that
+ * strips it.
+ *
+ * - `xgressEntries` — egress/ingress REX status from before egress/ingress
+ *   became real stations. Now folded into `stationEntries` keyed by the real
+ *   xgress station uuid.
+ * - `maestroActivityPropertiesByRefUuid` — activity display properties from
+ *   before Maestro addressed activities by AEGIS uuid. Now
+ *   `maestroActivityProperties`, keyed by uuid.
+ *
+ * The Automerge migration script seeds these from the DB, converts them onto
+ * their replacements, then deletes them.
+ */
+type RexWithLegacyFields = Rex & {
+  xgressEntries?: { [role: string]: { rexStatus: RexStatus } } | null;
+  maestroActivityPropertiesByRefUuid?: { [refUuid: string]: MaestroActivityProperty } | null;
+};
+
+/**
+ * The derelict `rex_db` table never received the field renames, so it has the
+ * legacy columns and none of their replacements.
+ */
+type Rex_db_type = Omit<
+  RexWithLegacyFields,
+  "createdAt" | "updatedAt" | "maestroActivityProperties"
+> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -67,10 +94,6 @@ interface ActivityEntries {
 interface MaestroActivityProperty {
   color?: string | null; // hex color for the activity
   number?: string | null; // string of the activity number in the maestro procedure
-}
-
-interface MaestroActivityPropertiesByRefUuid {
-  [refUuid: string]: MaestroActivityProperty;
 }
 
 interface MaestroActivityProperties {

@@ -12,9 +12,9 @@ import type { RefRex } from "server/maestro/v2/types/socketioRequests";
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { evaRefUuid } = query;
+  const { evaUuid } = query;
   const queryObj = {
-    evaRefUuid: evaRefUuid ? (evaRefUuid as string) : undefined,
+    evaUuid: evaUuid ? (evaUuid as string) : undefined,
   };
   return queryObj;
 };
@@ -32,29 +32,29 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
-      routeName: "emss/getRexesByEvaRef",
+      routeName: "emss/getRexesByEva",
       message: "Unauthorized access attempt",
-      uuids: [queryObj.evaRefUuid],
+      uuids: [queryObj.evaUuid],
     });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
 
   // validate inputs
-  if (!queryObj.evaRefUuid) {
+  if (!queryObj.evaUuid) {
     serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
-      routeName: "emss/getRexesByEvaRef",
-      message: "No EVA Ref given",
+      routeName: "emss/getRexesByEva",
+      message: "No EVA uuid given",
     });
-    res.status(400).json({ status: "failure", message: "No EVA Ref given" });
+    res.status(400).json({ status: "failure", message: "No EVA uuid given" });
     return;
   }
 
   try {
-    const refRexes = await getRexesByEvaRefData(queryObj.evaRefUuid);
+    const refRexes = await getRexesByEva(queryObj.evaUuid);
     res.status(200).json({
       status: "success",
       message: `Rexes retrieved`,
@@ -65,24 +65,30 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
-      routeName: "emss/getRexesByEvaRef",
+      routeName: "emss/getRexesByEva",
       message: "Error getting rexes",
-      uuids: [queryObj.evaRefUuid],
+      uuids: [queryObj.evaUuid],
       error: asError(e),
     });
     res.status(500).json({ status: "error", message: `Error getting rexes ${e}` });
   }
 });
 
-export async function getRexesByEvaRefData(evaRefUuid: string): Promise<RefRex[]> {
+/**
+ * Find every REX for a given as-planned EVA.
+ * Filter out rexes that have a maestroEventId.
+ */
+export async function getRexesByEva(asPlannedEvaUuid: string): Promise<RefRex[]> {
   const allMissions = await getAutomergeMissions();
 
   const matchingRexes = allMissions.flatMap((mission) => {
-    const evaUuidsWithMatchingRef = Object.values(mission.evas || {})
-      .filter((e) => e.refUuid === evaRefUuid)
+    const asPlannedEva = mission.evas?.[asPlannedEvaUuid];
+    if (!asPlannedEva) return [];
+    const relatedEvaUuids = Object.values(mission.evas || {})
+      .filter((e) => e.refUuid === asPlannedEva.refUuid)
       .map((e) => e.uuid);
     return Object.values(mission.rexes || {}).filter(
-      (r) => evaUuidsWithMatchingRef.includes(r.evaUuid) && !r.maestroEventId
+      (r) => relatedEvaUuids.includes(r.evaUuid) && !r.maestroEventId
     );
   });
 

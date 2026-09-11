@@ -71,7 +71,7 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     maestroControlled: false,
     maestroEventId: null,
     maestroEventUrl: null,
-    maestroActivityPropertiesByRefUuid: null,
+    maestroActivityProperties: null,
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };

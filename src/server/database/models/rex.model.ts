@@ -28,7 +28,15 @@ export const Rex_dbSchema = defineEntity({
     maestroControlled: p.boolean().default(false),
     maestroEventId: p.string().nullable(),
     maestroEventUrl: p.string().nullable(),
-    maestroActivityPropertiesByRefUuid: p.json<MaestroActivityPropertiesByRefUuid>().nullable(),
+    /**
+     * Legacy column, keyed by refUuid. Maestro now addresses activities by
+     * AEGIS uuid, so the doc stores this as `maestroActivityProperties`. Kept
+     * so the derelict table keeps its original shape until it is dropped
+     * wholesale.
+     */
+    maestroActivityPropertiesByRefUuid: p
+      .json<{ [refUuid: string]: MaestroActivityProperty }>()
+      .nullable(),
     createdAt: p.datetime(3),
     updatedAt: p.datetime(3),
     version: p.integer().version(),

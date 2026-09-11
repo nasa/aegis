@@ -34,9 +34,9 @@ export interface ActionStage {
 }
 
 /**
- * A fully-resolved plan for a single rex. Entry maps are keyed by resolved
- * AEGIS uuid (not refUuid). Top-level fields are copied verbatim from the MDAU
- * payload (per the v2 contract) — no per-field diffing on rexes.
+ * A fully-resolved plan for a single rex. Entry maps are keyed by AEGIS uuid.
+ * Top-level fields are copied verbatim from the MDAU payload (per the v2
+ * contract) — no per-field diffing on rexes.
  */
 export interface RexStage {
   uuid: string;
@@ -53,7 +53,6 @@ export interface RexStage {
   >;
   /** Whether the incoming payload flips this rex to running (used for stop-others + posEntries). */
   startsRunning: boolean;
-  /** maestroActivityPropertiesByRefUuid resolved to uuid keys. */
   maestroActivityProperties: MaestroActivityProperties | null;
   /**
    * Resolved station/traverse activity entries keyed by sequence uuid.

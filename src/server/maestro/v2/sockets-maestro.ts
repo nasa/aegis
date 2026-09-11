@@ -20,8 +20,6 @@ import { opUpdateMdau } from "server/maestro/v2/operations/op-mdau";
 import { mdauValidator } from "utils/validateSchemaServer";
 import { emssTokenIsValid } from "utils/permissions";
 import { buildAegisSliceForMaestro } from "server/maestro/v2/buildAegisSlice";
-import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
-import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import type {
   MaestroClientToServerEvents,
   MaestroServerToClientEvents,
@@ -100,45 +98,18 @@ export const setupMaestroNamespace = (
           .emit("inspectorUpdate", globalValues.serverSocketStatus);
       });
 
-      socket.on(
-        "subscribeToEva",
-        async (missionId: number, evaRefUuid: string, rexUuid: string | null, callback) => {
-          const subscriptions = globalValues.maestroV2.evaSubscriptions.get(missionId) ?? [];
-          // Resolve the eva uuid:
-          const evaUuid = await getEvaUuid(missionId, evaRefUuid, rexUuid);
-          if (!evaUuid) {
-            callback?.({
-              status: "error",
-              message: `evaUuid not found for this evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
-            });
-            serverLogger.warning({
-              logId: "socket-maestro-v2",
-              logValue: `subscribeToEva - could not get evaUuid from missionId ${missionId}, evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
-            });
-            return;
-          }
-          if (!subscriptions.includes(evaUuid)) {
-            subscriptions.push(evaUuid);
-            globalValues.maestroV2.evaSubscriptions.set(missionId, subscriptions);
-          }
-          callback?.({ status: "success" });
+      socket.on("subscribeToEva", async (missionId: number, evaUuid: string, callback) => {
+        const subscriptions = globalValues.maestroV2.evaSubscriptions.get(missionId) ?? [];
+        if (!subscriptions.includes(evaUuid)) {
+          subscriptions.push(evaUuid);
+          globalValues.maestroV2.evaSubscriptions.set(missionId, subscriptions);
         }
-      );
+        callback?.({ status: "success" });
+      });
 
-      socket.on(
-        "unsubscribeToEva",
-        async (missionId: number, evaRefUuid: string, rexUuid: string | null) => {
-          const evaUuid = await getEvaUuid(missionId, evaRefUuid, rexUuid);
-          if (!evaUuid) {
-            serverLogger.warning({
-              logId: "socket-maestro-v2",
-              logValue: `unsubscribeToEva - could not get evaUuid from missionId ${missionId}, evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
-            });
-            return;
-          }
-          removeEvaFromSubscriptions(missionId, [evaUuid]);
-        }
-      );
+      socket.on("unsubscribeToEva", (missionId: number, evaUuid: string) => {
+        removeEvaFromSubscriptions(missionId, [evaUuid]);
+      });
 
       socket.on("missionLeave", (missionId: number) => {
         const roomName = getMaestroSocketRoomName(missionId);
@@ -266,34 +237,6 @@ export const setupMaestroNamespace = (
       });
     }
   );
-};
-
-// Helper function to convert an evaRefUuid and rexUuid into the evaUuid
-const getEvaUuid = async (missionId: number, evaRefUuid: string, rexUuid: string | null) => {
-  // First try to get the mission information from the global maestro doc handle
-  let mission;
-  const docHandle = globalValues.maestroV2.docHandles.get(missionId);
-  if (!docHandle) {
-    mission = (await getAutomergeMissions([missionId]))[0];
-    if (!mission) return;
-  } else {
-    mission = docHandle.doc();
-  }
-  if (!mission) return;
-
-  if (rexUuid) {
-    // Verify the rex exists and its EVA matches the given refUuid
-    const rex = mission.rexes?.[rexUuid];
-    if (!rex) return;
-    const eva = mission.evas?.[rex.evaUuid];
-    if (!eva || eva.refUuid !== evaRefUuid) return;
-    return rex.evaUuid;
-  } else {
-    // Get the as-planned EVA (not linked to any rex)
-    const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, evaRefUuid);
-    if (!asPlannedEva) return;
-    return asPlannedEva.uuid;
-  }
 };
 
 /**

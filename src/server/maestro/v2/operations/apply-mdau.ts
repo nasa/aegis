@@ -119,9 +119,9 @@ export const applyMdauRexes = (m: Mission, stage: MdauStageData): void => {
       }
     }
 
-    // maestroActivityProperties (resolved to uuid keys).
+    // maestroActivityProperties, keyed by station/traverse uuid.
     if (rexStage.maestroActivityProperties !== null) {
-      rex.maestroActivityPropertiesByRefUuid = rexStage.maestroActivityProperties;
+      rex.maestroActivityProperties = rexStage.maestroActivityProperties;
     }
 
     // Apply all the other regular fields.
